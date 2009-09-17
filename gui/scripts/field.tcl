@@ -59,7 +59,7 @@ itcl::class Rappture::Field {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be Rappture::library"
+        error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
     set _field [$xmlobj element -as object $path]
@@ -67,28 +67,28 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
 
     set xunits [$xmlobj get units]
     if {"" == $xunits || "arbitrary" == $xunits} {
-	set xunits "um"
+        set xunits "um"
     }
 
     # determine the overall size of the device
     set z0 [set z1 0]
     foreach elem [$_xmlobj children components] {
-	switch -glob -- $elem {
-	    box* {
-		if {![regexp {[0-9]$} $elem]} {
-		    set elem "${elem}0"
-		}
-		set z0 [$_xmlobj get components.$elem.corner0]
-		set z0 [Rappture::Units::convert $z0 \
-		    -context $xunits -to $xunits -units off]
+        switch -glob -- $elem {
+            box* {
+                if {![regexp {[0-9]$} $elem]} {
+                    set elem "${elem}0"
+                }
+                set z0 [$_xmlobj get components.$elem.corner0]
+                set z0 [Rappture::Units::convert $z0 \
+                    -context $xunits -to $xunits -units off]
 
-		set z1 [$_xmlobj get components.$elem.corner1]
-		set z1 [Rappture::Units::convert $z1 \
-		    -context $xunits -to $xunits -units off]
+                set z1 [$_xmlobj get components.$elem.corner1]
+                set z1 [Rappture::Units::convert $z1 \
+                    -context $xunits -to $xunits -units off]
 
-		set _limits($elem) [list $z0 $z1]
-	    }
-	}
+                set _limits($elem) [list $z0 $z1]
+            }
+        }
     }
     set _zmax $z1
 
@@ -104,24 +104,24 @@ itcl::body Rappture::Field::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
 
     foreach name [array names _comp2xy] {
-	eval blt::vector destroy $_comp2xy($name)
+        eval blt::vector destroy $_comp2xy($name)
     }
     foreach name [array names _comp2vtk] {
-	set mobj [lindex $_comp2vtk($name) 0]
-	set class [$mobj info class]
-	${class}::release $mobj
+        set mobj [lindex $_comp2vtk($name) 0]
+        set class [$mobj info class]
+        ${class}::release $mobj
 
-	set fobj [lindex $_comp2vtk($name) 1]
-	rename $fobj ""
+        set fobj [lindex $_comp2vtk($name) 1]
+        rename $fobj ""
     }
     foreach name [array names _comp2unirect2d] {
-	itcl::delete object $_comp2unirect2d($name)
+        itcl::delete object $_comp2unirect2d($name)
     }
     foreach name [array names _comp2unirect3d] {
-	itcl::delete object $_comp2unirect3d($name)
+        itcl::delete object $_comp2unirect3d($name)
     }
     foreach name [array names _comp2flowhints] {
-	itcl::delete object $_comp2flowhints($name)
+        itcl::delete object $_comp2flowhints($name)
     }
 }
 
@@ -134,36 +134,36 @@ itcl::body Rappture::Field::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::components {args} {
     Rappture::getopts args params {
-	flag what -name default
-	flag what -dimensions
-	flag what -style
-	flag what -particles
-	flag what -flow
-	flag what -box
+        flag what -name default
+        flag what -dimensions
+        flag what -style
+        flag what -particles
+        flag what -flow
+        flag what -box
     }
 
     set pattern *
     if {[llength $args] > 0} {
-	set pattern [lindex $args 0]
-	set args [lrange $args 1 end]
+        set pattern [lindex $args 0]
+        set args [lrange $args 1 end]
     }
     if {[llength $args] > 0} {
-	error "wrong # args: should be \"components ?switches? ?pattern?\""
+        error "wrong # args: should be \"components ?switches? ?pattern?\""
     }
 
     set rlist ""
 
     # BE CAREFUL: return component names in proper order
     foreach cname [$_field children -type component] {
-	if {[info exists _comp2dims($cname)]
-	      && [string match $pattern $cname]} {
+        if {[info exists _comp2dims($cname)]
+              && [string match $pattern $cname]} {
 
-	    switch -- $params(what) {
-		-name { lappend rlist $cname }
-		-dimensions { lappend rlist $_comp2dims($cname) }
-		-style { lappend rlist $_comp2style($cname) }
-	    }
-	}
+            switch -- $params(what) {
+                -name { lappend rlist $cname }
+                -dimensions { lappend rlist $_comp2dims($cname) }
+                -style { lappend rlist $_comp2style($cname) }
+            }
+        }
     }
     return $rlist
 }
@@ -177,25 +177,25 @@ itcl::body Rappture::Field::components {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::mesh {{what -overall}} {
     if {$what == "-overall" || $what == "component0"} {
-	set what [lindex [components -name] 0]
+        set what [lindex [components -name] 0]
     }
     if {[info exists _comp2xy($what)]} {
-	return [lindex $_comp2xy($what) 0]  ;# return xv
+        return [lindex $_comp2xy($what) 0]  ;# return xv
     }
     if { [info exists _comp2vtk($what)] } {
-	set mobj [lindex $_comp2vtk($what) 0]
-	return [$mobj mesh]
+        set mobj [lindex $_comp2vtk($what) 0]
+        return [$mobj mesh]
     }
     if {[info exists _comp2dx($what)]} {
-	return ""  ;# no mesh -- it's embedded in the value data
+        return ""  ;# no mesh -- it's embedded in the value data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	set mobj [lindex $_comp2unirect2d($what) 0]
-	return [$mobj mesh]
+        set mobj [lindex $_comp2unirect2d($what) 0]
+        return [$mobj mesh]
     }
     if {[info exists _comp2unirect3d($what)]} {
-	set mobj [lindex $_comp2unirect3d($what) 0]
-	return [$mobj mesh]
+        set mobj [lindex $_comp2unirect3d($what) 0]
+        return [$mobj mesh]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -209,22 +209,22 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::values {{what -overall}} {
     if {$what == "component0"} {
-	set what "component"
+        set what "component"
     }
     if {[info exists _comp2xy($what)]} {
-	return [lindex $_comp2xy($what) 1]  ;# return yv
+        return [lindex $_comp2xy($what) 1]  ;# return yv
     }
     if { [info exists _comp2vtk($what)] } {
-	return [lindex $_comp2vtk($what) 1]  ;# return vtkFloatArray
+        return [lindex $_comp2vtk($what) 1]  ;# return vtkFloatArray
     }
     if {[info exists _comp2dx($what)]} {
-	return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
+        return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	return [$_comp2unirect2d($what) values]
+        return [$_comp2unirect2d($what) values]
     }
     if {[info exists _comp2unirect3d($what)]} {
-	return [$_comp2unirect3d($what) blob]
+        return [$_comp2unirect3d($what) blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -236,22 +236,22 @@ itcl::body Rappture::Field::values {{what -overall}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::blob {{what -overall}} {
     if {$what == "component0"} {
-	set what "component"
+        set what "component"
     }
     if {[info exists _comp2xy($what)]} {
-	return ""
+        return ""
     }
     if { [info exists _comp2vtk($what)] } {
-	return ""
+        return ""
     }
     if {[info exists _comp2dx($what)]} {
-	return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
+        return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($what)]} {
-	return [$_comp2unirect2d($what) blob]
+        return [$_comp2unirect2d($what) blob]
     }
     if {[info exists _comp2unirect3d($what)]} {
-	return [$_comp2unirect3d($what) blob]
+        return [$_comp2unirect3d($what) blob]
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
@@ -268,121 +268,121 @@ itcl::body Rappture::Field::limits {which} {
 
     blt::vector create tmp zero
     foreach comp [array names _comp2dims] {
-	switch -- $_comp2dims($comp) {
-	    1D {
-		switch -- $which {
-		    x - xlin { set pos 0; set log 0; set axis xaxis }
-		    xlog { set pos 0; set log 1; set axis xaxis }
-		    y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
-		    ylog - vlog { set pos 1; set log 1; set axis yaxis }
-		    default {
-			error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
-		    }
-		}
+        switch -- $_comp2dims($comp) {
+            1D {
+                switch -- $which {
+                    x - xlin { set pos 0; set log 0; set axis xaxis }
+                    xlog { set pos 0; set log 1; set axis xaxis }
+                    y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+                    ylog - vlog { set pos 1; set log 1; set axis yaxis }
+                    default {
+                        error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                    }
+                }
 
-		set vname [lindex $_comp2xy($comp) $pos]
-		$vname variable vec
+                set vname [lindex $_comp2xy($comp) $pos]
+                $vname variable vec
 
-		if {$log} {
-		    # on a log scale, use abs value and ignore 0's
-		    $vname dup tmp
-		    $vname dup zero
-		    zero expr {tmp == 0}            ;# find the 0's
-		    tmp expr {abs(tmp)}             ;# get the abs value
-		    tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
-		    set vmin [blt::vector expr min(tmp)]
-		    set vmax [blt::vector expr max(tmp)]
-		} else {
-		    set vmin $vec(min)
-		    set vmax $vec(max)
-		}
+                if {$log} {
+                    # on a log scale, use abs value and ignore 0's
+                    $vname dup tmp
+                    $vname dup zero
+                    zero expr {tmp == 0}            ;# find the 0's
+                    tmp expr {abs(tmp)}             ;# get the abs value
+                    tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+                    set vmin [blt::vector expr min(tmp)]
+                    set vmax [blt::vector expr max(tmp)]
+                } else {
+                    set vmin $vec(min)
+                    set vmax $vec(max)
+                }
 
-		if {"" == $min} {
-		    set min $vmin
-		} elseif {$vmin < $min} {
-		    set min $vmin
-		}
-		if {"" == $max} {
-		    set max $vmax
-		} elseif {$vmax > $max} {
-		    set max $vmax
-		}
-	    }
-	    2D - 3D {
-		if {[info exists _comp2unirect2d($comp)]} {
-		    set limits [$_comp2unirect2d($comp) limits $which]
-		    foreach {vmin vmax} $limits break
-		    set axis vaxis
-		} elseif {[info exists _comp2unirect3d($comp)]} {
-		    set limits [$_comp2unirect3d($comp) limits $which]
-		    foreach {vmin vmax} $limits break
-		    set axis vaxis
-		} elseif {[info exists _comp2vtk($comp)]} {
-		    foreach {xv yv} $_comp2vtk($comp) break
-		    switch -- $which {
-			x - xlin - xlog {
-			    foreach {vmin vmax} [$xv limits x] break
-			    set axis xaxis
-			}
-			y - ylin - ylog {
-			    foreach {vmin vmax} [$xv limits y] break
-			    set axis yaxis
-			}
-			z - zlin - zlog {
-			    foreach {vmin vmax} [$xv limits z] break
-			    set axis zaxis
-			}
-			v - vlin - vlog {
-			    catch {unset style}
-			    array set style $_comp2style($comp)
-			    if {[info exists style(-min)] && [info exists style(-max)]} {
-				# This component has its own hard-coded
-				# min/max range.  Ignore it for overall limits.
-				set vmin $min
-				set vmax $max
-			    } else {
-				foreach {vmin vmax} [$yv GetRange] break
-			    }
-			    set axis vaxis
-			}
-			default {
-			    error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
-			}
-		    }
-		} else {
-		    set vmin 0  ;# HACK ALERT! must be OpenDX data
-		    set vmax 1
-		    set axis vaxis
-		}
-	    }
-	}
-	if {"" == $min} {
-	    set min $vmin
-	} elseif {$vmin < $min} {
-	    set min $vmin
-	}
-	if {"" == $max} {
-	    set max $vmax
-	} elseif {$vmax > $max} {
-	    set max $vmax
-	}
+                if {"" == $min} {
+                    set min $vmin
+                } elseif {$vmin < $min} {
+                    set min $vmin
+                }
+                if {"" == $max} {
+                    set max $vmax
+                } elseif {$vmax > $max} {
+                    set max $vmax
+                }
+            }
+            2D - 3D {
+                if {[info exists _comp2unirect2d($comp)]} {
+                    set limits [$_comp2unirect2d($comp) limits $which]
+                    foreach {vmin vmax} $limits break
+                    set axis vaxis
+                } elseif {[info exists _comp2unirect3d($comp)]} {
+                    set limits [$_comp2unirect3d($comp) limits $which]
+                    foreach {vmin vmax} $limits break
+                    set axis vaxis
+                } elseif {[info exists _comp2vtk($comp)]} {
+                    foreach {xv yv} $_comp2vtk($comp) break
+                    switch -- $which {
+                        x - xlin - xlog {
+                            foreach {vmin vmax} [$xv limits x] break
+                            set axis xaxis
+                        }
+                        y - ylin - ylog {
+                            foreach {vmin vmax} [$xv limits y] break
+                            set axis yaxis
+                        }
+                        z - zlin - zlog {
+                            foreach {vmin vmax} [$xv limits z] break
+                            set axis zaxis
+                        }
+                        v - vlin - vlog {
+                            catch {unset style}
+                            array set style $_comp2style($comp)
+                            if {[info exists style(-min)] && [info exists style(-max)]} {
+                                # This component has its own hard-coded
+                                # min/max range.  Ignore it for overall limits.
+                                set vmin $min
+                                set vmax $max
+                            } else {
+                                foreach {vmin vmax} [$yv GetRange] break
+                            }
+                            set axis vaxis
+                        }
+                        default {
+                            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+                        }
+                    }
+                } else {
+                    set vmin 0  ;# HACK ALERT! must be OpenDX data
+                    set vmax 1
+                    set axis vaxis
+                }
+            }
+        }
+        if {"" == $min} {
+            set min $vmin
+        } elseif {$vmin < $min} {
+            set min $vmin
+        }
+        if {"" == $max} {
+            set max $vmax
+        } elseif {$vmax > $max} {
+            set max $vmax
+        }
     }
     blt::vector destroy tmp zero
 
     set val [$_field get $axis.min]
     if {"" != $val && "" != $min} {
-	if {$val > $min} {
-	    # tool specified this min -- don't go any lower
-	    set min $val
-	}
+        if {$val > $min} {
+            # tool specified this min -- don't go any lower
+            set min $val
+        }
     }
 
     set val [$_field get $axis.max]
     if {"" != $val && "" != $max} {
-	if {$val < $max} {
-	    # tool specified this max -- don't go any higher
-	    set max $val
-	}
+        if {$val < $max} {
+            # tool specified this max -- don't go any higher
+            set max $val
+        }
     }
     return [list $min $max]
 }
@@ -397,78 +397,78 @@ itcl::body Rappture::Field::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::controls {option args} {
     switch -- $option {
-	get {
-	    set what [lindex $args 0]
-	    if {[info exists _comp2cntls($what)]} {
-		return $_comp2cntls($what)
-	    }
-	    return ""
-	}
-	validate {
-	    set path [lindex $args 0]
-	    set value [lindex $args 1]
-	    set units [$_xmlobj get $path.units]
+        get {
+            set what [lindex $args 0]
+            if {[info exists _comp2cntls($what)]} {
+                return $_comp2cntls($what)
+            }
+            return ""
+        }
+        validate {
+            set path [lindex $args 0]
+            set value [lindex $args 1]
+            set units [$_xmlobj get $path.units]
 
-	    if {"" != $units} {
-		set nv [Rappture::Units::convert \
-		    $value -context $units -to $units -units off]
-	    } else {
-		set nv $value
-	    }
-	    if {![string is double $nv]
-		  || [regexp -nocase {^(inf|nan)$} $nv]} {
-		error "Value out of range"
-	    }
+            if {"" != $units} {
+                set nv [Rappture::Units::convert \
+                    $value -context $units -to $units -units off]
+            } else {
+                set nv $value
+            }
+            if {![string is double $nv]
+                  || [regexp -nocase {^(inf|nan)$} $nv]} {
+                error "Value out of range"
+            }
 
-	    set rawmin [$_xmlobj get $path.min]
-	    if {"" != $rawmin} {
-		set minv $rawmin
-		if {"" != $units} {
-		    set minv [Rappture::Units::convert \
-			$minv -context $units -to $units -units off]
-		    set nv [Rappture::Units::convert \
-			$value -context $units -to $units -units off]
-		}
-		# fix for the case when the user tries to
-		# compare values like minv=-500 nv=-0600
-		set nv [format "%g" $nv]
-		set minv [format "%g" $minv]
+            set rawmin [$_xmlobj get $path.min]
+            if {"" != $rawmin} {
+                set minv $rawmin
+                if {"" != $units} {
+                    set minv [Rappture::Units::convert \
+                        $minv -context $units -to $units -units off]
+                    set nv [Rappture::Units::convert \
+                        $value -context $units -to $units -units off]
+                }
+                # fix for the case when the user tries to
+                # compare values like minv=-500 nv=-0600
+                set nv [format "%g" $nv]
+                set minv [format "%g" $minv]
 
-		if {$nv < $minv} {
-		    error "Minimum value allowed here is $rawmin"
-		}
-	    }
+                if {$nv < $minv} {
+                    error "Minimum value allowed here is $rawmin"
+                }
+            }
 
-	    set rawmax [$_xmlobj get $path.max]
-	    if {"" != $rawmax} {
-		set maxv $rawmax
-		if {"" != $units} {
-		    set maxv [Rappture::Units::convert \
-			$maxv -context $units -to $units -units off]
-		    set nv [Rappture::Units::convert \
-			$value -context $units -to $units -units off]
-		}
-		# fix for the case when the user tries to
-		# compare values like maxv=-500 nv=-0600
-		set nv [format "%g" $nv]
-		set maxv [format "%g" $maxv]
+            set rawmax [$_xmlobj get $path.max]
+            if {"" != $rawmax} {
+                set maxv $rawmax
+                if {"" != $units} {
+                    set maxv [Rappture::Units::convert \
+                        $maxv -context $units -to $units -units off]
+                    set nv [Rappture::Units::convert \
+                        $value -context $units -to $units -units off]
+                }
+                # fix for the case when the user tries to
+                # compare values like maxv=-500 nv=-0600
+                set nv [format "%g" $nv]
+                set maxv [format "%g" $maxv]
 
-		if {$nv > $maxv} {
-		    error "Maximum value allowed here is $rawmax"
-		}
-	    }
+                if {$nv > $maxv} {
+                    error "Maximum value allowed here is $rawmax"
+                }
+            }
 
-	    return "ok"
-	}
-	put {
-	    set path [lindex $args 0]
-	    set value [lindex $args 1]
-	    $_xmlobj put $path.current $value
-	    _build
-	}
-	default {
-	    error "bad option \"$option\": should be get or put"
-	}
+            return "ok"
+        }
+        put {
+            set path [lindex $args 0]
+            set value [lindex $args 1]
+            $_xmlobj put $path.current $value
+            _build
+        }
+        default {
+            error "bad option \"$option\": should be get or put"
+        }
     }
 }
 
@@ -481,34 +481,34 @@ itcl::body Rappture::Field::controls {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::hints {{keyword ""}} {
     foreach {key path} {
-	group   about.group
-	label   about.label
-	color   about.color
-	style   about.style
-	scale   about.scale
-	units   units
-	updir   updir
-	camera  camera.position
+        group   about.group
+        label   about.label
+        color   about.color
+        style   about.style
+        scale   about.scale
+        units   units
+        updir   updir
+        camera  camera.position
     } {
-	set str [$_field get $path]
-	if {"" != $str} {
-	    set hints($key) $str
-	}
+        set str [$_field get $path]
+        if {"" != $str} {
+            set hints($key) $str
+        }
     }
 
     # to be compatible with curve objects
     set hints(xlabel) "Position"
 
     if {[info exists hints(group)] && [info exists hints(label)]} {
-	# pop-up help for each curve
-	set hints(tooltip) $hints(label)
+        # pop-up help for each curve
+        set hints(tooltip) $hints(label)
     }
 
     if {$keyword != ""} {
-	if {[info exists hints($keyword)]} {
-	    return $hints($keyword)
-	}
-	return ""
+        if {[info exists hints($keyword)]} {
+            return $hints($keyword)
+        }
+        return ""
     }
     return [array get hints]
 }
@@ -524,21 +524,21 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
 itcl::body Rappture::Field::_build {} {
     # discard any existing data
     foreach name [array names _comp2xy] {
-	eval blt::vector destroy $_comp2xy($name)
+        eval blt::vector destroy $_comp2xy($name)
     }
     foreach name [array names _comp2vtk] {
-	set mobj [lindex $_comp2vtk($name) 0]
-	set class [$mobj info class]
-	${class}::release $mobj
+        set mobj [lindex $_comp2vtk($name) 0]
+        set class [$mobj info class]
+        ${class}::release $mobj
 
-	set fobj [lindex $_comp2vtk($name) 1]
-	rename $fobj ""
+        set fobj [lindex $_comp2vtk($name) 1]
+        rename $fobj ""
     }
     foreach name [array names _comp2unirect2d] {
-	eval itcl::delete object $_comp2unirect2d($name)
+        eval itcl::delete object $_comp2unirect2d($name)
     }
     foreach name [array names _comp2unirect3d] {
-	eval itcl::delete object $_comp2unirect3d($name)
+        eval itcl::delete object $_comp2unirect3d($name)
     }
     catch {unset _comp2xy}
     catch {unset _comp2vtk}
@@ -553,225 +553,222 @@ itcl::body Rappture::Field::_build {} {
     # vectors for each part.
     #
     foreach cname [$_field children -type component] {
-	set type ""
-	if { ([$_field element $cname.constant] != "" &&
-	    [$_field element $cname.domain] != "") ||
-	    [$_field element $cname.xy] != ""} {
-	    set type "1D"
-	} elseif {[$_field element $cname.mesh] != "" &&
-	    [$_field element $cname.values] != ""} {
-	    set type "points-on-mesh"
-	} elseif {[$_field element $cname.vtk] != ""} {
-	    set type "vtk"
-	} elseif {[$_field element $cname.opendx] != ""} {
-	    set type "opendx"
-	} elseif {[$_field element $cname.dx] != ""} {
-	    set type "dx"
-	}
-	set _comp2style($cname) ""
-	
-	# Save the extents of the component
-	if { [$_field element $cname.extents] != "" } {
-	    set extents [$_field get $cname.extents]
-	} else {
-	    set extents 1 
-	}
-	set _comp2extents($cname) $extents
+        set type ""
+        if { ([$_field element $cname.constant] != "" &&
+            [$_field element $cname.domain] != "") ||
+            [$_field element $cname.xy] != ""} {
+            set type "1D"
+        } elseif {[$_field element $cname.mesh] != "" &&
+            [$_field element $cname.values] != ""} {
+            set type "points-on-mesh"
+        } elseif {[$_field element $cname.vtk] != ""} {
+            set type "vtk"
+        } elseif {[$_field element $cname.opendx] != ""} {
+            set type "opendx"
+        } elseif {[$_field element $cname.dx] != ""} {
+            set type "dx"
+        }
+        set _comp2style($cname) ""
+        
+        # Save the extents of the component
+        if { [$_field element $cname.extents] != "" } {
+            set extents [$_field get $cname.extents]
+        } else {
+            set extents 1 
+        }
+        set _comp2extents($cname) $extents
 
-	if {$type == "1D"} {
-	    #
-	    # 1D data can be represented as 2 BLT vectors,
-	    # one for x and the other for y.
-	    #
-	    set xv ""
-	    set yv ""
+        if {$type == "1D"} {
+            #
+            # 1D data can be represented as 2 BLT vectors,
+            # one for x and the other for y.
+            #
+            set xv ""
+            set yv ""
 
-	    set val [$_field get $cname.constant]
-	    if {$val != ""} {
-		set domain [$_field get $cname.domain]
-		if {$domain == "" || ![info exists _limits($domain)]} {
-		    set z0 0
-		    set z1 $_zmax
-		} else {
-		    foreach {z0 z1} $_limits($domain) { break }
-		}
-		set xv [blt::vector create x$_counter]
-		$xv append $z0 $z1
+            set val [$_field get $cname.constant]
+            if {$val != ""} {
+                set domain [$_field get $cname.domain]
+                if {$domain == "" || ![info exists _limits($domain)]} {
+                    set z0 0
+                    set z1 $_zmax
+                } else {
+                    foreach {z0 z1} $_limits($domain) { break }
+                }
+                set xv [blt::vector create x$_counter]
+                $xv append $z0 $z1
 
-		foreach {val pcomp} [_getValue $val] break
-		set yv [blt::vector create y$_counter]
-		$yv append $val $val
+                foreach {val pcomp} [_getValue $val] break
+                set yv [blt::vector create y$_counter]
+                $yv append $val $val
 
-		if {$pcomp != ""} {
-		    set zm [expr {0.5*($z0+$z1)}]
-		    set _comp2cntls($cname) \
-			[list $pcomp $zm $val "$val$_units"]
-		}
-	    } else {
-		set xydata [$_field get $cname.xy]
-		if {"" != $xydata} {
-		    set xv [blt::vector create x$_counter]
-		    set yv [blt::vector create y$_counter]
-		    set tmp [blt::vector create \#auto]
-		    $tmp set $xydata
-		    $tmp split $xv $yv
-		    blt::vector destroy $tmp
-		}
-	    }
+                if {$pcomp != ""} {
+                    set zm [expr {0.5*($z0+$z1)}]
+                    set _comp2cntls($cname) \
+                        [list $pcomp $zm $val "$val$_units"]
+                }
+            } else {
+                set xydata [$_field get $cname.xy]
+                if {"" != $xydata} {
+                    set xv [blt::vector create x$_counter]
+                    set yv [blt::vector create y$_counter]
+                    set tmp [blt::vector create \#auto]
+                    $tmp set $xydata
+                    $tmp split $xv $yv
+                    blt::vector destroy $tmp
+                }
+            }
 
-	    if {$xv != "" && $yv != ""} {
-		# sort x-coords in increasing order
-		$xv sort $yv
+            if {$xv != "" && $yv != ""} {
+                # sort x-coords in increasing order
+                $xv sort $yv
 
-		set _comp2dims($cname) "1D"
-		set _comp2xy($cname) [list $xv $yv]
-		incr _counter
-	    }
-	} elseif {$type == "points-on-mesh"} {
-	    #
-	    # More complex 2D/3D data is represented by a mesh
-	    # object and an associated vtkFloatArray for field
-	    # values.
-	    #
-	    set path [$_field get $cname.mesh]
-	    if {[$_xmlobj element $path] != ""} {
-		set element [$_xmlobj element -as type $path]
-		if { $element == "unirect2d" } {
-		    set _comp2dims($cname) "2D"
-		    set _comp2unirect2d($cname) \
-			[Rappture::Unirect2d \#auto $_xmlobj $_field $cname \
-			     $extents]
-		    set _comp2style($cname) [$_field get $cname.style]
-		    if {[$_field element $cname.flow] != ""} {
-			set _comp2flowhints($cname) \
-			    [Rappture::FlowHints ::\#auto $_field $cname $_units]
-		    }
-		    incr _counter
-		} elseif { $element == "unirect3d" } {
-		    set _comp2dims($cname) "3D"
-		    set _comp2unirect3d($cname) \
-			[Rappture::Unirect3d \#auto $_xmlobj $_field $cname \
-			    $extents]
-		    set _comp2style($cname) [$_field get $cname.style]
-		    if {[$_field element $cname.flow] != ""} {
-			set _comp2flowhints($cname) \
-			    [Rappture::FlowHints ::\#auto $_field $cname $_units]
-		    }
-		    incr _counter
-		} elseif { $element == "cloud" || $element == "mesh" } {
-		    switch -- $element {
-			cloud {
-			    set mobj [Rappture::Cloud::fetch $_xmlobj $path]
-			}
-			mesh {
-			    set mobj [Rappture::Mesh::fetch $_xmlobj $path]
-			}
-		    }
-		    if {[$mobj dimensions] > 1} {
-			#
-			# 2D/3D data
-			# Store cloud/field as components
-			#
-			set values [$_field get $cname.values]
-			set farray [vtkFloatArray ::vals$_counter]
+                set _comp2dims($cname) "1D"
+                set _comp2xy($cname) [list $xv $yv]
+                incr _counter
+            }
+        } elseif {$type == "points-on-mesh"} {
+            #
+            # More complex 2D/3D data is represented by a mesh
+            # object and an associated vtkFloatArray for field
+            # values.
+            #
+            set path [$_field get $cname.mesh]
+            if {[$_xmlobj element $path] != ""} {
+                set element [$_xmlobj element -as type $path]
+                if { $element == "unirect2d" } {
+                    set _comp2dims($cname) "2D"
+                    set _comp2unirect2d($cname) \
+                        [Rappture::Unirect2d \#auto $_xmlobj $_field $cname \
+                             $extents]
+                    set _comp2style($cname) [$_field get $cname.style]
+                    if {[$_field element $cname.flow] != ""} {
+                        set _comp2flowhints($cname) \
+                            [Rappture::FlowHints ::\#auto $_field $cname $_units]
+                    }
+                    incr _counter
+                } elseif { $element == "unirect3d" } {
+                    set _comp2dims($cname) "3D"
+                    set _comp2unirect3d($cname) \
+                        [Rappture::Unirect3d \#auto $_xmlobj $_field $cname \
+                            $extents]
+                    set _comp2style($cname) [$_field get $cname.style]
+                    if {[$_field element $cname.flow] != ""} {
+                        set _comp2flowhints($cname) \
+                            [Rappture::FlowHints ::\#auto $_field $cname $_units]
+                    }
+                    incr _counter
+                } elseif { $element == "cloud" || $element == "mesh" } {
+                    switch -- $element {
+                        cloud {
+                            set mobj [Rappture::Cloud::fetch $_xmlobj $path]
+                        }
+                        mesh {
+                            set mobj [Rappture::Mesh::fetch $_xmlobj $path]
+                        }
+                    }
+                    if {[$mobj dimensions] > 1} {
+                        #
+                        # 2D/3D data
+                        # Store cloud/field as components
+                        #
+                        set values [$_field get $cname.values]
+                        set farray [vtkFloatArray ::vals$_counter]
 
-			foreach v $values {
-			    if {"" != $_units} {
-				set v [Rappture::Units::convert $v \
-				   -context $_units -to $_units -units off]
-			    }
-			    $farray InsertNextValue $v
-			}
+                        foreach v $values {
+                            if {"" != $_units} {
+                                set v [Rappture::Units::convert $v \
+                                   -context $_units -to $_units -units off]
+                            }
+                            $farray InsertNextValue $v
+                        }
 
-			set _comp2dims($cname) "[$mobj dimensions]D"
-			set _comp2vtk($cname) [list $mobj $farray]
-			set _comp2style($cname) [$_field get $cname.style]
-			incr _counter
-		    } else {
-			#
-			# OOPS!  This is 1D data
-			# Forget the cloud/field -- store BLT vectors
-			#
-			set xv [blt::vector create x$_counter]
-			set yv [blt::vector create y$_counter]
+                        set _comp2dims($cname) "[$mobj dimensions]D"
+                        set _comp2vtk($cname) [list $mobj $farray]
+                        set _comp2style($cname) [$_field get $cname.style]
+                        incr _counter
+                    } else {
+                        #
+                        # OOPS!  This is 1D data
+                        # Forget the cloud/field -- store BLT vectors
+                        #
+                        set xv [blt::vector create x$_counter]
+                        set yv [blt::vector create y$_counter]
 
-			set vtkpts [$mobj points]
-			set max [$vtkpts GetNumberOfPoints]
-			for {set i 0} {$i < $max} {incr i} {
-			    set xval [lindex [$vtkpts GetPoint $i] 0]
-			    $xv append $xval
-			}
-			set class [$mobj info class]
-			${class}::release $mobj
+                        set vtkpts [$mobj points]
+                        set max [$vtkpts GetNumberOfPoints]
+                        for {set i 0} {$i < $max} {incr i} {
+                            set xval [lindex [$vtkpts GetPoint $i] 0]
+                            $xv append $xval
+                        }
+                        set class [$mobj info class]
+                        ${class}::release $mobj
 
-			set values [$_field get $cname.values]
-			foreach yval $values {
-			    if {"" != $_units} {
-				set yval [Rappture::Units::convert $yval \
-				      -context $_units -to $_units -units off]
-			    }
-			    $yv append $yval
-			}
+                        set values [$_field get $cname.values]
+                        foreach yval $values {
+                            if {"" != $_units} {
+                                set yval [Rappture::Units::convert $yval \
+                                      -context $_units -to $_units -units off]
+                            }
+                            $yv append $yval
+                        }
 
-			# sort x-coords in increasing order
-			$xv sort $yv
+                        # sort x-coords in increasing order
+                        $xv sort $yv
 
-			set _comp2dims($cname) "1D"
-			set _comp2xy($cname) [list $xv $yv]
-			incr _counter
-		    }
-		}
-	    } else {
-		puts "WARNING: can't find mesh $path for field component"
-	    }
-	} elseif {$type == "vtk"} {
-	    #
-	    # Extract native vtk data from the XML and use a reader
-	    # to load it.
-	    #
-	    vtkRectilinearGridReader $this-gr
-	    $this-gr SetInputString [$_field get $cname.vtk]
+                        set _comp2dims($cname) "1D"
+                        set _comp2xy($cname) [list $xv $yv]
+                        incr _counter
+                    }
+                }
+            } else {
+                puts "WARNING: can't find mesh $path for field component"
+            }
+        } elseif {$type == "vtk"} {
+            #
+            # Extract native vtk data from the XML and use a reader
+            # to load it.
+            #
+            vtkRectilinearGridReader $this-gr
+            $this-gr SetInputString [$_field get $cname.vtk]
 
 
-	    set _comp2dims($cname) "[$mobj dimensions]D"
-	    set _comp2vtk($cname) [list $mobj $farray]
-	    set _comp2style($cname) [$_field get $cname.style]
-	    incr _counter
-	} elseif {$type == "dx"} {
-	    #
-	    # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
-	    # data.  Assume that it's 3D.  Pass it straight
-	    # off to the NanoVis visualizer.
-	    #
-	    set _comp2dims($cname) "3D"
-	    set _comp2dx($cname)  [$_field get -decode no $cname.dx]
-	    set f [open $cname.dx "w"]
-	    puts $f [Rappture::encoding::decode -as zb64 $_comp2dx($cname)]
-	    close $f
-	    set _comp2style($cname) [$_field get $cname.style]
-	    if {[$_field element $cname.flow] != ""} {
-		set _comp2flowhints($cname) \
-		    [Rappture::FlowHints ::\#auto $_field $cname $_units]
-	    }
-	    incr _counter
-	} elseif {$type == "opendx"} {
-	    #
-	    # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
-	    # data.  Assume that it's 3D.  Pass it straight
-	    # off to the NanoVis visualizer.
-	    #
-	    set _comp2dims($cname) "3D"
-	    set data [$_field get -decode yes $cname.opendx]
-	    set data "<ODX>$data"
-	    set data [Rappture::encoding::encode -as zb64 $data]
-	    set _comp2dx($cname) $data
-	    set _comp2style($cname) [$_field get $cname.style]
-	    if {[$_field element $cname.flow] != ""} {
-		set _comp2flowhints($cname) \
-		    [Rapture::FlowHints ::\#auto $_field $cname $_units]
-	    }
-	    incr _counter
-	}
+            set _comp2dims($cname) "[$mobj dimensions]D"
+            set _comp2vtk($cname) [list $mobj $farray]
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
+        } elseif {$type == "dx"} {
+            #
+            # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
+            # data.  Assume that it's 3D.  Pass it straight
+            # off to the NanoVis visualizer.
+            #
+            set _comp2dims($cname) "3D"
+            set _comp2dx($cname)  [$_field get -decode no $cname.dx]
+            set _comp2style($cname) [$_field get $cname.style]
+            if {[$_field element $cname.flow] != ""} {
+                set _comp2flowhints($cname) \
+                    [Rappture::FlowHints ::\#auto $_field $cname $_units]
+            }
+            incr _counter
+        } elseif {$type == "opendx"} {
+            #
+            # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
+            # data.  Assume that it's 3D.  Pass it straight
+            # off to the NanoVis visualizer.
+            #
+            set _comp2dims($cname) "3D"
+            set data [$_field get -decode yes $cname.opendx]
+            set data "<ODX>$data"
+            set data [Rappture::encoding::encode -as zb64 $data]
+            set _comp2dx($cname) $data
+            set _comp2style($cname) [$_field get $cname.style]
+            if {[$_field element $cname.flow] != ""} {
+                set _comp2flowhints($cname) \
+                    [Rapture::FlowHints ::\#auto $_field $cname $_units]
+            }
+            incr _counter
+        }
     }
 }
 
@@ -791,28 +788,28 @@ itcl::body Rappture::Field::_getValue {expr} {
     #
     set found 0
     foreach pcomp [$_xmlobj children parameters] {
-	set id [$_xmlobj element -as id parameters.$pcomp]
-	if {[string equal $id $expr]} {
-	    set val [$_xmlobj get parameters.$pcomp.current]
-	    if {"" == $val} {
-		set val [$_xmlobj get parameters.$pcomp.default]
-	    }
-	    if {"" != $val} {
-		set expr $val
-		set found 1
-		break
-	    }
-	}
+        set id [$_xmlobj element -as id parameters.$pcomp]
+        if {[string equal $id $expr]} {
+            set val [$_xmlobj get parameters.$pcomp.current]
+            if {"" == $val} {
+                set val [$_xmlobj get parameters.$pcomp.default]
+            }
+            if {"" != $val} {
+                set expr $val
+                set found 1
+                break
+            }
+        }
     }
     if {$found} {
-	set pcomp "parameters.$pcomp"
+        set pcomp "parameters.$pcomp"
     } else {
-	set pcomp ""
+        set pcomp ""
     }
 
     if {$_units != ""} {
-	set expr [Rappture::Units::convert $expr \
-	    -context $_units -to $_units -units off]
+        set expr [Rappture::Units::convert $expr \
+            -context $_units -to $_units -units off]
     }
 
     return [list $expr $pcomp]
@@ -843,7 +840,7 @@ itcl::body Rappture::Field::isunirect3d { } {
 #
 itcl::body Rappture::Field::flowhints { cname } {
     if { [info exists _comp2flowhints($cname)] } {
-	return $_comp2flowhints($cname)
+        return $_comp2flowhints($cname)
     }
     return ""
 }
@@ -855,21 +852,21 @@ itcl::body Rappture::Field::flowhints { cname } {
 #
 itcl::body Rappture::Field::extents {{what -overall}} {
     if {$what == "-overall" } {
-	set max 0
-	foreach cname [$_field children -type component] {
-	    if { ![info exists _comp2unirect3d($cname)] &&
-		 ![info exists _comp2extents($cname)] } {
-		continue
-	    }
-	    set value $_comp2extents($cname)
-	    if { $max < $value } {
-		set max $value
-	    }
-	}
-	return $max
+        set max 0
+        foreach cname [$_field children -type component] {
+            if { ![info exists _comp2unirect3d($cname)] &&
+                 ![info exists _comp2extents($cname)] } {
+                continue
+            }
+            set value $_comp2extents($cname)
+            if { $max < $value } {
+                set max $value
+            }
+        }
+        return $max
     } 
     if { $what == "component0"} {
-	set what [lindex [components -name] 0]
+        set what [lindex [components -name] 0]
     }
     return $_comp2extents($what)
 }
