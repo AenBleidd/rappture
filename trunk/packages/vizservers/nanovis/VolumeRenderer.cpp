@@ -349,7 +349,6 @@ VolumeRenderer::render_all()
         }
 	
     } //iterate all volumes
-    fprintf(stderr, "total slices: %d\n", total_rendered_slices); 
     Trace("end loop\n");
     
     // We sort all the polygons according to their eye-space depth, from

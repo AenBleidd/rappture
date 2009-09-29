@@ -1295,7 +1295,7 @@ PositionSwitchProc(
     char *p;
 
     string = Tcl_GetString(objPtr);
-    p = strrchr(string, '%');
+    p = strrchr((char *)string, '%');
     if (p == NULL) {
 	float value;
 

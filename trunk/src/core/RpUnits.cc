@@ -14,6 +14,7 @@
  */
 
 #include "RpUnits.h"
+#include <cstdio>
 #include <algorithm>
 
 // dict pointer

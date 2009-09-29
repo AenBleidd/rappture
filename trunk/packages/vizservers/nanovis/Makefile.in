@@ -32,9 +32,8 @@ AUXSRC          = config.h define.h global.h
 CG_DIR          = @CG_DIR@
 CG_INC_SPEC     = -I$(CG_DIR)/include
 CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
-DX_DIR          = @DX_DIR@
-DX_INC_SPEC     = -I$(DX_DIR)/include
-DX_LIB_SPEC     = -L$(DX_DIR)/lib_linux -lDXcallm
+DX_INC_SPEC      = @DX_INC_SPEC@
+DX_LIB_SPEC      = @DX_LIB_SPEC@ -lDXcallm
 FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
 # might also need -lavutil
 GL_INC_SPEC     = -I/usr/include/GL

@@ -9,9 +9,10 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include "RpOutcome.h"
-#include <stdarg.h>
-#include <stdlib.h>
 using namespace Rappture;
 
 /**
