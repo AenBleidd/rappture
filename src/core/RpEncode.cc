@@ -208,7 +208,7 @@ Rappture::encoding::isBase64(const char* buf, int size)
     }
     const char *cp, *endPtr;
     for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-        if (!_base64chars[*cp]) {
+        if (!_base64chars[(unsigned int)*cp]) {
 	    fprintf(stderr, "%c %d is not base64\n", *cp, *cp);
             return false;
         }

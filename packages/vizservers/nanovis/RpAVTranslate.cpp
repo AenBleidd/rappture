@@ -292,7 +292,8 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
 }
 
 bool
-AVTranslate::allocPicture(Outcome &status, int pixFmt, AVFrame **framePtrPtr)
+AVTranslate::allocPicture(Outcome &status, PixelFormat pixFmt, 
+     AVFrame **framePtrPtr)
 {
     status.addContext("Rappture::AVTranslate::allocPicture()");
     if (framePtrPtr == NULL) {

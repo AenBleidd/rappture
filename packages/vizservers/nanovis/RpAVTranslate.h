@@ -45,7 +45,7 @@ public:
 
 private:
     bool addVideoStream(Outcome &status, CodecID codecId, AVStream **stream);
-    bool allocPicture(Outcome &status, int pixFmt, AVFrame **pic );
+    bool allocPicture(Outcome &status, PixelFormat pixFmt, AVFrame **pic );
     bool openVideo(Outcome &status);
     bool writeVideoFrame(Outcome &status);
     bool closeVideo(Outcome &status);

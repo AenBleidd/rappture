@@ -21,12 +21,12 @@
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <memory.h>
 #include <signal.h>
 #include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -2432,10 +2432,10 @@ main(int argc, char** argv)
 
 #ifdef XINETD
         path = argv[0];
-        p = strrchr(path, '/');
+        p = strrchr((char *)path, '/');
         if (p != NULL) {
             *p = '\0';
-            p = strrchr(path, '/');
+            p = strrchr((char *)path, '/');
         }
         if (p == NULL) {
             fprintf(stderr, "path not specified\n");

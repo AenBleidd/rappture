@@ -640,7 +640,8 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 LD_RPATH
 CG_DIR
-DX_DIR
+DX_LIB_SPEC
+DX_INC_SPEC
 RP_DIR
 RP2_INCL_DIR
 TCL_LIB_SPEC
@@ -10062,34 +10063,63 @@ fi
 done
 
 
-{ $as_echo "$as_me:$LINENO: checking for DX installation" >&5
-$as_echo_n "checking for DX installation... " >&6; }
-DX_DIR=""
+{ $as_echo "$as_me:$LINENO: checking for OpenDX headers" >&5
+$as_echo_n "checking for OpenDX headers... " >&6; }
+DX_INC_DIR=""
 for dir in \
- /apps/rappture \
- /usr/dx \
- /usr
+ /apps/rappture/include \
+ /usr/dx/include \
+ /usr/include
 do
-  if test -r "${dir}/include/dx/dx.h" ; then
-    DX_DIR="$dir"
+  if test -r "${dir}/dx/dx.h" ; then
+    DX_INC_DIR="$dir"
     break
   fi
 done
-if test "x${DX_DIR}" = "x" ; then
-  { { $as_echo "$as_me:$LINENO: error: can't find OpenDX installation" >&5
-$as_echo "$as_me: error: can't find OpenDX installation" >&2;}
+if test "x${DX_INC_DIR}" = "x" ; then
+  { { $as_echo "$as_me:$LINENO: error: can't find OpenDX include files" >&5
+$as_echo "$as_me: error: can't find OpenDX include files" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-if test "${DX_DIR}" = "/usr" ; then
-  DX_DIR=""
+if test "${DX_INC_DIR}" = "/usr/include" ; then
+  DX_INC_SPEC=""
 else
-  LD_RPATH="$loader_run_path:${DX_DIR}/lib"
+  DX_INC_SPEC="-I{DX_INC_DIR}"
+fi
+
+{ $as_echo "$as_me:$LINENO: result: ${DX_INC_DIR}" >&5
+$as_echo "${DX_INC_DIR}" >&6; }
+
+{ $as_echo "$as_me:$LINENO: checking for OpenDX libraries" >&5
+$as_echo_n "checking for OpenDX libraries... " >&6; }
+DX_LIB_DIR=""
+for dir in \
+ /apps/rappture/lib \
+ /usr/lib/dx/lib_linux \
+ /usr/dx/lib_linux \
+ /usr/lib
+do
+  if test -r "${dir}/libDXcallm.a" ; then
+    DX_LIB_DIR="$dir"
+    break
+  fi
+done
+if test "x${DX_LIB_DIR}" = "x" ; then
+  { { $as_echo "$as_me:$LINENO: error: can't find OpenDX libraries" >&5
+$as_echo "$as_me: error: can't find OpenDX libraries" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+if test "${DX_LIB_DIR}" = "/usr" ; then
+  DX_LIB_SPEC=""
+else
+  DX_LIB_SPEC="-L${DX_LIB_DIR}"
 fi
 
 
-{ $as_echo "$as_me:$LINENO: result: ${DX_DIR}" >&5
-$as_echo "${DX_DIR}" >&6; }
+{ $as_echo "$as_me:$LINENO: result: ${DX_LIB_DIR}" >&5
+$as_echo "${DX_LIB_DIR}" >&6; }
 
 
 

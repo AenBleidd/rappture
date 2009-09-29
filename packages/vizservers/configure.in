@@ -158,30 +158,55 @@ AC_CHECK_HEADER([Cg/cgGL.h])
 AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
 
-AC_MSG_CHECKING([for DX installation])
-DX_DIR=""
+AC_MSG_CHECKING([for OpenDX headers])
+DX_INC_DIR=""
 for dir in \
- /apps/rappture \
- /usr/dx \
- /usr
+ /apps/rappture/include \
+ /usr/dx/include \
+ /usr/include
 do
-  if test -r "${dir}/include/dx/dx.h" ; then
-    DX_DIR="$dir"
+  if test -r "${dir}/dx/dx.h" ; then
+    DX_INC_DIR="$dir"
     break
   fi
 done
-if test "x${DX_DIR}" = "x" ; then
-  AC_MSG_ERROR([can't find OpenDX installation])
+if test "x${DX_INC_DIR}" = "x" ; then
+  AC_MSG_ERROR([can't find OpenDX include files])
 fi
 
-if test "${DX_DIR}" = "/usr" ; then
-  DX_DIR=""
+if test "${DX_INC_DIR}" = "/usr/include" ; then
+  DX_INC_SPEC=""
 else 
-  LD_RPATH="$loader_run_path:${DX_DIR}/lib"
+  DX_INC_SPEC="-I{DX_INC_DIR}"
+fi
+AC_SUBST(DX_INC_SPEC)
+AC_MSG_RESULT([${DX_INC_DIR}])
+
+AC_MSG_CHECKING([for OpenDX libraries])
+DX_LIB_DIR=""
+for dir in \
+ /apps/rappture/lib \
+ /usr/lib/dx/lib_linux \
+ /usr/dx/lib_linux \
+ /usr/lib
+do
+  if test -r "${dir}/libDXcallm.a" ; then
+    DX_LIB_DIR="$dir"
+    break
+  fi
+done
+if test "x${DX_LIB_DIR}" = "x" ; then
+  AC_MSG_ERROR([can't find OpenDX libraries])
 fi
 
-AC_SUBST(DX_DIR)
-AC_MSG_RESULT([${DX_DIR}])
+if test "${DX_LIB_DIR}" = "/usr" ; then
+  DX_LIB_SPEC=""
+else
+  DX_LIB_SPEC="-L${DX_LIB_DIR}"
+fi
+
+AC_SUBST(DX_LIB_SPEC)
+AC_MSG_RESULT([${DX_LIB_DIR}])
 
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h])
 
