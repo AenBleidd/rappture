@@ -561,9 +561,9 @@ itcl::body Rappture::XyResult::download {option args} {
                     return [list .txt $csvdata]
                 }
                 pdf {
-                    set psdata [$itk_component(plot) postscript output \
-                                    -decorations no -maxpect 1]
-
+		    set printobj [Rappture::XyPrint \#auto]
+		    set psdata [$printobj postscript $itk_component(plot)]
+		    itcl::delete object $printobj
                     set cmds {
                         set fout "xy[pid].pdf"
                         exec ps2pdf - $fout << $psdata
