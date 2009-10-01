@@ -47,7 +47,7 @@ itcl::body Rappture::XyPrint::postscript { graph args } {
 	-plotbackground white -plotpadx 0 -plotpady 0
     # 
     $clone legend configure -position right -font "*-helvetica-medium-r-normal-*-12-*" \
-	-hide false -borderwidth 0 -background white -relief flat \
+	-hide yes -borderwidth 0 -background white -relief flat \
 	-anchor nw -activeborderwidth 0
     # 
     foreach axis [$clone axis names] {
