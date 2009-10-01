@@ -51,7 +51,8 @@ itcl::body Rappture::XyPrint::postscript { graph args } {
 	-anchor nw -activeborderwidth 0
     # 
     foreach axis [$clone axis names] {
-	$clone axis configure $axis -ticklength 5 -loose yes -min "" -max ""
+	$clone axis configure $axis -ticklength 5 -loose always 
+#-min "" -max ""
 	$clone axis configure $axis -tickfont "Helvetica 10" \
 	    -titlefont "Helvetica 10" 
     }
@@ -122,7 +123,6 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
     }
     # Pen component
     foreach pen [$orig pen names] {
-puts stderr pen=$pen
 	if { [$clone pen name $pen] == "" } {
 	    $clone pen create $pen
 	}
@@ -136,7 +136,6 @@ puts stderr pen=$pen
     }
     # Element component
     foreach elem [$orig element names] {
-puts stderr elem=$elem
 	$clone element create $elem
 	#CopyBindings element $orig $clone $elem
 	CopyOptions [list element configure $elem] $orig $clone

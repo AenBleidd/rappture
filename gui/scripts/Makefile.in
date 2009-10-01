@@ -109,6 +109,7 @@ FILES		= \
 		$(srcdir)/valueresult.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/xylegend.tcl \
+		$(srcdir)/xyprint.tcl \
 		$(srcdir)/xyresult.tcl
 
 version 	= $(PACKAGE_VERSION)
