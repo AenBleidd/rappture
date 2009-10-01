@@ -46,15 +46,15 @@ itcl::body Rappture::XyPrint::postscript { graph args } {
     $clone configure -title "" -plotborderwidth 1 -plotrelief solid  \
 	-plotbackground white -plotpadx 0 -plotpady 0
     # 
-    $clone legend configure -position right -font "Helvetica 10" \
+    $clone legend configure -position right -font "*-helvetica-medium-r-normal-*-12-*" \
 	-hide false -borderwidth 0 -background white -relief flat \
 	-anchor nw -activeborderwidth 0
     # 
     foreach axis [$clone axis names] {
 	$clone axis configure $axis -ticklength 5 -loose always 
 #-min "" -max ""
-	$clone axis configure $axis -tickfont "Helvetica 10" \
-	    -titlefont "Helvetica 10" 
+	$clone axis configure $axis -tickfont "*-helvetica-medium-r-normal-*-12-*" \
+	    -titlefont "*-helvetica-medium-r-normal-*-12-*" 
     }
     $clone grid off
     #$clone yaxis configure -rotate 90
