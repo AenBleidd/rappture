@@ -40,6 +40,7 @@ FILES		= \
 		$(srcdir)/exec.tcl \
 		$(srcdir)/library.tcl \
 		$(srcdir)/result.tcl \
+		$(srcdir)/tuples.tcl \
 		$(srcdir)/units.tcl
 
 all: tclIndex
