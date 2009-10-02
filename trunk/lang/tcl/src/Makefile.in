@@ -55,6 +55,7 @@ OBJS 		= \
 		RpRlimit.o  \
 		RpRusage.o \
 		RpSignal.o  \
+		RpSplit.o  \
 		RpSysinfo.o  \
 		Switch.o \
 		RpUnitsTclInterface.o \
