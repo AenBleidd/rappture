@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- *  Rappture::split
+ *  Rappture::slice
  *
  *  This is similar to the usual Tcl "split" command, in that it
  *  splits a string into a series of words.  The difference is that
@@ -11,8 +11,8 @@
  *  a bunch of {} empty strings between such characters.)
  *
  *  EXAMPLES:
- *    Rappture::split -open { -close } -separators ", \t\n" $string
- *    Rappture::split -open \" -close \" -separators ", " $string
+ *    Rappture::slice -open { -close } -separators ", \t\n" $string
+ *    Rappture::slice -open \" -close \" -separators ", " $string
  *
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
@@ -25,39 +25,39 @@
 #include <tcl.h>
 #include <string.h>
 
-static Tcl_ObjCmdProc RpSplitCmd;
+static Tcl_ObjCmdProc RpSliceCmd;
 
 /*
  * ------------------------------------------------------------------------
- *  RpSplit_Init()
+ *  RpSlice_Init()
  *
  *  Called in Rappture_Init() to initialize the commands defined
  *  in this file.
  * ------------------------------------------------------------------------
  */
 int
-RpSplit_Init(interp)
+RpSlice_Init(interp)
     Tcl_Interp *interp;  /* interpreter being initialized */
 {
-    Tcl_CreateObjCommand(interp, "::Rappture::split", RpSplitCmd, NULL, NULL);
+    Tcl_CreateObjCommand(interp, "::Rappture::slice", RpSliceCmd, NULL, NULL);
     return TCL_OK;
 }
 
 /*
  * ------------------------------------------------------------------------
- *  RpSplitCmd()
+ *  RpSliceCmd()
  *
- *  Invoked whenever someone uses the "split" command to split a string
+ *  Invoked whenever someone uses the "slice" command to slice a string
  *  into multiple components.  Handles the following syntax:
  *
- *      split ?-open <char>? ?-close <char>? ?-separators <abc>? <string>
+ *      slice ?-open <char>? ?-close <char>? ?-separators <abc>? <string>
  *
  *  Returns TCL_OK on success, and TCL_ERROR (along with an error
  *  message in the interpreter) if anything goes wrong.
  * ------------------------------------------------------------------------
  */
 static int
-RpSplitCmd(cdata, interp, objc, objv)
+RpSliceCmd(cdata, interp, objc, objv)
     ClientData cdata;         /* not used */
     Tcl_Interp *interp;       /* interpreter handling this request */
     int objc;                 /* number of command line args */

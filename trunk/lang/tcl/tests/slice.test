@@ -1,0 +1,88 @@
+# Commands covered: Rappture::slice
+#
+# This file contains a collection of tests for one of the Rappture Tcl
+# commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# ======================================================================
+# AUTHOR:  Michael McLennan, Purdue University
+# Copyright (c) 2004-2009  Purdue Research Foundation
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    package require Rappture
+    namespace import -force ::tcltest::*
+}
+
+#----------------------------------------------------------
+# Check command line switches and proper args
+#----------------------------------------------------------
+test slice-1.1 {requires at least one arg} {
+    list [catch {Rappture::slice} msg] $msg
+} {1 {wrong # args: should be "Rappture::slice ?-open chars? ?-close chars? ?-separators chars? ?--? string}}
+
+test slice-1.2 {has certain options} {
+    list [catch {Rappture::slice -foo string} msg] $msg
+} {1 {bad option "-foo": should be -open, -close, -separators, --}}
+
+test slice-1.3 {options require values} {
+    list [catch {Rappture::slice -separators string} msg] $msg
+} {1 {wrong # args: should be "Rappture::slice ?-open chars? ?-close chars? ?-separators chars? ?--? string}}
+
+test slice-1.4 {open/close quote lists must match} {
+    list [catch {Rappture::slice -open 1 -close 12 string} msg] $msg
+} {1 {must have same number of quote characters for -open and -close}}
+
+test slice-1.5 {can't have multiple strings} {
+    list [catch {Rappture::slice -separators ab string1 string2} msg] $msg
+} {1 {wrong # args: should be "Rappture::slice ?-open chars? ?-close chars? ?-separators chars? ?--? string}}
+
+test slice-1.6 {use -- when string starts with -} {
+    list [catch {Rappture::slice -- "-foo -bar"} msg] $msg
+} {0 {-foo -bar}}
+
+#----------------------------------------------------------
+# Check the rules for splitting
+#----------------------------------------------------------
+test slice-2.1 {multiple separator chars are lumped together} {
+    Rappture::slice -separators ", \t\n" "one,  two ,  three  "
+} {one two three}
+
+test slice-2.2 {leading separators are ignored} {
+    Rappture::slice -separators ", \t\n" ",, one,  two,"
+} {one two}
+
+test slice-2.3 {quote characters keep things together} {
+    Rappture::slice -open \" -close \" {"foo bar" "baz"  " qux "}
+} {{foo bar} baz { qux }}
+
+test slice-2.4 {embedded quotes are ignored} {
+    Rappture::slice -open \" -close \" {foo"bar "baz\""  \"qux}
+} {foo\"bar {baz\"} {\"qux}}
+
+test slice-2.5 {trailing quote doesn't dump core} {
+    Rappture::slice -open \" -close \" {foo"bar "baz"  \"qux "}
+} {foo\"bar baz {\"qux} {}}
+
+test slice-2.6 {close quote corresponds to open quote} {
+    Rappture::slice -open \"< -close \"> { <foo bar> <a b " c> "a<>b" }
+} {{foo bar} {a b " c} a<>b}
+
+test slice-2.7 {close quote can be escaped} {
+    Rappture::slice -open \"< -close \"> { <<foo bar\>> <a  b> }
+} {{<foo bar\>} {a  b}}
+
+test slice-2.8 {can override standard separators} {
+    Rappture::slice -separators : { 1eV : 2 eV : 0.1}
+} {{ 1eV } { 2 eV } { 0.1}}
+
+test slice-2.9 {no quotes by default} {
+    Rappture::slice -separators : { "1eV : 2 eV" : 0.1}
+} {{ "1eV } { 2 eV" } { 0.1}}
+
+::tcltest::cleanupTests
+return

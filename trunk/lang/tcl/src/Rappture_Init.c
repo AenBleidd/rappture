@@ -73,7 +73,7 @@ Rappture_Init( Tcl_Interp * interp)
     if (RpSignal_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (RpSplit_Init(interp) != TCL_OK) {
+    if (RpSlice_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     if (RpSysinfo_Init(interp) != TCL_OK) {
