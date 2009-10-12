@@ -159,7 +159,7 @@ if test "$with_matlab" != "no" ; then
   if test "$with_matlab" = "yes" ; then
     AC_PATH_PROG(MATLAB, matlab)
   else
-    AC_PATH_PROG(MATLAB, matlab, [${with_matlab}/bin:${with_matlab}])
+    AC_PATH_PROG(MATLAB, matlab, [], [${with_matlab}/bin:${with_matlab}])
   fi
 fi
 
@@ -170,8 +170,8 @@ if test "x$MATLAB" != "x" ; then
   matlab_bindir=`${MATLAB} -e | grep "MATLAB=" | sed s/MATLAB=//`/bin
 
   # Now see if we can find "mex" or "mexext" there.
-  AC_PATH_PROG(MEX, mex, [${matlab_bindir}/mex])
-  AC_PATH_PROG(MEXEXT, mexext, [${matlab_bindir}/mexext])
+  AC_PATH_PROG(MEX, mex, [], [${matlab_bindir}])
+  AC_PATH_PROG(MEXEXT, mexext, [], [${matlab_bindir}])
 
   # Run "mexext" to get the expected module extension for this platform.
   AC_MSG_CHECKING([for mex extension])
@@ -181,7 +181,7 @@ if test "x$MATLAB" != "x" ; then
     MEXEXT="mexglx"
   fi
   AC_MSG_RESULT([$MEXEXT])
-  AC_PATH_PROG(MCC, mcc, [${matlab_bindir}])
+  AC_PATH_PROG(MCC, mcc, [], [${matlab_bindir}])
   AC_MSG_CHECKING([for mcc extension])
 fi
 
@@ -208,8 +208,8 @@ if test "$with_octave" != "no" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    AC_PATH_PROG(OCTAVE, octave, [$with_octave/bin:$with_octave])
-    AC_PATH_PROG(MKOCTFILE, mkoctfile,
+    AC_PATH_PROG(OCTAVE, octave, [], [$with_octave/bin:$with_octave])
+    AC_PATH_PROG(MKOCTFILE, mkoctfile, [],
         [${with_octave}/bin/mkoctfile:${with_octave}])
   fi
   if test "x${OCTAVE}" != "x" ; then 
@@ -243,7 +243,7 @@ PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
   AC_MSG_CHECKING([for perl])
   if test "$with_perl" != "yes" ; then 
-    AC_PATH_PROG(PERL, perl, [$with_perl/bin:$with_perl])
+    AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
   else
     AC_PATH_PROG(PERL, perl)
   fi
@@ -397,7 +397,7 @@ if test "${rappture_with_ruby}" != "no" ; then
   if test "${rappture_with_ruby}" = "yes" ; then
     AC_PATH_PROG(RUBY, ruby)
   else
-    AC_PATH_PROG(RUBY, ruby,
+    AC_PATH_PROG(RUBY, ruby, [],
       [${rappture_with_ruby}/bin/ruby:${rappture_with_ruby}])
   fi
 fi

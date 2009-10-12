@@ -187,10 +187,10 @@ Rappture::encoding::isBinary(const char* buf, int size)
     if (size < 0) {
         size = strlen(buf);
     }
-    const unsigned char *cp, *endPtr;
-    for (cp = (const unsigned char *)buf, endPtr = cp + size; cp < endPtr; 
+    const char *cp, *endPtr;
+    for (cp = buf, endPtr = cp + size; cp < endPtr; 
 	 cp++) {
-	if (!_xmlchars[*cp]) {
+	if (!_xmlchars[(unsigned int)*cp]) {
 	    return true;		
 	}
     }
@@ -222,7 +222,7 @@ Rappture::encoding::isGzipped(const char* buf, int size)
     if (buf == NULL) {
         return false;			/* Really should let this segfault. */
     }
-    return ((buf[0] == 0x1f)  && (buf[1] == 0x8b));
+    return (((unsigned int)buf[0] == 0x1f)  && ((unsigned int)buf[1] == 0x8b));
 }
 
 /**********************************************************************/
