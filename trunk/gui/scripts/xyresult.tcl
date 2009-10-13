@@ -162,7 +162,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::graph $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 \
+            -highlightthickness 0 -plotpadx 0 -plotpady 4 \
             -rightmargin 10
     } {
         keep -background -foreground -cursor -font
@@ -842,6 +842,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                 } else {
                     set logmin [expr {floor(log10(abs($min)))}]
                     set logmax [expr {ceil(log10(abs($max)))}]
+		    if 0 {
                     if {[string match y* $axis]} {
                         # add a little padding
                         set delta [expr {$logmax-$logmin}]
@@ -849,6 +850,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                         set logmin [expr {$logmin-0.05*$delta}]
                         set logmax [expr {$logmax+0.05*$delta}]
                     }
+		    }
                 }
                 if {$logmin < -300} {
                     set min 1e-300
@@ -869,12 +871,14 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                 set min $_limits(${axis}lin-min)
                 set max $_limits(${axis}lin-max)
 
+		if 0 {
                 if {[string match y* $axis]} {
                     # add a little padding
                     set delta [expr {$max-$min}]
                     set min [expr {$min-0.05*$delta}]
                     set max [expr {$max+0.05*$delta}]
                 }
+		}
             }
             if {$min < $max} {
                 $g axis configure $axis -min $min -max $max

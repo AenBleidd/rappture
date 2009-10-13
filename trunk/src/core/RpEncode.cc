@@ -187,10 +187,9 @@ Rappture::encoding::isBinary(const char* buf, int size)
     if (size < 0) {
         size = strlen(buf);
     }
-    const char *cp, *endPtr;
-    for (cp = buf, endPtr = cp + size; cp < endPtr; 
-	 cp++) {
-	if (!_xmlchars[(unsigned int)*cp]) {
+    unsigned const char *p, *pend;
+    for (p = (unsigned const char *)buf, pend = p + size; p < pend; p++) {
+	if (!_xmlchars[*p]) {
 	    return true;		
 	}
     }
@@ -206,10 +205,10 @@ Rappture::encoding::isBase64(const char* buf, int size)
     if (size < 0) {
         size = strlen(buf);
     }
-    const char *cp, *endPtr;
-    for (cp = buf, endPtr = buf + size; cp < endPtr; cp++) {
-        if (!_base64chars[(unsigned int)*cp]) {
-	    fprintf(stderr, "%c %d is not base64\n", *cp, *cp);
+    unsigned const char *p, *pend;
+    for (p = (unsigned const char *)buf, pend = p + size; p < pend; p++) {
+        if (!_base64chars[*p]) {
+	    fprintf(stderr, "%c %u is not base64\n", *p, *p);
             return false;
         }
     }

@@ -22,8 +22,8 @@
  *        &amp;          "&"
  *        &lt;           "<"
  *        &gt;           ">"
- *	  &quot		 "\""
- *	  &apos		 "'"
+ *	  &quot;	 "\""
+ *	  &apos;	 "'"
  *
  */
 
@@ -41,11 +41,11 @@ typedef struct {
 } PredefEntityRef;
 
 static PredefEntityRef predef[] = {
-    { "&quot",  5,  "\"" },
-    { "&amp",   4,  "&"  },
-    { "&lt",    3,  "<"  },
-    { "&gt",    3,  ">"  },
-    { "&apos",  5,  "'"  }
+    { "&quot;",  6,  "\"" },
+    { "&amp;",   5,  "&"  },
+    { "&lt;",    4,  "<"  },
+    { "&gt;",    4,  ">"  },
+    { "&apos;",  6,  "'"  }
 };
 static int nPredefs = sizeof(predef) / sizeof (PredefEntityRef);
 
@@ -106,11 +106,9 @@ EntityRef::decode (const char* string, unsigned int len)
 const char*
 EntityRef::encode (const char* string, unsigned int len)
 {
-    unsigned int pos = 0;
-
     if (string == NULL) {
-        // Don't do anything with NULL strings.
-        return NULL;
+        return NULL;		       /* Don't do anything with NULL
+					* strings. */
     }
     _bout.clear();
     if (len == 0) {

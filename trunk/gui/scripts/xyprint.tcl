@@ -43,24 +43,30 @@ itcl::body Rappture::XyPrint::postscript { graph args } {
 	-bottommargin 0
     
     # Kill the title and create a border around the plot
-    $clone configure -title "" -plotborderwidth 1 -plotrelief solid  \
+    $clone configure \
+	-title "" \
+	-plotborderwidth 1 -plotrelief solid  \
 	-plotbackground white -plotpadx 0 -plotpady 0
     # 
-    $clone legend configure -position right -font "*-helvetica-medium-r-normal-*-12-*" \
+    $clone legend configure \
+	-position right \
+	-font "*-helvetica-medium-r-normal-*-12-*" \
 	-hide yes -borderwidth 0 -background white -relief flat \
 	-anchor nw -activeborderwidth 0
     # 
     foreach axis [$clone axis names] {
-	$clone axis configure $axis -ticklength 5 -loose always 
-#-min "" -max ""
-	$clone axis configure $axis -tickfont "*-helvetica-medium-r-normal-*-12-*" \
+	$clone axis configure $axis -ticklength 5 -loose always \
+-min "" -max ""
+	$clone axis configure $axis \
+	    -tickfont "*-helvetica-medium-r-normal-*-12-*" \
 	    -titlefont "*-helvetica-medium-r-normal-*-12-*" 
     }
     $clone grid off
     #$clone yaxis configure -rotate 90
     #$clone y2axis configure -rotate 270
     foreach elem [$clone element names] {
-	$clone element configure $elem -linewidth 1
+	$clone element configure $elem -linewidth 1 \
+	    -symbol splus -pixels 3 -maxsymbols 10 
     }
     set output [$clone postscript output \
 		    -maxpect false -decoration false ]
