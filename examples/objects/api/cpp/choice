@@ -1,0 +1,319 @@
+Choice
+
+constructors/destructors
+    Choice()
+    Choice(const char *name, const char *val);
+    Choice(const char *name, const char *val,
+           const char *label, const char *desc);
+    Choice(const Number& o);
+    ~Choice ();
+
+methods
+    const char *name() const;
+    void name(const char *val);
+
+    const char *path() const;
+    void path(const char *val);
+
+    const char *label() const;
+    void label(const char *val);
+
+    const char *desc() const;
+    void desc(const char *val);
+
+    const char *hints() const;
+    void hints(const char *val);
+
+    const char *color() const;
+    void color(const char *val);
+
+    const char *def() const;
+    void def(const char *val);
+
+    const char *cur() const;
+    void cur(const char *val);
+
+    int defset() const;
+    int curset() const;
+
+    const void *property (const char *key) const;
+    void property (const char *key, const void *val, size_t nbytes);
+
+    const char *propstr (const char *key) const;
+    void propstr (const char *key, const char *val);
+
+    void propremove (const char *key);
+
+    void vvalue(void *storage, size_t numHints, va_list arg) const;
+
+    Choice& addPreset(const char *label, const char *desc,
+                      const char *val);
+
+    Choice& delPreset(const char *label);
+
+    void configure(size_t as, ClientData c);
+    void dump(size_t as, ClientData c);
+
+    Outcome &outcome() const;
+
+    const int is() const;
+
+
+---------------------------------------
+
+const char *name()
+    Purpose: get the id name of the object
+    Input Arguments: None
+    Return Value: the id name stored in the object.
+    Notes: if no name is set, NULL will be returned
+            the id name is used to identify this object from
+            all other objects and should be unique
+    Code Example:
+
+void name(const char *val)
+    Purpose: set the id name of the object
+    Input Arguments: 1
+        1. const char *val - new id name
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *path()
+    Purpose: get the path of the object
+    Input Arguments: None
+    Return Value: the path stored in the object.
+    Notes: if no path is set, NULL will be returned
+            the path tells where this object sits in the
+            hierarchy of objects.
+    Code Example:
+
+void path(const char *val)
+    Purpose: set the path of the object
+    Input Arguments: 1
+        1. const char *val - new path
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *label()
+    Purpose: get the label of the object
+    Input Arguments: None
+    Return Value: the label stored in the object.
+    Notes: if no label is set, NULL will be returned
+            the label is used by the graphical user interface.
+    Code Example:
+
+void label(const char *val)
+    Purpose: set the label of the object
+    Input Arguments: 1
+        1. const char *val - new label
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *desc()
+    Purpose: get the description of the object
+    Input Arguments: None
+    Return Value: the description stored in the object.
+    Notes: if no description is set, NULL will be returned
+            the description is used by the graphical user
+            interface to describe what type of data is being
+            requested and how the input is used.
+    Code Example:
+
+void desc(const char *val)
+    Purpose: set the description of the object
+    Input Arguments: 1
+        1. const char *val - new description
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *hints()
+    Purpose: get the hints of the object
+    Input Arguments: None
+    Return Value: the hints stored in the object.
+    Notes: if no hints are set, NULL will be returned
+            the hints are used by the graphical user interface
+    Code Example:
+
+void hints(const char *val)
+    Purpose: set the hints of the object
+    Input Arguments: 1
+        1. const char *val - new hints
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *def() const;
+    Purpose: get the default value
+    Input Arguments: None
+    Return Value: label of the default value stored in the
+                    object.
+    Notes: use the function defset() to see if a valid
+            default value was stored in the object.
+    Code Example:
+
+void def(const char *val);
+    Purpose: set the default value
+    Input Arguments: 1
+        1. const char *val - label of the new default value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+const char *cur() const;
+    Purpose: get the current value
+    Input Arguments: None
+    Return Value: label of the current value stored in the
+                    object.
+    Notes: use the function curset() to see if a valid
+            default value was stored in the object.
+    Code Example:
+
+void cur(const char *val);
+    Purpose: set the current value
+    Input Arguments: 1
+        1. const char *val - label of the new current value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+int defset() const
+    Purpose: return whether the default value was set by the user
+    Input Arguments: None
+    Return Value: 1 if default was set by user, otherwise 0
+    Notes: None
+    Code Example:
+
+int curset() const
+    Purpose: return whether the current value was set by the user
+    Input Arguments: None
+    Return Value: 1 if current was set by user, otherwise 0
+    Notes: None
+    Code Example:
+
+const void *property (const char *key) const;
+    Purpose: get a generic property from the property database
+    Input Arguments: 1
+        1. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void property (const char *key, const void *val, size_t nbytes);
+    Purpose: set a generic property in the property database
+    Input Arguments: 3
+        1. const char *key - property name
+        2. const void *val - property value
+        3. size_t nbytes - size (in bytes) of the value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+const char *propstr (const char *key) const;
+    Purpose: get a string property from the property database
+    Input Arguments: 1
+        1. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void propstr (const char *key, const char *val);
+    Purpose: set a string property in the property database
+    Input Arguments: 2
+        1. const char *key - property name
+        2. const char *val - property value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+void propremove (const char *key);
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void vvalue(void *storage, size_t numHints, va_list arg) const;
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments: 3
+        1. void *storage - the return value
+        2. size_t numHints - number of hints provided
+        3. va_list arg - list of hints specified as a va_list
+    Return Value: None
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed.
+    Code Example:
+
+Choice& addPreset(const char *label, const char *desc,
+                  const char *val);
+    Purpose: add a preset to this object
+    Input Arguments: 3
+        1. const char *label - label of the preset
+        2. const char *desc - description of the preset
+        3. const char *val - numeric value and units of the preset
+    Return Value: None
+    Notes: presets are stored in the object in the same order
+                in which they are created
+    Code Example:
+
+Choice& delPreset(const char *label);
+    Purpose: delete the preset labeled "label" from this object
+    Input Arguments: 1
+        1. const char *label - label of the preset
+    Return Value: None
+    Notes: preset is removed from the object
+    Code Example:
+
+void configure(size_t as, ClientData c);
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        2. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    const char *xmltext
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+void dump(size_t as, ClientData c);
+    Purpose: dump the object values based to the object "c".
+                use "as" to determine how to dump the data.
+    Input Arguments: 2
+        1. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        2. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    ClientDataXml *object
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+Outcome &outcome() const;
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+const int is() const;
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

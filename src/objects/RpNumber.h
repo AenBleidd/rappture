@@ -38,15 +38,21 @@ class Number : public Object
         const char *units(void) const;
         void units(const char *p);
 
+        int minset() const;
+        int maxset() const;
+        int defset() const;
+        int curset() const;
+
         // convert the value stored in this object to specified units
         // does not return the converted value
         // error code is returned
-        int convert(const char *to);
+        Outcome& convert(const char *to);
 
         // get the value of this object converted to specified units
         // does not change the value of the object
         // error code is returned
-        int value(const char *units, double *value) const;
+        double value(const char *units) const;
+        void vvalue(void *storage, size_t numHints, va_list arg) const;
 
         Number& addPreset(const char *label, const char *desc,
                           double val, const char *units);
@@ -56,9 +62,6 @@ class Number : public Object
 
         Number& delPreset(const char *label);
 
-
-        void configure(size_t as, ClientData c);
-        void dump(size_t as, ClientData c);
 
         const int is() const;
 
@@ -72,6 +75,8 @@ class Number : public Object
         // flag tells if user specified min and max values
         int _minSet;
         int _maxSet;
+        int _defSet;
+        int _curSet;
 
         // hash or linked list of preset values
         Rp_Chain *_presets;
@@ -83,10 +88,12 @@ class Number : public Object
             Accessor<double> val;
         };
 
-        void __configureFromXml(ClientData c);
         void __configureFromTree(ClientData c);
-        void __dumpToXml(ClientData c);
         void __dumpToTree(ClientData c);
+
+        void __convertFromString(const char *val, double *ret);
+        void __valUnitsSplit( const char *inStr, double *val,
+                const char **units);
 };
 
 } // namespace Rappture

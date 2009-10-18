@@ -781,6 +781,7 @@ int path_8_4 ()
 //        input.number2
 //        input.number2(eee)
 //        input.number(eee)2
+// FIXME: add test for _ifs inside of id tags
 
 int main()
 {

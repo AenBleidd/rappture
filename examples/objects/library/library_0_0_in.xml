@@ -12,16 +12,16 @@
             <default>0eV</default>
             <current>5eV</current>
             <preset>
-                <value>300K</value>
                 <label>300K (room temperature)</label>
+                <value>300K</value>
             </preset>
             <preset>
-                <value>77K</value>
                 <label>77K (liquid nitrogen)</label>
+                <value>77K</value>
             </preset>
             <preset>
-                <value>4.2K</value>
                 <label>4.2K (liquid helium)</label>
+                <value>4.2K</value>
             </preset>
         </number>
     </input>

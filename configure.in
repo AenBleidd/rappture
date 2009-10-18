@@ -533,6 +533,8 @@ AC_CONFIG_FILES([
     examples/app-fermi/matlab/compiled/Makefile
     examples/app-fermi/matlab/uncompiled/Makefile
     examples/app-fermi/octave/Makefile
+    examples/app-fermi/octave/2/Makefile
+    examples/app-fermi/octave/3/Makefile
     examples/app-fermi/perl/Makefile
     examples/app-fermi/python/Makefile
     examples/app-fermi/ruby/Makefile

@@ -70,6 +70,16 @@ rpConvert (   const char* fromVal,
                int* result ) {
 
     static std::string retVal;
+    const char *empty = "";
+
+    if (fromVal == NULL) {
+        return retVal.c_str();
+    }
+
+    if (toUnitsName == NULL) {
+        toUnitsName = empty;
+    }
+
     retVal = RpUnits::convert(fromVal,toUnitsName,showUnits,result);
     return retVal.c_str();
 }
@@ -81,6 +91,16 @@ rpConvertStr (   const char* fromVal,
                   int* result ) {
 
     static std::string retVal;
+    const char *empty = "";
+
+    if (fromVal == NULL) {
+        return retVal.c_str();
+    }
+
+    if (toUnitsName == NULL) {
+        toUnitsName = empty;
+    }
+
     retVal = RpUnits::convert(fromVal,toUnitsName,showUnits,result);
     return retVal.c_str();
 }
@@ -104,6 +124,15 @@ rpConvertDbl (    const char* fromVal,
 
     std::string convStr;
     double retVal = 0.0;
+    const char *empty = "";
+
+    if (fromVal == NULL) {
+        return retVal;
+    }
+
+    if (toUnitsName == NULL) {
+        toUnitsName = empty;
+    }
 
     convStr = RpUnits::convert(fromVal,toUnitsName,0,result);
 

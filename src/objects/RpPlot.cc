@@ -248,45 +248,13 @@ Plot::__curveCopyFxn(void **to, void *from)
     return 0;
 }
 
-/**********************************************************************/
-// METHOD: configure(Rp_ParserXml *c)
-/// construct a number object from the provided tree
-/**
- * construct a number object from the provided tree
- */
-
-void
-Plot::configure(size_t as, ClientData c)
-{
-    if (as == RPCONFIG_XML) {
-        __configureFromXml(c);
-    } else if (as == RPCONFIG_TREE) {
-        __configureFromTree(c);
-    }
-}
 
 /**********************************************************************/
-// METHOD: configureFromXml(const char *xmltext)
-/// configure the object based on Rappture1.1 xmltext
+// METHOD: configureFromTree(ClientData p)
+/// configure the object from a Rappture1.1 based tree
 /**
- * Configure the object based on the provided xml
+ * Configure the object from a Rappture1.1 based tree
  */
-
-void
-Plot::__configureFromXml(ClientData c)
-{
-    const char *xmltext = (const char *) c;
-    if (xmltext == NULL) {
-        // FIXME: setup error
-        return;
-    }
-
-    Rp_ParserXml *p = Rp_ParserXmlCreate();
-    Rp_ParserXmlParse(p, xmltext);
-    configure(RPCONFIG_TREE, p);
-
-    return;
-}
 
 // FIXME: this is an incomplete definition of how to
 //        configure a plot object from a tree because there
@@ -308,46 +276,6 @@ Plot::__configureFromTree(ClientData c)
     name(Rp_ParserXmlNodeId(p,node));
 
     return;
-}
-
-/**********************************************************************/
-// METHOD: dump(size_t as, void *p)
-/// construct a number object from the provided tree
-/**
- * construct a number object from the provided tree
- */
-
-void
-Plot::dump(size_t as, ClientData c)
-{
-    if (as == RPCONFIG_XML) {
-        __dumpToXml(c);
-    } else if (as == RPCONFIG_TREE) {
-        __dumpToTree(c);
-    }
-}
-
-/**********************************************************************/
-// METHOD: dumpToXml(ClientData c)
-/// configure the object based on Rappture1.1 xmltext
-/**
- * Configure the object based on the provided xml
- */
-
-void
-Plot::__dumpToXml(ClientData c)
-{
-    if (c == NULL) {
-        // FIXME: setup error
-        return;
-    }
-
-    ClientDataXml *d = (ClientDataXml *) c;
-    Rp_ParserXml *parser = Rp_ParserXmlCreate();
-    __dumpToTree(parser);
-    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
-    d->retStr = _tmpBuf.bytes();
-    Rp_ParserXmlDestroy(&parser);
 }
 
 /**********************************************************************/

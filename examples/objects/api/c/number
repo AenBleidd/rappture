@@ -1,0 +1,520 @@
+Number
+
+    Rp_NumberInit(Rp_Number *num)
+    Rp_NumberInit2(Rp_Number *num, const char *name, const char *units,
+                   double val);
+    Rp_NumberInit3(Rp_Number *num, const char *name, const char *units,
+                   double val, double min, double max, const char *label,
+                   const char *desc);
+    Rp_NumberCopy(const Rp_Number* o);
+    Rp_NumberDestroy(Rp_Number *num);
+
+    const char *Rp_NumberGetName(Rp_Number *num) const;
+    void Rp_NumberSetName(Rp_Number *num, const char *val);
+
+    const char *Rp_NumberGetPath(Rp_Number *num) const;
+    void Rp_NumberSetPath(Rp_Number *num, const char *val);
+
+    const char *Rp_NumberGetLabel(Rp_Number *num) const;
+    void Rp_NumberSetLabel(Rp_Number *num, const char *val);
+
+    const char *Rp_NumberGetDesc(Rp_Number *num) const;
+    void Rp_NumberSetDesc(Rp_Number *num, const char *val);
+
+    const char *Rp_NumberGetHints(Rp_Number *num) const;
+    void Rp_NumberSetHints(Rp_Number *num, const char *val);
+
+    const char *Rp_NumberGetColor(Rp_Number *num) const;
+    void Rp_NumberSetColor(Rp_Number *num, const char *val);
+
+    double Rp_NumberGetDefault(Rp_Number *num) const;
+    void Rp_NumberSetDefault(Rp_Number *num, double val);
+
+    double Rp_NumberGetCurrent(Rp_Number *num) const;
+    void Rp_NumberSetCurrent(Rp_Number *num, double val);
+
+    double Rp_NumberGetMin(Rp_Number *num) const;
+    void Rp_NumberSetMin(Rp_Number *num, double val);
+
+    double Rp_NumberGetMax(Rp_Number *num) const;
+    void Rp_NumberSetMax(Rp_Number *num, double val);
+
+    const char *Rp_NumberGetUnits(Rp_Number *num) const;
+    void Rp_NumberSetUnits(Rp_Number *num, const char *u);
+
+    int Rp_NumberDefaultSet(Rp_Number *num) const;
+    int Rp_NumberCurrentSet(Rp_Number *num) const;
+
+    const void *Rp_NumberGetProperty (Rp_Number *num, const char *key) const;
+    void Rp_NumberSetProperty (Rp_Number *num, const char *key,
+                               const void *val, size_t nbytes);
+
+    const char *Rp_NumberPropStr (Rp_Number *num, const char *key) const;
+    void Rp_NumberPropStr (Rp_Number *num, const char *key, const char *val);
+
+    void Rp_NumberPropRemove (Rp_Number *num, const char *key);
+
+    Outcome& Rp_NumberConvert(Rp_Number *num, const char *to);
+    double Rp_NumberValue(Rp_Number *num, const char *units) const;
+    void Rp_NumberVValue(Rp_Number *num, void *storage, size_t numHints,
+                         va_list arg) const;
+
+    void Rp_NumberAddPreset(Rp_Number *num, const char *label,
+                            const char *desc, double val,
+                            const char *units);
+
+    void Rp_NumberAddPreset2(Rp_Number *num, const char *label,
+                             const char *desc, const char *val);
+
+    void Rp_NumberDelPreset(Rp_Number *num, const char *label);
+
+    void Rp_NumberConfigure(Rp_Number *num, size_t as, ClientData c);
+    void Rp_NumberDump(Rp_Number *num, size_t as, ClientData c);
+
+    Outcome *Rp_NumberOutcome(Rp_Number *num) const;
+
+    const int Rp_NumberIs(Rp_Number *num) const;
+
+    void Rp_NumberMinFromStr(Rp_Number *num, const char *val);
+    void Rp_NumberMaxFromStr(Rp_Number *num, const char *val);
+    void Rp_NumberDefaultFromStr(Rp_Number *num, const char *val);
+    void Rp_NumberCurrentFromStr(Rp_Number *num, const char *val);
+
+---------------------------------------
+
+const char *Rp_NumberGetName(Rp_Number *num)
+    Purpose: get the id name of the object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the id name stored in the object.
+    Notes: if no name is set, NULL will be returned
+            the id name is used to identify this object from
+            all other objects and should be unique
+    Code Example:
+
+void Rp_NumberSetName(Rp_Number *num, const char *val)
+    Purpose: set the id name of the object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new id name
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_NumberGetpath(Rp_Number *num)
+    Purpose: get the path of the object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the path stored in the object.
+    Notes: if no path is set, NULL will be returned
+            the path tells where this object sits in the
+            hierarchy of objects.
+    Code Example:
+
+void Rp_NumberSetPath(Rp_Number *num, const char *val)
+    Purpose: set the path of the object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new path
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_NumberGetLabel(Rp_Number *num)
+    Purpose: get the label of the object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the label stored in the object.
+    Notes: if no label is set, NULL will be returned
+            the label is used by the graphical user interface.
+    Code Example:
+
+void Rp_NumberSetLabel(Rp_Number *num, const char *val)
+    Purpose: set the label of the object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new label
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_NumberGetDesc(Rp_Number *num)
+    Purpose: get the description of the object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the description stored in the object.
+    Notes: if no description is set, NULL will be returned
+            the description is used by the graphical user
+            interface to describe what type of data is being
+            requested and how the input is used.
+    Code Example:
+
+void Rp_NumberSetDesc(Rp_Number *num, const char *val)
+    Purpose: set the description of the object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new description
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_NumberGetHints(Rp_Number *num)
+    Purpose: get the hints of the object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the hints stored in the object.
+    Notes: if no hints are set, NULL will be returned
+            the hints are used by the graphical user interface
+    Code Example:
+
+void Rp_NumberSetHints(Rp_Number *num, const char *val)
+    Purpose: set the hints of the object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new hints
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+double Rp_NumberGetDefault(Rp_Number *num)
+    Purpose: get the default value
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the default value stored in the object.
+    Notes: use the function defset() to see if a valid
+            default value was stored in the object.
+    Code Example:
+
+void Rp_NumberSetDefault(Rp_Number *num, double val)
+    Purpose: set the default value
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. double val - new default value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+double Rp_NumberGetCurrent(Rp_Number *num)
+    Purpose: get the current value
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the current value stored in the object.
+    Notes: use the function curset() to see if a valid
+            default value was stored in the object.
+    Code Example:
+
+void Rp_NumerSetCurrent(Rp_Number *num, double val)
+    Purpose: set the current value
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. double val - new current value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+double Rp_NumberGetMin(Rp_Number *num)
+    Purpose: get the minimum accepted value of this object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the minimum value this object will accept.
+    Notes: use the function minset() to see if a valid
+            minimum value was stored in the object.
+    Code Example:
+
+void Rp_NumberSetMin(Rp_Number *num, double val)
+    Purpose: set the minimum accepted value of this object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. double val - new minimum accepted value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+double Rp_NumberGetMax(Rp_Number *num)
+    Purpose: get the maximum accepted value of this object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the maximum value this object will accept.
+    Notes: use the function maxset() to see if a valid
+            maximum value was stored in the object.
+    Code Example:
+
+void Rp_NumberSetMax(Rp_Number *num, double val)
+    Purpose: set the maximum accepted value of this object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. double val - new maximum accepted value
+    Return Value: None
+    Notes: None
+    Code Example:
+
+const char* Rp_NumberGetUnits(Rp_Number *num)
+    Purpose: get the units of this object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: the string representing the object's units
+    Notes: None
+    Code Example:
+
+void Rp_NumberSetUnits(Rp_Number *num, const char *val)
+    Purpose: set the units of this object
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - new units
+    Return Value: None
+    Notes: None
+    Code Example:
+
+int Rp_NumberDefaultSet(Rp_Number *num) const
+    Purpose: return whether the default value was set by the user
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: 1 if default was set by user, otherwise 0
+    Notes: None
+    Code Example:
+
+int Rp_NumberCurrentSet(Rp_Number *Num) const
+    Purpose: return whether the current value was set by the user
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: 1 if current was set by user, otherwise 0
+    Notes: None
+    Code Example:
+
+const void *Rp_NumberGetProperty (Rp_Number *num, const char *key) const;
+    Purpose: get a generic property from the property database
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void Rp_NumberSetProperty (Rp_Number *num, const char *key,
+                           const void *val, size_t nbytes);
+    Purpose: set a generic property in the property database
+    Input Arguments: 4
+        1. Rp_Number *num - pointer to Number object
+        2. const char *key - property name
+        3. const void *val - property value
+        4. size_t nbytes - size (in bytes) of the value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+const char *Rp_NumberGetPropStr (Rp_Number *num, const char *key) const;
+    Purpose: get a string property from the property database
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void Rp_NumberSetPropStr (Rp_Number *num, const char *key, const char *val);
+    Purpose: set a string property in the property database
+    Input Arguments: 3
+        1. Rp_Number *num - pointer to Number object
+        2. const char *key - property name
+        3. const char *val - property value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+void Rp_NumberPropRemove (Rp_Number *num, const char *key);
+    Purpose: remove a property from the property database
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+Outcome *Rp_NumberConvert(Rp_Number *num, const char *to);
+    Purpose: convert the def and cur values to "to" units
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *to - string of units to convert to
+    Return Value: Outcome object
+    Notes: the values stored in the object are changed
+    Code Example:
+
+double Rp_NumberValue(Rp_Number *num, const char *to) const;
+    Purpose: return the value of the object with units of "to"
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *to - string of units to convert to
+    Return Value: value of the object
+    Notes: cur() is used as the base value. if cur was not set
+            by the user (curset() == 0), def() is used.
+            if def was not set (defset() == 0), 0.0 is used
+            as the value.
+    Code Example:
+
+void Rp_NumberVValue(Rp_Number *num, void *storage, size_t numHints,
+                     va_list arg) const;
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments: 4
+        1. Rp_Number *num - pointer to Number object
+        2. void *storage - the return value
+        3. size_t numHints - number of hints provided
+        4. va_list arg - list of hints specified as a va_list
+    Return Value: None
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed.
+    Code Example:
+
+void Rp_NumberAddPreset(Rp_Number *num, const char *label, const char *desc,
+                        double val, const char *units);
+    Purpose: add a preset to this object
+    Input Arguments: 5
+        1. Rp_Number *num - pointer to Number object
+        2. const char *label - label of the preset
+        3. const char *desc - description of the preset
+        4. double val - value of the preset
+        5. const char *units - units of the preset
+    Return Value: None
+    Notes: presets are stored in the object in the same order
+                in which they are created
+    Code Example:
+
+void Rp_NumberAddPreset2(Rp_Number *num, const char *label, const char *desc,
+                         const char *val);
+    Purpose: add a preset to this object
+    Input Arguments: 4
+        1. Rp_Number *num - pointer to Number object
+        2. const char *label - label of the preset
+        3. const char *desc - description of the preset
+        4. const char *val - numeric value and units of the preset
+    Return Value: None
+    Notes: presets are stored in the object in the same order
+                in which they are created
+    Code Example:
+
+void Rp_NumberDelPreset(Rp_Number *num, const char *label);
+    Purpose: delete the preset labeled "label" from this object
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+        2. const char *label - label of the preset
+    Return Value: None
+    Notes: preset is removed from the object
+    Code Example:
+
+void Rp_NumberConfigure(Rp_Number *num, size_t as, ClientData c);
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 3
+        1. Rp_Number *num - pointer to Number object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    const char *xmltext
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+void Rp_NumberDump(Rp_Number *num, size_t as, ClientData c);
+    Purpose: dump the object values based to the object "c".
+                use "as" to determine how to dump the data.
+    Input Arguments: 3
+        1. Rp_Number *num - pointer to Number object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    ClientDataXml *object
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+void Rp_NumberOutcome(Rp_Number *num) const;
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+const int Rp_NumberIs(Rp_Number *num) const;
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:
+
+void Rp_NumberMinFromStr(Rp_Number *num, const char *val);
+    Purpose: populate the min() value from a string.
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - value and units for the
+                                minimum value
+    Return Value: None
+    Notes: This function tries to parse the string for a value
+            and a units string. if a units string is found and
+            no units have been set for the object, these units
+            become the units for the object. if there are
+            already units for this object, any value found
+            during the split is converted to the object's
+            units before being stored in min().
+    Code Example:
+
+void Rp_NumberMaxFromStr(Rp_Number *num, const char *val);
+    Purpose: populate the max() value from a string.
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - value and units for the
+                                maximum value
+    Return Value: None
+    Notes: This function tries to parse the string for a value
+            and a units string. if a units string is found and
+            no units have been set for the object, these units
+            become the units for the object. if there are
+            already units for this object, any value found
+            during the split is converted to the object's
+            units before being stored in max().
+    Code Example:
+
+void Rp_NumberDefaultFromStr(Rp_Number *num, const char *val);
+    Purpose: populate the def() value from a string.
+    Input Arguments: 2
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - value and units for the
+                                default value
+    Return Value: None
+    Notes: This function tries to parse the string for a value
+            and a units string. if a units string is found and
+            no units have been set for the object, these units
+            become the units for the object. if there are
+            already units for this object, any value found
+            during the split is converted to the object's
+            units before being stored in def().
+    Code Example:
+
+void Rp_NumberCurrentFromStr(Rp_Number *num, const char *val);
+    Purpose: populate the cur() value from a string.
+    Input Arguments: 1
+        1. Rp_Number *num - pointer to Number object
+        2. const char *val - value and units for the
+                                current value
+    Return Value: None
+    Notes: This function tries to parse the string for a value
+            and a units string. if a units string is found and
+            no units have been set for the object, these units
+            become the units for the object. if there are
+            already units for this object, any value found
+            during the split is converted to the object's
+            units before being stored in cur().
+    Code Example:

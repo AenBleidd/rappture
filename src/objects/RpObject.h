@@ -13,11 +13,13 @@
 
 #include "RpInt.h"
 #include "RpHash.h"
+#include "RpOutcome.h"
 #include "RpAccessor.h"
 #include "RpBuffer.h"
 #include "RpPath.h"
 #include "RpParserXML.h"
 #include "RpObjConfig.h"
+#include <cstdarg>
 
 namespace Rappture {
 
@@ -70,16 +72,17 @@ class Object
         // remove property from hash table
         void propremove (const char *key);
 
-        // get the Rappture1.1 xml text for this object
-        virtual const char *xml(size_t indent, size_t tabstop) const;
+        // return the value of object based on provided hints
+        virtual void vvalue (void *storage, size_t numHints, va_list arg) const;
 
-        // set the object properties based on Rappture1.1 xml text
-        // virtual void xml(const char *xmltext);
+        // get the Rappture1.1 xml text for this object
+        // virtual const char *xml(size_t indent, size_t tabstop) const;
 
         // configure the object properties based on Rappture1.1 xml text
         virtual void configure(size_t as, ClientData c);
         virtual void dump(size_t as, ClientData c);
 
+        virtual Outcome &outcome() const;
         virtual const int is() const;
 
     protected:
@@ -87,6 +90,16 @@ class Object
         /// temprorary buffer for returning text to the user
         SimpleCharBuffer _tmpBuf;
 
+        /// status of the object
+        mutable Rappture::Outcome _status;
+
+        virtual void __hintParser(char *hint,
+            const char **hintKey, const char **hintVal) const;
+
+        virtual void __configureFromXml(ClientData c);
+        virtual void __configureFromTree(ClientData c);
+        virtual void __dumpToXml(ClientData c);
+        virtual void __dumpToTree(ClientData c);
     private:
 
         /// hash table holding other object properties

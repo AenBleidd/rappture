@@ -64,6 +64,7 @@ HEADERS = \
 		RpHashHelper.h \
 		RpHistogram.h \
 		RpLibObj.h \
+		RpLibStorage.h \
 		RpNumber.h \
 		RpParserXML.h \
 		RpPath.h \
@@ -71,6 +72,7 @@ HEADERS = \
 		RpPool.h \
 		RpScatter.h \
 		RpString.h \
+		RpTest.h \
 		RpTree.h \
 		RpObjConfig.h \
 		RpObject.h
@@ -94,6 +96,7 @@ OBJS = \
 		RpHashHelper.o \
 		RpHistogram.o \
 		RpLibObj.o \
+		RpLibStorage.o \
 		RpNumber.o \
 		RpParserXML.o \
 		RpPath.o \
@@ -101,6 +104,7 @@ OBJS = \
 		RpPool.o \
 		RpScatter.o \
 		RpString.o \
+		RpTest.o \
 		RpTree.o \
 		RpUtils2.o \
 		RpObject.o

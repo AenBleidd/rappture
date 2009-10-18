@@ -153,10 +153,11 @@ int main()
     size_t curveCnt = p1->count();
     std::printf("curveCnt = %zu\n",curveCnt);
 
-    size_t indent = 0;
-    size_t tabstop = 4;
-
-    std::printf("xml: %s\n",p1->xml(indent,tabstop));
+    Rappture::ClientDataXml d;
+    d.indent = 0;
+    d.tabstop = 4;
+    p1->dump(Rappture::RPCONFIG_XML,&d);
+    std::printf("xml: %s\n",d.retStr);
 
     delete p1;
 

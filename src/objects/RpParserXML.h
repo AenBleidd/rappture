@@ -28,6 +28,11 @@ Rp_ParserXml *Rp_ParserXmlCreate();
 void Rp_ParserXmlDestroy(Rp_ParserXml **p);
 
 void Rp_ParserXmlParse(Rp_ParserXml *p, const char *xml);
+int Rp_ParserXmlNodeIdentify(Rp_ParserXml *p, Rp_TreeNode n,
+    const char *name, const char *id);
+void Rp_ParserXmlFindChild( Rp_ParserXml *p, Rp_TreeNode parent,
+    const char *childName, const char *childId, size_t degree,
+    Rp_TreeNode *child, size_t *numFound);
 Rp_TreeNode Rp_ParserXmlSearch( Rp_ParserXml *p, const char *path, int create);
 const char *Rp_ParserXmlGet(Rp_ParserXml *p, const char *path);
 void Rp_ParserXmlPut(Rp_ParserXml *p, const char *path, const char *val, int append);

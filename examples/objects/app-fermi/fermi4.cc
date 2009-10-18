@@ -22,30 +22,36 @@ int main(int argc, char * argv[]) {
 
     // create a rappture library from the file filePath
     Rappture::Library lib(argv[1]);
+    Rappture::Number *T;
 
-    Rappture::Number T;
     double Ef           = 0.0;
+    double E            = 0.0;
     double dE           = 0.0;
     double kT           = 0.0;
     double Emin         = 0.0;
     double Emax         = 0.0;
+    double f            = 0.0;
     size_t nPts         = 200;
-    double E[nPts];
-    double f[nPts];
+    double EArr[nPts];
+    double fArr[nPts];
 
     if (lib.error() != 0) {
         // cannot open file or out of memory
-        fprintf(stderr, lib.traceback());
+        Rappture::Outcome o = lib.outcome();
+        fprintf(stderr, "%s",o.context());
+        fprintf(stderr, "%s",o.remark());
         exit(lib.error());
     }
 
-    Rappture::connect(&lib,"temperature",&T);
-    lib.value("Ef", &Ef, "units=eV");
+    Rappture::connect(&lib,"temperature",T);
+    lib.value("Ef", &Ef, 1, "units=eV");
 
     if (lib.error() != 0) {
         // there were errors while retrieving input data values
         // dump the tracepack
-        fprintf(stderr, lib.traceback());
+        Rappture::Outcome o = lib.outcome();
+        fprintf(stderr, "%s",o.context());
+        fprintf(stderr, "%s",o.remark());
         exit(lib.error());
     }
 
@@ -70,7 +76,7 @@ int main(int argc, char * argv[]) {
     // do it the easy way,
     // create a plot to add to the library
     // plot is registered with lib upon object creation
-    // p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
+    // p1.add(nPts,xArr,yArr,format,curveLabel,curveDesc);
 
     Rappture::Plot p1(lib);
     p1.add(nPts,fArr,EArr,"",curveLabel,curveDesc);

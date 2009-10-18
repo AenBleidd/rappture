@@ -69,33 +69,36 @@ Rp_ParserXmlEndHandler(
     char *value = NULL;
     Rp_TreeGetValue(inf->tree,inf->curr,Rp_ParserXml_Field_VALUE,(void **)&value);
 
-    // strip trailing spaces
-    int i = 0;
-    for (i = strlen(value)-1; i >= 0; i--) {
-        if (isspace(value[i])) {
-            value[i] = '\0';
-        } else {
-            break;
+    if (value != NULL) {
+        // strip trailing spaces
+        int i = 0;
+        for (i = strlen(value)-1; i >= 0; i--) {
+            if (isspace(value[i])) {
+                value[i] = '\0';
+            } else {
+                break;
+            }
         }
-    }
 
-    // strip leading spaces
-    int j = 0;
-    for (j = 0; j < i; j++) {
-        if (isspace(value[j])) {
-            value[j] = '\0';
-        } else {
-            break;
+        // strip leading spaces
+        int j = 0;
+        for (j = 0; j < i; j++) {
+            if (isspace(value[j])) {
+                value[j] = '\0';
+            } else {
+                break;
+            }
         }
-    }
 
-    if (j > 0) {
-        // reallocate the trimmed string
-        char *newValue = new char[i-j+1+1];
-        strcpy(newValue,value+j);
-        Rp_TreeSetValue(inf->tree,inf->curr,Rp_ParserXml_Field_VALUE,(void *)newValue);
-        delete value;
-        value = NULL;
+        if (j > 0) {
+            // reallocate the trimmed string
+            char *newValue = new char[i-j+1+1];
+            strcpy(newValue,value+j);
+            Rp_TreeSetValue(inf->tree,inf->curr,Rp_ParserXml_Field_VALUE,
+                (void *)newValue);
+            delete value;
+            value = NULL;
+        }
     }
 
     inf->path->del();
@@ -217,6 +220,94 @@ Rp_ParserXmlCreateNode(
     return child;
 }
 
+int
+Rp_ParserXmlNodeIdentify(
+    Rp_ParserXml *p,
+    Rp_TreeNode n,
+    const char *name,
+    const char *id)
+{
+    int criteriaMet = 0;
+    int criteriaTotal = 0;
+
+    if (n) {
+        if (name) {
+            criteriaTotal++;
+            if (strcmp(name,Rp_TreeNodeLabel(n)) == 0) {
+                criteriaMet++;
+            }
+        }
+        if (id) {
+            criteriaTotal++;
+            const char *nodeId = NULL;
+            Rp_TreeGetValue(p->tree,n,Rp_ParserXml_Field_ID,
+                (void **)&nodeId);
+            if (strcmp(id,nodeId) == 0) {
+                criteriaMet++;
+            }
+        }
+    }
+
+    // check if all of the eligable criteria have been met
+    int retVal = 0;
+    if (criteriaMet == criteriaTotal) {
+        retVal = 0;
+    } else {
+        retVal = 1;
+    }
+
+    return retVal;
+
+}
+
+void
+Rp_ParserXmlFindChild(
+    Rp_ParserXml *p,
+    Rp_TreeNode parent,
+    const char *childName,
+    const char *childId,
+    size_t degree,
+    Rp_TreeNode *child,
+    size_t *numFound)
+{
+    // this function is only concerned with the question:
+    // is a node with a matching name, id, and degree a
+    // child of the provided parent node?
+    // if so return it.
+    // this function does not create new nodes.
+
+    if (child == NULL) {
+        return;
+    }
+
+    if (numFound == NULL) {
+        return;
+    }
+
+    *numFound = 0;
+    *child = Rp_TreeFindChild(parent,childName);
+    if (*child == NULL) {
+        // no nodes with the name childName exist
+        return;
+    }
+
+    while (*child != NULL) {
+        if (Rp_ParserXmlNodeIdentify(p,*child,childName,childId) == 0) {
+            // found a child with the correct name and id
+            (*numFound)++;
+            if (degree == *numFound) {
+                // found a node with the correct degree
+                break;
+            }
+        }
+
+        // check the next child for the correct name and id
+        *child = Rp_TreeNextSibling(*child);
+    }
+
+    return;
+}
+
 Rp_TreeNode
 Rp_ParserXmlSearch(
     Rp_ParserXml *p,
@@ -226,7 +317,6 @@ Rp_ParserXmlSearch(
     Rappture::Path pathObj(path);
     Rp_TreeNode parent = NULL;
     Rp_TreeNode child = NULL;
-    size_t degree = 0;
 
     if (p == NULL) {
         return NULL;
@@ -243,62 +333,30 @@ Rp_ParserXmlSearch(
             (parent != NULL) ) {
 
         const char *childName = pathObj.type();
-        const char *searchChildId = pathObj.id();
+        const char *childId = pathObj.id();
+        size_t childDegree = pathObj.degree();
 
-        child = Rp_TreeFindChild(parent,childName);
+        size_t foundCnt = 0;
+        Rp_ParserXmlFindChild(p, parent, childName, childId,
+            childDegree, &child, &foundCnt);
+
         if (child == NULL) {
             // no nodes with the name childName exist
             // FIXME: use the RPXML_CREATE flag
             if (create) {
-                for (size_t i = 1; i <= pathObj.degree(); i++) {
+                for (size_t i = foundCnt; i < pathObj.degree(); i++) {
                     child = Rp_ParserXmlCreateNode(p, parent,
-                                childName, searchChildId);
+                                childName, childId);
                     if (child == NULL) {
+                        // error while creating the child node
+                        // signal error
                         break;
                     }
                 }
             } else {
-                fprintf(stderr,"invalid path %s at %s\n",path,childName);
+                // fprintf(stderr,"invalid path %s at %s\n",path,childName);
                 break;
             }
-        }
-
-        //FIXME: rewrite the child id search logic
-        const char *id = NULL;
-        Rp_TreeGetValue(p->tree,child, Rp_ParserXml_Field_ID,(void **)&id);
-        while (searchChildId && id) {
-
-            // check for matching child id and degree
-            if ((*searchChildId == *id) &&
-                (strcmp(searchChildId,id) == 0)) {
-                // found child with matching id
-                // check degree
-                degree++;
-                if (degree == pathObj.degree()) {
-                    // degrees match, return result
-                    break;
-                }
-            }
-
-            // check the next child to see if it has the correct id
-            child = Rp_TreeNextSibling(child);
-            if (child == NULL) {
-                // end of the sibling list
-                // create new node? or return NULL pointer
-                // FIXME: use the RPXML_CREATE flag
-                if (create) {
-                    child = Rp_ParserXmlCreateNode(p, parent,
-                                childName, searchChildId);
-                    if (child == NULL) {
-                        break;
-                    }
-                } else {
-                    // exit, child not found
-                    break;
-                }
-            }
-            id = NULL;
-            Rp_TreeGetValue(p->tree,child,Rp_ParserXml_Field_ID,(void **)&id);
         }
 
         parent = child;
