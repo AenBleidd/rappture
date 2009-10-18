@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>tclsh @tool/fermi.tcl @driver</command>
+    </tool>
+    <input>
+        <number id="Ef">
+            <about>
+                <label>Fermi Level</label>
+                <description>Energy at center of distribution.</description>
+            </about>
+            <units>eV</units>
+            <min>-10eV</min>
+            <max>10eV</max>
+            <default>0eV</default>
+            <current>  0eV   </current>
+        </number>
+        <number id="voltage">
+            <about>
+                <label>voltage</label>
+                <description>give a voltage.</description>
+            </about>
+            <units>V</units>
+            <min>-1V</min>
+            <max>1V</max>
+            <default>0V</default>
+            <current>0V</current>
+        </number>
+    </input>
+</run>

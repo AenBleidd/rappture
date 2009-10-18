@@ -133,8 +133,8 @@ Path::__pathFree()
 Path::componentStruct *
 Path::__createComponent(
     const char *p,
-    int start,
-    int end,
+    int typeStart,
+    int typeEnd,
     int idOpenParen,
     int idCloseParen,
     size_t degree)
@@ -148,13 +148,10 @@ Path::__createComponent(
     c->id = NULL;
     c->degree = degree;
 
+    typeLen = typeEnd - typeStart;
     if (idOpenParen < idCloseParen) {
         // user specified an id
-        typeLen = idOpenParen - start;
         idLen = idCloseParen - idOpenParen - 1;
-    } else {
-        // no id found
-        typeLen = end - start;
     }
 
     /*
@@ -182,7 +179,7 @@ Path::__createComponent(
 
     if (typeLen >= 0) {
         tmp = new char[typeLen+1];
-        strncpy(tmp,(p+start),typeLen);
+        strncpy(tmp,(p+typeStart),typeLen);
         tmp[typeLen] = '\0';
         c->type = tmp;
     }
@@ -214,8 +211,10 @@ Path::__deleteComponent(componentStruct *c)
 Rp_Chain *
 Path::__parse(const char *p)
 {
-    int start = 0;
-    int end = 0;
+    int typeStart = 0;
+    int typeEnd = -1;       // typeEnd must be less than typeStart
+                            // so we can check if there was a type
+    int curr = 0;
     int idOpenParen = -1;
     int idCloseParen = -1;
     componentStruct *c = NULL;
@@ -228,16 +227,25 @@ Path::__parse(const char *p)
         return 0;
     }
 
-    while (p[end] != '\0') {
-        if (p[end] == '(') {
-            idOpenParen = end;
-        } else if (p[end] == ')') {
-            idCloseParen = end;
+    while (p[curr] != '\0') {
+        if (p[curr] == '(') {
+            idOpenParen = curr;
+            typeEnd = curr;
+        } else if (p[curr] == ')') {
+            idCloseParen = curr;
         } else if ( (idOpenParen <= idCloseParen) &&
-                    (end != 0) &&
-                    (p[end] >= '0') &&
-                    (p[end] <= '9') ) {
-            degree = (size_t) strtod(p+end, &newEnd);
+                    (curr != 0) &&
+                    (p[curr] >= '0') &&
+                    (p[curr] <= '9') ) {
+            // we are not inside the parens
+            // we are not at the start of the string
+            // the value is a digit
+            if (idOpenParen == idCloseParen) {
+                // we are before any possible parens
+                // and after the type
+                typeEnd = curr;
+            }
+            degree = (size_t) strtod(p+curr, &newEnd);
             if (degree == 0) {
                 // interpret degree of 0 same as degree of 1
                 degree = 1;
@@ -246,21 +254,36 @@ Path::__parse(const char *p)
             if (*(newEnd-1) == _ifs) {
                 newEnd -= 2;
             }
-            end += newEnd - (p + end);
-        } else if (p[end] == _ifs) {
-            c = __createComponent(p,start,end,idOpenParen,idCloseParen,degree);
+            curr += newEnd - (p + curr);
+        } else if ( (p[curr] == _ifs) &&
+                    ((idOpenParen == idCloseParen) ||
+                     (idOpenParen < idCloseParen)) ) {
+            // we see the _ifs
+            // we are not inside of the parens for the id tag
+            if (typeEnd < typeStart) {
+                // we didn't come across the end
+                // of the type string, so set it here.
+                typeEnd = curr;
+            }
+            c = __createComponent(p,typeStart,typeEnd,idOpenParen,idCloseParen,degree);
             if (c != NULL) {
                 Rp_ChainAppend(compList,c);
             }
 
-            start = end+1;
+            typeStart = curr+1;
             idOpenParen = -1;
             idCloseParen = -1;
+            degree = 1;
         }
-        end++;
+        curr++;
     }
 
-    c = __createComponent(p,start,end,idOpenParen,idCloseParen,degree);
+    if (typeEnd < typeStart) {
+        // < takes care of cases where there is no
+        // id and no degree, but there is still a type
+        typeEnd = curr;
+    }
+    c = __createComponent(p,typeStart,typeEnd,idOpenParen,idCloseParen,degree);
     if (c != NULL) {
         Rp_ChainAppend(compList,c);
     }
@@ -290,6 +313,10 @@ Path::__updateBuffer()
             if (len > 0) {
                 b.append(c->type,len);
             }
+        }
+
+        if (c->degree > 1) {
+            b.appendf("%i",c->degree);
         }
 
         if (c->id != NULL) {
@@ -427,47 +454,6 @@ Path::component(void)
 {
     Rp_ChainLink *l = NULL;
 
-    /*
-    tmpBuf.clear();
-
-    if (_pathList == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    l = _currLink;
-
-    if (l == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
-
-    if (c == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    if (c->type != NULL) {
-        tmpBuf.appendf("%s",c->type);
-    }
-
-    if (c->degree != 1) {
-        tmpBuf.appendf("%zu",c->degree);
-    }
-
-    if (c->id != NULL) {
-        tmpBuf.appendf("(%s)",c->id);
-    }
-
-    // incase none of the above if statements are hit.
-    tmpBuf.append("\0",1);
-
-    return tmpBuf.bytes();
-    */
-
-
     if (_pathList == NULL) {
         return NULL;
     }
@@ -571,37 +557,6 @@ Path::id()
 {
     Rp_ChainLink *l = NULL;
 
-    /*
-    tmpBuf.clear();
-
-    if (_pathList == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    l = _currLink;
-
-    if (l == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
-
-    if (c == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    if (c->id) {
-        tmpBuf.append(c->id);
-    }
-
-    tmpBuf.append("\0",1);
-
-    return tmpBuf.bytes();
-    */
-
     if (_pathList == NULL) {
         return NULL;
     }
@@ -662,37 +617,6 @@ const char *
 Path::type()
 {
     Rp_ChainLink *l = NULL;
-
-    /*
-    tmpBuf.clear();
-
-    if (_pathList == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    l = _currLink;
-
-    if (l == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    componentStruct *c = (componentStruct *) Rp_ChainGetValue(l);
-
-    if (c == NULL) {
-        tmpBuf.append("\0",1);
-        return tmpBuf.bytes();
-    }
-
-    if (c->type) {
-        tmpBuf.append(c->type);
-    }
-
-    tmpBuf.append("\0",1);
-
-    return tmpBuf.bytes();
-    */
 
     if (_pathList == NULL) {
         return NULL;

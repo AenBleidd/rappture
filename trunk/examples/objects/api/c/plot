@@ -1,0 +1,314 @@
+Plot
+
+    Rp_Plot *Rp_PlotInit(Rp_Library *lib)
+    void Rp_PlotDestroy (Rp_Plot *p);
+
+    const char *Rp_PlotGetName(Rp_Plot *p) const;
+    void Rp_PlotSetName(Rp_Plot *p, const char *val);
+
+    const char *Rp_PlotGetPath(Rp_Plot *p) const;
+    void Rp_PlotSetPath(Rp_Plot *p, const char *val);
+
+    const char *Rp_PlotGetLabel(Rp_Plot *p) const;
+    void Rp_PlotSetLabel(Rp_Plot *p, const char *val);
+
+    const char *Rp_PlotGetDesc(Rp_Plot *p) const;
+    void Rp_PlotSetDesc(Rp_Plot *p, const char *val);
+
+    const char *Rp_PlotGetHints(Rp_Plot *p) const;
+    void Rp_PlotSetHints(Rp_Plot *p, const char *val);
+
+    const char *Rp_PlotGetColor(Rp_Plot *p) const;
+    void Rp_PlotSetColor(Rp_Plot *p, const char *val);
+
+    const void *Rp_PlotGetProperty (Rp_Plot *p, const char *key) const;
+    void Rp_PlotSetProperty (Rp_Plot *p, const char *key, const void *val, size_t nbytes);
+
+    const char *Rp_PlotGetPropStr (Rp_Plot *p, const char *key) const;
+    void Rp_PlotSetPropStr (Rp_Plot *p, const char *key, const char *val);
+
+    void Rp_PlotPropRemove (Rp_Plot *p, const char *key);
+
+    void Rp_PlotAdd (Rp_Plot *p, size_t nPts, double *x, double *y,
+                      const char *fmt, const char *name);
+
+    void Rp_PlotAddCurve (Rp_Plot *p, Curve *c, const char *name);
+
+    size_t Rp_PlotCount(Rp_Plot *p) const;
+
+    Curve *Rp_PlotCurve (Rp_Plot *p, const char* name) const;
+    Curve *Rp_PlotGetNthCurve(Rp_Plot *p, size_t n) const;
+
+    void Rp_PlotVValue(Rp_Plot *p, void *storage, size_t numHints,
+                       va_list arg) const;
+
+    void Rp_PlotConfigure(Rp_Plot *p, size_t as, ClientData c);
+    void Rp_PlotDump(Rp_Plot *p, size_t as, ClientData c);
+
+    Outcome *Rp_PlotOutcome(Rp_Plot *p) const;
+
+    const int Rp_PlotIs(Rp_Plot *p) const;
+
+---------------------------------------
+
+const char *Rp_PlotGetName(Rp_Plot *p)
+    Purpose: get the id name of the object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: the id name stored in the object.
+    Notes: if no name is set, NULL will be returned
+            the id name is used to identify this object from
+            all other objects and should be unique
+    Code Example:
+
+void Rp_PlotSetName(Rp_Plot *p, const char *val)
+    Purpose: set the id name of the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *val - new id name
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_PlotGetPath(Rp_Plot *p)
+    Purpose: get the path of the object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: the path stored in the object.
+    Notes: if no path is set, NULL will be returned
+            the path tells where this object sits in the
+            hierarchy of objects.
+    Code Example:
+
+void Rp_PlotGetPath(Rp_Plot *p, const char *val)
+    Purpose: set the path of the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *val - new path
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_PlotGetLabel(Rp_Plot *p)
+    Purpose: get the label of the object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: the label stored in the object.
+    Notes: if no label is set, NULL will be returned
+            the label is used by the graphical user interface.
+    Code Example:
+
+void Rp_PlotSetLabel(Rp_Plot *p, const char *val)
+    Purpose: set the label of the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *val - new label
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_PlotGetDesc(Rp_Plot *p)
+    Purpose: get the description of the object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: the description stored in the object.
+    Notes: if no description is set, NULL will be returned
+            the description is used by the graphical user
+            interface to describe what type of data is being
+            requested and how the input is used.
+    Code Example:
+
+void Rp_PlotSetDesc(Rp_Plot *p, const char *val)
+    Purpose: set the description of the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *val - new description
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const char *Rp_PlotGetHints(Rp_Plot *p)
+    Purpose: get the hints of the object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: the hints stored in the object.
+    Notes: if no hints are set, NULL will be returned
+            the hints are used by the graphical user interface
+    Code Example:
+
+void Rp_PlotSetHints(Rp_Plot *p, const char *val)
+    Purpose: set the hints of the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *val - new hints
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+
+const void *Rp_PlotGetProperty (Rp_Plot *p, const char *key) const;
+    Purpose: get a generic property from the property database
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void Rp_PlotSetProperty (Rp_Plot *p, const char *key, const void *val, size_t nbytes);
+    Purpose: set a generic property in the property database
+    Input Arguments: 4
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *key - property name
+        3. const void *val - property value
+        4. size_t nbytes - size (in bytes) of the value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+const char *Rp_PlotGetPropStr (Rp_Plot *p, const char *key) const;
+    Purpose: get a string property from the property database
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void Rp_PlotSetPropStr (Rp_Plot *p, const char *key, const char *val);
+    Purpose: set a string property in the property database
+    Input Arguments: 3
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *key - property name
+        3. const char *val - property value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+
+void Rp_PlotPropRemove (Rp_Plot *p, const char *key);
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+void Rp_PlotAdd (Rp_Plot *p, size_t nPts, double *x, double *y,
+                 const char *fmt, const char *name);
+    Purpose: add data for an xy curve to the plot
+    Input Arguments: 6
+        1. Rp_Plot *p - pointer to Plot object
+        2. size_t nPts - number of points in the x and y arrays
+        3. double *x - pointer to array representing the x axis
+        4. double *y - pointer to array representing the y axis
+        5. const char *fmt - format of the line
+        6. const char *name - id of the newly created curve
+    Return Value: reference to a Plot object
+    Notes: format can be something like "g:o" to represent
+            green line, dotted line style, circle marker.
+            this follows matlab's formatting rules.
+    Code Example:
+
+void Rp_PlotAddCurve (Rp_Plot *p, Curve *c, const char *name);
+    Purpose: add a Curve object to this Plot object
+    Input Arguments: 3
+        1. Rp_Plot *p - pointer to Plot object
+        2. Curve *c - Curve object to add
+        3. const char *name - id of the Curve object
+    Return Value: reference to a Plot object
+    Notes: Curve object should not be deleted by user?
+    Code Example:
+
+size_t Rp_PlotCount(Rp_Plot *p) const;
+    Purpose: retrieve the number of curves in this Plot object
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: number of curves stored in the object
+    Notes: None
+    Code Example:
+
+Curve *Rp_PlotCurve (Rp_Plot *p, const char* name) const;
+    Purpose: retrieve the curve with the id matching "name"
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. const char *name - id to Curve to be retrieved
+    Return Value: pointer to Curve object matching "name" or NULL
+    Notes: None
+    Code Example:
+
+Curve *Rp_PlotGetNthCurve(Rp_Plot *p, size_t n) const;
+    Purpose: return the n'th curve stored in the object
+    Input Arguments: 2
+        1. Rp_Plot *p - pointer to Plot object
+        2. size_t n - number of the curve to retrieve
+    Return Value: pointer to the n'th Curve object stored in
+                    the Plot object or NULL
+    Notes: None
+    Code Example:
+
+void Rp_PlotVValue(Rp_Plot *p, void *storage, size_t numHints, va_list arg) const;
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments: 4
+        1. Rp_Plot *p - pointer to Plot object
+        2. void *storage - the return value
+        3. size_t numHints - number of hints provided
+        4. va_list arg - list of hints specified as a va_list
+    Return Value: None
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed.
+    Code Example:
+
+void Rp_PlotConfigure(Rp_Plot *p, size_t as, ClientData c);
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 3
+        1. Rp_Plot *p - pointer to Plot object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    const char *xmltext
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+void Rp_PlotDump(Rp_Plot *p, size_t as, ClientData c);
+    Purpose: dump the object values based to the object "c".
+                use "as" to determine how to dump the data.
+    Input Arguments: 3
+        1. Rp_Plot *p - pointer to Plot object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    ClientDataXml *object
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+Outcome *Rp_PlotOutcome(Rp_Plot *p) const;
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+const int Rp_PlotIs(Rp_Plot *p) const;
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 1
+        1. Rp_Plot *p - pointer to Plot object
+    Return Value: integer tag unique to all plot objects
+    Notes: None
+    Code Example:

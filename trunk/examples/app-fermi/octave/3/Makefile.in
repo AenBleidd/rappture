@@ -9,27 +9,22 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir          = @srcdir@
 
-destdir         = $(prefix)/examples/app-fermi/octave
+destdir         = $(prefix)/examples/app-fermi/octave/3
 
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 
-all: all_2 all_3
+FILES = \
+        $(srcdir)/tool.xml \
+        $(srcdir)/fermi.m
 
-all_2:
-	$(MAKE) -C 2 all
+all:
 
-all_3:
-	$(MAKE) -C 3 all
-
-
-install: install_2 install_3
-
-install_2:
-	$(MAKE) -C 2 install
-
-install_3:
-	$(MAKE) -C 3 install
+install:
+	$(MKDIR_P) $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	done
 
 clean:
 

@@ -31,6 +31,8 @@ enum RP_LIBRARY_CONSTS {
 #include "RpInt.h"
 #include "RpChain.h"
 #include "RpParserXML.h"
+#include "RpLibStorage.h"
+#include <cstdarg>
 
 namespace Rappture {
 
@@ -45,27 +47,28 @@ class Library
         Outcome &loadFile(const char *filename);
 
 
-        // Library *value(const char *key, void *storage);
+        Library &value(const char *key, void *storage,
+            size_t numHints, ...);
 
         // Rp_Chain *diff(Library *lib);
 
-        // Library *remove (const char *key);
+        // Library &remove (const char *key);
 
         const char *xml() const;
 
         Outcome &outcome() const;
+        int error() const;
 
-        // Library *result(int status);
+        // Outcome &result(int status);
 
         const Rp_Chain *contains() const;
     private:
-        Rp_Chain *_objList;
-        // Rp_HashTable _objHash;
-        mutable Rappture::Outcome _status;
+        LibraryStorage _objStorage;
+        mutable Outcome _status;
 
         void __libInit();
         void __libFree();
-        void __parseTree2ObjectList(Rp_ParserXml *p, Rp_Chain *retObjList);
+        void __parseTree2ObjectList(Rp_ParserXml *p);
 
 }; // end class Library
 

@@ -15,6 +15,7 @@
 
 #include "RpObject.h"
 #include "RpHashHelper.h"
+#include <cstring>
 
 using namespace Rappture;
 
@@ -254,6 +255,68 @@ Object::propremove(const char *key)
 }
 
 void
+Object::__hintParser(
+    char *hint,
+    const char **hintKey,
+    const char **hintVal) const
+{
+
+    // hints are null terminated strings with a hint key
+    // and hint value separated by an equal sign.
+    // they take the following form:
+    // hintKey=hintVal
+    // this function does change the original hint string.
+
+    char *v = NULL;
+
+    if (hint == NULL) {
+        return;
+    }
+
+    v = strchrnul(hint,'=');
+    *hintKey = hint;
+    if ((*v == '\0') || (*(v+1) == '\0')) {
+        // incomplete hint string
+        *hintVal = NULL;
+    } else {
+        *v = '\0';
+        *hintVal = v+1;
+    }
+
+    return;
+}
+
+void
+Object::vvalue(void *storage, size_t numHints, va_list arg) const
+{
+    // bland objects take no hints
+    char buf[1024];
+    char *hintCopy = NULL;
+    size_t hintLen = 0;
+
+    char *hint = NULL;
+    const char *hintKey = NULL;
+    const char *hintVal = NULL;
+
+    while (numHints > 0) {
+        numHints--;
+        hint = va_arg(arg, char *);
+        hintLen = strlen(hint);
+        if (hintLen < 1024) {
+            hintCopy = buf;
+        } else {
+            hintCopy = new char[hintLen+1];
+        }
+        strcpy(hintCopy,hint);
+        __hintParser(hintCopy,&hintKey,&hintVal);
+        if (hintCopy != buf) {
+            delete hintCopy;
+        }
+    }
+    return;
+}
+
+void
 Object::__init()
 {
     _h = NULL;
@@ -296,11 +359,13 @@ Object::__clear()
     }
 }
 
+/*
 const char *
 Object::xml(size_t indent, size_t tabstop) const
 {
     return NULL;
 }
+*/
 
 /*
 void
@@ -310,16 +375,162 @@ Object::xml(const char *xmltext)
 }
 */
 
+/**********************************************************************/
+// METHOD: configure(ClientData c)
+/// construct an object from the provided tree
+/**
+ * construct an object from the provided tree
+ */
+
 void
 Object::configure(size_t as, ClientData c)
 {
+    if (as == RPCONFIG_XML) {
+        __configureFromXml(c);
+    } else if (as == RPCONFIG_TREE) {
+        __configureFromTree(c);
+    }
+}
+
+/**********************************************************************/
+// METHOD: configureFromXml(const char *xmltext)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Object::__configureFromXml(ClientData c)
+{
+    const char *xmltext = (const char *)c;
+    if (xmltext == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *p = Rp_ParserXmlCreate();
+    Rp_ParserXmlParse(p, xmltext);
+    __configureFromTree(p);
+
     return;
 }
 
 void
-Object::dump(size_t as, ClientData c)
+Object::__configureFromTree(ClientData c)
 {
+    Rp_ParserXml *p = (Rp_ParserXml *)c;
+    if (p == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_TreeNode node = Rp_ParserXmlElement(p,NULL);
+
+    Rappture::Path pathObj(Rp_ParserXmlNodePath(p,node));
+
+    path(pathObj.parent());
+    name(Rp_ParserXmlNodeId(p,node));
+
+    pathObj.clear();
+    pathObj.add("about");
+    pathObj.add("label");
+    label(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.type("description");
+    desc(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.type("hints");
+    hints(Rp_ParserXmlGet(p,pathObj.path()));
+    pathObj.type("color");
+    color(Rp_ParserXmlGet(p,pathObj.path()));
+
     return;
+}
+
+/**********************************************************************/
+// METHOD: dump(size_t as, void *p)
+/// construct a number object from the provided tree
+/**
+ * construct a number object from the provided tree
+ */
+
+void
+Object::dump(size_t as, ClientData p)
+{
+    if (as == RPCONFIG_XML) {
+        __dumpToXml(p);
+    } else if (as == RPCONFIG_TREE) {
+        __dumpToTree(p);
+    }
+}
+
+/**********************************************************************/
+// METHOD: dumpToXml(ClientData p)
+/// configure the object based on Rappture1.1 xmltext
+/**
+ * Configure the object based on the provided xml
+ */
+
+void
+Object::__dumpToXml(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    ClientDataXml *d = (ClientDataXml *)c;
+    Rp_ParserXml *parser = Rp_ParserXmlCreate();
+    __dumpToTree(parser);
+    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
+    d->retStr = _tmpBuf.bytes();
+    Rp_ParserXmlDestroy(&parser);
+}
+
+/**********************************************************************/
+// METHOD: dumpToTree(ClientData p)
+/// dump the object to a Rappture1.1 based tree
+/**
+ * Dump the object to a Rappture1.1 based tree
+ */
+
+void
+Object::__dumpToTree(ClientData c)
+{
+    if (c == NULL) {
+        // FIXME: setup error
+        return;
+    }
+
+    Rp_ParserXml *parser = (Rp_ParserXml *)c;
+
+    Path p;
+
+    p.parent(path());
+    p.last();
+
+    p.add("object");
+    p.id(name());
+
+    p.add("about");
+
+    p.add("label");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",label());
+
+    p.type("description");
+    Rp_ParserXmlPutF(parser,p.path(),"%s",desc());
+
+    p.type("hints");
+    Rp_ParserXmlPutF(parser,p.path(),"%s", hints());
+
+    p.type("color");
+    Rp_ParserXmlPutF(parser,p.path(),"%s", color());
+
+    return;
+}
+
+Outcome &
+Object::outcome() const
+{
+    return _status;
 }
 
 const int

@@ -31,7 +31,7 @@ readFile (
     memblock = new char [size+1];
     if (memblock == NULL) {
         fprintf(stderr,"can't allocate %zu bytes for file \"%s\": %s",
-            size, filePath, strerror(errno));
+            (size_t) size, filePath, strerror(errno));
         fclose(f);
         return 0;
     }
@@ -41,7 +41,7 @@ readFile (
     fclose(f);
 
     if (nRead != (size_t)size) {
-        fprintf(stderr,"can't read %zu bytes from \"%s\": %s", size, filePath,
+        fprintf(stderr,"can't read %zu bytes from \"%s\": %s", (size_t) size, filePath,
             strerror(errno));
         return 0;
     }
@@ -85,6 +85,47 @@ int xmlparser_1_0 ()
     const char *testname = "xmlparser_1_0";
     const char *infile = "xmlparser_1_0_in.xml";
     const char *outfile = "xmlparser_1_0_out.xml";
+    int retVal = 0;
+
+    const char *xmltext = NULL;
+    const char *expected = NULL;
+
+    readFile(infile,&xmltext);
+    readFile(outfile,&expected);
+
+    const char *received = NULL;
+
+    Rp_ParserXml *p = NULL;
+
+    p = Rp_ParserXmlCreate();
+
+    Rp_ParserXmlParse(p, xmltext);
+
+    received = Rp_ParserXmlXml(p);
+
+
+    if (strcmp(expected,received) != 0) {
+        printf("Error: %s\n", testname);
+        printf("\t%s\n", desc);
+        printf("\texpected %zu bytes: \"%s\"\n",strlen(expected), expected);
+        printf("\treceived %zu bytes: \"%s\"\n",strlen(received), received);
+        retVal = 1;
+    }
+
+    if (p) {
+        Rp_ParserXmlDestroy(&p);
+    }
+
+    return retVal;
+}
+
+
+int xmlparser_1_1 ()
+{
+    const char *desc = "test sending xml text to xml parser";
+    const char *testname = "xmlparser_1_1";
+    const char *infile = "xmlparser_1_1_in.xml";
+    const char *outfile = "xmlparser_1_1_out.xml";
     int retVal = 0;
 
     const char *xmltext = NULL;
@@ -312,6 +353,7 @@ int main()
 {
     xmlparser_0_0();
     xmlparser_1_0();
+    xmlparser_1_1();
     xmlparser_2_0();
     xmlparser_3_0();
     xmlparser_4_0();

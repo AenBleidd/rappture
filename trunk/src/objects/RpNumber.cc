@@ -23,6 +23,8 @@ Number::Number()
    : Object (),
      _minSet (0),
      _maxSet (0),
+     _defSet (0),
+     _curSet (0),
      _presets (NULL)
 {
     // FIXME: empty names should be autoname'd
@@ -42,6 +44,8 @@ Number::Number(const char *name, const char *units, double val)
    : Object (),
      _minSet (0),
      _maxSet (0),
+     _defSet (0),
+     _curSet (0),
      _presets (NULL)
 {
     const RpUnits *u = NULL;
@@ -68,6 +72,8 @@ Number::Number(const char *name, const char *units, double val,
     : Object (),
       _minSet (0),
       _maxSet (0),
+      _defSet (0),
+      _curSet (0),
       _presets (NULL)
 {
     const RpUnits *u = NULL;
@@ -109,7 +115,9 @@ Number::Number(const char *name, const char *units, double val,
 Number::Number ( const Number& o )
     : Object (o),
       _minSet (o._minSet),
-      _maxSet (o._maxSet)
+      _maxSet (o._maxSet),
+      _defSet (o._defSet),
+      _curSet (o._curSet)
 {
     this->def(o.def());
     this->cur(o.cur());
@@ -138,6 +146,30 @@ Number::units(const char *p)
     propstr("units",p);
 }
 
+int
+Number::minset() const
+{
+    return _minSet;
+}
+
+int
+Number::maxset() const
+{
+    return _maxSet;
+}
+
+int
+Number::defset() const
+{
+    return _defSet;
+}
+
+int
+Number::curset() const
+{
+    return _curSet;
+}
+
 /**********************************************************************/
 // METHOD: convert()
 /// Convert the number object to another unit from string
@@ -145,41 +177,58 @@ Number::units(const char *p)
  * Store the result as the currentValue.
  */
 
-int
+Outcome&
 Number::convert(const char *to)
 {
     const RpUnits* toUnit = NULL;
     const RpUnits* fromUnit = NULL;
-    double convertedVal = cur();
-    int err = 0;
+
+    _status.addContext("Rappture::Number::convert");
+
+    if (to == NULL) {
+        return _status;
+    }
+
+    if (strcmp(units(),to) == 0) {
+        return _status;
+    }
 
     // make sure all units functions accept char*'s
     toUnit = RpUnits::find(std::string(to));
     if (!toUnit) {
-        // should raise error!
-        // conversion not defined because unit does not exist
-        return convertedVal;
+        _status.addError("conversion not defined, unit \"%s\" does not exist",to);
+        return _status;
     }
 
     fromUnit = RpUnits::find(std::string(units()));
     if (!fromUnit) {
-        // should raise error!
-        // conversion not defined because unit does not exist
-        return convertedVal;
+        _status.addError("conversion not defined, unit \"%s\" does not exist",to);
+        return _status;
     }
 
     // perform the conversion
+    int err = 0;
+    double convertedVal;
+
     convertedVal = fromUnit->convert(toUnit,def(), &err);
-    if (!err) {
+    if (err) {
+        _status.addError("undefined error while converting %s to %s",
+            (fromUnit->getUnitsName()).c_str(),
+            (toUnit->getUnitsName()).c_str());
+    } else {
         def(convertedVal);
     }
 
     convertedVal = fromUnit->convert(toUnit,cur(), &err);
-    if (!err) {
+    if (err) {
+        _status.addError("undefined error while converting %s to %s",
+            (fromUnit->getUnitsName()).c_str(),
+            (toUnit->getUnitsName()).c_str());
+    } else {
         cur(convertedVal);
     }
 
-    return err;
+    return _status;
 }
 
 /**********************************************************************/
@@ -187,13 +236,122 @@ Number::convert(const char *to)
 /// Get the value of this object converted to specified units
 /**
  * does not change the value of the object
- * error code is returned
+ * error code is set on trouble
  */
 
-int
-Number::value(const char *to, double *value) const
+double
+Number::value(const char *to) const
 {
-    return 1;
+    const RpUnits* toUnit = NULL;
+    const RpUnits* fromUnit = NULL;
+
+    _status.addContext("Rappture::Number::value");
+
+    double val = 0.0;
+
+    if (_defSet) {
+        val = def();
+    }
+
+    if (_curSet) {
+        val = cur();
+    }
+
+    if (to == NULL) {
+        return val;
+    }
+
+    if (strcmp(units(),to) == 0) {
+        return val;
+    }
+
+    // make sure all units functions accept char*'s
+    toUnit = RpUnits::find(std::string(to));
+    if (!toUnit) {
+        _status.addError("conversion not defined, unit \"%s\" does not exist",to);
+        return val;
+    }
+
+    fromUnit = RpUnits::find(std::string(units()));
+    if (!fromUnit) {
+        _status.addError("conversion not defined, unit \"%s\" does not exist",to);
+        return val;
+    }
+
+    // perform the conversion
+    int err = 0;
+    double convertedVal = fromUnit->convert(toUnit,val, &err);
+    if (err) {
+        _status.addError("undefined error while converting %s to %s",
+            (fromUnit->getUnitsName()).c_str(),
+            (toUnit->getUnitsName()).c_str());
+        return cur();
+    }
+
+    return convertedVal;
+}
+
+/**********************************************************************/
+// METHOD: vvalue()
+/// Get the value of this object based on provided hints
+/**
+ * does not change the value of the object
+ * currently recognized hints:
+ *  units
+ * error code is set on trouble
+ */
+
+void
+Number::vvalue(void *storage, size_t numHints, va_list arg) const
+{
+    char buf[1024];
+    char *hintCopy = NULL;
+    size_t hintLen = 0;
+
+    char *hint = NULL;
+    const char *hintKey = NULL;
+    const char *hintVal = NULL;
+
+    double *ret = (double *) storage;
+
+    *ret = 0.0;
+
+    if (_defSet) {
+        *ret = def();
+    }
+
+    if (_curSet) {
+        *ret = cur();
+    }
+
+    while (numHints > 0) {
+        numHints--;
+        hint = va_arg(arg, char *);
+        hintLen = strlen(hint);
+        if (hintLen < 1024) {
+            hintCopy = buf;
+        } else {
+            // buf too small, allocate some space
+            hintCopy = new char[hintLen];
+        }
+        strcpy(hintCopy,hint);
+
+        // parse the hint into a key and value
+        __hintParser(hintCopy,&hintKey,&hintVal);
+
+        // evaluate the hint key
+        if (('u' == *hintKey) &&
+            (strcmp("units",hintKey) == 0)) {
+            *ret = value(hintVal);
+
+        }
+
+        if (hintCopy != buf) {
+            // clean up memory
+            delete hintCopy;
+        }
+    }
+    return;
 }
 
 /**********************************************************************/
@@ -299,46 +457,6 @@ Number::delPreset(const char *label)
     return *this;
 }
 
-/**********************************************************************/
-// METHOD: configure(ClientData c)
-/// construct a number object from the provided tree
-/**
- * construct a number object from the provided tree
- */
-
-void
-Number::configure(size_t as, ClientData c)
-{
-    if (as == RPCONFIG_XML) {
-        __configureFromXml(c);
-    } else if (as == RPCONFIG_TREE) {
-        __configureFromTree(c);
-    }
-}
-
-/**********************************************************************/
-// METHOD: configureFromXml(const char *xmltext)
-/// configure the object based on Rappture1.1 xmltext
-/**
- * Configure the object based on the provided xml
- */
-
-void
-Number::__configureFromXml(ClientData c)
-{
-    const char *xmltext = (const char *)c;
-    if (xmltext == NULL) {
-        // FIXME: setup error
-        return;
-    }
-
-    Rp_ParserXml *p = Rp_ParserXmlCreate();
-    Rp_ParserXmlParse(p, xmltext);
-    configure(RPCONFIG_TREE, p);
-
-    return;
-}
-
 void
 Number::__configureFromTree(ClientData c)
 {
@@ -393,46 +511,6 @@ Number::__configureFromTree(ClientData c)
 }
 
 /**********************************************************************/
-// METHOD: dump(size_t as, void *p)
-/// construct a number object from the provided tree
-/**
- * construct a number object from the provided tree
- */
-
-void
-Number::dump(size_t as, ClientData p)
-{
-    if (as == RPCONFIG_XML) {
-        __dumpToXml(p);
-    } else if (as == RPCONFIG_TREE) {
-        __dumpToTree(p);
-    }
-}
-
-/**********************************************************************/
-// METHOD: dumpToXml(ClientData p)
-/// configure the object based on Rappture1.1 xmltext
-/**
- * Configure the object based on the provided xml
- */
-
-void
-Number::__dumpToXml(ClientData c)
-{
-    if (c == NULL) {
-        // FIXME: setup error
-        return;
-    }
-
-    ClientDataXml *d = (ClientDataXml *)c;
-    Rp_ParserXml *parser = Rp_ParserXmlCreate();
-    __dumpToTree(parser);
-    _tmpBuf.appendf("%s",Rp_ParserXmlXml(parser));
-    d->retStr = _tmpBuf.bytes();
-    Rp_ParserXmlDestroy(&parser);
-}
-
-/**********************************************************************/
 // METHOD: dumpToTree(ClientData p)
 /// dump the object to a Rappture1.1 based tree
 /**
@@ -462,37 +540,53 @@ Number::__dumpToTree(ClientData c)
     p.add("label");
     Rp_ParserXmlPutF(parser,p.path(),"%s",label());
 
-    p.del();
-    p.add("description");
+    p.type("description");
     Rp_ParserXmlPutF(parser,p.path(),"%s",desc());
 
     p.del();
-    p.del();
-    p.add("units");
+    p.type("units");
     Rp_ParserXmlPutF(parser,p.path(),"%s",units());
 
 
     if (_minSet) {
-        p.del();
-        p.add("min");
-        Rp_ParserXmlPutF(parser,p.path(),"%g",min());
+        p.type("min");
+        Rp_ParserXmlPutF(parser,p.path(),"%g%s",min(),units());
     }
 
     if (_maxSet) {
-        p.del();
-        p.add("max");
-        Rp_ParserXmlPutF(parser,p.path(),"%g",max());
+        p.type("max");
+        Rp_ParserXmlPutF(parser,p.path(),"%g%s",max(),units());
     }
 
-    p.del();
-    p.add("default");
-    Rp_ParserXmlPutF(parser,p.path(),"%g",def());
+    p.type("default");
+    Rp_ParserXmlPutF(parser,p.path(),"%g%s",def(),units());
 
-    p.del();
-    p.add("current");
-    Rp_ParserXmlPutF(parser,p.path(),"%g",cur());
+    p.type("current");
+    Rp_ParserXmlPutF(parser,p.path(),"%g%s",cur(),units());
 
-    // still need to add presets
+    // process presets
+    p.type("preset");
+    p.add("label");
+    Rp_ChainLink *l = Rp_ChainFirstLink(_presets);
+    while (l != NULL) {
+        struct preset *presetObj = (struct preset *) Rp_ChainGetValue(l);
+
+        p.type("label");
+        Rp_ParserXmlPutF(parser,p.path(),"%s",presetObj->label());
+        //p.type("description");
+        //Rp_ParserXmlPutF(parser,p.path(),"%s",presetObj->desc());
+        // p.type("units");
+        // Rp_ParserXmlPutF(parser,p.path(),"%s",presetObj->units());
+        p.type("value");
+        Rp_ParserXmlPutF(parser,p.path(),"%g%s",presetObj->val(),presetObj->units());
+
+        p.prev();
+        p.degree(p.degree()+1);
+        p.next();
+
+        l = Rp_ChainNextLink(l);
+    }
+
     return;
 }
 
@@ -511,6 +605,89 @@ Number::is() const
 }
 
 
+void
+Number::__convertFromString(
+    const char *val,
+    double *ret)
+{
+    if (val == NULL) {
+        return;
+    }
+
+    if (ret == NULL) {
+        return;
+    }
+
+    double numericVal = 0.0;
+    if (units()) {
+        // convert the provided string into
+        // the objects default units
+        int err = 0;
+        std::string strVal;
+        strVal = RpUnits::convert(val,units(),RPUNITS_UNITS_OFF,&err);
+        if (err) {
+            _status.addError("Unknown error while converting units");
+        }
+
+        char *endPtr = NULL;
+        numericVal = strtod(strVal.c_str(),&endPtr);
+        if (endPtr == strVal.c_str()) {
+            // no conversion was performed
+            _status.addError("Could not convert \"%s\" into a number",
+                strVal.c_str());
+        } else if (endPtr == (strVal.c_str()+strVal.length())) {
+            *ret = numericVal;
+        } else {
+            // the whole string could not be converted to a number
+            // signal error?
+            _status.addError("Could not convert \"%s\" of \"%s\"into a number",
+                endPtr, strVal.c_str());
+        }
+    } else {
+        // try to figure out the units
+        // store units and return the numeric value to the user
+        const char *foundUnits = NULL;
+        __valUnitsSplit(val,&numericVal,&foundUnits);
+        units(foundUnits);
+        *ret = numericVal;
+    }
+
+}
+
+void
+Number::__valUnitsSplit(
+    const char *inStr,
+    double *val,
+    const char **units)
+{
+    if (inStr == NULL) {
+        return;
+    }
+
+    if (val == NULL) {
+        return;
+    }
+
+    if (units == NULL) {
+        return;
+    }
+
+    char *endPtr = NULL;
+    *val = strtod(inStr,&endPtr);
+    if (endPtr == inStr) {
+        // no conversion was performed
+        _status.addError("Could not convert \"%s\" into a number", inStr);
+    } else if (endPtr == (inStr+strlen(inStr))) {
+        // the whole string was used in the numeric conversion
+        // set units to NULL
+        *units = NULL;
+    } else {
+        // the whole string could not be converted to a number
+        // we assume the rest of the string are the units
+        *units = endPtr;
+    }
+}
+
 /**********************************************************************/
 // METHOD: minFromStr()
 /// xml helper function to receive min value as a string
@@ -523,15 +700,18 @@ Number::minFromStr(
     const char *val)
 {
     double numericVal = 0;
-    int err = 0;
 
-    numericVal = rpConvertDbl(val,units(),&err);
-
-    if (!err) {
-        min(numericVal);
-    } else {
-        // FIXME: add error code
+    if (val == NULL) {
+        return;
     }
+
+    __convertFromString(val,&numericVal);
+
+    if (!_status) {
+        min(numericVal);
+        _minSet = 1;
+    }
+
 }
 
 /**********************************************************************/
@@ -546,15 +726,18 @@ Number::maxFromStr(
     const char *val)
 {
     double numericVal = 0;
-    int err = 0;
 
-    numericVal = rpConvertDbl(val,units(),&err);
-
-    if (!err) {
-        max(numericVal);
-    } else {
-        // FIXME: add error code
+    if (val == NULL) {
+        return;
     }
+
+    __convertFromString(val,&numericVal);
+
+    if (!_status) {
+        max(numericVal);
+        _maxSet = 1;
+    }
+
 }
 
 /**********************************************************************/
@@ -569,15 +752,18 @@ Number::defFromStr(
     const char *val)
 {
     double numericVal = 0;
-    int err = 0;
 
-    numericVal = rpConvertDbl(val,units(),&err);
-
-    if (!err) {
-        def(numericVal);
-    } else {
-        // FIXME: add error code
+    if (val == NULL) {
+        return;
     }
+
+    __convertFromString(val,&numericVal);
+
+    if (!_status) {
+        def(numericVal);
+        _defSet = 1;
+    }
+
 }
 
 /**********************************************************************/
@@ -592,15 +778,18 @@ Number::curFromStr(
     const char *val)
 {
     double numericVal = 0;
-    int err = 0;
 
-    numericVal = rpConvertDbl(val,units(),&err);
-
-    if (!err) {
-        cur(numericVal);
-    } else {
-        // FIXME: add error code
+    if (val == NULL) {
+        return;
     }
+
+    __convertFromString(val,&numericVal);
+
+    if (!_status) {
+        cur(numericVal);
+        _curSet = 1;
+    }
+
 }
 
 

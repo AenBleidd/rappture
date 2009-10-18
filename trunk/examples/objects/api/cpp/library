@@ -1,0 +1,130 @@
+Library
+
+constructors/destructors
+    Library()
+    Library(const Library& o)
+    ~Library ()
+
+methods
+    Outcome &loadXml(const char *xmltext)
+    Outcome &loadFile(const char *filename)
+
+
+    Library &value(const char *key, void *storage,
+        size_t numHints, ...)
+
+    Rp_Chain *diff(Library *lib)
+
+    Library &remove (const char *key)
+
+    const char *xml() const
+
+    Outcome &outcome() const
+    int error() const
+
+    Outcome &result(int status)
+
+    const Rp_Chain *contains() const
+
+---------------------------------------
+
+Outcome &loadXml(const char *xmltext)
+    Purpose: parse the Rappture1.1 xml data in "xmltext".
+                populate this library object with the Rappture
+                objects described in the xml data.
+    Input Arguments: 1
+        1. const char *xmltext - Rappture1.1 xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+Outcome &loadFile(const char *filename);
+    Purpose: read the file "filename" and parse the
+                Rappture1.1 xml data found inside of it.
+                populate this library object with the Rappture
+                objects described in the xml data.
+    Input Arguments: 1
+        1. const char *filename - file containing Rappture1.1
+                                    xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+Library &value(const char *key, void *storage,
+    size_t numHints, ...);
+    Purpose: retrieve the value of the object named "key" and
+                store it in "storage". If there are hints,
+                pass them along to the object being retrieved
+                to tell it how the value should be configured.
+    Input Arguments: at least 3
+        1. const char *key - name of the object being retrieved
+        2. void *storage - where to place the value of the
+                            retrieved object
+        3. size_t numHints - number of hints provided
+        4. ... - hints listed as strings
+    Return Value: None
+    Notes: hints are listed as strings of the form
+            "hintKey=hintVal". hintKey is the key for the hint
+            and hintVal is the value to be applied to the hint.
+            generally, unrecognized hints are ignored. the hints
+            should be listed as comma separated strings in the
+            function's argument list.
+    Code Example:
+
+Rp_Chain *diff(Library *lib);
+    Purpose: find the difference between two library objects
+    Input Arguments: 1
+        1. Library *lib - other object used in comparison
+    Return Value: Linked list of differences
+    Notes: None
+    Code Example:
+
+Library &remove (const char *key);
+    Purpose: remove the object from this library named "key"
+    Input Arguments: 1
+        1. const char *key - name of the object to remove
+    Return Value: None
+    Notes: The object is removed and it's memory is deleted
+    Code Example:
+
+const char *xml() const;
+    Purpose: return the Rappture1.1 xml representation of the
+                objects stored in this library.
+    Input Arguments: 0
+    Return Value: None
+    Notes: user is responsible for free'ing returned memory?
+    Code Example:
+
+Outcome &outcome() const;
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+int error() const;
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+Outcome &result(int status);
+    Purpose: write the stored objects to a data file and
+                signal the end of processing.
+    Input Arguments: 1
+        1. int status - status of the simulation
+    Return Value: None
+    Notes: currently data file are written out as Rappture1.1
+            xml. this function generates the RAPPTURE-RUN=>
+            signal.
+    Code Example:
+
+const Rp_Chain *contains() const;
+    Purpose: return a linked list of the Rappture objects
+                stored in this library.
+    Input Arguments: 0
+    Return Value: linked list of the Rappture objects stored in
+                    this library.
+    Notes: None
+    Code Example:
