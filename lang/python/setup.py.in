@@ -10,7 +10,6 @@ library_module = Extension('Rappture.library',
                            include_dirs = [incdir, '../include'],
                            sources = [ tmpdir+'PyRpLibrary.cc' ],
                            library_dirs = [ libdir, '../src' ],
-			   output_dir = ['/tmp'],
                            libraries = [ 'rappture' ] )
 
 units_module = Extension('Rappture.Units',

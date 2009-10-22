@@ -23,7 +23,7 @@ PYTHON 		= @PYTHON@
 PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
                --include-dirs=$(srcdir)/../../src/core:$(includedir) 
 PYTHON_VERSION  = @PYTHON_VERSION@
-pythonlib	= $$destdir/lib/python$(PYTHON_VERSION)/site-packages
+pythonlib	= $(libdir)/python$(PYTHON_VERSION)/site-packages
 envfile		= python.env
 
 ARCHFLAGS	=
@@ -32,7 +32,7 @@ export ARCHFLAGS
 # Python distutils doesn't handle VPATH correctly. So copy the sources 
 # into a temporary directory.
 #
-all: build/tmp $(envfile)
+all: build/tmp 
 	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build 
 
 build/tmp: 
@@ -40,14 +40,10 @@ build/tmp:
 	$(LN_S) $(srcdir2)/Rappture/*.cc build/tmp
  
 install: 
-	$(PYTHON) setup.py install --prefix=$(prefix) 
-	$(MKDIR_P) $(bindir)
-	$(INSTALL) -m 555 $(envfile) $(bindir)
+	$(MKDIR_P) $(pythonlib)
+	$(PYTHON) setup.py install --install-lib=$(pythonlib) 
 clean:
 	$(PYTHON) setup.py clean
 	$(RM) -rf build 
-
-$(envfile):
-	echo 'export PYTHONPATH=$(pythonlib):$$PYTHONPATH' > $(envfile)
 
 distclean: clean
