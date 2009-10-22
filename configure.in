@@ -242,7 +242,7 @@ PERL_VERSION_RV=
 PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
   AC_MSG_CHECKING([for perl])
-  if test "$with_perl" != "yes" ; then 
+  if test "$with_perl" != "check" ; then 
     AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
   else
     AC_PATH_PROG(PERL, perl)
