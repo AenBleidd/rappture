@@ -58,6 +58,8 @@ Number
     double Rp_NumberValue(Rp_Number *num, const char *units) const;
     void Rp_NumberVValue(Rp_Number *num, void *storage, size_t numHints,
                          va_list arg) const;
+    void Rp_NumberRandom();
+    Rp_Chain *Rp_NumberDiff(const Rp_Object *o);
 
     void Rp_NumberAddPreset(Rp_Number *num, const char *label,
                             const char *desc, double val,
@@ -367,6 +369,24 @@ void Rp_NumberVValue(Rp_Number *num, void *storage, size_t numHints,
     Notes: vvalue will parse out the recognisable hints from
                 va_list arg. Values stored in the object are
                 not changed.
+    Code Example:
+
+void Rp_NumberRandom();
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+
+Rp_Chain *Rp_NumberDiff(const Rp_Object *o);
+    Purpose: return a linked list showing the differences between
+             this object and Rp_Object *o
+    Input Arguments: 1
+        1. const Rp_Object *o - object to diff against
+    Return Value: list of differences between objects
+    Notes: None
     Code Example:
 
 void Rp_NumberAddPreset(Rp_Number *num, const char *label, const char *desc,

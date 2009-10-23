@@ -41,6 +41,8 @@ Plot
 
     void Rp_PlotVValue(Rp_Plot *p, void *storage, size_t numHints,
                        va_list arg) const;
+    void Rp_PlotRandom();
+    Rp_Chain *Rp_PlotDiff(Rp_Plot *o);
 
     void Rp_PlotConfigure(Rp_Plot *p, size_t as, ClientData c);
     void Rp_PlotDump(Rp_Plot *p, size_t as, ClientData c);
@@ -261,6 +263,24 @@ void Rp_PlotVValue(Rp_Plot *p, void *storage, size_t numHints, va_list arg) cons
     Notes: vvalue will parse out the recognisable hints from
                 va_list arg. Values stored in the object are
                 not changed.
+    Code Example:
+
+void Rp_PlotRandom();
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+
+Rp_Chain *Rp_PlotDiff(const Rp_Object *o);
+    Purpose: return a linked list showing the differences between
+             this object and Rp_Object *o
+    Input Arguments: 1
+        1. const Rp_Object *o - object to diff against
+    Return Value: list of differences between objects
+    Notes: None
     Code Example:
 
 void Rp_PlotConfigure(Rp_Plot *p, size_t as, ClientData c);
