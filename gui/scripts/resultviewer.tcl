@@ -56,7 +56,7 @@ itcl::body Rappture::ResultViewer::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !scale
     $_dispatcher dispatch $this !scale \
-	[itcl::code $this _fixScale]
+        [itcl::code $this _fixScale]
 
     eval itk_initialize $args
 }
@@ -66,9 +66,9 @@ itcl::body Rappture::ResultViewer::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::destructor {} {
     foreach slot $_dataslots {
-	foreach obj $slot {
-	    itcl::delete object $obj
-	}
+        foreach obj $slot {
+            itcl::delete object $obj
+        }
     }
 }
 
@@ -86,7 +86,7 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
     # make it exist.
     #
     for {set i [llength $_dataslots]} {$i <= $index} {incr i} {
-	lappend _dataslots ""
+        lappend _dataslots ""
     }
     set slot [lindex $_dataslots $index]
     lappend slot $dobj
@@ -102,23 +102,23 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::clear {{index ""}} {
     if {"" != $index} {
-	# clear one result
-	if {$index >= 0 && $index < [llength $_dataslots]} {
-	    set slot [lindex $_dataslots $index]
-	    foreach dobj $slot {
-		itcl::delete object $dobj
-	    }
-	    set _dataslots [lreplace $_dataslots $index $index ""]
-	}
+        # clear one result
+        if {$index >= 0 && $index < [llength $_dataslots]} {
+            set slot [lindex $_dataslots $index]
+            foreach dobj $slot {
+                itcl::delete object $dobj
+            }
+            set _dataslots [lreplace $_dataslots $index $index ""]
+        }
     } else {
-	# clear all results
-	plot clear
-	foreach slot $_dataslots {
-	    foreach dobj $slot {
-		itcl::delete object $dobj
-	    }
-	}
-	set _dataslots ""
+        # clear all results
+        plot clear
+        foreach slot $_dataslots {
+            foreach dobj $slot {
+                itcl::delete object $dobj
+            }
+        }
+        set _dataslots ""
     }
 }
 
@@ -133,8 +133,8 @@ itcl::body Rappture::ResultViewer::clear {{index ""}} {
 itcl::body Rappture::ResultViewer::value {xmlobj} {
     clear
     if {"" != $xmlobj} {
-	add 0 $xmlobj ""
-	plot add 0 ""
+        add 0 $xmlobj ""
+        plot add 0 ""
     }
 }
 
@@ -151,50 +151,50 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::plot {option args} {
     switch -- $option {
-	add {
-	    set params ""
-	    foreach {index opts} $args {
-		if {$index == "params"} {
-		    set params $opts
-		    continue
-		}
-		set reset "-color autoreset"
-		set slot [lindex $_dataslots $index]
-		foreach dobj $slot {
-		    set settings ""
-		    # start with color reset, only for first object in series
-		    if {"" != $reset} {
-			set settings $reset
-			set reset ""
-		    }
-		    # add default settings from data object
-		    if {[catch {$dobj hints style} style] == 0} {
-			eval lappend settings $style
-		    }
-		    if {[catch {$dobj hints type} type] == 0} {
-			if {"" != $type} {
-			    eval lappend settings "-type $type"
-			}
-		    }
-		    # add override settings passed in here
-		    eval lappend settings $opts
+        add {
+            set params ""
+            foreach {index opts} $args {
+                if {$index == "params"} {
+                    set params $opts
+                    continue
+                }
+                set reset "-color autoreset"
+                set slot [lindex $_dataslots $index]
+                foreach dobj $slot {
+                    set settings ""
+                    # start with color reset, only for first object in series
+                    if {"" != $reset} {
+                        set settings $reset
+                        set reset ""
+                    }
+                    # add default settings from data object
+                    if {[catch {$dobj hints style} style] == 0} {
+                        eval lappend settings $style
+                    }
+                    if {[catch {$dobj hints type} type] == 0} {
+                        if {"" != $type} {
+                            eval lappend settings "-type $type"
+                        }
+                    }
+                    # add override settings passed in here
+                    eval lappend settings $opts
 
-		    _plotAdd $dobj $settings
-		}
-	    }
-	    if {"" != $params && "" != $_mode} {
-		eval $_mode2widget($_mode) parameters $params
-	    }
-	}
-	clear {
-	    # clear the contents of the current mode
-	    if {"" != $_mode} {
-		$_mode2widget($_mode) delete
-	    }
-	}
-	default {
-	    error "bad option \"$option\": should be add or clear"
-	}
+                    _plotAdd $dobj $settings
+                }
+            }
+            if {"" != $params && "" != $_mode} {
+                eval $_mode2widget($_mode) parameters $params
+            }
+        }
+        clear {
+            # clear the contents of the current mode
+            if {"" != $_mode} {
+                $_mode2widget($_mode) delete
+            }
+        }
+        default {
+            error "bad option \"$option\": should be add or clear"
+        }
     }
 }
 
@@ -208,180 +208,180 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
     switch -- [$dataobj info class] {
-	::Rappture::Histogram {
-	    set mode "histogram"
-	    if {![info exists _mode2widget($mode)]} {
-		set w $itk_interior.xy
-		Rappture::HistogramResult $w
-		set _mode2widget($mode) $w
-	    }
-	}
-	::Rappture::Curve {
-	    set type [$dataobj hints type]
-	    set mode "xy"
-	    if { $type == "bars" } {
-		if {![info exists _mode2widget($mode)]} {
-		    set w $itk_interior.xy
-		    Rappture::BarResult $w
-		    set _mode2widget($mode) $w
-		}
-	    } else {
-		if {![info exists _mode2widget($mode)]} {
-		    set w $itk_interior.xy
-		    Rappture::XyResult $w
-		    set _mode2widget($mode) $w
-		}
-	    }
-	}
-	::Rappture::Field {
-	    set dims [lindex [lsort [$dataobj components -dimensions]] end]
-	    switch -- $dims {
-		1D {
-		    set mode "xy"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.xy
-			Rappture::XyResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-		2D {
-		    set mode "contour"
-		    if {![info exists _mode2widget($mode)]} {
-			if { [$dataobj isunirect2d] } {
-			    set resultMode "heightmap" 
-			} else {
-			    set resultMode "vtk"
-			}
-			set extents [$dataobj extents]
-			if { $extents > 1 } {
-			    set resultMode "flowvis"
-			}
-			set w $itk_interior.contour
-			if { ![winfo exists $w] } {
-			    Rappture::Field2DResult $w -mode $resultMode
-			}
-			set _mode2widget($mode) $w
-		    }
-		}
-		3D {
-		    set mode "field3D"
-		    if {![info exists _mode2widget($mode)]} {
-			set mesh [$dataobj mesh]
-			set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
-			set extents [$dataobj extents]
-			if { $extents > 1 } {
-			    set fmt "flowvis"
-			}
-			set w $itk_interior.field3D
-			Rappture::Field3DResult $w -mode $fmt
-			set _mode2widget($mode) $w
-		    }
-		}
-		default {
-		    error "can't handle [$dataobj components -dimensions] field"
-		}
-	    }
-	}
-	::Rappture::Mesh {
-	    switch -- [$dataobj dimensions] {
-		2 {
-		    set mode "mesh"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.mesh
-			Rappture::MeshResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-		default {
-		    error "can't handle [$dataobj dimensions]D field"
-		}
-	    }
-	}
-	::Rappture::Table {
-	    set cols [Rappture::EnergyLevels::columns $dataobj]
-	    if {"" != $cols} {
-		set mode "energies"
-		if {![info exists _mode2widget($mode)]} {
-		    set w $itk_interior.energies
-		    Rappture::EnergyLevels $w
-		    set _mode2widget($mode) $w
-		}
-	    }
-	}
-	::Rappture::LibraryObj {
-	    switch -- [$dataobj element -as type] {
-		string - log {
-		    set mode "log"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.log
-			Rappture::TextResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-		structure {
-		    set mode "structure"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.struct
-			Rappture::DeviceResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-		number - integer {
-		    set mode "number"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.number
-			Rappture::NumberResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-		boolean - choice {
-		    set mode "value"
-		    if {![info exists _mode2widget($mode)]} {
-			set w $itk_interior.value
-			Rappture::ValueResult $w
-			set _mode2widget($mode) $w
-		    }
-		}
-	    }
-	}
-	::Rappture::Image {
-	    set mode "image"
-	    if {![info exists _mode2widget($mode)]} {
-		set w $itk_interior.image
-		Rappture::ImageResult $w
-		set _mode2widget($mode) $w
-	    }
-	}
-	::Rappture::Sequence {
-	    set mode "sequence"
-	    if {![info exists _mode2widget($mode)]} {
-		set w $itk_interior.image
-		Rappture::SequenceResult $w
-		set _mode2widget($mode) $w
-	    }
-	}
-	default {
-	    error "don't know how to plot <$type> data"
-	}
+        ::Rappture::Histogram {
+            set mode "histogram"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.xy
+                Rappture::HistogramResult $w
+                set _mode2widget($mode) $w
+            }
+        }
+        ::Rappture::Curve {
+            set type [$dataobj hints type]
+            set mode "xy"
+            if { $type == "bars" } {
+                if {![info exists _mode2widget($mode)]} {
+                    set w $itk_interior.xy
+                    Rappture::BarResult $w
+                    set _mode2widget($mode) $w
+                }
+            } else {
+                if {![info exists _mode2widget($mode)]} {
+                    set w $itk_interior.xy
+                    Rappture::XyResult $w
+                    set _mode2widget($mode) $w
+                }
+            }
+        }
+        ::Rappture::Field {
+            set dims [lindex [lsort [$dataobj components -dimensions]] end]
+            switch -- $dims {
+                1D {
+                    set mode "xy"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.xy
+                        Rappture::XyResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                2D {
+                    set mode "contour"
+                    if {![info exists _mode2widget($mode)]} {
+                        if { [$dataobj isunirect2d] } {
+                            set resultMode "heightmap" 
+                        } else {
+                            set resultMode "vtk"
+                        }
+                        set extents [$dataobj extents]
+                        if { $extents > 1 } {
+                            set resultMode "flowvis"
+                        }
+                        set w $itk_interior.contour
+                        if { ![winfo exists $w] } {
+                            Rappture::Field2DResult $w -mode $resultMode
+                        }
+                        set _mode2widget($mode) $w
+                    }
+                }
+                3D {
+                    set mode "field3D"
+                    if {![info exists _mode2widget($mode)]} {
+                        set mesh [$dataobj mesh]
+                        set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
+                        set extents [$dataobj extents]
+                        if { $extents > 1 } {
+                            set fmt "flowvis"
+                        }
+                        set w $itk_interior.field3D
+                        Rappture::Field3DResult $w -mode $fmt
+                        set _mode2widget($mode) $w
+                    }
+                }
+                default {
+                    error "can't handle [$dataobj components -dimensions] field"
+                }
+            }
+        }
+        ::Rappture::Mesh {
+            switch -- [$dataobj dimensions] {
+                2 {
+                    set mode "mesh"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.mesh
+                        Rappture::MeshResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                default {
+                    error "can't handle [$dataobj dimensions]D field"
+                }
+            }
+        }
+        ::Rappture::Table {
+            set cols [Rappture::EnergyLevels::columns $dataobj]
+            if {"" != $cols} {
+                set mode "energies"
+                if {![info exists _mode2widget($mode)]} {
+                    set w $itk_interior.energies
+                    Rappture::EnergyLevels $w
+                    set _mode2widget($mode) $w
+                }
+            }
+        }
+        ::Rappture::LibraryObj {
+            switch -- [$dataobj element -as type] {
+                string - log {
+                    set mode "log"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.log
+                        Rappture::TextResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                structure {
+                    set mode "structure"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.struct
+                        Rappture::DeviceResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                number - integer {
+                    set mode "number"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.number
+                        Rappture::NumberResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+                boolean - choice {
+                    set mode "value"
+                    if {![info exists _mode2widget($mode)]} {
+                        set w $itk_interior.value
+                        Rappture::ValueResult $w
+                        set _mode2widget($mode) $w
+                    }
+                }
+            }
+        }
+        ::Rappture::Image {
+            set mode "image"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.image
+                Rappture::ImageResult $w
+                set _mode2widget($mode) $w
+            }
+        }
+        ::Rappture::Sequence {
+            set mode "sequence"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.image
+                Rappture::SequenceResult $w
+                set _mode2widget($mode) $w
+            }
+        }
+        default {
+            error "don't know how to plot <$type> data"
+        }
     }
 
     if {$mode != $_mode && $_mode != ""} {
-	set nactive [llength [$_mode2widget($_mode) get]]
-	if {$nactive > 0} {
-	    return  ;# mixing data that doesn't mix -- ignore it!
-	}
+        set nactive [llength [$_mode2widget($_mode) get]]
+        if {$nactive > 0} {
+            return  ;# mixing data that doesn't mix -- ignore it!
+        }
     }
 
     # are we plotting in a new mode? then change widgets
     if {$_mode2widget($mode) != [pack slaves $itk_interior]} {
-	# remove any current window
-	foreach w [pack slaves $itk_interior] {
-	    pack forget $w
-	}
-	pack $_mode2widget($mode) -expand yes -fill both
+        # remove any current window
+        foreach w [pack slaves $itk_interior] {
+            pack forget $w
+        }
+        pack $_mode2widget($mode) -expand yes -fill both
 
-	set _mode $mode
-	$_dispatcher event -idle !scale
+        set _mode $mode
+        $_dispatcher event -idle !scale
     }
     $_mode2widget($mode) add $dataobj $settings
 }
@@ -396,13 +396,13 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_fixScale {args} {
     if {"" != $_mode} {
-	set dlist ""
-	foreach slot $_dataslots {
-	    foreach dobj $slot {
-		lappend dlist $dobj
-	    }
-	}
-	eval $_mode2widget($_mode) scale $dlist
+        set dlist ""
+        foreach slot $_dataslots {
+            foreach dobj $slot {
+                lappend dlist $dobj
+            }
+        }
+        eval $_mode2widget($_mode) scale $dlist
     }
 }
 
@@ -418,7 +418,7 @@ itcl::body Rappture::ResultViewer::_fixScale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::download {option args} {
     if {"" == $_mode} {
-	return ""
+        return ""
     }
     return [eval $_mode2widget($_mode) download $option $args]
 }
@@ -432,39 +432,39 @@ itcl::body Rappture::ResultViewer::download {option args} {
 itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
     set type [$xmlobj element -as type $path]
     switch -- $type {
-	curve {
-	    return [Rappture::Curve ::#auto $xmlobj $path]
-	}
-	histogram {
-	    return [Rappture::Histogram ::#auto $xmlobj $path]
-	}
-	field {
-	    return [Rappture::Field ::#auto $xmlobj $path]
-	}
-	mesh {
-	    return [Rappture::Mesh ::#auto $xmlobj $path]
-	}
-	table {
-	    return [Rappture::Table ::#auto $xmlobj $path]
-	}
-	image {
-	    return [Rappture::Image ::#auto $xmlobj $path]
-	}
-	sequence {
-	    return [Rappture::Sequence ::#auto $xmlobj $path]
-	}
-	string - log {
-	    return [$xmlobj element -as object $path]
-	}
-	structure {
-	    return [$xmlobj element -as object $path]
-	}
-	number - integer - boolean - choice {
-	    return [$xmlobj element -as object $path]
-	}
-	time - status {
-	    return ""
-	}
+        curve {
+            return [Rappture::Curve ::#auto $xmlobj $path]
+        }
+        histogram {
+            return [Rappture::Histogram ::#auto $xmlobj $path]
+        }
+        field {
+            return [Rappture::Field ::#auto $xmlobj $path]
+        }
+        mesh {
+            return [Rappture::Mesh ::#auto $xmlobj $path]
+        }
+        table {
+            return [Rappture::Table ::#auto $xmlobj $path]
+        }
+        image {
+            return [Rappture::Image ::#auto $xmlobj $path]
+        }
+        sequence {
+            return [Rappture::Sequence ::#auto $xmlobj $path]
+        }
+        string - log {
+            return [$xmlobj element -as object $path]
+        }
+        structure {
+            return [$xmlobj element -as object $path]
+        }
+        number - integer - boolean - choice {
+            return [$xmlobj element -as object $path]
+        }
+        time - status {
+            return ""
+        }
     }
     error "don't know how to plot <$type> data"
 }
@@ -476,10 +476,10 @@ itcl::configbody Rappture::ResultViewer::width {
     set w [winfo pixels $itk_component(hull) $itk_option(-width)]
     set h [winfo pixels $itk_component(hull) $itk_option(-height)]
     if {$w == 0 || $h == 0} {
-	pack propagate $itk_component(hull) yes
+        pack propagate $itk_component(hull) yes
     } else {
-	component hull configure -width $w -height $h
-	pack propagate $itk_component(hull) no
+        component hull configure -width $w -height $h
+        pack propagate $itk_component(hull) no
     }
 }
 
@@ -490,9 +490,9 @@ itcl::configbody Rappture::ResultViewer::height {
     set h [winfo pixels $itk_component(hull) $itk_option(-height)]
     set w [winfo pixels $itk_component(hull) $itk_option(-width)]
     if {$w == 0 || $h == 0} {
-	pack propagate $itk_component(hull) yes
+        pack propagate $itk_component(hull) yes
     } else {
-	component hull configure -width $w -height $h
-	pack propagate $itk_component(hull) no
+        component hull configure -width $w -height $h
+        pack propagate $itk_component(hull) no
     }
 }

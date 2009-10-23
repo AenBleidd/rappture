@@ -48,27 +48,4 @@ When you click the Simulate button, the inputs will be used to generate output f
     <default>nanovis</default>
   </choice>
 </input>
-<output>
-  <cloud id="m2d">
-    <about><label>2D Mesh</label></about>
-    <units>um</units>
-    <hide>yes</hide>
-  </cloud>
-  <field id="f2d">
-    <about><label>2D Field</label></about>
-    <component>
-      <mesh>output.cloud(m2d)</mesh>
-      <values></values>
-    </component>
-  </field>
-
-  <field id="f3d">
-    <about><label>3D Field</label></about>
-    <component>
-      <style>
-      	-color blue:yellow:red
-      </style>
-    </component>
-  </field>
-</output>
 </run>

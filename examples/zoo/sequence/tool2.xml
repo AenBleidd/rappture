@@ -37,10 +37,4 @@ When you click the Simulate button, the script will generate a sequence of plots
     <default></default>
   </string>
 </input>
-<output>
-  <sequence id="outs">
-    <about><label>Sequence of Plots</label></about>
-    <index><label>Parameter A</label></index>
-  </sequence>
-</output>
 </run>

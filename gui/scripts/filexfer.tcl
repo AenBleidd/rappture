@@ -38,22 +38,22 @@ proc Rappture::filexfer::init {} {
     # is "enabled".
     #
     foreach op {export import} {
-	set prog "${op}file"
-	set path [auto_execok $prog]
-	if {"" == $path} {
-	    foreach dir {/apps/bin /apps/filexfer/bin} {
-		set p [file join $dir $prog]
-		if {[file executable $p]} {
-		    set path $p
-		    break
-		}
-	    }
-	}
-	if {[file executable $path]} {
-	    set commands($op) $path
-	} else {
-	    return 0
-	}
+        set prog "${op}file"
+        set path [auto_execok $prog]
+        if {"" == $path} {
+            foreach dir {/apps/bin /apps/filexfer/bin} {
+                set p [file join $dir $prog]
+                if {[file executable $p]} {
+                    set path $p
+                    break
+                }
+            }
+        }
+        if {[file executable $path]} {
+            set commands($op) $path
+        } else {
+            return 0
+        }
     }
 
     return [set enabled 1]
@@ -83,30 +83,30 @@ proc Rappture::filexfer::enabled {} {
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::label {operation} {
     switch -- $operation {
-	upload {
-	    if {[Rappture::filexfer::enabled]} {
-		return "Upload..."
-	    } else {
-		return "Load File..."
-	    }
-	}
-	download {
-	    if {[Rappture::filexfer::enabled]} {
-		return "Download"
-	    } else {
-		return "Save As..."
-	    }
-	}
-	downloadWord {
-	    if {[Rappture::filexfer::enabled]} {
-		return "Download"
-	    } else {
-		return "Save"
-	    }
-	}
-	default {
-	    error "bad option \"$operation\": should be upload, download, or downloadWord"
-	}
+        upload {
+            if {[Rappture::filexfer::enabled]} {
+                return "Upload..."
+            } else {
+                return "Load File..."
+            }
+        }
+        download {
+            if {[Rappture::filexfer::enabled]} {
+                return "Download"
+            } else {
+                return "Save As..."
+            }
+        }
+        downloadWord {
+            if {[Rappture::filexfer::enabled]} {
+                return "Download"
+            } else {
+                return "Save"
+            }
+        }
+        default {
+            error "bad option \"$operation\": should be upload, download, or downloadWord"
+        }
     }
 }
 
@@ -132,96 +132,96 @@ proc Rappture::filexfer::upload {tool controlList callback} {
     variable job
 
     if {$enabled} {
-	set cmd $commands(import)
-	if {"" != $tool} {
-	    lappend cmd --for "for $tool"
-	}
+        set cmd $commands(import)
+        if {"" != $tool} {
+            lappend cmd --for "for $tool"
+        }
 
-	set dir ~/data/sessions/$env(SESSION)/spool
-	if {![file exists $dir]} {
-	    catch {file mkdir $dir}
-	}
+        set dir ~/data/sessions/$env(SESSION)/spool
+        if {![file exists $dir]} {
+            catch {file mkdir $dir}
+        }
 
-	set i 0
-	foreach {path label desc} $controlList {
-	    set file [file join $dir upload[pid]-[incr i]]
-	    set file2path($file) $path
-	    set file2label($file) $label
-	    lappend cmd --label $label $file
-	}
+        set i 0
+        foreach {path label desc} $controlList {
+            set file [file join $dir upload[pid]-[incr i]]
+            set file2path($file) $path
+            set file2label($file) $label
+            lappend cmd --label $label $file
+        }
 
-	uplevel #0 [list $callback error "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation.\n\nIf the upload form doesn't pop up, make sure that you're allowing pop ups from this site.  If it still doesn't pop up, you may be having trouble with the version of Java installed for your browser.  See our Support area for details.\n\nClick anywhere to dismiss this message."]
+        uplevel #0 [list $callback error "Upload starting...\nA web browser page should pop up on your desktop.  Use that form to handle the upload operation.\n\nIf the upload form doesn't pop up, make sure that you're allowing pop ups from this site.  If it still doesn't pop up, you may be having trouble with the version of Java installed for your browser.  See our Support area for details.\n\nClick anywhere to dismiss this message."]
 
-	set job(output) ""
-	set job(error) ""
+        set job(output) ""
+        set job(error) ""
 
-	set status [catch {eval \
-	    blt::bgexec ::Rappture::filexfer::job(control) \
-	      -output ::Rappture::filexfer::job(output) \
-	      -error ::Rappture::filexfer::job(error) \
-	      $cmd
-	} result]
+        set status [catch {eval \
+            blt::bgexec ::Rappture::filexfer::job(control) \
+              -output ::Rappture::filexfer::job(output) \
+              -error ::Rappture::filexfer::job(error) \
+              $cmd
+        } result]
 
-	if {$status == 0} {
-	    set changed ""
-	    set errs ""
-	    foreach file $job(output) {
-		# load the uploaded for this control
-		set status [catch {
-		    set fid [open $file r]
-		    fconfigure $fid -translation binary -encoding binary
-		    set info [read $fid]
-		    close $fid
-		    file delete -force $file
-		} result]
+        if {$status == 0} {
+            set changed ""
+            set errs ""
+            foreach file $job(output) {
+                # load the uploaded for this control
+                set status [catch {
+                    set fid [open $file r]
+                    fconfigure $fid -translation binary -encoding binary
+                    set info [read $fid]
+                    close $fid
+                    file delete -force $file
+                } result]
 
-		if {$status != 0} {
-		    append errs "Error loading data for \"$file2label($file)\":\n$result\n"
-		} else {
-		    lappend changed $file2path($file)
-		    uplevel #0 [list $callback path $file2path($file) data $info]
-		}
-	    }
-	    if {[llength $changed] == 0} {
-		set errs "The form was empty, so none of your controls were changed.  In order to upload a file, you must select the file name--or enter text into the copy/paste area--before pushing the Upload button."
-	    }
-	    if {[string length $errs] > 0} {
-		uplevel #0 [list $callback error $errs]
-	    }
-	} else {
-	    uplevel #0 [list $callback error $job(error)]
-	}
+                if {$status != 0} {
+                    append errs "Error loading data for \"$file2label($file)\":\n$result\n"
+                } else {
+                    lappend changed $file2path($file)
+                    uplevel #0 [list $callback path $file2path($file) data $info]
+                }
+            }
+            if {[llength $changed] == 0} {
+                set errs "The form was empty, so none of your controls were changed.  In order to upload a file, you must select the file name--or enter text into the copy/paste area--before pushing the Upload button."
+            }
+            if {[string length $errs] > 0} {
+                uplevel #0 [list $callback error $errs]
+            }
+        } else {
+            uplevel #0 [list $callback error $job(error)]
+        }
     } else {
-	#
-	# Filexfer via importfile is disabled.  This tool must be
-	# running in a desktop environment.  Instead of uploading,
-	# perform a "Load File..." operation with a standard file
-	# selection dialog.
-	#
-	set i 0
-	foreach {path label desc} $controlList {
-	    set file [tk_getOpenFile -title "Load File: $label"]
-	    if {"" != $file} {
-		set cmds {
-		    # try to read first as binary
-		    set fid [open $file r]
-		    fconfigure $fid -encoding binary -translation binary
-		    set info [read $fid]
-		    close $fid
-		    if {![Rappture::encoding::is binary $info]} {
-			# not binary? then re-read and translate CR/LF
-			set fid [open $file r]
-			set info [read $fid]
-			close $fid
-		    }
-		}
-		if {[catch $cmds err]} {
-		    uplevel #0 [list $callback error "Error loading file [file tail $file]: $err"]
-		} else {
-		    uplevel #0 [list $callback path $path data $info]
-		}
-	    }
-	}
+        #
+        # Filexfer via importfile is disabled.  This tool must be
+        # running in a desktop environment.  Instead of uploading,
+        # perform a "Load File..." operation with a standard file
+        # selection dialog.
+        #
+        set i 0
+        foreach {path label desc} $controlList {
+            set file [tk_getOpenFile -title "Load File: $label"]
+            if {"" != $file} {
+                set cmds {
+                    # try to read first as binary
+                    set fid [open $file r]
+                    fconfigure $fid -encoding binary -translation binary
+                    set info [read $fid]
+                    close $fid
+                    if {![Rappture::encoding::is binary $info]} {
+                        # not binary? then re-read and translate CR/LF
+                        set fid [open $file r]
+                        set info [read $fid]
+                        close $fid
+                    }
+                }
+                if {[catch $cmds err]} {
+                    uplevel #0 [list $callback error "Error loading file [file tail $file]: $err"]
+                } else {
+                    uplevel #0 [list $callback path $path data $info]
+                }
+            }
+        }
     }
 }
 
@@ -245,81 +245,81 @@ proc Rappture::filexfer::download {string {filename "output.txt"}} {
     variable job
 
     if {$enabled} {
-	# make a spool directory, if we don't have one already
-	set dir ~/data/sessions/$env(SESSION)/spool
-	if {![file exists $dir]} {
-	    catch {file mkdir $dir}
-	}
+        # make a spool directory, if we don't have one already
+        set dir ~/data/sessions/$env(SESSION)/spool
+        if {![file exists $dir]} {
+            catch {file mkdir $dir}
+        }
 
-	if {[file exists [file join $dir $filename]]} {
-	    #
-	    # Find a similar file name that doesn't conflict
-	    # with an existing file:  e.g., output2.txt
-	    #
-	    set root [file rootname $filename]
-	    set ext [file extension $filename]
-	    set counter 2
-	    while {1} {
-		set filename "$root$counter$ext"
-		if {![file exists [file join $dir $filename]]} {
-		    break
-		}
-		incr counter
-	    }
-	}
+        if {[file exists [file join $dir $filename]]} {
+            #
+            # Find a similar file name that doesn't conflict
+            # with an existing file:  e.g., output2.txt
+            #
+            set root [file rootname $filename]
+            set ext [file extension $filename]
+            set counter 2
+            while {1} {
+                set filename "$root$counter$ext"
+                if {![file exists [file join $dir $filename]]} {
+                    break
+                }
+                incr counter
+            }
+        }
 
-	#
-	# Save the file in the spool directory, then have it
-	# exported.
-	#
-	if {[catch {
-	    set file [file join $dir $filename]
-	    set fid [open $file w]
-	    fconfigure $fid -encoding binary -translation binary
-	    puts -nonewline $fid $string
-	    close $fid
-	} result]} {
-	    return $result
-	}
+        #
+        # Save the file in the spool directory, then have it
+        # exported.
+        #
+        if {[catch {
+            set file [file join $dir $filename]
+            set fid [open $file w]
+            fconfigure $fid -encoding binary -translation binary
+            puts -nonewline $fid $string
+            close $fid
+        } result]} {
+            return $result
+        }
 
-	set job(output) ""
-	set job(error) ""
+        set job(output) ""
+        set job(error) ""
 
-	set status [catch {blt::bgexec ::Rappture::filexfer::job(control) \
-	    -output ::Rappture::filexfer::job(output) \
-	    -error ::Rappture::filexfer::job(error) \
-	    $commands(export) --timeout 300 --delete $file} result]
+        set status [catch {blt::bgexec ::Rappture::filexfer::job(control) \
+            -output ::Rappture::filexfer::job(output) \
+            -error ::Rappture::filexfer::job(error) \
+            $commands(export) --timeout 300 --delete $file} result]
 
-	if {$status != 0} {
-	    return $Rappture::filexfer::job(error)
-	}
+        if {$status != 0} {
+            return $Rappture::filexfer::job(error)
+        }
     } else {
-	#
-	# Filexfer via exportfile is disabled.  This tool must be
-	# running in a desktop environment.  Instead of downloading,
-	# perform a "Save As..." operation with a standard file
-	# selection dialog.
-	#
-	set file [tk_getSaveFile -title "Save As..." -initialfile $filename]
-	# FIXME: Why is there a grab still pending?
-	set grab [grab current]
-	if { $grab != "" } {
-	    grab release $grab
-	}
-	if {"" != $file} {
-	    if {[catch {
-		set fid [open $file w]
-		if {[Rappture::encoding::is binary $string]} {
-		    fconfigure $fid -encoding binary -translation binary
-		    puts -nonewline $fid $string
-		} else {
-		    puts $fid $string
-		}
-		close $fid
-	    } result]} {
-		return $result
-	    }
-	}
+        #
+        # Filexfer via exportfile is disabled.  This tool must be
+        # running in a desktop environment.  Instead of downloading,
+        # perform a "Save As..." operation with a standard file
+        # selection dialog.
+        #
+        set file [tk_getSaveFile -title "Save As..." -initialfile $filename]
+        # FIXME: Why is there a grab still pending?
+        set grab [grab current]
+        if { $grab != "" } {
+            grab release $grab
+        }
+        if {"" != $file} {
+            if {[catch {
+                set fid [open $file w]
+                if {[Rappture::encoding::is binary $string]} {
+                    fconfigure $fid -encoding binary -translation binary
+                    puts -nonewline $fid $string
+                } else {
+                    puts $fid $string
+                }
+                close $fid
+            } result]} {
+                return $result
+            }
+        }
     }
     return ""
 }
@@ -333,20 +333,20 @@ proc Rappture::filexfer::download {string {filename "output.txt"}} {
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::webpage {url} {
     if {[regexp -nocase {^https?://} $url]} {
-	foreach prog {
-	      clientaction
-	      /apps/bin/clientaction
-	      /apps/xvnc/bin/clientaction
-	      ""
-	} {
-	    if {"" != [auto_execok $prog]} {
-		break
-	    }
-	}
-	if {"" != $prog} {
-	    exec $prog url $url &
-	    return
-	}
+        foreach prog {
+              clientaction
+              /apps/bin/clientaction
+              /apps/xvnc/bin/clientaction
+              ""
+        } {
+            if {"" != [auto_execok $prog]} {
+                break
+            }
+        }
+        if {"" != $prog} {
+            exec $prog url $url &
+            return
+        }
     }
     bell
 }

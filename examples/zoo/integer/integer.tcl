@@ -13,6 +13,7 @@ package require Rappture
 set driver [Rappture::library [lindex $argv 0]]
 
 set n [$driver get input.(points).current]
+$driver put output.integer(outn).about.label "Echo of points"
 $driver put output.integer(outn).current $n
 
 # save the updated XML describing the run...

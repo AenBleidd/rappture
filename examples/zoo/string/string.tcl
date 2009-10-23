@@ -15,7 +15,9 @@ set driver [Rappture::library [lindex $argv 0]]
 set title [$driver get input.(title).current]
 set indeck [$driver get input.(indeck).current]
 
+$driver put output.string(outt).about.label "Echo of title"
 $driver put output.string(outt).current $title
+$driver put output.string(outi).about.label "Echo of input"
 $driver put output.string(outi).current $indeck
 
 # save the updated XML describing the run...

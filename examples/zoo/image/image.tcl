@@ -24,11 +24,12 @@ set imh [image create photo -data $data]
 set dest [image create photo]
 blt::winop image rotate $imh $dest $angle
 
-$driver put output.image.current [$dest data -format jpeg]
+$driver put output.image(outi).about.label "Rotated Image"
+$driver put output.image(outi).current [$dest data -format jpeg]
 
 # add a little html note
 set htmltext "html://<p style=\"text-align: center;\"><a href=\"angles.html\">Learn more about angles...</a></p>"
-$driver put output.image.note.contents $htmltext
+$driver put output.image(outi).note.contents $htmltext
 
 # save the updated XML describing the run...
 Rappture::result $driver
