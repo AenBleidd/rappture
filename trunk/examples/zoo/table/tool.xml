@@ -31,18 +31,4 @@ When you click the Simulate button, the simulator will generate a series of ener
     <default>0.067</default>
   </number>
 </input>
-<output>
-  <table>
-    <about>
-        <label>Energy Levels</label>
-    </about>
-    <column id="labels">
-        <label>Name</label>
-    </column>
-    <column id="energies">
-        <label>Energy</label>
-        <units>eV</units>
-    </column>
-  </table>
-</output>
 </run>

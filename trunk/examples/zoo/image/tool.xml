@@ -35,9 +35,4 @@ When you click the Simulate button, the input image will be rotated to produce t
     <default>0deg</default>
   </number>
 </input>
-<output>
-  <image id="outi">
-    <about><label>Rotated Image</label></about>
-  </image>
-</output>
 </run>

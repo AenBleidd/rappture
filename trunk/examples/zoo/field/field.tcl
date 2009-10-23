@@ -19,6 +19,13 @@ regsub -all {[xyz]} $formula {$\0} formula
 #
 # Generate the 2D mesh and field values...
 #
+
+$driver put output.cloud(m2d).about.label "2D Mesh"
+$driver put output.cloud(m2d).units "um"
+$driver put output.cloud(m2d).hide "yes"
+
+$driver put output.field(f2d).about.label "2D Field"
+$driver put output.field(f2d).component.mesh "output.cloud(m2d)"
 set n 0
 set z 1
 foreach {x y} {
@@ -63,6 +70,8 @@ set vizmethod [$driver get input.choice(3D).current]
 #
 # Generate the 3D mesh and field values...
 #
+$driver put output.field(f3d).about.label "3D Field"
+$driver put output.field(f3d).component.style "color blue:yellow:red"
 if {$vizmethod == "vtk"} {
     set n 0
     foreach {x y z} {

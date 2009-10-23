@@ -12,6 +12,7 @@ package require Rappture
 # open the XML file containing the run parameters
 set driver [Rappture::library [lindex $argv 0]]
 
+$driver put output.choice(outs).about.label "Echo of choice"
 set choice [$driver get input.(stats).current]
 $driver put output.choice(outs).current $choice
 

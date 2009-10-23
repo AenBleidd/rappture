@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: curve - extracts data from an XML description of a field
 #
@@ -23,10 +22,10 @@ namespace eval Rappture {
 
 itcl::class Rappture::Curve {
     constructor {xmlobj path} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
 
     public method components {{pattern *}}
@@ -282,13 +281,13 @@ itcl::body Rappture::Curve::_build {} {
         } else { 
             set xv [blt::vector create \#auto]
             set yv [blt::vector create \#auto]
-	    $xv set [$_curve get $cname.xvector]
-	    $yv set [$_curve get $cname.yvector]
-	    if { [$xv length] != [$yv length] } {
-		blt::vector destroy $xv $yv
-		set xv ""; set yv ""
-	    }
-	}
+            $xv set [$_curve get $cname.xvector]
+            $yv set [$_curve get $cname.yvector]
+            if { [$xv length] != [$yv length] } {
+                blt::vector destroy $xv $yv
+                set xv ""; set yv ""
+            }
+        }
         if {$xv != "" && $yv != ""} {
             set _comp2xy($cname) [list $xv $yv]
             incr _counter

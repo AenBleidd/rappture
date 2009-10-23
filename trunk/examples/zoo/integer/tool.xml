@@ -24,9 +24,4 @@ When you click the Simulate button, the input integers will be used to generate 
     <default>100</default>
   </integer>
 </input>
-<output>
-  <integer id="outn">
-    <about><label>Echo of points</label></about>
-  </integer>
-</output>
 </run>

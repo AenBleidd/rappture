@@ -22,6 +22,12 @@ set npts [$driver get input.integer(npts).current]
 #
 # Generate the 2D mesh and field values...
 #
+$driver put output.cloud(m2d).about.label "2D Mesh"
+$driver put output.cloud(m2d).units "um"
+$driver put output.cloud(m2d).hide "yes"
+
+$driver put output.field(f2d).about.label "2D Field"
+$driver put output.field(f2d).component.mesh "output.cloud(m2d)"
 set z 1
 for {set n 0} {$n < $npts} {incr n} {
     set x [expr {rand()}]
@@ -35,6 +41,12 @@ for {set n 0} {$n < $npts} {incr n} {
 #
 # Generate the 3D mesh and field values...
 #
+$driver put output.cloud(m3d).about.label "3D Mesh"
+$driver put output.cloud(m3d).units "um"
+$driver put output.cloud(m3d).hide "yes"
+
+$driver put output.field(f3d).about.label "2D Field"
+$driver put output.field(f3d).component.mesh "output.cloud(m3d)"
 for {set n 0} {$n < $npts} {incr n} {
     set x [expr {rand()}]
     set y [expr {rand()}]

@@ -36,13 +36,4 @@ in this area.  Right-click
 for a menu of editing options.</default>
   </string>
 </input>
-<output>
-  <string id="outt">
-    <about><label>Echo of title</label></about>
-  </string>
-
-  <string id="outi">
-    <about><label>Echo of input</label></about>
-  </string>
-</output>
 </run>

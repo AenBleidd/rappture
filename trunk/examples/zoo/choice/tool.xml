@@ -42,9 +42,4 @@ When you click the Simulate button, the input choice will be used to generate th
     <default>Boltzmann</default>
   </choice>
 </input>
-<output>
-  <choice id="outs">
-    <about><label>Echo of choice</label></about>
-  </choice>
-</output>
 </run>

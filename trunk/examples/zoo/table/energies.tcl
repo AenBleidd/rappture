@@ -23,6 +23,10 @@ set J2eV 6.241506363e17
 
 set nhomo [expr {round(rand()*19+1)}]
 
+$driver put output.table.about.label "Energy Levels"
+$driver put output.table.column(labels).label "Name"
+$driver put output.table.column(energies).label "Energy"
+$driver put output.table.column(energies).units "eV"
 for {set n 1} {$n <= 20} {incr n} {
     set E [expr {$n*$n*$h*$h/(8.0*$m*$L*$L*$J2eV)}]  ;# in eV
     set label [expr {($n == $nhomo) ? "HOMO" : $n}]
