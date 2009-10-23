@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 # ----------------------------------------------------------------------
-#  EXAMPLE: Fermi-Dirac function in C++.
+#  EXAMPLE: Fermi-Dirac function in Python.
 #
 #  This simple example shows how to use Rappture within a simulator
-#  written in C++.
+#  written in Python.
 # ======================================================================
 #  AUTHOR:  Derrick Kearney, Purdue University
 #  Copyright (c) 2005-2009  Purdue Research Foundation
@@ -56,12 +56,6 @@ def main(argv=None):
     # create a rappture library from the file filePath
     lib = Rappture.Library(argv[1])
 
-#    T = Rappture.Number();
-#    Ef = 0.0;
-#    dE = 0.0;
-#    kT = 0.0;
-#    Emin = 0.0;
-#    Emax = 0.0;
     nPts = 200;
     EArr = list() # [nPts];
     fArr = list() # [nPts];

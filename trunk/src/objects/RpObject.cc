@@ -317,6 +317,19 @@ Object::vvalue(void *storage, size_t numHints, va_list arg) const
 }
 
 void
+Object::random()
+{
+    // bland objects cannot make random values
+    return;
+}
+
+Rp_Chain *
+Object::diff(const Object &o)
+{
+    return NULL;
+}
+
+void
 Object::__init()
 {
     _h = NULL;

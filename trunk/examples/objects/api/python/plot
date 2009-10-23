@@ -1,0 +1,253 @@
+Rappture.Plot
+
+constructors/destructors
+    Rappture.Plot([lib])
+    Rappture.Plot(o)
+
+methods
+    p.name([val])
+    p.path([val])
+    p.label([val])
+    p.desc([val])
+    p.hints([val])
+    p.color([val])
+    p.property(key[, val])
+    p.propremove(key)
+    p.add(x, y, fmt, name)
+    p.add(c, name)
+    p.count()
+    p.curve(name)
+    p.getNthCurve(n)
+
+    p.vvalue([...])
+    p.random()
+    p.diff(o)
+
+    p.configure(as, c)
+    p.dump(as, c)
+
+    p.outcome()
+
+    p.is()
+
+---------------------------------------
+Rappture.Plot([lib])
+    Purpose: construct a plot object
+    Input Arguments: at most 1
+        1. lib - Rappture library to associate this plot with
+    Return Value: a newly created, empty plot object
+    Notes: None
+    Code Example:
+
+Rappture.Plot(o)
+    Purpose: construct a plot object based on plot object o
+    Input Arguments: 1
+        1. o - plot object to copy
+    Return Value: a newly created plot object
+    Notes: None
+    Code Example:
+
+
+p.name([val])
+    Purpose: get/set the id name of the object
+    Input Arguments: at most 1
+        1. val - new id name
+    Return Value: the name of the object
+    Notes: if no name is set, None will be returned
+           the id name is used to identify this object from
+           all other objects and should be unique
+           val, if provided, is used to set the object name
+    Code Example:
+
+p.path([val])
+    Purpose: get/set the path of the object
+    Input Arguments: at most 1
+        1. val - new path
+    Return Value: path of the object
+    Notes: if no path is set, None will be returned
+           the path tells where this object sits in the
+           hierarchy of objects.
+           val, if provided, is used to set the object path
+    Code Example:
+
+p.label([val])
+    Purpose: get/set the label of the object
+    Input Arguments: at most 1
+        1. val - new label
+    Return Value: label of the object
+    Notes: if no label is set, None will be returned
+           the label is used by the graphical user interface.
+           val, if provided, is used to set the object label
+    Code Example:
+
+p.desc([val])
+    Purpose: get/set the description of the object
+    Input Arguments: at most 1
+        1. const char *val - new description
+    Return Value: description of the object
+    Notes: if no description is set, None will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+           val, if provided, is used to set the object description
+    Code Example:
+
+p.hints([val])
+    Purpose: get/set the hints of the object
+    Input Arguments: at most 1
+        1. val - new hints
+    Return Value: hints of the object
+    Notes: if no hints are set, None will be returned
+           the hints are used by the graphical user interface
+           val, if provided, is used to set the object hints
+    Code Example:
+
+p.color([val])
+    Purpose: get/set the color of the object
+    Input Arguments: at most 1
+        1. const char *val - new color
+    Return Value: color of the object
+    Notes: if no color is set, None will be returned
+           the color is used by the graphical user interface
+           val, if provided, is used to set the object color
+    Code Example:
+
+p.property(key[, val])
+    Purpose: get/set a generic property in the property database
+    Input Arguments: at most 2
+        1. const char *key - property name
+        2. const void *val - property value
+    Return Value: value of the property
+    Notes: A copy val is stored in the property database
+    Code Example:
+
+p.propremove(key)
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+p.add(x, y, fmt, name)
+    Purpose: add data for an xy curve to the plot
+    Input Arguments: 4
+        1. x - list/array representing the x axis
+        2. y - list/array representing the y axis
+        3. fmt - string format of the line
+        4. name - string id of the newly created curve
+    Return Value: Outcome object
+    Notes: format can be something like "g:o" to represent
+            green line, dotted line style, circle marker.
+            this follows matlab's formatting rules.
+    Code Example:
+
+p.add(c, name)
+    Purpose: add a Curve object to this Plot object
+    Input Arguments: 2
+        1. c - Curve object to add
+        2. name - id of the Curve object
+    Return Value: Outcome object
+    Notes: Curve object should not be deleted by user?
+    Code Example:
+
+p.count()
+    Purpose: retrieve the number of curves in this Plot object
+    Input Arguments: 0
+    Return Value: number of curves stored in the object
+    Notes: None
+    Code Example:
+
+p.curve(name)
+    Purpose: retrieve the curve with the id matching "name"
+    Input Arguments: 1
+        1. name - id to Curve to be retrieved
+    Return Value: Curve object matching "name" or None
+    Notes: None
+    Code Example:
+
+p.getNthCurve(n)
+    Purpose: return the n'th curve stored in the object
+    Input Arguments: 1
+        1. n - number of the curve to retrieve
+    Return Value: the n'th Curve object stored in
+                  the Plot object or None
+    Notes: None
+    Code Example:
+
+p.vvalue([...])
+    Purpose: return the value of the object after applying a
+             varying number of hints about how the value
+             should be configured
+    Input Arguments: variable numbber
+        1. variable number of hints
+    Return Value: value of the object
+    Notes: vvalue will parse out the recognisable hints from
+           va_list arg. Values stored in the object are
+           not changed. Hints should be of the form
+           hintKey=hintVal
+    Code Example:
+
+p.random();
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+
+p.diff(o);
+    Purpose: return a list showing the differences between
+             this object and Rappture Object o
+    Input Arguments: 1
+        1. o - Rappture Object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+
+p.configure(as, c)
+    Purpose: configure the object based on the data in "c".
+             use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    const char *xmltext
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+p.dump(as, c)
+    Purpose: dump the object values based to the object "c".
+             use "as" to determine how to dump the data.
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    ClientDataXml *object
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+p.outcome()
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+p.is()
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

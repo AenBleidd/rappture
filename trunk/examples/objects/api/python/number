@@ -1,0 +1,303 @@
+Rappture.Number
+
+constructors/destructors
+    Rappture.Number()
+    Rappture.Number(name, units, val[, min, max, label, desc])
+    Rappture.Number(const Number& o)
+
+methods
+    n.name([val])
+    n.path([val])
+    n.label([val])
+    n.desc([val])
+    n.hints([val])
+    n.color([val])
+    n.def([val])
+    n.cur([val])
+    n.min([val])
+    n.max([val])
+    n.units([u])
+    n.property(key[, val])
+    n.propremove(key)
+
+    n.convert(to)
+    n.value(units)
+    n.vvalue([...])
+    n.random()
+    n.diff(o)
+
+    n.addPreset(label, desc, val[, units])
+    n.delPreset(label)
+
+    n.configure(as, c)
+    n.dump(as, c)
+
+    n.outcome()
+
+    n.is()
+
+---------------------------------------
+Rappture.Number([name, units, val[, min, max, label, desc]])
+    Purpose: construct a number object
+    Input Arguments: 0, 3 or 7
+        1. name - object's name
+        2. units - object's units
+        3. val - default value
+        4. min - minimum accepted value
+        5. max - maximum accepted value
+        6. label - object's label
+        7. desc - object's description
+    Return Value: a newly created number object
+    Notes: input arguments are used to construct the number object
+    Code Example:
+
+Rappture.Number(o)
+    Purpose: construct a number object based on number object o
+    Input Arguments: 1
+        1. o - number object to copy
+    Return Value: a newly created number object
+    Notes: None
+    Code Example:
+
+
+n.name([val])
+    Purpose: get/set the id name of the object
+    Input Arguments: at most 1
+        1. val - new id name
+    Return Value: the name of the object
+    Notes: if no name is set, None will be returned
+           the id name is used to identify this object from
+           all other objects and should be unique
+           val, if provided, is used to set the object name
+    Code Example:
+
+n.path([val])
+    Purpose: get/set the path of the object
+    Input Arguments: at most 1
+        1. val - new path
+    Return Value: path of the object
+    Notes: if no path is set, None will be returned
+           the path tells where this object sits in the
+           hierarchy of objects.
+           val, if provided, is used to set the object path
+    Code Example:
+
+n.label([val])
+    Purpose: get/set the label of the object
+    Input Arguments: at most 1
+        1. val - new label
+    Return Value: label of the object
+    Notes: if no label is set, None will be returned
+           the label is used by the graphical user interface.
+           val, if provided, is used to set the object label
+    Code Example:
+
+n.desc([val])
+    Purpose: get/set the description of the object
+    Input Arguments: at most 1
+        1. const char *val - new description
+    Return Value: description of the object
+    Notes: if no description is set, None will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+           val, if provided, is used to set the object description
+    Code Example:
+
+n.hints([val])
+    Purpose: get/set the hints of the object
+    Input Arguments: at most 1
+        1. val - new hints
+    Return Value: hints of the object
+    Notes: if no hints are set, None will be returned
+           the hints are used by the graphical user interface
+           val, if provided, is used to set the object hints
+    Code Example:
+
+n.color([val])
+    Purpose: get/set the color of the object
+    Input Arguments: at most 1
+        1. const char *val - new color
+    Return Value: color of the object
+    Notes: if no color is set, None will be returned
+           the color is used by the graphical user interface
+           val, if provided, is used to set the object color
+    Code Example:
+
+n.def([val])
+    Purpose: get/set the default value
+    Input Arguments: at most 1
+        1. val - new default value
+    Return Value: default value of the object
+    Notes: if no default is set, None will be returned
+           val, if provided, is used to set the object default value
+    Code Example:
+
+n.cur([val])
+    Purpose: get/set the current value
+    Input Arguments: at most 1
+        1. val - new current value
+    Return Value: current value of the object
+    Notes: if no current is set, None will be returned
+           val, if provided, is used to set the object current value
+    Code Example:
+
+n.min([val])
+    Purpose: get/set the minimum accepted value of this object
+    Input Arguments: at most 1
+        1. double val - new minimum accepted value
+    Return Value: the minimum value this object will accept.
+    Notes: if no min is set, None will be returned
+           val, if provided, is used to set the object min
+    Code Example:
+
+n.max([val])
+    Purpose: get/set the maximum accepted value of this object
+    Input Arguments: 1
+        1. val - new maximum accepted value
+    Return Value: the maximum value this object will accept.
+    Notes: if no max is set, None will be returned
+           val, if provided, is used to set the object max
+    Code Example:
+
+n.units([val])
+    Purpose: get/set the units of this object
+    Input Arguments: 1
+        1. const char *val - new units
+    Return Value: the string representing the object's units
+    Notes: if no units are set, None will be returned
+           val, if provided, is used to set the object units
+    Code Example:
+
+n.property(key[, val])
+    Purpose: get/set a generic property in the property database
+    Input Arguments: at most 2
+        1. const char *key - property name
+        2. const void *val - property value
+    Return Value: value of the property
+    Notes: A copy val is stored in the property database
+    Code Example:
+
+n.propremove(key)
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+
+n.convert(to)
+    Purpose: convert the def and cur values to "to" units
+    Input Arguments: 1
+        1. to - string of units to convert to
+    Return Value: Outcome object
+    Notes: the values stored in the object are changed
+    Code Example:
+
+n.value(to)
+    Purpose: return the value of the object with units of "to"
+    Input Arguments: 1
+        1. to - string of units to convert to
+    Return Value: value of the object
+    Notes: cur() is used as the base value. if cur was not set
+            by the user (cur() == None), def() is used.
+            if def was not set (def() == None), 0.0 is used
+            as the value.
+    Code Example:
+
+n.vvalue([...])
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments:
+        1. variable number of hints
+    Return Value: value of the object after applying hints.
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed. Hint strings should have the form
+                hintKey=hintVal and be comma separated
+    Code Example:
+
+n.random()
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+
+n.diff(o)
+    Purpose: return a list showing the differences between
+             this object and Rappture Object o
+    Input Arguments: 1
+        1. o - Rappture Object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+
+n.addPreset(label, desc, val[, units])
+    Purpose: add a preset to this object
+    Input Arguments: 3 or 4
+        1. label - label of the preset
+        2. desc - description of the preset
+        3. val - value of the preset, possibly with units
+        4. units - units of the preset
+    Return Value: None
+    Notes: presets are stored in the object in the same order
+                in which they are created
+    Code Example:
+
+n.delPreset(label)
+    Purpose: delete the preset labeled "label" from this object
+    Input Arguments: 1
+        1. const char *label - label of the preset
+    Return Value: None
+    Notes: preset is removed from the object
+    Code Example:
+
+n.configure(as, c)
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    const char *xmltext
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+n.dump(as, c)
+    Purpose: dump the object values based to the object "c".
+                use "as" to determine how to dump the data.
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    ClientDataXml *object
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+n.outcome()
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+n.is()
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

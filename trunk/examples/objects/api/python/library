@@ -1,0 +1,140 @@
+Rappture.Library
+
+constructors
+    Rappture.Library()
+    Rappture.Library(lib2)
+
+methods
+    lib.loadXml(xmltext)
+
+    lib.loadFile(filename)
+
+
+    lib.value(key[, ...])
+
+    lib.diff(lib2)
+
+    lib.remove(key)
+
+    lib.xml()
+
+    lib.outcome()
+    lib.error()
+
+    lib.result(int status)
+
+    lib.contains()
+
+---------------------------------------
+
+Rappture.Library()
+    Purpose: construct an empty Rappture Library object
+    Input Arguments: 0
+    Return Value: empty Rappture Library object
+    Notes: None
+    Code Example:
+
+Rappture.Library(lib2)
+    Purpose: construct a copy of a Rappture Library object
+    Input Arguments: 1
+        1. lib2 - Rappture Library object to be copied
+    Return Value: copy of a Rappture Library object
+    Notes: None
+    Code Example:
+
+lib.loadXml(xmltext)
+    Purpose: parse the Rappture1.1 xml data in "xmltext".
+                populate this library object with the Rappture
+                objects described in the xml data.
+    Input Arguments: 1
+        1. xmltext - string of Rappture1.1 xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+lib.loadFile(filename)
+    Purpose: read the file "filename" and parse the
+                Rappture1.1 xml data found inside of it.
+                populate this library object with the Rappture
+                objects described in the xml data.
+    Input Arguments: 1
+        1. filename - name of file containing Rappture1.1
+                      xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+lib.value(key[, ...])
+    Purpose: retrieve the value of the object named "key" and
+                return it to the user. If there are hints,
+                pass them along to the object being retrieved
+                to tell it how the value should be configured.
+    Input Arguments: at least 1
+        1. key - name of the object being retrieved
+        2. ... - hints listed as strings
+    Return Value: value of the object named key
+    Notes: hints are listed as strings of the form
+            "hintKey=hintVal". hintKey is the key for the hint
+            and hintVal is the value to be applied to the hint.
+            generally, unrecognized hints are ignored. the hints
+            should be listed as comma separated strings in the
+            function's argument list.
+    Code Example:
+
+lib.diff(lib2)
+    Purpose: find the difference between two library objects
+    Input Arguments: 1
+        1. lib2 - other object used in comparison
+    Return Value: List of differences
+    Notes: None
+    Code Example:
+
+lib.remove(key)
+    Purpose: remove the object from this library named "key"
+    Input Arguments: 1
+        1. key - name of the object to remove
+    Return Value: None
+    Notes: The object is removed and it's memory is deleted
+    Code Example:
+
+lib.xml()
+    Purpose: return the Rappture1.1 xml representation of the
+                objects stored in this library.
+    Input Arguments: 0
+    Return Value: None
+    Notes: user is responsible for free'ing returned memory?
+    Code Example:
+
+lib.outcome()
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+int error()
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+
+lib.result(status)
+    Purpose: write the stored objects to a data file and
+                signal the end of processing.
+    Input Arguments: 1
+        1. int status - status of the simulation
+    Return Value: None
+    Notes: currently data file are written out as Rappture1.1
+            xml. this function generates the RAPPTURE-RUN=>
+            signal.
+    Code Example:
+
+lib.contains()
+    Purpose: return a list of the Rappture objects
+                stored in this library.
+    Input Arguments: 0
+    Return Value: list of the Rappture objects stored in
+                    this library.
+    Notes: None
+    Code Example:

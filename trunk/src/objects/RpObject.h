@@ -62,18 +62,22 @@ class Object
         // they put into the hash table.
 
         // get/set void* property
-        const void *property (const char *key) const;
-        void property (const char *key, const void *val, size_t nbytes);
+        const void *property(const char *key) const;
+        void property(const char *key, const void *val, size_t nbytes);
 
         // get/set const char * property
-        const char *propstr (const char *key) const;
-        void propstr (const char *key, const char *val);
+        const char *propstr(const char *key) const;
+        void propstr(const char *key, const char *val);
 
         // remove property from hash table
         void propremove (const char *key);
 
         // return the value of object based on provided hints
-        virtual void vvalue (void *storage, size_t numHints, va_list arg) const;
+        virtual void vvalue(void *storage, size_t numHints, va_list arg) const;
+        // populate the object with a random value
+        virtual void random();
+        // return the difference between this object and o
+        virtual Rp_Chain *diff(const Object& o);
 
         // get the Rappture1.1 xml text for this object
         // virtual const char *xml(size_t indent, size_t tabstop) const;
