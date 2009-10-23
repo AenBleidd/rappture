@@ -561,9 +561,19 @@ itcl::body Rappture::XyResult::download {option args} {
                     return [list .txt $csvdata]
                 }
                 pdf {
-		    set printobj [Rappture::XyPrint \#auto]
-		    set psdata [$printobj postscript $itk_component(plot)]
-		    itcl::delete object $printobj
+		    set widget [lindex $args 0]
+		    set popup .xyprintdownload
+		    Rappture::Balloon $popup -title "Print Settings..."
+		    set inner [$popup component inner]
+		    Rappture::XyPrint $inner.dl $itk_component(plot)
+		    blt::table $inner \
+			0,0 $inner.dl -fill both 
+		    update
+		    $popup activate $widget left
+		    update
+		    global xyz
+		    tkwait window $inner.dl
+		    set psdata [$inner.dl postscript $itk_component(plot)]
                     set cmds {
                         set fout "xy[pid].pdf"
                         exec ps2pdf - $fout << $psdata

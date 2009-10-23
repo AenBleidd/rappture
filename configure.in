@@ -114,13 +114,13 @@ if test "$enable_gui" != "no" ; then
 fi
 AC_SUBST(ENABLE_GUI)
 
-with_tclsh="check"
+with_tclsh="yes"
 AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
-        [location of tclsh @<:@default=check@:>@])],
+        [location of tclsh @<:@default=yes@:>@])],
     [],
-    [with_tclsh=check])
+    [with_tclsh=yes])
 
 TCLSH=
 if test "$with_tclsh" != "no" ; then
@@ -146,7 +146,7 @@ AC_SUBST(TCLSH)
 AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
-        [location of matlab and mex compiler @<:@default=check@:>@])],
+        [location of matlab and mex compiler @<:@default=yes@:>@])],
     [with_matlab=$withval],
     [with_matlab=yes])
 
@@ -194,7 +194,7 @@ AC_SUBST(MEXEXT)
 AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
-        [location of octave compiler MKOCTFILE @<:@default=check@:>@])],
+        [location of octave compiler MKOCTFILE @<:@default=yes@:>@])],
     [with_octave=$withval],
     [with_octave=yes])
 
@@ -222,12 +222,11 @@ AC_SUBST(OCTAVE_VERSION)
 AC_SUBST(OCTAVE_VERSION_MAJOR)
 AC_SUBST(MKOCTFILE)
 
-
 AC_ARG_WITH(
     [perl],
-    [AS_HELP_STRING([--with-perl[=DIR]], [location of perl @<:@default=check@:>@])],
+    [AS_HELP_STRING([--with-perl[=DIR]], [location of perl @<:@default=yes@:>@])],
     [],
-    [with_perl=check])
+    [with_perl=yes])
 
 PERL=
 PERL_INCLUDES=
@@ -242,7 +241,7 @@ PERL_VERSION_RV=
 PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
   AC_MSG_CHECKING([for perl])
-  if test "$with_perl" != "check" ; then 
+  if test "$with_perl" != "yes" ; then 
     AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
   else
     AC_PATH_PROG(PERL, perl)
@@ -293,9 +292,9 @@ PYTHON_VERSION=""
 pythondir=""
 
 AC_ARG_WITH([python],
-    [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=check@:>@])],
+    [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=yes@:>@])],
     [],
-    [with_python=check])
+    [with_python=yes])
 
 if test "$with_python" != "no" ; then
   AC_MSG_CHECKING([for python])
@@ -346,7 +345,7 @@ if test "$with_python" != "no" ; then
   if test $? = 0 ; then
     HAVE_PYTHON_DISTUTILS="yes"
   else
-    HAVE_PYTHON_DISTUTILS="no"
+     HAVE_PYTHON_DISTUTILS="no"
   fi
   AC_MSG_RESULT([$HAVE_PYTHON_DISTUTILS])
 
@@ -533,8 +532,6 @@ AC_CONFIG_FILES([
     examples/app-fermi/matlab/compiled/Makefile
     examples/app-fermi/matlab/uncompiled/Makefile
     examples/app-fermi/octave/Makefile
-    examples/app-fermi/octave/2/Makefile
-    examples/app-fermi/octave/3/Makefile
     examples/app-fermi/perl/Makefile
     examples/app-fermi/python/Makefile
     examples/app-fermi/ruby/Makefile
