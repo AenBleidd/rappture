@@ -40,6 +40,8 @@ itcl::class Rappture::Combobox {
 
     public method value {args}
     public method translate {value}
+    public method label {value}
+    public method current {}
     public method choices {option args}
 
     protected method _entry {option}
@@ -52,6 +54,8 @@ itcl::class Rappture::Combobox {
 	static unsigned char arrow_bits[] = {
 	   0xfe, 0x7c, 0x38, 0x10};
     }
+    private variable _value2label
+    private variable _label2value
 }
 										
 itk::usual Combobox {
@@ -152,6 +156,29 @@ itcl::body Rappture::Combobox::translate {value} {
 	}
     }
     return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: label <value>
+#
+# Clients use this to translate a value to a label.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Combobox::label { myValue } {
+    foreach {val label} [choices get -both] {
+	if {$myValue == $val} {
+	    return $label
+	}
+    }
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getValue <value>
+#
+# Clients use this to translate a value to a label.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Combobox::current {} {
+    return [translate [$itk_component(entry) get]]
 }
 
 # ----------------------------------------------------------------------
