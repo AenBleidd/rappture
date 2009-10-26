@@ -146,13 +146,20 @@ itcl::body Rappture::XyResult::destructor {} {
     array unset _settings $this-*
 }
 
+itcl::body Rappture::XyResult::DestroyData {} {
+    destroy $_clone
+    array unset _settings $this-*
+    set _clone ""
+    set _graph ""
+}
+
 itcl::body Rappture::XyPrint::Done { state } {
     set _wait($this) $state
 }
 
 itcl::body Rappture::XyPrint::print { graph } {
-    set _clone [CloneGraph $graph]
     set _graph $graph
+    set _clone [CloneGraph $graph]
     InitClone
     InitializeSettings
     # RestoreSettings
@@ -921,7 +928,15 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 
 
 itcl::body Rappture::XyPrint::RestoreSettings { file } {
-    # Get the settings assoicated with the tool and plot title
+    # Get the settings associated with the tool and plot title
+n}
+
+itcl::body Rappture::XyPrint::ResetSettings { file } {
+    # Revert the widget back to the original graph's settings
+    destroy $_clone
+    set _clone [CloneGraph $graph]
+    InitClone
+    InitializeSettings
 }
 
 itcl::body Rappture::XyPrint::SaveSettings { file } {
