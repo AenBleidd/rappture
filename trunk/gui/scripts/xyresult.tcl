@@ -494,14 +494,10 @@ itcl::body Rappture::XyResult::download {option args} {
                     -variable Rappture::XyResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
-                radiobutton $inner.pdf -text "Image as PDF/PostScript" \
+                radiobutton $inner.image -text "Image" \
                     -variable Rappture::XyResult::_downloadPopup(format) \
-                    -value pdf
-                pack $inner.pdf -anchor w
-                radiobutton $inner.jpg -text "Image (draft)" \
-                    -variable Rappture::XyResult::_downloadPopup(format) \
-                    -value jpg
-                pack $inner.jpg -anchor w
+                    -value image
+                pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
                 pack $inner.go -pady 4
@@ -560,51 +556,24 @@ itcl::body Rappture::XyResult::download {option args} {
                     }
                     return [list .txt $csvdata]
                 }
-                pdf {
-		    set widget [lindex $args 0]
+                image {
 		    set popup .xyprintdownload
-		    Rappture::Balloon $popup -title "Print Settings..."
-		    set inner [$popup component inner]
-		    Rappture::XyPrint $inner.dl $itk_component(plot)
-		    blt::table $inner \
-			0,0 $inner.dl -fill both 
+		    if { ![winfo exists $popup] } {
+			# Create a popup for the print dialog
+			Rappture::Balloon $popup -title "Print Settings..."
+			set inner [$popup component inner]
+			# Create the print dialog widget and add it to the
+			# the balloon popup.
+			Rappture::XyPrint $inner.print
+			blt::table $inner 0,0 $inner.print -fill both
+		    }
 		    update
+		    set widget [lindex $args 0]
+		    # Activate the popup and call for the output.
 		    $popup activate $widget left
-		    update
-		    global xyz
-		    tkwait window $inner.dl
-		    set psdata [$inner.dl postscript $itk_component(plot)]
-                    set cmds {
-                        set fout "xy[pid].pdf"
-                        exec ps2pdf - $fout << $psdata
-                        
-                        set fid [open $fout r]
-                        fconfigure $fid -translation binary -encoding binary
-                        set pdfdata [read $fid]
-                        close $fid
-                        
-                        file delete -force $fout
-                    }
-                    if {[catch $cmds result] == 0} {
-                        return [list .pdf $pdfdata]
-                    }
-                    return [list .ps $psdata]
-                }
-                jpg {
-                    set img [image create photo]
-                    $itk_component(plot) snap $img
-                    set bytes [$img data -format "jpeg -quality 100"]
-                    set bytes [Rappture::encoding::decode -as b64 $bytes]
-                    image delete $img
-                    return [list .jpg $bytes]
-                }
-                png {
-                    set img [image create photo]
-                    $itk_component(plot) snap $img
-                    set bytes [$img data -format "png"]
-                    set bytes [Rappture::encoding::decode -as b64 $bytes]
-                    image delete $img
-                    return [list .png $bytes]
+		    set output [$inner.print print $itk_component(plot)]
+		    $popup deactivate 
+                    return $output
                 }
             }
         }
