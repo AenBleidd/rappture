@@ -169,8 +169,8 @@ itcl::body Rappture::XyPrint::print { graph } {
     if { _wait($this) } {
 	return [GetOutput]
     }
-    # SaveSettings
-    #DestroySettings
+    SaveSettings
+    # DestroySettings
     return ""
 }
 
@@ -1002,5 +1002,5 @@ itcl::body Rappture::XyPrint::SaveSettings { file } {
     append out "\n"
     append out "\}\n"
     # Write the settings out
-    return $out
+    puts stderr $out
 }
