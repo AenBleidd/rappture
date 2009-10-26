@@ -117,13 +117,13 @@ itcl::body Rappture::XyPrint::constructor { args } {
             -highlightthickness 0 \
 	    -command [itcl::code $this Done 0] \
 	    -compound left \
-	    -image [Rappture::icon dialog-cancel]
+	    -image [Rappture::icon cancel]
     }
     blt::table $itk_interior \
 	0,0 $itk_component(preview) -cspan 2 -fill both \
 	1,0 $itk_component(tabs) -fill both -cspan 2 \
-        2,0 $itk_component(cancel) -padx 2 -pady 2 -width .9i -fill y \
-	2,1 $itk_component(ok) -padx 2 -pady 2 -width .9i -fill y 
+        2,1 $itk_component(cancel) -padx 2 -pady 2 -width .9i -fill y \
+	2,0 $itk_component(ok) -padx 2 -pady 2 -width .9i -fill y 
     blt::table configure $itk_interior r1 -resize none
     blt::table configure $itk_interior r1 -resize both
 
@@ -210,7 +210,7 @@ itcl::body Rappture::XyPrint::GetOutput {} {
     close $f
 
     if { $format == "eps" } {
-	set cmd [list | eps2eps -dEPSCrop - - << $psdata]
+	set cmd [list | eps2eps - - << $psdata]
     } elseif { $format == "pdf" } {
 	set cmd [list | eps2eps - - << $psdata | ps2pdf - -]
     }
@@ -319,7 +319,7 @@ itcl::body Rappture::XyPrint::InitClone {} {
     # 
     $_clone legend configure \
 	-position right \
-	-font "*-helvetica-medium-r-normal-*-12-*" \
+	-font "*-helvetica-medium-r-normal-*-10-*" \
 	-hide yes -borderwidth 0 -background white -relief solid \
 	-anchor nw -activeborderwidth 0
     # 
@@ -330,8 +330,8 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	$_clone axis configure $axis -ticklength 5  \
 	    -majorticks {} -minorticks {}
 	$_clone axis configure $axis \
-	    -tickfont "*-helvetica-medium-r-normal-*-12-*" \
-	    -titlefont "*-helvetica-medium-r-normal-*-12-*" 
+	    -tickfont "*-helvetica-medium-r-normal-*-10-*" \
+	    -titlefont "*-helvetica-medium-r-normal-*-10-*" 
     }
     #$_clone grid off
     #$_clone yaxis configure -rotate 90
@@ -927,66 +927,65 @@ itcl::body Rappture::XyPrint::ResetSettings {} {
 itcl::body Rappture::XyPrint::SaveSettings { file } {
     # Create stanza associated with tool and plot title.
     # General settings
-    append out "set settings(general-format) $_settings($this-general-format)\n"
-    append out "set settings(general-style) $_settings($this-general-style)\n"
-    append out "set settings(general-remember) 1"
+    append out "\n"
+    append out "set settings(\$tool:\$label) \{\n"
+    append out "  set general(format) $_settings($this-general-format)\n"
+    append out "  set general(style) $_settings($this-general-style)\n"
+    append out "  set general(remember) 1\n"
 
     # Layout settings
-    append out "\$graph configure " 
-    foreach opt { 
-	-width -height -leftmargin -rightmargin -topmargin -bottommargin } {
-	append out "$opt [Pixels2Inches [$_clone cget $opt]] "
-    }
-    append out "\n"
-    
+    append out "  \$graph configure \\\n" 
+    append out "    -width \"[Pixels2Inches [$_clone cget -width]]\" \\\n"
+    append out "    -height \"[Pixels2Inches [$_clone cget -height]]\" \\\n"
+    append out "    -leftmargin \"[Pixels2Inches [$_clone cget -leftmargin]]\" \\\n"
+    append out "    -rightmargin \"[Pixels2Inches [$_clone cget -rightmargin]]\" \\\n"
+    append out "    -topmargin \"[Pixels2Inches [$_clone cget -topmargin]]\" \\\n"
+    append out "    -bottommargin \"[Pixels2Inches [$_clone cget -bottommargin]]\"\\\n"
+    append out "    -plotpadx \"[Pixels2Inches [$_clone cget -plotpadx]]\" \\\n"
+    append out "    -plotpady \"[Pixels2Inches [$_clone cget -plotpady]]\" \n"
+
     # Legend settings
-    append out "\$graph legend configure " 
-    foreach opt { -hide -position -anchor -borderwidth } {
-	append out " $opt [$_clone legend cget $opt] "
-    }
-    append out "\n"
+    append out "  \$graph legend configure \\\n" 
+    append out "    -position \"[$_clone legend cget -position]\" \\\n"
+    append out "    -anchor \"[$_clone legend cget -anchor]\" \\\n"
+    append out "    -borderwidth \"[$_clone legend cget -borderwidth]\" \\\n"
+    append out "    -hide \"[$_clone legend cget -hide]\" \n"
     
     # Element settings
     foreach elem [$_clone element show] {
- 	append out "if \{ \[\$graph element exists $elem\] \} \{\n"
-	set cmd {}
-	lappend cmd {$graph} "element" $elem
-	lappend cmd "-symbol" [$_clone element cget $elem -symbol]
-	lappend cmd "-color"  [$_clone element cget $elem -color]
-	lappend cmd "-dashes" [$_clone element cget $elem -dashes]
-	lappend cmd "-hide"   [$_clone element cget $elem -hide]
-	lappend cmd "-label"  [$_clone element cget $elem -label]
-	append out " $cmd\n"
-	append out "\}\n"
+ 	append out "  if \{ \[\$graph element exists \"$elem\"\] \} \{\n"
+	append out "    \$graph element configure \"$elem\" \\\n"
+	append out "      -symbol \"[$_clone element cget $elem -symbol]\" \\\n"
+	append out "      -color \"[$_clone element cget $elem -color]\" \\\n"
+	append out "      -dashes \"[$_clone element cget $elem -dashes]\" \\\n"
+	append out "      -hide \"[$_clone element cget $elem -hide]\" \\\n"
+	append out "      -label \"[$_clone element cget $elem -label]\" \n"
+	append out "  \}\n"
     }
     
     # Axis settings
-    append out "\$graph configure " 
-    append out "-plotpadx [Pixels2Inches [$_clone cget -plotpadx]] "
-    append out "-plotpady  [Pixels2Inches [$_clone cget -plotpady]]"
-    append out "\n"
-    
     foreach axis [$_clone axis names] {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
- 	append out "if \{ \[\$graph axis names \"$axis\"\] == \"$axis\" \} \{\n"
-	set cmd {}
-	lappend cmd {$graph} "axis" "configure" $axis
-	foreach opt {-hide -min -max -title -stepsize -loose -subdivisions} {
-	    lappend cmd $opt [$_clone axis cget $axis $opt]
-	}
-	append out "$cmd\n"
+ 	append out "  if \{ \[\$graph axis names \"$axis\"\] == \"$axis\" \} \{\n"
+	append out "    \$graph axis configure \"$axis\" \\\n"
+	append out "      -hide \"[$_clone axis cget $axis -hide]\" \\\n"
+	append out "      -min \"[$_clone axis cget $axis -min]\" \\\n"
+	append out "      -max \"[$_clone axis cget $axis -max]\" \\\n"
+	append out "      -loose \"[$_clone axis cget $axis -loose]\" \\\n"
+	append out "      -title \"[$_clone axis cget $axis -title]\" \\\n"
+	append out "      -stepsize \"[$_clone axis cget $axis -stepsize]\" \\\n"
+	append out "      -subdivisions \"[$_clone axis cget $axis -subdivisions]\"\n"
 	set hide [$_clone marker cget ${axis}-zero -hide]
-	append out "\$graph marker configure ${axis}-zero -hide $hide\n"
-	append out "\}\n"
+	append out "    \$graph marker configure \"${axis}-zero\" -hide $hide\n"
+	append out "  \}\n"
     }	
     set cmd {}
-    append out "\$graph grid configure " 
-    foreach opt { -hide -mapx -mapy } {
-	append out " $opt [$_clone grid cget $opt] "
-    }
-    append out "\n"
+    append out "  \$graph grid configure \\\n" 
+    append out "    -hide \"[$_clone grid cget -hide]\" \\\n"
+    append out "    -mapx \"[$_clone grid cget -mapx]\" \\\n"
+    append out "    -mapy \"[$_clone grid cget -mapy]\"\n"
     append out "\}\n"
     # Write the settings out
     puts stderr "savesettings=$out"
