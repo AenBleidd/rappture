@@ -494,7 +494,7 @@ itcl::body Rappture::XyResult::download {option args} {
                     -variable Rappture::XyResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
-                radiobutton $inner.image -text "Image" \
+                radiobutton $inner.image -text "Image (PS/PDF/PNG/JPEG)" \
                     -variable Rappture::XyResult::_downloadPopup(format) \
                     -value image
                 pack $inner.image -anchor w
@@ -560,7 +560,7 @@ itcl::body Rappture::XyResult::download {option args} {
 		    set popup .xyprintdownload
 		    if { ![winfo exists $popup] } {
 			# Create a popup for the print dialog
-			Rappture::Balloon $popup -title "Print Settings..."
+			Rappture::Balloon $popup -title "Save as image..."
 			set inner [$popup component inner]
 			# Create the print dialog widget and add it to the
 			# the balloon popup.
