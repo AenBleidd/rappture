@@ -99,7 +99,7 @@ In this example, we have a &lt;choice&gt; object that controls three groups.  Ea
       <about>
         <label>High-energy lifetime</label>
         <description>This is used only when the tight-binding energy is above 3eV</description>
-        <enable>input.(negf).(tbe):eV >= 3</enable>
+        <enable>input.(negf).(tbe):eV &gt;= 3</enable>
       </about>
       <units>ns</units>
       <min>0s</min>

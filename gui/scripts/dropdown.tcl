@@ -83,7 +83,7 @@ itcl::body Rappture::Dropdown::post {where args} {
     set w [winfo width $itk_component(hull)]
     set h [winfo height $itk_component(hull)]
     set sw [winfo screenwidth $itk_component(hull)]
-    set sh [winfo screenwidth $itk_component(hull)]
+    set sh [winfo screenheight $itk_component(hull)]
 
     if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
 	set xpos $x
