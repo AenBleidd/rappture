@@ -74,6 +74,7 @@ itcl::class Rappture::XyPrint {
     private method RestoreSettings { file } 
     private method SaveSettings { file } 
     private method Done { state }
+    private method DestroySettings {}
     private common _settings
     private common _wait
 }
@@ -146,7 +147,7 @@ itcl::body Rappture::XyResult::destructor {} {
     array unset _settings $this-*
 }
 
-itcl::body Rappture::XyResult::DestroyData {} {
+itcl::body Rappture::XyResult::DestroySettings {} {
     destroy $_clone
     array unset _settings $this-*
     set _clone ""
@@ -169,7 +170,7 @@ itcl::body Rappture::XyPrint::print { graph } {
 	return [GetOutput]
     }
     # SaveSettings
-    # DestroyData
+    #DestroySettings
     return ""
 }
 
