@@ -210,9 +210,11 @@ itcl::body Rappture::XyPrint::GetOutput {} {
     close $f
 
     if { $format == "eps" } {
-	set cmd [list | eps2eps - - << $psdata]
+	set cmd [list | /usr/bin/gs -q -sDEVICE=epswrite -sstdout=%stderr -sOutputFile=- -dNOPAUSE -dBATCH -dSAFER -dDEVICEWIDTH=250000 -dDEVICEHEIGHT=250000 - << $psdata]
+	#set cmd [list | /usr/bin/eps2eps - - << $psdata]
     } elseif { $format == "pdf" } {
-	set cmd [list | eps2eps - - << $psdata | ps2pdf - -]
+	set cmd [list | /usr/bin/gs -q -sDEVICE=epswrite -sstdout=%stderr -sOutputFile=- -dNOPAUSE -dBATCH -dSAFER -dDEVICEWIDTH=250000 -dDEVICEHEIGHT=250000 - << $psdata | /usr/bin/gs -dSAFER -dCompatibilityLevel=1.4 -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sstdout=%stderr -sOutputFile=- -dSAFER -dCompatibilityLevel=1.4 -c .setpdfwrite -f -]
+	#set cmd [list | /usr/bin/eps2eps - - << $psdata | /usr/bin/ps2pdf - -]
     }
     if { [catch {
 	set f [open $cmd "r"]
