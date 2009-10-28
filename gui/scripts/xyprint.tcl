@@ -38,8 +38,9 @@ itcl::class Rappture::XyPrint {
     private variable _graph "";		# Original graph. 
     private variable _clone "";		# Cloned graph.
     private variable _preview "";	# Preview image.
-
-    public method print { graph }
+    private variable _savedSettings;	# Array of settings.
+	
+    public method print { graph toolName plotName }
 
     private method CopyOptions { cmd orig clone } 
     private method CopyBindings { oper orig clone args } 
@@ -65,12 +66,14 @@ itcl::class Rappture::XyPrint {
     private method ApplyElementSettings {} 
     private method ApplyLayoutSettings {} 
     private method InitializeSettings {} 
-    private method RestoreSettings { file } 
+    private method CreateSettings { toolName plotName } 
+    private method RestoreSettings { toolName plotName } 
+    private method SaveSettings { toolName plotName } 
     private method ResetSettings { } 
-    private method SaveSettings { file } 
     private method GetOutput {}
     private method Done { state }
     private method DestroySettings {}
+    private method restore { toolName plotName data } 
     private common _settings
     private common _wait
 }
@@ -154,20 +157,20 @@ itcl::body Rappture::XyPrint::Done { state } {
     set _wait($this) $state
 }
 
-itcl::body Rappture::XyPrint::print { graph } {
+itcl::body Rappture::XyPrint::print { graph toolName plotName } {
     set _graph $graph
     set _clone [CloneGraph $graph]
     InitClone
     InitializeSettings
-    # RestoreSettings
+    # RestoreSettings $toolName $plotName 
     set _wait($this) 0
     tkwait variable [itcl::scope _wait($this)]
     set output ""
     if { $_wait($this) } {
 	set output [GetOutput]
     }
-    SaveSettings dummy
-    DestroySettings
+    # SaveSettings $toolName $plotName 
+    DestroySettings 
     return $output
 }
 
@@ -205,16 +208,25 @@ itcl::body Rappture::XyPrint::GetOutput {} {
 	-width $w -height $h
     
     set psdata [$_clone postscript output]
-    set f [open "junk.raw" "w"] 
-    puts -nonewline $f $psdata
-    close $f
 
-    if { $format == "eps" } {
-	set cmd [list | /usr/bin/gs -q -sDEVICE=epswrite -sstdout=%stderr -sOutputFile=- -dNOPAUSE -dBATCH -dSAFER -dDEVICEWIDTH=250000 -dDEVICEHEIGHT=250000 - << $psdata]
-	#set cmd [list | /usr/bin/eps2eps - - << $psdata]
-    } elseif { $format == "pdf" } {
-	set cmd [list | /usr/bin/gs -q -sDEVICE=epswrite -sstdout=%stderr -sOutputFile=- -dNOPAUSE -dBATCH -dSAFER -dDEVICEWIDTH=250000 -dDEVICEHEIGHT=250000 - << $psdata | /usr/bin/gs -dSAFER -dCompatibilityLevel=1.4 -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sstdout=%stderr -sOutputFile=- -dSAFER -dCompatibilityLevel=1.4 -c .setpdfwrite -f -]
-	#set cmd [list | /usr/bin/eps2eps - - << $psdata | /usr/bin/ps2pdf - -]
+    if 1 { 
+	set f [open "junk.raw" "w"] 
+	puts -nonewline $f $psdata
+	close $f
+    }
+
+    set cmd ""
+    # | eps2eps << $psdata 
+    lappend cmd "|" "/usr/bin/gs" \
+	"-q" "-sDEVICE=epswrite" "-sstdout=%stderr" \
+	"-sOutputFile=-" "-dNOPAUSE" "-dBATCH" "-dSAFER" \
+	"-dDEVICEWIDTH=250000" "-dDEVICEHEIGHT=250000" "-" "<<" "$psdata"
+    if { $format == "pdf" } {
+	# | eps2eps << $psdata | ps2pdf 
+	lappend cmd "|" "/usr/bin/gs" \
+	    "-q" "-sDEVICE=pdfwrite" "-sstdout=%stderr" \
+	    "-sOutputFile=-" "-dNOPAUSE" "-dBATCH" "-dSAFER" \
+	    "-dCompatibilityLevel=1.4" "-c" ".setpdfwrite" "-f" "-"
     }
     if { [catch {
 	set f [open $cmd "r"]
@@ -319,9 +331,11 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	-plotborderwidth 1 -plotrelief solid  \
 	-plotbackground white -plotpadx 0 -plotpady 0
     # 
+    set _fonts(legend) [font create -family times -size 10 -weight normal]
+    update
     $_clone legend configure \
 	-position right \
-	-font "*-helvetica-medium-r-normal-*-10-*" \
+	-font $_fonts(legend) \
 	-hide yes -borderwidth 0 -background white -relief solid \
 	-anchor nw -activeborderwidth 0
     # 
@@ -329,11 +343,18 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
+	set _fonts($axis-ticks) [font create -family courier -size 10 \
+				     -weight normal -slant roman]
+	set _fonts($axis-title) [font create -family symbol -size 10 \
+				     -weight normal -slant roman]
+	puts stderr "tick fonts $_fonts($axis-ticks):  [font configure $_fonts($axis-ticks)]"
+	puts stderr "title fonts $_fonts($axis-title): [font configure $_fonts($axis-title)]"
+	update
 	$_clone axis configure $axis -ticklength 5  \
 	    -majorticks {} -minorticks {}
 	$_clone axis configure $axis \
-	    -tickfont "*-helvetica-medium-r-normal-*-10-*" \
-	    -titlefont "*-helvetica-medium-r-normal-*-10-*" 
+	    -tickfont $_fonts($axis-ticks) \
+	    -titlefont $_fonts($axis-title)
     }
     #$_clone grid off
     #$_clone yaxis configure -rotate 90
@@ -760,6 +781,42 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-variable [itcl::scope _settings($this-axis-zero)] \
 	-command [itcl::code $this ApplyAxisSettings]
 
+    label $page.tickfont_l -text "tick font"
+    Rappture::Combobox $page.tickfontfamily -width 10 -editable no
+    $page.tickfontfamily choices insert end \
+	"courier" "Courier" \
+	"helvetica" "Helvetica"  \
+	"new*century*schoolbook"  "New Century Schoolbook" \
+	"symbol"  "Symbol" \
+	"times"  "Times"         
+    bind $page.tickfontfamily <KeyPress-Return> \
+	[itcl::code $this ApplyAxisSettings]
+
+    Rappture::Combobox $page.tickfontsize -width 4 -editable no
+    $page.tickfontsize choices insert end \
+ 	"8" "8" \
+	"10" "10" \
+	"11" "11" \
+	"12" "12" \
+	"14" "14" \
+	"17" "17" \
+	"18" "18" \
+	"20" "20" 
+    bind  $page.tickfontsize <KeyPress-Return> \
+	[itcl::code $this ApplyAxisSettings]
+
+    Rappture::PushButton $page.tickfontbold \
+	-onimage [Rappture::icon format-text-bold] \
+	-offimage [Rappture::icon format-text-bold] \
+	-command [itcl::code $this ApplyAxisSettings] \
+	-variable [itcl::scope _settings($this-axis-tickfont-bold)]
+
+    Rappture::PushButton $page.tickfontitalic \
+	-onimage [Rappture::icon format-text-italic] \
+	-offimage [Rappture::icon format-text-italic] \
+	-command [itcl::code $this ApplyAxisSettings] \
+	-variable [itcl::scope _settings($this-axis-tickfont-italic)]
+
     blt::table $page \
 	1,0 $page.axis_l -anchor e  -pady 4 \
 	1,1 $page.axis -fill x -cspan 4 \
@@ -779,8 +836,12 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	6,4 $page.plotpady -fill both \
 	7,1 $page.loose -cspan 2 -anchor w \
 	7,3 $page.grid -anchor w -cspan 2 \
-	8,1 $page.zero -cspan 2 -anchor w 
-
+	8,1 $page.zero -cspan 2 -anchor w \
+	9,1 $page.tickfont_l -anchor e \
+	9,2 $page.tickfontfamily -fill x \
+	9,3 $page.tickfontsize -fill x \
+	9,4 $page.tickfontbold -anchor e \
+	9,5 $page.tickfontitalic -anchor e 
 }
 
 itcl::body Rappture::XyPrint::ApplyGeneralSettings {} {
@@ -914,9 +975,37 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 }
 
 
-itcl::body Rappture::XyPrint::RestoreSettings { file } {
-    # Get the settings associated with the tool and plot title
-n}
+itcl::body Rappture::XyPrint::restore { toolName plotName data } {
+    set key [list $toolName $plotName]
+    set _savedSettings($key) $data
+}
+
+itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
+    if { ![file readable "~/.rappture"] } {
+	return;				# No file or not readable
+    }
+    # Read the file by sourcing it into a safe interpreter The only commands
+    # executed will be "xyprint" which will simply add the data into an array
+    # _savedSettings.
+    set parser [interp create -safe]
+    $parser alias xyprint [itcl::code $this restore]
+    set f [open $file "r"]
+    set code [read $f]
+    close $f
+    $parser eval $code
+    
+    # Now see if there's an entry for this tool/plot combination.  The data
+    # associated with the variable is itself code to update the graph (clone).
+    set key [list $toolName $plotName]
+    if { [info exists _savedSettings($key)] }  {
+	$parser alias "xygraph" $_clone
+	$parser eval $_savedSettings($key)
+    }
+    foreach {name value} [$parser eval "array get general"] {
+	set _settings($this-graph-$name) $value
+    }
+    interp delete $parser
+}
 
 itcl::body Rappture::XyPrint::ResetSettings {} {
     # Revert the widget back to the original graph's settings
@@ -926,17 +1015,41 @@ itcl::body Rappture::XyPrint::ResetSettings {} {
     InitializeSettings
 }
 
-itcl::body Rappture::XyPrint::SaveSettings { file } {
+itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
+    if { ![file writable "~/.rappture"] } {
+	return
+    }
+    set out [CreateSettings $toolName $plotName]
+    # Write the settings out
+    set f [open ".rappture" "w" 0600] 
+    foreach key [lsort [array names _savedSettings]] {
+	set tool [lindex $key 0]
+	set plot [lindex $key 1]
+	if { $plotName == "plot" && $toolName == "$tool" } {
+	    continue
+	}
+	puts $f "xyprint \"$tool\" \"$plot\" \{"
+	puts $f "$_savedSettings($key)"
+	puts $f "\}\n"
+    }
+    # Now write the new setting
+    puts $f "xyprint \"$toolName\" \"$plotName\" \{"
+    puts $f "$out"
+    puts $f "\}\n"
+    close $f
+}
+
+itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     # Create stanza associated with tool and plot title.
     # General settings
     append out "\n"
-    append out "set settings(\$tool:\$label) \{\n"
+    append out "xyprint \"\$toolName\" \"\$plotName\" \{\n"
     append out "  set general(format) $_settings($this-general-format)\n"
     append out "  set general(style) $_settings($this-general-style)\n"
     append out "  set general(remember) 1\n"
 
     # Layout settings
-    append out "  \$graph configure \\\n" 
+    append out "  xygraph configure \\\n" 
     append out "    -width \"[Pixels2Inches [$_clone cget -width]]\" \\\n"
     append out "    -height \"[Pixels2Inches [$_clone cget -height]]\" \\\n"
     append out "    -leftmargin \"[Pixels2Inches [$_clone cget -leftmargin]]\" \\\n"
@@ -947,7 +1060,7 @@ itcl::body Rappture::XyPrint::SaveSettings { file } {
     append out "    -plotpady \"[Pixels2Inches [$_clone cget -plotpady]]\" \n"
 
     # Legend settings
-    append out "  \$graph legend configure \\\n" 
+    append out "  xygraph legend configure \\\n" 
     append out "    -position \"[$_clone legend cget -position]\" \\\n"
     append out "    -anchor \"[$_clone legend cget -anchor]\" \\\n"
     append out "    -borderwidth \"[$_clone legend cget -borderwidth]\" \\\n"
@@ -955,8 +1068,8 @@ itcl::body Rappture::XyPrint::SaveSettings { file } {
     
     # Element settings
     foreach elem [$_clone element show] {
- 	append out "  if \{ \[\$graph element exists \"$elem\"\] \} \{\n"
-	append out "    \$graph element configure \"$elem\" \\\n"
+ 	append out "  if \{ \[xygraph element exists \"$elem\"\] \} \{\n"
+	append out "    xygraph element configure \"$elem\" \\\n"
 	append out "      -symbol \"[$_clone element cget $elem -symbol]\" \\\n"
 	append out "      -color \"[$_clone element cget $elem -color]\" \\\n"
 	append out "      -dashes \"[$_clone element cget $elem -dashes]\" \\\n"
@@ -970,8 +1083,8 @@ itcl::body Rappture::XyPrint::SaveSettings { file } {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
- 	append out "  if \{ \[\$graph axis names \"$axis\"\] == \"$axis\" \} \{\n"
-	append out "    \$graph axis configure \"$axis\" \\\n"
+ 	append out "  if \{ \[xygraph axis names \"$axis\"\] == \"$axis\" \} \{\n"
+	append out "    xygraph axis configure \"$axis\" \\\n"
 	append out "      -hide \"[$_clone axis cget $axis -hide]\" \\\n"
 	append out "      -min \"[$_clone axis cget $axis -min]\" \\\n"
 	append out "      -max \"[$_clone axis cget $axis -max]\" \\\n"
@@ -980,15 +1093,14 @@ itcl::body Rappture::XyPrint::SaveSettings { file } {
 	append out "      -stepsize \"[$_clone axis cget $axis -stepsize]\" \\\n"
 	append out "      -subdivisions \"[$_clone axis cget $axis -subdivisions]\"\n"
 	set hide [$_clone marker cget ${axis}-zero -hide]
-	append out "    \$graph marker configure \"${axis}-zero\" -hide $hide\n"
+	append out "    xygraph marker configure \"${axis}-zero\" -hide $hide\n"
 	append out "  \}\n"
     }	
-    set cmd {}
-    append out "  \$graph grid configure \\\n" 
+    append out "  xygraph grid configure \\\n" 
     append out "    -hide \"[$_clone grid cget -hide]\" \\\n"
     append out "    -mapx \"[$_clone grid cget -mapx]\" \\\n"
     append out "    -mapy \"[$_clone grid cget -mapy]\"\n"
     append out "\}\n"
-    # Write the settings out
-    puts stderr "savesettings=$out"
+    return $out
 }
+
