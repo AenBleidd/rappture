@@ -572,7 +572,8 @@ itcl::body Rappture::XyResult::download {option args} {
 		    # Activate the popup and call for the output.
 		    $popup activate $widget left
 		    set inner [$popup component inner]
-		    set output [$inner.print print $itk_component(plot)]
+		    set output [$inner.print print $itk_component(plot) \
+				    toolName plotName]
 		    $popup deactivate 
                     return $output
                 }
