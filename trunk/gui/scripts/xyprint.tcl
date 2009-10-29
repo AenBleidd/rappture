@@ -18,7 +18,7 @@ option add *XyPrint.gridColor #d9d9d9 widgetDefault
 option add *XyPrint.activeColor blue widgetDefault
 option add *XyPrint.dimColor gray widgetDefault
 option add *XyPrint.controlBackground gray widgetDefault
-option add *XyPrint*font "Arial 10"
+option add *XyPrint*font "Arial 9"
 option add *XyPrint*Entry*width "6" widgetDefault
 option add *XyPrint*Entry*background "white" widgetDefault
 
@@ -75,6 +75,7 @@ itcl::class Rappture::XyPrint {
     private method DestroySettings {}
     private method restore { toolName plotName data } 
     private common _settings
+    private common _fonts
     private common _wait
 }
 
@@ -109,7 +110,7 @@ itcl::body Rappture::XyPrint::constructor { args } {
 	ignore -background
     }
     itk_component add ok {
-        button $itk_interior.ok -text "Print" \
+        button $itk_interior.ok -text "Save" \
             -highlightthickness 0 \
 	    -command [itcl::code $this Done 1] \
 	    -compound left \
@@ -537,7 +538,7 @@ itcl::body Rappture::XyPrint::BuildLayoutTab {} {
 	5,2 $page.bottom_l -anchor e \
 	5,3 $page.bottom -fill x  
 
-    blt::table configure $page r* -resize none
+    blt::table configure $page r* -resize none -pady { 0 2 }
     blt::table configure $page r2 -resize both
     blt::table configure $page c2 c4 -width .5i
     blt::table configure $page r6 -height .125i
@@ -578,7 +579,7 @@ itcl::body Rappture::XyPrint::BuildGeneralTab {} {
 	3,0 $page.style_l -anchor e \
 	3,1 $page.style -fill x \
 	5,0 $page.remember -cspan 2 -anchor w 
-    blt::table configure $page r* -resize none
+    blt::table configure $page r* -resize none  -pady { 0 2 }
     blt::table configure $page r4 -resize both
 
 }
@@ -705,12 +706,12 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"new*century*schoolbook"  "New Century Schoolbook" \
 	"symbol"  "Symbol" \
 	"times"  "Times"         
-    bind $page.fontfamily <KeyPress-Return> \
-	[itcl::code $this ApplyLegendSettings]
+    bind $page.fontfamily <<Value>> [itcl::code $this ApplyLegendSettings]
 
     Rappture::Combobox $page.fontsize -width 4 -editable no
     $page.fontsize choices insert end \
  	"8" "8" \
+	"9" "9" \
 	"10" "10" \
 	"11" "11" \
 	"12" "12" \
@@ -718,18 +719,17 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"17" "17" \
 	"18" "18" \
 	"20" "20" 
-    bind  $page.fontsize <KeyPress-Return> \
-	[itcl::code $this ApplyLegendSettings]
+    bind  $page.fontsize <<Value>> [itcl::code $this ApplyLegendSettings]
 
     Rappture::PushButton $page.fontbold \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
 	-command [itcl::code $this ApplyLegendSettings] \
 	-variable [itcl::scope _settings($this-legend-font-bold)]
 
     Rappture::PushButton $page.fontitalic \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
 	-command [itcl::code $this ApplyLegendSettings] \
@@ -757,7 +757,7 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	7,0 $page.dashes_l -anchor e \
 	7,1 $page.dashes -fill x \
 
-    blt::table configure $page r* -resize none
+    blt::table configure $page r* -resize none -pady { 0 2 }
     blt::table configure $page r8 -resize both
 
 }
@@ -829,12 +829,12 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"new*century*schoolbook"  "New Century Schoolbook" \
 	"symbol"  "Symbol" \
 	"times"  "Times"         
-    bind $page.tickfontfamily <KeyPress-Return> \
-	[itcl::code $this ApplyAxisSettings]
+    bind $page.tickfontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::Combobox $page.tickfontsize -width 4 -editable no
     $page.tickfontsize choices insert end \
  	"8" "8" \
+	"9" "9" \
 	"10" "10" \
 	"11" "11" \
 	"12" "12" \
@@ -842,18 +842,17 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"17" "17" \
 	"18" "18" \
 	"20" "20" 
-    bind  $page.tickfontsize <KeyPress-Return> \
-	[itcl::code $this ApplyAxisSettings]
+    bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::PushButton $page.tickfontbold \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-tickfont-bold)]
 
     Rappture::PushButton $page.tickfontitalic \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
 	-command [itcl::code $this ApplyAxisSettings] \
@@ -867,12 +866,12 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"new*century*schoolbook"  "New Century Schoolbook" \
 	"symbol"  "Symbol" \
 	"times"  "Times"         
-    bind $page.titlefontfamily <KeyPress-Return> \
-	[itcl::code $this ApplyAxisSettings]
+    bind $page.titlefontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::Combobox $page.titlefontsize -width 4 -editable no
     $page.titlefontsize choices insert end \
  	"8" "8" \
+	"9" "9" \
 	"10" "10" \
 	"11" "11" \
 	"12" "12" \
@@ -880,18 +879,17 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"17" "17" \
 	"18" "18" \
 	"20" "20" 
-    bind  $page.titlefontsize <KeyPress-Return> \
-	[itcl::code $this ApplyAxisSettings]
+    bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::PushButton $page.titlefontbold \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-titlefont-bold)]
 
     Rappture::PushButton $page.titlefontitalic \
-	-width 26 -height 26 \
+	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
 	-command [itcl::code $this ApplyAxisSettings] \
@@ -904,10 +902,10 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	2,2 $page.title -fill x -cspan 5 \
 	3,1 $page.min_l -anchor e \
 	3,2 $page.min -fill x \
-	3,3 $page.max_l -anchor e \
-	3,4 $page.max -fill both -cspan 3 \
-	4,1 $page.stepsize_l -anchor e \
-	4,2 $page.stepsize -fill both \
+	3,3 $page.stepsize_l -anchor e \
+	3,4 $page.stepsize -fill both -cspan 3 \
+	4,1 $page.max_l -anchor e \
+	4,2 $page.max -fill both \
 	4,3 $page.subdivisions_l -anchor e \
 	4,4 $page.subdivisions -fill both -cspan 3  \
 	5,1 $page.titlefont_l -anchor e \
@@ -939,12 +937,26 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     foreach option { hide position anchor borderwidth } {
 	SetComponentOption legend $option
     }
+    set slant "roman"
+    if { $_settings($this-legend-font-italic) } {
+	set slant "italic"
+    }
+    set weight "normal"
+    if { $_settings($this-legend-font-bold) } {
+	set weight "bold"
+    }
+    font configure $_fonts(legend) \
+	-family [$page.fontfamily current] \
+	-size [$page.fontsize current] \
+	-weight $weight -slant $slant
+    $_clone legend configure -font $_fonts(legend)
     ApplyElementSettings
 }
 
 itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
     set axis [$itk_component(axis_combo) current]
     set type $Rappture::axistypes($axis)
+    set page $itk_component(axis_page)
     if { $_settings($this-axis-grid) } {
 	$_clone grid configure -hide no -map${type} ${axis}
     } else {
@@ -955,6 +967,32 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
 	SetNamedComponentOption axis $axis $option
     }
     $_clone marker configure ${type}-zero -hide $_settings($this-axis-zero)
+    set slant "roman"
+    if { $_settings($this-axis-titlefont-italic) } {
+	set slant "italic"
+    }
+    set weight "normal"
+    if { $_settings($this-axis-titlefont-bold) } {
+	set weight "bold"
+    }
+    font configure $_fonts($axis-title) \
+	-family [$page.titlefontfamily current] \
+	-size [$page.titlefontsize current] \
+	-weight $weight -slant $slant
+    set slant "roman"
+    if { $_settings($this-axis-tickfont-italic) } {
+	set slant "italic"
+    }
+    set weight "normal"
+    if { $_settings($this-axis-tickfont-bold) } {
+	set weight "bold"
+    }
+    font configure $_fonts($axis-ticks) \
+	-family [$page.tickfontfamily current] \
+	-size [$page.tickfontsize current] \
+	-weight $weight -slant $slant
+    $_clone axis configure $axis -tickfont $_fonts($axis-ticks) \
+	-titlefont $_fonts($axis-title)
     GetAxis
     RegeneratePreview
 }
@@ -1023,6 +1061,10 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     $itk_component(element_slider) set 1
     # Always set the borderwidth to be not displayed
     set _settings($this-legend-borderwidth) 0
+    $page.fontfamily value "Helvetica"
+    $page.fontsize value "10"
+    set _settings($this-legend-font-bold) 0
+    set _settings($this-legend-font-italic) 0
 
     set _settings($this-legend-hide) [$_clone legend cget -hide]
     set _settings($this-legend-position) [$_clone legend cget -position]
@@ -1033,6 +1075,7 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     GetElement
 
     # Axis settings
+    set page $itk_component(axis_page)
     set names [lsort [$_clone axis names]] 
     $itk_component(axis_combo) choices delete 0 end
     foreach axis $names {
@@ -1041,14 +1084,20 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 	}
 	lappend axisnames $axis
     }
+    $page.titlefontfamily value "Helvetica"
+    $page.tickfontfamily value "Helvetica"
+    $page.titlefontsize value "10"
+    $page.tickfontsize value "10"
+    set _settings($this-axis-tickfont-bold) 0
+    set _settings($this-axis-tickfont-italic) 0
+    set _settings($this-axis-titlefont-bold) 0
+    set _settings($this-axis-titlefont-italic) 0
     # Always hide the zero line.
     set _settings($this-axis-zero) 1
-
+    set _settings($this-axis-plotpad) [Pixels2Inches [$_clone cget -plotpadx]]
     # Pick the first axis to initially display
     set axis [lindex $axisnames 0]
     $itk_component(axis_combo) value $axis
-    blt::table configure $page r* -resize none
-    blt::table configure $page r9 -resize both
     GetAxis 
 }
 
