@@ -23,6 +23,8 @@ itcl::class Rappture::PushButton {
     itk_option define -command command Command "normal"
     itk_option define -width width Width "normal"
     itk_option define -height height Height "normal"
+    itk_option define -onvalue onValue OnValue "normal"
+    itk_option define -offvalue offValue OffValue "normal"
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -101,6 +103,8 @@ itcl::body Rappture::PushButton::_fixValue {args} {
 	set _state 0
 	$itk_component(button) configure -relief raise \
 	    -image $offimage -bg grey85
+    } else {
+	puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"onvalue\""
     }
 }
 
@@ -150,3 +154,4 @@ itcl::configbody Rappture::PushButton::height {
     set _height $itk_option(-height)
     $itk_component(button) configure -height $itk_option(-height)
 }
+

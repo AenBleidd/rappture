@@ -167,15 +167,15 @@ itcl::body Rappture::XyPrint::print { graph toolName plotName } {
     set _graph $graph
     set _clone [CloneGraph $graph]
     InitClone
+    RestoreSettings $toolName $plotName 
     InitializeSettings
-    # RestoreSettings $toolName $plotName 
     set _wait($this) 0
     tkwait variable [itcl::scope _wait($this)]
     set output ""
     if { $_wait($this) } {
 	set output [GetOutput]
     }
-    # SaveSettings $toolName $plotName 
+    SaveSettings $toolName $plotName 
     DestroySettings 
     return $output
 }
@@ -340,7 +340,11 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	-plotborderwidth 1 -plotrelief solid  \
 	-plotbackground white -plotpadx 0 -plotpady 0
     # 
-    set _fonts(legend) [font create -family helvetica -size 10 -weight normal]
+    set _settings($this-layout-width) [Pixels2Inches [$_clone cget -width]]
+    set _settings($this-layout-height) [Pixels2Inches [$_clone cget -height]]
+
+    set _fonts(legend) [font create legend \
+			    -family helvetica -size 10 -weight normal]
     update
     $_clone legend configure \
 	-position right \
@@ -352,12 +356,12 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
-	set _fonts($axis-ticks) [font create -family helvetica -size 10 \
+	set _fonts($axis-ticks) [font create $axis-ticks \
+				     -family helvetica -size 10 \
 				     -weight normal -slant roman]
-	set _fonts($axis-title) [font create -family helvetica -size 10 \
+	set _fonts($axis-title) [font create $axis-title \
+				     -family helvetica -size 10 \
 				     -weight normal -slant roman]
-	puts stderr "tick fonts $_fonts($axis-ticks):  [font configure $_fonts($axis-ticks)]"
-	puts stderr "title fonts $_fonts($axis-title): [font configure $_fonts($axis-title)]"
 	update
 	$_clone axis configure $axis -ticklength 5  \
 	    -majorticks {} -minorticks {}
@@ -377,6 +381,8 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	-coords "0 -Inf 0 Inf" -dashes 1 -hide yes
     $_clone marker create line -name y-zero \
 	-coords "-Inf 0 Inf 0" -dashes 1 -hide yes
+
+    puts stderr "font names [font names]"
 }
 
 itcl::body Rappture::XyPrint::SetOption { opt } {
@@ -418,7 +424,6 @@ itcl::body Rappture::XyPrint::SetNamedComponentOption { comp name opt } {
 itcl::body Rappture::XyPrint::RegeneratePreview {} {
     update 
     set img [image create photo]
-
     set w [Inches2Pixels $_settings($this-layout-width)]
     set h [Inches2Pixels $_settings($this-layout-height)]
     set pixelsPerInch [winfo pixels . 1i]
@@ -599,6 +604,7 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     foreach option { hide position anchor borderwidth } {
 	SetComponentOption legend $option
     }
+    $_clone legend configure -font legend
     ApplyElementSettings
 }
 
@@ -709,11 +715,11 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
     label $page.font_l -text "font"
     Rappture::Combobox $page.fontfamily -width 10 -editable no
     $page.fontfamily choices insert end \
-	"courier" "Courier" \
-	"helvetica" "Helvetica"  \
-	"new*century*schoolbook"  "New Century Schoolbook" \
-	"symbol"  "Symbol" \
-	"times"  "Times"         
+	"courier" "courier" \
+	"helvetica" "helvetica"  \
+	"new*century*schoolbook"  "new century schoolbook" \
+	"symbol"  "symbol" \
+	"times"  "times"         
     bind $page.fontfamily <<Value>> [itcl::code $this ApplyLegendSettings]
 
     Rappture::Combobox $page.fontsize -width 4 -editable no
@@ -729,19 +735,21 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"20" "20" 
     bind  $page.fontsize <<Value>> [itcl::code $this ApplyLegendSettings]
 
-    Rappture::PushButton $page.fontbold \
+    Rappture::PushButton $page.fontweight \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
+	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyLegendSettings] \
-	-variable [itcl::scope _settings($this-legend-font-bold)]
+	-variable [itcl::scope _settings($this-legend-font-weight)]
 
-    Rappture::PushButton $page.fontitalic \
+    Rappture::PushButton $page.fontslant \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
+	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyLegendSettings] \
-	-variable [itcl::scope _settings($this-legend-font-italic)]
+	-variable [itcl::scope _settings($this-legend-font-slant)]
 
     blt::table $page \
 	1,0 $page.show -cspan 2 -anchor w \
@@ -752,8 +760,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	3,0 $page.font_l -anchor e \
 	3,1 $page.fontfamily -fill x \
 	3,2 $page.fontsize -fill x \
-	3,3 $page.fontbold -anchor e \
-	3,4 $page.fontitalic -anchor e \
+	3,3 $page.fontweight -anchor e \
+	3,4 $page.fontslant -anchor e \
 	4,0 $page.slider_l -anchor e \
 	4,1 $page.slider -fill x -cspan 5 \
 	5,0 $page.label_l -anchor e \
@@ -832,11 +840,11 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
     label $page.tickfont_l -text "tick font"
     Rappture::Combobox $page.tickfontfamily -width 10 -editable no
     $page.tickfontfamily choices insert end \
-	"courier" "Courier" \
-	"helvetica" "Helvetica"  \
-	"new*century*schoolbook"  "New Century Schoolbook" \
-	"symbol"  "Symbol" \
-	"times"  "Times"         
+	"courier" "courier" \
+	"helvetica" "helvetica"  \
+	"new*century*schoolbook"  "new century schoolbook" \
+	"symbol"  "symbol" \
+	"times"  "times"         
     bind $page.tickfontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::Combobox $page.tickfontsize -width 4 -editable no
@@ -852,28 +860,30 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"20" "20" 
     bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
 
-    Rappture::PushButton $page.tickfontbold \
+    Rappture::PushButton $page.tickfontweight \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
+	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyAxisSettings] \
-	-variable [itcl::scope _settings($this-axis-tickfont-bold)]
+	-variable [itcl::scope _settings($this-axis-tickfont-weight)]
 
-    Rappture::PushButton $page.tickfontitalic \
+    Rappture::PushButton $page.tickfontslant \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
+	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyAxisSettings] \
-	-variable [itcl::scope _settings($this-axis-tickfont-italic)]
+	-variable [itcl::scope _settings($this-axis-tickfont-slant)]
 
     label $page.titlefont_l -text "title font"
     Rappture::Combobox $page.titlefontfamily -width 10 -editable no
     $page.titlefontfamily choices insert end \
-	"courier" "Courier" \
-	"helvetica" "Helvetica"  \
-	"new*century*schoolbook"  "New Century Schoolbook" \
-	"symbol"  "Symbol" \
-	"times"  "Times"         
+	"courier" "courier" \
+	"helvetica" "helvetica"  \
+	"new*century*schoolbook"  "new century schoolbook" \
+	"symbol"  "symbol" \
+	"times"  "times"         
     bind $page.titlefontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
 
     Rappture::Combobox $page.titlefontsize -width 4 -editable no
@@ -889,19 +899,21 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"20" "20" 
     bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
 
-    Rappture::PushButton $page.titlefontbold \
+    Rappture::PushButton $page.titlefontweight \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-bold] \
 	-offimage [Rappture::icon font-bold] \
+	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyAxisSettings] \
-	-variable [itcl::scope _settings($this-axis-titlefont-bold)]
+	-variable [itcl::scope _settings($this-axis-titlefont-weight)]
 
-    Rappture::PushButton $page.titlefontitalic \
+    Rappture::PushButton $page.titlefontslant \
 	-width 18 -height 18 \
 	-onimage [Rappture::icon font-italic] \
 	-offimage [Rappture::icon font-italic] \
+	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyAxisSettings] \
-	-variable [itcl::scope _settings($this-axis-titlefont-italic)]
+	-variable [itcl::scope _settings($this-axis-titlefont-slant)]
 
     blt::table $page \
 	1,1 $page.axis_l -anchor e  -pady 6 \
@@ -919,13 +931,13 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	5,1 $page.titlefont_l -anchor e \
 	5,2 $page.titlefontfamily -fill x -cspan 2 \
 	5,4 $page.titlefontsize -fill x \
-	5,5 $page.titlefontbold -anchor e \
-	5,6 $page.titlefontitalic -anchor e \
+	5,5 $page.titlefontweight -anchor e \
+	5,6 $page.titlefontslant -anchor e \
 	6,1 $page.tickfont_l -anchor e \
 	6,2 $page.tickfontfamily -fill x -cspan 2 \
 	6,4 $page.tickfontsize -fill x \
-	6,5 $page.tickfontbold -anchor e \
-	6,6 $page.tickfontitalic -anchor e \
+	6,5 $page.tickfontweight -anchor e \
+	6,6 $page.tickfontslant -anchor e \
 	7,1 $page.loose -cspan 2 -anchor w \
 	7,3 $page.grid -anchor w -cspan 2 \
 	8,1 $page.zero -cspan 2 -anchor w \
@@ -945,18 +957,11 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     foreach option { hide position anchor borderwidth } {
 	SetComponentOption legend $option
     }
-    set slant "roman"
-    if { $_settings($this-legend-font-italic) } {
-	set slant "italic"
-    }
-    set weight "normal"
-    if { $_settings($this-legend-font-bold) } {
-	set weight "bold"
-    }
     font configure $_fonts(legend) \
 	-family [$page.fontfamily current] \
 	-size [$page.fontsize current] \
-	-weight $weight -slant $slant
+	-weight $_settings($this-legend-font-weight) \
+	-slant $_settings($this-legend-font-slant)
     $_clone legend configure -font $_fonts(legend)
     ApplyElementSettings
 }
@@ -975,32 +980,17 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
 	SetNamedComponentOption axis $axis $option
     }
     $_clone marker configure ${type}-zero -hide $_settings($this-axis-zero)
-    set slant "roman"
-    if { $_settings($this-axis-titlefont-italic) } {
-	set slant "italic"
-    }
-    set weight "normal"
-    if { $_settings($this-axis-titlefont-bold) } {
-	set weight "bold"
-    }
-    font configure $_fonts($axis-title) \
+    font configure $axis-title \
 	-family [$page.titlefontfamily current] \
 	-size [$page.titlefontsize current] \
-	-weight $weight -slant $slant
-    set slant "roman"
-    if { $_settings($this-axis-tickfont-italic) } {
-	set slant "italic"
-    }
-    set weight "normal"
-    if { $_settings($this-axis-tickfont-bold) } {
-	set weight "bold"
-    }
-    font configure $_fonts($axis-ticks) \
+	-weight $_settings($this-axis-titlefont-weight) \
+	-slant $_settings($this-axis-titlefont-slant)
+    font configure $axis-ticks \
 	-family [$page.tickfontfamily current] \
 	-size [$page.tickfontsize current] \
-	-weight $weight -slant $slant
-    $_clone axis configure $axis -tickfont $_fonts($axis-ticks) \
-	-titlefont $_fonts($axis-title)
+	-weight $_settings($this-axis-tickfont-weight) \
+	-slant $_settings($this-axis-tickfont-slant)
+    $_clone axis configure $axis -tickfont $axis-ticks -titlefont $axis-title
     GetAxis
     RegeneratePreview
 }
@@ -1027,7 +1017,7 @@ itcl::body Rappture::XyPrint::ApplyLayoutSettings {} {
 	    bell
 	    global errorInfo
 	    puts stderr "$err: $errorInfo"
-	    set _settings($this-layout-$opt) [Pixel2Inches $old]
+	    set _settings($this-layout-$opt) [Pixels2Inches $old]
 	}
     }
     RegeneratePreview
@@ -1069,11 +1059,16 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     $itk_component(element_slider) set 1
     # Always set the borderwidth to be not displayed
     set _settings($this-legend-borderwidth) 0
-    $page.fontfamily value "Helvetica"
-    $page.fontsize value "10"
-    set _settings($this-legend-font-bold) 0
-    set _settings($this-legend-font-italic) 0
 
+    array unset info
+    array set info [font configure legend]
+    $page.fontfamily value $info(-family)
+    $page.fontsize value $info(-size)
+    set _settings($this-legend-font-weight) $info(-weight)
+    set _settings($this-legend-font-slant) $info(-slant)
+    if { $info(-weight) == "bold" } {
+	set _settings($this-legend-font-bold) 1
+    }
     set _settings($this-legend-hide) [$_clone legend cget -hide]
     set _settings($this-legend-position) [$_clone legend cget -position]
     set _settings($this-legend-anchor) [$_clone legend cget -anchor]
@@ -1092,14 +1087,20 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 	}
 	lappend axisnames $axis
     }
-    $page.titlefontfamily value "Helvetica"
-    $page.tickfontfamily value "Helvetica"
-    $page.titlefontsize value "10"
-    $page.tickfontsize value "10"
-    set _settings($this-axis-tickfont-bold) 0
-    set _settings($this-axis-tickfont-italic) 0
-    set _settings($this-axis-titlefont-bold) 0
-    set _settings($this-axis-titlefont-italic) 0
+    set axis [lindex $names 0]
+
+    array set info [font configure $axis-title]
+    $page.titlefontfamily value $info(-family)
+    $page.titlefontsize value $info(-size)
+    set _settings($this-axis-titlefont-weight) $info(-weight)
+    set _settings($this-axis-titlefont-slant) $info(-slant)
+
+    array set info [font configure $axis-ticks]
+    $page.tickfontfamily value $info(-family)
+    $page.tickfontsize value $info(-size)
+    set _settings($this-axis-tickfont-weight) $info(-weight)
+    set _settings($this-axis-tickfont-slant) $info(-slant)
+
     # Always hide the zero line.
     set _settings($this-axis-zero) 1
     set _settings($this-axis-plotpad) [Pixels2Inches [$_clone cget -plotpadx]]
@@ -1124,7 +1125,8 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     # _savedSettings.
     set parser [interp create -safe]
     $parser alias xyprint [itcl::code $this restore]
-    set f [open $file "r"]
+    $parser alias font font
+    set f [open "~/.rappture" "r"]
     set code [read $f]
     close $f
     $parser eval $code
@@ -1151,54 +1153,61 @@ itcl::body Rappture::XyPrint::ResetSettings {} {
 }
 
 itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
-    if { ![file writable "~/.rappture"] } {
+    if { !$_settings($this-general-remember) } {
 	return
     }
-    set out [CreateSettings $toolName $plotName]
+    if { [catch { open "~/.rappture" "w" 0600 } f ] != 0 } {
+	puts stderr "~/.rappture isn't writable: $f"
+	bell
+	return
+    }
+    set key [list $toolName $plotName]
+    set _savedSettings($key) [CreateSettings $toolName $plotName]
     # Write the settings out
-    set f [open ".rappture" "w" 0600] 
     foreach key [lsort [array names _savedSettings]] {
 	set tool [lindex $key 0]
 	set plot [lindex $key 1]
-	if { $plotName == "plot" && $toolName == "$tool" } {
-	    continue
-	}
 	puts $f "xyprint \"$tool\" \"$plot\" \{"
 	puts $f "$_savedSettings($key)"
 	puts $f "\}\n"
     }
-    # Now write the new setting
-    puts $f "xyprint \"$toolName\" \"$plotName\" \{"
-    puts $f "$out"
-    puts $f "\}\n"
     close $f
 }
 
 itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     # Create stanza associated with tool and plot title.
     # General settings
-    append out "\n"
-    append out "xyprint \"\$toolName\" \"\$plotName\" \{\n"
     append out "  set general(format) $_settings($this-general-format)\n"
     append out "  set general(style) $_settings($this-general-style)\n"
     append out "  set general(remember) 1\n"
 
+    foreach font [array names _fonts] {
+	append out "  font configure $font \\\n"
+	array unset info
+	array set info [font configure $font]
+	append out "    -family \"$info(-family)\" \\\n"
+	append out "    -size \"$info(-size)\" \\\n"
+	append out "    -weight \"$info(-weight)\" \\\n"
+	append out "    -slant \"$info(-slant)\" \n"
+    }
+
     # Layout settings
     append out "  xygraph configure \\\n" 
-    append out "    -width \"[Pixels2Inches [$_clone cget -width]]\" \\\n"
-    append out "    -height \"[Pixels2Inches [$_clone cget -height]]\" \\\n"
-    append out "    -leftmargin \"[Pixels2Inches [$_clone cget -leftmargin]]\" \\\n"
-    append out "    -rightmargin \"[Pixels2Inches [$_clone cget -rightmargin]]\" \\\n"
-    append out "    -topmargin \"[Pixels2Inches [$_clone cget -topmargin]]\" \\\n"
-    append out "    -bottommargin \"[Pixels2Inches [$_clone cget -bottommargin]]\"\\\n"
-    append out "    -plotpadx \"[Pixels2Inches [$_clone cget -plotpadx]]\" \\\n"
-    append out "    -plotpady \"[Pixels2Inches [$_clone cget -plotpady]]\" \n"
+    append out "    -width \"[$_clone cget -width]\" \\\n"
+    append out "    -height \"[$_clone cget -height]\" \\\n"
+    append out "    -leftmargin \"[$_clone cget -leftmargin]\" \\\n"
+    append out "    -rightmargin \"[$_clone cget -rightmargin]\" \\\n"
+    append out "    -topmargin \"[$_clone cget -topmargin]\" \\\n"
+    append out "    -bottommargin \"[$_clone cget -bottommargin]\"\\\n"
+    append out "    -plotpadx \"[$_clone cget -plotpadx]\" \\\n"
+    append out "    -plotpady \"[$_clone cget -plotpady]\" \n"
 
     # Legend settings
     append out "  xygraph legend configure \\\n" 
     append out "    -position \"[$_clone legend cget -position]\" \\\n"
     append out "    -anchor \"[$_clone legend cget -anchor]\" \\\n"
     append out "    -borderwidth \"[$_clone legend cget -borderwidth]\" \\\n"
+    append out "    -font legend \\\n"
     append out "    -hide \"[$_clone legend cget -hide]\" \n"
     
     # Element settings
@@ -1224,18 +1233,20 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 	append out "      -min \"[$_clone axis cget $axis -min]\" \\\n"
 	append out "      -max \"[$_clone axis cget $axis -max]\" \\\n"
 	append out "      -loose \"[$_clone axis cget $axis -loose]\" \\\n"
+	append out "      -tickfont \"$axis-ticks\" \\\n"
 	append out "      -title \"[$_clone axis cget $axis -title]\" \\\n"
+	append out "      -titlefont \"$axis-title\" \\\n"
 	append out "      -stepsize \"[$_clone axis cget $axis -stepsize]\" \\\n"
 	append out "      -subdivisions \"[$_clone axis cget $axis -subdivisions]\"\n"
 	set hide [$_clone marker cget ${axis}-zero -hide]
 	append out "    xygraph marker configure \"${axis}-zero\" -hide $hide\n"
 	append out "  \}\n"
     }	
+
     append out "  xygraph grid configure \\\n" 
     append out "    -hide \"[$_clone grid cget -hide]\" \\\n"
     append out "    -mapx \"[$_clone grid cget -mapx]\" \\\n"
     append out "    -mapy \"[$_clone grid cget -mapy]\"\n"
-    append out "\}\n"
     return $out
 }
 
