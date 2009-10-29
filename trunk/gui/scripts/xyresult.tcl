@@ -486,7 +486,8 @@ itcl::body Rappture::XyResult::download {option args} {
             set popup .xyresultdownload
             if {![winfo exists .xyresultdownload]} {
                 # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
+                Rappture::Balloon $popup \
+		    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -566,6 +567,8 @@ itcl::body Rappture::XyResult::download {option args} {
 			# the balloon popup.
 			Rappture::XyPrint $inner.print
 			blt::table $inner 0,0 $inner.print -fill both
+			$popup configure -deactivatecommand \
+			    [list $inner.print reset] 
 		    }
 		    update
 		    set widget [lindex $args 0]
