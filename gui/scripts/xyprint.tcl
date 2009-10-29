@@ -153,6 +153,10 @@ itcl::body Rappture::XyPrint::DestroySettings {} {
     array unset _settings $this-*
     set _clone ""
     set _graph ""
+    foreach font [array names _fonts] {
+	font delete $font
+    }
+    array unset _fonts
 }
 
 itcl::body Rappture::XyPrint::reset {} {
