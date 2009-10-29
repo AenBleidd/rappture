@@ -896,8 +896,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-variable [itcl::scope _settings($this-axis-titlefont-italic)]
 
     blt::table $page \
-	1,0 $page.axis_l -anchor e  -pady 6 \
-	1,1 $page.axis -fill x -cspan 6 \
+	1,1 $page.axis_l -anchor e  -pady 6 \
+	1,2 $page.axis -fill x -cspan 6 \
 	2,1 $page.title_l -anchor e \
 	2,2 $page.title -fill x -cspan 5 \
 	3,1 $page.min_l -anchor e \
