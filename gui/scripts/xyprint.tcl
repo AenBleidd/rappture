@@ -41,6 +41,7 @@ itcl::class Rappture::XyPrint {
     private variable _savedSettings;	# Array of settings.
 	
     public method print { graph toolName plotName }
+    public method reset {}
 
     private method CopyOptions { cmd orig clone } 
     private method CopyBindings { oper orig clone args } 
@@ -69,10 +70,10 @@ itcl::class Rappture::XyPrint {
     private method CreateSettings { toolName plotName } 
     private method RestoreSettings { toolName plotName } 
     private method SaveSettings { toolName plotName } 
+    private method DestroySettings {}
     private method ResetSettings { } 
     private method GetOutput {}
     private method Done { state }
-    private method DestroySettings {}
     private method restore { toolName plotName data } 
     private common _settings
     private common _fonts
@@ -152,6 +153,10 @@ itcl::body Rappture::XyPrint::DestroySettings {} {
     array unset _settings $this-*
     set _clone ""
     set _graph ""
+}
+
+itcl::body Rappture::XyPrint::reset {} {
+    Done 0
 }
 
 itcl::body Rappture::XyPrint::Done { state } {
@@ -271,6 +276,9 @@ itcl::body Rappture::XyPrint::CopyOptions { cmd orig clone } {
 
 itcl::body Rappture::XyPrint::CloneGraph { orig } {
     set top $itk_interior
+    if { $_clone != "" } {
+	puts stderr "clone is $_clone"
+    }
     set clone [blt::graph $top.graph]
     CopyOptions "configure" $orig $clone
     # Axis component
