@@ -222,7 +222,7 @@ itcl::body Rappture::XyPrint::GetOutput {} {
     
     set psdata [$_clone postscript output]
 
-    if 1 { 
+    if 0 { 
 	set f [open "junk.raw" "w"] 
 	puts -nonewline $f $psdata
 	close $f
@@ -283,9 +283,6 @@ itcl::body Rappture::XyPrint::CopyOptions { cmd orig clone } {
 
 itcl::body Rappture::XyPrint::CloneGraph { orig } {
     set top $itk_interior
-    if { $_clone != "" } {
-	puts stderr "clone is $_clone"
-    }
     set clone [blt::graph $top.graph]
     CopyOptions "configure" $orig $clone
     # Axis component
@@ -388,8 +385,6 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	-coords "0 -Inf 0 Inf" -dashes 1 -hide yes
     $_clone marker create line -name y-zero \
 	-coords "-Inf 0 Inf 0" -dashes 1 -hide yes
-
-    puts stderr "font names [font names]"
 }
 
 itcl::body Rappture::XyPrint::SetOption { opt } {
@@ -1139,7 +1134,6 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 
 itcl::body Rappture::XyPrint::restore { toolName plotName data } {
     set key [list $toolName $plotName]
-    puts stderr "data=$data"
     set _savedSettings($key) $data
 }
 
@@ -1155,7 +1149,6 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     $parser alias font font
     set f [open $_settingsFile "r"]
     set code [read $f]
-    puts stderr "code=$code"
     close $f
     $parser eval $code
     
@@ -1165,7 +1158,6 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     if { [info exists _savedSettings($key)] }  {
 	$parser alias "preview" $_clone
 	$parser eval $_savedSettings($key)
-	puts stderr "_saveSettings($key)=$_savedSettings($key)"
     }
     foreach {name value} [$parser eval "array get general"] {
 	set _settings($this-graph-$name) $value
@@ -1192,7 +1184,6 @@ itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
     }
     set key [list $toolName $plotName]
     set _savedSettings($key) [CreateSettings $toolName $plotName]
-    puts stderr "_saveSettings($key)=$_savedSettings($key)"
     # Write the settings out
     foreach key [lsort [array names _savedSettings]] {
 	set tool [lindex $key 0]
