@@ -60,6 +60,7 @@ itcl::class Rappture::XyPrint {
     private method InitClone {} 
     private method Pixels2Inches { pixels } 
     private method Inches2Pixels { inches } 
+    private method Color2RGB { color } 
 
     private method ApplyGeneralSettings {} 
     private method ApplyLegendSettings {} 
@@ -464,6 +465,15 @@ itcl::body Rappture::XyPrint::Inches2Pixels { inches } {
     return  [winfo pixels . ${inches}i]
 }
 
+itcl::body Rappture::XyPrint::Color2RGB { color } {
+    foreach { r g b } [winfo rgb $_clone $color] {
+	set r [expr round($r / 257.0)]
+	set g [expr round($g / 257.0)]
+	set b [expr round($b / 257.0)]
+    }
+    return [format "\#%02x%02x%02x" $r $g $b]
+}
+
 
 itcl::body Rappture::XyPrint::GetAxis {} {
     set axis [$itk_component(axis_combo) current]
@@ -495,7 +505,14 @@ itcl::body Rappture::XyPrint::GetElement { args } {
     set _settings($this-element-hide) [$_clone element cget $elem -hide]
     set _settings($this-element-label) [$_clone element cget $elem -label]
     set page $itk_component(legend_page)
-    $page.color value [$page.color label $_settings($this-element-color)]
+    set color [$page.color label $_settings($this-element-color)]
+    if { $color == "" } {
+	set color [Color2RGB $_settings($this-element-color)]
+	$page.color choices insert end $color $color
+	$page.color value $color
+    } else {
+	$page.color value [$page.color label $_settings($this-element-color)]
+    }
     $page.symbol value [$page.symbol label $_settings($this-element-symbol)]
     $page.dashes value [$page.dashes label $_settings($this-element-dashes)]
     #FixElement
@@ -1117,6 +1134,7 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
 
 itcl::body Rappture::XyPrint::restore { toolName plotName data } {
     set key [list $toolName $plotName]
+    puts stderr "data=$data"
     set _savedSettings($key) $data
 }
 
@@ -1132,6 +1150,7 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     $parser alias font font
     set f [open "~/.rappture" "r"]
     set code [read $f]
+    puts stderr "code=$code"
     close $f
     $parser eval $code
     
@@ -1139,8 +1158,9 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     # associated with the variable is itself code to update the graph (clone).
     set key [list $toolName $plotName]
     if { [info exists _savedSettings($key)] }  {
-	$parser alias "xygraph" $_clone
+	$parser alias "preview" $_clone
 	$parser eval $_savedSettings($key)
+	puts stderr "_saveSettings($key)=$_savedSettings($key)"
     }
     foreach {name value} [$parser eval "array get general"] {
 	set _settings($this-graph-$name) $value
@@ -1167,6 +1187,7 @@ itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
     }
     set key [list $toolName $plotName]
     set _savedSettings($key) [CreateSettings $toolName $plotName]
+    puts stderr "_saveSettings($key)=$_savedSettings($key)"
     # Write the settings out
     foreach key [lsort [array names _savedSettings]] {
 	set tool [lindex $key 0]
@@ -1183,47 +1204,40 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     # General settings
     append out "  set general(format) $_settings($this-general-format)\n"
     append out "  set general(style) $_settings($this-general-style)\n"
-    append out "  set general(remember) 1\n"
 
     foreach font [array names _fonts] {
-	append out "  font configure $font \\\n"
+	append out "  font configure $font"
 	array unset info
 	array set info [font configure $font]
-	append out "    -family \"$info(-family)\" \\\n"
-	append out "    -size \"$info(-size)\" \\\n"
-	append out "    -weight \"$info(-weight)\" \\\n"
-	append out "    -slant \"$info(-slant)\" \n"
+	foreach opt { -family -size -weight -slant } {
+	    append out " $opt \"$info($opt)\""
+	}
+	append out "\n"
     }
 
     # Layout settings
-    append out "  xygraph configure \\\n" 
-    append out "    -width \"[$_clone cget -width]\" \\\n"
-    append out "    -height \"[$_clone cget -height]\" \\\n"
-    append out "    -leftmargin \"[$_clone cget -leftmargin]\" \\\n"
-    append out "    -rightmargin \"[$_clone cget -rightmargin]\" \\\n"
-    append out "    -topmargin \"[$_clone cget -topmargin]\" \\\n"
-    append out "    -bottommargin \"[$_clone cget -bottommargin]\"\\\n"
-    append out "    -plotpadx \"[$_clone cget -plotpadx]\" \\\n"
-    append out "    -plotpady \"[$_clone cget -plotpady]\" \n"
+    append out "  preview configure" 
+    foreach opt { -width -height -leftmargin -rightmargin -topmargin 
+	-bottommargin -plotpadx -plotpady } {
+	append out " $opt \"[$_clone cget $opt]\""
+    }
+    append out "\n"
 
     # Legend settings
-    append out "  xygraph legend configure \\\n" 
-    append out "    -position \"[$_clone legend cget -position]\" \\\n"
-    append out "    -anchor \"[$_clone legend cget -anchor]\" \\\n"
-    append out "    -borderwidth \"[$_clone legend cget -borderwidth]\" \\\n"
-    append out "    -font legend \\\n"
-    append out "    -hide \"[$_clone legend cget -hide]\" \n"
-    
+    append out "  preview legend configure" 
+    foreach opt { -position -anchor -borderwidth -hide } { 
+	append out " $opt \"[$_clone legend cget $opt]\""
+    }
+    append out " -font legend\n"
+
     # Element settings
     foreach elem [$_clone element show] {
- 	append out "  if \{ \[xygraph element exists \"$elem\"\] \} \{\n"
-	append out "    xygraph element configure \"$elem\" \\\n"
-	append out "      -symbol \"[$_clone element cget $elem -symbol]\" \\\n"
-	append out "      -color \"[$_clone element cget $elem -color]\" \\\n"
-	append out "      -dashes \"[$_clone element cget $elem -dashes]\" \\\n"
-	append out "      -hide \"[$_clone element cget $elem -hide]\" \\\n"
-	append out "      -label \"[$_clone element cget $elem -label]\" \n"
-	append out "  \}\n"
+ 	append out "  if \{ \[preview element exists \"$elem\"\] \} \{\n"
+	append out "    preview element configure \"$elem\""
+	foreach opt { -symbol -color -dashes -hide -label } { 
+	    append out " $opt \"[$_clone element cget $elem $opt]\""
+	}
+	append out "\n"
     }
     
     # Axis settings
@@ -1231,26 +1245,22 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
- 	append out "  if \{ \[xygraph axis names \"$axis\"\] == \"$axis\" \} \{\n"
-	append out "    xygraph axis configure \"$axis\" \\\n"
-	append out "      -hide \"[$_clone axis cget $axis -hide]\" \\\n"
-	append out "      -min \"[$_clone axis cget $axis -min]\" \\\n"
-	append out "      -max \"[$_clone axis cget $axis -max]\" \\\n"
-	append out "      -loose \"[$_clone axis cget $axis -loose]\" \\\n"
-	append out "      -tickfont \"$axis-ticks\" \\\n"
-	append out "      -title \"[$_clone axis cget $axis -title]\" \\\n"
-	append out "      -titlefont \"$axis-title\" \\\n"
-	append out "      -stepsize \"[$_clone axis cget $axis -stepsize]\" \\\n"
-	append out "      -subdivisions \"[$_clone axis cget $axis -subdivisions]\"\n"
+ 	append out "  if \{ \[preview axis names \"$axis\"\] == \"$axis\" \} \{\n"
+	append out "    preview axis configure \"$axis\""
+	foreach opt { -hide -min -max -loose -title -stepsize -subdivisions } {
+	    append out " $opt \"[$_clone axis cget $axis $opt]\""
+	}
+	append out " -tickfont \"$axis-ticks\""
+	append out " -titlefont \"$axis-title\"\n"
 	set hide [$_clone marker cget ${axis}-zero -hide]
-	append out "    xygraph marker configure \"${axis}-zero\" -hide $hide\n"
+	append out "    preview marker configure \"${axis}-zero\" -hide $hide\n"
 	append out "  \}\n"
     }	
 
-    append out "  xygraph grid configure \\\n" 
-    append out "    -hide \"[$_clone grid cget -hide]\" \\\n"
-    append out "    -mapx \"[$_clone grid cget -mapx]\" \\\n"
-    append out "    -mapy \"[$_clone grid cget -mapy]\"\n"
+    append out "  preview grid configure" 
+    append out " -hide \"[$_clone grid cget -hide]\""
+    append out " -mapx \"[$_clone grid cget -mapx]\""
+    append out " -mapy \"[$_clone grid cget -mapy]\""
     return $out
 }
 
