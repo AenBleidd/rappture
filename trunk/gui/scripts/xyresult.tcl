@@ -565,18 +565,18 @@ itcl::body Rappture::XyResult::download {option args} {
 			set inner [$popup component inner]
 			# Create the print dialog widget and add it to the
 			# the balloon popup.
-			Rappture::XyPrint $inner.print
+			Rappture::XyPrint $inner.print 
+			$popup configure \
+			    -deactivatecommand [list $inner.print reset] 
 			blt::table $inner 0,0 $inner.print -fill both
-			$popup configure -deactivatecommand \
-			    [list $inner.print reset] 
 		    }
 		    update
-		    set widget [lindex $args 0]
 		    # Activate the popup and call for the output.
+		    foreach { widget toolName plotName } $args break
 		    $popup activate $widget left
 		    set inner [$popup component inner]
 		    set output [$inner.print print $itk_component(plot) \
-				    toolName plotName]
+				    $toolName $plotName]
 		    $popup deactivate 
                     return $output
                 }

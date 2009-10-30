@@ -69,6 +69,7 @@ itcl::class Rappture::Analyzer {
     protected method _resultTooltip {}
 
     private variable _tool ""          ;# belongs to this tool
+    private variable _appName ""       ;# Name of application
     private variable _control "manual" ;# start mode
     private variable _runs ""          ;# list of XML objects with results
     private variable _pages 0          ;# number of pages for result sets
@@ -118,9 +119,9 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     pack $itk_component(simulate) -side left -padx 4 -pady 4
 
     # if there's a hub url, then add "About" and "Questions" links
-    set app [$_tool xml get tool.id]
+    set _appName [$_tool xml get tool.id]
     set url [Rappture::Tool::resources -huburl]
-    if {"" != $url && "" != $app} {
+    if {"" != $url && "" != $_appName} {
 	itk_component add hubcntls {
 	    frame $itk_component(simbg).hubcntls
 	} {
@@ -141,7 +142,8 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
 
 	itk_component add about {
 	    button $itk_component(hubcntls).about -text "About this tool" \
-		-command [list Rappture::filexfer::webpage "$url/tools/$app"]
+		-command [list Rappture::filexfer::webpage \
+			      "$url/tools/$_appName"]
 	} {
 	    usual
 	    ignore -font
@@ -152,7 +154,8 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
 
 	itk_component add questions {
 	    button $itk_component(hubcntls).questions -text Questions? \
-		-command [list Rappture::filexfer::webpage "$url/resources/$app/questions"]
+		-command [list Rappture::filexfer::webpage \
+			      "$url/resources/$_appName/questions"]
 	} {
 	    usual
 	    ignore -font
@@ -713,7 +716,7 @@ itcl::body Rappture::Analyzer::download {option args} {
 		if {"" != $popup} {
 		    $popup activate $widget below
 		} else {
-		    download now $widget
+		    download now $widget 
 		}
 	    } else {
 		# this shouldn't happen
@@ -735,7 +738,8 @@ itcl::body Rappture::Analyzer::download {option args} {
 	    if {$page != ""} {
 		set ext ""
 		set f [$itk_component(resultpages) page $page]
-		set result [$f.rviewer download now $widget]
+		set item [$itk_component(resultselector) value]
+		set result [$f.rviewer download now $widget $_appName $item]
 		if { $result == "" } {
 		    return;		# User cancelled the download.
 		}
