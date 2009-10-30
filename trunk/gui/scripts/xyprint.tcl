@@ -39,7 +39,9 @@ itcl::class Rappture::XyPrint {
     private variable _clone "";		# Cloned graph.
     private variable _preview "";	# Preview image.
     private variable _savedSettings;	# Array of settings.
-	
+
+    private common _settingsFile "~/.rpsettings"
+
     public method print { graph toolName plotName }
     public method reset {}
 
@@ -706,7 +708,10 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"#7ac5cd" "cadet blue" \
 	"#66cdaa" "aquamarine" \
 	"#a2cd5a" "dark olive green" \
-        "#cd9b9b" "rosy brown"
+        "#cd9b9b" "rosy brown" \
+	"#0000ff" "blue1" \
+	"#ff0000" "red1" \
+	"#00ff00" "green1" 
     bind $page.color <<Value>> [itcl::code $this ApplyElementSettings]
 
     label $page.dashes_l -text "line style"  -font "Arial 10" 
@@ -1139,7 +1144,7 @@ itcl::body Rappture::XyPrint::restore { toolName plotName data } {
 }
 
 itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
-    if { ![file readable "~/.rappture"] } {
+    if { ![file readable $_settingsFile] } {
 	return;				# No file or not readable
     }
     # Read the file by sourcing it into a safe interpreter The only commands
@@ -1148,7 +1153,7 @@ itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     set parser [interp create -safe]
     $parser alias xyprint [itcl::code $this restore]
     $parser alias font font
-    set f [open "~/.rappture" "r"]
+    set f [open $_settingsFile "r"]
     set code [read $f]
     puts stderr "code=$code"
     close $f
@@ -1180,8 +1185,8 @@ itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
     if { !$_settings($this-general-remember) } {
 	return
     }
-    if { [catch { open "~/.rappture" "w" 0600 } f ] != 0 } {
-	puts stderr "~/.rappture isn't writable: $f"
+    if { [catch { open $_settingsFile "w" 0600 } f ] != 0 } {
+	puts stderr "$_settingsFile isn't writable: $f"
 	bell
 	return
     }
@@ -1202,11 +1207,11 @@ itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
 itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     # Create stanza associated with tool and plot title.
     # General settings
-    append out "  set general(format) $_settings($this-general-format)\n"
-    append out "  set general(style) $_settings($this-general-style)\n"
+    append out "    set general(format) $_settings($this-general-format)\n"
+    append out "    set general(style) $_settings($this-general-style)\n"
 
     foreach font [array names _fonts] {
-	append out "  font configure $font"
+	append out "    font configure $font"
 	array unset info
 	array set info [font configure $font]
 	foreach opt { -family -size -weight -slant } {
@@ -1214,9 +1219,10 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 	}
 	append out "\n"
     }
+    append out "\n"
 
     # Layout settings
-    append out "  preview configure" 
+    append out "    preview configure" 
     foreach opt { -width -height -leftmargin -rightmargin -topmargin 
 	-bottommargin -plotpadx -plotpady } {
 	append out " $opt \"[$_clone cget $opt]\""
@@ -1224,7 +1230,7 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     append out "\n"
 
     # Legend settings
-    append out "  preview legend configure" 
+    append out "    preview legend configure" 
     foreach opt { -position -anchor -borderwidth -hide } { 
 	append out " $opt \"[$_clone legend cget $opt]\""
     }
@@ -1232,12 +1238,12 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 
     # Element settings
     foreach elem [$_clone element show] {
- 	append out "  if \{ \[preview element exists \"$elem\"\] \} \{\n"
-	append out "    preview element configure \"$elem\""
+ 	append out "    if \{ \[preview element exists \"$elem\"\] \} \{\n"
+	append out "        preview element configure \"$elem\""
 	foreach opt { -symbol -color -dashes -hide -label } { 
 	    append out " $opt \"[$_clone element cget $elem $opt]\""
 	}
-	append out "\n"
+	append out "    \}\n"
     }
     
     # Axis settings
@@ -1245,19 +1251,19 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 	if { [$_clone axis cget $axis -hide] } {
 	    continue
 	}
- 	append out "  if \{ \[preview axis names \"$axis\"\] == \"$axis\" \} \{\n"
-	append out "    preview axis configure \"$axis\""
+ 	append out "    if \{ \[preview axis names \"$axis\"\] == \"$axis\" \} \{\n"
+	append out "        preview axis configure \"$axis\""
 	foreach opt { -hide -min -max -loose -title -stepsize -subdivisions } {
 	    append out " $opt \"[$_clone axis cget $axis $opt]\""
 	}
 	append out " -tickfont \"$axis-ticks\""
 	append out " -titlefont \"$axis-title\"\n"
 	set hide [$_clone marker cget ${axis}-zero -hide]
-	append out "    preview marker configure \"${axis}-zero\" -hide $hide\n"
-	append out "  \}\n"
+	append out "        preview marker configure \"${axis}-zero\" -hide $hide\n"
+	append out "    \}\n"
     }	
 
-    append out "  preview grid configure" 
+    append out "    preview grid configure" 
     append out " -hide \"[$_clone grid cget -hide]\""
     append out " -mapx \"[$_clone grid cget -mapx]\""
     append out " -mapy \"[$_clone grid cget -mapy]\""
