@@ -527,11 +527,15 @@ itcl::body Rappture::XyPrint::BuildLayoutTab {} {
     entry $page.width -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-width)]
     bind  $page.width <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.width \
+        "Set the width (inches) of the output image. Must be a positive number."
 
     label $page.height_l -text "height" 
     entry $page.height -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-height)]
     bind  $page.height <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.height \
+        "Set the height (inches) of the output image. Must be a positive number"
 
     label $page.margin_l -text "Margins"  
 
@@ -539,21 +543,30 @@ itcl::body Rappture::XyPrint::BuildLayoutTab {} {
     entry $page.left -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-leftmargin)]
     bind  $page.left <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.left \
+        "Set the size (inches) of the left margin. If zero, the size is automatically determined."
 
     label $page.right_l -text "right" 
     entry $page.right -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-rightmargin)]
     bind  $page.right <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.right \
+        "Set the size (inches) of the right margin. If zero, the size is automatically determined."
+
 
     label $page.top_l -text "top"
     entry $page.top -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-topmargin)]
     bind  $page.top <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.top \
+        "Set the size (inches) of the top margin. If zero, the size is automatically determined."
 
     label $page.bottom_l -text "bottom"
     entry $page.bottom -width 6 \
 	-textvariable [itcl::scope _settings($this-layout-bottommargin)]
     bind  $page.bottom <KeyPress-Return> [itcl::code $this ApplyLayoutSettings]
+    Rappture::Tooltip::for $page.bottom \
+        "Set the size (inches) of the bottom margin. If zero, the size is automatically determined."
 
     blt::table $page \
 	1,0 $page.width_l -anchor e \
@@ -593,6 +606,8 @@ itcl::body Rappture::XyPrint::BuildGeneralTab {} {
 	"png"  "PNG Portable Network Graphics Format"         
 
     bind $page.format <<Value>> [itcl::code $this ApplyGeneralSettings]
+    Rappture::Tooltip::for $page.format \
+        "Set the format of the image."
 
     label $page.style_l -text "style" 
     Rappture::Combobox $page.style -width 20 -editable no
@@ -600,9 +615,13 @@ itcl::body Rappture::XyPrint::BuildGeneralTab {} {
 	"ieee" "IEEE Journal"  \
 	"gekco" "G Klimeck"  
     bind $page.style <<Value>> [itcl::code $this ApplyGeneralSettings]
+    Rappture::Tooltip::for $page.format \
+        "Set the style template."
 
     checkbutton $page.remember -text "remember settings" \
 	-variable [itcl::scope _settings($this-general-remember)]  
+    Rappture::Tooltip::for $page.remember \
+        "Remember the settings. They will be override the default settings."
 
     blt::table $page \
 	2,0 $page.format_l -anchor e \
@@ -638,6 +657,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	-offvalue 1 -onvalue 0 \
 	-variable [itcl::scope _settings($this-legend-hide)]  \
 	-command [itcl::code $this ApplyLegendSettings] 
+    Rappture::Tooltip::for $page.show \
+        "Display the legend."
 
     label $page.position_l -text "position"
     Rappture::Combobox $page.position -width 15 -editable no
@@ -648,6 +669,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"topmargin" "top margin"  \
 	"plotarea" "inside plot" 
     bind $page.position <<Value>> [itcl::code $this ApplyLegendSettings]
+    Rappture::Tooltip::for $page.position \
+        "Set the position of the legend.  This option and the anchor determine the legend's location."
 
     Rappture::Combobox $page.anchor -width 10 -editable no
     $page.anchor choices insert end \
@@ -661,12 +684,16 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"e" "east"  \
 	"w" "west"  
     bind $page.anchor <<Value>> [itcl::code $this ApplyLegendSettings]
+    Rappture::Tooltip::for $page.anchor \
+        "Set the anchor of the legend.  This option and the anchor determine the legend's location."
 
     checkbutton $page.border -text "border" \
 	-font "Arial 10"  \
 	-variable [itcl::scope _settings($this-legend-borderwidth)] \
 	-onvalue 1 -offvalue 0 \
 	-command [itcl::code $this ApplyLegendSettings]
+    Rappture::Tooltip::for $page.border \
+        "Display a solid border around the legend."
 
     label $page.slider_l -text "legend\nentry"  -font "Arial 10" -justify right
     itk_component add element_slider {
@@ -674,10 +701,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	    -orient horizontal -width 12 \
 	    -command [itcl::code $this GetElement]
     } 
-    checkbutton $page.hide -text "hide" \
-	-font "Arial 10"  \
-	-variable [itcl::scope _settings($this-element-hide)] \
-	-command [itcl::code $this ApplyElementSettings]
+    Rappture::Tooltip::for $page.slider \
+        "Select the current entry."
 
     label $page.label_l -text "label" -font "Arial 10" 
     entry $page.label \
@@ -685,6 +710,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	-font "Arial 10" \
 	-textvariable [itcl::scope _settings($this-element-label)]
     bind  $page.label <KeyPress-Return> [itcl::code $this ApplyElementSettings]
+    Rappture::Tooltip::for $page.label \
+        "Set the label of the current entry in the legend."
 
     label $page.color_l -text "color "  -font "Arial 10" 
     Rappture::Combobox $page.color -width 15 -editable no
@@ -708,6 +735,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"#ff0000" "red1" \
 	"#00ff00" "green1" 
     bind $page.color <<Value>> [itcl::code $this ApplyElementSettings]
+    Rappture::Tooltip::for $page.color \
+        "Set the color of the current entry."
 
     label $page.dashes_l -text "line style"  -font "Arial 10" 
     Rappture::Combobox $page.dashes -width 15 -editable no
@@ -718,6 +747,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
         "2 4 2" "dashdot" \
         "2 4 2 2" "dashdotdot"
     bind $page.dashes <<Value>> [itcl::code $this ApplyElementSettings]
+    Rappture::Tooltip::for $page.dashes \
+        "Set the line style of the current entry."
 
     label $page.symbol_l -text "symbol"  -font "Arial 10" 
     Rappture::Combobox $page.symbol -editable no
@@ -732,6 +763,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"scross" "skinny cross" \
 	"triangle" "triangle"
     bind $page.symbol <<Value>> [itcl::code $this ApplyElementSettings]
+    Rappture::Tooltip::for $page.symbol \
+        "Set the symbol of the current entry. \"none\" display no symbols."
 
     label $page.font_l -text "font"
     Rappture::Combobox $page.fontfamily -width 10 -editable no
@@ -742,6 +775,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"symbol"  "symbol" \
 	"times"  "times"         
     bind $page.fontfamily <<Value>> [itcl::code $this ApplyLegendSettings]
+    Rappture::Tooltip::for $page.fontfamily \
+        "Set the font of entries in the legend."
 
     Rappture::Combobox $page.fontsize -width 4 -editable no
     $page.fontsize choices insert end \
@@ -755,6 +790,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	"18" "18" \
 	"20" "20" 
     bind  $page.fontsize <<Value>> [itcl::code $this ApplyLegendSettings]
+    Rappture::Tooltip::for $page.fontsize \
+        "Set the size (points) of the font."
 
     Rappture::PushButton $page.fontweight \
 	-width 18 -height 18 \
@@ -763,6 +800,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyLegendSettings] \
 	-variable [itcl::scope _settings($this-legend-font-weight)]
+    Rappture::Tooltip::for $page.fontweight \
+        "Use the bold version of the font."
 
     Rappture::PushButton $page.fontslant \
 	-width 18 -height 18 \
@@ -771,6 +810,8 @@ itcl::body Rappture::XyPrint::BuildLegendTab {} {
 	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyLegendSettings] \
 	-variable [itcl::scope _settings($this-legend-font-slant)]
+    Rappture::Tooltip::for $page.fontslant \
+        "Use the italic version of the font."
 
     blt::table $page \
 	1,0 $page.show -cspan 2 -anchor w \
@@ -812,51 +853,71 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	Rappture::Combobox $page.axis -width 20 -editable no
     } 
     bind $itk_component(axis_combo) <<Value>> [itcl::code $this GetAxis]
+    Rappture::Tooltip::for $page.axis \
+        "Select the current axis."
 
     label $page.title_l -text "title"  -font "Arial 10" 
     entry $page.title \
 	-textvariable [itcl::scope _settings($this-axis-title)]
     bind  $page.title <KeyPress-Return> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.title \
+        "Set the title of the current axis."
 
     label $page.min_l -text "min"  -font "Arial 10" 
     entry $page.min -width 10 \
 	-textvariable [itcl::scope _settings($this-axis-min)]
     bind  $page.min <KeyPress-Return> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.min \
+        "Set the minimum limit for the current axis. If empty, the minimum is automatically determined."
 
     label $page.max_l -text "max"  -font "Arial 10" 
     entry $page.max -width 10 \
 	-textvariable [itcl::scope _settings($this-axis-max)]
     bind  $page.max <KeyPress-Return> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.max \
+        "Set the maximum limit for the current axis. If empty, the maximum is automatically determined."
 
     label $page.subdivisions_l -text "subdivisions"  -font "Arial 10" 
     entry $page.subdivisions \
 	-textvariable [itcl::scope _settings($this-axis-subdivisions)]
     bind  $page.subdivisions <KeyPress-Return> \
 	[itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.subdivisions \
+        "Set the number of subdivisions (minor ticks) for the current axis."
 
     label $page.stepsize_l -text "step size"  -font "Arial 10" 
     entry $page.stepsize \
 	-textvariable [itcl::scope _settings($this-axis-stepsize)]
     bind  $page.stepsize <KeyPress-Return> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.stepsize \
+        "Set the interval between major ticks for the current axis. If zero, the interval is automatically determined."
 
     checkbutton $page.loose -text "loose limits" \
 	-onvalue "always" -offvalue "0" \
 	-variable [itcl::scope _settings($this-axis-loose)] \
 	-command [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.loose \
+        "Set major ticks outside of the limits for the current axis."
 
     label $page.plotpad_l -text "pad"  
     entry $page.plotpad -width 6 \
 	-textvariable [itcl::scope _settings($this-axis-plotpad)]
     bind  $page.plotpad <KeyPress-Return> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.plotpad \
+        "Set padding (points) between the current axis and the plot."
 
     checkbutton $page.grid -text "show grid lines" \
 	-variable [itcl::scope _settings($this-axis-grid)] \
 	-command [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.grid \
+        "Display grid lines for the current axis."
 
     checkbutton $page.zero -text "mark zero" \
 	-offvalue 1 -onvalue 0 \
 	-variable [itcl::scope _settings($this-axis-zero)] \
 	-command [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.zero \
+        "Display a line at zero for the current axis."
 
     label $page.tickfont_l -text "tick font"
     Rappture::Combobox $page.tickfontfamily -width 10 -editable no
@@ -867,6 +928,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"symbol"  "symbol" \
 	"times"  "times"         
     bind $page.tickfontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.tickfontfamily \
+        "Set the font of the ticks for the current axis."
 
     Rappture::Combobox $page.tickfontsize -width 4 -editable no
     $page.tickfontsize choices insert end \
@@ -880,6 +943,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"18" "18" \
 	"20" "20" 
     bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.tickfontsize \
+        "Set the size (points) of the tick font."
 
     Rappture::PushButton $page.tickfontweight \
 	-width 18 -height 18 \
@@ -888,6 +953,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-tickfont-weight)]
+    Rappture::Tooltip::for $page.tickfontweight \
+        "Use the bold version of the tick font."
 
     Rappture::PushButton $page.tickfontslant \
 	-width 18 -height 18 \
@@ -896,6 +963,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-tickfont-slant)]
+    Rappture::Tooltip::for $page.tickfontslant \
+        "Use the italic version of the tick font."
 
     label $page.titlefont_l -text "title font"
     Rappture::Combobox $page.titlefontfamily -width 10 -editable no
@@ -906,6 +975,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"symbol"  "symbol" \
 	"times"  "times"         
     bind $page.titlefontfamily <<Value>> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.titlefontfamily \
+        "Set the font of the title for the current axis."
 
     Rappture::Combobox $page.titlefontsize -width 4 -editable no
     $page.titlefontsize choices insert end \
@@ -919,6 +990,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"18" "18" \
 	"20" "20" 
     bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
+    Rappture::Tooltip::for $page.titlefontsize \
+        "Set the size (point) of the title font."
 
     Rappture::PushButton $page.titlefontweight \
 	-width 18 -height 18 \
@@ -927,6 +1000,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-onvalue "bold" -offvalue "normal" \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-titlefont-weight)]
+    Rappture::Tooltip::for $page.titlefontweight \
+        "Use the bold version of the title font."
 
     Rappture::PushButton $page.titlefontslant \
 	-width 18 -height 18 \
@@ -935,6 +1010,8 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	-onvalue "italic" -offvalue "roman" \
 	-command [itcl::code $this ApplyAxisSettings] \
 	-variable [itcl::scope _settings($this-axis-titlefont-slant)]
+    Rappture::Tooltip::for $page.titlefontslant \
+        "Use the italic version of the title font."
 
     blt::table $page \
 	1,1 $page.axis_l -anchor e  -pady 6 \
