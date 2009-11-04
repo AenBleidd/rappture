@@ -18,16 +18,12 @@ methods
     p.count()
     p.curve(name)
     p.getNthCurve(n)
-
     p.vvalue([...])
     p.random()
     p.diff(o)
-
     p.configure(as, c)
     p.dump(as, c)
-
     p.outcome()
-
     p.is()
 
 ---------------------------------------
@@ -83,7 +79,7 @@ p.label([val])
 p.desc([val])
     Purpose: get/set the description of the object
     Input Arguments: at most 1
-        1. const char *val - new description
+        1. val - new description
     Return Value: description of the object
     Notes: if no description is set, None will be returned
            the description is used by the graphical user
@@ -105,7 +101,7 @@ p.hints([val])
 p.color([val])
     Purpose: get/set the color of the object
     Input Arguments: at most 1
-        1. const char *val - new color
+        1. val - new color
     Return Value: color of the object
     Notes: if no color is set, None will be returned
            the color is used by the graphical user interface
@@ -115,8 +111,8 @@ p.color([val])
 p.property(key[, val])
     Purpose: get/set a generic property in the property database
     Input Arguments: at most 2
-        1. const char *key - property name
-        2. const void *val - property value
+        1. key - property name
+        2. val - property value
     Return Value: value of the property
     Notes: A copy val is stored in the property database
     Code Example:

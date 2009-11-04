@@ -3,7 +3,7 @@ Rappture.Number
 constructors/destructors
     Rappture.Number()
     Rappture.Number(name, units, val[, min, max, label, desc])
-    Rappture.Number(const Number& o)
+    Rappture.Number(numObj)
 
 methods
     n.name([val])
@@ -19,21 +19,16 @@ methods
     n.units([u])
     n.property(key[, val])
     n.propremove(key)
-
     n.convert(to)
     n.value(units)
     n.vvalue([...])
     n.random()
     n.diff(o)
-
     n.addPreset(label, desc, val[, units])
     n.delPreset(label)
-
     n.configure(as, c)
     n.dump(as, c)
-
     n.outcome()
-
     n.is()
 
 ---------------------------------------
@@ -51,10 +46,10 @@ Rappture.Number([name, units, val[, min, max, label, desc]])
     Notes: input arguments are used to construct the number object
     Code Example:
 
-Rappture.Number(o)
-    Purpose: construct a number object based on number object o
+Rappture.Number(numObj)
+    Purpose: construct a number object based on number object numObj
     Input Arguments: 1
-        1. o - number object to copy
+        1. numObj - number object to copy
     Return Value: a newly created number object
     Notes: None
     Code Example:
@@ -95,7 +90,7 @@ n.label([val])
 n.desc([val])
     Purpose: get/set the description of the object
     Input Arguments: at most 1
-        1. const char *val - new description
+        1. val - new description
     Return Value: description of the object
     Notes: if no description is set, None will be returned
            the description is used by the graphical user
@@ -117,7 +112,7 @@ n.hints([val])
 n.color([val])
     Purpose: get/set the color of the object
     Input Arguments: at most 1
-        1. const char *val - new color
+        1. val - new color
     Return Value: color of the object
     Notes: if no color is set, None will be returned
            the color is used by the graphical user interface
@@ -163,7 +158,7 @@ n.max([val])
 n.units([val])
     Purpose: get/set the units of this object
     Input Arguments: 1
-        1. const char *val - new units
+        1. val - new units
     Return Value: the string representing the object's units
     Notes: if no units are set, None will be returned
            val, if provided, is used to set the object units
@@ -172,8 +167,8 @@ n.units([val])
 n.property(key[, val])
     Purpose: get/set a generic property in the property database
     Input Arguments: at most 2
-        1. const char *key - property name
-        2. const void *val - property value
+        1. key - property name
+        2. val - property value
     Return Value: value of the property
     Notes: A copy val is stored in the property database
     Code Example:
@@ -251,7 +246,7 @@ n.addPreset(label, desc, val[, units])
 n.delPreset(label)
     Purpose: delete the preset labeled "label" from this object
     Input Arguments: 1
-        1. const char *label - label of the preset
+        1. label - label of the preset
     Return Value: None
     Notes: preset is removed from the object
     Code Example:
