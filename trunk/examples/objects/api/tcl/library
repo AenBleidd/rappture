@@ -1,0 +1,550 @@
+Rappture::Library
+
+constructors
+    Rappture::Library ?<lib2>?
+
+methods
+    loadXml <xmltext>
+    loadFile <filename>
+    value <key> ?<hints>?
+    diff <lib2>
+    remove <key>
+    xml
+    outcome
+    error
+    result <status>
+    contains
+
+---------------------------------------
+
+Rappture::Library ?<lib2>?
+    Purpose: construct a Rappture Library object. If the optional
+             Rappture Library object argument is provided, create
+             a copy of a Rappture Library object
+    Input Arguments: at most 1
+        1. lib2 - Rappture Library object to be copied
+    Return Value: a newly created Rappture Library object
+    Notes: None
+    Code Example:
+    {{{
+        set lib [Rappture::Library]
+        set libTwo [Rappture::Library $lib]
+    }}}
+
+loadXml <xmltext>
+    Purpose: parse the Rappture1.1 xml data in "xmltext".
+             populate this library object with the Rappture
+             objects described in the xml data.
+    Input Arguments: 1
+        1. xmltext - string of Rappture1.1 xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+    }}}
+
+loadFile <filename>
+    Purpose: read the file "filename" and parse the
+             Rappture1.1 xml data found inside of it.
+             populate this library object with the Rappture
+             objects described in the xml data.
+    Input Arguments: 1
+        1. filename - name of file containing Rappture1.1
+                      xml data
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set filename "driver1234.xml"
+        set fp [open $filename "w"]
+        puts -nonewline $fp $data
+        close $fp
+
+        set lib [Rappture::Library]
+        $lib loadFile $filename
+    }}}
+
+value <key> ?-hints <hints>?
+    Purpose: retrieve the value of the object named "key" and
+             return it to the user. If there are hints,
+             pass them along to the object being retrieved
+             to tell it how the value should be configured.
+    Input Arguments: at least 1
+        1. key - name of the object being retrieved
+        2. hints - list of key/value hint pairs
+    Return Value: value of the object named key
+    Notes: hints are listed as hintKey/hintVal pairs inside of a
+           list. hintKey is the key for the hint and hintVal is
+           the value to be applied to the hint. generally,
+           unrecognized hints are ignored.
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        set temp [$lib value "temperature" -hints "units F"]
+        puts "temp = $temp"
+        # temp = 80.33
+    }}}
+
+diff <lib2>
+    Purpose: find the difference between two library objects
+    Input Arguments: 1
+        1. lib2 - other object used in comparison
+    Return Value: List of differences
+    Notes: only object values are compared for differences,
+           input and output sections are compared.
+    Code Example:
+    {{{
+        set data1 {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id="forel">
+                        <about>
+                            <label>Forel</label>
+                            <description>Environment</description>
+                        </about>
+                        <units>cm</units>
+                        <min>4cm</min>
+                        <max>183cm</max>
+                        <default>72cm</default>
+                    </number>
+                    <integer id="toops">
+                        <about>
+                            <label>Toops</label>
+                            <description>Icks hafra doec weple</description>
+                        </about>
+                        <default>33</default>
+                    </integer>
+                </input>
+            </run>
+        }
+
+        set data2 {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <integer id="toops">
+                        <about>
+                            <label>Toops</label>
+                            <description>Icks hafra doec weple</description>
+                        </about>
+                        <default>33</default>
+                    </integer>
+                    <number id="Ef">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                    <number id="forel">
+                        <about>
+                            <label>Forel</label>
+                            <description>Environment</description>
+                        </about>
+                        <units>cm</units>
+                        <min>4cm</min>
+                        <max>183cm</max>
+                        <default>109cm</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib1 [Rappture::Library]
+        $lib1 loadXml $data1
+
+        set lib2 [Rappture::Library]
+        $lib2 loadXml $data2
+
+        set diffs [$lib1 diff $lib2]
+        # - input.number(temperature) 300K
+        # c input.number(forel) 72cm 109cm
+        # + input.number(Ef)  0eV
+    }}}
+
+remove <key>
+    Purpose: remove the object from this library named "key"
+    Input Arguments: 1
+        1. key - name of the object to remove
+    Return Value: None
+    Notes: The object is removed and it's memory is deleted
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id="Ef">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        $lib remove "Ef"
+        puts [$lib xml]
+
+        # <?xml version="1.0"?>
+        # <run>
+        #     <tool>
+        #         <about>Press Simulate to view results.</about>
+        #         <command>@tool/fermi @driver</command>
+        #     </tool>
+        #     <input>
+        #         <number id="temperature">
+        #             <about>
+        #                 <label>Ambient temperature</label>
+        #                 <description>Temperature of the environment.</description>
+        #             </about>
+        #             <units>K</units>
+        #             <min>0K</min>
+        #             <max>500K</max>
+        #             <default>300K</default>
+        #         </number>
+        #     </input>
+        # </run>
+    }}}
+
+xml
+    Purpose: return the Rappture1.1 xml representation of the
+             objects stored in this library.
+    Input Arguments: 0
+    Return Value: None
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        puts [$lib xml]
+
+        # <?xml version="1.0"?>
+        # <run>
+        #     <tool>
+        #         <about>Press Simulate to view results.</about>
+        #         <command>@tool/fermi @driver</command>
+        #     </tool>
+        #     <input>
+        #         <number id="temperature">
+        #             <about>
+        #                 <label>Ambient temperature</label>
+        #                 <description>Temperature of the environment.</description>
+        #             </about>
+        #             <units>K</units>
+        #             <min>0K</min>
+        #             <max>500K</max>
+        #             <default>300K</default>
+        #         </number>
+        #     </input>
+        # </run>
+    }}}
+
+outcome
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        if {[$lib error] != 0} {
+            puts "there was an error while loading xml data"
+            set outcome [$lib outcome]
+            puts stderr [$outcome context]
+            puts stderr [$outcome remark]
+        }
+    }}}
+
+error
+    Purpose: return the status of the object
+    Input Arguments: 0
+    Return Value: status of the object
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        if {[$lib error] != 0} {
+            puts "there was an error while loading xml data"
+            set outcome [$lib outcome]
+            puts stderr [$outcome context]
+            puts stderr [$outcome remark]
+        }
+    }}}
+
+result <status>
+    Purpose: write the stored objects to a data file and
+             signal the end of processing.
+    Input Arguments: 1
+        1. int status - status of the simulation
+    Return Value: None
+    Notes: currently data file are written out as Rappture1.1
+            xml. this function generates the =RAPPTURE-RUN=>
+            signal.
+    Code Example:
+    {{{
+        set data {
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        $lib result
+        # internal xml objects free'd
+        # driver file written to disk
+        # =RAPPTURE-RUN=>driver1234.xml signal sent to stdout
+    }}}
+
+contains
+    Purpose: return a list of the Rappture objects
+             stored in this library.
+    Input Arguments: 0
+    Return Value: list of the Rappture objects stored in
+                  this library.
+    Notes: None
+    Code Example:
+    {{{
+        set data {
+            <?xml version=\"1.0\"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id=\"Ef\">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                </input>
+            </run>
+        }
+
+        set lib [Rappture::Library]
+        $lib loadXml $data
+        set xmlObjs [$lib contains]
+        llength $xmlObjs
+        # 2
+        # xmlObjs contains objects (pointers or copies of objects?)
+        set xmlObjs
+        # ::Rappture::Number ::Rappture::Number
+        foreach obj $xmlObjs {
+            $obj vvalue
+        }
+        # 300
+        # 0
+    }}}

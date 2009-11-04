@@ -1,0 +1,575 @@
+Rappture::Number
+
+constructors/destructors
+    Rappture::Number ?<name> <units> <val> [<min> <max> <label> <desc>]?
+    Rappture::Number <numObj>
+
+methods
+    name ?<val>?
+    path ?<val>?
+    label ?<val>?
+    desc ?<val>?
+    hints ?<val>?
+    color ?<val>?
+    def ?<val>?
+    cur ?<val>?
+    min ?<val>?
+    max ?<val>?
+    units ?<u>?
+    property <key> ?<val>?
+    propremove <key>
+    convert <to>
+    value <units>
+    vvalue ?<hints>?
+    random
+    diff <numObj>
+    addPreset <label> <desc> <val> ?<units>?
+    delPreset <label>
+    configure -as <as> <c>
+    dump -as <as>
+    outcome
+    is
+
+---------------------------------------
+Rappture::Number ?<name> <units> <val> [<min> <max> <label> <desc>]?
+    Purpose: construct a number object
+    Input Arguments: 0, 3 or 7
+        1. name - object's name
+        2. units - object's units
+        3. val - default value
+        4. min - minimum accepted value
+        5. max - maximum accepted value
+        6. label - object's label
+        7. desc - object's description
+    Return Value: a newly created number object
+    Notes: input arguments are used to construct the number object
+    Code Example:
+    {{{
+        set n1 [Rappture::Number]
+        set n2 [Rappture::Number "temperature" "K" 300]
+        set n3 [Rappture::Number "temperature" "K" 300 0K 500K \
+                                 "Ambiant Temperature" \
+                                 "Temperature of the environment"]
+    }}}
+
+Rappture::Number <numObj>
+    Purpose: construct a number object based on number object numObj
+    Input Arguments: 1
+        1. numObj - number object to copy
+    Return Value: a newly created number object
+    Notes: None
+    Code Example:
+    {{{
+        set n1 [Rappture::Number]
+        set n2 [Rappture::Number $n1]
+    }}}
+
+name ?<val>?
+    Purpose: get/set the id name of the object
+    Input Arguments: at most 1
+        1. val - new id name
+    Return Value: the name of the object
+    Notes: if no name is set, an empty string will be returned
+           the id name is used to identify this object from
+           all other objects and should be unique
+           val, if provided, is used to set the object name
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n name
+        # ""
+        $n name "temperature"
+        $n name
+        # "temperature"
+    }}}
+
+path ?<val>?
+    Purpose: get/set the path of the object
+    Input Arguments: at most 1
+        1. val - new path
+    Return Value: path of the object
+    Notes: if no path is set, an empty string will be returned
+           the path tells where this object sits in the
+           hierarchy of objects.
+           val, if provided, is used to set the object path
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n path
+        # ""
+        $n path "input"
+        $n path
+        # "input"
+    }}}
+
+label ?<val>?
+    Purpose: get/set the label of the object
+    Input Arguments: at most 1
+        1. val - new label
+    Return Value: label of the object
+    Notes: if no label is set, an empty string will be returned
+           the label is used by the graphical user interface.
+           val, if provided, is used to set the object label
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n label
+        # ""
+        $n label "Ambiant temperature"
+        $n label
+        # "Ambiant temperature"
+    }}}
+
+desc ?<val>?
+    Purpose: get/set the description of the object
+    Input Arguments: at most 1
+        1. val - new description
+    Return Value: description of the object
+    Notes: if no description is set, an empty string will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+           val, if provided, is used to set the object description
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n desc
+        # ""
+        $n desc "Temperature of the environment"
+        $n desc
+        # "Temperature of the environment"
+    }}}
+
+hints ?<val>?
+    Purpose: get/set the hints of the object
+    Input Arguments: at most 1
+        1. val - new hints
+    Return Value: hints of the object
+    Notes: if no hints are set, an empty string will be returned
+           the hints are used by the graphical user interface
+           val, if provided, is used to set the object hints
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n hints
+        # ""
+        $n hints "none"
+        $n hints
+        # "none"
+    }}}
+
+color ?<val>?
+    Purpose: get/set the color of the object
+    Input Arguments: at most 1
+        1. val - new color
+    Return Value: color of the object
+    Notes: if no color is set, an empty string will be returned
+           the color is used by the graphical user interface
+           val, if provided, is used to set the object color
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n color
+        # ""
+        $n color "none"
+        $n color
+        # "none"
+    }}}
+
+def ?<val>?
+    Purpose: get/set the default value
+    Input Arguments: at most 1
+        1. val - new default value
+    Return Value: default value of the object
+    Notes: if no default is set, an empty string will be returned
+           val, if provided, is used to set the object default value
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n def
+        # ""
+        $n def 300
+        $n def
+        # 300
+    }}}
+
+cur ?<val>?
+    Purpose: get/set the current value
+    Input Arguments: at most 1
+        1. val - new current value
+    Return Value: current value of the object
+    Notes: if no current is set, an empty string will be returned
+           val, if provided, is used to set the object current value
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n cur
+        # ""
+        $n cur 450
+        $n cur
+        # 450
+    }}}
+
+min ?<val>?
+    Purpose: get/set the minimum accepted value of this object
+    Input Arguments: at most 1
+        1. double val - new minimum accepted value
+    Return Value: the minimum value this object will accept.
+    Notes: if no min is set, an empty string will be returned
+           val, if provided, is used to set the object min
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n min
+        # ""
+        $n min 0
+        $n min
+        # 0
+    }}}
+
+max ?<val>?
+    Purpose: get/set the maximum accepted value of this object
+    Input Arguments: 1
+        1. val - new maximum accepted value
+    Return Value: the maximum value this object will accept.
+    Notes: if no max is set, an empty string will be returned
+           val, if provided, is used to set the object max
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n max
+        # ""
+        $n max 500
+        $n max
+        # 500
+    }}}
+
+units ?<u>?
+    Purpose: get/set the units of this object
+    Input Arguments: 1
+        1. val - new units
+    Return Value: the string representing the object's units
+    Notes: if no units are set, None will be returned
+           val, if provided, is used to set the object units
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n units
+        # ""
+        $n units "K"
+        $n units
+        # "K"
+    }}}
+
+property <key> ?<val>?
+    Purpose: get/set a generic property in the property database
+    Input Arguments: at most 2
+        1. key - property name
+        2. val - property value
+    Return Value: value of the property
+    Notes: A copy val is stored in the property database
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n property "units"
+        # ""
+        $n property "units" "K"
+        # "K"
+        $n units
+        # "K"
+    }}}
+
+propremove <key>
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300]
+        $n property "units"
+        # "K"
+        $n propremove "units"
+        # "K"
+        $n property "units"
+        # ""
+    }}}
+
+convert <to>
+    Purpose: convert the def and cur values to "to" units
+    Input Arguments: 1
+        1. to - string of units to convert to
+    Return Value: Outcome object
+    Notes: the values stored in the object are changed
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300]
+        $n min 0K
+        $n max 500K
+        $n cur 450
+        set out [$n convert "F"]
+        if {[$out value] != 0} {
+            puts stderr [$out context]
+            puts stderr [$out remark]
+        }
+        $n min
+        # -459.67
+        $n max
+        # 440.33
+        $n def
+        # 80.33
+        $n cur
+        # 350.33
+    }}}
+
+value <units>
+    Purpose: return the value of the object with units of "to"
+    Input Arguments: 1
+        1. to - string of units to convert to
+    Return Value: value of the object
+    Notes: cur() is used as the base value. if cur was not set
+            by the user ("" == cur()), def() is used.
+            if def was not set ("" == def()), 0.0 is used
+            as the value.
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n value
+        # 0
+        $n def 300
+        $n value
+        # 300
+        $n cur 450
+        $n value
+        # 450
+        $n value "F"
+        # 350.33
+    }}}
+
+vvalue ?<hints>?
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments:
+        1. variable number of hints
+    Return Value: value of the object after applying hints.
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed. Hint strings should have the form
+                hintKey=hintVal and be comma separated
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n cur 450
+        $n vvalue
+        # 450
+        $n vvalue "units F"
+        # 350.33
+    }}}
+
+random
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        $n random
+        $n cur
+        # 1042.34
+        # should be something more like:
+        # $n configure -min 30 -max 30
+        # $n random
+        $n min -30
+        $n max 30
+        $n random
+        $n cur
+        # 16.89
+    }}}
+
+diff <numObj>
+    Purpose: return a list showing the differences between
+             this object and Rappture Object o
+    Input Arguments: 1
+        1. o - Rappture Object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+    {{{
+        set n1 [Rappture::Number "temperature" "K" 300 0K 500K \
+                                 "Ambiant Temperature" \
+                                 "Temperature of the environment"]
+        set n2 [Rappture::Number "Ef" "eV" 4.5eV 0eV 10eV]
+                                 "Fermi Level" \
+                                 "Energy at center of distribution"]
+        set diffs [$n1 diff $n2]
+
+        foreach {ctype prop oVal nVal} $diffs {
+            puts "$ctype $prop $oval $nVal"
+        }
+        # c name temperature Ef
+        # c units K eV
+        # c def 300 4.5
+        # c min 0 0
+        # c max 500 10
+        # c label "Ambiant Temperature" "Fermi Level"
+        # c desc "Temperature of the environment" "Energy at center of distribution"
+        #
+        # Note that this function will find a difference in the
+        # minimum values even though they are numerically equal.
+        # This is because the objects have different units that
+        # are not compatible. If compatible units were found,
+        # n2's values would have been converted to n1's units
+        # for each comparison.
+    }}}
+
+addPreset <label> <desc> <val> ?<units>?
+    Purpose: add a preset to this object
+    Input Arguments: 3 or 4
+        1. label - label of the preset
+        2. desc - description of the preset
+        3. val - value of the preset, possibly with units
+        4. units - units of the preset
+    Return Value: None
+    Notes: presets are stored in the object in the same order
+                in which they are created
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300 0K 500K \
+                                "Ambiant Temperature" \
+                                "Temperature of the environment"]
+        $n addPreset "Room Temperature" "" 300K
+        $n addPreset "Liquid Nitrogen" "" 77 "K"
+        $n addPreset "Liquid Helium" "" "4.2K"
+
+        # 3 Presets stored in the Rappture::Number object
+    }}}
+
+delPreset <label>
+    Purpose: delete the preset labeled "label" from this object
+    Input Arguments: 1
+        1. label - label of the preset
+    Return Value: None
+    Notes: preset is removed from the object
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300 0K 500K \
+                                "Ambiant Temperature" \
+                                "Temperature of the environment"]
+        $n addPreset "Room Temperature" "" 300K
+        $n addPreset "Liquid Nitrogen" "" 77 "K"
+        $n addPreset "Liquid Helium" "" "4.2K"
+
+        $n delPreset "Liquid Helium"
+        # 2 Presets stored in the Rappture::Number object
+    }}}
+
+configure -as <as> <c>
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    const char *xmltext
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+           Currently there is no way to configure as tree.
+    Code Example:
+    {{{
+        set n [Rappture::Number]
+        set xmldata {
+            <?xml version="1.0">
+            <number id="temperature">
+                <about>
+                    <label>Ambient temperature</label>
+                    <description>Temperature of the environment.</description>
+                </about>
+                <units>K</units>
+                <min>0K</min>
+                <max>500K</max>
+                <default>300K</default>
+            </number>
+        }
+
+        $n configure -as RPCONFIG_XML $xmldata
+        $n name
+        # temperature
+        $n label
+        # Ambient temperature
+        $n desc
+        # Temperature of the environment.
+        $n units
+        # K
+        $n min
+        # 0
+        $n max
+        # 500
+        $n def
+        # 300
+    }}}
+
+dump -as <as>
+    Purpose: dump the object value.
+             use "as" to determine how to dump the data.
+    Input Arguments: 1
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+    Return Value:
+               if as is...     then return the following...
+               RPCONFIG_XML    ClientDataXml *object
+               RPCONFIG_TREE   RP_ParserXML *object
+    Notes: None
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300 0K 500K \
+                                "Ambiant Temperature" \
+                                "Temperature of the environment"]
+        set xmldata [$n dump -as RPCONFIG_XML]
+        puts $xmldata
+
+        # <number id="temperature">
+        #     <about>
+        #         <label>Ambient temperature</label>
+        #         <description>Temperature of the environment.</description>
+        #     </about>
+        #     <units>K</units>
+        #     <min>0K</min>
+        #     <max>500K</max>
+        #     <default>300K</default>
+        # </number>
+    }}}
+
+outcome
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+    {{{
+        set n [Rappture::Number "temperature" "K" 300 0K 500K \
+                                "Ambiant Temperature" \
+                                "Temperature of the environment"]
+        set out [$n outcome]
+        if {[$out value] != 0} {
+            puts stderr [$out context]
+            puts stderr [$out remark]
+        }
+    }}}
+
+is
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

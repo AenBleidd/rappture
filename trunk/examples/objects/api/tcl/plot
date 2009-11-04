@@ -1,0 +1,462 @@
+Rappture::Plot
+
+constructors/destructors
+    Rappture::Plot <lib>
+    Rappture::Plot <plotObj>
+
+methods
+    name ?<val>?
+    path ?<val>?
+    label ?<val>?
+    desc ?<val>?
+    hints ?<val>?
+    color ?<val>?
+    property <key> ?<val>?
+    propremove <key>
+    add <x> <y> -format <fmt> -name <name>
+    add <c> -name <name>
+    count
+    curve <name>
+    getNthCurve <n>
+    vvalue ?<hints>?
+    random
+    diff <o>
+    configure -as <as> <c>
+    dump -as <as>
+    outcome
+    is
+
+---------------------------------------
+Rappture::Plot <lib>
+    Purpose: construct a plot object
+    Input Arguments: at most 1
+        1. lib - Rappture library to associate this plot with
+    Return Value: a newly created, empty plot object
+    Notes: None
+    Code Example:
+    {{{
+        set lib [Rappture::Library]
+        set p [Rappture::Plot $lib]
+    }}}
+
+Rappture::Plot <plotObj>
+    Purpose: construct a plot object based on plot object plotObj
+    Input Arguments: 1
+        1. plotObj - plot object to copy
+    Return Value: a newly created plot object
+    Notes: None
+    Code Example:
+    {{{
+        set lib [Rappture::Library]
+        set p1 [Rappture::Plot $lib]
+        set p2 [Rappture::Plot $p1]
+    }}}
+
+
+name ?<val>?
+    Purpose: get/set the id name of the object
+    Input Arguments: at most 1
+        1. val - new id name
+    Return Value: the name of the object
+    Notes: if no name is set, an empty string will be returned
+           the id name is used to identify this object from
+           all other objects and should be unique
+           val, if provided, is used to set the object name
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p name
+        # ""
+        $p name "fdfactor"
+        $p name
+        # "fdfactor"
+    }}}
+
+path ?<val>?
+    Purpose: get/set the path of the object
+    Input Arguments: at most 1
+        1. val - new path
+    Return Value: path of the object
+    Notes: if no path is set, an empty string will be returned
+           the path tells where this object sits in the
+           hierarchy of objects.
+           val, if provided, is used to set the object path
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p path
+        # ""
+        $p path "output"
+        $p path
+        # "output"
+    }}}
+
+label ?<val>?
+    Purpose: get/set the label of the object
+    Input Arguments: at most 1
+        1. val - new label
+    Return Value: label of the object
+    Notes: if no label is set, an empty string will be returned
+           the label is used by the graphical user interface.
+           val, if provided, is used to set the object label
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p label
+        # ""
+        $p label "Fermi-Dirac Factor"
+        $p label
+        # "Fermi-Dirac Factor"
+    }}}
+
+desc ?<val>?
+    Purpose: get/set the description of the object
+    Input Arguments: at most 1
+        1. val - new description
+    Return Value: description of the object
+    Notes: if no description is set, an empty string will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+           val, if provided, is used to set the object description
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p desc
+        # ""
+        $p desc "A plot of the Fermi-Dirac Factor"
+        $p desc
+        # "A plot of the Fermi-Dirac Factor"
+    }}}
+
+hints ?<val>?
+    Purpose: get/set the hints of the object
+    Input Arguments: at most 1
+        1. val - new hints
+    Return Value: hints of the object
+    Notes: if no hints are set, an empty string will be returned
+           the hints are used by the graphical user interface
+           val, if provided, is used to set the object hints
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p hints
+        # ""
+        $p hints "no hints"
+        $p hints
+        # "no hints"
+    }}}
+
+color ?<val>?
+    Purpose: get/set the color of the object
+    Input Arguments: at most 1
+        1. val - new color
+    Return Value: color of the object
+    Notes: if no color is set, an empty string will be returned
+           the color is used by the graphical user interface
+           val, if provided, is used to set the object color
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p color
+        # ""
+        $p color"no color"
+        $p color
+        # "no color"
+    }}}
+
+property <key> ?<val>?
+    Purpose: get/set a generic property in the property database
+    Input Arguments: at most 2
+        1. key - property name
+        2. val - property value
+    Return Value: value of the property
+    Notes: A copy val is stored in the property database
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p property "name"
+        # ""
+        $p property "name" "fdfactor"
+        # "fdfactor"
+        $p name
+        # "fdfactor"
+    }}}
+
+propremove <key>
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p name "fdfactor"
+        $p property "name"
+        # "fdfactor"
+        $p propremove "name"
+        # "fdfactor"
+        $p property "name"
+        # ""
+    }}}
+
+add <x> <y> -format <fmt> -name <name>
+    Purpose: add data for an xy curve to the plot
+    Input Arguments: 4
+        1. x - list/array representing the x axis
+        2. y - list/array representing the y axis
+        3. fmt - string format of the line
+        4. name - string id of the newly created curve
+    Return Value: Outcome object
+    Notes: format can be something like "g:o" to represent
+            green line, dotted line style, circle marker.
+            this follows matlab's formatting rules.
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y [expr pow($i,2)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y -format "g:o" -name "xsquared"
+        # a single curve, named "xsquared", is stored in the plot object
+    }}}
+
+add <c> -name <name>
+    Purpose: add a Curve object to this Plot object
+    Input Arguments: 2
+        1. c - Curve object to add
+        2. name - id of the Curve object
+    Return Value: Outcome object
+    Notes: Curve object should not be deleted by user?
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y [expr pow($i,2)]
+        }
+
+        set c [Rappture::Curve]
+
+        $c axis -name "xvals" -label "X Values" \
+                -desc "Values along the X axis" $x
+
+        $c axis -name "yvals" -label "Y Values" \
+                -desc "Values along the Y axis" $y
+
+        set p [Rappture::Plot]
+        $p add $c -name "xsquared"
+        # a single curve, named "xsquared", is stored in the plot object
+    }}}
+
+count
+    Purpose: retrieve the number of curves in this Plot object
+    Input Arguments: 0
+    Return Value: number of curves stored in the object
+    Notes: None
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        puts [$p count]
+        # 2
+    }}}
+
+curve <name>
+    Purpose: retrieve the curve with the id matching "name"
+    Input Arguments: 1
+        1. name - id to Curve to be retrieved
+    Return Value: Curve object matching "name" or None
+    Notes: None
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        set c [$p curve "xsquared"]
+        puts [$c name]
+        # xsquared
+    }}}
+
+getNthCurve <n>
+    Purpose: return the n'th curve stored in the object
+    Input Arguments: 1
+        1. n - number of the curve to retrieve
+    Return Value: the n'th Curve object stored in
+                  the Plot object or None
+    Notes: Curve indecies start at 0
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        set c [$p getNthCurve 1]
+        puts [$c name]
+        # xcubed
+    }}}
+
+vvalue ?<hints>?
+    Purpose: return the value of the object after applying a
+             varying number of hints about how the value
+             should be configured
+    Input Arguments: variable numbber
+        1. variable number of hints
+    Return Value: value of the object
+    Notes: vvalue will parse out the recognisable hints from
+           va_list arg. Values stored in the object are
+           not changed. Hints should be of the form
+           hintKey=hintVal
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+    }}}
+
+random
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 2 3 4 5 6 7 8 9 10] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+        put [$p count]
+        # 3
+
+    }}}
+
+diff <o>
+    Purpose: return a list showing the differences between
+             this object and Rappture Object o
+    Input Arguments: 1
+        1. o - Rappture Object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+    {{{
+        set p1 [Rappture::Plot]
+        $p1 random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] ]
+
+        set p2 [Rappture::Plot]
+        $p2 random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        set diffs [$p1 diff $p2]
+
+        foreach {ctype prop oVal nVal} $diffs {
+            puts "$ctype $prop $oval $nVal"
+        }
+        # c name temperature Ef
+        # c units K eV
+        # c def 300 4.5
+        # c min 0 0
+        # c max 500 10
+        # c label "Ambiant Temperature" "Fermi Level"
+        # c desc "Temperature of the environment" "Energy at center of distribution"
+        #
+        # Note that this function will find a difference in the
+        # minimum values even though they are numerically equal.
+        # This is because the objects have different units that
+        # are not compatible. If compatible units were found,
+        # n2's values would have been converted to n1's units
+        # for each comparison.
+
+
+    }}}
+
+configure -as <as> <c>
+    Purpose: configure the object based on the data in "c".
+             use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    const char *xmltext
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+dump -as <as>
+    Purpose: dump the object values.
+             use "as" to determine how to dump the data.
+    Input Arguments: 2
+        1. as - type of data to be returned.
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+    Return Value:
+               if as is...     then return the following...
+               RPCONFIG_XML    ClientDataXml *object
+               RPCONFIG_TREE   RP_ParserXML *object
+    Notes: None
+    Code Example:
+
+outcome
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+is
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

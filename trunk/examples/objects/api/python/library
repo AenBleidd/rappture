@@ -6,23 +6,14 @@ constructors
 
 methods
     lib.loadXml(xmltext)
-
     lib.loadFile(filename)
-
-
     lib.value(key[, ...])
-
     lib.diff(lib2)
-
     lib.remove(key)
-
     lib.xml()
-
     lib.outcome()
     lib.error()
-
-    lib.result(int status)
-
+    lib.result(status)
     lib.contains()
 
 ---------------------------------------
@@ -112,7 +103,7 @@ lib.outcome()
     Notes: None
     Code Example:
 
-int error()
+lib.error()
     Purpose: return the status of the object
     Input Arguments: 0
     Return Value: status of the object
