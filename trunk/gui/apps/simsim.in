@@ -379,9 +379,11 @@ simulator simulator - simulate simulation
 
 OPTIONS:
  -tool <path>        - use the tool.xml file specified at <path>
- -values <valtype>   - choose the type of values to use for input.
+ -values <valtype>   - the type of values used to populate driver file.
                        valid <valtype>'s include:
-                       "default","current","random".
+                       "default" - replace <current> values with <default>'s,
+                       "current" - use <current> values (ie do nothing),
+                       "random" - generate random values for <current>.
  -driver <path>      - write a driver file to <path>.
  -compare <path>     - compare the results with the run.xml
                        file at <path>.
@@ -420,7 +422,9 @@ from ./tool.xml, simulate with random values but set
 input.number(Ef) to "2eV"
     simsim -values random input.number(Ef).current=2eV
 
-run a simulation using the current values from driver.xml
+run a simulation using the current values from driver.xml,
+"-values current" is only useful if you are asking
+simsim to run the simulation and you provide a driver file.
     simsim -tool driver.xml -values current
 
 compare two xml file, don't do a simulation, don't print a driver.xml
