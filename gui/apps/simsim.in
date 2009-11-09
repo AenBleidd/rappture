@@ -198,14 +198,28 @@ proc groupHandler {child} {
     return [$child children -as object]
 }
 
-proc choiceHandler {child} {
+proc choiceHandler {valType child} {
     if {"yes" == [$child get "simset"]} {
         $child remove "simset"
     } else {
         set optList [$child children -as object -type option]
-        set optIdx [expr {int(rand()*[llength $optList])}]
-        set optLib [lindex $optList $optIdx]
-        set value [$optLib get value]
+        set value ""
+        if {"random" == $valType} {
+            set optIdx [expr {int(rand()*[llength $optList])}]
+            set optLib [lindex $optList $optIdx]
+            set value [$optLib get value]
+        } elseif {"default" == $valType} {
+            set defaultVal [$child get default]
+            foreach optLib $optList {
+                set label [$optLib get about.label]
+                set valTag [$optLib get value]
+                if {($defaultVal == $label) || ($defaultVal == $valTag)} {
+                    set value $valTag
+                    break
+                }
+            }
+        }
+
         if {"" == $value} {
             set value [$optLib get about.label]
         }
@@ -225,10 +239,12 @@ proc defaultize {xmlobj toolDir} {
             integer     { defaultHandler $child }
             boolean     { defaultHandler $child }
             string      { defaultHandler $child }
-            choice      { defaultHandler $child }
+            choice      { choiceHandler default $child }
             loader      { loaderHandler  $child $toolDir }
             structure   { defaultHandler $child }
             group       { set cclist [groupHandler $child]
+                          set childList [concat $childList $cclist] }
+            phase       { set cclist [groupHandler $child]
                           set childList [concat $childList $cclist] }
             default     { defaultHandler $child }
         }
@@ -268,7 +284,7 @@ proc randomize {presetArr xmlobj toolDir} {
             integer   { integerHandler $child }
             boolean   { booleanHandler $child }
             string    { defaultHandler $child }
-            choice    { choiceHandler  $child }
+            choice    { choiceHandler random  $child }
             loader    {
                 set cpath [$child element -as path]
                 set ccList [loaderHandler $child $toolDir]
@@ -289,17 +305,21 @@ proc randomize {presetArr xmlobj toolDir} {
                 set ccList [groupHandler $child]
                 set childList [concat $childList $ccList]
             }
+            phase     {
+                set ccList [groupHandler $child]
+                set childList [concat $childList $ccList]
+            }
             default   { defaultHandler $child }
         }
     }
 }
 
 proc random {m M} {
-    return [expr {$m+(rand()*($M-$m+1))}]
+    return [expr {$m+(rand()*($M-$m))}]
 }
 
 proc randomInt {m M} {
-    return [expr {$m+(int(rand()*($M-$m+1)))}]
+    return [expr {int(rand()*($M-$m+1)+$m)}]
 }
 
 proc cleanPath { path } {
