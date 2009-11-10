@@ -236,7 +236,7 @@ itcl::body Rappture::Curve::hints {{keyword ""}} {
             # pop-up help for each curve
             set _hints(tooltip) $_hints(label)
         }
-	set _hints(xmlobj) $_xmlobj
+        set _hints(xmlobj) $_xmlobj
     }
     if {$keyword != ""} {
         if {[info exists _hints($keyword)]} {
@@ -267,28 +267,25 @@ itcl::body Rappture::Curve::_build {} {
     # vectors for each part.
     #
     foreach cname [$_curve children -type component] {
-        set xv ""
-        set yv ""
+        set xv [blt::vector create \#auto]
+        set yv [blt::vector create \#auto]
 
         set xydata [$_curve get $cname.xy]
         if { "" != $xydata} {
-            set xv [blt::vector create \#auto]
-            set yv [blt::vector create \#auto]
             set tmp [blt::vector create \#auto]
             $tmp set $xydata
             $tmp split $xv $yv
             blt::vector destroy $tmp
-        } else { 
-            set xv [blt::vector create \#auto]
-            set yv [blt::vector create \#auto]
+        } else {
             $xv set [$_curve get $cname.xvector]
             $yv set [$_curve get $cname.yvector]
-            if { [$xv length] != [$yv length] } {
-                blt::vector destroy $xv $yv
-                set xv ""; set yv ""
-            }
         }
-        if {$xv != "" && $yv != ""} {
+        if { (([$xv length] == 0) && ([$yv length] == 0))
+            || ([$xv length] != [$yv length]) } {
+            # FIXME: need to show an error about improper data.
+            blt::vector destroy $xv $yv
+            set xv ""; set yv ""
+        } else {
             set _comp2xy($cname) [list $xv $yv]
             incr _counter
         }
