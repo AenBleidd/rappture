@@ -228,6 +228,27 @@ Number::convert(const char *to)
         cur(convertedVal);
     }
 
+    if (_minSet) {
+        convertedVal = fromUnit->convert(toUnit,min(), &err);
+        if (err) {
+            _status.addError("undefined error while converting %s to %s",
+                (fromUnit->getUnitsName()).c_str(),
+                (toUnit->getUnitsName()).c_str());
+        } else {
+            min(convertedVal);
+        }
+    }
+
+    if (_maxSet) {
+        convertedVal = fromUnit->convert(toUnit,max(), &err);
+        if (err) {
+            _status.addError("undefined error while converting %s to %s",
+                (fromUnit->getUnitsName()).c_str(),
+                (toUnit->getUnitsName()).c_str());
+        } else {
+            max(convertedVal);
+        }
+    }
     return _status;
 }
 

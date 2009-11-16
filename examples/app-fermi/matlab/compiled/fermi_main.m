@@ -12,6 +12,6 @@ catch
     fprintf(fid,'%s\n',lastmsg);
     fclose(fid);
     append = 1;
-    rpLibPutString(lib,'output.log',lastmsg,append)
+    rpLibPutString(lib,'output.log',lastmsg,append);
     rpLibResult(lib,1);
 end

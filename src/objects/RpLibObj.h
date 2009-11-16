@@ -26,7 +26,6 @@ enum RP_LIBRARY_CONSTS {
 
 #ifdef __cplusplus
 
-#include "RpBuffer.h"
 #include "RpOutcome.h"
 #include "RpInt.h"
 #include "RpChain.h"

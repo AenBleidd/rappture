@@ -1,6 +1,5 @@
-
 // ----------------------------------------------------------------------
-//  EXAMPLE: Fermi-Dirac function in Python.
+//  EXAMPLE: Fermi-Dirac function in C
 //
 //  This simple example shows how to use Rappture within a simulator
 //  written in C.
@@ -21,8 +20,8 @@
 
 int main(int argc, char * argv[]) {
 
-    Rappture_Library *lib = NULL;
-    Rappture_Number *T = NULL;
+    Rp_Library *lib = NULL;
+    Rp_Number *T = NULL;
 
     double Ef         = 0.0;
     double E          = 0.0;
@@ -35,35 +34,37 @@ int main(int argc, char * argv[]) {
     double EArr[nPts];
     double fArr[nPts];
 
-    const char *curveLabel = "Fermi-Dirac Curve"
-    const char *curveDesc = "Plot of Fermi-Dirac Calculation";
-
-    Rappture::Plot *p1 = NULL;
+    Rp_Plot *p1 = NULL;
 
     // create a rappture library from the file filePath
-    lib = Rappture_Library_init(argv[1]);
+    lib = Rp_LibraryInit();
+    Rp_LibraryLoadFile(lib,argv[1]);
 
-    if (Rappture_Library_error(lib) != 0) {
+    if (Rp_LibraryError(lib) != 0) {
         // cannot open file or out of memory
-        fprintf(stderr,Rappture_Library_traceback(lib));
-        return(Rappture_Library_error(lib));
+        Rp_Outcome *o = Rp_LibraryOutcome(lib);
+        fprintf(stderr, "%s", Rp_OutcomeContext(o));
+        fprintf(stderr, "%s", Rp_OutcomeRemark(o));
+        return(Rp_LibraryError(lib));
     }
 
-    Rappture_connect(lib,"temperature",T);
-    Rappture_Library_value(lib,"Ef",&Ef,"units=eV");
+    Rp_Connect(lib,"temperature",T);
+    Rp_LibraryValue(lib,"Ef",&Ef,1,"units=eV");
 
-    if (Rappture_Library_error(lib) != 0) {
+    if (Rp_LibraryError(lib) != 0) {
         // there were errors while retrieving input data values
         // dump the tracepack
-        fprintf(stderr,Rappture_Library_traceback(lib));
-        return(Rappture_Library_error(lib));
+        Rp_Outcome *o = Rp_LibraryOutcome(lib);
+        fprintf(stderr, "%s", Rp_OutcomeContext(o));
+        fprintf(stderr, "%s", Rp_OutcomeRemark(o));
+        return(Rp_LibraryError(lib));
     }
 
-    kT = 8.61734e-5 * Rappture_Number_value(T,"K");
+    kT = 8.61734e-5 * Rp_NumberValue(T,"K");
     Emin = Ef - 10*kT;
     Emax = Ef + 10*kT;
 
-    dE = 0.005*(Emax-Emin);
+    dE = (1.0/nPts)*(Emax-Emin);
 
     E = Emin;
     for(size_t idx = 0; idx < nPts; idx++) {
@@ -71,20 +72,23 @@ int main(int argc, char * argv[]) {
         f = 1.0/(1.0 + exp((E - Ef)/kT));
         fArr[idx] = f;
         EArr[idx] = E;
-        Rappture_Utils_Progress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
+        Rp_UtilsProgress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
     }
 
     // do it the easy way,
     // create a plot to add to the library
     // plot is registered with lib upon object creation
-    // p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
+    // p1->add(nPts,xArr,yArr,format,name);
 
-    p1 = Rappture_Plot_init(lib);
-    Rappture_Plot_add(p1,nPts,fArr,EArr,"",curveLabel,curveDesc);
-    Rappture_Plot_propstr(p1,"xlabel","Fermi-Dirac Factor");
-    Rappture_Plot_propstr(p1,"ylabel","Energy");
-    Rappture_Plot_propstr(p1,"yunits","eV");
+    p1 = Rp_PlotInit(lib);
+    Rp_PlotAdd(p1,nPts,fArr,EArr,"","fdfactor");
+    Rp_PlotPropstr(p1,"label","Fermi-Dirac Curve");
+    Rp_PlotPropstr(p1,"desc","Plot of Fermi-Dirac Calculation");
+    Rp_PlotPropstr(p1,"xlabel","Fermi-Dirac Factor");
+    Rp_PlotPropstr(p1,"ylabel","Energy");
+    Rp_PlotPropstr(p1,"yunits","eV");
 
-    Rappture_Library_result(lib);
+    Rp_LibraryResult(lib);
+
     return 0;
 }

@@ -13,15 +13,15 @@
 
 #include "rappture.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <math.h>
 #include <unistd.h>
 
 int main(int argc, char * argv[]) {
 
     // create a rappture library from the file filePath
-    Rappture::Library lib(argv[1]);
+    Rappture::Library lib;
     Rappture::Number *T;
 
     double Ef           = 0.0;
@@ -35,15 +35,16 @@ int main(int argc, char * argv[]) {
     double EArr[nPts];
     double fArr[nPts];
 
+    lib.loadFile(argv[1]);
     if (lib.error() != 0) {
         // cannot open file or out of memory
         Rappture::Outcome o = lib.outcome();
         fprintf(stderr, "%s",o.context());
         fprintf(stderr, "%s",o.remark());
-        exit(lib.error());
+        return (lib.error());
     }
 
-    Rappture::connect(&lib,"temperature",T);
+    Rappture::Connect(&lib,"temperature",T);
     lib.value("Ef", &Ef, 1, "units=eV");
 
     if (lib.error() != 0) {
@@ -52,7 +53,7 @@ int main(int argc, char * argv[]) {
         Rappture::Outcome o = lib.outcome();
         fprintf(stderr, "%s",o.context());
         fprintf(stderr, "%s",o.remark());
-        exit(lib.error());
+        return(lib.error());
     }
 
     kT = 8.61734e-5 * T->value("K");
@@ -67,19 +68,18 @@ int main(int argc, char * argv[]) {
         f = 1.0/(1.0 + exp((E - Ef)/kT));
         fArr[idx] = f;
         EArr[idx] = E;
-        rpUtilsProgress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
+        Rappture::Utils::progress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
     }
-
-    const char *curveLabel = "Fermi-Dirac Curve"
-    const char *curveDesc = "Plot of Fermi-Dirac Calculation";
 
     // do it the easy way,
     // create a plot to add to the library
     // plot is registered with lib upon object creation
-    // p1.add(nPts,xArr,yArr,format,curveLabel,curveDesc);
+    // p1.add(nPts,xArr,yArr,format,name);
 
     Rappture::Plot p1(lib);
-    p1.add(nPts,fArr,EArr,"",curveLabel,curveDesc);
+    p1.add(nPts,fArr,EArr,"","fdfactor");
+    p1.propstr("label","Fermi-Dirac Curve");
+    p1.propstr("desc","Plot of Fermi-Dirac Calculation");
     p1.propstr("xlabel","Fermi-Dirac Factor");
     p1.propstr("ylabel","Energy");
     p1.propstr("yunits","eV");

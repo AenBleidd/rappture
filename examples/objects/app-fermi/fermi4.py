@@ -54,60 +54,64 @@ def main(argv=None):
 
 
     # create a rappture library from the file filePath
-    lib = Rappture.Library(argv[1])
+    lib = Rappture.Library()
 
     nPts = 200;
-    EArr = list() # [nPts];
-    fArr = list() # [nPts];
+    EArr = list() # [nPts]
+    fArr = list() # [nPts]
 
+    lib.loadFile(sys.argv[1])
     if (lib.error() != 0) {
         # cannot open file or out of memory
-        print >>sys.stderr, lib.traceback()
-        exit(lib.error());
+        o = lib.outcome()
+        print >>sys.stderr, "%s", o.context()
+        print >>sys.stderr, "%s", o.remark()
+        return (lib.error());
     }
 
-    T = Rappture.connect(lib,"temperature");
-    Ef = lib.value("Ef","units=eV");
+    T = Rappture.Connect(lib,"temperature")
+    Ef = lib.value("Ef","units=eV")
 
     if (lib.error() != 0) {
         # there were errors while retrieving input data values
         # dump the tracepack
-        print >>sys.stderr, lib.traceback()
-        exit(lib.error());
+        o = lib.outcome()
+        print >>sys.stderr, "%s", o.context()
+        print >>sys.stderr, "%s", o.remark()
+        return (lib.error())
     }
 
-    kT = 8.61734e-5 * T.value("K");
-    Emin = Ef - 10*kT;
-    Emax = Ef + 10*kT;
+    kT = 8.61734e-5 * T.value("K")
+    Emin = Ef - 10*kT
+    Emax = Ef + 10*kT
 
-    dE = (1.0/nPts)*(Emax-Emin);
+    dE = (1.0/nPts)*(Emax-Emin)
 
     E = Emin;
     for (size_t idx = 0; idx < nPts; idx++) {
-        E = E + dE;
-        f = 1.0/(1.0 + exp((E - Ef)/kT));
-        fArr.append(f);
-        EArr.append(E);
-        Rappture.Utils.progress((int)((E-Emin)/(Emax-Emin)*100),"Iterating");
+        E = E + dE
+        f = 1.0/(1.0 + exp((E - Ef)/kT))
+        fArr.append(f)
+        EArr.append(E)
+        Rappture.Utils.progress((int)((E-Emin)/(Emax-Emin)*100),"Iterating")
     }
-
-    curveLabel = "Fermi-Dirac Curve"
-    curveDesc = "Plot of Fermi-Dirac Calculation";
 
     # do it the easy way,
     # create a plot to add to the library
     # plot is registered with lib upon object creation
-    # p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
+    # p1->add(nPts,xArr,yArr,format,name);
 
-    p1 = Rappture.Plot(lib);
-    p1.add(nPts,fArr,EArr,"",curveLabel,curveDesc);
-    p1.propstr("xlabel","Fermi-Dirac Factor");
-    p1.propstr("ylabel","Energy");
-    p1.propstr("yunits","eV");
+    p1 = Rappture.Plot(lib)
+    p1.add(nPts,fArr,EArr,"","fdfactor")
+    p1.propstr("label","Fermi-Dirac Curve")
+    p1.propstr("desc","Plot of Fermi-Dirac Calculation")
+    p1.propstr("xlabel","Fermi-Dirac Factor")
+    p1.propstr("ylabel","Energy")
+    p1.propstr("yunits","eV")
 
-    lib.result();
+    lib.result()
 
-    return 0;
+    return 0
 }
 
 
