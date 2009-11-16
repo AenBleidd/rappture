@@ -13,21 +13,27 @@
 package require Rappture
 
 # open the XML file containing the run parameters
-set lib [Rappture::Library [lindex $argv 0]]
+set lib [Rappture::Library]
+
+$lib loadFile [lindex $argv 0]
 
 if {[$lib error] != 0} {
     # cannot open file or out of memory
-    puts stderr [$lib traceback]
+    set o [$lib outcome]
+    puts stderr [$o context]
+    puts stderr [$o remark]
     exit [$lib error]
 }
 
-set T [Rappture::connect $lib "temperature"]
-set Ef [$lib value "Ef" "units=eV"]
+set T [Rappture::Connect $lib "temperature"]
+set Ef [$lib value "Ef" "units eV"]
 
 if {[$lib error != 0]} {
     # there were errors while retrieving input data values
     # dump the tracepack
-    puts stderr [$lib traceback]
+    set o [$lib outcome]
+    puts stderr [$o context]
+    puts stderr [$o remark]
     exit [$lib error]
 }
 
@@ -37,7 +43,7 @@ set kT [expr {8.61734e-5 * [$T value "K"]}]
 set Emin [expr {$Ef - 10*$kT}]
 set Emax [expr {$Ef + 10*$kT}]
 
-set dE [expr {0.005*($Emax-$Emin)}]
+set dE [expr {(1.0/$nPts)*($Emax-$Emin)}]
 
 set E $Emin
 for {set idx 0} {idx < nPts} {incr idx} {
@@ -49,16 +55,15 @@ for {set idx 0} {idx < nPts} {incr idx} {
     Rappture::Utils::progress $progress -mesg "Iterating"
 }
 
-set curveLabel "Fermi-Dirac Curve"
-set curveDesc "Plot of Fermi-Dirac Calculation"
-
 # do it the easy way,
 # create a plot to add to the library
 # plot is registered with lib upon object creation
 # p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
 
 set p1 [Rappture::Plot $lib]
-$p1 add $nPts $fArr $EArr "" $curveLabel $curveDesc
+$p1 add $fArr $EArr -name "fdfactor"
+$p1 propstr "label" "Fermi-Dirac Curve"
+$p1 propstr "desc" "Plot of Fermi-Dirac Calculation"
 $p1 propstr "xlabel" "Fermi-Dirac Factor"
 $p1 propstr "ylabel" "Energy"
 $p1 propstr "yunits" "eV"
