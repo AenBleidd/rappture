@@ -52,13 +52,13 @@ itcl::class Rappture::Tooltip {
     public proc cue {option args}
 
     bind RapptureTooltip <Enter> \
-	[list ::Rappture::Tooltip::tooltip pending %W]
+        [list ::Rappture::Tooltip::tooltip pending %W]
     bind RapptureTooltip <Leave> \
-	[list ::Rappture::Tooltip::tooltip cancel]
+        [list ::Rappture::Tooltip::tooltip cancel]
     bind RapptureTooltip <ButtonPress> \
-	[list ::Rappture::Tooltip::tooltip cancel]
+        [list ::Rappture::Tooltip::tooltip cancel]
     bind RapptureTooltip <KeyPress> \
-	[list ::Rappture::Tooltip::tooltip cancel]
+        [list ::Rappture::Tooltip::tooltip cancel]
 }
 
 itk::usual Tooltip {
@@ -76,14 +76,14 @@ itcl::body Rappture::Tooltip::constructor {args} {
     itk_option remove hull.background hull.borderwidth
 
     itk_component add icon {
-	label $itk_interior.icon -anchor n
+        label $itk_interior.icon -anchor n
     }
 
     itk_component add text {
-	label $itk_interior.text -justify left
+        label $itk_interior.text -justify left
     } {
-	usual
-	keep -wraplength
+        usual
+        keep -wraplength
     }
     pack $itk_component(text) -expand yes -fill both -ipadx 4 -ipady 4
 
@@ -108,45 +108,45 @@ itcl::body Rappture::Tooltip::show {where} {
     set signy "+"
 
     if {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
-	set xpos $x
-	set ypos $y
+        set xpos $x
+        set ypos $y
     } elseif {[regexp {^(.*)([-+])([0-9]+),([-+]?)([0-9]+)$} $where match win signx x signy y]} {
-	if {$signy == ""} { set signy $signx }
-	set xpos [expr {[winfo rootx $win] + $x}]
-	set ypos [expr {[winfo rooty $win] + $y}]
+        if {$signy == ""} { set signy $signx }
+        set xpos [expr {[winfo rootx $win] + $x}]
+        set ypos [expr {[winfo rooty $win] + $y}]
     } elseif {[winfo exists $where]} {
-	set xpos [expr {[winfo rootx $where]+10}]
-	set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
+        set xpos [expr {[winfo rootx $where]+10}]
+        set ypos [expr {[winfo rooty $where]+[winfo height $where]}]
     } else {
-	error "bad position \"$where\": should be widget+x,y, or @x,y"
+        error "bad position \"$where\": should be widget+x,y, or @x,y"
     }
 
     if {[string index $itk_option(-message) 0] == "@"} {
-	set cmd [string range $itk_option(-message) 1 end]
-	if {[catch $cmd mesg] != 0} {
-	    bgerror $mesg
-	    return
-	}
+        set cmd [string range $itk_option(-message) 1 end]
+        if {[catch $cmd mesg] != 0} {
+            bgerror $mesg
+            return
+        }
     } else {
-	set mesg $itk_option(-message)
+        set mesg $itk_option(-message)
     }
 
     # if there's no message to show, forget it
     if {[string length $mesg] == 0} {
-	return
+        return
     }
 
     # strings can't be too big, or they'll go off screen!
     set pos 0
     ::for {set i 0} {$pos >= 0 && $i < 20} {incr i} {
-	incr pos
-	set pos [string first \n $mesg $pos]
+        incr pos
+        set pos [string first \n $mesg $pos]
     }
     if {$pos > 0} {
-	set mesg "[string range $mesg 0 $pos]..."
+        set mesg "[string range $mesg 0 $pos]..."
     }
     if {[string length $mesg] > 1000} {
-	set mesg "[string range $mesg 0 1500]..."
+        set mesg "[string range $mesg 0 1500]..."
     }
     $itk_component(text) configure -text $mesg
 
@@ -155,27 +155,27 @@ itcl::body Rappture::Tooltip::show {where} {
     #
     update idletasks
     if {$signx == "+"} {
-	if {$xpos+[winfo reqwidth $hull] > [winfo screenwidth $hull]} {
-	    set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
-	}
-	if {$xpos < 0} { set xpos 0 }
+        if {$xpos+[winfo reqwidth $hull] > [winfo screenwidth $hull]} {
+            set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+        }
+        if {$xpos < 0} { set xpos 0 }
     } else {
-	if {$xpos-[winfo reqwidth $hull] < 0} {
-	    set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
-	}
-	set xpos [expr {[winfo screenwidth $hull]-$xpos}]
+        if {$xpos-[winfo reqwidth $hull] < 0} {
+            set xpos [expr {[winfo screenwidth $hull]-[winfo reqwidth $hull]}]
+        }
+        set xpos [expr {[winfo screenwidth $hull]-$xpos}]
     }
 
     if {$signy == "+"} {
-	if {$ypos+[winfo reqheight $hull] > [winfo screenheight $hull]} {
-	    set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
-	}
-	if {$ypos < 0} { set ypos 0 }
+        if {$ypos+[winfo reqheight $hull] > [winfo screenheight $hull]} {
+            set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+        }
+        if {$ypos < 0} { set ypos 0 }
     } else {
-	if {$ypos-[winfo reqheight $hull] < 0} {
-	    set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
-	}
-	set ypos [expr {[winfo screenheight $hull]-$ypos}]
+        if {$ypos-[winfo reqheight $hull] < 0} {
+            set ypos [expr {[winfo screenheight $hull]-[winfo reqheight $hull]}]
+        }
+        set ypos [expr {[winfo screenheight $hull]-$ypos}]
     }
 
     #
@@ -186,22 +186,22 @@ itcl::body Rappture::Tooltip::show {where} {
     set px [winfo pointerx $hull]
     set py [winfo pointery $hull]
     if {$px >= $xpos && $px <= $xpos+[winfo reqwidth $hull]
-	  && $py >= $ypos && $py <= $ypos+[winfo reqheight $hull]} {
+          && $py >= $ypos && $py <= $ypos+[winfo reqheight $hull]} {
 
-	if {$px > [winfo screenwidth $hull]/2} {
-	    set signx "-"
-	    set xpos [expr {[winfo screenwidth $hull]-$px+4}]
-	} else {
-	    set signx "+"
-	    set xpos [expr {$px+4}]
-	}
-	if {$py > [winfo screenheight $hull]/2} {
-	    set signy "-"
-	    set ypos [expr {[winfo screenheight $hull]-$py+4}]
-	} else {
-	    set signy "+"
-	    set ypos [expr {$py+4}]
-	}
+        if {$px > [winfo screenwidth $hull]/2} {
+            set signx "-"
+            set xpos [expr {[winfo screenwidth $hull]-$px+4}]
+        } else {
+            set signx "+"
+            set xpos [expr {$px+4}]
+        }
+        if {$py > [winfo screenheight $hull]/2} {
+            set signy "-"
+            set ypos [expr {[winfo screenheight $hull]-$py+4}]
+        } else {
+            set signy "+"
+            set ypos [expr {$py+4}]
+        }
     }
 
     #
@@ -241,10 +241,10 @@ itcl::body Rappture::Tooltip::for {widget text} {
     set btags [bindtags $widget]
     set i [lsearch $btags RapptureTooltip]
     if {$i < 0} {
-	set i [lsearch $btags [winfo class $widget]]
-	if {$i < 0} {set i 0}
-	set btags [linsert $btags $i RapptureTooltip]
-	bindtags $widget $btags
+        set i [lsearch $btags [winfo class $widget]]
+        if {$i < 0} {set i 0}
+        set btags [linsert $btags $i RapptureTooltip]
+        bindtags $widget $btags
     }
 }
 
@@ -257,15 +257,15 @@ itcl::body Rappture::Tooltip::for {widget text} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::text {widget args} {
     if {[llength $args] == 0} {
-	if {[info exists catalog($widget)]} {
-	    return $catalog($widget)
-	}
-	return ""
+        if {[info exists catalog($widget)]} {
+            return $catalog($widget)
+        }
+        return ""
     } elseif {[llength $args] == 1} {
-	set str [lindex $args 0]
-	set catalog($widget) $str
+        set str [lindex $args 0]
+        set catalog($widget) $str
     } else {
-	error "wrong # args: should be \"text widget ?str?\""
+        error "wrong # args: should be \"text widget ?str?\""
     }
 }
 
@@ -282,55 +282,55 @@ itcl::body Rappture::Tooltip::text {widget args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::tooltip {option args} {
     switch -- $option {
-	pending {
-	    if {[llength $args] < 1 || [llength $args] > 2} {
-		error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
-	    }
-	    set widget [lindex $args 0]
-	    set loc [lindex $args 1]
+        pending {
+            if {[llength $args] < 1 || [llength $args] > 2} {
+                error "wrong # args: should be \"tooltip pending widget ?@x,y?\""
+            }
+            set widget [lindex $args 0]
+            set loc [lindex $args 1]
 
-	    if {![info exists catalog($widget)]} {
-		return;			# No tooltip for widget.
-	    }
-	    if {$pending != ""} {
-		after cancel $pending
-	    }
-	    set pending [after 750 [itcl::code tooltip show $widget $loc]]
-	}
-	show {
-	    if {[llength $args] < 1 || [llength $args] > 2} {
-		error "wrong # args: should be \"tooltip show tag loc\""
-	    }
-	    set tag [lindex $args 0]
-	    set loc [lindex $args 1]
+            if {![info exists catalog($widget)]} {
+                return;                        # No tooltip for widget.
+            }
+            if {$pending != ""} {
+                after cancel $pending
+            }
+            set pending [after 750 [itcl::code tooltip show $widget $loc]]
+        }
+        show {
+            if {[llength $args] < 1 || [llength $args] > 2} {
+                error "wrong # args: should be \"tooltip show tag loc\""
+            }
+            set tag [lindex $args 0]
+            set loc [lindex $args 1]
 
-	    # tag name may be .g-axis -- get widget ".g" part
-	    set widget $tag
-	    if {[regexp {^(\.[^-]+)-[^\.]+$} $widget match wname]} {
-		set widget $wname
-	    }
+            # tag name may be .g-axis -- get widget ".g" part
+            set widget $tag
+            if {[regexp {^(\.[^-]+)-[^\.]+$} $widget match wname]} {
+                set widget $wname
+            }
 
-	    if {[winfo exists $widget] && [info exists catalog($tag)]} {
-		.rappturetooltip configure -message $catalog($tag)
-		if {[string index $loc 0] == "@"} {
-		    .rappturetooltip show $loc
-		} elseif {[regexp {^[-+]} $loc]} {
-		    .rappturetooltip show $widget$loc
-		} else {
-		    .rappturetooltip show $widget
-		}
-	    }
-	}
-	cancel {
-	    if {$pending != ""} {
-		after cancel $pending
-		set pending ""
-	    }
-	    .rappturetooltip hide
-	}
-	default {
-	    error "bad option \"$option\": should be show, pending, cancel"
-	}
+            if {[winfo exists $widget] && [info exists catalog($tag)]} {
+                .rappturetooltip configure -message $catalog($tag)
+                if {[string index $loc 0] == "@"} {
+                    .rappturetooltip show $loc
+                } elseif {[regexp {^[-+]} $loc]} {
+                    .rappturetooltip show $widget$loc
+                } else {
+                    .rappturetooltip show $widget
+                }
+            }
+        }
+        cancel {
+            if {$pending != ""} {
+                after cancel $pending
+                set pending ""
+            }
+            .rappturetooltip hide
+        }
+        default {
+            error "bad option \"$option\": should be show, pending, cancel"
+        }
     }
 }
 
@@ -344,41 +344,41 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::cue {option args} {
     if {"hide" == $option} {
-	grab release .rappturetoolcue
-	.rappturetoolcue hide
+        grab release .rappturetoolcue
+        .rappturetoolcue hide
     } elseif {[regexp {^@[0-9]+,[0-9]+$} $option] || [winfo exists $option]} {
-	if {[llength $args] != 1} {
-	    error "wrong # args: should be \"cue location message\""
-	}
-	set loc $option
-	set mesg [lindex $args 0]
+        if {[llength $args] != 1} {
+            error "wrong # args: should be \"cue location message\""
+        }
+        set loc $option
+        set mesg [lindex $args 0]
 
-	.rappturetoolcue configure -message $mesg
-	.rappturetoolcue show $loc
+        .rappturetoolcue configure -message $mesg
+        .rappturetoolcue show $loc
 
-	#
-	# Add a binding to all widgets so that any keypress will
-	# take this cue down.
-	#
-	set cmd [bind all <KeyPress>]
-	if {![regexp {Rappture::Tooltip::cue} $cmd]} {
-	    bind all <KeyPress> "+[list ::Rappture::Tooltip::cue hide]"
-	    bind all <KeyPress-Return> "+ "
-	}
+        #
+        # Add a binding to all widgets so that any keypress will
+        # take this cue down.
+        #
+        set cmd [bind all <KeyPress>]
+        if {![regexp {Rappture::Tooltip::cue} $cmd]} {
+            bind all <KeyPress> "+[list ::Rappture::Tooltip::cue hide]"
+            bind all <KeyPress-Return> "+ "
+        }
 
-	#
-	# If nobody has the pointer, then grab it.  Otherwise,
-	# we assume the pop-up editor or someone like that has
-	# the grab, so we don't need to impose a grab here.
-	#
-	if {"" == [grab current]} {
-	    update
-	    while {[catch {grab set -global .rappturetoolcue}]} {
-		after 100
-	    }
-	}
+        #
+        # If nobody has the pointer, then grab it.  Otherwise,
+        # we assume the pop-up editor or someone like that has
+        # the grab, so we don't need to impose a grab here.
+        #
+        if {"" == [grab current]} {
+            update
+            while {[catch {grab set -global .rappturetoolcue}]} {
+                after 100
+            }
+        }
     } else {
-	error "bad option \"$option\": should be hide, a widget name, or @x,y"
+        error "bad option \"$option\": should be hide, a widget name, or @x,y"
     }
 }
 
@@ -387,12 +387,12 @@ itcl::body Rappture::Tooltip::cue {option args} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tooltip::icon {
     if {"" == $itk_option(-icon)} {
-	$itk_component(icon) configure -image ""
-	pack forget $itk_component(icon)
+        $itk_component(icon) configure -image ""
+        pack forget $itk_component(icon)
     } else {
-	$itk_component(icon) configure -image $itk_option(-icon)
-	pack $itk_component(icon) -before $itk_component(text) \
-	    -side left -fill y
+        $itk_component(icon) configure -image $itk_option(-icon)
+        pack $itk_component(icon) -before $itk_component(text) \
+            -side left -fill y
     }
 }
 

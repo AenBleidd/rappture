@@ -1,49 +1,50 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
-srcdir2		:= $(shell cd $(srcdir); pwd)
+srcdir          = @srcdir@
+srcdir2         := $(shell cd $(srcdir); pwd)
 
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
-LN_S		= @LN_S@
-INSTALL_PROGRAM	= ${INSTALL} -m 755
-INSTALL_DATA	= ${INSTALL} -m 644
-INSTALL_SCRIPT	= ${INSTALL} -m 644
-RM 		= rm -f
-VPATH		= $(srcdir)
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+LN_S            = @LN_S@
+INSTALL_PROGRAM = ${INSTALL} -m 755
+INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_SCRIPT  = ${INSTALL} -m 644
+RM              = rm -f
+VPATH           = $(srcdir)
 
-PYTHON 		= @PYTHON@
-PYTHON_FLAGS 	= --library-dirs=$(libdir):../../src/core \
-               --include-dirs=$(srcdir)/../../src/core:$(includedir) 
+PYTHON          = @PYTHON@
+PYTHON_FLAGS    = --library-dirs=$(libdir):../../src/core \
+                  --include-dirs=$(srcdir)/../../src/core:$(includedir)
 PYTHON_VERSION  = @PYTHON_VERSION@
-pythonlib	= $(libdir)/python$(PYTHON_VERSION)/site-packages
-envfile		= python.env
+pythonlib       = $(libdir)/python$(PYTHON_VERSION)/site-packages
+envfile         = python.env
 
-ARCHFLAGS	=
+ARCHFLAGS       =
 export ARCHFLAGS
 #
-# Python distutils doesn't handle VPATH correctly. So copy the sources 
+# Python distutils doesn't handle VPATH correctly. So copy the sources
 # into a temporary directory.
 #
-all: build/tmp 
-	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build 
+all: build/tmp
+	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build
 
-build/tmp: 
+build/tmp:
 	$(MKDIR_P) build/tmp
 	$(LN_S) $(srcdir2)/Rappture/*.cc build/tmp
- 
-install: 
+
+install:
 	$(MKDIR_P) $(pythonlib)
-	$(PYTHON) setup.py install --install-lib=$(pythonlib) 
+	$(PYTHON) setup.py install --install-lib=$(pythonlib)
+
 clean:
 	$(PYTHON) setup.py clean
-	$(RM) -rf build 
+	$(RM) -rf build
 
 distclean: clean
