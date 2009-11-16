@@ -487,7 +487,7 @@ itcl::body Rappture::XyResult::download {option args} {
             if {![winfo exists .xyresultdownload]} {
                 # if we haven't created the popup yet, do it now
                 Rappture::Balloon $popup \
-		    -title "[Rappture::filexfer::label downloadWord] as..."
+                    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -558,26 +558,26 @@ itcl::body Rappture::XyResult::download {option args} {
                     return [list .txt $csvdata]
                 }
                 image {
-		    set popup .xyprintdownload
-		    if { ![winfo exists $popup] } {
-			# Create a popup for the print dialog
-			Rappture::Balloon $popup -title "Save as image..."
-			set inner [$popup component inner]
-			# Create the print dialog widget and add it to the
-			# the balloon popup.
-			Rappture::XyPrint $inner.print 
-			$popup configure \
-			    -deactivatecommand [list $inner.print reset] 
-			blt::table $inner 0,0 $inner.print -fill both
-		    }
-		    update
-		    # Activate the popup and call for the output.
-		    foreach { widget toolName plotName } $args break
-		    $popup activate $widget left
-		    set inner [$popup component inner]
-		    set output [$inner.print print $itk_component(plot) \
-				    $toolName $plotName]
-		    $popup deactivate 
+                    set popup .xyprintdownload
+                    if { ![winfo exists $popup] } {
+                        # Create a popup for the print dialog
+                        Rappture::Balloon $popup -title "Save as image..."
+                        set inner [$popup component inner]
+                        # Create the print dialog widget and add it to the
+                        # the balloon popup.
+                        Rappture::XyPrint $inner.print 
+                        $popup configure \
+                            -deactivatecommand [list $inner.print reset] 
+                        blt::table $inner 0,0 $inner.print -fill both
+                    }
+                    update
+                    # Activate the popup and call for the output.
+                    foreach { widget toolName plotName } $args break
+                    $popup activate $widget left
+                    set inner [$popup component inner]
+                    set output [$inner.print print $itk_component(plot) \
+                                    $toolName $plotName]
+                    $popup deactivate 
                     return $output
                 }
             }
@@ -720,10 +720,10 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
             set elem "elem[incr count]"
             set _elem2curve($elem) $curve
-	    lappend label2elem($label) $elem
+            lappend label2elem($label) $elem
             $g element create $elem -x $xv -y $yv \
                 -symbol $sym -pixels $pixels -linewidth $lwidth \
-		-label $label \
+                -label $label \
                 -color $color -dashes $dashes \
                 -mapx $mapx -mapy $mapy
         }
@@ -731,17 +731,17 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
     # Fix duplicate labels by appending the simulation number
     foreach label [array names label2elem] {
-	if { [llength $label2elem($label)] == 1 } {
-	    continue
-	}
-	foreach elem $label2elem($label) {
-	    set curve $_elem2curve($elem)
-	    scan [$curve hints xmlobj] "::libraryObj%d" suffix
-	    incr suffix
-	    set elabel [format "%s \#%d" $label $suffix]
-	    $g element configure $elem -label $elabel
-	}
-    }	
+        if { [llength $label2elem($label)] == 1 } {
+            continue
+        }
+        foreach elem $label2elem($label) {
+            set curve $_elem2curve($elem)
+            scan [$curve hints xmlobj] "::libraryObj%d" suffix
+            incr suffix
+            set elabel [format "%s \#%d" $label $suffix]
+            $g element configure $elem -label $elabel
+        }
+    }        
 
     foreach curve $_clist {
         set xmin -Inf
@@ -826,7 +826,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                 } else {
                     set logmin [expr {floor(log10(abs($min)))}]
                     set logmax [expr {ceil(log10(abs($max)))}]
-		    if 0 {
+                    if 0 {
                     if {[string match y* $axis]} {
                         # add a little padding
                         set delta [expr {$logmax-$logmin}]
@@ -834,7 +834,7 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                         set logmin [expr {$logmin-0.05*$delta}]
                         set logmax [expr {$logmax+0.05*$delta}]
                     }
-		    }
+                    }
                 }
                 if {$logmin < -300} {
                     set min 1e-300
@@ -855,14 +855,14 @@ itcl::body Rappture::XyResult::_resetLimits {} {
                 set min $_limits(${axis}lin-min)
                 set max $_limits(${axis}lin-max)
 
-		if 0 {
+                if 0 {
                 if {[string match y* $axis]} {
                     # add a little padding
                     set delta [expr {$max-$min}]
                     set min [expr {$min-0.05*$delta}]
                     set max [expr {$max+0.05*$delta}]
                 }
-		}
+                }
             }
             if {$min < $max} {
                 $g axis configure $axis -min $min -max $max

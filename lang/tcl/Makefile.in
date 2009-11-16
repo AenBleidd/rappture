@@ -1,18 +1,18 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
 
-destdir		= $(libdir)/Rappture$(PACKAGE_VERSION)
+destdir         = $(libdir)/Rappture$(PACKAGE_VERSION)
 
 PACKAGE_VERSION = @PACKAGE_VERSION@
 
-INSTALL		= @INSTALL@
+INSTALL         = @INSTALL@
 
 CXX             = @CXX@
 CC              = @CC@
@@ -26,29 +26,29 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
-TCL_VERSION	= @TCL_VERSION@
-TK_VERSION	= @TK_VERSION@
+TCL_VERSION     = @TCL_VERSION@
+TK_VERSION      = @TK_VERSION@
 
-RANLIB 		= @RANLIB@
-MKDIR_P		= @MKDIR_P@
-AR 		= ar
-LN_S		= @LN_S@
-RM		= rm -f
+RANLIB          = @RANLIB@
+MKDIR_P         = @MKDIR_P@
+AR              = ar
+LN_S            = @LN_S@
+RM              = rm -f
 
-tcllib		= $$RAPPTURE_INSTALL_DIR/lib/tcl$(TCL_VERSION)
-tklib		= $$RAPPTURE_INSTALL_DIR/lib/tk$(TK_VERSION)
+tcllib          = $$RAPPTURE_INSTALL_DIR/lib/tcl$(TCL_VERSION)
+tklib           = $$RAPPTURE_INSTALL_DIR/lib/tk$(TK_VERSION)
 
 # The script directory is moved from src/tcl.
 
-.PHONY:	src scripts tests
+.PHONY: src scripts tests
 
-all: 
+all:
 	$(MAKE) -C src all
 	$(MAKE) -C scripts all
 
-links:	
+links:
 
-install: 
+install:
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 0444 pkgIndex.tcl $(destdir)
 	$(MAKE) -C src install
@@ -58,10 +58,10 @@ install:
 	$(RM) $(bindir)/wish
 	(cd $(bindir); $(LN_S) wish$(TK_VERSION) wish)
 
-test:	
+test:
 	$(MAKE) -C tests all
 
-clean: 
+clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C tests clean
 	$(MAKE) -C scripts clean
