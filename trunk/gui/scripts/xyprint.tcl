@@ -222,10 +222,13 @@ itcl::body Rappture::XyPrint::GetOutput {} {
     
     set psdata [$_clone postscript output]
 
-    if 0 { 
-	set f [open "junk.raw" "w"] 
-	puts -nonewline $f $psdata
-	close $f
+    if { $format == "eps" } { 
+	if 0 {
+	    set f [open "junk.raw" "w"] 
+	    puts -nonewline $f $psdata
+	    close $f
+	}
+	return [list .$format $psdata]
     }
 
     set cmd ""
@@ -600,10 +603,11 @@ itcl::body Rappture::XyPrint::BuildGeneralTab {} {
     label $page.format_l -text "format"
     Rappture::Combobox $page.format -width 30 -editable no
     $page.format choices insert end \
-	"eps" "EPS Encapsulated PostScript"  \
 	"pdf" "PDF Portable Document Format" \
-	"jpg"  "JPEG Joint Photographic Experts Group Format" \
-	"png"  "PNG Portable Network Graphics Format"         
+	"ps"  "PS PostScript Format"  \
+	"eps" "EPS Encapsulated PostScript"  \
+	"jpg" "JPEG Joint Photographic Experts Group Format" \
+	"png" "PNG Portable Network Graphics Format"         
 
     bind $page.format <<Value>> [itcl::code $this ApplyGeneralSettings]
     Rappture::Tooltip::for $page.format \
@@ -1125,8 +1129,8 @@ itcl::body Rappture::XyPrint::ApplyLayoutSettings {} {
 itcl::body Rappture::XyPrint::InitializeSettings {} {
     # General settings
 
-    # Always set to "eps" "ieee"
-    set _settings($this-general-format) eps
+    # Always set to "ps" "ieee"
+    set _settings($this-general-format) ps
     set _settings($this-general-style) ieee
     set _settings($this-general-remember) 1
     set page $itk_component(graph_page)
