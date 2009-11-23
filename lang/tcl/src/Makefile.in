@@ -85,7 +85,7 @@ install: $(lib)
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
-	$(CC) $(CC_SWITCHES)-c $?
+	$(CC) $(CC_SWITCHES) -c $?
 
 clean:
 	$(RM) $(OBJS) $(lib)
