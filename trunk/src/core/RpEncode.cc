@@ -218,10 +218,13 @@ Rappture::encoding::isBase64(const char* buf, int size)
 bool
 Rappture::encoding::isGzipped(const char* buf, int size)
 {
+    unsigned int first, second;
     if (buf == NULL) {
         return false;			/* Really should let this segfault. */
     }
-    return (((unsigned int)buf[0] == 0x1f)  && ((unsigned int)buf[1] == 0x8b));
+    first = buf[0];
+    second = buf[1];
+    return ((first == 0x1f)  && (second == 0x8b));
 }
 
 /**********************************************************************/
