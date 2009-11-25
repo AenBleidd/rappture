@@ -45,6 +45,13 @@ Rappture.Number([name, units, val[, min, max, label, desc]])
     Return Value: a newly created number object
     Notes: input arguments are used to construct the number object
     Code Example:
+    {{{
+        n1 = Rappture.Number()
+        n2 = Rappture.Number("temperature","K",300)
+        n3 = Rappture.Number("temperature",units="K",300,min=0,max=500,
+                                 label="Ambiant Temperature",
+                                 desc="Temperature of the environment")
+    }}}
 
 Rappture.Number(numObj)
     Purpose: construct a number object based on number object numObj
@@ -53,6 +60,10 @@ Rappture.Number(numObj)
     Return Value: a newly created number object
     Notes: None
     Code Example:
+    {{{
+        n1 = Rappture.Number()
+        n2 = Rappture.Number(n1)
+    }}}
 
 
 n.name([val])
@@ -65,6 +76,14 @@ n.name([val])
            all other objects and should be unique
            val, if provided, is used to set the object name
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.name()
+        # ""
+        n.name("temperature")
+        n.name()
+        # "temperature"
+    }}}
 
 n.path([val])
     Purpose: get/set the path of the object
@@ -76,6 +95,14 @@ n.path([val])
            hierarchy of objects.
            val, if provided, is used to set the object path
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.path()
+        # ""
+        n.path("input")
+        n.path()
+        # "input"
+    }}}
 
 n.label([val])
     Purpose: get/set the label of the object
@@ -86,6 +113,14 @@ n.label([val])
            the label is used by the graphical user interface.
            val, if provided, is used to set the object label
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.label()
+        # ""
+        n.label("Ambiant temperature")
+        n.label()
+        # "Ambiant temperature"
+    }}}
 
 n.desc([val])
     Purpose: get/set the description of the object
@@ -98,6 +133,14 @@ n.desc([val])
            requested and how the input is used.
            val, if provided, is used to set the object description
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.desc()
+        # ""
+        n.desc("Temperature of the environment")
+        n.desc()
+        # "Temperature of the environment"
+    }}}
 
 n.hints([val])
     Purpose: get/set the hints of the object
@@ -108,6 +151,14 @@ n.hints([val])
            the hints are used by the graphical user interface
            val, if provided, is used to set the object hints
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.hints()
+        # ""
+        n.hints("none")
+        n.hints()
+        # "none"
+    }}}
 
 n.color([val])
     Purpose: get/set the color of the object
@@ -118,6 +169,14 @@ n.color([val])
            the color is used by the graphical user interface
            val, if provided, is used to set the object color
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.color()
+        # ""
+        n.color("none")
+        n.color()
+        # "none"
+    }}}
 
 n.def([val])
     Purpose: get/set the default value
@@ -127,6 +186,14 @@ n.def([val])
     Notes: if no default is set, None will be returned
            val, if provided, is used to set the object default value
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.def()
+        # ""
+        n.def(300)
+        n.def()
+        # 300
+    }}}
 
 n.cur([val])
     Purpose: get/set the current value
@@ -136,6 +203,14 @@ n.cur([val])
     Notes: if no current is set, None will be returned
            val, if provided, is used to set the object current value
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.cur()
+        # ""
+        n.cur(450)
+        n.cur()
+        # 450
+    }}}
 
 n.min([val])
     Purpose: get/set the minimum accepted value of this object
@@ -145,6 +220,14 @@ n.min([val])
     Notes: if no min is set, None will be returned
            val, if provided, is used to set the object min
     Code Example:
+    {{{
+        n Rappture.Number()
+        n.min()
+        # ""
+        n.min(0)
+        n.min()
+        # 0
+    }}}
 
 n.max([val])
     Purpose: get/set the maximum accepted value of this object
@@ -154,6 +237,14 @@ n.max([val])
     Notes: if no max is set, None will be returned
            val, if provided, is used to set the object max
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.max()
+        # ""
+        n.max(500)
+        n.max()
+        # 500
+    }}}
 
 n.units([val])
     Purpose: get/set the units of this object
@@ -163,6 +254,14 @@ n.units([val])
     Notes: if no units are set, None will be returned
            val, if provided, is used to set the object units
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.units()
+        # ""
+        n.units("K")
+        n.units()
+        # "K"
+    }}}
 
 n.property(key[, val])
     Purpose: get/set a generic property in the property database
@@ -172,6 +271,15 @@ n.property(key[, val])
     Return Value: value of the property
     Notes: A copy val is stored in the property database
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.property("units")
+        # ""
+        n.property("units","K")
+        # "K"
+        n.units()
+        # "K"
+    }}}
 
 n.propremove(key)
     Purpose: remove a property from the property database
@@ -180,6 +288,15 @@ n.propremove(key)
     Return Value: value of the property
     Notes: None
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300)
+        n.property("units")
+        # "K"
+        n.propremove("units")
+        # "K"
+        n.property("units")
+        # ""
+    }}}
 
 n.convert(to)
     Purpose: convert the def and cur values to "to" units
@@ -188,6 +305,25 @@ n.convert(to)
     Return Value: Outcome object
     Notes: the values stored in the object are changed
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300)
+        n.min("0K")
+        n.max("500K")
+        n.cur(450)
+        out = n.convert("F")
+        if (out.value() != 0) {
+            sys.stderr.write(out.context())
+            sys.stderr.write(out.remark())
+        }
+        n.min()
+        # -459.67
+        n.max()
+        # 440.33
+        n.def()
+        # 80.33
+        n.cur()
+        # 350.33
+    }}}
 
 n.value(to)
     Purpose: return the value of the object with units of "to"
@@ -199,6 +335,19 @@ n.value(to)
             if def was not set (def() == None), 0.0 is used
             as the value.
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.value()
+        # 0
+        n.def(300)
+        n.value()
+        # 300
+        n.cur(450)
+        n.value()
+        # 450
+        n.value("F")
+        # 350.33
+    }}}
 
 n.vvalue([...])
     Purpose: return the value of the object after applying a
@@ -212,6 +361,14 @@ n.vvalue([...])
                 not changed. Hint strings should have the form
                 hintKey=hintVal and be comma separated
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.cur(450)
+        n.vvalue()
+        # 450
+        n.vvalue("units=F")
+        # 350.33
+    }}}
 
 n.random()
     Purpose: populate the object with a random value
@@ -221,6 +378,20 @@ n.random()
            with a random value that fits within the min and
            max if they were specified.
     Code Example:
+    {{{
+        n = Rappture.Number()
+        n.random()
+        n.cur()
+        # 1042.34
+        # should be something more like:
+        # n.configure(min=-30,max=30)
+        # n.random()
+        n.min(-30)
+        n.max(30)
+        n.random()
+        n.cur()
+        # 16.89
+    }}}
 
 n.diff(o)
     Purpose: return a list showing the differences between
@@ -230,6 +401,34 @@ n.diff(o)
     Return Value: list of differences between objects
     Notes: None
     Code Example:
+    {{{
+        n1 = Rappture.Number("temperature","K",300,"0K","500K",
+                                 "Ambiant Temperature",
+                                 "Temperature of the environment")
+        n2 = Rappture.Number("Ef","eV","4.5eV","0eV","10eV",
+                                 "Fermi Level",
+                                 "Energy at center of distribution")
+        diffs = n1.diff(n2)
+        # diffs is a list of tuples or list of lists
+
+        for ctype, prop, oVal, nVal in diffs {
+            print ctype, prop, oVal, nVal
+        }
+        # c name temperature Ef
+        # c units K eV
+        # c def 300 4.5
+        # c min 0 0
+        # c max 500 10
+        # c label "Ambiant Temperature" "Fermi Level"
+        # c desc "Temperature of the environment" "Energy at center of distribution"
+        #
+        # Note that this function will find a difference in the
+        # minimum values even though they are numerically equal.
+        # This is because the objects have different units that
+        # are not compatible. If compatible units were found,
+        # n2's values would have been converted to n1's units
+        # for each comparison.
+    }}}
 
 n.addPreset(label, desc, val[, units])
     Purpose: add a preset to this object
@@ -242,6 +441,16 @@ n.addPreset(label, desc, val[, units])
     Notes: presets are stored in the object in the same order
                 in which they are created
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300,"0K","500K",
+                                "Ambiant Temperature",
+                                "Temperature of the environment"]
+        n.addPreset("Room Temperature","","300K")
+        n.addPreset("Liquid Nitrogen","",77,"K")
+        n.addPreset("Liquid Helium","","4.2K")
+
+        # 3 Presets stored in the Rappture.Number object
+    }}}
 
 n.delPreset(label)
     Purpose: delete the preset labeled "label" from this object
@@ -250,6 +459,17 @@ n.delPreset(label)
     Return Value: None
     Notes: preset is removed from the object
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300,"0K","500K",
+                                "Ambiant Temperature",
+                                "Temperature of the environment")
+        n.addPreset("Room Temperature","","300K")
+        n.addPreset("Liquid Nitrogen","",77,"K")
+        n.addPreset("Liquid Helium","","4.2K")
+
+        n.delPreset("Liquid Helium")
+        # 2 Presets stored in the Rappture.Number object
+    }}}
 
 n.configure(as, c)
     Purpose: configure the object based on the data in "c".
@@ -266,6 +486,38 @@ n.configure(as, c)
     Return Value: None
     Notes: object is configured based on values in "c"
     Code Example:
+    {{{
+        n = Rappture.Number()
+        xmldata = """
+            <?xml version="1.0">
+            <number id="temperature">
+                <about>
+                    <label>Ambient temperature</label>
+                    <description>Temperature of the environment.</description>
+                </about>
+                <units>K</units>
+                <min>0K</min>
+                <max>500K</max>
+                <default>300K</default>
+            </number>
+        """
+
+        n.configure(RPCONFIG_XML,xmldata)
+        n.name()
+        # temperature
+        n.label()
+        # Ambient temperature
+        n.desc()
+        # Temperature of the environment.
+        n.units()
+        # K
+        n.min()
+        # 0
+        n.max()
+        # 500
+        n.def()
+        # 300
+    }}}
 
 n.dump(as, c)
     Purpose: dump the object values based to the object "c".
@@ -282,6 +534,24 @@ n.dump(as, c)
     Return Value: None
     Notes: None
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300,"0K","500K",
+                                "Ambiant Temperature",
+                                "Temperature of the environment")
+        xmldata = n.dump(RPCONFIG_XML)
+        print xmldata
+
+        # <number id="temperature">
+        #     <about>
+        #         <label>Ambient temperature</label>
+        #         <description>Temperature of the environment.</description>
+        #     </about>
+        #     <units>K</units>
+        #     <min>0K</min>
+        #     <max>500K</max>
+        #     <default>300K</default>
+        # </number>
+    }}}
 
 n.outcome()
     Purpose: return the status of this object as an Outcome.
@@ -289,6 +559,16 @@ n.outcome()
     Return Value: status of the object as an Outcome
     Notes: None
     Code Example:
+    {{{
+        n = Rappture.Number("temperature","K",300,"0K","500K",
+                                "Ambiant Temperature",
+                                "Temperature of the environment")
+        out = n.outcome()
+        if (out.value() != 0) {
+            sys.stderr.write(out.context())
+            sys.stderr.write(out.remark())
+        }
+    }}}
 
 n.is()
     Purpose: return an integer tag describing the object.
