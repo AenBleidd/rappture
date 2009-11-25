@@ -34,6 +34,10 @@ Rappture.Plot([lib])
     Return Value: a newly created, empty plot object
     Notes: None
     Code Example:
+    {{{
+        lib = Rappture.Library()
+        p = Rappture.Plot(lib)
+    }}}
 
 Rappture.Plot(o)
     Purpose: construct a plot object based on plot object o
@@ -42,6 +46,11 @@ Rappture.Plot(o)
     Return Value: a newly created plot object
     Notes: None
     Code Example:
+    {{{
+        lib = Rappture.Library()
+        p1 = Rappture.Plot(lib)
+        p2 = Rappture.Plot(p1)
+    }}}
 
 
 p.name([val])
@@ -54,6 +63,14 @@ p.name([val])
            all other objects and should be unique
            val, if provided, is used to set the object name
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.name()
+        # ""
+        p.name("fdfactor")
+        p.name()
+        # "fdfactor"
+    }}}
 
 p.path([val])
     Purpose: get/set the path of the object
@@ -65,6 +82,14 @@ p.path([val])
            hierarchy of objects.
            val, if provided, is used to set the object path
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.path()
+        # ""
+        p.path("output")
+        p.path()
+        # "output"
+    }}}
 
 p.label([val])
     Purpose: get/set the label of the object
@@ -75,6 +100,14 @@ p.label([val])
            the label is used by the graphical user interface.
            val, if provided, is used to set the object label
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.label()
+        # ""
+        p.label("Fermi-Dirac Factor")
+        p.label()
+        # "Fermi-Dirac Factor"
+    }}}
 
 p.desc([val])
     Purpose: get/set the description of the object
@@ -87,6 +120,14 @@ p.desc([val])
            requested and how the input is used.
            val, if provided, is used to set the object description
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.desc()
+        # ""
+        p.desc("A plot of the Fermi-Dirac Factor")
+        p.desc()
+        # "A plot of the Fermi-Dirac Factor"
+    }}}
 
 p.hints([val])
     Purpose: get/set the hints of the object
@@ -97,6 +138,14 @@ p.hints([val])
            the hints are used by the graphical user interface
            val, if provided, is used to set the object hints
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.hints()
+        # ""
+        p.hints("no hints")
+        p.hint()
+        # "no hints"
+    }}}
 
 p.color([val])
     Purpose: get/set the color of the object
@@ -107,6 +156,14 @@ p.color([val])
            the color is used by the graphical user interface
            val, if provided, is used to set the object color
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.color()
+        # ""
+        p.color("no color")
+        p.color()
+        # "no color"
+    }}}
 
 p.property(key[, val])
     Purpose: get/set a generic property in the property database
@@ -116,6 +173,15 @@ p.property(key[, val])
     Return Value: value of the property
     Notes: A copy val is stored in the property database
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.property("name")
+        # ""
+        p.property("name","fdfactor")
+        # "fdfactor"
+        p.name()
+        # "fdfactor"
+    }}}
 
 p.propremove(key)
     Purpose: remove a property from the property database
@@ -124,6 +190,16 @@ p.propremove(key)
     Return Value: value of the property
     Notes: None
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.name("fdfactor")
+        p.property("name")
+        # "fdfactor"
+        p.propremove("name")
+        # "fdfactor"
+        p.property("name")
+        # ""
+    }}}
 
 p.add(x, y, fmt, name)
     Purpose: add data for an xy curve to the plot
@@ -137,6 +213,17 @@ p.add(x, y, fmt, name)
             green line, dotted line style, circle marker.
             this follows matlab's formatting rules.
     Code Example:
+    {{{
+        x = list()
+        y = list()
+        for i in range(0,10) :
+            x.append(i)
+            y.append(pow(i,2))
+
+        p = Rappture.Plot()
+        p.add(x, y, fmt="g:o", name="xsquared")
+        # a single curve, named "xsquared", is stored in the plot object
+    }}}
 
 p.add(c, name)
     Purpose: add a Curve object to this Plot object
@@ -146,6 +233,25 @@ p.add(c, name)
     Return Value: Outcome object
     Notes: Curve object should not be deleted by user?
     Code Example:
+    {{{
+        x = list()
+        y = list()
+        for i in range(0,10) :
+            x.append(i)
+            y.append(pow(i,2))
+
+        c = Rappture.Curve()
+
+        c.axis(name="xvals", label="X Values",
+                desc="Values along the X axis" val=x)
+
+        c.axis(name="yvals", label="Y Values",
+                desc="Values along the Y axis", val=y)
+
+        p = Rappture.Plot()
+        p.add(c, name="xsquared")
+        # a single curve, named "xsquared", is stored in the plot object
+    }}}
 
 p.count()
     Purpose: retrieve the number of curves in this Plot object
@@ -153,6 +259,22 @@ p.count()
     Return Value: number of curves stored in the object
     Notes: None
     Code Example:
+    {{{
+        x = list()
+        y1 = list()
+        y2 = list()
+        for i in range(0,10) :
+            x.append(i)
+            y1.append(pow(i,2))
+            y2.append(pow(i,3))
+        }
+
+        p = Rappture.Plot()
+        p.add(x, y1, format="g:o", name="xsquared")
+        p.add(x, y2, format="b-o", name="xcubed")
+        print p.count()
+        # 2
+    }}}
 
 p.curve(name)
     Purpose: retrieve the curve with the id matching "name"
@@ -161,6 +283,23 @@ p.curve(name)
     Return Value: Curve object matching "name" or None
     Notes: None
     Code Example:
+    {{{
+        x = list()
+        y1 = list()
+        y2 = list()
+        for i in range(0,10) :
+            x.append(i)
+            y1.append(pow(i,2))
+            y2.append(pow(i,3))
+        }
+
+        p = Rappture.Plot()
+        p.add(x, y1, format="g:o", name="xsquared")
+        p.add(x, y2, format="b-o", name="xcubed")
+        c = p.curve("xsquared")
+        print c.name()
+        # xsquared
+    }}}
 
 p.getNthCurve(n)
     Purpose: return the n'th curve stored in the object
@@ -170,6 +309,23 @@ p.getNthCurve(n)
                   the Plot object or None
     Notes: None
     Code Example:
+    {{{
+        x = list()
+        y1 = list()
+        y2 = list()
+        for i in range(0,10) :
+            x.append(i)
+            y1.append(pow(i,2))
+            y2.append(pow(i,3))
+        }
+
+        p = Rappture.Plot()
+        p.add(x, y1, format="g:o", name="xsquared")
+        p.add(x, y2, format="b-o", name="xcubed")
+        c = p.getNthCurve(1)
+        print c.name()
+        # xcubed
+    }}}
 
 p.vvalue([...])
     Purpose: return the value of the object after applying a
@@ -183,6 +339,26 @@ p.vvalue([...])
            not changed. Hints should be of the form
            hintKey=hintVal
     Code Example:
+    {{{
+        x = list()
+        y1 = list()
+        y2 = list()
+        for i in range(0,10) :
+            x.append(i)
+            y1.append(pow(i,2))
+            y2.append(pow(i,3))
+        }
+
+        p = Rappture.Plot()
+        p.add(x, y1, format="g:o", name="xsquared")
+        p.add(x, y2, format="b-o", name="xcubed")
+        print p.vvalue()
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+    }}}
 
 p.random();
     Purpose: populate the object with a random value
@@ -192,6 +368,21 @@ p.random();
            with a random value that fits within the min and
            max if they were specified.
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        p.random()
+        # plot is filed with random data
+        print p.vvalue()
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 2 3 4 5 6 7 8 9 10] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+        print p.count()
+        # 3
+
+    }}}
 
 p.diff(o);
     Purpose: return a list showing the differences between
@@ -201,6 +392,48 @@ p.diff(o);
     Return Value: list of differences between objects
     Notes: None
     Code Example:
+    {{{
+        p1 = Rappture.Plot()
+        p1.random()
+        # plot is filed with random data
+        print p.vvalue()
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] ]
+
+        p2 = Rappture.Plot()
+        p2.random()
+        # plot is filed with random data
+        print p.vvalue()
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        diffs = p1.diff(p2)
+        # diffs is a list of tuples or list of lists.
+
+        for ctype, prop, oVal, nVal in diffs {
+            print "%s %s %s %s" % (ctype, prop, oVal, nVal)"
+        }
+        # c name temperature Ef
+        # c units K eV
+        # c def 300 4.5
+        # c min 0 0
+        # c max 500 10
+        # c label "Ambiant Temperature" "Fermi Level"
+        # c desc "Temperature of the environment" "Energy at center of distribution"
+        #
+        # Note that this function will find a difference in the
+        # minimum values even though they are numerically equal.
+        # This is because the objects have different units that
+        # are not compatible. If compatible units were found,
+        # n2's values would have been converted to n1's units
+        # for each comparison.
+        #
+        # if diffs is a flat list, user would need to write something like this:
+        # for i in range(len(diffs)/4):
+        #     ctype, prop, oVal, nVal = diffs[(i*4):(i*4)+4]
+        #     print ctype, prop, oVal, nVal
+
+    }}}
 
 p.configure(as, c)
     Purpose: configure the object based on the data in "c".
@@ -217,6 +450,134 @@ p.configure(as, c)
     Return Value: None
     Notes: object is configured based on values in "c"
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        xmldata = """
+            <?xml version="1.0">
+            <curve id="xsquared">
+                <about>
+                    <group>auto34</group>
+                    <label>x squared</label>
+                    <description>x values are squared</description>
+                    <type></type>
+                    <format>g:o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being squared</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>squared values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         4
+                 3         9
+                 4        16
+                 5        25
+                 6        36
+                 7        49
+                 8        64
+                 9        81
+                10       100
+                    </xy>
+                </component>
+            </curve>
+            <curve id="xcubed">
+                <about>
+                    <group>auto34</group>
+                    <label>x cubed</label>
+                    <description>x values are cubed</description>
+                    <type></type>
+                    <format>b-o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being cubed</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>cubed values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         8
+                 3        27
+                 4        64
+                 5       125
+                 6       216
+                 7       343
+                 8       512
+                 9       729
+                10      1000
+                    </xy>
+                </component>
+            </curve>
+        """
+
+        p.configure(RPCONFIG_XML,xmldata)
+        print p.vvalue()
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        for cur in range(p.count()):
+            c = p.getNthCurve(cur)
+            print c.name()
+            print c.label()
+            print c.desc()
+            print c.format()
+            for axisCnt in range(c.dims()):
+                axis = c.getNthAxis(axisCnt)
+                print axis.label()
+                print axis.desc()
+                print axis.units()
+                print axis.scale()
+                print axis.data()
+        # xsquared
+        # x squared
+        # x values are squared
+        # g:o
+        # xaxis
+        # x values
+        # values being squared
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # squared values
+        #
+        # linear
+        # [1 4 9 16 25 36 49 64 81 100]
+        # xcubed
+        # x cubed
+        # x values are cubed
+        # b-o
+        # xaxis
+        # x values
+        # values being cubed
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # cubed values
+        #
+        # linear
+        # [1 8 27 64 125 216 343 512 729 1000]
+
+    }}}
 
 p.dump(as, c)
     Purpose: dump the object values based to the object "c".
@@ -233,6 +594,90 @@ p.dump(as, c)
     Return Value: None
     Notes: None
     Code Example:
+    {{{
+        x = list()
+        y1 = list()
+        y2 = list()
+        for i in range(0,10) :
+            x.append(i)
+            y1.append(pow(i,2))
+            y2.append(pow(i,3))
+        }
+
+        p = Rappture.Plot()
+        p.add(x, y1, format="g:o", name="xsquared")
+        p.add(x, y2, format="b-o", name="xcubed")
+        print p.dump(RPCONFIG_XML)
+        # <curve id="xsquared">
+        #     <about>
+        #         <group>auto34</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>g:o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         4
+        #      3         9
+        #      4        16
+        #      5        25
+        #      6        36
+        #      7        49
+        #      8        64
+        #      9        81
+        #     10       100
+        #         </xy>
+        #     </component>
+        # </curve>
+        # <curve id="xcubed">
+        #     <about>
+        #         <group>unnamed</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>b-o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         8
+        #      3        27
+        #      4        64
+        #      5       125
+        #      6       216
+        #      7       343
+        #      8       512
+        #      9       729
+        #     10      1000
+        #         </xy>
+        #     </component>
+        # </curve>
+
+    }}}
 
 p.outcome()
     Purpose: return the status of this object as an Outcome.
@@ -240,6 +685,15 @@ p.outcome()
     Return Value: status of the object as an Outcome
     Notes: None
     Code Example:
+    {{{
+        p = Rappture.Plot()
+        out = p.outcome()
+        if (out.value() != 0) {
+            sys.stderr.write(out.context())
+            sys.stderr.write(out.remark())
+        }
+    }}}
+
 
 p.is()
     Purpose: return an integer tag describing the object.

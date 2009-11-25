@@ -24,6 +24,9 @@ Rappture.Library()
     Return Value: empty Rappture Library object
     Notes: None
     Code Example:
+    {{{
+        lib = Rappture.Library()
+    }}}
 
 Rappture.Library(lib2)
     Purpose: construct a copy of a Rappture Library object
@@ -32,6 +35,10 @@ Rappture.Library(lib2)
     Return Value: copy of a Rappture Library object
     Notes: None
     Code Example:
+    {{{
+        lib2 = Rappture.Library()
+        lib = Rappture.Library(lib2)
+    }}}
 
 lib.loadXml(xmltext)
     Purpose: parse the Rappture1.1 xml data in "xmltext".
@@ -42,6 +49,30 @@ lib.loadXml(xmltext)
     Return Value: status of the object
     Notes: None
     Code Example:
+    {{{
+        xmltext = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>"""
+        lib = Rappture.Library()
+        lib.loadXml(xmltext)
+    }}}
 
 lib.loadFile(filename)
     Purpose: read the file "filename" and parse the
@@ -54,6 +85,36 @@ lib.loadFile(filename)
     Return Value: status of the object
     Notes: None
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        filename = "driver1234.xml"
+        fp = open(filename,"w")
+        fp.write(data)
+        fp.close()
+        lib = Rappture.Library()
+        lib.loadFile(filename)
+    }}}
 
 lib.value(key[, ...])
     Purpose: retrieve the value of the object named "key" and
@@ -71,6 +132,35 @@ lib.value(key[, ...])
             should be listed as comma separated strings in the
             function's argument list.
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        temp = lib.value("temperature","units=F")
+        print "temp = %s\n" % (temp)
+        # temp = 80.33
+    }}}
 
 lib.diff(lib2)
     Purpose: find the difference between two library objects
@@ -79,6 +169,96 @@ lib.diff(lib2)
     Return Value: List of differences
     Notes: None
     Code Example:
+    {{{
+        data1 = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id="forel">
+                        <about>
+                            <label>Forel</label>
+                            <description>Environment</description>
+                        </about>
+                        <units>cm</units>
+                        <min>4cm</min>
+                        <max>183cm</max>
+                        <default>72cm</default>
+                    </number>
+                    <integer id="toops">
+                        <about>
+                            <label>Toops</label>
+                            <description>Icks hafra doec weple</description>
+                        </about>
+                        <default>33</default>
+                    </integer>
+                </input>
+            </run>
+        """
+
+        data2 = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <integer id="toops">
+                        <about>
+                            <label>Toops</label>
+                            <description>Icks hafra doec weple</description>
+                        </about>
+                        <default>33</default>
+                    </integer>
+                    <number id="Ef">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                    <number id="forel">
+                        <about>
+                            <label>Forel</label>
+                            <description>Environment</description>
+                        </about>
+                        <units>cm</units>
+                        <min>4cm</min>
+                        <max>183cm</max>
+                        <default>109cm</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib1 = Rappture::Library()
+        lib1.loadXml(data1)
+
+        lib2 = Rappture::Library()
+        lib2.loadXml(data2)
+
+        diffs = lib1.diff(lib2)
+        # - input.number(temperature) 300K
+        # c input.number(forel) 72cm 109cm
+        # + input.number(Ef)  0eV
+    }}}
 
 lib.remove(key)
     Purpose: remove the object from this library named "key"
@@ -87,6 +267,64 @@ lib.remove(key)
     Return Value: None
     Notes: The object is removed and it's memory is deleted
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id="Ef">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        lib.remove("Ef")
+        print lib.xml()
+
+        # <?xml version="1.0"?>
+        # <run>
+        #     <tool>
+        #         <about>Press Simulate to view results.</about>
+        #         <command>@tool/fermi @driver</command>
+        #     </tool>
+        #     <input>
+        #         <number id="temperature">
+        #             <about>
+        #                 <label>Ambient temperature</label>
+        #                 <description>Temperature of the environment.</description>
+        #             </about>
+        #             <units>K</units>
+        #             <min>0K</min>
+        #             <max>500K</max>
+        #             <default>300K</default>
+        #         </number>
+        #     </input>
+        # </run>
+    }}}
 
 lib.xml()
     Purpose: return the Rappture1.1 xml representation of the
@@ -95,6 +333,53 @@ lib.xml()
     Return Value: None
     Notes: user is responsible for free'ing returned memory?
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        print lib.xml()
+
+        # <?xml version="1.0"?>
+        # <run>
+        #     <tool>
+        #         <about>Press Simulate to view results.</about>
+        #         <command>@tool/fermi @driver</command>
+        #     </tool>
+        #     <input>
+        #         <number id="temperature">
+        #             <about>
+        #                 <label>Ambient temperature</label>
+        #                 <description>Temperature of the environment.</description>
+        #             </about>
+        #             <units>K</units>
+        #             <min>0K</min>
+        #             <max>500K</max>
+        #             <default>300K</default>
+        #         </number>
+        #     </input>
+        # </run>
+    }}}
 
 lib.outcome()
     Purpose: return the status of the object
@@ -102,6 +387,38 @@ lib.outcome()
     Return Value: status of the object
     Notes: None
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        if (lib.error() != 0) {
+            print "there was an error while loading xml data"
+            outcome = lib.outcome()
+            sys.stderr.write(outcome.context())
+            sys.stderr.write(outcome.remark())
+        }
+    }}}
 
 lib.error()
     Purpose: return the status of the object
@@ -109,6 +426,38 @@ lib.error()
     Return Value: status of the object
     Notes: None
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        if (lib.error() != 0) {
+            print "there was an error while loading xml data"
+            outcome = lib.outcome()
+            sys.stderr.write(outcome.context())
+            sys.stderr.write(outcome.remark())
+        }
+    }}}
 
 lib.result(status)
     Purpose: write the stored objects to a data file and
@@ -120,6 +469,36 @@ lib.result(status)
             xml. this function generates the RAPPTURE-RUN=>
             signal.
     Code Example:
+    {{{
+        data = """
+            <?xml version="1.0"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id="temperature">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        lib.result()
+        # internal xml objects free'd
+        # driver file written to disk
+        # =RAPPTURE-RUN=>driver1234.xml signal sent to stdout
+    }}}
 
 lib.contains()
     Purpose: return a list of the Rappture objects
@@ -129,3 +508,50 @@ lib.contains()
                     this library.
     Notes: None
     Code Example:
+    {{{
+        data = """
+            <?xml version=\"1.0\"?>
+            <run>
+                <tool>
+                    <about>Press Simulate to view results.</about>
+                    <command>@tool/fermi @driver</command>
+                </tool>
+                <input>
+                    <number id=\"temperature\">
+                        <about>
+                            <label>Ambient temperature</label>
+                            <description>Temperature of the environment.</description>
+                        </about>
+                        <units>K</units>
+                        <min>0K</min>
+                        <max>500K</max>
+                        <default>300K</default>
+                    </number>
+                    <number id=\"Ef\">
+                        <about>
+                            <label>Fermi Level</label>
+                            <description>Energy at center of distribution.</description>
+                        </about>
+                        <units>eV</units>
+                        <min>-10eV</min>
+                        <max>10eV</max>
+                        <default>0eV</default>
+                    </number>
+                </input>
+            </run>
+        """
+
+        lib = Rappture::Library()
+        lib.loadXml(data)
+        xmlObjs = lib.contains()
+        len xmlObjs
+        # 2
+        # xmlObjs contains objects (pointers or copies of objects?)
+        print xmlObjs
+        # ::Rappture::Number ::Rappture::Number
+        foreach obj in xmlObjs {
+            obj.vvalue()
+        }
+        # 300
+        # 0
+    }}}

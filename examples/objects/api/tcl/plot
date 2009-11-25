@@ -160,7 +160,7 @@ color ?<val>?
         set p [Rappture::Plot]
         $p color
         # ""
-        $p color"no color"
+        $p color "no color"
         $p color
         # "no color"
     }}}
@@ -365,7 +365,7 @@ random
         #     [1 4 9 16 25 36 49 64 81 100] ] \
         #   [ [1 2 3 4 5 6 7 8 9 10] \
         #     [1 8 27 64 125 216 343 512 729 1000] ] ]
-        put [$p count]
+        puts [$p count]
         # 3
 
     }}}
@@ -431,6 +431,136 @@ configure -as <as> <c>
     Return Value: None
     Notes: object is configured based on values in "c"
     Code Example:
+    {{{
+        set p [Rappture.Plot]
+        set xmldata {
+            <?xml version="1.0">
+            <curve id="xsquared">
+                <about>
+                    <group>auto34</group>
+                    <label>x squared</label>
+                    <description>x values are squared</description>
+                    <type></type>
+                    <format>g:o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being squared</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>squared values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         4
+                 3         9
+                 4        16
+                 5        25
+                 6        36
+                 7        49
+                 8        64
+                 9        81
+                10       100
+                    </xy>
+                </component>
+            </curve>
+            <curve id="xcubed">
+                <about>
+                    <group>auto34</group>
+                    <label>x cubed</label>
+                    <description>x values are cubed</description>
+                    <type></type>
+                    <format>b-o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being cubed</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>cubed values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         8
+                 3        27
+                 4        64
+                 5       125
+                 6       216
+                 7       343
+                 8       512
+                 9       729
+                10      1000
+                    </xy>
+                </component>
+            </curve>
+        }
+
+        $p configure -as RPCONFIG_XML $xmldata
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        for {set cur 0} {$cur < [$p count]} {incr cur} {
+            set c [$p getNthCurve $cur]
+            puts [$c name]
+            puts [$c label]
+            puts [$c desc]
+            puts [$c format]
+            for {set axisCnt 0} {$axisCnt < [$c dims]} {incr axisCnt} {
+                set axis [$c getNthAxis $axisCnt]
+                puts [$axis label]
+                puts [$axis desc]
+                puts [$axis units]
+                puts [$axis scale]
+                puts [$axis data]
+            }
+        }
+        # xsquared
+        # x squared
+        # x values are squared
+        # g:o
+        # xaxis
+        # x values
+        # values being squared
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # squared values
+        #
+        # linear
+        # [1 4 9 16 25 36 49 64 81 100]
+        # xcubed
+        # x cubed
+        # x values are cubed
+        # b-o
+        # xaxis
+        # x values
+        # values being cubed
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # cubed values
+        #
+        # linear
+        # [1 8 27 64 125 216 343 512 729 1000]
+
+    }}}
 
 dump -as <as>
     Purpose: dump the object values.
@@ -446,6 +576,87 @@ dump -as <as>
                RPCONFIG_TREE   RP_ParserXML *object
     Notes: None
     Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        puts [$p dump -as RPCONFIG_XML]
+        # <curve id="xsquared">
+        #     <about>
+        #         <group>auto34</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>g:o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         4
+        #      3         9
+        #      4        16
+        #      5        25
+        #      6        36
+        #      7        49
+        #      8        64
+        #      9        81
+        #     10       100
+        #         </xy>
+        #     </component>
+        # </curve>
+        # <curve id="xcubed">
+        #     <about>
+        #         <group>auto34</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>b-o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         8
+        #      3        27
+        #      4        64
+        #      5       125
+        #      6       216
+        #      7       343
+        #      8       512
+        #      9       729
+        #     10      1000
+        #         </xy>
+        #     </component>
+        # </curve>
+
+    }}}
 
 outcome
     Purpose: return the status of this object as an Outcome.
@@ -453,6 +664,15 @@ outcome
     Return Value: status of the object as an Outcome
     Notes: None
     Code Example:
+    {{{
+        set p [Rappture::Plot]
+        set out [$p outcome]
+        if ([$out value] != 0) {
+            puts stderr [$out context]
+            puts stderr [$out remark]
+        }
+    }}}
+
 
 is
     Purpose: return an integer tag describing the object.
