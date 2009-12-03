@@ -153,7 +153,6 @@ itcl::body Rappture::XyPrint::destructor {} {
 
 itcl::body Rappture::XyPrint::DestroySettings {} {
     destroy $_clone
-    array unset _settings $this-*
     set _clone ""
     set _graph ""
     foreach font [array names _fonts] {
@@ -1085,14 +1084,14 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
     $_clone marker configure ${type}-zero -hide $_settings($this-axis-zero)
     font configure $axis-title \
 	-family [$page.titlefontfamily current] \
-	-size [$page.titlefontsize current] \
+	-size   [$page.titlefontsize current] \
 	-weight $_settings($this-axis-titlefont-weight) \
-	-slant $_settings($this-axis-titlefont-slant)
+	-slant  $_settings($this-axis-titlefont-slant)
     font configure $axis-ticks \
 	-family [$page.tickfontfamily current] \
-	-size [$page.tickfontsize current] \
+	-size   [$page.tickfontsize current] \
 	-weight $_settings($this-axis-tickfont-weight) \
-	-slant $_settings($this-axis-tickfont-slant)
+	-slant  $_settings($this-axis-tickfont-slant)
     $_clone axis configure $axis -tickfont $axis-ticks -titlefont $axis-title
     GetAxis
     RegeneratePreview
