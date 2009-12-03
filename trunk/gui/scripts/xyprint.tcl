@@ -571,24 +571,25 @@ itcl::body Rappture::XyPrint::BuildLayoutTab {} {
     Rappture::Tooltip::for $page.bottom \
         "Set the size (inches) of the bottom margin. If zero, the size is automatically determined."
 
-    blt::table $page \
-	1,0 $page.width_l -anchor e \
-	1,1 $page.width -fill x -cspan 2 \
-	1,3 $page.height_l -anchor e \
-	1,4 $page.height -fill x -cspan 2 \
-	3,2 $page.top_l -anchor e \
-	3,3 $page.top -fill x \
-	4,0 $page.left_l -anchor e \
-	4,1 $page.left -fill x  \
-	4,4 $page.right_l -anchor e \
-	4,5 $page.right -fill x \
-	5,2 $page.bottom_l -anchor e \
-	5,3 $page.bottom -fill x  
 
-    blt::table configure $page r* -resize none -pady { 0 2 }
-    blt::table configure $page r2 -resize both
-    blt::table configure $page c2 c4 -width .5i
-    blt::table configure $page r6 -height .125i
+    label $page.map -image [Rappture::icon graphmargins]
+    blt::table $page \
+	0,0 $page.width_l -anchor e \
+	0,1 $page.width -fill x  \
+	1,0 $page.height_l -anchor e \
+	1,1 $page.height -fill x \
+	3,0 $page.left_l -anchor e \
+	3,1 $page.left -fill x  \
+	4,0 $page.right_l -anchor e \
+	4,1 $page.right -fill x \
+	5,0 $page.top_l -anchor e \
+	5,1 $page.top -fill x \
+	6,0 $page.bottom_l -anchor e \
+	6,1 $page.bottom -fill x  \
+	0,2 $page.map -fill both -rspan 7 -padx 2
+
+    blt::table configure $page c0 r* -resize none 
+    blt::table configure $page c1 r2 -resize both
 }
 
 
