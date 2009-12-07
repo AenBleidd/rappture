@@ -12,34 +12,46 @@
 # ======================================================================
 package require Rappture
 
-# open the XML file containing the run parameters
-set lib [Rappture::Library]
+# initialize the global interface
+Rappture::Interface $argv fermi_io
 
-$lib loadFile [lindex $argv 0]
-
-if {[$lib error] != 0} {
-    # cannot open file or out of memory
-    set o [$lib outcome]
+# check the global interface for errors
+if {[Rappture::Interface::error] != 0} {
+    # there were errors while setting up the inteface
+    # dump the traceback
+    set o [Rappture::Interface::outcome]
     puts stderr [$o context]
     puts stderr [$o remark]
-    exit [$lib error]
+    exit [Rappture::Interface::error]
 }
 
-set T [Rappture::Connect $lib "temperature"]
-set Ef [$lib value "Ef" "units eV"]
+# connect variables to the interface
+# look in the global interface for an object named
+# "temperature, convert its value to Kelvin, and
+# store the value into the address of T.
+# look in the global interface for an object named
+# "Ef", convert its value to electron Volts and store
+# the value into the address of Ef
+# look in the global interface for an object named
+# factorsTable and set the variable result to
+# point to it.
+set T [Rappture::Interface::connect "temperature" -hints {"units=K"}]
+set Ef [Rappture::Interface::connect "Ef" -hints {"units=eV"}]
+set result [Rappture::Interface::connect "factorsTable"]
 
-if {[$lib error != 0]} {
+if {[Rappture::Interface::error] != 0]} {
     # there were errors while retrieving input data values
     # dump the tracepack
-    set o [$lib outcome]
+    set o [Rappture::Interface::outcome]
     puts stderr [$o context]
     puts stderr [$o remark]
-    exit [$lib error]
+    exit [Rappture::Interface::error]
 }
 
+# do science calculations
 set nPts 200
 
-set kT [expr {8.61734e-5 * [$T value "K"]}]
+set kT [expr {8.61734e-5 * $T}]
 set Emin [expr {$Ef - 10*$kT}]
 set Emax [expr {$Ef + 10*$kT}]
 
@@ -55,19 +67,14 @@ for {set idx 0} {idx < nPts} {incr idx} {
     Rappture::Utils::progress $progress -mesg "Iterating"
 }
 
-# do it the easy way,
-# create a plot to add to the library
-# plot is registered with lib upon object creation
-# p1->add(nPts,xArr,yArr,format,curveLabel,curveDesc);
+# store results in the results table
+# add data to the table pointed to by the variable result.
+# put the fArr data in the column named "Fermi-Dirac Factor"
+# put the EArr data in the column named "Energy"
 
-set p1 [Rappture::Plot $lib]
-$p1 add $fArr $EArr -name "fdfactor"
-$p1 propstr "label" "Fermi-Dirac Curve"
-$p1 propstr "desc" "Plot of Fermi-Dirac Calculation"
-$p1 propstr "xlabel" "Fermi-Dirac Factor"
-$p1 propstr "ylabel" "Energy"
-$p1 propstr "yunits" "eV"
+$result add data "Fermi-Dirac Factor" $fArr
+$result add data "Energy" $EArr
 
-$lib result
+Rappture::Interface::close
 
 exit 0
