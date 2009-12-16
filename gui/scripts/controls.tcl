@@ -175,6 +175,10 @@ itcl::body Rappture::Controls::insert {pos path} {
 	note {
 	    Rappture::Note $w $_owner $path
 	}
+	periodicelement {
+	    Rappture::PeriodicElementEntry $w $_owner $path
+	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
+	}
 	default {
 	    error "don't know how to add control type \"$type\""
 	}

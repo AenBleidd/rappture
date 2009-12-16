@@ -80,6 +80,9 @@ FILES		= \
 		$(srcdir)/page.tcl \
 		$(srcdir)/pager.tcl \
 		$(srcdir)/panes.tcl \
+		$(srcdir)/periodicelement.tcl \
+		$(srcdir)/periodicelemententry.tcl \
+		$(srcdir)/periodictable.tcl \
 		$(srcdir)/postern.tcl \
 		$(srcdir)/progress.tcl \
 		$(srcdir)/pushbutton.tcl \
