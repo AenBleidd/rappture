@@ -588,6 +588,7 @@ AC_CONFIG_FILES([
     examples/zoo/note/docs/Makefile
     examples/zoo/number/Makefile
     examples/zoo/number2/Makefile
+    examples/zoo/periodicelement/Makefile
     examples/zoo/phase/Makefile
     examples/zoo/sequence/Makefile
     examples/zoo/sequence/examples/Makefile
