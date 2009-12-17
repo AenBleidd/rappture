@@ -54,8 +54,8 @@ itcl::class Rappture::PeriodicElement {
 	static unsigned char arrow_bits[] = {
 	   0xfe, 0x7c, 0x38, 0x10};
     }
-    private variable _value2label
-    private variable _label2value
+
+    private variable _lastValue ""
 }
 										
 itk::usual PeriodicElement {
@@ -97,6 +97,8 @@ itcl::body Rappture::PeriodicElement::constructor {args} {
 
     bind $itk_component(entry) <KeyPress-Return> \
 	[itcl::code $this _entry apply]
+    bind $itk_component(entry) <KeyPress-Tab> \
+	[itcl::code $this _entry apply]
     bind $itk_component(entry) <ButtonPress> \
 	[itcl::code $this _entry click]
 
@@ -125,21 +127,29 @@ itcl::body Rappture::PeriodicElement::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicElement::value {args} {
     if {[llength $args] == 1} {
-	set newval [lindex $args 0]
-
-	$itk_component(entry) configure -state normal
-	$itk_component(entry) delete 0 end
-	$itk_component(entry) insert 0 $newval
-	if {!$itk_option(-editable)} {
-	    $itk_component(entry) configure -state disabled
-	}
-
-	after 10 \
-	    [list catch [list event generate $itk_component(hull) <<Value>>]]
-    } elseif {[llength $args] != 0} {
+	set value [lindex $args 0]
+    } elseif { [llength $args] == 0 }  {
+	set value [$itk_component(entry) get]
+    } else {
 	error "wrong # args: should be \"value ?newval?\""
     }
-    return [$itk_component(entry) get]
+    set value [$itk_component(ptable) get $value]
+    if { $value == "" } {
+	set value $_lastValue
+	bell
+    }
+    $itk_component(entry) configure -state normal
+    $itk_component(entry) delete 0 end
+    $itk_component(entry) insert 0 $value
+    if {!$itk_option(-editable)} {
+	$itk_component(entry) configure -state disabled
+    }
+    set _lastValue $value
+    if { [llength $args] == 1 } {
+	after 10 \
+	    [list catch [list event generate $itk_component(hull) <<Value>>]]
+    } 
+    return $value
 }
 
 
@@ -224,7 +234,6 @@ itcl::body Rappture::PeriodicElement::_dropdown {option} {
 	    }
 	}
 	select {
-	    puts stderr "called selected [$itk_component(ptable) get -all]"
 	    set value [$itk_component(ptable) get -name]
 	    if {"" != $value} {
 		value $value

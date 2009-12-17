@@ -50,23 +50,23 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     set _path $path
 
     set defval [string trim [$_owner xml get $_path.default]]
-    set includes [$_owner xml get $_path.includes]
-    set excludes [$_owner xml get $_path.excludes]
+    set enable [$_owner xml get $_path.enable]
+    set disable [$_owner xml get $_path.disable]
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
     #
     itk_component add element {
-	Rappture::PeriodicElement $itk_interior.element -editable no
+	Rappture::PeriodicElement $itk_interior.element -editable yes
     }
     pack $itk_component(element) -expand yes -fill both
     bind $itk_component(element) <<Value>> [itcl::code $this _newValue]
 
-    if { $includes != "" } {
-	eval $itk_component(element) element include $includes
+    if { $disable != "" } {
+	eval $itk_component(element) element disable $disable
     }
-    if { $excludes != "" } {
-	eval $itk_component(element) element exclude $excludes
+    if { $enable != "" } {
+	eval $itk_component(element) element enable $enable
     }		
     if { $defval != "" } {
 	$itk_component(element) value $defval
