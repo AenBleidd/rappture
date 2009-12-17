@@ -41,7 +41,6 @@ itcl::class Rappture::PeriodicElement {
 
     public method value {args}
     public method label {value}
-    public method get {}
     public method element {option args}
 
     protected method _entry {option}
@@ -133,33 +132,32 @@ itcl::body Rappture::PeriodicElement::value {args} {
     } else {
 	error "wrong # args: should be \"value ?newval?\""
     }
-    set value [$itk_component(ptable) get $value]
-    if { $value == "" } {
-	set value $_lastValue
+    regsub -all -- "-" $value " " value
+    if { [llength $value] > 1 } {
+	set value [lindex $value 0]
+    }
+    set name [$itk_component(ptable) get -name $value]
+    if { $name == "" } {
+	set name $_lastValue
 	bell
+    }
+    set symbol [$itk_component(ptable) get -symbol $name]
+    if { $name != $_lastValue } {
+	$itk_component(ptable) select $name
     }
     $itk_component(entry) configure -state normal
     $itk_component(entry) delete 0 end
-    $itk_component(entry) insert 0 $value
+    #$itk_component(entry) insert 0 "${symbol} - ${name}"
+    $itk_component(entry) insert 0 "${name} - ${symbol}"
     if {!$itk_option(-editable)} {
 	$itk_component(entry) configure -state disabled
     }
-    set _lastValue $value
+    set _lastValue $name
     if { [llength $args] == 1 } {
 	after 10 \
 	    [list catch [list event generate $itk_component(hull) <<Value>>]]
     } 
-    return $value
-}
-
-
-# ----------------------------------------------------------------------
-# USAGE: getValue <value>
-#
-# Clients use this to translate a value to a label.
-# ----------------------------------------------------------------------
-itcl::body Rappture::PeriodicElement::get {} {
-    return [$itk_component(entry) get]
+    return $name
 }
 
 # ----------------------------------------------------------------------

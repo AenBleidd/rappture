@@ -25,8 +25,8 @@ itcl::class Rappture::PeriodicTable {
 
     constructor {args} { # defined below }
 
-    public method enable {args}
-    public method disable {args}
+    public method active { list }
+    public method inactive { list }
     public method get {args}
     public method select {name}
     public method value { {name ""} }
@@ -342,7 +342,7 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
 }
 
 #
-# enable <list of elements> 
+# active <list of elements> 
 #
 #	Enables zero or more elements in the periodic table so that 
 #	they can be selected.  All elements are first disabled.  Each
@@ -353,7 +353,7 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
 #	4. type of element.  The argument is expanded into all 
 #	   elements of that type.
 #
-itcl::body Rappture::PeriodicTable::enable {args} {
+itcl::body Rappture::PeriodicTable::active { list } {
     set c $itk_component(table)
     foreach elem [array names _table] { 
 	set _state($elem) "disabled"
@@ -363,15 +363,14 @@ itcl::body Rappture::PeriodicTable::enable {args} {
     }
     # Expand any arguments that represent a group of elements.
     set arglist {}
-    foreach arg $args {
+    foreach arg $list {
 	if { [info exists _types($arg)] } {
 	    set arglist [concat $arglist $_types($arg)]
 	} else {
 	    lappend arglist $arg
 	}
     }
-    set args $arglist
-    foreach arg $args {
+    foreach arg $arglist {
 	set elem [FindElement $arg]
 	if { $elem == "" } {
 	    puts stderr "unknown element \"$arg\""
@@ -387,7 +386,7 @@ itcl::body Rappture::PeriodicTable::enable {args} {
 }
 
 #
-# disable <list of elements> 
+# inactive <list of elements> 
 #
 #	Disables zero or more elements in the periodic table so that 
 #	they can't be selected.  All elements are first enabled.  Each
@@ -398,7 +397,7 @@ itcl::body Rappture::PeriodicTable::enable {args} {
 #	4. type of element.  The argument is expanded into all 
 #	   elements of that type.
 #
-itcl::body Rappture::PeriodicTable::disable {args} {
+itcl::body Rappture::PeriodicTable::inactive { list } {
     set c $itk_component(table)
     foreach elem [array names _table] { 
 	set _state($elem) "normal"
@@ -409,15 +408,14 @@ itcl::body Rappture::PeriodicTable::disable {args} {
     }
     # Expand any arguments that represent a group of elements.
     set arglist {}
-    foreach arg $args {
+    foreach arg $list {
 	if { [info exists _types($arg)] } {
 	    set arglist [concat $arglist $_types($arg)]
 	} else {
 	    lappend arglist $arg
 	}
     }
-    set args $arglist
-    foreach arg $args {
+    foreach arg $arglist {
 	set elem [FindElement $arg]
 	if { $elem == "" } {
 	    puts stderr "unknown element \"$arg\""
@@ -471,8 +469,8 @@ itcl::body Rappture::PeriodicTable::get { args } {
 	-weight { set value $info(weight) }
 	-number { set value $info(number) }
 	-all { 
-	    foreach key { name weight number name } { 
-		lappend value name $info($key) 
+	    foreach key { symbol name number weight } { 
+		lappend value $key $info($key) 
 	    }
 	}
     }
@@ -572,7 +570,6 @@ set last ""
 	set y1 [expr ($info(row)-1)*$sqheight+$yoffset]
 	set x2 [expr ($info(column)*$sqwidth)-2+$xoffset]
 	set y2 [expr ($info(row)*$sqheight)-2+$yoffset]
-	#puts stderr symbol=$info(symbol)
 	set type $info(type)
 	if { $_state($name) == "disabled" } {
 	    set fg $_colors($type-disabledforeground)

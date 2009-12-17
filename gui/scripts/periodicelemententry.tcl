@@ -50,8 +50,8 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     set _path $path
 
     set defval [string trim [$_owner xml get $_path.default]]
-    set enable [$_owner xml get $_path.enable]
-    set disable [$_owner xml get $_path.disable]
+    set active [$_owner xml get $_path.active]
+    set inactive [$_owner xml get $_path.inactive]
     #
     # Create the widget and configure it properly based on other
     # hints in the XML.
@@ -62,11 +62,11 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     pack $itk_component(element) -expand yes -fill both
     bind $itk_component(element) <<Value>> [itcl::code $this _newValue]
 
-    if { $disable != "" } {
-	eval $itk_component(element) element disable $disable
+    if { [llength $inactive] > 0 } {
+	$itk_component(element) element inactive $inactive
     }
-    if { $enable != "" } {
-	eval $itk_component(element) element enable $enable
+    if { [llength $active] > 0 } {
+	$itk_component(element) element active $active
     }		
     if { $defval != "" } {
 	$itk_component(element) value $defval
@@ -105,7 +105,6 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
 	}
 	set newval [lindex $args 0]
 	$itk_component(element) value $newval
-	return $newval
     } elseif {[llength $args] != 0} {
 	error "wrong # args: should be \"value ?-check? ?newval?\""
     }
@@ -113,7 +112,16 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
     #
     # Query the value and return.
     #
-    set str [$itk_component(element) value]
+    set how [$_owner xml get $_path.returnvalue]
+    switch -- $how { 
+	weight - number - name - symbol - all {
+	    set how "-$how"
+	}
+	default {
+	    set how "-name"
+	}
+    }
+    set str [$itk_component(element) element get $how]
     return $str
 }
 
@@ -165,7 +173,7 @@ itcl::body Rappture::PeriodicElementEntry::_tooltip {} {
     set tip [string trim [$_owner xml get $_path.about.description]]
 
     # get the description for the current element, if there is one
-    set str [$itk_component(element) get]
+    set str [$itk_component(element) element get -all]
     if {$_path != ""} {
 	set desc [$_owner xml get $_path.about.description]
     }
