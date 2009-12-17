@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<run>
+ <tool>
+  <about>Press Simulate to view results.</about>
+  <command>tclsh @tool/test.tcl @driver</command>
+ </tool>
+ <input>
+  <periodicelement id="first">
+   <about>
+    <label>First Element</label>
+    <description>Select the first element.</description>
+   </about>
+   <default>As</default>
+  </periodicelement>
+  <periodicelement id="second">
+   <about>
+    <label>Second Element</label>
+    <description>Select the second element.</description>
+   </about>
+   <default>O</default>
+  </periodicelement>
+  <periodicelement id="third">
+   <about>
+    <label>Third Element</label>
+    <description>Select the third element.</description>
+   </about>
+   <default>C</default>
+  </periodicelement>
+ </input>
+</run>
