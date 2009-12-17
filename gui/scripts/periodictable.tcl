@@ -20,134 +20,204 @@ option add *PeriodicTable.borderwidth 1 widgetDefault
 option add *PeriodicTable.relief flat widgetDefault
 option add *PeriodicTable.font "Arial 8"
 
+array set stateColors {
+    actinoid-active-background \#cd679a 
+    actinoid-active-foreground white 
+    actinoid-disabled-background \#ff99cc  
+    actinoid-disabled-foreground \#D97DAB
+    actinoid-normal-background \#ff99cc 
+    actinoid-normal-foreground black 
+    alkali_metal-active-background \#cd3434 
+    alkali_metal-active-foreground white 
+    alkali_metal-disabled-background \#ff6666 
+    alkali_metal-disabled-foreground \#D04747
+    alkali_metal-normal-background \#ff6666 
+    alkali_metal-normal-foreground black 
+    alkaline_earth_metal-active-background \#cdac7b 
+    alkaline_earth_metal-active-foreground white 
+    alkaline_earth_metal-disabled-background \#ffdead 
+    alkaline_earth_metal-disabled-foreground \#C19A64
+    alkaline_earth_metal-normal-background \#ffdead 
+    alkaline_earth_metal-normal-foreground black 
+    halogen-active-background \#cdcd67 
+    halogen-active-foreground white 
+    halogen-disabled-background \#ffff99 
+    halogen-disabled-foreground \#D5D562
+    halogen-normal-background \#ffff99 
+    halogen-normal-foreground black 
+    lanthanoid-active-background \#cd8dcd
+    lanthanoid-active-foreground white
+    lanthanoid-disabled-background \#ffbfff
+    lanthanoid-disabled-foreground \#D884D8
+    lanthanoid-normal-background \#ffbfff 
+    lanthanoid-normal-foreground black
+    metalloid-active-background \#9a9a67 
+    metalloid-active-foreground white 
+    metalloid-disabled-background \#cccc99 
+    metalloid-disabled-foreground \#92922C
+    metalloid-normal-background \#cccc99
+    metalloid-normal-foreground black 
+    noble_gas-active-background \#8ecdcd 
+    noble_gas-active-foreground white 
+    noble_gas-disabled-background \#c0ffff 
+    noble_gas-disabled-foreground \#7FC1C1
+    noble_gas-normal-background \#c0ffff 
+    noble_gas-normal-foreground black 
+    other_non_metal-active-background \#6ecd6e 
+    other_non_metal-active-foreground white 
+    other_non_metal-disabled-background \#a0ffa0 
+    other_non_metal-disabled-foreground \#6ACD6A
+    other_non_metal-normal-background \#a0ffa0 
+    other_non_metal-normal-foreground black 
+    post_transition_metal-active-background \#9a9a9a	
+    post_transition_metal-active-foreground white 
+    post_transition_metal-disabled-background \#cccccc 
+    post_transition_metal-disabled-foreground \#999999
+    post_transition_metal-normal-background \#cccccc 
+    post_transition_metal-normal-foreground black 
+    transition_metal-active-background \#cd8e8e 
+    transition_metal-active-foreground white 
+    transition_metal-disabled-background \#ffc0c0 
+    transition_metal-disabled-foreground \#C77E7E
+    transition_metal-normal-background \#ffc0c0 
+    transition_metal-normal-foreground black 
+    unknown-active-background \#cdcdcd 
+    unknown-active-foreground white 
+    unknown-disabled-background \#ffffff 
+    unknown-disabled-foreground \#B9B9B9
+    unknown-normal-background \#ffffff 
+    unknown-normal-foreground black 
+}
+
+    
 set periodicTableData {
-Hydrogen 1 H 1.0079	1 1	\#a0ffa0
-Helium 2 He 4.0026	1 18	\#c0ffff
-Lithium 3 Li 6.941(2) 	2 1	\#ff6666
-Beryllium 4 Be 9.0122   2 2	\#ffdead
-Boron 5 B 10.811(7) 	2 13	\#cccc99
-Carbon 6 C 12.011       2 14 	\#a0ffa0
-Nitrogen 7 N 14.007 	2 15	\#a0ffa0
-Oxygen 8 O 15.999 	2 16	\#a0ffa0 
-Fluorine 9 F 18.998 	2 17	\#ffff99
-Neon 10 Ne 20.180       2 18 	\#c0ffff
+Hydrogen 1 H 1.0079	1 1	other_non_metal
+Helium 2 He 4.0026	1 18	noble_gas
+Lithium 3 Li 6.941(2) 	2 1	alkali_metal
+Beryllium 4 Be 9.0122   2 2	alkaline_earth_metal
+Boron 5 B 10.811(7) 	2 13	metalloid
+Carbon 6 C 12.011       2 14 	other_non_metal
+Nitrogen 7 N 14.007 	2 15	other_non_metal
+Oxygen 8 O 15.999 	2 16	other_non_metal 
+Fluorine 9 F 18.998 	2 17	halogen
+Neon 10 Ne 20.180       2 18 	noble_gas
 
-Sodium 11 Na 22.990 	3 1	\#ff6666
-Magnesium 12 Mg 24.305  3 2 	\#ffdead
-Aluminium 13 Al 26.982 	3 13	\#cccccc
-Silicon 14 Si 28.086 	3 14 	\#cccc99
-Phosphorus 15 P 30.974 	3 15	\#a0ffa0 
-Sulfur 16 S 32.066(6) 	3 16	\#a0ffa6 
-Chlorine 17 Cl 35.453   3 17	\#ffff99
-Argon 18 Ar 39.948(1)   3 18	\#c0ffff
+Sodium 11 Na 22.990 	3 1	alkali_metal
+Magnesium 12 Mg 24.305  3 2 	alkaline_earth_metal
+Aluminium 13 Al 26.982 	3 13	post_transition_metal
+Silicon 14 Si 28.086 	3 14 	metalloid
+Phosphorus 15 P 30.974 	3 15	other_non_metal 
+Sulfur 16 S 32.066(6) 	3 16	other_non_metal
+Chlorine 17 Cl 35.453   3 17	halogen
+Argon 18 Ar 39.948(1)   3 18	noble_gas
 
-Potassium 19 K 39.098 	4 1 	\#ff6666
-Calcium 20 Ca 40.078(4) 4 2 	\#ffdead
-Scandium 21 Sc 44.956 	4 3	\#ffc0c0
-Titanium 22 Ti 47.867(1) 4 4 	\#ffc0c0
-Vanadium 23 V 50.942(1) 4 5 	\#ffc0c0
-Chromium 24 Cr 51.996 	4 6 	\#ffc0c0
-Manganese 25 Mn 54.938 	4 7 	\#ffc0c0
-Iron 26 Fe 55.845(2) 4 8	\#ffc0c0
-Cobalt 27 Co 58.933 4 9 	\#ffc0c0
-Nickel 28 Ni 58.693 4 10 	\#ffc0c0
-Copper 29 Cu 63.546(3) 	4 11 	\#ffc0c0
-Zinc 30 Zn 65.39(2) 4 12 	\#ffc0c0
-Gallium 31 Ga 69.723(1) 4 13 	\#cccccc
-Germanium 32 Ge 72.61(2) 4 14 	\#cccc99
-Arsenic 33 As 74.922 	4 15	\#cccc99
-Selenium 34 Se 78.96(3) 4 16	\#a0ffa0 
-Bromine 35 Br 79.904(1) 4 17	\#ffff99
-Krypton 36 Kr 83.80(1) 4 18	\#c0ffff
+Potassium 19 K 39.098 	4 1 	alkali_metal
+Calcium 20 Ca 40.078(4) 4 2 	alkaline_earth_metal
+Scandium 21 Sc 44.956 	4 3	transition_metal
+Titanium 22 Ti 47.867(1) 4 4 	transition_metal
+Vanadium 23 V 50.942(1) 4 5 	transition_metal
+Chromium 24 Cr 51.996 	4 6 	transition_metal
+Manganese 25 Mn 54.938 	4 7 	transition_metal
+Iron 26 Fe 55.845(2) 4 8	transition_metal
+Cobalt 27 Co 58.933 4 9 	transition_metal
+Nickel 28 Ni 58.693 4 10 	transition_metal
+Copper 29 Cu 63.546(3) 	4 11 	transition_metal
+Zinc 30 Zn 65.39(2) 4 12 	transition_metal
+Gallium 31 Ga 69.723(1) 4 13 	post_transition_metal
+Germanium 32 Ge 72.61(2) 4 14 	metalloid
+Arsenic 33 As 74.922 	4 15	metalloid
+Selenium 34 Se 78.96(3) 4 16	other_non_metal 
+Bromine 35 Br 79.904(1) 4 17	halogen
+Krypton 36 Kr 83.80(1) 4 18	noble_gas
 
-Rubidium 37 Rb 85.468 	5 1 	\#ff6666
-Strontium 38 Sr 87.62(1) 5 2	\#ffdead
-Yttrium 39 Y 88.906 	5 3	\#ffc0c0
-Zirconium 40 Zr 91.224(2) 5 4	\#ffc0c0
-Niobium 41 Nb 92.906 	5 5 	\#ffc0c0
-Molybdenum 42 Mo 95.94(1) 5 6 	\#ffc0c0
-Technetium 43 Tc [97.907] 5 7 	\#ffc0c0
-Ruthenium 44 Ru 101.07(2) 5 8 	\#ffc0c0
-Rhodium 45 Rh 102.906 	5 9 	\#ffc0c0
-Palladium 46 Pd 106.42(1) 5 10 	\#ffc0c0
-Silver 47 Ag 107.868 	5 11 	\#ffc0c0
-Cadmium 48 Cd 112.411(8) 5 12 	\#ffc0c0
-Indium 49 In 114.818(3) 5 13	\#cccccc
-Tin 50 Sn 118.710(7) 	5 14	\#cccccc
-Antimony 51 Sb 121.760(1) 5 15 	\#cccc99
-Tellurium 52 Te 127.60(3) 5 16 	\#cccc99
-Iodine 53 I 126.904 5 17 	\#ffff99
-Xenon 54 Xe 131.29(2) 5 18 	\#c0ffff
+Rubidium 37 Rb 85.468 	5 1 	alkali_metal
+Strontium 38 Sr 87.62(1) 5 2	alkaline_earth_metal
+Yttrium 39 Y 88.906 	5 3	transition_metal
+Zirconium 40 Zr 91.224(2) 5 4	transition_metal
+Niobium 41 Nb 92.906 	5 5 	transition_metal
+Molybdenum 42 Mo 95.94(1) 5 6 	transition_metal
+Technetium 43 Tc [97.907] 5 7 	transition_metal
+Ruthenium 44 Ru 101.07(2) 5 8 	transition_metal
+Rhodium 45 Rh 102.906 	5 9 	transition_metal
+Palladium 46 Pd 106.42(1) 5 10 	transition_metal
+Silver 47 Ag 107.868 	5 11 	transition_metal
+Cadmium 48 Cd 112.411(8) 5 12 	transition_metal
+Indium 49 In 114.818(3) 5 13	post_transition_metal
+Tin 50 Sn 118.710(7) 	5 14	post_transition_metal
+Antimony 51 Sb 121.760(1) 5 15 	metalloid
+Tellurium 52 Te 127.60(3) 5 16 	metalloid
+Iodine 53 I 126.904 5 17 	halogen
+Xenon 54 Xe 131.29(2) 5 18 	noble_gas
 
-Cesium 55 Cs 132.905 	6 1 	\#ff6666
-Barium 56 Ba 137.327(7)  6 2 	\#ffdead
-Lanthanides 57-71 * * 6 3	\#ffbfff
-Hafnium 72 Hf 178.49(2) 6 4 	\#ffc0c0
-Tantalum 73 Ta 180.948 	6 5 	\#ffc0c0
-Tungsten 74 W 183.84(1) 6 6 	\#ffc0c0
-Rhenium 75 Re 186.207(1) 6 7	\#ffc0c0
-Osmium 76 Os 190.23(3) 	6 8 	\#ffc0c0
-Iridium 77 Ir 192.217(3) 6 9	\#ffc0c0
-Platinum 78 Pt 195.084(9) 6 10 	\#ffc0c0
-Gold 79 Au 196.967 6 11 	\#ffc0c0
-Mercury 80 Hg 200.59(2) 6 12 	\#ffc0c0
-Thallium 81 Tl 204.383 	6 13	\#cccccc
-Lead 82 Pb 207.2(1) 6 14	\#cccccc
-Bismuth 83 Bi 208.980 	6 15	\#cccccc
-Polonium 84 Po [208.982] 6 16	\#cccc99
-Astatine 85 At [209.987] 6 17 	\#ffff99
-Radon 86 Rn [222.018] 6 18	\#c0ffff
+Cesium 55 Cs 132.905 	6 1 	alkali_metal
+Barium 56 Ba 137.327(7)  6 2 	alkaline_earth_metal
+Lanthanides 57-71 * * 6 3	lanthanoid
+Hafnium 72 Hf 178.49(2) 6 4 	transition_metal
+Tantalum 73 Ta 180.948 	6 5 	transition_metal
+Tungsten 74 W 183.84(1) 6 6 	transition_metal
+Rhenium 75 Re 186.207(1) 6 7	transition_metal
+Osmium 76 Os 190.23(3) 	6 8 	transition_metal
+Iridium 77 Ir 192.217(3) 6 9	transition_metal
+Platinum 78 Pt 195.084(9) 6 10 	transition_metal
+Gold 79 Au 196.967 6 11 	transition_metal
+Mercury 80 Hg 200.59(2) 6 12 	transition_metal
+Thallium 81 Tl 204.383 	6 13	post_transition_metal
+Lead 82 Pb 207.2(1) 6 14	post_transition_metal
+Bismuth 83 Bi 208.980 	6 15	post_transition_metal
+Polonium 84 Po [208.982] 6 16	metalloid
+Astatine 85 At [209.987] 6 17 	halogen
+Radon 86 Rn [222.018] 6 18	noble_gas
 
-Francium 87 Fr [223.020] 7 1 	\#ff6666
-Radium 88 Ra [226.0254] 7 2 	\#ffdead
-Actinides 89-103 * * 7 3	\#ff99cc
-Rutherfordium 104 Rf [263.113] 	7 4 	\#ffc0c0
-Dubnium 105 Db [262.114] 7 5	\#ffc0c0
-Seaborgium 106 Sg [266.122] 7 6 \#ffc0c0
-Bohrium 107 Bh [264.1247] 7 7 	\#ffc0c0
-Hassium 108 Hs [269.134] 7 8 	\#ffc0c0
-Meitnerium 109 Mt [268.139] 7 9 \#ffc0c0
-Darmstadtium 110 Ds [272.146] 7 10 	\#ffc0c0
-Roentgenium 111 Rg [272.154] 7 11	\#ffc0c0
-Ununbium 112 Uub [277] 	7 12 	\#ffc0c0
-Ununtrium 113 Uut [284] 7 13	\#cccccc
-Ununquadium 114 Uuq [289] 7 14	\#cccccc
-Ununpentium 115 Uup [288] 7 15	\#cccccc
-Ununhexium 116 Uuh [292]  7 16 	\#cccccc
-Ununseptium 117 Uus ? 7 17	\#ffffff
-Ununoctium 118 Uuo [294] 7 18 	\#ffffff
+Francium 87 Fr [223.020] 7 1 	alkali_metal
+Radium 88 Ra [226.0254] 7 2 	alkaline_earth_metal
+Actinides 89-103 * * 7 3	actinoid
+Rutherfordium 104 Rf [263.113] 	7 4 	transition_metal
+Dubnium 105 Db [262.114] 7 5	transition_metal
+Seaborgium 106 Sg [266.122] 7 6 transition_metal
+Bohrium 107 Bh [264.1247] 7 7 	transition_metal
+Hassium 108 Hs [269.134] 7 8 	transition_metal
+Meitnerium 109 Mt [268.139] 7 9 transition_metal
+Darmstadtium 110 Ds [272.146] 7 10 	transition_metal
+Roentgenium 111 Rg [272.154] 7 11	transition_metal
+Ununbium 112 Uub [277] 	7 12 	transition_metal
+Ununtrium 113 Uut [284] 7 13	post_transition_metal
+Ununquadium 114 Uuq [289] 7 14	post_transition_metal
+Ununpentium 115 Uup [288] 7 15	post_transition_metal
+Ununhexium 116 Uuh [292]  7 16 	post_transition_metal
+Ununseptium 117 Uus ? 7 17	unknown
+Ununoctium 118 Uuo [294] 7 18 	unknown
 
-Lanthanum 57 La 138.905 8 3 	\#ffbfff
-Cerium 58 Ce 140.116(1) 8 4	\#ffbfff
-Praseodymium 59 Pr 140.908 8 5 		\#ffbfff
-Neodymium 60 Nd 144.242(3) 8 6 	\#ffbfff
-Promethium 61 Pm [144.913] 8 7 	\#ffbfff
-Samarium 62 Sm 150.36(2) 8 8 	\#ffbfff
-Europium 63 Eu 151.964(1) 8 9 	\#ffbfff
-Gadolinium 64 Gd 157.25(3) 8 10 	\#ffbfff
-Terbium 65 Tb 158.925 	8 11 	\#ffbfff
-Dysprosium 66 Dy 162.500(1) 8 12 	\#ffbfff
-Holmium 67 Ho 164.930 8 13	\#ffbfff
-Erbium 68 Er 167.259(3) 8 14	\#ffbfff
-Thulium 69 Tm 168.934 	8 15	\#ffbfff
-Ytterbium 70 Yb 173.04(3) 8 16 	\#ffbfff
-Lutetium 71 Lu 174.967(1) 8 17	\#ffbfff
+Lanthanum 57 La 138.905 8 3 	lanthanoid
+Cerium 58 Ce 140.116(1) 8 4	lanthanoid
+Praseodymium 59 Pr 140.908 8 5 		lanthanoid
+Neodymium 60 Nd 144.242(3) 8 6 	lanthanoid
+Promethium 61 Pm [144.913] 8 7 	lanthanoid
+Samarium 62 Sm 150.36(2) 8 8 	lanthanoid
+Europium 63 Eu 151.964(1) 8 9 	lanthanoid
+Gadolinium 64 Gd 157.25(3) 8 10 	lanthanoid
+Terbium 65 Tb 158.925 	8 11 	lanthanoid
+Dysprosium 66 Dy 162.500(1) 8 12 	lanthanoid
+Holmium 67 Ho 164.930 8 13	lanthanoid
+Erbium 68 Er 167.259(3) 8 14	lanthanoid
+Thulium 69 Tm 168.934 	8 15	lanthanoid
+Ytterbium 70 Yb 173.04(3) 8 16 	lanthanoid
+Lutetium 71 Lu 174.967(1) 8 17	lanthanoid
 
-Actinium 89 Ac [227.027] 9 3	\#ff99cc
-Thorium 90 Th 232.038 	9 4 	\#ff99cc
-Protactinium 91 Pa 231.036 9 5 	\#ff99cc
-Uranium 92 U 238.029 9 6	\#ff99cc
-Neptunium 93 Np [237.048] 9 7 	\#ff99cc
-Plutonium 94 Pu [244.064] 9 8 	\#ff99cc
-Americium 95 Am [243.061] 9 9 	\#ff99cc
-Curium 96 Cm [247.070] 9 10 	\#ff99cc
-Berkelium 97 Bk [247.070] 9 11 	\#ff99cc
-Californium 98 Cf [251.080] 9 12 	\#ff99cc
-Einsteinium 99 Es [252.083] 9 13	\#ff99cc
-Fermium 100 Fm [257.095] 9 14	\#ff99cc
-Mendelevium 101 Md [258.098] 9 15 		\#ff99cc
-Nobelium 102 No [259.101] 9 16 	\#ff99cc
-Lawrencium 103 Lr [262.110] 9 17 	\#ff99cc
+Actinium 89 Ac [227.027] 9 3	actinoid
+Thorium 90 Th 232.038 	9 4 	actinoid
+Protactinium 91 Pa 231.036 9 5 	actinoid
+Uranium 92 U 238.029 9 6	actinoid
+Neptunium 93 Np [237.048] 9 7 	actinoid
+Plutonium 94 Pu [244.064] 9 8 	actinoid
+Americium 95 Am [243.061] 9 9 	actinoid
+Curium 96 Cm [247.070] 9 10 	actinoid
+Berkelium 97 Bk [247.070] 9 11 	actinoid
+Californium 98 Cf [251.080] 9 12 	actinoid
+Einsteinium 99 Es [252.083] 9 13	actinoid
+Fermium 100 Fm [257.095] 9 14	actinoid
+Mendelevium 101 Md [258.098] 9 15 		actinoid
+Nobelium 102 No [259.101] 9 16 	actinoid
+Lawrencium 103 Lr [262.110] 9 17 	actinoid
 }
 
 itcl::class Rappture::PeriodicTable {
@@ -155,8 +225,8 @@ itcl::class Rappture::PeriodicTable {
 
     constructor {args} { # defined below }
 
-    public method include {args}
-    public method exclude {args}
+    public method enable {args}
+    public method disable {args}
     public method get {args}
     public method select {name}
     public method value { {name ""} }
@@ -164,6 +234,7 @@ itcl::class Rappture::PeriodicTable {
     private variable _table
     private variable _dispatcher ""
     private variable _current ""
+    private variable _state
 
     protected method _adjust {{widget ""}}
 
@@ -171,6 +242,7 @@ itcl::class Rappture::PeriodicTable {
     protected method Redraw {}
     protected method Activate { widget id x y }
     protected method Deactivate { widget id }
+    protected method FindElement { string }
 }
 
 itk::usual PeriodicTable {
@@ -185,9 +257,10 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Redraw]; list"
     global periodicTableData
-    foreach { name number symbol weight row column color } $periodicTableData {
+    foreach { name number symbol weight row column type } $periodicTableData {
 	set _table($name) [list name $name number $number symbol $symbol \
-		weight $weight row $row column $column color $color]
+		weight $weight row $row column $column type $type]
+	set _state($name) "normal"
     }
     itk_component add scroller {
 	Rappture::Scroller $itk_interior.sc \
@@ -225,22 +298,34 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: include <list of elements> 
+# USAGE: enable <list of elements> 
 #
 # Inserts one or more values into this drop-down list.  Each value
 # has a keyword (computer-friendly value) and a label (human-friendly
 # value).  The labels appear in the listbox.  If the label is "--",
 # then the value is used as the label.
 # ----------------------------------------------------------------------
-itcl::body Rappture::PeriodicTable::include {args} {
-    array unset _includes
-    foreach name [array names _args] { 
-	if { ![info exists _table($name)] } {
-	    puts stderr "unknown element \"$name\""
+itcl::body Rappture::PeriodicTable::enable {args} {
+    set c $itk_component(table)
+    foreach elem [array names _table] { 
+	set _state($elem) "disabled"
+	$c bind $elem <Enter> {}
+	$c bind $elem <Leave> {}
+	$c bind $elem <ButtonRelease-1> {}
+    }
+    foreach arg $args {
+	set elem [FindElement $arg]
+	if { $elem == "" } {
+	    puts stderr "unknown element \"$arg\""
 	} else {
-	    set _includes($name) 1
+	    set _state($elem) "normal"
+	    $c bind $elem <Enter> \
+		[itcl::code $this Activate %W $elem %X %Y]
+	    $c bind $elem <Leave> [itcl::code $this Deactivate %W $elem]
+	    $c bind $elem <ButtonRelease-1> [itcl::code $this value $elem]
 	}
     }
+    Redraw
     $_dispatcher event -idle !rebuild
 }
 
@@ -252,17 +337,27 @@ itcl::body Rappture::PeriodicTable::include {args} {
 # value).  The labels appear in the listbox.  If the label is "--",
 # then the value is used as the label.
 # ----------------------------------------------------------------------
-itcl::body Rappture::PeriodicTable::exclude {args} {
+itcl::body Rappture::PeriodicTable::disable {args} {
+    set c $itk_component(table)
     foreach name [array names _table] { 
-	set _includes($name) 1
+	set _state($name) "normal"
+	$c bind $elem <Enter> \
+	    [itcl::code $this Activate %W $elem %X %Y]
+	$c bind $elem <Leave> [itcl::code $this Deactivate %W $elem]
+	$c bind $elem <ButtonRelease-1> [itcl::code $this value $elem]
     }
-    foreach name [array names $args] { 
-	if { ![info exists _table($name)] } {
-	    puts stderr "unknown element \"$name\""
+    foreach arg $args {
+	set elem [FindElement $arg]
+	if { $elem == "" } {
+	    puts stderr "unknown element \"$arg\""
 	} else {
-	    array unset _includes $name
+	    set _state($elem) "disabled"
+	    $c bind $elem <Enter> {}
+	    $c bind $elem <Leave> {}
+	    $c bind $elem <ButtonRelease-1> {}
 	}
     }
+    Redraw
     $_dispatcher event -idle !rebuild
 }
 
@@ -275,16 +370,10 @@ itcl::body Rappture::PeriodicTable::exclude {args} {
 # for the specified index.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::get { args } {
-    array set options { 
-	"-symbol" "0"
-	"-weight" "0"
-	"-number" "0"
-	"-name" "0"
-	"-all" 0
-    }
     set first [lindex $args 0]
+    set choices {-symbol -weight -number -name -all}
+    set format "-name"
     if {[string index $first 0] == "-"} {
-	set choices {-symbol -weight -number -name -all}
 	if {[lsearch $choices $first] < 0} {
 	    error "bad option \"$first\": should be [join [lsort $choices] {, }]"
 	}
@@ -300,10 +389,11 @@ itcl::body Rappture::PeriodicTable::get { args } {
     } else {
 	set name [lindex $args 0]
     }
-    if { ![info exists _table($name)] } {
+    set elem [FindElement $name]
+    if { $elem == "" || $_state($elem) == "disabled" } {
 	return ""
     }
-    array set info $_table($name)
+    array set info $_table($elem)
     # scan through and build up the return list
     switch -- $format {
 	-name   { set value $info(name)   }
@@ -326,18 +416,11 @@ itcl::body Rappture::PeriodicTable::get { args } {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::select { what } {
-    foreach name [array names _table] { 
-	array set info $_table($name)
-	if { $what == $info(name) || $what == $info(number) || 
-	     $what == $info(symbol) || $what == $info(weight) } {
-	    break
-	}
-	array unset info
+    set elem [FindElement $what]
+    if { $elem == "" } {
+	set elem "Hydrogen"
     }
-    if { ![info exists info] } {
-	error "unknown element \"$what\""
-    }
-    set _current $info(name)
+    set _current $elem
     $_dispatcher event -idle !rebuild
 }
 
@@ -351,30 +434,6 @@ itcl::body Rappture::PeriodicTable::select { what } {
 itcl::body Rappture::PeriodicTable::_adjust {{widget ""}} {
     chain $widget
 
-    if 0 {
-    set fnt [$itk_component(list) cget -font]
-    set maxw 0
-    foreach str $_labels {
-	set w [font measure $fnt $str]
-	if {$w > $maxw} { set maxw $w }
-    }
-    if {$widget != ""} {
-	if {$maxw < [winfo width $widget]} { set maxw [winfo width $widget] }
-    }
-    set avg [font measure $fnt "n"]
-    $itk_component(list) configure -width [expr {round($maxw/double($avg))+1}]
-
-    if {$widget != ""} {
-	set y [expr {[winfo rooty $widget]+[winfo height $widget]}]
-	set h [font metrics $fnt -linespace]
-	set lines [expr {double([winfo screenheight $widget]-$y)/$h}]
-	if {[llength $_labels] < $lines} {
-	    $itk_component(list) configure -height [llength $_labels]
-	} else {
-	    $itk_component(list) configure -height 10
-	}
-    }
-    }
     focus $itk_component(table)
 }
 
@@ -393,12 +452,11 @@ itcl::body Rappture::PeriodicTable::_react {} {
 itcl::body Rappture::PeriodicTable::Activate { canvas id x y } {
     set c $itk_component(table)
     array set info $_table($id)
-    scan $info(color) "\#%2x%2x%2x" r g b
-    incr r -50
-    incr g -50
-    incr b -50
-    set color [format "\#%0.2x%0.2x%0.2x" $r $g $b]
-    $c itemconfigure $id-rect -outline black -width 1 -fill $color
+    set type $info(type)
+    global stateColors
+    set fg $stateColors($type-active-foreground)
+    set bg $stateColors($type-active-background)
+    $c itemconfigure $id-rect -outline black -width 1 -fill $bg
     $c itemconfigure $id-number -fill white
     $c itemconfigure $id-name -fill white
     $c itemconfigure $id-symbol -fill white
@@ -411,11 +469,15 @@ itcl::body Rappture::PeriodicTable::Activate { canvas id x y } {
 itcl::body Rappture::PeriodicTable::Deactivate { canvas id } {
     set c $itk_component(table)
     array set info $_table($id)
-    $c itemconfigure $id-rect -outline black -width 1 -fill $info(color)
-    $c itemconfigure $id-number -fill black
-    $c itemconfigure $id-name -fill black
-    $c itemconfigure $id-symbol -fill black
-    $c itemconfigure $id-weight -fill black
+    set type $info(type)
+    global stateColors
+    set fg $stateColors($type-normal-foreground)
+    set bg $stateColors($type-normal-background)
+    $c itemconfigure $id-rect -outline $fg -width 1 -fill $bg
+    $c itemconfigure $id-number -fill $fg
+    $c itemconfigure $id-name -fill $fg
+    $c itemconfigure $id-symbol -fill $fg
+    $c itemconfigure $id-weight -fill $fg
     ::Rappture::Tooltip::tooltip cancel
 }
 
@@ -433,8 +495,8 @@ itcl::body Rappture::PeriodicTable::value {{value "" }} {
 # the client know that the selection has changed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::Redraw {} {
-set sqwidth 30
-set sqheight 30
+set sqwidth 24
+set sqheight 24
 set xoffset 4
 set yoffset 4
 set last ""
@@ -447,28 +509,67 @@ set last ""
 	set x2 [expr ($info(column)*$sqwidth)-2+$xoffset]
 	set y2 [expr ($info(row)*$sqheight)-2+$yoffset]
 	#puts stderr symbol=$info(symbol)
-	$c create rectangle $x1 $y1 $x2 $y2 -outline black -fill $info(color) \
+	set type $info(type)
+	global stateColors
+	switch -- $_state($name) {
+	    "normal" - default {
+		set fg $stateColors($type-normal-foreground)
+		set bg $stateColors($type-normal-background)
+	    }
+	    "active" {
+		set fg $stateColors($type-active-foreground)
+		set bg $stateColors($type-active-background)
+	    }
+	    "disabled" {
+		set fg $stateColors($type-disabled-foreground)
+		set bg $stateColors($type-disabled-background)
+	    }
+	}
+	$c create rectangle $x1 $y1 $x2 $y2 -outline $fg -fill $bg \
 	    -tags $info(name)-rect
 	if { $info(symbol) != "*" } {
 	    $c create text [expr ($x2+$x1)/2+1] [expr ($y2+$y1)/2+4] \
-		-anchor c \
+		-anchor c -fill $fg \
 		-text [string range $info(symbol) 0 4] \
-		-font "Arial 6 bold" -tags $info(name)-symbol
+		-font "Arial 8 bold" -tags $info(name)-symbol
 	    $c create text [expr $x2-2] [expr $y1+2] -anchor ne \
-		-text $info(number) \
-		-font "math1 5" -tags $info(name)-number
+		-text $info(number) -fill $fg \
+		-font "math1 6" -tags $info(name)-number
 	}
 	$c create rectangle $x1 $y1 $x2 $y2 -outline "" -fill "" \
 	    -tags $info(name) 
+	if { $_state($name) == "normal" } {
 	$c bind $info(name) <Enter> \
 	    [itcl::code $this Activate %W $info(name) %X %Y]
 	$c bind $info(name) <Leave> [itcl::code $this Deactivate %W $info(name)]
 	$c bind $info(name) <ButtonRelease-1> [itcl::code $this value $info(name)]
+	}
     }
     update
     foreach { x1 y1 x2 y2 } [$c bbox all] break
-    puts stderr [$c bbox all]
     set width [expr $x2-$x1+$xoffset*2]
     set height [expr $y2-$y1+$yoffset*2]
     $c configure -height $height -width $width -background white
 }
+
+# ----------------------------------------------------------------------
+# USAGE: select <name> 
+#
+# Used to manipulate the selection in the table.
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::PeriodicTable::FindElement { what } {
+    foreach name [array names _table] { 
+	array set info $_table($name)
+	if { $what == $info(name) || $what == $info(number) || 
+	     $what == $info(symbol) } {
+	    break
+	}
+	array unset info
+    }
+    if { [info exists info] } {
+	return $info(name)
+    }
+    return ""
+}
+
