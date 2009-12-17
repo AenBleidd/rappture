@@ -341,14 +341,18 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
     Redraw
 }
 
-# ----------------------------------------------------------------------
-# USAGE: enable <list of elements> 
 #
-# Inserts one or more values into this drop-down list.  Each value
-# has a keyword (computer-friendly value) and a label (human-friendly
-# value).  The labels appear in the listbox.  If the label is "--",
-# then the value is used as the label.
-# ----------------------------------------------------------------------
+# enable <list of elements> 
+#
+#	Enables zero or more elements in the periodic table so that 
+#	they can be selected.  All elements are first disabled.  Each
+#	argument can one of the following forms:
+#	1. element name.
+#	2. element symbol. 
+#	3. element number.
+#	4. type of element.  The argument is expanded into all 
+#	   elements of that type.
+#
 itcl::body Rappture::PeriodicTable::enable {args} {
     set c $itk_component(table)
     foreach elem [array names _table] { 
@@ -357,6 +361,7 @@ itcl::body Rappture::PeriodicTable::enable {args} {
 	$c bind $elem <Leave> {}
 	$c bind $elem <ButtonRelease-1> {}
     }
+    # Expand any arguments that represent a group of elements.
     set arglist {}
     foreach arg $args {
 	if { [info exists _types($arg)] } {
@@ -378,18 +383,21 @@ itcl::body Rappture::PeriodicTable::enable {args} {
 	    $c bind $elem <ButtonRelease-1> [itcl::code $this value $elem]
 	}
     }
-    Redraw
     $_dispatcher event -idle !rebuild
 }
 
-# ----------------------------------------------------------------------
-# USAGE: exclude <list of elements> 
 #
-# Inserts one or more values into this drop-down list.  Each value
-# has a keyword (computer-friendly value) and a label (human-friendly
-# value).  The labels appear in the listbox.  If the label is "--",
-# then the value is used as the label.
-# ----------------------------------------------------------------------
+# disable <list of elements> 
+#
+#	Disables zero or more elements in the periodic table so that 
+#	they can't be selected.  All elements are first enabled.  Each
+#	argument can one of the following forms:
+#	1. element name.
+#	2. element symbol. 
+#	3. element number.
+#	4. type of element.  The argument is expanded into all 
+#	   elements of that type.
+#
 itcl::body Rappture::PeriodicTable::disable {args} {
     set c $itk_component(table)
     foreach elem [array names _table] { 
@@ -399,6 +407,7 @@ itcl::body Rappture::PeriodicTable::disable {args} {
 	$c bind $elem <Leave> [itcl::code $this Deactivate %W $elem]
 	$c bind $elem <ButtonRelease-1> [itcl::code $this value $elem]
     }
+    # Expand any arguments that represent a group of elements.
     set arglist {}
     foreach arg $args {
 	if { [info exists _types($arg)] } {
@@ -419,7 +428,6 @@ itcl::body Rappture::PeriodicTable::disable {args} {
 	    $c bind $elem <ButtonRelease-1> {}
 	}
     }
-    Redraw
     $_dispatcher event -idle !rebuild
 }
 
