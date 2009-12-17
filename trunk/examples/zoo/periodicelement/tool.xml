@@ -18,6 +18,7 @@
     <description>Select the second element.</description>
    </about>
    <default>O</default>
+   <disable>lanthanoid actinoid</disable>
   </periodicelement>
   <periodicelement id="third">
    <about>
@@ -25,6 +26,7 @@
     <description>Select the third element.</description>
    </about>
    <default>C</default>
+   <enable>other-non-metal</enable>
   </periodicelement>
  </input>
 </run>
