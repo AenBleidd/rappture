@@ -666,11 +666,14 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 	    continue
 	}
 	set tf $_vol2style($vol)
+	set _settings($this-$tf-opacity) $opacity
+	set _settings($this-$tf-thickness) $thickness
+	ComputeTransferFunc $tf
+	# FIXME: Need to the send information as to what transfer functions
+	#	 to update so that we only update the transfer function 
+	#	 as necessary.  Right now, all transfer functions are 
+	#	 updated. This makes moving the isomarker slider chunky.
 	if { ![info exists _activeTfs($tf)] || !$_activeTfs($tf) } {
-	    # Only update the transfer function as necessary
-	    set _settings($this-$tf-opacity) $opacity
-	    set _settings($this-$tf-thickness) $thickness
-	    ComputeTransferFunc $tf
 	    set _activeTfs($tf) 1
 	}
 	SendCmd "volume shading transfunc $tf $vol"
