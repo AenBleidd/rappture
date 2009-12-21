@@ -1,0 +1,43 @@
+
+conflict RAPPTURE_CHOICE
+
+desc "The Rappture tool environment (released version)."
+
+help "Rappture is a graphical tool wrapper.
+It can be used to add a graphical user interface to
+a conventional scientific application."
+
+exec_prefix=@prefix@
+libdir=@libdir@
+bindir=@bindir@
+
+destdir=@bindir@
+
+prepend PATH $destdir/bin
+
+prepend TCLLIBPATH $destdir/lib/vtk
+
+prepend LD_LIBRARY_PATH ${libdir}/vtk
+prepend LD_LIBRARY_PATH ${libdir}/vtk-5.2
+prepend LD_LIBRARY_PATH ${libdir}
+
+prepend DYLD_LIBRARY_PATH ${libdir}/vtk
+prepend DYLD_LIBRARY_PATH ${libdir}/vtk-5.2
+prepend DYLD_LIBRARY_PATH ${libdir}
+
+prepend MATLABPATH ${libdir}/matlab
+
+prepend OCTAVE_PATH :${libdir}/octave:
+prepend OCTAVE_LOADPATH :${libdir}/octave:
+
+prepend PERL5LIB ${libdir}/perl
+
+prepend RUBYLIB ${libdir}/ruby
+
+prepend TCL_LIBRARY ${libdir}/tcl8.4
+
+prepend TK_LIBRARY ${libdir}/tk8.4
+
+python_version="@PYTHON_VERSION@"
+prepend PYTHONPATH ${libdir}/python${python_version}/site-packages
+
