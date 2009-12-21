@@ -501,6 +501,7 @@ AC_CONFIG_FILES([
     gui/apps/rappture
     gui/apps/rappture-csh.env
     gui/apps/rappture.env
+    gui/apps/rappture.use
     gui/apps/rerun
     gui/apps/simsim
     gui/apps/xmldiff
