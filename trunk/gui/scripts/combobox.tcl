@@ -39,7 +39,7 @@ itcl::class Rappture::Combobox {
     constructor {args} { # defined below }
 
     public method value {args}
-    public method translate {value}
+    public method translate {value {defValue ""}}
     public method label {value}
     public method current {}
     public method choices {option args}
@@ -149,13 +149,13 @@ itcl::body Rappture::Combobox::value {args} {
 # <value> string matches one of the labels for the choices, this
 # method returns the corresponding value.  Otherwise, it returns "".
 # ----------------------------------------------------------------------
-itcl::body Rappture::Combobox::translate {value} {
+itcl::body Rappture::Combobox::translate {value {defValue ""}} {
     foreach {val label} [choices get -both] {
 	if {$label == $value} {
 	    return $val
 	}
     }
-    return ""
+    return $defValue
 }
 
 # ----------------------------------------------------------------------
@@ -179,8 +179,8 @@ itcl::body Rappture::Combobox::label { myValue } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::current {} {
     set raw [$itk_component(entry) get]
-    set value [translate $raw]
-    if { $value != "" } {
+    set value [translate $raw "badValue"]
+    if { $value != "badValue" } {
 	return $value
     }
     return $raw
