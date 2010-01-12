@@ -292,7 +292,6 @@ itcl::body Rappture::XyLegend::Toggle { args } {
 	set nodes $args
     }
     foreach node $nodes {
-	set node [$itk_component(legend) index $node]
 	set elem [$tree_ label $node]
 	if { ![$graph_ element exists $elem] } {
 	    continue

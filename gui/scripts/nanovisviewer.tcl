@@ -665,6 +665,10 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
 	    # here?
 	    continue
 	}
+	if { ![info exists _vol2style($vol)] } {
+	    puts stderr "unknown volume $vol"
+	    continue;			# How does this happen?
+	}
 	set tf $_vol2style($vol)
 	set _settings($this-$tf-opacity) $opacity
 	set _settings($this-$tf-thickness) $thickness

@@ -22,13 +22,6 @@ option add *XyPrint*font "Arial 9"
 option add *XyPrint*Entry*width "6" widgetDefault
 option add *XyPrint*Entry*background "white" widgetDefault
 
-array set Rappture::axistypes {
-    x x
-    y y 
-    x2 x
-    y2 y
-}
-
 itcl::class Rappture::XyPrint {
     inherit itk::Widget
 
@@ -40,7 +33,8 @@ itcl::class Rappture::XyPrint {
     private variable _preview "";	# Preview image.
     private variable _savedSettings;	# Array of settings.
 
-    private common _settingsFile "~/.rpsettings"
+    private common _oldSettingsFile "~/.rpsettings"
+    private common _settingsFile "~/.rp_settings"
 
     public method print { graph toolName plotName }
     public method reset {}
@@ -61,7 +55,7 @@ itcl::class Rappture::XyPrint {
     private method RegeneratePreview {} 
     private method InitClone {} 
     private method Pixels2Inches { pixels } 
-    private method Inches2Pixels { inches } 
+    private method Inches2Pixels { inches {defValue ""}} 
     private method Color2RGB { color } 
 
     private method ApplyGeneralSettings {} 
@@ -77,6 +71,8 @@ itcl::class Rappture::XyPrint {
     private method ResetSettings { } 
     private method GetOutput {}
     private method Done { state }
+    private method SetLayoutOption { option } 
+    private method GetAxisType { axis } 
     private method restore { toolName plotName data } 
     private common _settings
     private common _fonts
@@ -285,6 +281,9 @@ itcl::body Rappture::XyPrint::CopyOptions { cmd orig clone } {
 
 itcl::body Rappture::XyPrint::CloneGraph { orig } {
     set top $itk_interior
+    if { [winfo exists $top.graph] } {
+	destroy $top.graph
+    }
     set clone [blt::graph $top.graph]
     CopyOptions "configure" $orig $clone
     # Axis component
@@ -398,6 +397,7 @@ itcl::body Rappture::XyPrint::SetOption { opt } {
 	global errorInfo
 	puts stderr "$err: $errorInfo"
 	set _settings($this-graph-$opt) $old
+	$_clone configure -$opt $old
     }
 }
 
@@ -410,6 +410,7 @@ itcl::body Rappture::XyPrint::SetComponentOption { comp opt } {
 	global errorInfo
 	puts stderr "$err: $errorInfo"
 	set _settings($this-$comp-$opt) $old
+	$_clone $comp configure -$opt $old
     }
 }
 
@@ -422,14 +423,15 @@ itcl::body Rappture::XyPrint::SetNamedComponentOption { comp name opt } {
 	global errorInfo
 	puts stderr "$err: $errorInfo"
 	set _settings($this-$comp-$opt) $old
+	$_clone $comp configure $name -$opt $old
     }
 }
 
 itcl::body Rappture::XyPrint::RegeneratePreview {} {
     update 
     set img [image create photo]
-    set w [Inches2Pixels $_settings($this-layout-width)]
-    set h [Inches2Pixels $_settings($this-layout-height)]
+    set w [Inches2Pixels $_settings($this-layout-width) 3.4]
+    set h [Inches2Pixels $_settings($this-layout-height) 3.4]
     set pixelsPerInch [winfo pixels . 1i]
     set sx [expr 2.5*$pixelsPerInch/$w]
     set sy [expr 2.0*$pixelsPerInch/$h]
@@ -460,7 +462,11 @@ itcl::body Rappture::XyPrint::Pixels2Inches { pixels } {
     return [format %.3g ${inches}]
 }
 
-itcl::body Rappture::XyPrint::Inches2Pixels { inches } {
+itcl::body Rappture::XyPrint::Inches2Pixels { inches {defValue ""}} {
+    set n [scan $inches %g dummy]
+    if { n != 1  && $defValue != "" } {
+	set inches $defValue
+    }
     return  [winfo pixels . ${inches}i]
 }
 
@@ -473,13 +479,22 @@ itcl::body Rappture::XyPrint::Color2RGB { color } {
     return [format "\#%02x%02x%02x" $r $g $b]
 }
 
+itcl::body Rappture::XyPrint::GetAxisType { axis } {
+    foreach type { x y x2 y2 } {
+	set axes [$_clone ${type}axis use]
+	if { [lsearch $axes $axis] >= 0 } {
+	    return [string range $type 0 0]
+	}
+    }
+    return ""
+}
 
 itcl::body Rappture::XyPrint::GetAxis {} {
     set axis [$itk_component(axis_combo) current]
     foreach option { min max loose title stepsize subdivisions } {
 	set _settings($this-axis-$option) [$_clone axis cget $axis -$option]
     }
-    set type $Rappture::axistypes($axis)
+    set type [GetAxisType $axis]
     if { [$_clone grid cget -map${type}] == $axis } {
 	set _settings($this-axis-grid) 1
     }  else {
@@ -492,6 +507,7 @@ itcl::body Rappture::XyPrint::GetAxis {} {
 
 itcl::body Rappture::XyPrint::GetElement { args } {
     set index 1
+    array unset _settings $this-element-*
     foreach elem [$_clone element show] {
 	set _settings($this-element-$index) $elem
 	incr index
@@ -1070,7 +1086,7 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
 
 itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
     set axis [$itk_component(axis_combo) current]
-    set type $Rappture::axistypes($axis)
+    set type [GetAxisType $axis]
     set page $itk_component(axis_page)
     if { $_settings($this-axis-grid) } {
 	$_clone grid configure -hide no -map${type} ${axis}
@@ -1110,16 +1126,21 @@ itcl::body Rappture::XyPrint::ApplyElementSettings {} {
     RegeneratePreview
 }
 
+itcl::body Rappture::XyPrint::SetLayoutOption { opt } {
+    set new [Inches2Pixels $_settings($this-layout-$opt)]
+    $_clone configure -$opt $new
+}
+
 itcl::body Rappture::XyPrint::ApplyLayoutSettings {} {
     foreach opt { leftmargin rightmargin topmargin bottommargin } {
-	set new [Inches2Pixels $_settings($this-layout-$opt)]
 	set old [$_clone cget -$opt]
-	set code [catch [list $_clone configure -$opt $new] err]
+	set code [catch { SetLayoutOption $opt } err]
 	if { $code != 0 } {
 	    bell
 	    global errorInfo
 	    puts stderr "$err: $errorInfo"
 	    set _settings($this-layout-$opt) [Pixels2Inches $old]
+	    $_clone configure -$opt [Pixels2Inches $old]
 	}
     }
     RegeneratePreview
@@ -1132,7 +1153,7 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     # Always set to "ps" "ieee"
     set _settings($this-general-format) ps
     set _settings($this-general-style) ieee
-    set _settings($this-general-remember) 1
+    set _settings($this-general-remember) 0
     set page $itk_component(graph_page)
     $page.format value [$page.format label $_settings($this-general-format)]
     $page.style value [$page.style label $_settings($this-general-style)]
@@ -1221,6 +1242,9 @@ itcl::body Rappture::XyPrint::restore { toolName plotName data } {
 itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     if { ![file readable $_settingsFile] } {
 	return;				# No file or not readable
+    } 
+    if { [file exists $_oldSettingsFile] } {
+	file delete $_oldSettingsFile
     }
     # Read the file by sourcing it into a safe interpreter The only commands
     # executed will be "xyprint" which will simply add the data into an array
@@ -1270,7 +1294,8 @@ itcl::body Rappture::XyPrint::SaveSettings { toolName plotName } {
 	set tool [lindex $key 0]
 	set plot [lindex $key 1]
 	puts $f "xyprint \"$tool\" \"$plot\" \{"
-	puts $f "$_savedSettings($key)"
+	set settings [string trim $_savedSettings($key) \n]
+	puts $f "$settings"
 	puts $f "\}\n"
     }
     close $f
@@ -1287,7 +1312,8 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
 	array unset info
 	array set info [font configure $font]
 	foreach opt { -family -size -weight -slant } {
-	    append out " $opt \"$info($opt)\""
+	    set value [list $info($opt)]
+	    append out " $opt $value"
 	}
 	append out "\n"
     }
@@ -1297,14 +1323,16 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     append out "    preview configure" 
     foreach opt { -width -height -leftmargin -rightmargin -topmargin 
 	-bottommargin -plotpadx -plotpady } {
-	append out " $opt \"[$_clone cget $opt]\""
+	set value [list [$_clone cget $opt]]
+	append out " $opt $value"
     }
     append out "\n"
 
     # Legend settings
     append out "    preview legend configure" 
     foreach opt { -position -anchor -borderwidth -hide } { 
-	append out " $opt \"[$_clone legend cget $opt]\""
+	set value [list [$_clone legend cget $opt]]
+	append out " $opt $value"
     }
     append out " -font legend\n"
 
@@ -1313,7 +1341,8 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
  	append out "    if \{ \[preview element exists \"$elem\"\] \} \{\n"
 	append out "        preview element configure \"$elem\""
 	foreach opt { -symbol -color -dashes -hide -label } { 
-	    append out " $opt \"[$_clone element cget $elem $opt]\""
+	    set value [list [$_clone element cget $elem $opt]]
+	    append out " $opt $value"
 	}
 	append out "    \}\n"
     }
@@ -1326,7 +1355,8 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
  	append out "    if \{ \[preview axis names \"$axis\"\] == \"$axis\" \} \{\n"
 	append out "        preview axis configure \"$axis\""
 	foreach opt { -hide -min -max -loose -title -stepsize -subdivisions } {
-	    append out " $opt \"[$_clone axis cget $axis $opt]\""
+	    set value [list [$_clone axis cget $axis $opt]]
+	    append out " $opt $value"
 	}
 	append out " -tickfont \"$axis-ticks\""
 	append out " -titlefont \"$axis-title\"\n"
@@ -1341,4 +1371,3 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     append out " -mapy \"[$_clone grid cget -mapy]\""
     return $out
 }
-

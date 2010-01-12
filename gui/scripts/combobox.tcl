@@ -178,7 +178,12 @@ itcl::body Rappture::Combobox::label { myValue } {
 # Clients use this to translate a value to a label.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::current {} {
-    return [translate [$itk_component(entry) get]]
+    set raw [$itk_component(entry) get]
+    set value [translate $raw]
+    if { $value != "" } {
+	return $value
+    }
+    return $raw
 }
 
 # ----------------------------------------------------------------------
