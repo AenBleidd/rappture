@@ -322,7 +322,7 @@ itcl::body Rappture::SequenceResult::download {option args} {
                 return ""
             }
             # otherwise, return download of single frame
-            return [$itk_component(area).viewer download now $args]
+            return [eval $itk_component(area).viewer download now $args]
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
