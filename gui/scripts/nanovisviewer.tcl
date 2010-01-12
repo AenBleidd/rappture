@@ -557,9 +557,13 @@ itcl::body Rappture::NanovisViewer::download {option args} {
 	    # This is better than writing to temporary files.  When we switch
 	    # to the BLT picture image it won't be necessary to decode the
 	    # image data.
-	    set bytes [$_image(plot) data -format "jpeg -quality 100"]
-	    set bytes [Rappture::encoding::decode -as b64 $bytes]
-	    return [list .jpg $bytes]
+	    if { [image width $_image(plot)] > 0 && 
+		 [image height $_image(plot)] > 0 } {
+		set bytes [$_image(plot) data -format "jpeg -quality 100"]
+		set bytes [Rappture::encoding::decode -as b64 $bytes]
+		return [list .jpg $bytes]
+	    }
+	    return ""
 	}
 	default {
 	    error "bad option \"$option\": should be coming, controls, now"
