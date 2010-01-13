@@ -44,7 +44,7 @@ itk::usual Note {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Note::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -54,13 +54,13 @@ itcl::body Rappture::Note::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add scroller {
-	Rappture::Scroller $itk_interior.scroller \
-	    -xscrollmode auto -yscrollmode auto
+        Rappture::Scroller $itk_interior.scroller \
+            -xscrollmode auto -yscrollmode auto
     }
     pack $itk_component(scroller) -expand yes -fill both
 
     itk_component add html {
-	Rappture::HTMLviewer $itk_component(scroller).html
+        Rappture::HTMLviewer $itk_component(scroller).html
     }
     $itk_component(scroller) contents $itk_component(html)
 
@@ -82,21 +82,21 @@ itcl::body Rappture::Note::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set newval [lindex $args 0]
-	_setContents $newval
-	return $newval
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        _setContents $newval
+        return $newval
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -136,49 +136,49 @@ itcl::body Rappture::Note::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Note::_setContents {info} {
     switch -regexp -- $info {
-	^https?:// {
-	    if {[catch {http::geturl $info} token] == 0} {
-		set html [http::data $token]
-		http::cleanup $token
-	    } else {
-		set html "<html><body><h1>Oops! Internal Error</h1><p>[_escapeChars $token]</p></body></html>"
-	    }
-	    $itk_component(html) load $html
-	}
-	^file:// {
-	    set file [string range $info 7 end]
-	    if {[file pathtype $file] != "absolute"} {
-		# find the file on a search path
-		set dir [[$_owner tool] installdir]
-		set searchlist [list $dir [file join $dir docs]]
-		foreach dir $searchlist {
-		    if {[file readable [file join $dir $file]]} {
-			set file [file join $dir $file]
-			break
-		    }
-		}
-	    }
+        ^https?:// {
+            if {[catch {http::geturl $info} token] == 0} {
+                set html [http::data $token]
+                http::cleanup $token
+            } else {
+                set html "<html><body><h1>Oops! Internal Error</h1><p>[_escapeChars $token]</p></body></html>"
+            }
+            $itk_component(html) load $html
+        }
+        ^file:// {
+            set file [string range $info 7 end]
+            if {[file pathtype $file] != "absolute"} {
+                # find the file on a search path
+                set dir [[$_owner tool] installdir]
+                set searchlist [list $dir [file join $dir docs]]
+                foreach dir $searchlist {
+                    if {[file readable [file join $dir $file]]} {
+                        set file [file join $dir $file]
+                        break
+                    }
+                }
+            }
 
-	    # load the contents of the file
-	    set cmds {
-		set fid [open $file r]
-		set html [read $fid]
-		close $fid
-	    }
-	    if {[catch $cmds result]} {
-		set html "<html><body><h1>Oops! File Not Found</h1><p>[_escapeChars $result]</p></body></html>"
-	    }
+            # load the contents of the file
+            set cmds {
+                set fid [open $file r]
+                set html [read $fid]
+                close $fid
+            }
+            if {[catch $cmds result]} {
+                set html "<html><body><h1>Oops! File Not Found</h1><p>[_escapeChars $result]</p></body></html>"
+            }
 
-	    # not HTML? then escape nasty characters and display it.
-	    if {![regexp {<html>.*</html>} $html]} {
-		set html "<html><body><p>[_escapeChars $html]</p></body></html>"
-	    }
-	    $itk_component(html) load $html -in $file
-	}
-	default {
-	    set html "<html><body><p>[_escapeChars $info]</p></body></html>"
-	    $itk_component(html) load $html
-	}
+            # not HTML? then escape nasty characters and display it.
+            if {![regexp {<html>.*</html>} $html]} {
+                set html "<html><body><p>[_escapeChars $html]</p></body></html>"
+            }
+            $itk_component(html) load $html -in $file
+        }
+        default {
+            set html "<html><body><p>[_escapeChars $info]</p></body></html>"
+            $itk_component(html) load $html
+        }
     }
 }
 

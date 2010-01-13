@@ -17,6 +17,8 @@ package require Itk
 
 option add *Scroller.xScrollMode off widgetDefault
 option add *Scroller.yScrollMode auto widgetDefault
+option add *Scroller.xScrollSide bottom widgetDefault
+option add *Scroller.yScrollSide right widgetDefault
 option add *Scroller.width 0 widgetDefault
 option add *Scroller.height 0 widgetDefault
 
@@ -25,6 +27,8 @@ itcl::class Rappture::Scroller {
 
     itk_option define -xscrollmode xScrollMode XScrollMode ""
     itk_option define -yscrollmode yScrollMode YScrollMode ""
+    itk_option define -xscrollside xScrollSide XScrollSide ""
+    itk_option define -yscrollside yScrollSide YScrollSide ""
     itk_option define -width width Width 0
     itk_option define -height height Height 0
 
@@ -44,7 +48,7 @@ itcl::class Rappture::Scroller {
     private variable _frame ""      ;# for "contents frame" calls
     private variable _lock          ;# for _lock on x/y scrollbar
 }
-										
+
 itk::usual Scroller {
     keep -background -activebackground -activerelief
     keep -cursor
@@ -62,32 +66,32 @@ itcl::body Rappture::Scroller::constructor {args} {
 
     $_dispatcher register !fixframe-inner
     $_dispatcher dispatch $this !fixframe-inner \
-	"[itcl::code $this _fixframe inner]; list"
+        "[itcl::code $this _fixframe inner]; list"
 
     $_dispatcher register !fixframe-outer
     $_dispatcher dispatch $this !fixframe-outer \
-	"[itcl::code $this _fixframe outer]; list"
+        "[itcl::code $this _fixframe outer]; list"
 
     $_dispatcher register !fixsize
     $_dispatcher dispatch $this !fixsize \
-	"[itcl::code $this _fixsize]; list"
+        "[itcl::code $this _fixsize]; list"
 
     itk_component add xsbar {
-	scrollbar $itk_interior.xsbar -orient horizontal
+        scrollbar $itk_interior.xsbar -orient horizontal
     }
     itk_component add ysbar {
-	scrollbar $itk_interior.ysbar -orient vertical
+        scrollbar $itk_interior.ysbar -orient vertical
     }
 
     # we don't fix scrollbars when window is withdrawn, so
     # fix them whenever a window pops up
     bind $itk_component(hull) <Map> "
-	[itcl::code $this _fixsbar x]
-	[itcl::code $this _fixsbar y]
+        [itcl::code $this _fixsbar x]
+        [itcl::code $this _fixsbar y]
     "
 
-    grid rowconfigure $itk_component(hull) 0 -weight 1
-    grid columnconfigure $itk_component(hull) 0 -weight 1
+    grid rowconfigure $itk_component(hull) 1 -weight 1
+    grid columnconfigure $itk_component(hull) 1 -weight 1
 
     eval itk_initialize $args
 }
@@ -113,24 +117,24 @@ itcl::body Rappture::Scroller::destructor {} {
 itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     if {$widget == "!@#query"} {
         if {$_contents == $_frame} {
-	    return $_frame.f
+            return $_frame.f
         }
-	return $_contents
+        return $_contents
     }
 
     #
     # If the widget is "", then unhook any existing widget.
     #
     if {$widget == ""} {
-	if {$_contents != ""} {
-	    $_contents configure -xscrollcommand "" -yscrollcommand ""
-	    grid forget $_contents
-	}
-	$itk_component(xsbar) configure -command ""
-	$itk_component(ysbar) configure -command ""
-	set _contents ""
+        if {$_contents != ""} {
+            $_contents configure -xscrollcommand "" -yscrollcommand ""
+            grid forget $_contents
+        }
+        $itk_component(xsbar) configure -command ""
+        $itk_component(ysbar) configure -command ""
+        set _contents ""
 
-	return ""
+        return ""
     }
 
     #
@@ -138,41 +142,41 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
     # and return it as the frame being scrolled.
     #
     if {$widget == "frame"} {
-	if {$_frame == ""} {
-	    set _frame [canvas $itk_component(hull).ifr -highlightthickness 0]
-	    frame $_frame.f
-	    $_frame create window 0 0 -anchor nw -window $_frame.f -tags frame
-	    bind $_frame.f <Configure> \
-		[itcl::code $_dispatcher event -idle !fixframe-inner]
-	    bind $_frame <Configure> \
-		[itcl::code $_dispatcher event -idle !fixframe-outer]
-	}
-	set widget $_frame
+        if {$_frame == ""} {
+            set _frame [canvas $itk_component(hull).ifr -highlightthickness 0]
+            frame $_frame.f
+            $_frame create window 0 0 -anchor nw -window $_frame.f -tags frame
+            bind $_frame.f <Configure> \
+                [itcl::code $_dispatcher event -idle !fixframe-inner]
+            bind $_frame <Configure> \
+                [itcl::code $_dispatcher event -idle !fixframe-outer]
+        }
+        set widget $_frame
     }
 
     #
     # Plug the specified widget into the scrollbars for this widget.
     #
     contents ""
-    grid $widget -row 0 -column 0 -sticky nsew
+    grid $widget -row 1 -column 1 -sticky nsew
     $widget configure \
-	-xscrollcommand [itcl::code $this _widget2sbar x] \
-	-yscrollcommand [itcl::code $this _widget2sbar y]
+        -xscrollcommand [itcl::code $this _widget2sbar x] \
+        -yscrollcommand [itcl::code $this _widget2sbar y]
 
     $itk_component(xsbar) configure -command [list $widget xview]
     $itk_component(ysbar) configure -command [list $widget yview]
     set _contents $widget
 
     if {[string equal "x11" [tk windowingsystem]]} {
-	bind ${widget} <4> { %W yview scroll -5 units }
-	bind ${widget} <5> { %W yview scroll 5 units }
+        bind ${widget} <4> { %W yview scroll -5 units }
+        bind ${widget} <5> { %W yview scroll 5 units }
     } else {
-	bind ${widget} <MouseWheel> {
-	    %W yview scroll [expr {- (%D / 120) * 4}] units
-	}
+        bind ${widget} <MouseWheel> {
+            %W yview scroll [expr {- (%D / 120) * 4}] units
+        }
     }
     if {$widget == $_frame} {
-	return $_frame.f
+        return $_frame.f
     }
     return $widget
 }
@@ -186,10 +190,10 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_widget2sbar {which args} {
     if {$itk_option(-xscrollmode) == "auto"} {
-	_fixsbar x
+        _fixsbar x
     }
     if {$itk_option(-yscrollmode) == "auto"} {
-	_fixsbar y
+        _fixsbar y
     }
     eval $itk_component(${which}sbar) set $args
 }
@@ -204,55 +208,86 @@ itcl::body Rappture::Scroller::_widget2sbar {which args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
     if {![winfo ismapped $itk_component(hull)]} {
-	#
-	# If we're not on yet screen, bail out!  This keeps bad
-	# numbers (from an empty or partially constructed widget)
-	# from prematurely influencing the scrollbar.
-	#
-	return
+        #
+        # If we're not on yet screen, bail out!  This keeps bad
+        # numbers (from an empty or partially constructed widget)
+        # from prematurely influencing the scrollbar.
+        #
+        return
     }
 
     if {$state == ""} {
-	switch -- [string tolower $itk_option(-${which}scrollmode)] {
-	    on - 1 - true - yes  { set state 1 }
-	    off - 0 - false - no { set state 0 }
-	    auto {
-		set state 0
-		if {$_contents != ""} {
-		    set lims [$_contents ${which}view]
-		    if {[lindex $lims 0] != 0 || [lindex $lims 1] != 1} {
-			set state 1
-		    }
-		}
-	    }
-	    default {
-		set state 0
-	    }
-	}
+        switch -- [string tolower $itk_option(-${which}scrollmode)] {
+            on - 1 - true - yes  { set state 1 }
+            off - 0 - false - no { set state 0 }
+            auto {
+                set state 0
+                if {$_contents != ""} {
+                    set lims [$_contents ${which}view]
+                    if {[lindex $lims 0] != 0 || [lindex $lims 1] != 1} {
+                        set state 1
+                    }
+                }
+            }
+            default {
+                set state 0
+            }
+        }
+    }
+
+    set row 0
+    set col 0
+    switch -- [string tolower $itk_option(-${which}scrollside)] {
+        top {
+            set row 0
+            set col 1
+        }
+        bottom {
+            set row 2
+            set col 1
+        }
+        left {
+            set row 1
+            set col 0
+        }
+        right {
+            set row 1
+            set col 2
+        }
+        default {
+            set row 0
+            set col 0
+        }
     }
 
     # show/hide the scrollbar depending on the desired state
     switch -- $which {
-	x {
-	    if {$state} {
-		if {![_lock active x]} {
-		    grid $itk_component(xsbar) -row 1 -column 0 -sticky ew
-		}
-	    } else {
-		grid forget $itk_component(xsbar)
-		_lock set x
-	    }
-	}
-	y {
-	    if {$state} {
-		if {![_lock active y]} {
-		    grid $itk_component(ysbar) -row 0 -column 1 -sticky ns
-		}
-	    } else {
-		grid forget $itk_component(ysbar)
-		_lock set y
-	    }
-	}
+        x {
+            if {$state} {
+                if {![_lock active x]} {
+                    # grid $itk_component(xsbar) -row 1 -column 0 -sticky ew
+                    if {$col == 1} {
+                        grid $itk_component(xsbar) -row $row -column $col -sticky ew
+                    }
+                }
+            } else {
+                grid forget $itk_component(xsbar)
+                _lock set x
+            }
+        }
+        y {
+            if {$state} {
+                if {![_lock active y]} {
+                    # grid $itk_component(ysbar) -row 0 -column 1 -sticky ns
+                    if {$row == 1} {
+                        grid $itk_component(ysbar) -row $row -column $col -sticky ns
+                    }
+                }
+            } else {
+                grid forget $itk_component(ysbar)
+                _lock set y
+            }
+        }
     }
 }
 
@@ -265,22 +300,22 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_fixframe {which} {
     switch -- $which {
-	inner {
-	    $_frame configure -scrollregion [$_frame bbox all]
-	    $_dispatcher event -idle !fixsize
-	}
-	outer {
-	    if {[winfo width $_frame] > [winfo reqwidth $_frame.f]} {
-	        $_frame itemconfigure frame -width [winfo width $_frame]
-	    } else {
-		$_frame itemconfigure frame -width 0
-	    }
-	    if {[winfo height $_frame] > [winfo reqheight $_frame.f]} {
-		$_frame itemconfigure frame -height [winfo height $_frame]
-	    } else {
-		$_frame itemconfigure frame -height 0
-	    }
-	}
+        inner {
+            $_frame configure -scrollregion [$_frame bbox all]
+            $_dispatcher event -idle !fixsize
+        }
+        outer {
+            if {[winfo width $_frame] > [winfo reqwidth $_frame.f]} {
+                $_frame itemconfigure frame -width [winfo width $_frame]
+            } else {
+                $_frame itemconfigure frame -width 0
+            }
+            if {[winfo height $_frame] > [winfo reqheight $_frame.f]} {
+                $_frame itemconfigure frame -height [winfo height $_frame]
+            } else {
+                $_frame itemconfigure frame -height 0
+            }
+        }
     }
 }
 
@@ -292,19 +327,19 @@ itcl::body Rappture::Scroller::_fixframe {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_fixsize {} {
     if {$itk_option(-width) == "0" && $itk_option(-height) == "0"} {
-	# for default size, let the frame being controlled set the size
-	grid propagate $itk_component(hull) yes
-	if {$_frame == "$itk_component(hull).ifr"} {
-	    set w [winfo reqwidth $_frame.f]
-	    set h [winfo reqheight $_frame.f]
-	    $_frame configure -width $w -height $h
-	}
+        # for default size, let the frame being controlled set the size
+        grid propagate $itk_component(hull) yes
+        if {$_frame == "$itk_component(hull).ifr"} {
+            set w [winfo reqwidth $_frame.f]
+            set h [winfo reqheight $_frame.f]
+            $_frame configure -width $w -height $h
+        }
     } else {
-	# for specific size, set the overall size of the widget
-	grid propagate $itk_component(hull) no
-	set w $itk_option(-width); if {$w == "0"} { set w 1i }
-	set h $itk_option(-height); if {$h == "0"} { set h 1i }
-	component hull configure -width $w -height $h
+        # for specific size, set the overall size of the widget
+        grid propagate $itk_component(hull) no
+        set w $itk_option(-width); if {$w == "0"} { set w 1i }
+        set h $itk_option(-height); if {$h == "0"} { set h 1i }
+        component hull configure -width $w -height $h
     }
 }
 
@@ -323,20 +358,20 @@ itcl::body Rappture::Scroller::_fixsize {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Scroller::_lock {option which} {
     switch -- $option {
-	set {
-	    set _lock($which) 1
-	    after cancel [itcl::code $this _lock reset $which]
-	    after 50 [itcl::code $this _lock reset $which]
-	}
-	reset {
-	    set _lock($which) 0
-	}
-	active {
-	    return $_lock($which)
-	}
-	default {
-	    error "bad option \"$option\": should be set, reset, active"
-	}
+        set {
+            set _lock($which) 1
+            after cancel [itcl::code $this _lock reset $which]
+            after 50 [itcl::code $this _lock reset $which]
+        }
+        reset {
+            set _lock($which) 0
+        }
+        active {
+            return $_lock($which)
+        }
+        default {
+            error "bad option \"$option\": should be set, reset, active"
+        }
     }
 }
 
@@ -351,6 +386,20 @@ itcl::configbody Rappture::Scroller::xscrollmode {
 # OPTION: -yscrollmode
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Scroller::yscrollmode {
+    _fixsbar y
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -xscrollside
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Scroller::xscrollside {
+    _fixsbar x
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -yscrollside
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Scroller::yscrollside {
     _fixsbar y
 }
 
