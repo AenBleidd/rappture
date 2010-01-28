@@ -1,0 +1,727 @@
+Rappture::View
+
+constructors/destructors
+    Rappture::View <name> -rows <rows> -cols <cols>
+
+methods
+    name ?<val>?
+    path ?<val>?
+    label ?<val>?
+    desc ?<val>?
+    hints ?<val>?
+    property <key> ?<val>?
+    propremove <key>
+
+    plot    <name> -at "row,col" -table <table> {"x1" "y1" "s1" ...}
+    volume  <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1" ...}
+    surface <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
+    image   <object> -at "row,col"
+    note    <object> -at "row,col"
+
+    vvalue ?<hints>?
+    random
+    diff <o>
+    configure -as <as> <c>
+    dump -as <as>
+    outcome
+    is
+
+---------------------------------------
+Rappture::View <name> -rows <rows> -cols <cols>
+    Purpose: construct a view for displaying data
+    Input Arguments: 1 manditory, 2 optional
+        1. name - name of the view
+        2. rows - number of rows in the view, default is 1
+        3. cols - number of columns in the view, default is 1
+    Return Value: a newly created, empty view object
+    Notes: None
+    Code Example:
+    {{{
+        set v [Rappture::View "fdfplots" -rows 2 -cols 1]
+    }}}
+
+name ?<val>?
+    Purpose: get/set the id name of the object
+    Input Arguments: at most 1
+        1. val - new id name
+    Return Value: the name of the object
+    Notes: if no name is set, an empty string will be returned
+           the id name is used to identify this object from
+           all other objects and should be unique
+           val, if provided, is used to set the object name
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p name
+        # ""
+        $p name "fdfactor"
+        $p name
+        # "fdfactor"
+    }}}
+
+path ?<val>?
+    Purpose: get/set the path of the object
+    Input Arguments: at most 1
+        1. val - new path
+    Return Value: path of the object
+    Notes: if no path is set, an empty string will be returned
+           the path tells where this object sits in the
+           hierarchy of objects.
+           val, if provided, is used to set the object path
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p path
+        # ""
+        $p path "output"
+        $p path
+        # "output"
+    }}}
+
+label ?<val>?
+    Purpose: get/set the label of the object
+    Input Arguments: at most 1
+        1. val - new label
+    Return Value: label of the object
+    Notes: if no label is set, an empty string will be returned
+           the label is used by the graphical user interface.
+           val, if provided, is used to set the object label
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p label
+        # ""
+        $p label "Fermi-Dirac Factor"
+        $p label
+        # "Fermi-Dirac Factor"
+    }}}
+
+desc ?<val>?
+    Purpose: get/set the description of the object
+    Input Arguments: at most 1
+        1. val - new description
+    Return Value: description of the object
+    Notes: if no description is set, an empty string will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+           val, if provided, is used to set the object description
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p desc
+        # ""
+        $p desc "A plot of the Fermi-Dirac Factor"
+        $p desc
+        # "A plot of the Fermi-Dirac Factor"
+    }}}
+
+hints ?<val>?
+    Purpose: get/set the hints of the object
+    Input Arguments: at most 1
+        1. val - new hints
+    Return Value: hints of the object
+    Notes: if no hints are set, an empty string will be returned
+           the hints are used by the graphical user interface
+           val, if provided, is used to set the object hints
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p hints
+        # ""
+        $p hints "no hints"
+        $p hints
+        # "no hints"
+    }}}
+
+property <key> ?<val>?
+    Purpose: get/set a generic property in the property database
+    Input Arguments: at most 2
+        1. key - property name
+        2. val - property value
+    Return Value: value of the property
+    Notes: A copy val is stored in the property database
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p property "name"
+        # ""
+        $p property "name" "fdfactor"
+        # "fdfactor"
+        $p name
+        # "fdfactor"
+    }}}
+
+propremove <key>
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p name "fdfactor"
+        $p property "name"
+        # "fdfactor"
+        $p propremove "name"
+        # "fdfactor"
+        $p property "name"
+        # ""
+    }}}
+
+plot <name> -at "row,col" -table <table> {"x1" "y1" "s1" "x2" "y2" "s2" ...}
+    Purpose: populate a view object with a plot
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the plot
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "s1" ...} - x and y column names, followed by the style
+    Return Value: None
+    Notes: plots can be grouped together by specifying
+           multiple x,y pairs within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "s1" "x2" "y2" "s2"}
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xvals" "X Values"
+        $results column "Squared" "X Squared"
+        $results column "Cubed" "X Cubed"
+
+        # create a view with two curves grouped on a single plot
+        # 1) x vs x^2
+        # 2) x vs x^3
+        set v1 [Rappture::View fdfview1]
+        $v1 plot "fdfPlot1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o" "Xvals" "Cubed" "b-o"}
+
+        # create a view with two plots, one stacked on top of the other
+        # 1) x vs x^2
+        # 2) x vs x^3
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 plot "fdfPlot2" -at "1,1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o"}
+        $v2 plot "fdfPlot3" -at "2,1" -table "dataTable" \
+            {"Xvals" "Cubed" "b-o"}
+
+        # create a view with two plots side by side
+        # 1) x vs x^2   2) x vs x^3
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 plot "fdfPlot4" -at "1,1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o"}
+        $v3 plot "fdfPlot5" -at "1,2" -table "dataTable" \
+            {"Xvals" "Cubed" "b-o"}
+    }}}
+
+volume  <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1",...}
+    Purpose: populate a view object with a volume
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the volume
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "z1" "d1",...} - x, y, z, and data column names
+    Return Value: None
+    Notes: volumes can be grouped together by specifying
+           multiple x,y,z triplets within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "z1" "d1" "x2" "y2" "z2" "d2"}
+    ToDo:
+        1. how to specify transfer function ranges
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xcoords" "X coordinates"
+        $results column "Ycoords" "Y coordinates"
+        $results column "Zcoords" "Z coordinates"
+        $results column "Data1" "Data Set #1"
+        $results column "Data2" "Data Set #2"
+
+        # create a view with two volumes in a single visualization window
+        set v1 [Rappture::View fdfview1]
+        $v1 volume "fdfVol1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1" \
+             "Xcoords" "Ycoords" "Zcoords" "Data2"}
+
+        # create a view with two volumes in different visualization windows
+        # one stacked on top of the other
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 volume "fdfVol2" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
+        $v2 volume "fdfVol3" -at "2,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
+
+        # create a view with two volumes in different visualization windows
+        # side by side
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 volume "fdfVol4" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
+        $v3 volume "fdfVol5" -at "1,2" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
+    }}}
+
+surface <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
+    Purpose: populate a view object with a surface plot
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the volume
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "d1",...} - x, y, and data column names
+    Return Value: None
+    Notes: surface plots can be grouped together by specifying
+           multiple x,y pairs within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "d1" "x2" "y2" "d2"}
+    ToDo:
+        1. how to specify transfer function ranges
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xcoords" "X coordinates"
+        $results column "Ycoords" "Y coordinates"
+        $results column "Data1" "Data Set #1"
+        $results column "Data2" "Data Set #2"
+
+        # create a view with two surface plots in a single visualization window
+        set v1 [Rappture::View fdfview1]
+        $v1 surface "fdfSurf1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1" \
+             "Xcoords" "Ycoords" "Data2"}
+
+        # create a view with two volumes in different visualization windows
+        # one stacked on top of the other
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 surface "fdfSurf2" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1"}
+        $v2 surface "fdfSurf3" -at "2,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data2"}
+
+        # create a view with two volumes in different visualization windows
+        # side by side
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 surface "fdfSurf4" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1"}
+        $v3 surface "fdfSurf5" -at "1,2" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data2"}
+    }}}
+
+image <object> -at "row,col"
+    Purpose: populate a view object with an image
+    Input Arguments: 1 required, 1 optional
+        1. object - object representing the image
+        2. -at - position of the image within the view, row and column number
+    Return Value: None
+    Code Example:
+    {{{
+        set i1 [Rappture::Image "image1" -label "ilabel1" -desc "idesc1"]
+        set i2 [Rappture::Image "image2" -label "ilabel2" -desc "idesc2"]
+
+        # create a view with two images in different windows
+        # one stacked on top of the other
+        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
+        $v1 image $i1 -at "1,1"
+        $v1 image $i2 -at "2,1"
+
+        # create a view with two images in different windows
+        # side by side
+        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
+        $v2 image $i1 -at "1,1"
+        $v2 image $i2 -at "1,2"
+    }}}
+
+note <object> -at "row,col"
+    Purpose: populate a view object with a note
+    Input Arguments: 1 required, 1 optional
+        1. object - object representing the note
+        2. -at - position of the note within the view, row and column number
+    Return Value: None
+    Code Example:
+    {{{
+        set i1 [Rappture::Note "note1" -label "nlabel1" -desc "ndesc1"]
+        set i2 [Rappture::Note "note2" -label "nlabel2" -desc "ndesc2"]
+
+        # create a view with two notes in different windows
+        # one stacked on top of the other
+        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
+        $v1 note $n1 -at "1,1"
+        $v1 note $n2 -at "2,1"
+
+        # create a view with two notes in different windows
+        # side by side
+        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
+        $v2 note $i1 -at "1,1"
+        $v2 note $i2 -at "1,2"
+    }}}
+
+vvalue ?<hints>?
+    Purpose: return the value of the object after applying a
+             varying number of hints about how the value
+             should be configured
+    Input Arguments: variable numbber
+        1. variable number of hints
+    Return Value: value of the object
+    Notes: vvalue will parse out the recognisable hints from
+           va_list arg. Values stored in the object are
+           not changed. Hints should be of the form
+           hintKey=hintVal
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+    }}}
+
+random
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        $p random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 2 3 4 5 6 7 8 9 10] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+        puts [$p count]
+        # 3
+
+    }}}
+
+diff <o>
+    Purpose: return a list showing the differences between
+             this object and Rappture Object o
+    Input Arguments: 1
+        1. o - Rappture Object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+    {{{
+        set p1 [Rappture::Plot]
+        $p1 random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] ]
+
+        set p2 [Rappture::Plot]
+        $p2 random
+        # plot is filed with random data
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        set diffs [$p1 diff $p2]
+
+        foreach {ctype prop oVal nVal} $diffs {
+            puts "$ctype $prop $oval $nVal"
+        }
+        # c name temperature Ef
+        # c units K eV
+        # c def 300 4.5
+        # c min 0 0
+        # c max 500 10
+        # c label "Ambiant Temperature" "Fermi Level"
+        # c desc "Temperature of the environment" "Energy at center of distribution"
+        #
+        # Note that this function will find a difference in the
+        # minimum values even though they are numerically equal.
+        # This is because the objects have different units that
+        # are not compatible. If compatible units were found,
+        # n2's values would have been converted to n1's units
+        # for each comparison.
+
+
+    }}}
+
+configure -as <as> <c>
+    Purpose: configure the object based on the data in "c".
+             use "as" to determine the type of data in "c".
+    Input Arguments: 2
+        1. as - type of data stored in "c".
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+        2. c - data to configure the object from.
+               if as is...     then c should be...
+               RPCONFIG_XML    const char *xmltext
+               RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+    {{{
+        set p [Rappture.Plot]
+        set xmldata {
+            <?xml version="1.0">
+            <curve id="xsquared">
+                <about>
+                    <group>auto34</group>
+                    <label>x squared</label>
+                    <description>x values are squared</description>
+                    <type></type>
+                    <format>g:o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being squared</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>squared values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         4
+                 3         9
+                 4        16
+                 5        25
+                 6        36
+                 7        49
+                 8        64
+                 9        81
+                10       100
+                    </xy>
+                </component>
+            </curve>
+            <curve id="xcubed">
+                <about>
+                    <group>auto34</group>
+                    <label>x cubed</label>
+                    <description>x values are cubed</description>
+                    <type></type>
+                    <format>b-o</format>
+                </about>
+                <xaxis>
+                    <label>x values</label>
+                    <description>values being cubed</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </xaxis>
+                <yaxis>
+                    <label>y values</label>
+                    <description>cubed values</description>
+                    <units></units>
+                    <scale>linear</scale>
+                </yaxis>
+                <component>
+                    <xy>         1         1
+                 2         8
+                 3        27
+                 4        64
+                 5       125
+                 6       216
+                 7       343
+                 8       512
+                 9       729
+                10      1000
+                    </xy>
+                </component>
+            </curve>
+        }
+
+        $p configure -as RPCONFIG_XML $xmldata
+        puts [$p vvalue]
+        # [ [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 4 9 16 25 36 49 64 81 100] ] \
+        #   [ [1 2 3 4 5 6 7 8 9 10] \
+        #     [1 8 27 64 125 216 343 512 729 1000] ] ]
+
+        for {set cur 0} {$cur < [$p count]} {incr cur} {
+            set c [$p getNthCurve $cur]
+            puts [$c name]
+            puts [$c label]
+            puts [$c desc]
+            puts [$c format]
+            for {set axisCnt 0} {$axisCnt < [$c dims]} {incr axisCnt} {
+                set axis [$c getNthAxis $axisCnt]
+                puts [$axis label]
+                puts [$axis desc]
+                puts [$axis units]
+                puts [$axis scale]
+                puts [$axis data]
+            }
+        }
+        # xsquared
+        # x squared
+        # x values are squared
+        # g:o
+        # xaxis
+        # x values
+        # values being squared
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # squared values
+        #
+        # linear
+        # [1 4 9 16 25 36 49 64 81 100]
+        # xcubed
+        # x cubed
+        # x values are cubed
+        # b-o
+        # xaxis
+        # x values
+        # values being cubed
+        #
+        # linear
+        # [1 2 3 4 5 6 7 8 9 10]
+        # yaxis
+        # y values
+        # cubed values
+        #
+        # linear
+        # [1 8 27 64 125 216 343 512 729 1000]
+
+    }}}
+
+dump -as <as>
+    Purpose: dump the object values.
+             use "as" to determine how to dump the data.
+    Input Arguments: 2
+        1. as - type of data to be returned.
+                valid values include:
+                    RPCONFIG_XML
+                    RPCONFIG_TREE
+    Return Value:
+               if as is...     then return the following...
+               RPCONFIG_XML    ClientDataXml *object
+               RPCONFIG_TREE   RP_ParserXML *object
+    Notes: None
+    Code Example:
+    {{{
+        for {set i 0} {$i < 10} {incr i} {
+            lappend x $i
+            lappend y1 [expr pow($i,2)]
+            lappend y2 [expr pow($i,3)]
+        }
+
+        set p [Rappture::Plot]
+        $p add $x $y1 -format "g:o" -name "xsquared"
+        $p add $x $y2 -format "b-o" -name "xcubed"
+        puts [$p dump -as RPCONFIG_XML]
+        # <curve id="xsquared">
+        #     <about>
+        #         <group>auto34</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>g:o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         4
+        #      3         9
+        #      4        16
+        #      5        25
+        #      6        36
+        #      7        49
+        #      8        64
+        #      9        81
+        #     10       100
+        #         </xy>
+        #     </component>
+        # </curve>
+        # <curve id="xcubed">
+        #     <about>
+        #         <group>auto34</group>
+        #         <label></label>
+        #         <description></description>
+        #         <type>(null)</type>
+        #         <format>b-o</format>
+        #     </about>
+        #     <xaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </xaxis>
+        #     <yaxis>
+        #         <label></label>
+        #         <description></description>
+        #         <units></units>
+        #         <scale>linear</scale>
+        #     </yaxis>
+        #     <component>
+        #         <xy>         1         1
+        #      2         8
+        #      3        27
+        #      4        64
+        #      5       125
+        #      6       216
+        #      7       343
+        #      8       512
+        #      9       729
+        #     10      1000
+        #         </xy>
+        #     </component>
+        # </curve>
+
+    }}}
+
+outcome
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 0
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+    {{{
+        set p [Rappture::Plot]
+        set out [$p outcome]
+        if ([$out value] != 0) {
+            puts stderr [$out context]
+            puts stderr [$out remark]
+        }
+    }}}
+
+
+is
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 0
+    Return Value: integer tag unique to all number objects
+    Notes: None
+    Code Example:

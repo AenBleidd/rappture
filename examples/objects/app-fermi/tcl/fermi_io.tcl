@@ -11,47 +11,41 @@ proc fermi_io {
     # describe the inputs
     # declare a number named "temperature",
     # with units of Kelvin, default value 300,
-    # and specify that it is only an input
+    #
     # the next number is named "Ef", has units of
-    # electron Volts, default value of -5.5 and
-    # is also only an input value
-    Rappture::Number "temperature" "K" 300 RP_VAR_INPUT
-    Rappture::Number "Ef" "eV" -5.5 RP_VAR_INPUT
+    # electron Volts, default value of -5.5
+    #
+    # Rappture::Number are assumed to be an input
+    Rappture::Number "temperature" "K" 300
+    Rappture::Number "Ef" "eV" -5.5
 
     # describe the outputs
     # declare a table to store the outputs
-    # table is named "factorsTable" and is declared as
-    # an output only object. two new columns are added to the
+    # table is named "factorsTable".
+    # two new columns are added to the
     # table "factorsTable". the first column is named
     # "Fermi-Dirac Factor", a description is provided,
     # and it has no units. the second column is named
     # "Energy", a description is provided, and has units
     # of electron Volts
-    set results [Rappture::Table "factorsTable" RP_VAR_OUTPUT]
-    $results new column "Fermi-Dirac Factor" \
-                      "Plot of Fermi-Dirac Calculation"
-    $results new column "Energy" \
-                      "Energy cooresponding to each fdf" \
-                      -hints {"units=eV"}
+    # Rappture::Table is assumed to be an output
+    set results [Rappture::Table "factorsTable"]
+    $results column "Fermi-Dirac Factor" \
+                    "Plot of Fermi-Dirac Calculation"
+    $results column "Energy" \
+                    "Energy cooresponding to each fdf" \
+                    -hints {"units=eV"}
 
     # describe how the outputs shoud be displayed
-    # initialize a view named "fdfView", specifying it
-    # as an output only object with a 1x1 view layout.
-    # next, add a plot named "fdfPlot" to the view fdfView".
+    # initialize a view named "fdfView", with a 1x1 layout.
+    # next, add a plot named "fdfPlot" to the view "fdfView".
     # populate the plot with data from the table
-    # "fermifactors". Plot the column named
+    # "factorsTable". Plot the column named
     # "Fermi-Dirac Factor" vs the column named "Energy".
-    # place the plot, named fdfPlot, at position 1x1 within
+    # place the plot, named fdfPlot, at position 1,1 within
     # the view's layout.
-    set v [Rappture::View "fdfView" -flags RP_VAR_OUTPUT|RP_VIEW_1X1]
-    $v plot table "fdfPlot" "factorsTable" \
-                  "Fermi-Dirac Factor" "Energy" \
-                   -hints {"position=1x1"}
-
-    # add another curve to the "fdfPlot" plot.
-    # plot the column named "Fermi-Dirac Factor2" vs
-    # the column named "Energy"
-    # $v plot table "fdfPlot" "factorsTable" \
-    #               "Fermi-Dirac Factor2" "Energy" \
-    #               -hints {"position=1x1"}
+    # Rappture::View is assumed to be an output
+    set v [Rappture::View "fdfView" -rows 1 -cols 1]
+    $v plot "fdfPlot" -at "1,1" -table "factorsTable" \
+        {"Fermi-Dirac Factor" "Energy" "g:o"}
 }
