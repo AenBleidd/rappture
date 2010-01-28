@@ -1009,7 +1009,7 @@ itcl::body Rappture::XyPrint::BuildAxisTab {} {
 	"17" "17" \
 	"18" "18" \
 	"20" "20" 
-    bind $page.tickfontsize <<Value>> [itcl::code $this ApplyAxisSettings]
+    bind $page.titlefontsize <<Value>> [itcl::code $this ApplyAxisSettings]
     Rappture::Tooltip::for $page.titlefontsize \
         "Set the size (point) of the title font."
 
