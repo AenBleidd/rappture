@@ -71,9 +71,15 @@ for {set idx 0} {idx < nPts} {incr idx} {
 # add data to the table pointed to by the variable result.
 # put the fArr data in the column named "Fermi-Dirac Factor"
 # put the EArr data in the column named "Energy"
+#
+# Rappture::Table Commands:
+# the store command overwrites data that already exists in
+# the column with the new array of data.
+# the append command will append the new array of data onto
+# any previously existing array of data.
 
-$result add data "Fermi-Dirac Factor" $fArr
-$result add data "Energy" $EArr
+$result store "Fermi-Dirac Factor" $fArr
+$result store "Energy" $EArr
 
 Rappture::Interface::close
 
