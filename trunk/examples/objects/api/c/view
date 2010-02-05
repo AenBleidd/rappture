@@ -1,0 +1,648 @@
+View
+
+    Rp_View *Rp_ViewInit(const char *name, size_t rows, size_t cols);
+    void Rp_ViewDestroy (Rp_View *v);
+
+    const char *Rp_ViewGetName(Rp_View *v) const;
+    void Rp_ViewSetName(Rp_View *v, const char *val);
+
+    const char *Rp_ViewGetPath(Rp_View *v) const;
+    void Rp_ViewSetPath(Rp_View *v, const char *val);
+
+    const char *Rp_ViewGetLabel(Rp_View *v) const;
+    void Rp_ViewSetLabel(Rp_View *v, const char *val);
+
+    const char *Rp_ViewGetDesc(Rp_View *v) const;
+    void Rp_ViewSetDesc(Rp_View *v, const char *val);
+
+    const char *Rp_ViewGetHints(Rp_View *v) const;
+    void Rp_ViewSetHints(Rp_View *v, const char *val);
+
+    const char *Rp_ViewGetColor(Rp_View *v) const;
+    void Rp_ViewSetColor(Rp_View *v, const char *val);
+
+    const void *Rp_ViewGetProperty (Rp_View *v, const char *key) const;
+    void Rp_ViewSetProperty (Rp_View *v, const char *key,
+        const void *val, size_t nbytes);
+
+    const char *Rp_ViewGetPropStr (Rp_View *v, const char *key) const;
+    void Rp_ViewSetPropStr (Rp_View *v, const char *key, const char *val);
+
+    void Rp_ViewPropRemove (Rp_View *v, const char *key);
+
+    void Rp_ViewVValue(Rp_View *v, void *storage, size_t numHints,
+        va_list arg) const;
+    void Rp_ViewRandom();
+    Rp_Chain *Rp_ViewDiff(Rp_View *v);
+
+    void Rp_ViewConfigure(Rp_View *v, size_t as, ClientData c);
+    void Rp_ViewDump(Rp_View *v, size_t as, ClientData c);
+
+    Outcome *Rp_ViewOutcome(Rp_View *v) const;
+
+    const int Rp_ViewIs(Rp_View *v) const;
+
+    void Rp_ViewPlot(Rp_View *v, const char *name, size_t row, size_t col,
+        Rp_TableColumn *x, Rp_TableColumn *y, const char *style);
+    void Rp_ViewSurf2D(Rp_View *v, const char *name, size_t row, size_t col,
+        Rp_TableColumn *x, Rp_TableColumn *y, Rp_TableColumn *data);
+    void Rp_ViewSurf3D(Rp_View *v, const char *name, size_t row, size_t col,
+        Rp_TableColumn *x, Rp_TableColumn *y, Rp_TableColumn *z, Rp_TableColumn *data);
+    void Rp_ViewImage(Rp_View *v, Rp_Image *img, size_t row, size_t col);
+    void Rp_ViewNote(Rp_View *v, Rp_Note *note, size_t row, size_t col);
+
+
+---------------------------------------
+Rp_View *Rp_ViewInit(const char *name, size_t rows, size_t cols);
+    Purpose: construct a view for displaying data
+    Input Arguments: 1 required, 2 optional
+        1. name - name of the view
+        2. rows - number of rows in the view
+        3. cols - number of columns in the view
+    Return Value: a newly created, empty view object
+    Notes: None
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+    }}}
+
+void Rp_ViewDestroy (Rp_View *v);
+    Purpose: destroy a view object
+    Input Arguments: 1 required
+        1. v - pointer to view object to destroy
+    Return Value: None
+    Notes: None
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+        Rp_ViewDistroy(v);
+        v = NULL;
+    }}}
+
+
+const char *Rp_ViewGetName(Rp_View *v)
+    Purpose: get the id name of the object
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: the id name stored in the object.
+    Notes: if no name is set, NULL will be returned
+            the id name is used to identify this object from
+            all other objects and should be unique
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+        printf("name = %s\n", Rp_ViewGetName(v));
+
+        // The string:
+        // name = fdfplots
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetName(Rp_View *v, const char *val)
+    Purpose: set the id name of the object
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *val - new id name
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        Rp_ViewSetName(v, "newPlots");
+        printf("name = %s\n", Rp_ViewGetName(v));
+
+        // The string:
+        // name = newPlots
+        // is printed to the stdout.
+    }}}
+
+const char *Rp_ViewGetPath(Rp_View *v)
+    Purpose: get the path of the object
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: the path stored in the object.
+    Notes: if no path is set, NULL will be returned
+            the path tells where this object sits in the
+            hierarchy of objects.
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("path = %s\n", Rp_ViewGetPath(v));
+
+        // The string:
+        // path =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetPath(Rp_View *v, const char *val)
+    Purpose: set the path of the object
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *val - new path
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("path = %s\n", Rp_ViewGetPath(v));
+        Rp_ViewSetPath(v, "output");
+        printf("path = %s\n", Rp_ViewGetPath(v));
+
+        // The strings:
+        // path =
+        // path = output
+        // are printed to the stdout.
+    }}}
+
+const char *Rp_ViewGetLabel(Rp_View *v)
+    Purpose: get the label of the object
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: the label stored in the object.
+    Notes: if no label is set, NULL will be returned
+            the label is used by the graphical user interface.
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetLabel(v));
+
+        // The string:
+        // label =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetLabel(Rp_View *v, const char *val)
+    Purpose: set the label of the object
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *val - new label
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetLabel(v));
+        Rp_ViewSetLabel(v, "Fermi-Dirac Factor");
+        printf("label = %s\n", Rp_ViewGetLabel(v));
+
+        // The strings:
+        // label =
+        // label = Fermi-Dirac Factor
+        // are printed to the stdout.
+    }}}
+
+const char *Rp_ViewGetDesc(Rp_View *v)
+    Purpose: get the description of the object
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: the description stored in the object.
+    Notes: if no description is set, NULL will be returned
+           the description is used by the graphical user
+           interface to describe what type of data is being
+           requested and how the input is used.
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("desc = %s\n", Rp_ViewGetDesc(v));
+
+        // The string:
+        // desc =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetDesc(Rp_View *v, const char *val)
+    Purpose: set the description of the object
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *val - new description
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("desc = %s\n", Rp_ViewGetDesc(v));
+        Rp_ViewSetDesc(v, "A plot of the Fermi-Dirac Factor");
+        printf("desc = %s\n", Rp_ViewGetDesc(v));
+
+        // The strings:
+        // desc =
+        // desc = A plot of the Fermi-Dirac Factor
+        // are printed to the stdout.
+    }}}
+
+const char *Rp_ViewGetHints(Rp_View *p)
+    Purpose: get the hints of the object
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: the hints stored in the object.
+    Notes: if no hints are set, NULL will be returned
+            the hints are used by the graphical user interface
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("hints = %s\n", Rp_ViewGetHints(v));
+
+        // The string:
+        // hints =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetHints(Rp_View *v, const char *val)
+    Purpose: set the hints of the object
+    Input Arguments: 2
+        1. Rp_View *p - pointer to View object
+        2. const char *val - new hints
+    Return Value: None
+    Notes: a copy of the memory location val will be stored
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("hints = %s\n", Rp_ViewGetHints(v));
+        Rp_ViewSetHints(v, "no hints");
+        printf("hints = %s\n", Rp_ViewGetHints(v));
+
+        // The strings:
+        // hints =
+        // hints = no hints
+        // are printed to the stdout.
+    }}}
+
+const void *Rp_ViewGetProperty (Rp_View *v, const char *key) const;
+    Purpose: get a generic property from the property database
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetProperty(v,"label"));
+
+        // The string:
+        // label =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetProperty (Rp_View *v, const char *key, const void *val, size_t nbytes);
+    Purpose: set a generic property in the property database
+    Input Arguments: 4
+        1. Rp_View *v - pointer to View object
+        2. const char *key - property name
+        3. const void *val - property value
+        4. size_t nbytes - size (in bytes) of the value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetProperty(v,"label"));
+        Rp_ViewSetProperty(v, "label", "Fermi-Dirac Factor", 19);
+        printf("label = %s\n", Rp_ViewGetProperty(v, "label"));
+
+        // The strings:
+        // label =
+        // label = Fermi-Dirac Factor
+        // are printed to the stdout.
+    }}}
+
+const char *Rp_ViewGetPropStr (Rp_View *v, const char *key) const;
+    Purpose: get a string property from the property database
+    Input Arguments: 2
+        1. Rp_View *v - pointer to View object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetPropStr(v,"label"));
+
+        // The string:
+        // label =
+        // is printed to the stdout.
+    }}}
+
+void Rp_ViewSetPropStr (Rp_View *p, const char *key, const char *val);
+    Purpose: set a string property in the property database
+    Input Arguments: 3
+        1. Rp_View *p - pointer to View object
+        2. const char *key - property name
+        3. const char *val - property value
+    Return Value: None
+    Notes: A copy of the memory pointed to by val is stored
+            in the property database
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        printf("label = %s\n", Rp_ViewGetPropStr(v,"label"));
+        Rp_ViewSetPropStr(v, "label", "Fermi-Dirac Factor");
+        printf("label = %s\n", Rp_ViewGetPropStr(v, "label"));
+
+        // The strings:
+        // label =
+        // label = Fermi-Dirac Factor
+        // are printed to the stdout.
+    }}}
+
+void Rp_ViewPropRemove (Rp_View *v, const char *key);
+    Purpose: remove a property from the property database
+    Input Arguments: 1
+        1. Rp_View *p - pointer to View object
+        2. const char *key - property name
+    Return Value: value of the property
+    Notes: None
+    Code Example:
+    {{{
+        Rp_View *v = Rp_ViewInit("fdfplots", 2, 1);
+
+        Rp_ViewName(v, "fdfactor");
+        printf("name = %s\n", Rp_ViewGetPropStr(v, "name"));
+        Rp_ViewPropRemove(v, "name");
+        printf("name = %s\n", Rp_ViewGetPropStr(v, "name"));
+
+        // The strings:
+        // name = fdfactor
+        // name =
+        // are printed to the stdout.
+    }}}
+
+void Rp_ViewVValue(Rp_View *v, void *storage, size_t numHints, va_list arg) const;
+    Purpose: return the value of the object after applying a
+                varying number of hints about how the value
+                should be configured
+    Input Arguments: 4
+        1. Rp_View *v - pointer to View object
+        2. void *storage - the return value
+        3. size_t numHints - number of hints provided
+        4. va_list arg - list of hints specified as a va_list
+    Return Value: None
+    Notes: vvalue will parse out the recognisable hints from
+                va_list arg. Values stored in the object are
+                not changed.
+    Code Example:
+
+void Rp_ViewRandom();
+    Purpose: populate the object with a random value
+    Input Arguments: 0
+    Return Value: None
+    Notes: the current value of this object will be populated
+           with a random value that fits within the min and
+           max if they were specified.
+    Code Example:
+
+Rp_Chain *Rp_ViewDiff(const Rp_Object *o);
+    Purpose: return a linked list showing the differences between
+             this object and Rp_Object *o
+    Input Arguments: 1
+        1. const Rp_Object *o - object to diff against
+    Return Value: list of differences between objects
+    Notes: None
+    Code Example:
+
+void Rp_ViewConfigure(Rp_View *v, size_t as, ClientData c);
+    Purpose: configure the object based on the data in "c".
+                use "as" to determine the type of data in "c".
+    Input Arguments: 3
+        1. Rp_View *v - pointer to View object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    const char *xmltext
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: object is configured based on values in "c"
+    Code Example:
+
+void Rp_ViewDump(Rp_View *v, size_t as, ClientData c);
+    Purpose: dump the object values based to the object "c".
+                use "as" to determine how to dump the data.
+    Input Arguments: 3
+        1. Rp_View *v - pointer to View object
+        2. size_t as - type of data stored in "c".
+                        valid values include:
+                            RPCONFIG_XML
+                            RPCONFIG_TREE
+        3. ClientData c - data to configure the object from.
+                            if as is...     then c should be...
+                            RPCONFIG_XML    ClientDataXml *object
+                            RPCONFIG_TREE   RP_ParserXML *object
+    Return Value: None
+    Notes: None
+    Code Example:
+
+Outcome *Rp_ViewOutcome(Rp_View *p) const;
+    Purpose: return the status of this object as an Outcome.
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: status of the object as an Outcome
+    Notes: None
+    Code Example:
+
+const int Rp_ViewIs(Rp_View *v) const;
+    Purpose: return an integer tag describing the object.
+    Input Arguments: 1
+        1. Rp_View *v - pointer to View object
+    Return Value: integer tag unique to all plot objects
+    Notes: None
+    Code Example:
+
+void Rp_ViewPlot(Rp_View *v, const char *name, size_t row, size_t col,
+    Rp_TableColumn *x, Rp_TableColumn *y, const char *s);
+    Purpose: populate a view object with a plot
+    Input Arguments: 8 required
+        1. v - pointer to View object
+        2. name - name of the plot within the view
+        3. row - row position of the plot within the view
+        4. col - column position of the plot within the view
+        5. x - table column to be used as X axis
+        6. y - table column to be used as Y axis
+        7. s - line style of the x/y data
+    Return Value: None
+    Notes: plots can be grouped together by specifying
+           the same name, row, and column position for
+           the plot over multiple calls to Rp_ViewPlot.
+           Example:
+           Rp_ViewPlot(v,"plot1",2,1,resultsTable,"X1","Y1","g:o");
+           Rp_ViewPlot(v,"plot1",2,1,resultsTable,"X1","Y2","b-o");
+    Code Example:
+    {{{
+        Rp_Table *results = NULL;
+        Rp_TableColumn *x1 = NULL;
+        Rp_TableColumn *y1 = NULL;
+        Rp_TableColumn *y2 = NULL;
+        Rp_View *v1 = NULL;
+        Rp_View *v2 = NULL;
+        Rp_View *v3 = NULL;
+
+        results = Rp_TableInit("dataTable")
+        x1 = Rp_TableColumnInit(results, "Xvals", "X Values");
+        y1 = Rp_TableColumnInit(results, "Squared", "X Squared");
+        y2 = Rp_TableColumnInit(results, "Cubed", "X Cubed");
+
+        // view with two curves grouped on a single plot
+        // 1) x vs x^2
+        // 2) x vs x^3
+        v1 = Rp_ViewInit("fdfview1");
+        Rp_ViewPlot(v1, "fdfPlot1", 1, 1, x1, y1, "g:o");
+        Rp_ViewPlot(v1, "fdfPlot1", 1, 1, x1, y2, "b-o");
+
+        // view with two plots, one stacked on top of the other
+        // 1) x vs x^2
+        // 2) x vs x^3
+        v2 = Rp_ViewInit("fdfview2");
+        Rp_ViewPlot(v2, "fdfPlot2", 1, 1, x1, y1, "g:o");
+        Rp_ViewPlot(v2, "fdfPlot3", 2, 1, x1, y2, "b-o");
+
+        # create a view with two plots side by side
+        # 1) x vs x^2   2) x vs x^3
+        v3 = Rp_ViewInit("fdfview3");
+        Rp_ViewPlot(v3, "fdfPlot4", 1, 1, x1, y1, "g:o");
+        Rp_ViewPlot(v3, "fdfPlot5", 1, 2, x1, y2, "b-o");
+    }}}
+
+void Rp_ViewSurf2D(Rp_View *v, const char *name, size_t row, size_t col,
+    Rp_TableColumn *x, Rp_TableColumn *y, Rp_TableColumn *data);
+    Purpose: populate a view object with a 2 dimensional surface
+    Input Arguments: 8 required
+        1. v - pointer to View object
+        2. name - name of the 2d surface within the view
+        3. row - row position of the 2d surface within the view
+        4. col - column position of the 2d surface within the view
+        5. table - name of the table holding the data
+        6. x - column name from table to be used as X axis
+        7. y - column name from table to be used as Y axis
+        8. d - column name from table to be used as data
+    Return Value: None
+    Notes: 2D surfaces can be grouped together by specifying
+           the same row and column position for the 2D Surface
+           over multiple calls to Rp_ViewSurf2D
+           Example:
+           Rp_ViewSurf2D(v,"surf1",2,1,resultsTable,x1,y1,d1);
+           Rp_ViewSurf2D(v,"surf2",2,1,resultsTable,x1,y1,d2);
+    ToDo:
+        1. how to specify transfer function ranges
+            Rp_Surface2DTransfer(...);
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?  Perhaps a function like:
+              Rp_TableColumn *Rp_TableUniformColumnInit(size_t min,
+                  size_t max, size_t step);
+    Code Example:
+    {{{
+        Rp_Table *results = NULL;
+        Rp_TableColumn *x1 = NULL;
+        Rp_TableColumn *y1 = NULL;
+        Rp_TableColumn *d1 = NULL;
+        Rp_TableColumn *d2 = NULL;
+        Rp_View *v1 = NULL;
+        Rp_View *v2 = NULL;
+        Rp_View *v3 = NULL;
+
+        results = Rp_TableInit("dataTable")
+        x1 = Rp_TableColumnInit(results, "Xpositions", "X Positions");
+        y1 = Rp_TableColumnInit(results, "Ypositions", "Y Positions");
+        d1 = Rp_TableColumnInit(results, "S1Data", "Surface 1 Data");
+        d2 = Rp_TableColumnInit(results, "S2Data", "Surface 2 Data");
+
+        // view with two 2D surfaces grouped in a single vizualization window
+        v1 = Rp_ViewInit("fdfview1");
+        Rp_ViewSurf2D(v1, "fdfSurf1", 1, 1, x1, y1, d1);
+        Rp_ViewSurf2D(v1, "fdfSurf2", 1, 1, x1, y1, d2);
+
+        // view with two 2D surfaces, one stacked on top of the other
+        v2 = Rp_ViewInit("fdfview2");
+        Rp_ViewSurf2D(v2, "fdfSurf3", 1, 1, x1, y1, d1);
+        Rp_ViewSurf2D(v2, "fdfSurf4", 2, 1, x1, y2, d2);
+
+        # create a view with two 2D surfaces side by side
+        v3 = Rp_ViewInit("fdfview3");
+        Rp_ViewSurf2D(v3, "fdfSurf5", 1, 1, x1, y1, d1);
+        Rp_ViewSurf2D(v3, "fdfSurf6", 1, 2, x1, y1, d2);
+    }}}
+
+void Rp_ViewSurf3D(Rp_View *v, const char *name, size_t row, size_t col,
+    Rp_TableColumn *x, Rp_TableColumn *y, Rp_TableColumn *z, Rp_TableColumn *data);
+    Purpose: populate a view object with a 3 dimensional surface
+    Input Arguments: 9 required
+        1. v - pointer to View object
+        2. name - name of the 3d surface within the view
+        3. row - row position of the 3d surface within the view
+        4. col - column position of the 3d surface within the view
+        5. table - name of the table holding the data
+        6. x - column name from table to be used as X axis
+        7. y - column name from table to be used as Y axis
+        8. z - column name from table to be used as Z axis
+        9. d - column name from table to be used as data
+    Return Value: None
+    Notes: 3D surfaces can be grouped together by specifying
+           the same row, and column position for the 3D Surface
+           over multiple calls to Rp_ViewSurf3D
+           Example:
+           Rp_ViewSurf3D(v,"surf1",2,1,resultsTable,x1,y1,z1,d1);
+           Rp_ViewSurf3D(v,"surf2",2,1,resultsTable,x1,y1,z1,d2);
+    ToDo:
+        1. how to specify transfer function ranges
+            Rp_Surface2DTransfer(...);
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?  Perhaps a function like:
+              Rp_TableColumn *Rp_TableUniformColumnInit(size_t min,
+                  size_t max, size_t step);
+    Code Example:
+    {{{
+        Rp_Table *results = NULL;
+        Rp_TableColumn *x1 = NULL;
+        Rp_TableColumn *y1 = NULL;
+        Rp_TableColumn *z1 = NULL;
+        Rp_TableColumn *d1 = NULL;
+        Rp_TableColumn *d2 = NULL;
+        Rp_View *v1 = NULL;
+        Rp_View *v2 = NULL;
+        Rp_View *v3 = NULL;
+
+        results = Rp_TableInit("dataTable")
+        x1 = Rp_TableColumnInit(results, "Xpositions", "X Positions");
+        y1 = Rp_TableColumnInit(results, "Ypositions", "Y Positions");
+        z1 = Rp_TableColumnInit(results, "Zpositions", "Z Positions");
+        d1 = Rp_TableColumnInit(results, "S1Data", "Surface 1 Data");
+        d2 = Rp_TableColumnInit(results, "S2Data", "Surface 2 Data");
+
+        // view with two 3D surfaces grouped in a single vizualization window
+        v1 = Rp_ViewInit("fdfview1");
+        Rp_ViewSurf3D(v1, "fdfSurf1", 1, 1, x1, y1, z1, d1);
+        Rp_ViewSurf3D(v1, "fdfSurf1", 1, 1, x1, y1, z1, d2);
+
+        // view with two 3D surfaces, one stacked on top of the other
+        v2 = Rp_ViewInit("fdfview2");
+        Rp_ViewSurf3D(v2, "fdfSurf2", 1, 1, x1, y1, z1, d1);
+        Rp_ViewSurf3D(v2, "fdfSurf3", 2, 1, x1, y2, z1, d2);
+
+        # create a view with two 3D surfaces side by side
+        v3 = Rp_ViewInit("fdfview3");
+        Rp_ViewSurf3D(v3, "fdfSurf4", 1, 1, x1, y1, z1, d1);
+        Rp_ViewSurf3D(v3, "fdfSurf5", 1, 2, x1, y1, z1, d2);
+    }}}
+
+void Rp_ViewImage(Rp_View *v, Rp_Image *img, size_t row, size_t col);
+
+void Rp_ViewNote(Rp_View *v, Rp_Note *note, size_t row, size_t col);

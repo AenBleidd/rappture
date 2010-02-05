@@ -11,13 +11,6 @@ methods
     hints ?<val>?
     property <key> ?<val>?
     propremove <key>
-
-    plot    <name> -at "row,col" -table <table> {"x1" "y1" "s1" ...}
-    volume  <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1" ...}
-    surface <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
-    image   <object> -at "row,col"
-    note    <object> -at "row,col"
-
     vvalue ?<hints>?
     random
     diff <o>
@@ -26,10 +19,17 @@ methods
     outcome
     is
 
+    plot   <name> -at "row,col" -table <table> {"x1" "y1" "s1" ...}
+    surf2d <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
+    surf3d <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1" ...}
+    image  <object> -at "row,col"
+    note   <object> -at "row,col"
+
+
 ---------------------------------------
 Rappture::View <name> -rows <rows> -cols <cols>
     Purpose: construct a view for displaying data
-    Input Arguments: 1 manditory, 2 optional
+    Input Arguments: 1 required, 2 optional
         1. name - name of the view
         2. rows - number of rows in the view, default is 1
         3. cols - number of columns in the view, default is 1
@@ -51,11 +51,11 @@ name ?<val>?
            val, if provided, is used to set the object name
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p name
-        # ""
-        $p name "fdfactor"
-        $p name
+        set v [Rappture::View "fdfplots"]
+        $v name
+        # "fdfplots"
+        $v name "fdfactor"
+        $v name
         # "fdfactor"
     }}}
 
@@ -70,11 +70,11 @@ path ?<val>?
            val, if provided, is used to set the object path
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p path
+        set v [Rappture::View "fdfplots"]
+        $v path
         # ""
-        $p path "output"
-        $p path
+        $v path "output"
+        $v path
         # "output"
     }}}
 
@@ -88,11 +88,11 @@ label ?<val>?
            val, if provided, is used to set the object label
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p label
+        set v [Rappture::View "fdfplots"]
+        $v label
         # ""
-        $p label "Fermi-Dirac Factor"
-        $p label
+        $v label "Fermi-Dirac Factor"
+        $v label
         # "Fermi-Dirac Factor"
     }}}
 
@@ -101,18 +101,19 @@ desc ?<val>?
     Input Arguments: at most 1
         1. val - new description
     Return Value: description of the object
-    Notes: if no description is set, an empty string will be returned
-           the description is used by the graphical user
-           interface to describe what type of data is being
-           requested and how the input is used.
-           val, if provided, is used to set the object description
+    Notes: if no description is set, an empty string will be
+           returned the description is used by the graphical
+           user interface to describe what type of data is
+           being requested and how the input is used.  val, if
+           provided, is used to set the object description
+
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p desc
+        set v [Rappture::View "fdfplots"]
+        $v desc
         # ""
-        $p desc "A plot of the Fermi-Dirac Factor"
-        $p desc
+        $v desc "A plot of the Fermi-Dirac Factor"
+        $v desc
         # "A plot of the Fermi-Dirac Factor"
     }}}
 
@@ -126,11 +127,11 @@ hints ?<val>?
            val, if provided, is used to set the object hints
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p hints
+        set v [Rappture::View "fdfplots"]
+        $v hints
         # ""
-        $p hints "no hints"
-        $p hints
+        $v hints "no hints"
+        $v hints
         # "no hints"
     }}}
 
@@ -143,13 +144,13 @@ property <key> ?<val>?
     Notes: A copy val is stored in the property database
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p property "name"
+        set v [Rappture::View "fdfplots"]
+        $v property "label"
         # ""
-        $p property "name" "fdfactor"
-        # "fdfactor"
-        $p name
-        # "fdfactor"
+        $v property "label" "Fermi-Dirac Factor"
+        # "Fermi-Dirac Factor"
+        $v name
+        # "Fermi-Dirac Factor"
     }}}
 
 propremove <key>
@@ -160,205 +161,14 @@ propremove <key>
     Notes: None
     Code Example:
     {{{
-        set p [Rappture::Plot]
-        $p name "fdfactor"
-        $p property "name"
+        set v [Rappture::View "fdfplots"]
+        $v name "fdfactor"
+        $v property "name"
         # "fdfactor"
-        $p propremove "name"
+        $v propremove "name"
         # "fdfactor"
-        $p property "name"
+        $v property "name"
         # ""
-    }}}
-
-plot <name> -at "row,col" -table <table> {"x1" "y1" "s1" "x2" "y2" "s2" ...}
-    Purpose: populate a view object with a plot
-    Input Arguments: 2 required, 2 optional
-        1. name - name of the plot
-        2. -at - position of the plot within the view, row and column number
-        3. -table - name of the table holding the data.
-        4. {"x1" "y1" "s1" ...} - x and y column names, followed by the style
-    Return Value: None
-    Notes: plots can be grouped together by specifying
-           multiple x,y pairs within the list of columns
-           from the last argument. eg:
-           {"x1" "y1" "s1" "x2" "y2" "s2"}
-    Code Example:
-    {{{
-        set results [Rappture::Table "dataTable"]
-        $results column "Xvals" "X Values"
-        $results column "Squared" "X Squared"
-        $results column "Cubed" "X Cubed"
-
-        # create a view with two curves grouped on a single plot
-        # 1) x vs x^2
-        # 2) x vs x^3
-        set v1 [Rappture::View fdfview1]
-        $v1 plot "fdfPlot1" -table "dataTable" \
-            {"Xvals" "Squared" "g:o" "Xvals" "Cubed" "b-o"}
-
-        # create a view with two plots, one stacked on top of the other
-        # 1) x vs x^2
-        # 2) x vs x^3
-        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
-        $v2 plot "fdfPlot2" -at "1,1" -table "dataTable" \
-            {"Xvals" "Squared" "g:o"}
-        $v2 plot "fdfPlot3" -at "2,1" -table "dataTable" \
-            {"Xvals" "Cubed" "b-o"}
-
-        # create a view with two plots side by side
-        # 1) x vs x^2   2) x vs x^3
-        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
-        $v3 plot "fdfPlot4" -at "1,1" -table "dataTable" \
-            {"Xvals" "Squared" "g:o"}
-        $v3 plot "fdfPlot5" -at "1,2" -table "dataTable" \
-            {"Xvals" "Cubed" "b-o"}
-    }}}
-
-volume  <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1",...}
-    Purpose: populate a view object with a volume
-    Input Arguments: 2 required, 2 optional
-        1. name - name of the volume
-        2. -at - position of the plot within the view, row and column number
-        3. -table - name of the table holding the data.
-        4. {"x1" "y1" "z1" "d1",...} - x, y, z, and data column names
-    Return Value: None
-    Notes: volumes can be grouped together by specifying
-           multiple x,y,z triplets within the list of columns
-           from the last argument. eg:
-           {"x1" "y1" "z1" "d1" "x2" "y2" "z2" "d2"}
-    ToDo:
-        1. how to specify transfer function ranges
-        2. how to specify uni rect grid instead of explicit points
-            - three values in the coords columns is assumed to be
-              the min, max, and step for that direction of the
-              uniform rectangular grid?
-    Code Example:
-    {{{
-        set results [Rappture::Table "dataTable"]
-        $results column "Xcoords" "X coordinates"
-        $results column "Ycoords" "Y coordinates"
-        $results column "Zcoords" "Z coordinates"
-        $results column "Data1" "Data Set #1"
-        $results column "Data2" "Data Set #2"
-
-        # create a view with two volumes in a single visualization window
-        set v1 [Rappture::View fdfview1]
-        $v1 volume "fdfVol1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Zcoords" "Data1" \
-             "Xcoords" "Ycoords" "Zcoords" "Data2"}
-
-        # create a view with two volumes in different visualization windows
-        # one stacked on top of the other
-        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
-        $v2 volume "fdfVol2" -at "1,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
-        $v2 volume "fdfVol3" -at "2,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
-
-        # create a view with two volumes in different visualization windows
-        # side by side
-        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
-        $v3 volume "fdfVol4" -at "1,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
-        $v3 volume "fdfVol5" -at "1,2" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
-    }}}
-
-surface <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
-    Purpose: populate a view object with a surface plot
-    Input Arguments: 2 required, 2 optional
-        1. name - name of the volume
-        2. -at - position of the plot within the view, row and column number
-        3. -table - name of the table holding the data.
-        4. {"x1" "y1" "d1",...} - x, y, and data column names
-    Return Value: None
-    Notes: surface plots can be grouped together by specifying
-           multiple x,y pairs within the list of columns
-           from the last argument. eg:
-           {"x1" "y1" "d1" "x2" "y2" "d2"}
-    ToDo:
-        1. how to specify transfer function ranges
-        2. how to specify uni rect grid instead of explicit points
-            - three values in the coords columns is assumed to be
-              the min, max, and step for that direction of the
-              uniform rectangular grid?
-    Code Example:
-    {{{
-        set results [Rappture::Table "dataTable"]
-        $results column "Xcoords" "X coordinates"
-        $results column "Ycoords" "Y coordinates"
-        $results column "Data1" "Data Set #1"
-        $results column "Data2" "Data Set #2"
-
-        # create a view with two surface plots in a single visualization window
-        set v1 [Rappture::View fdfview1]
-        $v1 surface "fdfSurf1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Data1" \
-             "Xcoords" "Ycoords" "Data2"}
-
-        # create a view with two volumes in different visualization windows
-        # one stacked on top of the other
-        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
-        $v2 surface "fdfSurf2" -at "1,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Data1"}
-        $v2 surface "fdfSurf3" -at "2,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Data2"}
-
-        # create a view with two volumes in different visualization windows
-        # side by side
-        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
-        $v3 surface "fdfSurf4" -at "1,1" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Data1"}
-        $v3 surface "fdfSurf5" -at "1,2" -table "dataTable" \
-            {"Xcoords" "Ycoords" "Data2"}
-    }}}
-
-image <object> -at "row,col"
-    Purpose: populate a view object with an image
-    Input Arguments: 1 required, 1 optional
-        1. object - object representing the image
-        2. -at - position of the image within the view, row and column number
-    Return Value: None
-    Code Example:
-    {{{
-        set i1 [Rappture::Image "image1" -label "ilabel1" -desc "idesc1"]
-        set i2 [Rappture::Image "image2" -label "ilabel2" -desc "idesc2"]
-
-        # create a view with two images in different windows
-        # one stacked on top of the other
-        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
-        $v1 image $i1 -at "1,1"
-        $v1 image $i2 -at "2,1"
-
-        # create a view with two images in different windows
-        # side by side
-        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
-        $v2 image $i1 -at "1,1"
-        $v2 image $i2 -at "1,2"
-    }}}
-
-note <object> -at "row,col"
-    Purpose: populate a view object with a note
-    Input Arguments: 1 required, 1 optional
-        1. object - object representing the note
-        2. -at - position of the note within the view, row and column number
-    Return Value: None
-    Code Example:
-    {{{
-        set i1 [Rappture::Note "note1" -label "nlabel1" -desc "ndesc1"]
-        set i2 [Rappture::Note "note2" -label "nlabel2" -desc "ndesc2"]
-
-        # create a view with two notes in different windows
-        # one stacked on top of the other
-        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
-        $v1 note $n1 -at "1,1"
-        $v1 note $n2 -at "2,1"
-
-        # create a view with two notes in different windows
-        # side by side
-        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
-        $v2 note $i1 -at "1,1"
-        $v2 note $i2 -at "1,2"
     }}}
 
 vvalue ?<hints>?
@@ -718,10 +528,202 @@ outcome
         }
     }}}
 
-
 is
     Purpose: return an integer tag describing the object.
     Input Arguments: 0
     Return Value: integer tag unique to all number objects
     Notes: None
     Code Example:
+
+plot <name> -at "row,col" -table <table> {"x1" "y1" "s1" "x2" "y2" "s2" ...}
+    Purpose: populate a view object with a plot
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the plot
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "s1" ...} - x and y column names, followed by the style
+    Return Value: None
+    Notes: plots can be grouped together by specifying
+           multiple x,y pairs within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "s1" "x2" "y2" "s2"}
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xvals" "X Values"
+        $results column "Squared" "X Squared"
+        $results column "Cubed" "X Cubed"
+
+        # create a view with two curves grouped on a single plot
+        # 1) x vs x^2
+        # 2) x vs x^3
+        set v1 [Rappture::View fdfview1]
+        $v1 plot "fdfPlot1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o" "Xvals" "Cubed" "b-o"}
+
+        # create a view with two plots, one stacked on top of the other
+        # 1) x vs x^2
+        # 2) x vs x^3
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 plot "fdfPlot2" -at "1,1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o"}
+        $v2 plot "fdfPlot3" -at "2,1" -table "dataTable" \
+            {"Xvals" "Cubed" "b-o"}
+
+        # create a view with two plots side by side
+        # 1) x vs x^2   2) x vs x^3
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 plot "fdfPlot4" -at "1,1" -table "dataTable" \
+            {"Xvals" "Squared" "g:o"}
+        $v3 plot "fdfPlot5" -at "1,2" -table "dataTable" \
+            {"Xvals" "Cubed" "b-o"}
+    }}}
+
+surf2d <name> -at "row,col" -table <table> {"x1" "y1" "d1" ...}
+    Purpose: populate a view object with a 2 dimensional surface plot
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the 2 dimensional surface
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "d1",...} - x, y, and data column names.
+            data column is used for both height and color.
+    Return Value: None
+    Notes: surface plots can be grouped together by specifying
+           multiple x,y pairs within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "d1" "x2" "y2" "d2"}
+    ToDo:
+        1. how to specify transfer function ranges
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xcoords" "X coordinates"
+        $results column "Ycoords" "Y coordinates"
+        $results column "Data1" "Data Set #1"
+        $results column "Data2" "Data Set #2"
+
+        # create a view with two 2d surface plots in a single visualization window
+        set v1 [Rappture::View fdfview1]
+        $v1 surf2d "fdfSurf1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1" \
+             "Xcoords" "Ycoords" "Data2"}
+
+        # create a view with two 2d surface plots in different visualization windows
+        # one stacked on top of the other
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 surf2d "fdfSurf2" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1"}
+        $v2 surf2d "fdfSurf3" -at "2,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data2"}
+
+        # create a view with two 2d surface plots in different visualization windows
+        # side by side
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 surf2d "fdfSurf4" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data1"}
+        $v3 surf2d "fdfSurf5" -at "1,2" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Data2"}
+    }}}
+
+surf3d <name> -at "row,col" -table <table> {"x1" "y1" "z1" "d1",...}
+    Purpose: populate a view object with a 3 dimensional surface
+    Input Arguments: 2 required, 2 optional
+        1. name - name of the 3 dimensional surface
+        2. -at - position of the plot within the view, row and column number
+        3. -table - name of the table holding the data.
+        4. {"x1" "y1" "z1" "d1",...} - x, y, z, and data column names
+    Return Value: None
+    Notes: 3d surfaces can be grouped together by specifying
+           multiple x,y,z triplets within the list of columns
+           from the last argument. eg:
+           {"x1" "y1" "z1" "d1" "x2" "y2" "z2" "d2"}
+    ToDo:
+        1. how to specify transfer function ranges
+        2. how to specify uni rect grid instead of explicit points
+            - three values in the coords columns is assumed to be
+              the min, max, and step for that direction of the
+              uniform rectangular grid?
+    Code Example:
+    {{{
+        set results [Rappture::Table "dataTable"]
+        $results column "Xcoords" "X coordinates"
+        $results column "Ycoords" "Y coordinates"
+        $results column "Zcoords" "Z coordinates"
+        $results column "Data1" "Data Set #1"
+        $results column "Data2" "Data Set #2"
+
+        # create a view with two 3d surfaces in a single visualization window
+        set v1 [Rappture::View fdfview1]
+        $v1 surf3d "fdfVol1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1" \
+             "Xcoords" "Ycoords" "Zcoords" "Data2"}
+
+        # create a view with two 3d surfaces in different visualization windows
+        # one stacked on top of the other
+        set v2 [Rappture::View fdfview2 -rows 2 -cols 1]
+        $v2 surf3d "fdfVol2" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
+        $v2 surf3d "fdfVol3" -at "2,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
+
+        # create a view with two 3d surfaces in different visualization windows
+        # side by side
+        set v3 [Rappture::View fdfview3 -rows 1 -cols 2]
+        $v3 surf3d "fdfVol4" -at "1,1" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data1"}
+        $v3 surf3d "fdfVol5" -at "1,2" -table "dataTable" \
+            {"Xcoords" "Ycoords" "Zcoords" "Data2"}
+    }}}
+
+image <object> -at "row,col"
+    Purpose: populate a view object with an image
+    Input Arguments: 1 required, 1 optional
+        1. object - object representing the image
+        2. -at - position of the image within the view, row and column number
+    Return Value: None
+    Code Example:
+    {{{
+        set i1 [Rappture::Image "image1" -label "ilabel1" -desc "idesc1"]
+        set i2 [Rappture::Image "image2" -label "ilabel2" -desc "idesc2"]
+
+        # create a view with two images in different windows
+        # one stacked on top of the other
+        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
+        $v1 image $i1 -at "1,1"
+        $v1 image $i2 -at "2,1"
+
+        # create a view with two images in different windows
+        # side by side
+        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
+        $v2 image $i1 -at "1,1"
+        $v2 image $i2 -at "1,2"
+    }}}
+
+note <object> -at "row,col"
+    Purpose: populate a view object with a note
+    Input Arguments: 1 required, 1 optional
+        1. object - object representing the note
+        2. -at - position of the note within the view, row and column number
+    Return Value: None
+    Code Example:
+    {{{
+        set i1 [Rappture::Note "note1" -label "nlabel1" -desc "ndesc1"]
+        set i2 [Rappture::Note "note2" -label "nlabel2" -desc "ndesc2"]
+
+        # create a view with two notes in different windows
+        # one stacked on top of the other
+        set v1 [Rappture::View fdfview1 -rows 2 -cols 1]
+        $v1 note $n1 -at "1,1"
+        $v1 note $n2 -at "2,1"
+
+        # create a view with two notes in different windows
+        # side by side
+        set v2 [Rappture::View fdfview2 -rows 1 -cols 2]
+        $v2 note $i1 -at "1,1"
+        $v2 note $i2 -at "1,2"
+    }}}
+
