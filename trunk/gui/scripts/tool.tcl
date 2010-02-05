@@ -197,7 +197,8 @@ itcl::body Rappture::Tool::run {args} {
 	    set vers [$_xmlobj get tool.version.application.revision]
 	    set simulation simulation
 	    if { $id != "" && $vers != "" } {
-		set simulation ${id}_r${vers}
+		set pid [pid]
+		set simulation ${pid}_${id}_r${vers}
 	    }
 	    puts stderr "MiddlewareTime: job=[incr jobnum] event=$simulation start=$times(start) walltime=$times(walltime) cputime=$times(cputime) status=$status"
 
