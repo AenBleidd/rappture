@@ -11,11 +11,9 @@ exec_prefix=@prefix@
 libdir=@libdir@
 bindir=@bindir@
 
-destdir=@bindir@
+prepend PATH ${bindir}
 
-prepend PATH $destdir/bin
-
-prepend TCLLIBPATH $destdir/lib/vtk
+prepend TCLLIBPATH ${libdir}/vtk
 
 prepend LD_LIBRARY_PATH ${libdir}/vtk
 prepend LD_LIBRARY_PATH ${libdir}/vtk-5.2
@@ -40,4 +38,3 @@ prepend TK_LIBRARY ${libdir}/tk8.4
 
 python_version="@PYTHON_VERSION@"
 prepend PYTHONPATH ${libdir}/python${python_version}/site-packages
-

@@ -464,7 +464,7 @@ itcl::body Rappture::XyPrint::Pixels2Inches { pixels } {
 
 itcl::body Rappture::XyPrint::Inches2Pixels { inches {defValue ""}} {
     set n [scan $inches %g dummy]
-    if { n != 1  && $defValue != "" } {
+    if { $n != 1  && $defValue != "" } {
 	set inches $defValue
     }
     return  [winfo pixels . ${inches}i]
