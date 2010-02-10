@@ -20,7 +20,7 @@ proc fermi_io {
     Rappture::Number "Ef" "eV" -5.5
 
     # Most simple xy plots for output
-    # Because it is a single plot, it gets it's own view.
+    # Because it is a single plot, it gets its own view.
     # The plot is placed in the position 1,1 of the view.
     set plot [Rappture::Plot "fdfPlot"]
     $plot xaxis "Fermi-Dirac Factor" \

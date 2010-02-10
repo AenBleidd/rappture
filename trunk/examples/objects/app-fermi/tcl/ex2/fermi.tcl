@@ -37,8 +37,8 @@ if {[Rappture::Interface::error] != 0} {
 # point to it.
 set T [Rappture::Interface::connect "temperature" -hints {"units=K"}]
 set Ef [Rappture::Interface::connect "Ef" -hints {"units=eV"}]
-set fdfPlot [Rappture::Interface::connect "fdfPlot"]
-set fdfPlot2 [Rappture::Interface::connect "fdfPlot2"]
+set p1 [Rappture::Interface::connect "fdfPlot"]
+set p2 [Rappture::Interface::connect "fdfPlot2"]
 
 if {[Rappture::Interface::error] != 0]} {
     # there were errors while retrieving input data values
@@ -79,11 +79,15 @@ for {set idx 0} {idx < nPts} {incr idx} {
 # some time, we should benchmark to see if this can be done
 # efficiently.
 
-$fdfPlot add "fdfCurve1" $fArr $EArr -format "g:o"
+$p1 add "fdfCurve1" $fArr $EArr -format "g:o"
 
-$fdfPlot2 add "fdfCurve2" $fArr $EArr -format "b-o"
-$fdfPlot2 add "fdfCurve3" $fArr $EArr -format "p--"
+$p2 add "fdfCurve2" $fArr $EArr -format "b-o"
+$p2 add "fdfCurve3" $fArr $EArr -format "p--"
 
+# close the global interface
+# signal to the graphical user interface that science
+# calculations are complete and to display the data
+# as described in the views
 Rappture::Interface::close
 
 exit 0
