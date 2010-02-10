@@ -15,31 +15,27 @@ proc fermi_io {
     # the next number is named "Ef", has units of
     # electron Volts, default value of -5.5
     #
-    # Rappture::Number are assumed to be an input
+    # Rappture::Number is assumed to be an input
     Rappture::Number "temperature" "K" 300
     Rappture::Number "Ef" "eV" -5.5
 
     # describe the outputs
-    # declare a table to store the outputs
-    # table is named "factorsTable".
-    # two new columns are added to the
-    # table "factorsTable". the first column is named
-    # "Fermi-Dirac Factor", a description is provided,
-    # and it has no units. the second column is named
-    # "Energy", a description is provided, and has units
-    # of electron Volts
+    # two new columns are added to the default table
+    # the first column is named "Fermi-Dirac Factor",
+    # a description is provided, and it has no units.
+    # the second column is named "Energy", a description
+    # is provided, and has units of electron Volts.
     # Rappture::Table is assumed to be an output
-    set results [Rappture::Table "factorsTable"]
-    $results column "Fermi-Dirac Factor" \
-                    "Plot of Fermi-Dirac Calculation"
-    $results column "Energy" \
-                    "Energy cooresponding to each fdf" \
-                    -hints {"units=eV"}
-    $results column "Fermi-Dirac Factor * 2" \
-                    "Plot of Fermi-Dirac Calculation multiplied by 2"
-    $results column "Energy * 2" \
-                    "Energy cooresponding to each fdf multiplied by 2" \
-                    -hints {"units=eV"}
+    set x1 [Rappture::Table::column "Fermi-Dirac Factor" \
+            "Plot of Fermi-Dirac Calculation"]
+    set y1 [Rappture::Table::column "Energy" \
+            "Energy cooresponding to each fdf" \
+            -hints {"units=eV"}]
+    set x2 [Rappture::Table::column "Fermi-Dirac Factor * 2" \
+            "Plot of Fermi-Dirac Calculation multiplied by 2"]
+    set y2 [Rappture::Table::column "Energy * 2" \
+            "Energy cooresponding to each fdf multiplied by 2" \
+            -hints {"units=eV"}]
 
     # describe how the outputs should be displayed
     # initialize a view named "fdfView", with a 1x1 layout.
@@ -51,25 +47,23 @@ proc fermi_io {
     # within the view's layout.
     # Rappture::View is assumed to be an output
     set v [Rappture::View "fdfView"]
-    $v plot "fdfPlot" -table "factorsTable" \
-        {"Fermi-Dirac Factor" "Energy" "g:o"}
+    $v plot "fdfPlot" {$x1 $y1 "g:o"}
 
     # two stacked plots in the same view
     set v2 [Rappture::View "fdfView2"]
-    $v2 plot "fdfPlot2" -at "1,1" -table "factorsTable" \
-        {"Fermi-Dirac Factor" "Energy" "g:o"}
-    $v2 plot "fdfPlot3" -at "2,1" -table "factorsTable" \
-        {"Fermi-Dirac Factor * 2" "Energy * 2" "b-o"}
+    $v2 plot "fdfPlot2" -at {1 1} {$x1 $y1 "g:o"}
+    $v2 plot "fdfPlot3" -at {2 1} {$x2 $y2 "b-o"}
 
     # two side by side plots in the same view
     set v3 [Rappture::View "fdfView3"]
-    $v3 plot "fdfPlot4" -at "1,1" -table "factorsTable" \
-        {"Fermi-Dirac Factor" "Energy" "g:o"}
-    $v3 plot "fdfPlot5" -at "1,2" -table "factorsTable" \
-        {"Fermi-Dirac Factor * 2" "Energy * 2" "b-o"}
+    $v3 plot "fdfPlot4" -at {1 1} {$x1 $y1 "g:o"}
+    $v3 plot "fdfPlot5" -at {1 2} {$x2 $y2 "b-o"}
 
     # grouped curves in one plot in a view
-    set v4 [Rappture::View "fdfView1"]
-    $v4 plot "fdfPlot6" -table "factorsTable" \
-        {"Fermi-Dirac Factor" "Energy" "g:o" \
-         "Fermi-Dirac Factor * 2" "Energy * 2" "b-o"}
+    set v4 [Rappture::View "fdfView4"]
+    $v4 plot "fdfPlot6" -at {1 1} {$x1 $y1 "g:o"}
+    $v4 plot "fdfPlot7" -at {1 1} {$x2 $y2 "b-o"}
+
+    # grouped curves in one plot in a view
+    set v5 [Rappture::View "fdfView5"]
+    $v5 plot "fdfPlot8" {$x1 $y1 "g:o" $x2 $y2 "b-o"}

@@ -25,7 +25,10 @@ int main(int argc, char * argv[]) {
     // declare variables to interact with Rappture
     double T          = 0.0;
     double Ef         = 0.0;
-    Rp_Table *result  = NULL;
+    Rp_TableColumn *x1 = NULL;
+    Rp_TableColumn *y1 = NULL;
+    Rp_TableColumn *x2 = NULL;
+    Rp_TableColumn *y2 = NULL;
 
 
     // declare program variables
@@ -61,12 +64,15 @@ int main(int argc, char * argv[]) {
     // look in the global interface for an object named
     // "Ef", convert its value to electron Volts and store
     // the value into the address of Ef.
-    // look in the global interface for an object named
-    // factorsTable and set the variable result to
-    // point to it.
+    // look in the global interface for the columns to
+    // store data. retrieve them for later use.
     Rp_InterfaceConnect("temperature",&T,"units=K",NULL);
     Rp_InterfaceConnect("Ef",&Ef,"units=eV",NULL);
-    Rp_InterfaceConnect("factorsTable",result,NULL);
+
+    Rp_InterfaceConnect("Fermi-Dirac Factor",x1,NULL);
+    Rp_InterfaceConnect("Energy",y1,NULL);
+    Rp_InterfaceConnect("Fermi-Dirac Factor * 2",x2,NULL);
+    Rp_InterfaceConnect("Energy * 2",y2,NULL);
 
     // check the global interface for errors
     if (Rp_InterfaceError() != 0) {
@@ -101,10 +107,10 @@ int main(int argc, char * argv[]) {
     // put the fArr data in the column named "Fermi-Dirac Factor"
     // put the EArr data in the column named "Energy"
     //
-    Rp_TableStore(result,"Fermi-Dirac Factor",nPts,fArr);
-    Rp_TableStore(result,"Energy",nPts,EArr);
-    Rp_TableStore(result,"Fermi-Dirac Factor * 2",nPts,fArr2);
-    Rp_TableStore(result,"Energy * 2",nPts,EArr2);
+    Rp_TableColumnStore(x1,nPts,fArr);
+    Rp_TableColumnStore(y1,nPts,EArr);
+    Rp_TableColumnStore(x2,nPts,fArr2);
+    Rp_TableColumnStore(y2,nPts,EArr2);
 
     // close the global interface
     // signal to the graphical user interface that science

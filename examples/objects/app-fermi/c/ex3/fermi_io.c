@@ -34,23 +34,20 @@ void fermi_io() {
     // describe the outputs
     // declare a table to store the outputs
     // table is named "factorsTable".
-    // two new columns are added to the
-    // table "factorsTable". the first column is named
-    // "Fermi-Dirac Factor", a description is provided,
-    // and it has no units. the second column is named
-    // "Energy", a description is provided, and has units
-    // of electron Volts
-    results = Rp_TableInit("factorsTable",RP_VAR_OUTPUT);
-
-    x1 = Rp_TableColumnInit(results,"Fermi-Dirac Factor",
+    // two new columns are added to the default table
+    // the first column is named "Fermi-Dirac Factor",
+    // a description is provided, and it has no units.
+    // the second column is named "Energy", a description
+    // is provided, and has units of electron Volts
+    x1 = Rp_TableColumnInit("Fermi-Dirac Factor",
             "Plot of Fermi-Dirac Calculation");
-    y1 = Rp_TableColumnInit(results,"Energy",
+    y1 = Rp_TableColumnInit("Energy",
             "Energy cooresponding to each fdf");
     Rp_TableColumnHint(y1,"units","eV");
 
-    x2 = Rp_TableColumnInit(results,"Fermi-Dirac Factor * 2",
+    x2 = Rp_TableColumnInit("Fermi-Dirac Factor * 2",
             "Plot of Fermi-Dirac Calculation multiplied by 2");
-    y2 = Rp_TableColumnInit(results,"Energy * 2",
+    y2 = Rp_TableColumnInit("Energy * 2",
             "Energy cooresponding to each fdf multiplied by 2");
     Rp_TableColumnHint(y2,"units","eV");
 

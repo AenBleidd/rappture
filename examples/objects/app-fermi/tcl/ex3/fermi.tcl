@@ -37,7 +37,11 @@ if {[Rappture::Interface::error] != 0} {
 # point to it.
 set T [Rappture::Interface::connect "temperature" -hints {"units=K"}]
 set Ef [Rappture::Interface::connect "Ef" -hints {"units=eV"}]
-set result [Rappture::Interface::connect "factorsTable"]
+
+set x1 [Rappture::Interface::connect "Fermi-Dirac Factor"]
+set y1 [Rappture::Interface::connect "Energy"]
+set x2 [Rappture::Interface::connect "Fermi-Dirac Factor * 2"]
+set y2 [Rappture::Interface::connect "Energy * 2"]
 
 if {[Rappture::Interface::error] != 0]} {
     # there were errors while retrieving input data values
@@ -80,10 +84,10 @@ for {set idx 0} {idx < nPts} {incr idx} {
 # the append command will append the new array of data onto
 # any previously existing array of data.
 
-$result store "Fermi-Dirac Factor" $fArr
-$result store "Fermi-Dirac Factor * 2" $fArr2
-$result store "Energy" $EArr
-$result store "Energy * 2" $EArr2
+$x1 store $fArr
+$y1 store $fArr2
+$x2 store $EArr
+$y2 store $EArr2
 
 Rappture::Interface::close
 
