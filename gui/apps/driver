@@ -310,13 +310,14 @@ if {[llength [$win.pager page]] == 2} {
     if {$type == ""} {
 	set type [$tool xml get tool.control.type]
     }
+    set arrangement [$win.pager cget -arrangement]
     if { $type == "" } {
-        set arrangement [$win.pager cget -arrangement]
         if { $arrangement != "side-by-side" } { 
            set type auto
         }
     }
-    if { $type == "manual" || $type == "auto" || $style == "wizard" } {
+    if { $arrangement != "side-by-side" && 
+	    ($type == "manual" || $type == "auto" || $style == "wizard") } {
 	# in "auto" mode, we don't need a simulate button
 	$f.analyze configure -simcontrol off
     } else {
