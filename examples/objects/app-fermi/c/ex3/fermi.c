@@ -107,10 +107,10 @@ int main(int argc, char * argv[]) {
     // put the fArr data in the column named "Fermi-Dirac Factor"
     // put the EArr data in the column named "Energy"
     //
-    Rp_TableColumnStore(x1,nPts,fArr);
-    Rp_TableColumnStore(y1,nPts,EArr);
-    Rp_TableColumnStore(x2,nPts,fArr2);
-    Rp_TableColumnStore(y2,nPts,EArr2);
+    Rp_TableColumnStoreDouble(x1,nPts,fArr);
+    Rp_TableColumnStoreDouble(y1,nPts,EArr);
+    Rp_TableColumnStoreDouble(x2,nPts,fArr2);
+    Rp_TableColumnStoreDouble(y2,nPts,EArr2);
 
     // close the global interface
     // signal to the graphical user interface that science
