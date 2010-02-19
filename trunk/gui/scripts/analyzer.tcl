@@ -98,23 +98,23 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     pack $itk_interior.simol -fill x
 
     itk_component add simbg {
-	frame $itk_interior.simol.simbg -borderwidth 0
+        frame $itk_interior.simol.simbg -borderwidth 0
     } {
-	usual
-	rename -background -simcontrolcolor simControlColor Color
+        usual
+        rename -background -simcontrolcolor simControlColor Color
     }
     pack $itk_component(simbg) -expand yes -fill both
 
     set simtxt [$tool xml get tool.action.label]
     if {"" == $simtxt} {
-	set simtxt "Simulate"
+        set simtxt "Simulate"
     }
     itk_component add simulate {
-	button $itk_component(simbg).simulate -text $simtxt \
-	    -command [itcl::code $this simulate]
+        button $itk_component(simbg).simulate -text $simtxt \
+            -command [itcl::code $this simulate]
     } {
-	usual
-	rename -highlightbackground -simcontrolcolor simControlColor Color
+        usual
+        rename -highlightbackground -simcontrolcolor simControlColor Color
     }
     pack $itk_component(simulate) -side left -padx 4 -pady 4
 
@@ -122,74 +122,74 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     set _appName [$_tool xml get tool.id]
     set url [Rappture::Tool::resources -huburl]
     if {"" != $url && "" != $_appName} {
-	itk_component add hubcntls {
-	    frame $itk_component(simbg).hubcntls
-	} {
-	    usual
-	    rename -background -simcontrolcolor simControlColor Color
-	}
-	pack $itk_component(hubcntls) -side right -padx 4
+        itk_component add hubcntls {
+            frame $itk_component(simbg).hubcntls
+        } {
+            usual
+            rename -background -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(hubcntls) -side right -padx 4
 
-	itk_component add icon {
-	    label $itk_component(hubcntls).icon -image [Rappture::icon ask] \
-		-highlightthickness 0
-	} {
-	    usual
-	    ignore -highlightthickness
-	    rename -background -simcontrolcolor simControlColor Color
-	}
-	pack $itk_component(icon) -side left
+        itk_component add icon {
+            label $itk_component(hubcntls).icon -image [Rappture::icon ask] \
+                -highlightthickness 0
+        } {
+            usual
+            ignore -highlightthickness
+            rename -background -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(icon) -side left
 
-	itk_component add about {
-	    button $itk_component(hubcntls).about -text "About this tool" \
-		-command [list Rappture::filexfer::webpage \
-			      "$url/tools/$_appName"]
-	} {
-	    usual
-	    ignore -font
-	    rename -background -simcontrolcolor simControlColor Color
-	    rename -highlightbackground -simcontrolcolor simControlColor Color
-	}
-	pack $itk_component(about) -side top -anchor w
+        itk_component add about {
+            button $itk_component(hubcntls).about -text "About this tool" \
+                -command [list Rappture::filexfer::webpage \
+                              "$url/tools/$_appName"]
+        } {
+            usual
+            ignore -font
+            rename -background -simcontrolcolor simControlColor Color
+            rename -highlightbackground -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(about) -side top -anchor w
 
-	itk_component add questions {
-	    button $itk_component(hubcntls).questions -text Questions? \
-		-command [list Rappture::filexfer::webpage \
-			      "$url/resources/$_appName/questions"]
-	} {
-	    usual
-	    ignore -font
-	    rename -background -simcontrolcolor simControlColor Color
-	    rename -highlightbackground -simcontrolcolor simControlColor Color
-	}
-	pack $itk_component(questions) -side top -anchor w
+        itk_component add questions {
+            button $itk_component(hubcntls).questions -text Questions? \
+                -command [list Rappture::filexfer::webpage \
+                              "$url/resources/$_appName/questions"]
+        } {
+            usual
+            ignore -font
+            rename -background -simcontrolcolor simControlColor Color
+            rename -highlightbackground -simcontrolcolor simControlColor Color
+        }
+        pack $itk_component(questions) -side top -anchor w
     }
 
     itk_component add simstatus {
-	text $itk_component(simbg).simstatus -borderwidth 0 \
-	    -highlightthickness 0 -height 1 -width 1 -wrap none \
-	    -state disabled
+        text $itk_component(simbg).simstatus -borderwidth 0 \
+            -highlightthickness 0 -height 1 -width 1 -wrap none \
+            -state disabled
     } {
-	usual
-	ignore -highlightthickness
-	rename -background -simcontrolcolor simControlColor Color
-	rename -font -textfont textFont Font
+        usual
+        ignore -highlightthickness
+        rename -background -simcontrolcolor simControlColor Color
+        rename -font -textfont textFont Font
     }
     pack $itk_component(simstatus) -side left -expand yes -fill x
 
     $itk_component(simstatus) tag configure popup \
-	-underline 1 -foreground blue
+        -underline 1 -foreground blue
 
     $itk_component(simstatus) tag bind popup \
-	<Enter> {%W configure -cursor center_ptr}
+        <Enter> {%W configure -cursor center_ptr}
     $itk_component(simstatus) tag bind popup \
-	<Leave> {%W configure -cursor ""}
+        <Leave> {%W configure -cursor ""}
     $itk_component(simstatus) tag bind popup \
-	<ButtonPress> {after idle {Rappture::Tooltip::tooltip show %W}}
+        <ButtonPress> {after idle {Rappture::Tooltip::tooltip show %W}}
 
 
     itk_component add notebook {
-	Rappture::Notebook $itk_interior.nb
+        Rappture::Notebook $itk_interior.nb
     }
     pack $itk_interior.nb -expand yes -fill both
 
@@ -201,12 +201,12 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     Rappture::Scroller $w.info -xscrollmode off -yscrollmode auto
     pack $w.info -expand yes -fill both -padx 4 -pady 20
     itk_component add toolinfo {
-	text $w.info.text -width 1 -height 1 -wrap word \
-	    -borderwidth 0 -highlightthickness 0
+        text $w.info.text -width 1 -height 1 -wrap word \
+            -borderwidth 0 -highlightthickness 0
     } {
-	usual
-	ignore -borderwidth -relief
-	rename -font -textfont textFont Font
+        usual
+        ignore -borderwidth -relief
+        rename -font -textfont textFont Font
     }
     $w.info contents $w.info.text
 
@@ -220,26 +220,26 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     pack $w.cntls.sep -side top -fill x
 
     itk_component add abort {
-	button $w.cntls.abort -text "Abort" \
-	    -command [itcl::code $_tool abort]
+        button $w.cntls.abort -text "Abort" \
+            -command [itcl::code $_tool abort]
     }
     pack $itk_component(abort) -side left -expand yes -padx 4 -pady 4
 
     Rappture::Scroller $w.info -xscrollmode auto -yscrollmode auto
     pack $w.info -expand yes -fill both -padx 4 -pady 4
     itk_component add runinfo {
-	text $w.info.text -width 1 -height 1 -wrap none \
-	    -borderwidth 0 -highlightthickness 0 \
-	    -state disabled
+        text $w.info.text -width 1 -height 1 -wrap none \
+            -borderwidth 0 -highlightthickness 0 \
+            -state disabled
     } {
-	usual
-	ignore -borderwidth -relief
-	rename -font -codefont codeFont Font
+        usual
+        ignore -borderwidth -relief
+        rename -font -codefont codeFont Font
     }
     $w.info contents $w.info.text
 
     itk_component add progress {
-	Rappture::Progress $w.progress
+        Rappture::Progress $w.progress
     }
 
     # ------------------------------------------------------------------
@@ -253,59 +253,59 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     pack $w.top.l -side left
 
     itk_component add resultselector {
-	Rappture::Combobox $w.top.sel -width 10 -editable no
+        Rappture::Combobox $w.top.sel -width 10 -editable no
     } {
-	usual
-	rename -font -textfont textFont Font
+        usual
+        rename -font -textfont textFont Font
     }
     pack $itk_component(resultselector) -side left -expand yes -fill x
     bind $itk_component(resultselector) <<Value>> [itcl::code $this _fixResult]
     bind $itk_component(resultselector) <Enter> \
-	[itcl::code $this download coming]
+        [itcl::code $this download coming]
 
     Rappture::Tooltip::for $itk_component(resultselector) \
-	"@[itcl::code $this _resultTooltip]"
+        "@[itcl::code $this _resultTooltip]"
 
     $itk_component(resultselector) choices insert end \
-	--- "---"
+        --- "---"
 
     itk_component add download {
-	button $w.top.dl -image [Rappture::icon download] -anchor e \
-	    -borderwidth 1 -relief flat -overrelief raised \
-	    -command [itcl::code $this download start $w.top.dl]
+        button $w.top.dl -image [Rappture::icon download] -anchor e \
+            -borderwidth 1 -relief flat -overrelief raised \
+            -command [itcl::code $this download start $w.top.dl]
     }
     pack $itk_component(download) -side right -padx {4 0}
     bind $itk_component(download) <Enter> \
-	[itcl::code $this download coming]
+        [itcl::code $this download coming]
 
     $itk_component(resultselector) choices insert end \
-	@download [Rappture::filexfer::label download]
+        @download [Rappture::filexfer::label download]
 
     if {[Rappture::filexfer::enabled]} {
-	Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
+        Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
 
 NOTE:  Your web browser must allow pop-ups from this site.  If your output does not appear, look for a 'pop-up blocked' message and enable pop-ups."
     } else {
-	Rappture::Tooltip::for $itk_component(download) "Saves the current result to a file on your desktop."
+        Rappture::Tooltip::for $itk_component(download) "Saves the current result to a file on your desktop."
     }
 
     itk_component add results {
-	Rappture::Panes $w.pane -sashwidth 1 -sashrelief solid -sashpadding {4 0}
+        Rappture::Panes $w.pane -sashwidth 1 -sashrelief solid -sashpadding {4 0}
     }
     pack $itk_component(results) -expand yes -fill both
     set f [$itk_component(results) pane 0]
 
     itk_component add resultpages {
-	Rappture::Notebook $f.nb
+        Rappture::Notebook $f.nb
     }
     pack $itk_component(resultpages) -expand yes -fill both
 
     set f [$itk_component(results) insert end -fraction 0.1]
     itk_component add resultset {
-	Rappture::ResultSet $f.rset \
-	    -clearcommand [itcl::code $this clear] \
-	    -settingscommand [itcl::code $this _plot] \
-	    -promptcommand [itcl::code $this _simState]
+        Rappture::ResultSet $f.rset \
+            -clearcommand [itcl::code $this clear] \
+            -settingscommand [itcl::code $this _plot] \
+            -promptcommand [itcl::code $this _simState]
     }
     pack $itk_component(resultset) -expand yes -fill both
     bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
@@ -320,17 +320,17 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     # Load up tool info on the first page.
     #
     $itk_component(toolinfo) tag configure title \
-	-font $itk_option(-boldtextfont)
+        -font $itk_option(-boldtextfont)
 
     set mesg [$tool xml get tool.title]
     if {"" != $mesg} {
-	$itk_component(toolinfo) insert end $mesg title
-	$itk_component(toolinfo) insert end "\n\n"
+        $itk_component(toolinfo) insert end $mesg title
+        $itk_component(toolinfo) insert end "\n\n"
     }
 
     set mesg [$tool xml get tool.about]
     if {"" != $mesg} {
-	$itk_component(toolinfo) insert end $mesg
+        $itk_component(toolinfo) insert end $mesg
     }
     $itk_component(toolinfo) configure -state disabled
     $itk_component(notebook) current about
@@ -338,10 +338,10 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     # tool can run on "manual" (default) or "auto"
     set cntl [$tool xml get tool.control]
     if {"" == $cntl} {
-	set cntl [$tool xml get tool.control.type]
+        set cntl [$tool xml get tool.control.type]
     }
     if {"" != $cntl} {
-	set _control $cntl
+        set _control $cntl
     }
 
     # reset everything to a clean state
@@ -353,7 +353,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::destructor {} {
     foreach obj $_runs {
-	itcl::delete object $obj
+        itcl::delete object $obj
     }
     after cancel [itcl::code $this simulate]
 }
@@ -370,15 +370,15 @@ itcl::body Rappture::Analyzer::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::simulate {args} {
     if {$args == "-ifneeded"} {
-	# check to see if simulation is really needed
-	$_tool sync
-	if {[$itk_component(resultset) contains [$_tool xml object]]
-	      && ![string equal $_control "manual-resim"]} {
-	    # not needed -- show results and return
-	    $itk_component(notebook) current analyze
-	    return
-	}
-	set args ""
+        # check to see if simulation is really needed
+        $_tool sync
+        if {[$itk_component(resultset) contains [$_tool xml object]]
+              && ![string equal $_control "manual-resim"]} {
+            # not needed -- show results and return
+            $itk_component(notebook) current analyze
+            return
+        }
+        set args ""
     } 
 
     # simulation is needed -- go to simulation page
@@ -396,8 +396,8 @@ itcl::body Rappture::Analyzer::simulate {args} {
 
     # if the hold window is set, then put up a busy cursor
     if {$itk_option(-holdwindow) != ""} {
-	blt::busy hold $itk_option(-holdwindow)
-	raise $itk_component(hull)
+        blt::busy hold $itk_option(-holdwindow)
+        raise $itk_component(hull)
     }
 
     # execute the job
@@ -405,35 +405,35 @@ itcl::body Rappture::Analyzer::simulate {args} {
 
     # if job was aborted, then allow simulation again
     if {$result == "ABORT"} {
-	_simState on "Aborted"
+        _simState on "Aborted"
     }
 
     # load results from run.xml into analyzer
     if {$status == 0 && $result != "ABORT"} {
-	set status [catch {load $result} result]
+        set status [catch {load $result} result]
     }
 
     # back to normal
     if {$itk_option(-holdwindow) != ""} {
-	blt::busy release $itk_option(-holdwindow)
+        blt::busy release $itk_option(-holdwindow)
     }
     $itk_component(abort) configure -state disabled
 
     if {$status != 0} {
-	$itk_component(runinfo) configure -state normal
-	$itk_component(runinfo) delete 1.0 end
-	$itk_component(runinfo) insert end "Problem launching job:\n\n" text
-	_simOutput $result
-	$itk_component(runinfo) configure -state disabled
-	$itk_component(runinfo) see 1.0
+        $itk_component(runinfo) configure -state normal
+        $itk_component(runinfo) delete 1.0 end
+        $itk_component(runinfo) insert end "Problem launching job:\n\n" text
+        _simOutput $result
+        $itk_component(runinfo) configure -state disabled
+        $itk_component(runinfo) see 1.0
 
-	# Try to create a support ticket for this error.
-	# It may be a real problem.
-	if {[Rappture::bugreport::shouldReport for jobs]} {
-	    Rappture::bugreport::register "Problem launching job:\n\n$result\n== RAPPTURE INPUT ==\n[$_tool xml xml]"
-	}
+        # Try to create a support ticket for this error.
+        # It may be a real problem.
+        if {[Rappture::bugreport::shouldReport for jobs]} {
+            Rappture::bugreport::register "Problem launching job:\n\n$result\n== RAPPTURE INPUT ==\n[$_tool xml xml]"
+        }
     } else {
-	$itk_component(notebook) current analyze
+        $itk_component(notebook) current analyze
     }
 
     # do this last -- after _simOutput above
@@ -450,27 +450,27 @@ itcl::body Rappture::Analyzer::simulate {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::reset {{when -eventually}} {
     if {$when == "-eventually"} {
-	after cancel [list catch [itcl::code $this reset -now]]
-	after idle [list catch [itcl::code $this reset -now]]
-	return
+        after cancel [list catch [itcl::code $this reset -now]]
+        after idle [list catch [itcl::code $this reset -now]]
+        return
     }
 
     # check to see if simulation is really needed
     $_tool sync
     if {![$itk_component(resultset) contains [$_tool xml object]]
-	  || [string equal $_control "manual-resim"]} {
-	# if control mode is "auto", then simulate right away
-	if {[string match auto* $_control]} {
-	    # auto control -- don't need button
-	    pack forget $itk_interior.simol
+          || [string equal $_control "manual-resim"]} {
+        # if control mode is "auto", then simulate right away
+        if {[string match auto* $_control]} {
+            # auto control -- don't need button
+            pack forget $itk_interior.simol
 
-	    after cancel [itcl::code $this simulate]
-	    after idle [itcl::code $this simulate]
-	} else {
-	    _simState on "new input parameters"
-	}
+            after cancel [itcl::code $this simulate]
+            after idle [itcl::code $this simulate]
+        } else {
+            _simState on "new input parameters"
+        }
     } else {
-	_simState off
+        _simState off
     }
 }
 
@@ -483,35 +483,35 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 itcl::body Rappture::Analyzer::load {xmlobj} {
     # only show the last result? then clear first
     if {[$_tool xml get tool.analyzer] == "last"} {
-	clear
+        clear
     }
 
     # look for all output.load children and load them first
     # each run.xml is loaded as a previous simulation.
     foreach item [$xmlobj children -type run output.load] {
-	set loadfile [$xmlobj get output.load.$item]
-	set loadobj [Rappture::library $loadfile]
-	load $loadobj
+        set loadfile [$xmlobj get output.load.$item]
+        set loadobj [Rappture::library $loadfile]
+        load $loadobj
     }
 
     foreach item [$xmlobj children -type run output.include] {
-	set id [$xmlobj element -as id output.include.$item]
-	set inclfile [$xmlobj get output.include.$item]
-	set inclobj [Rappture::library $inclfile]
-	foreach c [$inclobj children output] {
-	    switch -glob -- $c {
-		# we don't want to include these tags
-		include* - time* - status* - user* {
-		    continue
-		}
-		default {
-		    set oldid [$inclobj element -as id output.$c]
-		    set oldtype [$inclobj element -as type output.$c]
-		    set newcomp "$oldtype\($id-$oldid\)"
-		    $xmlobj copy output.$newcomp from $inclobj output.$c
-		}
-	    }
-	}
+        set id [$xmlobj element -as id output.include.$item]
+        set inclfile [$xmlobj get output.include.$item]
+        set inclobj [Rappture::library $inclfile]
+        foreach c [$inclobj children output] {
+            switch -glob -- $c {
+                # we don't want to include these tags
+                include* - time* - status* - user* {
+                    continue
+                }
+                default {
+                    set oldid [$inclobj element -as id output.$c]
+                    set oldtype [$inclobj element -as type output.$c]
+                    set newcomp "$oldtype\($id-$oldid\)"
+                    $xmlobj copy output.$newcomp from $inclobj output.$c
+                }
+            }
+        }
     }
 
     lappend _runs $xmlobj
@@ -519,104 +519,104 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     # go through the analysis and find all result sets
     set haveresults 0
     foreach item [_reorder [$xmlobj children output]] {
-	switch -glob -- $item {
-	    log* {
-		_autoLabel $xmlobj output.$item "Output Log" counters
-	    }
-	    number* {
-		_autoLabel $xmlobj output.$item "Number" counters
-	    }
-	    integer* {
-		_autoLabel $xmlobj output.$item "Integer" counters
-	    }
-	    string* {
-		_autoLabel $xmlobj output.$item "String" counters
-	    }
-	    histogram* - curve* - field* {
-		_autoLabel $xmlobj output.$item "Plot" counters
-	    }
-	    structure* {
-		_autoLabel $xmlobj output.$item "Structure" counters
-	    }
-	    table* {
-		_autoLabel $xmlobj output.$item "Energy Levels" counters
-	    }
-	    sequence* {
-		_autoLabel $xmlobj output.$item "Sequence" counters
-	    }
-	}
-	set label [$xmlobj get output.$item.about.group]
-	if {"" == $label} {
-	    set label [$xmlobj get output.$item.about.label]
-	}
+        switch -glob -- $item {
+            log* {
+                _autoLabel $xmlobj output.$item "Output Log" counters
+            }
+            number* {
+                _autoLabel $xmlobj output.$item "Number" counters
+            }
+            integer* {
+                _autoLabel $xmlobj output.$item "Integer" counters
+            }
+            string* {
+                _autoLabel $xmlobj output.$item "String" counters
+            }
+            histogram* - curve* - field* {
+                _autoLabel $xmlobj output.$item "Plot" counters
+            }
+            structure* {
+                _autoLabel $xmlobj output.$item "Structure" counters
+            }
+            table* {
+                _autoLabel $xmlobj output.$item "Energy Levels" counters
+            }
+            sequence* {
+                _autoLabel $xmlobj output.$item "Sequence" counters
+            }
+        }
+        set label [$xmlobj get output.$item.about.group]
+        if {"" == $label} {
+            set label [$xmlobj get output.$item.about.label]
+        }
 
-	set hidden [$xmlobj get output.$item.hide]
-	set hidden [expr {"" != $hidden && $hidden}]
+        set hidden [$xmlobj get output.$item.hide]
+        set hidden [expr {"" != $hidden && $hidden}]
 
-	if {"" != $label && !$hidden} {
-	    set haveresults 1
-	}
+        if {"" != $label && !$hidden} {
+            set haveresults 1
+        }
     }
 
     # if there are any valid results, add them to the resultset
     if {$haveresults} {
-	set index [$itk_component(resultset) add $xmlobj]
+        set index [$itk_component(resultset) add $xmlobj]
 
-	# add each result to a result viewer
-	foreach item [_reorder [$xmlobj children output]] {
-	    set label [$xmlobj get output.$item.about.group]
-	    if {"" == $label} {
-		set label [$xmlobj get output.$item.about.label]
-	    }
+        # add each result to a result viewer
+        foreach item [_reorder [$xmlobj children output]] {
+            set label [$xmlobj get output.$item.about.group]
+            if {"" == $label} {
+                set label [$xmlobj get output.$item.about.label]
+            }
 
-	    set hidden [$xmlobj get output.$item.hide]
-	    set hidden [expr {"" != $hidden && $hidden}]
+            set hidden [$xmlobj get output.$item.hide]
+            set hidden [expr {"" != $hidden && $hidden}]
 
-	    if {"" != $label && !$hidden} {
-		if {![info exists _label2page($label)]} {
-		    set name "page[incr _pages]"
-		    set page [$itk_component(resultpages) insert end $name]
-		    set _label2page($label) $page
-		    set _label2desc($label) \
-			[$xmlobj get output.$item.about.description]
-		    Rappture::ResultViewer $page.rviewer
-		    pack $page.rviewer -expand yes -fill both -pady 4
+            if {"" != $label && !$hidden} {
+                if {![info exists _label2page($label)]} {
+                    set name "page[incr _pages]"
+                    set page [$itk_component(resultpages) insert end $name]
+                    set _label2page($label) $page
+                    set _label2desc($label) \
+                        [$xmlobj get output.$item.about.description]
+                    Rappture::ResultViewer $page.rviewer
+                    pack $page.rviewer -expand yes -fill both -pady 4
 
-		    set end [$itk_component(resultselector) \
-			choices index -value ---]
-		    if {$end < 0} {
-			set end "end"
-		    }
-		    $itk_component(resultselector) choices insert $end \
-			$name $label
-		}
+                    set end [$itk_component(resultselector) \
+                        choices index -value ---]
+                    if {$end < 0} {
+                        set end "end"
+                    }
+                    $itk_component(resultselector) choices insert $end \
+                        $name $label
+                }
 
-		# add/replace the latest result into this viewer
-		set page $_label2page($label)
+                # add/replace the latest result into this viewer
+                set page $_label2page($label)
 
-		if {![info exists reset($page)]} {
-		    $page.rviewer clear $index
-		    set reset($page) 1
-		}
-		$page.rviewer add $index $xmlobj output.$item
-	    }
-	}
+                if {![info exists reset($page)]} {
+                    $page.rviewer clear $index
+                    set reset($page) 1
+                }
+                $page.rviewer add $index $xmlobj output.$item
+            }
+        }
     }
 
     # show the first page by default
     set max [$itk_component(resultselector) choices size]
     for {set i 0} {$i < $max} {incr i} {
-	set first [$itk_component(resultselector) choices get -label $i]
-	if {$first != ""} {
-	    set page [$itk_component(resultselector) choices get -value $i]
-	    set char [string index $page 0]
-	    if {$char != "@" && $char != "-"} {
-		$itk_component(resultpages) current $page
-		$itk_component(resultselector) value $first
-		set _lastlabel $first
-		break
-	    }
-	}
+        set first [$itk_component(resultselector) choices get -label $i]
+        if {$first != ""} {
+            set page [$itk_component(resultselector) choices get -value $i]
+            set char [string index $page 0]
+            if {$char != "@" && $char != "-"} {
+                $itk_component(resultpages) current $page
+                $itk_component(resultselector) value $first
+                set _lastlabel $first
+                break
+            }
+        }
     }
 }
 
@@ -627,7 +627,7 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::clear {} {
     foreach obj $_runs {
-	itcl::delete object $obj
+        itcl::delete object $obj
     }
     set _runs ""
 
@@ -640,8 +640,8 @@ itcl::body Rappture::Analyzer::clear {} {
     $itk_component(results) fraction end $frac
 
     foreach label [array names _label2page] {
-	set page $_label2page($label)
-	$page.rviewer clear
+        set page $_label2page($label)
+        $page.rviewer clear
     }
     $itk_component(resultselector) value ""
     $itk_component(resultselector) choices delete 0 end
@@ -651,7 +651,7 @@ itcl::body Rappture::Analyzer::clear {} {
 
     $itk_component(resultselector) choices insert end --- "---"
     $itk_component(resultselector) choices insert end \
-	@download [Rappture::filexfer::label download]
+        @download [Rappture::filexfer::label download]
     set _lastlabel ""
 
     #
@@ -681,92 +681,92 @@ itcl::body Rappture::Analyzer::download {option args} {
     set page [$itk_component(resultselector) translate $title]
 
     switch -- $option {
-	coming {
-	    #
-	    # Warn result that a download is coming, in case
-	    # it needs to take a screen snap.
-	    #
-	    if {![regexp {^(|@download|---)$} $page]} {
-		set f [$itk_component(resultpages) page $page]
-		$f.rviewer download coming
-	    }
-	}
-	controls {
-	    # no controls for this download yet
-	    return ""
-	}
-	start {
-	    set widget $itk_component(download)
-	    if {[llength $args] > 0} {
-		set widget [lindex $args 0]
-		if {[catch {winfo class $widget}]} {
-		    set widget $itk_component(download)
-		}
-	    }
-	    #
-	    # See if this download has any controls.  If so, then
-	    # post them now and let the user continue the download
-	    # after selecting a file format.
-	    #
-	    if {$page != ""} {
-		set ext ""
-		set f [$itk_component(resultpages) page $page]
-		set arg [itcl::code $this download now $widget]
-		set popup [$f.rviewer download controls $arg]
-		if {"" != $popup} {
-		    $popup activate $widget below
-		} else {
-		    download now $widget 
-		}
-	    } else {
-		# this shouldn't happen
-		set file error.html
-		set data "<h1>Not Found</h1>There is no result selected."
-	    }
-	}
-	now {
-	    set widget $itk_component(download)
-	    if {[llength $args] > 0} {
-		set widget [lindex $args 0]
-		if {[catch {winfo class $widget}]} {
-		    set widget $itk_component(download)
-		}
-	    }
-	    #
-	    # Perform the actual download.
-	    #
-	    if {$page != ""} {
-		set ext ""
-		set f [$itk_component(resultpages) page $page]
-		set item [$itk_component(resultselector) value]
-		set result [$f.rviewer download now $widget $_appName $item]
-		if { $result == "" } {
-		    return;		# User cancelled the download.
-		}
-		foreach {ext data} $result break
-		if {"" == $ext} {
-		    if {"" != $widget} {
-			Rappture::Tooltip::cue $widget \
-			    "Can't download this result."
-		    }
-		    return
-		}
-		regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
-		set file "$title$ext"
-	    } else {
-		# this shouldn't happen
-		set file error.html
-		set data "<h1>Not Found</h1>There is no result selected."
-	    }
+        coming {
+            #
+            # Warn result that a download is coming, in case
+            # it needs to take a screen snap.
+            #
+            if {![regexp {^(|@download|---)$} $page]} {
+                set f [$itk_component(resultpages) page $page]
+                $f.rviewer download coming
+            }
+        }
+        controls {
+            # no controls for this download yet
+            return ""
+        }
+        start {
+            set widget $itk_component(download)
+            if {[llength $args] > 0} {
+                set widget [lindex $args 0]
+                if {[catch {winfo class $widget}]} {
+                    set widget $itk_component(download)
+                }
+            }
+            #
+            # See if this download has any controls.  If so, then
+            # post them now and let the user continue the download
+            # after selecting a file format.
+            #
+            if {$page != ""} {
+                set ext ""
+                set f [$itk_component(resultpages) page $page]
+                set arg [itcl::code $this download now $widget]
+                set popup [$f.rviewer download controls $arg]
+                if {"" != $popup} {
+                    $popup activate $widget below
+                } else {
+                    download now $widget 
+                }
+            } else {
+                # this shouldn't happen
+                set file error.html
+                set data "<h1>Not Found</h1>There is no result selected."
+            }
+        }
+        now {
+            set widget $itk_component(download)
+            if {[llength $args] > 0} {
+                set widget [lindex $args 0]
+                if {[catch {winfo class $widget}]} {
+                    set widget $itk_component(download)
+                }
+            }
+            #
+            # Perform the actual download.
+            #
+            if {$page != ""} {
+                set ext ""
+                set f [$itk_component(resultpages) page $page]
+                set item [$itk_component(resultselector) value]
+                set result [$f.rviewer download now $widget $_appName $item]
+                if { $result == "" } {
+                    return;                # User cancelled the download.
+                }
+                foreach {ext data} $result break
+                if {"" == $ext} {
+                    if {"" != $widget} {
+                        Rappture::Tooltip::cue $widget \
+                            "Can't download this result."
+                    }
+                    return
+                }
+                regsub -all {[\ -\/\:-\@\{-\~]} $title {} title
+                set file "$title$ext"
+            } else {
+                # this shouldn't happen
+                set file error.html
+                set data "<h1>Not Found</h1>There is no result selected."
+            }
 
-	    set mesg [Rappture::filexfer::download $data $file]
-	    if {[string length $mesg] > 0} {
-		Rappture::Tooltip::cue $widget $mesg
-	    }
-	}
-	default {
-	    error "bad option \"$option\": should be coming, controls, now, start"
-	}
+            set mesg [Rappture::filexfer::download $data $file]
+            if {[string length $mesg] > 0} {
+                Rappture::Tooltip::cue $widget $mesg
+            }
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now, start"
+        }
     }
 }
 
@@ -783,11 +783,11 @@ itcl::body Rappture::Analyzer::_plot {args} {
     set page [$itk_component(resultselector) value]
     set page [$itk_component(resultselector) translate $page]
     if {"" != $page} {
-	set f [$itk_component(resultpages) page $page]
-	$f.rviewer plot clear
-	foreach {index opts} $_plotlist {
-	    $f.rviewer plot add $index $opts
-	}
+        set f [$itk_component(resultpages) page $page]
+        $f.rviewer plot clear
+        foreach {index opts} $_plotlist {
+            $f.rviewer plot add $index $opts
+        }
     }
 }
 
@@ -802,14 +802,14 @@ itcl::body Rappture::Analyzer::_reorder {comps} {
     set i 0
     set max [llength $comps]
     while {$i < $max} {
-	set c [lindex $comps $i]
-	if {[string match log* $c]} {
-	    set comps [lreplace $comps $i $i]
-	    lappend comps $c
-	    incr max -1
-	} else {
-	    incr i
-	}
+        set c [lindex $comps $i]
+        if {[string match log* $c]} {
+            set comps [lreplace $comps $i $i]
+            lappend comps $c
+            incr max -1
+        } else {
+            incr i
+        }
     }
     return $comps
 }
@@ -833,22 +833,22 @@ itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
     set group [$xmlobj get $path.about.group]
     set label [$xmlobj get $path.about.label]
     if {"" == $label} {
-	# no label -- make one up using the title specified
-	if {![info exists counters($group-$title)]} {
-	    set counters($group-$title) 1
-	    set label $title
-	} else {
-	    set label "$title (#[incr counters($group-$title)])"
-	}
-	$xmlobj put $path.about.label $label
+        # no label -- make one up using the title specified
+        if {![info exists counters($group-$title)]} {
+            set counters($group-$title) 1
+            set label $title
+        } else {
+            set label "$title (#[incr counters($group-$title)])"
+        }
+        $xmlobj put $path.about.label $label
     } else {
-	# handle the case of two identical labels in <output>
-	if {![info exists counters($group-$label)]} {
-	    set counters($group-$label) 1
-	} else {
-	    set label "$label (#[incr counters($group-$label)])"
-	    $xmlobj put $path.about.label $label
-	}
+        # handle the case of two identical labels in <output>
+        if {![info exists counters($group-$label)]} {
+            set counters($group-$label) 1
+        } else {
+            set label "$label (#[incr counters($group-$label)])"
+            $xmlobj put $path.about.label $label
+        }
     }
     return $label
 }
@@ -863,32 +863,32 @@ itcl::body Rappture::Analyzer::_fixResult {} {
     set name [$itk_component(resultselector) value]
     set page ""
     if {"" != $name} {
-	set page [$itk_component(resultselector) translate $name]
+        set page [$itk_component(resultselector) translate $name]
     }
     if {$page == "@download"} {
-	# put the combobox back to its last value
-	$itk_component(resultselector) component entry configure -state normal
-	$itk_component(resultselector) component entry delete 0 end
-	$itk_component(resultselector) component entry insert end $_lastlabel
-	$itk_component(resultselector) component entry configure -state disabled
-	# perform the actual download
-	download start $itk_component(resultselector)
+        # put the combobox back to its last value
+        $itk_component(resultselector) component entry configure -state normal
+        $itk_component(resultselector) component entry delete 0 end
+        $itk_component(resultselector) component entry insert end $_lastlabel
+        $itk_component(resultselector) component entry configure -state disabled
+        # perform the actual download
+        download start $itk_component(download)
     } elseif {$page == "---"} {
-	# put the combobox back to its last value
-	$itk_component(resultselector) component entry configure -state normal
-	$itk_component(resultselector) component entry delete 0 end
-	$itk_component(resultselector) component entry insert end $_lastlabel
-	$itk_component(resultselector) component entry configure -state disabled
+        # put the combobox back to its last value
+        $itk_component(resultselector) component entry configure -state normal
+        $itk_component(resultselector) component entry delete 0 end
+        $itk_component(resultselector) component entry insert end $_lastlabel
+        $itk_component(resultselector) component entry configure -state disabled
     } elseif {$page != ""} {
-	set _lastlabel $name
-	set win [winfo toplevel $itk_component(hull)]
-	blt::busy hold $win
-	$itk_component(resultpages) current $page
+        set _lastlabel $name
+        set win [winfo toplevel $itk_component(hull)]
+        blt::busy hold $win
+        $itk_component(resultpages) current $page
 
-	set f [$itk_component(resultpages) page $page]
-	$f.rviewer plot clear
-	eval $f.rviewer plot add $_plotlist
-	blt::busy release [winfo toplevel $itk_component(hull)]
+        set f [$itk_component(resultpages) page $page]
+        $f.rviewer plot clear
+        eval $f.rviewer plot add $_plotlist
+        blt::busy release [winfo toplevel $itk_component(hull)]
     }
 }
 
@@ -906,7 +906,7 @@ itcl::body Rappture::Analyzer::_fixSize {} {
     set frac [expr {double($cntlht)/$ht}]
 
     if {$frac < 0.4} {
-	$itk_component(results) fraction end $frac
+        $itk_component(results) fraction end $frac
     }
     _fixSimControl
 }
@@ -925,69 +925,69 @@ itcl::body Rappture::Analyzer::_fixSize {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_simState {state args} {
     if {$state} {
-	$itk_interior.simol configure \
-	    -background $itk_option(-simcontrolactiveoutline)
-	configure -simcontrolcolor $itk_option(-simcontrolactivebackground)
+        $itk_interior.simol configure \
+            -background $itk_option(-simcontrolactiveoutline)
+        configure -simcontrolcolor $itk_option(-simcontrolactivebackground)
 
-	$itk_component(abort) configure -state disabled
-	$itk_component(simulate) configure -state normal \
-	    -command [itcl::code $this simulate]
+        $itk_component(abort) configure -state disabled
+        $itk_component(simulate) configure -state normal \
+            -command [itcl::code $this simulate]
 
-	#
-	# If there's a special message, then put it up next to the button.
-	#
-	set mesg [lindex $args 0]
-	if {"" != $mesg} {
-	    $itk_component(simstatus) configure -state normal
-	    $itk_component(simstatus) delete 1.0 end
-	    $itk_component(simstatus) insert end $mesg
+        #
+        # If there's a special message, then put it up next to the button.
+        #
+        set mesg [lindex $args 0]
+        if {"" != $mesg} {
+            $itk_component(simstatus) configure -state normal
+            $itk_component(simstatus) delete 1.0 end
+            $itk_component(simstatus) insert end $mesg
 
-	    #
-	    # If there are any settings, then install them in the
-	    # "Simulate" button.  Also, pop them up as a tooltip
-	    # for the message.
-	    #
-	    set settings [lindex $args 1]
-	    if {[llength $settings] > 0} {
-		$itk_component(simulate) configure \
-		    -command [eval itcl::code $this simulate $settings]
+            #
+            # If there are any settings, then install them in the
+            # "Simulate" button.  Also, pop them up as a tooltip
+            # for the message.
+            #
+            set settings [lindex $args 1]
+            if {[llength $settings] > 0} {
+                $itk_component(simulate) configure \
+                    -command [eval itcl::code $this simulate $settings]
 
-		set details ""
-		foreach {path val} $settings {
-		    set str [$_tool xml get $path.about.label]
-		    if {"" == $str} {
-1			set str [$_tool xml element -as id $path]
-		    }
-		    append details "$str = $val\n"
-		}
-		set details [string trim $details]
+                set details ""
+                foreach {path val} $settings {
+                    set str [$_tool xml get $path.about.label]
+                    if {"" == $str} {
+1                        set str [$_tool xml element -as id $path]
+                    }
+                    append details "$str = $val\n"
+                }
+                set details [string trim $details]
 
-		Rappture::Tooltip::for $itk_component(simstatus) $details
-		$itk_component(simstatus) insert end " "
-		$itk_component(simstatus) insert end "(details...)" popup
-	    }
-	    $itk_component(simstatus) configure -state disabled
-	}
+                Rappture::Tooltip::for $itk_component(simstatus) $details
+                $itk_component(simstatus) insert end " "
+                $itk_component(simstatus) insert end "(details...)" popup
+            }
+            $itk_component(simstatus) configure -state disabled
+        }
     } else {
-	if {"" != $itk_option(-simcontrolbackground)} {
-	    set simcbg $itk_option(-simcontrolbackground)
-	} else {
-	    set simcbg $itk_option(-background)
-	}
-	$itk_interior.simol configure \
-	    -background $itk_option(-simcontroloutline)
-	configure -simcontrolcolor $simcbg
+        if {"" != $itk_option(-simcontrolbackground)} {
+            set simcbg $itk_option(-simcontrolbackground)
+        } else {
+            set simcbg $itk_option(-background)
+        }
+        $itk_interior.simol configure \
+            -background $itk_option(-simcontroloutline)
+        configure -simcontrolcolor $simcbg
 
-	$itk_component(simulate) configure -state disabled
-	$itk_component(abort) configure -state normal
+        $itk_component(simulate) configure -state disabled
+        $itk_component(abort) configure -state normal
 
-	$itk_component(simstatus) configure -state normal
-	$itk_component(simstatus) delete 1.0 end
-	set mesg [lindex $args 0]
-	if {"" != $mesg} {
-	    $itk_component(simstatus) insert end $mesg
-	}
-	$itk_component(simstatus) configure -state disabled
+        $itk_component(simstatus) configure -state normal
+        $itk_component(simstatus) delete 1.0 end
+        set mesg [lindex $args 0]
+        if {"" != $mesg} {
+            $itk_component(simstatus) insert end $mesg
+        }
+        $itk_component(simstatus) configure -state disabled
     }
 }
 
@@ -1007,20 +1007,20 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     # Scan through and pick out any =RAPPTURE-PROGRESS=> messages first.
     #
     while {[regexp -indices \
-	       {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
-		match percent mesg]} {
+               {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
+                match percent mesg]} {
 
-	foreach {i0 i1} $percent break
-	set percent [string range $message $i0 $i1]
+        foreach {i0 i1} $percent break
+        set percent [string range $message $i0 $i1]
 
-	foreach {i0 i1} $mesg break
-	set mesg [string range $message $i0 $i1]
+        foreach {i0 i1} $mesg break
+        set mesg [string range $message $i0 $i1]
 
-	pack $itk_component(progress) -fill x -padx 10 -pady 10
-	$itk_component(progress) settings -percent $percent -message $mesg
+        pack $itk_component(progress) -fill x -padx 10 -pady 10
+        $itk_component(progress) settings -percent $percent -message $mesg
 
-	foreach {i0 i1} $match break
-	set message [string replace $message $i0 $i1]
+        foreach {i0 i1} $match break
+        set message [string replace $message $i0 $i1]
     }
 
     #
@@ -1030,34 +1030,34 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
     $itk_component(runinfo) configure -state normal
 
     while {[regexp -indices \
-	       {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
-		match type mesg]} {
+               {=RAPPTURE-([a-zA-Z]+)=>([^\n]*)(\n|$)} $message \
+                match type mesg]} {
 
-	foreach {i0 i1} $match break
-	set first [string range $message 0 [expr {$i0-1}]]
-	if {[string length $first] > 0} {
-	    $itk_component(runinfo) insert end $first
-	    $itk_component(runinfo) insert end \n
-	}
+        foreach {i0 i1} $match break
+        set first [string range $message 0 [expr {$i0-1}]]
+        if {[string length $first] > 0} {
+            $itk_component(runinfo) insert end $first
+            $itk_component(runinfo) insert end \n
+        }
 
-	foreach {t0 t1} $type break
-	set type [string range $message $t0 $t1]
-	foreach {m0 m1} $mesg break
-	set mesg [string range $message $m0 $m1]
-	if {[string length $mesg] > 0 && $type != "RUN"} {
-	    $itk_component(runinfo) insert end $mesg $type
-	    $itk_component(runinfo) insert end \n $type
-	}
+        foreach {t0 t1} $type break
+        set type [string range $message $t0 $t1]
+        foreach {m0 m1} $mesg break
+        set mesg [string range $message $m0 $m1]
+        if {[string length $mesg] > 0 && $type != "RUN"} {
+            $itk_component(runinfo) insert end $mesg $type
+            $itk_component(runinfo) insert end \n $type
+        }
 
-	set message [string range $message [expr {$i1+1}] end]
+        set message [string range $message [expr {$i1+1}] end]
     }
 
     if {[string length $message] > 0} {
-	$itk_component(runinfo) insert end $message
-	if {[$itk_component(runinfo) get end-2char] != "\n"} {
-	    $itk_component(runinfo) insert end "\n"
-	}
-	$itk_component(runinfo) see end
+        $itk_component(runinfo) insert end $message
+        if {[$itk_component(runinfo) get end-2char] != "\n"} {
+            $itk_component(runinfo) insert end "\n"
+        }
+        $itk_component(runinfo) see end
     }
     $itk_component(runinfo) configure -state disabled
 }
@@ -1075,11 +1075,11 @@ itcl::body Rappture::Analyzer::_resultTooltip {} {
     set tip ""
     set name [$itk_component(resultselector) value]
     if {[info exists _label2desc($name)] &&
-	 [string length $_label2desc($name)] > 0} {
-	append tip "$_label2desc($name)\n\n"
+         [string length $_label2desc($name)] > 0} {
+        append tip "$_label2desc($name)\n\n"
     }
     if {[array size _label2page] > 1} {
-	append tip "Use this control to display other output results."
+        append tip "Use this control to display other output results."
     }
     return $tip
 }
@@ -1093,27 +1093,27 @@ itcl::body Rappture::Analyzer::_resultTooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixSimControl {} {
     switch -- $itk_option(-simcontrol) {
-	on {
-	    pack $itk_interior.simol -fill x -before $itk_interior.nb
-	}
-	off {
-	    pack forget $itk_interior.simol
-	}
-	auto {
-	    #
-	    # If we have two or more radiodials, then there is a
-	    # chance of encountering a combination of parameters
-	    # with no data, requiring simulation.
-	    #
-	    if {[$itk_component(resultset) size -controls] >= 2} {
-		pack $itk_interior.simol -fill x -before $itk_interior.nb
-	    } else {
-		pack forget $itk_interior.simol
-	    }
-	}
-	default {
-	    error "bad value \"$itk_option(-simcontrol)\": should be on, off, auto"
-	}
+        on {
+            pack $itk_interior.simol -fill x -before $itk_interior.nb
+        }
+        off {
+            pack forget $itk_interior.simol
+        }
+        auto {
+            #
+            # If we have two or more radiodials, then there is a
+            # chance of encountering a combination of parameters
+            # with no data, requiring simulation.
+            #
+            if {[$itk_component(resultset) size -controls] >= 2} {
+                pack $itk_interior.simol -fill x -before $itk_interior.nb
+            } else {
+                pack forget $itk_interior.simol
+            }
+        }
+        default {
+            error "bad value \"$itk_option(-simcontrol)\": should be on, off, auto"
+        }
     }
 }
 
@@ -1124,18 +1124,18 @@ itcl::body Rappture::Analyzer::_fixSimControl {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixNotebook {} {
     switch -- $itk_option(-notebookpage) {
-	about {
-	    $itk_component(notebook) current about
-	}
-	simulate {
-	    $itk_component(notebook) current simulate
-	}
-	analyze {
-	    $itk_component(notebook) current analyze
-	}
-	default {
-	    error "bad value \"$itk_option(-notebookpage)\": should be about, simulate, analyze"
-	}
+        about {
+            $itk_component(notebook) current about
+        }
+        simulate {
+            $itk_component(notebook) current simulate
+        }
+        analyze {
+            $itk_component(notebook) current analyze
+        }
+        default {
+            error "bad value \"$itk_option(-notebookpage)\": should be about, simulate, analyze"
+        }
     }
 }
 
