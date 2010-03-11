@@ -170,7 +170,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::NanovisViewer [list $widgets(nanovis) _send $cmd]
+    namespace eval Rappture::NanovisViewer [list $widgets(nanovis) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
