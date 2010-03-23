@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: PushButton - widget for entering a choice of strings
 #
@@ -33,16 +32,20 @@ itcl::class Rappture::PushButton {
     public method deselect {}
     public method select {}
     public method toggle {}
+    public method disable {}
+    public method enable {}
 
     protected method _fixValue {args}
 
     private variable _state 0
-    public variable command "";		# Command to be invoked 
-    private variable _variable "";	# Variable to be set. 
-    public variable onimage "";		# Image displayed when selected 
-    public variable offimage "";	# Image displayed when deselected. 
-    public variable onvalue "1";	# Value set when selected.
-    public variable offvalue "0";	# Value set when deselected. 
+    private variable _enabled 1
+    public variable command "";         # Command to be invoked
+    private variable _variable "";      # Variable to be set.
+    public variable onimage "";         # Image displayed when selected
+    public variable offimage "";        # Image displayed when deselected.
+    public variable disabledimage "";   # Image displayed when deselected.
+    public variable onvalue "1";        # Value set when selected.
+    public variable offvalue "0";       # Value set when deselected.
 }
 
 itk::usual PushButton {
@@ -55,10 +58,10 @@ itk::usual PushButton {
 # ----------------------------------------------------------------------
 itcl::body Rappture::PushButton::constructor {args} {
     itk_component add button {
-	label $itk_interior.button -borderwidth 1 -relief sunken 
+        label $itk_interior.button -borderwidth 1 -relief sunken 
     } {
-	usual
-	ignore -padx -pady -relief -borderwidth -background
+        usual
+        ignore -padx -pady -relief -borderwidth -background
     }
     bind $itk_component(button) <ButtonPress> \
         [itcl::code $this invoke]
@@ -68,19 +71,36 @@ itcl::body Rappture::PushButton::constructor {args} {
 }
 
 itcl::body Rappture::PushButton::invoke {} {
+    if { !$_enabled } {
+        return
+    }
     toggle
     if { $command != "" } {
-	uplevel \#0 $command
+        uplevel \#0 $command
     }
 }
 
 itcl::body Rappture::PushButton::toggle {} {
+    if { !$_enabled } {
+        return
+    }
     set _state [expr !$_state]
     if { $_state } {
-	select
+        select
     } else {
-	deselect
+        deselect
     }
+}
+
+itcl::body Rappture::PushButton::disable {} {
+    set _enabled [expr !$_enabled]
+    $itk_component(button) configure -relief raise \
+        -image $disabledimage -bg grey85
+}
+
+itcl::body Rappture::PushButton::enable {} {
+    set _enabled [expr !$_enabled]
+    _fixValue
 }
 
 # ----------------------------------------------------------------------
@@ -92,28 +112,34 @@ itcl::body Rappture::PushButton::toggle {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::PushButton::_fixValue {args} {
     if {"" == $itk_option(-variable)} {
-	return
+        return
     }
     upvar #0 $itk_option(-variable) var
     if { $var == $onvalue } {
-	set _state 1
-	$itk_component(button) configure -relief sunken \
-	    -image $onimage -bg white
+        set _state 1
+        $itk_component(button) configure -relief sunken \
+            -image $onimage -bg white
     } elseif { $var == $offvalue } {
-	set _state 0
-	$itk_component(button) configure -relief raise \
-	    -image $offimage -bg grey85
+        set _state 0
+        $itk_component(button) configure -relief raise \
+            -image $offimage -bg grey85
     } else {
-	puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"onvalue\""
+        puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"onvalue\""
     }
 }
 
 itcl::body Rappture::PushButton::select {} {
+    if { !$_enabled } {
+        return
+    }
     upvar #0 $_variable state
     set state $onvalue
 }
 
 itcl::body Rappture::PushButton::deselect {} {
+    if { !$_enabled } {
+        return
+    }
     upvar #0 $_variable state
     set state $offvalue
 }
@@ -124,19 +150,19 @@ itcl::body Rappture::PushButton::deselect {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::PushButton::variable {
     if {"" != $_variable} {
-	upvar #0 $_variable var
-	trace remove variable var write [itcl::code $this _fixValue]
+        upvar #0 $_variable var
+        trace remove variable var write [itcl::code $this _fixValue]
     }
     set _variable $itk_option(-variable)
 
     if {"" != $_variable} {
-	upvar #0 $_variable var
-	trace add variable var write [itcl::code $this _fixValue]
+        upvar #0 $_variable var
+        trace add variable var write [itcl::code $this _fixValue]
 
-	# sync to the current value of this variable
-	if {[info exists var]} {
-	    _fixValue
-	}
+        # sync to the current value of this variable
+        if {[info exists var]} {
+            _fixValue
+        }
     }
 }
 
