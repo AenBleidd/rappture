@@ -38,3 +38,5 @@ prepend TK_LIBRARY ${libdir}/tk8.4
 
 python_version="@PYTHON_VERSION@"
 prepend PYTHONPATH ${libdir}/python${python_version}/site-packages
+
+tags DEVEL
