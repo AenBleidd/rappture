@@ -1,4 +1,7 @@
+#!/usr/bin/wish
 # ----------------------------------------------------------------------
+
+
 #  COMPONENT: PushButton - widget for entering a choice of strings
 #
 #  This widget represents a <choice> entry on a control panel.
@@ -72,6 +75,7 @@ itcl::body Rappture::PushButton::constructor {args} {
 
 itcl::body Rappture::PushButton::invoke {} {
     if { !$_enabled } {
+    	puts "in invoke button not enabled"
         return
     }
     toggle
@@ -93,14 +97,18 @@ itcl::body Rappture::PushButton::toggle {} {
 }
 
 itcl::body Rappture::PushButton::disable {} {
-    set _enabled [expr !$_enabled]
-    $itk_component(button) configure -relief raise \
-        -image $disabledimage -bg grey85
+    if { $_enabled } {
+        set _enabled [expr !$_enabled]
+        $itk_component(button) configure -relief raise \
+            -image $disabledimage -bg grey85
+    }
 }
 
 itcl::body Rappture::PushButton::enable {} {
-    set _enabled [expr !$_enabled]
-    _fixValue
+    if { !$_enabled } {
+        set _enabled [expr !$_enabled]
+        _fixValue
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -124,7 +132,7 @@ itcl::body Rappture::PushButton::_fixValue {args} {
         $itk_component(button) configure -relief raise \
             -image $offimage -bg grey85
     } else {
-        puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"onvalue\""
+        puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"$onvalue\""
     }
 }
 
