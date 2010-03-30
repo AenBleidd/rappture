@@ -10,33 +10,27 @@ a conventional scientific application."
 exec_prefix=@prefix@
 libdir=@libdir@
 bindir=@bindir@
+vtkdir=@VTKDIR@
+python_version=@PYTHON_VERSION@
+tcl_version=@TCL_VERSION@
 
-prepend PATH ${bindir}
+prepend PATH ${bindir}/bin
 
-prepend TCLLIBPATH ${libdir}/vtk
-
-prepend LD_LIBRARY_PATH ${libdir}/vtk
-prepend LD_LIBRARY_PATH ${libdir}/vtk-5.2
+prepend LD_LIBRARY_PATH ${vtkdir}
 prepend LD_LIBRARY_PATH ${libdir}
-
-prepend DYLD_LIBRARY_PATH ${libdir}/vtk
-prepend DYLD_LIBRARY_PATH ${libdir}/vtk-5.2
+prepend DYLD_LIBRARY_PATH ${vtkdir}
 prepend DYLD_LIBRARY_PATH ${libdir}
 
 prepend MATLABPATH ${libdir}/matlab
-
 prepend OCTAVE_PATH :${libdir}/octave:
 prepend OCTAVE_LOADPATH :${libdir}/octave:
 
 prepend PERL5LIB ${libdir}/perl
-
 prepend RUBYLIB ${libdir}/ruby
-
-prepend TCL_LIBRARY ${libdir}/tcl8.4
-
-prepend TK_LIBRARY ${libdir}/tk8.4
-
-python_version="@PYTHON_VERSION@"
 prepend PYTHONPATH ${libdir}/python${python_version}/site-packages
+
+prepend TCLLIBPATH ${vtkdir}
+prepend TCL_LIBRARY ${libdir}/tcl${tcl_version}
+prepend TK_LIBRARY ${libdir}/tk${tcl_version}
 
 tags DEVEL
