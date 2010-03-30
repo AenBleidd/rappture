@@ -144,11 +144,44 @@ AC_SUBST(TCLSH)
 
 
 AC_ARG_WITH(
+    [vtk],
+    [AS_HELP_STRING([--with-vtk[=DIR]],
+        [location of vtk library @<:@default=yes@:>@])],
+    [with_vtk=$withval], [with_vtk=yes])
+
+AC_MSG_CHECKING([for vtk])
+VTKDIR=""
+
+if test "$with_vtk" != "no" ; then
+  if test "$with_vtk" = "yes" ; then
+    for path in \
+     $libdir \
+     $prefix/lib \
+     $exec_prefix/lib \
+     /usr/lib
+    do
+      for vtk in $path/vtk-* ; do
+        if test -d "${vtk}" ; then
+          VTKDIR=${vtk}
+        fi
+      done
+      if test "x${VTKDIR}" != "x" ; then
+        break
+      fi
+    done
+  fi
+fi
+AC_SUBST(VTKDIR)
+AC_MSG_RESULT([$VTKDIR])
+
+
+AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
         [location of matlab and mex compiler @<:@default=yes@:>@])],
     [with_matlab=$withval],
     [with_matlab=yes])
+
 
 MCC=""
 MEX=""
