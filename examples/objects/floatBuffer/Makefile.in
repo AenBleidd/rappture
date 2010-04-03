@@ -28,7 +28,7 @@ CXX_SWITCHES	= $(CXXFLAGS) $(INCLUDES) $(DEFINES)
 CC_SWITCHES	= $(CFLAGS) $(INCLUDES) $(DEFINES)	
 
 FILES		= \
-		$(srcdir)/dxWrite.cc \
+		$(srcdir)/floatBuffer.cc \
 		Makefile 
 
 destdir		= $(prefix)/examples/objects/floatBuffer
