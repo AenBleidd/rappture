@@ -54,8 +54,11 @@ getStringInput ( const mxArray* prhs ) {
         mexErrMsgTxt("Input must be a string.");
 
     /* Input must be a row vector. */
-    if ( (mxGetM(prhs)) != 1)
+    if ( (mxGetM(prhs) == 0) && (mxGetN(prhs) == 0)) {
+        // do nothin, accept empty strings
+    } else if ( (mxGetM(prhs)) != 1) {
         mexErrMsgTxt("Input must be a row vector.");
+    }
 
     /* Get the length of the input string. */
     buflen = (mxGetM(prhs) * mxGetN(prhs)) + 1;
