@@ -14,7 +14,7 @@ vtkdir=@VTKDIR@
 python_version=@PYTHON_VERSION@
 tcl_version=@TCL_VERSION@
 
-prepend PATH ${bindir}/bin
+prepend PATH ${bindir}
 
 prepend LD_LIBRARY_PATH ${vtkdir}
 prepend LD_LIBRARY_PATH ${libdir}
