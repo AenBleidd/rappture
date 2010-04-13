@@ -152,7 +152,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         label $itk_component(titlebar).title -anchor w -font "Arial 10"
     } {
         usual
-	ignore -font
+        ignore -font
         rename -foreground -titlebarforeground titlebarForeground Foreground
         rename -background -titlebarbackground titlebarBackground Background
     }
@@ -191,7 +191,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
     # Tabs used to select sidebar panels.  
     #
     # Note:  Bugs in BLT 2.4 tabset/VNC server crashes the server 
-    #	     when -outerpad is set to 0.
+    #             when -outerpad is set to 0.
     #
     itk_component add tabs {
         blt::tabset $itk_component(controlbar).tabs \
@@ -223,17 +223,17 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SidebarFrame::insert {pos args} {
     Rappture::getopts args panel "
-	value -title Options
-	value -icon [Rappture::icon cboff]
+        value -title Options
+        value -icon [Rappture::icon cboff]
     "
     if {[llength $args] > 0} {
-	error "wrong # args: should be \"insert pos ?-title t? ?-icon i?\""
+        error "wrong # args: should be \"insert pos ?-title t? ?-icon i?\""
     }
 
     set f [$itk_component(area) contents]
     set pname "panel[incr _counter]"
     itk_component add $pname {
-	frame $f.$pname
+        frame $f.$pname
     }
 
     $itk_component(tabs) insert end $pname \

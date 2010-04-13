@@ -29,8 +29,8 @@ RpEncode_isbinary(PyObject *self, PyObject *args, PyObject *keywds)
     PyObject* rv = NULL;
 
     static char *kwlist[] = {
-	(char *)"data", 
-	NULL
+        (char *)"data", 
+        NULL
     };
 
     if (PyTuple_Size(args) != 1) {
@@ -64,9 +64,9 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
     Rappture::Outcome err;
 
     static char *kwlist[] = {
-	(char *)"data", 
-	(char *)"flags", 
-	NULL
+        (char *)"data",
+        (char *)"flags",
+        NULL
     };
 
     if (PyTuple_Size(args) != 2) {
@@ -82,11 +82,11 @@ RpEncode_encode(PyObject *self, PyObject *args, PyObject *keywds)
 
     Rappture::Buffer buf(data, dlen);
     if (!Rappture::encoding::encode(err, buf, flags)) {
-	std::string outStr;
+        std::string outStr;
 
         outStr = err.remark();
-	outStr += "\n";
-	outStr += err.context();
+        outStr += "\n";
+        outStr += err.context();
         PyErr_SetString(PyExc_RuntimeError, outStr.c_str());
         buf.clear();
         return NULL;
@@ -111,9 +111,9 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
     Rappture::Outcome err;
 
     static char *kwlist[] = {
-	(char *)"data", 
-	(char *)"flags", 
-	NULL
+        (char *)"data",
+        (char *)"flags",
+        NULL
     };
 
     if (PyTuple_Size(args) != 2) {
@@ -129,11 +129,11 @@ RpEncode_decode(PyObject *self, PyObject *args, PyObject *keywds)
 
     Rappture::Buffer buf(data, dlen);
     if (!Rappture::encoding::decode(err, buf, flags)) {
-	std::string outStr;
+        std::string outStr;
 
         outStr = err.remark();
-	outStr += "\n";
-	outStr += err.context();
+        outStr += "\n";
+        outStr += err.context();
         PyErr_SetString(PyExc_RuntimeError,outStr.c_str());
         return NULL;
     }
@@ -172,10 +172,10 @@ initencoding(void)
 
     if (ErrorObject == NULL) {
         ErrorObject = PyErr_NewException((char *)"Rappture.encoding.error", 
-		NULL, NULL);
+                NULL, NULL);
         if (ErrorObject == NULL) {
             return;
-	}
+        }
     }
     Py_INCREF(ErrorObject);
     PyModule_AddObject(m, "error", ErrorObject);
