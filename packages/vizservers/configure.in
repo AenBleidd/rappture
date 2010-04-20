@@ -260,6 +260,9 @@ AC_OUTPUT(  Makefile \
             nanovis/Makefile \
             nanovis/newmat11/Makefile \
             nanovis/R2/src/Makefile \
+            nanovis/vrutil/Makefile \
+            nanovis/vrmath/Makefile \
+            nanovis/vr3d/Makefile \
             nanovis/imgLoaders/Makefile \
             nanovis/transfer-function/Makefile \
             pymolproxy/Makefile \
