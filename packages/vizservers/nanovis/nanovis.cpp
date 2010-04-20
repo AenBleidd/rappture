@@ -59,6 +59,7 @@
 #include "Grid.h"
 #include "VolumeInterpolator.h"
 #include <RenderContext.h>
+#include <vrutil/vrFilePath.h>
 
 #include <BMPImageLoaderImpl.h>
 #include <ImageLoaderFactory.h>
@@ -834,6 +835,8 @@ void NanoVis::init(const char* path)
         fflush(stderr);
         DoExit(1);
     }
+
+    vrFilePath::getInstance()->setPath(path);
     
     NvInitCG();
     NvShader::setErrorCallback(CgErrorCallback);
@@ -2458,6 +2461,7 @@ main(int argc, char** argv)
 #endif
     }
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
+    vrFilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
     signal(SIGPIPE,SIG_IGN);

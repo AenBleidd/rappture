@@ -15,7 +15,7 @@
 std::string vrFilePath::_curDirectory;
 vrFilePath vrFilePath::_instance;
 
-char seps[]   = ";";
+static char seps[]   = ";";
 vrFilePath::vrFilePath()
 {
 	char buff[255];
