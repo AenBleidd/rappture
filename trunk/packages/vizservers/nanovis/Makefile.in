@@ -38,18 +38,30 @@ FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
 # might also need -lavutil
 GL_INC_SPEC     = -I/usr/include/GL
 GL_LIB_SPEC     = -lGL -lglut -lGLEW
-IMG_DIR         = ./imgLoaders
-IMG_INC_SPEC    = -I$(srcdir)/$(IMG_DIR)
-IMG_LIB         = $(IMG_DIR)/ImageLoaders.a
-IMG_LIB_SPEC    = $(IMG_LIB)
-MAT_DIR         = ./newmat11
-MAT_INC_SPEC    = -I$(srcdir)/$(MAT_DIR)
-MAT_LIB         = $(MAT_DIR)/newmat11.a
-MAT_LIB_SPEC    = $(MAT_LIB)
-R2_DIR          = ./R2
-R2_INC_SPEC     = -I$(srcdir)/$(R2_DIR)/include
-R2_LIB          = $(R2_DIR)/src/R2.a
-R2_LIB_SPEC     = $(R2_LIB)
+IMG_DIR		= ./imgLoaders
+IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
+IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
+IMG_LIB_SPEC	= $(IMG_LIB)
+MAT_DIR		= ./newmat11
+MAT_INC_SPEC	= -I$(srcdir)/$(MAT_DIR)
+MAT_LIB		= $(MAT_DIR)/newmat11.a
+MAT_LIB_SPEC	= $(MAT_LIB)
+VRMATH_DIR	= ./vrmath
+VRMATH_INC_SPEC	= -I$(srcdir)/$(VRMATH_DIR)/include
+VRMATH_LIB	= $(VRMATH_DIR)/vrmath.a
+VRMATH_LIB_SPEC	= $(VRMATH_LIB)
+VRUTIL_DIR	= ./vrutil
+VRUTIL_INC_SPEC	= -I$(srcdir)/$(VRUTIL_DIR)/include
+VRUTIL_LIB	= $(VRUTIL_DIR)/vrutil.a
+VRUTIL_LIB_SPEC	= $(VRUTIL_LIB)
+VR3D_DIR	= ./vr3d
+VR3D_INC_SPEC	= -I$(srcdir)/$(VR3D_DIR)/include
+VR3D_LIB	= $(VR3D_DIR)/vr3d.a
+VR3D_LIB_SPEC	= $(VR3D_LIB)
+R2_DIR		= ./R2
+R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
+R2_LIB		= $(R2_DIR)/src/R2.a
+R2_LIB_SPEC	= $(R2_LIB)
 
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
@@ -67,6 +79,9 @@ LIBS		= \
 		$(IMG_LIB_SPEC) \
 		$(R2_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
+		$(VRMATH_LIB_SPEC) \
+		$(VRUTIL_LIB_SPEC) \
+		$(VR3D_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
@@ -80,6 +95,9 @@ INCLUDES	= \
 		$(R2_INC_SPEC) \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC) \
+		$(VRMATH_INC_SPEC) \
+		$(VRUTIL_INC_SPEC) \
+		$(VR3D_INC_SPEC) \
 		$(TCL_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
@@ -100,6 +118,7 @@ OBJS		= \
 		Command.o \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
+		DataLoader.o \
 		Event.o \
 		Unirect.o \
 		FlowCmd.o \
@@ -126,6 +145,9 @@ OBJS		= \
 		NvVolumeShader.o \
 		NvZincBlendeReconstructor.o \
 		NvZincBlendeVolumeShader.o \
+		ParticleSystem.o \
+		ParticleEmitter.o \
+		ParticleSystemFactory.o \
 		PCASplit.o \
 		PerfQuery.o \
 		Plane.o \
@@ -159,6 +181,8 @@ OBJS		= \
 resources	= \
 		$(srcdir)/resources/Font.bmp \
                 $(srcdir)/resource/arrows_flip2.png \
+                $(srcdir)/resource/arrows_red_bg.bmp \
+                $(srcdir)/resource/arrows.bmp \
 		$(srcdir)/resources/particle2.bmp \
 		$(srcdir)/resources/verdana.fnt \
 		$(srcdir)/resources/verdana_bold.fnt
@@ -181,20 +205,41 @@ shaders		= \
 		$(srcdir)/shaders/volqd_volume.cg \
                 $(srcdir)/shaders/velocityslicevp.cg \
                 $(srcdir)/shaders/velocityslicefp.cg \
-		$(srcdir)/shaders/zincblende_volume.cg
+		$(srcdir)/shaders/zincblende_volume.cg \
+		$(srcdir)/shaders/distance.cg \
+		$(srcdir)/shaders/distancesort.cg \
+		$(srcdir)/shaders/mergesort.cg \
+		$(srcdir)/shaders/moveparticles.cg \
+		$(srcdir)/shaders/particlefp.cg \
+		$(srcdir)/shaders/particlevp.cg \
+		$(srcdir)/shaders/passthrough.cg \
+		$(srcdir)/shaders/renderparticle.cg \
+		$(srcdir)/shaders/velocity.cg
 
-.PHONY: newmat11 R2 imgloaders transfer-function nanovis
+.PHONY: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis
 
-all: newmat11 R2 imgloaders transfer-function nanovis
+all: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis 
 
 install: install-nanovis install-resources install-shaders
 
 newmat11:		$(MAT_LIB)
 R2:			$(R2_LIB)
+vrmath:			$(VRMATH_LIB)
+vrutil:			$(VRUTIL_LIB)
+vr3d:			$(VR3D_LIB)
 imgloaders:		$(IMG_LIB)
 
 $(MAT_LIB):
 	$(MAKE) -C $(MAT_DIR) all
+
+$(VRMATH_LIB):
+	$(MAKE) -C $(VRMATH_DIR) all
+
+$(VRUTIL_LIB):
+	$(MAKE) -C $(VRUTIL_DIR) all
+
+$(VR3D_LIB):
+	$(MAKE) -C $(VR3D_DIR) all
 
 $(R2_LIB): 
 	$(MAKE) -C $(R2_DIR)/src all
@@ -202,7 +247,7 @@ $(R2_LIB):
 $(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(OBJS)
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(VR3D_LIB) $(OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -244,6 +289,9 @@ install-nanovis: nanovis
 
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
+	$(MAKE) -C $(VRMATH_DIR) clean
+	$(MAKE) -C $(VRUTIL_DIR) clean
+	$(MAKE) -C $(VR3D_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
 	$(RM) nanovis client $(OBJS)
@@ -253,6 +301,7 @@ distclean: clean
 
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
+DataLoader.o: DataLoader.cpp 
 HeightMap.o: HeightMap.cpp HeightMap.h
 Grid.o: Grid.cpp Grid.h
 NvLoadFile.o: NvLoadFile.cpp NvLoadFile.h
@@ -269,6 +318,9 @@ NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
 NvDefaultTFData.o: NvDefaultTFData.cpp
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
+ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h
+ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
+ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 Color.o: Color.cpp Color.h
 Event.o: Event.cpp Event.h
