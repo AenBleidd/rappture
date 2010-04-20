@@ -1,0 +1,74 @@
+/** \class vrPlane vrPlane <R2/math/vrPlane.h>
+ *  \brief plane
+ *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
+ *  \author PhD research assistants in PURPL at Purdue University  
+ *  \version 1.0
+ *  \date    Nov. 2006-2007
+ */
+
+#pragma once
+
+#include <vrmath/vrLinmath.h>
+#include <vrmath/vrMatrix4x4f.h>
+#include <vrmath/vrVector4f.h>
+#include <vrmath/vrVector3f.h>
+
+class LmExport vrPlane {
+public :
+	/**
+	 * @brief normal vector
+	 */
+	vrVector3f normal;
+
+	/**
+	 * @brief the distance from the origin
+	 */
+	float distance;
+
+public :
+	bool intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector3f& intersectPoint) const;
+    bool intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector4f& intersectPoint) const;
+    void transform(vrMatrix4x4f& mat);
+};
+
+inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector3f& intersectPoint) const
+{
+	// http://astronomy.swin.edu.au/pbourke/geometry/planeline/
+	float numerator = normal.x * p1.x + normal.y * p1.y + normal.z * p1.z;
+	float denominator = normal.x * (p1.x - p2.x) + normal.y * (p1.y - p2.y) + normal.z * (p1.z - p2.z);
+
+	if (denominator == 0.0f) return false;
+
+	float u = numerator / denominator;
+	if ((u > 0) && (u < 1.0f)) 
+	{
+		return true;
+	}
+
+    intersectPoint.x = p1.x + u * (p2.x - p1.x);
+    intersectPoint.y = p1.y + u * (p2.y - p1.y);
+    intersectPoint.z = p1.z + u * (p2.z - p1.z);
+
+	return false;
+}
+
+inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector4f& intersectPoint) const
+{
+	// http://astronomy.swin.edu.au/pbourke/geometry/planeline/
+	float numerator = normal.x * p1.x + normal.y * p1.y + normal.z * p1.z;
+	float denominator = normal.x * (p1.x - p2.x) + normal.y * (p1.y - p2.y) + normal.z * (p1.z - p2.z);
+	if (denominator == 0.0f) return false;
+	float u = numerator / denominator;
+
+	if ((u > 0) && (u < 1.0f)) 
+	{
+		return true;
+	}
+
+    intersectPoint.x = p1.x + u * (p2.x - p1.x);
+    intersectPoint.y = p1.y + u * (p2.y - p1.y);
+    intersectPoint.z = p1.z + u * (p2.z - p1.z);
+    intersectPoint.w = 1.0f;
+
+	return false;
+}
