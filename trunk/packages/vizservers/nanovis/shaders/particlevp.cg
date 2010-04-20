@@ -2,29 +2,40 @@
 void vpmain(
 	in float4 posin : POSITION,
 	in float4 colin : COLOR0,
+	in float4 attr : TEXCOORD0,
+	inout float pointSize : PSIZE, 
 	out float4 posout : POSITION,
 	out float4 colout : COLOR0,
 	out float2 center : TEXCOORD2,
 	out float4 rotation : TEXCOORD3,
-	out float4 pointSize : PSIZE,
+	out float skip : TEXCOORD4,
+	out float mag : TEXCOORD5,
+	out float zValue : TEXCOORD6,
 	uniform sampler3D vfield,
+	uniform float currentTime,
 	uniform float tanHalfFOV,
-    uniform float4x4 modelview,
-    uniform float4x4 projection,
-    uniform float4x4 mvp)
+        uniform float4x4 modelview,
+        uniform float4x4 projection,
+        uniform float4x4 mvp)
 {
 	float4 vec;
 	vec.xyz = posin.xyz;
 	vec.w = 1.0;
+
+	float timeOfBirth = attr.x;
+	float lifeTime = attr.y;
+	//float index = attr.w;
 	
 	// length
 	// the scale of from bottom to top 
-	float3 velocity = tex3D(vfield, vec.xyz).yzw * 2 - float3(1, 1, 1);
-	
+	float4 v = tex3D(vfield, vec.xyz);
+	float3 velocity = v.yzw * 2 - float3(1, 1, 1);
+	mag = v.x;
 	
 	// bottom to top
 	// scale
 	center.y = ((((int) (length(velocity.xyz) * 511)) / SUBIMAGE_SIZE_Y) * SUBIMAGE_SIZE_Y) / 512.0;
+	//center.y = ((((int) (511)) / SUBIMAGE_SIZE_Y) * SUBIMAGE_SIZE_Y) / 512.0;
 	
 	velocity = mul(modelview, float4(velocity.x, velocity.y, velocity.z, 0.0)).xyz;
 	if (length(velocity) != 0.0)
@@ -51,11 +62,20 @@ void vpmain(
 	}
 
 	float4 posEye =  mul(modelview, posin);
-	//pointSize = tanHalfFOV / -posEye.z / 5;
-	pointSize = tanHalfFOV / -posEye.z / 10; //j-wire
+#ifndef USE_J_WIRE
+	pointSize = tanHalfFOV / -posEye.z / 5;
+#else
+	pointSize = tanHalfFOV / -posEye.z / 10;
+#endif
 	//pointSize = 10 / -posEye.z;
-	
+	zValue = posEye.z;
 	posout = mul(mvp, vec);
 	
+	if ((currentTime > timeOfBirth) && (currentTime < (timeOfBirth + lifeTime))) skip = 0.0;
+	else skip = 1.0;
+	
+	
 	colout = colin;
+	
 }
+
