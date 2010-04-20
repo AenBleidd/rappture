@@ -89,6 +89,30 @@ Image* BMPImageLoaderImpl::load(const char* fileName)
 	    free(buff);
 	}
 	break;
+    case 32:
+	fseek(f,offset,SEEK_SET);
+	if (_targetImageFormat == Image::IMG_RGBA) {
+	    if (fread(bytes,width*height*4,1,f) != 1) {
+		fprintf(stderr, "can't read image data\n");
+	    }
+	    for(x=0;x<width*height*4;x+=4)  { //except the format is BGR, grr
+		unsigned char temp = bytes[x];
+		bytes[x] = bytes[x+2];
+		bytes[x+2] = temp;
+	    }
+	} 
+	else if (_targetImageFormat == Image::IMG_RGB) {
+	    char* buff = (char*) malloc(width * height * sizeof(unsigned char) * 3);
+	    if (fread(buff,width*height*4,1,f) != 1) {
+		fprintf(stderr, "can't read BMP image data\n");
+	    }
+	    for(x=0, y = 0;x<width*height*4;x+=4, y+=3)     {       //except the format is BGR, grr
+		bytes[y] = buff[x+2];
+		bytes[y+2] = buff[x];
+	    }
+	    free(buff);
+	}
+	break;
     case 8:
 	if (fread(cols,256 * 4,1,f) != 1) {
 	    fprintf(stderr, "can't read colortable from BMP file\n");
