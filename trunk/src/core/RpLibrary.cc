@@ -27,6 +27,10 @@
 #include <iterator>
 #include <cctype>
 
+#ifdef _POSIX_SOURCE
+    #include <sys/time.h>
+#endif /* _POSIX_SOURCE */
+
 // no arg constructor
 // used when we dont want to read an xml file to populate the xml tree
 // we are building a new xml structure
@@ -2199,7 +2203,16 @@ RpLibrary::result(int exitStatus)
     char *user = NULL;
 
     if (this->root) {
+#ifdef _POSIX_SOURCE
+        // if the posix function gettimeofday is available,
+        // we can get more precision on the time and more
+        // unique filenames.
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        outputFile << "run" << tv.tv_sec << tv.tv_usec << ".xml";
+#else
         outputFile << "run" << (int)time(&t) << ".xml";
+#endif
         file.open(outputFile.str().c_str(),std::ios::out);
 
         put("tool.version.rappture.revision","$LastChangedRevision$");
