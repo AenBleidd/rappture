@@ -47,7 +47,11 @@ proc Rappture::result {libobj {status 0}} {
         $libobj put output.user $tcl_platform(user)
     }
 
-    set oname "run[clock seconds].xml"
+    # fake milliseconds by using clock clicks
+    # fake microseconds by using 000
+    # this will be fixed when tcl uses C bindings
+    set timestamp [format %d%03d%03d [clock seconds] [expr [clock clicks -milliseconds]%1000] 0]
+    set oname "run$timestamp.xml"
     set fid [open $oname w]
     puts $fid "<?xml version=\"1.0\"?>"
     puts $fid [$libobj xml]
