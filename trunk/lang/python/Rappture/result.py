@@ -19,11 +19,5 @@ def result(lib):
     results substituted into it.
     """
 
-    lib.put("tool.version.rappture.language", "python");
-    runfile = 'run%d.xml' % time.time()
-    fp = open(runfile,'w')
-    fp.write(lib.xml())
-    fp.close()
-
-    # pass the name of the run file back to Rappture
-    print '=RAPPTURE-RUN=>%s' % runfile
+    lib.put("tool.version.rappture.language", "python")
+    lib.result()
