@@ -105,6 +105,8 @@ static int debug = 0;
 #ifdef notdef
 static long _flags = 0;
 #endif
+static FILE *scriptFile;
+static int savescript = 0;
 
 typedef struct Image {
     struct Image *next;		/* Next image in chain of images. The list is
@@ -187,6 +189,19 @@ trace TCL_VARARGS_DEF(char *, arg1)
         vfprintf(flog, format, args);
         fprintf(flog, "\n");
         fflush(flog);
+    }
+}
+
+static void
+script TCL_VARARGS_DEF(char *, arg1)
+{
+    if (savescript) {
+        char *format;
+        va_list args;
+
+        format = TCL_VARARGS_START(char *, arg1, args);
+        vfprintf(scriptFile, format, args);
+        fflush(scriptFile);
     }
 }
 
@@ -667,6 +682,8 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     va_end(ap);
     
     trace("to-pymol>(%s) code=%d", buffer, result);
+    script("%s\n", buffer);
+    
     
     /* Write the command out to the server. */
     length = strlen(buffer);
@@ -675,7 +692,6 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
 	trace("short write to pymol (wrote=%d, should have been %d)",
 	      nWritten, length);
     }
-
     for (p = buffer; *p != '\0'; p++) {
 	if (isspace(*p)) {
 	    *p = '\0';
@@ -820,7 +836,7 @@ CartoonCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  
+    proxyPtr->flags |= INVALIDATE_CACHE; /* cartoon */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -862,7 +878,7 @@ CartoonTraceCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  
+    proxyPtr->flags |= INVALIDATE_CACHE; /* cartoon_trace  */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -894,7 +910,7 @@ DisableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
         
     }
 
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* Disable */
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* disable */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -928,7 +944,7 @@ EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             model = argv[i];
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Enable */
+    proxyPtr->flags |= INVALIDATE_CACHE; /* enable */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1003,7 +1019,7 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    return TCL_ERROR;
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* Label */
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* label */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1107,7 +1123,7 @@ OrthoscopicCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  
+    proxyPtr->flags |= INVALIDATE_CACHE; /* orthoscopic */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1155,7 +1171,7 @@ PanCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	(Tcl_GetDouble(interp, argv[i+1], &y) != TCL_OK)) {
 	return TCL_ERROR;
     }
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Pan */
+    proxyPtr->flags |= INVALIDATE_CACHE; /* pan */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1180,11 +1196,6 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     Image *imgPtr;
 
     clear_error(proxyPtr);
-
-    if (proxyPtr->flags & INVALIDATE_CACHE)
-        proxyPtr->cacheId++;
-
-    proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
 
     /* Force pymol to update the current scene. */
     Pymol(proxyPtr, "refresh\n");
@@ -1227,11 +1238,6 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     const char *token, *bgcolor;
 
     clear_error(proxyPtr);
-
-    if (proxyPtr->flags & INVALIDATE_CACHE)
-        proxyPtr->cacheId++;
-
-    proxyPtr->flags &= ~(UPDATE_PENDING | FORCE_UPDATE | INVALIDATE_CACHE);
 
     if (argc != 5) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"", 
@@ -1301,7 +1307,7 @@ RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
         }
     }
 
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Raw */
+    proxyPtr->flags |= INVALIDATE_CACHE; /* raw */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1328,7 +1334,7 @@ ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             push = 1;
     }
                 
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Reset */
+    proxyPtr->flags |= INVALIDATE_CACHE; /* reset */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1405,7 +1411,7 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	return TCL_ERROR;
     }
 
-    proxyPtr->flags |= INVALIDATE_CACHE; 
+    proxyPtr->flags |= INVALIDATE_CACHE; /* representation */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1513,7 +1519,7 @@ RotateCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    varg++;
 	}
     } 
-    proxyPtr->flags |= INVALIDATE_CACHE; /* Rotate */
+    proxyPtr->flags |= INVALIDATE_CACHE; /* rotate */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1600,7 +1606,7 @@ SphereScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* SphereScale */
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* sphere_scale */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1642,7 +1648,7 @@ StickRadiusCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    }
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE;  /* Spheres */
+    proxyPtr->flags |= INVALIDATE_CACHE;  /* stick_radius */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1686,7 +1692,7 @@ TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    transparency = atof(argv[i]);
 	}
     }
-    proxyPtr->flags |= INVALIDATE_CACHE; 
+    proxyPtr->flags |= INVALIDATE_CACHE; /* transparency */
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1970,6 +1976,12 @@ main(int argc, char *argv[])
 	sprintf(fileName, "/tmp/pymolproxy%d.log", getpid());
 	sprintf(fileName, "/tmp/pymolproxy.log");
         flog = fopen(fileName, "w");
+    }    
+    scriptFile = NULL;
+    if (savescript) {
+	char fileName[200];
+	sprintf(fileName, "/tmp/pymolproxy.py");
+        scriptFile = fopen(fileName, "w");
     }    
     ProxyInit(fileno(stdout), fileno(stdin), argv + 1);
     return 0;
