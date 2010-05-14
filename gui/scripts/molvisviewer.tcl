@@ -40,6 +40,50 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
+    private variable _icon 0
+
+    private variable _mevent;		# info used for mouse event operations
+    private variable _rocker;		# info used for rock operations
+    private variable _dlist "";		# list of dataobj objects
+    private variable _dataobjs;		# data objects on server
+    private variable _dobj2transparency;# maps dataobj => transparency
+    private variable _dobj2raise;	# maps dataobj => raise flag 0/1
+
+    private variable _active;		# array of active models.
+    private variable _obj2models;	# array containing list of models 
+					# for each data object.
+
+    private variable _view
+    private variable _click
+
+    private variable _model
+    private variable _mlist
+    private variable _mrepresentation "ballnstick"
+
+    private variable _imagecache
+    private variable _state
+    private variable _labels  "default"
+    private variable _cacheid ""
+    private variable _cacheimage ""
+
+    private variable _delta1 10
+    private variable _delta2 2
+
+    private common _settings  ;		# Array of settings for all known 
+					# widgets
+    private variable _initialized
+
+    private common _downloadPopup;	# Download options from popup
+    private variable _pdbdata;		# PDB data from run file sent to pymol
+    private common _hardcopy
+    private variable _nextToken 0
+    private variable _outbuf "";
+    private variable _buffering 0;
+    private variable _resizePending 0;
+    private variable _width
+    private variable _height
+    private variable _restore 1;	# Restore camera settings
+
     constructor { hostlist args } {
 	Rappture::VisViewer::constructor $hostlist
     } {
@@ -91,48 +135,6 @@ itcl::class Rappture::MolvisViewer {
     private method DownloadPopup { popup command } 
     private method EnableDownload { popup what }
 
-    private variable _icon 0
-
-    private variable _mevent;		# info used for mouse event operations
-    private variable _rocker;		# info used for rock operations
-    private variable _dlist "";		# list of dataobj objects
-    private variable _dataobjs;		# data objects on server
-    private variable _dobj2transparency;# maps dataobj => transparency
-    private variable _dobj2raise;	# maps dataobj => raise flag 0/1
-
-    private variable _active;		# array of active models.
-    private variable _obj2models;	# array containing list of models 
-					# for each data object.
-
-    private variable _view
-    private variable _click
-
-    private variable _model
-    private variable _mlist
-    private variable _mrepresentation "ballnstick"
-
-    private variable _imagecache
-    private variable _state
-    private variable _labels  "default"
-    private variable _cacheid ""
-    private variable _cacheimage ""
-
-    private variable _delta1 10
-    private variable _delta2 2
-
-    private common _settings  ;		# Array of settings for all known 
-					# widgets
-    private variable _initialized
-
-    private common _downloadPopup;	# Download options from popup
-    private variable _pdbdata;		# PDB data from run file sent to pymol
-    private common _hardcopy
-    private variable _nextToken 0
-    private variable _outbuf "";
-    private variable _buffering 0;
-    private variable _resizePending 0;
-    private variable _width
-    private variable _height
 }
 
 itk::usual MolvisViewer {
@@ -178,6 +180,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _state(server) 1
     set _state(client) 1
     set _hostlist $hostlist
+    set _restore 1
 
     array set _view {
 	theta   45
@@ -594,6 +597,7 @@ itcl::body Rappture::MolvisViewer::Connect {} {
     if { "" == $hosts } {
 	return 0
     }
+    set _restore 1 
     set result [VisViewer::Connect $hosts]
     if { $result } {
 	$_dispatcher event -idle !rebuild
@@ -664,7 +668,6 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
     set tag "$frame,$rock"
     global count
     incr count
-    debug "$count: cacheid=$cacheid frame=$frame\n"
     if { $cacheid != $_cacheid } {
 	array unset _imagecache 
 	set _cacheid $cacheid
@@ -701,11 +704,13 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     #blt::bltdebug 100
     set _buffering 1
 
-    set _rocker(server) 0
-    set _cacheid 0
-    SendCmd "raw -defer {set auto_color,0}"
-    SendCmd "raw -defer {set auto_show_lines,0}"
-
+    if { $_restore } {
+	set _rocker(server) 0
+	set _cacheid 0
+	SendCmd "raw -defer {set auto_color,0}"
+	SendCmd "raw -defer {set auto_show_lines,0}"
+	SendCmd "raw -defer {set connect_mode,1}"
+    }
     set dlist [get]
     foreach dataobj $dlist {
 	set model [$dataobj get components.molecule.model]
@@ -796,7 +801,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	} elseif { $_mlist($model) == 3 } {
 	    set _mlist($model) 1
 	}
-
 	if { $_mlist($model) == 1 } {
 	    if {  [info exists _model($model-newtransparency)] || 
 		  [info exists _model($model-newrepresentation)] } {
@@ -841,27 +845,30 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	set _state(client) $state
 	Update
     }
-    # Reset viewing parameters
-    set w  [winfo width $itk_component(3dview)] 
-    set h  [winfo height $itk_component(3dview)] 
-    SendCmd [subst { 
-	reset
-	screen $w $h
-	rotate $_view(mx) $_view(my) $_view(mz)
-	pan $_view(x) $_view(y)
-	zoom $_view(zoom)
-    }]
-    debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
-
-    # foreach all models 
-    spherescale update 
-    stickradius update
-    labels update 
-    opacity update 
-    cartoontrace update 
-
-    projection update 
-    representation update 
+    if { $_restore } {
+	# Set or restore viewing parameters.  We do this for the first
+	# model and assume this works for everything else.
+	set w  [winfo width $itk_component(3dview)] 
+	set h  [winfo height $itk_component(3dview)] 
+	SendCmd [subst { 
+	    reset
+	    screen $w $h
+	    rotate $_view(mx) $_view(my) $_view(mz)
+	    pan $_view(x) $_view(y)
+	    zoom $_view(zoom)
+	}]
+	debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
+	# foreach all models 
+	spherescale update 
+	stickradius update
+	labels update 
+	opacity update 
+	cartoontrace update 
+	
+	projection update 
+	representation update 
+	set _restore 0
+    }
 
     set _buffering 0;			# Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -998,6 +1005,9 @@ itcl::body Rappture::MolvisViewer::rock { option } {
     if { [info exists _rocker(afterid)] } {
 	after cancel $_rocker(afterid)
 	unset _rocker(afterid)
+    }
+    if { ![winfo viewable $itk_component(3dview)] } {
+	return
     }
     set _rocker(on) $_settings($this-rock) 
     if { $option == "step"} {
@@ -1355,8 +1365,10 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	    set _dobj2transparency($dataobj) "normal"
 	}
 	set _dobj2raise($dataobj) $params(-raise)
+	debug "setting parameters for $dataobj\n"
 
 	if { [isconnected] } {
+	    debug "calling rebuild\n"
 	    $_dispatcher event -idle !rebuild
 	}
     }
@@ -1613,7 +1625,8 @@ itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
     }
     set _settings($this-spherescale) $radius
     if { $models == "all" } {
-	set models [array names _mlist] 
+	SendCmd "spherescale -model all $radius"
+	return
     }
     set overrideradius [expr $radius * 0.8]
     SendCmd "spherescale -model all $overrideradius"
@@ -1648,7 +1661,8 @@ itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
     }
     set _settings($this-stickradius) $radius
     if { $models == "all" } {
-	set models [array names _mlist] 
+	SendCmd "stickradius -model all $radius"
+	return
     }
     set overrideradius [expr $radius * 0.8]
     SendCmd "stickradius -model all $overrideradius"
@@ -1682,11 +1696,12 @@ itcl::body Rappture::MolvisViewer::opacity { option {models "all"} } {
 	error "bad option \"$option\""
     }
     set _settings($this-opacity) $opacity
+    set transparency [expr 1.0 - $opacity]
     if { $models == "all" } {
-	set models [array names _mlist] 
+	SendCmd "transparency -model all $transparency"
+	return
     }
     set overridetransparency 0.60
-    set transparency [expr 1.0 - $opacity]
     SendCmd "transparency -model all $overridetransparency"
     foreach model $models {
 	if { [info exists _active($model)] } {
@@ -1713,7 +1728,8 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
     }
     set _settings($this-showlabels) $showlabels
     if { $models == "all" } {
-	set models [array names _mlist] 
+	SendCmd "label -model all $showlabels"
+	return
     }
     SendCmd "label -model all off"
     if { $showlabels } {
@@ -1743,7 +1759,8 @@ itcl::body Rappture::MolvisViewer::cartoontrace {option {models "all"}} {
     }
     set _settings($this-cartoontrace) $trace
     if { $models == "all" } {
-	set models [array names _mlist] 
+	SendCmd "cartoontrace -model all $trace"
+	return
     }
     SendCmd "cartoontrace -model all off"
     if { $trace } {
@@ -1848,3 +1865,4 @@ itcl::body Rappture::MolvisViewer::EnableDownload { popup what } {
 	}
     }
 }
+
