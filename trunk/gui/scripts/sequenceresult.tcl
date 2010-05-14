@@ -460,7 +460,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 			if { [$dataobj isunirect2d] } {
 			    set mode "heightmap"
 			} else {
-			    set mode "auto"
+			    set mode "vtk"
 			}
 			Rappture::Field2DResult $viewer -mode $mode
                     }
@@ -558,12 +558,12 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
     if { $_topmost == "" } {
 	return
     }
-    if { "" != [$_topmost hints indexlabel] } {
-        set val [$itk_component(dial) get -format label current]
-        $itk_component(indexValue) configure -text "= $val"
-        set _pos [lsearch -glob $_indices $val*]
-    }
+    set val [$itk_component(dial) get -format label current]
+    set _pos [lsearch -glob $_indices $val*]
     # populate the label for this element
+    if { "" != [$_topmost hints indexlabel] } {
+        $itk_component(indexValue) configure -text "= $val"
+    }
     $itk_component(eleLabel) configure -text "[$_topmost label $_pos]"
     foreach dataobj [$_topmost value $_pos] {
         set settings "-color autoreset -width 2"
