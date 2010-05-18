@@ -40,7 +40,6 @@ itcl::class Rappture::XyPrint {
     public method reset {}
 
     private method CopyOptions { cmd orig clone } 
-    private method CopyBindings { oper orig clone args } 
     private method CloneGraph { orig }
 
     private method BuildGeneralTab {}
@@ -217,12 +216,12 @@ itcl::body Rappture::XyPrint::GetOutput {} {
     
     set psdata [$_clone postscript output]
 
+    if 0 {
+	set f [open "junk.raw" "w"] 
+	puts -nonewline $f $psdata
+	close $f
+    }
     if { $format == "eps" } { 
-	if 0 {
-	    set f [open "junk.raw" "w"] 
-	    puts -nonewline $f $psdata
-	    close $f
-	}
 	return [list .$format $psdata]
     }
 
@@ -271,6 +270,9 @@ itcl::body Rappture::XyPrint::CopyOptions { cmd orig clone } {
 	set switch [lindex $option 0]
 	set initial [lindex $option 3]
 	set current [lindex $option 4]
+	if { $switch == "-data" } {
+	    continue
+	}
 	if { [string compare $initial $current] == 0 } {
 	    continue
 	}
@@ -309,7 +311,6 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
     # Marker component
     foreach marker [$orig marker names] {
 	$clone marker create [$orig marker type $marker] -name $marker
-	CopyBindings marker $orig $clone $marker
 	CopyOptions [list marker configure $marker] $orig $clone
     }
     # Element component
@@ -1080,7 +1081,7 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
 	-size [$page.fontsize current] \
 	-weight $_settings($this-legend-font-weight) \
 	-slant $_settings($this-legend-font-slant)
-    $_clone legend configure -font $_fonts(legend)
+    $_clone legend configure -font fixed -font $_fonts(legend)
     ApplyElementSettings
 }
 

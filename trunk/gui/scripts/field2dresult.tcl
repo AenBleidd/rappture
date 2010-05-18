@@ -37,6 +37,7 @@ itcl::class Rappture::Field2DResult {
     public method get {}
     public method delete {args}
     public method scale {args}
+    public method snap {w h}
     public method parameters {title args} { # do nothing }
     public method download {option args}
 }
@@ -149,4 +150,8 @@ itcl::body Rappture::Field2DResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::download {option args} {
     $itk_component(renderer) download $option
+}
+
+itcl::body Rappture::Field2DResult::snap { w h } {
+    return [$itk_component(renderer) snap $w $h]
 }
