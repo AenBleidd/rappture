@@ -127,12 +127,10 @@ itcl::body Rappture::PushButton::_fixValue {args} {
         set _state 1
         $itk_component(button) configure -relief sunken \
             -image $onimage -bg white
-    } elseif { $var == $offvalue } {
+    } else {
         set _state 0
         $itk_component(button) configure -relief raise \
             -image $offimage -bg grey85
-    } else {
-        puts stderr "unknown value \"$var\": should be \"$offvalue\" or \"$onvalue\""
     }
 }
 
