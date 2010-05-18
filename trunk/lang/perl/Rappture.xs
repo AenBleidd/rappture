@@ -37,13 +37,13 @@ RpLibrary::DESTROY()
     CODE:
         RETVAL = 0;
 
-const char *
+SV *
 RpLibrary::get( path )
 const char *path
     CODE:
         string result;
         result = THIS->get(path);
-        RETVAL = result.c_str();
+        RETVAL = newSVpvn(result.data(),result.length());
     OUTPUT:
         RETVAL
 
