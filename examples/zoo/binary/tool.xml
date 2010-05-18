@@ -18,7 +18,7 @@ Upload a gzipped tar file.  When you click the Simulate button, the output will 
       <label>Tarball</label>
       <description>Upload a gzipped tar file (Unix-style archive file).</description>
     </about>
-    <size>60x10</size>
+    <size>binary</size>
     <default></default>
   </string>
 </input>

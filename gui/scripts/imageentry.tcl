@@ -26,12 +26,18 @@ itcl::class Rappture::ImageEntry {
     public method label {}
     public method tooltip {}
 
-    private method _redraw {}
+    protected method _redraw {}
+    protected method _outline {imh color}
+    protected method _uploadValue {args}
+    protected method _downloadValue {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this image
+    private variable _data ""     ;# current image data
     private variable _imh ""      ;# image handle for current value
     private variable _resize ""   ;# image for resize operations
+
+    private common _thumbsize 100 ;# std size for thumbnail images
 }
 
 itk::usual ImageEntry {
@@ -50,16 +56,55 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
     }
     set _owner $owner
     set _path $path
+    set _resize [image create photo]
 
     #
     # Create the widget and configure it properly based on other
-    # hints in the XML.
+    # hints in the XML.  Two ways to display:  Old apps use images
+    # without labels as decorations.  In that case, show the image
+    # alone, probably full size.  Newer apps use images as inputs.
+    # In that case, show a thumbnail of the image with some extra
+    # facts about image type, file size, etc.
     #
     itk_component add image {
 	::label $itk_interior.image -borderwidth 0
     }
-    pack $itk_component(image) -expand yes -fill both
-    bind $itk_component(image) <Configure> [itcl::code $this _redraw]
+
+    itk_component add info {
+	::label $itk_interior.info -borderwidth 0 -width 5 \
+            -anchor w -justify left
+    }
+
+    itk_component add rmenu {
+        menu $itk_interior.menu -tearoff 0
+    } {
+        usual
+        ignore -tearoff
+    }
+    $itk_component(rmenu) add command \
+        -label [Rappture::filexfer::label upload] \
+        -command [itcl::code $this _uploadValue -start]
+    $itk_component(rmenu) add command \
+        -label [Rappture::filexfer::label download] \
+        -command [itcl::code $this _downloadValue]
+
+
+    if {[string length [label]] == 0} {
+        # old mode -- big image
+        pack $itk_component(image) -expand yes -fill both
+        bind $itk_component(image) <Configure> [itcl::code $this _redraw]
+    } else {
+        # new mode -- thumbnail and details
+        pack $itk_component(image) -side left
+        pack $itk_component(info) -side left -expand yes -fill both -padx 4
+
+        bind $itk_component(image) <<PopupMenu>> \
+            [list tk_popup $itk_component(rmenu) %X %Y]
+        bind $itk_component(info) <<PopupMenu>> \
+            [list tk_popup $itk_component(rmenu) %X %Y]
+
+        _redraw  ;# draw Empty image/info
+    }
 
     set str [$_owner xml get $path.current]
     if {[string length $str] == 0} {
@@ -113,7 +158,10 @@ itcl::body Rappture::ImageEntry::value {args} {
 	    image delete $_imh
 	}
 	set _imh $imh
+        set _data $newval
+
 	_redraw
+
 	return $newval
 
     } elseif {[llength $args] != 0} {
@@ -123,9 +171,14 @@ itcl::body Rappture::ImageEntry::value {args} {
     #
     # Query the value and return.
     #
-    set data ""
-    if {"" != $_imh} { set data [$_imh cget -data] }
-    return $data
+    set bytes $_data
+    set fmt [$_owner xml get $_path.convert]
+    if {"" != $fmt && "" != $_imh} {
+        if {"pgm" == $fmt} { set fmt "ppm -grayscale" }
+        set bytes [eval $_imh data -format $fmt]
+        set bytes [Rappture::encoding::decode -as b64 $bytes]
+    }
+    return $bytes
 }
 
 # ----------------------------------------------------------------------
@@ -163,7 +216,21 @@ itcl::body Rappture::ImageEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::_redraw {} {
     if {"" == $_imh} {
-	$itk_component(image) configure -image ""
+        # generate a big diagonal cross-hatch image
+        set diag [Rappture::icon diag]
+        set dw [image width $diag]
+        set dh [image height $diag]
+        $_resize configure -width $_thumbsize -height $_thumbsize
+        for {set i 0} {$i < $_thumbsize/$dw+1} {incr i} {
+            for {set j 0} {$j < $_thumbsize/$dh+1} {incr j} {
+                set x [expr {$i*$dw}]
+                set y [expr {$j*$dh}]
+                $_resize copy $diag -to $x $y
+            }
+        }
+        _outline $_resize black
+        $itk_component(image) configure -image $_resize
+	$itk_component(info) configure -text "Empty"
 	return
     }
 
@@ -171,51 +238,154 @@ itcl::body Rappture::ImageEntry::_redraw {} {
     set ih [image height $_imh]
     $itk_component(image) configure -image "" -width $iw -height $ih
 
+    #
+    # Build a description of the image if the info is showing.
+    #
+    set desc ""
+    if {[string length [label]] != 0} {
+        # if data is base64-encoded, try to decode it
+        if {![regexp {^[a-zA-Z0-9+/=]+(\n[a-zA-Z0-9+/=]+)*$} $_data]
+              || [catch {Rappture::encoding::decode -as b64 $_data} bytes]} {
+            # oops! not base64 -- use data directly
+            set bytes $_data
+        }
+        set desc [Rappture::utils::datatype $bytes]
+        if {[string equal $desc "Binary data"]} {
+            # generic description -- we can do a little better
+            set iw [image width $_imh]
+            set ih [image height $_imh]
+            set desc "Image, ${iw} x ${ih}"
+        }
+        append desc "\n[Rappture::utils::binsize [string length $_data]]"
+    }
+    $itk_component(info) configure -text $desc
+
+    #
+    # Put up the preview image, resizing if necessary.
+    #
     set str [string trim [$_owner xml get $_path.resize]]
     if {"" == $str} {
 	set str "none"
     }
     switch -glob -- $str {
-	auto {
-	    if {$_resize == ""} {
-		set _resize [image create photo]
-	    }
-	    set w [winfo width $itk_component(image)]
-	    set h [winfo height $itk_component(image)]
-	    if {$w/double($iw) < $h/double($ih)} {
-		set h [expr {round($w/double($iw)*$ih)}]
-	    } else {
-		set w [expr {round($h/double($ih)*$iw)}]
-	    }
-	    $_resize configure -width $w -height $h
-	    blt::winop resample $_imh $_resize
-	    $itk_component(image) configure -image $_resize
-	}
 	width=* - height=* {
-	    if {$_resize == ""} {
-		set _resize [image create photo]
-	    }
 	    if {[regexp {^width=([0-9]+)$} $str match size]} {
 		set w $size
 		set h [expr {round($w*$ih/double($iw))}]
 		$_resize configure -width $w -height $h
-		blt::winop resample $_imh $_resize
+	        $_resize blank
+		blt::winop resample $_imh $_resize box
+                _outline $_resize black
 		$itk_component(image) configure -image $_resize \
 		    -width $w -height $h
 	    } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
 		set h $size
 		set w [expr {round($h*$iw/double($ih))}]
 		$_resize configure -width $w -height $h
-		blt::winop resample $_imh $_resize
+	        $_resize blank
+		blt::winop resample $_imh $_resize box
+                _outline $_resize black
 		$itk_component(image) configure -image $_resize \
 		    -width $w -height $h
 	    } else {
 		$itk_component(image) configure -image $_imh
 	    }
 	}
-	default {
-	    $itk_component(image) configure -image $_imh
+	auto - none - default {
+	    if {[string length [label]] == 0} {
+                # old mode -- big image with no label
+	        $itk_component(image) configure -image $_imh
+            } else {
+                # new mode -- thumbnail and image info
+                set w $_thumbsize
+                set h $_thumbsize
+                $itk_component(image) configure -width $w -height $h
+
+                if {$iw <= $_thumbsize && $ih <= $_thumbsize} {
+	            $_resize configure -width $iw -height $ih
+	            $_resize copy $_imh
+                    _outline $_resize black
+	        } else {
+                    # large image -- scale it down
+                    if {$iw > $ih} {
+		        set h [expr {round($w/double($iw)*$ih)}]
+	            } else {
+		        set w [expr {round($h/double($ih)*$iw)}]
+	            }
+	            $_resize configure -width $w -height $h
+	            $_resize blank
+	            blt::winop resample $_imh $_resize box
+                    _outline $_resize black
+                }
+	        $itk_component(image) configure -image $_resize
+            }
 	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _outline <image> <color>
+#
+# Used internally to outline the given <image> with a single-pixel
+# line of the specified <color>.  Updates the image in place.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ImageEntry::_outline {im color} {
+    if {"" != $im} {
+        set w [image width $im]
+        set h [image height $im]
+        $im put $color -to 0 0 $w 1
+        $im put $color -to 0 0 1 $h
+        $im put $color -to 0 [expr {$h-1}] $w $h
+        $im put $color -to [expr {$w-1}] 0 $w $h
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _uploadValue -start
+# USAGE: _uploadValue -assign <key> <value> <key> <value> ...
+#
+# Used internally to initiate an upload operation.  Prompts the
+# user to upload into the image area of this widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ImageEntry::_uploadValue {args} {
+    set opt [lindex $args 0]
+    switch -- $opt {
+	-start {
+	    set tool [Rappture::Tool::resources -appname]
+	    set cntls [list $_path [label] [tooltip]]
+	    Rappture::filexfer::upload \
+		$tool $cntls [itcl::code $this _uploadValue -assign]
+	}
+	-assign {
+	    array set data [lrange $args 1 end] ;# skip option
+	    if {[info exists data(error)]} {
+		Rappture::Tooltip::cue $itk_component(image) $data(error)
+	    }
+	    if {[info exists data(data)]} {
+		Rappture::Tooltip::cue hide  ;# take down note about the popup
+		if {[catch {value $data(data)} err]} {
+		    Rappture::Tooltip::cue $itk_component(image) "Upload failed:\n$err"
+                }
+	    }
+	}
+	default {
+	    error "bad option \"$opt\": should be -start or -assign"
+	}
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _downloadValue
+#
+# Used internally to initiate a download operation.  Takes the current
+# value and downloads it to the user in a new browser window.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ImageEntry::_downloadValue {} {
+    set bytes [Rappture::encoding::decode -as b64 [$_imh data -format png]]
+    set mesg [Rappture::filexfer::download $bytes image.png]
+
+    if {"" != $mesg} {
+	Rappture::Tooltip::cue $itk_component(image) $mesg
     }
 }
 
