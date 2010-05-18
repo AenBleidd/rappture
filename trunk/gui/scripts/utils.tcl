@@ -30,22 +30,7 @@ proc Rappture::utils::hexdump {args} {
     set newval [lindex $args 0]
     set args ""
 
-    set size [string length $newval]
-    foreach {factor units} {
-	1073741824 GB
-	1048576 MB
-	1024 kB
-	1 bytes
-    } {
-	if {$size/$factor > 0} {
-	    if {$factor > 1} {
-		set size [format "%.2f" [expr {double($size)/$factor}]]
-	    }
-	    break
-	}
-    }
-
-    set rval "<binary> $size $units"
+    set rval "<binary> [Rappture::utils::binsize [string length $newval]]"
 
     if {$params(-lines) != "unlimited" && $params(-lines) <= 0} {
 	return $rval
@@ -82,4 +67,62 @@ proc Rappture::utils::hexdump {args} {
 	}
     }
     return $rval
+}
+
+# ----------------------------------------------------------------------
+# USAGE: binsize <length>
+#
+# Returns a user-friendly expression of data size, like "12 kB" or
+# "144 MB".
+# ----------------------------------------------------------------------
+proc Rappture::utils::binsize {size} {
+    foreach {factor units} {
+	1073741824 GB
+	1048576 MB
+	1024 kB
+	1 bytes
+    } {
+	if {$size/$factor > 0} {
+	    if {$factor > 1} {
+		set size [format "%.1f" [expr {double($size)/$factor}]]
+	    }
+	    break
+	}
+    }
+    return "$size $units"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: datatype <binary>
+#
+# Examines the given <binary> string and returns a description of
+# the data format.
+# ----------------------------------------------------------------------
+proc Rappture::utils::datatype {binary} {
+    set fileprog [auto_execok file]
+    if {[string length $binary] == 0} {
+        set desc "Empty"
+    } elseif {"" != $fileprog} {
+        #
+        # Use Unix "file" program to get info about type
+        # HACK ALERT! must send binary data in by creating a tmp file
+        #   or else it gets corrupted and misunderstood
+        #
+        set id [pid]
+        while {[file exists /tmp/datatype$id]} {
+            incr id
+        }
+        set fname "/tmp/datatype$id"
+        set fid [open $fname w]
+        fconfigure $fid -translation binary -encoding binary
+        puts -nonewline $fid [string range $binary 0 1024]
+        close $fid
+        if {[catch {exec $fileprog -b $fname} desc]} {
+            set desc "Binary data"
+        }
+        catch {file delete $fname}
+    } else {
+        set desc "Binary data"
+    }
+    return $desc
 }

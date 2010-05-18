@@ -20,11 +20,16 @@ fconfigure $fid -translation binary -encoding binary
 puts -nonewline $fid $data
 close $fid
 
-catch {exec tar tvzf $file} dir
+set status [catch {exec tar tvzf $file} result]
 file delete -force $file
 
+if {$status != 0} {
+    puts stderr "ERROR: $result"
+    exit 1
+}
+
 $driver put output.string(dir).about.label "Contents"
-$driver put output.string(dir).current $dir
+$driver put output.string(dir).current $result
 
 $driver put output.string(tarball).about.label "Original Tar File"
 $driver put output.string(tarball).current $data

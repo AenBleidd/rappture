@@ -22,7 +22,12 @@ When you click the Simulate button, the input image will be rotated to produce t
     <default>nanohub.xml</default>
   </loader>
   <image>
-    <about><diffs>ignore</diffs></about>
+    <about>
+      <label>Image</label>
+      <description>Input image that gets rotated.</description>
+      <diffs>ignore</diffs>
+    </about>
+    <convert>bmp</convert>
   </image>
   <number id="angle">
     <about>
