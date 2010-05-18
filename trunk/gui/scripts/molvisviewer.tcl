@@ -101,6 +101,8 @@ itcl::class Rappture::MolvisViewer {
     private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
+    private method DownloadPopup { popup command } 
+    private method EnableDownload { popup what }
 
     protected method Map {}
     protected method Pan {option x y}
@@ -117,23 +119,22 @@ itcl::class Rappture::MolvisViewer {
     public method Disconnect {}
     public method ResetView {} 
     public method add {dataobj {options ""}}
-    public method spherescale {option {models "all"} }
-    public method stickradius {option {models "all"} }
+    public method cartoontrace {option {model "all"}}
     public method delete {args}
     public method download {option args}
     public method get {}
     public method isconnected {}
     public method labels {option {model "all"}}
-    public method cartoontrace {option {model "all"}}
     public method opacity {option {models "all"} }
     public method parameters {title args} { 
 	# do nothing 
     }
+    public method snap { w h }
+    public method spherescale {option {models "all"} }
+    public method stickradius {option {models "all"} }
     public method projection {option}
     public method representation {option {model "all"} }
     public method rock {option}
-    private method DownloadPopup { popup command } 
-    private method EnableDownload { popup what }
 
 }
 
@@ -709,7 +710,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	set _cacheid 0
 	SendCmd "raw -defer {set auto_color,0}"
 	SendCmd "raw -defer {set auto_show_lines,0}"
-	SendCmd "raw -defer {set connect_mode,1}"
     }
     set dlist [get]
     foreach dataobj $dlist {
@@ -837,13 +837,16 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	set _state(server) 1
 	set _state(client) 1
 	SendCmd "frame 1"
+	set flush 1
     } elseif { ![info exists _imagecache($state,$_rocker(client))] } {
 	set _state(server) $state
 	set _state(client) $state
 	SendCmd "frame $state"
+	set flush 1
     } else {
 	set _state(client) $state
 	Update
+	set flush 0
     }
     if { $_restore } {
 	# Set or restore viewing parameters.  We do this for the first
@@ -858,7 +861,8 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	    zoom $_view(zoom)
 	}]
 	debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
-	# foreach all models 
+
+	# Default settings for all models.
 	spherescale update 
 	stickradius update
 	labels update 
@@ -867,16 +871,22 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	
 	projection update 
 	representation update 
+	SendCmd "raw -defer {zoom complete=1}"
 	set _restore 0
     }
 
+    if { $flush } {
+	SendCmd "bmp";			# Flush the results.
+    }
     set _buffering 0;			# Turn off buffering.
-    # Actually write the commands to the server socket.  If it fails, we don't
-    # care.  We're finished here.
+
     blt::busy hold $itk_component(hull)
+
+    # Actually write the commands to the server socket.  
+    # If it fails, we don't care.  We're finished here.
     SendBytes $_outbuf;			
-    blt::busy release $itk_component(hull)
     set _outbuf "";			# Clear the buffer.		
+    blt::busy release $itk_component(hull)
 
     debug "exiting rebuild"
 }
