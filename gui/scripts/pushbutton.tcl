@@ -1,4 +1,4 @@
-#!/usr/bin/wish
+
 # ----------------------------------------------------------------------
 
 
@@ -28,8 +28,12 @@ itcl::class Rappture::PushButton {
     itk_option define -onvalue onValue OnValue "normal"
     itk_option define -offvalue offValue OffValue "normal"
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
 
     public method invoke {}
     public method deselect {}
@@ -123,6 +127,9 @@ itcl::body Rappture::PushButton::_fixValue {args} {
         return
     }
     upvar #0 $itk_option(-variable) var
+    if { $var != "" && [string is boolean $var] } {
+	set var [expr "$var == 1"]
+    }
     if { $var == $onvalue } {
         set _state 1
         $itk_component(button) configure -relief sunken \
