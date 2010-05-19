@@ -22,6 +22,7 @@ TCLSH = 	@TCLSH@
 PYTHON = 	@PYTHON@
 MEX = 		@MEX@
 MKOCTFILE = 	@MKOCTFILE@
+JAVA =		@JAVA@
 
 LANGS = target_c target_tcl target_wrapper target_2_0
 ifneq ($(F77),)
@@ -41,6 +42,9 @@ ifneq ($(PYTHON),)
 endif
 ifneq ($(RUBY),)
     LANGS += target_ruby
+endif
+ifneq ($(JAVA),)
+    LANGS += target_java
 endif
 
 BUILD_TARGETS =	$(patsubst target_%,build_%,$(LANGS)) 
@@ -69,6 +73,8 @@ build_wrapper:
 	$(MAKE) -C wrapper all
 build_2_0:
 	$(MAKE) -C 2.0 all
+build_java:
+	$(MAKE) -C java all
 
 install_c: 
 	$(MAKE) -C cee install
@@ -90,6 +96,8 @@ install_wrapper:
 	$(MAKE) -C wrapper install
 install_2_0:
 	$(MAKE) -C 2.0 install
+install_java:
+	$(MAKE) -C java install
 
 clean:
 	$(MAKE) -C cee clean
@@ -102,6 +110,7 @@ clean:
 	$(MAKE) -C tcl clean
 	$(MAKE) -C wrapper clean
 	$(MAKE) -C 2.0 clean
+	$(MAKE) -C java clean
 	
 distclean: 
 	$(MAKE) -C cee distclean
@@ -114,4 +123,5 @@ distclean:
 	$(MAKE) -C tcl distclean
 	$(MAKE) -C wrapper distclean
 	$(MAKE) -C 2.0 distclean
+	$(MAKE) -C java distclean
 	$(RM) Makefile

@@ -1,0 +1,42 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+VPATH		= @srcdir@
+
+JAVAC		= @JAVAC@ 
+CLASSPATH	= ../../../lang/java
+
+destdir		= $(prefix)/examples/app-fermi/java
+
+FILES 		= \
+		$(srcdir)/tool.xml \
+		$(srcdir)/Fermi.java \
+		Fermi.class
+
+all: Fermi.class
+
+Fermi.class: Fermi.java	
+	$(JAVAC) -cp $(CLASSPATH) -d . $(srcdir)/Fermi.java
+
+install: all 
+	$(MKDIR_P) $(destdir)
+	for i in $(FILES) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+
+clean:
+	$(RM)Fermi.class
+
+distclean: clean
+	$(RM) Makefile
+

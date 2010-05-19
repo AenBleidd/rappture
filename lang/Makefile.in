@@ -20,6 +20,7 @@ TCLSH           = @TCLSH@
 PYTHON          = @HAVE_PYTHON_DISTUTILS@
 MEX             = @MEX@
 MKOCTFILE       = @MKOCTFILE@
+JAVA		= @JAVA@
 
 # Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
@@ -39,8 +40,11 @@ endif
 ifneq ($(MKOCTFILE),)
   LANGS += octave
 endif
+ifneq ($(JAVA),)
+  LANGS += java
+endif
 
-.PHONY:	tcl octave matlab perl python ruby
+.PHONY:	tcl octave matlab perl python ruby java
 
 all:
 	for i in $(LANGS) ; do \

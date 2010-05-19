@@ -1,0 +1,98 @@
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+INSTALL         = @INSTALL@
+SOEXT           = @SHLIB_SUFFIX@
+
+JAVA_HOME = @JAVA_HOME@
+JAVA_INCLUDES=@JAVA_INCLUDES@
+JAVA=@JAVA@
+JAVAC=@JAVAC@
+JAVAH=@JAVAH@
+
+CLASSPATH = .:..
+JAVAC_SWITCHES = -cp $(CLASSPATH) -d .
+JAVAH_SWITCHES = -jni -classpath $(CLASSPATH) 
+destdir = $(libdir)/java
+packagedir = $(destdir)/rappture
+
+CXX             = @CXX@
+CC              = @CXX@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+
+MKDIR_P		= @MKDIR_P@
+RM		= rm -f
+
+INCLUDES = $(JAVA_INCLUDES) -I .
+LIBS = -L $(LIB_SEARCH_DIRS) -lrappture
+
+CXX_O_SWITCHES = -fpic -c $(INCLUDES) $(LIBS)
+
+CXX_SO_SWITCHES = --shared $(LIBS)
+
+OBJS	= \
+	jRpLibrary.o \
+	jRpUnits.o \
+	jRpUtils.o
+
+lib = libjRappture$(SOEXT)
+
+all: $(lib)
+
+$(lib): $(OBJS)
+	$(CXX) $(CXX_SO_SWITCHES) -o $@ $(OBJS)
+
+jRpLibrary.o: $(srcdir)/jRpLibrary.cc jRpLibrary.h
+	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+
+jRpUnits.o: $(srcdir)/jRpUnits.cc jRpUnits.h
+	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+
+jRpUtils.o: $(srcdir)/jRpUtils.cc jRpUtils.h
+	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+
+Library.class: $(srcdir)/Library.java
+	$(JAVAC) $(JAVAC_SWITCHES) $<
+
+Units.class: $(srcdir)/Units.java
+	$(JAVAC) $(JAVAC_SWITCHES) $<
+
+Utils.class: $(srcdir)/Utils.java
+	$(JAVAC) $(JAVAC_SWITCHES) $<
+
+jRpLibrary.h: Library.class
+	$(JAVAH) $(JAVAH_SWITCHES) -o $@ rappture.Library
+
+jRpUnits.h: Units.class
+	$(JAVAH) $(JAVAH_SWITCHES) -o $@ rappture.Units
+
+jRpUtils.h: Utils.class
+	$(JAVAH) $(JAVAH_SWITCHES) -o $@ rappture.Utils
+
+install: 
+	$(MKDIR_P) $(destdir)
+	$(INSTALL) -m 555 $(lib) $(destdir)
+	$(MKDIR_P) $(packagedir)
+	$(INSTALL) -m 444 rappture/*.class $(destdir)/rappture
+
+clean:
+	$(RM) -r rappture *.o *.so *.h *.class
+
+distclean: clean
+	$(RM) Makefile
+

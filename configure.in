@@ -451,6 +451,24 @@ AC_SUBST(HAVE_RUBY_DEVEL)
 AC_SUBST(RUBY_VERSION_RV)
 AC_SUBST(RUBY_PLATFORM)
 
+# TODO: Check that these actually exist.
+JAVA=java
+JAVAC=javac
+JAVAH=javah
+
+# TODO: Find the java install from path to java exectuable.
+JAVA_HOME=/usr/lib/jvm/java-6-sun
+
+# TODO: find the location of jni.h and jni_md.h.
+# Obviously the linux subdir won't exist on all platforms.
+JAVA_INCLUDES="-I ${JAVA_HOME}/include -I ${JAVA_HOME}/include/linux"
+
+AC_SUBST(JAVA)
+AC_SUBST(JAVAC)
+AC_SUBST(JAVAH)
+AC_SUBST(JAVA_HOME)
+AC_SUBST(JAVA_INCLUDES)
+
 RP_BASE=`pwd`
 AC_SUBST(RP_BASE)
 
@@ -541,6 +559,7 @@ AC_CONFIG_FILES([
     gui/pkgIndex.tcl
     gui/scripts/Makefile
     lang/Makefile
+    lang/java/Makefile
     lang/perl/Makefile
     lang/perl/Makefile.PL
     lang/python/Makefile
@@ -562,6 +581,7 @@ AC_CONFIG_FILES([
     examples/app-fermi/Makefile
     examples/app-fermi/cee/Makefile
     examples/app-fermi/fortran/Makefile
+    examples/app-fermi/java/Makefile
     examples/app-fermi/matlab/Makefile
     examples/app-fermi/matlab/compiled/Makefile
     examples/app-fermi/matlab/uncompiled/Makefile
