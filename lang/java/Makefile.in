@@ -38,12 +38,12 @@ LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 MKDIR_P		= @MKDIR_P@
 RM		= rm -f
 
-INCLUDES = $(JAVA_INCLUDES) -I $(includedir) -I .
-LIBS = -L $(LIB_SEARCH_DIRS) -lrappture
+INCLUDES = $(JAVA_INCLUDES) -I $(srcdir)/../../src/core -I .
+LIBS = -L ../../src/core -lrappture
 
-CXX_O_SWITCHES = -fpic -c $(INCLUDES) $(LIBS)
+CXX_O_SWITCHES = -fpic -c $(INCLUDES)
 
-CXX_SO_SWITCHES = --shared $(LIBS)
+CXX_SO_SWITCHES = --shared $(INCLUDES) $(LIBS)
 
 OBJS	= \
 	jRpLibrary.o \

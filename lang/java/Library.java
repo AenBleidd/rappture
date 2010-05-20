@@ -1,3 +1,19 @@
+/*
+ * ======================================================================
+ *  AUTHOR:  Ben Rafferty, Purdue University
+ *  Copyright (c) 2010  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+/*
+ * This file defines a Java class that implemements the rappture XML library.
+ * The class methods call the corresponding native code through c++ glue code
+ * located in jRpLibrary.cc.
+ */
+
 package rappture;
 
 public class Library{
@@ -10,7 +26,7 @@ public class Library{
     libPtr = jRpLibrary(path);
   }
 
-  // Pseudo-Destructor---------------------------------------------------------
+  // Pseudo-Destructor.  Called when the object is garbage collected.----------
   protected void finalize() throws Throwable {
     try {
       jRpDeleteLibrary(libPtr);
@@ -57,14 +73,13 @@ public class Library{
   private native double jRpGetDouble(long libPtr, String path);
   private native String jRpGetString(long libPtr, String path);
 
-  private native void jRpPut(long libPtr, String path, String value, boolean append);
+  private native void jRpPut(long libPtr, String path,
+                             String value, boolean append);
 
   private native void jRpResult(long libPtr, int exitStatus);  
 
   // Private Attributes--------------------------------------------------------
-  private long libPtr;  //pointer to c rpLibrary 
+  private long libPtr;  //pointer to c++ RpLibrary 
 
 }
-
-
 
