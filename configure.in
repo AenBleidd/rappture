@@ -452,12 +452,12 @@ AC_SUBST(RUBY_VERSION_RV)
 AC_SUBST(RUBY_PLATFORM)
 
 # TODO: Check that these actually exist.
-JAVA=java
-JAVAC=javac
-JAVAH=javah
+JAVA=/apps/java/bin/java
+JAVAC=/apps/java/bin/javac
+JAVAH=/apps/java/bin/javah
 
 # TODO: Find the java install from path to java exectuable.
-JAVA_HOME=/usr/lib/jvm/java-6-sun
+JAVA_HOME=/apps/java/jdk1.6.0_01
 
 # TODO: find the location of jni.h and jni_md.h.
 # Obviously the linux subdir won't exist on all platforms.
