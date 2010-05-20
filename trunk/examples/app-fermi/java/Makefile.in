@@ -35,7 +35,7 @@ install: all
 	done
 
 clean:
-	$(RM)Fermi.class
+	$(RM) Fermi.class
 
 distclean: clean
 	$(RM) Makefile

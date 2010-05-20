@@ -1,7 +1,25 @@
+/*
+ * ======================================================================
+ *  AUTHOR:  Ben Rafferty, Purdue University
+ *  Copyright (c) 2010  Purdue Research Foundation
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
+
+/*
+ * This file defines the native functions which are called by the java Library
+ * class methods, and in turn call the corresponding rappture RpLibrary methods.
+ */
+
 #include "jRpLibrary.h"
 #include "rappture.h"
 
-// constructor
+/*
+ * Constructor.  Returns the address of the newly created RpLibrary object to
+ * java as a long int.
+ */
 JNIEXPORT jlong JNICALL Java_rappture_Library_jRpLibrary
   (JNIEnv *env, jobject obj, jstring javaPath){
   const char* nativePath = env->GetStringUTFChars(javaPath, 0);
@@ -10,7 +28,10 @@ JNIEXPORT jlong JNICALL Java_rappture_Library_jRpLibrary
   return (jlong)lib;
 }
 
-// Pseudo-destructor
+/*
+ * Pseudo-destructor.  This function is called by the java Library class's
+ * finalizer.
+ */
 JNIEXPORT void JNICALL Java_rappture_Library_jRpDeleteLibrary
   (JNIEnv *env, jobject obj, jlong libPtr){
   delete (RpLibrary*) libPtr;
