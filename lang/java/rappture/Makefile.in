@@ -1,0 +1,69 @@
+
+.SUFFIXES:	.class .java
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+destdir		= $(libdir)/java
+packagedir	= $(destdir)/rappture
+VPATH           = $(srcdir):rappture
+
+INSTALL         = @INSTALL@
+SOEXT           = @SHLIB_SUFFIX@
+
+JAVA_HOME	= @JAVA_HOME@
+JAVA_INCLUDES	= @JAVA_INC_SPEC@
+JAVA		= @JAVA@
+JAVAC		= @JAVAC@
+JAVAH		= @JAVAH@
+
+CXX             = @CXX@
+CC              = @CXX@
+
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+CFLAGS          = ${CFLAGS_DEFAULT} ${CFLAGS_WARNING} ${SHLIB_CFLAGS}
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+
+MKDIR_P		= @MKDIR_P@
+RM		= rm -f
+
+INCLUDES	= $(JAVA_INCLUDES) -I $(srcdir)/../../src/core -I .
+LIBS		= -L../../src/core -lrappture
+
+CLASSPATH	= .:..
+JAVAC_SWITCHES	= -cp $(CLASSPATH) -d .
+JAVAH_SWITCHES	= -jni -classpath $(CLASSPATH) 
+
+CLASSFILES	= \
+		Library.class \
+		Units.class \
+		Utils.class 
+
+all:
+
+install: $(CLASSFILES)
+	$(MKDIR_P) $(packagedir)
+	for i in $(CLASSFILES) ; do \
+	    $(INSTALL) -m 444 $$i $(packagedir) ; \
+	done
+
+clean:
+	$(RM) $(CLASSFILES)  
+
+distclean: clean
+	$(RM) Makefile
+
