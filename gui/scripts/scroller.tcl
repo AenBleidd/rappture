@@ -146,6 +146,8 @@ itcl::body Rappture::Scroller::contents {{widget "!@#query"}} {
             set _frame [canvas $itk_component(hull).ifr -highlightthickness 0]
             frame $_frame.f
             $_frame create window 0 0 -anchor nw -window $_frame.f -tags frame
+            bind $_frame.f <Map> \
+                [itcl::code $_dispatcher event -idle !fixframe-inner]
             bind $_frame.f <Configure> \
                 [itcl::code $_dispatcher event -idle !fixframe-inner]
             bind $_frame <Configure> \
@@ -301,7 +303,11 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
 itcl::body Rappture::Scroller::_fixframe {which} {
     switch -- $which {
         inner {
-            $_frame configure -scrollregion [$_frame bbox all]
+            set w [winfo reqwidth $_frame.f]
+            set h [winfo reqheight $_frame.f]
+            $_frame configure -scrollregion [list 0 0 $w $h]
+            _lock reset x
+            _lock reset y
             $_dispatcher event -idle !fixsize
         }
         outer {
