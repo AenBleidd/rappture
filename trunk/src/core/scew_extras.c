@@ -127,12 +127,11 @@ scew_element_set_contents_binary(   scew_element* element,
     XML_Char* out = NULL;
 
     assert(element != NULL);
-    assert(bytes != NULL);
     assert(nbytes != NULL);
-
     if (*nbytes == 0) {
         return element->contents;
     }
+    assert(bytes != NULL);
 
     free(element->contents);
     out = (XML_Char*) calloc(*nbytes+1, sizeof(XML_Char));
