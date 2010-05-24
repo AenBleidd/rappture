@@ -37,8 +37,6 @@ ifneq ($(ENABLE_GUI),)
   TARGETS += gui lang lib instant examples 
 endif
 
-.NOTPARALLEL:
-
 .PHONY: $(TARGETS)
 
 all: $(TARGETS)
@@ -54,7 +52,7 @@ install:
 	done
 
 clean: 
-	$(RM) Makefile config.status config.log  *~
+	$(RM) config.status config.log  *~
 	for i in $(TARGETS) ; do \
 	  $(MAKE) -C $$i clean || exit 1 ;\
 	done

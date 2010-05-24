@@ -15,6 +15,7 @@ VPATH		= @srcdir@
 
 JAVAC		= @JAVAC@ 
 CLASSPATH	= ../../../lang/java
+CLASSPATH	= $(libdir)/java
 
 destdir		= $(prefix)/examples/app-fermi/java
 
