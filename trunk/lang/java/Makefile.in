@@ -104,15 +104,14 @@ install-library:  $(shared_lib)
 	$(MKDIR_P) $(libdir)
 	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 
-install-classfiles: $(CLASSFILES)
-	$(MKDIR_P) $(packagedir)
-	for i in $(CLASSFILES) ; do \
-	    $(INSTALL) -m 444 $$i $(packagedir) ; \
-	done
+install-classfiles: 
+	$(MAKE) -C rappture install || exit 1
 
 clean:
+	$(MAKE) -C rappture clean || exit 1
 	$(RM) $(CLASSFILES) $(OBJS) $(HEADERS) $(lib) $(shared_lib) 
 
 distclean: clean
+	$(MAKE) -C rappture distclean || exit 1
 	$(RM) Makefile
 
