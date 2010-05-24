@@ -34,7 +34,7 @@ ENABLE_GUI	= @ENABLE_GUI@
 TARGETS		= src 
 
 ifneq ($(ENABLE_GUI),)
-  TARGETS += gui lang lib examples
+  TARGETS += gui lang lib instant examples 
 endif
 
 .NOTPARALLEL:
@@ -42,17 +42,9 @@ endif
 .PHONY: $(TARGETS)
 
 all: $(TARGETS)
-
-src:
-	$(MAKE) -C src all
-gui: 
-	$(MAKE) -C gui all
-lang: 
-	$(MAKE) -C lang all
-examples: 
-	$(MAKE) -C examples all
-lib: 
-	$(MAKE) -C lib all
+	for i in $(TARGETS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 test: 
 	#$(MAKE) -C test all
 
@@ -61,22 +53,17 @@ install:
 	  $(MAKE) -C $$i install || exit 1 ;\
 	done
 
-clean:
-	$(MAKE) -C examples clean
-	$(MAKE) -C gui clean
-	$(MAKE) -C lang clean
-	$(MAKE) -C lib clean
-	$(MAKE) -C src clean
-	$(MAKE) -C test clean
-
-distclean: 
-	$(MAKE) -C examples distclean
-	$(MAKE) -C gui distclean
-	$(MAKE) -C lang distclean
-	$(MAKE) -C lib distclean
-	$(MAKE) -C src distclean
-	$(MAKE) -C test distclean
+clean: 
 	$(RM) Makefile config.status config.log  *~
+	for i in $(TARGETS) ; do \
+	  $(MAKE) -C $$i clean || exit 1 ;\
+	done
+
+distclean: clean
+	$(RM) Makefile config.status config.log  *~
+	for i in $(TARGETS) ; do \
+	  $(MAKE) -C $$i distclean || exit 1 ;\
+	done
 
 package: 
 	tar -C $(pkg_path) -czlf $(rappture_binary_tarfile) $(pkg_name)
