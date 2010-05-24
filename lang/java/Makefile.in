@@ -101,8 +101,8 @@ jRpUtils.h: Utils.class
 install: install-library install-classfiles
 
 install-library:  $(shared_lib) 
-	$(MKDIR_P) $(destdir)
-	$(INSTALL) -m 555 $(shared_lib) $(destdir)
+	$(MKDIR_P) $(libdir)
+	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 
 install-classfiles: $(CLASSFILES)
 	$(MKDIR_P) $(packagedir)
