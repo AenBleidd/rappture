@@ -75,40 +75,53 @@ VALIDATEFILES	= \
 
 destdir         = $(libdir)/instant
 
-
 all: tclIndex
 
 tclIndex: $(FILES)
 	$(TCLSH) $(srcdir)/../gui/tclconfig/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
 
-install:
+install: install-scripts install-files install-images install-objects \
+	install-types install-validations
+
+install-scripts: tclIndex
+	$(MKDIR_P) $(destdir)
+	$(INSTALL) -m 444 tclIndex $(destdir)
 	$(MKDIR_P) $(bindir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(bindir) ; \
 	done
+
+install-files: $(FILES)
 	$(MKDIR_P) $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(destdir) ; \
 	done
-	$(INSTALL) -m 444 tclIndex $(destdir)
+
+install-images: $(IMAGEFILES)
 	$(MKDIR_P) $(destdir)/images
 	@for i in $(IMAGEFILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(destdir)/images ; \
 	done
+
+install-objects: $(OBJECTFILES)
 	$(MKDIR_P) $(destdir)/objects
 	@for i in $(OBJECTFILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(destdir)/objects ; \
 	done
+
+install-types: $(TYPEFILES)
 	$(MKDIR_P) $(destdir)/types
 	@for i in $(TYPEFILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 555 $$i $(destdir)/types ; \
 	done
+
+install-validations: $(VALIDATEFILES)
 	$(MKDIR_P) $(destdir)/validations
 	@for i in $(VALIDATEFILES); do \
 	    echo "Installing $$i" ; \

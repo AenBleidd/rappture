@@ -15,7 +15,16 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
-RAPPTURE_INSTALL_DIR=@prefix@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+prefix		= @prefix@
+TCL_VERSION	= @TCL_VERSION@
 
-. $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/wish8.4 $RAPPTURE_INSTALL_DIR/lib/instant/main.tcl $*
+. ${bindir}/rappture.env
+exec ${bindir}/bin/wish${TCL_VERSION} ${libdir}/lib/instant/main.tcl $*
