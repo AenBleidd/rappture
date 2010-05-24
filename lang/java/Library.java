@@ -18,7 +18,7 @@ package rappture;
 
 public class Library{
   static {
-    System.loadLibrary("jRappture");
+    System.loadLibrary("JRappture");
   }
 
   // Constructor---------------------------------------------------------------

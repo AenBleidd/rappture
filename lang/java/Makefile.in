@@ -1,3 +1,6 @@
+
+.SUFFIXES:	.class .java
+
 bindir          = @bindir@
 datadir         = @datadir@
 datarootdir     = @datarootdir@
@@ -8,24 +11,23 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir          = @srcdir@
 
+destdir		= $(libdir)/java
+packagedir	= $(destdir)/rappture
+VPATH           = $(srcdir):rappture
+
 INSTALL         = @INSTALL@
 SOEXT           = @SHLIB_SUFFIX@
 
-JAVA_HOME = @JAVA_HOME@
-JAVA_INCLUDES=@JAVA_INCLUDES@
-JAVA=@JAVA@
-JAVAC=@JAVAC@
-JAVAH=@JAVAH@
-
-CLASSPATH = .:..
-JAVAC_SWITCHES = -cp $(CLASSPATH) -d .
-JAVAH_SWITCHES = -jni -classpath $(CLASSPATH) 
-destdir = $(libdir)/java
-packagedir = $(destdir)/rappture
+JAVA_HOME	= @JAVA_HOME@
+JAVA_INCLUDES	= @JAVA_INC_SPEC@
+JAVA		= @JAVA@
+JAVAC		= @JAVAC@
+JAVAH		= @JAVAH@
 
 CXX             = @CXX@
 CC              = @CXX@
-CFLAGS_DEBUG    = @CFLAGS_DEBUG@
+
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
 CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
 STLIB_LD        = @STLIB_LD@
 SHLIB_LD        = @SHLIB_LD@
@@ -33,46 +35,58 @@ SHLIB_CFLAGS    = @SHLIB_CFLAGS@
 SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
 SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+CFLAGS          = ${CFLAGS_DEFAULT} ${CFLAGS_WARNING} ${SHLIB_CFLAGS}
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 
 MKDIR_P		= @MKDIR_P@
 RM		= rm -f
 
-INCLUDES = $(JAVA_INCLUDES) -I $(srcdir)/../../src/core -I .
-LIBS = -L ../../src/core -lrappture
+INCLUDES	= $(JAVA_INCLUDES) -I $(srcdir)/../../src/core -I .
+LIBS		= -L../../src/core -lrappture
 
-CXX_O_SWITCHES = -fpic -c $(INCLUDES)
+CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(SHLIB_CFLAGS) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(SHLIB_CFLAGS) $(INCLUDES) $(DEFINES)
 
-CXX_SO_SWITCHES = --shared $(INCLUDES) $(LIBS)
+CLASSPATH	= .:..
+JAVAC_SWITCHES	= -cp $(CLASSPATH) -d .
+JAVAH_SWITCHES	= -jni -classpath $(CLASSPATH) 
 
-OBJS	= \
-	jRpLibrary.o \
-	jRpUnits.o \
-	jRpUtils.o
+CLASSFILES	= \
+		rappture/Library.class \
+		rappture/Units.class \
+		rappture/Utils.class 
 
-lib = libjRappture$(SOEXT)
+HEADERS		= \
+		jRpLibrary.h \
+		jRpUnits.h \
+		jRpUtils.h 
 
-all: $(lib)
+OBJS		= \
+		jRpLibrary.o \
+		jRpUnits.o \
+		jRpUtils.o 
 
-$(lib): $(OBJS)
-	$(CXX) $(CXX_SO_SWITCHES) -o $@ $(OBJS)
+name        = JRappture
+libname     = lib$(name)
+lib         = $(libname).a
+shared_lib  = $(libname)$(SHLIB_SUFFIX)
+
+all: $(shared_lib)
+
+$(shared_lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS)
 
 jRpLibrary.o: $(srcdir)/jRpLibrary.cc jRpLibrary.h
-	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+	$(CXX) -c $(CXX_SWITCHES) -o $@ $<
 
 jRpUnits.o: $(srcdir)/jRpUnits.cc jRpUnits.h
-	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+	$(CXX) -c $(CXX_SWITCHES) -o $@ $<
 
 jRpUtils.o: $(srcdir)/jRpUtils.cc jRpUtils.h
-	$(CXX) $(CXX_O_SWITCHES) -o $@ $<
+	$(CXX) -c $(CXX_SWITCHES) -o $@ $<
 
-Library.class: $(srcdir)/Library.java
-	$(JAVAC) $(JAVAC_SWITCHES) $<
-
-Units.class: $(srcdir)/Units.java
-	$(JAVAC) $(JAVAC_SWITCHES) $<
-
-Utils.class: $(srcdir)/Utils.java
+.java.class:
 	$(JAVAC) $(JAVAC_SWITCHES) $<
 
 jRpLibrary.h: Library.class
@@ -84,14 +98,20 @@ jRpUnits.h: Units.class
 jRpUtils.h: Utils.class
 	$(JAVAH) $(JAVAH_SWITCHES) -o $@ rappture.Utils
 
-install: 
+install: install-library install-classfiles
+
+install-library:  $(shared_lib) 
 	$(MKDIR_P) $(destdir)
-	$(INSTALL) -m 555 $(lib) $(destdir)
+	$(INSTALL) -m 555 $(shared_lib) $(destdir)
+
+install-classfiles: $(CLASSFILES)
 	$(MKDIR_P) $(packagedir)
-	$(INSTALL) -m 444 rappture/*.class $(destdir)/rappture
+	for i in $(CLASSFILES) ; do \
+	    $(INSTALL) -m 444 $$i $(packagedir) ; \
+	done
 
 clean:
-	$(RM) -r rappture *.o *.so *.h *.class
+	$(RM) $(CLASSFILES) $(OBJS) $(HEADERS) $(lib) $(shared_lib) 
 
 distclean: clean
 	$(RM) Makefile

@@ -18,7 +18,7 @@ package rappture;
 
 public class Utils{
   static{
-    System.loadLibrary("jRappture");
+    System.loadLibrary("JRappture");
   }
 
   public static void progress(int percent, String text){

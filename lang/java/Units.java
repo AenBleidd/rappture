@@ -19,7 +19,7 @@ package rappture;
 
 public class Units{
   static {
-    System.loadLibrary("jRappture");
+    System.loadLibrary("JRappture");
   }
 
   public static String convert(String fromVal, String to, boolean units){
