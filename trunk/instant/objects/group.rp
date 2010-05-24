@@ -1,0 +1,5 @@
+object group -extends base {
+    palettes "Grouping"
+    help http://rappture.org/wiki/rp_xml_ele_group
+    terminal no
+}

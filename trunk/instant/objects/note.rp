@@ -1,0 +1,13 @@
+object note {
+    palettes "Documentation"
+    help http://rappture.org/wiki/rp_xml_ele_note
+    attr contents -title "HTML File" -type file -path contents
+
+    check contents {
+        set fname [string trim $attr(contents)]
+        if {[string length $fname] == 0
+              || [string equal $fname "select a file"]} {
+            return [list warning "Should set an HTML file with the contents of the note, or else delete the element."]
+        }
+    }
+}

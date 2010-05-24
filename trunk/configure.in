@@ -558,6 +558,7 @@ AC_CONFIG_FILES([
     gui/apps/xmldiff
     gui/pkgIndex.tcl
     gui/scripts/Makefile
+    instant/Makefile
     lang/Makefile
     lang/java/Makefile
     lang/perl/Makefile

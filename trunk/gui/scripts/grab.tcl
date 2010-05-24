@@ -64,6 +64,11 @@ proc grab {args} {
 	    set ::Rappture::grab::state "-global"
 	}
 
+        # if the window is already on the stack, then skip it
+        if {[string equal [lindex $::Rappture::grab::stack 0] $window]} {
+            return $window
+        }
+
 	# add the current configuration to the grab stack
 	set ::Rappture::grab::stack \
 	    [linsert $::Rappture::grab::stack 0 $window]
