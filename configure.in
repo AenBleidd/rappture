@@ -597,6 +597,7 @@ AC_CONFIG_FILES([
     instant/irappture
     lang/Makefile
     lang/java/Makefile
+    lang/java/rappture/Makefile
     lang/perl/Makefile
     lang/perl/Makefile.PL
     lang/python/Makefile
