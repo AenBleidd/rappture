@@ -490,6 +490,10 @@ itcl::body Rappture::Hierlist::dd_scan_target {x y data} {
 
     switch -glob -- $data {
         node:* {
+            # convert from screen coords to canvas coords (for scrollbars)
+            set x [$c canvasx $x]
+            set y [$c canvasy $y]
+
             # search a little above the hot-spot
             set y [expr {$y-5}]
 
