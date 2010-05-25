@@ -2589,8 +2589,8 @@ RpUnitsPreset::addPresetTemp () {
     RpUnits* rankine    = NULL;
 
     fahrenheit = RpUnits::define("F", NULL, RP_TYPE_TEMP);
-    celcius    = RpUnits::define("C", NULL, RP_TYPE_TEMP);
-    kelvin     = RpUnits::define("K", NULL, RP_TYPE_TEMP);
+    celcius    = RpUnits::define("C", NULL, RP_TYPE_TEMP, RPUNITS_METRIC);
+    kelvin     = RpUnits::define("K", NULL, RP_TYPE_TEMP,RPUNITS_METRIC);
     rankine    = RpUnits::define("R", NULL, RP_TYPE_TEMP);
 
     // add temperature definitions
