@@ -15,16 +15,11 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
-prefix		= @prefix@
-exec_prefix	= @exec_prefix@
-bindir		= @bindir@
-libdir		= @libdir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
-mandir		= @mandir@
-includedir	= @includedir@
-prefix		= @prefix@
-TCL_VERSION	= @TCL_VERSION@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+TCL_VERSION=@TCL_VERSION@
 
 . ${bindir}/rappture.env
-exec ${bindir}/bin/wish${TCL_VERSION} ${libdir}/lib/instant/main.tcl $*
+exec ${bindir}/wish${TCL_VERSION} ${libdir}/instant/main.tcl $*

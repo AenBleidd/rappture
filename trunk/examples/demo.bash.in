@@ -46,6 +46,7 @@ FLOW=" \
 FERMI=" \
   ./app-fermi/cee \
   ./app-fermi/tcl \
+  ./app-fermi/java \
   ./app-fermi/perl \
   ./app-fermi/ruby \
   ./app-fermi/fortran \
