@@ -658,6 +658,23 @@ test convert_units-5.4.6.11 {Rappture::Units::convert, K->R} {
     list [catch {Rappture::Units::convert 299.15K -to R} msg] $msg
 } {0 538.47R}
 
+test convert_units-5.4.6.12 {Rappture::Units::convert, K->mK} {
+    list [catch {Rappture::Units::convert 299.15K -to mK} msg] $msg
+} {0 299150mK}
+
+test convert_units-5.4.6.13 {Rappture::Units::convert, K->mk} {
+    list [catch {Rappture::Units::convert 299.15K -to mk} msg] $msg
+} {0 299150mK}
+
+test convert_units-5.4.6.14 {Rappture::Units::convert, C->mC} {
+    list [catch {Rappture::Units::convert 100C -to mC} msg] $msg
+} {0 100000mC}
+
+test convert_units-5.4.6.15 {Rappture::Units::convert, C->mc} {
+    list [catch {Rappture::Units::convert 100C -to mc} msg] $msg
+} {0 100000mC}
+
+
 #--------------------------------------------------------------------
 # Energy Conversions
 #--------------------------------------------------------------------
