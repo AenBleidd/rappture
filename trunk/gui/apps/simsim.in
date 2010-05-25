@@ -203,25 +203,32 @@ proc choiceHandler {valType child} {
         $child remove "simset"
     } else {
         set optList [$child children -as object -type option]
+        set optLib ""
         set value ""
-        if {"random" == $valType} {
-            set optIdx [expr {int(rand()*[llength $optList])}]
-            set optLib [lindex $optList $optIdx]
-            set value [$optLib get value]
-        } elseif {"default" == $valType} {
-            set defaultVal [$child get default]
-            foreach optLib $optList {
-                set label [$optLib get about.label]
-                set valTag [$optLib get value]
-                if {($defaultVal == $label) || ($defaultVal == $valTag)} {
-                    set value $valTag
-                    break
+        if {[llength $optList] > 0} {
+            if {"random" == $valType} {
+                set optIdx [expr {int(rand()*[llength $optList])}]
+                set optLib [lindex $optList $optIdx]
+                set value [$optLib get value]
+            } elseif {"default" == $valType} {
+                set defaultVal [$child get default]
+                foreach optLib $optList {
+                    set label [$optLib get about.label]
+                    set valTag [$optLib get value]
+                    if {($defaultVal == $label) || ($defaultVal == $valTag)} {
+                        set value $valTag
+                        break
+                    }
                 }
             }
-        }
 
-        if {"" == $value} {
-            set value [$optLib get about.label]
+            if {"" == $value} {
+                set optLib [lindex $optList 0]
+                set value [$optLib get value]
+                if {"" == $value} {
+                    set value [$optLib get about.label]
+                }
+            }
         }
         $child put "current" $value
     }
