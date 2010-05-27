@@ -625,6 +625,10 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 	set xv [$xydata locations]
 	set yv [$xydata heights]
 	set zv [$xydata widths]
+
+        if {"" == $xv} {
+            continue
+        }
 	
 	if {[info exists _histo2color($xydata)]} {
 	    set color $_histo2color($xydata)
