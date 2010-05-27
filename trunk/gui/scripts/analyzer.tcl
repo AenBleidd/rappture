@@ -23,7 +23,6 @@ option add *Analyzer.simControlBackground "" widgetDefault
 option add *Analyzer.simControlOutline gray widgetDefault
 option add *Analyzer.simControlActiveBackground #ffffcc widgetDefault
 option add *Analyzer.simControlActiveOutline black widgetDefault
-option add *Analyzer.notebookpage "about" widgetDefault
 
 option add *Analyzer.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
@@ -46,7 +45,7 @@ itcl::class Rappture::Analyzer {
     itk_option define -simcontrolactiveoutline simControlActiveOutline Background ""
     itk_option define -simcontrolactivebackground simControlActiveBackground Background ""
     itk_option define -holdwindow holdWindow HoldWindow ""
-    itk_option define -notebookpage notebookPage NotebookPage ""
+    itk_option define -notebookpage notebookPage NotebookPage "about"
 
     constructor {tool args} { # defined below }
     destructor { # defined below }

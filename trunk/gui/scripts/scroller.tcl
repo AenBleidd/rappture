@@ -306,6 +306,7 @@ itcl::body Rappture::Scroller::_fixframe {which} {
             set w [winfo reqwidth $_frame.f]
             set h [winfo reqheight $_frame.f]
             $_frame configure -scrollregion [list 0 0 $w $h]
+            _fixframe outer
             _lock reset x
             _lock reset y
             $_dispatcher event -idle !fixsize

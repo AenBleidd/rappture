@@ -66,7 +66,15 @@ itcl::body Rappture::Histogram::constructor {xmlobj path} {
 itcl::body Rappture::Histogram::destructor {} {
     itcl::delete object $_hist
     # don't destroy the _xmlobj! we don't own it!
-    blt::vector destroy $_widths $_heights $_locations
+    if {"" != $_widths} {
+        blt::vector destroy $_widths
+    }
+    if {"" != $_heights} {
+        blt::vector destroy $_heights
+    }
+    if {"" != $_locations} {
+        blt::vector destroy $_locations
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -154,6 +162,10 @@ itcl::body Rappture::Histogram::limits {which} {
 	default {
 	    error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
 	}
+    }
+
+    if {"" == $vname} {
+        return {0 1}
     }
     $vname dup tmp
     $vname dup zero

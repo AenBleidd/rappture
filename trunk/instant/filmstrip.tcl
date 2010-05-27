@@ -136,7 +136,6 @@ itcl::body Rappture::Filmstrip::add {name args} {
             -foreground $itk_option(-titleforeground) \
             -background $itk_option(-titlebackground) \
             -text $params(-title) -tags [list $name:all $name:title]
-puts "created placard for $params(-title)"
         foreach {x0 y0 x1 y1} [$itk_component(strip) bbox $name:title] break
         set wd [expr {$x1-$x0}]
         set ht [expr {$y1-$y0}]

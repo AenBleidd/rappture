@@ -46,10 +46,11 @@ option add *previewButtonIcon arrow-up-white
 option add *build*cntls*background #cccccc
 option add *build*cntls*highlightBackground #cccccc
 option add *build*cntls*font {helvetica -12}
-option add *build*cntls.Button.borderWidth 1
-option add *build*cntls.Button.relief flat
-option add *build*cntls.Button.overRelief raised
-option add *build*cntls.Button.padX 2
+option add *build*cntls*Button.borderWidth 1
+option add *build*cntls*Button.relief flat
+option add *build*cntls*Button.overRelief raised
+option add *build*cntls*Button.padX 2
+option add *build*cntls*Editor.background white
 option add *options*Entry.background white
 option add *options*Text.background white
 option add *options*Text.font {Helvetica -12}
@@ -86,6 +87,7 @@ switch $tcl_platform(platform) {
 }
 
 wm protocol . WM_DELETE_WINDOW main_exit
+wm title . "Instant Rappture"
 
 # install a better bug handler
 Rappture::bugreport::install
@@ -118,6 +120,24 @@ if {[catch {Rappture::objects::load [file join $dir objects *.rp]} err]} {
 
 Rappture::icon foo  ;# force loading of this module
 lappend Rappture::icon::iconpath [file join $dir images]
+
+# ----------------------------------------------------------------------
+#  HACK ALERT!  Make it so the Analyzer can't possibly enable its
+#    simulate button in "preview" mode, or else the user might
+#    actually launch a simulation.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_simState {state args} {
+    if {"" != $itk_option(-simcontrolbackground)} {
+        set simcbg $itk_option(-simcontrolbackground)
+    } else {
+        set simcbg $itk_option(-background)
+    }
+    $itk_interior.simol configure \
+        -background $itk_option(-simcontroloutline)
+    configure -simcontrolcolor $simcbg
+
+    $itk_component(simulate) configure -state disabled
+}
 
 # ----------------------------------------------------------------------
 # USAGE: main_palette_source <type>
@@ -339,14 +359,52 @@ proc main_errors {} {
         # arrange errors in order of severity
         set ErrList [lsort -decreasing -command main_errors_cmp $ErrList]
 
-        if {[llength $ErrList] == 1} {
-            set isproblem "is 1 problem"
+        # count the errors and warnings
+        set nerrs 0
+        set nwarn 0
+        set nother 0
+        foreach rec $ErrList {
+            switch -- [lindex $rec 0] {
+                error   { incr nerrs }
+                warning { incr nwarn }
+                default { incr nother }
+            }
+        }
+
+        set phrases ""
+        if {$nerrs == 1} {
+            lappend phrases "1 error"
+        } elseif {$nerrs > 1} {
+            lappend phrases "$nerrs errors"
+        }
+        if {$nwarn == 1} {
+            lappend phrases "1 warning"
+        } elseif {$nwarn > 1} {
+            lappend phrases "$nwarn warnings"
+        }
+        if {$nother == 1} {
+            lappend phrases "1 other suggestion"
+        } elseif {$nother > 1} {
+            lappend phrases "$nother suggestions"
+        }
+        switch -- [llength $phrases] {
+            1 { set phrases [lindex $phrases 0] }
+            2 { set phrases [join $phrases " and "] }
+            3 { set phrases [join $phrases "%"]
+                regsub "%" $phrases ", " phrases
+                regsub "%" $phrases ", and " phrases
+            }
+        }
+
+        if {$nerrs+$nwarn+$nother == 1} {
+            set thereis "There is"
             set problem "this problem"
         } else {
-            set isproblem "are [llength $ErrList] problems"
+            set thereis "There are"
             set problem "these problems"
         }
-        set choice [tk_messageBox -icon error -type yesno -title "iRappture: Problems with your tool definition" -message "There $isproblem with your current tool definition.  Examine and resolve $problem?"]
+
+        set choice [tk_messageBox -icon error -type yesno -title "iRappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  Examine and resolve $problem?"]
         if {$choice == "yes"} {
             return 1
         } else {
@@ -391,6 +449,12 @@ proc main_errors_nav {where} {
     array set debug [lindex $err 2]
 
     .func.build.options.errs.info configure -text "$class: $mesg"
+
+    if {$class == "Error"} {
+        .func.build.options.errs.exclaim config -image [Rappture::icon err24]
+    } else {
+        .func.build.options.errs.exclaim config -image [Rappture::icon warn24]
+    }
 
     set win [.func.build.options.panes pane 0]
     set ErrFocusAttr $debug(-attribute)
@@ -612,7 +676,7 @@ proc main_saveas {{option "start"}} {
         }
 
         gettoolfile {
-            set fname [tk_getSaveFile -title "iRappture: Save Tool" -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
+            set fname [tk_getSaveFile -title "iRappture: Save Tool" -parent .saveas -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
 
             if {"" != $fname} {
                 .saveas.opts.toolv.file configure -text $fname
@@ -623,7 +687,7 @@ proc main_saveas {{option "start"}} {
 
         getprogfile {
             set ext .tcl
-            set fname [tk_getSaveFile -title "iRappture: Save Program Skeleton" -initialfile "wrapper$ext" -defaultextension $ext -filetypes {
+            set fname [tk_getSaveFile -title "iRappture: Save Program Skeleton" -parent .saveas -initialfile "wrapper$ext" -defaultextension $ext -filetypes {
     {{C programs} .c}
     {{C++ programs} .cpp}
     {{F77 programs} .f}
@@ -683,6 +747,13 @@ proc main_exit {} {
 proc main_preview {} {
     global ToolXml ToolPreview
 
+    # while we're checking for errors, put up a striped pattern over
+    # the preview area
+    set w [winfo width .func.preview]
+    set h [winfo height .func.preview]
+    place .func.preview.stripes -x 0 -y 0 -width $w -height $h
+    raise .func.preview.stripes
+
     # freshen up the ToolXml
     if {![main_generate_xml]} {
         # something went wrong while saving the xml
@@ -700,6 +771,7 @@ proc main_preview {} {
     }
 
     # clear all current widgets in the preview window
+    place forget .func.preview.stripes
     set win .func.preview
     $win.pager delete 0 end
 
@@ -745,6 +817,30 @@ proc main_preview {} {
         Rappture::Page $f.cntls $ToolPreview $comp
         pack $f.cntls -expand yes -fill both
     }
+
+    # add an analyzer for output widgets
+    set simtxt [$ToolXml get tool.action.label]
+    if {"" == $simtxt} {
+        set simtxt "Simulate"
+    }
+    $win.pager insert end -name analyzer -title $simtxt
+    set f [$win.pager page analyzer]
+    # note: simcontrol on but disabled due to _simState code above
+    Rappture::Analyzer $f.analyze $ToolPreview -simcontrol on
+    pack $f.analyze -expand yes -fill both
+
+    # copy the ToolXml object and pass to analyzer to show outputs
+    set synthrun [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run/>"]
+    $synthrun copy "" from $ToolXml ""
+    $f.analyze load $synthrun
+    $f.analyze configure -notebookpage analyze
+
+    # turn off download options and clear button
+    $f.analyze component download configure -state disabled
+    $f.analyze component resultset component clear configure -state disabled
+    # remove the "---" and "Download..." options from the result selector
+    $f.analyze component resultselector choices delete end
+    $f.analyze component resultselector choices delete end
 }
 
 # ----------------------------------------------------------------------
@@ -840,11 +936,11 @@ pack .func.build.options.errs.nav.prev -side right -padx 4
 
 button .func.build.options.errs.x -bitmap [Rappture::icon dismiss] \
     -command {pack forget .func.build.options.errs}
-pack .func.build.options.errs.x -side right -anchor n -padx 2 -pady 2
-label .func.build.options.errs.exclaim -image [Rappture::icon cue24]
-pack .func.build.options.errs.exclaim -side left -anchor nw -padx 2 -pady 2
-label .func.build.options.errs.info -text "" -anchor w -justify left
-pack .func.build.options.errs.info -side left -expand yes -fill both
+pack .func.build.options.errs.x -side right -anchor n -padx 4 -pady 8
+label .func.build.options.errs.exclaim -image [Rappture::icon err24]
+pack .func.build.options.errs.exclaim -side left -anchor nw -padx 4 -pady 4
+label .func.build.options.errs.info -text "" -anchor nw -justify left
+pack .func.build.options.errs.info -side left -expand yes -fill both -pady {6 0}
 bind .func.build.options.errs.info <Configure> {.func.build.options.errs.info configure -wraplength [expr {%w-4}]}
 
 Rappture::Panes .func.build.options.panes -orientation vertical
@@ -861,6 +957,7 @@ Rappture::Hierlist $win.scrl.skel
 $win.scrl contents $win.scrl.skel
 
 bind $win.scrl.skel <<Selection>> main_options_load
+bind $win.scrl.skel <<SelectionPath>> main_options_rename
 
 set win [.func.build.options.panes pane 1]
 Rappture::Scroller $win.vals -xscrollmode none -yscrollmode auto
@@ -907,15 +1004,25 @@ proc main_options_load {} {
 
         frame $frame.cntls -borderwidth 4 -relief flat
         grid $frame.cntls -row 0 -column 0 -columnspan 2 -sticky nsew
-        button $frame.cntls.del -text "Delete" -command main_options_delete
-        pack $frame.cntls.del -side right
+
+        if {![string equal $type "Tool"]} {
+            # can't let people delete the tool info
+            button $frame.cntls.del -text "Delete" -command main_options_delete
+            pack $frame.cntls.del -side right
+        }
+
         button $frame.cntls.help -text "Help" -command main_options_help
         pack $frame.cntls.help -side right
 
         # put this in last so it gets squeezed out
-        label $frame.cntls.l -text "Object: $path" -anchor w -justify left -width 5
-        pack $frame.cntls.l -side left -expand yes -fill both -padx {0 20}
-        bind $frame.cntls.l <Configure> [format {%s.cntls.l configure -wraplength [expr {%%w-4}]} $frame]
+        Rappture::ObjPath $frame.cntls.path -label "Object" -pathtext $path \
+            -renamecommand main_options_rename
+        pack $frame.cntls.path -side left -expand yes -fill both
+
+        if {[string equal $type "Tool"]} {
+            # if this is a tool, then lose the rename button
+            pack forget [$frame.cntls.path component button]
+        }
 
         array set ainfo [$hlist curselection -field attributes]
 
@@ -970,6 +1077,29 @@ proc main_options_load {} {
 
     # save this so we know later what node we're editing
     set OptionsPanelNode $node
+}
+
+# ----------------------------------------------------------------------
+# USAGE: main_options_rename ?<name>?
+#
+# Used to change the id of the current selection to the given <name>.
+# ----------------------------------------------------------------------
+proc main_options_rename {args} {
+    set win [.func.build.options.panes pane 0]
+    set hlist $win.scrl.skel
+    set node [$hlist curselection]
+
+    if {[llength $args] > 0} {
+        $hlist tree set $node id [lindex $args 0]
+    }
+
+    # get the updated path for this element and show in ObjPath widget
+    set path [$hlist curselection -path "%lc:type(%id)"]
+    regsub -all {\(%id\)} $path "" path
+
+    set win [.func.build.options.panes pane 1]
+    set frame [$win.vals contents frame]
+    $frame.cntls.path configure -pathtext $path
 }
 
 # ----------------------------------------------------------------------
@@ -1080,6 +1210,9 @@ Rappture::Pager .func.preview.pager
 pack .func.preview.pager -expand yes -fill both
 
 bind .func.preview.pager <Map> main_preview
+
+# use this frame to cover preview before it appears
+blt::tile::frame .func.preview.stripes -tile [Rappture::icon diag]
 
 # ----------------------------------------------------------------------
 #  SAVE AS DIALOG

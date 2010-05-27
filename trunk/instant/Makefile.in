@@ -29,6 +29,7 @@ FILES		= \
 		$(srcdir)/hierlist.tcl \
 		$(srcdir)/main.tcl \
 		$(srcdir)/objects.tcl \
+		$(srcdir)/objpath.tcl \
 		$(srcdir)/slideframes.tcl \
 		$(srcdir)/tweener.tcl
 
@@ -36,7 +37,9 @@ IMAGEFILES	= \
 		$(srcdir)/images/drag.xbm \
 		$(srcdir)/images/dragm.xbm \
 		$(srcdir)/images/treemn.png \
-		$(srcdir)/images/treepl.png
+		$(srcdir)/images/treepl.png \
+		$(srcdir)/images/warn24.png \
+		$(srcdir)/images/err24.png
 
 OBJECTFILES	= \
 		$(srcdir)/objects/base.rp \

@@ -28,7 +28,7 @@ itcl::class Rappture::Hierlist {
     itk_option define -padding padding Padding 4
     itk_option define -icon icon Icon ""
     itk_option define -font font Font ""
-    itk_option define -title title Title "%type: ~%id"
+    itk_option define -title title Title "%type: %id"
     itk_option define -selectbackground selectBackground Foreground ""
     itk_option define -droplinecolor dropLineColor Foreground ""
 
@@ -92,10 +92,6 @@ itcl::body Rappture::Hierlist::constructor {args} {
     # this widget exports nodes via drag-n-drop
     dragdrop source $itk_component(area)
 
-    itk_component add editor {
-        Rappture::Editor $itk_interior.editor
-    }
-
     set _imh(open) [image create photo]
     set _imh(close) [image create photo]
 
@@ -157,6 +153,9 @@ itcl::body Rappture::Hierlist::tree {option args} {
             return [eval $_tree get $args]
         }
         set {
+            # changed an option -- may be %type or %id -- update display
+            $_dispatcher event -idle !redraw
+
             return [eval $_tree set $args]
         }
         path {
@@ -338,50 +337,18 @@ itcl::body Rappture::Hierlist::_redrawChildren {node indent yposVar} {
         # label for this node 
         catch {unset data}
         array set data [$_tree get $n]
-        set str $itk_option(-title)
         set xpos $xtxt
-        while {[regexp -indices {~?%(lc:|uc:)?([a-z]+)} $str match how field]} {
-            foreach {s0 s1} $match break
-            foreach {h0 h1} $how break
-            foreach {f0 f1} $field break
 
-            set pre [string range $str 0 [expr {$s0-1}]]
-            if {[string length $pre] > 0} {
-                $c create text $xpos $ypos -anchor w -text $pre -font $itk_option(-font) -tags [list text item:$n item:$n-text]
-                set xwd [font measure $itk_option(-font) $pre]
-                set xpos [expr {$xpos+$xwd}]
-            }
-
-            set editable 0
-            set fname [string range $str $f0 $f1]
-            if {[string index $str $s0] == "~"} {
-                set editable 1
-            }
-            if {[info exists data($fname)]} {
-                set how [string range $str $h0 $h1]
-                switch -- $how {
-                    lc: { set label [string tolower $data($fname)] }
-                    uc: { set label [string toupper $data($fname)] }
-                    default { set label $data($fname) }
-                }
-
-                # draw the editable part of the title string
-                set id [$c create text $xpos $ypos -anchor w -text $label -font $itk_option(-font) -tags [list text item:$n item:$n-text item:$n-$fname]]
-                if {$editable} {
-                    $c bind $id <ButtonPress-1> [itcl::code $this _edit start $n $fname]
-                }
-                set xwd [font measure $itk_option(-font) $label]
-                set xpos [expr {$xpos+$xwd}]
-            }
-            set str [string range $str [expr {$s1+1}] end]
+        set subs(%type) ""
+        set subs(%id) ""
+        foreach {name val} [$_tree get $n] {
+            set subs(%$name) $val
+            set subs(%lc:$name) [string tolower $val]
+            set subs(%uc:$name) [string toupper $val]
         }
 
-        # draw the last little bit on title string, if there is any
-        if {[string length $str] > 0} {
-            $c create text $xpos $ypos -anchor w -text $str -font $itk_option(-font) -tags [list text item:$n item:$n-text]
-            set xwd [font measure $itk_option(-font) $str]
-            set xpos [expr {$xpos+$xwd}]
-        }
+        set str [string map [array get subs] $itk_option(-title)]
+        $c create text $xpos $ypos -anchor w -text $str -font $itk_option(-font) -tags [list text item:$n item:$n-text]
 
         set ypos [expr {$ypos+$lineht+$itk_option(-padding)}]
 
@@ -389,61 +356,6 @@ itcl::body Rappture::Hierlist::_redrawChildren {node indent yposVar} {
         if {![$_tree get $n terminal] && [$_tree get $n open]} {
             # if this node has children, draw them here
             _redrawChildren $n $xtxt ypos
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _edit start <node> <field>
-# USAGE: _edit activate <node> <field>
-# USAGE: _edit validate <node> <field> <value>
-# USAGE: _edit apply <node> <field> <value>
-#
-# Used internally to handle the pop-up editor that edits part of
-# the title string for a node.  The "start" operation is called when
-# the user clicks on the title to edit it.  If the node is already
-# selected, this brings up an editor for the field value, allowing the
-# user to change the field.  The "activate" operation is called by
-# the editor to figure out where it should pop up.  The "validate"
-# operation is called to check the new value and make sure that it
-# is okay.  The "apply" operation applies the value to the node.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Hierlist::_edit {option n f args} {
-    switch -- $option {
-        start {
-            if {[string equal $n $_current]} {
-                $itk_component(editor) configure \
-                    -activatecommand [itcl::code $this _edit activate $n $f] \
-                    -validatecommand [itcl::code $this _edit validate $n $f] \
-                    -applycommand [itcl::code $this _edit apply $n $f]
-                $itk_component(editor) activate
-            }
-        }
-        activate {
-            set str [$_tree get $n $f]
-            foreach {x0 y0 x1 y1} [$itk_component(area) bbox item:$n-$f] break
-            set w [expr {$x1-$x0}]
-            set h [expr {$y1-$y0}]
-            set x0 [expr {[winfo rootx $itk_component(area)]+$x0}]
-            set y0 [expr {[winfo rooty $itk_component(area)]+$y0}]
-
-            return [list text $str x [expr {$x0-2}] y [expr {$y0-2}] w $w h $h]
-        }
-        validate {
-            set val [lindex $args 0]
-            if {![regexp {^[a-zA-Z0-9_]+$} $val]} {
-                bell
-                return 0
-            }
-            return 1
-        }
-        apply {
-            set val [lindex $args 0]
-            $_tree set $n $f $val
-            $itk_component(area) itemconfigure item:$n-$f -text $val
-        }
-        default {
-            error "bad option \"$option\": should be start, activate, validate, apply"
         }
     }
 }
@@ -568,6 +480,7 @@ itcl::body Rappture::Hierlist::dd_finalize {option args} {
 
                     regexp {node:([0-9]+)} $params(-data) match node
                     eval $_tree move $node $_droppos
+                    event generate $itk_component(hull) <<SelectionPath>>
                 } else {
                     set dlist [list open yes terminal yes dragdrop yes]
                     eval lappend dlist [lrange $params(-data) 1 end]
