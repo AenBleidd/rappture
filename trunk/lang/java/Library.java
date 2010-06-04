@@ -57,6 +57,27 @@ public class Library{
     jRpPut(libPtr, path, value.toString(), false);
   }
 
+  public void putData(String path, byte[] b, boolean append){
+    jRpPutData(libPtr, path, b, b.length, append);
+  }
+
+  public void putData(String path, byte[] b){
+    jRpPutData(libPtr, path, b, b.length, false);
+  }
+
+  public void putFile(String path, String fileName,
+                      boolean compress, boolean append){
+    jRpPutFile(libPtr, path, fileName, compress, append);
+  }
+
+  public void putFile(String path, String fileName, boolean compress){
+    jRpPutFile(libPtr, path, fileName, compress, false);
+  }
+
+  public void putFile(String path, String fileName){
+    jRpPutFile(libPtr, path, fileName, true, false);
+  }
+
   public void result(int exitStatus){
     jRpResult(libPtr, exitStatus);
   }
@@ -75,6 +96,10 @@ public class Library{
 
   private native void jRpPut(long libPtr, String path,
                              String value, boolean append);
+  private native void jRpPutData(long libPtr, String path,
+                                 byte[] b, int nbytes, boolean append);
+  private native void jRpPutFile(long libPtr, String path, String fileName,
+                                 boolean compress, boolean append);
 
   private native void jRpResult(long libPtr, int exitStatus);  
 

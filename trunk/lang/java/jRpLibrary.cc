@@ -75,6 +75,27 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpPut
   env->ReleaseStringUTFChars(javaValue, nativeValue);
 }
 
+// putData
+JNIEXPORT void JNICALL Java_rappture_Library_jRpPutData
+  (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath,
+    jbyteArray jb, jint nbytes, jboolean append){
+  const char* nativePath = env->GetStringUTFChars(javaPath, 0);
+  jbyte* b = env->GetByteArrayElements(jb, NULL);
+  ((RpLibrary*)libPtr)->putData(nativePath, (const char*)b, nbytes, append);
+  env->ReleaseByteArrayElements(jb, b, 0);
+  env->ReleaseStringUTFChars(javaPath, nativePath);
+}
+
+// putFile
+JNIEXPORT void JNICALL Java_rappture_Library_jRpPutFile
+  (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath, 
+   jstring javaFileName, jboolean compress, jboolean append){
+  const char* nativePath = env->GetStringUTFChars(javaPath, 0);
+  const char* nativeFileName = env->GetStringUTFChars(javaFileName, 0);
+  ((RpLibrary*)libPtr)->putFile(nativePath, nativeFileName, compress, append);
+  env->ReleaseStringUTFChars(javaPath, nativePath);
+  env->ReleaseStringUTFChars(javaFileName, nativeFileName);
+}
 
 // result
 JNIEXPORT void JNICALL Java_rappture_Library_jRpResult
