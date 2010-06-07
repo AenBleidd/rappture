@@ -36,6 +36,11 @@ public class Library{
   }
 
   // Public Methods------------------------------------------------------------
+  
+  public byte[] getData(String path){
+    return jRpGetData(libPtr, path);
+  }
+
   public double getDouble(String path){
     return jRpGetDouble(libPtr, path);
   }
@@ -91,6 +96,7 @@ public class Library{
   private native long jRpLibrary(String path);
   private native void jRpDeleteLibrary(long libPtr);
 
+  private native byte[] jRpGetData(long libPtr, String path);
   private native double jRpGetDouble(long libPtr, String path);
   private native String jRpGetString(long libPtr, String path);
 

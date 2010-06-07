@@ -38,6 +38,19 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpDeleteLibrary
   return;
 }
 
+// getData 
+JNIEXPORT jbyteArray JNICALL Java_rappture_Library_jRpGetData
+  (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath){
+  const char* nativePath = env->GetStringUTFChars(javaPath, 0);
+  Rappture::Buffer buf = ((RpLibrary*)libPtr)->getData(nativePath);
+  size_t size = buf.size();
+  _jbyteArray* jbuf = env->NewByteArray(size);
+  env->SetByteArrayRegion(jbuf, 0, size, (const jbyte*)buf.bytes());
+  env->ReleaseStringUTFChars(javaPath, nativePath);
+  return jbuf;
+}
+
+
 // getDouble
 JNIEXPORT jdouble JNICALL Java_rappture_Library_jRpGetDouble
   (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath){
@@ -81,7 +94,8 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpPutData
     jbyteArray jb, jint nbytes, jboolean append){
   const char* nativePath = env->GetStringUTFChars(javaPath, 0);
   jbyte* b = env->GetByteArrayElements(jb, NULL);
-  ((RpLibrary*)libPtr)->putData(nativePath, (const char*)b, nbytes, append);
+  ((RpLibrary*)libPtr)->putData(nativePath, (const char*)b, 
+                                nbytes, (int)append);
   env->ReleaseByteArrayElements(jb, b, 0);
   env->ReleaseStringUTFChars(javaPath, nativePath);
 }
@@ -92,7 +106,8 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpPutFile
    jstring javaFileName, jboolean compress, jboolean append){
   const char* nativePath = env->GetStringUTFChars(javaPath, 0);
   const char* nativeFileName = env->GetStringUTFChars(javaFileName, 0);
-  ((RpLibrary*)libPtr)->putFile(nativePath, nativeFileName, compress, append);
+  ((RpLibrary*)libPtr)->putFile(nativePath, nativeFileName, 
+                                (int)compress, (int)append);
   env->ReleaseStringUTFChars(javaPath, nativePath);
   env->ReleaseStringUTFChars(javaFileName, nativeFileName);
 }
