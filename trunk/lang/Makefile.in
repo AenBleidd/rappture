@@ -20,7 +20,7 @@ TCLSH           = @TCLSH@
 PYTHON          = @HAVE_PYTHON_DISTUTILS@
 MEX             = @MEX@
 MKOCTFILE       = @MKOCTFILE@
-JAVA		= @JAVA@
+JAVA_HOME	= @JAVA_HOME@
 
 # Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
@@ -40,7 +40,7 @@ endif
 ifneq ($(MKOCTFILE),)
   LANGS += octave
 endif
-ifneq ($(JAVA),)
+ifneq ($(JAVA_HOME),)
   LANGS += java
 endif
 

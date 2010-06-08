@@ -22,7 +22,7 @@ TCLSH = 	@TCLSH@
 PYTHON = 	@PYTHON@
 MEX = 		@MEX@
 MKOCTFILE = 	@MKOCTFILE@
-JAVA =		@JAVA@
+JAVA_HOME =	@JAVA_HOME@
 
 .PHONY: tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
 
