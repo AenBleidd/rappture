@@ -23,17 +23,16 @@ fi
 AC_SUBST(LIB_SEARCH_DIRS)
 
 AC_PROG_INSTALL
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_PROG_LN_S
+AC_PROG_MKDIR_P
 AC_PROG_MAKE_SET
 
 # Check for C, C++, and FORTRAN 
 AC_PROG_CC
 AC_PROG_CXX
 # Avoid g95 
-AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_PROG_LN_S
-AC_PROG_MKDIR_P
-
 AC_PROG_F77([g77 gfortran f77 fort77 f90 xlf xlf90 fl32])
 
 AC_LANG([C])
@@ -142,6 +141,32 @@ fi
 AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
 
+TCL_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib ; do 
+  tclconfig="${dir}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
+    . $tclconfig
+    break
+  fi
+done
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
+
+if test "x$with_tcllib" != "x" ; then
+   tclconfig="${with_tcllib}/tclConfig.sh"
+   if test -f "$tclconfig" ; then
+    . $tclconfig
+   fi
+   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
+fi
+if test "x$with_tclinclude" != "x" ; then
+   TCL_INC_SPEC="-I${with_tclinclude}"
+fi
+
+AC_SUBST(TCL_VERSION)
+AC_SUBST(TCL_INC_SPEC)
+AC_SUBST(TCL_LIB_SPEC)
 
 AC_ARG_WITH(
     [vtk],
@@ -160,13 +185,13 @@ if test "$with_vtk" != "no" ; then
      $exec_prefix/lib \
      /usr/lib
     do
-      for vtk in $path/vtk-* ; do
-        if test -d "${vtk}" ; then
-          VTKDIR=${vtk}
-        fi
+      for vtk in $path/vtk-* ; do 
+	if test -d "${vtk}" ; then
+	  VTKDIR=${vtk}
+	fi
       done
       if test "x${VTKDIR}" != "x" ; then
-        break
+	break
       fi
     done
   fi
@@ -181,7 +206,6 @@ AC_ARG_WITH(
         [location of matlab and mex compiler @<:@default=yes@:>@])],
     [with_matlab=$withval],
     [with_matlab=yes])
-
 
 MCC=""
 MEX=""
@@ -483,9 +507,11 @@ JAVA_INC_SPEC=
 if test "x${JAVA}" != "x" ; then
   for d in \
    /apps/java/jdk1.6.0_01 \
-   /opt/icedtea6-* \
+   /usr/lib/jvm/*sun-1.6* \
    /opt/sun-jdk-1.6* \
-   /opt/sun-jdk-1.5* 
+   /opt/icedtea6-* \
+   /opt/sun-jdk-1.5* \
+   /usr/lib/jvm/*sun-1.5* 
   do 
     if test -r "${d}/include/jni.h" ; then
       JDK=${d}
