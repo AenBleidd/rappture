@@ -19,8 +19,16 @@
 // progress
 JNIEXPORT void JNICALL Java_rappture_Utils_jRpUtilsProgress
   (JNIEnv *env, jclass cls, jint percent, jstring javaText){
-	  const char* nativeText = env->GetStringUTFChars(javaText, 0);
-  Rappture::Utils::progress(percent, nativeText);
+  const char* nativeText = env->GetStringUTFChars(javaText, 0);
+  int err = Rappture::Utils::progress(percent, nativeText);
+  jclass ex;
+  if (err){
+    ex = env->FindClass("java/lang/RuntimeException");
+    if (ex){
+      env->ThrowNew(ex, "rappture.Utils.progress failed.");
+    }
+    env->DeleteLocalRef(ex);
+  }
   env->ReleaseStringUTFChars(javaText, nativeText);
   return;
 }
