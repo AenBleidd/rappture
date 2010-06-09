@@ -26,6 +26,10 @@ public class Units{
     return jRpUnitsConvert(fromVal, to, units);
   }
 
+  public static String convert(String fromVal, String to){
+    return jRpUnitsConvert(fromVal, to, true);
+  }
+
   private static native String jRpUnitsConvert(String fromVal, String to, boolean units);
 }
 

@@ -26,6 +26,10 @@ public class Library{
     libPtr = jRpLibrary(path);
   }
 
+  public Library(){
+    libPtr = jRpLibrary(null);
+  }
+
   // Pseudo-Destructor.  Called when the object is garbage collected.----------
   protected void finalize() throws Throwable {
     try {
@@ -47,6 +51,10 @@ public class Library{
 
   public String getString(String path){
     return jRpGetString(libPtr, path);
+  }
+
+  public int getInt(String path){
+    return jRpGetInt(libPtr, path);
   }
 
   public String get(String path){  // alias for getString
@@ -98,6 +106,7 @@ public class Library{
 
   private native byte[] jRpGetData(long libPtr, String path);
   private native double jRpGetDouble(long libPtr, String path);
+  private native int jRpGetInt(long libPtr, String path);
   private native String jRpGetString(long libPtr, String path);
 
   private native void jRpPut(long libPtr, String path,

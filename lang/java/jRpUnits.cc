@@ -21,9 +21,31 @@ JNIEXPORT jstring JNICALL Java_rappture_Units_jRpUnitsConvert
   (JNIEnv *env, jclass cls, jstring javaFromVal, jstring javaTo, jboolean units){
   const char* nativeFromVal = env->GetStringUTFChars(javaFromVal, 0);
   const char* nativeTo = env->GetStringUTFChars(javaTo, 0);
-  std::string retStr = RpUnits::convert(nativeFromVal, nativeTo, (int)units);
+  int err;
+  jclass ex;
+  std::string errorMsg;
+
+  // perform conversion
+  std::string retStr = RpUnits::convert(nativeFromVal, nativeTo,
+                                       (int)units, &err);
+
+  // raise a runtime exception on error
+  if (err){
+    ex = env->FindClass("java/lang/RuntimeException");
+    if (ex){
+      errorMsg = "Connot convert ";
+      errorMsg += nativeFromVal;
+      errorMsg += " to ";
+      errorMsg += nativeTo;
+      env->ThrowNew(ex, errorMsg.c_str());
+    }
+    env->DeleteLocalRef(ex);
+  }
+
   env->ReleaseStringUTFChars(javaFromVal, nativeFromVal);
   env->ReleaseStringUTFChars(javaTo, nativeTo);
+
+  // create new java string and return
   return (env->NewStringUTF(retStr.c_str()));
 } 
 

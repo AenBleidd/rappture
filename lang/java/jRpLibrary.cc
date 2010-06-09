@@ -1,5 +1,4 @@
-/*
- * ======================================================================
+/* * ======================================================================
  *  AUTHOR:  Ben Rafferty, Purdue University
  *  Copyright (c) 2010  Purdue Research Foundation
  *
@@ -17,20 +16,39 @@
 #include "rappture.h"
 
 /*
- * Constructor.  Returns the address of the newly created RpLibrary object to
+ * Constructor.  Creates a C++ RpLibrary object and returns its address to 
  * java as a long int.
  */
 JNIEXPORT jlong JNICALL Java_rappture_Library_jRpLibrary
   (JNIEnv *env, jobject obj, jstring javaPath){
-  const char* nativePath = env->GetStringUTFChars(javaPath, 0);
-  RpLibrary* lib = new RpLibrary(nativePath);
-  env->ReleaseStringUTFChars(javaPath, nativePath);
+  RpLibrary* lib = NULL;
+  const char* nativePath;
+  jclass ex;
+  
+  if (javaPath == NULL){
+    lib = new RpLibrary();
+  }
+  else{
+    nativePath = env->GetStringUTFChars(javaPath, 0);
+    lib = new RpLibrary(nativePath);
+    env->ReleaseStringUTFChars(javaPath, nativePath);
+  }
+
+  if (lib == NULL){
+    ex = env->FindClass("java/lang/NullPointerException");
+    if (ex){
+      env->ThrowNew(ex, "Could not create rappture library.");
+    }
+    env->DeleteLocalRef(ex);
+  }
+
   return (jlong)lib;
 }
 
 /*
- * Pseudo-destructor.  This function is called by the java Library class's
- * finalizer.
+ * Destructor.  This function is called by the java Library class's
+ * finalizer.  Deletes the C++ RpLibrary object when the java Library
+ * is garbage collected.
  */
 JNIEXPORT void JNICALL Java_rappture_Library_jRpDeleteLibrary
   (JNIEnv *env, jobject obj, jlong libPtr){
@@ -50,7 +68,6 @@ JNIEXPORT jbyteArray JNICALL Java_rappture_Library_jRpGetData
   return jbuf;
 }
 
-
 // getDouble
 JNIEXPORT jdouble JNICALL Java_rappture_Library_jRpGetDouble
   (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath){
@@ -58,6 +75,15 @@ JNIEXPORT jdouble JNICALL Java_rappture_Library_jRpGetDouble
   double retDVal = ((RpLibrary*)libPtr)->getDouble(nativePath);
   env->ReleaseStringUTFChars(javaPath, nativePath);
   return (jdouble)retDVal;
+}
+
+// getInt
+JNIEXPORT jint JNICALL Java_rappture_Library_jRpGetInt
+  (JNIEnv *env, jobject obj, jlong libPtr, jstring javaPath){
+  const char* nativePath = env->GetStringUTFChars(javaPath, 0);
+  int retIVal = ((RpLibrary*)libPtr)->getInt(nativePath);
+  env->ReleaseStringUTFChars(javaPath, nativePath);
+  return (jint)retIVal;
 }
 
 // getString
@@ -117,5 +143,4 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpResult
   (JNIEnv *env, jobject obj, jlong libPtr, jint exitStatus){
   ((RpLibrary*)libPtr)->result(exitStatus);
 }
-
 
