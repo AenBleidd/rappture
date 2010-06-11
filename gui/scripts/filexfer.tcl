@@ -337,6 +337,7 @@ proc Rappture::filexfer::webpage {url} {
               clientaction
               /apps/bin/clientaction
               /apps/xvnc/bin/clientaction
+              /usr/lib/mw/bin/clientaction
               ""
         } {
             if {"" != [auto_execok $prog]} {
