@@ -768,6 +768,36 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 		SendCmd "loadpdb -defer \"$data2\" $model $state"
 		set _dataobjs($model-$state)  1
 	    }
+
+            # lammps dump file overwrites pdb file (change this?)
+            set lammpsdata [$dataobj get components.molecule.lammps]
+            if {"" != $lammpsdata} {
+                set data3 ""
+                foreach lammpsline [split $lammpsdata "\n"] {
+                    if {[scan $lammpsline "%d %d %f %f %f" id type x y z] == 5} {
+                        set recname  "ATOM  "
+                        set altLoc   ""
+                        set resName  ""
+                        set chainID  ""
+                        set Seqno    ""
+                        set occupancy  1
+                        set tempFactor 0
+                        set recID      ""
+                        set segID      ""
+                        set element    ""
+                        set charge     ""
+                        # TODO: map atom type to element name
+                        set atom $type 
+                        set pdbline [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $id $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
+                        append data3 $pdbline
+                    }
+                }
+                if {"" != $data3} {
+                    set _pdbdata $data3
+                    SendCmd "loadpdb -defer \"$data3\" $model $state"
+                    set _dataobjs($model-$state) 1
+                }
+            }
 	}
 	if { ![info exists _model($model-transparency)] } {
 	    set _model($model-transparency) ""
