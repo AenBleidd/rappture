@@ -1133,7 +1133,7 @@ itcl::body Rappture::XyPrint::SetLayoutOption { opt } {
 }
 
 itcl::body Rappture::XyPrint::ApplyLayoutSettings {} {
-    foreach opt { leftmargin rightmargin topmargin bottommargin } {
+    foreach opt { width height leftmargin rightmargin topmargin bottommargin } {
 	set old [$_clone cget -$opt]
 	set code [catch { SetLayoutOption $opt } err]
 	if { $code != 0 } {
