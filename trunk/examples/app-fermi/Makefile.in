@@ -45,7 +45,7 @@ endif
 ifneq ($(RUBY),)
     LANGS += ruby
 endif
-ifneq ($(JAVA),)
+ifneq ($(JAVA_HOME),)
     LANGS += java
 endif
 
