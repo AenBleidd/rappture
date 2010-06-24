@@ -771,9 +771,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
             # lammps dump file overwrites pdb file (change this?)
             set lammpstypemap [$dataobj get components.molecule.lammpstypemap]
-            if { "" != $lammpstypemap} {
-                set lammpstypemap [split $lammpstypemap " "]
-            }
             set lammpsdata [$dataobj get components.molecule.lammps]
             if {"" != $lammpsdata} {
                 set data3 ""
@@ -794,6 +791,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                             set atom $type 
                         } else {
                             set atom [lindex $lammpstypemap [expr $type - 1]]
+                            if { "" == $atom} {
+                              set atom $type
+                            }
                         }
                         set pdbline [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $id $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
                         append data3 $pdbline
