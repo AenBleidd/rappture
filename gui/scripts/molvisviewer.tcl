@@ -790,7 +790,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                         if { "" == $lammpstypemap} {
                             set atom $type 
                         } else {
-                            set atom [lindex $lammpstypemap [expr $type - 1]]
+                            set atom [lindex $lammpstypemap [expr {$type - 1}]]
                             if { "" == $atom} {
                               set atom $type
                             }
