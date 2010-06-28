@@ -375,12 +375,10 @@ itcl::body Rappture::XyPrint::InitClone {} {
 	    -tickfont $_fonts($axis-ticks) \
 	    -titlefont $_fonts($axis-title)
     }
-    #$_clone grid off
-    #$_clone yaxis configure -rotate 90
-    #$_clone y2axis configure -rotate 270
     foreach elem [$_clone element names] {
-	$_clone element configure $elem -linewidth 1 \
-	    -pixels 3 
+	if { [$_clone element cget $elem -linewidth] > 1 } {
+	    $_clone element configure $elem -linewidth 1 -pixels 3 
+	}
     }
     # Create markers representing lines at zero for the x and y axis.
     $_clone marker create line -name x-zero \
