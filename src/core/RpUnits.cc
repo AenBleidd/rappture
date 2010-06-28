@@ -1024,7 +1024,6 @@ RpUnits::units2list ( const std::string& inUnits,
     const RpUnits* unit     = NULL;
     const RpUnits* prefix   = NULL;
 
-
     while ( !myInUnits.empty() ) {
 
         // check to see if we came across a '/' character
@@ -1043,6 +1042,13 @@ RpUnits::units2list ( const std::string& inUnits,
         if (myInUnits[last] == '*') {
             // type = myInUnits[last] + type;
             // ignore * because we assume everything is multiplied together
+            myInUnits.erase(last);
+            continue;
+        }
+
+        // ignore whitespace characters
+        if (isspace(myInUnits[last])) {
+            // ignore whitespace characters, they represent multiplication
             myInUnits.erase(last);
             continue;
         }
@@ -3286,8 +3292,6 @@ unitSlice (std::string inStr, std::string& outUnits, double& outVal)
     if ( (outVal == 0) && (endptr == inStr.c_str()) ) {
         // no conversion performed
         retVal = 1;
-    }
-    else {
     }
 
     outUnits = std::string(endptr);
