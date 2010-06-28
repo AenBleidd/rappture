@@ -1047,6 +1047,146 @@ test search-for-6.0.2.11 {Rappture::Units::Search::for, case searches - sK} {
     list $status1 $runit $status2 $type
 } {0 sK 0 time*temperature}
 
+#--------------------------------------------------------------------
+# Allow isspace whitespace in Rappture::Units
+#--------------------------------------------------------------------
+
+test space-7.0.0.1 {check for spaces before value unit string} {
+    list [catch {Rappture::Units::Search::for " 300K"} msg] $msg
+} {0 K}
+
+test space-7.0.0.2 {check for spaces after value unit string} {
+    list [catch {Rappture::Units::Search::for "300K "} msg] $msg
+} {0 K}
+
+test space-7.0.0.3 {check for spaces before and after value unit string} {
+    list [catch {Rappture::Units::Search::for " 300K "} msg] $msg
+} {0 K}
+
+test space-7.0.0.4 {check for spaces between value and unit string} {
+    list [catch {Rappture::Units::Search::for " 300 K "} msg] $msg
+} {0 K}
+
+test space-7.0.0.5 {check for spaces between value and single unit string} {
+    list [catch {Rappture::Units::Search::for "300 K"} msg] $msg
+} {0 K}
+
+test space-7.0.0.6 {check for spaces between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300 Kft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.0.7 {check for spaces around and between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for " 300 Kft "} msg] $msg
+} {0 Kft}
+
+test space-7.0.0.8 {check for spaces between multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300 K ft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.0.9 {check for spaces around and between multiple unit string} {
+    list [catch {Rappture::Units::Search::for " 300 K ft "} msg] $msg
+} {0 Kft}
+
+test space-7.0.0.10 {check for spaces between multiple unit string with division} {
+    list [catch {Rappture::Units::Search::for "300 K / ft"} msg] $msg
+} {0 K/ft}
+
+test space-7.0.0.11 {check for spaces between multiple unit string with multiplication} {
+    list [catch {Rappture::Units::Search::for "300 K * ft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.1.1 {check for tabs before value unit string} {
+    list [catch {Rappture::Units::Search::for "\t300K"} msg] $msg
+} {0 K}
+
+test space-7.0.1.2 {check for tabs after value unit string} {
+    list [catch {Rappture::Units::Search::for "300K\t"} msg] $msg
+} {0 K}
+
+test space-7.0.1.3 {check for tabs before and after value unit string} {
+    list [catch {Rappture::Units::Search::for "\t300K\t"} msg] $msg
+} {0 K}
+
+test space-7.0.1.4 {check for tabs between value and unit string} {
+    list [catch {Rappture::Units::Search::for "\t300\tK\t"} msg] $msg
+} {0 K}
+
+test space-7.0.1.5 {check for tabs between value and single unit string} {
+    list [catch {Rappture::Units::Search::for "300\tK"} msg] $msg
+} {0 K}
+
+test space-7.0.1.6 {check for tabs between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300\tKft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.1.7 {check for tabs around and between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for "\t300\tKft\t"} msg] $msg
+} {0 Kft}
+
+test space-7.0.1.8 {check for tabs between multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300\tK\tft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.1.9 {check for tabs around and between multiple unit string} {
+    list [catch {Rappture::Units::Search::for "\t300\tK\tft\t"} msg] $msg
+} {0 Kft}
+
+test space-7.0.1.10 {check for tabs between multiple unit string with division} {
+    list [catch {Rappture::Units::Search::for "300\tK\t/\tft"} msg] $msg
+} {0 K/ft}
+
+test space-7.0.1.11 {check for tabs between multiple unit string with multiplication} {
+    list [catch {Rappture::Units::Search::for "300\tK\t*\tft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.2.1 {check for newlines before value unit string} {
+    list [catch {Rappture::Units::Search::for "\n300K"} msg] $msg
+} {0 K}
+
+test space-7.0.2.2 {check for newlines after value unit string} {
+    list [catch {Rappture::Units::Search::for "300K\n"} msg] $msg
+} {0 K}
+
+test space-7.0.2.3 {check for newlines before and after value unit string} {
+    list [catch {Rappture::Units::Search::for "\n300K\n"} msg] $msg
+} {0 K}
+
+test space-7.0.2.4 {check for newlines between value and unit string} {
+    list [catch {Rappture::Units::Search::for "\n300\nK\n"} msg] $msg
+} {0 K}
+
+test space-7.0.2.5 {check for newlines between value and single unit string} {
+    list [catch {Rappture::Units::Search::for "300\nK"} msg] $msg
+} {0 K}
+
+test space-7.0.2.6 {check for newlines between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300\nKft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.2.7 {check for newlines around and between value and multiple unit string} {
+    list [catch {Rappture::Units::Search::for "\n300\nKft\n"} msg] $msg
+} {0 Kft}
+
+test space-7.0.2.8 {check for newlines between multiple unit string} {
+    list [catch {Rappture::Units::Search::for "300\nK\nft"} msg] $msg
+} {0 Kft}
+
+test space-7.0.2.9 {check for newlines around and between multiple unit string} {
+    list [catch {Rappture::Units::Search::for "\n300\nK\nft\n"} msg] $msg
+} {0 Kft}
+
+test space-7.0.2.10 {check for newlines between multiple unit string with division} {
+    list [catch {Rappture::Units::Search::for "300\nK\n/\nft"} msg] $msg
+} {0 K/ft}
+
+test space-7.0.2.11 {check for newlines between multiple unit string with multiplication} {
+    list [catch {Rappture::Units::Search::for "300\nK\n*\nft"} msg] $msg
+} {0 Kft}
+
+# TODO:
+# add tests for space and tab, space and newline, tab and newline
+# add tests for bad characters &^%$#@!)(~`{}[]:;"'?><,.-_=+\ or |
+
 ::tcltest::cleanupTests
 return
 
