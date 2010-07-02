@@ -1080,7 +1080,7 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     set _settings($this-legend-position)  [$page.position current]
     set _settings($this-legend-anchor)    [$page.anchor current]
 
-    foreach option { hide position anchor borderwidth } {
+    foreach option { -hide -position -anchor -borderwidth } {
 	SetComponentOption legend $option
     }
     font configure $_fonts(legend) \
