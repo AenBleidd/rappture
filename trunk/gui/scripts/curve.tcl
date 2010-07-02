@@ -305,7 +305,7 @@ itcl::body Rappture::Curve::_build {} {
         set label  [$_curve get "yaxis.$cname.label"]
         set styles [$_curve get "yaxis.$cname.style"]
         set data [list $at $label $styles]
-        lappend _xmarkers $data
+        lappend _ymarkers $data
     }
 }
 
