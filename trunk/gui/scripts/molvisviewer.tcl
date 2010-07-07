@@ -774,6 +774,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set lammpsdata [$dataobj get components.molecule.lammps]
             if {"" != $lammpsdata} {
                 set data3 ""
+		set modelcount 0
                 foreach lammpsline [split $lammpsdata "\n"] {
                     if {[scan $lammpsline "%d %d %f %f %f" id type x y z] == 5} {
                         set recname  "ATOM  "
@@ -797,6 +798,13 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                         }
                         set pdbline [format "%6s%5d %4s%1s%3s %1s%5s   %8.3f%8.3f%8.3f%6.2f%6.2f%8s\n" $recname $id $atom $altLoc $resName $chainID $Seqno $x $y $z $occupancy $tempFactor $recID]
                         append data3 $pdbline
+                    }
+                    # only read first model 
+                    if {[regexp "^ITEM: ATOMS" $lammpsline]} {
+                      incr modelcount
+                      if {$modelcount > 1} {
+                        break
+                      }
                     }
                 }
                 if {"" != $data3} {
