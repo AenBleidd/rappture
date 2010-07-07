@@ -1212,8 +1212,8 @@ itcl::body Rappture::Analyzer::_trajtosequence {xmlobj {path ""}} {
             foreach line [split $pdbdata "\n"] {
               if {[regexp "^MODEL" $line] && $framecontents != ""} {
                 set framepath $sequencepath.element($framenum)
-                set molpath $framepath.structure.components.molecule.pdb
-                $xmlobj put $molpath $framecontents
+                set molpath $framepath.structure.components.molecule
+                $xmlobj put $molpath.pdb $framecontents
                 $xmlobj put $molpath.formula $formula
                 $xmlobj put $framepath.index $framenum
                 incr framenum
@@ -1232,7 +1232,7 @@ itcl::body Rappture::Analyzer::_trajtosequence {xmlobj {path ""}} {
             set sequencepath $path.sequence($id)
             set seqlabel [$xmlobj get $path.$child.about.label]
             set descr [$xmlobj get $path.$child.about.description]
-            set formula [$xmlobj get $path.$child.components.molecule.formula]
+            set typemap [$xmlobj get $path.$child.components.molecule.lammpstypemap]
             $xmlobj put $sequencepath.about.label $seqlabel
             $xmlobj put $sequencepath.about.description $descr
             $xmlobj put $sequencepath.index.label "Frame"
@@ -1242,8 +1242,9 @@ itcl::body Rappture::Analyzer::_trajtosequence {xmlobj {path ""}} {
             foreach line [split $lammpsdata "\n"] {
               if {[regexp "^ITEM: ATOMS" $line] && $framecontents != ""} {
                 set framepath $sequencepath.element($framenum)
-                set molpath $framepath.structure.components.molecule.lammps
-                $xmlobj put $molpath $framecontents
+                set molpath $framepath.structure.components.molecule
+                $xmlobj put $molpath.lammps $framecontents
+                $xmlobj put $molpath.lammpstypemap $typemap
                 $xmlobj put $framepath.index $framenum
                 incr framenum
                 set framecontents ""
