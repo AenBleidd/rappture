@@ -1500,12 +1500,13 @@ itcl::body Rappture::XyResult::_getLineMarkerOptions {style} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::_getTextMarkerOptions {style} {
     array set textOptions {
-        "-color"  "-outline"
-        "-textcolor"  "-outline"
-        "-font"   "-font"
-        "-xoffset" "-xoffset"
-        "-yoffset" "-yoffset"
-        "-anchor" "-anchor"
+        "-color"	"-outline"
+        "-textcolor"	"-outline"
+        "-font"		"-font"
+        "-xoffset"	"-xoffset"
+        "-yoffset"	"-yoffset"
+        "-anchor"	"-anchor"
+        "-rotate"	"-rotate"
     }
     set options {}
     foreach {name value} $style {
