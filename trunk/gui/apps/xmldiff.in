@@ -12,7 +12,4 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
-RAPPTURE_INSTALL_DIR=@prefix@
-
-. $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/simsim --nosim --tool $1 --compare $2
+exec simsim --nosim --tool $1 --compare $2

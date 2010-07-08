@@ -15,11 +15,16 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #\
+bindir=`basename $0` ; \
+. $bindir/rappture.env ; \
 exec wish "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
-lappend auto_path /usr/local/rappture/lib /usr/local/rappture/lib/vtk /usr/local/rappture/lib/vtk/tcl
+set installdir [file root $argv0]
+set libdir [file join $installdir "lib"]
+
+lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
 
 package require Itcl
 package require Rappture
