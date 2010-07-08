@@ -29,8 +29,6 @@
 # ======================================================================
 #
 #
-
-RAPPTURE_INSTALL_DIR=@prefix@
-
-. $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/driver -nosim true -load $*
+bindir=`dirname $0` ; \
+. $bindir/rappture.env ; \
+exec rappture -nosim true -load $*
