@@ -66,8 +66,11 @@ itcl::class Rappture::Analyzer {
     protected method _simState {state args}
     protected method _simOutput {message}
     protected method _resultTooltip {}
-    protected method _istrajectory {data}
-    protected method _trajtosequence {xmlobj {path ""}}
+    protected method _isPdbTrajectory {data}
+    protected method _isLammpsTrajectory {data}
+    protected method _pdbToSequence {xmlobj path id child data}
+    protected method _lammpsToSequence {xmlobj path id child data}
+    protected method _trajToSequence {xmlobj {path ""}}
 
     private variable _tool ""          ;# belongs to this tool
     private variable _appName ""       ;# Name of application
@@ -519,7 +522,7 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
 
     # detect molecule elements that contain trajectory data and convert
     # to sequences.
-    _trajtosequence $xmlobj output
+    _trajToSequence $xmlobj output
 
     # go through the analysis and find all result sets
     set haveresults 0
@@ -1145,122 +1148,212 @@ itcl::body Rappture::Analyzer::_fixNotebook {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _istrajectory <data>
+# USAGE: _isPdbTrajectory <data>
 #
 # Used internally to determine whether pdb or lammps data represents a
 # trajectory rather than a single frame
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::_istrajectory {data} {
-  set nmodels 0
-  foreach line [split $data "\n"] {
-    if {[regexp "^MODEL" $line] || [regexp "^ITEM: TIMESTEP" $line]} {
-      incr nmodels
-      if {$nmodels > 1} {
-        # Stop if more than one model found.  No need to count them all.
-        return 1
-      }
+itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
+    if { [llength $data]  == 0 } {
+	return 0
     }
-  }
-  return 0
+    set nModels 0
+    foreach line $data {
+	if { [string match "MODEL*" $line] }  {
+	    incr nModels
+	    if { $nModels > 1 } {
+		# Stop if more than one model found.  No need to count them
+		# all.
+		return 1
+	    }
+	}
+    }
+    return 0
+}
 
+# ----------------------------------------------------------------------
+# USAGE: _isLammpsTrajectory <data>
+#
+# Used internally to determine whether pdb or lammps data represents a
+# trajectory rather than a single frame
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_isLammpsTrajectory { data } {
+    if { [llength $data]  == 0 } {
+	return 0
+    }
+    set nModels 0
+    foreach line $data {
+	if { [regexp {^[\t ]*ITEM:[ \t]+TIMESTEP} $line] } {
+	    incr nModels
+	    if { $nModels > 1 } {
+		# Stop if more than one model found.  No need to count them
+		# all.
+		return 1
+	    }
+	}
+    }
+    return 0
 }
 
 # ----------------------------------------------------------------------
 # USAGE: _trajtosequence <xmlobj> ?<path>?
 #
+    # If the molecule element is a trajectory, delete the original
+    # and create a sequence of individual molecules.
 # Used internally to detect any molecule output elements that contain
 # trajectory data.  Trajectories will be converted into sequences of
 # individual molecules.  All other elements will be unaffected. Scans
 # the entire xml tree if a starting path is not specified.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::_trajtosequence {xmlobj {path ""}} {
+itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
 
-  # Remove leading dot from path, if present.
-  if {[string index $path 0] == "."} {
-    set path [string range $path 1 end]
-  }
+    set seqLabel [$xmlobj get ${child}.about.label]
+    set descr    [$xmlobj get ${child}.about.description]
+    set formula  [$xmlobj get ${child}.components.molecule.formula]
+    $xmlobj remove $child
 
-  set clist [$xmlobj children $path]
-  # Return if leaf node.
-  if {"" == $clist} {
-    return
-  } else {
-    # Otherwise check each child.
-    foreach {child} $clist {
-      set type [$xmlobj element -as type $path.$child]
-      set id [$xmlobj element -as id $path.$child]
-      if {[regexp -nocase "^structure" $child]} {
+    set seqPath  $path.sequence($id)
+    $xmlobj put ${seqPath}.about.label $seqLabel
+    $xmlobj put ${seqPath}.about.description $descr
+    $xmlobj put ${seqPath}.index.label "Frame"
 
-        # Look for trajectory if molecule element found.
-        # Check both pdb data and lammps data.
+    set frameNum 0
+    set frameContents ""
+    set inModel 0
+    foreach line $data {
+	set line [string trim $line]
+	if { $line == "" } {
+	    continue;			# Skip blank lines
+	}
+	if { [string match "MODEL*" $line] } {
+	    if { $inModel && $frameContents != "" } {
+		# Dump the current contents into the last model
 
-        set pdbdata [$xmlobj get $path.$child.components.molecule.pdb]
-        if {"" != $pdbdata} {
-          if {[_istrajectory $pdbdata]} {
-            # If the molecule element is a trajectory, delete the 
-            # original and create a sequence of individual molecules.
-            set sequencepath $path.sequence($id)
-            set seqlabel [$xmlobj get $path.$child.about.label]
-            set descr [$xmlobj get $path.$child.about.description]
-            set formula [$xmlobj get $path.$child.components.molecule.formula]
-            $xmlobj put $sequencepath.about.label $seqlabel
-            $xmlobj put $sequencepath.about.description $descr
-            $xmlobj put $sequencepath.index.label "Frame"
-            $xmlobj remove $path.$child
-            set framenum 0
-            set framecontents ""
-            foreach line [split $pdbdata "\n"] {
-              if {[regexp "^MODEL" $line] && $framecontents != ""} {
-                set framepath $sequencepath.element($framenum)
-                set molpath $framepath.structure.components.molecule
-                $xmlobj put $molpath.pdb $framecontents
-                $xmlobj put $molpath.formula $formula
-                $xmlobj put $framepath.index $framenum
-                incr framenum
-                set framecontents ""
-              }
-              if {[regexp "^ATOM" $line]} {
-                append framecontents $line\n
-              }
-            }
-          }
-        }
-
-        set lammpsdata [$xmlobj get $path.$child.components.molecule.lammps]
-        if {"" != $lammpsdata} {
-          if {[_istrajectory $lammpsdata]} {
-            set sequencepath $path.sequence($id)
-            set seqlabel [$xmlobj get $path.$child.about.label]
-            set descr [$xmlobj get $path.$child.about.description]
-            set typemap [$xmlobj get $path.$child.components.molecule.lammpstypemap]
-            $xmlobj put $sequencepath.about.label $seqlabel
-            $xmlobj put $sequencepath.about.description $descr
-            $xmlobj put $sequencepath.index.label "Frame"
-            $xmlobj remove $path.$child
-            set framenum 0
-            set framecontents ""
-            foreach line [split $lammpsdata "\n"] {
-              if {[regexp "^ITEM: ATOMS" $line] && $framecontents != ""} {
-                set framepath $sequencepath.element($framenum)
-                set molpath $framepath.structure.components.molecule
-                $xmlobj put $molpath.lammps $framecontents
-                $xmlobj put $molpath.lammpstypemap $typemap
-                $xmlobj put $framepath.index $framenum
-                incr framenum
-                set framecontents ""
-              }
-              if {[scan $line "%d %d %f %f %f" a b c d e] == 5} {
-                append framecontents $line\n
-              }
-            }
-          }
-        }
-      }
-      # Recurse over all child nodes.
-      _trajtosequence $xmlobj $path.$child
+		set framePath ${seqPath}.element($frameNum)
+		$xmlobj put ${framePath}.index $frameNum
+		
+		set molPath ${framePath}.structure.components.molecule
+		$xmlobj put ${molPath}.pdb $frameContents
+		$xmlobj put ${molPath}.formula $formula
+		
+		incr frameNum
+		set frameContents ""
+	    }
+	    set inModel 1
+	} elseif {[string match "ATOM*" $line] } {
+	    if { !$inModel } {
+		puts stderr "found \"$line\" without previous MODEL line"
+		set inModel 1
+	    }
+	    append frameContents $line\n
+	}
     }
-  }
+    if { $frameContents != "" } {
+	# Dump the current contents into the last model
 
+	set framePath ${seqPath}.element($frameNum)
+	$xmlobj put ${framePath}.index $frameNum
+	
+	set molPath ${framePath}.structure.components.molecule
+	$xmlobj put ${molPath}.pdb $frameContents
+	$xmlobj put ${molPath}.formula $formula
+    }
+}
+
+itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
+
+    set seqLabel [$xmlobj get ${child}.about.label]
+    set descr    [$xmlobj get ${child}.about.description]
+    set typemap  [$xmlobj get ${child}.components.molecule.lammpstypemap]
+    $xmlobj remove $child
+
+    set seqPath ${path}.sequence($id)
+    $xmlobj put ${seqPath}.about.label $seqLabel
+    $xmlobj put ${seqPath}.about.description $descr
+    $xmlobj put ${seqPath}.index.label "Frame"
+
+    set frameNum 0
+    set frameContents ""
+    set inModel 0
+    foreach line $data {
+	set line [string trim $line]
+	if { $line == "" } {
+	    continue;			# Skip blank lines
+	}
+	if {[regexp {^[\t ]*ITEM:[ \t]+ATOMS} $line] } {
+	    if { $inModel && $frameContents != "" } {
+		set framePath ${seqPath}.element($frameNum)
+		$xmlobj put ${framePath}.index $frameNum
+		
+		set molPath ${framePath}.structure.components.molecule
+		$xmlobj put ${molPath}.lammps $frameContents
+		$xmlobj put ${molPath}.lammpstypemap $typemap
+		
+		incr frameNum
+		set frameContents ""
+	    }
+	    set inModel 1
+	} elseif { [scan $line "%d %d %f %f %f" a b c d e] == 5 } {
+	    if { !$inModel } {
+		puts stderr "found \"$line\" without previous \"ITEM: ATOMS\""
+		set inModel 1
+	    }
+	    append frameContents $line\n
+	}
+    }
+    if { $frameContents != "" } {
+	set framePath ${seqPath}.element($frameNum)
+	$xmlobj put ${framePath}.index $frameNum
+	
+	set molPath ${framePath}.structure.components.molecule
+	$xmlobj put ${molPath}.lammps $frameContents
+	$xmlobj put ${molPath}.lammpstypemap $typemap
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _trajtosequence <xmlobj> ?<path>?
+#
+#	Check for PDB and LAMMPS trajectories in molecule data and rewrite 
+#	the individual models as a sequence of molecules.  Used internally 
+#	to detect any molecule output elements that contain trajectory data.
+#	Trajectories will be converted into sequences of individual molecules.
+#	All other elements will be unaffected. Scans the entire xml tree if a
+#	starting path is not specified.  
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
+    puts stderr "path=$path"
+    # Remove leading dot from path, if present.
+    if { [string index $path 0] == "." } {
+	set path [string range $path 1 end]
+    }
+    # Otherwise check each child.
+    foreach child [$xmlobj children $path] {
+	set current ${path}.${child}
+	if { [string match "structure*" $child] } {
+	    # Look for trajectory if molecule element found.  Check both pdb
+	    # data and lammps data.
+	    set type [$xmlobj element -as type $current]
+	    set id   [$xmlobj element -as id $current]
+	    set pdbdata    [$xmlobj get ${current}.components.molecule.pdb]
+	    set lammpsdata [$xmlobj get ${current}.components.molecule.lammps]
+	    if { $pdbdata != "" && $lammpsdata != "" } {
+		puts stderr \
+		    "found both <pdb> and <lammps> elements: picking pdb"
+	    }
+	    set pdbdata [split $pdbdata \n]
+	    set lammpsdata [split $lammpsdata \n]
+	    if { [_isPdbTrajectory $pdbdata] } {
+		_pdbToSequence $xmlobj $path $id $current $pdbdata
+	    } elseif { [_isLammpsTrajectory $lammpsdata] } {
+		_lammpsToSequence $xmlobj $path $id $current $lammpsdata
+	    }
+	    continue
+	}
+	# Recurse over all child nodes.
+	_trajToSequence $xmlobj $current
+    }
 }
 
 # ----------------------------------------------------------------------
