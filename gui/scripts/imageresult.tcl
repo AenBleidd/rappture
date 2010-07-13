@@ -355,16 +355,16 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
     if {$imh != ""} {
         set iw [image width $imh]
         set ih [image height $imh]
+        set wz [expr {round($w*$_scale(current))}]
+        set hz [expr {round($h*$_scale(current))}]
 
-	if {$_scale(current) <= 1.0} {
+        if {$wz < $iw || $hz < $ih} {
             #
             # Scale the image up by creating a "zoom" image which
             # is smaller than the current image.  Sample a small
             # part of the original image by copying into the "zoom"
             # image, then scale that part up to the full "view" area.
             #
-            set wz [expr {round($w*$_scale(current))}]
-            set hz [expr {round($h*$_scale(current))}]
             if {$wz > $iw} {
                 set wz $iw
             }
