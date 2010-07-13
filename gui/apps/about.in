@@ -18,8 +18,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #\
-bindir=`dirname $0` ; \
-. $bindir/rappture.env ; \
 exec wish "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
