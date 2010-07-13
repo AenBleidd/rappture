@@ -600,6 +600,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
 
     # first clear out the widget
     eval $g element delete [$g element names]
+    eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
         $g axis configure $axis -hide yes -checklimits no
     }
