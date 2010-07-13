@@ -29,6 +29,4 @@
 # ======================================================================
 #
 #
-bindir=`dirname $0` ; \
-. $bindir/rappture.env ; \
 exec rappture -nosim true -load $*
