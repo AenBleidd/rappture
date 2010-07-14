@@ -52,7 +52,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _active;		# array of active models.
     private variable _obj2models;	# array containing list of models 
 					# for each data object.
-
+    private variable _waitForImage 0
     private variable _view
     private variable _click
 
@@ -666,6 +666,7 @@ itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
 #
 set count 0
 itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
+    set _waitForImage 0;		# Turn off wait loop.
     set tag "$frame,$rock"
     global count
     incr count
@@ -757,15 +758,27 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 		incr serial
 	    }
 	    if {"" != $data1} {
+		# Save the PDB data in case the user wants to later save it.
 		set _pdbdata $data1
-		SendCmd "loadpdb -defer \"$data1\" $model $state"
+		set nBytes [string length $data1]
+
+		# We know we're buffered here, so append the "loadpdb" command
+		# with the data payload immediately afterwards.
+		append _outbuf "loadpdb -defer $nBytes $model $state\n"
+		append _outbuf $data1
 		set _dataobjs($model-$state)  1
 	    }
 	    # note that pdb files always overwrite xyz files
 	    set data2 [$dataobj get components.molecule.pdb]
 	    if {"" != $data2} {
+		# Save the PDB data in case the user wants to later save it.
 		set _pdbdata $data2
-		SendCmd "loadpdb -defer \"$data2\" $model $state"
+		set nBytes [string length $data2]
+
+		# We know we're buffered here, so append the "loadpdb" command
+		# with the data payload immediately afterwards.
+		append _outbuf "loadpdb -defer $nBytes $model $state\n"
+		append _outbuf $data2
 		set _dataobjs($model-$state)  1
 	    }
 
@@ -808,10 +821,16 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     }
                 }
                 if {"" != $data3} {
+		    # Save the PDB data in case the user wants to later save it.
                     set _pdbdata $data3
-                    SendCmd "loadpdb -defer \"$data3\" $model $state"
-                    set _dataobjs($model-$state) 1
+		    set nBytes [string length $data3]
+
+		    # We know we're buffered here, so append the "loadpdb" 
+		    # command with the data payload immediately afterwards.
+                    append _outbuf "loadpdb -defer $nBytes $model $state\n"
+		    append _outbuf $data3
                 }
+		set _dataobjs($model-$state) 1
             }
 	}
 	if { ![info exists _model($model-transparency)] } {
@@ -922,6 +941,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
     if { $flush } {
 	SendCmd "bmp";			# Flush the results.
+	set _waitForImage 1 
     }
     set _buffering 0;			# Turn off buffering.
 
@@ -933,6 +953,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     set _outbuf "";			# Clear the buffer.		
     blt::busy release $itk_component(hull)
 
+    if { $_waitForImage } {
+	tkwait variable [itcl::scope _waitForImage]
+    }
     debug "exiting rebuild"
 }
 
@@ -1427,6 +1450,10 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	    $_dispatcher event -idle !rebuild
 	}
     }
+    # In a sequence there will be multiple calls to the "add" method.  Run
+    # "update" here to let the fileevent handler catch up with images,
+    # regardless of the speed setting in the sequence.
+    update 
 }
 
 #

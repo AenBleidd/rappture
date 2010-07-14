@@ -109,9 +109,13 @@ static FILE *scriptFile;
 static int savescript = 0;
 
 typedef struct Image {
-    struct Image *next;		/* Next image in chain of images. The list is
+    struct Image *nextPtr;	/* Next image in chain of images. The list is
 				 * ordered by the most recently received image
 				 * from the pymol server to the least. */
+    struct Image *prevPtr;	/* Previous image in chain of images. The list
+				 * is ordered by the most recently received
+				 * image from the pymol server to the
+				 * least. */
     ssize_t nWritten;		/* Number of bytes of image data already
 				 * delivered.*/
     size_t bytesLeft;		/* Number of bytes of image data left to
@@ -148,14 +152,10 @@ typedef struct {
 
 typedef struct {
     Tcl_Interp *interp;
-    unsigned int flags;		/* Various flags. */
-    Image *head;		/* List of images to be delivered to the
-				 * client.  The most recent images are in the
-				 * front of the list. */
-    Image *current;		/* The image currently being delivered to the
-				 * client.  We make sure we finish delivering
-				 * this image before selecting the most recent
-				 * image. */
+    unsigned int flags;			/* Various flags. */
+    Image *headPtr, *tailPtr;		/* List of images to be delivered to
+					 * the client.  The most recent images
+					 * are in the front of the list. */
 
     int serverInput, serverOutput, serverError;	 /* Server file descriptors. */
     int clientInput, clientOutput;	/* Client file descriptors. */
@@ -373,7 +373,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
         return proxyPtr->status;
     }
 #ifndef notdef
-    trace("Entering Expect(want=%s, maxSize=%d)\n", match, maxSize);
+    trace("Entering Expect(want=\"%s\", maxSize=%d)\n", match, maxSize);
 #endif
     c = match[0];
     length = strlen(match);
@@ -384,7 +384,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 	line = GetLine(&proxyPtr->server, &nBytes);
 	if (line != NULL) {
 #ifndef notdef
-	    trace("pymol says:%.*s", nBytes, out);
+	    trace("pymol says (read %d bytes):%.*s", nBytes, nBytes, line);
 #endif
 	    if ((c == line[0]) && (strncmp(line, match, length) == 0)) {
 		if (maxSize < nBytes) {
@@ -563,9 +563,16 @@ NewImage(PymolProxy *proxyPtr, size_t dataLength)
 		(unsigned long)(sizeof(Image) + dataLength));
 	abort();
     }
+    imgPtr->prevPtr = imgPtr->nextPtr = NULL;
     imgPtr->bytesLeft = dataLength;
-    imgPtr->next = proxyPtr->head;
-    proxyPtr->head = imgPtr;
+    if (proxyPtr->headPtr != NULL) {
+	proxyPtr->headPtr->prevPtr = imgPtr;
+    }
+    imgPtr->nextPtr = proxyPtr->headPtr;
+    if (proxyPtr->tailPtr == NULL) {
+	proxyPtr->tailPtr = imgPtr;
+    }
+    proxyPtr->headPtr = imgPtr;
     imgPtr->nWritten = 0;
     return imgPtr;
 }
@@ -580,59 +587,51 @@ FreeImage(Image *imgPtr)
 static void
 WriteImage(PymolProxy *proxyPtr, int fd)
 {
-    Image *imgPtr, *img2Ptr, *nextPtr; 
-    ssize_t bytesLeft;
+    Image *imgPtr, *prevPtr; 
 
-    imgPtr =  (proxyPtr->current == NULL) ? proxyPtr->head : proxyPtr->current;
-    if (imgPtr == NULL) {
+    if (proxyPtr->tailPtr == NULL) {
 	trace("Should not be here: no image available to write");
 	return;
     }
-	
+    for (imgPtr = proxyPtr->tailPtr; imgPtr != NULL; imgPtr = prevPtr) {
+	ssize_t bytesLeft;
+
+	assert(imgPtr->nextPtr == NULL);
+	prevPtr = imgPtr->prevPtr;
 #ifdef notdef
-    trace("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
+	trace("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
 #endif
-    for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
-	ssize_t nWritten;
+	for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
+	    ssize_t nWritten;
 #ifdef notdef
-	trace("WriteImage: try to write %d bytes.", bytesLeft);
+	    trace("WriteImage: try to write %d bytes.", bytesLeft);
 #endif
-        nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
+	    nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
 #ifdef notdef
-	trace("WriteImage: wrote %d bytes.", nWritten);
+	    trace("WriteImage: wrote %d bytes.", nWritten);
 #endif
-        if (nWritten < 0) {
-	    trace("Error writing fd(%d), %d/%s.", fd, errno, 
-		  strerror(errno));
-	    return;
-	}
-	bytesLeft -= nWritten;
-	if (bytesLeft > 0) {
-	    /* Wrote a short buffer, means we would block. */
-	    imgPtr->nWritten += nWritten;
-	    imgPtr->bytesLeft = bytesLeft;
-	    return;
-	}
-	imgPtr->nWritten += nWritten;
-    }
-    /* Check if image is on the head.  */
-    if (proxyPtr->head == imgPtr) {
-	proxyPtr->head = NULL;
-    } else {
-	/* Otherwise find it in the list of images and disconnect it. */
-	for (img2Ptr = proxyPtr->head; img2Ptr != NULL; img2Ptr = nextPtr) {
-	    nextPtr = img2Ptr->next;
-	    if (nextPtr == imgPtr) {
-		img2Ptr->next = NULL;
+	    if (nWritten < 0) {
+		trace("Error writing fd(%d), %d/%s.", fd, errno, 
+		      strerror(errno));
+		return;
 	    }
+	    bytesLeft -= nWritten;
+	    if (bytesLeft > 0) {
+		/* Wrote a short buffer, means we would block. */
+		imgPtr->nWritten += nWritten;
+		imgPtr->bytesLeft = bytesLeft;
+		return;
+	    }
+	    imgPtr->nWritten += nWritten;
 	}
-    }
-    /* Remove add images from this image on down. */
-    for (/*empty*/; imgPtr != NULL; imgPtr = nextPtr) {
-	nextPtr = imgPtr->next;
+	/* Check if image is on the head.  */
+	proxyPtr->tailPtr = prevPtr;
+	if (prevPtr != NULL) {
+	    prevPtr->nextPtr = NULL;
+	}
 	FreeImage(imgPtr);
     }
-    proxyPtr->current = NULL;
+    proxyPtr->headPtr = NULL;
 }
 
 
@@ -693,7 +692,7 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
 	      nWritten, length);
     }
     for (p = buffer; *p != '\0'; p++) {
-	if (isspace(*p)) {
+	if (*p == '\n') {
 	    *p = '\0';
 	    break;
 	}
@@ -1038,6 +1037,19 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     return proxyPtr->status;
 }
 
+/* 
+ * LoadPDBCmd --
+ *
+ *	Load a PDB file into pymol.  There is no good way to load PDB data
+ *	into pymol without using a file.  This causes problems in that we
+ *	don't know when pymol is done with the file.  So there's always
+ *	a bit of mess left around. We use the same file for every file
+ *	so there's a chance that pymol is still using a file while we're
+ *	overwriting it.  
+ *
+ *	The command expects the number of bytes in the pdb data, the 
+ *	name, and the state.
+ */
 static int
 LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	   const char *argv[])
@@ -1046,18 +1058,20 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     PymolProxy *proxyPtr = clientData;
     int state = 1;
     int i, defer = 0, push = 0, varg = 1;
-    
+    int nBytes;
+
     if (proxyPtr == NULL)
 	return TCL_ERROR;
     clear_error(proxyPtr);
-    pdbdata = name = NULL;	/* Suppress compiler warning. */
+    pdbdata = name = NULL;		/* Suppress compiler warning. */
+    nBytes = 0;				/* Suppress compiler warning. */
     for(i = 1; i < argc; i++) {
 	if ( strcmp(argv[i],"-defer") == 0 )
 	    defer = 1;
 	else if (strcmp(argv[i],"-push") == 0)
 	    push = 1;
         else if (varg == 1) {
-	    pdbdata = argv[i];
+	    nBytes = atoi(argv[i]);
 	    varg++;
 	} else if (varg == 2) {
 	    name = argv[i];
@@ -1067,7 +1081,6 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	    varg++;
 	}
     }
-    
     if (!defer || push) {
 	proxyPtr->flags |= UPDATE_PENDING;
     }
@@ -1080,24 +1093,34 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     {
 	char fileName[200];
 	FILE *f;
-	size_t nBytes;
 	ssize_t nWritten;
+	char *data;
 
+	data = malloc(sizeof(char) * nBytes);
+	if (data == NULL) {
+	    trace("can't allocate %d bytes for \"pdbdata\" buffer", nBytes);
+	    return  TCL_ERROR;
+	}
+	if (GetBytes(&proxyPtr->client, data, nBytes) != BUFFER_OK) {
+	    trace("can't read %d bytes for \"pdbdata\" buffer", nBytes);
+	    return  TCL_ERROR;
+	}
 	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
 	f = fopen(fileName, "w");
 	if (f == NULL) {
 	    trace("can't open `%s': %s", fileName, strerror(errno));
 	    perror("pymolproxy");
 	}
-	nBytes = strlen(pdbdata);
-	nWritten = fwrite(pdbdata, sizeof(char), nBytes, f);
+	nWritten = fwrite(data, sizeof(char), nBytes, f);
 	if (nBytes != nWritten) {
 	    trace("short write %d wanted %d bytes", nWritten, nBytes);
 	    perror("pymolproxy");
 	}
 	fclose(f);
 	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
+#ifdef notdef
 	Pymol(proxyPtr, "zoom complete=1\n");
+#endif
     }
     return proxyPtr->status;
 }
@@ -1842,7 +1865,6 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     /* Fork the new process.  Connect i/o to the new socket.  */
 
     child = fork();
-        
     if (child < 0) {
         fprintf(stderr, "can't fork process: %s\n", strerror(errno));
         return -3;
@@ -1941,14 +1963,14 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         trace("error waiting on pymol server to exit: %s", strerror(errno));
     } else if (status == 0) {
         trace("attempting to signal (SIGTERM) pymol server.");
-        kill(-child, SIGTERM); // kill process group
+        kill(-child, SIGTERM);		// Kill process group
         alarm(5);
         status = waitpid(child, &result, 0);
         alarm(0);
 	
         while ((status == -1) && (errno == EINTR)) {
 	    trace("Attempting to signal (SIGKILL) pymol server.");
-	    kill(-child, SIGKILL); // kill process group
+	    kill(-child, SIGKILL);	// Kill process group
 	    alarm(10);
 	    status = waitpid(child, &result, 0);
 	    alarm(0); 
@@ -2021,7 +2043,7 @@ PollForEvents(PymolProxy *proxyPtr)
     for (;;) {
 	int timeout, nChannels;
 
-	nChannels =  (proxyPtr->head != NULL) ? 4 : 3;
+	nChannels =  (proxyPtr->headPtr != NULL) ? 4 : 3;
 
 #define PENDING_TIMEOUT		10  /* milliseconds. */
 	timeout = (proxyPtr->flags & UPDATE_PENDING) ? PENDING_TIMEOUT : -1;
@@ -2135,7 +2157,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	}
 
 	/* Write the current image buffer. */
-	if (proxyPtr->head == NULL) {
+	if (proxyPtr->headPtr == NULL) {
 	    /* We might want to refresh the image if we're not currently
 	     * transmitting an image back to the client. The image will be
 	     * refreshed after the image has been completely transmitted. */
@@ -2148,7 +2170,8 @@ PollForEvents(PymolProxy *proxyPtr)
 		continue;
 	    }
 	}
-	if ((proxyPtr->head != NULL) && (pollResults[3].revents & POLLOUT)) { 
+	if ((proxyPtr->headPtr != NULL) && 
+	    (pollResults[3].revents & POLLOUT)) { 
 	    WriteImage(proxyPtr, pollResults[3].fd);
 	}
     }
