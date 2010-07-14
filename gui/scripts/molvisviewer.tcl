@@ -591,6 +591,7 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #       Establishes a connection to a new visualization server.
 #
 itcl::body Rappture::MolvisViewer::Connect {} {
+    set _waitForImage 0
     if { [isconnected] } {
 	return 1
     }
@@ -626,6 +627,7 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
     set _state(server) 1
     set _state(client) 1
     set _outbuf ""
+    set _waitForImage 0
 }
 
 itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
