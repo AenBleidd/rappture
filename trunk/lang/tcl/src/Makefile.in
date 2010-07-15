@@ -25,6 +25,8 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
+TCL_VERSION	= @TCL_VERSION@
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 
 CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -45,7 +47,7 @@ CDEBUGFLAGS     = -g -Wall
 
 LIBS = \
         -L../../../src/core -lrappture \
-        -L$(libdir) -ltcl8.4 -lexpat -lz -lm -lstdc++
+        $(TCL_LIB_SPEC) -lexpat -lz -lm -lstdc++
 
 OBJS = \
         Rappture_Init.o \

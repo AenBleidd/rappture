@@ -39,6 +39,8 @@
  *          limits of the axes.
  */
 
+
+
 #include <assert.h>
 #include <stdlib.h>
 #include <tcl.h>
@@ -49,7 +51,6 @@
 #include <RpEncode.h>
 #include <RpOutcome.h>
 #include <RpBuffer.h>
-#include <RpAVTranslate.h>
 
 #include "Trace.h"
 #include "Command.h"
@@ -77,7 +78,7 @@
 #define _LOCAL_ZINC_TEST_       0
 
 #if _LOCAL_ZINC_TEST_
-#include "Test.h"
+/* #include "Test.h" */
 #endif
 
 // EXTERN DECLARATIONS
@@ -748,6 +749,9 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+/*
+ * cutplane state $bool $axis vol,,,
+ */
 static int
 CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)

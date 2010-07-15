@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VELOCITY_ARROW_SLICE_H
+#define VELOCITY_ARROW_SLICE_H 1
 
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
@@ -175,3 +176,5 @@ inline VelocityArrowsSlice::RenderMode VelocityArrowsSlice::renderMode() const
 {
 	return _renderMode;
 }
+ 
+#endif /* VELOCITY_ARROW_SLICE_H */

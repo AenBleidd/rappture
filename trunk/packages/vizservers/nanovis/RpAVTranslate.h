@@ -11,13 +11,13 @@
  * ======================================================================
  */
 
-#ifndef RAPPTURE_AVTRANSLATE_H
-#define RAPPTURE_AVTRANSLATE_H
+#ifndef RP_AVTRANSLATE_H
+#define RP_AVTRANSLATE_H 1
 
 #include "nvconf.h"
-#include "RpOutcome.h"
 
 extern "C" {
+#define __STDC_CONSTANT_MACROS 1
 #ifdef HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
 #endif
@@ -25,6 +25,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #endif
 }
+#include "RpOutcome.h"
 
 namespace Rappture {
 
@@ -88,4 +89,4 @@ private:
 
 } // namespace Rappture
  
-#endif // RAPPTURE_AVTRANSLATE_H
+#endif /* RP_AVTRANSLATE_H */
