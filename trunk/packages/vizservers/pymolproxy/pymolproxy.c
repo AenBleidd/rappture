@@ -102,9 +102,6 @@ static Stats stats;
 
 static FILE *flog;
 static int debug = 0;
-#ifdef notdef
-static long _flags = 0;
-#endif
 static FILE *scriptFile;
 static int savescript = 0;
 
@@ -634,33 +631,6 @@ WriteImage(PymolProxy *proxyPtr, int fd)
     proxyPtr->headPtr = NULL;
 }
 
-
-#ifdef notdef
-static int
-ReadImage(PymolProxy *proxyPtr, int fd, size)
-{
-    int result, total, left;
-
-    for( total = 0, left = size; left > 0; left -= result) {
-	result = read(fd, buffer+total, left);
-	
-	if (result > 0) {
-	    total += result;
-	    continue;
-	}
-        
-	if ((result < 0) && (errno != EAGAIN) && (errno != EINTR)) { 
-	    trace("Error reading fd(%d), %d/%s.", fd, errno, 
-		  strerror(errno));
-	    break;
-	}
-	
-	result = 0;
-    }
-    return total;
-}
-#endif
-
 static int
 Pymol(PymolProxy *proxyPtr, const char *format, ...)
 {
@@ -1122,9 +1092,6 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	fclose(f);
 	free(data);
 	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
-#ifdef notdef
-	Pymol(proxyPtr, "zoom complete=1\n");
-#endif
     }
     return proxyPtr->status;
 }
@@ -2025,11 +1992,6 @@ PollForEvents(PymolProxy *proxyPtr)
 
     flags = fcntl(proxyPtr->clientInput, F_GETFL);
     fcntl(proxyPtr->clientInput, F_SETFL, flags|O_NONBLOCK);
-
-#ifdef notdef
-    flags = fcntl(proxyPtr->serverOutput, F_GETFL);
-    fcntl(proxyPtr->serverOutput, F_SETFL, flags|O_NONBLOCK);
-#endif
 
     pollResults[0].fd = proxyPtr->clientOutput;
     pollResults[1].fd = proxyPtr->serverOutput;
