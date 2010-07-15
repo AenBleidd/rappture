@@ -17,7 +17,8 @@ pkgincludedir	= $(includedir)/$(PKG_DIR)
 top_builddir	= .
 
 MKDIR_P		= @MKDIR_P@
-TCLSH           = $(bindir)/tclsh8.4
+TCL_VERSION	= @TCL_VERSION@
+TCLSH           = $(bindir)/tclsh$(TCL_VERSION)
 INSTALL		= @INSTALL@
 
 SCRIPTS		= \
