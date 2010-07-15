@@ -17,16 +17,14 @@
 #include "nvconf.h"
 #include "RpOutcome.h"
 
-#ifdef __cplusplus
-    extern "C" {
-#endif // ifdef __cplusplus
-
+extern "C" {
 #ifdef HAVE_FFMPEG_AVFORMAT_H
 #include <ffmpeg/avformat.h>
 #endif
 #ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
 #endif
+}
 
 namespace Rappture {
 
@@ -90,8 +88,4 @@ private:
 
 } // namespace Rappture
  
-#ifdef __cplusplus
-    }
-#endif // ifdef __cplusplus
-
 #endif // RAPPTURE_AVTRANSLATE_H
