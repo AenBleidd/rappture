@@ -1093,8 +1093,8 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     {
 	char fileName[200];
 	FILE *f;
-	ssize_t nWritten;
 	char *data;
+	ssize_t nWritten;
 
 	data = malloc(sizeof(char) * nBytes);
 	if (data == NULL) {
@@ -1103,6 +1103,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	}
 	if (GetBytes(&proxyPtr->client, data, nBytes) != BUFFER_OK) {
 	    trace("can't read %d bytes for \"pdbdata\" buffer", nBytes);
+	    free(data);
 	    return  TCL_ERROR;
 	}
 	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
@@ -1110,13 +1111,16 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	if (f == NULL) {
 	    trace("can't open `%s': %s", fileName, strerror(errno));
 	    perror("pymolproxy");
-	}
+	    free(data);
+	    return TCL_ERROR;
+	} 
 	nWritten = fwrite(data, sizeof(char), nBytes, f);
 	if (nBytes != nWritten) {
 	    trace("short write %d wanted %d bytes", nWritten, nBytes);
 	    perror("pymolproxy");
 	}
 	fclose(f);
+	free(data);
 	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
 #ifdef notdef
 	Pymol(proxyPtr, "zoom complete=1\n");
