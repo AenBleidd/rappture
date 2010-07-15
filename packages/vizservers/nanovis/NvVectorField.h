@@ -1,4 +1,6 @@
-#pragma once
+
+#ifndef NV_VECTOR_FIELD_H
+#define NV_VECTOR_FIELD_H 1
 
 #include "Volume.h"
 #include "Vector3.h"
@@ -85,3 +87,4 @@ public :
     void setParticleColor(const std::string& name, const Vector4& color);
 };
 
+#endif /* NV_VECTOR_FIELD_H */

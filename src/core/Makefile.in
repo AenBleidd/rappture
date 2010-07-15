@@ -29,6 +29,8 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
+DX_LIB_SPEC	= @DX_LIB_SPEC@
+DX_INC_SPEC	= @DX_INC_SPEC@
 
 CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -55,9 +57,6 @@ HEADERS = \
 		RpBufferCHelper.h \
 		RpBufferCInterface.h \
 		RpDict.h \
-		RpDXWriter.h \
-		RpDXWriterFInterface.h \
-		RpDXWriterFStubs.h \
 		RpEncode.h \
 		RpEntityRef.h \
 		RpFortranCommon.h \
@@ -78,6 +77,7 @@ HEADERS = \
 		RpUtilsFInterface.h \
 		RpUtilsFStubs.h \
 		rappture.h
+
 
 SCEW_HEADERS 	= \
 		attribute.h  \
@@ -123,8 +123,6 @@ OBJS = 		\
 		RpBindingsDict.o \
 		RpBuffer.o \
 		RpBufferCInterface.o \
-		RpDXWriter.o \
-		RpDXWriterFInterface.o \
 		RpEncode.o \
 		RpEntityRef.o \
 		RpFortranCommon.o \
@@ -144,6 +142,16 @@ OBJS = 		\
 		RpUtilsFInterface.o  \
 		$(SCEW_OBJS) \
 		$(B64_OBJS)
+
+ifneq ($(DX_INC_SPEC),)
+HEADERS +=	\
+		RpDXWriter.h \
+		RpDXWriterFInterface.h \
+		RpDXWriterFStubs.h 
+OBJS +=		\
+		RpDXWriter.o \
+		RpDXWriterFInterface.o 
+endif
 
 name        = rappture
 libname     = lib$(name)

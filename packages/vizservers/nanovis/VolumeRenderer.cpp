@@ -237,7 +237,7 @@ VolumeRenderer::render_all()
 	// image with their depth values.  Then we render other volume slices.
 	// These volume slices will be occluded correctly by the cutplanes and
 	// vice versa.
-	
+
 	ConvexPolygon static_poly;
 	for(int j = 0; j < volPtr->get_cutplane_count(); j++) {
 	    if(!volPtr->cutplane_is_enabled(j))
