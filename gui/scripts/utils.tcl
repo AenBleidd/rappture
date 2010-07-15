@@ -22,10 +22,10 @@ namespace eval Rappture::utils { # forward declaration }
 # ----------------------------------------------------------------------
 proc Rappture::utils::hexdump {args} {
     Rappture::getopts args params {
-	value -lines unlimited
+        value -lines unlimited
     }
     if {[llength $args] != 1} {
-	error "wrong # args: should be \"hexdump ?-lines num? data\""
+        error "wrong # args: should be \"hexdump ?-lines num? data\""
     }
     set newval [lindex $args 0]
     set args ""
@@ -33,38 +33,38 @@ proc Rappture::utils::hexdump {args} {
     set rval "<binary> [Rappture::utils::binsize [string length $newval]]"
 
     if {$params(-lines) != "unlimited" && $params(-lines) <= 0} {
-	return $rval
+        return $rval
     }
 
     append rval "\n\n"
     set len [string length $newval]
     for {set i 0} {$i < $len} {incr i 8} {
-	append rval [format "%#06x: " $i]
-	set ascii ""
-	for {set j 0} {$j < 8} {incr j} {
-	    if {$i+$j < $len} {
-		set char [string index $newval [expr {$i+$j}]]
-		binary scan $char c ichar
-		set hexchar [format "%02x" [expr {0xff & $ichar}]]
-	    } else {
-		set char " "
-		set hexchar "  "
-	    }
-	    append rval "$hexchar "
-	    if {[regexp {[\000-\037\177-\377]} $char]} {
-		append ascii "."
-	    } else {
-		append ascii $char
-	    }
-	}
-	append rval " | $ascii\n"
+        append rval [format "%#06x: " $i]
+        set ascii ""
+        for {set j 0} {$j < 8} {incr j} {
+            if {$i+$j < $len} {
+                set char [string index $newval [expr {$i+$j}]]
+                binary scan $char c ichar
+                set hexchar [format "%02x" [expr {0xff & $ichar}]]
+            } else {
+                set char " "
+                set hexchar "  "
+            }
+            append rval "$hexchar "
+            if {[regexp {[\000-\037\177-\377]} $char]} {
+                append ascii "."
+            } else {
+                append ascii $char
+            }
+        }
+        append rval " | $ascii\n"
 
-	if {"unlimited" != $params(-lines) && $i/8+1 >= $params(-lines)} {
-	    if {$i < $len-1} {
-		append rval "more..."
-	    }
-	    break
-	}
+        if {"unlimited" != $params(-lines) && $i/8+1 >= $params(-lines)} {
+            if {$i < $len-1} {
+                append rval "more..."
+            }
+            break
+        }
     }
     return $rval
 }
@@ -77,17 +77,17 @@ proc Rappture::utils::hexdump {args} {
 # ----------------------------------------------------------------------
 proc Rappture::utils::binsize {size} {
     foreach {factor units} {
-	1073741824 GB
-	1048576 MB
-	1024 kB
-	1 bytes
+        1073741824 GB
+        1048576 MB
+        1024 kB
+        1 bytes
     } {
-	if {$size/$factor > 0} {
-	    if {$factor > 1} {
-		set size [format "%.1f" [expr {double($size)/$factor}]]
-	    }
-	    break
-	}
+        if {$size/$factor > 0} {
+            if {$factor > 1} {
+                set size [format "%.1f" [expr {double($size)/$factor}]]
+            }
+            break
+        }
     }
     return "$size $units"
 }
@@ -126,3 +126,38 @@ proc Rappture::utils::datatype {binary} {
     }
     return $desc
 }
+
+# ----------------------------------------------------------------------
+# USAGE: expandPath <path>
+#
+# Returns the true location of the provided path,
+# automatically expanding links to form an absolute path.
+# ----------------------------------------------------------------------
+proc Rappture::utils::expandPath {args} {
+    set path ""
+    set dirs [file split [lindex $args 0]]
+
+    while {[llength $dirs] > 0} {
+        set d [lindex $dirs 0]
+        set dirs [lrange $dirs 1 end]
+        if {[catch {file link [file join $path $d]} out] == 0} {
+            # directory d is a link, follow it
+            set outdirs [file split $out]
+            if {[string compare "/" [lindex $outdirs 0]] == 0} {
+                # directory leads back to root
+                # clear path
+                # reset dirs list
+                set path ""
+                set dirs $outdirs
+            } else {
+                # relative path for the link
+                # prepend directory to dirs list
+                set dirs [concat $outdirs $dirs]
+            }
+        } else {
+            set path [file join $path $d]
+        }
+    }
+    return $path
+}
+
