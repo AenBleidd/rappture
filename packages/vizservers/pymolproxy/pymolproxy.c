@@ -56,16 +56,10 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <net/if.h>
-#include <netinet/in.h>
 #include <poll.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
@@ -101,9 +95,9 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = 0;
+static int debug = FALSE;
 static FILE *scriptFile;
-static int savescript = 0;
+static int savescript = FALSE;
 
 typedef struct Image {
     struct Image *nextPtr;	/* Next image in chain of images. The list is
@@ -1024,31 +1018,56 @@ static int
 LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
 	   const char *argv[])
 {
-    const char *pdbdata, *name;
+    const char *data, *name;
+    char *allocated;
     PymolProxy *proxyPtr = clientData;
-    int state = 1;
-    int i, defer = 0, push = 0, varg = 1;
+    int state, defer, push;
     int nBytes;
+    int i, j;
 
-    if (proxyPtr == NULL)
+    if (proxyPtr == NULL){
 	return TCL_ERROR;
+    }
     clear_error(proxyPtr);
-    pdbdata = name = NULL;		/* Suppress compiler warning. */
-    nBytes = 0;				/* Suppress compiler warning. */
-    for(i = 1; i < argc; i++) {
-	if ( strcmp(argv[i],"-defer") == 0 )
-	    defer = 1;
-	else if (strcmp(argv[i],"-push") == 0)
-	    push = 1;
-        else if (varg == 1) {
-	    nBytes = atoi(argv[i]);
-	    varg++;
-	} else if (varg == 2) {
-	    name = argv[i];
-	    varg++;
-	} else if (varg == 3) {
-	    state = atoi( argv[i] );
-	    varg++;
+    defer = push = FALSE;
+    for(i = j = 1; i < argc; i++) {
+	if (strcmp(argv[i],"-defer") == 0) {
+	    defer = TRUE;
+	} else if (strcmp(argv[i],"-push") == 0) {
+	    push = TRUE;
+	} else {
+	    if (j < i) {
+		argv[j] = argv[i];
+	    }
+	    j++;
+	}
+    }
+    argc = j;
+    if (argc < 4) {
+	Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
+			 " <data>|follows <model> <state> ?<nBytes>?\"",
+			 (char *)NULL);
+	return TCL_ERROR;
+    }
+    data = argv[1];
+    name = argv[2];
+    if (Tcl_GetInt(interp, argv[3], &state) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    nBytes = -1;
+    if (strcmp(data, "follows") == 0) {
+	if (argc != 5) {
+	    Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
+			 " follows <model> <state> <nBytes>\"", (char *)NULL);
+	    return TCL_ERROR;
+	}
+	if (Tcl_GetInt(interp, argv[4], &nBytes) != TCL_OK) {
+	    return TCL_ERROR;
+	}
+	if (nBytes < 0) {
+	    Tcl_AppendResult(interp, "bad value for # bytes \"", argv[4],
+			 "\"", (char *)NULL);
+	    return TCL_ERROR;
 	}
     }
     if (!defer || push) {
@@ -1060,38 +1079,53 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 
     /* Does not invalidate cache? */
 
+    allocated = NULL;
+    if (nBytes >= 0) {
+	allocated = malloc(sizeof(char) * nBytes);
+	if (allocated == NULL) {
+	    Tcl_AppendResult(interp, "can't allocate buffer for pdbdata.",
+			     (char *)NULL);
+	    return TCL_ERROR;
+	}
+	if (GetBytes(&proxyPtr->client, allocated, nBytes) != BUFFER_OK) {
+	    Tcl_AppendResult(interp, "can't read pdbdata from client.",
+			     (char *)NULL);
+	    free(allocated);
+	    return TCL_ERROR;
+	}
+	data = allocated;
+    } else {
+	nBytes = strlen(data);
+    }
     {
 	char fileName[200];
 	FILE *f;
-	char *data;
 	ssize_t nWritten;
 
-	data = malloc(sizeof(char) * nBytes);
-	if (data == NULL) {
-	    trace("can't allocate %d bytes for \"pdbdata\" buffer", nBytes);
-	    return  TCL_ERROR;
-	}
-	if (GetBytes(&proxyPtr->client, data, nBytes) != BUFFER_OK) {
-	    trace("can't read %d bytes for \"pdbdata\" buffer", nBytes);
-	    free(data);
-	    return  TCL_ERROR;
-	}
+	proxyPtr->status = TCL_ERROR;
 	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
 	f = fopen(fileName, "w");
 	if (f == NULL) {
-	    trace("can't open `%s': %s", fileName, strerror(errno));
-	    perror("pymolproxy");
-	    free(data);
-	    return TCL_ERROR;
+	    Tcl_AppendResult(interp, "can't create temporary file \"",
+			     fileName, "\": ", Tcl_PosixError(interp),
+			     (char *)NULL);
+	    goto error;
 	} 
 	nWritten = fwrite(data, sizeof(char), nBytes, f);
 	if (nBytes != nWritten) {
-	    trace("short write %d wanted %d bytes", nWritten, nBytes);
-	    perror("pymolproxy");
+	    Tcl_AppendResult(interp, "can't write PDB data to \"",
+			     fileName, "\": ", Tcl_PosixError(interp),
+			     (char *)NULL);
+	    fclose(f);
+	    goto error;
 	}
 	fclose(f);
-	free(data);
 	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
+	proxyPtr->status = TCL_OK;
+    }
+ error:
+    if (allocated != NULL) {
+	free(allocated);
     }
     return proxyPtr->status;
 }
