@@ -1331,7 +1331,7 @@ itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
 	set current ${path}.${child}
 	if { [string match "structure*" $child] } {
 	    set isTraj [$xmlobj get ${current}.components.molecule.trajectory]
-	    if { !$isTraj } {
+	    if { $isTraj == "" || !$isTraj } {
 		continue;		# Not a trajectory.
 	    }
 	    # Look for trajectory if molecule element found.  Check both pdb
