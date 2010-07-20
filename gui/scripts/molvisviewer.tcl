@@ -766,7 +766,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
 		# We know we're buffered here, so append the "loadpdb" command
 		# with the data payload immediately afterwards.
-		append _outbuf "loadpdb -defer $nBytes $model $state\n"
+		append _outbuf "loadpdb -defer follows $model $state $nBytes\n"
 		append _outbuf $data1
 		set _dataobjs($model-$state)  1
 	    }
@@ -779,7 +779,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
 		# We know we're buffered here, so append the "loadpdb" command
 		# with the data payload immediately afterwards.
-		append _outbuf "loadpdb -defer $nBytes $model $state\n"
+		append _outbuf "loadpdb -defer follows $model $state $nBytes\n"
 		append _outbuf $data2
 		set _dataobjs($model-$state)  1
 	    }
@@ -829,7 +829,8 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
 		    # We know we're buffered here, so append the "loadpdb" 
 		    # command with the data payload immediately afterwards.
-                    append _outbuf "loadpdb -defer $nBytes $model $state\n"
+                    append _outbuf \
+			"loadpdb -defer follows $model $state $nBytes\n"
 		    append _outbuf $data3
                 }
 		set _dataobjs($model-$state) 1
