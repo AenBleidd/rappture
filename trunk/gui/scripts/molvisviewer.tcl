@@ -944,7 +944,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
     if { $flush } {
 	SendCmd "bmp";			# Flush the results.
-	set _waitForImage 1 
     }
     set _buffering 0;			# Turn off buffering.
 
@@ -956,9 +955,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     set _outbuf "";			# Clear the buffer.		
     blt::busy release $itk_component(hull)
 
-    if { $_waitForImage } {
-	tkwait variable [itcl::scope _waitForImage]
-    }
     debug "exiting rebuild"
 }
 
@@ -1416,6 +1412,7 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	-linestyle      solid
 	-description    ""
 	-param          ""
+	-tkwait		no
     }
 
     foreach {opt val} $options {
@@ -1453,10 +1450,13 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	    $_dispatcher event -idle !rebuild
 	}
     }
-    # In a sequence there will be multiple calls to the "add" method.  Run
-    # "update" here to let the fileevent handler catch up with images,
-    # regardless of the speed setting in the sequence.
-    update 
+    if { $params(-tkwait) } {
+	# In a sequence there will be multiple calls to the "add" method.  Run
+	# "tkwait" here to let the fileevent handler catch up with images,
+	# regardless of the speed setting in the sequence.
+	set _waitForImage 1 
+	tkwait variable [itcl::scope _waitForImage]
+    }
 }
 
 #
