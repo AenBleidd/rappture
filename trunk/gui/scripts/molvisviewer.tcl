@@ -52,7 +52,6 @@ itcl::class Rappture::MolvisViewer {
     private variable _active;		# array of active models.
     private variable _obj2models;	# array containing list of models 
 					# for each data object.
-    private variable _waitForImage 0
     private variable _view
     private variable _click
 
@@ -591,7 +590,8 @@ itcl::body Rappture::MolvisViewer::isconnected {} {
 #       Establishes a connection to a new visualization server.
 #
 itcl::body Rappture::MolvisViewer::Connect {} {
-    set _waitForImage 0
+    global readyForNextFrame
+    set readyForNextFrame 1
     if { [isconnected] } {
 	return 1
     }
@@ -627,7 +627,8 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
     set _state(server) 1
     set _state(client) 1
     set _outbuf ""
-    set _waitForImage 0
+    global readyForNextFrame
+    set readyForNextFrame 1
 }
 
 itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
@@ -668,7 +669,8 @@ itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
 #
 set count 0
 itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
-    set _waitForImage 0;		# Turn off wait loop.
+    global readyForNextFrame
+    set readyForNextFrame 1
     set tag "$frame,$rock"
     global count
     incr count
@@ -943,6 +945,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     }
 
     if { $flush } {
+	global readyForNextFrame
+	set readyForNextFrame 0;	# Don't advance to the next frame
+					# until we get an image.
 	SendCmd "bmp";			# Flush the results.
     }
     set _buffering 0;			# Turn off buffering.
@@ -1412,7 +1417,6 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	-linestyle      solid
 	-description    ""
 	-param          ""
-	-tkwait		no
     }
 
     foreach {opt val} $options {
@@ -1446,16 +1450,8 @@ itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
 	debug "setting parameters for $dataobj\n"
 
 	if { [isconnected] } {
-	    debug "calling rebuild\n"
 	    $_dispatcher event -idle !rebuild
 	}
-    }
-    if { $params(-tkwait) } {
-	# In a sequence there will be multiple calls to the "add" method.  Run
-	# "tkwait" here to let the fileevent handler catch up with images,
-	# regardless of the speed setting in the sequence.
-	set _waitForImage 1 
-	tkwait variable [itcl::scope _waitForImage]
     }
 }
 

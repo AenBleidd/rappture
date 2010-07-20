@@ -199,7 +199,6 @@ itcl::body Rappture::SequenceResult::add {dataobj {settings ""}} {
         -linestyle solid
         -description ""
         -param ""
-	-tkwait no
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -354,6 +353,8 @@ itcl::body Rappture::SequenceResult::play {} {
         -bitmap [Rappture::icon pause] \
         -command [itcl::code $this pause]
 
+    global readyForNextFrame 
+    set readyForNextFrame 1;		# By default, always ready
     # schedule the first frame
     set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
@@ -370,6 +371,8 @@ itcl::body Rappture::SequenceResult::pause {} {
         catch {after cancel $_afterId}
         set _afterId ""
     }
+    global readyForNextFrame 
+    set readyForNextFrame 1;		# By default, always ready
 
     # toggle the button to "play" mode
     $itk_component(play) configure \
@@ -526,21 +529,25 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 # we either loop back or stop.
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::_playFrame {} {
-    set _pos [expr {$_pos+1}]
-    set last [expr {[llength $_indices]-1}]
-
-    if {$_pos > $last} {
-        if {$_play(loop)} {
-            set _pos 0
-        } else {
-            set _pos $last
-            pause
-            return
-        }
+    global readyForNextFrame 
+    if { $readyForNextFrame } {
+	set _pos [expr {$_pos+1}]
+	set last [expr {[llength $_indices]-1}]
+	
+	if {$_pos > $last} {
+	    if {$_play(loop)} {
+		set _pos 0
+	    } else {
+		set _pos $last
+		pause
+		return
+	    }
+	}
+	goto $_pos
+	set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
+    } else {
+	set delay 50;			# Poll for completion
     }
-    goto $_pos
-
-    set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }
 
@@ -567,7 +574,7 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
     }
     $itk_component(eleLabel) configure -text "[$_topmost label $_pos]"
     foreach dataobj [$_topmost value $_pos] {
-        set settings "-color autoreset -width 2 -tkwait yes"
+        set settings "-color autoreset -width 2"
         if {[catch {$dataobj hints style} style] == 0} {
             eval lappend settings $style
         }
