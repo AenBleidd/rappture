@@ -390,6 +390,7 @@ itcl::body Rappture::NanovisViewer::add {dataobj {settings ""}} {
         -raise 0
         -description ""
         -param ""
+	-tkwait no
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {

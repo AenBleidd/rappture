@@ -199,6 +199,7 @@ itcl::body Rappture::SequenceResult::add {dataobj {settings ""}} {
         -linestyle solid
         -description ""
         -param ""
+	-tkwait no
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
