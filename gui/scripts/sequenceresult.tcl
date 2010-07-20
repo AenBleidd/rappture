@@ -566,8 +566,8 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
     }
     $itk_component(eleLabel) configure -text "[$_topmost label $_pos]"
     foreach dataobj [$_topmost value $_pos] {
-        set settings "-color autoreset -width 2"
-        if { [catch {$dataobj hints style} style] == 0} {
+        set settings "-color autoreset -width 2 -tkwait yes"
+        if {[catch {$dataobj hints style} style] == 0} {
             eval lappend settings $style
         }
 	if { [catch {$dataobj hints type} type] == 0} {
