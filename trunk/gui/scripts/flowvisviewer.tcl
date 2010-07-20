@@ -571,6 +571,7 @@ itcl::body Rappture::FlowvisViewer::add {dataobj {settings ""}} {
         -raise 0
         -description ""
         -param ""
+	-tkwait no
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {

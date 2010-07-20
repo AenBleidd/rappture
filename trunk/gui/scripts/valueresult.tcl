@@ -81,6 +81,7 @@ itcl::body Rappture::ValueResult::add {dataobj {settings ""}} {
 	-raise 0
 	-description ""
 	-param ""
+	-tkwait no
     }
     foreach {opt val} $settings {
 	if {![info exists params($opt)]} {
