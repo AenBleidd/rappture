@@ -9,76 +9,45 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir          = @srcdir@
 
-destdir         = $(libdir)/octave
-
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
-VPATH           = $(srcdir)
 RM              = rm -f
+OCTAVE2		= @OCTAVE2@
+OCTAVE3		= @OCTAVE3@
 
-OCT             = @MKOCTFILE@
-INCLUDES    = \
-		-I. \
-		-I$(srcdir)/../../src/core \
-		-I$(prefix)/include
-DEFINES     =
-LIBS        = -L../../src/core -lrappture
-OCT_FLAGS   = $(INCLUDES) $(DEFINES)
+LANGS		= 
+ifneq ($(OCTAVE3),)
+  LANGS += octave3
+endif
+ifneq ($(OCTAVE2),)
+  LANGS += octave2
+endif
 
-OBJS        = \
-		rpAddPresets.oct \
-		rpUtilsProgress.oct \
-		rpLib.oct \
-		rpLibChildrenByType.oct \
-		rpLibChildren.oct \
-		rpLibElementAsComp.oct \
-		rpLibElementAsId.oct \
-		rpLibElementAsObject.oct \
-		rpLibElementAsType.oct \
-		rpLibElement.oct \
-		rpLibGet.oct \
-		rpLibGetString.oct \
-		rpLibGetDouble.oct \
-		rpLibNodeComp.oct \
-		rpLibNodeId.oct \
-		rpLibNodeType.oct \
-		rpLibPut.oct \
-		rpLibPutDouble.oct \
-		rpLibPutString.oct \
-		rpLibPutFile.oct \
-		rpLibResult.oct \
-		rpLibXml.oct \
-		rpUnitsConvert.oct \
-		rpUnitsConvertDbl.oct \
-		rpUnitsConvertStr.oct \
-		rpUnitsConvertObjDbl.oct \
-		rpUnitsConvertObjStr.oct \
-		rpUnitsDefineUnit.oct \
-		rpUnitsFind.oct \
-		rpUnitsGetBasis.oct \
-		rpUnitsGetExponent.oct \
-		rpUnitsGetUnits.oct \
-		rpUnitsGetUnitsName.oct
+.PHONY:	octave2 octave3
 
-all: $(OBJS)
+all:
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 
-.SUFFIXES: .cc .o .oct
+install:
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ;\
+	done
 
-.o.oct:
-	$(OCT) $(OCT_FLAGS) $< -o $@ $(LIBS)
-
-.cc.o:
-	$(OCT) $(OCT_FLAGS) -c $< -o $@
-
-install: $(OBJS)
-	$(MKDIR_P) $(destdir)
-	for i in $(OBJS) ; do \
-	  $(INSTALL) -m 444  $$i $(destdir) ; \
+test:
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i test || exit 1 ;\
 	done
 
 clean:
-	$(RM) $(OBJS)
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i clean ;\
+	done
 
-distclean: clean
+distclean:
+	for i in $(LANGS) ; do \
+	  $(MAKE) -C $$i distclean ;\
+	done
 	$(RM) Makefile *~
 

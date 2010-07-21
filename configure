@@ -642,8 +642,16 @@ PERL_ARCHLIBEXP
 PERL_ARCHLIB
 PERL_INCLUDES
 PERL
+MKOCTFILE3
+MKOCTFILE2
 OCTAVE_VERSION_MAJOR
 OCTAVE_VERSION
+OCTAVE3
+OCTAVE2
+mkoctfile3
+octave3
+mkoctfile
+octave2
 MKOCTFILE
 OCTAVE
 MEX_ARCH
@@ -757,6 +765,8 @@ with_tclsh
 with_vtk
 with_matlab
 with_octave
+with_octave2
+with_octave3
 with_perl
 with_python
 with_ruby
@@ -1405,6 +1415,8 @@ Optional Packages:
   --with-vtk=DIR          location of vtk library [default=yes]
   --with-matlab=DIR       location of matlab and mex compiler [default=yes]
   --with-octave=DIR       location of octave compiler MKOCTFILE [default=yes]
+  --with-octave2=DIR      location of octave compiler MKOCTFILE [default=no]
+  --with-octave3=DIR      location of octave compiler MKOCTFILE [default=no]
   --with-perl=DIR         location of perl [default=yes]
   --with-python=DIR       location of python [default=yes]
   --with-ruby=PATH        absolute path to ruby executable
@@ -7551,6 +7563,7 @@ fi
 
 
 
+# Standard octave search (use the installed version of octave)
 
 # Check whether --with-octave was given.
 if test "${with_octave+set}" = set; then :
@@ -7561,9 +7574,13 @@ fi
 
 
 OCTAVE=
+OCTAVE2=
+OCTAVE3=
 OCTAVE_VERSION=
 OCTAVE_VERSION_MAJOR=
 MKOCTFILE=
+MKOCTFILE2=
+MKOCTFILE3=
 if test "$with_octave" != "no" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
 $as_echo_n "checking for octave and mkoctfile... " >&6; }
@@ -7735,8 +7752,229 @@ fi
   if test "x${OCTAVE}" != "x" ; then
     OCTAVE_VERSION=`${OCTAVE} -v | grep version | cut -d' ' -f4`
     OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
+    if test "${OCTAVE_VERSION_MAJOR}" == "3" ; then
+      OCTAVE3=$OCTAVE
+      MKOCTFILE3=$MKOCTFILE
+    fi
+    if test "${OCTAVE_VERSION_MAJOR}" == "2" ; then
+      OCTAVE2=$OCTAVE
+      MKOCTFILE2=$MKOCTFILE
+    fi
   fi
 fi
+
+# Check if octave2 was designated *in addition* to the installed version.
+
+# Check whether --with-octave2 was given.
+if test "${with_octave2+set}" = set; then :
+  withval=$with_octave2; with_octave2=$withval
+else
+  with_octave2=no
+fi
+
+
+if test "$with_octave2" != "no" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
+$as_echo_n "checking for octave and mkoctfile... " >&6; }
+  # Extract the first word of "octave", so it can be a program name with args.
+set dummy octave; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_octave2+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $octave2 in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_octave2="$octave2" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_octave2/bin:$with_octave2"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_octave2="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+octave2=$ac_cv_path_octave2
+if test -n "$octave2"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $octave2" >&5
+$as_echo "$octave2" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  # Extract the first word of "mkoctfile", so it can be a program name with args.
+set dummy mkoctfile; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_mkoctfile+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $mkoctfile in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_mkoctfile="$mkoctfile" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${with_octave2}/bin/mkoctfile:${with_octave2}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_mkoctfile="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+mkoctfile=$ac_cv_path_mkoctfile
+if test -n "$mkoctfile"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $mkoctfile" >&5
+$as_echo "$mkoctfile" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test "x${octave2}" != "x" ; then
+    version=`${octave2} -v | grep version | cut -d' ' -f4`
+    version_major=`echo ${version} | cut -d'.' -f1`
+    if test "$version_major" = "2" ; then
+      OCTAVE2=$octave2
+      MKOCTFILE2=$mkoctfile2
+    fi
+  fi
+fi
+# Check if octave3 was designated *in addition* to the installed version.
+
+# Check whether --with-octave3 was given.
+if test "${with_octave3+set}" = set; then :
+  withval=$with_octave3; with_octave3=$withval
+else
+  with_octave3=no
+fi
+
+if test "$with_octave3" != "no" ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
+$as_echo_n "checking for octave and mkoctfile... " >&6; }
+  # Extract the first word of "octave", so it can be a program name with args.
+set dummy octave; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_octave3+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $octave3 in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_octave3="$octave3" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_octave3/bin:$with_octave3"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_octave3="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+octave3=$ac_cv_path_octave3
+if test -n "$octave3"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $octave3" >&5
+$as_echo "$octave3" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  # Extract the first word of "mkoctfile", so it can be a program name with args.
+set dummy mkoctfile; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_path_mkoctfile3+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $mkoctfile3 in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_mkoctfile3="$mkoctfile3" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${with_octave3}/bin/mkoctfile:${with_octave3}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_mkoctfile3="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+mkoctfile3=$ac_cv_path_mkoctfile3
+if test -n "$mkoctfile3"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $mkoctfile3" >&5
+$as_echo "$mkoctfile3" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test "x${octave3}" != "x" ; then
+    version=`${octave3} -v | grep version | cut -d' ' -f4`
+    version_major=`echo ${version} | cut -d'.' -f1`
+    if test "$version_major" = "3" ; then
+      OCTAVE3=$octave3
+      MKOCTFILE3=$mkoctfile3
+    fi
+  fi
+fi
+
+
+
+
+
 
 
 
@@ -9251,7 +9489,7 @@ ac_configure_args="--disable-threads --enable-shared"
 subdirs="$subdirs packages/optimizer/src"
 
 
-ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile src/objects/RpHash.h gui/Makefile gui/apps/Makefile gui/apps/about gui/apps/encodedata gui/apps/rappture gui/apps/rappture-csh.env gui/apps/rappture.env gui/apps/rappture.use gui/apps/rerun gui/apps/simsim gui/apps/xmldiff gui/pkgIndex.tcl gui/scripts/Makefile instant/Makefile instant/irappture lang/Makefile lang/java/Makefile lang/java/rappture/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/octave/RpOctaveInterface.h lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile lib/Makefile examples/3D/Makefile examples/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/java/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/matlab/compiled/Makefile examples/app-fermi/matlab/uncompiled/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/octave/2/Makefile examples/app-fermi/octave/3/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/flow/Makefile examples/flow/demo1/Makefile examples/flow/demo2/Makefile examples/flow/demo3/Makefile examples/graph/Makefile examples/objects/Makefile examples/objects/axis/Makefile examples/objects/contour/Makefile examples/objects/curve/Makefile examples/objects/dxWriter/Makefile examples/objects/floatBuffer/Makefile examples/objects/histogram/Makefile examples/objects/library/Makefile examples/objects/number/Makefile examples/objects/path/Makefile examples/objects/plot/Makefile examples/objects/scatter/Makefile examples/objects/string/Makefile examples/objects/tree/Makefile examples/objects/xmlparser/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/integer2/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/loadrun/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/number2/Makefile examples/zoo/periodicelement/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile examples/zoo/unirect2d/Makefile test/Makefile test/src/Makefile"
+ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile src/objects/RpHash.h gui/Makefile gui/apps/Makefile gui/apps/about gui/apps/encodedata gui/apps/rappture gui/apps/rappture-csh.env gui/apps/rappture.env gui/apps/rappture.use gui/apps/rerun gui/apps/simsim gui/apps/xmldiff gui/pkgIndex.tcl gui/scripts/Makefile instant/Makefile instant/irappture lang/Makefile lang/java/Makefile lang/java/rappture/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/octave/octave2/Makefile lang/octave/octave3/Makefile lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile lib/Makefile examples/3D/Makefile examples/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/java/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/matlab/compiled/Makefile examples/app-fermi/matlab/uncompiled/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/octave/2/Makefile examples/app-fermi/octave/3/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/flow/Makefile examples/flow/demo1/Makefile examples/flow/demo2/Makefile examples/flow/demo3/Makefile examples/graph/Makefile examples/objects/Makefile examples/objects/axis/Makefile examples/objects/contour/Makefile examples/objects/curve/Makefile examples/objects/dxWriter/Makefile examples/objects/floatBuffer/Makefile examples/objects/histogram/Makefile examples/objects/library/Makefile examples/objects/number/Makefile examples/objects/path/Makefile examples/objects/plot/Makefile examples/objects/scatter/Makefile examples/objects/string/Makefile examples/objects/tree/Makefile examples/objects/xmlparser/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/integer2/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/loadrun/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/number2/Makefile examples/zoo/periodicelement/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile examples/zoo/unirect2d/Makefile test/Makefile test/src/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9971,7 +10209,8 @@ do
     "lang/python/setup.py") CONFIG_FILES="$CONFIG_FILES lang/python/setup.py" ;;
     "lang/matlab/Makefile") CONFIG_FILES="$CONFIG_FILES lang/matlab/Makefile" ;;
     "lang/octave/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/Makefile" ;;
-    "lang/octave/RpOctaveInterface.h") CONFIG_FILES="$CONFIG_FILES lang/octave/RpOctaveInterface.h" ;;
+    "lang/octave/octave2/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/octave2/Makefile" ;;
+    "lang/octave/octave3/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/octave3/Makefile" ;;
     "lang/ruby/Makefile") CONFIG_FILES="$CONFIG_FILES lang/ruby/Makefile" ;;
     "lang/ruby/build.rb") CONFIG_FILES="$CONFIG_FILES lang/ruby/build.rb" ;;
     "lang/tcl/Makefile") CONFIG_FILES="$CONFIG_FILES lang/tcl/Makefile" ;;
