@@ -1,0 +1,84 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+destdir         = $(libdir)/octave2
+
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+VPATH           = $(srcdir)/../src
+RM              = rm -f
+
+OCT             = @MKOCTFILE2@
+INCLUDES    = \
+		-I$(srcdir) \
+		-I$(srcdir)/../../../src/core \
+		-I$(prefix)/include
+DEFINES     =
+LIBS        = -L../../../src/core -lrappture
+OCT_FLAGS   = $(INCLUDES) $(DEFINES)
+
+OBJS        = \
+		rpAddPresets.oct \
+		rpUtilsProgress.oct \
+		rpLib.oct \
+		rpLibChildrenByType.oct \
+		rpLibChildren.oct \
+		rpLibElementAsComp.oct \
+		rpLibElementAsId.oct \
+		rpLibElementAsObject.oct \
+		rpLibElementAsType.oct \
+		rpLibElement.oct \
+		rpLibGet.oct \
+		rpLibGetString.oct \
+		rpLibGetDouble.oct \
+		rpLibNodeComp.oct \
+		rpLibNodeId.oct \
+		rpLibNodeType.oct \
+		rpLibPut.oct \
+		rpLibPutDouble.oct \
+		rpLibPutString.oct \
+		rpLibPutFile.oct \
+		rpLibResult.oct \
+		rpLibXml.oct \
+		rpUnitsConvert.oct \
+		rpUnitsConvertDbl.oct \
+		rpUnitsConvertStr.oct \
+		rpUnitsConvertObjDbl.oct \
+		rpUnitsConvertObjStr.oct \
+		rpUnitsDefineUnit.oct \
+		rpUnitsFind.oct \
+		rpUnitsGetBasis.oct \
+		rpUnitsGetExponent.oct \
+		rpUnitsGetUnits.oct \
+		rpUnitsGetUnitsName.oct
+
+all: $(OBJS)
+
+.SUFFIXES: .cc .o .oct
+
+.o.oct:
+	$(OCT) $(OCT_FLAGS) $< -o $@ $(LIBS)
+
+.cc.o:
+	$(OCT) $(OCT_FLAGS) -c $< -o $@
+
+install: $(OBJS)
+	$(MKDIR_P) $(destdir)
+	for i in $(OBJS) ; do \
+	  $(INSTALL) -m 444  $$i $(destdir) ; \
+	done
+
+clean:
+	$(RM) $(OBJS)
+
+distclean: clean
+	$(RM) Makefile *~
+
