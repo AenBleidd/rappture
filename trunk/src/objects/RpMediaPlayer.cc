@@ -199,8 +199,8 @@ MediaPlayer::read(Outcome &status, SimpleCharBuffer *b[], size_t nframes)
         // Is this a packet from the video stream?
         if(_packet.stream_index==_videoStream) {
             // Decode video frame
-            avcodec_decode_video(_pCodecCtx, _pFrame, &frameFinished,
-                                 _packet.data, _packet.size);
+            avcodec_decode_video2(_pCodecCtx, _pFrame, &frameFinished,
+                                  &_packet);
 
             // Did we get a video frame?
             if (frameFinished) {
@@ -209,7 +209,7 @@ MediaPlayer::read(Outcome &status, SimpleCharBuffer *b[], size_t nframes)
                     // artificially limit number of images saved
                     break;
                 }
-                if ((frameIndex%100) == 0) {
+                if ((frameIndex%1000) == 0) {
                     // artificially spread out the saved frames
                     sws_scale(_swsctx,
                               (const uint8_t * const*)_pFrame->data,
