@@ -273,9 +273,9 @@ Object::__hintParser(
         return;
     }
 
-    v = strchrnul(hint,'=');
+    v = strchr(hint,'=');
     *hintKey = hint;
-    if ((*v == '\0') || (*(v+1) == '\0')) {
+    if ((v == NULL) || (*v == '\0') || (*(v+1) == '\0')) {
         // incomplete hint string
         *hintVal = NULL;
     } else {
