@@ -1,42 +1,48 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-INSTALL		= @INSTALL@
-VPATH		= $(srcdir)
-SHELL		= @SHELL@
-RM		= rm -f
+INSTALL         = @INSTALL@
+VPATH           = $(srcdir)
+SHELL           = @SHELL@
+RM              = rm -f
 
-.PHONY:	cee python tcl
+.PHONY:	cee python tcl perl
 
-all:	python tcl cee
+all:	python tcl cee perl
 
 cee:
 	$(MAKE) -C cee all
-python: 
+perl:
+	$(MAKE) -C perl all
+python:
 	$(MAKE) -C python all
-tcl: 
+tcl:
 	$(MAKE) -C tcl all
+
 
 install:
 	$(MAKE) -C cee install
+	$(MAKE) -C perl install
 	$(MAKE) -C python install
 	$(MAKE) -C tcl install
 
 clean:
 	$(MAKE) -C cee clean
+	$(MAKE) -C perl clean
 	$(MAKE) -C python clean
 	$(MAKE) -C tcl clean
 
-distclean: 
+distclean:
 	$(MAKE) -C cee distclean
+	$(MAKE) -C perl distclean
 	$(MAKE) -C python distclean
 	$(MAKE) -C tcl distclean
 	$(RM) Makefile

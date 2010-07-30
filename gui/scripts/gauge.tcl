@@ -54,26 +54,26 @@ itcl::class Rappture::Gauge {
     private variable _value 0  ;# value for this widget
 
     blt::bitmap define GaugeArrow-up {
-	#define up_width 8
-	#define up_height 4
-	static unsigned char up_bits[] = {
-	   0x10, 0x38, 0x7c, 0xfe};
+        #define up_width 8
+        #define up_height 4
+        static unsigned char up_bits[] = {
+           0x10, 0x38, 0x7c, 0xfe};
     }
     blt::bitmap define GaugeArrow-down {
-	#define arrow_width 8
-	#define arrow_height 4
-	static unsigned char arrow_bits[] = {
-	   0xfe, 0x7c, 0x38, 0x10};
+        #define arrow_width 8
+        #define arrow_height 4
+        static unsigned char arrow_bits[] = {
+           0xfe, 0x7c, 0x38, 0x10};
     }
 
     blt::bitmap define GaugeArrow {
-	#define arrow_width 9
-	#define arrow_height 4
-	static unsigned char arrow_bits[] = {
-	   0x7f, 0x00, 0x3e, 0x00, 0x1c, 0x00, 0x08, 0x00};
+        #define arrow_width 9
+        #define arrow_height 4
+        static unsigned char arrow_bits[] = {
+           0x7f, 0x00, 0x3e, 0x00, 0x1c, 0x00, 0x08, 0x00};
     }
 }
-										
+                                                                                
 itk::usual Gauge {
     keep -cursor -font -foreground -background
     keep -selectbackground -selectforeground -selectborderwidth
@@ -84,24 +84,24 @@ itk::usual Gauge {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::constructor {args} {
     itk_component add icon {
-	canvas $itk_interior.icon -width 1 -height 1 \
-	    -borderwidth 0 -highlightthickness 0
+        canvas $itk_interior.icon -width 1 -height 1 \
+            -borderwidth 0 -highlightthickness 0
     } {
-	usual
-	ignore -highlightthickness -highlightbackground -highlightcolor
+        usual
+        ignore -highlightthickness -highlightbackground -highlightcolor
     }
     pack $itk_component(icon) -side left
     bind $itk_component(icon) <Configure> [itcl::code $this _redraw]
 
     itk_component add -protected vframe {
-	frame $itk_interior.vframe
+        frame $itk_interior.vframe
     }
 
     itk_component add value {
-	label $itk_component(vframe).value -borderwidth 1 -width 7 \
-	    -textvariable [itcl::scope _value]
+        label $itk_component(vframe).value -borderwidth 1 -width 7 \
+            -textvariable [itcl::scope _value]
     } {
-	rename -background -textbackground textBackground Background
+        rename -background -textbackground textBackground Background
     }
     pack $itk_component(value) -side left -expand yes -fill both
 
@@ -113,78 +113,78 @@ itcl::body Rappture::Gauge::constructor {args} {
     bind $itk_component(value) <<Paste>> [itcl::code $this edit paste]
 
     itk_component add emenu {
-	menu $itk_component(value).menu -tearoff 0
+        menu $itk_component(value).menu -tearoff 0
     } {
-	usual
-	ignore -tearoff
+        usual
+        ignore -tearoff
     }
     $itk_component(emenu) add command -label "Cut" -accelerator "^X" \
-	-command [list event generate $itk_component(value) <<Cut>>]
+        -command [list event generate $itk_component(value) <<Cut>>]
     $itk_component(emenu) add command -label "Copy" -accelerator "^C" \
-	-command [list event generate $itk_component(value) <<Copy>>]
+        -command [list event generate $itk_component(value) <<Copy>>]
     $itk_component(emenu) add command -label "Paste" -accelerator "^V" \
-	-command [list event generate $itk_component(value) <<Paste>>]
+        -command [list event generate $itk_component(value) <<Paste>>]
     bind $itk_component(value) <<PopupMenu>> \
-	[itcl::code $this _editor menu %X %Y]
+        [itcl::code $this _editor menu %X %Y]
 
     itk_component add editor {
-	Rappture::Editor $itk_interior.editor \
-	    -activatecommand [itcl::code $this _editor activate] \
-	    -validatecommand [itcl::code $this _editor validate] \
-	    -applycommand [itcl::code $this _editor apply]
+        Rappture::Editor $itk_interior.editor \
+            -activatecommand [itcl::code $this _editor activate] \
+            -validatecommand [itcl::code $this _editor validate] \
+            -applycommand [itcl::code $this _editor apply]
     }
     bind $itk_component(value) <ButtonPress> \
-	[itcl::code $this _editor popup]
+        [itcl::code $this _editor popup]
 
 
     itk_component add spinner {
-	frame $itk_component(vframe).spinner
+        frame $itk_component(vframe).spinner
     }
 
     itk_component add spinup {
-	button $itk_component(spinner).up -bitmap GaugeArrow-up \
-	    -borderwidth 1 -relief raised -highlightthickness 0 \
-	    -command [itcl::code $this bump 1]
+        button $itk_component(spinner).up -bitmap GaugeArrow-up \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump 1]
     } {
-	usual
-	ignore -borderwidth -highlightthickness
+        usual
+        ignore -borderwidth -highlightthickness
     }
     pack $itk_component(spinup) -side top -expand yes -fill both
 
     itk_component add spindn {
-	button $itk_component(spinner).down -bitmap GaugeArrow-down \
-	    -borderwidth 1 -relief raised -highlightthickness 0 \
-	    -command [itcl::code $this bump -1]
+        button $itk_component(spinner).down -bitmap GaugeArrow-down \
+            -borderwidth 1 -relief raised -highlightthickness 0 \
+            -command [itcl::code $this bump -1]
     } {
-	usual
-	ignore -borderwidth -highlightthickness
+        usual
+        ignore -borderwidth -highlightthickness
     }
     pack $itk_component(spindn) -side bottom -expand yes -fill both
 
 
     itk_component add presets {
-	button $itk_component(vframe).psbtn -bitmap GaugeArrow \
-	    -borderwidth 1 -highlightthickness 0 -relief flat
+        button $itk_component(vframe).psbtn -bitmap GaugeArrow \
+            -borderwidth 1 -highlightthickness 0 -relief flat
     } {
-	usual
-	ignore -borderwidth -relief -highlightthickness
-	rename -background -textbackground textBackground Background
+        usual
+        ignore -borderwidth -relief -highlightthickness
+        rename -background -textbackground textBackground Background
     }
 
     bind $itk_component(presets) <Enter> [itcl::code $this _hilite presets on]
     bind $itk_component(presets) <Leave> [itcl::code $this _hilite presets off]
 
     itk_component add presetlist {
-	Rappture::Dropdownlist $itk_component(presets).plist \
-	    -postcommand [itcl::code $this _presets post] \
-	    -unpostcommand [itcl::code $this _presets unpost] \
+        Rappture::Dropdownlist $itk_component(presets).plist \
+            -postcommand [itcl::code $this _presets post] \
+            -unpostcommand [itcl::code $this _presets unpost] \
     }
 
     bind $itk_component(presetlist) <<DropdownlistSelect>> \
-	[itcl::code $this _presets select]
+        [itcl::code $this _presets select]
 
     $itk_component(presets) configure -command \
-	[list $itk_component(presetlist) post $itk_component(vframe) left]
+        [list $itk_component(presetlist) post $itk_component(vframe) left]
 
     eval itk_initialize $args
 }
@@ -202,103 +202,103 @@ itcl::body Rappture::Gauge::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	#
-	# If this gauge has -units, try to convert the incoming
-	# value to that system of units.  Also, make sure that
-	# the value is bound by any min/max value constraints.
-	#
-	# Keep track of the inputted units so we can give a 
-	# response about min and max values in familiar units.
-	#
-	set newval [set nv [lindex $args 0]]
-	set units $itk_option(-units)
-	if {"" != $units} {
-	    set newval [Rappture::Units::convert $newval -context $units]
-	    set nvUnits [Rappture::Units::Search::for $newval]
-	    if { "" == $nvUnits} {
-		set msg [Rappture::Units::description $units]
-		error "Unrecognized units: $newval\nEnter value with units of $msg"
-	    }
-	    set nv [Rappture::Units::convert $nv \
-		-context $units -to $units -units off]
+        #
+        # If this gauge has -units, try to convert the incoming
+        # value to that system of units.  Also, make sure that
+        # the value is bound by any min/max value constraints.
+        #
+        # Keep track of the inputted units so we can give a 
+        # response about min and max values in familiar units.
+        #
+        set newval [set nv [lindex $args 0]]
+        set units $itk_option(-units)
+        if {"" != $units} {
+            set newval [Rappture::Units::convert $newval -context $units]
+            set nvUnits [Rappture::Units::Search::for $newval]
+            if { "" == $nvUnits} {
+                set msg [Rappture::Units::description $units]
+                error "Unrecognized units: $newval\nEnter value with units of $msg"
+            }
+            set nv [Rappture::Units::convert $nv \
+                -context $units -to $units -units off]
 
-	    # Normalize the units name
-	    set newval [Rappture::Units::convert $newval -units off]$nvUnits
-	}
+            # Normalize the units name
+            set newval [Rappture::Units::convert $newval -units off]$nvUnits
+        }
 
-	switch -- $itk_option(-type) {
-	    integer {
-		if { [scan $nv "%g" value] != 1 || int($nv) != $value } {
-		    error "bad value \"$nv\": should be an integer value"
-		}
-	    }
-	    real {
-		if {[string length $nv] <= 0
-		      || ![string is double $nv]
-		      || [regexp -nocase {^(inf|nan)$} $nv]} {
-		    error "bad value \"$nv\": should be a real number"
-		}
-	    }
-	}
+        switch -- $itk_option(-type) {
+            integer {
+                if { [scan $nv "%g" value] != 1 || int($nv) != $value } {
+                    error "bad value \"$nv\": should be an integer value"
+                }
+            }
+            real {
+                if {[string length $nv] <= 0
+                      || ![string is double $nv]
+                      || [regexp -nocase {^(inf|nan)$} $nv]} {
+                    error "bad value \"$nv\": should be a real number"
+                }
+            }
+        }
 
-	if {"" != $itk_option(-minvalue)} {
-	    set convMinVal [set minv $itk_option(-minvalue)]
-	    if {"" != $units} {
-		set minv [Rappture::Units::convert $minv \
-		    -context $units -to $units -units off]
-		set convMinVal [Rappture::Units::convert \
-		    $itk_option(-minvalue) -context $units -to $nvUnits]
-	    } else {
-		set newval [format "%g" $newval]
-	    }
+        if {"" != $itk_option(-minvalue)} {
+            set convMinVal [set minv $itk_option(-minvalue)]
+            if {"" != $units} {
+                set minv [Rappture::Units::convert $minv \
+                    -context $units -to $units -units off]
+                set convMinVal [Rappture::Units::convert \
+                    $itk_option(-minvalue) -context $units -to $nvUnits]
+            } else {
+                set newval [format "%g" $newval]
+            }
 
-	    # fix for the case when the user tries to
-	    # compare values like minv=-500 nv=-0600
-	    set nv [format "%g" $nv]
-	    set minv [format "%g" $minv]
+            # fix for the case when the user tries to
+            # compare values like minv=-500 nv=-0600
+            set nv [format "%g" $nv]
+            set minv [format "%g" $minv]
 
-	    if {$nv < $minv} {
-		error "minimum value allowed here is $convMinVal"
-	    }
-	}
+            if {$nv < $minv} {
+                error "minimum value allowed here is $convMinVal"
+            }
+        }
 
-	if {"" != $itk_option(-maxvalue)} {
-	    set convMaxVal [set maxv $itk_option(-maxvalue)]
-	    if {"" != $units} {
-		set maxv [Rappture::Units::convert $maxv \
-		    -context $units -to $units -units off]
-		set convMaxVal [Rappture::Units::convert \
-		    $itk_option(-maxvalue) -context $units -to $nvUnits]
-	    } else {
-		set newval [format "%g" $newval]
-	    }
+        if {"" != $itk_option(-maxvalue)} {
+            set convMaxVal [set maxv $itk_option(-maxvalue)]
+            if {"" != $units} {
+                set maxv [Rappture::Units::convert $maxv \
+                    -context $units -to $units -units off]
+                set convMaxVal [Rappture::Units::convert \
+                    $itk_option(-maxvalue) -context $units -to $nvUnits]
+            } else {
+                set newval [format "%g" $newval]
+            }
 
-	    # fix for the case when the user tries to
-	    # compare values like maxv=500 nv=0600
-	    set nv [format "%g" $nv]
-	    set maxv [format "%g" $maxv]
+            # fix for the case when the user tries to
+            # compare values like maxv=500 nv=0600
+            set nv [format "%g" $nv]
+            set maxv [format "%g" $maxv]
 
-	    if {$nv > $maxv} {
-		error "maximum value allowed here is $convMaxVal"
-	    }
-	}
+            if {$nv > $maxv} {
+                error "maximum value allowed here is $convMaxVal"
+            }
+        }
 
-	if {$onlycheck} {
-	    return
-	}
+        if {$onlycheck} {
+            return
+        }
 
-	set _value $newval
+        set _value $newval
 
-	_redraw
-	event generate $itk_component(hull) <<Value>>
+        _redraw
+        event generate $itk_component(hull) <<Value>>
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_value
 }
@@ -314,27 +314,27 @@ itcl::body Rappture::Gauge::value {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::edit {option} {
     if {$itk_option(-state) == "disabled"} {
-	return  ;# disabled? then bail out here!
+        return  ;# disabled? then bail out here!
     }
     switch -- $option {
-	cut {
-	    edit copy
-	    _editor popup
-	    $itk_component(editor) value ""
-	    $itk_component(editor) deactivate
-	}
-	copy {
-	    clipboard clear
-	    clipboard append $_value
-	}
-	paste {
-	    _editor popup
-	    $itk_component(editor) value [clipboard get]
-	    $itk_component(editor) deactivate
-	}
-	default {
-	    error "bad option \"$option\": should be cut, copy, paste"
-	}
+        cut {
+            edit copy
+            _editor popup
+            $itk_component(editor) value ""
+            $itk_component(editor) deactivate
+        }
+        copy {
+            clipboard clear
+            clipboard append $_value
+        }
+        paste {
+            _editor popup
+            $itk_component(editor) value [clipboard get]
+            $itk_component(editor) deactivate
+        }
+        default {
+            error "bad option \"$option\": should be cut, copy, paste"
+        }
     }
 }
 
@@ -348,20 +348,20 @@ itcl::body Rappture::Gauge::edit {option} {
 itcl::body Rappture::Gauge::bump {delta} {
     set val $_value
     if {$val == ""} {
-	set val 0
+        set val 0
     }
     if {[catch {value [expr {$val+$delta}]} result]} {
-	if {[regexp {allowed here is (.+)} $result match newval]} {
-	    set _value $newval
-	    $itk_component(value) configure -text $newval
-	}
-	if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
-	      || [regexp {(.)(.+)} $result match first tail]} {
-	    set result "[string toupper $first]$tail"
-	}
-	bell
-	Rappture::Tooltip::cue $itk_component(value) $result
-	return 0
+        if {[regexp {allowed here is (.+)} $result match newval]} {
+            set _value $newval
+            $itk_component(value) configure -text $newval
+        }
+        if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
+              || [regexp {(.)(.+)} $result match first tail]} {
+            set result "[string toupper $first]$tail"
+        }
+        bell
+        Rappture::Tooltip::cue $itk_component(value) $result
+        return 0
     }
 }
 
@@ -379,16 +379,16 @@ itcl::body Rappture::Gauge::_redraw {} {
     set h [winfo height $c]
 
     if {"" == [$c find all]} {
-	# first time around, create the items
-	$c create rectangle 0 0 1 1 -outline black -tags block
-	$c create image 0 0 -anchor center -image "" -tags bimage
-	$c create rectangle 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags screen
+        # first time around, create the items
+        $c create rectangle 0 0 1 1 -outline black -tags block
+        $c create image 0 0 -anchor center -image "" -tags bimage
+        $c create rectangle 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags screen
     }
 
     if {"" != $itk_option(-spectrum)} {
-	set color [$itk_option(-spectrum) get $_value]
+        set color [$itk_option(-spectrum) get $_value]
     } else {
-	set color ""
+        set color ""
     }
 
     # update the items based on current values
@@ -399,9 +399,9 @@ itcl::body Rappture::Gauge::_redraw {} {
     $c coords bimage [expr {0.5*$w}] [expr {0.5*$h}]
 
     if {$itk_option(-state) == "disabled"} {
-	$c itemconfigure screen -fill white
+        $c itemconfigure screen -fill white
     } else {
-	$c itemconfigure screen -fill ""
+        $c itemconfigure screen -fill ""
     }
 }
 
@@ -416,29 +416,29 @@ itcl::body Rappture::Gauge::_resize {} {
     set h 0
 
     if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
-	if {$itk_option(-samplewidth) > 0} {
-	    set w $itk_option(-samplewidth)
-	} else {
-	    if {$itk_option(-image) != ""} {
-		set w [expr {[image width $itk_option(-image)]+4}]
-	    } else {
-		set w [winfo reqheight $itk_component(value)]
-	    }
-	}
+        if {$itk_option(-samplewidth) > 0} {
+            set w $itk_option(-samplewidth)
+        } else {
+            if {$itk_option(-image) != ""} {
+                set w [expr {[image width $itk_option(-image)]+4}]
+            } else {
+                set w [winfo reqheight $itk_component(value)]
+            }
+        }
 
-	if {$itk_option(-sampleheight) > 0} {
-	    set h $itk_option(-sampleheight)
-	} else {
-	    if {$itk_option(-image) != ""} {
-		set h [expr {[image height $itk_option(-image)]+4}]
-	    } else {
-		set h [winfo reqheight $itk_component(value)]
-	    }
-	}
+        if {$itk_option(-sampleheight) > 0} {
+            set h $itk_option(-sampleheight)
+        } else {
+            if {$itk_option(-image) != ""} {
+                set h [expr {[image height $itk_option(-image)]+4}]
+            } else {
+                set h [winfo reqheight $itk_component(value)]
+            }
+        }
     }
 
     if {$w > 0 && $h > 0} {
-	$itk_component(icon) configure -width $w -height $h
+        $itk_component(icon) configure -width $w -height $h
     }
 }
 
@@ -450,17 +450,17 @@ itcl::body Rappture::Gauge::_resize {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_hilite {comp state} {
     if {$itk_option(-state) == "disabled"} {
-	set state 0  ;# disabled? then don't hilite
+        set state 0  ;# disabled? then don't hilite
     }
     if {$comp == "value" && !$itk_option(-editable)} {
-	$itk_component(value) configure -relief flat
-	return
+        $itk_component(value) configure -relief flat
+        return
     }
 
     if {$state} {
-	$itk_component($comp) configure -relief solid
+        $itk_component($comp) configure -relief solid
     } else {
-	$itk_component($comp) configure -relief flat
+        $itk_component($comp) configure -relief flat
     }
 }
 
@@ -476,52 +476,52 @@ itcl::body Rappture::Gauge::_hilite {comp state} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_editor {option args} {
     if {$itk_option(-state) == "disabled"} {
-	return  ;# disabled? then bail out here!
+        return  ;# disabled? then bail out here!
     }
     switch -- $option {
-	popup {
-	    if {$itk_option(-editable)} {
-		$itk_component(editor) activate
-	    }
-	}
-	activate {
-	    return [list text $_value \
-		x [winfo rootx $itk_component(value)] \
-		y [winfo rooty $itk_component(value)] \
-		w [winfo width $itk_component(value)] \
-		h [winfo height $itk_component(value)]]
-	}
-	validate {
-	    if {[llength $args] != 1} {
-		error "wrong # args: should be \"_editor validate val\""
-	    }
-	    set val [lindex $args 0]
+        popup {
+            if {$itk_option(-editable)} {
+                $itk_component(editor) activate
+            }
+        }
+        activate {
+            return [list text $_value \
+                x [winfo rootx $itk_component(value)] \
+                y [winfo rooty $itk_component(value)] \
+                w [winfo width $itk_component(value)] \
+                h [winfo height $itk_component(value)]]
+        }
+        validate {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"_editor validate val\""
+            }
+            set val [lindex $args 0]
 
-	    if {[catch {value -check $val} result]} {
-		if {[regexp {allowed here is (.+)} $result match newval]} {
-		    $itk_component(editor) value $newval
-		}
-		if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
-		      || [regexp {(.)(.+)} $result match first tail]} {
-		    set result "[string toupper $first]$tail"
-		}
-		bell
-		Rappture::Tooltip::cue $itk_component(editor) $result
-		return 0
-	    }
-	}
-	apply {
-	    if {[llength $args] != 1} {
-		error "wrong # args: should be \"_editor apply val\""
-	    }
-	    value [lindex $args 0]
-	}
-	menu {
-	    eval tk_popup $itk_component(emenu) $args
-	}
-	default {
-	    error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
-	}
+            if {[catch {value -check $val} result]} {
+                if {[regexp {allowed here is (.+)} $result match newval]} {
+                    $itk_component(editor) value $newval
+                }
+                if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
+                      || [regexp {(.)(.+)} $result match first tail]} {
+                    set result "[string toupper $first]$tail"
+                }
+                bell
+                Rappture::Tooltip::cue $itk_component(editor) $result
+                return 0
+            }
+        }
+        apply {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"_editor apply val\""
+            }
+            value [lindex $args 0]
+        }
+        menu {
+            eval tk_popup $itk_component(emenu) $args
+        }
+        default {
+            error "bad option \"$option\": should be popup, activate, validate, apply, and menu"
+        }
     }
 }
 
@@ -538,26 +538,26 @@ itcl::body Rappture::Gauge::_editor {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_presets {option} {
     switch -- $option {
-	post {
-	    set i [$itk_component(presetlist) index $_value]
-	    if {$i >= 0} {
-		$itk_component(presetlist) select clear 0 end
-		$itk_component(presetlist) select set $i
-	    }
-	    after 10 [list $itk_component(presets) configure -relief sunken]
-	}
-	unpost {
-	    $itk_component(presets) configure -relief flat
-	}
-	select {
-	    set val [$itk_component(presetlist) current]
-	    if {"" != $val} {
-		value $val
-	    }
-	}
-	default {
-	    error "bad option \"$option\": should be post, unpost, select"
-	}
+        post {
+            set i [$itk_component(presetlist) index $_value]
+            if {$i >= 0} {
+                $itk_component(presetlist) select clear 0 end
+                $itk_component(presetlist) select set $i
+            }
+            after 10 [list $itk_component(presets) configure -relief sunken]
+        }
+        unpost {
+            $itk_component(presets) configure -relief flat
+        }
+        select {
+            set val [$itk_component(presetlist) current]
+            if {"" != $val} {
+                value $val
+            }
+        }
+        default {
+            error "bad option \"$option\": should be post, unpost, select"
+        }
     }
 }
 
@@ -571,22 +571,22 @@ itcl::body Rappture::Gauge::_presets {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Gauge::_layout {} {
     foreach w [pack slaves $itk_component(hull)] {
-	pack forget $w
+        pack forget $w
     }
 
     array set side2anchor {
-	left   e
-	right  w
-	top    s
-	bottom n
+        left   e
+        right  w
+        top    s
+        bottom n
     }
     set pos $itk_option(-valueposition)
     pack $itk_component(vframe) -side $pos \
-	-expand yes -fill both -ipadx 2
+        -expand yes -fill both -ipadx 2
     $itk_component(value) configure -anchor $side2anchor($pos)
 
     if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
-	pack $itk_component(icon) -side $pos
+        pack $itk_component(icon) -side $pos
     }
 }
 
@@ -595,10 +595,10 @@ itcl::body Rappture::Gauge::_layout {} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::editable {
     if {![string is boolean -strict $itk_option(-editable)]} {
-	error "bad value \"$itk_option(-editable)\": should be boolean"
+        error "bad value \"$itk_option(-editable)\": should be boolean"
     }
     if {!$itk_option(-editable) && [winfo ismapped $itk_component(editor)]} {
-	$itk_component(editor) deactivate -abort
+        $itk_component(editor) deactivate -abort
     }
 }
 
@@ -608,7 +608,7 @@ itcl::configbody Rappture::Gauge::editable {
 itcl::configbody Rappture::Gauge::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(value) configure -state $itk_option(-state)
     $itk_component(spinup) configure -state $itk_option(-state)
@@ -622,9 +622,9 @@ itcl::configbody Rappture::Gauge::state {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::spectrum {
     if {$itk_option(-spectrum) != ""
-	  && ([catch {$itk_option(-spectrum) isa ::Rappture::Spectrum} valid]
-	       || !$valid)} {
-	error "bad option \"$itk_option(-spectrum)\": should be Rappture::Spectrum object"
+          && ([catch {$itk_option(-spectrum) isa ::Rappture::Spectrum} valid]
+               || !$valid)} {
+        error "bad option \"$itk_option(-spectrum)\": should be Rappture::Spectrum object"
     }
     _resize
     _layout
@@ -636,8 +636,8 @@ itcl::configbody Rappture::Gauge::spectrum {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::image {
     if {$itk_option(-image) != ""
-	  && [catch {image width $itk_option(-image)}]} {
-	error "bad value \"$itk_option(-image)\": should be Tk image"
+          && [catch {image width $itk_option(-image)}]} {
+        error "bad value \"$itk_option(-image)\": should be Tk image"
     }
     _resize
     _layout
@@ -649,8 +649,8 @@ itcl::configbody Rappture::Gauge::image {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::units {
     if {$itk_option(-units) != ""
-	  && [::Rappture::Units::System::for $itk_option(-units)] == ""} {
-	error "unrecognized system of units \"$itk_option(-units)\""
+          && [::Rappture::Units::System::for $itk_option(-units)] == ""} {
+        error "unrecognized system of units \"$itk_option(-units)\""
     }
 }
 
@@ -661,7 +661,7 @@ itcl::configbody Rappture::Gauge::valueposition {
     set pos $itk_option(-valueposition)
     set opts {left right top bottom}
     if {[lsearch -exact $opts $pos] < 0} {
-	error "bad value \"$pos\": should be [join $opts {, }]"
+        error "bad value \"$pos\": should be [join $opts {, }]"
     }
     _layout
 }
@@ -671,18 +671,18 @@ itcl::configbody Rappture::Gauge::valueposition {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::presets {
     if {"" == $itk_option(-presets)} {
-	pack forget $itk_component(presets)
+        pack forget $itk_component(presets)
     } else {
-	if {$itk_option(-valueposition) == "left"} {
-	    set s "left"
-	} else {
-	    set s "right"
-	}
-	set first [lindex [pack slaves $itk_component(vframe)] 0]
-	pack $itk_component(presets) -before $first -side $s -fill y
+        if {$itk_option(-valueposition) == "left"} {
+            set s "left"
+        } else {
+            set s "right"
+        }
+        set first [lindex [pack slaves $itk_component(vframe)] 0]
+        pack $itk_component(presets) -before $first -side $s -fill y
 
-	$itk_component(presetlist) delete 0 end
-	$itk_component(presetlist) insert end $itk_option(-presets)
+        $itk_component(presetlist) delete 0 end
+        $itk_component(presetlist) insert end $itk_option(-presets)
     }
 }
 
@@ -691,19 +691,19 @@ itcl::configbody Rappture::Gauge::presets {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Gauge::type {
     switch -- $itk_option(-type) {
-	integer {
-	    set first [lindex [pack slaves $itk_component(vframe)] 0]
-	    if {$first == $itk_component(presets)} {
-		pack $itk_component(spinner) -after $first -side left -fill y
-	    } else {
-		pack $itk_component(spinner) -before $first -side right -fill y
-	    }
-	}
-	real {
-	    pack forget $itk_component(spinner)
-	}
-	default {
-	    error "bad number type \"$itk_option(-type)\": should be integer or real"
-	}
+        integer {
+            set first [lindex [pack slaves $itk_component(vframe)] 0]
+            if {$first == $itk_component(presets)} {
+                pack $itk_component(spinner) -after $first -side left -fill y
+            } else {
+                pack $itk_component(spinner) -before $first -side right -fill y
+            }
+        }
+        real {
+            pack forget $itk_component(spinner)
+        }
+        default {
+            error "bad number type \"$itk_option(-type)\": should be integer or real"
+        }
     }
 }

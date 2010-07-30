@@ -52,33 +52,33 @@ private:
     size_t _width;
     size_t _height;
     size_t _bitRate;
-    float _frameRate;		// frames/seconds
+    float _frameRate;                // frames/seconds
     size_t _videoOutbufSize;
     uint8_t *_videoOutbuf;
 
     size_t width(void) {
-	return _width;
+        return _width;
     }
     void width(size_t width) {
-	_width = width;
+        _width = width;
     }
     size_t height(void) {
-	return _width;
+        return _width;
     }
     void height(size_t width) {
-	_width = width;
+        _width = width;
     }
     size_t bitRate(void) {
-	return _bitRate;
+        return _bitRate;
     }
     void bitRate(size_t bitRate) {
-	_bitRate = bitRate;
+        _bitRate = bitRate;
     }
     float frameRate(void) {
-	return _frameRate;
+        return _frameRate;
     }
     void frameRate(size_t frameRate) {
-	_frameRate = frameRate;
+        _frameRate = frameRate;
     }
     AVOutputFormat *_fmtPtr;
     AVFormatContext *_ocPtr;
