@@ -80,14 +80,14 @@ IsCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     if (('b' == *type) && (strcmp(type, "binary") == 0)) {
         string = (Rappture::encoding::isBinary(buf, bufLen)) ? "yes" : "no";
     } else if (('e' == *type) && (strcmp(type,"encoded") == 0)) {
-	bool isEncoded;
+        bool isEncoded;
 
         isEncoded = (Rappture::encoding::headerFlags(buf, bufLen) != 0);
-	string = (isEncoded) ? "yes" : "no" ;
+        string = (isEncoded) ? "yes" : "no" ;
     } else {
-	Tcl_AppendResult(interp, "bad option \"", type, 
-		"\": should be binary or encoded", (char*)NULL);
-	return TCL_ERROR;
+        Tcl_AppendResult(interp, "bad option \"", type, 
+                "\": should be binary or encoded", (char*)NULL);
+        return TCL_ERROR;
     }
     Tcl_SetResult(interp, (char *)string, TCL_STATIC);
     return TCL_OK;
@@ -113,24 +113,24 @@ IsCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
  *
  * AsSwitch --
  *
- *	Convert a string represent a node number into its integer
- *	value.
+ *        Convert a string represent a node number into its integer
+ *        value.
  *
  * Results:
- *	The return value is a standard Tcl result.
+ *        The return value is a standard Tcl result.
  *
  *---------------------------------------------------------------------------
  */
 /*ARGSUSED*/
 static int
 AsSwitch(
-    ClientData clientData,	/* Not used. */
-    Tcl_Interp *interp,		/* Interpreter to send results back to */
-    const char *switchName,	/* Not used. */
-    Tcl_Obj *objPtr,		/* String representation */
-    char *record,		/* Structure record */
-    int offset,			/* Offset to field in structure */
-    int flags)			/* Not used. */
+    ClientData clientData,        /* Not used. */
+    Tcl_Interp *interp,                /* Interpreter to send results back to */
+    const char *switchName,        /* Not used. */
+    Tcl_Obj *objPtr,                /* String representation */
+    char *record,                /* Structure record */
+    int offset,                        /* Offset to field in structure */
+    int flags)                        /* Not used. */
 {
     int *flagsPtr = (int *)(record + offset);
     char c;
@@ -139,15 +139,15 @@ AsSwitch(
     string = Tcl_GetString(objPtr);
     c = string[0];
     if ((c == 'b') && (strcmp(string, "b64") == 0)) {
-	*flagsPtr = RPENC_B64;
+        *flagsPtr = RPENC_B64;
     } else if ((c == 'z') && (strcmp(string, "zb64") == 0)) {
-	*flagsPtr = RPENC_Z  | RPENC_B64;
+        *flagsPtr = RPENC_Z  | RPENC_B64;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-	*flagsPtr = RPENC_Z;
+        *flagsPtr = RPENC_Z;
     } else {
-	Tcl_AppendResult(interp, "bad value \"", string, 
-		 "\": should be b64, zb64, or z", (char *)NULL);
-	return TCL_ERROR;
+        Tcl_AppendResult(interp, "bad value \"", string, 
+                 "\": should be b64, zb64, or z", (char *)NULL);
+        return TCL_ERROR;
     }
     return TCL_OK;
 }
@@ -164,52 +164,52 @@ typedef struct {
 static SwitchSpec encodeSwitches[] = 
 {
     {SWITCH_CUSTOM, "-as", "z|b64|zb64",
-	offsetof(EncodeSwitches, flags), 0, 0, &asSwitch},
+        offsetof(EncodeSwitches, flags), 0, 0, &asSwitch},
     {SWITCH_BITMASK, "-noheader", "", 
-	offsetof(EncodeSwitches, flags), 0, RPENC_RAW},
+        offsetof(EncodeSwitches, flags), 0, RPENC_RAW},
     {SWITCH_END}
 };
 
 static int
 EncodeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+          Tcl_Obj *const *objv)
 {
     if (objc < 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]), 
-		" ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
+                Tcl_GetString(objv[0]), 
+                " ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
     EncodeSwitches switches;
     switches.flags = 0;
     int n;
     n = Rp_ParseSwitches(interp, encodeSwitches, objc - 1, objv + 1, &switches,
-			 SWITCH_OBJV_PARTIAL);
+                         SWITCH_OBJV_PARTIAL);
     if (n < 0) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     int last;
     last = n + 1;
     if ((objc - last) != 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]), 
-		" ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
+                Tcl_GetString(objv[0]), 
+                " ?-as z|b64|zb64? ?-noheader? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
     int nBytes;
     const char* string;
     string = (const char*)Tcl_GetByteArrayFromObj(objv[last], &nBytes);
     if (nBytes <= 0) {
-	return TCL_OK;		// Nothing to encode.
+        return TCL_OK;                // Nothing to encode.
     }
     Rappture::Buffer buf(string, nBytes);
     Rappture::Outcome status;
     if (!Rappture::encoding::encode(status, buf, switches.flags)) {
         Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     Tcl_SetByteArrayObj(Tcl_GetObjResult(interp), 
-		(const unsigned char*)buf.bytes(), buf.size());
+                (const unsigned char*)buf.bytes(), buf.size());
     return TCL_OK;
 }
 
@@ -224,9 +224,9 @@ EncodeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * Full function call:
  * ::Rappture::encoding::decode ?-as z|b64|zb64? <string>
  *
- *	I'd rather the interface be
- *	
- *		decode -b64 -z string 
+ *        I'd rather the interface be
+ *        
+ *                decode -b64 -z string 
  */
 
 typedef struct {
@@ -236,19 +236,19 @@ typedef struct {
 static SwitchSpec decodeSwitches[] = 
 {
     {SWITCH_CUSTOM, "-as", "z|b64|zb64",
-	offsetof(DecodeSwitches, flags), 0, 0, &asSwitch},
+        offsetof(DecodeSwitches, flags), 0, 0, &asSwitch},
     {SWITCH_BITMASK, "-noheader", "", 
-	offsetof(DecodeSwitches, flags), 0, RPENC_RAW},
+        offsetof(DecodeSwitches, flags), 0, RPENC_RAW},
     {SWITCH_END}
 };
 
 static int
 DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+          Tcl_Obj *const *objv)
 {
     if (objc < 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]),
+                Tcl_GetString(objv[0]),
                 " ?-as z|b64|zb64? ?--? <string>\"", (char*)NULL);
         return TCL_ERROR;
     }
@@ -257,31 +257,31 @@ DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     switches.flags = 0;
     int n;
     n = Rp_ParseSwitches(interp, decodeSwitches, objc - 1, objv + 1, &switches,
-			 SWITCH_OBJV_PARTIAL);
+                         SWITCH_OBJV_PARTIAL);
     if (n < 0) {
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     int last;
     last = n + 1;
     if ((objc - last) != 1) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
-		Tcl_GetString(objv[0]), 
-		" ?-as z|b64|zb64? ?--? string\"", (char*)NULL);
+                Tcl_GetString(objv[0]), 
+                " ?-as z|b64|zb64? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
     int nBytes;
     const char* string;
     string = (const char*)Tcl_GetByteArrayFromObj(objv[last], &nBytes);
     if (nBytes <= 0) {
-	return TCL_OK;		// Nothing to decode.
+        return TCL_OK;                // Nothing to decode.
     }
     Rappture::Buffer buf(string, nBytes); 
     Rappture::Outcome status;
     if (!Rappture::encoding::decode(status, buf, switches.flags)) {
         Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
-	return TCL_ERROR;
+        return TCL_ERROR;
     }
     Tcl_SetByteArrayObj(Tcl_GetObjResult(interp), 
-		(const unsigned char*)buf.bytes(), buf.size());
+                (const unsigned char*)buf.bytes(), buf.size());
     return TCL_OK;
 }

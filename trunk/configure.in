@@ -721,6 +721,7 @@ AC_CONFIG_FILES([
     examples/app-fermi/tcl/Makefile
     examples/app-fermi/wrapper/Makefile
     examples/app-fermi/wrapper/cee/Makefile
+    examples/app-fermi/wrapper/perl/Makefile
     examples/app-fermi/wrapper/python/Makefile
     examples/app-fermi/wrapper/tcl/Makefile
     examples/c-example/Makefile

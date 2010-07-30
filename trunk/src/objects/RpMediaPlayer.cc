@@ -217,7 +217,11 @@ MediaPlayer::read(Outcome &status, SimpleCharBuffer *b[], size_t nframes)
                               _pFrameRGB->data, _pFrameRGB->linesize);
 
                     // Save the frame to the SimpleBuffer object
-                    __frame2ppm(b[frameCount]);
+                    // FIXME:
+                    // should be b[frameCount] but operator[] was
+                    // overloaded in Rappture::SimpleBuffer, and I
+                    // think it is causing problems
+                    __frame2ppm(*b+frameCount);
                     frameCount++;
                 }
                 frameIndex++;

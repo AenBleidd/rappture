@@ -748,7 +748,7 @@ SimpleBuffer<T>::tell() const
 
 
 /**
- * Read data from the buffer into a memory location provided by caller
+ * Move the internal position tracker to the beginning of the buffer.
  */
 template<class T>
 SimpleBuffer<T>&
