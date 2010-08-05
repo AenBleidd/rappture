@@ -149,7 +149,7 @@ itcl::body Rappture::Field2DResult::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field2DResult::download {option args} {
-    $itk_component(renderer) download $option
+    eval $itk_component(renderer) download $option $args
 }
 
 itcl::body Rappture::Field2DResult::snap { w h } {
