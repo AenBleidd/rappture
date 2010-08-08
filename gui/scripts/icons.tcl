@@ -13,7 +13,7 @@
 # ======================================================================
 
 namespace eval Rappture::icon {
-    variable iconpath [file join $RapptureGUI::library scripts images]
+    variable iconpath [list [file join $RapptureGUI::library scripts images]]
     variable icons
 }
 
