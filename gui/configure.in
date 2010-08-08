@@ -1,0 +1,124 @@
+
+AC_INIT([Rappture],[1.1],[rappture@nanohub.org])
+
+#------------------------------------------------------------------------
+# Handle the --prefix=... option
+#------------------------------------------------------------------------
+
+if test "${prefix}" = "NONE"; then
+    prefix=/usr/local
+fi
+if test "${exec_prefix}" = "NONE"; then
+    exec_prefix=$prefix
+fi
+
+if test "${libdir}" != "${prefix}/lib"; then
+    LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
+else
+    LIB_SEARCH_DIRS="-L${libdir}"
+fi
+
+AC_SUBST(LIB_SEARCH_DIRS)
+
+AC_PROG_INSTALL
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_PROG_LN_S
+AC_PROG_MKDIR_P
+AC_PROG_MAKE_SET
+
+make_command=""
+for m in "$MAKE" make gmake gnumake ; do
+  if test "x${m}" != "x" ; then
+    if  ( sh -c "$m --version" 2>/dev/null | grep GNU >/dev/null ) ; then
+      make_command=$m; break;
+    fi
+  fi
+done
+if test "x${make_command}" = "x" ; then
+  AC_MSG_ERROR([Requires GNU make. You can specify a version with \$MAKE])
+fi
+AC_SUBST(MAKE, ${make_command})
+
+AC_ARG_ENABLE(
+    [gui],
+    [AS_HELP_STRING([--enable-gui], [build code related to the graphical user interface @<:@default=yes@:>@])],
+    [],
+    [enable_gui=yes])
+
+ENABLE_GUI=
+if test "$enable_gui" != "no" ; then
+    ENABLE_GUI="yes"
+fi
+AC_SUBST(ENABLE_GUI)
+
+with_tclsh="yes"
+AC_ARG_WITH(
+    [tclsh],
+    [AS_HELP_STRING([--with-tclsh[=DIR]],
+        [location of tclsh @<:@default=yes@:>@])],
+    [],
+    [with_tclsh=yes])
+
+TCLSH=
+if test "$with_tclsh" != "no" ; then
+    AC_MSG_CHECKING([for tclsh])
+    if test -x "$with_tclsh/bin/tclsh"
+    then
+        echo Found tclsh in $with_tclsh/bin/tclsh
+        TCLSH="$with_tclsh/bin/tclsh"
+    else
+        if test -x "$with_tclsh"
+        then
+            echo Found tclsh in $with_tclsh
+            TCLSH="$with_tclsh"
+        else
+            AC_PATH_PROG(TCLSH, tclsh)
+        fi
+    fi
+fi
+AC_MSG_RESULT([${TCLSH}])
+AC_SUBST(TCLSH)
+
+TCL_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib ; do 
+  tclconfig="${dir}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
+    . $tclconfig
+    break
+  fi
+done
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
+
+if test "x$with_tcllib" != "x" ; then
+   tclconfig="${with_tcllib}/tclConfig.sh"
+   if test -f "$tclconfig" ; then
+    . $tclconfig
+   fi
+   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
+fi
+if test "x$with_tclinclude" != "x" ; then
+   TCL_INC_SPEC="-I${with_tclinclude}"
+fi
+
+AC_SUBST(TCL_VERSION)
+AC_SUBST(TCL_INC_SPEC)
+AC_SUBST(TCL_LIB_SPEC)
+
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+  . ${exec_prefix}/lib/tclConfig.sh
+fi
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+  . ${exec_prefix}/lib/tkConfig.sh	
+fi
+AC_SUBST(TCL_VERSION)
+AC_SUBST(TK_VERSION)
+
+AC_CONFIG_FILES([
+    Makefile
+    pkgIndex.tcl
+    scripts/Makefile
+])
+AC_OUTPUT
