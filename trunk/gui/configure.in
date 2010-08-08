@@ -1,5 +1,5 @@
 
-AC_INIT([Rappture],[1.1],[rappture@nanohub.org])
+AC_INIT([RapptureGUI],[1.1],[rappture@nanohub.org])
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -119,6 +119,16 @@ AC_SUBST(TK_VERSION)
 AC_CONFIG_FILES([
     Makefile
     pkgIndex.tcl
+    apps/Makefile
+    apps/about
+    apps/encodedata
+    apps/rappture
+    apps/rappture-csh.env
+    apps/rappture.env
+    apps/rappture.use
+    apps/rerun
+    apps/simsim
+    apps/xmldiff
     scripts/Makefile
 ])
 AC_OUTPUT
