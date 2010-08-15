@@ -25,6 +25,9 @@ option add *BugReport*expl.boldFont \
     -*-helvetica-bold-r-normal-*-12-* startupFile
 
 namespace eval Rappture::bugreport {
+    # details from the current trouble report
+    variable details
+
     # assume that if there's a problem launching a job, we should know it
     variable reportJobFailures 1
 }
@@ -49,38 +52,59 @@ proc Rappture::bugreport::install {} {
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::activate {err} {
     global env errorInfo
+    variable details
 
     if {"@SHOWDETAILS" == $err} {
+        pack propagate .bugreport yes
+	pack forget .bugreport.expl
 	pack forget .bugreport.xmit
-	pack forget .bugreport.ok
+	pack forget .bugreport.done
+        pack forget .bugreport.cntls.show
+	pack .bugreport.cntls -after .bugreport.banner -side bottom -fill x
 	pack .bugreport.details -after .bugreport.banner \
 	    -expand yes -fill both -padx 8 -pady 8
-	focus .bugreport.details.cntls.ok
 	return
     }
 
-    # always fill in details so we can submit trouble reports later
+    pack propagate .bugreport yes
+    pack forget .bugreport.details
+    pack forget .bugreport.xmit
+    pack forget .bugreport.done
+    pack .bugreport.cntls.show -side right
+    pack .bugreport.cntls -after .bugreport.banner -side bottom -fill x
+    pack .bugreport.expl -after .bugreport.banner \
+        -expand yes -fill both -padx 8 -pady 8
+
+    .bugreport.expl configure -state normal
+    .bugreport.expl delete 1.0 end
+
+    set url [Rappture::Tool::resources -huburl]
+    if {"" != $url} {
+        .bugreport.expl insert end "Something went wrong with this tool.  Help us understand what happened by submitting a trouble report, so we can fix the problem.  If you continue having trouble with this tool, please close it and restart."
+        .bugreport.cntls.send configure -state normal
+	focus .bugreport.cntls.send
+    } else {
+        .bugreport.expl insert end "Something went wrong with this tool.  We would ask you to submit a trouble report about the error, but we can't tell what hub it should be submitted to.  If you continue having trouble with this tool, please close it and restart."
+        .bugreport.cntls.send configure -state disabled
+	focus .bugreport.cntls.ok
+    }
+    fixTextHeight .bugreport.expl
+    .bugreport.expl configure -state disabled
+
+    # gather details so we can submit trouble reports later
+    register $err
+
     .bugreport.details.info.text configure -state normal
     .bugreport.details.info.text delete 1.0 end
-    .bugreport.details.info.text insert end "$err\n-----\n$errorInfo"
+    .bugreport.details.info.text insert end "    USER: $details(login)\n"
+    .bugreport.details.info.text insert end "HOSTNAME: $details(hostname)\n"
+    .bugreport.details.info.text insert end "    TOOL: $details(referrer)\n"
+    .bugreport.details.info.text insert end " SESSION: $details(session)\n"
+    .bugreport.details.info.text insert end "CATEGORY: $details(category)\n"
+    .bugreport.details.info.text insert end " SUMMARY: $details(summary)\n"
+    .bugreport.details.info.text insert end "---------\n"
+    .bugreport.details.info.text insert end $details(stackTrace)
     .bugreport.details.info.text configure -state disabled
-
-    if {[shouldReport for oops]} {
-	pack forget .bugreport.details
-	pack forget .bugreport.expl
-	pack .bugreport.ok -side bottom -after .bugreport.banner -pady {0 8}
-	pack .bugreport.xmit -after .bugreport.ok -padx 8 -pady 8
-	focus .bugreport.ok
-	set dosubmit 1
-    } else {
-	pack forget .bugreport.expl
-	pack forget .bugreport.xmit
-	pack forget .bugreport.ok
-	pack .bugreport.details -after .bugreport.banner \
-	    -expand yes -fill both -padx 8 -pady 8
-	focus .bugreport.details.cntls.ok
-	set dosubmit 0
-    }
 
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
@@ -93,10 +117,6 @@ proc Rappture::bugreport::activate {err} {
 
     catch {grab set .bugreport}
     update
-
-    if {$dosubmit} {
-	submit
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -122,19 +142,21 @@ proc Rappture::bugreport::deactivate {} {
 proc Rappture::bugreport::submit {} {
     set info [.bugreport.details.info.text get 1.0 end]
 
+    pack propagate .bugreport no
     pack forget .bugreport.details
-    pack .bugreport.ok -side bottom -after .bugreport.banner -pady {0 8}
-    pack .bugreport.xmit -after .bugreport.ok -padx 8 -pady 8
+    pack forget .bugreport.expl
+    pack forget .bugreport.cntls
+    pack .bugreport.xmit -after .bugreport.banner -padx 8 -pady 8
     .bugreport.xmit.title configure -text "Sending trouble report to [Rappture::Tool::resources -hubname]..."
-    focus .bugreport.ok
 
     # send off the trouble report...
     .bugreport.xmit.icon start
-    set status [catch {register $info} result]
+    set status [catch send result]
     .bugreport.xmit.icon stop
 
+    pack propagate .bugreport yes
     pack forget .bugreport.xmit
-    pack .bugreport.expl -after .bugreport.ok -padx 8 -pady 8
+    pack .bugreport.expl -after .bugreport.banner -padx 8 -pady 8
     .bugreport.expl configure -state normal
     .bugreport.expl delete 1.0 end
 
@@ -145,54 +167,39 @@ proc Rappture::bugreport::submit {} {
 	.bugreport.details.info.text insert 1.0 "Ticket submission failed:\n$result\n-----\n"
 	.bugreport.details.info.text configure -state disabled
 
-	.bugreport.expl insert end "This tool encountered an unexpected error.  We tried to submit a trouble report automatically, but that failed.  If you want to report this incident, you can file your own trouble report.  Look for the \"Help\" or \"Support\" links on the main navigation bar of the web site.\n\nIf you continue having trouble with this tool, please close it and launch another session."
+	.bugreport.expl insert end "Oops! Ticket submission failed:\n$result\n\nIf you want to report the original problem, you can file your own trouble report by going to the web site and clicking on the \"Help\" or \"Support\" link on the main navigation bar.  If you continue having trouble with this tool, please close it and restart."
     } elseif {[regexp {Ticket #([0-9]*) +\((.*?)\) +([0-9]+) +times} $result match ticket extra times]} {
-	.bugreport.expl insert end "This tool encountered an unexpected error.  The problem has been reported as " "" "Ticket #$ticket" bold " in our system." ""
+	.bugreport.expl insert end "This problem has been reported as " "" "Ticket #$ticket" bold " in our system." ""
 	if {[string is integer $times] && $times > 1} {
 	    .bugreport.expl insert end "  This particular problem has been reported $times times."
 	}
-	.bugreport.expl insert end "\n\nIf you continue having trouble with this tool, please close it and launch another session."
+	.bugreport.expl insert end "\n\nIf you continue having trouble with this tool, please close it and restart.  Thanks for reporting the problem and helping us improve things!"
     } else {
-	.bugreport.expl insert end "This tool encountered an unexpected error, and the problem was reported.  Here is the response from the hub, which may contain information about your ticket:\n" "" $result bold "\n\nIf you continue having trouble with this tool, please close it and launch another session." ""
+	.bugreport.expl insert end "This problem has been reported.  Here is the response from the hub, which may contain information about your ticket:\n" "" $result bold "\n\nIf you continue having trouble with this tool, please close it and restart.  Thanks for reporting the problem and helping us improve things!" ""
     }
-    for {set h 1} {$h < 50} {incr h} {
-	.bugreport.expl configure -height $h
-	.bugreport.expl see 1.0
-	update idletasks
-	if {"" != [.bugreport.expl bbox end-1char]} {
-	    break
-	}
-    }
+    fixTextHeight .bugreport.expl
     .bugreport.expl configure -state disabled
+    pack .bugreport.done -side bottom -padx 8 -pady 8
+    focus .bugreport.done
 }
 
 # ----------------------------------------------------------------------
-# USAGE: download
+# USAGE: register <err>
 #
-# Used to download the current ticket information to the user's
-# desktop.
+# Low-level function used to capture information about a bug report
+# prior to calling "send", which actually sends the ticket.  We usually
+# let the user preview the information and decide whether or not to
+# send the ticket.
 # ----------------------------------------------------------------------
-proc Rappture::bugreport::download {} {
-    set info [.bugreport.details.info.text get 1.0 end]
-    Rappture::filexfer::download $info bugreport.txt
-}
+proc Rappture::bugreport::register {err} {
+    global errorInfo tcl_platform
+    variable details
 
-# ----------------------------------------------------------------------
-# USAGE: register <stackTrace>
-#
-# Low-level function used to send bug reports back to the hub site.
-# Error details in the <stackTrace> are posted to a URL that creates
-# a support ticket.  Returns a string of the following form,
-# representing details about the new or existing ticket:
-#   Ticket #XX (XXXXXX) XX times
-# ----------------------------------------------------------------------
-proc Rappture::bugreport::register {stackTrace} {
-    global env tcl_platform
-
-    package require http
-    package require tls
-    http::register https 443 ::tls::socket
-
+    #
+    # Figure out exactly what we'll send if the bug report is
+    # submitted, so we can show the user.
+    #
+    set stackTrace "$err\n---------\n$errorInfo"
     if {![regexp {^([^\n]+)\n} $stackTrace match summary]} {
 	if {[string length $stackTrace] == 0} {
 	    set summary "Unexpected error from Rappture"
@@ -245,17 +252,42 @@ proc Rappture::bugreport::register {stackTrace} {
 	}
     }
 
+    set details(summary) $summary
+    set details(category) $category
+    set details(stackTrace) $stackTrace
+    set details(login) $tcl_platform(user)
+    set details(hostname) [info hostname]
+    set details(session) [Rappture::Tool::resources -session]
+    set details(referrer) "tool \"[Rappture::Tool::resources -appname]\""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: send
+#
+# Low-level function used to send bug reports back to the hub site.
+# Error details gathered by a previous call to "register" are sent
+# along as a support ticket.  Returns a string of the following form,
+# representing details about the new or existing ticket:
+#   Ticket #XX (XXXXXX) XX times
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::send {} {
+    variable details
+
+    package require http
+    package require tls
+    http::register https 443 ::tls::socket
+
     set query [http::formatQuery \
 	option com_support \
 	task create \
 	no_html 1 \
-	report $stackTrace \
-	login $tcl_platform(user) \
-	sesstoken [Rappture::Tool::resources -session] \
-	hostname [info hostname] \
-	category $category \
-	summary $summary \
-	referrer "tool \"[Rappture::Tool::resources -appname]\"" \
+	report $details(stackTrace) \
+	login $details(login) \
+	sesstoken $details(session) \
+	hostname $details(hostname) \
+	category $details(category) \
+	summary $details(summary) \
+	referrer $details(referrer) \
     ]
     
     set url [Rappture::Tool::resources -huburl]
@@ -265,19 +297,37 @@ proc Rappture::bugreport::register {stackTrace} {
 	append url "/index.php"
     }
 
-    set token [http::geturl $url -query $query -timeout 60000]
+#    set token [http::geturl $url -query $query -timeout 60000]
 
-    if {[http::ncode $token] != 200} {
-	error [http::code $token]
-    }
-    upvar #0 $token rval
-    set info $rval(body)
-    http::cleanup $token
+#    if {[http::ncode $token] != 200} {
+#	error [http::code $token]
+#    }
+#    upvar #0 $token rval
+#    set info $rval(body)
+#    http::cleanup $token
+set info "foo bar"
 
     if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
 	return $match
     }
     error "Report received, but ticket may not have been filed.  Here's the result...\n$info"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: fixTextHeight <widget>
+#
+# Used internally to adjust the height of a text widget so it is just
+# tall enough to show the info within it.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::fixTextHeight {widget} {
+    for {set h 1} {$h < 50} {incr h} {
+	$widget configure -height $h
+	$widget see 1.0
+	update idletasks
+	if {"" != [$widget bbox end-1char]} {
+	    break
+	}
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -303,12 +353,6 @@ proc Rappture::bugreport::shouldReport {option value} {
 	    set reportJobFailures $value
 	}
 	for {
-	    # is this a tool in production?
-	    if {![info exists env(RAPPTURE_VERSION)]
-		  || $env(RAPPTURE_VERSION) != "current"} {
-		return 0
-	    }
-
 	    # is it being run within a workspace?
 	    set appname [Rappture::Tool::resources -appname]
 	    if {[string match {[Ww]orkspace*} $appname]} {
@@ -342,7 +386,7 @@ frame .bugreport.banner -background #a9a9a9
 pack .bugreport.banner -side top -fill x
 label .bugreport.banner.icon -image [Rappture::icon alert]
 pack .bugreport.banner.icon -side left -padx 2 -pady 2
-label .bugreport.banner.title -text "Oops! Unexpected Error"
+label .bugreport.banner.title -text "Oops! Internal Error"
 pack .bugreport.banner.title -side left -padx {0 8} -pady 2
 
 # add these frustration bindings in case the "Dismiss" button is off screen
@@ -351,8 +395,31 @@ bind .bugreport.banner.icon <Double-ButtonPress-1> \
 bind .bugreport.banner.title <Double-ButtonPress-1> \
     Rappture::bugreport::deactivate
 
-button .bugreport.ok -text "Dismiss" -command Rappture::bugreport::deactivate
-pack .bugreport.ok -side bottom -pady {0 8}
+text .bugreport.expl -borderwidth 0 -highlightthickness 0 -wrap word
+.bugreport.expl tag configure bold \
+    -font [option get .bugreport.expl boldFont Font]
+
+frame .bugreport.cntls
+pack .bugreport.cntls -side bottom -fill x
+button .bugreport.cntls.ok -text "Ignore" -command {
+    Rappture::bugreport::deactivate
+}
+pack .bugreport.cntls.ok -side left -padx {4 20} -pady 8
+button .bugreport.cntls.send -text "Send Trouble Report" -command {
+    Rappture::bugreport::submit
+}
+pack .bugreport.cntls.send -side right -padx 4 -pady 8
+
+button .bugreport.cntls.show -text "Show Details..." \
+    -command {Rappture::bugreport::activate @SHOWDETAILS}
+pack .bugreport.cntls.show -side right
+
+
+frame .bugreport.details
+Rappture::Scroller .bugreport.details.info -xscrollmode auto -yscrollmode auto
+text .bugreport.details.info.text -width 50 -height 15 -wrap none
+.bugreport.details.info contents .bugreport.details.info.text
+pack .bugreport.details.info -expand yes -fill both
 
 frame .bugreport.xmit
 Rappture::Animicon .bugreport.xmit.icon -images {
@@ -363,38 +430,8 @@ pack .bugreport.xmit.icon -side left
 label .bugreport.xmit.title -anchor w
 pack .bugreport.xmit.title -side left -expand yes -fill x
 
-text .bugreport.expl -borderwidth 0 -highlightthickness 0 -wrap word
-.bugreport.expl tag configure bold \
-    -font [option get .bugreport.expl boldFont Font]
-
-bind .bugreport.expl <Control-1><Control-1><Control-3><Control-3> {
-    Rappture::bugreport::activate @SHOWDETAILS
-}
-
-bind .bugreport.expl <Control-1><Control-1><Control-Shift-1><Control-Shift-1> {
-    Rappture::bugreport::activate @SHOWDETAILS
-}
-
-frame .bugreport.details
-frame .bugreport.details.cntls
-pack .bugreport.details.cntls -side bottom -fill x
-button .bugreport.details.cntls.ok -text "Dismiss" -command {
-    Rappture::bugreport::deactivate
-}
-pack .bugreport.details.cntls.ok -side right -padx 2 -pady 4
-button .bugreport.details.cntls.send -text "Send Trouble Report" -command {
-    Rappture::bugreport::submit
-}
-pack .bugreport.details.cntls.send -side left -padx 2 -pady 4
-button .bugreport.details.cntls.dload -text "Download" -command {
-    Rappture::bugreport::download
-}
-pack .bugreport.details.cntls.dload -side left -padx 2 -pady 4
-
-Rappture::Scroller .bugreport.details.info -xscrollmode auto -yscrollmode auto
-text .bugreport.details.info.text -width 50 -height 15 -wrap none
-.bugreport.details.info contents .bugreport.details.info.text
-pack .bugreport.details.info -expand yes -fill both
+button .bugreport.done -text "Done" \
+    -command Rappture::bugreport::deactivate
 
 # this binding keeps the bugreport window on top
 bind BugReportOnTop <ButtonPress> {
