@@ -55,7 +55,7 @@ itcl::body Rappture::Progress::constructor {args} {
     bind $itk_component(bar) <Configure> [itcl::code $this _redraw]
 
     itk_component add message {
-	label $itk_interior.mesg -anchor w
+	label $itk_interior.mesg -anchor w -width 1
     }
 
     eval itk_initialize $args
@@ -119,7 +119,7 @@ itcl::body Rappture::Progress::_redraw {} {
 
     if {[string length $_message] > 0} {
 	$itk_component(message) configure -text $_message
-	pack $itk_component(message) -anchor w
+	pack $itk_component(message) -fill x
     } else {
 	pack forget $itk_component(message)
     }
@@ -161,5 +161,5 @@ itcl::configbody Rappture::Progress::barbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Progress::length {
     set w [winfo pixels $itk_component(hull) $itk_option(-length)]
-    component hull configure -width $w
+    $itk_component(bar) configure -width $w
 }
