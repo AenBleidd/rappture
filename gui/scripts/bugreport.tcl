@@ -10,19 +10,18 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+option add *BugReport*Label.font {Helvetica -12} startupFile
 option add *BugReport*banner*foreground white startupFile
 option add *BugReport*banner*background #a9a9a9 startupFile
 option add *BugReport*banner*highlightBackground #a9a9a9 startupFile
-option add *BugReport*banner*font \
-    -*-helvetica-bold-r-normal-*-18-* startupFile
-option add *BugReport*Label.font \
-    -*-helvetica-medium-r-normal-*-12-* startupFile
+option add *BugReport*banner.title.font {Helvetica -18 bold} startupFile
 option add *BugReport*xmit*wrapLength 3i startupFile
 option add *BugReport*expl.width 50 startupFile
-option add *BugReport*expl.font \
-    -*-helvetica-medium-r-normal-*-12-* startupFile
-option add *BugReport*expl.boldFont \
-    -*-helvetica-bold-r-normal-*-12-* startupFile
+option add *BugReport*expl.font {Helvetica -12} startupFile
+option add *BugReport*expl.boldFont {Helvetica -12 bold} startupFile
+option add *BugReport*comments.l.font {Helvetica -12 italic} startupFile
+option add *BugReport*comments.info.text.font {Helvetica -12} startupFile
+option add *BugReport*details*font {Courier -12} startupFile
 
 namespace eval Rappture::bugreport {
     # details from the current trouble report
@@ -63,6 +62,8 @@ proc Rappture::bugreport::activate {err} {
 	pack .bugreport.cntls -after .bugreport.banner -side bottom -fill x
 	pack .bugreport.details -after .bugreport.banner \
 	    -expand yes -fill both -padx 8 -pady 8
+	pack .bugreport.comments -after .bugreport.details \
+	    -expand yes -fill both -padx 8 -pady {0 8}
 	return
     }
 
@@ -74,6 +75,8 @@ proc Rappture::bugreport::activate {err} {
     pack .bugreport.cntls -after .bugreport.banner -side bottom -fill x
     pack .bugreport.expl -after .bugreport.banner \
         -expand yes -fill both -padx 8 -pady 8
+    pack .bugreport.comments -after .bugreport.expl \
+        -expand yes -fill both -padx 8 -pady {0 8}
 
     .bugreport.expl configure -state normal
     .bugreport.expl delete 1.0 end
@@ -85,6 +88,7 @@ proc Rappture::bugreport::activate {err} {
 	focus .bugreport.cntls.send
     } else {
         .bugreport.expl insert end "Something went wrong with this tool.  We would ask you to submit a trouble report about the error, but we can't tell what hub it should be submitted to.  If you continue having trouble with this tool, please close it and restart."
+        pack forget .bugreport.comments
         .bugreport.cntls.send configure -state disabled
 	focus .bugreport.cntls.ok
     }
@@ -109,7 +113,9 @@ proc Rappture::bugreport::activate {err} {
     set w [winfo reqwidth .bugreport]
     set h [winfo reqheight .bugreport]
     set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
-    set y [expr {([winfo screenheight .bugreport]-$w)/2}]
+    if {$x < 0} {set x 0}
+    set y [expr {([winfo screenheight .bugreport]-$h)/2}]
+    if {$y < 0} {set y 0}
 
     wm geometry .bugreport +$x+$y
     wm deiconify .bugreport
@@ -145,6 +151,7 @@ proc Rappture::bugreport::submit {} {
     pack propagate .bugreport no
     pack forget .bugreport.details
     pack forget .bugreport.expl
+    pack forget .bugreport.comments
     pack forget .bugreport.cntls
     pack .bugreport.xmit -after .bugreport.banner -padx 8 -pady 8
     .bugreport.xmit.title configure -text "Sending trouble report to [Rappture::Tool::resources -hubname]..."
@@ -277,11 +284,17 @@ proc Rappture::bugreport::send {} {
     package require tls
     http::register https 443 ::tls::socket
 
+    set report $details(stackTrace)
+    set cmts [string trim [.bugreport.comments.info.text get 1.0 end]]
+    if {[string length $cmts] > 0} {
+        set report "$cmts\n[string repeat = 72]\n$report"
+    }
+
     set query [http::formatQuery \
 	option com_support \
 	task create \
 	no_html 1 \
-	report $details(stackTrace) \
+	report $report \
 	login $details(login) \
 	sesstoken $details(session) \
 	hostname $details(hostname) \
@@ -297,15 +310,14 @@ proc Rappture::bugreport::send {} {
 	append url "/index.php"
     }
 
-#    set token [http::geturl $url -query $query -timeout 60000]
+    set token [http::geturl $url -query $query -timeout 60000]
 
-#    if {[http::ncode $token] != 200} {
-#	error [http::code $token]
-#    }
-#    upvar #0 $token rval
-#    set info $rval(body)
-#    http::cleanup $token
-set info "foo bar"
+    if {[http::ncode $token] != 200} {
+	error [http::code $token]
+    }
+    upvar #0 $token rval
+    set info $rval(body)
+    http::cleanup $token
 
     if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
 	return $match
@@ -320,13 +332,22 @@ set info "foo bar"
 # tall enough to show the info within it.
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::fixTextHeight {widget} {
-    for {set h 1} {$h < 50} {incr h} {
-	$widget configure -height $h
-	$widget see 1.0
-	update idletasks
-	if {"" != [$widget bbox end-1char]} {
-	    break
-	}
+    #
+    # HACK ALERT!  In Tk8.5, we can count display lines directly.
+    #   But for earlier versions, we have to cook up something
+    #   similar.
+    #
+    if {[catch {$widget count -displaylines 1.0 end} h] == 0 && $h > 0} {
+        $widget configure -height $h
+    } else {
+        for {set h 1} {$h < 15} {incr h} {
+	    $widget configure -height $h
+	    $widget see 1.0
+	    update idletasks
+	    if {"" != [$widget bbox end-1char]} {
+	        break
+	    }
+        }
     }
 }
 
@@ -395,9 +416,27 @@ bind .bugreport.banner.icon <Double-ButtonPress-1> \
 bind .bugreport.banner.title <Double-ButtonPress-1> \
     Rappture::bugreport::deactivate
 
-text .bugreport.expl -borderwidth 0 -highlightthickness 0 -wrap word
+set bg [.bugreport cget -background]
+text .bugreport.expl -borderwidth 0 -highlightthickness 0 -background $bg \
+    -height 3 -wrap word
 .bugreport.expl tag configure bold \
     -font [option get .bugreport.expl boldFont Font]
+#
+# HACK ALERT!  We have problems with fixTextHeight working correctly
+#   on Windows for Tk8.4 and earlier.  To make it work properly, we
+#   add the binding below.  At some point, we'll ditch 8.4 and we can
+#   use the new "count -displaylines" option in Tk8.5.
+#
+bind .bugreport.expl <Map> {Rappture::bugreport::fixTextHeight %W}
+
+frame .bugreport.comments
+label .bugreport.comments.l -text "What were you doing just before this error?" -anchor w
+pack .bugreport.comments.l -side top -anchor w
+Rappture::Scroller .bugreport.comments.info -xscrollmode none -yscrollmode auto
+text .bugreport.comments.info.text -width 30 -height 3 -wrap word
+.bugreport.comments.info contents .bugreport.comments.info.text
+bind .bugreport.comments.info.text <ButtonPress> {focus %W}
+pack .bugreport.comments.info -expand yes -fill both
 
 frame .bugreport.cntls
 pack .bugreport.cntls -side bottom -fill x
