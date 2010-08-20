@@ -67,6 +67,11 @@ proc Rappture::bugreport::activate {err} {
 	return
     }
 
+    # gather details so we can submit trouble reports later
+    # do this now, before we do anything with "catch" down below
+    # that might mask the errorInfo
+    register $err
+
     pack propagate .bugreport yes
     pack forget .bugreport.details
     pack forget .bugreport.xmit
@@ -94,9 +99,6 @@ proc Rappture::bugreport::activate {err} {
     }
     fixTextHeight .bugreport.expl
     .bugreport.expl configure -state disabled
-
-    # gather details so we can submit trouble reports later
-    register $err
 
     .bugreport.details.info.text configure -state normal
     .bugreport.details.info.text delete 1.0 end
