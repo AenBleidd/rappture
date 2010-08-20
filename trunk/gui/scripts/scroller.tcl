@@ -266,28 +266,30 @@ itcl::body Rappture::Scroller::_fixsbar {which {state ""}} {
     switch -- $which {
         x {
             if {$state} {
-                if {![_lock active x]} {
-                    # grid $itk_component(xsbar) -row 1 -column 0 -sticky ew
-                    if {$col == 1} {
-                        grid $itk_component(xsbar) -row $row -column $col -sticky ew
-                    }
+                if {$col == 1} {
+                    grid $itk_component(xsbar) -row $row -column $col -sticky ew
                 }
             } else {
-                grid forget $itk_component(xsbar)
-                _lock set x
+                # handle the lock on the "forget" side, so scrollbar
+                # tends to appear, rather than disappear
+                if {![_lock active x]} {
+                    grid forget $itk_component(xsbar)
+                    _lock set x
+                }
             }
         }
         y {
             if {$state} {
-                if {![_lock active y]} {
-                    # grid $itk_component(ysbar) -row 0 -column 1 -sticky ns
-                    if {$row == 1} {
-                        grid $itk_component(ysbar) -row $row -column $col -sticky ns
-                    }
+                if {$row == 1} {
+                    grid $itk_component(ysbar) -row $row -column $col -sticky ns
                 }
             } else {
-                grid forget $itk_component(ysbar)
-                _lock set y
+                # handle the lock on the "forget" side, so scrollbar
+                # tends to appear, rather than disappear
+                if {![_lock active y]} {
+                    grid forget $itk_component(ysbar)
+                    _lock set y
+                }
             }
         }
     }
