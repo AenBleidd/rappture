@@ -324,7 +324,7 @@ itcl::body Rappture::Panes::_fixLayout {args} {
 		lappend plist $p
 		lappend flist $f
 		if {[info exists itk_component($sash)]} {
-		    set h [expr {$h - [winfo height $itk_component($sash)]}]
+		    set h [expr {$h - [winfo reqheight $itk_component($sash)]}]
 		}
 	    } else {
 		# this pane is not visible -- remove sash
@@ -372,7 +372,7 @@ itcl::body Rappture::Panes::_fixLayout {args} {
 		lappend plist $p
 		lappend flist $f
 		if {[info exists itk_component($sash)]} {
-		    set w [expr {$w - [winfo width $itk_component($sash)]}]
+		    set w [expr {$w - [winfo reqwidth $itk_component($sash)]}]
 		}
 	    } else {
 		# this pane is not visible -- remove sash
