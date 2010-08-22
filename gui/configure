@@ -1978,6 +1978,8 @@ $as_echo "no" >&6; }
 fi
 
 
+gui_with_tcl=""
+
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
   if test "x${m}" != "x" ; then
@@ -2073,32 +2075,67 @@ fi
         fi
     fi
 fi
+
+# -----------------------------------------------------------------------
+#
+#	Find the Tcl build configuration file "tclConfig.sh"
+#
+# -----------------------------------------------------------------------
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for tclConfig.sh" >&5
+$as_echo_n "checking for tclConfig.sh... " >&6; }
+tcl_config_sh=""
+if test "x$gui_with_tcl" != "x" ; then
+
+  # Verify that a tclConfig.sh file exists in the directory specified
+  # by --with-tcl.
+
+  for dir in \
+   $gui_with_tcl
+  do
+    if test -r "$dir/tclConfig.sh" ; then
+      tcl_config_sh="$dir/tclConfig.sh"
+      break
+    elif test -r "$dir/lib/tclConfig.sh" ; then
+      tcl_config_sh="$dir/lib/tclConfig.sh"
+      break
+    fi
+  done
+else
+
+  # Otherwise, search for Tcl configuration file.
+
+  #  1. Search previously named locations.
+
+  for dir in \
+   $prefix \
+   $exec_prefix \
+   $gui_cv_tcl_lib
+  do
+    if test -r "$dir/tclConfig.sh" ; then
+      tcl_config_sh="$dir/tclConfig.sh"
+      break
+    elif test -r "$dir/lib/tclConfig.sh" ; then
+      tcl_config_sh="$dir/lib/tclConfig.sh"
+      break
+    fi
+  done
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${tcl_config_sh}" >&5
+$as_echo "${tcl_config_sh}" >&6; }
+
+if test "x$tcl_config_sh" = "x" ; then
+  echo "can't find Tcl configuration script \"tclConfig.sh\""
+  exit 1
+fi
+
+. ${tcl_config_sh}
+
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${TCLSH}" >&5
 $as_echo "${TCLSH}" >&6; }
 
-
-TCL_VERSION="8.4"
-for dir in \
- ${exec_prefix} \
- ${exec_prefix}/lib ; do
-  tclconfig="${dir}/tclConfig.sh"
-  if test -f "$tclconfig" ; then
-    . $tclconfig
-    break
-  fi
-done
-TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
-if test "x$with_tcllib" != "x" ; then
-   tclconfig="${with_tcllib}/tclConfig.sh"
-   if test -f "$tclconfig" ; then
-    . $tclconfig
-   fi
-   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
-fi
-if test "x$with_tclinclude" != "x" ; then
-   TCL_INC_SPEC="-I${with_tclinclude}"
-fi
 
 
 

@@ -27,6 +27,8 @@ AC_PROG_LN_S
 AC_PROG_MKDIR_P
 AC_PROG_MAKE_SET
 
+gui_with_tcl=""
+
 make_command=""
 for m in "$MAKE" make gmake gnumake ; do
   if test "x${m}" != "x" ; then
@@ -77,31 +79,64 @@ if test "$with_tclsh" != "no" ; then
         fi
     fi
 fi
+
+# -----------------------------------------------------------------------
+#
+#	Find the Tcl build configuration file "tclConfig.sh"
+#
+# -----------------------------------------------------------------------
+
+AC_MSG_CHECKING([for tclConfig.sh])
+tcl_config_sh=""
+if test "x$gui_with_tcl" != "x" ; then
+
+  # Verify that a tclConfig.sh file exists in the directory specified 
+  # by --with-tcl. 
+
+  for dir in \
+   $gui_with_tcl 
+  do
+    if test -r "$dir/tclConfig.sh" ; then
+      tcl_config_sh="$dir/tclConfig.sh"
+      break
+    elif test -r "$dir/lib/tclConfig.sh" ; then
+      tcl_config_sh="$dir/lib/tclConfig.sh"
+      break
+    fi
+  done
+else 
+
+  # Otherwise, search for Tcl configuration file.  
+
+  #  1. Search previously named locations.
+
+  for dir in \
+   $prefix \
+   $exec_prefix \
+   $gui_cv_tcl_lib 
+  do
+    if test -r "$dir/tclConfig.sh" ; then
+      tcl_config_sh="$dir/tclConfig.sh"
+      break
+    elif test -r "$dir/lib/tclConfig.sh" ; then
+      tcl_config_sh="$dir/lib/tclConfig.sh"
+      break
+    fi
+  done
+fi
+
+AC_MSG_RESULT([${tcl_config_sh}])
+
+if test "x$tcl_config_sh" = "x" ; then
+  echo "can't find Tcl configuration script \"tclConfig.sh\""
+  exit 1
+fi
+
+. ${tcl_config_sh}
+
+TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
-
-TCL_VERSION="8.4"
-for dir in \
- ${exec_prefix} \
- ${exec_prefix}/lib ; do 
-  tclconfig="${dir}/tclConfig.sh"
-  if test -f "$tclconfig" ; then
-    . $tclconfig
-    break
-  fi
-done
-TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
-if test "x$with_tcllib" != "x" ; then
-   tclconfig="${with_tcllib}/tclConfig.sh"
-   if test -f "$tclconfig" ; then
-    . $tclconfig
-   fi
-   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
-fi
-if test "x$with_tclinclude" != "x" ; then
-   TCL_INC_SPEC="-I${with_tclinclude}"
-fi
 
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TCL_INC_SPEC)
