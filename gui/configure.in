@@ -17,7 +17,7 @@ if test "${libdir}" != "${prefix}/lib"; then
 else
     LIB_SEARCH_DIRS="-L${libdir}"
 fi
-
+AC_CANONICAL_TARGET
 AC_SUBST(LIB_SEARCH_DIRS)
 
 AC_PROG_INSTALL
@@ -63,23 +63,6 @@ AC_ARG_WITH(
     [with_tclsh=yes])
 
 TCLSH=
-if test "$with_tclsh" != "no" ; then
-    AC_MSG_CHECKING([for tclsh])
-    if test -x "$with_tclsh/bin/tclsh"
-    then
-        echo Found tclsh in $with_tclsh/bin/tclsh
-        TCLSH="$with_tclsh/bin/tclsh"
-    else
-        if test -x "$with_tclsh"
-        then
-            echo Found tclsh in $with_tclsh
-            TCLSH="$with_tclsh"
-        else
-            AC_PATH_PROG(TCLSH, tclsh)
-        fi
-    fi
-fi
-
 # -----------------------------------------------------------------------
 #
 #	Find the Tcl build configuration file "tclConfig.sh"
@@ -131,10 +114,24 @@ if test "x$tcl_config_sh" = "x" ; then
   echo "can't find Tcl configuration script \"tclConfig.sh\""
   exit 1
 fi
-
 . ${tcl_config_sh}
-
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
+
+case $target in
+  *-*-cygwin*|*-*-mingw*)
+    gui_platform="win"
+    TCLSH=${TCL_PREFIX}/bin/tclsh${TCL_MAJOR_VERSION}${TCL_MINOR_VERSION}
+    ;;
+  *-*-darwin*)
+    gui_platform="macosx"
+    TCLSH=${TCL_PREFIX}/bin/tclsh${TCL_MAJOR_VERSION}.${TCL_MINOR_VERSION}
+    ;;
+  *)
+    blt_platform="unix" 
+    TCLSH=${TCL_PREFIX}/bin/tclsh${TCL_MAJOR_VERSION}.${TCL_MINOR_VERSION}
+    ;;
+esac
+
 AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
 
