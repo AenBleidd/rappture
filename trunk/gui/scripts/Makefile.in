@@ -13,7 +13,7 @@ includedir	= @includedir@
 SHELL		= @SHELL@
 INSTALL		= @INSTALL@
 MKDIR_P		= @MKDIR_P@
-TCLSH		= $(bindir)/tclsh8.4
+TCLSH		= @TCLSH@
 VPATH		= $(srcdir)
 PACKAGE_VERSION = @PACKAGE_VERSION@
 
