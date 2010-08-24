@@ -14,13 +14,33 @@
 #ifndef RP_MEDIAPLAYER_H
 #define RP_MEDIAPLAYER_H 1
 
+#include "config.h"
+
 extern "C" {
-// https://roundup.ffmpeg.org/issue2093
 #define __STDC_CONSTANT_MACROS 1
-#include <libavcodec/avcodec.h>
+
+#ifdef HAVE_FFMPEG_AVFORMAT_H
+#include <ffmpeg/avformat.h>
+#endif
+#ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
+#endif
+
+#ifdef HAVE_FFMPEG_AVCODEC_H
+#include <ffmpeg/avcodec.h>
+#endif
+#ifdef HAVE_LIBAVCODEC_AVCODEC_H
+#include <libavcodec/avcodec.h>
+#endif
+
+#ifdef HAVE_FFMPEG_SWSCALE_H
+#include <ffmpeg/swscale.h>
+#endif
+#ifdef HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
+#endif
 }
+
 
 #include "RpOutcome.h"
 #include "RpSimpleBuffer.h"
@@ -35,11 +55,11 @@ public:
 
     bool init(Outcome &status, const char *filename);
     bool load(Outcome &status, const char *filename);
-    bool close();
+    bool release();
 
     size_t nframes() const;
 
-    size_t read(Outcome &status, SimpleCharBuffer *b[], size_t nframes);
+    size_t read(Outcome &status, SimpleCharBuffer *b);
     int seek(long offset, int whence);
     int tell() const;
     size_t set(size_t nframes);
@@ -96,5 +116,5 @@ private:
 };
 
 } // namespace Rappture
- 
+
 #endif /* RP_MEDIAPLAYER_H */

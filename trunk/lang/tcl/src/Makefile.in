@@ -25,7 +25,7 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
-TCL_VERSION	= @TCL_VERSION@
+TCL_VERSION     = @TCL_VERSION@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 
 CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -34,6 +34,7 @@ CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 INCLUDES    = -I$(srcdir) \
   -I../../../src/core \
   -I$(srcdir)/../../../src/core \
+  -I$(srcdir)/../../../src/objects \
   -I$(includedir)
 version         = @PACKAGE_VERSION@
 DEFINES         = -DPACKAGE_VERSION=\"$(version)\"
@@ -66,6 +67,13 @@ OBJS = \
 ifeq ($(WIN32),"")
    OBJS += RpWinResource.o
 endif
+
+FFMPEG          = @HAVE_FFMPEG_LIBS@
+ifeq ($(FFMPEG),yes)
+    OBJS += RpMediaPlayerTclInterface.o
+    LIBS += -L../../../src/objects -lRpObjects
+endif
+
 
 # Not using     RpLibraryTclInterface.o \
 
