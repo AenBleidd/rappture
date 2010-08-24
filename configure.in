@@ -288,9 +288,9 @@ if test "$with_octave" != "no" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    AC_PATH_PROG(OCTAVE, octave, [], [$with_octave/bin:$with_octave])
+    AC_PATH_PROG(OCTAVE, octave, [], [${with_octave}/bin:${with_octave}])
     AC_PATH_PROG(MKOCTFILE, mkoctfile, [],
-        [${with_octave}/bin/mkoctfile:${with_octave}])
+        [${with_octave}/bin:${with_octave}])
   fi
   if test "x${OCTAVE}" != "x" ; then 
     OCTAVE_VERSION=`${OCTAVE} -v | grep version | cut -d' ' -f4`
@@ -316,9 +316,9 @@ AC_ARG_WITH(
 
 if test "$with_octave2" != "no" ; then
   AC_MSG_CHECKING([for octave and mkoctfile])
-  AC_PATH_PROG(octave2, octave, [], [$with_octave2/bin:$with_octave2])
-  AC_PATH_PROG(mkoctfile, mkoctfile, [],
-        [${with_octave2}/bin/mkoctfile:${with_octave2}])
+  AC_PATH_PROG(octave2, octave, [], [${with_octave2}/bin:${with_octave2}])
+  AC_PATH_PROG(mkoctfile2, mkoctfile, [],
+        [${with_octave2}/bin:${with_octave2}])
   if test "x${octave2}" != "x" ; then
     version=`${octave2} -v | grep version | cut -d' ' -f4`
     version_major=`echo ${version} | cut -d'.' -f1`
@@ -337,14 +337,14 @@ AC_ARG_WITH(
     [with_octave3=no])
 if test "$with_octave3" != "no" ; then
   AC_MSG_CHECKING([for octave and mkoctfile])
-  AC_PATH_PROG(octave3, octave, [], [$with_octave3/bin:$with_octave3])
+  AC_PATH_PROG(octave3, octave, [], [${with_octave3}/bin:${with_octave3}])
   AC_PATH_PROG(mkoctfile3, mkoctfile, [],
-        [${with_octave3}/bin/mkoctfile:${with_octave3}])
+        [${with_octave3}/bin:${with_octave3}])
   if test "x${octave3}" != "x" ; then
     version=`${octave3} -v | grep version | cut -d' ' -f4`
     version_major=`echo ${version} | cut -d'.' -f1`
     if test "$version_major" = "3" ; then
-      OCTAVE3=$octave3
+      OCTAVE3=$with_octave3
       MKOCTFILE3=$mkoctfile3
     fi
   fi
