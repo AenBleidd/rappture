@@ -668,12 +668,6 @@ AC_SUBST(SIZEOF_VOID_P)
 
 SC_ENABLE_SYMBOLS
 
-if test "${SHARED_BUILD}" = "1" ; then
-    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING} ${SHLIB_CFLAGS}'
-else
-    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING}'
-fi
-
 
 #--------------------------------------------------------------------
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
@@ -753,7 +747,6 @@ fi
 AC_CHECK_FUNCS(img_convert)
 AC_CHECK_FUNCS(sws_scale)
 AC_SUBST(HAVE_FFMPEG_LIBS)
-
 
 ac_configure_args="--disable-threads --enable-shared"
 AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
