@@ -313,10 +313,15 @@ AC_ARG_WITH(
     [with_octave2=$withval],
     [with_octave2=no])
 
-if test "$with_octave2" = "yes" ; then
-  AC_MSG_CHECKING([for octave and mkoctfile])
-  AC_PATH_PROG(octave2, octave)
-  AC_PATH_PROG(mkoctfile2, mkoctfile)
+if test "$with_octave2" != "no" ; then
+  if test "$with_octave2" = "yes" ; then
+    AC_MSG_CHECKING([for octave and mkoctfile])
+    AC_PATH_PROG(octave2, octave)
+    AC_PATH_PROG(mkoctfile2, mkoctfile)
+  else 
+    octave2=$with_octave2
+    mkoctfile2=`dirname $with_octave2`/mkoctfile
+  fi
 fi
 if test "x${octave2}" != "x" ; then
   version=`${octave2} -v | grep version | cut -d' ' -f4`
@@ -336,15 +341,25 @@ AC_ARG_WITH(
     [with_octave3=$withval],
     [with_octave3=no])
 
-if test "$with_octave3" = "yes" ; then
-  AC_MSG_CHECKING([for octave and mkoctfile])
-  AC_PATH_PROG(octave3, octave)
-  AC_PATH_PROG(mkoctfile3, mkoctfile)
+echo with_octave3=$with_octave3
+if test "$with_octave3" != "no" ; then
+  if test "$with_octave3" = "yes" ; then
+    AC_MSG_CHECKING([for octave and mkoctfile])
+    AC_PATH_PROG(octave3, octave)
+    AC_PATH_PROG(mkoctfile3, mkoctfile)
+  else 
+    octave3=$with_octave3
+    mkoctfile3=`dirname $with_octave3`/mkoctfile
+  fi
 fi
 
+echo octave3=$octave3
 if test "x${octave3}" != "x" ; then
+  echo version="${octave3} -v | grep version | cut -d' ' -f4"
   version=`${octave3} -v | grep version | cut -d' ' -f4`
+  echo version=$version
   version_major=`echo ${version} | cut -d'.' -f1`
+  echo version_major=$version_major
   if test "$version_major" = "3" ; then
     OCTAVE3=$with_octave3
     MKOCTFILE3=$mkoctfile3
