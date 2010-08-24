@@ -204,12 +204,12 @@ if test "$with_vtk" != "no" ; then
      /usr/lib
     do
       for vtk in $path/vtk-* ; do 
-	if test -d "${vtk}" ; then
-	  VTKDIR=${vtk}
-	fi
+        if test -d "${vtk}" ; then
+          VTKDIR=${vtk}
+        fi
       done
       if test "x${VTKDIR}" != "x" ; then
-	break
+        break
       fi
     done
   fi
@@ -318,8 +318,8 @@ if test "$with_octave2" != "no" ; then
   AC_MSG_CHECKING([for octave and mkoctfile])
   AC_PATH_PROG(octave2, octave, [], [$with_octave2/bin:$with_octave2])
   AC_PATH_PROG(mkoctfile, mkoctfile, [],
-	[${with_octave2}/bin/mkoctfile:${with_octave2}])
-  if test "x${octave2}" != "x" ; then 
+        [${with_octave2}/bin/mkoctfile:${with_octave2}])
+  if test "x${octave2}" != "x" ; then
     version=`${octave2} -v | grep version | cut -d' ' -f4`
     version_major=`echo ${version} | cut -d'.' -f1`
     if test "$version_major" = "2" ; then
@@ -339,8 +339,8 @@ if test "$with_octave3" != "no" ; then
   AC_MSG_CHECKING([for octave and mkoctfile])
   AC_PATH_PROG(octave3, octave, [], [$with_octave3/bin:$with_octave3])
   AC_PATH_PROG(mkoctfile3, mkoctfile, [],
-	[${with_octave3}/bin/mkoctfile:${with_octave3}])
-  if test "x${octave3}" != "x" ; then 
+        [${with_octave3}/bin/mkoctfile:${with_octave3}])
+  if test "x${octave3}" != "x" ; then
     version=`${octave3} -v | grep version | cut -d' ' -f4`
     version_major=`echo ${version} | cut -d'.' -f1`
     if test "$version_major" = "3" ; then
@@ -591,8 +591,8 @@ if test "x${JAVA}" != "x" ; then
    /opt/sun-jdk-1.6* \
    /opt/icedtea6-* \
    /opt/sun-jdk-1.5* \
-   /usr/lib/jvm/*sun-1.5* 
-  do 
+   /usr/lib/jvm/*sun-1.5*
+  do
     if test -r "${d}/include/jni.h" ; then
       JDK=${d}
       break;
@@ -629,11 +629,11 @@ AC_SUBST(SHLIB_CFLAGS)
 AC_SUBST(SHLIB_LDFLAGS)
 AC_SUBST(SHLIB_SUFFIX)
 
-if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tclConfig.sh
 fi
-if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
-  . ${exec_prefix}/lib/tkConfig.sh	
+if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
+  . ${exec_prefix}/lib/tkConfig.sh
 fi
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_VERSION)
@@ -662,7 +662,7 @@ AC_SUBST(SIZEOF_VOID_P)
 
 
 #--------------------------------------------------------------------
-# Set the default compiler switches based on the --enable-symbols 
+# Set the default compiler switches based on the --enable-symbols
 # option.
 #--------------------------------------------------------------------
 
@@ -673,6 +673,87 @@ if test "${SHARED_BUILD}" = "1" ; then
 else
     CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING}'
 fi
+
+
+#--------------------------------------------------------------------
+# search for ffmpeg libraries libavcodec, libavformat, libswscale
+#--------------------------------------------------------------------
+
+AC_CHECK_HEADERS(ffmpeg/avcodec.h,[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_FFMPEG_AVCODEC_H
+  # include <ffmpeg/avcodec.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS(libavcodec/avcodec.h,[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_LIBAVCODEC_AVCODEC_H
+  # include <libavcodec/avcodec.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([ffmpeg/avformat.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_FFMPEG_AVFORMAT_H
+  # include <ffmpeg/avformat.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([libavformat/avformat.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
+  # include <libavformat/avformat.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([ffmpeg/avutil.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_FFMPEG_AVUTIL_H
+  # include <ffmpeg/avutil.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([libavutil/avutil.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_LIBAVUTIL_AVUTIL_H
+  # include <libavutil/avutil.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([ffmpeg/swscale.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_FFMPEG_SWSCALE_H
+  # include <ffmpeg/swscale.h>
+  #endif
+]])
+
+AC_CHECK_HEADERS([libswscale/swscale.h],[],[],
+[[#define __STDC_CONSTANT_MACROS 1
+  #ifdef HAVE_LIBSWSCALE_SWSCALE_H
+  # include <libswscale/swscale.h>
+  #endif
+]])
+
+HAVE_FFMPEG_LIBS=""
+if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
+        "${ac_cv_header_libavcodec_avcodec_h}" = "yes" \) -a \
+     \( "${ac_cv_header_ffmpeg_avformat_h}" = "yes" -o \
+        "${ac_cv_header_libavformat_avformat_h}" = "yes" \) -a \
+     \( "${ac_cv_header_ffmpeg_avutil_h}" = "yes" -o \
+        "${ac_cv_header_libavutil_avutil_h}" = "yes" \) -a \
+     \( "${ac_cv_header_ffmpeg_swscale_h}" = "yes" -o \
+        "${ac_cv_header_libswscale_swscale_h}" = "yes" \) ]] ; then
+  HAVE_FFMPEG_LIBS="yes"
+  AC_DEFINE(BUILD_with_ffmpeg, 1, [Build rappture with ffmpeg widgets])
+else
+  HAVE_FFMPEG_LIBS=""
+fi
+
+AC_CHECK_FUNCS(img_convert)
+AC_CHECK_FUNCS(sws_scale)
+AC_SUBST(HAVE_FFMPEG_LIBS)
+
 
 ac_configure_args="--disable-threads --enable-shared"
 AC_CONFIG_SUBDIRS( [packages/optimizer/src] )

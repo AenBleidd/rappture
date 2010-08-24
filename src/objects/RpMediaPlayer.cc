@@ -50,7 +50,7 @@ MediaPlayer::MediaPlayer(const MediaPlayer& o)
 
 MediaPlayer::~MediaPlayer()
 {
-    // close();
+    // release();
 }
 
 
@@ -150,9 +150,9 @@ MediaPlayer::load(Outcome &status, const char *filename)
 
 
 bool
-MediaPlayer::close()
+MediaPlayer::release()
 {
-    // status.addContext("Rappture::MediaPlayer::close()");
+    // status.addContext("Rappture::MediaPlayer::release()");
 
     // Free the RGB image
     if (_buffer) {
@@ -187,13 +187,11 @@ MediaPlayer::close()
 }
 
 size_t
-MediaPlayer::read(Outcome &status, SimpleCharBuffer *b[], size_t nframes)
+MediaPlayer::read(Outcome &status, SimpleCharBuffer *b)
 {
     status.addContext("Rappture::MediaPlayer::read()");
 
     int frameFinished = 0;
-    size_t frameIndex = 0;
-    size_t frameCount = 0;
 
     while(av_read_frame(_pFormatCtx, &_packet)>=0) {
         // Is this a packet from the video stream?
@@ -205,33 +203,20 @@ MediaPlayer::read(Outcome &status, SimpleCharBuffer *b[], size_t nframes)
             // Did we get a video frame?
             if (frameFinished) {
                 // Convert the image from its native format to RGB
-                if (frameCount >= nframes) {
-                    // artificially limit number of images saved
-                    break;
-                }
-                if ((frameIndex%1000) == 0) {
-                    // artificially spread out the saved frames
-                    sws_scale(_swsctx,
-                              (const uint8_t * const*)_pFrame->data,
-                              _pFrame->linesize, 0, _pCodecCtx->height,
-                              _pFrameRGB->data, _pFrameRGB->linesize);
+                sws_scale(_swsctx,
+                          (const uint8_t * const*)_pFrame->data,
+                          _pFrame->linesize, 0, _pCodecCtx->height,
+                          _pFrameRGB->data, _pFrameRGB->linesize);
 
-                    // Save the frame to the SimpleBuffer object
-                    // FIXME:
-                    // should be b[frameCount] but operator[] was
-                    // overloaded in Rappture::SimpleBuffer, and I
-                    // think it is causing problems
-                    __frame2ppm(*b+frameCount);
-                    frameCount++;
-                }
-                frameIndex++;
+                __frame2ppm(b);
+                break;
             }
         }
 
         // Free the packet that was allocated by av_read_frame
         av_free_packet(&_packet);
     }
-    return frameCount;
+    return 1;
 }
 
 size_t

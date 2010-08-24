@@ -26,6 +26,7 @@ SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@
+FFMPEG          = @HAVE_FFMPEG_LIBS@
 RM              = rm -f
 CC_SWITCHES = $(CFLAGS) $(INCLUDES) $(DEFINES) $(CFLAGS_DEBUG)
 
@@ -36,6 +37,7 @@ INCLUDES    = \
 		-I$(srcdir)/../core \
 		-I$(includedir)
 LIBS        = -L../core -lrappture
+
 
 RANLIB      = @RANLIB@
 AR          = ar
@@ -108,6 +110,14 @@ OBJS = \
 		RpTree.o \
 		RpUtils2.o \
 		RpObject.o
+
+ifeq ($(FFMPEG),yes)
+  # since ffmpeg libraries are available,
+  # include them in compilation
+  LIBS += -lavcodec -lavformat -lswscale
+  HEADERS += RpMediaPlayer.h
+  OBJS += RpMediaPlayer.o
+endif
 
 
 name        = RpObjects

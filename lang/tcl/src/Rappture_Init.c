@@ -14,6 +14,7 @@
  */
 
 #include <tcl.h>
+#include "config.h"
 
 #ifdef BUILD_rappture
 #undef TCL_STORAGE_CLASS
@@ -34,6 +35,10 @@ extern Tcl_AppInitProc RpLibrary_Init;
 extern Tcl_AppInitProc RpUnits_Init;
 extern Tcl_AppInitProc RpEncoding_Init;
 extern Tcl_AppInitProc RpUtils_Init;
+
+#ifdef BUILD_with_ffmpeg
+extern Tcl_AppInitProc RpMediaPlayer_Init;
+#endif
 
 #ifdef BUILD_Rappture
 __declspec( dllexport )
@@ -64,6 +69,11 @@ Rappture_Init( Tcl_Interp * interp)
     if (RpUtils_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+#ifdef BUILD_with_ffmpeg
+    if (RpMediaPlayer_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+#endif
     if (RpRlimit_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
