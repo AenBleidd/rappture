@@ -129,15 +129,33 @@ if test "$with_tclsh" != "no" ; then
         echo Found tclsh in $with_tclsh/bin/tclsh
         TCLSH="$with_tclsh/bin/tclsh"
     else
-        if test -x "$with_tclsh"
+       if test -x "$with_tclsh"
         then
             echo Found tclsh in $with_tclsh
             TCLSH="$with_tclsh"
         else
-            AC_PATH_PROG(TCLSH, tclsh)
+            if test -x "${exec_prefix}/bin/tclsh"
+            then
+                echo Found tclsh in ${exec_prefix}/bin/tclsh
+                TCLSH="${exec_prefix}/bin/tclsh"
+            else
+                for v in 8.4 8.5 8.6 ; do
+                    if test -x "${exec_prefix}/bin/tclsh${v}"
+                    then
+                        echo Found tclsh in ${exec_prefix}/bin/tclsh${v}
+                        TCLSH="${exec_prefix}/bin/tclsh${v}"
+                        break
+                    fi
+                done
+            fi
         fi
     fi
+    if ! test -x ${TCLSH}
+    then
+        AC_PATH_PROG(TCLSH, tclsh)
+    fi
 fi
+
 AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
 
