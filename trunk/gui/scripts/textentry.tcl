@@ -228,7 +228,9 @@ itcl::body Rappture::TextEntry::_layout {} {
 
         # take down any existing widget
 	foreach win [pack slaves $itk_interior] {
-            pack forget $win
+	    if { [winfo name $win] != "hints" } {
+		pack forget $win
+	    }
         }
 
         switch -- $newlayout {

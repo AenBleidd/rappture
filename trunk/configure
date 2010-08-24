@@ -15796,12 +15796,6 @@ echo "${ECHO_T}enabled $tcl_ok debugging" >&6; }
     fi
 
 
-if test "${SHARED_BUILD}" = "1" ; then
-    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING} ${SHLIB_CFLAGS}'
-else
-    CFLAGS='${CFLAGS_DEFAULT} ${CFLAGS_WARNING}'
-fi
-
 
 #--------------------------------------------------------------------
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
