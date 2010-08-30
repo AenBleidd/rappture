@@ -110,6 +110,7 @@ FILES		= \
 		$(srcdir)/units.tcl \
 		$(srcdir)/utils.tcl \
 		$(srcdir)/valueresult.tcl \
+		$(srcdir)/videoviewer.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \
