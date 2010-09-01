@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <string>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/types.h>

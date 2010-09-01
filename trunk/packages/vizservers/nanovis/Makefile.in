@@ -106,8 +106,8 @@ INCLUDES	= \
 CC              = @CC@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
-DEFINES         = @DEFINES@
-CC_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+DEFINES         = 
+CC_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 OBJS		= \
 		Axis.o \

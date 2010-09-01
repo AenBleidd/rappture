@@ -44,6 +44,20 @@ AC_PROG_CXX
 AC_LANG_CPLUSPLUS
 
 AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(int, 4)
+AC_CHECK_SIZEOF(long, 4)
+AC_CHECK_SIZEOF(long long, 8)
+AC_CHECK_SIZEOF(void *, 4)
+AC_CHECK_SIZEOF(float, 4)
+
+# Save the values as shell variables so that we can substitute them
+# into bltHash.h for situtations where there's no bltInt.h.
+
+AC_SUBST(SIZEOF_INT, ${ac_cv_sizeof_int})
+AC_SUBST(SIZEOF_LONG, ${ac_cv_sizeof_long})
+AC_SUBST(SIZEOF_LONG_LONG, ${ac_cv_sizeof_long_long})
+AC_SUBST(SIZEOF_VOID_P, ${ac_cv_sizeof_void_p})
+AC_SUBST(SIZEOF_FLOAT, ${ac_cv_sizeof_float})
 
 LD_RPATH="";
 
@@ -208,7 +222,16 @@ fi
 AC_SUBST(DX_LIB_SPEC)
 AC_MSG_RESULT([${DX_LIB_DIR}])
 
-AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h])
+AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
+#define SIZEOF_LONG ${ac_cv_sizeof_long}
+#if SIZEOF_LONG == 8
+#  define INT64_C(c)  c ## L
+#  define UINT64_C(c) c ## UL
+#else
+#  define INT64_C(c)  c ## LL
+#  define UINT64_C(c) c ## ULL
+#endif
+])
 
 oldLIBS=$LIBS
 LIBS=-lavcodec
