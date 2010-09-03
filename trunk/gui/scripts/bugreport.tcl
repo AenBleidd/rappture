@@ -2,7 +2,11 @@
 #  UTILITY: bugreport
 #
 #  This redefines the usual Tcl bgerror command to install a nicer
-#  looking bug handler.
+#  looking bug handler.  Bug reports can be submitted back to a
+#  HUBzero-based site as support tickets.  Additional information
+#  can be obtained by defining procedures as bugreport::instrumented
+#  proc (captures entrance/exit from proc) and by calling
+#  bugreport::remark with extra info along the way.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2006  Purdue Research Foundation
@@ -24,11 +28,22 @@ option add *BugReport*comments.info.text.font {Helvetica -12} startupFile
 option add *BugReport*details*font {Courier -12} startupFile
 
 namespace eval Rappture::bugreport {
-    # details from the current trouble report
+    # details from the current trouble report, which user may decide to submit
     variable details
+
+    # status from bugreport::instrumented/remark in case a bug occurs
+    variable extraStack ""
+    variable extraInfo ""
 
     # assume that if there's a problem launching a job, we should know it
     variable reportJobFailures 1
+
+    # submit these kinds of tickets by default
+    variable settings
+    set settings(user) $::tcl_platform(user)
+    set settings(type) "automatic"
+    set settings(group) ""
+    set settings(category) "Rappture"
 }
 
 # ----------------------------------------------------------------------
@@ -39,7 +54,7 @@ namespace eval Rappture::bugreport {
 # by this mechanism.
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::install {} {
-    proc ::bgerror {err} { ::Rappture::bugreport::activate $err }
+    ::proc ::bgerror {err} { ::Rappture::bugreport::activate $err }
 }
 
 # ----------------------------------------------------------------------
@@ -52,6 +67,7 @@ proc Rappture::bugreport::install {} {
 proc Rappture::bugreport::activate {err} {
     global env errorInfo
     variable details
+    variable settings
 
     if {"@SHOWDETAILS" == $err} {
         pack propagate .bugreport yes
@@ -102,11 +118,12 @@ proc Rappture::bugreport::activate {err} {
 
     .bugreport.details.info.text configure -state normal
     .bugreport.details.info.text delete 1.0 end
-    .bugreport.details.info.text insert end "    USER: $details(login)\n"
+    .bugreport.details.info.text insert end "    USER: $settings(user)\n"
     .bugreport.details.info.text insert end "HOSTNAME: $details(hostname)\n"
+    .bugreport.details.info.text insert end "PLATFORM: $details(platform)\n"
+    .bugreport.details.info.text insert end "CATEGORY: $details(category)\n"
     .bugreport.details.info.text insert end "    TOOL: $details(referrer)\n"
     .bugreport.details.info.text insert end " SESSION: $details(session)\n"
-    .bugreport.details.info.text insert end "CATEGORY: $details(category)\n"
     .bugreport.details.info.text insert end " SUMMARY: $details(summary)\n"
     .bugreport.details.info.text insert end "---------\n"
     .bugreport.details.info.text insert end $details(stackTrace)
@@ -138,6 +155,99 @@ proc Rappture::bugreport::deactivate {} {
 
     # reset the grab in case it's hosed
     Rappture::grab::reset
+}
+
+# ----------------------------------------------------------------------
+# USAGE: instrumented <what> <name> <arglist> <body>
+#
+# Used instead of the usual Tcl "proc" or itcl::body to define a
+# procedure that will automatically register information about its
+# execution in the bugreport mechanism.  The <what> parameter should
+# be either "proc" or "itcl::body" or something like that.  When the
+# procedure starts, it pushes its call information onto the stack,
+# then invokes the procedure body, then adds information about the
+# return code.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::instrumented {what name arglist body} {
+    set avals ""
+    foreach term $arglist {
+        set aname [lindex $term 0]
+        append avals "\$$aname "
+    }
+    uplevel [list $what $name $arglist [format {
+        Rappture::bugreport::remark -enter "PROC %s: %s"
+        set __status [catch {%s} __result]
+        Rappture::bugreport::remark -leave "PROC %s: code($__status) => $__result"
+        switch -- $__status {
+            0 - 2 {
+                return $__result
+            }
+            3 {
+                set __result "invoked \"break\" outside of a loop"
+            }
+            4 {
+                set __result "invoked \"continue\" outside of a loop"
+            }
+        }
+        error $__result $::errorInfo
+    } $name $avals $body $name]]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: remark ?-enter|-leave? <message>
+#
+# Adds the <message> to the current "extraInfo" being kept about the
+# program.  This adds useful debugging info to the report that gets
+# sent back when an unexpected error is trapped.  The -enter and -leave
+# options are used when a bugreport::instrumented proc starts/exits to
+# change the indent level for future messages.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::remark {args} {
+    variable extraStack
+    variable extraInfo
+
+    if {[llength $args] > 1} {
+        set option [lindex $args 0]
+        set args [lrange $args 1 end]
+        switch -- $option {
+            -enter {
+                if {[llength $args] != 1} {
+                    error "wrong # args: should be \"remark -enter message\""
+                }
+                set mesg [lindex $args 0]
+                if {[llength $extraStack] == 0} {
+                    set extraInfo ""
+                }
+                append extraInfo [remark -indent ">> $mesg"]
+                set extraStack [linsert $extraStack 0 $mesg]
+                return
+            }
+            -leave {
+                if {[llength $args] != 1} {
+                    error "wrong # args: should be \"remark -leave message\""
+                }
+                set mesg [lindex $args 0]
+                set extraStack [lrange $extraStack 1 end]
+                append extraInfo [remark -indent "<< $mesg"]
+                return
+            }
+            -indent {
+                if {[llength $args] != 1} {
+                    error "wrong # args: should be \"remark -indent message\""
+                }
+            }
+            default {
+                error "bad option \"$option\": should be -enter, -leave, -indent"
+            }
+        }
+    }
+    set mesg [lindex $args 0]
+    set nlevel [llength $extraStack]
+    set indent [string repeat { } [expr {2*$nlevel}]]
+    foreach line [split $mesg \n] {
+        append extraInfo "$indent$line\n"
+        set prefix "   "
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -203,12 +313,14 @@ proc Rappture::bugreport::submit {} {
 proc Rappture::bugreport::register {err} {
     global errorInfo tcl_platform
     variable details
+    variable settings
+    variable extraInfo
 
     #
     # Figure out exactly what we'll send if the bug report is
     # submitted, so we can show the user.
     #
-    set stackTrace "$err\n---------\n$errorInfo"
+    set stackTrace "$err\n---------\n$errorInfo\n---------\n$extraInfo"
     if {![regexp {^([^\n]+)\n} $stackTrace match summary]} {
 	if {[string length $stackTrace] == 0} {
 	    set summary "Unexpected error from Rappture"
@@ -223,7 +335,7 @@ proc Rappture::bugreport::register {err} {
 	append summary " (in tool \"[Rappture::Tool::resources -appname]\")"
 	set category "Tools"
     } else {
-	set category "Rappture"
+	set category $settings(category)
     }
 
     # make sure that the stack trace isn't too long
@@ -264,10 +376,10 @@ proc Rappture::bugreport::register {err} {
     set details(summary) $summary
     set details(category) $category
     set details(stackTrace) $stackTrace
-    set details(login) $tcl_platform(user)
     set details(hostname) [info hostname]
     set details(session) [Rappture::Tool::resources -session]
-    set details(referrer) "tool \"[Rappture::Tool::resources -appname]\""
+    set details(referrer) [Rappture::Tool::resources -appname]
+    set details(platform) [array get tcl_platform]
 }
 
 # ----------------------------------------------------------------------
@@ -281,6 +393,7 @@ proc Rappture::bugreport::register {err} {
 # ----------------------------------------------------------------------
 proc Rappture::bugreport::send {} {
     variable details
+    variable settings
 
     package require http
     package require tls
@@ -297,12 +410,15 @@ proc Rappture::bugreport::send {} {
 	task create \
 	no_html 1 \
 	report $report \
-	login $details(login) \
 	sesstoken $details(session) \
 	hostname $details(hostname) \
+	os $settings(platform) \
 	category $details(category) \
 	summary $details(summary) \
 	referrer $details(referrer) \
+	login $settings(user) \
+	group $settings(group) \
+	type $settings(type) \
     ]
     
     set url [Rappture::Tool::resources -huburl]
