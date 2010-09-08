@@ -80,6 +80,17 @@ proc Rappture::bugreport::activate {err} {
 	    -expand yes -fill both -padx 8 -pady 8
 	pack .bugreport.comments -after .bugreport.details \
 	    -expand yes -fill both -padx 8 -pady {0 8}
+
+        update idletasks
+        set w [winfo reqwidth .bugreport]
+        set h [winfo reqheight .bugreport]
+        set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
+        if {$x < 0} {set x "+0"} else {set x "+$x"}
+        set y [expr {([winfo screenheight .bugreport]-$h)/2}]
+        if {$y < 0} {set y "-0"} else {set y "+$y"}
+
+        wm geometry .bugreport $x$y
+        raise .bugreport
 	return
     }
 
