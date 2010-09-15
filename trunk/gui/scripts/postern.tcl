@@ -62,6 +62,11 @@ itcl::body Rappture::Postern::constructor {args} {
 	<Button-1><Button-1><Button-3><Button-3> \
 	[itcl::code $this activate on]
 
+    # this works better on the Mac
+    bind $itk_component(hull) \
+	<Button-1><Button-1><Control-Button-1><Control-Button-1> \
+	[itcl::code $this activate on]
+
     #
     # Get the magic word from the environment.
     #
