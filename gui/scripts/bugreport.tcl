@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  UTILITY: bugreport
 #
@@ -423,7 +424,7 @@ proc Rappture::bugreport::send {} {
 	report $report \
 	sesstoken $details(session) \
 	hostname $details(hostname) \
-	os $settings(platform) \
+	os $details(platform) \
 	category $details(category) \
 	summary $details(summary) \
 	referrer $details(referrer) \
