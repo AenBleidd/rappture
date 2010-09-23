@@ -127,8 +127,22 @@ proc Rappture::getopts {listVar returnVar spec} {
                 if {[llength $args] < 2} {
                     error "missing value for option $first"
                 }
-                set params($first) [lrange $args 1 end]
-                set args ""
+                foreach arg [lrange $args 1 end] {
+                    if {[string index $arg 0] == "-"} {
+                        break
+                    }
+                }
+                set idx [lsearch -exact $args $arg]
+                if {$idx == [expr [llength $args] - 1]} {
+                    # reached the end of the $args list
+                    # with no other -'d arguments
+                    set params($first) [lrange $args 1 end]
+                    set args ""
+                } else {
+                    # there are further -'d arguments to process
+                    set params($first) [lrange $args 1 [expr $idx-1]]
+                    set args [lrange $args $idx end]
+                }
             }
         }
     }
