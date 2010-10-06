@@ -37,7 +37,8 @@ extern Tcl_AppInitProc RpEncoding_Init;
 extern Tcl_AppInitProc RpUtils_Init;
 
 #ifdef BUILD_with_ffmpeg
-extern Tcl_AppInitProc RpMediaPlayer_Init;
+// extern Tcl_AppInitProc RpMediaPlayer_Init;
+extern Tcl_AppInitProc RpVideo_Init;
 #endif
 
 #ifdef BUILD_Rappture
@@ -70,7 +71,10 @@ Rappture_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
 #ifdef BUILD_with_ffmpeg
-    if (RpMediaPlayer_Init(interp) != TCL_OK) {
+//    if (RpMediaPlayer_Init(interp) != TCL_OK) {
+//        return TCL_ERROR;
+//    }
+    if (RpVideo_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
 #endif

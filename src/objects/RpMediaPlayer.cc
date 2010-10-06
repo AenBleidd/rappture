@@ -225,11 +225,56 @@ MediaPlayer::nframes() const
     // status.addContext("Rappture::MediaPlayer::nframes()");
     return 0;
 }
+/*
+int packet_queue_put(PacketQueue *q, AVPacket *pkt) {
+
+  AVPacketList *pkt1;
+  if(pkt != &flush_pkt && av_dup_packet(pkt) < 0) {
+    return -1;
+  }
+    if(packet_queue_get(&is->audioq, pkt, 1) < 0) {
+      return -1;
+    }
+    if(packet->data == flush_pkt.data) {
+      avcodec_flush_buffers(is->audio_st->codec);
+      continue;
+    }
+*/
+
 
 int
 MediaPlayer::seek(long offset, int whence)
 {
     // status.addContext("Rappture::MediaPlayer::seek()");
+    int stream_index= -1;
+    int64_t seek_target = is->seek_pos;
+
+    if (is->videoStream >= 0) {
+        stream_index = is->videoStream;
+    } else if (is->audioStream >= 0) {
+        stream_index = is->audioStream;
+    }
+
+    if(stream_index>=0){
+        seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
+                      pFormatCtx->streams[stream_index]->time_base);
+    }
+    if(av_seek_frame(is->pFormatCtx, stream_index, 
+                    seek_target, is->seek_flags) < 0) {
+        fprintf(stderr, "%s: error while seeking\n",
+            is->pFormatCtx->filename);
+    } else {
+        /* handle packet queues... more later... */
+        if(is->audioStream >= 0) {
+            packet_queue_flush(&is->audioq);
+            packet_queue_put(&is->audioq, &flush_pkt);
+        }
+        if(is->videoStream >= 0) {
+            packet_queue_flush(&is->videoq);
+            packet_queue_put(&is->videoq, &flush_pkt);
+        }
+    }
+    is->seek_req = 0;
     return 0;
 }
 

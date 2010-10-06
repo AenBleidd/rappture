@@ -70,7 +70,8 @@ endif
 
 FFMPEG          = @HAVE_FFMPEG_LIBS@
 ifeq ($(FFMPEG),yes)
-    OBJS += RpMediaPlayerTclInterface.o
+    # OBJS += RpMediaPlayerTclInterface.o
+    OBJS += RpVideoTclInterface.o
     LIBS += -L../../../src/objects -lRpObjects
 endif
 
