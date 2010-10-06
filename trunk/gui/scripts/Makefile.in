@@ -111,6 +111,7 @@ FILES		= \
 		$(srcdir)/utils.tcl \
 		$(srcdir)/valueresult.tcl \
 		$(srcdir)/videoviewer.tcl \
+		$(srcdir)/videoparticle.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \
