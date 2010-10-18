@@ -117,7 +117,6 @@ itcl::class Rappture::FlowvisViewer {
     private method WaitIcon { option widget }
     private method str2millisecs { value } 
     private method millisecs2str { value } 
-    private method IsMapped { widget } 
     private method GetFlowInfo { widget }
     private method particles { tag name } 
     private method box { tag name } 
@@ -2751,7 +2750,7 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
             }
         }
         "next" {
-            if { ![IsMapped $itk_component(3dview)] } {
+	    if { ![winfo viewable $itk_component(3dview)] } {
                 flow stop
                 return
             }
@@ -2952,18 +2951,5 @@ itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
     set min [expr floor($value / 60000.0)]
     set sec [expr ($value - ($min*60000.0)) / 1000.0]
     return [format %02d:%02d [expr round($min)] [expr round($sec)]]
-}
-
-itcl::body Rappture::FlowvisViewer::IsMapped { w } {
-    while { $w != "" }  {
-        if { ![winfo ismapped $w] } {
-            return 0
-        }
-        set w [winfo parent $w]
-        if { [winfo toplevel $w] == $w } {
-            break
-        }
-    }
-    return 1
 }
 

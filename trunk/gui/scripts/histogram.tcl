@@ -163,7 +163,6 @@ itcl::body Rappture::Histogram::limits {which} {
 	    error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
 	}
     }
-
     if {"" == $vname} {
         return {0 1}
     }

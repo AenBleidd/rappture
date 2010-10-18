@@ -33,12 +33,15 @@ FILES		= \
 		$(srcdir)/controlOwner.tcl \
 		$(srcdir)/controls.tcl \
 		$(srcdir)/curve.tcl \
+		$(srcdir)/datatable.tcl \
+		$(srcdir)/datatableresult.tcl \
 		$(srcdir)/deviceEditor.tcl \
 		$(srcdir)/deviceLayout1D.tcl \
 		$(srcdir)/deviceViewer1D.tcl \
 		$(srcdir)/deviceresult.tcl \
 		$(srcdir)/dispatcher.tcl \
 		$(srcdir)/drawing.tcl \
+		$(srcdir)/drawing3d.tcl \
 		$(srcdir)/drawingentry.tcl \
 		$(srcdir)/dropdown.tcl \
 		$(srcdir)/dropdownlist.tcl \
@@ -113,6 +116,7 @@ FILES		= \
 		$(srcdir)/videoviewer.tcl \
 		$(srcdir)/videoparticle.tcl \
 		$(srcdir)/visviewer.tcl \
+		$(srcdir)/vtkviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \
 		$(srcdir)/xyresult.tcl
