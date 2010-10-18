@@ -4,7 +4,7 @@
 #
 #  This widget is an X/Y plot, meant to view line graphs produced
 #  as output from the run of a Rappture tool.  Use the "add" and
-#  "delete" methods to control the curves showing on the plot.
+#  "delete" methods to control the dataobjs showing on the plot.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -76,10 +76,13 @@ itcl::class Rappture::BarResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
-
-    public method add {curve {settings ""}}
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
+    public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
@@ -93,7 +96,7 @@ itcl::class Rappture::BarResult {
     protected method _zoom {option args}
     protected method _hilite {state x y}
     protected method _axis {option args}
-    protected method _getAxes {xydata}
+    protected method _getAxes {dataobj}
     protected method _getLineMarkerOptions { style } 
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
@@ -101,13 +104,13 @@ itcl::class Rappture::BarResult {
     private method _formatTickLabel { w value } 
 
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _clist ""     ;# list of curve objects
-    private variable _curve2color  ;# maps curve => plotting color
-    private variable _curve2width  ;# maps curve => line width
-    private variable _curve2dashes ;# maps curve => BLT -dashes list
-    private variable _curve2raise  ;# maps curve => raise flag 0/1
-    private variable _curve2desc   ;# maps curve => description of data
-    private variable _elem2curve   ;# maps graph element => curve
+    private variable _dlist ""     ;# list of dataobjs
+    private variable _dataobj2color  ;# maps dataobj => plotting color
+    private variable _dataobj2width  ;# maps dataobj => line width
+    private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
+    private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
+    private variable _dataobj2desc   ;# maps dataobj => description of data
+    private variable _elem2dataobj   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
     private variable _autoColorI 0 ;# index for next "-color auto"
@@ -117,8 +120,6 @@ itcl::class Rappture::BarResult {
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
     private variable _markers
-    private variable cur_ ""
-    private variable initialized_ 0
     private variable _tickLabels
 }
                                                                                 
@@ -205,7 +206,7 @@ itcl::body Rappture::BarResult::constructor {args} {
     label $inner.formatl -text "Format:"
     Rappture::Combobox $inner.format -width 15 -editable no
     $inner.format choices insert end \
-        "%.3g"  "Auto"         \
+        "%.6g"  "Auto"         \
         "%.0f"  "X"          \
         "%.1f"  "X.X"          \
         "%.2f"  "X.XX"         \
@@ -230,7 +231,7 @@ itcl::body Rappture::BarResult::constructor {args} {
     grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
 
     foreach axis {x y} {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
     }
     _axis scale x linear
     _axis scale y linear
@@ -269,13 +270,13 @@ itcl::body Rappture::BarResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <curve> ?<settings>?
+# USAGE: add <dataobj> ?<settings>?
 #
-# Clients use this to add a curve to the plot.  The optional <settings>
+# Clients use this to add a dataobj to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::add {curve {settings ""}} {
+itcl::body Rappture::BarResult::add {dataobj {settings ""}} {
     array set params {
         -color auto
         -brightness 0
@@ -331,14 +332,14 @@ itcl::body Rappture::BarResult::add {curve {settings ""}} {
         }
     }
 
-    set pos [lsearch -exact $curve $_clist]
+    set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-        lappend _clist $curve
-        set _curve2color($curve) $params(-color)
-        set _curve2width($curve) $params(-width)
-        set _curve2dashes($curve) $params(-linestyle)
-        set _curve2raise($curve) $params(-raise)
-        set _curve2desc($curve) $params(-description)
+        lappend _dlist $dataobj
+        set _dataobj2color($dataobj) $params(-color)
+        set _dataobj2width($dataobj) $params(-width)
+        set _dataobj2dashes($dataobj) $params(-linestyle)
+        set _dataobj2raise($dataobj) $params(-raise)
+        set _dataobj2desc($dataobj) $params(-description)
 
         $_dispatcher event -idle !rebuild
     }
@@ -352,43 +353,43 @@ itcl::body Rappture::BarResult::add {curve {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::get {} {
     # put the dataobj list in order according to -raise options
-    set clist $_clist
-    foreach obj $clist {
-        if {[info exists _curve2raise($obj)] && $_curve2raise($obj)} {
-            set i [lsearch -exact $clist $obj]
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
             if {$i >= 0} {
-                set clist [lreplace $clist $i $i]
-                lappend clist $obj
+                set dlist [lreplace $clist $i $i]
+                lappend dlist $obj
             }
         }
     }
-    return $clist
+    return $dlist
 }
 
 # ----------------------------------------------------------------------
-# USAGE: delete ?<curve1> <curve2> ...?
+# USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a curve from the plot.  If no curves
-# are specified, then all curves are deleted.
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_clist
+        set args $_dlist
     }
 
-    # delete all specified curves
+    # delete all specified dataobjs
     set changed 0
-    foreach curve $args {
-        set pos [lsearch -exact $_clist $curve]
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
-            set _clist [lreplace $_clist $pos $pos]
-            catch {unset _curve2color($curve)}
-            catch {unset _curve2width($curve)}
-            catch {unset _curve2dashes($curve)}
-            catch {unset _curve2raise($curve)}
-            foreach elem [array names _elem2curve] {
-                if {$_elem2curve($elem) == $curve} {
-                    unset _elem2curve($elem)
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dataobj2color($dataobj)}
+            catch {unset _dataobj2width($dataobj)}
+            catch {unset _dataobj2dashes($dataobj)}
+            catch {unset _dataobj2raise($dataobj)}
+            foreach elem [array names _elem2dataobj] {
+                if {$_elem2dataobj($elem) == $dataobj} {
+                    unset _elem2dataobj($elem)
                 }
             }
             set changed 1
@@ -401,18 +402,18 @@ itcl::body Rappture::BarResult::delete {args} {
     }
 
     # Nothing left? then start over with auto colors
-    if {[llength $_clist] == 0} {
+    if {[llength $_dlist] == 0} {
         set _autoColorI 0
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: scale ?<curve1> <curve2> ...?
+# USAGE: scale ?<dataobj1> <dataobj2> ...?
 #
 # Sets the default limits for the overall plot according to the
-# limits of the data for all of the given <curve> objects.  This
-# accounts for all curves--even those not showing on the screen.
-# Because of this, the limits are appropriate for all curves as
+# limits of the data for all of the given <dataobj> objects.  This
+# accounts for all dataobjs--even those not showing on the screen.
+# Because of this, the limits are appropriate for all dataobjs as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::scale {args} {
@@ -429,16 +430,16 @@ itcl::body Rappture::BarResult::scale {args} {
     }
 
     catch {unset _limits}
-    foreach xydata $args {
-        # find the axes for this curve (e.g., {x y2})
-        foreach {map(x) map(y)} [_getAxes $xydata] break
+    foreach dataobj $args {
+        # find the axes for this dataobj (e.g., {x y2})
+        foreach {map(x) map(y)} [_getAxes $dataobj] break
 
         foreach axis {x y} {
             # get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
-                foreach {min max} [$xydata limits $axis$type] break
+                foreach {min max} [$dataobj limits $axis$type] break
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -454,7 +455,7 @@ itcl::body Rappture::BarResult::scale {args} {
                 }
             }
 
-            if {[$xydata hints ${axis}scale] == "log"} {
+            if {[$dataobj hints ${axis}scale] == "log"} {
                 _axis scale $map($axis) log
             }
         }
@@ -481,7 +482,8 @@ itcl::body Rappture::BarResult::download {option args} {
             set popup .barresultdownload
             if {![winfo exists .barresultdownload]} {
                 # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
+                Rappture::Balloon $popup \
+                    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -489,14 +491,10 @@ itcl::body Rappture::BarResult::download {option args} {
                     -variable Rappture::BarResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
-                radiobutton $inner.pdf -text "Image as PDF/PostScript" \
+                radiobutton $inner.image -text "Image (PS/PDF/PNG/JPEG)" \
                     -variable Rappture::BarResult::_downloadPopup(format) \
-                    -value pdf
-                pack $inner.pdf -anchor w
-                radiobutton $inner.jpg -text "Image (draft)" \
-                    -variable Rappture::BarResult::_downloadPopup(format) \
-                    -value jpg
-                pack $inner.jpg -anchor w
+                    -value image
+                pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
                 pack $inner.go -pady 4
@@ -527,10 +525,10 @@ itcl::body Rappture::BarResult::download {option args} {
                     foreach dataobj $dlist {
                         append csvdata "[string repeat - 60]\n"
                         append csvdata " [$dataobj hints label]\n"
-                        if {[info exists _curve2desc($dataobj)]
-                            && [llength [split $_curve2desc($dataobj) \n]] > 1} {
+                        if {[info exists _dataobj2desc($dataobj)]
+                            && [llength [split $_dataobj2desc($dataobj) \n]] > 1} {
                             set indent "for:"
-                            foreach line [split $_curve2desc($dataobj) \n] {
+                            foreach line [split $_dataobj2desc($dataobj) \n] {
                                 append csvdata " $indent $line\n"
                                 set indent "    "
                             }
@@ -555,41 +553,28 @@ itcl::body Rappture::BarResult::download {option args} {
                     }
                     return [list .txt $csvdata]
                 }
-                pdf {
-                    set psdata [$itk_component(plot) postscript output \
-                                    -decorations no -maxpect 1]
-
-                    set cmds {
-                        set fout "xy[pid].pdf"
-                        exec ps2pdf - $fout << $psdata
-                        
-                        set fid [open $fout r]
-                        fconfigure $fid -translation binary -encoding binary
-                        set pdfdata [read $fid]
-                        close $fid
-                        
-                        file delete -force $fout
+                image {
+                    set popup .barprintdownload
+                    if { ![winfo exists $popup] } {
+                        # Create a popup for the print dialog
+                        Rappture::Balloon $popup -title "Save as image..."
+                        set inner [$popup component inner]
+                        # Create the print dialog widget and add it to the
+                        # the balloon popup.
+                        Rappture::XyPrint $inner.print 
+                        $popup configure \
+                            -deactivatecommand [list $inner.print reset] 
+                        blt::table $inner 0,0 $inner.print -fill both
                     }
-                    if {[catch $cmds result] == 0} {
-                        return [list .pdf $pdfdata]
-                    }
-                    return [list .ps $psdata]
-                }
-                jpg {
-                    set img [image create photo]
-                    $itk_component(plot) snap $img
-                    set bytes [$img data -format "jpeg -quality 100"]
-                    set bytes [Rappture::encoding::decode -as b64 $bytes]
-                    image delete $img
-                    return [list .jpg $bytes]
-                }
-                png {
-                    set img [image create photo]
-                    $itk_component(plot) snap $img
-                    set bytes [$img data -format "png"]
-                    set bytes [Rappture::encoding::decode -as b64 $bytes]
-                    image delete $img
-                    return [list .png $bytes]
+                    update
+                    # Activate the popup and call for the output.
+                    foreach { widget toolName plotName } $args break
+                    $popup activate $widget left
+                    set inner [$popup component inner]
+                    set output [$inner.print print $itk_component(plot) \
+                                    $toolName $plotName]
+                    $popup deactivate 
+                    return $output
                 }
             }
         }
@@ -609,8 +594,9 @@ itcl::body Rappture::BarResult::download {option args} {
 itcl::body Rappture::BarResult::_rebuild {} {
     set g $itk_component(plot)
 
-    # first clear out the widget
+    # First clear out the widget
     eval $g element delete [$g element names]
+    eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
         $g axis configure $axis -hide yes -checklimits no -loose yes
     }
@@ -627,9 +613,9 @@ itcl::body Rappture::BarResult::_rebuild {} {
     #
     set anum(x) 0
     set anum(y) 0
-    foreach xydata [get] {
+    foreach dataobj [get] {
         foreach ax {x y} {
-            set label [$xydata hints ${ax}label]
+            set label [$dataobj hints ${ax}label]
             if {"" != $label} {
                 if {![info exists _label2axis($ax-$label)]} {
                     switch [incr anum($ax)] {
@@ -645,7 +631,7 @@ itcl::body Rappture::BarResult::_rebuild {} {
                     set _label2axis($ax-$label) $axis
 
                     # if this axis has a description, add it as a tooltip
-                    set desc [string trim [$xydata hints ${ax}desc]]
+                    set desc [string trim [$dataobj hints ${ax}desc]]
                     Rappture::Tooltip::text $g-$axis $desc
                 }
             }
@@ -672,51 +658,51 @@ itcl::body Rappture::BarResult::_rebuild {} {
     }
 
     foreach axis $all {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
 
         $g axis bind $axis <Enter> \
             [itcl::code $this _axis hilite $axis on]
         $g axis bind $axis <Leave> \
             [itcl::code $this _axis hilite $axis off]
-        $g axis bind $axis <ButtonPress> \
+        $g axis bind $axis <ButtonPress-1> \
             [itcl::code $this _axis click $axis %x %y]
         $g axis bind $axis <B1-Motion> \
             [itcl::code $this _axis drag $axis %x %y]
-        $g axis bind $axis <ButtonRelease> \
+        $g axis bind $axis <ButtonRelease-1> \
             [itcl::code $this _axis release $axis %x %y]
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
 
     #
-    # Plot all of the curves.
+    # Plot all of the dataobjs.
     #
     set count 0
-    foreach xydata $_clist {
-        set label [$xydata hints label]
-        foreach {mapx mapy} [_getAxes $xydata] break
+    foreach dataobj $_dlist {
+        set label [$dataobj hints label]
+        foreach {mapx mapy} [_getAxes $dataobj] break
 
-        foreach comp [$xydata components] {
-            set xv [$xydata mesh $comp]
-            set yv [$xydata values $comp]
+        foreach comp [$dataobj components] {
+            set xv [$dataobj mesh $comp]
+            set yv [$dataobj values $comp]
 
-            if {[info exists _curve2color($xydata)]} {
-                set color $_curve2color($xydata)
+            if {[info exists _dataobj2color($dataobj)]} {
+                set color $_dataobj2color($dataobj)
             } else {
-                set color [$xydata hints color]
+                set color [$dataobj hints color]
                 if {"" == $color} {
                     set color black
                 }
             }
 
-            if {[info exists _curve2width($xydata)]} {
-                set lwidth $_curve2width($xydata)
+            if {[info exists _dataobj2width($dataobj)]} {
+                set lwidth $_dataobj2width($dataobj)
             } else {
                 set lwidth 2
             }
 
-            if {[info exists _curve2dashes($xydata)]} {
-                set dashes $_curve2dashes($xydata)
+            if {[info exists _dataobj2dashes($dataobj)]} {
+                set dashes $_dataobj2dashes($dataobj)
             } else {
                 set dashes ""
             }
@@ -730,8 +716,8 @@ itcl::body Rappture::BarResult::_rebuild {} {
             }
 
             set elem "elem[incr count]"
-            set _elem2curve($elem) $xydata
-	    set labels [$xydata hints xticks]
+            set _elem2dataobj($elem) $dataobj
+	    set labels [$dataobj hints xticks]
 	    if { $labels != "" } {
 		$g axis configure $mapx \
 		    -command [itcl::code $this _formatTickLabel] \
@@ -744,7 +730,21 @@ itcl::body Rappture::BarResult::_rebuild {} {
 	}
     }
 
-    foreach xydata $_clist {
+    # Fix duplicate labels by appending the simulation number
+    foreach label [array names label2elem] {
+        if { [llength $label2elem($label)] == 1 } {
+            continue
+        }
+        foreach elem $label2elem($label) {
+            set dataobj $_elem2dataobj($elem)
+            scan [$dataobj hints xmlobj] "::libraryObj%d" suffix
+            incr suffix
+            set elabel [format "%s \#%d" $label $suffix]
+            $g element configure $elem -label $elabel
+        }
+    }        
+
+    foreach dataobj $_dlist {
         set xmin -Inf
         set ymin -Inf
         set xmax Inf
@@ -752,7 +752,7 @@ itcl::body Rappture::BarResult::_rebuild {} {
         # 
         # Create text/line markers for each *axis.marker specified. 
         # 
-        foreach m [$xydata xmarkers] {
+        foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
             $g marker bind $id <Enter> \
@@ -772,7 +772,7 @@ itcl::body Rappture::BarResult::_rebuild {} {
                 }
             }
         }
-        foreach m [$xydata ymarkers] {
+        foreach m [$dataobj ymarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $xmin $at $xmax $at]]
             $g marker bind $id <Enter> \
@@ -913,11 +913,11 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
             set elem $info(name)
 
             # Some elements are generated dynamically and therefore will
-            # not have a curve object associated with them.
+            # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2curve($elem)]} {
-                foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            if {[info exists _elem2dataobj($elem)]} {
+                foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
 
             # search again for an exact point -- this time don't interpolate
@@ -929,10 +929,10 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
                 
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    set yunits [$curve hints yunits]
-                    set xunits [$curve hints xunits]
+                if {[info exists _elem2dataobj($elem)]} {
+                    set dataobj $_elem2dataobj($elem)
+                    set yunits [$dataobj hints yunits]
+                    set xunits [$dataobj hints xunits]
                 } else {
                     set xunits ""
                     set yunits ""
@@ -950,35 +950,36 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
             set elem $info(name)
 
             # Some elements are generated dynamically and therefore will
-            # not have a curve object associated with them.
+            # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2curve($elem)]} {
-                foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            if {[info exists _elem2dataobj($elem)]} {
+                foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
 
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
                 
-            if {[info exists _elem2curve($elem)]} {
-                set curve $_elem2curve($elem)
-                set yunits [$curve hints yunits]
-                set xunits [$curve hints xunits]
-            } else {
-                set xunits ""
-                set yunits ""
-            }
-            set tip [$g element cget $elem -label]
-            set yval [_axis format y dummy $info(y)]
-            append tip "\n$yval$yunits"
-            set xval [_axis format x dummy $info(x)]
-            append tip " @ $xval$xunits"
-            set tip [string trim $tip]
-            set state 1
-        } else {
-            set state 0
-        }
+		if {[info exists _elem2dataobj($elem)]} {
+		    set dataobj $_elem2dataobj($elem)
+		    set yunits [$dataobj hints yunits]
+		    set xunits [$dataobj hints xunits]
+		} else {
+		    set xunits ""
+		    set yunits ""
+		}
+		set tip [$g element cget $elem -label]
+		set yval [_axis format y dummy $info(y)]
+		append tip "\n$yval$yunits"
+		set xval [_axis format x dummy $info(x)]
+		append tip " @ $xval$xunits"
+		set tip [string trim $tip]
+		set state 1
+	    } else {
+		set state 0
+	    }
+	}
     }
 
     if {$state} {
@@ -1006,8 +1007,8 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
 
         set mapx [$g element cget $elem -mapx]
         set mapy [$g element cget $elem -mapy]
-        if {[info exists _elem2curve($elem)]} {
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+        if {[info exists _elem2dataobj($elem)]} {
+            foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
         }
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -1446,7 +1447,7 @@ itcl::body Rappture::BarResult::_axis {option args} {
             set value [lindex $args 2]
 
             if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set fmt "%.3g"
+                set fmt "%.6g"
             } else {
                 set fmt $_axisPopup(format-$axis)
             }
@@ -1515,6 +1516,7 @@ itcl::body Rappture::BarResult::_getTextMarkerOptions {style} {
         "-xoffset" "-xoffset"
         "-yoffset" "-yoffset"
         "-anchor" "-anchor"
+	"-rotate" "-rotate"
     }
     set options {}
     foreach {name value} $style {
@@ -1526,13 +1528,13 @@ itcl::body Rappture::BarResult::_getTextMarkerOptions {style} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getAxes <curveObj>
+# USAGE: _getAxes <dataobj>
 #
 # Used internally to figure out the axes used to plot the given
-# <curveObj>.  Returns a list of the form {x y}, where x is the
+# <dataobj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_getAxes {xydata} {
+itcl::body Rappture::BarResult::_getAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1540,7 +1542,7 @@ itcl::body Rappture::BarResult::_getAxes {xydata} {
     }
 
     # what is the x axis?  x? x2? x3? ...
-    set xlabel [$xydata hints xlabel]
+    set xlabel [$dataobj hints xlabel]
     if {[info exists _label2axis(x-$xlabel)]} {
         set mapx $_label2axis(x-$xlabel)
     } else {
@@ -1548,7 +1550,7 @@ itcl::body Rappture::BarResult::_getAxes {xydata} {
     }
 
     # what is the y axis?  y? y2? y3? ...
-    set ylabel [$xydata hints ylabel]
+    set ylabel [$dataobj hints ylabel]
     if {[info exists _label2axis(y-$ylabel)]} {
         set mapy $_label2axis(y-$ylabel)
     } else {

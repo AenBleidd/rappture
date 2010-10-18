@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: curve - extracts data from an XML description of a field
 #

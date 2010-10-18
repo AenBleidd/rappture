@@ -530,36 +530,36 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     # Go through the analysis and find all result sets.
     set haveresults 0
     foreach item [_reorder [$xmlobj children output]] {
-        switch -glob -- $item {
-            log* {
-                _autoLabel $xmlobj output.$item "Output Log" counters
-            }
-            number* {
-                _autoLabel $xmlobj output.$item "Number" counters
-            }
-            integer* {
-                _autoLabel $xmlobj output.$item "Integer" counters
-            }
-            string* {
-                _autoLabel $xmlobj output.$item "String" counters
-            }
-            histogram* - curve* - field* {
-                _autoLabel $xmlobj output.$item "Plot" counters
-            }
-            structure* {
-                _autoLabel $xmlobj output.$item "Structure" counters
-            }
-            table* {
-                _autoLabel $xmlobj output.$item "Energy Levels" counters
-            }
-            sequence* {
-                _autoLabel $xmlobj output.$item "Sequence" counters
-            }
-        }
-        set label [$xmlobj get output.$item.about.group]
-        if {"" == $label} {
-            set label [$xmlobj get output.$item.about.label]
-        }
+	switch -glob -- $item {
+	    log* {
+		_autoLabel $xmlobj output.$item "Output Log" counters
+	    }
+	    number* {
+		_autoLabel $xmlobj output.$item "Number" counters
+	    }
+	    integer* {
+		_autoLabel $xmlobj output.$item "Integer" counters
+	    }
+	    string* {
+		_autoLabel $xmlobj output.$item "String" counters
+	    }
+	    histogram* - curve* - field* - drawing3d* {
+		_autoLabel $xmlobj output.$item "Plot" counters
+	    }
+	    structure* {
+		_autoLabel $xmlobj output.$item "Structure" counters
+	    }
+	    table* {
+		_autoLabel $xmlobj output.$item "Energy Levels" counters
+	    }
+	    sequence* {
+		_autoLabel $xmlobj output.$item "Sequence" counters
+	    }
+	}
+	set label [$xmlobj get output.$item.about.group]
+	if {"" == $label} {
+	    set label [$xmlobj get output.$item.about.label]
+	}
 
         set hidden [$xmlobj get output.$item.hide]
         set hidden [expr {"" != $hidden && $hidden}]
@@ -1323,7 +1323,6 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
-    puts stderr "path=$path"
     # Remove leading dot from path, if present.
     if { [string index $path 0] == "." } {
 	set path [string range $path 1 end]
