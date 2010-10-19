@@ -90,6 +90,13 @@ proc Rappture::filexfer::label {operation} {
                 return "Load File..."
             }
         }
+        uploadWord {
+            if {[Rappture::filexfer::enabled]} {
+                return "Upload"
+            } else {
+                return "Browse"
+            }
+        }
         download {
             if {[Rappture::filexfer::enabled]} {
                 return "Download"
@@ -105,7 +112,7 @@ proc Rappture::filexfer::label {operation} {
             }
         }
         default {
-            error "bad option \"$operation\": should be upload, download, or downloadWord"
+            error "bad option \"$operation\": should be upload, uploadWord, download, or downloadWord"
         }
     }
 }

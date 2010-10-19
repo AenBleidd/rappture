@@ -25,12 +25,14 @@ static Tcl_ObjCmdProc VideoCallCmd;
 static Tcl_ObjCmdProc GetOp;
 static Tcl_ObjCmdProc NextOp;
 static Tcl_ObjCmdProc SeekOp;
+static Tcl_ObjCmdProc SizeOp;
 static Tcl_ObjCmdProc ReleaseOp;
 
 static Rp_OpSpec rpVideoOps[] = {
-    {"get",  1, (void *)GetOp, 3, 5, "[image width height]|[position cur|end]|[framerate]",},
+    {"get",  1, (void *)GetOp, 3, 5, "[image ?width height?]|[position cur|end]|[framerate]",},
     {"next",  1, (void *)NextOp, 2, 2, "",},
     {"seek",  1, (void *)SeekOp, 3, 3, "+n|-n|n",},
+    {"size",  1, (void *)SizeOp, 2, 2, "",},
     {"release", 1, (void *)ReleaseOp, 2, 2, "",},
 };
 
@@ -55,7 +57,7 @@ RpVideo_Init(Tcl_Interp *interp)
 }
 
 /*
- * USAGE: Video <file>
+ * USAGE: Video <type> <data>
  */
 static int
 VideoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -63,7 +65,18 @@ VideoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     char cmdName[64];
     static int movieCount = 0;
-    const char *filename = Tcl_GetString(objv[1]);
+    const char *type = NULL;
+    const char *data = NULL;
+    int err = 0;
+
+    if (objc != 3) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"",
+            "Video <type> <data>\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    type = Tcl_GetString(objv[1]);
+    data = Tcl_GetString(objv[2]);
 
     // create a new command
     VideoObj *movie = NULL;
@@ -73,9 +86,22 @@ VideoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                          "VideoInitCmd(movie);", (char*)NULL);
         return TCL_ERROR;
     }
-    VideoOpenFile(movie,filename,"r");
+
+    if ((*type == 'd') && (strcmp(type,"data") == 0)) {
+        Tcl_AppendResult(interp, "error while creating movie: type == data not supported",
+                         "\n", "VideoInitCmd(movie);", (char*)NULL);
+        return TCL_ERROR;
+    } else if ((*type == 'f') && (strcmp(type,"file") == 0)) {
+        err = VideoOpenFile(movie,data,"r");
+        if (err) {
+            Tcl_AppendResult(interp, "error while creating movie object: ",
+                             "\n", "VideoInitCmd(movie);", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
 
     sprintf(cmdName,"::movieObj%d",movieCount);
+    movieCount++;
 
     Tcl_CreateObjCommand(interp, cmdName, VideoCallCmd,
         (ClientData)movie, (Tcl_CmdDeleteProc*)NULL);
@@ -108,7 +134,7 @@ VideoCallCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  *
  * get position cur
  * get position end
- * get image width height
+ * get image ?width height?
  * get framerate
  *
  */
@@ -152,21 +178,22 @@ GetOp (ClientData clientData, Tcl_Interp *interp, int objc,
         }
     }
     else if ((*info == 'i') && (strcmp(info,"image") == 0)) {
-        if (objc != 5) {
+        if ((objc != 3) && (objc != 5)) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", cmd,
-                " image width height\"", (char*)NULL);
+                " image ?width height?\"", (char*)NULL);
             return TCL_ERROR;
         }
 
         void *img = NULL;
-        int width = 0;
-        int height = 0;
+        int width = -1;
+        int height = -1;
         int bufSize = 0;
 
-        Tcl_GetIntFromObj(interp, objv[3], &width);
-        Tcl_GetIntFromObj(interp, objv[4], &height);
+        if (objc == 5) {
+            Tcl_GetIntFromObj(interp, objv[3], &width);
+            Tcl_GetIntFromObj(interp, objv[4], &height);
+        }
 
-//        VideoGoNext((VideoObj *)clientData);
         VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
 
         Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
@@ -180,8 +207,14 @@ GetOp (ClientData clientData, Tcl_Interp *interp, int objc,
         }
 
         double fr = 0;
+        int err = 0;
 
-        VideoGetFrameRate((VideoObj *)clientData, &fr);
+        err = VideoGetFrameRate((VideoObj *)clientData, &fr);
+        if (err) {
+            Tcl_AppendResult(interp, "error while calculating framerate",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
         Tcl_SetObjResult(interp, Tcl_NewDoubleObj(fr));
     }
     else {
@@ -210,16 +243,19 @@ NextOp (ClientData clientData, Tcl_Interp *interp, int objc,
          Tcl_Obj *const *objv)
 {
 
-    void *img = NULL;
-    int width = 960;
-    int height = 540;
-    int bufSize = 0;
+//    void *img = NULL;
+//    int width = 960;
+//    int height = 540;
+//    int bufSize = 0;
 
+    int pos = 0;
     VideoGoNext((VideoObj *)clientData);
-    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
+    VideoGetPositionCur((VideoObj *)clientData,&pos);
+    Tcl_SetObjResult(interp, Tcl_NewIntObj(pos));
+//    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
 
-    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
-                        (const unsigned char*)img, bufSize);
+//    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
+//                        (const unsigned char*)img, bufSize);
 
     return TCL_OK;
 }
@@ -241,12 +277,13 @@ SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
          Tcl_Obj *const *objv)
 {
 
-    void *img = NULL;
-    int width = 960;
-    int height = 540;
-    int bufSize = 0;
+//    void *img = NULL;
+//    int width = 960;
+//    int height = 540;
+//    int bufSize = 0;
     const char *val_s = NULL;
     int val = 0;
+    int pos = 0;
 
     val_s = Tcl_GetString(objv[2]);
     if (*val_s == '+') {
@@ -276,14 +313,56 @@ SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
         // printf("c = %d\tval = %d\n",c,val);
     }
 
-    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
+//    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
 
-    if (img == NULL) {
-        printf("img is null\n");
+//    if (img == NULL) {
+//        printf("img is null\n");
+//    }
+
+//    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
+//                        (const unsigned char*)img, bufSize);
+
+    VideoGetPositionCur((VideoObj *)clientData,&pos);
+    Tcl_SetObjResult(interp, Tcl_NewIntObj(pos));
+
+    return TCL_OK;
+}
+
+/**********************************************************************/
+// FUNCTION: SizeOp()
+/// Get the size of the video
+/**
+ * Return the original size of the video frame
+ *
+ * Full function call:
+ *
+ * size
+ *
+ */
+static int
+SizeOp (ClientData clientData, Tcl_Interp *interp, int objc,
+         Tcl_Obj *const *objv)
+{
+
+    int width = 0;
+    int height = 0;
+    int err = 0;
+    Tcl_Obj *dim = NULL;
+
+
+    err = VideoSizeCmd((VideoObj *)clientData,&width,&height);
+
+    if (err) {
+        Tcl_AppendResult(interp, "error while calculating size of video",
+            (char*)NULL);
+        return TCL_ERROR;
     }
 
-    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
-                        (const unsigned char*)img, bufSize);
+
+    dim = Tcl_NewListObj(0, NULL);
+    Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(width));
+    Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(height));
+    Tcl_SetObjResult(interp, dim);
 
     return TCL_OK;
 }
