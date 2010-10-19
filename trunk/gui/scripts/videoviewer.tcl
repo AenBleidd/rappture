@@ -15,9 +15,9 @@ package require Img
 package require Rappture
 package require RapptureGUI
 
-option add *VideoViewer.width 5i widgetDefault
+#option add *VideoViewer.width 5i widgetDefault
 option add *VideoViewer*cursor crosshair widgetDefault
-option add *VideoViewer.height 4i widgetDefault
+#option add *VideoViewer.height 4i widgetDefault
 option add *VideoViewer.foreground black widgetDefault
 option add *VideoViewer.controlBackground gray widgetDefault
 option add *VideoViewer.controlDarkBackground #999999 widgetDefault
@@ -33,6 +33,9 @@ itcl::class Rappture::VideoViewer {
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
     itk_option define -plotoutline plotOutline PlotOutline ""
+    itk_option define -width width Width -1
+    itk_option define -height height Height -1
+    itk_option define -controls controls Controls "show"
 
     constructor { args } {
         # defined below
@@ -43,6 +46,7 @@ itcl::class Rappture::VideoViewer {
 
     public method load {filename}
     public method video {args}
+    public method query {type}
 
     protected method togglePtrBind {pbvar}
     protected method togglePtrCtrl {pbvar}
@@ -57,11 +61,15 @@ itcl::class Rappture::VideoViewer {
     protected method Trajectory {args}
     protected method updateMeasurements {}
     protected method calculateTrajectory {args}
+    protected method fixSize {}
+
+
 
     private common   _settings
 
-    private variable _width 0
-    private variable _height 0
+    private variable _width -1
+    private variable _height -1
+    private variable _controls ""
     private variable _x0 0          ;# start x for rubberbanding
     private variable _y0 0          ;# start y for rubberbanding
     private variable _units "m"
@@ -398,16 +406,31 @@ itcl::body Rappture::VideoViewer::destructor {} {
 # load - load a video file
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoViewer::load {filename} {
-    set _movie [Rappture::Video $filename]
+
+    # open the file
+
+    set _movie [Rappture::Video "file" $filename]
     set _framerate [${_movie} get framerate]
     set _mspf [expr round(((1.0/${_framerate})*1000)/pow(2,[$itk_component(speed) value]-1))]
-    # set _mspf 7
     puts "framerate = ${_framerate}"
     puts "mspf = ${_mspf}"
 
+    ${_movie} seek 0
+
+    # setup the image display
+
     set _imh [image create photo]
-    $_imh put [$_movie next]
+    foreach {w h} [query dimensions] break
+    if {${_width} == -1} {
+        set _width $w
+    }
+    if {${_height} == -1} {
+        set _height $h
+    }
+#    ${_imh} put [$_movie get image ${_width} ${_height}]
     $itk_component(main) create image 0 0 -anchor nw -image $_imh
+
+    # setup timings for playing video
 
     set _lastFrame [$_movie get position end]
     set offset [expr 1.0/double(${_lastFrame})]
@@ -423,17 +446,30 @@ itcl::body Rappture::VideoViewer::load {filename} {
     }
     $itk_component(framenum) configure -max ${_lastFrame} -width $cnt
 
-    set pch [$itk_component(pointercontrols) cget -height]
-    set mch [$itk_component(moviecontrols) cget -height]
-    set pch 30
-    set mch 30
-    $itk_component(main) configure -scrollregion [$itk_component(main) bbox all]
-    foreach { x0 y0 x1 y1 } [$itk_component(main) bbox all] break
-    set w [expr abs($x1-$x0)]
-    set h [expr abs($y1-$y0+$pch+$mch)]
-    # $itk_component(main) configure -width $w -height $h
-    .main configure -width $w -height $h
+    fixSize
+}
 
+# ----------------------------------------------------------------------
+# fixSize
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoViewer::fixSize {} {
+
+    if {[string compare "" ${_movie}] == 0} {
+        return
+    }
+
+    # get an image with the new size
+    ${_imh} put [${_movie} get image ${_width} ${_height}]
+
+    # fix the dimesions of the canvas
+    $itk_component(main) configure -width ${_width} -height ${_height}
+
+    $itk_component(main) configure -scrollregion [$itk_component(main) bbox all]
+    #foreach { x0 y0 x1 y1 } [$itk_component(main) bbox all] break
+    #set w [expr abs($x1-$x0)]
+    #set h [expr abs($y1-$y0)]
+    #$itk_component(main) configure -width $w -height $h
+    # component hull configure -width $w -height $h
 }
 
 # ----------------------------------------------------------------------
@@ -476,6 +512,22 @@ itcl::body Rappture::VideoViewer::video { args } {
         }
         default {
             error "bad option \"$option\": should be play, stop, toggle, position, or reset."
+        }
+    }
+    return $ret
+}
+
+# ----------------------------------------------------------------------
+# query - query things about the video
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoViewer::query { type } {
+    set ret ""
+    switch -- $type {
+        "dimensions" {
+            set ret [${_movie} size]
+        }
+        default {
+            error "bad type \"$type\": should be dimensions."
         }
     }
     return $ret
@@ -616,7 +668,8 @@ itcl::body Rappture::VideoViewer::Play {} {
 #    }
 
     # display the next frame
-    $_imh put [$_movie next]
+    $_movie next
+    $_imh put [$_movie get image ${_width} ${_height}]
 
     # update the dial and framenum widgets
     set _settings($this-currenttime) [expr 1.0*$cur/${_lastFrame}]
@@ -669,8 +722,9 @@ itcl::body Rappture::VideoViewer::Seek {args} {
     if {"" == $val} {
         error "bad value: \"$val\": should be \"seek \[-percent\] value\""
     }
-    $_imh put [$_movie seek $val]
-    set cur [$_movie get position cur]
+    ${_movie} seek $val
+    ${_imh} put [${_movie} get image ${_width} ${_height}]
+    set cur [${_movie} get position cur]
     set _settings($this-currenttime) [expr double($cur) / double(${_lastFrame})]
 }
 
@@ -1003,5 +1057,46 @@ itcl::body Rappture::VideoViewer::calculateTrajectory {args} {
     puts "trajectory = $t"
 
     return $t
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -width
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoViewer::width {
+    # $_dispatcher event -idle !fixsize
+    if {[string is integer $itk_option(-width)] == 0} {
+        error "bad value: \"$itk_option(-width)\": width should be an integer"
+    }
+    set _width $itk_option(-width)
+    after idle [itcl::code $this fixSize]
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -height
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoViewer::height {
+    # $_dispatcher event -idle !fixsize
+    if {[string is integer $itk_option(-height)] == 0} {
+        error "bad value: \"$itk_option(-height)\": height should be an integer"
+    }
+    set _height $itk_option(-height)
+    after idle [itcl::code $this fixSize]
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -controls
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoViewer::controls {
+    switch $itk_option(-controls) {
+        show {
+        }
+        hide {
+        }
+        default {
+            error "bad value: \"$itk_option(-height)\": height should be an integer"
+        }
+    }
+    set _height $itk_option(-height)
+    after idle [itcl::code $this fixSize]
 }
 

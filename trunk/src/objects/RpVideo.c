@@ -139,6 +139,7 @@ VideoOpenFile(vidPtr, fileName, mode)
     const char *mode;
 {
     int fnlen = 0;
+    int err = 0;
 
     if (fileName == NULL) {
         // missing value for fileName
@@ -160,6 +161,7 @@ VideoOpenFile(vidPtr, fileName, mode)
         return -1;
     }
     strncpy(vidPtr->fileName,fileName,fnlen);
+    vidPtr->fileName[fnlen] = '\0';
 
     // FIXME: remove this constraint when we support
     // the modes: r, r+, w, w+, a, a+, b and combinations
@@ -169,7 +171,10 @@ VideoOpenFile(vidPtr, fileName, mode)
 
     if (*mode == 'r') {
         /* we're now in "input" mode */
-        VideoModeRead(vidPtr);
+        err = VideoModeRead(vidPtr);
+        if (err) {
+            return err;
+        }
     } else if (*mode == 'w') {
         /* we're now in "input" mode */
         // VideoModeWrite(vidPtr);
@@ -194,6 +199,17 @@ VideoOpenFile(vidPtr, fileName, mode)
  *
  *  Returns TCL_OK if successful, and TCL_ERROR if there is a problem
  *  opening or closing the stream.
+ *
+ *  Error Codes
+ *  -1
+ *  -2      missing file name
+ *  -3      couldn't open file
+ *  -4      couldn't find streams in file
+ *  -5      couldn't find video stream in file
+ *  -6      unsupported codec for file
+ *  -7      couldn't open codec for file
+ *  -8      couldn't allocate frame space
+ *  -9      strcpy input to vidPtr->mode failed
  * ------------------------------------------------------------------------
  */
 int
@@ -212,7 +228,9 @@ VideoModeRead(vidPtr)
     if (vidPtr->fileName == NULL) {
         // Tcl_AppendResult(interp, "missing value for -file", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // missing file name
+        return -2;
     }
     if (*vidPtr->fileName == '\0') {
         /* no file name set -- do nothing */
@@ -235,13 +253,17 @@ VideoModeRead(vidPtr)
         // Tcl_AppendResult(interp, "couldn't open file \"",
         //     fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // couldn't open file
+        return -3;
     }
     if (av_find_stream_info(vidPtr->pFormatCtx) < 0) {
         // Tcl_AppendResult(interp, "couldn't find streams in file \"",
         //     fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // couldn't find streams in file
+        return -4;
     }
 
     /*
@@ -259,7 +281,9 @@ VideoModeRead(vidPtr)
         // Tcl_AppendResult(interp, "couldn't find video stream in file \"",
         //     fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // couldn't find video stream in file
+        return -5;
     }
 
     vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
@@ -268,13 +292,17 @@ VideoModeRead(vidPtr)
         // Tcl_AppendResult(interp, "unsupported codec for file \"",
         //     fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // unsupported codec for file
+        return -6;
     }
     if (avcodec_open(vcodecCtx, vcodec) < 0) {
         // Tcl_AppendResult(interp, "couldn't open codec for file \"",
         //     fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // couldn't open codec for file
+        return -7;
     }
 
     vcodecCtx->get_buffer = VideoAvGetBuffer;
@@ -286,7 +314,9 @@ VideoModeRead(vidPtr)
         // Tcl_AppendResult(interp, "couldn't allocate frame space",
         //     " for file \"", fileName, "\"", (char*)NULL);
         // return TCL_ERROR;
-        return -1;
+
+        // couldn't allocate frame space
+        return -8;
     }
 
     /* save the name of the codec as the -format option */
@@ -307,7 +337,8 @@ VideoModeRead(vidPtr)
 //
 
     if (strcpy(vidPtr->mode,"input") == NULL) {
-        return -1;
+        // strcpy input to vidPtr->mode failed
+        return -9;
     }
 
     return 0;
@@ -729,6 +760,12 @@ VideoSizeCmd(vidPtr, width, height)
     if (vidPtr == NULL) {
         return -1;
     }
+
+    if (vidPtr->pFormatCtx == NULL) {
+        // "internal error: video stream is not open",
+        return -1;
+    }
+
     if (vidPtr->pFormatCtx) {
         vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
         if (width != NULL) {
@@ -769,11 +806,6 @@ VideoGoPlusMinusN(vidPtr, n)
     int nabs;
 
     if (vidPtr == NULL) {
-        return -1;
-    }
-
-    if (vidPtr->pFormatCtx == NULL) {
-        // "internal error: video stream is not open",
         return -1;
     }
 
@@ -871,15 +903,15 @@ VideoGoToN(vidPtr, n)
  * ------------------------------------------------------------------------
  */
 int
-VideoGetImage(vidPtr, width, height, img, bufSize)
+VideoGetImage(vidPtr, iw, ih, img, bufSize)
     VideoObj *vidPtr;
-    int width;
-    int height;
+    int iw;
+    int ih;
     void **img;
     int *bufSize;
 {
 
-    int nframe, iw, ih, numBytes;
+    int nframe, numBytes;
     char c, buffer[64];
     AVCodecContext *vcodecCtx;
     AVStream *vstreamPtr;
@@ -892,11 +924,19 @@ VideoGetImage(vidPtr, width, height, img, bufSize)
         return -1;
     }
 
+    /*
     if (vidPtr->pFormatCtx) {
         vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
     } else {
         vcodecCtx = NULL;
     }
+    */
+
+    if (vidPtr->pFormatCtx == NULL) {
+        // vidPtr->pFormatCtx is NULL, video not open
+        return -1;
+    }
+    vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
 
     /*
      * Query the size for this photo and make sure that we have a
@@ -904,8 +944,16 @@ VideoGetImage(vidPtr, width, height, img, bufSize)
      * format conversion.
      */
 
-    iw = width;
-    ih = height;
+    // if the user's desired size is less then 0,
+    // use the default size
+
+    if (iw < 0) {
+        iw = vcodecCtx->width;
+    }
+    if (ih < 0) {
+        ih = vcodecCtx->height;
+    }
+
 
     if (iw != vidPtr->rgbw || ih != vidPtr->rgbh) {
         if (vidPtr->rgbbuffer) {
@@ -949,7 +997,7 @@ VideoGetImage(vidPtr, width, height, img, bufSize)
         Tk_PhotoPutBlock_NoComposite(img, &iblock, 0, 0, iw, ih);
 */
 
-        int bufsize = 0; 
+        int bufsize = 0;
         if (vidPtr->img == NULL) {
             VideoAllocImgBuffer(vidPtr,iw,ih);
         } else {
@@ -989,6 +1037,10 @@ VideoGetFrameRate (vidPtr, fr)
         return -1;
     }
 
+    if (vidPtr->pFormatCtx == NULL) {
+        // vidPtr->pFormatCtx is NULL, video not open
+        return -1;
+    }
     vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
 
     // http://trac.handbrake.fr/browser/trunk/libhb/decavcodec.c?rev=1490#L684
@@ -1052,7 +1104,6 @@ VideoGetPositionCur(vidPtr, pos)
         return -1;
     }
 
-// FIXME: store the name of the file within vidPtr object
     if (VideoModeRead(vidPtr) != 0) {
         return -1;
     }
@@ -1081,7 +1132,6 @@ VideoGetPositionEnd(vidPtr, pos)
         return -1;
     }
 
-// FIXME: store the name of the file within vidPtr object
     if (VideoModeRead(vidPtr) != 0) {
         return -1;
     }
