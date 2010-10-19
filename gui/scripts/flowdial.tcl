@@ -35,7 +35,6 @@ itcl::class Rappture::Flowdial {
     itk_option define -min min Min ""
     itk_option define -max max Max ""
     itk_option define -variable variable Variable ""
-    itk_option define -offset offset Offset 1
 
     itk_option define -thickness thickness Thickness 0
     itk_option define -length length Length 0
@@ -67,7 +66,6 @@ itcl::class Rappture::Flowdial {
     protected method _navigate {offset}
     protected method _fixSize {}
     protected method _fixValue {args}
-    protected method _fixOffsets {}
 
     private method _current {value}
     private method ms2rel {value}
@@ -80,8 +78,6 @@ itcl::class Rappture::Flowdial {
     private variable _spectrum ""     ;# width allocated for values
     private variable _activecolor ""  ;# width allocated for values
     private variable _vwidth 0        ;# width allocated for values
-    private variable _offset_pos 1    ;#
-    private variable _offset_neg -1   ;#
     public variable min 0.0
     public variable max 1.0
 }
@@ -100,22 +96,20 @@ itcl::body Rappture::Flowdial::constructor {args} {
     pack $itk_component(dial) -expand yes -fill both
     bind $itk_component(dial) <Configure> [itcl::code $this _redraw]
 
-#    if 0 {
+    if 0 {
     bind $itk_component(dial) <ButtonPress-1> [itcl::code $this _click %x %y]
     bind $itk_component(dial) <B1-Motion> [itcl::code $this _click %x %y]
     bind $itk_component(dial) <ButtonRelease-1> [itcl::code $this _click %x %y]
-    #bind $itk_component(hull) <KeyPress-Left> [itcl::code $this _navigate $_offset_neg]
-    #bind $itk_component(hull) <KeyPress-Right> [itcl::code $this _navigate $_offset_pos]
-
+    bind $itk_component(hull) <KeyPress-Left> [itcl::code $this _navigate -1]
+    bind $itk_component(hull) <KeyPress-Right> [itcl::code $this _navigate 1]
     $itk_component(dial) bind  "knob" <Enter> \
         [list $itk_component(dial) configure -cursor sb_h_double_arrow]
     $itk_component(dial) bind  "knob" <Leave> \
         [list $itk_component(dial) configure -cursor ""]
-#    }
+    }
     eval itk_initialize $args
 
     _fixSize
-    _fixOffsets
 }
 
 # ----------------------------------------------------------------------
@@ -136,7 +130,7 @@ itcl::body Rappture::Flowdial::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Flowdial::current {value} {
     if {"" == $value} {
-        return
+        return 
     }
     _current [ms2rel $value]
     event generate $itk_component(hull) <<Value>>
@@ -153,10 +147,10 @@ itcl::body Rappture::Flowdial::current {value} {
 itcl::body Rappture::Flowdial::_current {relval} {
     if { $relval < 0.0 } {
         set relval 0.0
-    }
+    } 
     if { $relval > 1.0 } {
         set relval 1.0
-    }
+    }                                        
     set _current $relval
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
@@ -333,38 +327,24 @@ itcl::body Rappture::Flowdial::_click {x y} {
 # value actually changes, it generates a <<Value>> event to notify
 # clients.
 # ----------------------------------------------------------------------
-#itcl::body Rappture::Flowdial::_navigate {offset} {
-#    set index [lsearch -exact $_values $_current]
-#    if {$index >= 0} {
-#        incr index $offset
-#        if {$index >= [llength $_values]} {
-#            set index [expr {[llength $_values]-1}]
-#        } elseif {$index < 0} {
-#            set index 0
-#        }
-#
-#        set newval [lindex $_values $index]
-#        if {$newval != $_current} {
-#            current $newval
-#            _redraw
-#
-#            event generate $itk_component(hull) <<Value>>
-#        }
-#    }
-#}
-
-
-# ----------------------------------------------------------------------
-# USAGE: _navigate <offset>
-#
-# Called automatically whenever the user presses left/right keys
-# to nudge the current value left or right by some <offset>.  If the
-# value actually changes, it generates a <<Value>> event to notify
-# clients.
-# ----------------------------------------------------------------------
 itcl::body Rappture::Flowdial::_navigate {offset} {
-    _current [ms2rel [expr $_current + $offset]]
-    event generate $itk_component(hull) <<Value>>
+    set index [lsearch -exact $_values $_current]
+    if {$index >= 0} {
+        incr index $offset
+        if {$index >= [llength $_values]} {
+            set index [expr {[llength $_values]-1}]
+        } elseif {$index < 0} {
+            set index 0
+        }
+
+        set newval [lindex $_values $index]
+        if {$newval != $_current} {
+            current $newval
+            _redraw
+
+            event generate $itk_component(hull) <<Value>>
+        }
+    }
 }
 
 
@@ -433,20 +413,6 @@ itcl::body Rappture::Flowdial::_fixValue {args} {
     }
     upvar #0 $itk_option(-variable) var
     _current [ms2rel $var]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixOffsets
-#
-# ----------------------------------------------------------------------
-itcl::body Rappture::Flowdial::_fixOffsets {} {
-    if {0 == $itk_option(-offset)} {
-        return
-    }
-    set _offset_pos $itk_option(-offset)
-    set _offset_neg [expr -1*$_offset_pos]
-    bind $itk_component(hull) <KeyPress-Left> [itcl::code $this _navigate $_offset_neg]
-    bind $itk_component(hull) <KeyPress-Right> [itcl::code $this _navigate $_offset_pos]
 }
 
 itcl::body Rappture::Flowdial::ms2rel { value } {
@@ -622,14 +588,4 @@ itcl::configbody Rappture::Flowdial::variable {
             _fixValue
         }
     }
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -offset
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Flowdial::offset {
-    if {![string is double $itk_option(-offset)]} {
-        error "bad value \"$itk_option(-offset)\": should be >= 0.0"
-    }
-    _fixOffsets
 }
