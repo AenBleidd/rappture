@@ -149,7 +149,7 @@ itcl::body Rappture::Videodial::constructor {args} {
     # ----------------------------------------------------------------------
 
     blt::table $itk_interior \
-        0,0 $itk_component(majordial) -fill x
+        0,0 $itk_component(majordial) -fill x \
         1,0 $itk_component(minordial) -fill x
 
     blt::table configure $itk_interior c* -resize both
