@@ -33,10 +33,10 @@ option add *Videodial.font \
 itcl::class Rappture::Videodial {
     inherit itk::Widget
 
-    itk_option define -min min Min ""
-    itk_option define -max max Max ""
+    itk_option define -min min Min 0
+    itk_option define -max max Max 1
     itk_option define -minortick minortick Minortick 1
-    itk_option define -majortick majortick Majortick 1
+    itk_option define -majortick majortick Majortick 5
     itk_option define -variable variable Variable ""
     itk_option define -offset offset Offset 1
 
@@ -99,10 +99,10 @@ itcl::class Rappture::Videodial {
     private variable _offset_neg -1   ;#
     private variable _imspace 10      ;# pixels between intermediate marks
     private variable _pmcnt 0         ;# particle marker count
-    public variable min 0.0
-    public variable max 1.0
-    public variable minortick 1
-    public variable majortick 5
+    private variable _min 0
+    private variable _max 1
+    private variable _minortick 1
+    private variable _majortick 5
 }
 
 itk::usual Videodial {
@@ -219,6 +219,7 @@ itcl::body Rappture::Videodial::_current {relval} {
     if { $_variable != "" } {
         upvar #0 $_variable var
         set var [rel2ms $_current]
+        puts stderr "var = $var"
     }
 }
 
@@ -230,7 +231,7 @@ itcl::body Rappture::Videodial::_current {relval} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Videodial::color {value} {
     if {"" != $_spectrum} {
-        set frac [expr {double($value-$min)/($max-$min)}]
+        set frac [expr {double($value-${_min})/(${_max}-${_min})}]
         set color [$_spectrum get $frac]
     } else {
         if {$value == $_current} {
@@ -307,7 +308,7 @@ itcl::body Rappture::Videodial::mark {type args} {
             # estimate where to put the marker
             # use frame0 marker as a x=0 point
             foreach {frx0 fry0 frx1 fry1} [$c coords "frame0"] break
-            set frx0 [expr {$frx0 + ((1.0*$where/$minortick)*${_imspace})}]
+            set frx0 [expr {$frx0 + ((1.0*$where/${_minortick})*${_imspace})}]
         } else {
             foreach {frx0 fry0 frx1 fry1} $coords break
         }
@@ -664,18 +665,9 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
 
 #    set _imspace 10                             ;# space between imarks
 
-    if {$minortick == 0} {
-        set majortick 5
-    }
-
-    if {$minortick == 0} {
-        set minortick 1
-    }
-
-
     set imx $cx0
-    for {set i [expr {int($min)}]} {$i <= $max} {incr i} {
-        if {($i%$majortick) == 0} {
+    for {set i [expr {int(${_min})}]} {$i <= ${_max}} {incr i} {
+        if {($i%${_majortick}) == 0} {
             # draw major tick
             $c create line $imx $imly0 $imx $imly1 \
                 -fill red \
@@ -686,7 +678,7 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
                 -font $itk_option(-font) -tags "frame$i"
 
             set imx [expr $imx+${_imspace}]
-        } elseif {($i%$minortick) == 0 } {
+        } elseif {($i%${_minortick}) == 0 } {
             # draw minor tick
             $c create line $imx $imsy0 $imx $imsy1 \
                 -fill blue \
@@ -1038,14 +1030,14 @@ itcl::body Rappture::Videodial::_fixOffsets {} {
 }
 
 itcl::body Rappture::Videodial::ms2rel { value } {
-    if { $max > $min } {
-        return [expr {1.0 * ($value - $min) / ($max - $min)}]
+    if { ${_max} > ${_min} } {
+        return [expr {1.0 * ($value - ${_min}) / (${_max} - ${_min})}]
     }
     return 0
 }
 
 itcl::body Rappture::Videodial::rel2ms { value } {
-    return [expr $value * ($max - $min) + $min]
+    return [expr $value * (${_max} - ${_min}) + ${_min}]
 }
 
 # ----------------------------------------------------------------------
@@ -1220,4 +1212,60 @@ itcl::configbody Rappture::Videodial::offset {
         error "bad value \"$itk_option(-offset)\": should be >= 0.0"
     }
     _fixOffsets
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -min
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Videodial::min {
+    if {![string is integer $itk_option(-min)]} {
+        error "bad value \"$itk_option(-min)\": should be an integer"
+    }
+    if {$itk_option(-min) < 0} {
+        error "bad value \"$itk_option(-min)\": should be >= 0"
+    }
+    set _min $itk_option(-min)
+    _draw_minor_timeline
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -max
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Videodial::max {
+    if {![string is integer $itk_option(-max)]} {
+        error "bad value \"$itk_option(-max)\": should be an integer"
+    }
+    if {$itk_option(-max) < 0} {
+        error "bad value \"$itk_option(-max)\": should be >= 0"
+    }
+    set _max $itk_option(-max)
+    _draw_minor_timeline
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -minortick
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Videodial::minortick {
+    if {![string is integer $itk_option(-minortick)]} {
+        error "bad value \"$itk_option(-minortick)\": should be an integer"
+    }
+    if {$itk_option(-minortick) <= 0} {
+        error "bad value \"$itk_option(-minortick)\": should be > 0"
+    }
+    set _minortick $itk_option(-minortick)
+    _draw_minor_timeline
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -majortick
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Videodial::majortick {
+    if {![string is integer $itk_option(-majortick)]} {
+        error "bad value \"$itk_option(-majortick)\": should be an integer"
+    }
+    if {$itk_option(-majortick) <= 0} {
+        error "bad value \"$itk_option(-majortick)\": should be > 0"
+    }
+    set _majortick $itk_option(-majortick)
+    _draw_minor_timeline
 }
