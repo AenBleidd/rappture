@@ -15,9 +15,9 @@ package require Img
 package require Rappture
 package require RapptureGUI
 
-#option add *Video.width 300 widgetDefault
+option add *Video.width 300 widgetDefault
 option add *Video*cursor crosshair widgetDefault
-#option add *Video.height 300 widgetDefault
+option add *Video.height 300 widgetDefault
 option add *Video.foreground black widgetDefault
 option add *Video.controlBackground gray widgetDefault
 option add *Video.controlDarkBackground #999999 widgetDefault
@@ -174,10 +174,11 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         "Play continuously between marked sections"
 
     itk_component add dial {
-        Rappture::Flowdial $itk_component(moviecontrols).dial \
+        Rappture::Videodial $itk_component(moviecontrols).dial \
             -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
             -linecolor "" -activelinecolor "" \
-            -min 0.0 -max 1.0 \
+            -min 0 -max 1 \
+            -minortick 1 -majortick 5 \
             -variable [itcl::scope _settings($this-currenttime)] \
             -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
@@ -185,8 +186,9 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         ignore -dialprogresscolor
         rename -background -controlbackground controlBackground Background
     }
-    $itk_component(dial) current 0.0
-    bind $itk_component(dial) <<Value>> [itcl::code $this video seek -currenttime]
+    $itk_component(dial) current 0
+    bind $itk_component(dial) <<Value>> \
+        [itcl::code $this video seek [expr round($_settings($this-currenttime))]]
 
     itk_component add framenumlabel {
         label $itk_component(moviecontrols).framenuml -text "Frame:" -font $fg \
@@ -296,7 +298,7 @@ itcl::body Rappture::VideoScreen::load {type data} {
             set type "file"
             set data $fname
         }
-        "type" {
+        "file" {
             # do nothing
         }
         default {
@@ -326,6 +328,9 @@ itcl::body Rappture::VideoScreen::load {type data} {
     $itk_component(main) create image 0 0 -anchor nw -image $_imh
 
     set _lastFrame [$_movie get position end]
+
+    # update the dial with video information
+    $itk_component(dial) configure -min 0 -max ${_lastFrame}
 
     fixSize
 }
@@ -390,11 +395,16 @@ itcl::body Rappture::VideoScreen::video { args } {
     switch -- $option {
         "play" {
             if {$_settings($this-play) == 1} {
+                # disable seek while playing
+                bind $itk_component(dial) <<Value>> ""
                 Play
             } else {
                 # pause/stop
                 after cancel $_id
                 set _settings($this-play) 0
+                # enable seek while paused
+                bind $itk_component(dial) <<Value>> \
+                    [itcl::code $this video seek [expr round($_settings($this-currenttime))]]
             }
         }
         "seek" {
@@ -454,7 +464,7 @@ itcl::body Rappture::VideoScreen::Play {} {
     event generate $itk_component(hull) <<Frame>>
 
     # update the dial and framenum widgets
-    set _settings($this-currenttime) [expr 1.0*$cur/${_lastFrame}]
+    $itk_component(dial) current $cur
     set _settings($this-framenum) $cur
 
     if {[expr $cur%100] == 0} {
@@ -482,8 +492,6 @@ itcl::body Rappture::VideoScreen::Seek {args} {
     }
     ${_movie} seek $val
     ${_imh} put [${_movie} get image ${_width} ${_height}]
-    set cur [${_movie} get position cur]
-    set _settings($this-currenttime) [expr 1.0*$cur/${_lastFrame}]
 }
 
 # ----------------------------------------------------------------------
