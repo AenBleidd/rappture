@@ -39,7 +39,7 @@ itcl::class Rappture::DeviceViewer1D {
 
     public method controls {option args}
     public method download {option args}
-										
+                                                                                
     protected method _loadDevice {}
     protected method _loadParameters {frame path}
     protected method _changeTabs {}
@@ -61,7 +61,7 @@ itcl::class Rappture::DeviceViewer1D {
     private variable _units ""      ;# units for field being edited
     private variable _marker        ;# marker currently being edited
 }
-										
+                                                                                
 itk::usual DeviceViewer1D {
 }
 
@@ -74,57 +74,57 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     pack propagate $itk_component(hull) no
 
     itk_component add tabs {
-	blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
-	    -side bottom -tearoff 0 \
-	    -selectcommand [itcl::code $this _changeTabs]
+        blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
+            -side bottom -tearoff 0 \
+            -selectcommand [itcl::code $this _changeTabs]
     } {
-	keep -activebackground -activeforeground
-	keep -background -cursor -font
-	rename -highlightbackground -background background Background
-	keep -highlightcolor -highlightthickness
-	keep -tabbackground -tabforeground
-	rename -selectbackground -background background Background
-	rename -selectforeground -foreground foreground Foreground
+        keep -activebackground -activeforeground
+        keep -background -cursor -font
+        rename -highlightbackground -background background Background
+        keep -highlightcolor -highlightthickness
+        keep -tabbackground -tabforeground
+        rename -selectbackground -background background Background
+        rename -selectforeground -foreground foreground Foreground
     }
     pack $itk_component(tabs) -expand yes -fill both
 
     itk_component add -protected inner {
-	frame $itk_component(tabs).inner
+        frame $itk_component(tabs).inner
     }
 
     itk_component add top {
-	frame $itk_component(inner).top
+        frame $itk_component(inner).top
     }
     pack $itk_component(top) -fill x
 
     itk_component add layout {
-	Rappture::DeviceLayout1D $itk_component(inner).layout
+        Rappture::DeviceLayout1D $itk_component(inner).layout
     }
     pack $itk_component(layout) -side top -fill x -pady 4
 
     itk_component add graph {
-	blt::graph $itk_component(inner).graph \
-	    -highlightthickness 0 -plotpadx 0 -plotpady 0
+        blt::graph $itk_component(inner).graph \
+            -highlightthickness 0 -plotpadx 0 -plotpady 0
     } {
-	keep -background -foreground -cursor -font
+        keep -background -foreground -cursor -font
     }
     pack $itk_component(graph) -expand yes -fill both
     $itk_component(graph) legend configure -hide yes
 
     bind $itk_component(graph) <Configure> "
-	[list after cancel [list catch [itcl::code $this _align]]]
-	[list after 100 [list catch [itcl::code $this _align]]]
+        [list after cancel [list catch [itcl::code $this _align]]]
+        [list after 100 [list catch [itcl::code $this _align]]]
     "
 
     itk_component add geditor {
-	Rappture::Editor $itk_component(graph).editor \
-	    -activatecommand [itcl::code $this _marker activate] \
-	    -validatecommand [itcl::code $this _marker validate] \
-	    -applycommand [itcl::code $this _marker apply]
+        Rappture::Editor $itk_component(graph).editor \
+            -activatecommand [itcl::code $this _marker activate] \
+            -validatecommand [itcl::code $this _marker validate] \
+            -applycommand [itcl::code $this _marker apply]
     }
 
     itk_component add devcntls {
-	Rappture::Notebook $itk_component(inner).devcntls
+        Rappture::Notebook $itk_component(inner).devcntls
     }
     pack $itk_component(devcntls) -side bottom -fill x
 
@@ -140,7 +140,7 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
 itcl::body Rappture::DeviceViewer1D::destructor {} {
     set _device ""
     foreach name [array names _tab2fields] {
-	eval itcl::delete object $_tab2fields($name)
+        eval itcl::delete object $_tab2fields($name)
     }
     after cancel [list catch [itcl::code $this _fixAxes]]
     after cancel [list catch [itcl::code $this _align]]
@@ -157,33 +157,33 @@ itcl::body Rappture::DeviceViewer1D::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::add {dataobj {settings ""}} {
     array set params {
-	-color auto
-	-brightness 0
-	-width 1
-	-raise 0
-	-linestyle solid
-	-description ""
-	-param ""
+        -color auto
+        -brightness 0
+        -width 1
+        -raise 0
+        -linestyle solid
+        -description ""
+        -param ""
     }
     foreach {opt val} $settings {
-	if {![info exists params($opt)]} {
-	    error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
-	}
-	set params($opt) $val
+        if {![info exists params($opt)]} {
+            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
     }
  
     set pos [lsearch -exact $dataobj $_dlist]
 
     if {$pos < 0} {
-	if {![Rappture::library isvalid $dataobj]} {
-	    error "bad value \"$dataobj\": should be Rappture::library object"
-	}
+        if {![Rappture::library isvalid $dataobj]} {
+            error "bad value \"$dataobj\": should be Rappture::library object"
+        }
 
-	lappend _dlist $dataobj
-	set _dobj2raise($dataobj) $params(-raise)
+        lappend _dlist $dataobj
+        set _dobj2raise($dataobj) $params(-raise)
 
-	after cancel [list catch [itcl::code $this _loadDevice]]
-	after idle [list catch [itcl::code $this _loadDevice]]
+        after cancel [list catch [itcl::code $this _loadDevice]]
+        after idle [list catch [itcl::code $this _loadDevice]]
     }
 }
 
@@ -197,13 +197,13 @@ itcl::body Rappture::DeviceViewer1D::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-	if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-	    set i [lsearch -exact $dlist $obj]
-	    if {$i >= 0} {
-		set dlist [lreplace $dlist $i $i]
-		lappend dlist $obj
-	    }
-	}
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
     }
     return $dlist
 }
@@ -216,24 +216,24 @@ itcl::body Rappture::DeviceViewer1D::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::delete {args} {
     if {[llength $args] == 0} {
-	set args $_dlist
+        set args $_dlist
     }
 
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-	set pos [lsearch -exact $_dlist $dataobj]
-	if {$pos >= 0} {
-	    set _dlist [lreplace $_dlist $pos $pos]
-	    catch {unset _dobj2raise($dataobj)}
-	    set changed 1
-	}
+        set pos [lsearch -exact $_dlist $dataobj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dobj2raise($dataobj)}
+            set changed 1
+        }
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-	after cancel [list catch [itcl::code $this _loadDevice]]
-	after idle [list catch [itcl::code $this _loadDevice]]
+        after cancel [list catch [itcl::code $this _loadDevice]]
+        after idle [list catch [itcl::code $this _loadDevice]]
     }
 }
 
@@ -247,21 +247,21 @@ itcl::body Rappture::DeviceViewer1D::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::controls {option args} {
     switch -- $option {
-	insert {
-	    if {[llength $args] != 3} {
-		error "wrong # args: should be \"controls insert pos xmlobj path\""
-	    }
-	    set pos [lindex $args 0]
-	    set xmlobj [lindex $args 1]
-	    set path [lindex $args 2]
-	    if {[string match *structure.parameters* $path]} {
-	    } elseif {[string match structure.components* $path]} {
-		$itk_component(layout) controls insert $pos $xmlobj $path
-	    }
-	}
-	default {
-	    error "bad option \"$option\": should be insert"
-	}
+        insert {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"controls insert pos xmlobj path\""
+            }
+            set pos [lindex $args 0]
+            set xmlobj [lindex $args 1]
+            set path [lindex $args 2]
+            if {[string match *structure.parameters* $path]} {
+            } elseif {[string match structure.components* $path]} {
+                $itk_component(layout) controls insert $pos $xmlobj $path
+            }
+        }
+        default {
+            error "bad option \"$option\": should be insert"
+        }
     }
 }
 
@@ -278,19 +278,19 @@ itcl::body Rappture::DeviceViewer1D::controls {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::download {option args} {
     switch $option {
-	coming {
-	    # nothing to do
-	}
-	controls {
-	    # no controls for this download yet
-	    return ""
-	}
-	now {
-	    return ""  ;# not implemented yet!
-	}
-	default {
-	    error "bad option \"$option\": should be coming, controls, now"
-	}
+        coming {
+            # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
+        }
+        now {
+            return ""  ;# not implemented yet!
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now"
+        }
     }
 }
 
@@ -307,13 +307,13 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     # Release any info left over from the last device.
     #
     foreach name [array names _tab2fields] {
-	eval itcl::delete object $_tab2fields($name)
+        eval itcl::delete object $_tab2fields($name)
     }
     catch {unset _tab2fields}
     catch {unset _field2parm}
 
     if {[winfo exists $itk_component(top).cntls]} {
-	$itk_component(top).cntls delete 0 end
+        $itk_component(top).cntls delete 0 end
     }
 
     #
@@ -321,49 +321,49 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     # fields.  Create a tab for each field.
     #
     if {$_device != ""} {
-	foreach nn [$_device children fields] {
-	    set name [$_device get fields.$nn.about.label]
-	    if {$name == ""} {
-		set name $nn
-	    }
+        foreach nn [$_device children fields] {
+            set name [$_device get fields.$nn.about.label]
+            if {$name == ""} {
+                set name $nn
+            }
 
-	    set fobj [Rappture::Field ::#auto $_device fields.$nn]
-	    lappend _tab2fields($name) $fobj
-	}
+            set fobj [Rappture::Field ::#auto $_device fields.$nn]
+            lappend _tab2fields($name) $fobj
+        }
     }
     set tabs [lsort [array names _tab2fields]]
 
     if {[$itk_component(tabs) size] > 0} {
-	$itk_component(tabs) delete 0 end
+        $itk_component(tabs) delete 0 end
     }
 
     if {[llength $tabs] <= 0} {
-	#
-	# No fields?  Then we don't need to bother with tabs.
-	# Just pack the inner frame directly.  If there are no
-	# fields, get rid of the graph.
-	#
-	pack $itk_component(inner) -expand yes -fill both
-	if {[llength $tabs] > 0} {
-	    pack $itk_component(graph) -expand yes -fill both
-	} else {
-	    pack forget $itk_component(graph)
-	    $itk_component(layout) configure -leftmargin 0 -rightmargin 0
-	}
+        #
+        # No fields?  Then we don't need to bother with tabs.
+        # Just pack the inner frame directly.  If there are no
+        # fields, get rid of the graph.
+        #
+        pack $itk_component(inner) -expand yes -fill both
+        if {[llength $tabs] > 0} {
+            pack $itk_component(graph) -expand yes -fill both
+        } else {
+            pack forget $itk_component(graph)
+            $itk_component(layout) configure -leftmargin 0 -rightmargin 0
+        }
     } else {
-	#
-	# Two or more fields?  Then create a tab for each field
-	# and select the first one by default.  Make sure the
-	# graph is packed.
-	#
-	pack forget $itk_component(inner)
-	pack $itk_component(graph) -expand yes -fill both
+        #
+        # Two or more fields?  Then create a tab for each field
+        # and select the first one by default.  Make sure the
+        # graph is packed.
+        #
+        pack forget $itk_component(inner)
+        pack $itk_component(graph) -expand yes -fill both
 
-	foreach name $tabs {
-	    $itk_component(tabs) insert end $name \
-		-activebackground $itk_option(-background)
-	}
-	$itk_component(tabs) select 0
+        foreach name $tabs {
+            $itk_component(tabs) insert end $name \
+                -activebackground $itk_option(-background)
+        }
+        $itk_component(tabs) select 0
     }
 
     #
@@ -374,7 +374,7 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     # can see that there's something to adjust.
     #
     if {$_device != ""} {
-	_loadParameters $itk_component(top) parameters
+        _loadParameters $itk_component(top) parameters
     }
 
     #
@@ -387,7 +387,7 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
     # to display the right-hand edge of the device.
     #
     $itk_component(graph) configure \
-	-rightmargin [$itk_component(layout) extents bar3D]
+        -rightmargin [$itk_component(layout) extents bar3D]
 
     after cancel [list catch [itcl::code $this _fixSize]]
     after idle [list catch [itcl::code $this _fixSize]]
@@ -403,54 +403,54 @@ itcl::body Rappture::DeviceViewer1D::_loadDevice {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::_loadParameters {frame path} {
     foreach cname [$_device children $path] {
-	set handled 0
-	set type [$_device element -as type $path.$cname]
-	if {$type == "about"} {
-	    continue
-	}
-	if {$type == "number"} {
-	    set name [$_device element -as id $path.$cname]
+        set handled 0
+        set type [$_device element -as type $path.$cname]
+        if {$type == "about"} {
+            continue
+        }
+        if {$type == "number"} {
+            set name [$_device element -as id $path.$cname]
 
-	    # look for a field that uses this parameter
-	    set found ""
-	    foreach fname [$_device children fields] {
-		foreach comp [$_device children fields.$fname] {
-		    set v [$_device get fields.$fname.$comp.constant]
-		    if {[string equal $v $name]} {
-			set found "fields.$fname.$comp"
-			break
-		    }
-		}
-		if {"" != $found} break
-	    }
+            # look for a field that uses this parameter
+            set found ""
+            foreach fname [$_device children fields] {
+                foreach comp [$_device children fields.$fname] {
+                    set v [$_device get fields.$fname.$comp.constant]
+                    if {[string equal $v $name]} {
+                        set found "fields.$fname.$comp"
+                        break
+                    }
+                }
+                if {"" != $found} break
+            }
 
-	    if {"" != $found} {
-		set _field2parm($found) $name
-		set handled 1
-	    }
-	}
+            if {"" != $found} {
+                set _field2parm($found) $name
+                set handled 1
+            }
+        }
 
-	#
-	# Any parameter that was not handled above should be handled
-	# here, by adding it to a control panel above the device
-	# layout area.
-	#
-	if {!$handled} {
-	    if {![winfo exists $frame.cntls]} {
-		Rappture::Controls $frame.cntls $_owner
-		pack $frame.cntls -expand yes -fill both
-	    }
-	    $frame.cntls insert end $path.$cname
+        #
+        # Any parameter that was not handled above should be handled
+        # here, by adding it to a control panel above the device
+        # layout area.
+        #
+        if {!$handled} {
+            if {![winfo exists $frame.cntls]} {
+                Rappture::Controls $frame.cntls $_owner
+                pack $frame.cntls -expand yes -fill both
+            }
+            $frame.cntls insert end $path.$cname
 
-	    #
-	    # If this is a group, then we must add its children
-	    # recursively.
-	    #
-	    if {$type == "group"} {
-		set gr [$frame.cntls control -value end]
-		_loadParameters [$gr component inner] $path.$cname
-	    }
-	}
+            #
+            # If this is a group, then we must add its children
+            # recursively.
+            #
+            if {$type == "group"} {
+                set gr [$frame.cntls control -value end]
+                _loadParameters [$gr component inner] $path.$cname
+            }
+        }
     }
 }
 
@@ -469,11 +469,11 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
     #
     set i [$itk_component(tabs) index select]
     if {$i != ""} {
-	set name [$itk_component(tabs) get $i]
-	$itk_component(tabs) tab configure $name \
-	    -window $itk_component(inner) -fill both
+        set name [$itk_component(tabs) get $i]
+        $itk_component(tabs) tab configure $name \
+            -window $itk_component(inner) -fill both
     } else {
-	set name [lindex [array names _tab2fields] 0]
+        set name [lindex [array names _tab2fields] 0]
     }
 
     #
@@ -484,18 +484,18 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
 
     foreach {zmin zmax} [$itk_component(layout) limits] { break }
     if {$zmin != "" && $zmin < $zmax} {
-	$graph axis configure x -min $zmin -max $zmax
+        $graph axis configure x -min $zmin -max $zmax
     }
 
     if {$_device != ""} {
-	set units [$_device get units]
-	if {$units != "arbitrary"} {
-	    $graph axis configure x -hide no -title "Position ($units)"
-	} else {
-	    $graph axis configure x -hide yes
-	}
+        set units [$_device get units]
+        if {$units != "arbitrary"} {
+            $graph axis configure x -hide no -title "Position ($units)"
+        } else {
+            $graph axis configure x -hide yes
+        }
     } else {
-	$graph axis configure x -hide no -title "Position"
+        $graph axis configure x -hide no -title "Position"
     }
     $graph axis configure x -checklimits no
 
@@ -504,60 +504,60 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
 
     set flist ""
     if {[info exists _tab2fields($name)]} {
-	set flist $_tab2fields($name)
+        set flist $_tab2fields($name)
     }
 
     set n 0
     foreach fobj $flist {
-	catch {unset hints}
-	array set hints [$fobj hints]
+        catch {unset hints}
+        array set hints [$fobj hints]
 
-	if {[info exists hints(units)]} {
-	    set _units $hints(units)
-	    $graph axis configure y -title "$name ($hints(units))"
-	} else {
-	    set _units ""
-	    $graph axis configure y -title $name
-	}
+        if {[info exists hints(units)]} {
+            set _units $hints(units)
+            $graph axis configure y -title "$name ($hints(units))"
+        } else {
+            set _units ""
+            $graph axis configure y -title $name
+        }
 
-	if {[info exists hints(scale)]
-	      && [string match log* $hints(scale)]} {
-	    $graph axis configure y -logscale yes
-	} else {
-	    $graph axis configure y -logscale no
-	}
+        if {[info exists hints(scale)]
+              && [string match log* $hints(scale)]} {
+            $graph axis configure y -logscale yes
+        } else {
+            $graph axis configure y -logscale no
+        }
 
-	foreach comp [$fobj components] {
-	    # can only handle 1D meshes here
-	    if {[$fobj components -dimensions $comp] != "1D"} {
-		continue
-	    }
+        foreach comp [$fobj components] {
+            # can only handle 1D meshes here
+            if {[$fobj components -dimensions $comp] != "1D"} {
+                continue
+            }
 
-	    set elem "elem[incr n]"
-	    set xv [$fobj mesh $comp]
-	    set yv [$fobj values $comp]
+            set elem "elem[incr n]"
+            set xv [$fobj mesh $comp]
+            set yv [$fobj values $comp]
 
-	    $graph element create $elem -x $xv -y $yv \
-		-color black -symbol "" -linewidth 2
+            $graph element create $elem -x $xv -y $yv \
+                -color black -symbol "" -linewidth 2
 
-	    if {[info exists hints(color)]} {
-		$graph element configure $elem -color $hints(color)
-	    }
+            if {[info exists hints(color)]} {
+                $graph element configure $elem -color $hints(color)
+            }
 
-	    foreach {path x y val} [$fobj controls get $comp] {
-		if {$path != ""} {
-		    set id "control[incr n]"
-		    $graph marker create text -coords [list $x $y] \
-			-text $val -anchor s -name $id -background ""
-		    $graph marker bind $id <Enter> \
-			[itcl::code $this _marker enter $id]
-		    $graph marker bind $id <Leave> \
-			[itcl::code $this _marker leave $id]
-		    $graph marker bind $id <ButtonPress> \
-			[itcl::code $this _marker edit $id $fobj/$path]
-		}
-	    }
-	}
+            foreach {path x y val} [$fobj controls get $comp] {
+                if {$path != ""} {
+                    set id "control[incr n]"
+                    $graph marker create text -coords [list $x $y] \
+                        -text $val -anchor s -name $id -background ""
+                    $graph marker bind $id <Enter> \
+                        [itcl::code $this _marker enter $id]
+                    $graph marker bind $id <Leave> \
+                        [itcl::code $this _marker leave $id]
+                    $graph marker bind $id <ButtonPress> \
+                        [itcl::code $this _marker edit $id $fobj/$path]
+                }
+            }
+        }
     }
 
     # let the widget settle, then fix the axes to "nice" values
@@ -590,9 +590,9 @@ itcl::body Rappture::DeviceViewer1D::_fixSize {} {
 itcl::body Rappture::DeviceViewer1D::_fixAxes {} {
     set graph $itk_component(graph)
     if {![winfo ismapped $graph]} {
-	after cancel [list catch [itcl::code $this _fixAxes]]
-	after 100 [list catch [itcl::code $this _fixAxes]]
-	return
+        after cancel [list catch [itcl::code $this _fixAxes]]
+        after 100 [list catch [itcl::code $this _fixAxes]]
+        return
     }
 
     #
@@ -607,38 +607,38 @@ itcl::body Rappture::DeviceViewer1D::_fixAxes {} {
     foreach {min max} [$graph axis limits y] { break }
 
     if {$log} {
-	set min [expr {0.9*$min}]
-	set max [expr {1.1*$max}]
+        set min [expr {0.9*$min}]
+        set max [expr {1.1*$max}]
     } else {
-	if {$min > 0} {
-	    set min [expr {0.95*$min}]
-	} else {
-	    set min [expr {1.05*$min}]
-	}
-	if {$max > 0} {
-	    set max [expr {1.05*$max}]
-	} else {
-	    set max [expr {0.95*$max}]
-	}
+        if {$min > 0} {
+            set min [expr {0.95*$min}]
+        } else {
+            set min [expr {1.05*$min}]
+        }
+        if {$max > 0} {
+            set max [expr {1.05*$max}]
+        } else {
+            set max [expr {0.95*$max}]
+        }
     }
 
     # bump up the max so that it's big enough to show control markers
     set fnt $itk_option(-font)
     set h [expr {[font metrics $fnt -linespace] + 5}]
     foreach mname [$graph marker names] {
-	set xy [$graph marker cget $mname -coord]
-	foreach {x y} [eval $graph transform $xy] { break }
-	set y [expr {$y-$h}]  ;# find top of text in pixels
-	foreach {x y} [eval $graph invtransform [list 0 $y]] { break }
-	if {$y > $max} { set max $y }
+        set xy [$graph marker cget $mname -coord]
+        foreach {x y} [eval $graph transform $xy] { break }
+        set y [expr {$y-$h}]  ;# find top of text in pixels
+        foreach {x y} [eval $graph invtransform [list 0 $y]] { break }
+        if {$y > $max} { set max $y }
     }
 
     if {$log} {
-	set min [expr {pow(10.0,floor(log10($min)))}]
-	set max [expr {pow(10.0,ceil(log10($max)))}]
+        set min [expr {pow(10.0,floor(log10($min)))}]
+        set max [expr {pow(10.0,ceil(log10($max)))}]
     } else {
-	set min [expr {0.1*floor(10*$min)}]
-	set max [expr {0.1*ceil(10*$max)}]
+        set min [expr {0.1*floor(10*$min)}]
+        set max [expr {0.1*ceil(10*$max)}]
     }
 
     $graph axis configure y -min $min -max $max
@@ -685,84 +685,84 @@ itcl::body Rappture::DeviceViewer1D::_align {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
     switch -- $option {
-	enter {
-	    $itk_component(graph) marker configure $name -background #e5e5e5
-	    #
-	    # BE CAREFUL:  Need an update here to force the graph to
-	    #   refresh itself or else a subsequent click on the
-	    #   marker will ignore the text that was recently changed,
-	    #   and fail to generate a <ButtonPress> event!
-	    #
-	    update idletasks
-	}
-	leave {
-	    $itk_component(graph) marker configure $name -background ""
-	    #
-	    # BE CAREFUL:  Need an update here to force the graph to
-	    #   refresh itself or else a subsequent click on the
-	    #   marker will ignore the text that was recently changed,
-	    #   and fail to generate a <ButtonPress> event!
-	    #
-	    update idletasks
-	}
-	edit {
-	    set _marker(name) $name
-	    set _marker(fobj) [lindex [split $path /] 0]
-	    set _marker(path) [lindex [split $path /] 1]
-	    $itk_component(geditor) activate
-	}
-	activate {
-	    set g $itk_component(graph)
-	    set val [$g marker cget $_marker(name) -text]
-	    foreach {x y} [$g marker cget $_marker(name) -coords] { break }
-	    foreach {x y} [$g transform $x $y] { break }
-	    set x [expr {$x + [winfo rootx $g] - 4}]
-	    set y [expr {$y + [winfo rooty $g] - 5}]
+        enter {
+            $itk_component(graph) marker configure $name -background #e5e5e5
+            #
+            # BE CAREFUL:  Need an update here to force the graph to
+            #   refresh itself or else a subsequent click on the
+            #   marker will ignore the text that was recently changed,
+            #   and fail to generate a <ButtonPress> event!
+            #
+            update idletasks
+        }
+        leave {
+            $itk_component(graph) marker configure $name -background ""
+            #
+            # BE CAREFUL:  Need an update here to force the graph to
+            #   refresh itself or else a subsequent click on the
+            #   marker will ignore the text that was recently changed,
+            #   and fail to generate a <ButtonPress> event!
+            #
+            update idletasks
+        }
+        edit {
+            set _marker(name) $name
+            set _marker(fobj) [lindex [split $path /] 0]
+            set _marker(path) [lindex [split $path /] 1]
+            $itk_component(geditor) activate
+        }
+        activate {
+            set g $itk_component(graph)
+            set val [$g marker cget $_marker(name) -text]
+            foreach {x y} [$g marker cget $_marker(name) -coords] { break }
+            foreach {x y} [$g transform $x $y] { break }
+            set x [expr {$x + [winfo rootx $g] - 4}]
+            set y [expr {$y + [winfo rooty $g] - 5}]
 
-	    set fnt $itk_option(-font)
-	    set h [expr {[font metrics $fnt -linespace] + 2}]
-	    set w [expr {[font measure $fnt $val] + 5}]
+            set fnt $itk_option(-font)
+            set h [expr {[font metrics $fnt -linespace] + 2}]
+            set w [expr {[font measure $fnt $val] + 5}]
 
-	    return [list text $val \
-		x [expr {$x-$w/2}] \
-		y [expr {$y-$h}] \
-		w $w \
-		h $h]
-	}
-	validate {
-	    if {$_units != ""} {
-		if {[catch {Rappture::Units::convert $name \
-			-context $_units -to $_units} result] != 0} {
-		    if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
-			  || [regexp {(.)(.+)} $result match first tail]} {
-			set result "[string toupper $first]$tail"
-		    }
-		    bell
-		    Rappture::Tooltip::cue $itk_component(geditor) $result
-		    return 0
-		}
-	    }
-	    if {[catch {$_marker(fobj) controls validate $_marker(path) $name} result]} {
-		bell
-		Rappture::Tooltip::cue $itk_component(geditor) $result
-		return 0
-	    }
-	    return 1
-	}
-	apply {
-	    if {$_units != ""} {
-		catch {Rappture::Units::convert $name \
-		    -context $_units -to $_units} value
-	    } else {
-		set value $name
-	    }
+            return [list text $val \
+                x [expr {$x-$w/2}] \
+                y [expr {$y-$h}] \
+                w $w \
+                h $h]
+        }
+        validate {
+            if {$_units != ""} {
+                if {[catch {Rappture::Units::convert $name \
+                        -context $_units -to $_units} result] != 0} {
+                    if {[regexp {^bad.*: +(.)(.+)} $result match first tail]
+                          || [regexp {(.)(.+)} $result match first tail]} {
+                        set result "[string toupper $first]$tail"
+                    }
+                    bell
+                    Rappture::Tooltip::cue $itk_component(geditor) $result
+                    return 0
+                }
+            }
+            if {[catch {$_marker(fobj) controls validate $_marker(path) $name} result]} {
+                bell
+                Rappture::Tooltip::cue $itk_component(geditor) $result
+                return 0
+            }
+            return 1
+        }
+        apply {
+            if {$_units != ""} {
+                catch {Rappture::Units::convert $name \
+                    -context $_units -to $_units} value
+            } else {
+                set value $name
+            }
 
-	    $_marker(fobj) controls put $_marker(path) $value
-	    $_owner changed $_marker(path)
-	    event generate $itk_component(hull) <<Edit>>
+            $_marker(fobj) controls put $_marker(path) $value
+            $_owner changed $_marker(path)
+            event generate $itk_component(hull) <<Edit>>
 
-	    _changeTabs
-	}
+            _changeTabs
+        }
     }
 }
 
@@ -776,24 +776,24 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
 itcl::body Rappture::DeviceViewer1D::_controlCreate {container libObj path} {
     set presets ""
     foreach pre [$libObj children -type preset $path] {
-	lappend presets \
-	    [$libObj get $path.$pre.value] \
-	    [$libObj get $path.$pre.label]
+        lappend presets \
+            [$libObj get $path.$pre.value] \
+            [$libObj get $path.$pre.label]
     }
 
     set type Rappture::Gauge
     set units [$libObj get $path.units]
     if {$units != ""} {
-	set desc [Rappture::Units::description $units]
-	if {[string match temperature* $desc]} {
-	    set type Rappture::TemperatureGauge
-	}
+        set desc [Rappture::Units::description $units]
+        if {[string match temperature* $desc]} {
+            set type Rappture::TemperatureGauge
+        }
     }
 
     set counter 0
     set w "$container.gauge[incr counter]"
     while {[winfo exists $w]} {
-	set w "$container.gauge[incr counter]"
+        set w "$container.gauge[incr counter]"
     }
 
     # create the widget
@@ -811,34 +811,34 @@ itcl::body Rappture::DeviceViewer1D::_controlCreate {container libObj path} {
     if {$str != ""} { $w value $str }
 
     if {$type == "Rappture::Gauge" && "" != $min && "" != $max} {
-	set color [$libObj get $path.color]
-	if {$color == ""} {
-	    set color blue
-	}
-	if {$units != ""} {
-	    set min [Rappture::Units::convert $min -to $units -units off]
-	    set max [Rappture::Units::convert $max -to $units -units off]
-	}
-	$w configure -spectrum [Rappture::Spectrum ::#auto [list \
-	    $min white $max $color] -units $units]
+        set color [$libObj get $path.color]
+        if {$color == ""} {
+            set color blue
+        }
+        if {$units != ""} {
+            set min [Rappture::Units::convert $min -to $units -units off]
+            set max [Rappture::Units::convert $max -to $units -units off]
+        }
+        $w configure -spectrum [Rappture::Spectrum ::#auto [list \
+            $min white $max $color] -units $units]
     }
 
     set str [$libObj get $path.label]
     if {$str != ""} {
-	set help [$libObj get $path.help]
-	if {"" != $help} {
-	    append str "\n$help"
-	}
-	if {$units != ""} {
-	    set desc [Rappture::Units::description $units]
-	    append str "\n(units of $desc)"
-	}
-	Rappture::Tooltip::for $w $str
+        set help [$libObj get $path.help]
+        if {"" != $help} {
+            append str "\n$help"
+        }
+        if {$units != ""} {
+            set desc [Rappture::Units::description $units]
+            append str "\n(units of $desc)"
+        }
+        Rappture::Tooltip::for $w $str
     }
 
     set str [$libObj get $path.icon]
     if {$str != ""} {
-	$w configure -image [image create photo -data $str]
+        $w configure -image [image create photo -data $str]
     }
 }
 
@@ -864,14 +864,14 @@ itcl::body Rappture::DeviceViewer1D::_controlSet {widget libObj path} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::DeviceViewer1D::device {
     if {$itk_option(-device) != ""} {
-	if {![Rappture::library isvalid $itk_option(-device)]} {
-	    error "bad value \"$itk_option(-device)\": should be Rappture::Library"
-	}
+        if {![Rappture::library isvalid $itk_option(-device)]} {
+            error "bad value \"$itk_option(-device)\": should be Rappture::Library"
+        }
     }
 
     delete
     if {"" != $itk_option(-device)} {
-	add $itk_option(-device)
+        add $itk_option(-device)
     }
     _loadDevice
 }

@@ -34,15 +34,15 @@ itcl::class Rappture::Image {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Image::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be LibraryObj"
+        error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
     set _path $path
     set data [string trim [$xmlobj get $path.current]]
     if {[string length $data] == 0} {
-	set _image [image create photo]
+        set _image [image create photo]
     } else {
-	set _image [image create photo -data $data]
+        set _image [image create photo -data $data]
     }
 
     set _hints(note) [string trim [$_xmlobj get $_path.note.contents]]
@@ -65,10 +65,10 @@ itcl::body Rappture::Image::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Image::hints {{keyword ""}} {
     if {$keyword != ""} {
-	if {[info exists _hints($keyword)]} {
-	    return $_hints($keyword)
-	}
-	return ""
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
+        }
+        return ""
     }
     return [array get _hints]
 }

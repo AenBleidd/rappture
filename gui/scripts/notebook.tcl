@@ -40,7 +40,7 @@ itcl::class Rappture::Notebook {
     private variable _name2page     ;# maps name => frame for page
     private variable _current ""    ;# page currently shown
 }
-										
+                                                                                
 itk::usual Notebook {
     keep -background -cursor
 }
@@ -68,20 +68,20 @@ itcl::body Rappture::Notebook::constructor {args} {
 itcl::body Rappture::Notebook::insert {pos args} {
     set rlist ""
     foreach name $args {
-	if {[lsearch $_pages $name] >= 0} {
-	    error "page \"$name\" already exists"
-	}
-	set pname "page[incr _count]"
-	itk_component add $pname {
-	    frame $itk_interior.$pname
-	}
-	set _pages [linsert $_pages $pos $name]
-	set _name2page($name) $itk_component($pname)
+        if {[lsearch $_pages $name] >= 0} {
+            error "page \"$name\" already exists"
+        }
+        set pname "page[incr _count]"
+        itk_component add $pname {
+            frame $itk_interior.$pname
+        }
+        set _pages [linsert $_pages $pos $name]
+        set _name2page($name) $itk_component($pname)
 
-	bind $itk_component($pname) <Configure> \
-	    [itcl::code $_dispatcher event -after 100 !fixsize]
+        bind $itk_component($pname) <Configure> \
+            [itcl::code $_dispatcher event -after 100 !fixsize]
 
-	lappend rlist $itk_component($pname)
+        lappend rlist $itk_component($pname)
     }
     return $rlist
 }
@@ -97,16 +97,16 @@ itcl::body Rappture::Notebook::insert {pos args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Notebook::delete {args} {
     if {$args == "-all"} {
-	set args $_pages
+        set args $_pages
     }
     foreach name $args {
-	set i [index $name]
-	set pname [lindex $_pages $i]
-	if {$pname != ""} {
-	    set _pages [lreplace $_pages $i $i]
-	    destroy $_name2page($pname)
-	    unset _name2page($pname)
-	}
+        set i [index $name]
+        set pname [lindex $_pages $i]
+        if {$pname != ""} {
+            set _pages [lreplace $_pages $i $i]
+            destroy $_name2page($pname)
+            unset _name2page($pname)
+        }
     }
 }
 
@@ -118,10 +118,10 @@ itcl::body Rappture::Notebook::delete {args} {
 itcl::body Rappture::Notebook::index {name} {
     set i [lsearch $_pages $name]
     if {$i >= 0} {
-	return $i
+        return $i
     }
     if {[regexp {^@([0-9]+)$} $name match i]} {
-	return $i
+        return $i
     }
     error "bad page name \"$name\": should be @int or one of [join [lsort $_pages] {, }]"
 }
@@ -147,49 +147,49 @@ itcl::body Rappture::Notebook::page {name} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Notebook::current {args} {
     switch -- [llength $args] {
-	0 {
-	    return $_current
-	}
-	1 {
-	    set name [lindex $args 0]
-	    set index 0
-	    if {$name == "next>"} {
-		if {$_current == ""} {
-		    set index 0
-		} else {
-		    set i [lsearch -exact $_pages $_current]
-		    set index [expr {$i+1}]
-		    if {$index >= [llength $_pages]} {
-			set index [expr {[llength $_pages]-1}]
-		    }
-		}
-	    } elseif {$name == "<back"} {
-		if {$_current == ""} {
-		    set index end
-		} else {
-		    set i [lsearch -exact $_pages $_current]
-		    set index [expr {$i-1}]
-		    if {$index < 0} {
-			set index 0
-		    }
-		}
-	    } else {
-		set index [lsearch -exact $_pages $name]
-		if {$index < 0} {
-		    error "can't move to page \"$name\""
-		}
-	    }
+        0 {
+            return $_current
+        }
+        1 {
+            set name [lindex $args 0]
+            set index 0
+            if {$name == "next>"} {
+                if {$_current == ""} {
+                    set index 0
+                } else {
+                    set i [lsearch -exact $_pages $_current]
+                    set index [expr {$i+1}]
+                    if {$index >= [llength $_pages]} {
+                        set index [expr {[llength $_pages]-1}]
+                    }
+                }
+            } elseif {$name == "<back"} {
+                if {$_current == ""} {
+                    set index end
+                } else {
+                    set i [lsearch -exact $_pages $_current]
+                    set index [expr {$i-1}]
+                    if {$index < 0} {
+                        set index 0
+                    }
+                }
+            } else {
+                set index [lsearch -exact $_pages $name]
+                if {$index < 0} {
+                    error "can't move to page \"$name\""
+                }
+            }
 
-	    set _current [lindex $_pages $index]
+            set _current [lindex $_pages $index]
 
-	    foreach w [pack slaves $itk_component(hull)] {
-		pack forget $w
-	    }
-	    pack $_name2page($_current) -expand yes -fill both
-	}
-	default {
-	    error "wrong # args: should be \"current name|next>|<back\""
-	}
+            foreach w [pack slaves $itk_component(hull)] {
+                pack forget $w
+            }
+            pack $_name2page($_current) -expand yes -fill both
+        }
+        default {
+            error "wrong # args: should be \"current name|next>|<back\""
+        }
     }
 }
 
@@ -203,25 +203,25 @@ itcl::body Rappture::Notebook::current {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Notebook::_fixSize {} {
     if {$itk_option(-width) <= 0} {
-	set maxw 0
-	foreach name $_pages {
-	    set w [winfo reqwidth $_name2page($name)]
-	    if {$w > $maxw} { set maxw $w }
-	}
-	component hull configure -width $maxw
+        set maxw 0
+        foreach name $_pages {
+            set w [winfo reqwidth $_name2page($name)]
+            if {$w > $maxw} { set maxw $w }
+        }
+        component hull configure -width $maxw
     } else {
-	component hull configure -width $itk_option(-width)
+        component hull configure -width $itk_option(-width)
     }
 
     if {$itk_option(-height) <= 0} {
-	set maxh 0
-	foreach name $_pages {
-	    set h [winfo reqheight $_name2page($name)]
-	    if {$h > $maxh} { set maxh $h }
-	}
-	component hull configure -height $maxh
+        set maxh 0
+        foreach name $_pages {
+            set h [winfo reqheight $_name2page($name)]
+            if {$h > $maxh} { set maxh $h }
+        }
+        component hull configure -height $maxh
     } else {
-	component hull configure -height $itk_option(-height)
+        component hull configure -height $itk_option(-height)
     }
 }
 

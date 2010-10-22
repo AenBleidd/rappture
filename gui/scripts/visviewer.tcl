@@ -41,10 +41,10 @@ itcl::class ::Rappture::VisViewer {
     protected variable _image
 
     constructor { hostlist args } {
-	# defined below
+        # defined below
     }
     destructor {
-	# defined below
+        # defined below
     }
     # Used internally only.
     private method Shuffle { hostlist }
@@ -66,23 +66,23 @@ itcl::class ::Rappture::VisViewer {
     protected method Euler2XYZ { theta phi psi }
 
     private proc CheckNameList { namelist }  {
-	set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
-	if { ![regexp $pattern $namelist match] } {
-	    error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
-	}
+        set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
+        if { ![regexp $pattern $namelist match] } {
+            error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+        }
     }
     public proc GetServerList { tag } {
-	return $_servers($tag)
+        return $_servers($tag)
     }
     public proc SetServerList { tag namelist } {
-	CheckNameList $namelist
-	set _servers($tag) $namelist
+        CheckNameList $namelist
+        set _servers($tag) $namelist
     }
     public proc SetPymolServerList { namelist } {
-	SetServerList "pymol" $namelist
+        SetServerList "pymol" $namelist
     }
     public proc SetNanovisServerList { namelist } {
-	SetServerList "nanovis" $namelist
+        SetServerList "nanovis" $namelist
     }
 }
 
@@ -110,7 +110,7 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     #
     set _parser [interp create -safe]
     foreach cmd [$_parser eval {info commands}] {
-	$_parser hide $cmd
+        $_parser hide $cmd
     }
 
     #
@@ -120,15 +120,15 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     pack propagate $itk_component(hull) no
 
     itk_component add main {
-	Rappture::SidebarFrame $itk_interior.main
+        Rappture::SidebarFrame $itk_interior.main
     }
     pack $itk_component(main) -expand yes -fill both
     set f [$itk_component(main) component frame]
 
     itk_component add plotarea {
-	frame $f.plotarea -highlightthickness 0 -background black
+        frame $f.plotarea -highlightthickness 0 -background black
     } {
-	ignore -background
+        ignore -background
     }
     pack $itk_component(plotarea) -fill both -expand yes
     set _image(plot) [image create photo]
@@ -155,12 +155,12 @@ itcl::body Rappture::VisViewer::Shuffle { hostlist } {
     set ticks [clock clicks]
     expr {srand($ticks)}
     for { set i [llength $hosts] } { $i > 0 } { incr i -1 } {
-	set index [expr {round(rand()*$i - 0.5)}]
-	if { $index == $i } {
-	    set index [expr $i - 1]
-	}
-	lappend randomHosts [lindex $hosts $index]
-	set hosts [lreplace $hosts $index $index]
+        set index [expr {round(rand()*$i - 0.5)}]
+        if { $index == $i } {
+            set index [expr $i - 1]
+        }
+        lappend randomHosts [lindex $hosts $index]
+        set hosts [lreplace $hosts $index $index]
     }
     return $randomHosts
 }
@@ -174,10 +174,10 @@ itcl::body Rappture::VisViewer::Shuffle { hostlist } {
 #
 itcl::body Rappture::VisViewer::ServerDown {} {
     if { [info exists itk_component(plotarea)] } {
-	set x [expr {[winfo rootx $itk_component(plotarea)]+10}]
-	set y [expr {[winfo rooty $itk_component(plotarea)]+10}]
+        set x [expr {[winfo rootx $itk_component(plotarea)]+10}]
+        set y [expr {[winfo rooty $itk_component(plotarea)]+10}]
     } else {
-	set x 0; set y 0
+        set x 0; set y 0
     }
     Rappture::Tooltip::cue @$x,$y "Lost connection to visualization server.  This happens sometimes when there are too many users and the system runs out of memory.\n\nTo reconnect, reset the view or press any other control.  Your picture should come right back up."
 }
@@ -206,48 +206,48 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     set servers [lrange $servers 1 end]
 
     while {1} {
-	SendEcho <<line "connecting to $hostname:$port..."
-	if { [catch {socket $hostname $port} _sid] != 0 } {
-	    if {[llength $servers] == 0} {
-		blt::busy release $itk_component(hull)
-		return 0
-	    }
-	    # Get the next server
-	    foreach {hostname port} [split [lindex $servers 0] :] break
-	    set servers [lrange $servers 1 end]
-	    continue
-	}
-	fconfigure $_sid -translation binary -encoding binary
+        SendEcho <<line "connecting to $hostname:$port..."
+        if { [catch {socket $hostname $port} _sid] != 0 } {
+            if {[llength $servers] == 0} {
+                blt::busy release $itk_component(hull)
+                return 0
+            }
+            # Get the next server
+            foreach {hostname port} [split [lindex $servers 0] :] break
+            set servers [lrange $servers 1 end]
+            continue
+        }
+        fconfigure $_sid -translation binary -encoding binary
 
-	# Send memory requirement to the load balancer
-	puts -nonewline $_sid [binary format I $memorySize]
-	flush $_sid
+        # Send memory requirement to the load balancer
+        puts -nonewline $_sid [binary format I $memorySize]
+        flush $_sid
 
-	# Read back a reconnection order
-	set data [read $_sid 4]
-	if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
-	    blt::busy release $itk_component(hull)
-	    error "couldn't read redirection request"
-	}
-	set addr [format "%u.%u.%u.%u" \
-	    [expr {$b1 & 0xff}] \
-	    [expr {$b2 & 0xff}] \
-	    [expr {$b3 & 0xff}] \
-	    [expr {$b4 & 0xff}]]
+        # Read back a reconnection order
+        set data [read $_sid 4]
+        if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
+            blt::busy release $itk_component(hull)
+            error "couldn't read redirection request"
+        }
+        set addr [format "%u.%u.%u.%u" \
+            [expr {$b1 & 0xff}] \
+            [expr {$b2 & 0xff}] \
+            [expr {$b3 & 0xff}] \
+            [expr {$b4 & 0xff}]]
 
-	if { [string equal $addr "0.0.0.0"] } {
-	    # We're connected. Cancel any pending serverDown events and
-	    # release the busy window over the hull.
-	    $_dispatcher cancel !serverDown
-	    if { $_idleTimeout > 0 } {
-		$_dispatcher event -after $_idleTimeout !timeout
-	    }
-	    blt::busy release $itk_component(hull)
-	    fconfigure $_sid -buffering line
-	    fileevent $_sid readable [itcl::code $this ReceiveHelper]
-	    return 1
-	}
-	set hostname $addr
+        if { [string equal $addr "0.0.0.0"] } {
+            # We're connected. Cancel any pending serverDown events and
+            # release the busy window over the hull.
+            $_dispatcher cancel !serverDown
+            if { $_idleTimeout > 0 } {
+                $_dispatcher event -after $_idleTimeout !timeout
+            }
+            blt::busy release $itk_component(hull)
+            fconfigure $_sid -buffering line
+            fileevent $_sid readable [itcl::code $this ReceiveHelper]
+            return 1
+        }
+        set hostname $addr
     }
     #NOTREACHED
     blt::busy release $itk_component(hull)
@@ -287,14 +287,14 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 itcl::body Rappture::VisViewer::CheckConnection {} {
     if { [IsConnected] } {
-	if { [eof $_sid] } {
-	    error "unexpected eof on socket"
-	}
-	$_dispatcher cancel !timeout
-	if { $_idleTimeout > 0 } {
-	    $_dispatcher event -after $_idleTimeout !timeout
-	}
-	return 1
+        if { [eof $_sid] } {
+            error "unexpected eof on socket"
+        }
+        $_dispatcher cancel !timeout
+        if { $_idleTimeout > 0 } {
+            $_dispatcher event -after $_idleTimeout !timeout
+        }
+        return 1
     }
     # If we aren't connected, assume it's because the connection to the
     # visualization server broke. Try to open a connection and trigger a
@@ -305,11 +305,11 @@ itcl::body Rappture::VisViewer::CheckConnection {} {
     Rappture::Tooltip::cue @$x,$y "Connecting..."
     set code [catch { Connect } ok]
     if { $code == 0 && $ok} {
-	$_dispatcher event -idle !rebuild
-	Rappture::Tooltip::cue hide
+        $_dispatcher event -idle !rebuild
+        Rappture::Tooltip::cue hide
     } else {
-	Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-	return 0
+        Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+        return 0
     }
     return 1
 }
@@ -321,7 +321,7 @@ itcl::body Rappture::VisViewer::CheckConnection {} {
 #
 itcl::body Rappture::VisViewer::Flush {} {
     if { [CheckConnection] } {
-	flush $_sid
+        flush $_sid
     }
 }
 
@@ -335,7 +335,7 @@ itcl::body Rappture::VisViewer::Flush {} {
 #
 itcl::body Rappture::VisViewer::SendHelper {} {
     if { ![CheckConnection] } {
-	return 0
+        return 0
     }
     puts -nonewline $_sid $_buffer(out)
     flush $_sid 
@@ -353,27 +353,27 @@ itcl::body Rappture::VisViewer::SendHelper {} {
 #
 itcl::body Rappture::VisViewer::SendHelper.old {} {
     if { ![CheckConnection] } {
-	return 0
+        return 0
     }
     set bytesLeft [string length $_buffer(out)]
     if { $bytesLeft > 0} {
-	set chunk [string range $_buffer(out) 0 8095]
-	set _buffer(out)  [string range $_buffer(out) 8096 end]
-	incr bytesLeft -8096
-	set code [catch {
-	    if { $bytesLeft > 0 } {
-		puts -nonewline $_sid $chunk
-	    } else {
-		puts $_sid $chunk
-	    }
-	} err]
-	if { $code != 0 } {
-	    puts stderr "error sending data to $_sid: $err"
-	    Disconnect
-	    set _done($this) 0;     # Failure
-	}
+        set chunk [string range $_buffer(out) 0 8095]
+        set _buffer(out)  [string range $_buffer(out) 8096 end]
+        incr bytesLeft -8096
+        set code [catch {
+            if { $bytesLeft > 0 } {
+                puts -nonewline $_sid $chunk
+            } else {
+                puts $_sid $chunk
+            }
+        } err]
+        if { $code != 0 } {
+            puts stderr "error sending data to $_sid: $err"
+            Disconnect
+            set _done($this) 0;     # Failure
+        }
     } else {
-	set _done($this) 1;     # Success
+        set _done($this) 1;     # Success
     }
 }
 
@@ -385,7 +385,7 @@ itcl::body Rappture::VisViewer::SendHelper.old {} {
 itcl::body Rappture::VisViewer::SendBytes { bytes } {
     SendEcho >>line $bytes
     if { ![CheckConnection] } {
-	return 0
+        return 0
     }
     # Even though the data is sent in only 1 "puts", we need to verify that
     # the server is ready first.  Wait for the socket to become writable
@@ -396,15 +396,15 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     tkwait variable ::Rappture::VisViewer::_done($this)
     set _buffer(out) ""
     if { [IsConnected] } {
-	# The connection may have closed while we were writing to the server.
-	# This can happen if what we sent the server caused it to barf.
-	fileevent $_sid writable ""
-	flush $_sid
+        # The connection may have closed while we were writing to the server.
+        # This can happen if what we sent the server caused it to barf.
+        fileevent $_sid writable ""
+        flush $_sid
     }
     if 0 {
     if { ![CheckConnection] } {
-	puts stderr "connection is now down"
-	return 0
+        puts stderr "connection is now down"
+        return 0
     }
     }
     return $_done($this)
@@ -417,7 +417,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     if { ![CheckConnection] } {
-	return 0
+        return 0
     }
     set bytes [read $_sid $size]
     ReceiveEcho <<line "<read $size bytes"
@@ -445,38 +445,38 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
 #
 itcl::body Rappture::VisViewer::ReceiveHelper {} {
     if { ![CheckConnection] } {
-	return 0
+        return 0
     }
     set n [gets $_sid line]
 
     if { $n < 0 } {
-	Disconnect
-	return 0
+        Disconnect
+        return 0
     }
     set line [string trim $line]
     if { $line == "" } {
-	return
+        return
     }
     if { [string compare -length 3 $line "nv>"] == 0 } {
-	ReceiveEcho <<line $line
-	append _buffer(in) [string range $line 3 end]
-	append _buffer(in) "\n"
-	if {[info complete $_buffer(in)]} {
-	    set request $_buffer(in)
-	    set _buffer(in) ""
-	    if { [catch {$_parser eval $request} err]  != 0 } {
-		global errorInfo
-		puts stderr "err=$err errorInfo=$errorInfo"
-	    }
-	}
+        ReceiveEcho <<line $line
+        append _buffer(in) [string range $line 3 end]
+        append _buffer(in) "\n"
+        if {[info complete $_buffer(in)]} {
+            set request $_buffer(in)
+            set _buffer(in) ""
+            if { [catch {$_parser eval $request} err]  != 0 } {
+                global errorInfo
+                puts stderr "err=$err errorInfo=$errorInfo"
+            }
+        }
     } elseif { [string compare -length 20 $line "NanoVis Server Error:"] == 0} {
-	# this shows errors coming back from the engine
-	ReceiveEcho <<error $line
-	puts stderr "Render Server Error: $line\n"
+        # this shows errors coming back from the engine
+        ReceiveEcho <<error $line
+        puts stderr "Render Server Error: $line\n"
     } else {
-	# this shows errors coming back from the engine
-	ReceiveEcho <<error $line
-	puts stderr "Garbled message: $line\n"
+        # this shows errors coming back from the engine
+        ReceiveEcho <<error $line
+        puts stderr "Garbled message: $line\n"
     }
 }
 
@@ -521,7 +521,7 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
     #puts stderr ">>($data)"
     if {[string length $itk_option(-sendcommand)] > 0} {
-	uplevel #0 $itk_option(-sendcommand) [list $channel $data]
+        uplevel #0 $itk_option(-sendcommand) [list $channel $data]
     }
 }
 
@@ -536,6 +536,6 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
 itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
     #puts stderr "<<line $data"
     if {[string length $itk_option(-receivecommand)] > 0} {
-	uplevel #0 $itk_option(-receivecommand) [list $channel $data]
+        uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
 }

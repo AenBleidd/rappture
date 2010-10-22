@@ -27,35 +27,35 @@ namespace eval Rappture::Units { # forward declaration }
 # ----------------------------------------------------------------------
 proc Rappture::Units::define {what args} {
     if {[regexp {(.+)->(.+)} $what match new fndm]} {
-	if {[llength $args] != 2} {
-	    error "wrong # args: should be \"define units1->units2 exprTo exprFrom\""
-	}
-	#
-	# Convert the units variables embedded in the conversion
-	# expressions to something that Tcl can handle.  We'll
-	# use ${number} to represent the variables.
-	#
-	foreach {exprTo exprFrom} $args { break }
-	regsub -all $new $exprTo {${number}} exprTo
-	regsub -all $fndm $exprFrom {${number}} exprFrom
+        if {[llength $args] != 2} {
+            error "wrong # args: should be \"define units1->units2 exprTo exprFrom\""
+        }
+        #
+        # Convert the units variables embedded in the conversion
+        # expressions to something that Tcl can handle.  We'll
+        # use ${number} to represent the variables.
+        #
+        foreach {exprTo exprFrom} $args { break }
+        regsub -all $new $exprTo {${number}} exprTo
+        regsub -all $fndm $exprFrom {${number}} exprFrom
 
-	Rappture::Units::System #auto $new \
-	    -basis [list $fndm $exprTo $exprFrom]
+        Rappture::Units::System #auto $new \
+            -basis [list $fndm $exprTo $exprFrom]
 
     } elseif {[regexp {^/?[a-zA-Z]+[0-9]*$} $what]} {
-	array set opts {
-	    -type ""
-	    -metric 0
-	}
-	foreach {key val} $args {
-	    if {![info exists opts($key)]} {
-		error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
-	    }
-	    set opts($key) $val
-	}
-	eval Rappture::Units::System #auto $what [array get opts]
+        array set opts {
+            -type ""
+            -metric 0
+        }
+        foreach {key val} $args {
+            if {![info exists opts($key)]} {
+                error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
+            }
+            set opts($key) $val
+        }
+        eval Rappture::Units::System #auto $what [array get opts]
     } else {
-	error "bad units definition \"$what\": should be something like m or /cm3 or A->m"
+        error "bad units definition \"$what\": should be something like m or /cm3 or A->m"
     }
 }
 
@@ -70,15 +70,15 @@ proc Rappture::Units::define {what args} {
 # ----------------------------------------------------------------------
 proc Rappture::Units::convert {value args} {
     array set opts {
-	-context ""
-	-to ""
-	-units "on"
+        -context ""
+        -to ""
+        -units "on"
     }
     foreach {key val} $args {
-	if {![info exists opts($key)]} {
-	    error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
-	}
-	set opts($key) $val
+        if {![info exists opts($key)]} {
+            error "bad option \"$key\": should be [join [lsort [array names opts]] {, }]"
+        }
+        set opts($key) $val
     }
 
     #
@@ -86,14 +86,14 @@ proc Rappture::Units::convert {value args} {
     #
     set value [string trim $value]
     if {![regexp {^([-+]?[0-9]+\.?([0-9]+)?([eEdD][-+]?[0-9]+)?) *(/?[a-zA-Z]+[0-9]*)?$} $value match number dummy1 dummy2 units]} {
-	set mesg "bad value \"$value\": should be real number with units"
-	if {$opts(-context) != ""} {
-	    append mesg " of [Rappture::Units::description $opts(-context)]"
-	}
-	error $mesg
+        set mesg "bad value \"$value\": should be real number with units"
+        if {$opts(-context) != ""} {
+            append mesg " of [Rappture::Units::description $opts(-context)]"
+        }
+        error $mesg
     }
     if {$units == ""} {
-	set units $opts(-context)
+        set units $opts(-context)
     }
 
     #
@@ -102,19 +102,19 @@ proc Rappture::Units::convert {value args} {
     set units [Rappture::Units::System::regularize $units]
     set oldsys [Rappture::Units::System::for $units]
     if {$oldsys == ""} {
-	set mesg "value \"$value\" has unrecognized units"
-	if {$opts(-context) != ""} {
-	    append mesg ".\nShould be units of [Rappture::Units::description $opts(-context)]"
-	}
-	error $mesg
+        set mesg "value \"$value\" has unrecognized units"
+        if {$opts(-context) != ""} {
+            append mesg ".\nShould be units of [Rappture::Units::description $opts(-context)]"
+        }
+        error $mesg
     }
 
     #
     # Convert the number to the new system of units.
     #
     if {$opts(-to) == ""} {
-	# no units -- return the number as is
-	return "$number$units"
+        # no units -- return the number as is
+        return "$number$units"
     }
     return [$oldsys convert "$number$units" $opts(-to) $opts(-units)]
 }
@@ -129,12 +129,12 @@ proc Rappture::Units::convert {value args} {
 proc Rappture::Units::description {units} {
     set sys [Rappture::Units::System::for $units]
     if {$sys == ""} {
-	return ""
+        return ""
     }
     set mesg [$sys cget -type]
     set ulist [Rappture::Units::System::all $units]
     if {"" != $ulist} {
-	append mesg " ([join $ulist {, }])"
+        append mesg " ([join $ulist {, }])"
     }
     return $mesg
 }
@@ -161,18 +161,18 @@ itcl::class Rappture::Units::System {
     # metric conversion prefixes
     private common _prefix2factor
     array set _prefix2factor {
-	c  1e-2
-	m  1e-3
-	u  1e-6
-	n  1e-9
-	p  1e-12
-	f  1e-15
-	a  1e-18
-	k  1e+3
-	M  1e+6
-	G  1e+9
-	T  1e+12
-	P  1e+15
+        c  1e-2
+        m  1e-3
+        u  1e-6
+        n  1e-9
+        p  1e-12
+        f  1e-15
+        a  1e-18
+        k  1e+3
+        M  1e+6
+        G  1e+9
+        T  1e+12
+        P  1e+15
     }
 }
 
@@ -181,7 +181,7 @@ itcl::class Rappture::Units::System {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Units::System::constructor {name args} {
     if {![regexp {^/?[a-zA-Z]+[0-9]*$} $name]} {
-	error "bad units declaration \"$name\""
+        error "bad units declaration \"$name\""
     }
     eval configure $args
 
@@ -192,15 +192,15 @@ itcl::body Rappture::Units::System::constructor {name args} {
     # to and from the fundamental system.
     #
     if {$basis != ""} {
-	foreach {base exprTo exprFrom} $basis { break }
-	if {![info exists _base($base)]} {
-	    error "fundamental system of units \"$base\" not defined"
-	}
-	while {$type == "" && $base != ""} {
-	    set obj $_base($base)
-	    set type [$obj cget -type]
-	    set base [lindex [$obj cget -basis] 0]
-	}
+        foreach {base exprTo exprFrom} $basis { break }
+        if {![info exists _base($base)]} {
+            error "fundamental system of units \"$base\" not defined"
+        }
+        while {$type == "" && $base != ""} {
+            set obj $_base($base)
+            set type [$obj cget -type]
+            set base [lindex [$obj cget -basis] 0]
+        }
     }
     set _system $name
     set _base($name) $this
@@ -229,8 +229,8 @@ itcl::body Rappture::Units::System::basic {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Units::System::fundamental {} {
     if {$basis != ""} {
-	set sys [Rappture::Units::System::for [lindex $basis 0]]
-	return [$sys fundamental]
+        set sys [Rappture::Units::System::for [lindex $basis 0]]
+        return [$sys fundamental]
     }
     return $_system
 }
@@ -245,7 +245,7 @@ itcl::body Rappture::Units::System::fundamental {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     if {![regexp {^([-+]?[0-9]+\.?([0-9]+)?([eEdD][-+]?[0-9]+)?) *(/?[a-zA-Z]+[0-9]*)?$} $value match number dummy1 dummy2 units]} {
-	error "bad value \"$value\": should be real number with units"
+        error "bad value \"$value\": should be real number with units"
     }
 
     #
@@ -257,13 +257,13 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     set prefix ""
     set power "1"
     if {$metric && [regexp {^(/?)([cmunpfakMGTP])([a-zA-Z]+)([0-9]*)$} $units match slash prefix base power]} {
-	set baseUnits "$slash$base$power"
+        set baseUnits "$slash$base$power"
     } else {
-	set baseUnits $units
+        set baseUnits $units
     }
     if {![string equal $baseUnits $_system]
-	  && ![string equal $baseUnits [lindex $basis 0]]} {
-	error "can't convert value \"$value\": should have units \"$_system\""
+          && ![string equal $baseUnits [lindex $basis 0]]} {
+        error "can't convert value \"$value\": should have units \"$_system\""
     }
 
     #
@@ -271,14 +271,14 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     # to the base system.
     #
     if {$prefix != ""} {
-	if {$power == ""} {
-	    set power 1
-	}
-	if {$slash == "/"} {
-	    set number [expr {$number/pow($_prefix2factor($prefix),$power)}]
-	} else {
-	    set number [expr {$number*pow($_prefix2factor($prefix),$power)}]
-	}
+        if {$power == ""} {
+            set power 1
+        }
+        if {$slash == "/"} {
+            set number [expr {$number/pow($_prefix2factor($prefix),$power)}]
+        } else {
+            set number [expr {$number*pow($_prefix2factor($prefix),$power)}]
+        }
     }
 
     #
@@ -286,8 +286,8 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     # the number from the basis to the current system.
     #
     if {[string equal $baseUnits [lindex $basis 0]]} {
-	foreach {base exprTo exprFrom} $basis { break }
-	set number [expr $exprFrom]
+        foreach {base exprTo exprFrom} $basis { break }
+        set number [expr $exprFrom]
     }
 
     #
@@ -299,25 +299,25 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     set prefix ""
     set power "1"
     if {$metric && [regexp {^(/?)([cmunpfakMGTP])([a-zA-Z]+)([0-9]*)$} $newUnits match slash prefix base power]} {
-	set baseUnits "$slash$base$power"
+        set baseUnits "$slash$base$power"
     } else {
-	set baseUnits $newUnits
+        set baseUnits $newUnits
     }
     if {[string equal $baseUnits $_system]} {
-	if {$prefix != ""} {
-	    if {$power == ""} {
-		set power 1
-	    }
-	    if {$slash == "/"} {
-		set number [expr {$number*pow($_prefix2factor($prefix),$power)}]
-	    } else {
-		set number [expr {$number/pow($_prefix2factor($prefix),$power)}]
-	    }
-	}
-	if {$showUnits} {
-	    return "$number$newUnits"
-	}
-	return $number
+        if {$prefix != ""} {
+            if {$power == ""} {
+                set power 1
+            }
+            if {$slash == "/"} {
+                set number [expr {$number*pow($_prefix2factor($prefix),$power)}]
+            } else {
+                set number [expr {$number/pow($_prefix2factor($prefix),$power)}]
+            }
+        }
+        if {$showUnits} {
+            return "$number$newUnits"
+        }
+        return $number
     }
 
     #
@@ -327,8 +327,8 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
     #
     set base $_system
     if {"" != $basis} {
-	foreach {base exprTo exprFrom} $basis { break }
-	set number [expr $exprTo]
+        foreach {base exprTo exprFrom} $basis { break }
+        set number [expr $exprTo]
     }
 
     set newsys [Rappture::Units::System::for $newUnits]
@@ -340,7 +340,7 @@ itcl::body Rappture::Units::System::convert {value newUnits showUnits} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Units::System::basis {
     if {[llength $basis] != 3} {
-	error "bad basis \"$name\": should be {units exprTo exprFrom}"
+        error "bad basis \"$name\": should be {units exprTo exprFrom}"
     }
 }
 
@@ -349,7 +349,7 @@ itcl::configbody Rappture::Units::System::basis {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Units::System::metric {
     if {![string is boolean -strict $metric]} {
-	error "bad value \"$metric\": should be boolean"
+        error "bad value \"$metric\": should be boolean"
     }
 }
 
@@ -368,39 +368,39 @@ itcl::body Rappture::Units::System::for {units} {
     # "25C".  Try to allow that.
     #
     if {[info exists _base($units)]} {
-	return $_base($units)
+        return $_base($units)
     } else {
-	set orig $units
-	if {[regexp {^(/?)[cCmMuUnNpPfFaAkKgGtT](.+)$} $units match slash tail]} {
-	    set base "$slash$tail"
-	    if {[info exists _base($base)]} {
-		set sys $_base($base)
-		if {[$sys cget -metric]} {
-		    return $sys
-		}
-	    }
+        set orig $units
+        if {[regexp {^(/?)[cCmMuUnNpPfFaAkKgGtT](.+)$} $units match slash tail]} {
+            set base "$slash$tail"
+            if {[info exists _base($base)]} {
+                set sys $_base($base)
+                if {[$sys cget -metric]} {
+                    return $sys
+                }
+            }
 
-	    # check the base part for improper capitalization below...
-	    set units $base
-	}
+            # check the base part for improper capitalization below...
+            set units $base
+        }
 
-	set matching ""
-	foreach u [array names _base] {
-	    if {[string equal -nocase $u $units]} {
-		lappend matching $_base($u)
-	    }
-	}
-	if {[llength $matching] == 1} {
-	    set sys [lindex $matching 0]
-	    #
-	    # If we got rid of a metric prefix above, make sure
-	    # that the system is metric.  If not, then we don't
-	    # have a match.
-	    #
-	    if {[string equal $units $orig] || [$sys cget -metric]} {
-		return $sys
-	    }
-	}
+        set matching ""
+        foreach u [array names _base] {
+            if {[string equal -nocase $u $units]} {
+                lappend matching $_base($u)
+            }
+        }
+        if {[llength $matching] == 1} {
+            set sys [lindex $matching 0]
+            #
+            # If we got rid of a metric prefix above, make sure
+            # that the system is metric.  If not, then we don't
+            # have a match.
+            #
+            if {[string equal $units $orig] || [$sys cget -metric]} {
+                return $sys
+            }
+        }
     }
     return ""
 }
@@ -415,22 +415,22 @@ itcl::body Rappture::Units::System::for {units} {
 itcl::body Rappture::Units::System::all {units} {
     set sys [Rappture::Units::System::for $units]
     if {$sys == ""} {
-	return ""
+        return ""
     }
 
     if {"" != [$sys cget -basis]} {
-	set basis [lindex [$sys cget -basis] 0]
+        set basis [lindex [$sys cget -basis] 0]
     } else {
-	set basis $units
+        set basis $units
     }
 
     set ulist $basis
     foreach u [array names _base] {
-	set obj $_base($u)
-	set b [lindex [$obj cget -basis] 0]
-	if {$b == $basis} {
-	    lappend ulist $u
-	}
+        set obj $_base($u)
+        set b [lindex [$obj cget -basis] 0]
+        if {$b == $basis} {
+            lappend ulist $u
+        }
     }
     return $ulist
 }
@@ -446,18 +446,18 @@ itcl::body Rappture::Units::System::all {units} {
 itcl::body Rappture::Units::System::regularize {units} {
     set sys [for $units]
     if {$sys == ""} {
-	return $units
+        return $units
     }
     # note: case-insensitive matching for metric prefix
     if {[regexp {^(/?)([cCmMuUnNpPfFaAkKgGtT]?)([a-zA-Z]+[0-9]+|[a-zA-Z]+)$} $units match slash prefix tail]} {
-	if {[regexp {^[CUNFAK]$} $prefix]} {
-	    # we know that these should be lower case
-	    set prefix [string tolower $prefix]
-	} elseif {[regexp {^[GT]$} $prefix]} {
-	    # we know that these should be upper case
-	    set prefix [string toupper $prefix]
-	}
-	return "$slash$prefix[string trimleft [$sys basic] /]"
+        if {[regexp {^[CUNFAK]$} $prefix]} {
+            # we know that these should be lower case
+            set prefix [string tolower $prefix]
+        } elseif {[regexp {^[GT]$} $prefix]} {
+            # we know that these should be upper case
+            set prefix [string toupper $prefix]
+        }
+        return "$slash$prefix[string trimleft [$sys basic] /]"
     }
     return [$sys basic]
 }

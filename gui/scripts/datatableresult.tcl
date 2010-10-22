@@ -40,21 +40,21 @@ itcl::class Rappture::DataTableResult {
     private variable _tree ""
 
     constructor {args} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args} {
-	# Do nothing
+        # Do nothing
     }
     public method snap { w h }
     public method tooltip { desc x y }
     public method parameters {title args} { 
-	# do nothing 
+        # do nothing 
     }
     public method download {option args}
 
@@ -91,7 +91,7 @@ itcl::body Rappture::DataTableResult::constructor {args} {
 
     set _tree [blt::tree create]
     Rappture::Scroller $itk_interior.scroller \
-	-xscrollmode auto -yscrollmode auto
+        -xscrollmode auto -yscrollmode auto
 
     itk_component add treeview {
         blt::treeview $itk_interior.scroller.tv -borderwidth 1 \
@@ -106,7 +106,7 @@ itcl::body Rappture::DataTableResult::constructor {args} {
     pack $itk_interior.scroller -fill both -expand yes
     eval itk_initialize $args
     } err] != 0} {
-	puts stderr errs=$err
+        puts stderr errs=$err
     }
 }
 
@@ -115,7 +115,7 @@ itcl::body Rappture::DataTableResult::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DataTableResult::destructor {} {
     if { $_tree != "" } {
-	blt::tree destroy $_tree
+        blt::tree destroy $_tree
     }
 }
 
@@ -128,14 +128,14 @@ itcl::body Rappture::DataTableResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DataTableResult::add {dataobj {settings ""}} {
     array set params {
-	-color auto
-	-brightness 0
-	-width 1
-	-type "line"
-	-raise 0
-	-linestyle solid
-	-description ""
-	-param ""
+        -color auto
+        -brightness 0
+        -width 1
+        -type "line"
+        -raise 0
+        -linestyle solid
+        -description ""
+        -param ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -144,7 +144,7 @@ itcl::body Rappture::DataTableResult::add {dataobj {settings ""}} {
         set params($opt) $val
     }
     if { $params(-raise) } {
-	set _raised $dataobj
+        set _raised $dataobj
     }
     lappend _dlist $dataobj
     $_dispatcher event -idle !rebuild
@@ -173,9 +173,9 @@ itcl::body Rappture::DataTableResult::delete {args} {
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-	if { $dataobj == $_raised } {
-	    set _raised ""
-	}
+        if { $dataobj == $_raised } {
+            set _raised ""
+        }
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
             set _dlist [lreplace $_dlist $pos $pos]
@@ -214,7 +214,7 @@ itcl::body Rappture::DataTableResult::download {option args} {
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
                 radiobutton $inner.datatable \
-		    -text "Data as Comma-Separated Values" \
+                    -text "Data as Comma-Separated Values" \
                     -variable Rappture::DataTableResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.datatable -anchor w
@@ -295,68 +295,68 @@ itcl::body Rappture::DataTableResult::Rebuild {} {
     eval $_tree delete [$_tree children 0]
     
     foreach dataobj $_dlist {
-	scan $dataobj "::dataTable%d" suffix
-	incr suffix
+        scan $dataobj "::dataTable%d" suffix
+        incr suffix
 
-	set newtree [$dataobj values]
-	# Copy the data object's tree onto our tree.
-	set dest [$_tree firstchild 0]
-	foreach src [$newtree children 0] {
-	    if { $dest == -1 } {
-		set dest [$_tree insert 0]
-	    }
-	    foreach {name value} [$newtree get $src] {
-		set label "$name \#$suffix"
-		$_tree set $dest $label $value
-		set labels($label) 1
-	    }
-	    set dest [$_tree nextsibling $dest]
-	}
+        set newtree [$dataobj values]
+        # Copy the data object's tree onto our tree.
+        set dest [$_tree firstchild 0]
+        foreach src [$newtree children 0] {
+            if { $dest == -1 } {
+                set dest [$_tree insert 0]
+            }
+            foreach {name value} [$newtree get $src] {
+                set label "$name \#$suffix"
+                $_tree set $dest $label $value
+                set labels($label) 1
+            }
+            set dest [$_tree nextsibling $dest]
+        }
     }
     foreach col [$itk_component(treeview) column names] {
-	if { [string match "BLT TreeView*" $col] } {
-	    continue
-	}
-	$itk_component(treeview) column delete $col
+        if { [string match "BLT TreeView*" $col] } {
+            continue
+        }
+        $itk_component(treeview) column delete $col
     }
     $itk_component(treeview) column configure treeView -hide yes
     set dataobj [lindex $_dlist 0] 
     if { $dataobj != "" } {
-	foreach { label description style } [$dataobj columns] {
-	    foreach c [lsort -dictionary [array names labels $label*]] {
-		eval $itk_component(treeview) column insert end [list $c] $style
-		$itk_component(treeview) column bind $c <Enter> \
-		    [itcl::code $this tooltip $description %X %Y]
-		$itk_component(treeview) column bind $c <Leave> \
-		    { Rappture::Tooltip::tooltip cancel }
-	    }
-	}    
+        foreach { label description style } [$dataobj columns] {
+            foreach c [lsort -dictionary [array names labels $label*]] {
+                eval $itk_component(treeview) column insert end [list $c] $style
+                $itk_component(treeview) column bind $c <Enter> \
+                    [itcl::code $this tooltip $description %X %Y]
+                $itk_component(treeview) column bind $c <Leave> \
+                    { Rappture::Tooltip::tooltip cancel }
+            }
+        }    
     }
     if { [llength $_dlist] == 1 } {
-	foreach { label description style } [$dataobj columns] {
-	    foreach c [lsort -dictionary [array names labels $label*]] {
-		$itk_component(treeview) column configure $c -text $label
-	    }
-	}    
+        foreach { label description style } [$dataobj columns] {
+            foreach c [lsort -dictionary [array names labels $label*]] {
+                $itk_component(treeview) column configure $c -text $label
+            }
+        }    
     }
     if { $_raised != "" } {
-	foreach c [$itk_component(treeview) column names] {
-	    $itk_component(treeview) column configure $c -style lowered
-	}
-	scan $_raised "::dataTable%d" suffix
-	incr suffix
-	foreach { label description style } [$_raised columns] {
-	    set c "$label \#$suffix"
-	    $itk_component(treeview) column configure $c -style raised
-	}
+        foreach c [$itk_component(treeview) column names] {
+            $itk_component(treeview) column configure $c -style lowered
+        }
+        scan $_raised "::dataTable%d" suffix
+        incr suffix
+        foreach { label description style } [$_raised columns] {
+            set c "$label \#$suffix"
+            $itk_component(treeview) column configure $c -style raised
+        }
     }
 }
 
 itcl::body Rappture::DataTableResult::snap { w h } {
     set g $itk_component(plot)
     if { $w <= 0 || $h <= 0 } {
-	set w [winfo width $g]
-	set h [winfo height $g]
+        set w [winfo width $g]
+        set h [winfo height $g]
     } 
     set img [image create picture -width $w -height $h]
     $g snap $img -width $w -height $h

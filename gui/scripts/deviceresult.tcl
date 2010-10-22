@@ -32,7 +32,7 @@ itcl::class Rappture::DeviceResult {
 
     private variable _dataobj ""  ;# data object currently being displayed
 }
-										
+                                                                                
 itk::usual DeviceResult {
     keep -background -foreground -cursor -font
 }
@@ -45,8 +45,8 @@ itcl::body Rappture::DeviceResult::constructor {args} {
     pack propagate $itk_component(hull) no
 
     itk_component add viewer {
-	# turn off auto-cleanup -- resultset swaps results in and out
-	Rappture::DeviceEditor $itk_interior.dev "" -autocleanup no
+        # turn off auto-cleanup -- resultset swaps results in and out
+        Rappture::DeviceEditor $itk_interior.dev "" -autocleanup no
     }
     pack $itk_component(viewer) -expand yes -fill both
 
@@ -63,19 +63,19 @@ itcl::body Rappture::DeviceResult::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceResult::add {dataobj {settings ""}} {
     array set params {
-	-color ""
-	-brightness ""
-	-width ""
-	-linestyle ""
-	-raise ""
-	-description ""
-	-param ""
+        -color ""
+        -brightness ""
+        -width ""
+        -linestyle ""
+        -raise ""
+        -description ""
+        -param ""
     }
     foreach {opt val} $settings {
-	if {![info exists params($opt)]} {
-	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-	}
-	set params($opt) $val
+        if {![info exists params($opt)]} {
+            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
     }
 
     eval $itk_component(viewer) add $dataobj [list $settings]

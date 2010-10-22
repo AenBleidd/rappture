@@ -12,6 +12,8 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
+package require BLT
+
 namespace eval Rappture::icon {
     variable iconpath [list [file join $RapptureGUI::library scripts images]]
     variable icons

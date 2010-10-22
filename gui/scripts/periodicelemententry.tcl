@@ -44,7 +44,7 @@ itk::usual PeriodicElementEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -57,19 +57,19 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add element {
-	Rappture::PeriodicElement $itk_interior.element -editable yes
+        Rappture::PeriodicElement $itk_interior.element -editable yes
     }
     pack $itk_component(element) -expand yes -fill both
     bind $itk_component(element) <<Value>> [itcl::code $this _newValue]
 
     if { [llength $inactive] > 0 } {
-	$itk_component(element) element inactive $inactive
+        $itk_component(element) element inactive $inactive
     }
     if { [llength $active] > 0 } {
-	$itk_component(element) element active $active
+        $itk_component(element) element active $active
     }		
     if { $defval != "" } {
-	$itk_component(element) value $defval
+        $itk_component(element) value $defval
     }
     eval itk_initialize $args
 }
@@ -94,19 +94,19 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set newval [lindex $args 0]
-	$itk_component(element) value $newval
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        $itk_component(element) value $newval
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -114,12 +114,12 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
     #
     set how [$_owner xml get $_path.returnvalue]
     switch -- $how { 
-	weight - number - name - symbol - all {
-	    set how "-$how"
-	}
-	default {
-	    set how "-name"
-	}
+        weight - number - name - symbol - all {
+            set how "-$how"
+        }
+        default {
+            set how "-name"
+        }
     }
     set str [$itk_component(element) element get $how]
     return $str
@@ -134,7 +134,7 @@ itcl::body Rappture::PeriodicElementEntry::value {args} {
 itcl::body Rappture::PeriodicElementEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-	set label "Element"
+        set label "Element"
     }
     return $label
 }
@@ -175,11 +175,11 @@ itcl::body Rappture::PeriodicElementEntry::_tooltip {} {
     # get the description for the current element, if there is one
     set str [$itk_component(element) element get -all]
     if {$_path != ""} {
-	set desc [$_owner xml get $_path.about.description]
+        set desc [$_owner xml get $_path.about.description]
     }
 
     if {[string length $str] > 0 && [string length $desc] > 0} {
-	append tip "\n\n$str:\n$desc"
+        append tip "\n\n$str:\n$desc"
     }
     return $tip
 }
@@ -190,7 +190,7 @@ itcl::body Rappture::PeriodicElementEntry::_tooltip {} {
 itcl::configbody Rappture::PeriodicElementEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(element) configure -state $itk_option(-state)
 }

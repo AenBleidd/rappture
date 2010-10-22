@@ -52,7 +52,7 @@ itk::usual ImageEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -67,11 +67,11 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
     # facts about image type, file size, etc.
     #
     itk_component add image {
-	::label $itk_interior.image -borderwidth 0
+        ::label $itk_interior.image -borderwidth 0
     }
 
     itk_component add info {
-	::label $itk_interior.info -borderwidth 0 -width 5 \
+        ::label $itk_interior.info -borderwidth 0 -width 5 \
             -anchor w -justify left
     }
 
@@ -108,10 +108,10 @@ itcl::body Rappture::ImageEntry::constructor {owner path args} {
 
     set str [$_owner xml get $path.current]
     if {[string length $str] == 0} {
-	set str [$_owner xml get $path.default]
+        set str [$_owner xml get $path.default]
     }
     if {[string length $str] > 0} {
-	value $str
+        value $str
     }
 
     eval itk_initialize $args
@@ -138,34 +138,34 @@ itcl::body Rappture::ImageEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set newval [lindex $args 0]
-	if {[string length $newval] > 0} {
-	    set imh [image create photo -data $newval]
-	} else {
-	    set imh ""
-	}
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        if {[string length $newval] > 0} {
+            set imh [image create photo -data $newval]
+        } else {
+            set imh ""
+        }
 
-	if {$_imh != ""} {
-	    image delete $_imh
-	}
-	set _imh $imh
+        if {$_imh != ""} {
+            image delete $_imh
+        }
+        set _imh $imh
         set _data $newval
 
-	_redraw
+        _redraw
 
-	return $newval
+        return $newval
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -230,8 +230,8 @@ itcl::body Rappture::ImageEntry::_redraw {} {
         }
         _outline $_resize black
         $itk_component(image) configure -image $_resize
-	$itk_component(info) configure -text "Empty"
-	return
+        $itk_component(info) configure -text "Empty"
+        return
     }
 
     set iw [image width $_imh]
@@ -265,36 +265,36 @@ itcl::body Rappture::ImageEntry::_redraw {} {
     #
     set str [string trim [$_owner xml get $_path.resize]]
     if {"" == $str} {
-	set str "none"
+        set str "none"
     }
     switch -glob -- $str {
-	width=* - height=* {
-	    if {[regexp {^width=([0-9]+)$} $str match size]} {
-		set w $size
-		set h [expr {round($w*$ih/double($iw))}]
-		$_resize configure -width $w -height $h
-	        $_resize blank
-		blt::winop resample $_imh $_resize box
+        width=* - height=* {
+            if {[regexp {^width=([0-9]+)$} $str match size]} {
+                set w $size
+                set h [expr {round($w*$ih/double($iw))}]
+                $_resize configure -width $w -height $h
+                $_resize blank
+                blt::winop resample $_imh $_resize box
                 _outline $_resize black
-		$itk_component(image) configure -image $_resize \
-		    -width $w -height $h
-	    } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
-		set h $size
-		set w [expr {round($h*$iw/double($ih))}]
-		$_resize configure -width $w -height $h
-	        $_resize blank
-		blt::winop resample $_imh $_resize box
+                $itk_component(image) configure -image $_resize \
+                    -width $w -height $h
+            } elseif {[regexp {^height=([0-9]+)$} $str match size]} {
+                set h $size
+                set w [expr {round($h*$iw/double($ih))}]
+                $_resize configure -width $w -height $h
+                $_resize blank
+                blt::winop resample $_imh $_resize box
                 _outline $_resize black
-		$itk_component(image) configure -image $_resize \
-		    -width $w -height $h
-	    } else {
-		$itk_component(image) configure -image $_imh
-	    }
-	}
-	auto - none - default {
-	    if {[string length [label]] == 0} {
+                $itk_component(image) configure -image $_resize \
+                    -width $w -height $h
+            } else {
+                $itk_component(image) configure -image $_imh
+            }
+        }
+        auto - none - default {
+            if {[string length [label]] == 0} {
                 # old mode -- big image with no label
-	        $itk_component(image) configure -image $_imh
+                $itk_component(image) configure -image $_imh
             } else {
                 # new mode -- thumbnail and image info
                 set w $_thumbsize
@@ -302,24 +302,24 @@ itcl::body Rappture::ImageEntry::_redraw {} {
                 $itk_component(image) configure -width $w -height $h
 
                 if {$iw <= $_thumbsize && $ih <= $_thumbsize} {
-	            $_resize configure -width $iw -height $ih
-	            $_resize copy $_imh
+                    $_resize configure -width $iw -height $ih
+                    $_resize copy $_imh
                     _outline $_resize black
-	        } else {
+                } else {
                     # large image -- scale it down
                     if {$iw > $ih} {
-		        set h [expr {round($w/double($iw)*$ih)}]
-	            } else {
-		        set w [expr {round($h/double($ih)*$iw)}]
-	            }
-	            $_resize configure -width $w -height $h
-	            $_resize blank
-	            blt::winop resample $_imh $_resize box
+                        set h [expr {round($w/double($iw)*$ih)}]
+                    } else {
+                        set w [expr {round($h/double($ih)*$iw)}]
+                    }
+                    $_resize configure -width $w -height $h
+                    $_resize blank
+                    blt::winop resample $_imh $_resize box
                     _outline $_resize black
                 }
-	        $itk_component(image) configure -image $_resize
+                $itk_component(image) configure -image $_resize
             }
-	}
+        }
     }
 }
 
@@ -350,27 +350,27 @@ itcl::body Rappture::ImageEntry::_outline {im color} {
 itcl::body Rappture::ImageEntry::_uploadValue {args} {
     set opt [lindex $args 0]
     switch -- $opt {
-	-start {
-	    set tool [Rappture::Tool::resources -appname]
-	    set cntls [list $_path [label] [tooltip]]
-	    Rappture::filexfer::upload \
-		$tool $cntls [itcl::code $this _uploadValue -assign]
-	}
-	-assign {
-	    array set data [lrange $args 1 end] ;# skip option
-	    if {[info exists data(error)]} {
-		Rappture::Tooltip::cue $itk_component(image) $data(error)
-	    }
-	    if {[info exists data(data)]} {
-		Rappture::Tooltip::cue hide  ;# take down note about the popup
-		if {[catch {value $data(data)} err]} {
-		    Rappture::Tooltip::cue $itk_component(image) "Upload failed:\n$err"
+        -start {
+            set tool [Rappture::Tool::resources -appname]
+            set cntls [list $_path [label] [tooltip]]
+            Rappture::filexfer::upload \
+                $tool $cntls [itcl::code $this _uploadValue -assign]
+        }
+        -assign {
+            array set data [lrange $args 1 end] ;# skip option
+            if {[info exists data(error)]} {
+                Rappture::Tooltip::cue $itk_component(image) $data(error)
+            }
+            if {[info exists data(data)]} {
+                Rappture::Tooltip::cue hide  ;# take down note about the popup
+                if {[catch {value $data(data)} err]} {
+                    Rappture::Tooltip::cue $itk_component(image) "Upload failed:\n$err"
                 }
-	    }
-	}
-	default {
-	    error "bad option \"$opt\": should be -start or -assign"
-	}
+            }
+        }
+        default {
+            error "bad option \"$opt\": should be -start or -assign"
+        }
     }
 }
 
@@ -385,7 +385,7 @@ itcl::body Rappture::ImageEntry::_downloadValue {} {
     set mesg [Rappture::filexfer::download $bytes image.png]
 
     if {"" != $mesg} {
-	Rappture::Tooltip::cue $itk_component(image) $mesg
+        Rappture::Tooltip::cue $itk_component(image) $mesg
     }
 }
 
@@ -395,7 +395,7 @@ itcl::body Rappture::ImageEntry::_downloadValue {} {
 itcl::configbody Rappture::ImageEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(image) configure -state $itk_option(-state)
 }

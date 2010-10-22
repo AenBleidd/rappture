@@ -25,7 +25,7 @@ itcl::class Rappture::Page {
 
     private variable _owner ""       ;# thing managing this page
 }
-										
+                                                                                
 itk::usual Page {
 }
 
@@ -34,14 +34,14 @@ itk::usual Page {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Page::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] || !$valid} {
-	error "object \"$owner\" is not a Rappture::ControlOwner"
+        error "object \"$owner\" is not a Rappture::ControlOwner"
     }
     set _owner $owner
     set xmlobj [$owner xml object]
 
     set type [$xmlobj element -as type $path]
     if {$type != "input" && $type != "phase"} {
-	error "bad path \"$path\" in $xmlobj: should be <input> or <input><phase>"
+        error "bad path \"$path\" in $xmlobj: should be <input> or <input><phase>"
     }
 
     eval itk_initialize $args
@@ -71,193 +71,193 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
     set num 0
     set clist [$xmlobj children $path]
     while {[llength $clist] > 0} {
-	set cname [lindex $clist 0]
-	set clist [lrange $clist 1 end]
+        set cname [lindex $clist 0]
+        set clist [lrange $clist 1 end]
 
-	set type [$xmlobj element -as type $path.$cname]
-	if {$type == "about"} {
-	    continue
-	}
+        set type [$xmlobj element -as type $path.$cname]
+        if {$type == "about"} {
+            continue
+        }
 
-	if {$type == "loader"} {
-	    #
-	    # Add <loader>'s at the top of the page.
-	    #
-	    if {![winfo exists $frame.loaders]} {
-		frame $frame.loaders
-		pack $frame.loaders -side top -fill x
+        if {$type == "loader"} {
+            #
+            # Add <loader>'s at the top of the page.
+            #
+            if {![winfo exists $frame.loaders]} {
+                frame $frame.loaders
+                pack $frame.loaders -side top -fill x
 
-		frame $frame.loaders.sep -height 2 \
-		    -borderwidth 1 -relief sunken
-		pack $frame.loaders.sep -side bottom -fill x -pady 4
-	    }
-	    set w "$frame.loaders.l[incr num]"
-	    Rappture::Controls $w $_owner
-	    pack $w -fill x
-	    $w insert end $path.$cname
-	} elseif {$type == "structure"} {
-	    #
-	    # Add <structure>'s as the central element of the page.
-	    #
-	    set w "$frame.device[incr num]"
-	    Rappture::DeviceEditor ::$w $_owner@$path.$cname.current
-	    pack $w -expand yes -fill both
-	    $_owner widgetfor $path.$cname $w
-	    bind $w <<Value>> [list $_owner changed $path.$cname]
+                frame $frame.loaders.sep -height 2 \
+                    -borderwidth 1 -relief sunken
+                pack $frame.loaders.sep -side bottom -fill x -pady 4
+            }
+            set w "$frame.loaders.l[incr num]"
+            Rappture::Controls $w $_owner
+            pack $w -fill x
+            $w insert end $path.$cname
+        } elseif {$type == "structure"} {
+            #
+            # Add <structure>'s as the central element of the page.
+            #
+            set w "$frame.device[incr num]"
+            Rappture::DeviceEditor ::$w $_owner@$path.$cname.current
+            pack $w -expand yes -fill both
+            $_owner widgetfor $path.$cname $w
+            bind $w <<Value>> [list $_owner changed $path.$cname]
 
-	    if {"" == $deveditor} {
-		set deveditor $w
-	    }
+            if {"" == $deveditor} {
+                set deveditor $w
+            }
 
-	    # if there's a default value, load it now
-	    if {"" != [$xmlobj element -as type $path.$cname.current]} {
-		set elem $path.$cname.current
-	    } else {
-		set elem $path.$cname.default
-	    }
-	    if {"" != [$xmlobj element -as type $elem]} {
-		set val [$xmlobj get $elem]
-		if {[string length $val] > 0} {
-		    $w value $val
-		    $xmlobj put $path.$cname.current $val
-		} else {
-		    set obj [$xmlobj element -as object $elem]
-		    $w value $obj
-		    $xmlobj put $path.$cname.current $obj
-		}
-	    }
+            # if there's a default value, load it now
+            if {"" != [$xmlobj element -as type $path.$cname.current]} {
+                set elem $path.$cname.current
+            } else {
+                set elem $path.$cname.default
+            }
+            if {"" != [$xmlobj element -as type $elem]} {
+                set val [$xmlobj get $elem]
+                if {[string length $val] > 0} {
+                    $w value $val
+                    $xmlobj put $path.$cname.current $val
+                } else {
+                    set obj [$xmlobj element -as object $elem]
+                    $w value $obj
+                    $xmlobj put $path.$cname.current $obj
+                }
+            }
 
-	    # if there's a link, then set up a callback to load from it
-	    set link [$xmlobj get $path.$cname.link]
-	    if {"" != $link} {
-		$_owner notify add $this $link \
-		    [itcl::code $this _link $xmlobj $link $w $path.$cname]
-	    }
-	} elseif {$type == "drawing"} {
-	    #
-	    # Add <drawing>'s as the central element of the page.
-	    #
-	    set w "$frame.drawing[incr num]"
-	    Rappture::DrawingEntry ::$w $_owner $path.$cname.current
-	    pack $w -expand yes -fill both
-	    $_owner widgetfor $path.$cname $w
-	    bind $w <<Value>> [list $_owner changed $path.$cname]
+            # if there's a link, then set up a callback to load from it
+            set link [$xmlobj get $path.$cname.link]
+            if {"" != $link} {
+                $_owner notify add $this $link \
+                    [itcl::code $this _link $xmlobj $link $w $path.$cname]
+            }
+        } elseif {$type == "drawing"} {
+            #
+            # Add <drawing>'s as the central element of the page.
+            #
+            set w "$frame.drawing[incr num]"
+            Rappture::DrawingEntry ::$w $_owner $path.$cname.current
+            pack $w -expand yes -fill both
+            $_owner widgetfor $path.$cname $w
+            bind $w <<Value>> [list $_owner changed $path.$cname]
 
-	    # if there's a default value, load it now
-	    if {"" != [$xmlobj element -as type $path.$cname.current]} {
-		set elem $path.$cname.current
-	    } else {
-		set elem $path.$cname.default
-	    }
-	    if {"" != [$xmlobj element -as type $elem]} {
-		set val [$xmlobj get $elem]
-		if {[string length $val] > 0} {
-		    $w value $val
-		    $xmlobj put $path.$cname.current $val
-		} else {
-		    set obj [$xmlobj element -as object $elem]
-		    $w value $obj
-		    $xmlobj put $path.$cname.current $obj
-		}
-	    }
-	} elseif {$type == "tool"} {
-	    set service [Rappture::Service ::#auto $_owner $path.$cname]
-	    #
-	    # Scan through all extra inputs associated with this subtool
-	    # and create corresponding inputs in the top-level tool.
-	    # Then, add the input names to the list being processed here,
-	    # so that we'll create the controls during subsequent passes
-	    # through the loop.
-	    #
-	    set extra ""
-	    foreach obj [$service input] {
-		set cname [$obj element]
-		$xmlobj copy $path.$cname from $obj ""
-		lappend extra $cname
-	    }
+            # if there's a default value, load it now
+            if {"" != [$xmlobj element -as type $path.$cname.current]} {
+                set elem $path.$cname.current
+            } else {
+                set elem $path.$cname.default
+            }
+            if {"" != [$xmlobj element -as type $elem]} {
+                set val [$xmlobj get $elem]
+                if {[string length $val] > 0} {
+                    $w value $val
+                    $xmlobj put $path.$cname.current $val
+                } else {
+                    set obj [$xmlobj element -as object $elem]
+                    $w value $obj
+                    $xmlobj put $path.$cname.current $obj
+                }
+            }
+        } elseif {$type == "tool"} {
+            set service [Rappture::Service ::#auto $_owner $path.$cname]
+            #
+            # Scan through all extra inputs associated with this subtool
+            # and create corresponding inputs in the top-level tool.
+            # Then, add the input names to the list being processed here,
+            # so that we'll create the controls during subsequent passes
+            # through the loop.
+            #
+            set extra ""
+            foreach obj [$service input] {
+                set cname [$obj element]
+                $xmlobj copy $path.$cname from $obj ""
+                lappend extra $cname
+            }
 
-	    #
-	    # If there's a control for this service, then add it
-	    # to the end of the extra controls added above.
-	    #
-	    foreach obj [$service control] {
-		set cname [$obj element]
-		$xmlobj copy $path.$cname from $obj ""
-		$xmlobj put $path.$cname.service $service
-		lappend extra $cname
-	    }
-	    if {[llength $extra] > 0} {
-		set clist [eval linsert [list $clist] 0 $extra]
-	    }
+            #
+            # If there's a control for this service, then add it
+            # to the end of the extra controls added above.
+            #
+            foreach obj [$service control] {
+                set cname [$obj element]
+                $xmlobj copy $path.$cname from $obj ""
+                $xmlobj put $path.$cname.service $service
+                lappend extra $cname
+            }
+            if {[llength $extra] > 0} {
+                set clist [eval linsert [list $clist] 0 $extra]
+            }
 
-	    #
-	    # Scan through all outputs associated with this subtool
-	    # and create any corresponding feedback widgets.
-	    #
-	    foreach obj [$service output] {
-		set cname [$obj element]
-		$xmlobj copy $cname from $obj ""
+            #
+            # Scan through all outputs associated with this subtool
+            # and create any corresponding feedback widgets.
+            #
+            foreach obj [$service output] {
+                set cname [$obj element]
+                $xmlobj copy $cname from $obj ""
 
-		# pick a good size based on output type
-		set w $frame.results.result[incr num]
-		set type [$obj element -as type]
-		switch -- $type {
-		    number - integer - boolean - choice {
-			Rappture::ResultViewer $w -width 0 -height 0
-			pack $w -fill x -padx 4 -pady 4
-		    }
-		    default {
-			Rappture::ResultViewer $w -width 4i -height 4i
-			pack $w -expand yes -fill both -padx 4 -pady 4
-		    }
-		}
-		$service output for $obj $w
-	    }
-	} elseif {$type == "current"} {
-	    # Don't do anything.
-	} else {
-	    # create a control panel, if necessary
-	    if {![winfo exists $frame.cntls]} {
-		Rappture::Controls $frame.cntls $_owner
-		pack $frame.cntls -expand yes -fill both -pady 4
-	    }
+                # pick a good size based on output type
+                set w $frame.results.result[incr num]
+                set type [$obj element -as type]
+                switch -- $type {
+                    number - integer - boolean - choice {
+                        Rappture::ResultViewer $w -width 0 -height 0
+                        pack $w -fill x -padx 4 -pady 4
+                    }
+                    default {
+                        Rappture::ResultViewer $w -width 4i -height 4i
+                        pack $w -expand yes -fill both -padx 4 -pady 4
+                    }
+                }
+                $service output for $obj $w
+            }
+        } elseif {$type == "current"} {
+            # Don't do anything.
+        } else {
+            # create a control panel, if necessary
+            if {![winfo exists $frame.cntls]} {
+                Rappture::Controls $frame.cntls $_owner
+                pack $frame.cntls -expand yes -fill both -pady 4
+            }
 
-	    # if this is a group, then build that group
-	    if {[$xmlobj element -as type $path.$cname] == "group"} {
-		if {[$xmlobj element -as id $path.$cname] == "ambient"
-		       && $deveditor != ""} {
-		    set w [$deveditor component top]
-		} else {
-		    if {[catch {$frame.cntls insert end $path.$cname} c]} {
-			global errorInfo
-			error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
-		    } else {
-			set gentry [$frame.cntls control $c]
-			set w [$gentry component inner]
-		    }
-		}
-		_buildGroup $w $xmlobj $path.$cname
-	    } else {
-		if {[catch {$frame.cntls insert end $path.$cname} c]} {
-		    global errorInfo
-		    error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
-		}
-	    }
-	}
+            # if this is a group, then build that group
+            if {[$xmlobj element -as type $path.$cname] == "group"} {
+                if {[$xmlobj element -as id $path.$cname] == "ambient"
+                       && $deveditor != ""} {
+                    set w [$deveditor component top]
+                } else {
+                    if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                        global errorInfo
+                        error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
+                    } else {
+                        set gentry [$frame.cntls control $c]
+                        set w [$gentry component inner]
+                    }
+                }
+                _buildGroup $w $xmlobj $path.$cname
+            } else {
+                if {[catch {$frame.cntls insert end $path.$cname} c]} {
+                    global errorInfo
+                    error $c "$c\n$errorInfo\n    (while building control for $path.$cname)"
+                }
+            }
+        }
     }
 }
 
 itcl::body Rappture::Page::_link {xmlobj path w path2} {
     if {"" != [$xmlobj element -as type $path.current]} {
-	set val [$xmlobj get $path.current]
-	if {[string length $val] > 0} {
-	    $w value $val
-	    $xmlobj put $path.current $val
-	} else {
-	    set obj [$xmlobj element -as object $path.current]
-	    $w value $obj
-	    $xmlobj put $path.current $obj
-	}
+        set val [$xmlobj get $path.current]
+        if {[string length $val] > 0} {
+            $w value $val
+            $xmlobj put $path.current $val
+        } else {
+            set obj [$xmlobj element -as object $path.current]
+            $w value $obj
+            $xmlobj put $path.current $obj
+        }
     }
     $_owner changed $path2
 }

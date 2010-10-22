@@ -26,14 +26,14 @@ proc Rappture::color::brightness {color frac} {
 
     # if frac overflows the value, pass changes along to saturation
     if {$v < 0} {
-	set s [expr {$s+$v}]
-	if {$s < 0} { set s 0 }
-	set v 0
+        set s [expr {$s+$v}]
+        if {$s < 0} { set s 0 }
+        set v 0
     }
     if {$v > 1} {
-	set s [expr {$s-($v-1)}]
-	if {$s < 0} { set s 0 }
-	set v 1
+        set s [expr {$s-($v-1)}]
+        if {$s < 0} { set s 0 }
+        set v 1
     }
 
     return [Rappture::color::HSVtoRGB $h $s $v]
@@ -49,7 +49,7 @@ proc Rappture::color::brightness {color frac} {
 proc Rappture::color::brightness_min {color min} {
     foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
     if {$v < $min} {
-	set v $min
+        set v $min
     }
     return [Rappture::color::HSVtoRGB $h $s $v]
 }
@@ -64,7 +64,7 @@ proc Rappture::color::brightness_min {color min} {
 proc Rappture::color::brightness_max {color max} {
     foreach {h s v} [Rappture::color::RGBtoHSV $color] { break }
     if {$v > $max} {
-	set v $max
+        set v $max
     }
     return [Rappture::color::HSVtoRGB $h $s $v]
 }
@@ -81,10 +81,10 @@ proc Rappture::color::RGBtoHSV {color} {
     # division by zero.  Catch it to avoid problems.
     #
     if { [catch {winfo rgb . $color} status] != 0 } { 
-	set s 0
-	set v 0
-	set h 0
-	return [list $h $s $v]
+        set s 0
+        set v 0
+        set h 0
+        return [list $h $s $v]
     }
     foreach {r g b} $status {}
     set min [expr {($r < $g) ? $r : $g}]
@@ -97,33 +97,33 @@ proc Rappture::color::RGBtoHSV {color} {
     set delta [expr {$max-$min}]
 
     if { $delta == 0 } {
-	# delta=0 => gray color
-	set s 0
-	set v [expr {$r/65535.0}]
-	set h 0
-	return [list $h $s $v]
+        # delta=0 => gray color
+        set s 0
+        set v [expr {$r/65535.0}]
+        set h 0
+        return [list $h $s $v]
     }
   
     if {$max > 0} {
-	set s [expr {$delta/double($max)}]
+        set s [expr {$delta/double($max)}]
     } else {
-	# r=g=b=0  =>  s=0, v undefined
-	set s 0
-	set v 0
-	set h 0
-	return [list $h $s $v]
+        # r=g=b=0  =>  s=0, v undefined
+        set s 0
+        set v 0
+        set h 0
+        return [list $h $s $v]
     }
 
     if {$r == $max} {
-	set h [expr {($g - $b)/double($delta)}]
+        set h [expr {($g - $b)/double($delta)}]
     } elseif {$g == $max} {
-	set h [expr {2 + ($b - $r)/double($delta)}]
+        set h [expr {2 + ($b - $r)/double($delta)}]
     } else {
-	set h [expr {4 + ($r - $g)/double($delta)}]
+        set h [expr {4 + ($r - $g)/double($delta)}]
     }
     set h [expr {$h*1.04719756667}] ;# *60 degrees
     if {$h < 0} {
-	set h [expr {$h+6.2831854}]
+        set h [expr {$h+6.2831854}]
     }
     return [list $h $s $v]
 }
@@ -137,27 +137,27 @@ proc Rappture::color::RGBtoHSV {color} {
 # ----------------------------------------------------------------------
 proc Rappture::color::HSVtoRGB {h s v} {
     if {$s == 0} {
-	set v [expr round(255*$v)]
-	set r $v
-	set g $v
-	set b $v
+        set v [expr round(255*$v)]
+        set r $v
+        set g $v
+        set b $v
     } else {
-	if {$h >= 6.28318} {set h [expr $h-6.28318]}
-	set h [expr $h/1.0472]
-	set f [expr $h-floor($h)]
-	set p [expr round(255*$v*(1.0-$s))]
-	set q [expr round(255*$v*(1.0-$s*$f))]
-	set t [expr round(255*$v*(1.0-$s*(1.0-$f)))]
-	set v [expr round(255*$v)]
+        if {$h >= 6.28318} {set h [expr $h-6.28318]}
+        set h [expr $h/1.0472]
+        set f [expr $h-floor($h)]
+        set p [expr round(255*$v*(1.0-$s))]
+        set q [expr round(255*$v*(1.0-$s*$f))]
+        set t [expr round(255*$v*(1.0-$s*(1.0-$f)))]
+        set v [expr round(255*$v)]
 
-	switch [expr int($h)] {
-	    0 {set r $v; set g $t; set b $p}
-	    1 {set r $q; set g $v; set b $p}
-	    2 {set r $p; set g $v; set b $t}
-	    3 {set r $p; set g $q; set b $v}
-	    4 {set r $t; set g $p; set b $v}
-	    5 {set r $v; set g $p; set b $q}
-	}
+        switch [expr int($h)] {
+            0 {set r $v; set g $t; set b $p}
+            1 {set r $q; set g $v; set b $p}
+            2 {set r $p; set g $v; set b $t}
+            3 {set r $p; set g $q; set b $v}
+            4 {set r $t; set g $p; set b $v}
+            5 {set r $v; set g $p; set b $q}
+        }
     }
     return [format "#%.2x%.2x%.2x" $r $g $b]
 }
@@ -176,37 +176,37 @@ proc Rappture::color::wave2RGB {wl} {
     set wl [string trimright $wl "nm"]
 
     if {$wl < 380 || $wl > 780} {
-	return black
+        return black
     }
     set gamma 0.8
     set r 0.0
     set g 0.0
     set b 0.0
     if {$wl <= 440} {
-	set r [expr (440.0 - $wl) / 60.0]
-	set b 1.0
+        set r [expr (440.0 - $wl) / 60.0]
+        set b 1.0
     } elseif {$wl <= 490} {
-	set g [expr ($wl - 440.0) / 50.0]
-	set b 1.0
+        set g [expr ($wl - 440.0) / 50.0]
+        set b 1.0
     } elseif {$wl <= 510} {
-	set g 1.0
-	set b [expr (510.0 - $wl) / 20.0]
+        set g 1.0
+        set b [expr (510.0 - $wl) / 20.0]
     } elseif {$wl <= 580} {
-	set g 1.0
-	set r [expr ($wl - 510.0) / 70.0]
+        set g 1.0
+        set r [expr ($wl - 510.0) / 70.0]
     } elseif {$wl <= 645} {
-	set r 1.0
-	set g [expr (645.0 - $wl) / 65.0]
+        set r 1.0
+        set g [expr (645.0 - $wl) / 65.0]
     } else {
-	set r 1.0
+        set r 1.0
     }
 
     if {$wl > 700} {
-	set sss [expr 0.3 + 0.7 * (780.0 - $wl) / 80.0]
+        set sss [expr 0.3 + 0.7 * (780.0 - $wl) / 80.0]
     } elseif {$wl < 420} {
-	set sss [expr 0.3 + 0.7 * ($wl - 380.0) / 40.0]
+        set sss [expr 0.3 + 0.7 * ($wl - 380.0) / 40.0]
     } else {
-	set sss 1.0
+        set sss 1.0
     }
     set r [expr int(255.0 * pow(($sss * $r), $gamma))]
     set g [expr int(255.0 * pow(($sss * $g), $gamma))]
@@ -220,7 +220,7 @@ proc Rappture::color::wave2RGB {wl} {
 # acceptable for a color option. 
 proc Rappture::color::RGB {color} {
     if {[string match "*nm" $color]} {
-	set color [Rappture::color::wave2RGB [string trimright $color "nm"]]
+        set color [Rappture::color::wave2RGB [string trimright $color "nm"]]
     }
     return [winfo rgb . $color]
 }

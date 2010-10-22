@@ -530,36 +530,36 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
     # Go through the analysis and find all result sets.
     set haveresults 0
     foreach item [_reorder [$xmlobj children output]] {
-	switch -glob -- $item {
-	    log* {
-		_autoLabel $xmlobj output.$item "Output Log" counters
-	    }
-	    number* {
-		_autoLabel $xmlobj output.$item "Number" counters
-	    }
-	    integer* {
-		_autoLabel $xmlobj output.$item "Integer" counters
-	    }
-	    string* {
-		_autoLabel $xmlobj output.$item "String" counters
-	    }
-	    histogram* - curve* - field* - drawing3d* {
-		_autoLabel $xmlobj output.$item "Plot" counters
-	    }
-	    structure* {
-		_autoLabel $xmlobj output.$item "Structure" counters
-	    }
-	    table* {
-		_autoLabel $xmlobj output.$item "Energy Levels" counters
-	    }
-	    sequence* {
-		_autoLabel $xmlobj output.$item "Sequence" counters
-	    }
-	}
-	set label [$xmlobj get output.$item.about.group]
-	if {"" == $label} {
-	    set label [$xmlobj get output.$item.about.label]
-	}
+        switch -glob -- $item {
+            log* {
+                _autoLabel $xmlobj output.$item "Output Log" counters
+            }
+            number* {
+                _autoLabel $xmlobj output.$item "Number" counters
+            }
+            integer* {
+                _autoLabel $xmlobj output.$item "Integer" counters
+            }
+            string* {
+                _autoLabel $xmlobj output.$item "String" counters
+            }
+            histogram* - curve* - field* - drawing3d* {
+                _autoLabel $xmlobj output.$item "Plot" counters
+            }
+            structure* {
+                _autoLabel $xmlobj output.$item "Structure" counters
+            }
+            table* {
+                _autoLabel $xmlobj output.$item "Energy Levels" counters
+            }
+            sequence* {
+                _autoLabel $xmlobj output.$item "Sequence" counters
+            }
+        }
+        set label [$xmlobj get output.$item.about.group]
+        if {"" == $label} {
+            set label [$xmlobj get output.$item.about.label]
+        }
 
         set hidden [$xmlobj get output.$item.hide]
         set hidden [expr {"" != $hidden && $hidden}]
@@ -1158,18 +1158,18 @@ itcl::body Rappture::Analyzer::_fixNotebook {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
     if { [llength $data]  == 0 } {
-	return 0
+        return 0
     }
     set nModels 0
     foreach line $data {
-	if { [string match "MODEL*" $line] }  {
-	    incr nModels
-	    if { $nModels > 1 } {
-		# Stop if more than one model found.  No need to count them
-		# all.
-		return 1
-	    }
-	}
+        if { [string match "MODEL*" $line] }  {
+            incr nModels
+            if { $nModels > 1 } {
+                # Stop if more than one model found.  No need to count them
+                # all.
+                return 1
+            }
+        }
     }
     return 0
 }
@@ -1182,18 +1182,18 @@ itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isLammpsTrajectory { data } {
     if { [llength $data]  == 0 } {
-	return 0
+        return 0
     }
     set nModels 0
     foreach line $data {
-	if { [regexp {^[\t ]*ITEM:[ \t]+TIMESTEP} $line] } {
-	    incr nModels
-	    if { $nModels > 1 } {
-		# Stop if more than one model found.  No need to count them
-		# all.
-		return 1
-	    }
-	}
+        if { [regexp {^[\t ]*ITEM:[ \t]+TIMESTEP} $line] } {
+            incr nModels
+            if { $nModels > 1 } {
+                # Stop if more than one model found.  No need to count them
+                # all.
+                return 1
+            }
+        }
     }
     return 0
 }
@@ -1223,30 +1223,30 @@ itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
     set frameNum 0
     set numLines [llength $data]
     for { set i 0 } { $i < $numLines } { incr i } {
-	set line [lindex $data $i]
-	set line [string trim $line]
-	set contents {}
-	if { [string match "MODEL*" $line] } {
-	    # Save the contents until we get an ENDMDL record.
-	    for {} { $i < $numLines } { incr i } {
-		set line [lindex $data $i]
-		set line [string trim $line]
-		if { $line == "" } {
-		    continue;		# Skip blank lines.
-		}
-		if { [string match "ENDMDL*" $line] } {
-		    break;
-		}
-		append contents $line\n
-	    }
-	    set frame ${sequence}.element($frameNum)
-	    $xmlobj put ${frame}.index $frameNum
-	    
-	    set molecule ${frame}.structure.components.molecule
-	    $xmlobj put ${molecule}.pdb $contents
-	    $xmlobj put ${molecule}.formula $formula
-	    incr frameNum
-	}
+        set line [lindex $data $i]
+        set line [string trim $line]
+        set contents {}
+        if { [string match "MODEL*" $line] } {
+            # Save the contents until we get an ENDMDL record.
+            for {} { $i < $numLines } { incr i } {
+                set line [lindex $data $i]
+                set line [string trim $line]
+                if { $line == "" } {
+                    continue;		# Skip blank lines.
+                }
+                if { [string match "ENDMDL*" $line] } {
+                    break;
+                }
+                append contents $line\n
+            }
+            set frame ${sequence}.element($frameNum)
+            $xmlobj put ${frame}.index $frameNum
+            
+            set molecule ${frame}.structure.components.molecule
+            $xmlobj put ${molecule}.pdb $contents
+            $xmlobj put ${molecule}.formula $formula
+            incr frameNum
+        }
     }
 }
 
@@ -1276,38 +1276,38 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
     set frameContents ""
     set inModel 0
     foreach line $data {
-	set line [string trim $line]
-	if { $line == "" } {
-	    continue;			# Skip blank lines
-	}
-	if {[regexp {^[\t ]*ITEM:[ \t]+ATOMS} $line] } {
-	    if { $inModel && $frameContents != "" } {
-		set frame ${sequence}.element($frameNum)
-		$xmlobj put ${frame}.index $frameNum
-		
-		set molecule ${frame}.structure.components.molecule
-		$xmlobj put ${molecule}.lammps $frameContents
-		$xmlobj put ${molecule}.lammpstypemap $typemap
-		
-		incr frameNum
-		set frameContents ""
-	    }
-	    set inModel 1
-	} elseif { [scan $line "%d %d %f %f %f" a b c d e] == 5 } {
-	    if { !$inModel } {
-		puts stderr "found \"$line\" without previous \"ITEM: ATOMS\""
-		set inModel 1
-	    }
-	    append frameContents $line\n
-	}
+        set line [string trim $line]
+        if { $line == "" } {
+            continue;			# Skip blank lines
+        }
+        if {[regexp {^[\t ]*ITEM:[ \t]+ATOMS} $line] } {
+            if { $inModel && $frameContents != "" } {
+                set frame ${sequence}.element($frameNum)
+                $xmlobj put ${frame}.index $frameNum
+                
+                set molecule ${frame}.structure.components.molecule
+                $xmlobj put ${molecule}.lammps $frameContents
+                $xmlobj put ${molecule}.lammpstypemap $typemap
+                
+                incr frameNum
+                set frameContents ""
+            }
+            set inModel 1
+        } elseif { [scan $line "%d %d %f %f %f" a b c d e] == 5 } {
+            if { !$inModel } {
+                puts stderr "found \"$line\" without previous \"ITEM: ATOMS\""
+                set inModel 1
+            }
+            append frameContents $line\n
+        }
     }
     if { $frameContents != "" } {
-	set frame ${sequence}.element($frameNum)
-	$xmlobj put ${frame}.index $frameNum
-	
-	set molecule ${frame}.structure.components.molecule
-	$xmlobj put ${molecule}.lammps $frameContents
-	$xmlobj put ${molecule}.lammpstypemap $typemap
+        set frame ${sequence}.element($frameNum)
+        $xmlobj put ${frame}.index $frameNum
+        
+        set molecule ${frame}.structure.components.molecule
+        $xmlobj put ${molecule}.lammps $frameContents
+        $xmlobj put ${molecule}.lammpstypemap $typemap
     }
 }
 
@@ -1325,39 +1325,39 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
 itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
     # Remove leading dot from path, if present.
     if { [string index $path 0] == "." } {
-	set path [string range $path 1 end]
+        set path [string range $path 1 end]
     }
     # Otherwise check each child.
     foreach child [$xmlobj children $path] {
-	set current ${path}.${child}
-	if { [string match "structure*" $child] } {
-	    set isTraj [$xmlobj get ${current}.components.molecule.trajectory]
-	    if { $isTraj == "" || !$isTraj } {
-		continue;		# Not a trajectory.
-	    }
-	    # Look for trajectory if molecule element found.  Check both pdb
-	    # data and lammps data.
-	    set type [$xmlobj element -as type $current]
-	    set id   [$xmlobj element -as id $current]
-	    set pdbdata    [$xmlobj get ${current}.components.molecule.pdb]
-	    set lammpsdata [$xmlobj get ${current}.components.molecule.lammps]
-	    if { $pdbdata != "" && $lammpsdata != "" } {
-		puts stderr \
-		    "found both <pdb> and <lammps> elements: picking pdb"
-	    }
-	    set pdbdata [split $pdbdata \n]
-	    set lammpsdata [split $lammpsdata \n]
-	    if { [_isPdbTrajectory $pdbdata] } {
-		_pdbToSequence $xmlobj $path $id $current $pdbdata
-	    } elseif { [_isLammpsTrajectory $lammpsdata] } {
-		_lammpsToSequence $xmlobj $path $id $current $lammpsdata
-	    }
-	    continue
-	}
-	if 0 {
-	# Recurse over all child nodes.
-	_trajToSequence $xmlobj $current
-	}
+        set current ${path}.${child}
+        if { [string match "structure*" $child] } {
+            set isTraj [$xmlobj get ${current}.components.molecule.trajectory]
+            if { $isTraj == "" || !$isTraj } {
+                continue;		# Not a trajectory.
+            }
+            # Look for trajectory if molecule element found.  Check both pdb
+            # data and lammps data.
+            set type [$xmlobj element -as type $current]
+            set id   [$xmlobj element -as id $current]
+            set pdbdata    [$xmlobj get ${current}.components.molecule.pdb]
+            set lammpsdata [$xmlobj get ${current}.components.molecule.lammps]
+            if { $pdbdata != "" && $lammpsdata != "" } {
+                puts stderr \
+                    "found both <pdb> and <lammps> elements: picking pdb"
+            }
+            set pdbdata [split $pdbdata \n]
+            set lammpsdata [split $lammpsdata \n]
+            if { [_isPdbTrajectory $pdbdata] } {
+                _pdbToSequence $xmlobj $path $id $current $pdbdata
+            } elseif { [_isLammpsTrajectory $lammpsdata] } {
+                _lammpsToSequence $xmlobj $path $id $current $lammpsdata
+            }
+            continue
+        }
+        if 0 {
+        # Recurse over all child nodes.
+        _trajToSequence $xmlobj $current
+        }
     }
 }
 

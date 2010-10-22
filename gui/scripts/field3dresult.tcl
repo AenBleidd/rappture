@@ -51,40 +51,40 @@ itk::usual Field3DResult {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field3DResult::constructor {args} {
     array set flags {
-	-mode auto
+        -mode auto
     }
     array set flags $args
 
     set servers [Rappture::VisViewer::GetServerList "nanovis"]
     if {"" != $servers && $flags(-mode) != "vtk"} {
-	switch -- $flags(-mode) {
-	    "auto" - "nanovis" {
-		itk_component add renderer {
-		    Rappture::NanovisViewer $itk_interior.ren $servers
-		}
-	    }
-	    "flowvis" {
-		itk_component add renderer {
-		    Rappture::FlowvisViewer $itk_interior.ren $servers
-		}
-	    }
-	    default {
-		puts stderr "unknown render mode \"$flags(-mode)\""
-	    }
-	}		
-	pack $itk_component(renderer) -expand yes -fill both
+        switch -- $flags(-mode) {
+            "auto" - "nanovis" {
+                itk_component add renderer {
+                    Rappture::NanovisViewer $itk_interior.ren $servers
+                }
+            }
+            "flowvis" {
+                itk_component add renderer {
+                    Rappture::FlowvisViewer $itk_interior.ren $servers
+                }
+            }
+            default {
+                puts stderr "unknown render mode \"$flags(-mode)\""
+            }
+        }		
+        pack $itk_component(renderer) -expand yes -fill both
 
-	# can't connect to rendering farm?  then fall back to older viewer
-	if {![$itk_component(renderer) isconnected]} {
-	    destroy $itk_component(renderer)
-	}
+        # can't connect to rendering farm?  then fall back to older viewer
+        if {![$itk_component(renderer) isconnected]} {
+            destroy $itk_component(renderer)
+        }
     }
 
     if {![info exists itk_component(renderer)]} {
-	itk_component add renderer {
-	    Rappture::ContourResult $itk_interior.ren
-	}
-	pack $itk_component(renderer) -expand yes -fill both
+        itk_component add renderer {
+            Rappture::ContourResult $itk_interior.ren
+        }
+        pack $itk_component(renderer) -expand yes -fill both
     }
 
     eval itk_initialize $args

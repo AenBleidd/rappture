@@ -37,7 +37,7 @@ itk::usual DrawingEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _path $path
 
@@ -45,7 +45,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     # Display the current drawing.
     #
     itk_component add drawing {
-	Rappture::Drawing $itk_interior.drawing $owner $path
+        Rappture::Drawing $itk_interior.drawing $owner $path
     }
     pack $itk_component(drawing) -expand yes -fill both
 
@@ -66,21 +66,21 @@ puts "value $args"
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set xmlobj [lindex $args 0]
-	$itk_component(drawing) value $xmlobj
-	return $xmlobj
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set xmlobj [lindex $args 0]
+        $itk_component(drawing) value $xmlobj
+        return $xmlobj
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -99,7 +99,7 @@ itcl::body Rappture::DrawingEntry::label {} {
 return ""
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-	set label "Drawing"
+        set label "Drawing"
     }
     return $label
 }
@@ -124,6 +124,6 @@ return ""
 itcl::configbody Rappture::DrawingEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
 }

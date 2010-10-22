@@ -29,10 +29,10 @@ itcl::class Rappture::PushButton {
     itk_option define -offvalue offValue OffValue "normal"
 
     constructor {args} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
 
     public method invoke {}
@@ -79,7 +79,7 @@ itcl::body Rappture::PushButton::constructor {args} {
 
 itcl::body Rappture::PushButton::invoke {} {
     if { !$_enabled } {
-    	puts "in invoke button not enabled"
+        puts "in invoke button not enabled"
         return
     }
     toggle
@@ -128,7 +128,7 @@ itcl::body Rappture::PushButton::_fixValue {args} {
     }
     upvar #0 $itk_option(-variable) var
     if { $var != "" && [string is boolean $var] } {
-	set var [expr "$var == 1"]
+        set var [expr "$var == 1"]
     }
     if { $var == $onvalue } {
         set _state 1

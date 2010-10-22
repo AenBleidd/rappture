@@ -61,7 +61,7 @@ FILES		= \
 		$(srcdir)/groupentry.tcl \
 		$(srcdir)/heightmapviewer.tcl \
 		$(srcdir)/histogram.tcl \
-		$(srcdir)/historesult.tcl \
+		$(srcdir)/histogramresult.tcl \
 		$(srcdir)/htmlviewer.tcl \
 		$(srcdir)/icons.tcl \
 		$(srcdir)/image.tcl \

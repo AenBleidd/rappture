@@ -29,9 +29,9 @@ itcl::class Rappture::TemperatureGauge {
 
     # create a spectrum to use for all temperature widgets
     private common _spectrum [Rappture::Spectrum [namespace current]::#auto {
-	0.0    blue
-	300.0  red
-	500.0  yellow
+        0.0    blue
+        300.0  red
+        500.0  yellow
     } -units K]
 }
 
@@ -58,22 +58,22 @@ itcl::body Rappture::TemperatureGauge::_redraw {} {
     set h [winfo height $c]
 
     if {"" == [$c find all]} {
-	# first time around, create the items
-	$c create oval 0 0 1 1 -outline "" -tags bulbfill
-	$c create oval 0 0 1 1 -outline black -tags bulboutline
-	$c create oval 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags {bulbscreen screen}
-	$c create rect 0 0 1 1 -outline black -fill white -tags stickoutline
-	$c create rect 0 0 1 1 -outline "" -tags stickfill
-	$c create rect 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags {stickscreen screen}
-	$c create image 0 0 -anchor w -image "" -tags bimage
+        # first time around, create the items
+        $c create oval 0 0 1 1 -outline "" -tags bulbfill
+        $c create oval 0 0 1 1 -outline black -tags bulboutline
+        $c create oval 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags {bulbscreen screen}
+        $c create rect 0 0 1 1 -outline black -fill white -tags stickoutline
+        $c create rect 0 0 1 1 -outline "" -tags stickfill
+        $c create rect 0 0 1 1 -outline "" -fill "" -stipple gray50 -tags {stickscreen screen}
+        $c create image 0 0 -anchor w -image "" -tags bimage
     }
 
     if {"" != $itk_option(-spectrum)} {
-	set color [$itk_option(-spectrum) get [value]]
-	set frac [$itk_option(-spectrum) get -fraction [value]]
+        set color [$itk_option(-spectrum) get [value]]
+        set frac [$itk_option(-spectrum) get -fraction [value]]
     } else {
-	set color ""
-	set frac 0
+        set color ""
+        set frac 0
     }
 
     # update the items based on current values
@@ -81,44 +81,44 @@ itcl::body Rappture::TemperatureGauge::_redraw {} {
     set y [expr {0.5*$h}]
     $c coords bimage 0 $y
     if {$itk_option(-image) != ""} {
-	set x [expr {$x + [image width $itk_option(-image)] + 2}]
+        set x [expr {$x + [image width $itk_option(-image)] + 2}]
     }
 
     set avail [expr {$w-$x}]
     if {$avail > 0} {
-	#
-	# If we have any space left over, draw the thermometer
-	# as a mercury bulb on the left and a stick to the right.
-	#
-	set bsize [expr {0.2*$avail}]
-	if {$bsize > 0.5*$h-2} {set bsize [expr {0.5*$h-2}]}
-	set ssize [expr {0.5*$bsize}]
+        #
+        # If we have any space left over, draw the thermometer
+        # as a mercury bulb on the left and a stick to the right.
+        #
+        set bsize [expr {0.2*$avail}]
+        if {$bsize > 0.5*$h-2} {set bsize [expr {0.5*$h-2}]}
+        set ssize [expr {0.5*$bsize}]
 
-	$c coords bulboutline $x [expr {$y-$bsize}] \
-	    [expr {$x+2*$bsize}] [expr {$y+$bsize}]
-	$c coords bulbscreen [expr {$x-1}] [expr {$y-$bsize-1}] \
-	    [expr {$x+2*$bsize+1}] [expr {$y+$bsize+1}]
-	$c coords bulbfill $x [expr {$y-$bsize}] \
-	    [expr {$x+2*$bsize}] [expr {$y+$bsize}]
+        $c coords bulboutline $x [expr {$y-$bsize}] \
+            [expr {$x+2*$bsize}] [expr {$y+$bsize}]
+        $c coords bulbscreen [expr {$x-1}] [expr {$y-$bsize-1}] \
+            [expr {$x+2*$bsize+1}] [expr {$y+$bsize+1}]
+        $c coords bulbfill $x [expr {$y-$bsize}] \
+            [expr {$x+2*$bsize}] [expr {$y+$bsize}]
 
-	set x0 [expr {$x+2*$bsize+1}]
-	set x1 [expr {$w-2}]
-	set xr [expr {($x1-$x0)*$frac + $x0}]
-	$c coords stickoutline [expr {$x0-2}] [expr {$y-$ssize}] \
-	    $x1 [expr {$y+$ssize}]
-	$c coords stickscreen [expr {$x0-2}] [expr {$y-$ssize}] \
-	    [expr {$x1+1}] [expr {$y+$ssize+1}]
-	$c coords stickfill [expr {$x0-2}] [expr {$y-$ssize+1}] \
-	    $xr [expr {$y+$ssize}]
+        set x0 [expr {$x+2*$bsize+1}]
+        set x1 [expr {$w-2}]
+        set xr [expr {($x1-$x0)*$frac + $x0}]
+        $c coords stickoutline [expr {$x0-2}] [expr {$y-$ssize}] \
+            $x1 [expr {$y+$ssize}]
+        $c coords stickscreen [expr {$x0-2}] [expr {$y-$ssize}] \
+            [expr {$x1+1}] [expr {$y+$ssize+1}]
+        $c coords stickfill [expr {$x0-2}] [expr {$y-$ssize+1}] \
+            $xr [expr {$y+$ssize}]
 
-	$c itemconfigure bulbfill -fill $color
-	$c itemconfigure stickfill -fill $color
+        $c itemconfigure bulbfill -fill $color
+        $c itemconfigure stickfill -fill $color
     }
 
     if {$itk_option(-state) == "disabled"} {
-	$c itemconfigure screen -fill white
+        $c itemconfigure screen -fill white
     } else {
-	$c itemconfigure screen -fill ""
+        $c itemconfigure screen -fill ""
     }
 }
 
@@ -130,22 +130,22 @@ itcl::body Rappture::TemperatureGauge::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::TemperatureGauge::_resize {} {
     if {$itk_option(-samplewidth) > 0} {
-	set w $itk_option(-samplewidth)
+        set w $itk_option(-samplewidth)
     } else {
-	set w [winfo reqheight $itk_component(value)]
+        set w [winfo reqheight $itk_component(value)]
     }
     if {$itk_option(-image) != ""} {
-	set w [expr {$w+[image width $itk_option(-image)]+4}]
+        set w [expr {$w+[image width $itk_option(-image)]+4}]
     }
 
     if {$itk_option(-sampleheight) > 0} {
-	set h $itk_option(-sampleheight)
+        set h $itk_option(-sampleheight)
     } else {
-	if {$itk_option(-image) != ""} {
-	    set h [expr {[image height $itk_option(-image)]+4}]
-	} else {
-	    set h [winfo reqheight $itk_component(value)]
-	}
+        if {$itk_option(-image) != ""} {
+            set h [expr {[image height $itk_option(-image)]+4}]
+        } else {
+            set h [winfo reqheight $itk_component(value)]
+        }
     }
 
     $itk_component(icon) configure -width $w -height $h
