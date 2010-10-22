@@ -289,11 +289,11 @@ itcl::body Rappture::SequenceResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::download {option args} {
     if { ![winfo exists $itk_component(area).viewer] } {
-	return "";	# No data, no viewer, no download.
+        return "";	# No data, no viewer, no download.
     }
     switch $option {
         coming {
-	    return [$itk_component(area).viewer download coming]
+            return [$itk_component(area).viewer download coming]
         }
         controls {
             return [eval $itk_component(area).viewer download controls $args]
@@ -338,7 +338,7 @@ itcl::body Rappture::SequenceResult::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::play {} {
     if { [llength $_indices] == 0 } {
-	return;				# No frames (i.e. no data).
+        return;				# No frames (i.e. no data).
     }
     # cancel any existing animation
     pause
@@ -461,12 +461,12 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 }
                 switch -- $dimensions {
                     2D {
-			if { [$dataobj isunirect2d] } {
-			    set mode "heightmap"
-			} else {
-			    set mode "vtk"
-			}
-			Rappture::Field2DResult $viewer -mode $mode
+                        if { [$dataobj isunirect2d] } {
+                            set mode "heightmap"
+                        } else {
+                            set mode "vtk"
+                        }
+                        Rappture::Field2DResult $viewer -mode $mode
                     }
                     3D {
                         Rappture::Field3DResult $viewer
@@ -491,8 +491,8 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
             }
             default {
                 puts stderr "don't know how to view sequences of type \"$type\""
-		puts stderr "Is the sequence empty?"
-		return
+                puts stderr "Is the sequence empty?"
+                return
             }
         }
     }
@@ -531,22 +531,22 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 itcl::body Rappture::SequenceResult::_playFrame {} {
     global readyForNextFrame 
     if { $readyForNextFrame } {
-	set _pos [expr {$_pos+1}]
-	set last [expr {[llength $_indices]-1}]
-	
-	if {$_pos > $last} {
-	    if {$_play(loop)} {
-		set _pos 0
-	    } else {
-		set _pos $last
-		pause
-		return
-	    }
-	}
-	goto $_pos
-	set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
+        set _pos [expr {$_pos+1}]
+        set last [expr {[llength $_indices]-1}]
+        
+        if {$_pos > $last} {
+            if {$_play(loop)} {
+                set _pos 0
+            } else {
+                set _pos $last
+                pause
+                return
+            }
+        }
+        goto $_pos
+        set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     } else {
-	set delay 50;			# Poll for completion
+        set delay 50;			# Poll for completion
     }
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }
@@ -564,7 +564,7 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
     }
     $viewer delete
     if { $_topmost == "" } {
-	return
+        return
     }
     set val [$itk_component(dial) get -format label current]
     set _pos [lsearch -glob $_indices $val*]
@@ -578,11 +578,11 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
         if {[catch {$dataobj hints style} style] == 0} {
             eval lappend settings $style
         }
-	if { [catch {$dataobj hints type} type] == 0} {
-	    if {"" != $type} {
-		lappend settings -type $type
-	    }
-	}
+        if { [catch {$dataobj hints type} type] == 0} {
+            if {"" != $type} {
+                lappend settings -type $type
+            }
+        }
         $viewer add $dataobj $settings
     }
 }

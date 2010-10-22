@@ -27,7 +27,7 @@ itcl::class Rappture::Unirect3d {
     public method values {}
     public method hints {{keyword ""}} 
     public method order {} {
-	return _axisOrder;
+        return _axisOrder;
     }
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
@@ -53,7 +53,7 @@ itcl::class Rappture::Unirect3d {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be Rappture::library"
+        error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set path [$field get $cname.mesh]
     set m [$xmlobj element -as object $path]
@@ -73,7 +73,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     $_values set [$field get "$cname.values"]
     set n [expr $_xNum * $_yNum * $_zNum * $_compNum]
     if { [$_values length] != $n } {
-	error "wrong \# of values in \"$cname.values\": expected $n values"
+        error "wrong \# of values in \"$cname.values\": expected $n values"
     }
 }
 
@@ -82,7 +82,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::destructor {} {
     if { $_values != "" } {
-	blt::vector destroy $_values
+        blt::vector destroy $_values
     }
 }
 
@@ -99,7 +99,7 @@ itcl::body Rappture::Unirect3d::blob {} {
     lappend data "zmin" $_zMin "zmax" $_zMax "znum" $_zNum
     lappend data "axisorder" $_axisOrder
     if { [$_values length] > 0 } {
-	lappend data "values" [$_values range 0 end]
+        lappend data "values" [$_values range 0 end]
     }
     return $data
 }
@@ -116,14 +116,14 @@ itcl::body Rappture::Unirect3d::mesh {} {
     set dz [expr {($_zMax - $_zMin) / double($_zNum)}]
     foreach {a b c} $_axisOrder break
     for { set i 0 } { $i < [set _${a}Num] } { incr i } {
-	set v1 [expr {[set _${a}Min] + (double($i) * [set d${a}])}]
-	for { set j 0 } { $j < [set _${b}Num] } { incr j } {
-	    set v2 [expr {[set _${b}Min] + (double($i) * [set d${b}])}]
-	    for { set k 0 } { $k < [set _${c}Num] } { incr k } {
-		set v3 [expr {[set _${c}Min] + (double($i) * [set d${c}])}]
-		lappend data $v1 $v2 $v3
-	    }
-	}
+        set v1 [expr {[set _${a}Min] + (double($i) * [set d${a}])}]
+        for { set j 0 } { $j < [set _${b}Num] } { incr j } {
+            set v2 [expr {[set _${b}Min] + (double($i) * [set d${b}])}]
+            for { set k 0 } { $k < [set _${c}Num] } { incr k } {
+                set v3 [expr {[set _${c}Min] + (double($i) * [set d${c}])}]
+                lappend data $v1 $v2 $v3
+            }
+        }
     }
     return $data
 }
@@ -136,7 +136,7 @@ itcl::body Rappture::Unirect3d::mesh {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::values {} {
     if { [$_values length] > 0 } {
-	return [$_values range 0 end]
+        return [$_values range 0 end]
     }
     return ""
 }
@@ -151,34 +151,34 @@ itcl::body Rappture::Unirect3d::limits {which} {
     set max ""
 
     switch -- $which {
-	x - xlin - xlog {
-	    set min $_xMin
-	    set max $_xMax
-	    set axis "xaxis"
-	}
-	y - ylin - ylog {
-	    set min $_yMin
-	    set max $_yMax
-	    set axis "yaxis"
-	}
-	z - zlin - zlog {
-	    set min $_zMin
-	    set max $_zMax
-	    set axis "zaxis"
-	}
-	v - vlin - vlog {
-	    if { [$_values length] > 0 } {
-	       set min [blt::vector expr min($_values)]
-	       set max [blt::vector expr max($_values)]
-	    } else {
-		set min 0.0
-		set max 1.0
-	    }
-	    set axis "vaxis"
-	}
-	default {
-	    error "unknown axis description \"$which\""
-	}
+        x - xlin - xlog {
+            set min $_xMin
+            set max $_xMax
+            set axis "xaxis"
+        }
+        y - ylin - ylog {
+            set min $_yMin
+            set max $_yMax
+            set axis "yaxis"
+        }
+        z - zlin - zlog {
+            set min $_zMin
+            set max $_zMax
+            set axis "zaxis"
+        }
+        v - vlin - vlog {
+            if { [$_values length] > 0 } {
+               set min [blt::vector expr min($_values)]
+               set max [blt::vector expr max($_values)]
+            } else {
+                set min 0.0
+                set max 1.0
+            }
+            set axis "vaxis"
+        }
+        default {
+            error "unknown axis description \"$which\""
+        }
     }
     return [list $min $max]
 }
@@ -193,54 +193,54 @@ itcl::body Rappture::Unirect3d::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::hints {{keyword ""}} {
     if {![info exists _hints]} {
-	foreach {key path} {
-	    group   about.group
-	    label   about.label
-	    color   about.color
-	    style   about.style
-	    type    about.type
-	    xlabel  xaxis.label
-	    xdesc   xaxis.description
-	    xunits  xaxis.units
-	    xscale  xaxis.scale
-	    ylabel  yaxis.label
-	    ydesc   yaxis.description
-	    yunits  yaxis.units
-	    yscale  yaxis.scale
-	    zlabel  zaxis.label
-	    zdesc   zaxis.description
-	    zunits  zaxis.units
-	    zscale  zaxis.scale
-	    order   about.axisorder 
-	} {
-	    set str [$_curve get $path]
-	    if {"" != $str} {
-		set _hints($key) $str
-	    }
-	}
+        foreach {key path} {
+            group   about.group
+            label   about.label
+            color   about.color
+            style   about.style
+            type    about.type
+            xlabel  xaxis.label
+            xdesc   xaxis.description
+            xunits  xaxis.units
+            xscale  xaxis.scale
+            ylabel  yaxis.label
+            ydesc   yaxis.description
+            yunits  yaxis.units
+            yscale  yaxis.scale
+            zlabel  zaxis.label
+            zdesc   zaxis.description
+            zunits  zaxis.units
+            zscale  zaxis.scale
+            order   about.axisorder 
+        } {
+            set str [$_curve get $path]
+            if {"" != $str} {
+                set _hints($key) $str
+            }
+        }
 
-	if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-	      && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-	    set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
-	}
-	if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-	      && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-	    set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
-	}
-	if {[info exists _hints(zlabel)] && "" != $_hints(zlabel)
-	      && [info exists _hints(zunits)] && "" != $_hints(zunits)} {
-	    set _hints(ylabel) "$_hints(zlabel) ($_hints(zunits))"
-	}
-	if {[info exists _hints(group)] && [info exists _hints(label)]} {
-	    # pop-up help for each curve
-	    set _hints(tooltip) $_hints(label)
-	}
+        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+        }
+        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+        }
+        if {[info exists _hints(zlabel)] && "" != $_hints(zlabel)
+              && [info exists _hints(zunits)] && "" != $_hints(zunits)} {
+            set _hints(ylabel) "$_hints(zlabel) ($_hints(zunits))"
+        }
+        if {[info exists _hints(group)] && [info exists _hints(label)]} {
+            # pop-up help for each curve
+            set _hints(tooltip) $_hints(label)
+        }
     }
     if {$keyword != ""} {
-	if {[info exists _hints($keyword)]} {
-	    return $_hints($keyword)
-	}
-	return ""
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
+        }
+        return ""
     }
     return [array get _hints]
 }
@@ -248,8 +248,8 @@ itcl::body Rappture::Unirect3d::hints {{keyword ""}} {
 itcl::body Rappture::Unirect3d::GetSize { obj path varName } {
     set string [$obj get $path]
     if { [scan $string "%d" value] != 1 || $value < 0 } {
-	puts stderr "can't get size \"$string\" of \"$path\""
-	return
+        puts stderr "can't get size \"$string\" of \"$path\""
+        return
     }
     upvar $varName size
     set size $value
@@ -258,8 +258,8 @@ itcl::body Rappture::Unirect3d::GetSize { obj path varName } {
 itcl::body Rappture::Unirect3d::GetValue { obj path varName } {
     set string [$obj get $path]
     if { [scan $string "%g" value] != 1 } {
-	puts stderr "can't get value \"$string\" of \"$path\""
-	return
+        puts stderr "can't get value \"$string\" of \"$path\""
+        return
     }
     upvar $varName number
     set number $value
@@ -268,8 +268,8 @@ itcl::body Rappture::Unirect3d::GetValue { obj path varName } {
 itcl::body Rappture::Unirect3d::GetString { obj path varName } {
     set string [$obj get $path]
     if { $string == "" } {
-	puts stderr "can't get string \"$string\" of \"$path\""
-	return
+        puts stderr "can't get string \"$string\" of \"$path\""
+        return
     }
     upvar $varName str
     set str $string

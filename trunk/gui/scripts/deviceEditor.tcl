@@ -22,16 +22,16 @@ itcl::class Rappture::DeviceEditor {
     itk_option define -autocleanup autoCleanUp AutoCleanUp 1
 
     constructor {owner args} {
-	Rappture::ControlOwner::constructor $owner
+        Rappture::ControlOwner::constructor $owner
     } { 
-	# defined below 
+        # defined below 
     }
     public method value {args}
     public method download {option args}
     public method add {dataobj {settings ""}} 
     public method delete {args}
     public method parameters {title args} { 
-	# do nothing 
+        # do nothing 
     }
     public method snap {w h}
 
@@ -43,14 +43,14 @@ itcl::class Rappture::DeviceEditor {
     public common _molvisHosts ""
 
     public proc setMolvisServer {namelist} {
-	if {[regexp {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$} $namelist match]} {
-	    set _molvisHosts $namelist
-	} else {
-	    error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
-	}
+        if {[regexp {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$} $namelist match]} {
+            set _molvisHosts $namelist
+        } else {
+            error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+        }
     }
 }
-										
+                                                                                
 itk::usual DeviceEditor {
 }
 
@@ -59,7 +59,7 @@ itk::usual DeviceEditor {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::constructor {owner args} {
     itk_component add top {
-	frame $itk_interior.top
+        frame $itk_interior.top
     }
     pack $itk_component(top) -fill x
 
@@ -80,37 +80,37 @@ itcl::body Rappture::DeviceEditor::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$_xmlobj != ""} {
-	    if {$itk_option(-autocleanup)} {
-		# delete any existing object
-		itcl::delete object $_xmlobj
-	    }
-	    set _xmlobj ""
-	}
+        if {$_xmlobj != ""} {
+            if {$itk_option(-autocleanup)} {
+                # delete any existing object
+                itcl::delete object $_xmlobj
+            }
+            set _xmlobj ""
+        }
 
-	set newval [lindex $args 0]
-	if {$newval != ""} {
-	    if {$onlycheck} {
-		return
-	    }
-	    if {![Rappture::library isvalid $newval]} {
-		error "bad value \"$newval\": should be Rappture::Library"
-	    }
-	    set _xmlobj $newval
-	}
-	_redraw
-	$_current configure -device $_xmlobj
-	event generate $itk_component(hull) <<Value>>
+        set newval [lindex $args 0]
+        if {$newval != ""} {
+            if {$onlycheck} {
+                return
+            }
+            if {![Rappture::library isvalid $newval]} {
+                error "bad value \"$newval\": should be Rappture::Library"
+            }
+            set _xmlobj $newval
+        }
+        _redraw
+        $_current configure -device $_xmlobj
+        event generate $itk_component(hull) <<Value>>
 
     } elseif {[llength $args] == 0} {
-	sync  ;# querying -- must sync controls with the value
+        sync  ;# querying -- must sync controls with the value
     } else {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
     return $_xmlobj
 }
@@ -126,7 +126,7 @@ itcl::body Rappture::DeviceEditor::value {args} {
 itcl::body Rappture::DeviceEditor::add {dataobj {settings ""}} {
     set _xmlobj $dataobj
     if {"" == $_current} {    # Make sure viewer instance exists
-	_redraw
+        _redraw
     }
     eval $_current add $dataobj [list $settings]
 }
@@ -139,8 +139,8 @@ itcl::body Rappture::DeviceEditor::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::delete {args} {
     if {"" != $_current} {
-	eval $_current delete $args
-	set _xmlobj [lindex [$_current get] end]
+        eval $_current delete $args
+        set _xmlobj [lindex [$_current get] end]
     }
 }
 
@@ -156,7 +156,7 @@ itcl::body Rappture::DeviceEditor::delete {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::download {option args} {
     if {"" != $_current} {
-	return [eval $_current download $option $args]
+        return [eval $_current download $option $args]
     }
     return ""
 }
@@ -171,35 +171,35 @@ itcl::body Rappture::DeviceEditor::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::_redraw {} {
     if {$_current != ""} {
-	$_current configure -device ""
-	set _current ""
+        $_current configure -device ""
+        set _current ""
     }
     switch -- [_type $_xmlobj] {
-	molecule {
-	    if { ![winfo exists $itk_component(hull).mol] } {
-		catch {
-		    destroy $itk_component(hull).dev
-		}
-		set servers [Rappture::VisViewer::GetServerList "pymol"]
-		if { "" != $servers } {
-		    Rappture::MolvisViewer $itk_component(hull).mol $servers
-		} else {
-		    Rappture::MoleculeViewer $itk_component(hull).mol $this
-		} 
-		pack $itk_component(hull).mol -expand yes -fill both
-	    }
-	    set _current $itk_component(hull).mol
-	}
-	device1D {
-	    if { ![winfo exists $itk_component(hull).dev] } {
-		catch {
-		    destroy $itk_component(hull).mol
-		}
-		Rappture::DeviceViewer1D $itk_component(hull).dev $this
-		pack $itk_component(hull).dev -expand yes -fill both
-	    }
-	    set _current $itk_component(hull).dev
-	}
+        molecule {
+            if { ![winfo exists $itk_component(hull).mol] } {
+                catch {
+                    destroy $itk_component(hull).dev
+                }
+                set servers [Rappture::VisViewer::GetServerList "pymol"]
+                if { "" != $servers } {
+                    Rappture::MolvisViewer $itk_component(hull).mol $servers
+                } else {
+                    Rappture::MoleculeViewer $itk_component(hull).mol $this
+                } 
+                pack $itk_component(hull).mol -expand yes -fill both
+            }
+            set _current $itk_component(hull).mol
+        }
+        device1D {
+            if { ![winfo exists $itk_component(hull).dev] } {
+                catch {
+                    destroy $itk_component(hull).mol
+                }
+                Rappture::DeviceViewer1D $itk_component(hull).dev $this
+                pack $itk_component(hull).dev -expand yes -fill both
+            }
+            set _current $itk_component(hull).dev
+        }
     }
 }
 
@@ -213,10 +213,10 @@ itcl::body Rappture::DeviceEditor::_redraw {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DeviceEditor::_type {xmlobj} {
     if {$xmlobj == ""} {
-	return ""
+        return ""
     }
     if {[llength [$xmlobj children -type molecule components]] > 0} {
-	return "molecule"
+        return "molecule"
     }
     return "device1D"
 }

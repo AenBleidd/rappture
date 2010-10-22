@@ -23,10 +23,10 @@ namespace eval Rappture {
 
 itcl::class Rappture::DataTable {
     constructor {xmlobj path} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
 
     public method components {{pattern *}}
@@ -47,7 +47,7 @@ itcl::class Rappture::DataTable {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DataTable::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be LibraryObj"
+        error "bad value \"$xmlobj\": should be LibraryObj"
     }
     set _xmlobj $xmlobj
     set _datatable [$xmlobj element -as object $path]
@@ -91,24 +91,24 @@ itcl::body Rappture::DataTable::columns {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DataTable::hints {{keyword ""}} {
     if {![info exists _hints]} {
-	foreach {key path} {
-	    group   about.group
-	    label   about.label
-	    color   about.color
-	    style   about.style
-	} {
-	    set str [$_datatable get $path]
-	    if {"" != $str} {
-		set _hints($key) $str
-	    }
-	}
+        foreach {key path} {
+            group   about.group
+            label   about.label
+            color   about.color
+            style   about.style
+        } {
+            set str [$_datatable get $path]
+            if {"" != $str} {
+                set _hints($key) $str
+            }
+        }
     }
     set _hints(xmlobj) $_xmlobj
     if { $keyword != "" } {
-	if { [info exists _hints($keyword)] } {
-	    return $_hints($keyword)
-	}
-	return ""
+        if { [info exists _hints($keyword)] } {
+            return $_hints($keyword)
+        }
+        return ""
     }
     return [array get _hints]
 }
@@ -124,32 +124,32 @@ itcl::body Rappture::DataTable::hints {{keyword ""}} {
 itcl::body Rappture::DataTable::Build {} {
     # Discard any existing data
     if { $_tree != "" } {
-	blt::tree destroy $_tree
-	set _tree ""
+        blt::tree destroy $_tree
+        set _tree ""
     }
     set _columns {}
 
     # Sniff for column information: label, descriptions, and style
     foreach cname [$_datatable children -type "column"] {
-	set label	 [$_datatable get "$cname.label"]
-	set description  [$_datatable get "$cname.description"]
-	set style	 [$_datatable get "$cname.style"]
-	lappend _columns $label $description $style
+        set label	 [$_datatable get "$cname.label"]
+        set description  [$_datatable get "$cname.description"]
+        set style	 [$_datatable get "$cname.style"]
+        lappend _columns $label $description $style
     }
     set csvdata [$_datatable get csv]
     set _tree [blt::tree create]
     if {"" != $csvdata} {
-	set csvlist [blt::csv -data $csvdata]
-	foreach row $csvlist {
-	    set child [$_tree insert 0]
-	    set c 0 
-	    foreach value $row {label description style} $_columns {
-		if { $label == "" } {
-		    set label "$c"
-		}
-		$_tree set $child $label $value
-		incr c 
-	    }
-	}
+        set csvlist [blt::csv -data $csvdata]
+        foreach row $csvlist {
+            set child [$_tree insert 0]
+            set c 0 
+            foreach value $row {label description style} $_columns {
+                if { $label == "" } {
+                    set label "$c"
+                }
+                $_tree set $child $label $value
+                incr c 
+            }
+        }
     }
 }

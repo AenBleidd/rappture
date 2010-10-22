@@ -44,7 +44,7 @@ itk::usual Animicon {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Animicon::constructor {args} {
     itk_component add icon {
-	label $itk_interior.icon
+        label $itk_interior.icon
     }
     pack $itk_component(icon) -expand yes -fill both
 
@@ -60,7 +60,7 @@ itcl::body Rappture::Animicon::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Animicon::start {} {
     if {![isrunning]} {
-	_next
+        _next
     }
 }
 
@@ -73,8 +73,8 @@ itcl::body Rappture::Animicon::start {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Animicon::stop {} {
     if {[isrunning]} {
-	after cancel $_afterid
-	set _afterid ""
+        after cancel $_afterid
+        set _afterid ""
     }
 }
 
@@ -96,7 +96,7 @@ itcl::body Rappture::Animicon::isrunning {} {
 itcl::body Rappture::Animicon::_next {} {
     $itk_component(icon) configure -image $_frames($_pos)
     if {[incr _pos] >= [array size _frames]} {
-	set _pos 0
+        set _pos 0
     }
     set _afterid [after $itk_option(-delay) [itcl::code $this _next]]
 }
@@ -112,25 +112,25 @@ itcl::configbody Rappture::Animicon::images {
 
     catch {unset _frames}
     if {[llength $itk_option(-images)] >= 1} {
-	set w 0
-	set h 0
-	set i 0
-	foreach name $itk_option(-images) {
-	    set imh [Rappture::icon $name]
-	    if {"" == $imh} {
-		error "image not found: $name"
-	    }
-	    set _frames($i) $imh
-	    if {[image width $imh] > $w} { set w [image width $imh] }
-	    if {[image height $imh] > $h} { set h [image height $imh] }
-	    incr i
-	}
+        set w 0
+        set h 0
+        set i 0
+        foreach name $itk_option(-images) {
+            set imh [Rappture::icon $name]
+            if {"" == $imh} {
+                error "image not found: $name"
+            }
+            set _frames($i) $imh
+            if {[image width $imh] > $w} { set w [image width $imh] }
+            if {[image height $imh] > $h} { set h [image height $imh] }
+            incr i
+        }
     }
 
     $itk_component(icon) configure -width $w -height $h -image $_frames(0)
     set _pos 0
 
     if {$restart} {
-	start
+        start
     }
 }

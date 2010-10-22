@@ -52,7 +52,7 @@ itcl::class Rappture::Balloon {
     public proc outside {widget x y}
 
     bind RapptureBalloon <ButtonPress> \
-	{if {[Rappture::Balloon::outside %W %X %Y]} {%W deactivate}}
+        {if {[Rappture::Balloon::outside %W %X %Y]} {%W deactivate}}
 }
 
 itk::usual Balloon {
@@ -67,47 +67,47 @@ itcl::body Rappture::Balloon::constructor {args} {
     component hull configure -borderwidth 1 -relief solid -padx 0 -pady 0
 
     itk_component add border {
-	frame $itk_interior.border -borderwidth 2
+        frame $itk_interior.border -borderwidth 2
     } {
-	usual
-	keep -relief
+        usual
+        keep -relief
     }
     pack $itk_component(border) -expand yes -fill both
 
     itk_component add titlebar {
-	frame $itk_component(border).tbar
+        frame $itk_component(border).tbar
     } {
-	usual
-	rename -background -titlebackground titleBackground Background
+        usual
+        rename -background -titlebackground titleBackground Background
     }
 
     itk_component add title {
-	label $itk_component(titlebar).title -width 1 -anchor w
+        label $itk_component(titlebar).title -width 1 -anchor w
     } {
-	usual
-	rename -background -titlebackground titleBackground Background
-	rename -foreground -titleforeground titleForeground Foreground
-	rename -highlightbackground -titlebackground titleBackground Background
-	rename -text -title title Title
+        usual
+        rename -background -titlebackground titleBackground Background
+        rename -foreground -titleforeground titleForeground Foreground
+        rename -highlightbackground -titlebackground titleBackground Background
+        rename -text -title title Title
     }
     pack $itk_component(title) -side left -expand yes -fill both -padx 2
 
     itk_component add dismiss {
-	button $itk_component(titlebar).dismiss \
-	    -bitmap [Rappture::icon dismiss] \
-	    -relief flat -overrelief raised -command "
-	      Rappture::Tooltip::cue hide
-	      [list $itk_component(hull) deactivate]
-	    "
+        button $itk_component(titlebar).dismiss \
+            -bitmap [Rappture::icon dismiss] \
+            -relief flat -overrelief raised -command "
+              Rappture::Tooltip::cue hide
+              [list $itk_component(hull) deactivate]
+            "
     } {
-	usual
-	rename -background -titlebackground titleBackground Background
-	rename -foreground -titleforeground titleForeground Foreground
-	rename -highlightbackground -titlebackground titleBackground Background
+        usual
+        rename -background -titlebackground titleBackground Background
+        rename -foreground -titleforeground titleForeground Foreground
+        rename -highlightbackground -titlebackground titleBackground Background
     }
 
     itk_component add inner {
-	frame $itk_component(border).inner
+        frame $itk_component(border).inner
     }
     pack $itk_component(inner) -expand yes -fill both
 
@@ -130,7 +130,7 @@ itcl::body Rappture::Balloon::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Balloon::activate {where placement} {
     if {![info exists _stems($placement)]} {
-	error "bad placement \"$placement\": should be [join [lsort [array names _stems]] {, }]"
+        error "bad placement \"$placement\": should be [join [lsort [array names _stems]] {, }]"
     }
     set s $_stems($placement)
     set sw [image width $_fills($placement)]
@@ -140,18 +140,18 @@ itcl::body Rappture::Balloon::activate {where placement} {
     set screenh [winfo screenheight $p]
 
     if {[winfo exists $where]} {
-	set x [expr {[winfo rootx $where]+[winfo width $where]/2}]
-	set y [expr {[winfo rooty $where]+[winfo height $where]/2}]
-	switch -- $placement {
-	    left { set x [expr {[winfo rootx $where]+5}] }
-	    right { set x [expr {[winfo rootx $where]+[winfo width $where]-5}] }
-	    above { set y [expr {[winfo rooty $where]+5}] }
-	    below { set y [expr {[winfo rooty $where]+[winfo height $where]-5}] }
-	}
+        set x [expr {[winfo rootx $where]+[winfo width $where]/2}]
+        set y [expr {[winfo rooty $where]+[winfo height $where]/2}]
+        switch -- $placement {
+            left { set x [expr {[winfo rootx $where]+5}] }
+            right { set x [expr {[winfo rootx $where]+[winfo width $where]-5}] }
+            above { set y [expr {[winfo rooty $where]+5}] }
+            below { set y [expr {[winfo rooty $where]+[winfo height $where]-5}] }
+        }
     } elseif {[regexp {^@([0-9]+),([0-9]+)$} $where match x y]} {
-	# got x and y
+        # got x and y
     } else {
-	error "bad location \"$where\": should be widget or @x,y"
+        error "bad location \"$where\": should be widget or @x,y"
     }
 
     # if the panel is already up, take it down
@@ -163,62 +163,62 @@ itcl::body Rappture::Balloon::activate {where placement} {
     if {$ph > $screenh} { set ph [expr {$screenh-10}] }
 
     switch -- $placement {
-	left {
-	    set sx [expr {$x-$sw+3}]
-	    set sy [expr {$y-$sh/2}]
-	    set px [expr {$sx-$pw+3}]
-	    set py [expr {$y-$ph/2}]
+        left {
+            set sx [expr {$x-$sw+3}]
+            set sy [expr {$y-$sh/2}]
+            set px [expr {$sx-$pw+3}]
+            set py [expr {$y-$ph/2}]
 
-	    # make sure that the panel doesn't go off-screen
-	    if {$py < 0} { set py 0 }
-	    if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
-	    if {$px < 0} { set pw [expr {$pw+$px}]; set px 0 }
-	}
-	right {
-	    set sx $x
-	    set sy [expr {$y-$sh/2}]
-	    set px [expr {$x+$sw-3}]
-	    set py [expr {$y-$ph/2}]
+            # make sure that the panel doesn't go off-screen
+            if {$py < 0} { set py 0 }
+            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
+            if {$px < 0} { set pw [expr {$pw+$px}]; set px 0 }
+        }
+        right {
+            set sx $x
+            set sy [expr {$y-$sh/2}]
+            set px [expr {$x+$sw-3}]
+            set py [expr {$y-$ph/2}]
 
-	    # make sure that the panel doesn't go off-screen
-	    if {$py < 0} { set py 0 }
-	    if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
-	    if {$px+$pw > $screenw} { set pw [expr {$screenw-$px}] }
-	}
-	above {
-	    set sx [expr {$x-$sw/2}]
-	    set sy [expr {$y-$sh+3}]
-	    set px [expr {$x-$pw/2}]
-	    set py [expr {$sy-$ph+3}]
+            # make sure that the panel doesn't go off-screen
+            if {$py < 0} { set py 0 }
+            if {$py+$ph > $screenh} { set py [expr {$screenh-$ph}] }
+            if {$px+$pw > $screenw} { set pw [expr {$screenw-$px}] }
+        }
+        above {
+            set sx [expr {$x-$sw/2}]
+            set sy [expr {$y-$sh+3}]
+            set px [expr {$x-$pw/2}]
+            set py [expr {$sy-$ph+3}]
 
-	    # make sure that the panel doesn't go off-screen
-	    if {$px < 0} { set px 0 }
-	    if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
-	    if {$py < 0} { set ph [expr {$ph+$py}]; set py 0 }
-	}
-	below {
-	    set sx [expr {$x-$sw/2}]
-	    set sy $y
-	    set px [expr {$x-$pw/2}]
-	    set py [expr {$y+$sh-3}]
+            # make sure that the panel doesn't go off-screen
+            if {$px < 0} { set px 0 }
+            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
+            if {$py < 0} { set ph [expr {$ph+$py}]; set py 0 }
+        }
+        below {
+            set sx [expr {$x-$sw/2}]
+            set sy $y
+            set px [expr {$x-$pw/2}]
+            set py [expr {$y+$sh-3}]
 
-	    # make sure that the panel doesn't go off-screen
-	    if {$px < 0} { set px 0 }
-	    if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
-	    if {$py+$ph > $screenh} { set ph [expr {$screenh-$py}] }
-	}
+            # make sure that the panel doesn't go off-screen
+            if {$px < 0} { set px 0 }
+            if {$px+$pw > $screenw} { set px [expr {$screenw-$pw}] }
+            if {$py+$ph > $screenh} { set ph [expr {$screenh-$py}] }
+        }
     }
     if {[info exists _masks($placement)]} {
-	shape set $s -bound photo $_masks($placement)
+        shape set $s -bound photo $_masks($placement)
     }
     if { $pw < 1 || $ph < 1 }  {
-	# I really don't know why this is happenning.  I believe this occurs
-	# when in a work space (i.e the main window is smaller than the root
-	# window). So for now, better to place the balloon window somewhere
-	# than to fail with a bad geometry.
-	wm geometry $p +$px+$py
+        # I really don't know why this is happenning.  I believe this occurs
+        # when in a work space (i.e the main window is smaller than the root
+        # window). So for now, better to place the balloon window somewhere
+        # than to fail with a bad geometry.
+        wm geometry $p +$px+$py
     } else {
-	wm geometry $p ${pw}x${ph}+$px+$py
+        wm geometry $p ${pw}x${ph}+$px+$py
     }
     wm deiconify $p
     raise $p
@@ -230,7 +230,7 @@ itcl::body Rappture::Balloon::activate {where placement} {
     # grab the mouse pointer
     update
     while {[catch {grab set -global $itk_component(hull)}]} {
-	after 100
+        after 100
     }
     focus $itk_component(hull)
 }
@@ -242,14 +242,14 @@ itcl::body Rappture::Balloon::activate {where placement} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Balloon::deactivate {} {
     if {[string length $itk_option(-deactivatecommand)] > 0} {
-	uplevel #0 $itk_option(-deactivatecommand)
+        uplevel #0 $itk_option(-deactivatecommand)
     }
 
     grab release $itk_component(hull)
 
     wm withdraw $itk_component(hull)
     foreach dir {left right above below} {
-	wm withdraw $_stems($dir)
+        wm withdraw $_stems($dir)
     }
 }
 
@@ -263,209 +263,209 @@ itcl::body Rappture::Balloon::deactivate {} {
 itcl::body Rappture::Balloon::_createStems {} {
     # destroy any existing stems
     foreach dir [array names _stems] {
-	destroy $_stems($dir)
-	unset _stems($dir)
+        destroy $_stems($dir)
+        unset _stems($dir)
     }
     foreach dir [array names _masks] {
-	image delete $_masks($dir)
-	unset _masks($dir)
+        image delete $_masks($dir)
+        unset _masks($dir)
     }
     foreach dir [array names _fills] {
-	image delete $_fills($dir)
-	unset _fills($dir)
+        image delete $_fills($dir)
+        unset _fills($dir)
     }
 
     if {[catch {package require Shape}] == 0} {
-	#
-	# We have the Shape extension.  Use it to create nice
-	# looking (triangle-shaped) stems.
-	#
-	set s $itk_option(-stemlength)
-	foreach dir {left right above below} {
-	    switch -- $dir {
-		left - right {
-		    set sw [expr {$s+2}]
-		    set sh $s
-		}
-		above - below {
-		    set sw $s
-		    set sh [expr {$s+2}]
-		}
-	    }
+        #
+        # We have the Shape extension.  Use it to create nice
+        # looking (triangle-shaped) stems.
+        #
+        set s $itk_option(-stemlength)
+        foreach dir {left right above below} {
+            switch -- $dir {
+                left - right {
+                    set sw [expr {$s+2}]
+                    set sh $s
+                }
+                above - below {
+                    set sw $s
+                    set sh [expr {$s+2}]
+                }
+            }
 
-	    set _stems($dir) [toplevel $itk_interior.s$dir -borderwidth 0]
-	    label $_stems($dir).l \
-		-width $sw -height $sh -borderwidth 0
-	    pack $_stems($dir).l -expand yes -fill both
+            set _stems($dir) [toplevel $itk_interior.s$dir -borderwidth 0]
+            label $_stems($dir).l \
+                -width $sw -height $sh -borderwidth 0
+            pack $_stems($dir).l -expand yes -fill both
 
-	    wm withdraw $_stems($dir)
-	    wm overrideredirect $_stems($dir) yes
+            wm withdraw $_stems($dir)
+            wm overrideredirect $_stems($dir) yes
 
-	    #
-	    # Draw the triangle part of the stem, with a black outline
-	    # and light/dark highlights:
-	    #
-	    #     --------  ---       LEFT STEM
-	    #    |..##    |  ^  
-	    #    |  ..##  |  |        . = light color
-	    #    |    ..##|  | s      @ = dark color
-	    #    |    @@##|  |        # = black
-	    #    |  @@##  |  |
-	    #    |@@##    |  v
-	    #     --------  ---
-	    #    |<------>|
-	    #        s+2
-	    #
-	    set _masks($dir) [image create photo -width $sw -height $sh]
-	    set _fills($dir) [image create photo -width $sw -height $sh]
+            #
+            # Draw the triangle part of the stem, with a black outline
+            # and light/dark highlights:
+            #
+            #     --------  ---       LEFT STEM
+            #    |..##    |  ^  
+            #    |  ..##  |  |        . = light color
+            #    |    ..##|  | s      @ = dark color
+            #    |    @@##|  |        # = black
+            #    |  @@##  |  |
+            #    |@@##    |  v
+            #     --------  ---
+            #    |<------>|
+            #        s+2
+            #
+            set _masks($dir) [image create photo -width $sw -height $sh]
+            set _fills($dir) [image create photo -width $sw -height $sh]
 
-	    set bg $itk_option(-background)
-	    set light [Rappture::color::brightness $bg 0.4]
-	    set dark [Rappture::color::brightness $bg -0.4]
-	    set rgb [winfo rgb . $bg]
-	    set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
+            set bg $itk_option(-background)
+            set light [Rappture::color::brightness $bg 0.4]
+            set dark [Rappture::color::brightness $bg -0.4]
+            set rgb [winfo rgb . $bg]
+            set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
 
-	    $_fills($dir) put $bg -to 0 0 $sw $sh
+            $_fills($dir) put $bg -to 0 0 $sw $sh
 
-	    switch -- $dir {
-	      left {
-		set i 0
-		for {set j 0} {$j < $s/2} {incr j} {
-		    set ybtm [expr {$s-$j-1}]
-		    $_fills($dir) put $dark \
-			-to $i [expr {$ybtm-1}] [expr {$i+2}] [expr {$ybtm+1}]
-		    $_fills($dir) put black \
-			-to [expr {$i+2}] $ybtm [expr {$i+4}] [expr {$ybtm+1}]
+            switch -- $dir {
+              left {
+                set i 0
+                for {set j 0} {$j < $s/2} {incr j} {
+                    set ybtm [expr {$s-$j-1}]
+                    $_fills($dir) put $dark \
+                        -to $i [expr {$ybtm-1}] [expr {$i+2}] [expr {$ybtm+1}]
+                    $_fills($dir) put black \
+                        -to [expr {$i+2}] $ybtm [expr {$i+4}] [expr {$ybtm+1}]
 
-		    set ytop $j
-		    set ytoffs [expr {($j == $s/2-1) ? 1 : 2}]
-		    $_fills($dir) put $light \
-			-to $i $ytop [expr {$i+2}] [expr {$ytop+$ytoffs}]
-		    $_fills($dir) put black \
-			-to [expr {$i+2}] $ytop [expr {$i+4}] [expr {$ytop+1}]
-		    incr i 2
-		}
-		$_stems($dir).l configure -image $_fills($dir)
+                    set ytop $j
+                    set ytoffs [expr {($j == $s/2-1) ? 1 : 2}]
+                    $_fills($dir) put $light \
+                        -to $i $ytop [expr {$i+2}] [expr {$ytop+$ytoffs}]
+                    $_fills($dir) put black \
+                        -to [expr {$i+2}] $ytop [expr {$i+4}] [expr {$ytop+1}]
+                    incr i 2
+                }
+                $_stems($dir).l configure -image $_fills($dir)
 
-		$_masks($dir) put black -to 0 0 $sw $sh
-		set i 0
-		for {set j 0} {$j < $s/2} {incr j} {
-		    for {set k [expr {$i+4}]} {$k < $s+2} {incr k} {
-			$_masks($dir) transparency set $k $j yes
-			$_masks($dir) transparency set $k [expr {$s-$j-1}] yes
-		    }
-		    incr i 2
-		}
-	      }
-	      right {
-		set i $sw
-		for {set j 0} {$j < $s/2} {incr j} {
-		    set ybtm [expr {$s-$j-1}]
-		    $_fills($dir) put $dark \
-			-to [expr {$i-2}] [expr {$ybtm-1}] $i [expr {$ybtm+1}]
-		    $_fills($dir) put black \
-			-to [expr {$i-4}] $ybtm [expr {$i-2}] [expr {$ybtm+1}]
+                $_masks($dir) put black -to 0 0 $sw $sh
+                set i 0
+                for {set j 0} {$j < $s/2} {incr j} {
+                    for {set k [expr {$i+4}]} {$k < $s+2} {incr k} {
+                        $_masks($dir) transparency set $k $j yes
+                        $_masks($dir) transparency set $k [expr {$s-$j-1}] yes
+                    }
+                    incr i 2
+                }
+              }
+              right {
+                set i $sw
+                for {set j 0} {$j < $s/2} {incr j} {
+                    set ybtm [expr {$s-$j-1}]
+                    $_fills($dir) put $dark \
+                        -to [expr {$i-2}] [expr {$ybtm-1}] $i [expr {$ybtm+1}]
+                    $_fills($dir) put black \
+                        -to [expr {$i-4}] $ybtm [expr {$i-2}] [expr {$ybtm+1}]
 
-		    set ytop $j
-		    set ytoffs [expr {($j == $s/2-1) ? 1 : 2}]
-		    $_fills($dir) put $light \
-			-to [expr {$i-2}] $ytop $i [expr {$ytop+$ytoffs}]
-		    $_fills($dir) put black \
-			-to [expr {$i-4}] $ytop [expr {$i-2}] [expr {$ytop+1}]
-		    incr i -2
-		}
-		$_stems($dir).l configure -image $_fills($dir)
+                    set ytop $j
+                    set ytoffs [expr {($j == $s/2-1) ? 1 : 2}]
+                    $_fills($dir) put $light \
+                        -to [expr {$i-2}] $ytop $i [expr {$ytop+$ytoffs}]
+                    $_fills($dir) put black \
+                        -to [expr {$i-4}] $ytop [expr {$i-2}] [expr {$ytop+1}]
+                    incr i -2
+                }
+                $_stems($dir).l configure -image $_fills($dir)
 
-		$_masks($dir) put black -to 0 0 $sw $sh
-		set i $sw
-		for {set j 0} {$j < $s/2} {incr j} {
-		    for {set k 0} {$k < $i-4} {incr k} {
-			$_masks($dir) transparency set $k $j yes
-			$_masks($dir) transparency set $k [expr {$s-$j-1}] yes
-		    }
-		    incr i -2
-		}
-	      }
-	      above {
-		set i 0
-		for {set j 0} {$j < $s/2} {incr j} {
-		    set xrhs [expr {$s-$j-1}]
-		    $_fills($dir) put $dark \
-			-to [expr {$xrhs-1}] $i [expr {$xrhs+1}] [expr {$i+2}]
-		    $_fills($dir) put black \
-			-to $xrhs [expr {$i+2}] [expr {$xrhs+1}] [expr {$i+4}]
+                $_masks($dir) put black -to 0 0 $sw $sh
+                set i $sw
+                for {set j 0} {$j < $s/2} {incr j} {
+                    for {set k 0} {$k < $i-4} {incr k} {
+                        $_masks($dir) transparency set $k $j yes
+                        $_masks($dir) transparency set $k [expr {$s-$j-1}] yes
+                    }
+                    incr i -2
+                }
+              }
+              above {
+                set i 0
+                for {set j 0} {$j < $s/2} {incr j} {
+                    set xrhs [expr {$s-$j-1}]
+                    $_fills($dir) put $dark \
+                        -to [expr {$xrhs-1}] $i [expr {$xrhs+1}] [expr {$i+2}]
+                    $_fills($dir) put black \
+                        -to $xrhs [expr {$i+2}] [expr {$xrhs+1}] [expr {$i+4}]
 
-		    set xlhs $j
-		    set xloffs [expr {($j == $s/2-1) ? 1 : 2}]
-		    $_fills($dir) put $light \
-			-to $xlhs $i [expr {$xlhs+$xloffs}] [expr {$i+2}]
-		    $_fills($dir) put black \
-			-to $xlhs [expr {$i+2}] [expr {$xlhs+1}] [expr {$i+4}]
-		    incr i 2
-		}
-		$_stems($dir).l configure -image $_fills($dir)
+                    set xlhs $j
+                    set xloffs [expr {($j == $s/2-1) ? 1 : 2}]
+                    $_fills($dir) put $light \
+                        -to $xlhs $i [expr {$xlhs+$xloffs}] [expr {$i+2}]
+                    $_fills($dir) put black \
+                        -to $xlhs [expr {$i+2}] [expr {$xlhs+1}] [expr {$i+4}]
+                    incr i 2
+                }
+                $_stems($dir).l configure -image $_fills($dir)
 
-		$_masks($dir) put black -to 0 0 $sw $sh
-		set i 0
-		for {set j 0} {$j < $s/2} {incr j} {
-		    for {set k [expr {$i+4}]} {$k < $s+2} {incr k} {
-			$_masks($dir) transparency set $j $k yes
-			$_masks($dir) transparency set [expr {$s-$j-1}] $k yes
-		    }
-		    incr i 2
-		}
-	      }
-	      below {
-		set i $sh
-		for {set j 0} {$j < $s/2} {incr j} {
-		    set xrhs [expr {$s-$j-1}]
-		    $_fills($dir) put $dark \
-			-to [expr {$xrhs-1}] [expr {$i-2}] [expr {$xrhs+1}] $i
-		    $_fills($dir) put black \
-			-to $xrhs [expr {$i-4}] [expr {$xrhs+1}] [expr {$i-2}]
+                $_masks($dir) put black -to 0 0 $sw $sh
+                set i 0
+                for {set j 0} {$j < $s/2} {incr j} {
+                    for {set k [expr {$i+4}]} {$k < $s+2} {incr k} {
+                        $_masks($dir) transparency set $j $k yes
+                        $_masks($dir) transparency set [expr {$s-$j-1}] $k yes
+                    }
+                    incr i 2
+                }
+              }
+              below {
+                set i $sh
+                for {set j 0} {$j < $s/2} {incr j} {
+                    set xrhs [expr {$s-$j-1}]
+                    $_fills($dir) put $dark \
+                        -to [expr {$xrhs-1}] [expr {$i-2}] [expr {$xrhs+1}] $i
+                    $_fills($dir) put black \
+                        -to $xrhs [expr {$i-4}] [expr {$xrhs+1}] [expr {$i-2}]
 
-		    set xlhs $j
-		    set xloffs [expr {($j == $s/2-1) ? 1 : 2}]
-		    $_fills($dir) put $light \
-			-to $xlhs [expr {$i-2}] [expr {$xlhs+$xloffs}] $i
-		    $_fills($dir) put black \
-			-to $xlhs [expr {$i-4}] [expr {$xlhs+1}] [expr {$i-2}]
-		    incr i -2
-		}
-		$_stems($dir).l configure -image $_fills($dir)
+                    set xlhs $j
+                    set xloffs [expr {($j == $s/2-1) ? 1 : 2}]
+                    $_fills($dir) put $light \
+                        -to $xlhs [expr {$i-2}] [expr {$xlhs+$xloffs}] $i
+                    $_fills($dir) put black \
+                        -to $xlhs [expr {$i-4}] [expr {$xlhs+1}] [expr {$i-2}]
+                    incr i -2
+                }
+                $_stems($dir).l configure -image $_fills($dir)
 
-		$_masks($dir) put black -to 0 0 $sw $sh
-		set i $sh
-		for {set j 0} {$j < $s/2} {incr j} {
-		    for {set k 0} {$k < $i-4} {incr k} {
-			$_masks($dir) transparency set $j $k yes
-			$_masks($dir) transparency set [expr {$s-$j-1}] $k yes
-		    }
-		    incr i -2
-		}
-	      }
-	    }
-	}
+                $_masks($dir) put black -to 0 0 $sw $sh
+                set i $sh
+                for {set j 0} {$j < $s/2} {incr j} {
+                    for {set k 0} {$k < $i-4} {incr k} {
+                        $_masks($dir) transparency set $j $k yes
+                        $_masks($dir) transparency set [expr {$s-$j-1}] $k yes
+                    }
+                    incr i -2
+                }
+              }
+            }
+        }
     } else {
-	#
-	# No shape extension.  Do the best we can by creating a
-	# black line for all directions.
-	#
-	foreach {dir w h} [list \
-	    left   $itk_option(-stemlength) 3 \
-	    right  $itk_option(-stemlength) 3 \
-	    above  3 $itk_option(-stemlength) \
-	    below  3 $itk_option(-stemlength) \
-	] {
-	    set _stems($dir) [toplevel $itk_interior.s$dir \
-		-width $w -height $h \
-		-borderwidth 1 -relief solid -background black]
-	    wm withdraw $_stems($dir)
-	    wm overrideredirect $_stems($dir) yes
+        #
+        # No shape extension.  Do the best we can by creating a
+        # black line for all directions.
+        #
+        foreach {dir w h} [list \
+            left   $itk_option(-stemlength) 3 \
+            right  $itk_option(-stemlength) 3 \
+            above  3 $itk_option(-stemlength) \
+            below  3 $itk_option(-stemlength) \
+        ] {
+            set _stems($dir) [toplevel $itk_interior.s$dir \
+                -width $w -height $h \
+                -borderwidth 1 -relief solid -background black]
+            wm withdraw $_stems($dir)
+            wm overrideredirect $_stems($dir) yes
 
-	    # create this for size, even though we don't really use it
-	    set _fills($dir) [image create photo -width $w -height $h]
-	}
+            # create this for size, even though we don't really use it
+            set _fills($dir) [image create photo -width $w -height $h]
+        }
     }
 }
 
@@ -478,9 +478,9 @@ itcl::body Rappture::Balloon::_createStems {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Balloon::outside {widget x y} {
     return [expr {$x < [winfo rootx $widget]
-	     || $x > [winfo rootx $widget]+[winfo width $widget]
-	     || $y < [winfo rooty $widget]
-	     || $y > [winfo rooty $widget]+[winfo height $widget]}]
+             || $x > [winfo rootx $widget]+[winfo width $widget]
+             || $y < [winfo rooty $widget]
+             || $y > [winfo rooty $widget]+[winfo height $widget]}]
 }
 
 # ----------------------------------------------------------------------
@@ -492,7 +492,7 @@ itcl::body Rappture::Balloon::outside {widget x y} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Balloon::stemlength {
     if {$itk_option(-stemlength) % 2 != 0} {
-	error "stem length should be an even number of pixels"
+        error "stem length should be an even number of pixels"
     }
 }
 
@@ -501,18 +501,18 @@ itcl::configbody Rappture::Balloon::stemlength {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Balloon::dismissbutton {
     if {![string is boolean $itk_option(-dismissbutton)]} {
-	error "bad value \"$itk_option(-dismissbutton)\": should be on/off, 1/0, true/false, yes/no"
+        error "bad value \"$itk_option(-dismissbutton)\": should be on/off, 1/0, true/false, yes/no"
     }
     if {$itk_option(-dismissbutton)} {
-	pack $itk_component(titlebar) -before $itk_component(inner) \
-	    -side top -fill x
-	pack $itk_component(dismiss) -side right -padx 4
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        pack $itk_component(dismiss) -side right -padx 4
     } elseif {"" != $itk_option(-title)} {
-	pack $itk_component(titlebar) -before $itk_component(inner) \
-	    -side top -fill x
-	pack forget $itk_component(dismiss)
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        pack forget $itk_component(dismiss)
     } else {
-	pack forget $itk_component(titlebar)
+        pack forget $itk_component(titlebar)
     }
 }
 
@@ -535,14 +535,14 @@ itcl::configbody Rappture::Balloon::pady {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Balloon::title {
     if {"" != $itk_option(-title) || $itk_option(-dismissbutton)} {
-	pack $itk_component(titlebar) -before $itk_component(inner) \
-	    -side top -fill x
-	if {$itk_option(-dismissbutton)} {
-	    pack $itk_component(dismiss) -side right -padx 4
-	} else {
-	    pack forget $itk_component(dismiss)
-	}
+        pack $itk_component(titlebar) -before $itk_component(inner) \
+            -side top -fill x
+        if {$itk_option(-dismissbutton)} {
+            pack $itk_component(dismiss) -side right -padx 4
+        } else {
+            pack forget $itk_component(dismiss)
+        }
     } else {
-	pack forget $itk_component(titlebar)
+        pack forget $itk_component(titlebar)
     }
 }

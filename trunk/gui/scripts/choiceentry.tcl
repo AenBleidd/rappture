@@ -46,7 +46,7 @@ itk::usual ChoiceEntry {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ChoiceEntry::constructor {owner path args} {
     if {[catch {$owner isa Rappture::ControlOwner} valid] != 0 || !$valid} {
-	error "bad object \"$owner\": should be Rappture::ControlOwner"
+        error "bad object \"$owner\": should be Rappture::ControlOwner"
     }
     set _owner $owner
     set _path $path
@@ -56,7 +56,7 @@ itcl::body Rappture::ChoiceEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add choice {
-	Rappture::Combobox $itk_interior.choice -editable no
+        Rappture::Combobox $itk_interior.choice -editable no
     }
     pack $itk_component(choice) -expand yes -fill both
     bind $itk_component(choice) <<Value>> [itcl::code $this _newValue]
@@ -86,33 +86,33 @@ itcl::body Rappture::ChoiceEntry::value {args} {
     set onlycheck 0
     set i [lsearch -exact $args -check]
     if {$i >= 0} {
-	set onlycheck 1
-	set args [lreplace $args $i $i]
+        set onlycheck 1
+        set args [lreplace $args $i $i]
     }
 
     if {[llength $args] == 1} {
-	if {$onlycheck} {
-	    # someday we may add validation...
-	    return
-	}
-	set newval [lindex $args 0]
-	if {[info exists _str2val($newval)]} {
-	    # this is a label -- use it directly
-	    $itk_component(choice) value $newval
-	    set newval $_str2val($newval)  ;# report the actual value
-	} else {
-	    # this is a value -- search for corresponding label
-	    foreach str [array names _str2val] {
-		if {$_str2val($str) == $newval} {
-		    $itk_component(choice) value $str
-		    break
-		}
-	    }
-	}
-	return $newval
+        if {$onlycheck} {
+            # someday we may add validation...
+            return
+        }
+        set newval [lindex $args 0]
+        if {[info exists _str2val($newval)]} {
+            # this is a label -- use it directly
+            $itk_component(choice) value $newval
+            set newval $_str2val($newval)  ;# report the actual value
+        } else {
+            # this is a value -- search for corresponding label
+            foreach str [array names _str2val] {
+                if {$_str2val($str) == $newval} {
+                    $itk_component(choice) value $str
+                    break
+                }
+            }
+        }
+        return $newval
 
     } elseif {[llength $args] != 0} {
-	error "wrong # args: should be \"value ?-check? ?newval?\""
+        error "wrong # args: should be \"value ?-check? ?newval?\""
     }
 
     #
@@ -120,7 +120,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
     #
     set str [$itk_component(choice) value]
     if {[info exists _str2val($str)]} {
-	return $_str2val($str)
+        return $_str2val($str)
     }
     return $str
 }
@@ -134,7 +134,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
 itcl::body Rappture::ChoiceEntry::label {} {
     set label [$_owner xml get $_path.about.label]
     if {"" == $label} {
-	set label "Choice"
+        set label "Choice"
     }
     return $label
 }
@@ -170,69 +170,69 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
     #
     set max 10
     foreach cname [$_owner xml children -type option $_path] {
-	set path [string trim [$_owner xml get $_path.$cname.path]]
-	if {"" != $path} {
-	    # look for the input element controlling this path
-	    set found 0
-	    foreach cntl [Rappture::entities [$_owner xml object] "input"] {
-		set len [string length $cntl]
-		if {[string equal -length $len $cntl $path]} {
-		    set found 1
-		    break
-		}
-	    }
-	    if {$found} {
-		#
-		# Choice comes from a list of matching entities at
-		# a particular XML path.  Use the <label> as a template
-		# for each item on the path.
-		#
-		$_owner notify add $this $cntl [itcl::code $this _rebuild]
+        set path [string trim [$_owner xml get $_path.$cname.path]]
+        if {"" != $path} {
+            # look for the input element controlling this path
+            set found 0
+            foreach cntl [Rappture::entities [$_owner xml object] "input"] {
+                set len [string length $cntl]
+                if {[string equal -length $len $cntl $path]} {
+                    set found 1
+                    break
+                }
+            }
+            if {$found} {
+                #
+                # Choice comes from a list of matching entities at
+                # a particular XML path.  Use the <label> as a template
+                # for each item on the path.
+                #
+                $_owner notify add $this $cntl [itcl::code $this _rebuild]
 
-		set label [string trim [$_owner xml get $_path.$cname.about.label]]
-		if {"" == $label} {
-		    set label "%type #%n"
-		}
+                set label [string trim [$_owner xml get $_path.$cname.about.label]]
+                if {"" == $label} {
+                    set label "%type #%n"
+                }
 
-		set ppath [Rappture::LibraryObj::path2list $path]
-		set leading [join [lrange $ppath 0 end-1] .]
-		set tail [lindex $ppath end]
-		set n 1
-		foreach ccname [$_owner xml children $leading] {
-		    if {[string match $tail $ccname]} {
-			set subst(%n) $n
-			set subst(%type) [$_owner xml element -as type $leading.$ccname]
-			set subst(%id) [$_owner xml element -as id $leading.$ccname]
-			foreach detail [$_owner xml children $leading.$ccname] {
-			    set subst(%$detail) [$_owner xml get $leading.$ccname.$detail]
-			}
-			set str [string map [array get subst] $label]
-			$itk_component(choice) choices insert end \
-			    $leading.$ccname $str
-			incr n
-		    }
-		}
-		$itk_component(choice) value ""
-	    } else {
-		puts "can't find controlling entity for path \"$path\""
-	    }
-	} else {
-	    #
-	    # Choice is an ordinary LABEL.
-	    # Add the label as-is into the list of choices.
-	    #
-	    set val [string trim [$_owner xml get $_path.$cname.value]]
-	    set str [string trim [$_owner xml get $_path.$cname.about.label]]
-	    if {"" == $val} {
-		set val $str
-	    }
-	    if {"" != $str} {
-		set _str2val($str) $val
-		$itk_component(choice) choices insert end $_path.$cname $str
-		set len [string length $str]
-		if {$len > $max} { set max $len }
-	    }
-	}
+                set ppath [Rappture::LibraryObj::path2list $path]
+                set leading [join [lrange $ppath 0 end-1] .]
+                set tail [lindex $ppath end]
+                set n 1
+                foreach ccname [$_owner xml children $leading] {
+                    if {[string match $tail $ccname]} {
+                        set subst(%n) $n
+                        set subst(%type) [$_owner xml element -as type $leading.$ccname]
+                        set subst(%id) [$_owner xml element -as id $leading.$ccname]
+                        foreach detail [$_owner xml children $leading.$ccname] {
+                            set subst(%$detail) [$_owner xml get $leading.$ccname.$detail]
+                        }
+                        set str [string map [array get subst] $label]
+                        $itk_component(choice) choices insert end \
+                            $leading.$ccname $str
+                        incr n
+                    }
+                }
+                $itk_component(choice) value ""
+            } else {
+                puts "can't find controlling entity for path \"$path\""
+            }
+        } else {
+            #
+            # Choice is an ordinary LABEL.
+            # Add the label as-is into the list of choices.
+            #
+            set val [string trim [$_owner xml get $_path.$cname.value]]
+            set str [string trim [$_owner xml get $_path.$cname.about.label]]
+            if {"" == $val} {
+                set val $str
+            }
+            if {"" != $str} {
+                set _str2val($str) $val
+                $itk_component(choice) choices insert end $_path.$cname $str
+                set len [string length $str]
+                if {$len > $max} { set max $len }
+            }
+        }
     }
     $itk_component(choice) configure -width $max
 
@@ -241,16 +241,16 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
     #
     set defval [$_owner xml get $_path.default]
     if {"" != $defval} {
-	if {[info exists _str2val($defval)]} {
-	    $itk_component(choice) value $defval
-	} else {
-	    foreach str [array names _str2val] {
-		if {$_str2val($str) == $defval} {
-		    $itk_component(choice) value $str
-		    break
-		}
-	    }
-	}
+        if {[info exists _str2val($defval)]} {
+            $itk_component(choice) value $defval
+        } else {
+            foreach str [array names _str2val] {
+                if {$_str2val($str) == $defval} {
+                    $itk_component(choice) value $str
+                    break
+                }
+            }
+        }
     }
 }
 
@@ -279,11 +279,11 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
     set path [$itk_component(choice) translate $str]
     set desc ""
     if {$path != ""} {
-	set desc [$_owner xml get $path.about.description]
+        set desc [$_owner xml get $path.about.description]
     }
 
     if {[string length $str] > 0 && [string length $desc] > 0} {
-	append tip "\n\n$str:\n$desc"
+        append tip "\n\n$str:\n$desc"
     }
     return $tip
 }
@@ -294,7 +294,7 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
 itcl::configbody Rappture::ChoiceEntry::state {
     set valid {normal disabled}
     if {[lsearch -exact $valid $itk_option(-state)] < 0} {
-	error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
+        error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(choice) configure -state $itk_option(-state)
 }

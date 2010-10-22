@@ -2750,7 +2750,7 @@ itcl::body Rappture::FlowvisViewer::flow { args } {
             }
         }
         "next" {
-	    if { ![winfo viewable $itk_component(3dview)] } {
+            if { ![winfo viewable $itk_component(3dview)] } {
                 flow stop
                 return
             }

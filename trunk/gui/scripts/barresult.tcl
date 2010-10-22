@@ -77,17 +77,17 @@ itcl::class Rappture::BarResult {
     itk_option define -autocolors autoColors AutoColors ""
 
     constructor {args} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
     public method parameters {title args} { 
-	# do nothing 
+        # do nothing 
     }
     public method download {option args}
 
@@ -717,17 +717,17 @@ itcl::body Rappture::BarResult::_rebuild {} {
 
             set elem "elem[incr count]"
             set _elem2dataobj($elem) $dataobj
-	    set labels [$dataobj hints xticks]
-	    if { $labels != "" } {
-		$g axis configure $mapx \
-		    -command [itcl::code $this _formatTickLabel] \
-		    -minorticks 0 
-		set _tickLabels $labels
-	    }
-	    $g element create $elem -x $xv -y $yv \
-		-borderwidth $lwidth -label $label \
-		-background $color -foreground $color -mapx $mapx -mapy $mapy
-	}
+            set labels [$dataobj hints xticks]
+            if { $labels != "" } {
+                $g axis configure $mapx \
+                    -command [itcl::code $this _formatTickLabel] \
+                    -minorticks 0 
+                set _tickLabels $labels
+            }
+            $g element create $elem -x $xv -y $yv \
+                -borderwidth $lwidth -label $label \
+                -background $color -foreground $color -mapx $mapx -mapy $mapy
+        }
     }
 
     # Fix duplicate labels by appending the simulation number
@@ -805,7 +805,7 @@ itcl::body Rappture::BarResult::_rebuild {} {
 itcl::body Rappture::BarResult::_resetLimits {} {
     set g $itk_component(plot)
     foreach axis [$g axis names] {
-	$g axis configure $axis -min "" -max ""
+        $g axis configure $axis -min "" -max ""
     }
     return
 
@@ -961,25 +961,25 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
                 
-		if {[info exists _elem2dataobj($elem)]} {
-		    set dataobj $_elem2dataobj($elem)
-		    set yunits [$dataobj hints yunits]
-		    set xunits [$dataobj hints xunits]
-		} else {
-		    set xunits ""
-		    set yunits ""
-		}
-		set tip [$g element cget $elem -label]
-		set yval [_axis format y dummy $info(y)]
-		append tip "\n$yval$yunits"
-		set xval [_axis format x dummy $info(x)]
-		append tip " @ $xval$xunits"
-		set tip [string trim $tip]
-		set state 1
-	    } else {
-		set state 0
-	    }
-	}
+                if {[info exists _elem2dataobj($elem)]} {
+                    set dataobj $_elem2dataobj($elem)
+                    set yunits [$dataobj hints yunits]
+                    set xunits [$dataobj hints xunits]
+                } else {
+                    set xunits ""
+                    set yunits ""
+                }
+                set tip [$g element cget $elem -label]
+                set yval [_axis format y dummy $info(y)]
+                append tip "\n$yval$yunits"
+                set xval [_axis format x dummy $info(x)]
+                append tip " @ $xval$xunits"
+                set tip [string trim $tip]
+                set state 1
+            } else {
+                set state 0
+            }
+        }
     }
 
     if {$state} {
@@ -994,14 +994,14 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
             $g crosshairs configure -hide yes
             Rappture::Tooltip::tooltip cancel
         }
-	set bg [$g element cget $elem -background]
-	set fg [$g element cget $elem -background]
+        set bg [$g element cget $elem -background]
+        set fg [$g element cget $elem -background]
         foreach {h s v} [Rappture::color::RGBtoHSV $fg] break
-	if { $v > 0.2 } {
-	    set v [expr $v - 0.2]
-	}
-	set fg [Rappture::color::HSVtoRGB $h $s $v]
-	$g pen configure activeBar -background $bg -foreground $fg
+        if { $v > 0.2 } {
+            set v [expr $v - 0.2]
+        }
+        set fg [Rappture::color::HSVtoRGB $h $s $v]
+        $g pen configure activeBar -background $bg -foreground $fg
         $g element activate $elem
         set _hilite(elem) $elem
 
@@ -1516,7 +1516,7 @@ itcl::body Rappture::BarResult::_getTextMarkerOptions {style} {
         "-xoffset" "-xoffset"
         "-yoffset" "-yoffset"
         "-anchor" "-anchor"
-	"-rotate" "-rotate"
+        "-rotate" "-rotate"
     }
     set options {}
     foreach {name value} $style {
@@ -1609,11 +1609,11 @@ itcl::body Rappture::BarResult::_formatTickLabel { w value } {
 
     set index [expr round($value)]
     if { $index != $value } {
-	return $value 
+        return $value 
     }
     return [lindex  $_tickLabels [expr $index - 1]]
     if { $label == "" } {
-	return $value
+        return $value
     }
     return $label
 }

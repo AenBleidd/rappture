@@ -46,7 +46,7 @@ itcl::class Rappture::ImageResult {
     private variable _scale         ;# info related to zoom
     private variable _image         ;# image buffers used for scaling
 }
-										
+                                                                                
 itk::usual ImageResult {
     keep -background -foreground -cursor -font
 }
@@ -60,11 +60,11 @@ itcl::body Rappture::ImageResult::constructor {args} {
     $_dispatcher dispatch $this !rebuild [itcl::code $this _rebuild]
 
     array set _scale {
-	max 1.0
-	current 1.0
-	default 1
-	x 0
-	y 0
+        max 1.0
+        current 1.0
+        default 1
+        x 0
+        y 0
     }
 
     option add hull.width hull.height
@@ -76,48 +76,48 @@ itcl::body Rappture::ImageResult::constructor {args} {
     $itk_interior.panes fraction 0 1
 
     itk_component add controls {
-	frame $main.cntls
+        frame $main.cntls
     } {
-	usual
-	rename -background -controlbackground controlBackground Background
+        usual
+        rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(controls) -side right -fill y
 
     itk_component add reset {
-	button $itk_component(controls).reset \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -bitmap [Rappture::icon reset] \
-	    -command [itcl::code $this _zoom reset]
+        button $itk_component(controls).reset \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap [Rappture::icon reset] \
+            -command [itcl::code $this _zoom reset]
     } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-	button $itk_component(controls).zin \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -bitmap [Rappture::icon zoomin] \
-	    -command [itcl::code $this _zoom in]
+        button $itk_component(controls).zin \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap [Rappture::icon zoomin] \
+            -command [itcl::code $this _zoom in]
     } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomin) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
 
     itk_component add zoomout {
-	button $itk_component(controls).zout \
-	    -borderwidth 1 -padx 1 -pady 1 \
-	    -bitmap [Rappture::icon zoomout] \
-	    -command [itcl::code $this _zoom out]
+        button $itk_component(controls).zout \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -bitmap [Rappture::icon zoomout] \
+            -command [itcl::code $this _zoom out]
     } {
-	usual
-	ignore -borderwidth
-	rename -highlightbackground -controlbackground controlBackground Background
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(zoomout) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -127,9 +127,9 @@ itcl::body Rappture::ImageResult::constructor {args} {
     set _image(final) [image create photo]
 
     itk_component add image {
-	label $main.image -image $_image(final) -anchor c 
+        label $main.image -image $_image(final) -anchor c 
     } {
-	keep -background -foreground -cursor -font
+        keep -background -foreground -cursor -font
     }
     pack $itk_component(image) -expand yes -fill both
 
@@ -137,14 +137,14 @@ itcl::body Rappture::ImageResult::constructor {args} {
     # Add bindings for resize/move
     #
     bind $itk_component(image) <Configure> \
-	[list $_dispatcher event -idle !rebuild resize 1]
+        [list $_dispatcher event -idle !rebuild resize 1]
 
     bind $itk_component(image) <ButtonPress-1> \
-	[itcl::code $this _move click %x %y]
+        [itcl::code $this _move click %x %y]
     bind $itk_component(image) <B1-Motion> \
-	[itcl::code $this _move drag %x %y]
+        [itcl::code $this _move drag %x %y]
     bind $itk_component(image) <ButtonRelease-1> \
-	[itcl::code $this _move release %x %y]
+        [itcl::code $this _move release %x %y]
 
     #
     # Add area at the bottom for notes.
@@ -154,7 +154,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
     Rappture::Scroller $notes.scr -xscrollmode auto -yscrollmode auto
     pack $notes.scr -expand yes -fill both
     itk_component add notes {
-	Rappture::HTMLviewer $notes.scr.html
+        Rappture::HTMLviewer $notes.scr.html
     }
     $notes.scr contents $notes.scr.html
 
@@ -166,7 +166,7 @@ itcl::body Rappture::ImageResult::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::destructor {} {
     foreach name [array names _image] {
-	image delete $_image($name)
+        image delete $_image($name)
     }
 }
 
@@ -179,30 +179,30 @@ itcl::body Rappture::ImageResult::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::add {image {settings ""}} {
     array set params {
-	-color auto
-	-brightness 0
-	-width 1
-	-raise 0
-	-linestyle solid
-	-description ""
-	-param ""
+        -color auto
+        -brightness 0
+        -width 1
+        -raise 0
+        -linestyle solid
+        -description ""
+        -param ""
     }
     foreach {opt val} $settings {
-	if {![info exists params($opt)]} {
-	    error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
-	}
-	set params($opt) $val
+        if {![info exists params($opt)]} {
+            error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
     }
 
     if {$params(-raise)} {
-	set _topmost $image
-	$_dispatcher event -idle !rebuild
+        set _topmost $image
+        $_dispatcher event -idle !rebuild
     }
 
     set pos [lsearch -exact $image $_dlist]
     if {$pos < 0} {
-	lappend _dlist $image
-	$_dispatcher event -idle !rebuild
+        lappend _dlist $image
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -218,8 +218,8 @@ itcl::body Rappture::ImageResult::get {} {
 
     set i [lsearch $_dlist $_topmost]
     if {$i >= 0} {
-	set dlist [lreplace $dlist $i $i]
-	set dlist [linsert $dlist 0 $_topmost]
+        set dlist [lreplace $dlist $i $i]
+        set dlist [linsert $dlist 0 $_topmost]
     }
     return $dlist
 }
@@ -232,26 +232,26 @@ itcl::body Rappture::ImageResult::get {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::delete {args} {
     if {[llength $args] == 0} {
-	set args $_dlist
+        set args $_dlist
     }
 
     # delete all specified curves
     set changed 0
     foreach image $args {
-	set pos [lsearch -exact $_dlist $image]
-	if {$pos >= 0} {
-	    set _dlist [lreplace $_dlist $pos $pos]
-	    set changed 1
+        set pos [lsearch -exact $_dlist $image]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            set changed 1
 
-	    if {$image == $_topmost} {
-		set _topmost ""
-	    }
-	}
+            if {$image == $_topmost} {
+                set _topmost ""
+            }
+        }
     }
 
     # if anything changed, then rebuild the plot
     if {$changed} {
-	$_dispatcher event -idle !rebuild
+        $_dispatcher event -idle !rebuild
     }
 }
 
@@ -268,13 +268,13 @@ itcl::body Rappture::ImageResult::scale {args} {
     set _max(w) 0
     set _max(h) 0
     foreach image $args {
-	set imh [$image tkimage]
+        set imh [$image tkimage]
 
-	set w [image width $imh]
-	if {$w > $_max(w)} { set _max(w) $w }
+        set w [image width $imh]
+        if {$w > $_max(w)} { set _max(w) $w }
 
-	set h [image height $imh]
-	if {$h > $_max(h)} { set _max(h) $h }
+        set h [image height $imh]
+        if {$h > $_max(h)} { set _max(h) $h }
     }
 
     # scale is unknown for now... scale later at next _rebuild
@@ -296,29 +296,29 @@ itcl::body Rappture::ImageResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::download {option args} {
     switch $option {
-	coming {
-	    # nothing to do
-	}
-	controls {
-	    # no controls for this download yet
-	    return ""
-	}
-	now {
-	    set top [_top image]
-	    if {$top == ""} {
-		return ""
-	    }
-	    # Get the image data (as base64) and decode it back to binary.
-	    # This is better than writing to temporary files.  When we switch
-	    # to the BLT picture image it won't be necessary to decode the
-	    # image data.
-	    set bytes [$top data -format "jpeg -quality 100"]
-	    set bytes [Rappture::encoding::decode -as b64 $bytes]
-	    return [list .jpg $bytes]
-	}
-	default {
-	    error "bad option \"$option\": should be coming, controls, now"
-	}
+        coming {
+            # nothing to do
+        }
+        controls {
+            # no controls for this download yet
+            return ""
+        }
+        now {
+            set top [_top image]
+            if {$top == ""} {
+                return ""
+            }
+            # Get the image data (as base64) and decode it back to binary.
+            # This is better than writing to temporary files.  When we switch
+            # to the BLT picture image it won't be necessary to decode the
+            # image data.
+            set bytes [$top data -format "jpeg -quality 100"]
+            set bytes [Rappture::encoding::decode -as b64 $bytes]
+            return [list .jpg $bytes]
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now"
+        }
     }
 }
 
@@ -332,19 +332,19 @@ itcl::body Rappture::ImageResult::download {option args} {
 itcl::body Rappture::ImageResult::_rebuild {args} {
     array set event $args
     if {[info exists event(resize)] && $event(resize)} {
-	# window changed size -- recompute max scale below
-	set _scale(max) "?"
+        # window changed size -- recompute max scale below
+        set _scale(max) "?"
     }
 
     if {$_scale(max) == "?"} {
-	if {![_zoom rescale]} {
-	    return
-	}
+        if {![_zoom rescale]} {
+            return
+        }
     }
     if {$_scale(current) == "?" || $_scale(default)} {
-	set _scale(current) $_scale(max)
-	set _scale(x) 0.5
-	set _scale(y) 0.5
+        set _scale(current) $_scale(max)
+        set _scale(x) 0.5
+        set _scale(y) 0.5
     }
 
     set w [winfo width $itk_component(image)]
@@ -388,51 +388,51 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
                 set sy 0
             }
 
-	    if {$wz > 1 && $hz > 1} {
-		$_image(zoom) configure -width $wz -height $hz
+            if {$wz > 1 && $hz > 1} {
+                $_image(zoom) configure -width $wz -height $hz
                 set wf [expr {round(double($wz)/$_scale(current))}]
                 set hf [expr {round(double($hz)/$_scale(current))}]
                 $_image(final) configure -width $wf -height $hf
-		$_image(zoom) copy $imh -from $sx $sy
-		blt::winop resample $_image(zoom) $_image(final) sinc
-	    }
-	} else {
+                $_image(zoom) copy $imh -from $sx $sy
+                blt::winop resample $_image(zoom) $_image(final) sinc
+            }
+        } else {
             #
             # Scale the image down by creating a "zoom" image which
             # is smaller than the current image.  Resize the original
             # image to the smaller size, then copy into the current
             # view.
             #
-	    set wz [expr {round(double($iw)/$_scale(current))}]
-	    set hz [expr {round(double($ih)/$_scale(current))}]
-	    if {$wz > 1 && $hz > 1} {
-		$_image(zoom) configure -width $wz -height $hz
+            set wz [expr {round(double($iw)/$_scale(current))}]
+            set hz [expr {round(double($ih)/$_scale(current))}]
+            if {$wz > 1 && $hz > 1} {
+                $_image(zoom) configure -width $wz -height $hz
                 $_image(zoom) put $bg -to 0 0 $wz $hz
-		blt::winop resample $imh $_image(zoom) sinc
+                blt::winop resample $imh $_image(zoom) sinc
 
                 $_image(final) configure -width $wz -height $hz
-		$_image(final) copy $_image(zoom) -from 0 0
-	    }
-	}
+                $_image(final) copy $_image(zoom) -from 0 0
+            }
+        }
     }
 
     set note [_top note]
     if {[string length $note] > 0} {
-	if {[regexp {^html://} $note]} {
-	    set note [string range $note 7 end]
-	} else {
-	    regexp {&} $note {\007} note
-	    regexp {<} $note {\&lt;} note
-	    regexp {>} $note {\&gt;} note
-	    regexp {\007} $note {\&amp;} note
-	    regexp "\n\n" $note {<br/>} note
-	    set note "<html><body>$note</body></html>"
-	}
-	set notes [$itk_interior.panes pane 1]
-	$itk_component(notes) load $note -in [file join [_top tooldir] docs]
-	$itk_interior.panes visibility 1 on
+        if {[regexp {^html://} $note]} {
+            set note [string range $note 7 end]
+        } else {
+            regexp {&} $note {\007} note
+            regexp {<} $note {\&lt;} note
+            regexp {>} $note {\&gt;} note
+            regexp {\007} $note {\&amp;} note
+            regexp "\n\n" $note {<br/>} note
+            set note "<html><body>$note</body></html>"
+        }
+        set notes [$itk_interior.panes pane 1]
+        $itk_component(notes) load $note -in [file join [_top tooldir] docs]
+        $itk_interior.panes visibility 1 on
     } else {
-	$itk_interior.panes visibility 1 off
+        $itk_interior.panes visibility 1 off
     }
 }
 
@@ -444,15 +444,15 @@ itcl::body Rappture::ImageResult::_rebuild {args} {
 itcl::body Rappture::ImageResult::_top {option} {
     set top $_topmost
     if {"" == $top} {
-	set top [lindex $_dlist 0]
+        set top [lindex $_dlist 0]
     }
     if {"" != $top} {
-	switch -- $option {
-	    image   { return [$top tkimage] }
-	    note    { return [$top hints note] }
-	    tooldir { return [$top hints tooldir] }
-	    default { error "bad option \"$option\": should be image, note, tooldir" }
-	}
+        switch -- $option {
+            image   { return [$top tkimage] }
+            note    { return [$top hints note] }
+            tooldir { return [$top hints tooldir] }
+            default { error "bad option \"$option\": should be image, note, tooldir" }
+        }
     }
     return ""
 }
@@ -467,18 +467,18 @@ itcl::body Rappture::ImageResult::_top {option} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::_zoom {option args} {
     switch -- $option {
-	rescale {
-	    # empty list? then reset w/h max size
-	    if {[llength $_dlist] == 0} {
-		set _max(w) 0
-		set _max(h) 0
-		set _scale(max) 1.0
-	    } else {
-		set w [winfo width $itk_component(image)]
-		set h [winfo height $itk_component(image)]
-		if {$w == 1 && $h == 1} {
-		    return 0
-		}
+        rescale {
+            # empty list? then reset w/h max size
+            if {[llength $_dlist] == 0} {
+                set _max(w) 0
+                set _max(h) 0
+                set _scale(max) 1.0
+            } else {
+                set w [winfo width $itk_component(image)]
+                set h [winfo height $itk_component(image)]
+                if {$w == 1 && $h == 1} {
+                    return 0
+                }
 
                 if {$w < $h} {
                     if {$_max(w)/double($_max(h)) > $w/double($h)} {
@@ -493,33 +493,33 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
                         set _scale(max) [expr {$_max(w)/double($w)}]
                     }
                 }
-	    }
-	    return 1
-	}
-	reset {
-	    set _scale(current) $_scale(max)
-	    set _scale(default) 1
-	    set _scale(x) 0.5
-	    set _scale(y) 0.5
-	}
-	in {
-	    set _scale(current) [expr {$_scale(current)*0.8}]
-	    set _scale(default) 0
-	}
-	out {
-	    set w [winfo width $itk_component(image)]
-	    set h [winfo height $itk_component(image)]
-	    if {$_max(w)/$_scale(current) > $w
-		  || $_max(h)/$_scale(current) > $h} {
-		# must be room left to zoom -- zoom out, but not beyond max
-		set _scale(current) [expr {$_scale(current)*1.25}]
-		if {$_scale(current) > $_scale(max)} {
-		    set _scale(current) $_scale(max)
-		}
-	    } else {
-		# no room left to zoom -- zoom out max
+            }
+            return 1
+        }
+        reset {
+            set _scale(current) $_scale(max)
+            set _scale(default) 1
+            set _scale(x) 0.5
+            set _scale(y) 0.5
+        }
+        in {
+            set _scale(current) [expr {$_scale(current)*0.8}]
+            set _scale(default) 0
+        }
+        out {
+            set w [winfo width $itk_component(image)]
+            set h [winfo height $itk_component(image)]
+            if {$_max(w)/$_scale(current) > $w
+                  || $_max(h)/$_scale(current) > $h} {
+                # must be room left to zoom -- zoom out, but not beyond max
+                set _scale(current) [expr {$_scale(current)*1.25}]
+                if {$_scale(current) > $_scale(max)} {
+                    set _scale(current) $_scale(max)
+                }
+            } else {
+                # no room left to zoom -- zoom out max
                 set _scale(current) $_scale(max)
-	    }
+            }
 
             # fix the center of view, in case it is now out of bounds
             if {$_scale(current) > 1.0} {
@@ -528,8 +528,8 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
             }
 
             # keep this zoom setting now that we've zoomed out
-	    set _scale(default) 0
-	}
+            set _scale(default) 0
+        }
     }
     $_dispatcher event -idle !rebuild
 }
@@ -545,24 +545,24 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ImageResult::_move {option args} {
     switch -- $option {
-	click {
-	    foreach {x y} $args break
-	    $itk_component(image) configure -cursor fleur
-	    set _scale(x0) $_scale(x)
-	    set _scale(y0) $_scale(y)
-	    set _scale(xclick) $x
-	    set _scale(yclick) $y
-	}
-	drag {
-	    foreach {x y} $args break
-	    if {[info exists _scale(xclick)] && [info exists _scale(yclick)]} {
-		set w [winfo width $itk_component(image)]
-		set h [winfo height $itk_component(image)]
-		set wx [expr {round($_max(w)/$_scale(current))}]
-		set hy [expr {round($_max(h)/$_scale(current))}]
-		if {$wx > $w || $hy > $h} {
-		    set x [expr {$_scale(x0)-($x-$_scale(xclick))/double($wx)}]
-		    set y [expr {$_scale(y0)-($y-$_scale(yclick))/double($hy)}]
+        click {
+            foreach {x y} $args break
+            $itk_component(image) configure -cursor fleur
+            set _scale(x0) $_scale(x)
+            set _scale(y0) $_scale(y)
+            set _scale(xclick) $x
+            set _scale(yclick) $y
+        }
+        drag {
+            foreach {x y} $args break
+            if {[info exists _scale(xclick)] && [info exists _scale(yclick)]} {
+                set w [winfo width $itk_component(image)]
+                set h [winfo height $itk_component(image)]
+                set wx [expr {round($_max(w)/$_scale(current))}]
+                set hy [expr {round($_max(h)/$_scale(current))}]
+                if {$wx > $w || $hy > $h} {
+                    set x [expr {$_scale(x0)-($x-$_scale(xclick))/double($wx)}]
+                    set y [expr {$_scale(y0)-($y-$_scale(yclick))/double($hy)}]
                     if {$x*$_max(w) < 0.5*$w*$_scale(current)} {
                         set x [expr {0.5*$w*$_scale(current)/$_max(w)}]
                     }
@@ -575,23 +575,23 @@ itcl::body Rappture::ImageResult::_move {option args} {
                     if {$y*$_max(h) > $_max(h) - 0.5*$h*$_scale(current)} {
                         set y [expr {1 - 0.5*$h*$_scale(current)/$_max(h)}]
                     }
-		    set _scale(x) $x
-		    set _scale(y) $y
-		} else {
-		    set _scale(x) 0.5
-		    set _scale(y) 0.5
-		}
-		$_dispatcher event -idle !rebuild
-	    }
-	}
-	release {
-	    eval _move drag $args
-	    $itk_component(image) configure -cursor ""
-	    catch {unset _scale(xclick)}
-	    catch {unset _scale(yclick)}
-	}
-	default {
-	    error "bad option \"$option\": should be click, drag, release"
-	}
+                    set _scale(x) $x
+                    set _scale(y) $y
+                } else {
+                    set _scale(x) 0.5
+                    set _scale(y) 0.5
+                }
+                $_dispatcher event -idle !rebuild
+            }
+        }
+        release {
+            eval _move drag $args
+            $itk_component(image) configure -cursor ""
+            catch {unset _scale(xclick)}
+            catch {unset _scale(yclick)}
+        }
+        default {
+            error "bad option \"$option\": should be click, drag, release"
+        }
     }
 }

@@ -35,7 +35,7 @@ itcl::class Rappture::Table {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be Rappture::library"
+        error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _table [$xmlobj element -as object $path]
 
@@ -44,21 +44,21 @@ itcl::body Rappture::Table::constructor {xmlobj path} {
     #
     set _tuples [Rappture::Tuples ::#auto]
     foreach cname [$_table children -type column] {
-	set label [$_table get $cname.label]
-	$_tuples column insert end -name $cname -label $label
+        set label [$_table get $cname.label]
+        $_tuples column insert end -name $cname -label $label
     }
 
     set cols [llength [$_tuples column names]]
     set nline 1
     foreach line [split [$_table get data] \n] {
-	if {[llength $line] == 0} {
-	    continue
-	}
-	if {[llength $line] != $cols} {
-	    error "bad data at line $nline: expected $cols columns but got \"[string trim $line]\""
-	}
-	$_tuples insert end $line
-	incr nline
+        if {[llength $line] == 0} {
+            continue
+        }
+        if {[llength $line] != $cols} {
+            error "bad data at line $nline: expected $cols columns but got \"[string trim $line]\""
+        }
+        $_tuples insert end $line
+        incr nline
     }
 }
 
@@ -87,55 +87,55 @@ itcl::body Rappture::Table::rows {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::columns {args} {
     Rappture::getopts args params {
-	flag switch -component
-	flag switch -label default
-	flag switch -units
+        flag switch -component
+        flag switch -label default
+        flag switch -units
     }
     if {[llength $args] == 0} {
-	set cols [llength [$_tuples column names]]
-	set plist ""
-	for {set i 0} {$i < $cols} {incr i} {
-	    lappend plist $i
-	}
+        set cols [llength [$_tuples column names]]
+        set plist ""
+        for {set i 0} {$i < $cols} {incr i} {
+            lappend plist $i
+        }
     } elseif {[llength $args] == 1} {
-	set p [lindex $args 0]
-	if {[string is integer $p]} {
-	    lappend plist $p
-	} else {
-	    set pos [lsearch -exact [$_tuples column names] $p]
-	    if {$pos < 0} {
-		error "bad column \"$p\": should be column name or integer index"
-	    }
-	    lappend plist $pos
-	}
+        set p [lindex $args 0]
+        if {[string is integer $p]} {
+            lappend plist $p
+        } else {
+            set pos [lsearch -exact [$_tuples column names] $p]
+            if {$pos < 0} {
+                error "bad column \"$p\": should be column name or integer index"
+            }
+            lappend plist $pos
+        }
     } else {
-	error "wrong # args: should be \"columns ?-component|-label|-units? ?pos?\""
+        error "wrong # args: should be \"columns ?-component|-label|-units? ?pos?\""
     }
 
     set rlist ""
     switch -- $params(switch) {
-	-component {
-	    set names [$_tuples column names]
-	    foreach p $plist {
-		lappend rlist [lindex $names $p]
-	    }
-	}
-	-label {
-	    set names [$_tuples column names]
-	    foreach p $plist {
-		set name [lindex $names $p]
-		catch {unset opts}
-		array set opts [$_tuples column info $name]
-		lappend rlist $opts(-label)
-	    }
-	}
-	-units {
-	    set names [$_tuples column names]
-	    foreach p $plist {
-		set comp [lindex $names $p]
-		lappend rlist [$_table get $comp.units]
-	    }
-	}
+        -component {
+            set names [$_tuples column names]
+            foreach p $plist {
+                lappend rlist [lindex $names $p]
+            }
+        }
+        -label {
+            set names [$_tuples column names]
+            foreach p $plist {
+                set name [lindex $names $p]
+                catch {unset opts}
+                array set opts [$_tuples column info $name]
+                lappend rlist $opts(-label)
+            }
+        }
+        -units {
+            set names [$_tuples column names]
+            foreach p $plist {
+                set comp [lindex $names $p]
+                lappend rlist [$_table get $comp.units]
+            }
+        }
     }
     return $rlist
 }
@@ -151,30 +151,30 @@ itcl::body Rappture::Table::columns {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::values {args} {
     Rappture::getopts args params {
-	value -row ""
-	value -column ""
+        value -row ""
+        value -column ""
     }
     if {[llength $args] > 0} {
-	error "wrong # args: should be \"values ?-row r? ?-column c?\""
+        error "wrong # args: should be \"values ?-row r? ?-column c?\""
     }
     if {"" == $params(-row) && "" == $params(-column)} {
-	return [$_tuples get]
+        return [$_tuples get]
     } elseif {"" == $params(-column)} {
-	return [lindex [$_tuples get $params(-row)] 0]
+        return [lindex [$_tuples get $params(-row)] 0]
     }
 
     if {[string is integer $params(-column)]} {
-	set col [lindex [$_tuples column names] $params(-column)]
+        set col [lindex [$_tuples column names] $params(-column)]
     } else {
-	set col $params(-column)
-	if {"" == [$_tuples column names $col]} {
-	    error "bad column name \"$col\": should be [join [$_tuples column names] {, }]"
-	}
+        set col $params(-column)
+        if {"" == [$_tuples column names $col]} {
+            error "bad column name \"$col\": should be [join [$_tuples column names] {, }]"
+        }
     }
 
     if {"" == $params(-row)} {
-	# return entire column
-	return [$_tuples get -format $col]
+        # return entire column
+        return [$_tuples get -format $col]
     }
     # return a particular cell
     return [$_tuples get -format $col $params(-row)]
@@ -191,13 +191,13 @@ itcl::body Rappture::Table::limits {column} {
     set min ""
     set max ""
     foreach v [values -column $column] {
-	if {"" == $min} {
-	    set min $v
-	    set max $v
-	} else {
-	    if {$v < $min} { set min $v }
-	    if {$v > $max} { set max $v }
-	}
+        if {"" == $min} {
+            set min $v
+            set max $v
+        } else {
+            if {$v < $min} { set min $v }
+            if {$v > $max} { set max $v }
+        }
     }
     return [list $min $max]
 }
@@ -211,21 +211,21 @@ itcl::body Rappture::Table::limits {column} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Table::hints {{keyword ""}} {
     foreach {key path} {
-	label   about.label
-	color   about.color
-	style   about.style
+        label   about.label
+        color   about.color
+        style   about.style
     } {
-	set str [$_table get $path]
-	if {"" != $str} {
-	    set hints($key) $str
-	}
+        set str [$_table get $path]
+        if {"" != $str} {
+            set hints($key) $str
+        }
     }
 
     if {$keyword != ""} {
-	if {[info exists hints($keyword)]} {
-	    return $hints($keyword)
-	}
-	return ""
+        if {[info exists hints($keyword)]} {
+            return $hints($keyword)
+        }
+        return ""
     }
     return [array get hints]
 }

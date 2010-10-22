@@ -50,7 +50,7 @@ itcl::class Rappture::Controls {
     private variable _name2info      ;# maps control name => info
     private variable _scheme ""      ;# layout scheme (tabs/hlabels)
 }
-										
+                                                                                
 itk::usual Controls {
 }
 
@@ -71,9 +71,9 @@ itcl::body Rappture::Controls::constructor {owner args} {
     set f [$itk_interior.sc contents frame]
 
     set _tabs [blt::tabset $f.tabs -borderwidth 0 -relief flat \
-	-side top -tearoff 0 -highlightthickness 0 \
-	-selectbackground $itk_option(-background) \
-	-selectcommand [itcl::code $this _changeTabs]]
+        -side top -tearoff 0 -highlightthickness 0 \
+        -selectbackground $itk_option(-background) \
+        -selectcommand [itcl::code $this _changeTabs]]
 
     set _frame [frame $f.inner]
     pack $_frame -expand yes -fill both
@@ -89,7 +89,7 @@ itcl::body Rappture::Controls::constructor {owner args} {
     # we can monitor their size changes.
     #
     bind Controls-$this <Configure> \
-	[list $_dispatcher event -idle !resize]
+        [list $_dispatcher event -idle !resize]
 
     eval itk_initialize $args
 }
@@ -114,9 +114,9 @@ itcl::body Rappture::Controls::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::insert {pos path} {
     if {"end" == $pos} {
-	set pos [llength $_controls]
+        set pos [llength $_controls]
     } elseif {![string is integer $pos]} {
-	error "bad index \"$pos\": should be integer or \"end\""
+        error "bad index \"$pos\": should be integer or \"end\""
     }
 
     incr _counter
@@ -132,56 +132,56 @@ itcl::body Rappture::Controls::insert {pos path} {
     set type [$_owner xml element -as type $path]
     set _name2info($name-type) $type
     switch -- $type {
-	choice {
-	    Rappture::ChoiceEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	group {
-	    Rappture::GroupEntry $w $_owner $path
-	}
-	loader {
-	    Rappture::Loader $w $_owner $path -tool [$_owner tool]
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	number {
-	    Rappture::NumberEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	integer {
-	    Rappture::IntegerEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	boolean {
-	    Rappture::BooleanEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	string {
-	    Rappture::TextEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	image {
-	    Rappture::ImageEntry $w $_owner $path
-	}
-	control {
-	    set label [$_owner xml get $path.label]
-	    if {"" == $label} { set label "Simulate" }
-	    set service [$_owner xml get $path.service]
-	    button $w -text $label -command [list $service run]
-	}
-	separator {
-	    # no widget to create
-	    set _name2info($name-value) "--"
-	}
-	note {
-	    Rappture::Note $w $_owner $path
-	}
-	periodicelement {
-	    Rappture::PeriodicElementEntry $w $_owner $path
-	    bind $w <<Value>> [itcl::code $this _controlChanged $name]
-	}
-	default {
-	    error "don't know how to add control type \"$type\""
-	}
+        choice {
+            Rappture::ChoiceEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        group {
+            Rappture::GroupEntry $w $_owner $path
+        }
+        loader {
+            Rappture::Loader $w $_owner $path -tool [$_owner tool]
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        number {
+            Rappture::NumberEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        integer {
+            Rappture::IntegerEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        boolean {
+            Rappture::BooleanEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        string {
+            Rappture::TextEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        image {
+            Rappture::ImageEntry $w $_owner $path
+        }
+        control {
+            set label [$_owner xml get $path.label]
+            if {"" == $label} { set label "Simulate" }
+            set service [$_owner xml get $path.service]
+            button $w -text $label -command [list $service run]
+        }
+        separator {
+            # no widget to create
+            set _name2info($name-value) "--"
+        }
+        note {
+            Rappture::Note $w $_owner $path
+        }
+        periodicelement {
+            Rappture::PeriodicElementEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        default {
+            error "don't know how to add control type \"$type\""
+        }
     }
 
     #
@@ -190,80 +190,80 @@ itcl::body Rappture::Controls::insert {pos path} {
     #
     set enable [string trim [$_owner xml get $path.about.enable]]
     if {"" == $enable} {
-	set enable yes
+        set enable yes
     }
     if {![string is boolean $enable]} {
-	set re {([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\))(\.([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\)))*(:[-a-zA-Z0-9/]+)?}
-	set rest $enable
-	set enable ""
-	set deps ""
-	while {1} {
-	    if {[regexp -indices $re $rest match]} {
-		foreach {s0 s1} $match break
+        set re {([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\))(\.([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\)))*(:[-a-zA-Z0-9/]+)?}
+        set rest $enable
+        set enable ""
+        set deps ""
+        while {1} {
+            if {[regexp -indices $re $rest match]} {
+                foreach {s0 s1} $match break
 
-		if {[string index $rest [expr {$s0-1}]] == "\""
-		      && [string index $rest [expr {$s1+1}]] == "\""} {
-		    # string in ""'s? then leave it alone
-		    append enable [string range $rest 0 $s1]
-		    set rest [string range $rest [expr {$s1+1}] end]
-		} else {
-		    #
-		    # This is a symbol which should be substituted
-		    # it can be either:
-		    #   input.foo.bar
-		    #   input.foo.bar:units
-		    #
-		    set cpath [string range $rest $s0 $s1]
-		    set parts [split $cpath :]
-		    set ccpath [lindex $parts 0]
-		    set units [lindex $parts 1]
+                if {[string index $rest [expr {$s0-1}]] == "\""
+                      && [string index $rest [expr {$s1+1}]] == "\""} {
+                    # string in ""'s? then leave it alone
+                    append enable [string range $rest 0 $s1]
+                    set rest [string range $rest [expr {$s1+1}] end]
+                } else {
+                    #
+                    # This is a symbol which should be substituted
+                    # it can be either:
+                    #   input.foo.bar
+                    #   input.foo.bar:units
+                    #
+                    set cpath [string range $rest $s0 $s1]
+                    set parts [split $cpath :]
+                    set ccpath [lindex $parts 0]
+                    set units [lindex $parts 1]
 
-		    # make sure we have the standard path notation
-		    set stdpath [$_owner regularize $ccpath]
-		    if {"" == $stdpath} {
-			puts stderr "WARNING: don't recognize parameter $cpath in <enable> expression for $path.  This may be buried in a structure that is not yet loaded."
-			set stdpath $ccpath
-		    }
-		    # substitute [_controlValue ...] call in place of path
-		    append enable [string range $rest 0 [expr {$s0-1}]]
-		    append enable [format {[_controlValue %s %s]} $stdpath $units]
-		    lappend deps $stdpath
-		    set rest [string range $rest [expr {$s1+1}] end]
-		}
-	    } else {
-		append enable $rest
-		break
-	    }
-	}
+                    # make sure we have the standard path notation
+                    set stdpath [$_owner regularize $ccpath]
+                    if {"" == $stdpath} {
+                        puts stderr "WARNING: don't recognize parameter $cpath in <enable> expression for $path.  This may be buried in a structure that is not yet loaded."
+                        set stdpath $ccpath
+                    }
+                    # substitute [_controlValue ...] call in place of path
+                    append enable [string range $rest 0 [expr {$s0-1}]]
+                    append enable [format {[_controlValue %s %s]} $stdpath $units]
+                    lappend deps $stdpath
+                    set rest [string range $rest [expr {$s1+1}] end]
+                }
+            } else {
+                append enable $rest
+                break
+            }
+        }
 
-	foreach cpath $deps {
-	    $_owner dependenciesfor $cpath $path
-	}
+        foreach cpath $deps {
+            $_owner dependenciesfor $cpath $path
+        }
     }
     set _name2info($name-enable) $enable
 
     $_owner widgetfor $path $w
 
     if {[lsearch {control group separator note} $type] < 0} {
-	# make a label for this control
-	set label [$w label]
-	if {"" != $label} {
-	    set _name2info($name-label) $_frame.l$name
-	    set font [option get $itk_component(hull) labelFont Font]
-	    label $_name2info($name-label) -text [_formatLabel $label] \
-		-font $font
-	}
+        # make a label for this control
+        set label [$w label]
+        if {"" != $label} {
+            set _name2info($name-label) $_frame.l$name
+            set font [option get $itk_component(hull) labelFont Font]
+            label $_name2info($name-label) -text [_formatLabel $label] \
+                -font $font
+        }
 
-	# register the tooltip for this control
-	set tip [$w tooltip]
-	if {"" != $tip} {
-	    Rappture::Tooltip::for $w $tip
+        # register the tooltip for this control
+        set tip [$w tooltip]
+        if {"" != $tip} {
+            Rappture::Tooltip::for $w $tip
 
-	    # add the tooltip to the label too, if there is one
-	    if {$_name2info($name-label) != ""} {
-		Rappture::Tooltip::for $_name2info($name-label) $tip
-	    }
-	}
+            # add the tooltip to the label too, if there is one
+            if {$_name2info($name-label) != ""} {
+                Rappture::Tooltip::for $_name2info($name-label) $tip
+            }
+        }
     }
 
     # insert the new control onto the known list
@@ -289,31 +289,31 @@ itcl::body Rappture::Controls::insert {pos path} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::delete {first {last ""}} {
     if {$last == ""} {
-	set last $first
+        set last $first
     }
     if {![regexp {^[0-9]+|end$} $first]} {
-	error "bad index \"$first\": should be integer or \"end\""
+        error "bad index \"$first\": should be integer or \"end\""
     }
     if {![regexp {^[0-9]+|end$} $last]} {
-	error "bad index \"$last\": should be integer or \"end\""
+        error "bad index \"$last\": should be integer or \"end\""
     }
 
     foreach name [lrange $_controls $first $last] {
-	_monitor $name off
+        _monitor $name off
 
-	if {"" != $_name2info($name-label)} {
-	    destroy $_name2info($name-label)
-	}
-	if {"" != $_name2info($name-value)} {
-	    destroy $_name2info($name-value)
-	}
-	$_owner widgetfor $_name2info($name-path) ""
+        if {"" != $_name2info($name-label)} {
+            destroy $_name2info($name-label)
+        }
+        if {"" != $_name2info($name-value)} {
+            destroy $_name2info($name-value)
+        }
+        $_owner widgetfor $_name2info($name-path) ""
 
-	unset _name2info($name-path)
-	unset _name2info($name-label)
-	unset _name2info($name-type)
-	unset _name2info($name-value)
-	unset _name2info($name-enable)
+        unset _name2info($name-path)
+        unset _name2info($name-label)
+        unset _name2info($name-type)
+        unset _name2info($name-value)
+        unset _name2info($name-enable)
     }
     set _controls [lreplace $_controls $first $last]
 
@@ -329,13 +329,13 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
 itcl::body Rappture::Controls::index {name} {
     set i [lsearch $_controls $name]
     if {$i >= 0} {
-	return $i
+        return $i
     }
     if {[regexp {^@([0-9]+)$} $name match i]} {
-	return $i
+        return $i
     }
     if {$name == "end"} {
-	return [expr {[llength $_controls]-1}]
+        return [expr {[llength $_controls]-1}]
     }
     error "bad control name \"$name\": should be @int or one of [join [lsort $_controls] {, }]"
 }
@@ -352,16 +352,16 @@ itcl::body Rappture::Controls::index {name} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::control {args} {
     if {[llength $args] == 0} {
-	return $_controls
+        return $_controls
     }
     Rappture::getopts args params {
-	flag switch -value default
-	flag switch -label
-	flag switch -path
-	flag switch -enable
+        flag switch -value default
+        flag switch -label
+        flag switch -path
+        flag switch -enable
     }
     if {[llength $args] == 0} {
-	error "missing control name"
+        error "missing control name"
     }
     set i [index [lindex $args 0]]
     set name [lindex $_controls $i]
@@ -393,15 +393,15 @@ itcl::body Rappture::Controls::_layout {} {
     # Clear any existing layout
     #
     foreach name $_controls {
-	foreach elem {label value} {
-	    set w $_name2info($name-$elem)
-	    if {$w != "" && [winfo exists $w]} {
-		grid forget $w
-	    }
-	}
+        foreach elem {label value} {
+            set w $_name2info($name-$elem)
+            if {$w != "" && [winfo exists $w]} {
+                grid forget $w
+            }
+        }
     }
     if {[$_tabs size] > 0} {
-	$_tabs delete 0 end
+        $_tabs delete 0 end
     }
     grid forget $_frame.empty
 
@@ -411,43 +411,43 @@ itcl::body Rappture::Controls::_layout {} {
     set hidden ""
     set showing ""
     foreach name $_controls {
-	set show 1
-	set cond $_name2info($name-enable)
-	if {[string is boolean $cond] && !$cond} {
-	    # hard-coded "off" -- ignore completely
-	} elseif {[catch {expr $cond} show] == 0} {
-	    set type $_name2info($name-type)
-	    set lwidget $_name2info($name-label)
-	    set vwidget $_name2info($name-value)
-	    if {[lsearch -exact {group image structure} $type] >= 0} {
-		if {$show} {
-		    lappend showing $name
-		} else {
-		    lappend hidden $name
-		}
-	    } else {
-		# show other objects, but enable/disable them
-		lappend showing $name
-		if {$show} {
-		    if {[winfo exists $vwidget]} {
-			$vwidget configure -state normal
-		    }
-		    if {[winfo exists $lwidget]} {
-			$lwidget configure -foreground \
-			    [lindex [$lwidget configure -foreground] 3]
-		    }
-		} else {
-		    if {[winfo exists $vwidget]} {
-			$vwidget configure -state disabled
-		    }
-		    if {[winfo exists $lwidget]} {
-			$lwidget configure -foreground gray
-		    }
-		}
-	    }
-	} else {
-	    bgerror "Error in <enable> expression for \"$_name2info($name-path)\":\n  $show"
-	}
+        set show 1
+        set cond $_name2info($name-enable)
+        if {[string is boolean $cond] && !$cond} {
+            # hard-coded "off" -- ignore completely
+        } elseif {[catch {expr $cond} show] == 0} {
+            set type $_name2info($name-type)
+            set lwidget $_name2info($name-label)
+            set vwidget $_name2info($name-value)
+            if {[lsearch -exact {group image structure} $type] >= 0} {
+                if {$show} {
+                    lappend showing $name
+                } else {
+                    lappend hidden $name
+                }
+            } else {
+                # show other objects, but enable/disable them
+                lappend showing $name
+                if {$show} {
+                    if {[winfo exists $vwidget]} {
+                        $vwidget configure -state normal
+                    }
+                    if {[winfo exists $lwidget]} {
+                        $lwidget configure -foreground \
+                            [lindex [$lwidget configure -foreground] 3]
+                    }
+                } else {
+                    if {[winfo exists $vwidget]} {
+                        $vwidget configure -state disabled
+                    }
+                    if {[winfo exists $lwidget]} {
+                        $lwidget configure -foreground gray
+                    }
+                }
+            }
+        } else {
+            bgerror "Error in <enable> expression for \"$_name2info($name-path)\":\n  $show"
+        }
     }
 
     # store the showing tabs in the object so it can be used in _changeTabs
@@ -459,153 +459,153 @@ itcl::body Rappture::Controls::_layout {} {
     #   hlabels ... horizontal labels (label: value)
     #
     if {[llength $showing] >= 2} {
-	# assume tabs for multiple groups
-	set _scheme tabs
-	foreach name $showing {
-	    set w $_name2info($name-value)
+        # assume tabs for multiple groups
+        set _scheme tabs
+        foreach name $showing {
+            set w $_name2info($name-value)
 
-	    if {$w == "--" || [winfo class $w] != "GroupEntry"} {
-		# something other than a group? then fall back on hlabels
-		set _scheme hlabels
-		break
-	    }
-	}
+            if {$w == "--" || [winfo class $w] != "GroupEntry"} {
+                # something other than a group? then fall back on hlabels
+                set _scheme hlabels
+                break
+            }
+        }
     } else {
-	set _scheme hlabels
+        set _scheme hlabels
     }
 
     switch -- $_scheme {
       tabs {
-	#
-	# SCHEME: tabs
-	# put a series of groups into a tabbed notebook
-	#
+        #
+        # SCHEME: tabs
+        # put a series of groups into a tabbed notebook
+        #
 
-	# use inner frame within tabs to show current group
-	pack $_tabs -before $_frame -fill x
+        # use inner frame within tabs to show current group
+        pack $_tabs -before $_frame -fill x
 
-	set gn 1
-	foreach name $showing {
-	    set wv $_name2info($name-value)
-	    $wv configure -heading no
+        set gn 1
+        foreach name $showing {
+            set wv $_name2info($name-value)
+            $wv configure -heading no
 
-	    set label [$wv component heading cget -text]
-	    if {"" == $label} {
-		set label "Group #$gn"
-	    }
-	    set _name2info($name-label) $label
+            set label [$wv component heading cget -text]
+            if {"" == $label} {
+                set label "Group #$gn"
+            }
+            set _name2info($name-label) $label
 
-	    $_tabs insert end $label \
-		-activebackground $itk_option(-background)
+            $_tabs insert end $label \
+                -activebackground $itk_option(-background)
 
-	    incr gn
-	}
+            incr gn
+        }
 
-	# compute the overall size
-	# BE CAREFUL: do this after setting "-heading no" above
-	$_dispatcher event -now !resize
+        # compute the overall size
+        # BE CAREFUL: do this after setting "-heading no" above
+        $_dispatcher event -now !resize
 
-	grid propagate $_frame off
-	grid columnconfigure $_frame 0 -weight 1
-	grid rowconfigure $_frame 0 -weight 1
+        grid propagate $_frame off
+        grid columnconfigure $_frame 0 -weight 1
+        grid rowconfigure $_frame 0 -weight 1
 
-	$_tabs select 0; _changeTabs
+        $_tabs select 0; _changeTabs
       }
 
       hlabels {
-	#
-	# SCHEME: hlabels
-	# simple "Label: Value" layout
-	#
-	pack forget $_tabs
-	grid propagate $_frame on
-	grid columnconfigure $_frame 0 -weight 0
-	grid rowconfigure $_frame 0 -weight 0
+        #
+        # SCHEME: hlabels
+        # simple "Label: Value" layout
+        #
+        pack forget $_tabs
+        grid propagate $_frame on
+        grid columnconfigure $_frame 0 -weight 0
+        grid rowconfigure $_frame 0 -weight 0
 
-	set expand 0  ;# most controls float to top
-	set row 0
-	foreach name $showing {
-	    set wl $_name2info($name-label)
-	    if {$wl != "" && [winfo exists $wl]} {
-		grid $wl -row $row -column 0 -sticky e
-	    }
+        set expand 0  ;# most controls float to top
+        set row 0
+        foreach name $showing {
+            set wl $_name2info($name-label)
+            if {$wl != "" && [winfo exists $wl]} {
+                grid $wl -row $row -column 0 -sticky e
+            }
 
-	    set wv $_name2info($name-value)
-	    if {$wv != "" && [winfo exists $wv]} {
-		if {$wl != ""} {
-		    grid $wv -row $row -column 1 -sticky ew
-		} else {
-		    grid $wv -row $row -column 0 -columnspan 2 -sticky ew
-		}
+            set wv $_name2info($name-value)
+            if {$wv != "" && [winfo exists $wv]} {
+                if {$wl != ""} {
+                    grid $wv -row $row -column 1 -sticky ew
+                } else {
+                    grid $wv -row $row -column 0 -columnspan 2 -sticky ew
+                }
 
-		grid rowconfigure $_frame $row -weight 0
+                grid rowconfigure $_frame $row -weight 0
 
-		switch -- [winfo class $wv] {
-		    TextEntry {
-			if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
-			    grid $wl -sticky n -pady 4
-			    grid $wv -sticky nsew
-			    grid rowconfigure $_frame $row -weight 1
-			    grid columnconfigure $_frame 1 -weight 1
-			    set expand 1
-			}
-		    }
-		    GroupEntry {
-			$wv configure -heading yes
+                switch -- [winfo class $wv] {
+                    TextEntry {
+                        if {[regexp {[0-9]+x[0-9]+} [$wv size]]} {
+                            grid $wl -sticky n -pady 4
+                            grid $wv -sticky nsew
+                            grid rowconfigure $_frame $row -weight 1
+                            grid columnconfigure $_frame 1 -weight 1
+                            set expand 1
+                        }
+                    }
+                    GroupEntry {
+                        $wv configure -heading yes
 
-			#
-			# Scan through all children in this group
-			# and see if any demand more space.  If the
-			# group contains a structure or a note, then
-			# make sure that the group itself is set to
-			# expand/fill.
-			#
-			set queue [winfo children $wv]
-			set expandgroup 0
-			while {[llength $queue] > 0} {
-			    set w [lindex $queue 0]
-			    set queue [lrange $queue 1 end]
-			    set c [winfo class $w]
-			    if {[lsearch {DeviceEditor Note} $c] >= 0} {
-				set expandgroup 1
-				break
-			    }
-			    eval lappend queue [winfo children $w]
-			}
-			if {$expandgroup} {
-			    set expand 1
-			    grid $wv -sticky nsew
-			    grid rowconfigure $_frame $row -weight 1
-			}
-		    }
-		    Note {
-			grid $wv -sticky nsew
-			grid rowconfigure $_frame $row -weight 1
-			set expand 1
-		    }
-		}
-		grid columnconfigure $_frame 1 -weight 1
-	    } elseif {$wv == "--"} {
-		grid rowconfigure $_frame $row -minsize 10
-	    }
+                        #
+                        # Scan through all children in this group
+                        # and see if any demand more space.  If the
+                        # group contains a structure or a note, then
+                        # make sure that the group itself is set to
+                        # expand/fill.
+                        #
+                        set queue [winfo children $wv]
+                        set expandgroup 0
+                        while {[llength $queue] > 0} {
+                            set w [lindex $queue 0]
+                            set queue [lrange $queue 1 end]
+                            set c [winfo class $w]
+                            if {[lsearch {DeviceEditor Note} $c] >= 0} {
+                                set expandgroup 1
+                                break
+                            }
+                            eval lappend queue [winfo children $w]
+                        }
+                        if {$expandgroup} {
+                            set expand 1
+                            grid $wv -sticky nsew
+                            grid rowconfigure $_frame $row -weight 1
+                        }
+                    }
+                    Note {
+                        grid $wv -sticky nsew
+                        grid rowconfigure $_frame $row -weight 1
+                        set expand 1
+                    }
+                }
+                grid columnconfigure $_frame 1 -weight 1
+            } elseif {$wv == "--"} {
+                grid rowconfigure $_frame $row -minsize 10
+            }
 
-	    incr row
-	    grid rowconfigure $_frame $row -minsize $itk_option(-padding)
-	    incr row
-	}
-	grid $_frame.empty -row $row
+            incr row
+            grid rowconfigure $_frame $row -minsize $itk_option(-padding)
+            incr row
+        }
+        grid $_frame.empty -row $row
 
-	#
-	# If there are any hidden items, then make the bottom of
-	# this form fill up any extra space, so the form floats
-	# to the top.  Otherwise, it will jitter around as the
-	# hidden items come and go.
-	#
-	if {[llength $hidden] > 0 && !$expand} {
-	    grid rowconfigure $_frame 99 -weight 1
-	} else {
-	    grid rowconfigure $_frame 99 -weight 0
-	}
+        #
+        # If there are any hidden items, then make the bottom of
+        # this form fill up any extra space, so the form floats
+        # to the top.  Otherwise, it will jitter around as the
+        # hidden items come and go.
+        #
+        if {[llength $hidden] > 0 && !$expand} {
+            grid rowconfigure $_frame 99 -weight 1
+        } else {
+            grid rowconfigure $_frame 99 -weight 0
+        }
       }
     }
 }
@@ -622,18 +622,18 @@ itcl::body Rappture::Controls::_monitor {name state} {
     set tag "Controls-$this"
     set wv $_name2info($name-value)
     if {$wv == "--" || [catch {bindtags $wv} btags]} {
-	return
+        return
     }
     set i [lsearch $btags $tag]
 
     if {$state} {
-	if {$i < 0} {
-	    bindtags $wv [linsert $btags 0 $tag]
-	}
+        if {$i < 0} {
+            bindtags $wv [linsert $btags 0 $tag]
+        }
     } else {
-	if {$i >= 0} {
-	    bindtags $wv [lreplace $btags $i $i]
-	}
+        if {$i >= 0} {
+            bindtags $wv [lreplace $btags $i $i]
+        }
     }
 }
 
@@ -650,7 +650,7 @@ itcl::body Rappture::Controls::_controlChanged {name} {
     # Let the owner know that this control changed.
     #
     if {"" != $_owner} {
-	$_owner changed $path
+        $_owner changed $path
     }
 }
 
@@ -662,11 +662,11 @@ itcl::body Rappture::Controls::_controlChanged {name} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::_controlValue {path {units ""}} {
     if {"" != $_owner} {
-	set val [$_owner valuefor $path]
-	if {"" != $units} {
-	    set val [Rappture::Units::convert $val -to $units -units off]
-	}
-	return $val
+        set val [$_owner valuefor $path]
+        if {"" != $units} {
+            set val [Rappture::Units::convert $val -to $units -units off]
+        }
+        return $val
     }
     return ""
 }
@@ -681,7 +681,7 @@ itcl::body Rappture::Controls::_controlValue {path {units ""}} {
 itcl::body Rappture::Controls::_formatLabel {str} {
     set str [string trim $str]
     if {"" != $str && [string index $str end] != ":"} {
-	append str ":"
+        append str ":"
     }
     return $str
 }
@@ -701,12 +701,12 @@ itcl::body Rappture::Controls::_changeTabs {} {
     # _showing, even if tabs are disabled.
     set name [lindex $_showing $i]
     if {"" != $name} {
-	foreach w [grid slaves $_frame] {
-	    grid forget $w
-	}
+        foreach w [grid slaves $_frame] {
+            grid forget $w
+        }
 
-	set wv $_name2info($name-value)
-	grid $wv -row 0 -column 0 -sticky new
+        set wv $_name2info($name-value)
+        grid $wv -row 0 -column 0 -sticky new
     }
 }
 
@@ -717,24 +717,24 @@ itcl::body Rappture::Controls::_changeTabs {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Controls::_resize {} {
     switch -- $_scheme {
-	tabs {
-	    # compute the overall size
-	    # BE CAREFUL: do this after setting "-heading no" above
-	    set maxw 0
-	    set maxh 0
-	    update idletasks
-	    foreach name $_controls {
-		set wv $_name2info($name-value)
-		set w [winfo reqwidth $wv]
-		if {$w > $maxw} { set maxw $w }
-		set h [winfo reqheight $wv]
-		if {$h > $maxh} { set maxh $h }
-	    }
-	    $_frame configure -width $maxw -height $maxh
-	}
-	hlabels {
-	    # do nothing
-	}
+        tabs {
+            # compute the overall size
+            # BE CAREFUL: do this after setting "-heading no" above
+            set maxw 0
+            set maxh 0
+            update idletasks
+            foreach name $_controls {
+                set wv $_name2info($name-value)
+                set w [winfo reqwidth $wv]
+                if {$w > $maxw} { set maxw $w }
+                set h [winfo reqheight $wv]
+                if {$h > $maxh} { set maxh $h }
+            }
+            $_frame configure -width $maxw -height $maxh
+        }
+        hlabels {
+            # do nothing
+        }
     }
 }
 

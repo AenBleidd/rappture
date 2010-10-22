@@ -47,7 +47,7 @@ itcl::class Rappture::Unirect2d {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
     if {![Rappture::library isvalid $xmlobj]} {
-	error "bad value \"$xmlobj\": should be Rappture::library"
+        error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set path [$field get $cname.mesh]
 
@@ -60,46 +60,46 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
     GetSize $m "yaxis.numpoints" _yNum
     set _compNum $extents
     foreach {key path} {
-	group   about.group
-	label   about.label
-	color   about.color
-	style   about.style
-	type    about.type
-	xlabel  xaxis.label
-	xdesc   xaxis.description
-	xunits  xaxis.units
-	xscale  xaxis.scale
-	xmin    xaxis.min
-	xmax    xaxis.max
-	ylabel  yaxis.label
-	ydesc   yaxis.description
-	yunits  yaxis.units
-	yscale  yaxis.scale
-	ymin    yaxis.min
-	ymax    yaxis.max
+        group   about.group
+        label   about.label
+        color   about.color
+        style   about.style
+        type    about.type
+        xlabel  xaxis.label
+        xdesc   xaxis.description
+        xunits  xaxis.units
+        xscale  xaxis.scale
+        xmin    xaxis.min
+        xmax    xaxis.max
+        ylabel  yaxis.label
+        ydesc   yaxis.description
+        yunits  yaxis.units
+        yscale  yaxis.scale
+        ymin    yaxis.min
+        ymax    yaxis.max
     } {
-	set str [$m get $path]
-	if {"" != $str} {
-	    set _hints($key) $str
-	}
+        set str [$m get $path]
+        if {"" != $str} {
+            set _hints($key) $str
+        }
     }
     foreach {key} { axisorder } {
-	set str [$field get $cname.$key]
-	if {"" != $str} {
-	    set _hints($key) $str
-	}
+        set str [$field get $cname.$key]
+        if {"" != $str} {
+            set _hints($key) $str
+        }
     }
     itcl::delete object $m
     
     set _values [blt::vector create \#auto]
     set values [$field get "$cname.values"]
     if { $values == "" } {
-	set values [$field get "$cname.zvalues"]
+        set values [$field get "$cname.zvalues"]
     }
     $_values set $values
     set n [expr $_xNum * $_yNum * $_compNum]
     if { [$_values length] != $n } {
-	error "wrong \# of values in \"$cname.values\": expected $n values"
+        error "wrong \# of values in \"$cname.values\": expected $n values"
     }
 }
 
@@ -108,7 +108,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::destructor {} {
     if { $_values != "" } {
-	blt::vector destroy $_values
+        blt::vector destroy $_values
     }
 }
 
@@ -124,13 +124,13 @@ itcl::body Rappture::Unirect2d::blob {} {
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     lappend data "xmin" $_xMin "ymin" $_yMin "xmax" $_xMax "ymax" $_yMax
     foreach key { axisorder xunits yunits units } {
-	set hint [hints $key]
-	if { $hint != "" } {
-	    lappend data $key $hint
-	}
+        set hint [hints $key]
+        if { $hint != "" } {
+            lappend data $key $hint
+        }
     }
     if { [$_values length] > 0 } {
-	lappend data "values" [$_values range 0 end]
+        lappend data "values" [$_values range 0 end]
     }
     return [Rappture::encoding::encode -as zb64 "$data"]
 }
@@ -145,11 +145,11 @@ itcl::body Rappture::Unirect2d::mesh {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
     set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
     for { set i 0 } { $i < $_xNum } { incr i } {
-	set x [expr {$_xMin + (double($i) * $dx)}]
-	for { set j 0 } { $j < $_yNum } { incr j } {
-	    set y [expr {$_yMin + (double($i) * $dy)}]
-	    lappend data $x $y
-	}
+        set x [expr {$_xMin + (double($i) * $dx)}]
+        for { set j 0 } { $j < $_yNum } { incr j } {
+            set y [expr {$_yMin + (double($i) * $dy)}]
+            lappend data $x $y
+        }
     }
     return $data
 }
@@ -162,7 +162,7 @@ itcl::body Rappture::Unirect2d::mesh {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::values {} {
     if { [$_values length] > 0 } {
-	return [$_values range 0 end]
+        return [$_values range 0 end]
     }
     return ""
 }
@@ -177,29 +177,29 @@ itcl::body Rappture::Unirect2d::limits {which} {
     set max ""
 
     switch -- $which {
-	x - xlin - xlog {
-	    set min $_xMin
-	    set max $_xMax
-	    set axis "xaxis"
-	}
-	y - ylin - ylog {
-	    set min $_yMin
-	    set max $_yMax
-	    set axis "yaxis"
-	}
-	v - vlin - vlog - z - zlin - zlog {
-	    if { [$_values length] > 0 } {
-	       set min [blt::vector expr min($_values)]
-	       set max [blt::vector expr max($_values)]
-	    } else {
-		set min 0.0
-		set max 1.0
-	    }
-	    set axis "zaxis"
-	}
-	default {
-	    error "unknown axis description \"$which\""
-	}
+        x - xlin - xlog {
+            set min $_xMin
+            set max $_xMax
+            set axis "xaxis"
+        }
+        y - ylin - ylog {
+            set min $_yMin
+            set max $_yMax
+            set axis "yaxis"
+        }
+        v - vlin - vlog - z - zlin - zlog {
+            if { [$_values length] > 0 } {
+               set min [blt::vector expr min($_values)]
+               set max [blt::vector expr max($_values)]
+            } else {
+                set min 0.0
+                set max 1.0
+            }
+            set axis "zaxis"
+        }
+        default {
+            error "unknown axis description \"$which\""
+        }
     }
 #     set val [$_field get $axis.min]
 #     if {"" != $val && "" != $min} {
@@ -229,23 +229,23 @@ itcl::body Rappture::Unirect2d::limits {which} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
     if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-	&& [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-	set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+        && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+        set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
     }
     if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-	&& [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-	set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+        && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+        set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
     }
     
     if {[info exists _hints(group)] && [info exists _hints(label)]} {
-	# pop-up help for each curve
-	set _hints(tooltip) $_hints(label)
+        # pop-up help for each curve
+        set _hints(tooltip) $_hints(label)
     }
     if {$keyword != ""} {
-	if {[info exists _hints($keyword)]} {
-	    return $_hints($keyword)
-	}
-	return ""
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
+        }
+        return ""
     }
     return [array get _hints]
 }
@@ -254,8 +254,8 @@ itcl::body Rappture::Unirect2d::hints { {keyword ""} } {
 itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
     set string [$obj get $path]
     if { [scan $string "%d" value] != 1 || $value < 0 } {
-	puts stderr "can't get size \"$string\" of \"$path\""
-	return
+        puts stderr "can't get size \"$string\" of \"$path\""
+        return
     }
     upvar $varName size
     set size $value
@@ -264,7 +264,7 @@ itcl::body Rappture::Unirect2d::GetSize { obj path varName } {
 itcl::body Rappture::Unirect2d::GetValue { obj path varName } {
     set string [$obj get $path]
     if { [scan $string "%g" value] != 1 } {
-	return
+        return
     }
     upvar $varName number
     set number $value
@@ -273,8 +273,8 @@ itcl::body Rappture::Unirect2d::GetValue { obj path varName } {
 itcl::body Rappture::Unirect2d::GetString { obj path varName } {
     set string [$obj get $path]
     if { $string == "" } {
-	puts stderr "can't get string \"$string\" of \"$path\""
-	return
+        puts stderr "can't get string \"$string\" of \"$path\""
+        return
     }
     upvar $varName str
     set str $string

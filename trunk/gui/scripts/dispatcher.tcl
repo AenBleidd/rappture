@@ -44,14 +44,14 @@ itcl::class Rappture::DispatchObj {
     private variable _dispatch       ;# maps !event/client => callback
     private variable _extraargs      ;# extra args for dispatch calls
 }
-										
+                                                                                
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::constructor {} {
     # nothing to do
 }
-										
+                                                                                
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
@@ -71,10 +71,10 @@ itcl::body Rappture::DispatchObj::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::register {name {datacb ""}} {
     if {![regexp {^![-_a-zA-Z0-9]} $name]} {
-	error "bad name \"$name\": should be !name"
+        error "bad name \"$name\": should be !name"
     }
     if {[info exists _event2clients($name)]} {
-	error "event \"$name\" already exists"
+        error "event \"$name\" already exists"
     }
     set _event2clients($name) ""
     set _event2datacb($name) $datacb
@@ -100,18 +100,18 @@ itcl::body Rappture::DispatchObj::register {name {datacb ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::dispatch {caller args} {
     if {[llength $args] == 0} {
-	# no args? then return a list of events for this caller
-	foreach key [array names _dispatch $caller-*] {
-	    set name [lindex [split $key -] 1]
-	    set events($name) 1
-	}
-	return [array names events]
+        # no args? then return a list of events for this caller
+        foreach key [array names _dispatch $caller-*] {
+            set name [lindex [split $key -] 1]
+            set events($name) 1
+        }
+        return [array names events]
     } elseif {[llength $args] == 1} {
-	set name [lindex $args 0]
-	if {[info exists _dispatch($caller-$name)]} {
-	    return $_dispatch($caller-$name)
-	}
-	return ""
+        set name [lindex $args 0]
+        if {[info exists _dispatch($caller-$name)]} {
+            return $_dispatch($caller-$name)
+        }
+        return ""
     }
 
     # set a callback for one or more events
@@ -119,17 +119,17 @@ itcl::body Rappture::DispatchObj::dispatch {caller args} {
     set events ""
     set callback [lindex $args end]
     foreach str [lrange $args 0 end-1] {
-	if {$str == "-now"} {
-	    set now 1
-	} elseif {[info exists _event2clients($str)]} {
-	    lappend events $str
-	} else {
-	    if {[string index $str 0] == "-"} {
-		error "bad option \"$str\": should be -now"
-	    } else {
-		error "bad event \"$str\": should be [join [lsort [array names _event2clients]] {, }]"
-	    }
-	}
+        if {$str == "-now"} {
+            set now 1
+        } elseif {[info exists _event2clients($str)]} {
+            lappend events $str
+        } else {
+            if {[string index $str 0] == "-"} {
+                error "bad option \"$str\": should be -now"
+            } else {
+                error "bad event \"$str\": should be [join [lsort [array names _event2clients]] {, }]"
+            }
+        }
     }
 
     #
@@ -137,25 +137,25 @@ itcl::body Rappture::DispatchObj::dispatch {caller args} {
     # caller.  Otherwise, set the callback for this caller.
     #
     foreach name $events {
-	cancel $name
+        cancel $name
 
-	if {"" == $callback} {
-	    catch {unset _dispatch($caller-$name)}
-	    if {"" == [array names _dispatch $caller-*]} {
-		set i [lsearch $_event2clients($name) $caller]
-		if {$i >= 0} {
-		    set _event2clients($name) [lreplace $_event2clients($name) $i $i]
-		}
-	    }
-	} else {
-	    set _dispatch($caller-$name) $callback
-	    set i [lsearch $_event2clients($name) $caller]
-	    if {$i < 0} { lappend _event2clients($name) $caller }
+        if {"" == $callback} {
+            catch {unset _dispatch($caller-$name)}
+            if {"" == [array names _dispatch $caller-*]} {
+                set i [lsearch $_event2clients($name) $caller]
+                if {$i >= 0} {
+                    set _event2clients($name) [lreplace $_event2clients($name) $i $i]
+                }
+            }
+        } else {
+            set _dispatch($caller-$name) $callback
+            set i [lsearch $_event2clients($name) $caller]
+            if {$i < 0} { lappend _event2clients($name) $caller }
 
-	    if {$now} {
-		_send $name $caller
-	    }
-	}
+            if {$now} {
+                _send $name $caller
+            }
+        }
     }
 }
 
@@ -169,55 +169,55 @@ itcl::body Rappture::DispatchObj::event {args} {
     set when "-now"
     set first [lindex $args 0]
     if {[string index $first 0] == "-"} {
-	switch -- $first {
-	    -now   {
-		set when "-now"
-		set args [lrange $args 1 end]
-	    }
-	    -later {
-		set when 1
-		set args [lrange $args 1 end]
-	    }
-	    -idle  {
-		set when "-idle"
-		set args [lrange $args 1 end]
-	    }
-	    -after {
-		set when [lindex $args 1]
-		if {![string is int $when]} {
-		    error "bad value \"$when\": should be int (time in ms)"
-		}
-		set args [lrange $args 2 end]
-	    }
-	    default {
-		error "bad option \"$first\": should be -now, -later, -idle, or -after"
-	    }
-	}
+        switch -- $first {
+            -now   {
+                set when "-now"
+                set args [lrange $args 1 end]
+            }
+            -later {
+                set when 1
+                set args [lrange $args 1 end]
+            }
+            -idle  {
+                set when "-idle"
+                set args [lrange $args 1 end]
+            }
+            -after {
+                set when [lindex $args 1]
+                if {![string is int $when]} {
+                    error "bad value \"$when\": should be int (time in ms)"
+                }
+                set args [lrange $args 2 end]
+            }
+            default {
+                error "bad option \"$first\": should be -now, -later, -idle, or -after"
+            }
+        }
     }
 
     if {[llength $args] < 1} {
-	error "wrong # args: should be \"event ?switches? !event ?args...?\""
+        error "wrong # args: should be \"event ?switches? !event ?args...?\""
     }
     set event [lindex $args 0]
     set args [lrange $args 1 end]
     if {![info exists _event2clients($event)]} {
-	error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"
+        error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"
     }
 
     switch -- $when {
-	-now {
-	    _send $event all $args
-	}
-	-idle {
-	    set _extraargs($event) $args
-	    after cancel [itcl::code $this _send $event all @extra]
-	    after idle [itcl::code $this _send $event all @extra]
-	}
-	default {
-	    set _extraargs($event) $args
-	    after cancel [itcl::code $this _send $event all @extra]
-	    after $when [itcl::code $this _send $event all @extra]
-	}
+        -now {
+            _send $event all $args
+        }
+        -idle {
+            set _extraargs($event) $args
+            after cancel [itcl::code $this _send $event all @extra]
+            after idle [itcl::code $this _send $event all @extra]
+        }
+        default {
+            set _extraargs($event) $args
+            after cancel [itcl::code $this _send $event all @extra]
+            after $when [itcl::code $this _send $event all @extra]
+        }
     }
 }
 
@@ -231,16 +231,16 @@ itcl::body Rappture::DispatchObj::event {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::cancel {args} {
     if { $args == "all" } {
-	foreach event [array names _event2clients] {
-	    after cancel [itcl::code $this _send $event all @extra]
-	}
-	return
+        foreach event [array names _event2clients] {
+            after cancel [itcl::code $this _send $event all @extra]
+        }
+        return
     }
     foreach event $args {
-	if {![info exists _event2clients($event)]} {
-	    error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"
-	}
-	after cancel [itcl::code $this _send $event all @extra]
+        if {![info exists _event2clients($event)]} {
+            error "bad event \"$event\": should be [join [lsort [array names _event2clients]] {, }]"
+        }
+        after cancel [itcl::code $this _send $event all @extra]
     }
 }
 
@@ -254,10 +254,10 @@ itcl::body Rappture::DispatchObj::cancel {args} {
 itcl::body Rappture::DispatchObj::ispending {event} {
     set cmd [itcl::code $this _send $event all @extra]
     foreach id [after info] {
-	set cmd2 [lindex [after info $id] 0]
-	if {[string equal $cmd $cmd2]} {
-	    return 1
-	}
+        set cmd2 [lindex [after info $id] 0]
+        if {[string equal $cmd $cmd2]} {
+            return 1
+        }
     }
     return 0
 }
@@ -272,48 +272,48 @@ itcl::body Rappture::DispatchObj::ispending {event} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DispatchObj::_send {event caller {arglist ""}} {
     if {$caller == "all"} {
-	set caller $_event2clients($event)
+        set caller $_event2clients($event)
     }
     if {$arglist == "@extra" && [info exists _extraargs($event)]} {
-	set arglist $_extraargs($event)
+        set arglist $_extraargs($event)
     }
 
     # if there are any clients for this event, get the arguments ready
     set any 0
     foreach cname $caller {
-	if {[info exists _dispatch($cname-$event)]} {
-	    set any 1
-	    break
-	}
+        if {[info exists _dispatch($cname-$event)]} {
+            set any 1
+            break
+        }
     }
 
     set dargs ""
     if {$any && [string length $_event2datacb($event)] > 0} {
-	# get the args from the data callback
-	set status [catch {
-	    uplevel #0 $_event2datacb($event) $event
-	} dargs]
+        # get the args from the data callback
+        set status [catch {
+            uplevel #0 $_event2datacb($event) $event
+        } dargs]
 
-	if {$status != 0} {
-	    # anything go wrong? then throw a background error
-	    bgerror "$dargs\n(while dispatching $event)"
-	    set dargs ""
-	}
+        if {$status != 0} {
+            # anything go wrong? then throw a background error
+            bgerror "$dargs\n(while dispatching $event)"
+            set dargs ""
+        }
     }
     # add any arguments added from command line
     eval lappend dargs $arglist
 
     foreach cname $caller {
-	if {[info exists _dispatch($cname-$event)]} {
-	    set status [catch {
-		uplevel #0 $_dispatch($cname-$event) event $event $dargs
-	    } result]
+        if {[info exists _dispatch($cname-$event)]} {
+            set status [catch {
+                uplevel #0 $_dispatch($cname-$event) event $event $dargs
+            } result]
 
-	    if {$status != 0} {
-		# anything go wrong? then throw a background error
-		bgerror "$result\n(while dispatching $event to $cname)"
-	    }
-	}
+            if {$status != 0} {
+                # anything go wrong? then throw a background error
+                bgerror "$result\n(while dispatching $event to $cname)"
+            }
+        }
     }
 }
 
@@ -322,25 +322,25 @@ itcl::body Rappture::DispatchObj::_send {event caller {arglist ""}} {
 # ----------------------------------------------------------------------
 itcl::class Rappture::Dispatcher {
     constructor {args} {
-	Rappture::dispatcher _dispatcher
-	$_dispatcher register !destroy
+        Rappture::dispatcher _dispatcher
+        $_dispatcher register !destroy
 
-	eval configure $args
+        eval configure $args
     }
 
     destructor {
-	event !destroy
+        event !destroy
     }
 
     public method dispatch {args} {
-	eval $_dispatcher dispatch $args
+        eval $_dispatcher dispatch $args
     }
 
     protected method register {args} {
-	eval $_dispatcher register $args
+        eval $_dispatcher register $args
     }
     protected method event {args} {
-	eval $_dispatcher event $args object $this
+        eval $_dispatcher event $args object $this
     }
 
     private variable _dispatcher ""  ;# dispatcher for events
