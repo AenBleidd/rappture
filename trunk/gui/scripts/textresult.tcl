@@ -24,17 +24,21 @@ option add *TextResult.textFont \
 itcl::class Rappture::TextResult {
     inherit itk::Widget
 
-    constructor {args} { # defined below }
-
+    constructor {args} { 
+        # defined below 
+    }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { # do nothing }
+    public method parameters {title args} { 
+        # do nothing 
+    }
     public method download {option args}
 
     public method select {option args}
     public method find {option}
+    public method popup {option args} 
 
     private variable _dataobj ""  ;# data object currently being displayed
     private variable _raised      ;# maps all data objects => -raise param
@@ -133,6 +137,31 @@ itcl::body Rappture::TextResult::constructor {args} {
     $itk_component(text) configure -state disabled
 
     $itk_component(text) tag configure ERROR -foreground red
+
+    itk_component add emenu {
+        menu $itk_component(text).menu -tearoff 0
+    } {
+        ignore -tearoff
+    }
+    $itk_component(emenu) add command \
+        -label "Select All" -accelerator "Ctrl+A" \
+        -command [itcl::code $this select all]
+    $itk_component(emenu) add command \
+        -label "Select None" -accelerator "Esc" \
+        -command [itcl::code $this select none]
+    bind $itk_component(text) <<PopupMenu>> \
+        [itcl::code $this popup menu emenu %X %Y]
+    $itk_component(emenu) add command \
+        -label "Copy" -accelerator "Ctrl+C" \
+        -command [list event generate $itk_component(text) <<Copy>>]
+
+    bind $itk_component(text) <Control-KeyPress-a> \
+        [list $itk_component(emenu) invoke "Select All"]
+    bind $itk_component(text) <Control-KeyPress-c> \
+        [list $itk_component(emenu) invoke "Copy"]
+    bind $itk_component(text) <Escape> \
+        [list $itk_component(emenu) invoke "Select None" ]
+    bind $itk_component(text) <Enter> [list ::focus $itk_component(text)]
 
     eval itk_initialize $args
 }
@@ -332,8 +361,13 @@ itcl::body Rappture::TextResult::select {option args} {
         all {
             $itk_component(text) tag add sel 1.0 end
         }
+        none {
+            if { [$itk_component(text) tag ranges "sel"] != "" } {
+                selection clear 
+            }
+        }
         default {
-            error "bad option \"$option\": should be all"
+            error "bad option \"$option\": should be all or none"
         }
     }
 }
@@ -404,4 +438,26 @@ itcl::body Rappture::TextResult::find {option} {
         $itk_component(find) configure -background red -foreground white
     }
     $itk_component(findstatus) configure -text $status
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _popup menu <which> <X> <Y>
+#
+# Used internally to manage edit operations.
+# ----------------------------------------------------------------------
+itcl::body Rappture::TextResult::popup {option args} {
+    switch -- $option {
+        menu {
+            if {[llength $args] != 3} {
+                error "wrong # args: should be \"_popup $option which x y\""
+            }
+            set mname [lindex $args 0]
+            set x [lindex $args 1]
+            set y [lindex $args 2]
+            tk_popup $itk_component($mname) $x $y
+        }
+        default {
+            error "bad option \"$option\": should be menu"
+        }
+    }
 }
