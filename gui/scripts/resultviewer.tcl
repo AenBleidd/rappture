@@ -208,6 +208,22 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
     switch -- [$dataobj info class] {
+        ::Rappture::DataTable {
+            set mode "datatable"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.datatable
+                Rappture::DataTableResult $w
+                set _mode2widget($mode) $w
+            }
+        }
+        ::Rappture::Drawing3d {
+            set mode "vtkviewer"
+            if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.xy
+                Rappture::VtkViewer $w
+                set _mode2widget($mode) $w
+            }
+        }
         ::Rappture::Histogram {
             set mode "histogram"
             if {![info exists _mode2widget($mode)]} {
@@ -435,6 +451,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         curve {
             return [Rappture::Curve ::#auto $xmlobj $path]
         }
+        datatable {
+            return [Rappture::DataTable ::#auto $xmlobj $path]
+        }
         histogram {
             return [Rappture::Histogram ::#auto $xmlobj $path]
         }
@@ -461,6 +480,9 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         }
         number - integer - boolean - choice {
             return [$xmlobj element -as object $path]
+        }
+        drawing3d {
+            return [Rappture::Drawing3d ::#auto $xmlobj $path]
         }
         time - status {
             return ""

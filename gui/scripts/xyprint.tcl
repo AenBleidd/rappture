@@ -315,10 +315,12 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
     }
     # Element component
     foreach elem [$orig element names] {
-        $_clone element create $elem
-        CopyOptions [list element configure $elem] $orig $_clone -data 
-        if { [$_clone element cget $elem -hide] } {
-            $_clone element configure $elem -label "" 
+        set oper [$orig element type $elem] 
+        $_clone $oper create $elem
+        CopyOptions [list $oper configure $elem] $orig $_clone -data 
+        if { [$_clone $oper cget $elem -hide] } {
+            $_clone $oper configure $elem -label "" 
+            puts stderr [$_clone $oper configure]
         }
     }
     # Fix element display list
@@ -353,10 +355,9 @@ itcl::body Rappture::XyPrint::InitClone {} {
         -title "" \
         -plotborderwidth 1 -plotrelief solid  \
         -plotbackground white -plotpadx 0 -plotpady 0
-    # 
+
     set _settings($this-layout-width) [Pixels2Inches [$_clone cget -width]]
     set _settings($this-layout-height) [Pixels2Inches [$_clone cget -height]]
-
     set _fonts(legend) [font create legend \
                             -family helvetica -size 10 -weight normal]
     update
@@ -384,6 +385,9 @@ itcl::body Rappture::XyPrint::InitClone {} {
             -titlefont $_fonts($axis-title)
     }
     foreach elem [$_clone element names] {
+        if { [$_clone element type $elem] == "bar" } {
+            continue
+        }
         if { [$_clone element cget $elem -linewidth] > 1 } {
             $_clone element configure $elem -linewidth 1 -pixels 3 
         }
@@ -516,10 +520,12 @@ itcl::body Rappture::XyPrint::GetElement { args } {
     }
     set index [$itk_component(element_slider) get]
     set elem $_settings($this-element-$index)
-    set _settings($this-element-symbol) [$_clone element cget $elem -symbol]
-    set _settings($this-element-color) [$_clone element cget $elem -color]
-    set _settings($this-element-dashes) [$_clone element cget $elem -dashes]
     set _settings($this-element-label) [$_clone element cget $elem -label]
+    set _settings($this-element-color) [$_clone element cget $elem -color]
+    if { [$_clone element type $elem] != "bar" } {
+        set _settings($this-element-symbol) [$_clone element cget $elem -symbol]
+        set _settings($this-element-dashes) [$_clone element cget $elem -dashes]
+    }
     set page $itk_component(legend_page)
     set color [$page.color label $_settings($this-element-color)]
     if { $color == "" } {
@@ -529,8 +535,10 @@ itcl::body Rappture::XyPrint::GetElement { args } {
     } else {
         $page.color value [$page.color label $_settings($this-element-color)]
     }
-    $page.symbol value [$page.symbol label $_settings($this-element-symbol)]
-    $page.dashes value [$page.dashes label $_settings($this-element-dashes)]
+    if { [$_clone element type $elem] != "bar" } {
+        $page.symbol value [$page.symbol label $_settings($this-element-symbol)]
+        $page.dashes value [$page.dashes label $_settings($this-element-dashes)]
+    }
     #FixElement
 }
 
@@ -664,12 +672,18 @@ itcl::body Rappture::XyPrint::BuildGeneralTab {} {
     
 itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     set page $itk_component(legend_page)
-    set _settings($this-legend-position)  [$page.position current]
     set _settings($this-legend-anchor)    [$page.anchor current]
-    foreach option { -hide -position -anchor -borderwidth } {
-        SetComponentOption legend $option
+    if { $_clone != "" } {
+        font configure $_fonts(legend) \
+            -family $_settings($this-legend-font-family) \
+            -size $_settings($this-legend-font-size) \
+            -weight $_settings($this-legend-font-weight) \
+            -slant $_settings($this-legend-font-slant)
+        foreach option { -hide -position -anchor -borderwidth } {
+            SetComponentOption legend $option
+        }
+        $_clone legend configure -font fixed -font $_fonts(legend)
     }
-    $_clone legend configure -font legend
     ApplyElementSettings
 }
 
@@ -1123,15 +1137,22 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
 
 itcl::body Rappture::XyPrint::ApplyElementSettings {} {
     set index [$itk_component(element_slider) get]
-    set elem $_settings($this-element-$index)
     set page $itk_component(legend_page)
     set _settings($this-element-color)  [$page.color current]
-    set _settings($this-element-symbol) [$page.symbol current]
-    set _settings($this-element-dashes) [$page.dashes current]
-    foreach option { -symbol -color -dashes -label } {
-        SetNamedComponentOption element $elem $option
+    if { $_clone != "" } {
+        set elem $_settings($this-element-$index)
+        if { [$_clone element type $elem] != "bar" } {
+            set _settings($this-element-symbol) [$page.symbol current]
+            set _settings($this-element-dashes) [$page.dashes current]
+            foreach option { -symbol -dashes } {
+                SetNamedComponentOption element $elem $option
+            }
+        }
+        foreach option { -color -label } {
+            SetNamedComponentOption element $elem $option
+        }
+        RegeneratePreview
     }
-    RegeneratePreview
 }
 
 itcl::body Rappture::XyPrint::SetLayoutOption { opt } {
@@ -1164,8 +1185,6 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set _settings($this-general-style) ieee
     set _settings($this-general-remember) 0
     set page $itk_component(graph_page)
-    $page.format value [$page.format label $_settings($this-general-format)]
-    $page.style value [$page.style label $_settings($this-general-style)]
 
     # Layout settings
     set _settings($this-layout-width) [Pixels2Inches [$_clone cget -width]]
@@ -1354,7 +1373,12 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
         }
         append out "    if \{ \[preview element exists \"$label\"\] \} \{\n"
         append out "        preview element configure \"$label\""
-        foreach opt { -symbol -color -dashes -label } { 
+        if { [$_clone element type $elem] != "bar" } {
+            set options { -symbol -color -dashes -label } 
+        } else {
+            set options { -color -label } 
+        }
+        foreach opt $options { 
             set value [list [$_clone element cget $elem $opt]]
             append out " $opt $value"
         }

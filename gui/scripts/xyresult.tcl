@@ -3,7 +3,7 @@
 #
 #  This widget is an X/Y plot, meant to view line graphs produced
 #  as output from the run of a Rappture tool.  Use the "add" and
-#  "delete" methods to control the curves showing on the plot.
+#  "delete" methods to control the dataobjs showing on the plot.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -24,44 +24,38 @@ option add *XyResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 set autocolors {
-    #0000ff #ff0000 #00cc00
-    #cc00cc #ff9900 #cccc00
-    #000080 #800000 #006600
-    #660066 #996600 #666600
-}
-set autocolors {
-#0000cd
-#cd0000
-#00cd00
-#3a5fcd
-#cdcd00
-#cd1076
-#009acd
-#00c5cd
-#a2b5cd
-#7ac5cd
-#66cdaa
-#a2cd5a
-#cd9b9b
-#cdba96
-#cd3333
-#cd6600
-#cd8c95
-#cd00cd
-#9a32cd
-#6ca6cd
-#9ac0cd
-#9bcd9b
-#00cd66
-#cdc673
-#cdad00
-#cd5555
-#cd853f
-#cd7054
-#cd5b45
-#cd6889
-#cd69c9
-#551a8b
+    #0000cd
+    #cd0000
+    #00cd00
+    #3a5fcd
+    #cdcd00
+    #cd1076
+    #009acd
+    #00c5cd
+    #a2b5cd
+    #7ac5cd
+    #66cdaa
+    #a2cd5a
+    #cd9b9b
+    #cdba96
+    #cd3333
+    #cd6600
+    #cd8c95
+    #cd00cd
+    #9a32cd
+    #6ca6cd
+    #9ac0cd
+    #9bcd9b
+    #00cd66
+    #cdc673
+    #cdad00
+    #cd5555
+    #cd853f
+    #cd7054
+    #cd5b45
+    #cd6889
+    #cd69c9
+    #551a8b
 }
 
 option add *XyResult.autoColors $autocolors widgetDefault
@@ -75,14 +69,19 @@ itcl::class Rappture::XyResult {
     itk_option define -dimcolor dimColor DimColor ""
     itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
-
-    public method add {curve {settings ""}}
+    constructor {args} { 
+        # defined below 
+    }
+    destructor { 
+        # defined below 
+    }
+    public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { # do nothing }
+    public method parameters {title args} { 
+        # do nothing 
+    }
     public method download {option args}
 
     protected method _rebuild {}
@@ -90,20 +89,20 @@ itcl::class Rappture::XyResult {
     protected method _zoom {option args}
     protected method _hilite {state x y}
     protected method _axis {option args}
-    protected method _getAxes {curve}
+    protected method _getAxes {dataobj}
     protected method _getLineMarkerOptions { style } 
     protected method _getTextMarkerOptions { style } 
     protected method _enterMarker { g name x y text }
     protected method _leaveMarker { g name }
 
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _clist ""     ;# list of curve objects
-    private variable _curve2color  ;# maps curve => plotting color
-    private variable _curve2width  ;# maps curve => line width
-    private variable _curve2dashes ;# maps curve => BLT -dashes list
-    private variable _curve2raise  ;# maps curve => raise flag 0/1
-    private variable _curve2desc   ;# maps curve => description of data
-    private variable _elem2curve   ;# maps graph element => curve
+    private variable _dlist ""     ;# list of dataobj objects
+    private variable _dataobj2color  ;# maps dataobj => plotting color
+    private variable _dataobj2width  ;# maps dataobj => line width
+    private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
+    private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
+    private variable _dataobj2desc   ;# maps dataobj => description of data
+    private variable _elem2dataobj   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
     private variable _autoColorI 0 ;# index for next "-color auto"
@@ -173,17 +172,13 @@ itcl::body Rappture::XyResult::constructor {args} {
         -symbol square -pixels 3 -linewidth 2 \
         -outline black -fill red -color black
 
-    #
     # Add bindings so you can mouse over points to see values:
-    #
     bind $itk_component(plot) <Motion> \
         [itcl::code $this _hilite at %x %y]
     bind $itk_component(plot) <Leave> \
         [itcl::code $this _hilite off %x %y]
 
-    #
     # Add support for editing axes:
-    #
     Rappture::Balloon $itk_component(hull).axes -title "Axis Options"
     set inner [$itk_component(hull).axes component inner]
 
@@ -205,7 +200,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     label $inner.formatl -text "Format:"
     Rappture::Combobox $inner.format -width 15 -editable no
     $inner.format choices insert end \
-        "%.3g"  "Auto"         \
+        "%.6g"  "Auto"         \
         "%.0f"  "X"          \
         "%.1f"  "X.X"          \
         "%.2f"  "X.XX"         \
@@ -230,7 +225,7 @@ itcl::body Rappture::XyResult::constructor {args} {
     grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
 
     foreach axis {x y} {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
     }
     _axis scale x linear
     _axis scale y linear
@@ -249,7 +244,6 @@ itcl::body Rappture::XyResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-
     after idle [subst {
         update idletasks
         $itk_component(legend) reset 
@@ -269,13 +263,13 @@ itcl::body Rappture::XyResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <curve> ?<settings>?
+# USAGE: add <dataobj> ?<settings>?
 #
-# Clients use this to add a curve to the plot.  The optional <settings>
+# Clients use this to add a dataobj to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::add {curve {settings ""}} {
+itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     array set params {
         -color auto
         -brightness 0
@@ -336,14 +330,14 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
         }
     }
 
-    set pos [lsearch -exact $curve $_clist]
+    set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-        lappend _clist $curve
-        set _curve2color($curve) $params(-color)
-        set _curve2width($curve) $params(-width)
-        set _curve2dashes($curve) $params(-linestyle)
-        set _curve2raise($curve) $params(-raise)
-        set _curve2desc($curve) $params(-description)
+        lappend _dlist $dataobj
+        set _dataobj2color($dataobj) $params(-color)
+        set _dataobj2width($dataobj) $params(-width)
+        set _dataobj2dashes($dataobj) $params(-linestyle)
+        set _dataobj2raise($dataobj) $params(-raise)
+        set _dataobj2desc($dataobj) $params(-description)
 
         $_dispatcher event -idle !rebuild
     }
@@ -357,9 +351,9 @@ itcl::body Rappture::XyResult::add {curve {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::get {} {
     # put the dataobj list in order according to -raise options
-    set clist $_clist
+    set clist $_dlist
     foreach obj $clist {
-        if {[info exists _curve2raise($obj)] && $_curve2raise($obj)} {
+        if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
             set i [lsearch -exact $clist $obj]
             if {$i >= 0} {
                 set clist [lreplace $clist $i $i]
@@ -371,29 +365,29 @@ itcl::body Rappture::XyResult::get {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: delete ?<curve1> <curve2> ...?
+# USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a curve from the plot.  If no curves
-# are specified, then all curves are deleted.
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::delete {args} {
     if {[llength $args] == 0} {
-        set args $_clist
+        set args $_dlist
     }
 
-    # delete all specified curves
+    # delete all specified dataobjs
     set changed 0
-    foreach curve $args {
-        set pos [lsearch -exact $_clist $curve]
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
-            set _clist [lreplace $_clist $pos $pos]
-            catch {unset _curve2color($curve)}
-            catch {unset _curve2width($curve)}
-            catch {unset _curve2dashes($curve)}
-            catch {unset _curve2raise($curve)}
-            foreach elem [array names _elem2curve] {
-                if {$_elem2curve($elem) == $curve} {
-                    unset _elem2curve($elem)
+            set _dlist [lreplace $_dlist $pos $pos]
+            catch {unset _dataobj2color($dataobj)}
+            catch {unset _dataobj2width($dataobj)}
+            catch {unset _dataobj2dashes($dataobj)}
+            catch {unset _dataobj2raise($dataobj)}
+            foreach elem [array names _elem2dataobj] {
+                if {$_elem2dataobj($elem) == $dataobj} {
+                    unset _elem2dataobj($elem)
                 }
             }
             set changed 1
@@ -406,18 +400,18 @@ itcl::body Rappture::XyResult::delete {args} {
     }
 
     # Nothing left? then start over with auto colors
-    if {[llength $_clist] == 0} {
+    if {[llength $_dlist] == 0} {
         set _autoColorI 0
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: scale ?<curve1> <curve2> ...?
+# USAGE: scale ?<dataobj1> <dataobj2> ...?
 #
 # Sets the default limits for the overall plot according to the
-# limits of the data for all of the given <curve> objects.  This
-# accounts for all curves--even those not showing on the screen.
-# Because of this, the limits are appropriate for all curves as
+# limits of the data for all of the given <dataobj> objects.  This
+# accounts for all dataobjs--even those not showing on the screen.
+# Because of this, the limits are appropriate for all dataobjs as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
@@ -434,16 +428,16 @@ itcl::body Rappture::XyResult::scale {args} {
     }
 
     catch {unset _limits}
-    foreach curve $args {
-        # find the axes for this curve (e.g., {x y2})
-        foreach {map(x) map(y)} [_getAxes $curve] break
+    foreach dataobj $args {
+        # find the axes for this dataobj (e.g., {x y2})
+        foreach {map(x) map(y)} [_getAxes $dataobj] break
 
         foreach axis {x y} {
             # get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
-                foreach {min max} [$curve limits $axis$type] break
+                foreach {min max} [$dataobj limits $axis$type] break
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -459,7 +453,7 @@ itcl::body Rappture::XyResult::scale {args} {
                 }
             }
 
-            if {[$curve hints ${axis}scale] == "log"} {
+            if {[$dataobj hints ${axis}scale] == "log"} {
                 _axis scale $map($axis) log
             }
         }
@@ -529,10 +523,10 @@ itcl::body Rappture::XyResult::download {option args} {
                     foreach dataobj $dlist {
                         append csvdata "[string repeat - 60]\n"
                         append csvdata " [$dataobj hints label]\n"
-                        if {[info exists _curve2desc($dataobj)]
-                            && [llength [split $_curve2desc($dataobj) \n]] > 1} {
+                        if {[info exists _dataobj2desc($dataobj)]
+                            && [llength [split $_dataobj2desc($dataobj) \n]] > 1} {
                             set indent "for:"
-                            foreach line [split $_curve2desc($dataobj) \n] {
+                            foreach line [split $_dataobj2desc($dataobj) \n] {
                                 append csvdata " $indent $line\n"
                                 set indent "    "
                             }
@@ -598,7 +592,7 @@ itcl::body Rappture::XyResult::download {option args} {
 itcl::body Rappture::XyResult::_rebuild {} {
     set g $itk_component(plot)
 
-    # first clear out the widget
+    # First clear out the widget
     eval $g element delete [$g element names]
     eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
@@ -607,7 +601,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
     $g yaxis configure -hide no
-    catch {unset _label2axis}
+    array unset _label2axis
 
     #
     # Scan through all objects and create a list of all axes.
@@ -617,9 +611,9 @@ itcl::body Rappture::XyResult::_rebuild {} {
     #
     set anum(x) 0
     set anum(y) 0
-    foreach curve [get] {
+    foreach dataobj [get] {
         foreach ax {x y} {
-            set label [$curve hints ${ax}label]
+            set label [$dataobj hints ${ax}label]
             if {"" != $label} {
                 if {![info exists _label2axis($ax-$label)]} {
                     switch [incr anum($ax)] {
@@ -635,7 +629,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
                     set _label2axis($ax-$label) $axis
 
                     # if this axis has a description, add it as a tooltip
-                    set desc [string trim [$curve hints ${ax}desc]]
+                    set desc [string trim [$dataobj hints ${ax}desc]]
                     Rappture::Tooltip::text $g-$axis $desc
                 }
             }
@@ -662,51 +656,51 @@ itcl::body Rappture::XyResult::_rebuild {} {
     }
 
     foreach axis $all {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
 
         $g axis bind $axis <Enter> \
             [itcl::code $this _axis hilite $axis on]
         $g axis bind $axis <Leave> \
             [itcl::code $this _axis hilite $axis off]
-        $g axis bind $axis <ButtonPress> \
+        $g axis bind $axis <ButtonPress-1> \
             [itcl::code $this _axis click $axis %x %y]
         $g axis bind $axis <B1-Motion> \
             [itcl::code $this _axis drag $axis %x %y]
-        $g axis bind $axis <ButtonRelease> \
+        $g axis bind $axis <ButtonRelease-1> \
             [itcl::code $this _axis release $axis %x %y]
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
 
     #
-    # Plot all of the curves.
+    # Plot all of the dataobjs.
     #
     set count 0
-    foreach curve $_clist {
-        set label [$curve hints label]
-        foreach {mapx mapy} [_getAxes $curve] break
+    foreach dataobj $_dlist {
+        set label [$dataobj hints label]
+        foreach {mapx mapy} [_getAxes $dataobj] break
 
-        foreach comp [$curve components] {
-            set xv [$curve mesh $comp]
-            set yv [$curve values $comp]
+        foreach comp [$dataobj components] {
+            set xv [$dataobj mesh $comp]
+            set yv [$dataobj values $comp]
 
-            if {[info exists _curve2color($curve)]} {
-                set color $_curve2color($curve)
+            if {[info exists _dataobj2color($dataobj)]} {
+                set color $_dataobj2color($dataobj)
             } else {
-                set color [$curve hints color]
+                set color [$dataobj hints color]
                 if {"" == $color} {
                     set color black
                 }
             }
 
-            if {[info exists _curve2width($curve)]} {
-                set lwidth $_curve2width($curve)
+            if {[info exists _dataobj2width($dataobj)]} {
+                set lwidth $_dataobj2width($dataobj)
             } else {
                 set lwidth 2
             }
 
-            if {[info exists _curve2dashes($curve)]} {
-                set dashes $_curve2dashes($curve)
+            if {[info exists _dataobj2dashes($dataobj)]} {
+                set dashes $_dataobj2dashes($dataobj)
             } else {
                 set dashes ""
             }
@@ -720,7 +714,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
             }
 
             set elem "elem[incr count]"
-            set _elem2curve($elem) $curve
+            set _elem2dataobj($elem) $dataobj
             lappend label2elem($label) $elem
             $g element create $elem -x $xv -y $yv \
                 -symbol $sym -pixels $pixels -linewidth $lwidth \
@@ -736,15 +730,15 @@ itcl::body Rappture::XyResult::_rebuild {} {
             continue
         }
         foreach elem $label2elem($label) {
-            set curve $_elem2curve($elem)
-            scan [$curve hints xmlobj] "::libraryObj%d" suffix
+            set dataobj $_elem2dataobj($elem)
+            scan [$dataobj hints xmlobj] "::libraryObj%d" suffix
             incr suffix
             set elabel [format "%s \#%d" $label $suffix]
             $g element configure $elem -label $elabel
         }
     }        
 
-    foreach curve $_clist {
+    foreach dataobj $_dlist {
         set xmin -Inf
         set ymin -Inf
         set xmax Inf
@@ -752,7 +746,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
         # 
         # Create text/line markers for each *axis.marker specified. 
         # 
-        foreach m [$curve xmarkers] {
+        foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
             $g marker bind $id <Enter> \
@@ -772,7 +766,7 @@ itcl::body Rappture::XyResult::_rebuild {} {
                 }
             }
         }
-        foreach m [$curve ymarkers] {
+        foreach m [$dataobj ymarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $xmin $at $xmax $at]]
             $g marker bind $id <Enter> \
@@ -913,11 +907,11 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
             set elem $info(name)
 
             # Some elements are generated dynamically and therefore will
-            # not have a curve object associated with them.
+            # not have a dataobj object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2curve($elem)]} {
-                foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            if {[info exists _elem2dataobj($elem)]} {
+                foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
 
             # search again for an exact point -- this time don't interpolate
@@ -929,10 +923,10 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
                 
-                if {[info exists _elem2curve($elem)]} {
-                    set curve $_elem2curve($elem)
-                    set yunits [$curve hints yunits]
-                    set xunits [$curve hints xunits]
+                if {[info exists _elem2dataobj($elem)]} {
+                    set dataobj $_elem2dataobj($elem)
+                    set yunits [$dataobj hints yunits]
+                    set xunits [$dataobj hints xunits]
                 } else {
                     set xunits ""
                     set yunits ""
@@ -950,21 +944,21 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
             set elem $info(name)
 
             # Some elements are generated dynamically and therefore will
-            # not have a curve object associated with them.
+            # not have a dataobj object associated with them.
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
-            if {[info exists _elem2curve($elem)]} {
-                foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+            if {[info exists _elem2dataobj($elem)]} {
+                foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
 
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
                 
-            if {[info exists _elem2curve($elem)]} {
-                set curve $_elem2curve($elem)
-                set yunits [$curve hints yunits]
-                set xunits [$curve hints xunits]
+            if {[info exists _elem2dataobj($elem)]} {
+                set dataobj $_elem2dataobj($elem)
+                set yunits [$dataobj hints yunits]
+                set xunits [$dataobj hints xunits]
             } else {
                 set xunits ""
                 set yunits ""
@@ -998,8 +992,8 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 
         set mapx [$g element cget $elem -mapx]
         set mapy [$g element cget $elem -mapy]
-        if {[info exists _elem2curve($elem)]} {
-            foreach {mapx mapy} [_getAxes $_elem2curve($elem)] break
+        if {[info exists _elem2dataobj($elem)]} {
+            foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
         }
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -1119,7 +1113,6 @@ itcl::body Rappture::XyResult::_hilite {state x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::_axis {option args} {
     set inner [$itk_component(hull).axes component inner]
-
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {
@@ -1438,7 +1431,7 @@ itcl::body Rappture::XyResult::_axis {option args} {
             set value [lindex $args 2]
 
             if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set fmt "%.3g"
+                set fmt "%.6g"
             } else {
                 set fmt $_axisPopup(format-$axis)
             }
@@ -1519,13 +1512,13 @@ itcl::body Rappture::XyResult::_getTextMarkerOptions {style} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getAxes <curveObj>
+# USAGE: _getAxes <dataobj>
 #
 # Used internally to figure out the axes used to plot the given
-# <curveObj>.  Returns a list of the form {x y}, where x is the
+# <dataobj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::XyResult::_getAxes {curve} {
+itcl::body Rappture::XyResult::_getAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1533,7 +1526,7 @@ itcl::body Rappture::XyResult::_getAxes {curve} {
     }
 
     # what is the x axis?  x? x2? x3? ...
-    set xlabel [$curve hints xlabel]
+    set xlabel [$dataobj hints xlabel]
     if {[info exists _label2axis(x-$xlabel)]} {
         set mapx $_label2axis(x-$xlabel)
     } else {
@@ -1541,7 +1534,7 @@ itcl::body Rappture::XyResult::_getAxes {curve} {
     }
 
     # what is the y axis?  y? y2? y3? ...
-    set ylabel [$curve hints ylabel]
+    set ylabel [$dataobj hints ylabel]
     if {[info exists _label2axis(y-$ylabel)]} {
         set mapy $_label2axis(y-$ylabel)
     } else {
