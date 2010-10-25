@@ -115,8 +115,6 @@ ifeq ($(FFMPEG),yes)
   # since ffmpeg libraries are available,
   # include them in compilation
   LIBS += -lavcodec -lavformat -lswscale
-  # HEADERS += RpMediaPlayer.h RpVideo.h
-  # OBJS += RpMediaPlayer.o RpVideo.o
   HEADERS += RpVideo.h
   OBJS += RpVideo.o
 endif
