@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: numberresult - plot of numbers in a ResultSet
 #
@@ -17,6 +18,41 @@
 package require Itk
 package require BLT
 
+set autocolors {
+    #0000cd
+    #cd0000
+    #00cd00
+    #3a5fcd
+    #cdcd00
+    #cd1076
+    #009acd
+    #00c5cd
+    #a2b5cd
+    #7ac5cd
+    #66cdaa
+    #a2cd5a
+    #cd9b9b
+    #cdba96
+    #cd3333
+    #cd6600
+    #cd8c95
+    #cd00cd
+    #9a32cd
+    #6ca6cd
+    #9ac0cd
+    #9bcd9b
+    #00cd66
+    #cdc673
+    #cdad00
+    #cd5555
+    #cd853f
+    #cd7054
+    #cd5b45
+    #cd6889
+    #cd69c9
+    #551a8b
+}
+
 option add *NumberResult.width 3i widgetDefault
 option add *NumberResult.height 3i widgetDefault
 option add *NumberResult.gridColor #d9d9d9 widgetDefault
@@ -25,7 +61,7 @@ option add *NumberResult.dimColor gray widgetDefault
 option add *NumberResult.controlBackground gray widgetDefault
 option add *NumberResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
-
+option add *NumberResult.autoColors $autocolors widgetDefault
 option add *NumberResult*Balloon*Entry.background white widgetDefault
 
 itcl::class Rappture::NumberResult {
@@ -34,10 +70,14 @@ itcl::class Rappture::NumberResult {
     itk_option define -gridcolor gridColor GridColor ""
     itk_option define -activecolor activeColor ActiveColor ""
     itk_option define -dimcolor dimColor DimColor ""
+    itk_option define -autocolors autoColors AutoColors ""
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
-
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
@@ -45,24 +85,24 @@ itcl::class Rappture::NumberResult {
     public method parameters {title args}
     public method download {option args}
 
-    protected method _rebuild {}
-    protected method _resetLimits {}
-    protected method _zoom {option args}
-    protected method _hilite {state x y}
-    protected method _axis {option args}
-    protected method _getAxes {xydata}
-    protected method _getValue {xydata {which both}}
-    protected method _getInfo {what xydata {which both}}
+    protected method Rebuild {}
+    protected method ResetLimits {}
+    protected method Zoom {option args}
+    protected method Hilite {state x y}
+    protected method Axis {option args}
+    protected method GetAxes {dataobj}
+    protected method GetValue {dataobj {which both}}
+    protected method GetInfo {what dataobj {which both}}
 
     private variable _dispatcher "" ;# dispatcher for !events
 
     private variable _dlist ""     ;# list of data objects
-    private variable _dobj2color   ;# maps data object => plotting color
-    private variable _dobj2width   ;# maps data object => line width
-    private variable _dobj2raise   ;# maps data object => raise flag 0/1
-    private variable _dobj2desc    ;# maps data object => description of data
-    private variable _dobj2param   ;# maps data object => x-axis value
-    private variable _elem2dobj    ;# maps graph element => data object
+    private variable _dataobj2color   ;# maps data object => plotting color
+    private variable _dataobj2width   ;# maps data object => line width
+    private variable _dataobj2raise   ;# maps data object => raise flag 0/1
+    private variable _dataobj2desc    ;# maps data object => description of data
+    private variable _dataobj2param   ;# maps data object => x-axis value
+    private variable _elem2dataobj    ;# maps graph element => data object
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _params ""    ;# complete description of x-axis
     private variable _xval2label   ;# maps x-axis value => tick label
@@ -85,7 +125,7 @@ itk::usual NumberResult {
 itcl::body Rappture::NumberResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
-    $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
 
     array set _downloadPopup {
         format csv
@@ -94,46 +134,44 @@ itcl::body Rappture::NumberResult::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    itk_component add controls {
-        frame $itk_interior.cntls
-    } {
-        usual
-        rename -background -controlbackground controlBackground Background
+    itk_component add main {
+        Rappture::SidebarFrame $itk_interior.main
     }
-    pack $itk_component(controls) -side right -fill y
+    pack $itk_component(main) -expand yes -fill both
+    set f [$itk_component(main) component controls]
 
     itk_component add reset {
-        button $itk_component(controls).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
-            -command [itcl::code $this _zoom reset]
+        button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
+            -image [Rappture::icon reset-view] \
+            -command [itcl::code $this Zoom reset]
     } {
         usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        ignore -borderwidth -highlightthickness
     }
-    pack $itk_component(reset) -padx 4 -pady 4
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    pack $itk_component(reset) -padx 4 -pady 2 -anchor e
+    Rappture::Tooltip::for $itk_component(reset) \
+        "Reset the view to the default zoom level"
 
-
+    set f [$itk_component(main) component frame]
     itk_component add plot {
-        blt::graph $itk_interior.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 \
+        blt::graph $f.plot \
+            -highlightthickness 0 -plotpadx 0 -plotpady 4 \
             -rightmargin 10
     } {
         keep -background -foreground -cursor -font
     }
     pack $itk_component(plot) -expand yes -fill both
-    $itk_component(plot) pen configure activeLine \
-        -symbol square -pixels 3 -linewidth 2 -color black
 
-    #
+    $itk_component(plot) pen configure activeLine \
+        -symbol square -pixels 3 -linewidth 2 \
+        -outline black -fill red -color black
+
     # Add bindings so you can mouse over points to see values:
-    #
     bind $itk_component(plot) <Motion> \
-        [itcl::code $this _hilite at %x %y]
+        [itcl::code $this Hilite at %x %y]
     bind $itk_component(plot) <Leave> \
-        [itcl::code $this _hilite off %x %y]
+        [itcl::code $this Hilite off %x %y]
 
     #
     # Add support for editing axes:
@@ -159,7 +197,7 @@ itcl::body Rappture::NumberResult::constructor {args} {
     label $inner.formatl -text "Format:"
     Rappture::Combobox $inner.format -width 15 -editable no
     $inner.format choices insert end \
-        "%.3g"  "Auto"         \
+        "%.6g"  "Auto"         \
         "%.0f"  "X"          \
         "%.1f"  "X.X"          \
         "%.2f"  "X.XX"         \
@@ -184,17 +222,32 @@ itcl::body Rappture::NumberResult::constructor {args} {
     grid $inner.scales -row 5 -column 1 -sticky ew -pady 4
 
     foreach axis {x y} {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
     }
-    _axis scale x linear
-    _axis scale y linear
+    Axis scale x linear
+    Axis scale y linear
 
-    # quick-and-dirty zoom functionality, for now...
-    Blt_ZoomStack $itk_component(plot)
     $itk_component(plot) legend configure -hide yes
 
-    eval itk_initialize $args
+    #
+    # Add legend for editing hidden/elements:
+    #
+    set inner [$itk_component(main) insert end \
+        -title "Legend" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
 
+    itk_component add legend {
+        Rappture::XyLegend $inner.legend $itk_component(plot)
+    }
+    pack $itk_component(legend) -expand yes -fill both
+    after idle [subst {
+        update idletasks
+        $itk_component(legend) reset 
+    }]
+    # quick-and-dirty zoom functionality, for now...
+    Blt_ZoomStack $itk_component(plot)
+    eval itk_initialize $args
     set _hilite(elem) ""
 }
 
@@ -205,7 +258,7 @@ itcl::body Rappture::NumberResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: add <dataObj> ?<settings>?
+# USAGE: add <dataobj> ?<settings>?
 #
 # Clients use this to add a data object to the plot.  The optional
 # <settings> are used to configure the plot.  Allowed settings are
@@ -257,11 +310,11 @@ itcl::body Rappture::NumberResult::add {dataobj {settings ""}} {
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
         lappend _dlist $dataobj
-        set _dobj2color($dataobj) $params(-color)
-        set _dobj2width($dataobj) $params(-width)
-        set _dobj2raise($dataobj) $params(-raise)
-        set _dobj2desc($dataobj) $params(-description)
-        set _dobj2param($dataobj) $params(-param)
+        set _dataobj2color($dataobj) $params(-color)
+        set _dataobj2width($dataobj) $params(-width)
+        set _dataobj2raise($dataobj) $params(-raise)
+        set _dataobj2desc($dataobj) $params(-description)
+        set _dataobj2param($dataobj) $params(-param)
 
         $_dispatcher event -idle !rebuild
     }
@@ -277,7 +330,7 @@ itcl::body Rappture::NumberResult::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+        if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
             set i [lsearch -exact $dlist $obj]
             if {$i >= 0} {
                 set dlist [lreplace $dlist $i $i]
@@ -289,7 +342,7 @@ itcl::body Rappture::NumberResult::get {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: delete ?<dobj2> <dobj2> ...?
+# USAGE: delete ?<dataobj2> <dataobj2> ...?
 #
 # Clients use this to delete a data object from the plot.  If no
 # objects are specified, then all objects are deleted.
@@ -305,14 +358,14 @@ itcl::body Rappture::NumberResult::delete {args} {
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
             set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _dobj2color($dataobj)}
-            catch {unset _dobj2width($dataobj)}
-            catch {unset _dobj2raise($dataobj)}
-            catch {unset _dobj2desc($dataobj)}
-            catch {unset _dobj2param($dataobj)}
-            foreach elem [array names _elem2dobj] {
-                if {$_elem2dobj($elem) == $dataobj} {
-                    unset _elem2dobj($elem)
+            catch {unset _dataobj2color($dataobj)}
+            catch {unset _dataobj2width($dataobj)}
+            catch {unset _dataobj2raise($dataobj)}
+            catch {unset _dataobj2desc($dataobj)}
+            catch {unset _dataobj2param($dataobj)}
+            foreach elem [array names _elem2dataobj] {
+                if {$_elem2dataobj($elem) == $dataobj} {
+                    unset _elem2dataobj($elem)
                 }
             }
             set changed 1
@@ -323,10 +376,14 @@ itcl::body Rappture::NumberResult::delete {args} {
     if {$changed} {
         $_dispatcher event -idle !rebuild
     }
+    # Nothing left? then start over with auto colors
+    if {[llength $_dlist] == 0} {
+        set _autoColorI 0
+    }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: scale ?<dobj1> <dobj2> ...?
+# USAGE: scale ?<dataobj1> <dataobj2> ...?
 #
 # Sets the default limits for the overall plot according to the
 # limits of the data for all of the given data objects.  This
@@ -338,19 +395,19 @@ itcl::body Rappture::NumberResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
     foreach axis $allx {
-        _axis scale $axis linear
+        Axis scale $axis linear
     }
 
     set ally [$itk_component(plot) y2axis use]
     lappend ally y  ;# fix main y-axis too
     foreach axis $ally {
-        _axis scale $axis linear
+        Axis scale $axis linear
     }
 
     catch {unset _limits}
-    foreach xydata $args {
+    foreach dataobj $args {
         # find the axes for this data object (e.g., {x y2})
-        foreach {map(x) map(y)} [_getAxes $xydata] break
+        foreach {map(x) map(y)} [GetAxes $dataobj] break
 
         foreach axis {x y} {
             # get defaults for both linear and log scales
@@ -374,7 +431,7 @@ itcl::body Rappture::NumberResult::scale {args} {
                         }
                     }
                 } else {
-                    set min [set max [_getValue $xydata y]]
+                    set min [set max [GetValue $dataobj y]]
                 }
 
                 if {"" != $min && "" != $max} {
@@ -393,7 +450,7 @@ itcl::body Rappture::NumberResult::scale {args} {
             }
         }
     }
-    _resetLimits
+    ResetLimits
 }
 
 # ----------------------------------------------------------------------
@@ -435,7 +492,7 @@ itcl::body Rappture::NumberResult::parameters {args} {
             set _limits($id-max) $max
         }
     }
-    _resetLimits
+    ResetLimits
 
     #
     # Figure out a good set of ticks for the x-axis.
@@ -457,12 +514,12 @@ itcl::body Rappture::NumberResult::parameters {args} {
         $itk_component(plot) xaxis configure -command "" -majorticks ""
         if {![$itk_component(plot) axis cget x -logscale]} {
             $itk_component(plot) xaxis configure \
-                -command [itcl::code $this _axis format x]
+                -command [itcl::code $this Axis format x]
         }
     } else {
         set _xlabels 1
         $itk_component(plot) xaxis configure \
-            -command [itcl::code $this _axis format x] \
+            -command [itcl::code $this Axis format x] \
             -majorticks [lsort -real [array names _xval2label]]
     }
 
@@ -485,10 +542,11 @@ itcl::body Rappture::NumberResult::download {option args} {
             # nothing to do
         }
         controls {
-            set popup .xyresultdownload
-            if {![winfo exists .xyresultdownload]} {
+            set popup .numberresultdownload
+            if {![winfo exists .numberresultdownload]} {
                 # if we haven't created the popup yet, do it now
-                Rappture::Balloon $popup -title "[Rappture::filexfer::label downloadWord] as..."
+                Rappture::Balloon $popup \
+		    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -496,10 +554,10 @@ itcl::body Rappture::NumberResult::download {option args} {
                     -variable Rappture::NumberResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
-                radiobutton $inner.pdf -text "Image as PDF/PostScript" \
+                radiobutton $inner.image -text "Image (PS/PDF/PNG/JPEG)" \
                     -variable Rappture::NumberResult::_downloadPopup(format) \
-                    -value pdf
-                pack $inner.pdf -anchor w
+                    -value image
+                pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
                 pack $inner.go -pady 4
@@ -513,79 +571,83 @@ itcl::body Rappture::NumberResult::download {option args} {
             return $popup
         }
         now {
-            set popup .xyresultdownload
-            if {[winfo exists .xyresultdownload]} {
+            set popup .numberresultdownload
+            if {[winfo exists .numberresultdownload]} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
-              csv {
-                # March through the values in order and report
-                # all data points
-                set csvdata ""
-                set xtitle [$itk_component(plot) xaxis cget -title]
-                set ytitle [$itk_component(plot) yaxis cget -title]
-
-                set desc ""
-                set dataobj [lindex [get] end]
-
-                # the "Simulation" axis shows all values
-                # -- no need for assumptions
-                if {$xtitle != "Simulation"
-                      && [info exists _dobj2desc($dataobj)]} {
-                    foreach line [split $_dobj2desc($dataobj) \n] {
-                        # skip the current axis and the Simulation axis
-                        # Other values show assumptions about values reported
-                        if {[string match "$xtitle =*" $line]
-                              || [string match "Simulation =*" $line]} {
-                            continue
-                        }
-                        set indent [expr {("" == $desc) ? "for:" : "    "}]
-                        append desc " $indent $line\n"
+		csv {
+		    # March through the values in order and report
+		    # all data points
+		    set csvdata ""
+		    set xtitle [$itk_component(plot) xaxis cget -title]
+		    set ytitle [$itk_component(plot) yaxis cget -title]
+		    
+		    set desc ""
+		    set dataobj [lindex [get] end]
+		    
+		    # the "Simulation" axis shows all values
+		    # -- no need for assumptions
+		    if {$xtitle != "Simulation"
+			&& [info exists _dataobj2desc($dataobj)]} {
+			foreach line [split $_dataobj2desc($dataobj) \n] {
+			    # skip the current axis and the Simulation axis
+			    # Other values show assumptions about values reported
+			    if {[string match "$xtitle =*" $line]
+				|| [string match "Simulation =*" $line]} {
+				continue
+			    }
+			    set indent [expr {("" == $desc) ? "for:" : "    "}]
+			    append desc " $indent $line\n"
+			}
+		    }
+		    if {[string length $desc] > 0} {
+			append csvdata "[string repeat - 60]\n"
+			append csvdata $desc
+			append csvdata "[string repeat - 60]\n"
+		    }
+		    
+		    append csvdata "$xtitle, $ytitle\n"
+		    foreach xval [lsort -real [array names _xval2label]] {
+			set dataobj ""
+			set param [list $_xval2label($xval) $xval]
+			foreach obj $_dlist {
+			    if {[info exists _dataobj2param($obj)]
+				&& [string equal $_dataobj2param($obj) $param]} {
+				set dataobj $obj
+				break
+			    }
+			}
+			if {"" != $dataobj} {
+			    set yval [$dataobj get current]
+			    append csvdata "$_xval2label($xval), $yval\n"
+			}
+		    }
+		    return [list .txt $csvdata]
+		}
+                image {
+                    set popup .numberresultprintdownload
+                    if { ![winfo exists $popup] } {
+                        # Create a popup for the print dialog
+                        Rappture::Balloon $popup -title "Save as image..."
+                        set inner [$popup component inner]
+                        # Create the print dialog widget and add it to the
+                        # the balloon popup.
+                        Rappture::XyPrint $inner.print 
+                        $popup configure \
+                            -deactivatecommand [list $inner.print reset] 
+                        blt::table $inner 0,0 $inner.print -fill both
                     }
+                    update
+                    # Activate the popup and call for the output.
+                    foreach { widget toolName plotName } $args break
+                    $popup activate $widget left
+                    set inner [$popup component inner]
+                    set output [$inner.print print $itk_component(plot) \
+                                    $toolName $plotName]
+                    $popup deactivate 
+                    return $output
                 }
-                if {[string length $desc] > 0} {
-                    append csvdata "[string repeat - 60]\n"
-                    append csvdata $desc
-                    append csvdata "[string repeat - 60]\n"
-                }
-
-                append csvdata "$xtitle, $ytitle\n"
-                foreach xval [lsort -real [array names _xval2label]] {
-                    set dataobj ""
-                    set param [list $_xval2label($xval) $xval]
-                    foreach obj $_dlist {
-                        if {[info exists _dobj2param($obj)]
-                              && [string equal $_dobj2param($obj) $param]} {
-                            set dataobj $obj
-                            break
-                        }
-                    }
-                    if {"" != $dataobj} {
-                        set yval [$dataobj get current]
-                        append csvdata "$_xval2label($xval), $yval\n"
-                    }
-                }
-                return [list .txt $csvdata]
-              }
-              pdf {
-                set psdata [$itk_component(plot) postscript output -decorations no -maxpect 1]
-
-                set cmds {
-                    set fout "xy[pid].pdf"
-                    exec ps2pdf - $fout << $psdata
-
-                    set fid [open $fout r]
-                    fconfigure $fid -translation binary -encoding binary
-                    set pdfdata [read $fid]
-                    close $fid
-
-                    file delete -force $fout
-                }
-                if {[catch $cmds result] == 0} {
-                    return [list .pdf $pdfdata]
-                }
-                return [list .ps $psdata]
-              }
             }
         }
         default {
@@ -595,20 +657,24 @@ itcl::body Rappture::NumberResult::download {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _rebuild
+# USAGE: Rebuild
 #
 # Called automatically whenever something changes that affects the
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_rebuild {} {
+itcl::body Rappture::NumberResult::Rebuild {} {
     set g $itk_component(plot)
 
     # first clear out the widget
     eval $g element delete [$g element names]
+    eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
         $g axis configure $axis -hide yes -checklimits no
     }
+    # Presumably you want at least an X-axis and Y-axis displayed.
+    $g xaxis configure -hide no
+    $g yaxis configure -hide no
     catch {unset _label2axis}
 
     #
@@ -619,9 +685,9 @@ itcl::body Rappture::NumberResult::_rebuild {} {
     #
     set anum(x) 0
     set anum(y) 0
-    foreach xydata [get] {
+    foreach dataobj [get] {
         foreach ax {x y} {
-            set label [_getInfo about.label $xydata ${ax}]
+            set label [GetInfo about.label $dataobj ${ax}]
             if {"" != $label} {
                 if {![info exists _label2axis($ax-$label)]} {
                     switch [incr anum($ax)] {
@@ -637,7 +703,7 @@ itcl::body Rappture::NumberResult::_rebuild {} {
                     set _label2axis($ax-$label) $axis
 
                     # if this axis has a description, add it as a tooltip
-                    set desc [string trim [_getInfo about.description $xydata ${ax}]]
+                    set desc [string trim [GetInfo about.description $dataobj ${ax}]]
                     Rappture::Tooltip::text $g-$axis $desc
                 }
             }
@@ -664,18 +730,18 @@ itcl::body Rappture::NumberResult::_rebuild {} {
     }
 
     foreach axis $all {
-        set _axisPopup(format-$axis) "%.3g"
+        set _axisPopup(format-$axis) "%.6g"
 
         $g axis bind $axis <Enter> \
-            [itcl::code $this _axis hilite $axis on]
+            [itcl::code $this Axis hilite $axis on]
         $g axis bind $axis <Leave> \
-            [itcl::code $this _axis hilite $axis off]
-        $g axis bind $axis <ButtonPress> \
-            [itcl::code $this _axis click $axis %x %y]
+            [itcl::code $this Axis hilite $axis off]
+        $g axis bind $axis <ButtonPress-1> \
+            [itcl::code $this Axis click $axis %x %y]
         $g axis bind $axis <B1-Motion> \
-            [itcl::code $this _axis drag $axis %x %y]
-        $g axis bind $axis <ButtonRelease> \
-            [itcl::code $this _axis release $axis %x %y]
+            [itcl::code $this Axis drag $axis %x %y]
+        $g axis bind $axis <ButtonRelease-1> \
+            [itcl::code $this Axis release $axis %x %y]
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
@@ -684,16 +750,16 @@ itcl::body Rappture::NumberResult::_rebuild {} {
     # Plot all of the data objects.
     #
     set count 0
-    foreach xydata $_dlist {
-        set label [$xydata get about.label]
-        foreach {mapx mapy} [_getAxes $xydata] break
+    foreach dataobj $_dlist {
+        set label [$dataobj get about.label]
+        foreach {mapx mapy} [GetAxes $dataobj] break
 
-        foreach {xv yv} [_getValue $xydata] break
+        foreach {xv yv} [GetValue $dataobj] break
 
-        if {[info exists _dobj2color($xydata)]} {
-            set color $_dobj2color($xydata)
+        if {[info exists _dataobj2color($dataobj)]} {
+            set color $_dataobj2color($dataobj)
         } else {
-            set color [$xydata get about.color]
+            set color [$dataobj get about.color]
             if {"" == $color} {
                 set color $itk_option(-activecolor)
             }
@@ -703,8 +769,7 @@ itcl::body Rappture::NumberResult::_rebuild {} {
         set pixels 6
 
         set elem "elem[incr count]"
-        set _elem2dobj($elem) $xydata
-
+        set _elem2dataobj($elem) $dataobj
         $g element create $elem -x $xv -y $yv \
             -symbol $sym -pixels $pixels -label $label \
             -color $color -mapx $mapx -mapy $mapy
@@ -712,12 +777,12 @@ itcl::body Rappture::NumberResult::_rebuild {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _resetLimits
+# USAGE: ResetLimits
 #
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_resetLimits {} {
+itcl::body Rappture::NumberResult::ResetLimits {} {
     set g $itk_component(plot)
 
     #
@@ -786,34 +851,47 @@ itcl::body Rappture::NumberResult::_resetLimits {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _zoom reset
+# USAGE: Zoom reset
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_zoom {option args} {
+itcl::body Rappture::NumberResult::Zoom {option args} {
     switch -- $option {
         reset {
-            _resetLimits
+            ResetLimits
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _hilite <state> <x> <y>
+# USAGE: Hilite <state> <x> <y>
 #
 # Called automatically when the user brushes one of the elements
 # on the plot.  Causes the element to highlight and a tooltip to
 # pop up with element info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_hilite {state x y} {
+itcl::body Rappture::NumberResult::Hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
+
+    # Peek inside of Blt_ZoomStack package to see if we're currently in the
+    # middle of a zoom selection.
+    if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
+        return;
+    }
+    set tip ""
     if {$state == "at"} {
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2dobj($elem)] break
+            # Some elements are generated dynamically and therefore will
+            # not have a data object associated with them.
+            set mapx [$g element cget $elem -mapx]
+            set mapy [$g element cget $elem -mapy]
+            if {[info exists _elem2dataobj($elem)]} {
+                foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
+            }
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
@@ -822,16 +900,16 @@ itcl::body Rappture::NumberResult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
 
-                if {[info exists _elem2dobj($elem)]} {
-                    set dataobj $_elem2dobj($elem)
-                    set tip [_getInfo about.label $dataobj y]
+                if {[info exists _elem2dataobj($elem)]} {
+                    set dataobj $_elem2dataobj($elem)
+                    set tip [GetInfo about.label $dataobj y]
                     if {[info exists info(y)]} {
-                        set val [_axis format y dummy $info(y)]
-                        set units [_getInfo units $dataobj y]
+                        set val [Axis format y dummy $info(y)]
+                        set units [GetInfo units $dataobj y]
                         append tip "\n$val$units"
 
-                        if {[info exists _dobj2param($dataobj)]} {
-                            set val [lindex $_dobj2param($dataobj) 0]
+                        if {[info exists _dataobj2param($dataobj)]} {
+                            set val [lindex $_dataobj2param($dataobj) 0]
                             append tip " @ $val"
                         }
                     }
@@ -842,7 +920,7 @@ itcl::body Rappture::NumberResult::_hilite {state x y} {
         } elseif {[$g element closest $x $y info -interpolate no]} {
             # for dealing with xy scatter plot
             set elem $info(name)
-            foreach {mapx mapy} [_getAxes $_elem2dobj($elem)] break
+            foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
@@ -850,16 +928,16 @@ itcl::body Rappture::NumberResult::_hilite {state x y} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
 
-                if {[info exists _elem2dobj($elem)]} {
-                    set dataobj $_elem2dobj($elem)
-                    set tip [_getInfo about.label $dataobj y]
+                if {[info exists _elem2dataobj($elem)]} {
+                    set dataobj $_elem2dataobj($elem)
+                    set tip [GetInfo about.label $dataobj y]
                     if {[info exists info(y)]} {
-                        set val [_axis format y dummy $info(y)]
-                        set units [_getInfo units $dataobj y]
+                        set val [Axis format y dummy $info(y)]
+                        set units [GetInfo units $dataobj y]
                         append tip "\n$val$units"
 
-                        if {[info exists _dobj2param($dataobj)]} {
-                            set val [lindex $_dobj2param($dataobj) 0]
+                        if {[info exists _dataobj2param($dataobj)]} {
+                            set val [lindex $_dataobj2param($dataobj) 0]
                             append tip " @ $val"
                         }
                     }
@@ -895,7 +973,7 @@ itcl::body Rappture::NumberResult::_hilite {state x y} {
             $g element show $dlist
         }
 
-        foreach {mapx mapy} [_getAxes $_elem2dobj($elem)] break
+        foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
 
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -998,29 +1076,29 @@ itcl::body Rappture::NumberResult::_hilite {state x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _axis hilite <axis> <state>
+# USAGE: Axis hilite <axis> <state>
 #
-# USAGE: _axis click <axis> <x> <y>
-# USAGE: _axis drag <axis> <x> <y>
-# USAGE: _axis release <axis> <x> <y>
+# USAGE: Axis click <axis> <x> <y>
+# USAGE: Axis drag <axis> <x> <y>
+# USAGE: Axis release <axis> <x> <y>
 #
-# USAGE: _axis edit <axis>
-# USAGE: _axis changed <axis> <what>
-# USAGE: _axis format <axis> <widget> <value>
-# USAGE: _axis scale <axis> linear|log
+# USAGE: Axis edit <axis>
+# USAGE: Axis changed <axis> <what>
+# USAGE: Axis format <axis> <widget> <value>
+# USAGE: Axis scale <axis> linear|log
 #
 # Used internally to handle editing of the x/y axes.  The hilite
 # operation causes the axis to light up.  The edit operation pops
 # up a panel with editing options.  The changed operation applies
 # changes from the panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_axis {option args} {
+itcl::body Rappture::NumberResult::Axis {option args} {
     set inner [$itk_component(hull).axes component inner]
 
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis hilite axis state\""
+                error "wrong # args: should be \"Axis hilite axis state\""
             }
             set g $itk_component(plot)
             set axis [lindex $args 0]
@@ -1043,7 +1121,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         click {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis click axis x y\""
+                error "wrong # args: should be \"Axis click axis x y\""
             }
             set axis [lindex $args 0]
             set x [lindex $args 1]
@@ -1060,7 +1138,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         drag {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis drag axis x y\""
+                error "wrong # args: should be \"Axis drag axis x y\""
             }
             if {![info exists _axis(moved)]} {
                 return  ;# must have skipped click event -- ignore
@@ -1118,7 +1196,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         release {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis release axis x y\""
+                error "wrong # args: should be \"Axis release axis x y\""
             }
             if {![info exists _axis(moved)]} {
                 return  ;# must have skipped click event -- ignore
@@ -1136,45 +1214,45 @@ itcl::body Rappture::NumberResult::_axis {option args} {
                 }
             } else {
                 # one last movement
-                _axis drag $axis $x $y
+                Axis drag $axis $x $y
             }
             catch {unset _axis}
         }
         edit {
             if {[llength $args] != 1} {
-                error "wrong # args: should be \"_axis edit axis\""
+                error "wrong # args: should be \"Axis edit axis\""
             }
             set axis [lindex $args 0]
             set _axisPopup(current) $axis
 
             # apply last value when deactivating
             $itk_component(hull).axes configure -deactivatecommand \
-                [itcl::code $this _axis changed $axis focus]
+                [itcl::code $this Axis changed $axis focus]
 
             # fix axis label controls...
             set label [$itk_component(plot) axis cget $axis -title]
             $inner.label delete 0 end
             $inner.label insert end $label
             bind $inner.label <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis label]
+                [itcl::code $this Axis changed $axis label]
             bind $inner.label <FocusOut> \
-                [itcl::code $this _axis changed $axis label]
+                [itcl::code $this Axis changed $axis label]
 
             # fix min/max controls...
             foreach {min max} [$itk_component(plot) axis limits $axis] break
             $inner.min delete 0 end
             $inner.min insert end $min
             bind $inner.min <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis min]
+                [itcl::code $this Axis changed $axis min]
             bind $inner.min <FocusOut> \
-                [itcl::code $this _axis changed $axis min]
+                [itcl::code $this Axis changed $axis min]
 
             $inner.max delete 0 end
             $inner.max insert end $max
             bind $inner.max <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis max]
+                [itcl::code $this Axis changed $axis max]
             bind $inner.max <FocusOut> \
-                [itcl::code $this _axis changed $axis max]
+                [itcl::code $this Axis changed $axis max]
 
             # fix format control...
             set fmts [$inner.format choices get -value]
@@ -1183,7 +1261,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
             $inner.format value [$inner.format choices get -label $i]
 
             bind $inner.format <<Value>> \
-                [itcl::code $this _axis changed $axis format]
+                [itcl::code $this Axis changed $axis format]
 
             # fix scale control...
             if {[$itk_component(plot) axis cget $axis -logscale]} {
@@ -1194,9 +1272,9 @@ itcl::body Rappture::NumberResult::_axis {option args} {
                 $inner.format configure -state normal
             }
             $inner.scales.linear configure \
-                -command [itcl::code $this _axis changed $axis scale]
+                -command [itcl::code $this Axis changed $axis scale]
             $inner.scales.log configure \
-                -command [itcl::code $this _axis changed $axis scale]
+                -command [itcl::code $this Axis changed $axis scale]
 
             #
             # Figure out where the window should pop up.
@@ -1239,7 +1317,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         changed {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis changed axis what\""
+                error "wrong # args: should be \"Axis changed axis what\""
             }
             set axis [lindex $args 0]
             set what [lindex $args 1]
@@ -1308,7 +1386,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
                         [$itk_component(plot) axis cget $axis -min]
                 }
                 scale {
-                    _axis scale $axis $_axisPopup(scale)
+                    Axis scale $axis $_axisPopup(scale)
 
                     if {$_axisPopup(scale) == "log"} {
                         $inner.format configure -state disabled
@@ -1329,7 +1407,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         format {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis format axis widget value\""
+                error "wrong # args: should be \"Axis format axis widget value\""
             }
             set axis [lindex $args 0]
             set value [lindex $args 2]
@@ -1339,7 +1417,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
                 return $_xval2label($value)
             }
             if {[$itk_component(plot) axis cget $axis -logscale]} {
-                set fmt "%.3g"
+                set fmt "%.6g"
             } else {
                 set fmt $_axisPopup(format-$axis)
             }
@@ -1347,7 +1425,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
         }
         scale {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis scale axis type\""
+                error "wrong # args: should be \"Axis scale axis type\""
             }
             set axis [lindex $args 0]
             set type [lindex $args 1]
@@ -1360,7 +1438,7 @@ itcl::body Rappture::NumberResult::_axis {option args} {
                 catch {$itk_component(plot) axis configure $axis -logscale 0}
                 # use special formatting for linear mode
                 $itk_component(plot) axis configure $axis -command \
-                    [itcl::code $this _axis format $axis]
+                    [itcl::code $this Axis format $axis]
             }
         }
         default {
@@ -1370,13 +1448,13 @@ itcl::body Rappture::NumberResult::_axis {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getAxes <dataObj>
+# USAGE: GetAxes <dataobj>
 #
 # Used internally to figure out the axes used to plot the given
-# <dataObj>.  Returns a list of the form {x y}, where x is the
+# <dataobj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_getAxes {xydata} {
+itcl::body Rappture::NumberResult::GetAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1392,7 +1470,7 @@ itcl::body Rappture::NumberResult::_getAxes {xydata} {
     }
 
     # what is the y axis?  y? y2? y3? ...
-    set ylabel [$xydata get about.label]
+    set ylabel [$dataobj get about.label]
     if {[info exists _label2axis(y-$ylabel)]} {
         set mapy $_label2axis(y-$ylabel)
     } else {
@@ -1403,20 +1481,20 @@ itcl::body Rappture::NumberResult::_getAxes {xydata} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getValue <dataObj> ?<axis>?
+# USAGE: GetValue <dataobj> ?<axis>?
 #
-# Used internally to get the {x y} value from this <dataObj>.
+# Used internally to get the {x y} value from this <dataobj>.
 # Returns x, y, or {x y} in the expected units for this object.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_getValue {xydata {which both}} {
-    if {[info exists _dobj2param($xydata)]} {
-        set x [lindex $_dobj2param($xydata) 1]
+itcl::body Rappture::NumberResult::GetValue {dataobj {which both}} {
+    if {[info exists _dataobj2param($dataobj)]} {
+        set x [lindex $_dataobj2param($dataobj) 1]
     } else {
         set x 0
     }
 
-    set y [$xydata get current]
-    set units [$xydata get units]
+    set y [$dataobj get current]
+    set units [$dataobj get units]
     if {$units != ""} {
         set y [Rappture::Units::convert $y -context $units -to $units -units off]
     }
@@ -1433,16 +1511,16 @@ itcl::body Rappture::NumberResult::_getValue {xydata {which both}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getInfo <what> <dataObj> ?<axis>?
+# USAGE: GetInfo <what> <dataobj> ?<axis>?
 #
-# Used internally to get the {x y} labels from this <dataObj>.
+# Used internally to get the {x y} labels from this <dataobj>.
 # Returns xlabel, ylabel, or {xlabel ylabel}.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NumberResult::_getInfo {what xydata {which both}} {
+itcl::body Rappture::NumberResult::GetInfo {what dataobj {which both}} {
     set x [lindex $_params 0]
-    set y [$xydata get $what]
+    set y [$dataobj get $what]
     if {$what == "about.label"} {
-        set units [$xydata get units]
+        set units [$dataobj get units]
         if {"" != $units} {
             append y " ($units)"
         }

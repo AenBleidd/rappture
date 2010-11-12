@@ -340,7 +340,12 @@ itcl::body Rappture::HTMLviewer::_getImage {fileName} {
             return [list $imh [itcl::code $this _freeImage]]
         }
     }
-    return [Rappture::icon exclaim]
+    # The htmlwidget assumes it owns the image and will delete it.
+    # Always create a copy of the image.
+    set img [Rappture::icon exclaim]
+    set file [$img configure -file]
+    set img [image create photo -file $file]
+    return $img
 }
 
 itcl::body Rappture::HTMLviewer::_freeImage { imh } {

@@ -79,7 +79,7 @@ set elements [subst {
     $f2.camera.position {
 	theta 90 phi 0 psi 0 pan-x 0 pan-y 0 zoom 1.0
     }
-    $f2.component.extents 3
+    $f2.component.extents 2
     $f2.component.mesh unirect2d(half)
     unirect2d(half).xaxis.min	-0.5
     unirect2d(half).xaxis.max	152

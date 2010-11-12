@@ -445,16 +445,18 @@ itcl::body Rappture::XyPrint::RegeneratePreview {} {
     $_clone snap $img -width $w -height $h
 
     if 0 {
-    if { ![winfo exists .labeltest] } {
-        toplevel .labeltest -bg red
-        label .labeltest.label -image $img
-        pack .labeltest.label -fill both 
-    } 
+	if { ![winfo exists .labeltest] } {
+	    toplevel .labeltest -bg red
+	    label .labeltest.label -image $img
+	    pack .labeltest.label -fill both 
+	} 
     }
     set pw [expr int(round($s * $w))]
     set ph [expr int(round($s * $h))]
     $_preview configure -width $pw -height $ph
-    #.labeltest.label configure -image $img
+    if 0 {
+	.labeltest.label configure -image $img
+    }
     blt::winop resample $img $_preview box
     image delete $img
 }
@@ -1185,6 +1187,8 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set _settings($this-general-style) ieee
     set _settings($this-general-remember) 0
     set page $itk_component(graph_page)
+    $page.format value [$page.format label $_settings($this-general-format)]
+    $page.style value [$page.style label $_settings($this-general-style)]
 
     # Layout settings
     set _settings($this-layout-width) [Pixels2Inches [$_clone cget -width]]
@@ -1259,6 +1263,7 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set axis [lindex $axisnames 0]
     $itk_component(axis_combo) value $axis
     GetAxis 
+    RegeneratePreview
 }
 
 

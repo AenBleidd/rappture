@@ -17,61 +17,61 @@ package require BLT
 package require Img
 
 itcl::class Rappture::IsoMarker {
-    private variable value_	"";	# Absolute value of marker.
-    private variable label_	""
-    private variable tick_	""
-    private variable canvas_	""
-    private variable nvobj_	"";	# Parent nanovis object.
-    private variable tf_	"";	# Transfer function that this marker is 
+    private variable _value	0.0;	# Absolute value of marker.
+    private variable _label	""
+    private variable _tick	""
+    private variable _canvas	""
+    private variable _nvobj	"";	# Parent nanovis object.
+    private variable _tf	"";	# Transfer function that this marker is 
                                         # associated with.
-    private variable active_motion_   0
-    private variable active_press_    0
-    private common   normalIcon_ [Rappture::icon nvlegendmark]
-    private common   activeIcon_ [Rappture::icon nvlegendmark2]
+    private variable _activeMotion   0
+    private variable _activePress    0
+    private common   _normalIcon [Rappture::icon nvlegendmark]
+    private common   _activeIcon [Rappture::icon nvlegendmark2]
 
     constructor {c obj tf args} { 
-        set canvas_ $c
-        set nvobj_ $obj
-        set tf_ $tf
-        set w [winfo width $canvas_]
-        set h [winfo height $canvas_]
-        set tick_ [$c create image 0 $h \
-                -image $normalIcon_ -anchor s \
+        set _canvas $c
+        set _nvobj $obj
+        set _tf $tf
+        set w [winfo width $_canvas]
+        set h [winfo height $_canvas]
+        set _tick [$c create image 0 $h \
+                -image $_normalIcon -anchor s \
                 -tags "$this $obj" -state hidden]
-        set label_ [$c create text 0 $h \
+        set _label [$c create text 0 $h \
                 -anchor n -fill white -font "Helvetica 8" \
                 -tags "$this $obj" -state hidden]
-        $c bind $tick_ <Enter> [itcl::code $this HandleEvent "enter"]
-        $c bind $tick_ <Leave> [itcl::code $this HandleEvent "leave"]
-        $c bind $tick_ <ButtonPress-1> \
+        $c bind $_tick <Enter> [itcl::code $this HandleEvent "enter"]
+        $c bind $_tick <Leave> [itcl::code $this HandleEvent "leave"]
+        $c bind $_tick <ButtonPress-1> \
             [itcl::code $this HandleEvent "start" %x %y]
-        $c bind $tick_ <B1-Motion> \
+        $c bind $_tick <B1-Motion> \
             [itcl::code $this HandleEvent "update" %x %y]
-        $c bind $tick_ <ButtonRelease-1> \
+        $c bind $_tick <ButtonRelease-1> \
             [itcl::code $this HandleEvent "end" %x %y]
     }
     destructor { 
-        $canvas_ delete $this
+        $_canvas delete $this
     }
     public method transferfunc {} {
-        return $tf_
+        return $_tf
     }
     public method activate { bool } {
-        if  { $bool || $active_press_ || $active_motion_ } {
-            $canvas_ itemconfigure $label_ -state normal
-            $canvas_ itemconfigure $tick_ -image $activeIcon_
+        if  { $bool || $_activePress || $_activeMotion } {
+            $_canvas itemconfigure $_label -state normal
+            $_canvas itemconfigure $_tick -image $_activeIcon
         } else {
-            $canvas_ itemconfigure $label_ -state hidden
-            $canvas_ itemconfigure $tick_ -image $normalIcon_
+            $_canvas itemconfigure $_label -state hidden
+            $_canvas itemconfigure $_tick -image $_normalIcon
         }
     }
     public method visible { bool } {
         if { $bool } {
-            absval $value_
-            $canvas_ itemconfigure $tick_ -state normal
-            $canvas_ raise $tick_
+            absval $_value
+            $_canvas itemconfigure $_tick -state normal
+            $_canvas raise $_tick
         } else {
-            $canvas_ itemconfigure $tick_ -state hidden
+            $_canvas itemconfigure $_tick -state hidden
         }
     }
     public method screenpos { } { 
@@ -82,25 +82,25 @@ itcl::class Rappture::IsoMarker {
             set x 1.0 
         }
         set low 10 
-        set w [winfo width $canvas_]
+        set w [winfo width $_canvas]
         set high [expr {$w  - 10}]
         set x [expr {round($x*($high - $low) + $low)}]
         return $x
     }
     public method absval { {x "-get"} } {
         if { $x != "-get" } {
-            set value_ $x
+            set _value $x
             set y 31
-            $canvas_ itemconfigure $label_ -text [format %.2g $value_]
+            $_canvas itemconfigure $_label -text [format %.2g $_value]
             set x [screenpos]
-            $canvas_ coords $tick_ $x [expr {$y+3}]
-            $canvas_ coords $label_ $x [expr {$y+5}]
+            $_canvas coords $_tick $x [expr {$y+3}]
+            $_canvas coords $_label $x [expr {$y+5}]
         }
-        return $value_
+        return $_value
     }
     public method relval  { {x "-get"} } {
         if { $x == "-get" } {
-            array set limits [$nvobj_ limits $tf_] 
+            array set limits [$_nvobj limits $_tf] 
             if { $limits(vmax) == $limits(vmin) } {
                 if { $limits(vmax) == 0.0 } {
                     set limits(vmin) 0.0
@@ -109,49 +109,52 @@ itcl::class Rappture::IsoMarker {
                     set limits(vmax) [expr $limits(vmin) + 1.0]
                 }
             }
-            return [expr {($value_-$limits(vmin))/
+            return [expr {($_value-$limits(vmin))/
                           ($limits(vmax) - $limits(vmin))}]
         } 
-        array set limits [$nvobj_ limits $tf_] 
+        array set limits [$_nvobj limits $_tf] 
+	parray limits
         if { $limits(vmax) == $limits(vmin) } {
             set limits(min) 0.0
             set limits(max) 1.0
         }
-        set r [expr $limits(vmax) - $limits(vmin)]
+	if { [catch {expr $limits(vmax) - $limits(vmin)} r] != 0 } {
+	    return 0.0
+	}	    
         absval [expr {($x * $r) + $limits(vmin)}]
     }
     private method HandleEvent { option args } {
         switch -- $option {
             enter {
-                set active_motion_ 1
+                set _activeMotion 1
                 activate yes
-                $canvas_ raise $tick_
+                $_canvas raise $_tick
             }
             leave {
-                set active_motion_ 0
+                set _activeMotion 0
                 activate no
             }
             start {
-                $canvas_ raise $tick_ 
-                set active_press_ 1
+                $_canvas raise $_tick 
+                set _activePress 1
                 activate yes
-                $canvas_ itemconfigure limits -state hidden
+                $_canvas itemconfigure limits -state hidden
             }
             update {
-                set w [winfo width $canvas_]
+                set w [winfo width $_canvas]
                 set x [lindex $args 0]
                 relval [expr {double($x-10)/($w-20)}]
-                $nvobj_ overmarker $this $x
-                $nvobj_ updatetransferfuncs
+                $_nvobj overmarker $this $x
+                $_nvobj updatetransferfuncs
             }
             end {
                 set x [lindex $args 0]
-                if { ![$nvobj_ rmdupmarker $this $x]} {
+                if { ![$_nvobj rmdupmarker $this $x]} {
                     eval HandleEvent update $args
                 }
-                set active_press_ 0
+                set _activePress 0
                 activate no
-                $canvas_ itemconfigure limits -state normal
+                $_canvas itemconfigure limits -state normal
             }
             default {
                 error "bad option \"$option\": should be start, update, end"
