@@ -24,7 +24,7 @@ option add *Xylegend.Button.font \
 itcl::class ::Rappture::XyLegend {
     inherit itk::Widget
 
-    private variable autocolors_ {
+    private variable _autocolors {
         #0000cd
         #cd0000
         #00cd00
@@ -58,15 +58,15 @@ itcl::class ::Rappture::XyLegend {
         #cd69c9
         #551a8b
     }
-    private variable lastColorIndex_ ""
+    private variable _lastColorIndex ""
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable graph_        ""
-    private variable tree_        ""
-    private variable diff_        "";        # Polygon marker used for difference.
-    private variable rename_        "";        # Node selected to be renamed.
-    private variable diffelements_
+    private variable _graph        ""
+    private variable _tree        ""
+    private variable _diff        "";        # Polygon marker used for difference.
+    private variable _rename        "";        # Node selected to be renamed.
+    private variable _diffelements
 
-    constructor {args} { graph }
+    constructor {graph args} {}
     destructor {}
 
     public method reset {} 
@@ -113,12 +113,12 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
             -xscrollmode auto -yscrollmode auto \
             -width 200 -height 100
     }
-    set tree_ [blt::tree create]
+    set _tree [blt::tree create]
     itk_component add legend {
         blt::treeview $itk_component(scrollbars).legend -linewidth 0 \
             -bg white -selectmode multiple \
             -highlightthickness 0 \
-            -tree $tree_ \
+            -tree $_tree \
             -font "Arial 9" \
             -flat yes -separator / 
     }
@@ -175,7 +175,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
     grid columnconfigure $controls 0  -weight 1
     grid columnconfigure $controls 1 -weight 1
 
-    set graph_ $graph
+    set _graph $graph
     set cmd [itcl::code $this Toggle current]
     $itk_component(legend) bind CheckBoxStyle <ButtonRelease-1> \
         [itcl::code [subst -nocommands {
@@ -201,7 +201,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
             -validatecommand [itcl::code $this Editor validate] \
             -applycommand [itcl::code $this Editor apply]
     }
-    set lastColorIndex_ [llength $autocolors_]
+    set _lastColorIndex [llength $_autocolors]
     Check
     eval itk_initialize $args
 }
@@ -210,21 +210,21 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyLegend::destructor {} {
-    foreach node [$tree_ children root] {
-        $tree_ delete $node
+    foreach node [$_tree children root] {
+        $_tree delete $node
     }
-    if { $diff_ != "" } {
-        catch { $graph_ marker delete $diff_ }
+    if { $_diff != "" } {
+        catch { $_graph marker delete $_diff }
     }
 }
 
 itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
-    set hide [$graph_ element cget $elem -hide]
+    set hide [$_graph element cget $elem -hide]
     set im [image create photo]
-    $graph_ legend icon $elem $im
+    $_graph legend icon $elem $im
     set data(show) $hide
     set data(delete) [expr { $flags == "-delete" }]
-    set node [$tree_ insert root -at 0 -label $elem -data [array get data]]
+    set node [$_tree insert root -at 0 -label $elem -data [array get data]]
     $itk_component(legend) entry configure $node -label $label -icon $im \
         -activeicon $im
     update idletasks
@@ -239,11 +239,11 @@ itcl::body Rappture::XyLegend::Add { elem label {flags ""} } {
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyLegend::reset {} {
-    foreach node [$tree_ children root] {
-        $tree_ delete $node
+    foreach node [$_tree children root] {
+        $_tree delete $node
     }
-    foreach elem [$graph_ element show] {
-        set label [$graph_ element cget $elem -label]
+    foreach elem [$_graph element show] {
+        set label [$_graph element cget $elem -label]
         if { $label == "" } {
             set label $elem
         }
@@ -260,12 +260,12 @@ itcl::body Rappture::XyLegend::Hide { args } {
         set nodes $args
     }
     foreach node $nodes {
-        set elem [$tree_ label $node]
-        if { ![$graph_ element exists $elem] } {
+        set elem [$_tree label $node]
+        if { ![$_graph element exists $elem] } {
             continue
         }
-        $graph_ element configure $elem -hide yes
-        $tree_ set $node "show" 1
+        $_graph element configure $elem -hide yes
+        $_tree set $node "show" 1
     }
 }
 
@@ -276,12 +276,12 @@ itcl::body Rappture::XyLegend::Show { args } {
         set nodes $args
     }
     foreach node $nodes {
-        set elem [$tree_ label $node]
-        if { ![$graph_ element exists $elem] } {
+        set elem [$_tree label $node]
+        if { ![$_graph element exists $elem] } {
             continue
         }
-        $graph_ element configure $elem -hide no
-        $tree_ set $node "show" 0
+        $_graph element configure $elem -hide no
+        $_tree set $node "show" 0
     }
 }
 
@@ -292,14 +292,14 @@ itcl::body Rappture::XyLegend::Toggle { args } {
         set nodes $args
     }
     foreach node $nodes {
-        set elem [$tree_ label $node]
-        if { ![$graph_ element exists $elem] } {
+        set elem [$_tree label $node]
+        if { ![$_graph element exists $elem] } {
             continue
         }
-        set hide [$graph_ element cget $elem -hide]
+        set hide [$_graph element cget $elem -hide]
         set hide [expr $hide==0]
-        $tree_ set $node "show" $hide
-        $graph_ element configure $elem -hide $hide
+        $_tree set $node "show" $hide
+        $_graph element configure $elem -hide $hide
     }
 }
 
@@ -311,21 +311,21 @@ itcl::body Rappture::XyLegend::Raise { args } {
     }
     set elements {}
     foreach node $nodes {
-        set elem [$tree_ label $node]
+        set elem [$_tree label $node]
         set found($elem) 1
         set elements [linsert $elements 0 $elem]
     }
     foreach elem $elements {
-        $tree_ move [$tree_ index $elem] 0 -at 0
+        $_tree move [$_tree index $elem] 0 -at 0
     }
     set list {}
-    foreach elem [$graph_ element show] {
+    foreach elem [$_graph element show] {
         if { [info exists found($elem)] }  {
             continue
         }
         lappend list $elem
     }
-    $graph_ element show [concat $list $elements]
+    $_graph element show [concat $list $elements]
 }
 
 itcl::body Rappture::XyLegend::Lower { args } {
@@ -336,25 +336,25 @@ itcl::body Rappture::XyLegend::Lower { args } {
     }
     set elements {}
     foreach node $nodes {
-        set elem [$tree_ label $node]
+        set elem [$_tree label $node]
         set found($elem) 1
         set elements [linsert $elements 0 $elem]
     }
-    set pos [$tree_ degree 0]
+    set pos [$_tree degree 0]
 
     foreach elem $elements {
         incr pos -1
-        $tree_ move [$tree_ index $elem] 0 -at $pos
+        $_tree move [$_tree index $elem] 0 -at $pos
     }
 
     set list {}
-    foreach elem [$graph_ element show] {
+    foreach elem [$_graph element show] {
         if { [info exists found($elem)] }  {
             continue
         }
         lappend list $elem
     }
-    $graph_ element show [concat $elements $list]
+    $_graph element show [concat $elements $list]
 }
 
 itcl::body Rappture::XyLegend::Delete { args } {
@@ -366,23 +366,23 @@ itcl::body Rappture::XyLegend::Delete { args } {
     set elements {}
     set delnodes {}
     foreach node $nodes {
-        if { ![$tree_ get $node "delete" 0] } {
+        if { ![$_tree get $node "delete" 0] } {
             continue
         }
-        set elem [$tree_ label $node]
+        set elem [$_tree label $node]
         lappend elements $elem
         lappend delnodes $node
-        if { $diff_ != "" && [info exists diffelements_($elem)] } {
-            $graph_ marker delete $diff_
-            array unset diffelements_
-            set diff_ ""
+        if { $_diff != "" && [info exists _diffelements($elem)] } {
+            $_graph marker delete $_diff
+            array unset _diffelements
+            set _diff ""
         }
     }
     if { [llength $delnodes] > 0 } {
-        eval $tree_ delete $delnodes 
+        eval $_tree delete $delnodes 
     }
     $itk_component(legend) selection clearall
-    eval $graph_ element delete $elements
+    eval $_graph element delete $elements
 }
 
 itcl::body Rappture::XyLegend::Check {} {
@@ -392,12 +392,12 @@ itcl::body Rappture::XyLegend::Check {} {
         $itk_component(controls).$n configure -state disabled
     }
     foreach node $nodes {
-        if { [$tree_ get $node "delete" 0] } {
+        if { [$_tree get $node "delete" 0] } {
             $itk_component(controls).delete configure -state normal
             break
         }
     }
-    if { [$tree_ degree 0] > 1  && [llength $nodes] > 0 } {
+    if { [$_tree degree 0] > 1  && [llength $nodes] > 0 } {
         foreach n { raise lower } {
             $itk_component(controls).$n configure -state normal
         }
@@ -424,7 +424,7 @@ itcl::body Rappture::XyLegend::Check {} {
 }
 
 itcl::body Rappture::XyLegend::GetData { elem what } {
-    set y [$graph_ element cget $elem $what]
+    set y [$_graph element cget $elem $what]
     if { [blt::vector names $y] == $y } {
         set y [$y range 0 end]
     }
@@ -448,7 +448,7 @@ itcl::body Rappture::XyLegend::Average {} {
     #              unique values.
 
     foreach node $nodes {
-        set elem [$tree_ label $node]
+        set elem [$_tree label $node]
         $xcoords append [GetData $elem -x]
         set elements [linsert $elements 0 $elem]
     }
@@ -465,7 +465,7 @@ itcl::body Rappture::XyLegend::Average {} {
     $sum length [$xcoords length]
 
     foreach node $nodes {
-        set elem [$tree_ label $node]
+        set elem [$_tree label $node]
         $x set [GetData $elem -x]
         $y set [GetData $elem -y]
         blt::spline natural $x $y $xcoords $ycoords
@@ -482,7 +482,7 @@ itcl::body Rappture::XyLegend::Average {} {
     #               the end.
 
     set count 0
-    while {[$graph_ element exists avg$count] } {
+    while {[$_graph element exists avg$count] } {
         incr count
     }
     set elements [lsort -dictionary $elements]
@@ -491,12 +491,12 @@ itcl::body Rappture::XyLegend::Average {} {
 
     # Don't use the vector because we don't know when it will be cleaned up.
 
-    if { $lastColorIndex_ == 0 } {
-        set lastColorIndex_ [llength $autocolors_]
+    if { $_lastColorIndex == 0 } {
+        set _lastColorIndex [llength $_autocolors]
     }
-    incr lastColorIndex_ -1
-    set color [lindex $autocolors_ $lastColorIndex_]
-    $graph_ element create $name -label $label -x [$xcoords range 0 end]\
+    incr _lastColorIndex -1
+    set color [lindex $_autocolors $_lastColorIndex]
+    $_graph element create $name -label $label -x [$xcoords range 0 end]\
         -y [$sum range 0 end] -symbol scross -pixels 3 -color $color
     blt::vector destroy $xcoords $ycoords $sum
     set node [Add $name $label -delete]
@@ -506,19 +506,19 @@ itcl::body Rappture::XyLegend::Average {} {
 
 itcl::body Rappture::XyLegend::Difference {} {
 
-    if { $diff_ != "" } {
-        $graph_ marker delete $diff_
-        set diff_ ""
+    if { $_diff != "" } {
+        $_graph marker delete $_diff
+        set _diff ""
     }
     set nodes [$itk_component(legend) curselection]
-    set elem1 [$tree_ label [lindex $nodes 0]]
-    set elem2 [$tree_ label [lindex $nodes 1]]
-    if { [info exists diffelements_($elem1)] && 
-         [info exists diffelements_($elem2)] } {
-        array unset diffelements_;        # Toggle the difference.
+    set elem1 [$_tree label [lindex $nodes 0]]
+    set elem2 [$_tree label [lindex $nodes 1]]
+    if { [info exists _diffelements($elem1)] && 
+         [info exists _diffelements($elem2)] } {
+        array unset _diffelements;        # Toggle the difference.
         return;                                
     }
-    array unset diffelements_
+    array unset _diffelements
     set x [blt::vector create \#auto -command ""]
     set y [blt::vector create \#auto -command ""]
     set m [blt::vector create \#auto -command ""]
@@ -529,14 +529,14 @@ itcl::body Rappture::XyLegend::Difference {} {
     $x append [GetData $elem2 -x]
     $y append [GetData $elem2 -y]
     $m merge $x $y
-    set diff_ [$graph_ marker create polygon \
+    set _diff [$_graph marker create polygon \
                    -coords [$m range 0 end] \
                    -element $elem1 \
                    -stipple dot1 \
                    -outline "" -fill "#cd69c9"]
     blt::vector destroy $m $x $y
-    set diffelements_($elem1) 1
-    set diffelements_($elem2) 1
+    set _diffelements($elem1) 1
+    set _diffelements($elem2) 1
 }
 
 
@@ -546,20 +546,20 @@ itcl::body Rappture::XyLegend::Recolor {} {
         return
     }
     foreach node $nodes {
-        set elem [$tree_ label $node]
-        if { $lastColorIndex_ == 0 } {
-            set lastColorIndex_ [llength $autocolors_]
+        set elem [$_tree label $node]
+        if { $_lastColorIndex == 0 } {
+            set _lastColorIndex [llength $_autocolors]
         }
-        incr lastColorIndex_ -1
-        set color [lindex $autocolors_ $lastColorIndex_]
-        $graph_ element configure $elem -color $color
+        incr _lastColorIndex -1
+        set color [lindex $_autocolors $_lastColorIndex]
+        $_graph element configure $elem -color $color
         set im [$itk_component(legend) entry cget $node -icon]
-        $graph_ legend icon $elem $im
+        $_graph legend icon $elem $im
     }
 }
 
 itcl::body Rappture::XyLegend::SelectAll { } {
-    foreach node [$tree_ children 0] {
+    foreach node [$_tree children 0] {
         $itk_component(legend) selection set $node
     }  
 }
@@ -584,12 +584,12 @@ itcl::body Rappture::XyLegend::Editor {option args} {
             $itk_component(editor) activate
         }
         activate {
-            set rename_ [$itk_component(legend) curselection]
-            if { $rename_ == "" } {
+            set _rename [$itk_component(legend) curselection]
+            if { $_rename == "" } {
                 return;
             }
-            set label [$itk_component(legend) entry cget $rename_ -label]
-            foreach { l r w h } [$itk_component(legend) bbox $rename_] break
+            set label [$itk_component(legend) entry cget $_rename -label]
+            foreach { l r w h } [$itk_component(legend) bbox $_rename] break
             set info(text) $label
             set info(x) [expr $l + [winfo rootx $itk_component(legend)]]
             set info(y) [expr $r + [winfo rooty $itk_component(legend)]] 
@@ -607,9 +607,9 @@ itcl::body Rappture::XyLegend::Editor {option args} {
                 error "wrong # args: should be \"editor apply value\""
             }
             set label [lindex $args 0]
-            $itk_component(legend) entry configure $rename_ -label $label
-            set elem [$tree_ label $rename_]
-            $graph_ element configure $elem -label $label
+            $itk_component(legend) entry configure $_rename -label $label
+            set elem [$_tree label $_rename]
+            $_graph element configure $elem -label $label
         }
         menu {
             eval tk_popup $itk_component(emenu) $args

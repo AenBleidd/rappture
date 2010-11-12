@@ -28,7 +28,7 @@ set elements {
     output.field.camera.position {
 	theta 90 phi 0 psi 0 pan-x 0 pan-y 0 zoom 1.0
     }
-    output.field.component.extents 3
+    output.field.component.extents 2
     output.field.component.mesh unirect2d
     unirect2d.xaxis.min	-0.5
     unirect2d.xaxis.max	152

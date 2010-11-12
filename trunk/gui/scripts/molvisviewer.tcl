@@ -57,7 +57,7 @@ itcl::class Rappture::MolvisViewer {
 
     private variable _model
     private variable _mlist
-    private variable _mrepresentation "ballnstick"
+    private variable _mrep "ballnstick"
 
     private variable _imagecache
     private variable _state
@@ -82,6 +82,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _width
     private variable _height
     private variable _restore 1;	# Restore camera settings
+    private variable _cell 0;		# Restore camera settings
 
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
@@ -94,7 +95,7 @@ itcl::class Rappture::MolvisViewer {
     public proc SetServerList { namelist } {
         Rappture::VisViewer::SetServerList "pymol" $namelist
     }
-    private method BuildViewTab {}
+    private method BuildSettingsTab {}
     private method DoResize {} 
     private method EventuallyResize { w h } 
     private method GetImage { widget }
@@ -118,22 +119,23 @@ itcl::class Rappture::MolvisViewer {
     public method Disconnect {}
     public method ResetView {} 
     public method add {dataobj {options ""}}
-    public method cartoontrace {option {model "all"}}
     public method delete {args}
     public method download {option args}
     public method get {}
     public method isconnected {}
     public method labels {option {model "all"}}
-    public method opacity {option {models "all"} }
     public method parameters {title args} { 
         # do nothing 
     }
     public method snap { w h }
-    public method spherescale {option {models "all"} }
-    public method stickradius {option {models "all"} }
-    public method projection {option}
-    public method representation {option {model "all"} }
-    public method rock {option}
+    private method Opacity {option {models "all"} }
+    private method SphereScale {option {models "all"} }
+    private method StickRadius {option {models "all"} }
+    private method OrthoProjection {option}
+    private method Representation {option {model "all"} }
+    private method CartoonTrace {option {model "all"}}
+    private method Cell {option}
+    private method Rock {option}
 
 }
 
@@ -158,7 +160,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
 
     # Rocker
     $_dispatcher register !rocker
-    $_dispatcher dispatch $this !rocker "[itcl::code $this rock step]; list"
+    $_dispatcher dispatch $this !rocker "[itcl::code $this Rock step]; list"
     # Mouse Event
     $_dispatcher register !mevent
     $_dispatcher dispatch $this !mevent "[itcl::code $this _mevent]; list"
@@ -211,6 +213,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         $this-ortho     no
         $this-rock      no
         $this-showlabels no
+        $this-showcell	yes
         $this-showlabels-initialized no
     }]
     
@@ -276,7 +279,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.rock \
             -onimage [Rappture::icon molvis-rock-view] \
             -offimage [Rappture::icon molvis-rock-view] \
-            -command [itcl::code $this rock toggle] \
+            -command [itcl::code $this Rock toggle] \
             -variable [itcl::scope _settings($this-rock)]
     }
     pack $itk_component(rock) -padx 2 -pady 2 
@@ -291,9 +294,9 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         "Use orthoscopic projection"
 
     bind $itk_component(ortho) <ButtonPress> \
-        [itcl::code $this projection toggle]
+        [itcl::code $this OrthoProjection toggle]
 
-    BuildViewTab
+    BuildSettingsTab
 
     # HACK ALERT. Initially force a requested width of the 3dview label. 
 
@@ -397,11 +400,11 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     Connect
 }
 
-itcl::body Rappture::MolvisViewer::BuildViewTab {} {
+itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     set fg [option get $itk_component(hull) font Font]
 
     set inner [$itk_component(main) insert end \
-        -title "View Settings" \
+        -title "Settings" \
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
@@ -411,35 +414,35 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     label $inner.pict -image $_settings($this-modelimg)
 
     radiobutton $inner.bstick -text "balls and sticks" \
-        -command [itcl::code $this representation ballnstick all] \
+        -command [itcl::code $this Representation ballnstick all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value ballnstick -font "Arial 9" -pady 0 
     Rappture::Tooltip::for $inner.bstick \
         "Display atoms (balls) and connections (sticks) "
 
     radiobutton $inner.spheres -text "spheres" \
-        -command [itcl::code $this representation spheres all] \
+        -command [itcl::code $this Representation spheres all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value spheres -font "Arial 9" -pady 0
     Rappture::Tooltip::for $inner.spheres \
         "Display atoms as spheres. Do not display bonds."
 
     radiobutton $inner.sticks -text "sticks" \
-        -command [itcl::code $this representation sticks all] \
+        -command [itcl::code $this Representation sticks all] \
         -variable Rappture::MolvisViewer::_settings($this-model) \
         -value sticks -font "Arial 9" -pady 0
     Rappture::Tooltip::for $inner.sticks \
         "Display bonds as sticks. Do not display atoms."
 
     radiobutton $inner.lines -text "lines" \
-        -command [itcl::code $this representation lines all] \
+        -command [itcl::code $this Representation lines all] \
         -variable [itcl::scope _settings($this-model)] \
         -value lines -font "Arial 9" -pady 0
     Rappture::Tooltip::for $inner.lines \
         "Display bonds as lines. Do not display atoms."
 
     radiobutton $inner.cartoon -text "cartoon" \
-        -command [itcl::code $this representation cartoon all] \
+        -command [itcl::code $this Representation cartoon all] \
         -variable [itcl::scope _settings($this-model)] \
         -value cartoon -font "Arial 9" -pady 0
     Rappture::Tooltip::for $inner.cartoon \
@@ -448,7 +451,7 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     scale $inner.spherescale -width 10 -font "Arial 9 bold" \
         -from 0.1 -to 2.0 -resolution 0.05 -label "Sphere Scale" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this spherescale] \
+        -command [itcl::code $this SphereScale] \
         -variable Rappture::MolvisViewer::_settings($this-spherescale)
     $inner.spherescale set $_settings($this-spherescale)
     Rappture::Tooltip::for $inner.spherescale \
@@ -457,7 +460,7 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     scale $inner.stickradius -width 10 -font "Arial 9 bold" \
         -from 0.1 -to 1.0 -resolution 0.025 -label "Stick Radius" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this stickradius] \
+        -command [itcl::code $this StickRadius] \
         -variable Rappture::MolvisViewer::_settings($this-stickradius)
     Rappture::Tooltip::for $inner.stickradius \
         "Adjust scale of bonds (sticks)."
@@ -471,25 +474,30 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
         "Display atom symbol and serial number."
 
     checkbutton $inner.rock -text "Rock model back and forth" \
-        -command [itcl::code $this rock toggle] \
+        -command [itcl::code $this Rock toggle] \
         -variable Rappture::MolvisViewer::_settings($this-rock) \
         -font "Arial 9 bold"
     Rappture::Tooltip::for $inner.rock \
         "Rotate the object back and forth around the y-axis."
 
     checkbutton $inner.ortho -text "Orthoscopic projection" \
-        -command [itcl::code $this projection update] \
+        -command [itcl::code $this OrthoProjection update] \
         -variable Rappture::MolvisViewer::_settings($this-ortho) \
          -font "Arial 9 bold"
     Rappture::Tooltip::for $inner.ortho \
         "Toggle between orthoscopic/perspective projection modes."
 
     checkbutton $inner.cartoontrace -text "Cartoon Trace" \
-        -command [itcl::code $this cartoontrace update] \
+        -command [itcl::code $this CartoonTrace update] \
         -variable [itcl::scope _settings($this-cartoontrace)] \
         -font "Arial 9 bold"
     Rappture::Tooltip::for $inner.cartoontrace \
         "Set cartoon representation of bonds (sticks)."
+
+    checkbutton $inner.cell -text "Cell" \
+	-command [itcl::code $this Cell toggle] \
+        -font "Arial 9 bold"
+    $inner.cell select
 
     label $inner.spacer
     blt::table $inner \
@@ -504,7 +512,8 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
         7,0 $inner.rock -anchor w -columnspan 4 -pady {1 0} \
         8,0 $inner.ortho -anchor w -columnspan 4 -pady {1 0} \
         9,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {1 0} \
-        10,1 $inner.spherescale -fill x -columnspan 4 -pady {1 0} \
+	10,0 $inner.cell -anchor w -columnspan 4 -pady {1 0} \
+        11,1 $inner.spherescale -fill x -columnspan 4 -pady {1 0} \
         11,1 $inner.stickradius -fill x -columnspan 4 -pady {1 0} \
 
     blt::table configure $inner c0 -resize expand -width 2
@@ -513,7 +522,6 @@ itcl::body Rappture::MolvisViewer::BuildViewTab {} {
     blt::table configure $inner r* -resize none
     blt::table configure $inner r13 -resize expand
 }
-
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
@@ -709,6 +717,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     # generates a new call to Rebuild).   
     #blt::bltdebug 100
     set _buffering 1
+    set _cell 0
 
     if { $_restore } {
         set _rocker(server) 0
@@ -785,7 +794,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 append _outbuf $data2
                 set _dataobjs($model-$state)  1
             }
-
             # lammps dump file overwrites pdb file (change this?)
             set lammpstypemap [$dataobj get components.molecule.lammpstypemap]
             set lammpsdata [$dataobj get components.molecule.lammps]
@@ -841,9 +849,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         if { ![info exists _model($model-transparency)] } {
             set _model($model-transparency) ""
         }
-        if { ![info exists _model($model-representation)] } {
-            set _model($model-representation) ""
-            set _model($model-newrepresentation) $_mrepresentation
+        if { ![info exists _model($model-rep)] } {
+            set _model($model-rep) ""
+            set _model($model-newrep) $_mrep
         }
         if { $_model($model-transparency) != $_dobj2transparency($dataobj) } {
             set _model($model-newtransparency) $_dobj2transparency($dataobj)
@@ -853,6 +861,19 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         } else {
             set _active($model) $dataobj
         }
+        set values [$dataobj get components.cell.values]
+	if { $values != "" } {
+	    regsub -all {,} $values { } values
+	    set rows {}
+	    foreach { x y z } $values {
+		lappend rows "    \[ $x, $y, $z \]"
+	    }
+	    set rows [join $rows ",\\\n"]
+	    SendCmd "raw -defer {verts = \[$rows\]\n}"
+	    SendCmd "raw -defer {run \$PYMOL_PATH/rappture/box.py\n}"
+	    SendCmd "raw -defer {draw_box(verts)\n}"
+	    set _cell 1
+	}
     }
 
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
@@ -872,14 +893,14 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         }
         if { $_mlist($model) == 1 } {
             if {  [info exists _model($model-newtransparency)] || 
-                  [info exists _model($model-newrepresentation)] } {
-                if { ![info exists _model($model-newrepresentation)] } {
-                    set _model($model-newrepresentation) $_model($model-representation)
+                  [info exists _model($model-newrep)] } {
+                if { ![info exists _model($model-newrep)] } {
+                    set _model($model-newrep) $_model($model-rep)
                 }
                 if { ![info exists _model($model-newtransparency)] } {
                     set _model($model-newtransparency) $_model($model-transparency)
                 }
-                set rep $_model($model-newrepresentation)
+                set rep $_model($model-newrep)
                 set transp $_model($model-newtransparency)
                 SendCmd "representation -defer -model $model $rep"
                 if { $_model($model-newtransparency) == "ghost" } {
@@ -889,10 +910,10 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 }
                 set changed 1
                 set _model($model-transparency) $_model($model-newtransparency)
-                set _model($model-representation) $_model($model-newrepresentation)
+                set _model($model-rep) $_model($model-newrep)
                 catch {
                     unset _model($model-newtransparency)
-                    unset _model($model-newrepresentation)
+                    unset _model($model-newrep)
                 }
             }
         }
@@ -932,18 +953,23 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
         # Default settings for all models.
-        spherescale update 
-        stickradius update
+        SphereScale update 
+        StickRadius update
         labels update 
-        opacity update 
-        cartoontrace update 
-        
-        projection update 
-        representation update 
+        Opacity update 
+        CartoonTrace update 
+        Cell update
+        OrthoProjection update 
+        Representation update 
         SendCmd "raw -defer {zoom complete=1}"
         set _restore 0
     }
-
+    set inner [$itk_component(main) panel "Settings"]
+    if { $_cell } {
+	$inner.cell configure -state normal
+    } else {
+	$inner.cell configure -state disabled
+    }
     if { $flush } {
         global readyForNextFrame
         set readyForNextFrame 0;	# Don't advance to the next frame
@@ -965,7 +991,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
 itcl::body Rappture::MolvisViewer::Unmap { } {
     # Pause rocking loop while unmapped (saves CPU time)
-    rock pause
+    Rock pause
 
     # Blank image, mark current image dirty
     # This will force reload from cache, or remain blank if cache is cleared
@@ -979,7 +1005,7 @@ itcl::body Rappture::MolvisViewer::Unmap { } {
 itcl::body Rappture::MolvisViewer::Map { } {
     if { [isconnected] } {
         # Resume rocking loop if it was on
-        rock unpause
+        Rock unpause
         # Rebuild image if modified, or redisplay cached image if not
         $_dispatcher event -idle !rebuild
     }
@@ -1075,14 +1101,14 @@ itcl::body Rappture::MolvisViewer::Update { args } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: rock on|off|toggle
-# USAGE: rock pause|unpause|step
+# USAGE: Rock on|off|toggle
+# USAGE: Rock pause|unpause|step
 #
 # Used to control the "rocking" model for the molecule being displayed.
 # Clients should use only the on/off/toggle options; the rest are for
 # internal control of the rocking motion.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::rock { option } {
+itcl::body Rappture::MolvisViewer::Rock { option } {
     # cancel any pending rocks
     if { [info exists _rocker(afterid)] } {
         after cancel $_rocker(afterid)
@@ -1106,7 +1132,7 @@ itcl::body Rappture::MolvisViewer::rock { option } {
         Update
     }
     if { $_rocker(on) && $option != "pause" } {
-         set _rocker(afterid) [after 200 [itcl::code $this rock step]]
+         set _rocker(afterid) [after 200 [itcl::code $this Rock step]]
     }
 }
 
@@ -1308,13 +1334,13 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: representation spheres|ballnstick|lines|sticks
+# USAGE: Representation spheres|ballnstick|lines|sticks
 #
 # Used internally to change the molecular representation used to render
 # our scene.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
-    if { $option == $_mrepresentation } {
+itcl::body Rappture::MolvisViewer::Representation {option {model "all"} } {
+    if { $option == $_mrep } {
         return 
     }
     if { $option == "update" } {
@@ -1325,13 +1351,13 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     }  else {
         set _settings($this-modelimg) [Rappture::icon $option]
     }
-    set inner [$itk_component(main) panel "View Settings"]
+    set inner [$itk_component(main) panel "Settings"]
     $inner.pict configure -image $_settings($this-modelimg)
 
     # Save the current option to set all radiobuttons -- just in case.
     # This method gets called without the user clicking on a radiobutton.
     set _settings($this-model) $option
-    set _mrepresentation $option
+    set _mrep $option
 
     if { $model == "all" } {
         set models [array names _mlist]
@@ -1340,11 +1366,11 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
     }
 
     foreach model $models {
-        if { [info exists _model($model-representation)] } {
-            if { $_model($model-representation) != $option } {
-                set _model($model-newrepresentation) $option
+        if { [info exists _model($model-rep)] } {
+            if { $_model($model-rep) != $option } {
+                set _model($model-newrep) $option
             } else {
-                catch { unset _model($model-newrepresentation) }
+                catch { unset _model($model-newrep) }
             }
         }
     }
@@ -1356,13 +1382,13 @@ itcl::body Rappture::MolvisViewer::representation {option {model "all"} } {
 
 
 # ----------------------------------------------------------------------
-# USAGE: projection on|off|toggle
-# USAGE: projection update
+# USAGE: OrthoProjection on|off|toggle
+# USAGE: OrthoProjection update
 #
 # Used internally to turn labels associated with atoms on/off, and to
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::projection {option} {
+itcl::body Rappture::MolvisViewer::OrthoProjection {option} {
     switch -- $option {
         "orthoscopic" {
             set ortho 1
@@ -1396,6 +1422,44 @@ itcl::body Rappture::MolvisViewer::projection {option} {
             "Use orthoscopic projection"
         set _settings($this-ortho) 0
         SendCmd "orthoscopic off"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Cell on|off|toggle
+#
+# Used internally to turn labels associated with atoms on/off, and to
+# update the positions of the labels so they sit on top of each atom.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::Cell {option} {
+    switch -- $option {
+        "on" - "off" {
+            set cell $option
+	}
+        "toggle" {
+            set cell [expr {$_settings($this-showcell) == 0}]
+        }
+        "update" {
+            set cell $_settings($this-showcell)
+        }
+        default {
+            error "bad option \"$option\": should be on, off, toggle, or update"
+        }
+    }
+    if { $cell == $_settings($this-showcell) && $option != "update"} {
+        # nothing to do
+        return
+    }
+    if { $cell } {
+        Rappture::Tooltip::for $itk_component(ortho) \
+            "Hide the cell."
+        set _settings($this-showcell) 1
+        SendCmd "raw {show everything,unitcell}"
+    } else {
+        Rappture::Tooltip::for $itk_component(ortho) \
+            "Show the cell."
+        set _settings($this-showcell) 0
+        SendCmd "raw {hide everything,unitcell}"
     }
 }
 
@@ -1683,8 +1747,8 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: spherescale radius ?model?
-#        spherescale update ?model?
+# USAGE: SphereScale radius ?model?
+#        SphereScale update ?model?
 #
 # Used internally to change the molecular atom scale used to render
 # our scene.  
@@ -1693,7 +1757,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
 #       is inactive, then it overridden with the value "0.1".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
     if { $option == "update" } {
         set radius $_settings($this-spherescale)
     } elseif { [string is double $option] } {
@@ -1719,8 +1783,8 @@ itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: stickradius radius ?models?
-#	 stickradius update ?models?
+# USAGE: StickRadius radius ?models?
+#	 StickRadius update ?models?
 #
 # Used internally to change the stick radius used to render
 # our scene.
@@ -1729,7 +1793,7 @@ itcl::body Rappture::MolvisViewer::spherescale { option {models "all"} } {
 #       is inactive, then it overridden with the value "0.25".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
     if { $option == "update" } {
         set radius $_settings($this-stickradius)
     } elseif { [string is double $option] } {
@@ -1755,8 +1819,8 @@ itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: opacity value ?models?
-#	 opacity update ?models?
+# USAGE: Opacity value ?models?
+#	 Opacity update ?models?
 #
 # Used internally to change the opacity (transparency) used to render
 # our scene.
@@ -1765,7 +1829,7 @@ itcl::body Rappture::MolvisViewer::stickradius { option {models "all"} } {
 #       is inactive, then it overridden with the value "0.75".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::opacity { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::Opacity { option {models "all"} } {
     if { $option == "update" } {
         set opacity $_settings($this-opacity)
     } elseif { [string is double $option] } {
@@ -1823,13 +1887,13 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: cartoontrace on|off|toggle
-# USAGE: cartoontrace update
+# USAGE: CartoonTrace on|off|toggle
+# USAGE: CartoonTrace update
 #
 # Used internally to turn labels associated with atoms on/off, and to
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::cartoontrace {option {models "all"}} {
+itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
     set trace $_settings($this-cartoontrace)
     if { $option == "update" } {
         set trace $_settings($this-cartoontrace)

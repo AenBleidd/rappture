@@ -434,6 +434,9 @@ proc Rappture::bugreport::send {} {
     ]
     
     set url [Rappture::Tool::resources -huburl]
+    if { $url == "" } {
+	set url "http://hubzero.org"
+    }
     if {[string index $url end] == "/"} {
         append url "index.php"
     } else {
