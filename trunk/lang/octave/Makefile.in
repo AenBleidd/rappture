@@ -10,7 +10,6 @@ prefix          = @prefix@
 srcdir          = @srcdir@
 
 INSTALL         = @INSTALL@
-MKDIR_P         = @MKDIR_P@
 RM              = rm -f
 OCTAVE2		= @OCTAVE2@
 OCTAVE3		= @OCTAVE3@

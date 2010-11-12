@@ -68,14 +68,14 @@ package:
 
 distrib: 
 	$(RM) -r exported
-	$(MKDIR_P) exported
+	$(MKDIR_P) -m 0755 exported
 	(cd exported; svn export -q $(rappture_repo) rappture)
 	tar -C exported -czlf $(rappture_source_tarfile) rappture
 	$(RM) -r exported
 
 runtime-distrib:
 	$(RM) -r exported
-	$(MKDIR_P) exported
+	$(MKDIR_P) -m 0755 exported
 	(cd exported; svn export -q $(runtime_repo) runtime)
 	tar -C exported -czlf $(runtime_source_tarfile) runtime
 	$(RM) -r exported

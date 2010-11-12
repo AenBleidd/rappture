@@ -42,10 +42,10 @@ WINDOWS_SCRIPTS =  \
 all:
 
 install:
-	$(MKDIR_P) $(bindir)
+	$(MKDIR_P) -m 0755 $(bindir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
-	    $(INSTALL) -m 555 $$i $(bindir) ; \
+	    $(INSTALL) -m 0555 $$i $(bindir) ; \
 	done
 
 clean:

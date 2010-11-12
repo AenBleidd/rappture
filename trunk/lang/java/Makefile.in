@@ -101,8 +101,8 @@ jRpUtils.h: Utils.class
 install: install-library install-classfiles
 
 install-library:  $(shared_lib) 
-	$(MKDIR_P) $(libdir)
-	$(INSTALL) -m 555 $(shared_lib) $(libdir)
+	$(MKDIR_P) -m 0755 $(libdir)
+	$(INSTALL) -m 0555 $(shared_lib) $(libdir)
 
 install-classfiles: 
 	$(MAKE) -C rappture install || exit 1

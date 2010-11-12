@@ -37,11 +37,11 @@ fermi: fermi.c
 	$(CC) $(CC_SWITCHES) $< -o $@ $(LIBS)
 
 install: fermi
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
-	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	  $(INSTALL) -m 0444 $$i $(destdir) ; \
 	done
-	$(INSTALL) -m 555 fermi $(destdir)
+	$(INSTALL) -m 0555 fermi $(destdir)
 
 clean:
 	$(RM) fermi run*.xml

@@ -858,6 +858,7 @@ AC_CONFIG_FILES([
     examples/zoo/Makefile
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile
+    examples/zoo/cell/Makefile
     examples/zoo/choice/Makefile
     examples/zoo/cloud/Makefile
     examples/zoo/cloud/matlab/Makefile

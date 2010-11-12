@@ -100,19 +100,19 @@ $(shared_lib): $(OBJS)
 install: install_libs install_headers
 
 install_libs: $(lib) $(shared_lib)
-	$(MKDIR_P) $(libdir)
-	$(INSTALL) -m 444 $(lib) $(libdir)
-	$(INSTALL) -m 555 $(shared_lib) $(libdir)
+	$(MKDIR_P) -m 0755 $(libdir)
+	$(INSTALL) -m 0444 $(lib) $(libdir)
+	$(INSTALL) -m 0555 $(shared_lib) $(libdir)
 
 # This is no manual page for rappture yet.
 install_man: 
-	$(MKDIR_P) $(man3dir)
-	$(INSTALL) -m 444 rappture.3 $(man3dir)
+	$(MKDIR_P) -m 0755 $(man3dir)
+	$(INSTALL) -m 0444 rappture.3 $(man3dir)
 
 install_headers:
-	$(MKDIR_P) $(includedir)/rappture2
+	$(MKDIR_P) -m 0755 $(includedir)/rappture2
 	for i in $(HEADERS) ; do \
-	  $(INSTALL) -m 444 $(srcdir)/$$i $(includedir)/rappture2; \
+	  $(INSTALL) -m 0444 $(srcdir)/$$i $(includedir)/rappture2; \
 	done
 
 uninstall: uninstall_libs uninstall_man uninstall_headers
@@ -141,6 +141,6 @@ distclean: clean
 	$(RM) Makefile *~
 
 docs:
-	$(MKDIR_P) ../../docs/rappture2
+	$(MKDIR_P) -m 0755 ../../docs/rappture2
 	doxygen
 

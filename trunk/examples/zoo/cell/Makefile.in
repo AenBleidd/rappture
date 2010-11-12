@@ -15,24 +15,24 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
-		$(srcdir)/note.tcl \
-		$(srcdir)/tool.xml 
+		$(srcdir)/cell.tcl \
+		$(srcdir)/tool.xml
 
-destdir		= $(prefix)/examples/zoo/note
+destdir		= $(prefix)/examples/zoo/cell
 
 all: 
-	$(MAKE) -C docs all
+	$(MAKE) -C examples all
 
 install: 
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \
 	done
-	$(MAKE) -C docs install
+	$(MAKE) -C examples install
 
 clean:
-	$(MAKE) -C docs clean
+	$(MAKE) -C examples clean
 
 distclean: 
-	$(MAKE) -C docs distclean
+	$(MAKE) -C examples distclean
 	$(RM) Makefile *~
