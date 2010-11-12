@@ -37,7 +37,7 @@ apps:
 	$(MAKE) -C apps all
 
 install: install_scripts install_apps
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir) ; \

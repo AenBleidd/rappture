@@ -137,7 +137,7 @@ tclIndex: $(FILES)
 install: install_scripts install_images 
 
 install_scripts: 
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir) ; \
@@ -145,7 +145,7 @@ install_scripts:
 	$(INSTALL) -m 444 tclIndex $(destdir)
 
 install_images:
-	$(MKDIR_P) $(destdir)/images
+	$(MKDIR_P) -m 0755 $(destdir)/images
 	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir)/images ; \

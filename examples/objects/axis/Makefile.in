@@ -47,7 +47,7 @@ axis: $(srcdir)/axis.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
 install:
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 444  $$i $(destdir) ; \
 	done

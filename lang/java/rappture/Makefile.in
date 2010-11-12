@@ -56,9 +56,9 @@ CLASSFILES	= \
 all:
 
 install: $(CLASSFILES)
-	$(MKDIR_P) $(packagedir)
+	$(MKDIR_P) -m 0755 $(packagedir)
 	for i in $(CLASSFILES) ; do \
-	    $(INSTALL) -m 444 $$i $(packagedir) ; \
+	    $(INSTALL) -m 0444 $$i $(packagedir) ; \
 	done
 
 clean:

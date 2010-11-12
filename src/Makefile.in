@@ -52,7 +52,7 @@ install: core
 	$(MAKE) -C objects install
 
 docs:
-	$(MKDIR_P) docs/doxygen
+	$(MKDIR_P) -m 0755 docs/doxygen
 	doxygen
 
 clean: 

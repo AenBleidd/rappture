@@ -34,12 +34,12 @@ all: ${APPNAME}
 
 install: ${APPNAME}
 	sed s/YOURAPPNAME/$^/ < $(srcdir)/run_app.patch | patch run_$^.sh
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
-	  $(INSTALL) -m 444 $$i $(destdir) ; \
+	  $(INSTALL) -m 0444 $$i $(destdir) ; \
 	done
-	$(INSTALL) -m 444 readme.txt $(destdir)/$^.readme
-	$(INSTALL) -m 555 run_$^.sh $^ $(destdir)
+	$(INSTALL) -m 0444 readme.txt $(destdir)/$^.readme
+	$(INSTALL) -m 0555 run_$^.sh $^ $(destdir)
 	$(bindir)/simsim --tool $(srcdir)/tool.xml --values default --nosim --driver driver.$^
 	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(libdir) $(destdir)/run_$^.sh /apps/matlab/mcr driver.$^
 	rm -f run*.xml driver.$^

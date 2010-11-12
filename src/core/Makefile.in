@@ -178,7 +178,7 @@ install_libs: $(lib)  $(shared_lib)
 	$(INSTALL) -m 555 $(shared_lib) $(libdir)
 
 install_headers:
-	$(MKDIR_P) $(incdir)
+	$(MKDIR_P) -m 0755 $(incdir)
 	for i in $(HEADERS) ; do \
 	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
 	done

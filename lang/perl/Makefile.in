@@ -95,12 +95,12 @@ $(pod):
                 EXE_FILES "" >> $@
 
 install: $(lib) $(bootstrap) $(man) $(pod) 
-	$(MKDIR_P) $(destdir)
-	$(INSTALL) -m 555 $(lib) $(destdir)
-	$(INSTALL) -m 444 $(srcdir)/lib/Rappture.pm $(destdir)
-	$(INSTALL) -m 444 $(bootstrap) $(destdir)
-	$(INSTALL) -m 444 $(man) $(destdir)
-	$(INSTALL) -m 444 $(pod) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
+	$(INSTALL) -m 0555 $(lib) $(destdir)
+	$(INSTALL) -m 0444 $(srcdir)/lib/Rappture.pm $(destdir)
+	$(INSTALL) -m 0444 $(bootstrap) $(destdir)
+	$(INSTALL) -m 0444 $(man) $(destdir)
+	$(INSTALL) -m 0444 $(pod) $(destdir)
 
 clean: 
 	$(RM) $(lib) $(bootstrap) $(man) $(pod) Rappture.o Rappture.cc 
@@ -117,7 +117,7 @@ pkg: pkgtmp
 
 pkgtmp:
 	$(RM) -r $(pkg_build_dir)
-	$(MKDIR_P) $(pkg_build_dir)
+	$(MKDIR_P) -m 0755 $(pkg_build_dir)
 	cp -p Makefile.PL $(pkg_build_dir)/Makefile.PL
 	tar -C $(srcdir) -clf - . | tar -C $(pkg_build_dir) -xpf -
 	(cd $(pkg_build_dir); $(PERL) Makefile.PL)

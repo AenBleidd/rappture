@@ -89,8 +89,8 @@ $(lib): $(OBJS)
 		$(LIB_SEARCH_DIRS) $(LIBS)
 
 install: $(lib)
-	$(MKDIR_P) $(destdir)
-	$(INSTALL) -m 555 $(lib) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
+	$(INSTALL) -m 0555 $(lib) $(destdir)
 
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?

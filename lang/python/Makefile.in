@@ -36,11 +36,11 @@ all: build/tmp
 	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build
 
 build/tmp:
-	$(MKDIR_P) build/tmp
+	$(MKDIR_P) -m 0755 build/tmp
 	$(LN_S) $(srcdir2)/Rappture/*.cc build/tmp
 
 install:
-	$(MKDIR_P) $(pythonlib)
+	$(MKDIR_P) -m 0755 $(pythonlib)
 	$(PYTHON) setup.py install --install-lib=$(pythonlib)
 
 clean:
