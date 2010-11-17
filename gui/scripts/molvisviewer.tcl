@@ -2041,9 +2041,9 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
 	    continue
 	}
 	incr count
-	set vector  [$parent get $child]
-	regexp -all {,} $vector {} vector
-	point$count set $vector
+	set values [$parent get $child]
+	regexp -all {,} $values { } values
+	point$count set $values
     }
     itcl::delete object $parent
     if { $count < 1 || $count > 3 } {
