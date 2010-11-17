@@ -2081,11 +2081,11 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     blt::vector x
     foreach n { 0 1 0 2 0 3 1 4 2 4 2 6 1 7 3 7 5 7 4 5 3 6 5 } {
 	x expr "(point${n} * scale) + origin"
-	set values [x print 0 end]
+	set values [x range 0 end]
 	append vertices "\[ [join $values {, }] \], \\\n"
     }
     x expr "(point6 * scale) + origin"
-    set values [x print 0 end]
+    set values [x range 0 end]
     append vertices "\[ [join $values {, }] \]  \\\n"
     blt::vector destroy point0 point1 point2 point3 point4 point5 point6 \
 	point7 x origin scale
