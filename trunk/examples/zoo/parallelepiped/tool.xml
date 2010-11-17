@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>tclsh @tool/cell.tcl @driver</command>
+        <command>tclsh @tool/parallelepiped.tcl @driver</command>
     </tool>
     <input>
         <number id="temperature">

@@ -32,6 +32,7 @@ examples	= \
 		number \
 		number2 \
 		phase \
+		parallelepiped \
 		periodicelement \
 		sequence \
 		string \

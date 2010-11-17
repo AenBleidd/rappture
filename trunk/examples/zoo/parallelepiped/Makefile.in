@@ -15,10 +15,10 @@ VPATH		= $(srcdir)
 RM		= rm -f
 
 FILES		= \
-		$(srcdir)/cell.tcl \
+		$(srcdir)/parallelepiped.tcl \
 		$(srcdir)/tool.xml
 
-destdir		= $(prefix)/examples/zoo/cell
+destdir		= $(prefix)/examples/zoo/parallelepiped
 
 all: 
 	$(MAKE) -C examples all

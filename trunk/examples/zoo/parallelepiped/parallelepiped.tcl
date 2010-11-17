@@ -19,34 +19,15 @@ ATOM      8   Si UNK A   1       1.355   1.355   1.355  1.00
 TER       9      UNK A   1
 }
 
-set cell_vertices {
-    0.0, 0.0, 0.0,
-    2.71, 2.71, 0.0,
-    0.0, 0.0, 0.0,
-    2.71, 0.0, 2.71,
-    0.0, 0.0, 0.0,
-    0.0, 2.71, 2.71,
-    2.71, 2.71, 0.0,
-    5.42, 2.71, 2.71,
-    2.71, 0.0, 2.71,
-    5.42, 2.71, 2.71,
-    2.71, 0.0, 2.71,
-    2.71, 2.71, 5.42,
-    2.71, 2.71, 0.0,
-    2.71, 5.42, 2.71,
-    0.0, 2.71, 2.71,
-    2.71, 5.42, 2.71,
-    5.42, 5.42, 5.42,
-    2.71, 5.42, 2.71,
-    5.42, 2.71, 2.71,
-    5.42, 5.42, 5.42,
-    0.0, 2.71, 2.71,
-    2.71, 2.71, 5.42,
-    5.42, 5.42, 5.42,
-    2.71, 2.71, 5.42
-}
-$driver put -append no $components.molecule.pdb $pdb
-$driver put -append no $components.cell.values $cell_vertices
+$driver put $components.molecule.pdb $pdb
+
+$driver put $components.parallelepiped.origin "0.0 0.0 0.0"
+$driver put $components.parallelepiped.scale "5.42"
+#$driver put $components.parallelepiped.scale "1.0"
+ 
+$driver put $components.parallelepiped.vector(1) ".5 .5 .0"
+$driver put $components.parallelepiped.vector(2) ".5 .0 .5"
+$driver put $components.parallelepiped.vector(3) ".0 .5 .5"
 
 Rappture::result $driver 
 exit 0
