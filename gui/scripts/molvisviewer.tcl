@@ -134,9 +134,9 @@ itcl::class Rappture::MolvisViewer {
     private method OrthoProjection {option}
     private method Representation {option {model "all"} }
     private method CartoonTrace {option {model "all"}}
+    private method ComputeParallelepipedVertices { dataobj }
     private method Cell {option}
     private method Rock {option}
-
 }
 
 itk::usual MolvisViewer {
@@ -494,7 +494,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     Rappture::Tooltip::for $inner.cartoontrace \
         "Set cartoon representation of bonds (sticks)."
 
-    checkbutton $inner.cell -text "Cell" \
+    checkbutton $inner.cell -text "Parallelepiped" \
 	-command [itcl::code $this Cell toggle] \
         -font "Arial 9 bold"
     $inner.cell select
@@ -844,7 +844,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     append _outbuf $data3
                 }
                 set _dataobjs($model-$state) 1
-            }
+	    }
         }
         if { ![info exists _model($model-transparency)] } {
             set _model($model-transparency) ""
@@ -861,21 +861,16 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         } else {
             set _active($model) $dataobj
         }
-        set values [$dataobj get components.cell.values]
-	if { $values != "" } {
-	    regsub -all {,} $values { } values
-	    set rows {}
-	    foreach { x y z } $values {
-		lappend rows "    \[ $x, $y, $z \]"
-	    }
-	    set rows [join $rows ",\\\n"]
-	    SendCmd "raw -defer {verts = \[$rows\]\n}"
+        set vector [$dataobj get components.parallelepiped.vector]
+	if { $vector != "" } {
+	    set vertices [ComputeParallelepipedVertices $dataobj]
+	    SendCmd "raw -defer {verts = \[$vertices\]\n}"
 	    SendCmd "raw -defer {run \$PYMOL_PATH/rappture/box.py\n}"
 	    SendCmd "raw -defer {draw_box(verts)\n}"
 	    set _cell 1
 	}
     }
-
+	
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
     # 3=on->on)
 
@@ -2011,3 +2006,88 @@ itcl::body Rappture::MolvisViewer::EnableDownload { popup what } {
     }
 }
 
+itcl::body Rappture::MolvisViewer::snap { w h } {
+    if { $w <= 0 || $h <= 0 } {
+        set w [image width $_image(plot)]
+        set h [image height $_image(plot)]
+    } 
+    set tag "$_state(client),$_rocker(client)"
+    if { $_image(id) != "$tag" } {
+        while { ![info exists _imagecache($tag)] } {
+            update idletasks
+            update
+            after 100
+        }
+        if { [info exists _imagecache($tag)] } {
+            $_image(plot) configure -data $_imagecache($tag)
+            set _image(id) "$tag"
+        }
+    }
+    set img [image create picture -width $w -height $h]
+    $img resample $_image(plot)
+    return $img
+}
+
+# FIXME: Handle 2D vectors
+itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
+    # Create a vector for every 3D point
+    blt::vector point0(3) point1(3) point2(3) point3(3) point4(3) point5(3) \
+	point6(3) point7(3) origin(3) scale(3)
+
+    set count 0
+    set parent [$dataobj element -as object "components.parallelepiped"]
+    foreach child [$parent children] {
+	if { ![string match "vector*" $child] } {
+	    continue
+	}
+	incr count
+	set vector  [$parent get $child]
+	regexp -all {,} $vector {} vector
+	point$count set $vector
+    }
+    itcl::delete object $parent
+    if { $count < 1 || $count > 3 } {
+	error "bad number of vectors supplied to parallelepiped"
+    }
+    set values [$dataobj get components.parallelepiped.scale]
+    set n [llength $values]
+    scale set { 1.0 1.0 1.0 }
+    if { $n == 1 } {
+	set scale(0:2) [lindex $values 0]
+    } elseif { $n == 2 } {
+	set scale(0:1) [lindex $values 0]
+    } elseif { $n == 3 } {
+	scale set $values
+    }
+    set values [$dataobj get components.parallelepiped.origin]
+    set n [llength $values]
+    origin set { 0.0 0.0 0.0 }
+    if { $n == 1 } {
+	set origin(0) [lindex $values 0]
+    } elseif { $n == 2 } {
+	set origin(0) [lindex $values 0]
+	set origin(1) [lindex $values 1]
+    } elseif { $n == 3 } {
+	origin set $values
+    }
+    point0 set { 0.0 0.0 0.0 }
+    point4 expr {point2 + point1}
+    point5 expr {point4 + point3}
+    point6 expr {point2 + point3}
+    point7 expr {point1 + point3}
+
+    # Generate vertices as a string for PyMOL
+    set vertices ""
+    blt::vector x
+    foreach n { 0 1 0 2 0 3 1 4 2 4 2 6 1 7 3 7 5 7 4 5 3 6 5 } {
+	x expr "(point${n} * scale) + origin"
+	set values [x print 0 end]
+	append vertices "\[ [join $values {, }] \], \\\n"
+    }
+    x expr "(point6 * scale) + origin"
+    set values [x print 0 end]
+    append vertices "\[ [join $values {, }] \]  \\\n"
+    blt::vector destroy point0 point1 point2 point3 point4 point5 point6 \
+	point7 x origin scale
+    return $vertices
+}
