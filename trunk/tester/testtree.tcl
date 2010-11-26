@@ -2,12 +2,12 @@
 #  COMPONENT: testtree - provides hierarchical view of regression tests
 #
 #  Used to display a collapsible view of all tests found in the test
-#  directory.  Essentially an Itk Widget wrapper for blt::treeview.
-#  Provides methods to get all tests or all currently selected tests.
-#  Also helps handle data stored in treeview columns.  In each test xml,
-#  a label must be located at the path test.label.  Test labels may be
-#  be organized hierarchically by using dots to separate components of
-#  the test label.  (example: roomtemp.1eV)
+#  directory.  The -command configuration option will be called when
+#  the run button is clicked. Provides methods to get all tests or all 
+#  currently selected tests. Also helps handle data stored in treeview 
+#  columns.  In each test xml, a label must be located at the path 
+#  test.label.  Test labels may be organized hierarchically by using 
+#  dots to separate components of the test label.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -22,14 +22,19 @@ package require Rappture
 namespace eval Rappture::Regression::TestTree { #forward declaration }
 
 itcl::class Rappture::Regression::TestTree {
-    inherit itk::Widget
+    inherit itk::Widget 
 
-    constructor {testdir} { #defined later }
-    public method populate {testdir}
+    public variable command
+    public variable testdir
+
+    constructor {testdir args} { #defined later }
     public method getTests {{id 0}}
     public method getSelected {}
     public method getData {id}
     public method setData {id data}
+    public method updateLabel {}
+
+    private method populate {}
 }
 
 # TODO: figure out exactly what should go in here.
@@ -40,21 +45,62 @@ itk::usual TreeView {
     keep -background -foreground -font
 }
 
-itcl::body Rappture::Regression::TestTree::constructor {testdir} {
+itcl::body Rappture::Regression::TestTree::constructor {args} {
     # TODO: Use separate tree data structure and insert into treeview
-    puts "Constructing TestTree."
+    puts "Constructinig TestTree."
+
     itk_component add treeview {
         blt::treeview $itk_interior.treeview -separator . -autocreate true \
-            -selectmode multiple
+            -selectmode multiple 
     }
-    $itk_component(treeview) column insert end xmlfile ran result diffs
+    $itk_component(treeview) column insert 0 result
+    $itk_component(treeview) column insert end xmlfile ran diffs
     $itk_component(treeview) column configure xmlfile ran diffs -hide yes
     pack $itk_component(treeview) -expand yes -fill both
-    populate $testdir
-    # TODO: Fix default column spacing. Column name for the main/first column?
+
+    itk_component add bottomBar {
+        frame $itk_interior.bottomBar
+    }
+    pack $itk_component(bottomBar) -fill x
+
+    itk_component add bSelectAll {
+        button $itk_component(bottomBar).bSelectAll -text "Select all" \
+            -command "$itk_component(treeview) selection set 0 end" 
+    }
+    pack $itk_component(bSelectAll) -side left
+
+    itk_component add bSelectNone {
+        button $itk_component(bottomBar).bSelectNone -text "Select none" \
+            -command "$itk_component(treeview) selection clearall"
+    }
+    pack $itk_component(bSelectNone) -side left
+
+    itk_component add lSelected {
+        label $itk_component(bottomBar).lSelected -text "0 tests selected"
+    }
+    pack $itk_component(lSelected) -side left -expand yes -fill x
+    $itk_component(treeview) configure -selectcommand "$this updateLabel"
+
+    itk_component add bRun {
+        button $itk_component(bottomBar).bRun -text "Run" -command runHandler \
+            -state disabled
+    }
+    pack $itk_component(bRun) -side left
+
     # TODO: Fix black empty space when columns are shrunk
+    # TODO: Scrollbar(s)
+
+    eval itk_initialize $args
 }
 
+# Repopulate tree if test directory changed
+itcl::configbody Rappture::Regression::TestTree::testdir {
+    populate
+}
+
+itcl::configbody Rappture::Regression::TestTree::command {
+    $itk_component(bRun) configure -command $command
+}
 
 # ----------------------------------------------------------------------
 # USAGE: populate
@@ -65,11 +111,11 @@ itcl::body Rappture::Regression::TestTree::constructor {testdir} {
 # option so that branch nodes need not be explicitly created.  Deletes
 # any nodes previously contained by the treeview.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::populate {testdir} {
+itcl::body Rappture::Regression::TestTree::populate {} {
     puts "Populating TestTree."
     $itk_component(treeview) delete 0
-    # TODO: Make file icon background transparent.
-    set icon [image create photo -file images/file.gif]
+    # TODO: add an appropriate icon
+    set icon [Rappture::icon download]
     # TODO: Descend through subdirectories inside testdir?
     foreach testxml [glob -nocomplain -directory $testdir *.xml] {
         set lib [Rappture::library $testxml]
@@ -149,4 +195,20 @@ itcl::body Rappture::Regression::TestTree::setData {id data} {
     $itk_component(treeview) entry configure $id -data $data
 }
 
+# ----------------------------------------------------------------------
+# USAGE: updateLabel
+#
+# Used internally to update the label which indicates how many tests
+# are currently selected.  Also disables the run button if no tests are
+# selected.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Regression::TestTree::updateLabel {} {
+    set n [llength [getSelected]]
+    $itk_component(lSelected) configure -text "$n tests selcted"
+    if {$n > 0} {
+        $itk_component(bRun) configure -state normal
+    } else {
+        $itk_component(bRun) configure -state disabled
+    }
+}
 
