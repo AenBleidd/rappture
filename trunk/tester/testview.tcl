@@ -16,6 +16,9 @@ namespace eval Rappture::Regression::TestView { #forward declaration }
 itcl::class Rappture::Regression::TestView {
     inherit itk::Widget
 
+    public method showDefault {}
+    public method showText {text}
+
     constructor {args} { #defined later }
 }
 
@@ -23,14 +26,29 @@ itcl::class Rappture::Regression::TestView {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestView::constructor {args} {
-    puts "Constructing TestView."
     itk_component add txt {
         text $itk_interior.txt
     }
     pack $itk_component(txt) -expand yes -fill both
-    $itk_component(txt) insert end "TestView text area..."
-    $itk_component(txt) configure -state disabled
+    showDefault
 
     eval itk_initialize $args
 }
 
+itk::usual TestView {
+    keep -background -foreground -font
+}
+
+itcl::body Rappture::Regression::TestView::showDefault {} {
+    $itk_component(txt) configure -state normal 
+    $itk_component(txt) delete 0.0 end
+    $itk_component(txt) insert end "Default"
+    $itk_component(txt) configure -state disabled
+}
+
+itcl::body Rappture::Regression::TestView::showText {text} {
+    $itk_component(txt) configure -state normal
+    $itk_component(txt) delete 0.0 end
+    $itk_component(txt) insert end "$text"
+    $itk_component(txt) configure -state disabled
+}

@@ -21,13 +21,11 @@ package require Rappture
 
 namespace eval Rappture::Regression::TestTree { #forward declaration }
 
-# ----------------------------------------------------------------------
-# CONSTRUCTOR
-# ----------------------------------------------------------------------
 itcl::class Rappture::Regression::TestTree {
     inherit itk::Widget 
 
     public variable command
+    public variable selectcommand
     public variable testdir
 
     constructor {testdir args} { #defined later }
@@ -40,21 +38,18 @@ itcl::class Rappture::Regression::TestTree {
     private method populate {}
 }
 
-# TODO: figure out exactly what should go in here.
 itk::usual TestTree {
     keep -background -foreground -font
 }
-itk::usual TreeView {
-    keep -background -foreground -font
-}
 
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestTree::constructor {args} {
-    # TODO: Use separate tree data structure and insert into treeview
-    puts "Constructing TestTree."
-
     itk_component add treeview {
         blt::treeview $itk_interior.treeview -separator . -autocreate true \
             -selectmode multiple 
+    } {
     }
     $itk_component(treeview) column insert 0 result
     $itk_component(treeview) column insert end testxml ran diffs
@@ -65,6 +60,7 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
         frame $itk_interior.bottomBar
     }
     pack $itk_component(bottomBar) -fill x
+    # TODO: Adjust spacing in bottom bar
 
     itk_component add bSelectAll {
         button $itk_component(bottomBar).bSelectAll -text "Select all" \
@@ -82,7 +78,6 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
         label $itk_component(bottomBar).lSelected -text "0 tests selected"
     }
     pack $itk_component(lSelected) -side left -expand yes -fill x
-    $itk_component(treeview) configure -selectcommand "$this updateLabel"
 
     itk_component add bRun {
         button $itk_component(bottomBar).bRun -text "Run" -state disabled
@@ -102,6 +97,13 @@ itcl::configbody Rappture::Regression::TestTree::testdir {
     populate
 }
 
+# Forward the TestTree's selectcommand to the treeview, and update the label
+# as well.
+itcl::configbody Rappture::Regression::TestTree::selectcommand {
+    $itk_component(treeview) configure -selectcommand \
+        "$this updateLabel; $selectcommand"
+}
+
 # ----------------------------------------------------------------------
 # USAGE: populate
 #
@@ -112,7 +114,6 @@ itcl::configbody Rappture::Regression::TestTree::testdir {
 # any nodes previously contained by the treeview.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestTree::populate {} {
-    puts "Populating TestTree."
     $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
     set icon [Rappture::icon download]
@@ -204,7 +205,12 @@ itcl::body Rappture::Regression::TestTree::setData {id data} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestTree::updateLabel {} {
     set n [llength [getSelected]]
-    $itk_component(lSelected) configure -text "$n tests selcted"
+    if {$n == 1} {
+        $itk_component(lSelected) configure -text "1 test selcted"
+    } else {
+        $itk_component(lSelected) configure -text "$n tests selected"
+    }
+
     if {$n > 0} {
         $itk_component(bRun) configure -state normal
     } else {

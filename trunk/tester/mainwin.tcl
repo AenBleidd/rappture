@@ -18,35 +18,24 @@ package require RapptureGUI
 
 namespace eval Rappture::Regression::MainWin { #forward declaration }
 
-# ----------------------------------------------------------------------
-# CONSTRUCTOR
-# ----------------------------------------------------------------------
 itcl::class Rappture::Regression::MainWin {
     inherit itk::Toplevel
 
     constructor {toolxml testdir args} { #defined later }
     public method runAll {args}
     public method runSelected {args}
+    public method selectionHandler {}
     private method runTest {id args}
-    private method makeDriver {testxml {path input}}
 
     private variable _testdir
     private variable _toolxml
 
 }
 
-# TODO: figure out exactly what should go in here.
-itk::usual TestView {
-    keep -background -foreground -font
-}
-
-itk::usual Panedwindow {
-    keep -background
-}
-
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
 itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
-    puts "Constructing MainWin."
-
     if {[file exists $toolxml]} {
         set _toolxml $toolxml
     } else {
@@ -61,12 +50,14 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
 
     itk_component add pw {
         panedwindow $itk_interior.pw
+    } {
     }
     pack $itk_component(pw) -expand yes -fill both
 
     itk_component add tree {
         Rappture::Regression::TestTree $itk_component(pw).tree \
-            -command "$this runSelected" -testdir $_testdir
+            -command "$this runSelected" -testdir $_testdir \
+            -selectcommand "$this selectionHandler"
     }
     $itk_component(pw) add $itk_component(tree) -sticky nsew
 
@@ -87,7 +78,6 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
 # be ran sequentially.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::MainWin::runAll {args} {
-    puts "Running all tests."
     set tests [$itk_component(tree) getTests]
     foreach id $tests {
         runTest $id $args
@@ -102,7 +92,6 @@ itcl::body Rappture::Regression::MainWin::runAll {args} {
 # descendant tests will be ran as well.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::MainWin::runSelected {args} {
-    puts "Running selected tests."
     set selected [$itk_component(tree) getSelected]
     foreach id $selected {
         runTest $id $args
@@ -121,10 +110,9 @@ itcl::body Rappture::Regression::MainWin::runSelected {args} {
 itcl::body Rappture::Regression::MainWin::runTest {id args} {
     array set data [$itk_component(tree) getData $id]
     if {$data(ran) && [lsearch -exact $args "-force"]==-1} {
-        puts "Skipping test at node $id."
+        # Already ran.  Skip.
         return
     }
-    puts "Running test at node $id."
     set data(result) "Running"
     $itk_component(tree) setData $id [array get data]
 
@@ -146,6 +134,34 @@ itcl::body Rappture::Regression::MainWin::runTest {id args} {
         set data(result) Error
     }
     $itk_component(tree) setData $id [array get data]
+
+    # Call selectionHandler to refresh right hand side view
+    selectionHandler
+
     # TODO: Remove runfile
+}
+
+# ----------------------------------------------------------------------
+# USAGE: selectionHandler
+#
+# Used internally to communicate between the test tree and the right
+# hand side whenever the tree's selection has changed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Regression::MainWin::selectionHandler {} {
+    array set data [$itk_component(tree) getData focus]
+    # Data array is empty for branch nodes
+    if {[array names data] != ""} {
+        if {$data(ran)} {
+            switch $data(result) {
+                Pass {$itk_component(view) showText "Test passed."}
+                Fail {$itk_component(view) showText "Diffs: $data(diffs)"}
+                Error {$itk_component(view) showText "Error while running test"}
+            }
+        } else {
+            $itk_component(view) showText "Test has not ben ran."
+        }
+    } else {
+        $itk_component(view) showDefault
+    }
 }
 
