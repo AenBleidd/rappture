@@ -33,11 +33,12 @@ itcl::class Rappture::Regression::TestTree {
     public method getSelected {}
     public method getData {id}
     public method setData {id data}
-    public method updateLabel {}
 
+    private method updateLabel {}
     private method populate {}
-}
 
+}
+ 
 itk::usual TestTree {
     keep -background -foreground -font
 }
@@ -46,21 +47,24 @@ itk::usual TestTree {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestTree::constructor {args} {
+    itk_component add scrollbars {
+        Rappture::Scroller $itk_interior.scroller \
+            -xscrollmode auto -yscrollmode auto
+    }
     itk_component add treeview {
-        blt::treeview $itk_interior.treeview -separator . -autocreate true \
-            -selectmode multiple 
+        blt::treeview $itk_component(scrollbars).treeview -separator . \
+            -autocreate true -selectmode multiple 
     } {
     }
-    $itk_component(treeview) column insert 0 result
+    $itk_component(treeview) column insert 0 result -width 75 
     $itk_component(treeview) column insert end testxml ran diffs
     $itk_component(treeview) column configure testxml ran diffs -hide yes
-    pack $itk_component(treeview) -expand yes -fill both
+    $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
         frame $itk_interior.bottomBar
     }
-    pack $itk_component(bottomBar) -fill x
-    # TODO: Adjust spacing in bottom bar
+    pack $itk_component(bottomBar) -fill x -side bottom
 
     itk_component add bSelectAll {
         button $itk_component(bottomBar).bSelectAll -text "Select all" \
@@ -74,20 +78,21 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
     }
     pack $itk_component(bSelectNone) -side left
 
-    itk_component add lSelected {
-        label $itk_component(bottomBar).lSelected -text "0 tests selected"
-    }
-    pack $itk_component(lSelected) -side left -expand yes -fill x
-
     itk_component add bRun {
         button $itk_component(bottomBar).bRun -text "Run" -state disabled
     } {
         keep -command
     }
-    pack $itk_component(bRun) -side left
+    pack $itk_component(bRun) -side right
+
+    itk_component add lSelected {
+        label $itk_component(bottomBar).lSelected -text "0 tests selected"
+    }
+    pack $itk_component(lSelected) -side right -padx 5
 
     # TODO: Fix black empty space when columns are shrunk
-    # TODO: Scrollbar(s)
+
+    pack $itk_component(scrollbars) -side left -expand yes -fill both
 
     eval itk_initialize $args
 }
@@ -101,7 +106,7 @@ itcl::configbody Rappture::Regression::TestTree::testdir {
 # as well.
 itcl::configbody Rappture::Regression::TestTree::selectcommand {
     $itk_component(treeview) configure -selectcommand \
-        "$this updateLabel; $selectcommand"
+        "[itcl::code $itk_interior updateLabel]; $selectcommand"
 }
 
 # ----------------------------------------------------------------------
@@ -125,9 +130,10 @@ itcl::body Rappture::Regression::TestTree::populate {} {
             $itk_component(treeview) insert end $testpath -data \
                  [list testxml $testxml ran no result "" diffs ""] \
                  -icons "$icon $icon" -activeicons "$icon $icon"
-            }
         }
+    }
     $itk_component(treeview) open -recurse root
+    # TODO: Fix width of main treeview column
 }
 
 # ----------------------------------------------------------------------
