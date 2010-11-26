@@ -24,7 +24,8 @@ itcl::class Rappture::Regression::MainWin {
     constructor {toolxml testdir args} { #defined later }
     public method runAll {args}
     public method runSelected {args}
-    public method selectionHandler {}
+
+    private method selectionHandler {}
     private method runTest {id args}
 
     private variable _testdir
@@ -49,24 +50,23 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
     }
 
     itk_component add pw {
-        panedwindow $itk_interior.pw
+        panedwindow $itk_interior.pw 
     } {
     }
     pack $itk_component(pw) -expand yes -fill both
 
     itk_component add tree {
         Rappture::Regression::TestTree $itk_component(pw).tree \
-            -command "$this runSelected" -testdir $_testdir \
-            -selectcommand "$this selectionHandler"
+            -command "[itcl::code $itk_interior runSelected]" \
+            -testdir $_testdir \
+            -selectcommand "[itcl::code $itk_interior selectionHandler]"
     }
-    $itk_component(pw) add $itk_component(tree) -sticky nsew
+    $itk_component(pw) add $itk_component(tree)
 
     itk_component add view {
         Rappture::Regression::TestView $itk_component(pw).view
     }
-    $itk_component(pw) add $itk_component(view) -sticky nsew
-
-    # TODO: make panes scale proportionally when window grows
+    $itk_component(pw) add $itk_component(view)
 
     eval itk_initialize $args
 }
