@@ -19,6 +19,9 @@ itcl::class Rappture::Regression::TestView {
     constructor {args} { #defined later }
 }
 
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
 itcl::body Rappture::Regression::TestView::constructor {args} {
     puts "Constructing TestView."
     itk_component add txt {
