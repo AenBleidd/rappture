@@ -21,6 +21,9 @@ package require Rappture
 
 namespace eval Rappture::Regression::TestTree { #forward declaration }
 
+# ----------------------------------------------------------------------
+# CONSTRUCTOR
+# ----------------------------------------------------------------------
 itcl::class Rappture::Regression::TestTree {
     inherit itk::Widget 
 
@@ -47,15 +50,15 @@ itk::usual TreeView {
 
 itcl::body Rappture::Regression::TestTree::constructor {args} {
     # TODO: Use separate tree data structure and insert into treeview
-    puts "Constructinig TestTree."
+    puts "Constructing TestTree."
 
     itk_component add treeview {
         blt::treeview $itk_interior.treeview -separator . -autocreate true \
             -selectmode multiple 
     }
     $itk_component(treeview) column insert 0 result
-    $itk_component(treeview) column insert end xmlfile ran diffs
-    $itk_component(treeview) column configure xmlfile ran diffs -hide yes
+    $itk_component(treeview) column insert end testxml ran diffs
+    $itk_component(treeview) column configure testxml ran diffs -hide yes
     pack $itk_component(treeview) -expand yes -fill both
 
     itk_component add bottomBar {
@@ -82,8 +85,9 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
     $itk_component(treeview) configure -selectcommand "$this updateLabel"
 
     itk_component add bRun {
-        button $itk_component(bottomBar).bRun -text "Run" -command runHandler \
-            -state disabled
+        button $itk_component(bottomBar).bRun -text "Run" -state disabled
+    } {
+        keep -command
     }
     pack $itk_component(bRun) -side left
 
@@ -96,10 +100,6 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
 # Repopulate tree if test directory changed
 itcl::configbody Rappture::Regression::TestTree::testdir {
     populate
-}
-
-itcl::configbody Rappture::Regression::TestTree::command {
-    $itk_component(bRun) configure -command $command
 }
 
 # ----------------------------------------------------------------------
@@ -122,7 +122,7 @@ itcl::body Rappture::Regression::TestTree::populate {} {
         set testpath [$lib get test.label]
         if {$testpath != ""} {
             $itk_component(treeview) insert end $testpath -data \
-                 [list xmlfile $testxml ran no result "" diffs ""] \
+                 [list testxml $testxml ran no result "" diffs ""] \
                  -icons "$icon $icon" -activeicons "$icon $icon"
             }
         }
