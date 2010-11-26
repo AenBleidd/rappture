@@ -2,8 +2,9 @@
 #  COMPONENT: mainwin - main application window for regression tester 
 #
 #  This widget acts as the main window for the Rappture regression
-#  tester.  Constructor accepts the location of the new version to be
-#  tested, and the location of a directory containg test xml files.
+#  tester.  Constructor accepts the location of the tool.xml of the new 
+#  version to be tested, and the location of a directory containg test 
+#  xml files.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -20,14 +21,13 @@ namespace eval Rappture::Regression::MainWin { #forward declaration }
 itcl::class Rappture::Regression::MainWin {
     inherit itk::Toplevel
 
-    constructor {tooldir testdir} { #defined later }
+    constructor {toolxml testdir args} { #defined later }
     public method runAll {}
     public method runSelected {}
     private method runTest {id}
     private method makeDriver {testxml}
 
     private variable _testdir
-    private variable _tooldir
     private variable _toolxml
 
 }
@@ -41,63 +41,40 @@ itk::usual Panedwindow {
     keep -background
 }
 
-itcl::body Rappture::Regression::MainWin::constructor {tooldir testdir} {
+itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
     puts "Constructing MainWin."
 
-    # TODO: Replace explicit constructor arguments with "args"
-    #       If tooldir is not given, use current directory.
-    #       If testdir is not given, look for it inside of tooldir.
-    if {[file isdirectory $tooldir]} {
-        set _tooldir $tooldir
+    if {[file exists $toolxml]} {
+        set _toolxml $toolxml
     } else {
-        # TODO: Properly format error messages
-        error "Given tooldir is not a directory."
+        error "File \"$toolxml\" does not exist."
     }
+
     if {[file isdirectory $testdir]} {
         set _testdir $testdir
     } else {
-        error "Given testdir is not a directory"
+        error "Directory \"$testdir\" does not exist."
     }
 
-    # TODO: Check other locations for tool.xml and throw error if not found
-    set _toolxml [file join $tooldir tool.xml]
+    itk_component add pw {
+        panedwindow $itk_interior.pw
+    }
+    pack $itk_component(pw) -expand yes -fill both
 
-    itk_component add topBar {
-        frame $itk_interior.topBar
-    }
-    itk_component add cmdLabel {
-        label $itk_component(topBar).cmdLabel -text "Tool command:"
-    }
-    itk_component add cmdEntry {
-        entry $itk_component(topBar).cmdEntry
-    }
-    itk_component add bRunAll {
-        button $itk_component(topBar).bRunAll -text "Run all" \
-            -command [itcl::code $itk_interior runAll] 
-    }
-    itk_component add bRunSelected {
-        button $itk_component(topBar).bRunSelected -text "Run selected" \
-            -command [itcl::code $itk_interior runSelected]
-    }
-    pack $itk_component(cmdLabel) -side left
-    pack $itk_component(cmdEntry) -side left -expand yes -fill x
-    pack $itk_component(bRunAll) -side right
-    pack $itk_component(bRunSelected) -side right
-    pack $itk_component(topBar) -side top -fill x
-
-    itk_component add pane {
-        panedwindow $itk_interior.pane
-    }
     itk_component add tree {
-        Rappture::Regression::TestTree $itk_component(pane).tree $testdir
+        Rappture::Regression::TestTree $itk_component(pw).tree \
+            -command "$this runSelected" -testdir $_testdir
     }
+    $itk_component(pw) add $itk_component(tree) -sticky nsew
+
     itk_component add view {
-        Rappture::Regression::TestView $itk_component(pane).view
+        Rappture::Regression::TestView $itk_component(pw).view
     }
-    $itk_component(pane) add  $itk_component(pane).tree -sticky nesw
-    $itk_component(pane) add  $itk_component(pane).view -sticky nesw
+    $itk_component(pw) add $itk_component(view) -sticky nsew
+
     # TODO: make panes scale proportionally when window grows
-    pack $itk_component(pane) -side left -expand yes -fill both
+
+    eval itk_initialize $args
 }
 
 # ----------------------------------------------------------------------
@@ -150,7 +127,7 @@ itcl::body Rappture::Regression::MainWin::runTest {id} {
     set testxml $data(xmlfile)
     set driver [makeDriver $testxml]
 
-    set tool [Rappture::Tool ::#auto $driver $_tooldir]
+    set tool [Rappture::Tool ::#auto $driver [file dirname $_toolxml]]
     set result ""
     foreach {status result} [eval $tool run] break
     set data(ran) yes

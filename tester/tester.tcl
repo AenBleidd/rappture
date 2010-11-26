@@ -9,7 +9,12 @@
 # located at the path test.label.  Test labels may be organized
 # hierarchically by using dots to separate components of the test label
 # (example: roomtemp.1eV).  A description may optionally be located at
-# the path test.description.
+# the path test.description.  Input arguments are the path to the
+# tool.xml of the version being tested, and the path the the directory
+# containing a set of test xml files.  If the arguments are missing,
+# the program will attempt to locate them automatically.
+#
+# USAGE: tester.tcl ?-tool tool.xml? ?-testdir tests?
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -22,17 +27,42 @@ exec tclsh "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
-# TODO: Use tclIndex to manage classes correctly
-source mainwin.tcl
-source testtree.tcl
-source testview.tcl
-source compare.tcl
+# TODO: Won't need this once tied in with the rest of the package 
+lappend auto_path [file dirname $argv0]
+
+package require Tk
+package require Rappture
+package require RapptureGUI
 
 wm withdraw .
 
-set testdir "example/tests"
-set tooldir "example"
+Rappture::getopts argv params {
+    value -tool ""
+    value -testdir ""
+}
 
-::Rappture::Regression::MainWin .main $tooldir $testdir
+# If tool.xml and test directory locations are not given, try to find them.
+if {$params(-tool) == ""} {
+    if {[file exists tool.xml]} {
+        set params(-tool) tool.xml
+    } elseif {[file exists [file join rappture tool.xml]]} {
+        set params(-tool) [file join rappture tool.xml]
+    } else {
+        error "Cannot find tool.xml"
+    }
+}
+
+if {$params(-testdir) == ""} {
+    set tooldir [file dirname $params(-tool)]
+    if {[file isdirectory [file join $tooldir tests]]} {
+        set params(-testdir) [file join $tooldir tests]
+    } elseif {[file isdirectory [file join [file dirname $tooldir] tests]]} {
+        set params(-testdir) [file join [file dirname $tooldir] tests]
+    } else {
+        error "Cannot find test directory."
+    }
+}
+
+::Rappture::Regression::MainWin .main $params(-tool) $params(-testdir)
 bind .main <Destroy> {exit}
 
