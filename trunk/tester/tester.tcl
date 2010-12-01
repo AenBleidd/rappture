@@ -63,6 +63,7 @@ if {$params(-testdir) == ""} {
     }
 }
 
-::Rappture::Regression::MainWin .main $params(-tool) $params(-testdir)
-bind .main <Destroy> {exit}
+Rappture::Tester::MainWin .main $params(-tool) $params(-testdir)
+wm protocol .main WM_DELETE_WINDOW exit
+wm title .main "Rappture Regression Tester"
 
