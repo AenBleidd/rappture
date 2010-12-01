@@ -29,6 +29,7 @@ VPATH		= $(srcdir)
 
 OBJS		= pymolproxy.o
 LIBS		= $(TCL_LIB_SPEC)
+
 SCRIPTS		= $(srcdir)/scripts/box.py
 
 all: $(TARGETS)
@@ -49,7 +50,7 @@ install-pymolproxy: pymolproxy
 install-scripts:
 	$(MKDIR_P) -m 0755 $(libdir)/pymol/rappture
 	for i in $(SCRIPTS) ; do \
-	    $(INSTALL) -m 555 $$i $(libdir)/pymol/rappture; \
+	    $(INSTALL) -m 0555 $$i $(libdir)/pymol/rappture; \
 	done
 
 clean:
