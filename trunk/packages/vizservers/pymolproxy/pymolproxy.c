@@ -95,7 +95,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = FALSE;
+static int debug = TRUE;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
@@ -148,8 +148,8 @@ typedef struct {
 					 * the client.  The most recent images
 					 * are in the front of the list. */
 
-    int serverInput, serverOutput, serverError;	 /* Server file descriptors. */
-    int clientInput, clientOutput;	/* Client file descriptors. */
+    int sin, sout, serr;		/* Server file descriptors. */
+    int cin, cout;			/* Client file descriptors. */
     ReadBuffer client;			/* Read buffer for client input. */
     ReadBuffer server;			/* Read buffer for server output. */
     int frame;
@@ -650,7 +650,7 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     
     /* Write the command out to the server. */
     length = strlen(buffer);
-    nWritten = write(proxyPtr->serverInput, buffer, length);
+    nWritten = write(proxyPtr->sin, buffer, length);
     if (nWritten != length) {
 	trace("short write to pymol (wrote=%d, should have been %d)",
 	      nWritten, length);
@@ -1836,12 +1836,12 @@ ZoomCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 
         
 static int 
-ProxyInit(int c_in, int c_out, char *const *argv)
+ProxyInit(int cin, int cout, char *const *argv)
 {
     int status, result = 0;
-    int serverIn[2];
-    int serverOut[2];
-    int serverErr[2];
+    int sin[2];
+    int sout[2];
+    int serr[2];
     Tcl_Interp *interp;
     int child;
     PymolProxy proxy;
@@ -1850,20 +1850,20 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     /* Create three pipes for communication with the external application. One
      * each for the applications's: stdin, stdout, and stderr  */
 
-    if (pipe(serverIn) == -1)
+    if (pipe(sin) == -1)
         return -1;
 
-    if (pipe(serverOut) == -1) {
-        close(serverIn[0]);
-        close(serverIn[1]);
+    if (pipe(sout) == -1) {
+        close(sin[0]);
+        close(sin[1]);
         return -1;
     }
 
-    if (pipe(serverErr) == -1) {
-        close(serverIn[0]);
-        close(serverIn[1]);
-        close(serverOut[0]);
-        close(serverOut[1]);
+    if (pipe(serr) == -1) {
+        close(sin[0]);
+        close(sin[1]);
+        close(sout[0]);
+        close(sout[1]);
         return -1;
     }
 
@@ -1888,9 +1888,9 @@ ProxyInit(int c_in, int c_out, char *const *argv)
         
         /* Redirect stdin, stdout, and stderr to pipes before execing */ 
 
-        dup2(serverIn[0], 0);  // stdin
-        dup2(serverOut[1],1);  // stdout
-        dup2(serverErr[1],2);  // stderr
+        dup2(sin[0], 0);  // stdin
+        dup2(sout[1],1);  // stdout
+        dup2(serr[1],2);  // stderr
         
 	/* Close all other descriptors  */        
 	for (f = 3; f < FD_SETSIZE; f++) {
@@ -1904,18 +1904,18 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     stats.child = child;
 
     /* close opposite end of pipe, these now belong to the child process  */
-    close(serverIn[0]);
-    close(serverOut[1]);
-    close(serverErr[1]);
+    close(sin[0]);
+    close(sout[1]);
+    close(serr[1]);
 
     signal(SIGPIPE, SIG_IGN); /* ignore SIGPIPE (e.g. nanoscale terminates)*/
 
     memset(&proxy, 0, sizeof(PymolProxy));
-    proxy.serverInput  = serverIn[1];
-    proxy.serverOutput = serverOut[0];
-    proxy.serverError = serverErr[0];
-    proxy.clientInput  = c_in;
-    proxy.clientOutput = c_out;
+    proxy.sin  = sin[1];
+    proxy.sout = sout[0];
+    proxy.serr = serr[0];
+    proxy.cin  = cin;
+    proxy.cout = cout;
     proxy.flags = CAN_UPDATE;
     proxy.frame = 1;
     interp = Tcl_CreateInterp();
@@ -1957,11 +1957,11 @@ ProxyInit(int c_in, int c_out, char *const *argv)
     //  send images back
     PollForEvents(&proxy);
 
-    close(proxy.clientOutput);
-    close(proxy.serverOutput);
-    close(proxy.serverError);
-    close(proxy.clientInput);
-    close(proxy.serverInput);
+    close(proxy.cout);
+    close(proxy.sout);
+    close(proxy.serr);
+    close(proxy.cin);
+    close(proxy.sin);
 
     status = waitpid(child, &result, WNOHANG);
     if (status == -1) {
@@ -2024,20 +2024,20 @@ PollForEvents(PymolProxy *proxyPtr)
     struct pollfd pollResults[4];
     int flags;
 
-    flags = fcntl(proxyPtr->clientInput, F_GETFL);
-    fcntl(proxyPtr->clientInput, F_SETFL, flags|O_NONBLOCK);
+    flags = fcntl(proxyPtr->cin, F_GETFL);
+    fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
 
-    pollResults[0].fd = proxyPtr->clientOutput;
-    pollResults[1].fd = proxyPtr->serverOutput;
-    pollResults[2].fd = proxyPtr->serverError;
+    pollResults[0].fd = proxyPtr->cout;
+    pollResults[1].fd = proxyPtr->sout;
+    pollResults[2].fd = proxyPtr->serr;
     pollResults[0].events = pollResults[1].events = 
 	pollResults[2].events = POLLIN;
 
-    pollResults[3].fd = proxyPtr->clientInput;
+    pollResults[3].fd = proxyPtr->cin;
     pollResults[3].events = POLLOUT;
 
-    InitBuffer(&proxyPtr->client, proxyPtr->clientOutput);
-    InitBuffer(&proxyPtr->server, proxyPtr->serverOutput);
+    InitBuffer(&proxyPtr->client, proxyPtr->cout);
+    InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
     Tcl_DStringInit(&clientCmds);
     for (;;) {
@@ -2179,3 +2179,4 @@ PollForEvents(PymolProxy *proxyPtr)
     Tcl_DStringFree(&clientCmds);
     return;
 }
+
