@@ -16,9 +16,9 @@ package require Itk
 package require Rappture
 package require RapptureGUI
 
-namespace eval Rappture::Regression::MainWin { #forward declaration }
+namespace eval Rappture::Tester::MainWin { #forward declaration }
 
-itcl::class Rappture::Regression::MainWin {
+itcl::class Rappture::Tester::MainWin {
     inherit itk::Toplevel
 
     constructor {toolxml testdir args} { #defined later }
@@ -30,15 +30,17 @@ itcl::class Rappture::Regression::MainWin {
 
     private variable _testdir
     private variable _toolxml
+    private variable _toolobj
 
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
+itcl::body Rappture::Tester::MainWin::constructor {toolxml testdir args} {
     if {[file exists $toolxml]} {
         set _toolxml $toolxml
+        set _toolobj [Rappture::library $_toolxml]
     } else {
         error "File \"$toolxml\" does not exist."
     }
@@ -56,7 +58,7 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
     pack $itk_component(pw) -expand yes -fill both
 
     itk_component add tree {
-        Rappture::Regression::TestTree $itk_component(pw).tree \
+        Rappture::Tester::TestTree $itk_component(pw).tree \
             -command "[itcl::code $itk_interior runSelected]" \
             -testdir $_testdir \
             -selectcommand "[itcl::code $itk_interior selectionHandler]"
@@ -64,7 +66,8 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
     $itk_component(pw) add $itk_component(tree)
 
     itk_component add view {
-        Rappture::Regression::TestView $itk_component(pw).view
+        Rappture::Tester::TestView $itk_component(pw).view \
+            [Rappture::Tool ::#auto $_toolobj [file dirname $_toolxml]]
     }
     $itk_component(pw) add $itk_component(view)
 
@@ -77,7 +80,7 @@ itcl::body Rappture::Regression::MainWin::constructor {toolxml testdir args} {
 # When this method is invoked, all tests contained in the TestTree will
 # be ran sequentially.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::MainWin::runAll {args} {
+itcl::body Rappture::Tester::MainWin::runAll {args} {
     set tests [$itk_component(tree) getTests]
     foreach id $tests {
         runTest $id $args
@@ -91,7 +94,7 @@ itcl::body Rappture::Regression::MainWin::runAll {args} {
 # will be ran.  If a branch node (folder) is selected, all of its
 # descendant tests will be ran as well.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::MainWin::runSelected {args} {
+itcl::body Rappture::Tester::MainWin::runSelected {args} {
     set selected [$itk_component(tree) getSelected]
     foreach id $selected {
         runTest $id $args
@@ -107,7 +110,7 @@ itcl::body Rappture::Regression::MainWin::runSelected {args} {
 # procedure in compare.tcl, and the results given by the new version are
 # compared to the test xml by the compare procedure in compare.tcl
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::MainWin::runTest {id args} {
+itcl::body Rappture::Tester::MainWin::runTest {id args} {
     array set data [$itk_component(tree) getData $id]
     if {$data(ran) && [lsearch -exact $args "-force"]==-1} {
         # Already ran.  Skip.
@@ -116,29 +119,29 @@ itcl::body Rappture::Regression::MainWin::runTest {id args} {
     set data(result) "Running"
     $itk_component(tree) setData $id [array get data]
 
-    set driver [Rappture::Regression::makeDriver $_toolxml $data(testxml)]
-    #set driver [makeDriver $data(testxml)]
+    set driver [Rappture::Tester::makeDriver $_toolxml $data(testxml)]
     set tool [Rappture::Tool ::#auto $driver [file dirname $_toolxml]]
     foreach {status result} [eval $tool run] break
     set data(ran) yes
     if {$status == 0 && [Rappture::library isvalid $result]} {
         set golden [Rappture::library $data(testxml)]
-        set diffs [Rappture::Regression::compare $golden $result "output"]
+        set diffs [Rappture::Tester::compare $golden $result "output"]
         if {$diffs != ""} {
             set data(result) Fail
             set data(diffs) $diffs
         } else {
             set data(result) Pass
         }
+        set data(runfile) [$tool getRunFile]
     } else {
         set data(result) Error
+        set data(runfile) ""
     }
     $itk_component(tree) setData $id [array get data]
 
     # Call selectionHandler to refresh right hand side view
     selectionHandler
 
-    # TODO: Remove runfile
 }
 
 # ----------------------------------------------------------------------
@@ -147,7 +150,7 @@ itcl::body Rappture::Regression::MainWin::runTest {id args} {
 # Used internally to communicate between the test tree and the right
 # hand side whenever the tree's selection has changed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::MainWin::selectionHandler {} {
+itcl::body Rappture::Tester::MainWin::selectionHandler {} {
     array set data [$itk_component(tree) getData focus]
     # Data array is empty for branch nodes
     if {[array names data] != ""} {
@@ -157,8 +160,14 @@ itcl::body Rappture::Regression::MainWin::selectionHandler {} {
                 Fail {$itk_component(view) showText "Diffs: $data(diffs)"}
                 Error {$itk_component(view) showText "Error while running test"}
             }
+            if {$data(runfile) != ""} {
+                $itk_component(view) display $data(runfile) $data(testxml)
+            } else {
+                $itk_component(view) clear
+            }
         } else {
             $itk_component(view) showText "Test has not ben ran."
+            $itk_component(view) clear
         }
     } else {
         $itk_component(view) showDefault

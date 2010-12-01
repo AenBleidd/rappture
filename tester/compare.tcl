@@ -9,7 +9,7 @@
 # ======================================================================
 package require Rappture
 
-namespace eval Rappture::Regression { #forward declaration }
+namespace eval Rappture::Tester { #forward declaration }
 
 # ----------------------------------------------------------------------
 # USAGE: compare_elements lib1 lib2 path
@@ -19,7 +19,7 @@ namespace eval Rappture::Regression { #forward declaration }
 # Later, we can do something more sophisticated for different types of 
 # elements.
 # ----------------------------------------------------------------------
-proc Rappture::Regression::compare_elements {lib1 lib2 path} {
+proc Rappture::Tester::compare_elements {lib1 lib2 path} {
     set val1 [$lib1 get $path]
     set val2 [$lib2 get $path]
     return [expr {$val1} != {$val2}]
@@ -35,7 +35,7 @@ proc Rappture::Regression::compare_elements {lib1 lib2 path} {
 # path.  If the path argument is not given, then only the output
 # sections will be compared.
 # ----------------------------------------------------------------------
-proc Rappture::Regression::compare {lib1 lib2 {path output}} {
+proc Rappture::Tester::compare {lib1 lib2 {path output}} {
     set diffs [list]
     foreach child [$lib1 children $path] {
         foreach diff [compare $lib1 $lib2 $path.$child] {
@@ -59,12 +59,14 @@ proc Rappture::Regression::compare {lib1 lib2 {path output}} {
 # newly created driver.  If any inputs are present in the new tool.xml 
 # which do not exist in the test xml, use the default value.
 # ----------------------------------------------------------------------
-proc Rappture::Regression::makeDriver {toolxml testxml} {
+proc Rappture::Tester::makeDriver {toolxml testxml} {
     # TODO: Test with various cases, especially with missing input elements
+    # TODO: Any way to copy an object rather than creating a duplicate?
+    # TODO: Sensible way of combining this proc with "merge" below?
     set toolobj [Rappture::library $toolxml]
     set golden [Rappture::library $testxml]
     set driver [Rappture::library $toolxml]
-    return [Rappture::Regression::merge $toolobj $golden $driver]
+    return [Rappture::Tester::merge $toolobj $golden $driver]
 }
 
 # ----------------------------------------------------------------------
@@ -73,9 +75,8 @@ proc Rappture::Regression::makeDriver {toolxml testxml} {
 # Used to recursively build up a driver library object for running a
 # test.  Should not be called directly - see makeDriver.
 # ----------------------------------------------------------------------
-proc Rappture::Regression::merge {toolobj golden driver {path input}} {
-    set clist [$toolobj children $path]
-    foreach child $clist {
+proc Rappture::Tester::merge {toolobj golden driver {path input}} {
+    foreach child [$toolobj children $path] {
         set val [$golden get $path.$child.current]
         if {$val != ""} {
             $driver put $path.$child.current $val
@@ -85,7 +86,7 @@ proc Rappture::Regression::merge {toolobj golden driver {path input}} {
                 $driver put $path.$child.current $def
             }
         }
-        Rappture::Regression::merge $toolobj $golden $driver $path.$child
+        Rappture::Tester::merge $toolobj $golden $driver $path.$child
     }
     return $driver
 }

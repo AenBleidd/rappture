@@ -19,9 +19,18 @@ package require Itk
 package require BLT
 package require Rappture
 
-namespace eval Rappture::Regression::TestTree { #forward declaration }
+namespace eval Rappture::Tester::TestTree { #forward declaration }
 
-itcl::class Rappture::Regression::TestTree {
+option add *TestTree.font \
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
+option add *TestTree.codeFont \
+    -*-courier-medium-r-normal-*-12-* widgetDefault
+option add *TestTree.textFont \
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
+option add *TestTree.boldTextFont \
+    -*-helvetica-bold-r-normal-*-12-* widgetDefault
+
+itcl::class Rappture::Tester::TestTree {
     inherit itk::Widget 
 
     public variable command
@@ -46,7 +55,7 @@ itk::usual TestTree {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::constructor {args} {
+itcl::body Rappture::Tester::TestTree::constructor {args} {
     itk_component add scrollbars {
         Rappture::Scroller $itk_interior.scroller \
             -xscrollmode auto -yscrollmode auto
@@ -55,10 +64,13 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
         blt::treeview $itk_component(scrollbars).treeview -separator . \
             -autocreate true -selectmode multiple 
     } {
+        keep -foreground -font -cursor
     }
     $itk_component(treeview) column insert 0 result -width 75 
-    $itk_component(treeview) column insert end testxml ran diffs
-    $itk_component(treeview) column configure testxml ran diffs -hide yes
+    $itk_component(treeview) column insert end testxml ran diffs runfile 
+    $itk_component(treeview) column configure testxml ran diffs runfile \
+        -hide yes
+    $itk_component(treeview) column configure runfile -hide no
     $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
@@ -98,13 +110,13 @@ itcl::body Rappture::Regression::TestTree::constructor {args} {
 }
 
 # Repopulate tree if test directory changed
-itcl::configbody Rappture::Regression::TestTree::testdir {
+itcl::configbody Rappture::Tester::TestTree::testdir {
     populate
 }
 
 # Forward the TestTree's selectcommand to the treeview, and update the label
 # as well.
-itcl::configbody Rappture::Regression::TestTree::selectcommand {
+itcl::configbody Rappture::Tester::TestTree::selectcommand {
     $itk_component(treeview) configure -selectcommand \
         "[itcl::code $itk_interior updateLabel]; $selectcommand"
 }
@@ -118,7 +130,7 @@ itcl::configbody Rappture::Regression::TestTree::selectcommand {
 # option so that branch nodes need not be explicitly created.  Deletes
 # any nodes previously contained by the treeview.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::populate {} {
+itcl::body Rappture::Tester::TestTree::populate {} {
     $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
     set icon [Rappture::icon download]
@@ -145,7 +157,7 @@ itcl::body Rappture::Regression::TestTree::populate {} {
 # id.  Tests can only be leaf nodes in the tree (the ids in the returned
 # list will correspond to leaf nodes only).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::getTests {{id 0}} {
+itcl::body Rappture::Tester::TestTree::getTests {{id 0}} {
     set clist [$itk_component(treeview) entry children $id]
     if {$clist == "" && $id == 0} {
         # Return nothing if tree is empty 
@@ -169,7 +181,7 @@ itcl::body Rappture::Regression::TestTree::getTests {{id 0}} {
 # only be leaf nodes in the tree (the ids in the returned list will 
 # correspond to leaf nodes only).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::getSelected {} {
+itcl::body Rappture::Tester::TestTree::getSelected {} {
     set selection [$itk_component(treeview) curselection]
     set selectedTests [list]
     foreach id $selection {
@@ -188,7 +200,7 @@ itcl::body Rappture::Regression::TestTree::getSelected {} {
 # Returns a list of key-value pairs representing the column data stored
 # at the tree node with the given id.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::getData {id} {
+itcl::body Rappture::Tester::TestTree::getData {id} {
     return [$itk_component(treeview) entry cget $id -data]
 }
 
@@ -198,7 +210,7 @@ itcl::body Rappture::Regression::TestTree::getData {id} {
 # Accepts a node id and a list of key-value pairs.  Stored the list as
 # column data associated with the tree node with the given id.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::setData {id data} {
+itcl::body Rappture::Tester::TestTree::setData {id data} {
     $itk_component(treeview) entry configure $id -data $data
 }
 
@@ -209,10 +221,10 @@ itcl::body Rappture::Regression::TestTree::setData {id data} {
 # are currently selected.  Also disables the run button if no tests are
 # selected.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Regression::TestTree::updateLabel {} {
+itcl::body Rappture::Tester::TestTree::updateLabel {} {
     set n [llength [getSelected]]
     if {$n == 1} {
-        $itk_component(lSelected) configure -text "1 test selcted"
+        $itk_component(lSelected) configure -text "1 test selected"
     } else {
         $itk_component(lSelected) configure -text "$n tests selected"
     }
