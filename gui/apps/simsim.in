@@ -692,7 +692,7 @@ proc main {argv} {
     parseOptions argv params
 
     # keep the wish window from popping up
-    wm withdraw .
+    catch {wm withdraw .}
 
     # parse out path=val combinations from the list of orphaned parameters
     parsePathVal params(oParams) presets
