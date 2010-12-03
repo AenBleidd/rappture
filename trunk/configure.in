@@ -113,26 +113,26 @@ if test "$enable_gui" != "no" ; then
 fi
 AC_SUBST(ENABLE_GUI)
 
-with_tclsh="yes"
+rp_with_tclsh="yes"
 AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
         [location of tclsh @<:@default=yes@:>@])],
     [],
-    [with_tclsh=yes])
+    [rp_with_tclsh=yes])
 
 TCLSH=
-if test "$with_tclsh" != "no" ; then
+if test "$rp_with_tclsh" != "no" ; then
     AC_MSG_CHECKING([for tclsh])
-    if test -x "$with_tclsh/bin/tclsh"
+    if test -x "$rp_with_tclsh/bin/tclsh"
     then
-        echo Found tclsh in $with_tclsh/bin/tclsh
-        TCLSH="$with_tclsh/bin/tclsh"
+        echo Found tclsh in $rp_with_tclsh/bin/tclsh
+        TCLSH="$rp_with_tclsh/bin/tclsh"
     else
-       if test -x "$with_tclsh"
+       if test -x "$rp_with_tclsh"
         then
-            echo Found tclsh in $with_tclsh
-            TCLSH="$with_tclsh"
+            echo Found tclsh in $rp_with_tclsh
+            TCLSH="$rp_with_tclsh"
         else
             if test -x "${exec_prefix}/bin/tclsh"
             then
@@ -171,15 +171,15 @@ for dir in \
 done
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
-if test "x$with_tcllib" != "x" ; then
-   tclconfig="${with_tcllib}/tclConfig.sh"
+if test "x$rp_with_tcllib" != "x" ; then
+   tclconfig="${rp_with_tcllib}/tclConfig.sh"
    if test -f "$tclconfig" ; then
     . $tclconfig
    fi
-   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
+   TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
 fi
-if test "x$with_tclinclude" != "x" ; then
-   TCL_INC_SPEC="-I${with_tclinclude}"
+if test "x$rp_with_tclinclude" != "x" ; then
+   TCL_INC_SPEC="-I${rp_with_tclinclude}"
 fi
 
 AC_SUBST(TCL_VERSION)
@@ -190,13 +190,13 @@ AC_ARG_WITH(
     [vtk],
     [AS_HELP_STRING([--with-vtk[=DIR]],
         [location of vtk library @<:@default=yes@:>@])],
-    [with_vtk=$withval], [with_vtk=yes])
+    [rp_with_vtk=$withval], [rp_with_vtk=yes])
 
 AC_MSG_CHECKING([for vtk])
 VTKDIR=""
 
-if test "$with_vtk" != "no" ; then
-  if test "$with_vtk" = "yes" ; then
+if test "$rp_with_vtk" != "no" ; then
+  if test "$rp_with_vtk" = "yes" ; then
     for path in \
      $libdir \
      $prefix/lib \
@@ -222,19 +222,19 @@ AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
         [location of matlab and mex compiler @<:@default=yes@:>@])],
-    [with_matlab=$withval],
-    [with_matlab=yes])
+    [rp_with_matlab=$withval],
+    [rp_with_matlab=yes])
 
 MCC=""
 MEX=""
 MEX_ARCH=""
 MEXEXT=""
 MATLAB=
-if test "$with_matlab" != "no" ; then
-  if test "$with_matlab" = "yes" ; then
+if test "$rp_with_matlab" != "no" ; then
+  if test "$rp_with_matlab" = "yes" ; then
     AC_PATH_PROG(MATLAB, matlab)
   else
-    AC_PATH_PROG(MATLAB, matlab, [], [${with_matlab}/bin:${with_matlab}])
+    AC_PATH_PROG(MATLAB, matlab, [], [${rp_with_matlab}/bin:${rp_with_matlab}])
   fi
 fi
 
@@ -271,8 +271,8 @@ AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
         [location of octave compiler MKOCTFILE @<:@default=yes@:>@])],
-    [with_octave=$withval],
-    [with_octave=yes])
+    [rp_with_octave=$withval],
+    [rp_with_octave=yes])
 
 OCTAVE=
 OCTAVE2=
@@ -282,14 +282,14 @@ OCTAVE_VERSION_MAJOR=
 MKOCTFILE=
 MKOCTFILE2=
 MKOCTFILE3=
-if test "$with_octave" != "no" ; then
+if test "$rp_with_octave" != "no" ; then
   AC_MSG_CHECKING([for octave and mkoctfile])
-  if test "$with_octave" = "yes" ; then
+  if test "$rp_with_octave" = "yes" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    MKOCTFILE=$with_octave
-    OCTAVE=$with_octave
+    MKOCTFILE=$rp_with_octave
+    OCTAVE=$rp_with_octave
   fi
 fi
 if test "x${OCTAVE}" != "x" ; then 
@@ -310,17 +310,17 @@ AC_ARG_WITH(
     [octave2],
     [AS_HELP_STRING([--with-octave2[=DIR]],
         [location of octave compiler MKOCTFILE @<:@default=no@:>@])],
-    [with_octave2=$withval],
-    [with_octave2=no])
+    [rp_with_octave2=$withval],
+    [rp_with_octave2=no])
 
-if test "$with_octave2" != "no" ; then
-  if test "$with_octave2" = "yes" ; then
+if test "$rp_with_octave2" != "no" ; then
+  if test "$rp_with_octave2" = "yes" ; then
     AC_MSG_CHECKING([for octave and mkoctfile])
     AC_PATH_PROG(octave2, octave)
     AC_PATH_PROG(mkoctfile2, mkoctfile)
   else 
-    octave2=$with_octave2
-    mkoctfile2=`dirname $with_octave2`/mkoctfile
+    octave2=$rp_with_octave2
+    mkoctfile2=`dirname $rp_with_octave2`/mkoctfile
   fi
 fi
 if test "x${octave2}" != "x" ; then
@@ -338,18 +338,18 @@ AC_ARG_WITH(
     [octave3],
     [AS_HELP_STRING([--with-octave3[=DIR]],
         [location of octave compiler MKOCTFILE @<:@default=no@:>@])],
-    [with_octave3=$withval],
-    [with_octave3=no])
+    [rp_with_octave3=$withval],
+    [rp_with_octave3=no])
 
-echo with_octave3=$with_octave3
-if test "$with_octave3" != "no" ; then
-  if test "$with_octave3" = "yes" ; then
+echo rp_with_octave3=$rp_with_octave3
+if test "$rp_with_octave3" != "no" ; then
+  if test "$rp_with_octave3" = "yes" ; then
     AC_MSG_CHECKING([for octave and mkoctfile])
     AC_PATH_PROG(octave3, octave)
     AC_PATH_PROG(mkoctfile3, mkoctfile)
   else 
-    octave3=$with_octave3
-    mkoctfile3=`dirname $with_octave3`/mkoctfile
+    octave3=$rp_with_octave3
+    mkoctfile3=`dirname $rp_with_octave3`/mkoctfile
   fi
 fi
 
@@ -361,7 +361,7 @@ if test "x${octave3}" != "x" ; then
   version_major=`echo ${version} | cut -d'.' -f1`
   echo version_major=$version_major
   if test "$version_major" = "3" ; then
-    OCTAVE3=$with_octave3
+    OCTAVE3=$rp_with_octave3
     MKOCTFILE3=$mkoctfile3
   fi
 fi
@@ -379,7 +379,7 @@ AC_ARG_WITH(
     [perl],
     [AS_HELP_STRING([--with-perl[=DIR]], [location of perl @<:@default=yes@:>@])],
     [],
-    [with_perl=yes])
+    [rp_with_perl=yes])
 
 PERL=
 PERL_INCLUDES=
@@ -392,10 +392,10 @@ PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
 PERL_LIBSPEC=
-if test "$with_perl" != "no" ; then
+if test "$rp_with_perl" != "no" ; then
   AC_MSG_CHECKING([for perl])
-  if test "$with_perl" != "yes" ; then 
-    AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
+  if test "$rp_with_perl" != "yes" ; then 
+    AC_PATH_PROG(PERL, perl, [], [$rp_with_perl/bin:$rp_with_perl])
   else
     AC_PATH_PROG(PERL, perl)
   fi
@@ -447,16 +447,16 @@ pythondir=""
 AC_ARG_WITH([python],
     [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=yes@:>@])],
     [],
-    [with_python=yes])
+    [rp_with_python=yes])
 
-if test "$with_python" != "no" ; then
+if test "$rp_with_python" != "no" ; then
   AC_MSG_CHECKING([for python])
-  if test -x "$with_python/bin/python"; then
-    echo Found python in $with_python/bin/python
-    PYTHON="$with_python/bin/python"
-  elif test -x "$with_python"; then
-    echo Found python in $with_python
-    PYTHON="$with_python"
+  if test -x "$rp_with_python/bin/python"; then
+    echo Found python in $rp_with_python/bin/python
+    PYTHON="$rp_with_python/bin/python"
+  elif test -x "$rp_with_python"; then
+    echo Found python in $rp_with_python
+    PYTHON="$rp_with_python"
   else
     AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
   fi
@@ -465,10 +465,10 @@ if test "$with_python" != "no" ; then
     echo Using python version $PYTHON_VERSION
   fi
   if test "x${PYTHON_VERSION}" != "x"; then
-    if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
-     -d $with_python/lib/python$PYTHON_VERSION/site-packages; then
-      PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
-      PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
+    if test -r $rp_with_python/include/python$PYTHON_VERSION/Python.h -a \
+     -d $rp_with_python/lib/python$PYTHON_VERSION/site-packages; then
+      PYTHON_INCLUDES=$rp_with_python/include/python$PYTHON_VERSION
+      PYTHON_SITE_PACKAGES=$rp_with_python/lib/python$PYTHON_VERSION/site-packages
     else
       if test -r $prefix/include/python$PYTHON_VERSION/Python.h; then
         PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
@@ -486,7 +486,7 @@ if test "$with_python" != "no" ; then
       fi
     fi
   fi
-  if test "x$with_python" != "x" ;  then
+  if test "x$rp_with_python" != "x" ;  then
     pythondir='$(PYTHON_SITE_PACKAGES)'
   else
     pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
@@ -537,20 +537,19 @@ AC_SUBST(PYTHON_INCLUDES)
 AC_SUBST(PYTHON_SITE_PACKAGES)
 AC_SUBST(HAVE_PYTHON_DISTUTILS)
 
-rappture_with_ruby="yes"
+rp_with_ruby="yes"
 
 RUBY=""
 RUBY_DEV_PKG="no"
 
 AC_ARG_WITH(ruby,
   AS_HELP_STRING([--with-ruby=PATH], [absolute path to ruby executable]),
-  [rappture_with_ruby=$with_val])
-if test "${rappture_with_ruby}" != "no" ; then
-  if test "${rappture_with_ruby}" = "yes" ; then
+  [rp_with_ruby=$withval])
+if test "${rp_with_ruby}" != "no" ; then
+  if test "${rp_with_ruby}" = "yes" ; then
     AC_PATH_PROG(RUBY, ruby)
   else
-    AC_PATH_PROG(RUBY, ruby, [],
-      [${rappture_with_ruby}/bin/ruby:${rappture_with_ruby}])
+    AC_PATH_PROG(RUBY, ruby, [], [${rp_with_ruby}/bin:${rp_with_ruby}])
   fi
 fi
 AC_SUBST(RUBY)
@@ -571,7 +570,7 @@ AC_SUBST(HAVE_RUBY_DEVEL)
 AC_SUBST(RUBY_VERSION_RV)
 AC_SUBST(RUBY_PLATFORM)
 
-rappture_with_java="yes"
+rp_with_java="yes"
 JAVA=""
 JAVAH=""
 JAVAC=""
@@ -579,19 +578,17 @@ JAVA_DEV_PKG="no"
 
 AC_ARG_WITH(java,
   AS_HELP_STRING([--with-java=PATH], [absolute path to java executable]),
-  [rappture_with_java=$with_val])
-if test "${rappture_with_java}" != "no" ; then
-  if test "${rappture_with_java}" = "yes" ; then
+  [rp_with_java=$withval])
+
+if test "${rp_with_java}" != "no" ; then
+  if test "${rp_with_java}" = "yes" ; then
     AC_PATH_PROG(JAVA, java)
     AC_PATH_PROG(JAVAC, javac)
     AC_PATH_PROG(JAVAH, javah)
   else
-    AC_PATH_PROG(JAVA, java, [],
-      [${rappture_with_java}/bin/java:${rappture_with_java}])
-    AC_PATH_PROG(JAVAC, javac, [],
-      [${rappture_with_java}/bin/java:${rappture_with_java}])
-    AC_PATH_PROG(JAVAH, javah, [],
-      [${rappture_with_java}/bin/java:${rappture_with_java}])
+    AC_PATH_PROG(JAVA,  java,  [], [${rp_with_java}/bin:${rp_with_java}])
+    AC_PATH_PROG(JAVAC, javac, [], [${rp_with_java}/bin:${rp_with_java}])
+    AC_PATH_PROG(JAVAH, javah, [], [${rp_with_java}/bin:${rp_with_java}])
   fi
 fi
 JDK=

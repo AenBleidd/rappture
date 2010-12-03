@@ -7192,29 +7192,29 @@ if test "$enable_gui" != "no" ; then
 fi
 
 
-with_tclsh="yes"
+rp_with_tclsh="yes"
 
 # Check whether --with-tclsh was given.
 if test "${with_tclsh+set}" = set; then :
   withval=$with_tclsh;
 else
-  with_tclsh=yes
+  rp_with_tclsh=yes
 fi
 
 
 TCLSH=
-if test "$with_tclsh" != "no" ; then
+if test "$rp_with_tclsh" != "no" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tclsh" >&5
 $as_echo_n "checking for tclsh... " >&6; }
-    if test -x "$with_tclsh/bin/tclsh"
+    if test -x "$rp_with_tclsh/bin/tclsh"
     then
-        echo Found tclsh in $with_tclsh/bin/tclsh
-        TCLSH="$with_tclsh/bin/tclsh"
+        echo Found tclsh in $rp_with_tclsh/bin/tclsh
+        TCLSH="$rp_with_tclsh/bin/tclsh"
     else
-       if test -x "$with_tclsh"
+       if test -x "$rp_with_tclsh"
         then
-            echo Found tclsh in $with_tclsh
-            TCLSH="$with_tclsh"
+            echo Found tclsh in $rp_with_tclsh
+            TCLSH="$rp_with_tclsh"
         else
             if test -x "${exec_prefix}/bin/tclsh"
             then
@@ -7293,15 +7293,15 @@ for dir in \
 done
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
-if test "x$with_tcllib" != "x" ; then
-   tclconfig="${with_tcllib}/tclConfig.sh"
+if test "x$rp_with_tcllib" != "x" ; then
+   tclconfig="${rp_with_tcllib}/tclConfig.sh"
    if test -f "$tclconfig" ; then
     . $tclconfig
    fi
-   TCL_LIB_SPEC="-L${with_tcllib} -ltcl${TCL_VERSION}"
+   TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
 fi
-if test "x$with_tclinclude" != "x" ; then
-   TCL_INC_SPEC="-I${with_tclinclude}"
+if test "x$rp_with_tclinclude" != "x" ; then
+   TCL_INC_SPEC="-I${rp_with_tclinclude}"
 fi
 
 
@@ -7311,9 +7311,9 @@ fi
 
 # Check whether --with-vtk was given.
 if test "${with_vtk+set}" = set; then :
-  withval=$with_vtk; with_vtk=$withval
+  withval=$with_vtk; rp_with_vtk=$withval
 else
-  with_vtk=yes
+  rp_with_vtk=yes
 fi
 
 
@@ -7321,8 +7321,8 @@ fi
 $as_echo_n "checking for vtk... " >&6; }
 VTKDIR=""
 
-if test "$with_vtk" != "no" ; then
-  if test "$with_vtk" = "yes" ; then
+if test "$rp_with_vtk" != "no" ; then
+  if test "$rp_with_vtk" = "yes" ; then
     for path in \
      $libdir \
      $prefix/lib \
@@ -7348,9 +7348,9 @@ $as_echo "$VTKDIR" >&6; }
 
 # Check whether --with-matlab was given.
 if test "${with_matlab+set}" = set; then :
-  withval=$with_matlab; with_matlab=$withval
+  withval=$with_matlab; rp_with_matlab=$withval
 else
-  with_matlab=yes
+  rp_with_matlab=yes
 fi
 
 
@@ -7359,8 +7359,8 @@ MEX=""
 MEX_ARCH=""
 MEXEXT=""
 MATLAB=
-if test "$with_matlab" != "no" ; then
-  if test "$with_matlab" = "yes" ; then
+if test "$rp_with_matlab" != "no" ; then
+  if test "$rp_with_matlab" = "yes" ; then
     # Extract the first word of "matlab", so it can be a program name with args.
 set dummy matlab; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -7415,7 +7415,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${with_matlab}/bin:${with_matlab}"
+as_dummy="${rp_with_matlab}/bin:${rp_with_matlab}"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -7598,9 +7598,9 @@ fi
 
 # Check whether --with-octave was given.
 if test "${with_octave+set}" = set; then :
-  withval=$with_octave; with_octave=$withval
+  withval=$with_octave; rp_with_octave=$withval
 else
-  with_octave=yes
+  rp_with_octave=yes
 fi
 
 
@@ -7612,10 +7612,10 @@ OCTAVE_VERSION_MAJOR=
 MKOCTFILE=
 MKOCTFILE2=
 MKOCTFILE3=
-if test "$with_octave" != "no" ; then
+if test "$rp_with_octave" != "no" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
 $as_echo_n "checking for octave and mkoctfile... " >&6; }
-  if test "$with_octave" = "yes" ; then
+  if test "$rp_with_octave" = "yes" ; then
     # Extract the first word of "octave", so it can be a program name with args.
 set dummy octave; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -7697,8 +7697,8 @@ fi
 
 
   else
-    MKOCTFILE=$with_octave
-    OCTAVE=$with_octave
+    MKOCTFILE=$rp_with_octave
+    OCTAVE=$rp_with_octave
   fi
 fi
 if test "x${OCTAVE}" != "x" ; then
@@ -7718,14 +7718,14 @@ fi
 
 # Check whether --with-octave2 was given.
 if test "${with_octave2+set}" = set; then :
-  withval=$with_octave2; with_octave2=$withval
+  withval=$with_octave2; rp_with_octave2=$withval
 else
-  with_octave2=no
+  rp_with_octave2=no
 fi
 
 
-if test "$with_octave2" != "no" ; then
-  if test "$with_octave2" = "yes" ; then
+if test "$rp_with_octave2" != "no" ; then
+  if test "$rp_with_octave2" = "yes" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
 $as_echo_n "checking for octave and mkoctfile... " >&6; }
     # Extract the first word of "octave", so it can be a program name with args.
@@ -7809,8 +7809,8 @@ fi
 
 
   else
-    octave2=$with_octave2
-    mkoctfile2=`dirname $with_octave2`/mkoctfile
+    octave2=$rp_with_octave2
+    mkoctfile2=`dirname $rp_with_octave2`/mkoctfile
   fi
 fi
 if test "x${octave2}" != "x" ; then
@@ -7827,15 +7827,15 @@ fi
 
 # Check whether --with-octave3 was given.
 if test "${with_octave3+set}" = set; then :
-  withval=$with_octave3; with_octave3=$withval
+  withval=$with_octave3; rp_with_octave3=$withval
 else
-  with_octave3=no
+  rp_with_octave3=no
 fi
 
 
-echo with_octave3=$with_octave3
-if test "$with_octave3" != "no" ; then
-  if test "$with_octave3" = "yes" ; then
+echo rp_with_octave3=$rp_with_octave3
+if test "$rp_with_octave3" != "no" ; then
+  if test "$rp_with_octave3" = "yes" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for octave and mkoctfile" >&5
 $as_echo_n "checking for octave and mkoctfile... " >&6; }
     # Extract the first word of "octave", so it can be a program name with args.
@@ -7919,8 +7919,8 @@ fi
 
 
   else
-    octave3=$with_octave3
-    mkoctfile3=`dirname $with_octave3`/mkoctfile
+    octave3=$rp_with_octave3
+    mkoctfile3=`dirname $rp_with_octave3`/mkoctfile
   fi
 fi
 
@@ -7932,7 +7932,7 @@ if test "x${octave3}" != "x" ; then
   version_major=`echo ${version} | cut -d'.' -f1`
   echo version_major=$version_major
   if test "$version_major" = "3" ; then
-    OCTAVE3=$with_octave3
+    OCTAVE3=$rp_with_octave3
     MKOCTFILE3=$mkoctfile3
   fi
 fi
@@ -7951,7 +7951,7 @@ fi
 if test "${with_perl+set}" = set; then :
   withval=$with_perl;
 else
-  with_perl=yes
+  rp_with_perl=yes
 fi
 
 
@@ -7966,10 +7966,10 @@ PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
 PERL_LIBSPEC=
-if test "$with_perl" != "no" ; then
+if test "$rp_with_perl" != "no" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for perl" >&5
 $as_echo_n "checking for perl... " >&6; }
-  if test "$with_perl" != "yes" ; then
+  if test "$rp_with_perl" != "yes" ; then
     # Extract the first word of "perl", so it can be a program name with args.
 set dummy perl; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -7983,7 +7983,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="$with_perl/bin:$with_perl"
+as_dummy="$rp_with_perl/bin:$rp_with_perl"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -8104,19 +8104,19 @@ pythondir=""
 if test "${with_python+set}" = set; then :
   withval=$with_python;
 else
-  with_python=yes
+  rp_with_python=yes
 fi
 
 
-if test "$with_python" != "no" ; then
+if test "$rp_with_python" != "no" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for python" >&5
 $as_echo_n "checking for python... " >&6; }
-  if test -x "$with_python/bin/python"; then
-    echo Found python in $with_python/bin/python
-    PYTHON="$with_python/bin/python"
-  elif test -x "$with_python"; then
-    echo Found python in $with_python
-    PYTHON="$with_python"
+  if test -x "$rp_with_python/bin/python"; then
+    echo Found python in $rp_with_python/bin/python
+    PYTHON="$rp_with_python/bin/python"
+  elif test -x "$rp_with_python"; then
+    echo Found python in $rp_with_python
+    PYTHON="$rp_with_python"
   else
     # Extract the first word of "python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5", so it can be a program name with args.
 set dummy python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5; ac_word=$2
@@ -8164,10 +8164,10 @@ fi
     echo Using python version $PYTHON_VERSION
   fi
   if test "x${PYTHON_VERSION}" != "x"; then
-    if test -r $with_python/include/python$PYTHON_VERSION/Python.h -a \
-     -d $with_python/lib/python$PYTHON_VERSION/site-packages; then
-      PYTHON_INCLUDES=$with_python/include/python$PYTHON_VERSION
-      PYTHON_SITE_PACKAGES=$with_python/lib/python$PYTHON_VERSION/site-packages
+    if test -r $rp_with_python/include/python$PYTHON_VERSION/Python.h -a \
+     -d $rp_with_python/lib/python$PYTHON_VERSION/site-packages; then
+      PYTHON_INCLUDES=$rp_with_python/include/python$PYTHON_VERSION
+      PYTHON_SITE_PACKAGES=$rp_with_python/lib/python$PYTHON_VERSION/site-packages
     else
       if test -r $prefix/include/python$PYTHON_VERSION/Python.h; then
         PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
@@ -8185,7 +8185,7 @@ fi
       fi
     fi
   fi
-  if test "x$with_python" != "x" ;  then
+  if test "x$rp_with_python" != "x" ;  then
     pythondir='$(PYTHON_SITE_PACKAGES)'
   else
     pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
@@ -8241,7 +8241,7 @@ fi
 
 
 
-rappture_with_ruby="yes"
+rp_with_ruby="yes"
 
 RUBY=""
 RUBY_DEV_PKG="no"
@@ -8249,11 +8249,11 @@ RUBY_DEV_PKG="no"
 
 # Check whether --with-ruby was given.
 if test "${with_ruby+set}" = set; then :
-  withval=$with_ruby; rappture_with_ruby=$with_val
+  withval=$with_ruby; rp_with_ruby=$withval
 fi
 
-if test "${rappture_with_ruby}" != "no" ; then
-  if test "${rappture_with_ruby}" = "yes" ; then
+if test "${rp_with_ruby}" != "no" ; then
+  if test "${rp_with_ruby}" = "yes" ; then
     # Extract the first word of "ruby", so it can be a program name with args.
 set dummy ruby; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -8308,7 +8308,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rappture_with_ruby}/bin/ruby:${rappture_with_ruby}"
+as_dummy="${rp_with_ruby}/bin:${rp_with_ruby}"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -8659,7 +8659,7 @@ fi
 
 
 
-rappture_with_java="yes"
+rp_with_java="yes"
 JAVA=""
 JAVAH=""
 JAVAC=""
@@ -8668,11 +8668,12 @@ JAVA_DEV_PKG="no"
 
 # Check whether --with-java was given.
 if test "${with_java+set}" = set; then :
-  withval=$with_java; rappture_with_java=$with_val
+  withval=$with_java; rp_with_java=$withval
 fi
 
-if test "${rappture_with_java}" != "no" ; then
-  if test "${rappture_with_java}" = "yes" ; then
+
+if test "${rp_with_java}" != "no" ; then
+  if test "${rp_with_java}" = "yes" ; then
     # Extract the first word of "java", so it can be a program name with args.
 set dummy java; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -8807,7 +8808,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rappture_with_java}/bin/java:${rappture_with_java}"
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -8848,7 +8849,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rappture_with_java}/bin/java:${rappture_with_java}"
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
@@ -8889,7 +8890,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rappture_with_java}/bin/java:${rappture_with_java}"
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
