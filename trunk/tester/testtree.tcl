@@ -195,7 +195,7 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getData id
+# USAGE: getData <id>
 #
 # Returns a list of key-value pairs representing the column data stored
 # at the tree node with the given id.
@@ -205,7 +205,7 @@ itcl::body Rappture::Tester::TestTree::getData {id} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: setData id data
+# USAGE: setData <id> <data>
 #
 # Accepts a node id and a list of key-value pairs.  Stored the list as
 # column data associated with the tree node with the given id.

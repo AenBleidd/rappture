@@ -154,6 +154,11 @@ itcl::body Rappture::Tester::MainWin::selectionHandler {} {
     array set data [$itk_component(tree) getData focus]
     # Data array is empty for branch nodes
     if {[array names data] != ""} {
+        if {$data(testxml) != ""} {
+            $itk_component(view) showTest $data(testxml)
+        } else {
+            $itk_component(view) clearTest
+        }
         if {$data(ran)} {
             switch $data(result) {
                 Pass {$itk_component(view) showText "Test passed."}
@@ -161,13 +166,13 @@ itcl::body Rappture::Tester::MainWin::selectionHandler {} {
                 Error {$itk_component(view) showText "Error while running test"}
             }
             if {$data(runfile) != ""} {
-                $itk_component(view) display $data(runfile) $data(testxml)
+                $itk_component(view) showResult $data(runfile)
             } else {
-                $itk_component(view) clear
+                $itk_component(view) clearResult
             }
         } else {
             $itk_component(view) showText "Test has not ben ran."
-            $itk_component(view) clear
+            $itk_component(view) clearResult
         }
     } else {
         $itk_component(view) showDefault
