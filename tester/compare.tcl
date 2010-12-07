@@ -12,7 +12,7 @@ package require Rappture
 namespace eval Rappture::Tester { #forward declaration }
 
 # ----------------------------------------------------------------------
-# USAGE: compare_elements lib1 lib2 path
+# USAGE: compare_elements <lib1> <lib2> <path>
 #
 # Compare data found in two library objects at the given path.  Returns
 # 1 if match, 0 if no match.  For now, just check if ascii identical.
@@ -26,7 +26,7 @@ proc Rappture::Tester::compare_elements {lib1 lib2 path} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: compare lib1 lib2 ?path?
+# USAGE: compare <lib1> <lib2> ?path?
 #
 # Compares two library objects and returns a list of paths that do not
 # match.  Paths are relative to lib1 (i.e. if a path exists in lib2 but
@@ -52,7 +52,7 @@ proc Rappture::Tester::compare {lib1 lib2 {path output}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: makeDriver tool.xml test.xml
+# USAGE: makeDriver <tool.xml> <test.xml>
 #
 # Builds and returns a driver library object to be used for running the 
 # test specified by testxml.  Copy current values from test xml into the
@@ -70,7 +70,7 @@ proc Rappture::Tester::makeDriver {toolxml testxml} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: merge toolobj golden driver ?path?
+# USAGE: merge <toolobj> <golden> <driver> ?path?
 #
 # Used to recursively build up a driver library object for running a
 # test.  Should not be called directly - see makeDriver.

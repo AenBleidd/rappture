@@ -25,8 +25,10 @@ option add *TestView.boldTextFont \
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    public method clear {}
-    public method display {runfile testxml}
+    public method clearTest {}
+    public method clearResult {}
+    public method showTest {testxml}
+    public method showResult {runfile}
     public method showDefault {}
     public method showText {text}
 
@@ -62,14 +64,20 @@ itk::usual TestView {
     keep -background -foreground -font
 }
 
-itcl::body Rappture::Tester::TestView::clear {} {
+itcl::body Rappture::Tester::TestView::clearTest {} {
     $itk_component(analyzer1) clear
+}
+
+itcl::body Rappture::Tester::TestView::clearResult {} {
     $itk_component(analyzer2) clear
 }
 
-itcl::body Rappture::Tester::TestView::display {runfile testxml} {
-    $itk_component(analyzer1) display $runfile
-    $itk_component(analyzer2) display $testxml
+itcl::body Rappture::Tester::TestView::showTest {testxml} {
+    $itk_component(analyzer1) display $testxml
+}
+
+itcl::body Rappture::Tester::TestView::showResult {runfile} {
+    $itk_component(analyzer2) display $runfile
 }
 
 itcl::body Rappture::Tester::TestView::showDefault {} {
@@ -77,7 +85,8 @@ itcl::body Rappture::Tester::TestView::showDefault {} {
     $itk_component(txt) delete 0.0 end
     $itk_component(txt) insert end "Default"
     $itk_component(txt) configure -state disabled
-    clear
+    clearTest
+    clearResult
 }
 
 itcl::body Rappture::Tester::TestView::showText {text} {
