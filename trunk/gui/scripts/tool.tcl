@@ -27,12 +27,14 @@ itcl::class Rappture::Tool {
 
     public method run {args}
     public method abort {}
+    public method getRunFile {}
 
     protected method _mkdir {dir}
     protected method _output {data}
 
     private variable _installdir ""  ;# installation directory for this tool
     private variable _outputcb ""    ;# callback for tool output
+    private variable _runFile ""     ;# location of last created run.xml
     private common job               ;# array var used for blt::bgexec jobs
     private common jobnum 0          ;# counter for unique job number
 
@@ -259,6 +261,7 @@ itcl::body Rappture::Tool::run {args} {
 
     # see if the job was aborted
     if {[regexp {^KILLED} $job(control)]} {
+        set _runFile ""
         return [list 0 "ABORT"]
     }
 
@@ -286,10 +289,12 @@ itcl::body Rappture::Tool::run {args} {
                     file rename -force -- $file $_resources(-resultdir)
                 }
             }
+            set _runFile $file
         } else {
             set status 1
             set result "Can't find result file in output.\nDid you call Rappture
 ::result in your simulator?"
+            set _runFile ""
         }
         return [list $status $result]
     } elseif {"" != $job(output) || "" != $job(error)} {
@@ -336,3 +341,14 @@ itcl::body Rappture::Tool::_output {data} {
         uplevel #0 [list $_outputcb $data]
     }
 }
+
+# ----------------------------------------------------------------------
+# USAGE: getRunFile
+#
+# Returns the file name of the last generated run.xml, as opposed to a
+# library object as returned by the run method.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::getRunFile {} {
+    return $_runFile
+}
+
