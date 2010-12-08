@@ -7,8 +7,9 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #\
-. rappture.env \
-exec wish "$0" $*
+dir=`dirname $0` ; \
+. $dir/rappture.env ; \
+exec $dir/wish "$0" $*
 
 package require Rappture
 package require RapptureGUI
@@ -413,6 +414,7 @@ OPTIONS:
  -driver <path>      - write a driver file to <path>.
  -compare <path>     - compare the results with the run.xml
                        file at <path>.
+ -runfile <path>     - move the run file to <path>
  -nosim              - no simulation.
  -help               - print this help menu.
 
@@ -634,6 +636,15 @@ proc parseOptions {listVar returnVar} {
             } else {
                 printHelp
             }
+        } elseif {  ("-r" == $opt)      ||
+                    ("-runfile" == $opt) ||
+                    ("--runfile" == $opt)    } {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set params(--runfile) [lindex $argv $i]
+            } else {
+                printHelp
+            }
         } elseif {  ("-v" == $opt)      ||
                     ("-values" == $opt) ||
                     ("--values" == $opt)    } {
@@ -685,11 +696,22 @@ proc main {argv} {
         --values default
         --nosim false
         --driver ""
+        --runfile ""
         --tool "./tool.xml"
         oParams {}
     }
 
     parseOptions argv params
+
+    # ----------------------------------------------------------------------
+    # LOAD RESOURCE SETTINGS
+    #
+    # Try to load the $SESSIONDIR/resources file, which contains
+    # middleware settings, such as the application name and the
+    # filexfer settings.
+    # ----------------------------------------------------------------------
+    Rappture::resources::load
+
 
     # keep the wish window from popping up
     catch {wm withdraw .}
@@ -738,6 +760,9 @@ proc main {argv} {
         exit 0
     }
 
+
+
+
     set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
     # read the run.xml file.
@@ -747,7 +772,15 @@ proc main {argv} {
     # execute the job
     foreach {status result} [eval $tool run] break
 
-    # read back the result from run.xml
+    if {[string compare "" $params(--runfile)] != 0} {
+        set runfilename [$tool getRunFile]
+        set err [catch {file rename $runfilename $params(--runfile)} out]
+        if {$err} {
+            puts stderr $out
+        }
+    }
+
+    # if run was successful, check to see if we should compare
     if {$status == 0 && $result != "ABORT"} {
         if {[Rappture::library isvalid $result]} {
             # do comparison if user chose to compare with other results

@@ -278,6 +278,7 @@ itcl::body Rappture::Tool::run {args} {
                 set result "$result\n$errorInfo"
             }
 
+        
             # if there's a results_directory defined in the resources
             # file, then move the run.xml file there for storage
             if {[info exists _resources(-resultdir)]
@@ -287,9 +288,11 @@ itcl::body Rappture::Tool::run {args} {
                         _mkdir $_resources(-resultdir)
                     }
                     file rename -force -- $file $_resources(-resultdir)
+                    set _runFile [file join $_resources(-resultdir) $file]
                 }
+            } else {
+                set _runFile $file
             }
-            set _runFile $file
         } else {
             set status 1
             set result "Can't find result file in output.\nDid you call Rappture
