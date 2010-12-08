@@ -818,7 +818,7 @@ VideoGoToN(vidPtr, n)
     VideoObj *vidPtr;
     int n;
 {
-    int nrel, nabs, seekFlags, gotframe;
+    int nrel, nabs, seekFlags, gotframe, t;
     int64_t nseek;
     AVCodecContext *vcodecCtx;
     AVStream *vstreamPtr;
@@ -854,6 +854,7 @@ VideoGoToN(vidPtr, n)
 
         vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
         nseek = VideoFrame2Time(vstreamPtr, nabs);
+        // not sure why it is checking against the number 100
         if (nseek > 100) {
             nseek -= 100;
         } else {
@@ -864,8 +865,14 @@ VideoGoToN(vidPtr, n)
         av_seek_frame(vidPtr->pFormatCtx, vidPtr->videoStream,
             nseek, seekFlags);
 
+        // this doesn't seem to give me back the true frame number
+        // feels like it is more of a reverse of the VideoFrame2Time call
+        // because vidPtr->frameNumber always equals nabs
         vidPtr->frameNumber = VideoTime2Frame(vstreamPtr, nseek);
         vidPtr->atEnd = 0;
+
+        /* read the frame to figure out what the frame number is */
+        VideoNextFrame(vidPtr);
 
         /* then, move forward until we reach the desired frame */
         gotframe = 0;

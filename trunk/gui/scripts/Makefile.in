@@ -114,8 +114,8 @@ FILES		= \
 		$(srcdir)/utils.tcl \
 		$(srcdir)/valueresult.tcl \
 		$(srcdir)/videodial.tcl \
+		$(srcdir)/videodistance.tcl \
 		$(srcdir)/videoscreen.tcl \
-		$(srcdir)/videoviewer.tcl \
 		$(srcdir)/videoparticle.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \

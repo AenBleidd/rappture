@@ -78,15 +78,12 @@ set html [read $fid]
 close $fid
 $intro.scroller.html load $html
 
-# about page controls
-set aboutcntls [frame $f.aboutcntls]
-button $aboutcntls.next -text "Mark Particles" -command {$nb current next>}
-pack $aboutcntls.next -side left -expand yes -padx 4 -pady 1
+set demo [frame $f.demo]
 
 blt::table $f \
     0,0 $intro -rowspan 3 -fill both \
-    1,1 $loader -fill x \
-    2,1 $aboutcntls -fill x
+    0,1 $demo -fill x \
+    1,1 $loader -fill x
 
 blt::table configure $f c* -resize both
 # blt::table configure $f r0 -pady 1
@@ -95,22 +92,28 @@ blt::table configure $f c* -resize both
 # VIDEO PAGE
 # ------------------------------------------------------------------
 
-set f [$nb insert end main]
-$f configure -width 830 -height 530
-Rappture::VideoScreen $f.viewer -width 830 -height 530
-$loader.go configure -command {$nb current next>; $f.viewer loadcb}
+set f [$nb insert end video]
+set movieViewer [Rappture::VideoScreen $f.viewer]
+$loader.go configure -command {$nb current next>; $movieViewer loadcb}
 
-#Rappture::VideoViewer $f.viewer
-#$f.viewer load "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-05-55.mp4"
-#$f.viewer load "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-09-56.mp4"
-#$f.viewer load "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-13-56.mp4"
-#$f.viewer load "/home/derrick/junk/coa360download56Kbps240x160.mpg"
-pack $f.viewer -expand yes -fill both
+pack $movieViewer -expand yes -fill both
 
 # ------------------------------------------------------------------
 # SHOW WINDOW
 # ------------------------------------------------------------------
 
-$f configure -width 2 -height 2
 $nb current about
+wm geometry . 900x600
 wm deiconify .
+update idletasks
+
+# for testing we automatically load a video
+array set videoFiles [list \
+    1 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-05-55.mp4" \
+    2 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-09-56.mp4" \
+    3 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-13-56.mp4" \
+    4 "/home/derrick/junk/coa360download56Kbps240x160.mpg" \
+]
+$nb current video
+update idletasks
+$movieViewer load file $videoFiles(1)
