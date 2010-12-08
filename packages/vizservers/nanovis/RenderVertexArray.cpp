@@ -35,6 +35,7 @@
  * ======================================================================
  */
 #include "RenderVertexArray.h"
+#include "Trace.h"
 #include <GL/gl.h>
 #include <stdio.h>
 
@@ -52,7 +53,7 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
     case GL_FLOAT:
         m_bytes_per_component = sizeof(float); break;
     default:
-        fprintf(stderr, "Error: unsupported RenderVertexArray type\n");
+        ERROR("unsupported RenderVertexArray type\n");
         return;
     }
 
@@ -72,7 +73,7 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
     case 4:
         m_format = GL_RGBA; break;
     default:
-        fprintf(stderr, "Error: unsupported RenderVertexArray size\n");
+        ERROR("unsupported RenderVertexArray size\n");
         return;
     }
 }

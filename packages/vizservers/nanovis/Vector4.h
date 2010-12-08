@@ -17,6 +17,7 @@
 #define _VECTOR4_H_
 
 #include <stdio.h>
+#include <Trace.h>
 
 class Vector4  
 {
@@ -35,7 +36,7 @@ public:
     }
 
     void print(void) {
-	fprintf(stderr, "Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
+	TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
     }
 
     Vector4 operator +(Vector4 &op2){

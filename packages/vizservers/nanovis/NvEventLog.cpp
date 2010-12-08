@@ -11,10 +11,6 @@
 #include "nanovis.h"
 
 
-#ifdef XINETD
-FILE* xinetd_log;
-#endif
-
 FILE* event_log;
 double cur_time;	//in seconds
 
@@ -37,16 +33,14 @@ void NvInitService()
         strncat(logName,user,strlen(user));
     }
 
-    if (!NanoVis::debug_flag) {
-	//open log and map stderr to log file
-	xinetd_log = fopen(logName, "w");
-	close(2);
-	dup2(fileno(xinetd_log), 2);
-	dup2(2,1);
-	//flush junk
-	fflush(stdout);
-	fflush(stderr);
-    }
+    //open log and map stderr to log file
+    NanoVis::logfile = fopen(logName, "w");
+    close(2);
+    dup2(fileno(NanoVis::logfile), 2);
+    dup2(2,1);
+    //flush junk
+    fflush(stdout);
+    fflush(stderr);
 
     // clean up malloc'd memory
     if (logName != NULL) {
@@ -57,9 +51,9 @@ void NvInitService()
 void NvExitService()
 {
     //close log file
-    if (xinetd_log != NULL) {
-        fclose(xinetd_log);
-        xinetd_log = NULL;
+    if (NanoVis::logfile != NULL) {
+        fclose(NanoVis::logfile);
+	NanoVis::logfile = NULL;
     }
 }
 #endif

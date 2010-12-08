@@ -148,7 +148,7 @@ void Vector3::set(float newx, float newy, float newz){
 }
 
 void Vector3::print(){
-	fprintf(stderr, "x:%f, y:%f, z:%f\n", x, y, z);
+    TRACE("x:%f, y:%f, z:%f\n", x, y, z);
 }
 
 float Vector3::distance(Vector3 &another) const

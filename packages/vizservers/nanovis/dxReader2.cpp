@@ -1,5 +1,6 @@
 
 #include "RpDX.h"
+#undef ERROR
 #include "dxReaderCommon.h"
 
 #include <stdio.h>

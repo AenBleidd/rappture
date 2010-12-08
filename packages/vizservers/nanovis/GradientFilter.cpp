@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
+#include "Trace.h"
 #include "GradientFilter.h"
 
 #ifndef SQR
@@ -38,7 +39,7 @@ getFloatGradientsFilename(void)
     if (! (filename = (char *)malloc(strlen("base") +
                                      strlen(floatExt) +
                                      strlen(GRADIENTS_EXT) + 1))) {
-        fprintf(stderr, "not enough memory for filename\n");
+        ERROR("not enough memory for filename\n");
         exit(1);
     }
 
@@ -64,7 +65,7 @@ saveFloatGradients(float *gradients, int *sizes)
     }
     if (fwrite(gradients, 3 * sizes[0] * sizes[1] * sizes[2] * sizeof(float),
                1, fp) != 1) {
-        fprintf(stderr, "writing float gradients failed\n");
+        ERROR("writing float gradients failed\n");
         exit(1);
     }
     fclose(fp);
@@ -118,7 +119,7 @@ static float getVoxel(int x, int y, int z, DataType dataType)
             return (float)getVoxelFloat(x, y, z);
             break;
         default:
-            fprintf(stderr, "Unsupported data type\n");
+            ERROR("Unsupported data type\n");
             exit(1);
             break;
     }
@@ -170,7 +171,7 @@ void computeGradients(float *gradients, void* volData, int *sizes, DataType data
           {-1,  0,  1}}}
     };
 
-    fprintf(stderr, "computing gradients ... may take a while\n");
+    TRACE("computing gradients ... may take a while\n");
 
     di = 0;
     vdi = 0;
@@ -293,25 +294,25 @@ void filterGradients(float *gradients, int *sizes)
     int i, j, k, idz, idy, idx, gi, ogi, filterWidth, n, borderDist[3];
     float sum, *filteredGradients, ****filter;
 
-    fprintf(stderr, "filtering gradients ... may also take a while\n");
+    TRACE("filtering gradients ... may also take a while\n");
 
     if (! (filteredGradients = (float *)malloc(sizes[0] * sizes[1] * sizes[2]
                                                * 3 * sizeof(float)))) {
-        fprintf(stderr, "not enough memory for filtered gradients\n");
+        ERROR("not enough memory for filtered gradients\n");
         exit(1);
     }
 
     /* Allocate storage for filter kernels */
     if (! (filter = (float ****)malloc((GRAD_FILTER_SIZE/2 + 1) * 
                                        sizeof(float ***)))) {
-        fprintf(stderr, "failed to allocate gradient filter\n");
+        ERROR("failed to allocate gradient filter\n");
         exit(1);
     }
 
     for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
         if (! (filter[i] = (float ***)malloc((GRAD_FILTER_SIZE) * 
                                              sizeof(float **)))) {
-            fprintf(stderr, "failed to allocate gradient filter\n");
+            ERROR("failed to allocate gradient filter\n");
             exit(1);
         }
     }
@@ -319,7 +320,7 @@ void filterGradients(float *gradients, int *sizes)
         for (j = 0; j < GRAD_FILTER_SIZE; j++) {
             if (! (filter[i][j] = (float **)malloc((GRAD_FILTER_SIZE) * 
                                                    sizeof(float *)))) {
-                fprintf(stderr, "failed to allocate gradient filter\n");
+                ERROR("failed to allocate gradient filter\n");
                 exit(1);
             }
         }
@@ -329,7 +330,7 @@ void filterGradients(float *gradients, int *sizes)
             for (k = 0; k < GRAD_FILTER_SIZE; k++) {
                 if (! (filter[i][j][k] = (float *)malloc((GRAD_FILTER_SIZE) *
                                                          sizeof(float)))) {
-                    fprintf(stderr, "failed to allocate gradient filter\n");
+                    ERROR("failed to allocate gradient filter\n");
                     exit(1);
                 }
             }
@@ -508,7 +509,7 @@ void quantizeGradients(float *gradientsIn, void *gradientsOut,
                                &((float*)gradientsOut)[di]);
                     break;
                 default:
-                    fprintf(stderr, "unsupported data type\n");
+                    ERROR("unsupported data type\n");
                     break;
                 }
                 di += 3;
@@ -534,7 +535,7 @@ void saveGradients(void *gradients, int *sizes, DataType dataType)
            * getDataTypeSize(dataType);
 
     if (fwrite(gradients, size, 1, fp) != 1) {
-        fprintf(stderr, "writing gradients failed\n");
+         ERROR("writing gradients failed\n");
         exit(1);
     }
 

@@ -232,7 +232,7 @@ void NvParticleRenderer::initialize()
 #endif
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
 
-    //fprintf(stderr, "init particles\n");
+    TRACE("init particles\n");
 }
 
 void NvParticleRenderer::reset()

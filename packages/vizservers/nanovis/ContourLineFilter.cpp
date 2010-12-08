@@ -35,28 +35,25 @@ ContourLineFilter::create(float min, float max, int linecount,
     _lines.clear();
     
     float transtion = (max - min) / (linecount + 1);
-    
     float val;
-    int totalNumOfPoints = 0, numOfPoints;
+    int totalPoints = 0, numPoints;
     for (int i = 1; i <= linecount; ++i) {
 	val = min + i * transtion;
 	
 	ContourLine* c = new ContourLine(val);
-	numOfPoints = c->createLine(width, height, vertices, _top);
-	if (numOfPoints != 0) {
-	    totalNumOfPoints += numOfPoints;
+	numPoints = c->createLine(width, height, vertices, _top);
+	if (numPoints != 0) {
+	    totalPoints += numPoints;
 	    _lines.push_back(c);
 	} else {
 	    delete c;
 	}
     }
-    
-    Vector3* vertexSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
-    Vector3* colorSet = 0;
+    Vector3* vertexSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
+    Vector3* colorSet = NULL;
     if (_colorMap) {
-	colorSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+	colorSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
     }
-    
     ContourLineFilter::ContourLineList::iterator iter;
     unsigned int index = 0, colorIndex = 0;
     for (iter = _lines.begin(); iter != _lines.end(); ++iter, ++colorIndex) {
@@ -71,21 +68,15 @@ ContourLineFilter::create(float min, float max, int linecount,
 	    vertexSet[index] = (*iter2);
 	}
     }
-    
     R2VertexBuffer* vertexBuffer;
-    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, 
-				      totalNumOfPoints,
-				      totalNumOfPoints * sizeof(Vector3), 
-				      vertexSet, false);
-    R2VertexBuffer* colorBuffer = 0;
-    R2Geometry* geometry = 0;
+    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalPoints,
+	totalPoints * sizeof(Vector3), vertexSet, false);
+    R2VertexBuffer* colorBuffer = NULL;
     if (_colorMap) {
-        colorBuffer  = new R2VertexBuffer(R2VertexBuffer::COLOR4, 
-					  totalNumOfPoints,
-					  totalNumOfPoints * sizeof(Vector3), 
-					  colorSet, false);
+        colorBuffer  = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalPoints, 
+		totalPoints * sizeof(Vector3), colorSet, false);
     }
-
+    R2Geometry* geometry;
     geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
     return geometry;
@@ -100,21 +91,21 @@ ContourLineFilter::create(float min, float max, int linecount,
     float transtion = (max - min) / (linecount + 1);
 
     float val;
-    int totalNumOfPoints = 0, numOfPoints;
+    int totalPoints = 0, numPoints;
     for (int i = 1; i <= linecount; ++i) {
 	val = min + i * transtion;
 	
 	ContourLine* c = new ContourLine(val);
-	numOfPoints = c->createLine(width, height, vertices, _top);
-	if (numOfPoints != 0) {
-	    totalNumOfPoints += numOfPoints;
+	numPoints = c->createLine(width, height, vertices, _top);
+	if (numPoints != 0) {
+	    totalPoints += numPoints;
 	    _lines.push_back(c);
 	} else {
 	    delete c;
 	}
     }
-    Vector3* vertexSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
-    Vector3* colorSet = (Vector3*) malloc(sizeof(Vector3) * totalNumOfPoints);
+    Vector3* vertexSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
+    Vector3* colorSet  = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
 	
     ContourLineFilter::ContourLineList::iterator iter;
     unsigned int index = 0, colorIndex = 0;
@@ -132,14 +123,11 @@ ContourLineFilter::create(float min, float max, int linecount,
 	}
     }
     R2VertexBuffer* vertexBuffer;
-    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3,
-				      totalNumOfPoints,
-				      totalNumOfPoints * sizeof(Vector3), 
-				      vertexSet, false);
+    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalPoints,
+	totalPoints * sizeof(Vector3), vertexSet, false);
     R2VertexBuffer* colorBuffer;
-    colorBuffer = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalNumOfPoints,
-				     totalNumOfPoints * sizeof(Vector3), 
-				     colorSet, false);
+    colorBuffer = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalPoints,
+	totalPoints * sizeof(Vector3), colorSet, false);
     R2Geometry* geometry;
     geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
@@ -223,12 +211,6 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
     return _points.size();
 }
 
-bool 
-ContourLineFilter::ContourLine::isValueWithIn(float val1, float Val2)
-{
-    return ((_value >= val1 && _value <= Val2) || 
-	    (_value >= Val2 && _value <= val1));
-}
 
 void 
 ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, 

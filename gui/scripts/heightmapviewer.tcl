@@ -54,6 +54,7 @@ itcl::class Rappture::HeightmapViewer {
     public method get {args}
     public method delete {args}
     public method scale {args}
+    public method snap { w h }
     public method download {option args}
     public method parameters {title args} {
         # do nothing
@@ -512,6 +513,8 @@ itcl::body Rappture::HeightmapViewer::isconnected {} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::Connect {} {
+    global readyForNextFrame
+    set readyForNextFrame 1
     Disconnect
     set _hosts [GetServerList "nanovis"]
     if { "" == $_hosts } {
@@ -533,6 +536,8 @@ itcl::body Rappture::HeightmapViewer::Disconnect {} {
 
     set _outbuf ""
     # disconnected -- no more data sitting on server
+    global readyForNextFrame
+    set readyForNextFrame 1
 }
 
 #
@@ -561,6 +566,8 @@ itcl::body Rappture::HeightmapViewer::SendCmd {string} {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::ReceiveImage { args } {
+    global readyForNextFrame
+    set readyForNextFrame 1
     if {![IsConnected]} {
         return
     }
@@ -731,6 +738,11 @@ itcl::body Rappture::HeightmapViewer::Rebuild {} {
     blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;			
     blt::busy release $itk_component(hull)
+
+    # The "readyForNextFrame" variable throttles the sequence play rate.
+    global readyForNextFrame
+    set readyForNextFrame 0;		# Don't advance to the next frame
+					# until we get an image.
     set _buffering 0;			# Turn off buffering.
     set _outbuf "";			# Clear the buffer.		
 }
@@ -1251,4 +1263,14 @@ itcl::body Rappture::HeightmapViewer::CurrentSurfaces {{what -all}} {
         }
     }
     return $list
+}
+
+itcl::body Rappture::HeightmapViewer::snap { w h } {
+    if { $w <= 0 || $h <= 0 } {
+        set w [image width $_image(plot)]
+        set h [image height $_image(plot)]
+    } 
+    set img [image create picture -width $w -height $h]
+    $img resample $_image(plot)
+    return $img
 }

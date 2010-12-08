@@ -14,6 +14,7 @@
  * ======================================================================
  */
 #include "ConvexPolygon.h"
+#include "Trace.h"
 #include <GL/gl.h>
 #include <assert.h>
 
@@ -53,7 +54,7 @@ findIntersection(Vector4 p1, Vector4 p2, Vector4 plane, Vector4 &ret){
 
     if (uDenom == 0){ 
         //plane parallel to line
-        fprintf(stderr, "Unexpected code path: ConvexPolygon.cpp\n");
+        ERROR("Unexpected code path: ConvexPolygon.cpp\n");
         if (uNumer == 0){
             for (int i = 0; i < 4; i++) 
                 ret < p1;
@@ -96,7 +97,7 @@ ConvexPolygon::translate(Vector4 shift){
 void 
 ConvexPolygon::clip(Plane &clipPlane, bool copy_to_texcoord) {
     if (vertices.size() == 0) {
-        //fprintf(stderr, "ConvexPolygon: polygon has no vertices\n");  
+        //ERROR("ConvexPolygon: polygon has no vertices\n");  
         return;
     }
     
@@ -171,17 +172,8 @@ ConvexPolygon::Emit(bool use_texture)
 		//glTexCoord4fv((float *)&(vertices[i]));
 	    }
 	    glVertex4fv((float *)&(vertices[i]));
-	    /*
-	    //debug
-	    fprintf(stderr, "(%f %f %f %f)", 
-	    vertices[i].x,
-	    vertices[i].y,
-	    vertices[i].z,
-	    vertices[i].w );
-	    */
 	}
     } 
-    //fprintf(stderr, " "); 
 }
 
 

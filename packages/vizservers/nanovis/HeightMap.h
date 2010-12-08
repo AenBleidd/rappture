@@ -42,8 +42,8 @@ class HeightMap {
     
     Vector3 _scale;
     Vector3 _centerPoint;
-    int xNum_, yNum_;		// Number of elements x and y axes in grid.
-    float *heights_;		// Array of original (unscaled) heights
+    int _xNum, _yNum;		// Number of elements x and y axes in grid.
+    float *_heights;		// Array of original (unscaled) heights
 				// (y-values)
 public :
     AxisRange xAxis, yAxis, zAxis, wAxis;
@@ -53,11 +53,11 @@ public :
     /**
      *@brief Constructor
      */
-	HeightMap();
+    HeightMap();
     /**
      *@brief Destructor
      */
-	~HeightMap();
+    ~HeightMap();
 
 private :
     void createIndexBuffer(int xCount, int zCount, float* heights);

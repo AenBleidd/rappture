@@ -25,16 +25,16 @@ VolumeInterpolator::VolumeInterpolator() :
 void VolumeInterpolator::start()
 {
     if (_volumes.size() > 0) {
-        Trace("\tVolume Interpolation Started\n");
+        TRACE("\tVolume Interpolation Started\n");
         _started = true;
     } else {
-        Trace("\tVolume Interpolation did not get started\n");
+        TRACE("\tVolume Interpolation did not get started\n");
         _started = false;
     }
     struct timeval clock;
     gettimeofday(&clock, NULL);
     _start_time = clock.tv_sec + clock.tv_usec/1000000.0;
-    Trace("End Start - VolumeInterpolator\n");
+    TRACE("End Start - VolumeInterpolator\n");
 }
 
 void VolumeInterpolator::stop()
@@ -98,7 +98,7 @@ VolumeInterpolator::computeKeys(float fraction, int count, float* interp,
             }
         }
         
-        Trace("n = %d count = %d\n", n, count);
+        TRACE("n = %d count = %d\n", n, count);
         if (n >= limit){
             *key1 = *key2 = limit;
             *interp = 0.0f;
@@ -156,11 +156,11 @@ VolumeInterpolator::addVolume(Volume* refPtr)
         _volume->diffuse(refPtr->diffuse());
         _volume->opacity_scale(refPtr->opacity_scale());
         _volume->isosurface(0);
-        Trace("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 
-		refPtr->name());
+        TRACE("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 
+	       refPtr->name());
     }
     _volumes.push_back(_volume);
-    Trace("a Volume[%s] is added to VolumeInterpolator\n", refPtr->name());
+    TRACE("a Volume[%s] is added to VolumeInterpolator\n", refPtr->name());
 }
 
 Volume* VolumeInterpolator::getVolume()

@@ -98,7 +98,7 @@ public:
 	x = x_val, y = y_val, z = z_val;
     }
     void print(void){
-	fprintf(stderr, "x:%f, y:%f, z:%f\n", x, y, z);
+	TRACE("(x:%f, y:%f, z:%f)\n", x, y, z);
     }
     float distance(Vector3 &v) const {
 	return sqrtf(distanceSquare(v));

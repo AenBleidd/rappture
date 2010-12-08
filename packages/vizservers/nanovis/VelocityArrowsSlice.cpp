@@ -137,7 +137,7 @@ VelocityArrowsSlice::VelocityArrowsSlice()
 #endif
     _arrowColor.set(1, 1, 0);
 
-    printf("test1\n");
+    TRACE("test1\n");
 }
 
 VelocityArrowsSlice::~VelocityArrowsSlice()

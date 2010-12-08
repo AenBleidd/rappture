@@ -14,6 +14,8 @@
  * ======================================================================
  */
 #include "RpDX.h"
+#undef ERROR
+#include "Trace.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -236,8 +238,7 @@ DX::__collectDataStats()
         }
     }
     if (_nzero_min == FLT_MAX) {
-        fprintf(stderr, "could not find a positive minimum value\n");
-        fflush(stderr);
+        ERROR("could not find a positive minimum value\n");
     }
 }
 

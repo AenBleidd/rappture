@@ -152,13 +152,13 @@ NvLIC::~NvLIC()
 void 
 NvLIC::make_patterns() 
 { 
-    Trace("begin make_patterns\n");
+    TRACE("begin make_patterns\n");
     if (disListID > 0) {
 	glDeleteLists(disListID, Npat);
     }
     disListID = glGenLists(Npat);
     
-    Trace("DisplayList : %d\n", disListID);
+    TRACE("DisplayList : %d\n", disListID);
     
     int lut[256];
     int phase[NPN][NPN];
@@ -192,7 +192,7 @@ NvLIC::make_patterns()
     glBindTexture(GL_TEXTURE_2D, pattern_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
                  GL_RGBA, GL_UNSIGNED_BYTE, pat);
-    Trace("finish make_patterns\n");
+    TRACE("finish make_patterns\n");
 }
 
 
@@ -469,7 +469,7 @@ NvLIC::display()
 
 /*
 {
-    //Trace("RENDER LIC\n");
+    //TRACE("RENDER LIC\n");
    //glBindTexture(GL_TEXTURE_2D, pattern_tex);
    glCallList(1 % Npat + disListID);
    glEnable(GL_TEXTURE_2D);
@@ -504,7 +504,7 @@ void
 NvLIC::setVectorField(unsigned int texID, const Vector3& ori, 
 		      float scaleX, float scaleY, float scaleZ, float max)
 {
-    Trace("NvLIC: vector field is assigned [%d]\n", texID);
+    TRACE("NvLIC: vector field is assigned [%d]\n", texID);
     _vectorFieldId = texID;
     origin = ori;
     scale = Vector3(scaleX, scaleY, scaleZ);
@@ -523,12 +523,12 @@ NvLIC::get_velocity(float x, float y, float *px, float *py)
    int xi = (int) (x*size);
    int yi = (int) (y*size);
 
-    //Trace("(xi yi) = (%d %d), ", xi, yi);
+    //TRACE("(xi yi) = (%d %d), ", xi, yi);
    vx = slice_vector[4 * (xi+yi*size)];
    vy = slice_vector[4 * (xi+yi*size)+1];
    r  = vx*vx + vy*vy;
 
-    //Trace("(vx vx) = (%f %f), r=%f, ", vx, vy, r);
+    //TRACE("(vx vx) = (%f %f), r=%f, ", vx, vy, r);
    if (r > (dmax*dmax)) { 
       r  = sqrt(r); 
       vx *= dmax/r; 
@@ -538,7 +538,7 @@ NvLIC::get_velocity(float x, float y, float *px, float *py)
    *px = x + vx;         
    *py = y + vy;
 
-    //Trace("vel %f %f -> %f %f, (dmax = %f)\n", x, y, *px, *py, dmax);
+    //TRACE("vel %f %f -> %f %f, (dmax = %f)\n", x, y, *px, *py, dmax);
 }
 
 void 

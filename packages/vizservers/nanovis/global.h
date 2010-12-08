@@ -18,7 +18,7 @@
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
-
+#include <Trace.h>
 #include <stdio.h>
 
 #ifdef notdef
@@ -26,43 +26,43 @@
 {\
  GLenum status; \
  status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT); \
- fprintf(stderr, "%x\n", status);\
+ TRACE("%x\n", status);			   \
  switch(status) { \
  case GL_FRAMEBUFFER_COMPLETE_EXT: \
-   fprintf(stderr,"framebuffer complete!\n");\
+     TRACE("framebuffer complete!\n");	\
    break; \
  case GL_FRAMEBUFFER_UNSUPPORTED_EXT: \
-   fprintf(stderr,"framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");\
+     ERROR("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");	\
     /* you gotta choose different formats */ \
    assert(0); \
    break; \
- case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_ATTACHMENT\n");\
+ case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:		\
+     TRACE("framebuffer INCOMPLETE_ATTACHMENT\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT: \
-   fprintf(stderr,"framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n");\
+     TRACE("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT: \
-   fprintf(stderr,"framebuffer FRAMEBUFFER_DIMENSIONS\n");\
+     TRACE("framebuffer FRAMEBUFFER_DIMENSIONS\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_DUPLICATE_ATTACHMENT\n");\
+     TRACE("framebuffer INCOMPLETE_DUPLICATE_ATTACHMENT\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_FORMATS\n");\
+     TRACE("framebuffer INCOMPLETE_FORMATS\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_DRAW_BUFFER\n");\
+     TRACE("framebuffer INCOMPLETE_DRAW_BUFFER\n");	\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_READ_BUFFER\n");\
+     TRACE("framebuffer INCOMPLETE_READ_BUFFER\n");	\
    break; \
  case GL_FRAMEBUFFER_BINDING_EXT: \
-   fprintf(stderr,"framebuffer BINDING_EXT\n");\
+     TRACE("framebuffer BINDING_EXT\n");	\
    break; \
 /* 
  *  case GL_FRAMEBUFFER_STATUS_ERROR_EXT: \
- *     fprintf(stderr,"framebuffer STATUS_ERROR\n");\
+ *     TRACE("framebuffer STATUS_ERROR\n");\
  *        break; \
  *        */ \
  default: \
@@ -79,11 +79,11 @@
       case GL_FRAMEBUFFER_COMPLETE_EXT:                       \
         break;                                                \
       case GL_FRAMEBUFFER_UNSUPPORTED_EXT:                    \
-        /* choose different formats */                        \
+~        /* choose different formats */                        \
         break;                                                \
       default:                                                \
         /* programming error; will fail on all hardware */    \
-	fprintf(stderr, "programming error\n");               \
+	ERROR("programming error\n");               \
         assert(0);                                            \
      }	                                                      \
    }
@@ -105,13 +105,11 @@ draw_quad(int w, int h, int tw, int th)
 inline void 
 system_info()
 {
-    fprintf(stderr, 
-	    "-----------------------------------------------------------\n");
-    fprintf(stderr, "OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
-	    glGetString(GL_VERSION));
-    fprintf(stderr, "Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    fprintf(stderr, 
-	    "-----------------------------------------------------------\n");
+    TRACE("-----------------------------------------------------------\n");
+    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+	   glGetString(GL_VERSION));
+    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    TRACE("-----------------------------------------------------------\n");
 }
 
 extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 

@@ -28,7 +28,7 @@ Vector4::Vector4(float _x, float _y, float _z, float _w){
 Vector4::~Vector4(){}
 
 void Vector4::print(){
-	fprintf(stderr, "Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
+    TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
 }
 
 void Vector4::perspective_devide(){

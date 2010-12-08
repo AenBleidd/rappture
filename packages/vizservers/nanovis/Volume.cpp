@@ -51,11 +51,11 @@ Volume::Volume(
     int fcount = width * height * depth * _n_components;
     _data = new float[fcount];
     if (data != NULL) {
-        Trace("data is copied\n");
+        TRACE("data is copied\n");
         memcpy(_data, data, fcount * sizeof(float));
         _tex->initialize(_data);
     } else {
-        Trace("data is null\n");
+        TRACE("data is null\n");
         memset(_data, 0, sizeof(width * height * depth * _n_components * 
 				sizeof(float)));
         _tex->initialize(_data);
@@ -84,7 +84,7 @@ Volume::Volume(
     label[1] = "Y Label";
     label[2] = "Z Label";
 
-    Trace("End -- Volume constructor\n");
+    TRACE("End -- Volume constructor\n");
 }
 
 Volume::~Volume()

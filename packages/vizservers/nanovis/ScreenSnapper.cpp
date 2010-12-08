@@ -17,6 +17,7 @@
  */
 
 #include <memory.h>
+#include "Trace.h"
 #include <assert.h>
 #include "ScreenSnapper.h"
 
@@ -97,29 +98,26 @@ ScreenSnapper::print()
     for(int i=0; i<width*height; i++){
         if(data_type == GL_FLOAT){
             if(n_channels_per_pixel==3)
-                fprintf(stderr, "(%f %f %f) ", 
-                        ((float*)data)[3*i], 
-                        ((float*)data)[3*i+1], 
-                        ((float*)data)[3*i+2]);
+                TRACE("(%f %f %f) ", ((float*)data)[3*i], 
+		       ((float*)data)[3*i+1], ((float*)data)[3*i+2]);
             else if(n_channels_per_pixel==4)
-                fprintf(stderr, "(%f %f %f %f) ", 
-                        ((float*)data)[4*i], 
-                        ((float*)data)[4*i+1],
-                        ((float*)data)[4*i+2],
-                        ((float*)data)[4*i+3]);
+                TRACE("(%f %f %f %f) ", ((float*)data)[4*i], 
+		      ((float*)data)[4*i+1],
+		      ((float*)data)[4*i+2],
+		       ((float*)data)[4*i+3]);
         }
         else if(data_type == GL_UNSIGNED_BYTE){
             if(n_channels_per_pixel==3)
-                fprintf(stderr, "(%d %d %d) ", 
+                TRACE("(%d %d %d) ", 
                         ((unsigned char*)data)[3*i], 
                         ((unsigned char*)data)[3*i+1], 
-                        ((unsigned char*)data)[3*i+2]);
+		       ((unsigned char*)data)[3*i+2]);
             else if(n_channels_per_pixel==4)
-                fprintf(stderr, "(%d %d %d %d) ", 
+                TRACE("(%d %d %d %d) ", 
                         ((unsigned char*)data)[4*i], 
                         ((unsigned char*)data)[4*i+1],
                         ((unsigned char*)data)[4*i+2],
-                        ((unsigned char*)data)[4*i+3]);
+		       ((unsigned char*)data)[4*i+3]);
         }
     }
 }

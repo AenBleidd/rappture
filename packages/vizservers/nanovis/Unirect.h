@@ -64,7 +64,7 @@ public:
     }
     ~Unirect3d(void) {
 	if (_values != NULL) {
-	    delete [] _values;
+	    free(_values);
 	}
 	if (_xUnits != NULL) {
 	    free(_xUnits);
@@ -146,14 +146,14 @@ public:
 	if (_magMin == DBL_MAX) {
 	    GetVectorRange();
 	}
-	Trace("magMin=%g %g\n", _magMin, DBL_MAX);
+	TRACE("magMin=%g %g\n", _magMin, DBL_MAX);
 	return _magMin;
     }
     double magMax(void) {
 	if (_magMax == -DBL_MAX) {
 	    GetVectorRange();
 	}
-	Trace("magMax=%g %g\n", _magMax, -DBL_MAX);
+	TRACE("magMax=%g %g\n", _magMax, -DBL_MAX);
 	return _magMax;
     }
     const float *SaveValues(void) {
@@ -206,7 +206,7 @@ public:
     }
     ~Unirect2d(void) {
 	if (_values != NULL) {
-	    delete [] _values;
+	    free(_values);
 	}
 	if (_xUnits != NULL) {
 	    free(_xUnits);
@@ -263,7 +263,7 @@ public:
     size_t nComponents(void) {
 	return _nComponents;
     }
-    float *acceptValues(void) {
+    float *transferValues(void) {
 	float *values;
 	values = _values;
 	_values = NULL;
