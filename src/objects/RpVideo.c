@@ -18,9 +18,39 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+#include "config.h"
+
+#ifdef HAVE_FFMPEG_AVCODEC_H
+# include <ffmpeg/avcodec.h>
+#endif
+
+#ifdef HAVE_LIBAVCODEC_AVCODEC_H
+# include <libavcodec/avcodec.h>
+#endif
+
+#ifdef HAVE_FFMPEG_AVFORMAT_H
+# include <ffmpeg/avformat.h>
+#endif
+
+#ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
+# include <libavformat/avformat.h>
+#endif
+
+#ifdef HAVE_FFMPEG_AVUTIL_H
+# include <ffmpeg/avutil.h>
+#endif
+
+#ifdef HAVE_LIBAVUTIL_AVUTIL_H
+# include <libavutil/avutil.h>
+#endif
+
+#ifdef HAVE_FFMPEG_SWSCALE_H
+# include <ffmpeg/swscale.h>
+#endif
+
+#ifdef HAVE_LIBSWSCALE_SWSCALE_H
+# include <libswscale/swscale.h>
+#endif
 
 #include "RpVideo.h"
 
@@ -618,15 +648,11 @@ VideoNextFrame(vidPtr)
                     /* save pts so we can grab it again in VideoAvGetBuffer */
                     global_video_pkt_pts = packet.pts;
 
-                    // avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
-                    //     &frameFinished, packet.data, packet.size);
+                    avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
+                        &frameFinished, packet.data, packet.size);
 
-                    // packet.flags = PKT_FLAG_KEY;
-                    avcodec_decode_video2(vcodecCtx, vidPtr->pFrameYUV,
-                        &frameFinished, &packet);
-
-                    // avcodec_decode_video2(_pCodecCtx, _pFrame, &frameFinished,
-                    //                                   &_packet);
+                    // avcodec_decode_video2(vcodecCtx, vidPtr->pFrameYUV,
+                    //    &frameFinished, &packet);
 
                     if (packet.dts == AV_NOPTS_VALUE
                           && vidPtr->pFrameYUV->opaque
