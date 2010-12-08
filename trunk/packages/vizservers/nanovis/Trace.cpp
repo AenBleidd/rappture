@@ -1,3 +1,4 @@
+#include "nanovis.h"
 #include <Trace.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -5,21 +6,25 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
-static bool trace = true;
+static bool trace = false;
 
 void 
-Trace(const char* format, ...)
+PrintMessage(const char *mesg, const char *fileName, int lineNum, 
+	     const char* format, ...)
 {
     char buff[1024];
     va_list lst;
-    
-    if (trace) {
-	va_start(lst, format);
-	vsnprintf(buff, 1023, format, lst);
-	buff[1023] = '\0';
-	fprintf(stdout, "%s\n", buff);
-	fflush(stdout);
+    FILE *f;
+
+    f = NanoVis::logfile;
+    if (f == NULL) {
+	f = stderr;
     }
+    va_start(lst, format);
+    vsnprintf(buff, 1023, format, lst);
+    buff[1023] = '\0';
+    fprintf(f, "%s at line %d of \"%s\": %s\n", mesg, lineNum, fileName, buff);
+    fflush(f);
 }
 
 bool
@@ -51,11 +56,11 @@ PrintFBOStatus(GLenum status, const char *prefix)
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
 	mesg = "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT";		break;
     default:
-	fprintf(stderr, "FB Status: %s: UNKNOWN framebuffer status %u\n", 
-		prefix, (unsigned int)status);
+	TRACE("FB Status: %s: UNKNOWN framebuffer status %u\n", 
+	       prefix, (unsigned int)status);
 	return;
     }
-    fprintf(stderr, "FB Status: %s: %s\n", prefix, mesg);
+    TRACE("FB Status: %s: %s\n", prefix, mesg);
 }
 
 bool
@@ -81,10 +86,10 @@ CheckGL(const char *prefix)
     case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
 	mesg = "GL_INVALID_FRAMEBUFFER_OPERATION_EXT";	break;
     default:
-	fprintf(stderr, "GL Status: %s: Unknown status %d\n", prefix, status);
+	TRACE("GL Status: %s: Unknown status %d\n", prefix, status);
 	return false;
     } 
-    fprintf(stderr, "GL Status: %s: %s\n", prefix, mesg);
+    TRACE("GL Status: %s: %s\n", prefix, mesg);
     return false;
 }
 

@@ -15,6 +15,7 @@
  */
 
 #include "Texture1D.h"
+#include "Trace.h"
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
@@ -91,12 +92,12 @@ void Texture1D::check_max_size(){
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
         
     //printf("%d", glGetError());
-    fprintf(stderr, "max texture size: %d\n", max);
+    TRACE("max texture size: %d\n", max);
 }
 
 void Texture1D::check_max_unit(){
     int max;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);
 
-    fprintf(stderr, "max texture units: %d.\n", max);
+    TRACE("max texture units: %d.\n", max);
 }

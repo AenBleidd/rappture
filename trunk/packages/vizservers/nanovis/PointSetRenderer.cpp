@@ -18,8 +18,7 @@ PointSetRenderer::PointSetRenderer()
     _shader = new PointShader();
     const char *path = R2FilePath::getInstance()->getPath("particle2.bmp");
     if (path == NULL) {
-        fprintf(stderr, "ERROR : pointset file not found - %s\n", path);
-        fflush(stdout);
+        ERROR("pointset file not found - %s\n", path);
         return;
     }
     
@@ -40,7 +39,7 @@ PointSetRenderer::PointSetRenderer()
                                       GL_UNSIGNED_BYTE, GL_LINEAR,    
                                       4, (float*) image->getImageBuffer());
     } else {
-        printf("fail to load image [%s]\n", "particles2.bmp");
+        ERROR("fail to load image [%s]\n", "particles2.bmp");
     }
 
     delete loader;

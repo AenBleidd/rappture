@@ -173,10 +173,10 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 		!= TCL_OK) {
                 return TCL_ERROR;
             }
-            values = new float[nValues];
+            _values = (float *)realloc(_values, sizeof(float) * nValues);
             int j;
             for (j = 0; j < nValues; j++) {
-                if (GetFloatFromObj(interp, vobj[j], values + j)!=TCL_OK) {
+                if (GetFloatFromObj(interp, vobj[j], _values + j)!=TCL_OK) {
                     return TCL_ERROR;
 		}
 	    }
@@ -216,13 +216,13 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     }
-    if (values == NULL) {
+    if (_values == NULL) {
         Tcl_AppendResult(interp, "missing \"values\" key", (char *)NULL);
         return TCL_ERROR;
     }
     if ((size_t)nValues != (num[0] * num[1] * num[2] * _nComponents)) {
-	Trace("num[0]=%d num[1]=%d num[2]=%d ncomponents=%d nValues=%d\n",
-	      num[0], num[1], num[2], _nComponents, nValues);
+	TRACE("num[0]=%d num[1]=%d num[2]=%d ncomponents=%d nValues=%d\n",
+	       num[0], num[1], num[2], _nComponents, nValues);
         Tcl_AppendResult(interp, 
 		"wrong # of values: must be xnum*ynum*znum*extents", 
 			 (char *)NULL);
@@ -258,27 +258,38 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 	values = data;
     }
 #endif
-    _values = values;
     _nValues = nValues;
     if (units[3] != NULL) {
+	if (_vUnits != NULL) {
+	    free(_vUnits);
+	}
 	_vUnits = strdup(units[3]);
     }
     _xMin = min[axis3];
     _xMax = max[axis3];
     _xNum = num[axis3];
     if (units[axis3] != NULL) {
+	if (_xUnits != NULL) {
+	    free(_xUnits);
+	}
 	_xUnits = strdup(units[axis3]);
     }
     _yMin = min[axis2];
     _yMax = max[axis2];
     _yNum = num[axis2];
     if (units[axis2] != NULL) {
+	if (_yUnits != NULL) {
+	    free(_yUnits);
+	}
 	_yUnits = strdup(units[axis2]);
     }
     _zMin = min[axis1];
     _zMax = max[axis1];
     _zNum = num[axis1];
     if (units[axis1] != NULL) {
+	if (_zUnits != NULL) {
+	    free(_zUnits);
+	}
 	_zUnits = strdup(units[axis1]);
     }
     _initialized = true;
@@ -328,10 +339,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 	free(_vUnits);
     }
     _xUnits = _yUnits = _vUnits = NULL;
-    if (_values != NULL) {
-	delete [] _values;
-    }
-    _values = NULL;
+    _nValues = 0;
 
     int i;
     for (i = 1; i < objc; i += 2) {
@@ -386,6 +394,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
             Tcl_Obj **vobj;
 	    int n;
 
+	    Tcl_IncrRefCount(objv[i+1]);
             if (Tcl_ListObjGetElements(interp, objv[i+1], &n, &vobj) != TCL_OK){
                 return TCL_ERROR;
             }
@@ -395,13 +404,14 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
                 return TCL_ERROR;
 	    }
 	    _nValues = n;
-            _values = new float[_nValues];
+            _values = (float *)realloc(_values, sizeof(float) * _nValues);
             size_t j;
             for (j = 0; j < _nValues; j++) {
                 if (GetFloatFromObj(interp, vobj[j], _values + j)!=TCL_OK) {
                     return TCL_ERROR;
 		}
 	    }
+	    Tcl_DecrRefCount(objv[i+1]);
         } else if ((c == 'u') && (strcmp(string, "units") == 0)) {
             _vUnits = strdup(Tcl_GetString(objv[i+1]));
         } else if ((c == 'c') && (strcmp(string, "components") == 0)) {
@@ -440,7 +450,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     }
-    if (_values == NULL) {
+    if (_nValues == 0) {
         Tcl_AppendResult(interp, "missing \"values\" key", (char *)NULL);
         return TCL_ERROR;
     }
@@ -452,12 +462,12 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     }
     
     if ((axis[0] != 1) || (axis[1] != 0)) {
-	fprintf(stderr, "reordering data\n");
+	TRACE("reordering data\n");
 	/* Reorder the data into x, y where x varies fastest and so on. */
 	size_t y;
-	float *data, *dp;
+	float *dp;
 
-	dp = data = new float[_nValues];
+	dp = _values = (float *)realloc(_values, sizeof(float) * _nValues);
 	for (y = 0; y < _yNum; y++) {
 	    size_t x;
 
@@ -472,8 +482,6 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 		dp += _nComponents;
 	    }
 	}
-	delete [] _values;
-	_values = data;
     }
     _initialized = true;
     return TCL_OK;
@@ -558,10 +566,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
     _zMax = _zMin + dz * _zNum;
     _nComponents = nComponents;
 
-    if (_values != NULL) {
-	delete [] _values;
-    }
-    _values = new float[npts * _nComponents];
+    _values = (float *)realloc(_values, sizeof(float) * npts * _nComponents);
     _nValues = 0;
     for (size_t ix = 0; ix < _xNum; ix++) {
 	for (size_t iy = 0; iy < _yNum; iy++) {
@@ -604,7 +609,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
     if (_nValues != (size_t)npts) {
 	result.addError("inconsistent data: expected %d points"
 			" but found %d points", npts, _nValues);
-	delete []  _values;
+	free(_values);
 	_values = NULL;
 	return false;
     }
@@ -675,11 +680,11 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
 #endif
 
     size_t n = _nComponents * _xNum * _yNum * _zNum;
-    float *data = new float[n];
-    memset(data, 0, sizeof(float) * n);
+    _values = (float *)realloc(_values, sizeof(float) * n);
+    memset(_values, 0, sizeof(float) * n);
     
     // Generate the uniformly sampled rectangle that we need for a volume
-    float *destPtr = data;
+    float *destPtr = _values;
     for (size_t i = 0; i < _zNum; i++) {
 	double z;
 
@@ -698,8 +703,6 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
 	    }
 	}
     }
-    delete [] _values;
-    _values = data;
     _nValues = _xNum * _yNum * _zNum * _nComponents;
     return true;
 }
@@ -709,7 +712,7 @@ void
 Rappture::Unirect3d::GetVectorRange(void)
 {
     assert(_nComponents == 3);
-    Trace("GetVectorRange\n");
+    TRACE("GetVectorRange\n");
     _magMax = -DBL_MAX, _magMin = DBL_MAX;
     size_t i;
     for (i = 0; i < _nValues; i += _nComponents) {
@@ -749,10 +752,10 @@ Rappture::Unirect3d::Convert(Rappture::Unirect2d *dataPtr)
     switch (dataPtr->nComponents()) {
     case 1:
     case 3:
-	if (_values != NULL) {
-	    delete [] _values;
+	_values = (float *)realloc(_values, sizeof(float) * dataPtr->nValues());
+	if (_values == NULL) {
+	    return false;
 	}
-	_values = new float[dataPtr->nValues()];
 	memcpy(_values, dataPtr->values(), dataPtr->nValues());
 	_nValues = dataPtr->nValues();
 	_nComponents = dataPtr->nComponents();
@@ -760,10 +763,7 @@ Rappture::Unirect3d::Convert(Rappture::Unirect2d *dataPtr)
     case 2:
 	float *values;
 	_nValues = 3 * _xNum * _yNum * _zNum;
-	if (_values != NULL) {
-	    delete [] _values;
-	}
-	_values = new float[_nValues];
+	_values = (float *)realloc(_values, sizeof(float) * _nValues);
 	if (_values == NULL) {
 	    return false;
 	}

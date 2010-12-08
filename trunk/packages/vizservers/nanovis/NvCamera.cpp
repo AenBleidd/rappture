@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include "Trace.h"
 #include <GL/glu.h>
 #include "NvCamera.h"
 
@@ -37,7 +38,7 @@ NvCamera::NvCamera(int startx, int starty, int w, int h,
 void 
 NvCamera::initialize()
 {
-    //fprintf(stderr, "camera: %d, %d\n", width, height);
+    TRACE("camera: %d, %d\n", width_, height_);
     glViewport(startX_, startY_, width_, height_);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

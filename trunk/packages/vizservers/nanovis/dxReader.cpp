@@ -167,8 +167,8 @@ load_volume_stream2(Rappture::Outcome &result, const char *tag,
         }
     } while (!fin.eof());
 
-    fprintf(stderr, "found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n",
-	    nx, ny, nz, x0, y0, z0);
+    TRACE("found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n", 
+	   nx, ny, nz, x0, y0, z0);
     // read data points
     if (fin.eof() && (npts > 0)) {
         result.addError("EOF found: expecting %d points", npts);
@@ -553,7 +553,6 @@ load_volume_stream(Rappture::Outcome &result, const char *tag,
 	    for (int p=0; p < n; p++) {
 		int nindex = iz*nx*ny + iy*nx + ix;
 		field.define(nindex, dval[p]);
-		fflush(stderr);
 		nread++;
 		if (++iz >= nz) {
 		    iz = 0;
@@ -650,14 +649,13 @@ load_volume_stream(Rappture::Outcome &result, const char *tag,
 	
 #ifdef notdef
 	for (int i=0; i<nx*ny*nz; i++) {
-	    fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
-	    fflush(stderr);
+	    TRACE("enddata[%i] = %lg\n",i,data[i]);
 	}
 #endif	
-	fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
-	fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
-	fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
-	fflush(stdout);
+	TRACE("nx = %i ny = %i nz = %i\n",nx,ny,nz);
+	TRACE("dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+	TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", 
+	       field.valueMin(),field.valueMax(),nzero_min);
 	
 	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
 		field.valueMin(), field.valueMax(), nzero_min);
@@ -984,9 +982,7 @@ load_volume_stream_insoo(Rappture::Outcome &result, const char *tag,
 	    for (int p=0; p < n; p++) {
 		int nindex = iz*nx*ny + iy*nx + ix;
 		field.define(nindex, dval[p]);
-		fprintf(stderr,"nindex = %i\tdval[%i] = %lg\n", nindex, p,
-                        dval[p]);
-		fflush(stderr);
+		TRACE("nindex = %i\tdval[%i] = %lg\n", nindex, p, dval[p]);
 		nread++;
 		if (++iz >= nz) {
 		    iz = 0;
@@ -1121,15 +1117,14 @@ load_volume_stream_insoo(Rappture::Outcome &result, const char *tag,
                                           field.valueMax());
 					  
             for (int i=0; i<nx*ny*nz; i++) {
-                fprintf(stderr,"enddata[%i] = %lg\n",i,data[i]);
-                fflush(stderr);
+                TRACE("enddata[%i] = %lg\n",i,data[i]);
             }
 
-            fprintf(stdout,"End Data Stats volDataID = %i\n",volDataID);
-            fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
-            fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
-            fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", field.valueMin(),field.valueMax(),nzero_min);
-            fflush(stdout);
+            TRACE("End Data Stats volDataID = %i\n",volDataID);
+            TRACE("nx = %i ny = %i nz = %i\n",nx,ny,nz);
+            TRACE("dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+            TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", 
+	    field.valueMin(),field.valueMax(),nzero_min);
             */
 
 	volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,

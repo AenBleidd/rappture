@@ -86,7 +86,6 @@
 
 // in nanovis.cpp
 extern vector<PointSet*> g_pointSet;
-extern int debug_flag;
 
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
@@ -583,7 +582,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         fflush(NanoVis::recfile);
     }
     Rappture::Outcome err;
-    Trace("Checking header[%.13s]\n", buf.bytes());
+    TRACE("Checking header[%.13s]\n", buf.bytes());
     if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
 	/* There's a header on the buffer, use it to decode the data. */
 	if (!Rappture::encoding::decode(err, buf, RPENC_HDR)) {
@@ -1043,7 +1042,7 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
             float fraction;
 
             fraction = ((float)frame_num) / (total - 1);
-            Trace("fraction : %f\n", fraction);
+            TRACE("fraction : %f\n", fraction);
             //interpolator->update(((float)frame_num) / (total - 1));
             interpolator->update(fraction);
 
@@ -1092,7 +1091,7 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumes(interp, objc - 3, objv + 3, &volumes) != TCL_OK) {
         return TCL_ERROR;
     }
-    Trace("parsing volume data identifier\n");
+    TRACE("parsing volume data identifier\n");
     Tcl_HashSearch iter;
     Tcl_HashEntry *hPtr;
     for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); hPtr != NULL;
@@ -1133,7 +1132,7 @@ static int
 VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
-    printf("Data Loading\n");
+    TRACE("Data Loading\n");
     fflush(stdout);
 
     int nbytes;
@@ -1158,22 +1157,20 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     fp = fopen("/home/nanohub/vrinside/nv/data/HOON/GaAs_AlGaAs_2QD_B4.nd_zc_1_wf", "rb");
     if (fp == NULL) {
-        printf("cannot open the file\n");
-        fflush(stdout);
+        ERROR("cannot open the file\n");
         return TCL_ERROR;
     }
     unsigned char* b = (unsigned char*)malloc(nBytes);
     fread(b, nBytes, 1, fp);
     fclose(fp);
 #endif  /*_LOCAL_ZINC_TEST_*/
-    Trace("Checking header[%.20s]\n", bytes);
+    TRACE("Checking header[%.20s]\n", bytes);
 
     Volume *volPtr;
     volPtr = NULL;			// Supress compiler warning.
     
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
-        printf("ZincBlende stream is in\n");
-        fflush(stdout);
+        TRACE("ZincBlende stream is in\n");
          //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
         //fdata.write(buf.bytes(),buf.size());
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
@@ -1187,9 +1184,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
         }
-        printf("finish loading\n");
-        fflush(stdout);
-
+        TRACE("finish loading\n");
 	// INSOO
 	// TBD..
 	// Next identifier available
@@ -1209,7 +1204,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
 #if __TEST_CODE__
     } else if ((nBytes > 5) && (strncmp(bytes, "<FET>", 5) == 0)) {
-        printf("FET loading...\n");
+        TRACE("FET loading...\n");
         fflush(stdout);
         std::stringstream fdata;
         fdata.write(nBytes - 5, bytes + 5);
@@ -1221,7 +1216,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 #endif  /*__TEST_CODE__*/
     } else if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
-	printf("Loading DX using OpenDX library...\n");
+	TRACE("Loading DX using OpenDX library...\n");
         fflush(stdout);
 	Rappture::Outcome context;
         volPtr = load_volume_stream_odx(context, tag, bytes + 5, nBytes -5);
@@ -1230,12 +1225,12 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
-        printf("OpenDX loading...\n");
+        TRACE("OpenDX loading...\n");
         fflush(stdout);
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
 	if (nBytes <= 0) {
-	    fprintf(stderr, "data buffer is empty\n");
+	    ERROR("data buffer is empty\n");
 	    abort();
 	}
         Rappture::Outcome context;
@@ -1506,7 +1501,7 @@ VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &opacity) != TCL_OK) {
         return TCL_ERROR;
     }
-    printf("set opacity %f\n", opacity);
+    TRACE("set opacity %f\n", opacity);
     vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
@@ -1555,8 +1550,8 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	Trace("setting %s with transfer function %s\n", (*iter)->name(),
-	      tfPtr->name());
+	TRACE("setting %s with transfer function %s\n", (*iter)->name(),
+	       tfPtr->name());
         (*iter)->transferFunction(tfPtr);
 #ifdef POINTSET
         // TBD..
@@ -1740,16 +1735,18 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
     }
+    TRACE("Number of heightmaps=%d\n", NanoVis::heightmapTable.numEntries);
     // Must set units before the heights.
     hmPtr->xAxis.units(data.xUnits());
     hmPtr->yAxis.units(data.yUnits());
     hmPtr->zAxis.units(data.vUnits());
     hmPtr->wAxis.units(data.yUnits());
     hmPtr->setHeight(data.xMin(), data.yMin(), data.xMax(), data.yMax(), 
-		     data.xNum(), data.yNum(), data.acceptValues());
+		     data.xNum(), data.yNum(), data.transferValues());
     hmPtr->transferFunction(NanoVis::get_transfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1769,6 +1766,7 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setVisible(visible);
     }
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1809,6 +1807,7 @@ HeightMapLineContourColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourColor(rgb);
     }
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1828,6 +1827,7 @@ HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourVisible(visible);
     }
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1860,6 +1860,7 @@ HeightMapCullOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setCullMode(mode);
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1885,6 +1886,8 @@ HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     Tcl_SetHashValue(hPtr, hmPtr);
     Tcl_SetStringObj(Tcl_GetObjResult(interp), tag, -1);;
+    NanoVis::EventuallyRedraw();
+    TRACE("Number of heightmaps=%d\n", NanoVis::heightmapTable.numEntries);
     return TCL_OK;
 }
 
@@ -1927,6 +1930,7 @@ HeightMapPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setPolygonMode(mode);
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1939,6 +1943,7 @@ HeightMapShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setShadingModel(model);
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1957,7 +1962,7 @@ HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
     // GEORGE
 
     NanoVis::render_2d_contour(heightmap, image_width, image_height);
-
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -2029,6 +2034,7 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->transferFunction(tfPtr);
     }
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -2049,6 +2055,7 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = heightmaps.begin(); iter != heightmaps.end(); iter++) {
         (*iter)->opacity(opacity);
     }
+    NanoVis::EventuallyRedraw();
     return TCL_OK;
 }
 
@@ -2213,7 +2220,8 @@ static int
 PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv)
 {
-    fprintf(stderr, "load plane for 2D visualization command\n");
+    TRACE("load plane for 2D visualization command\n");
+
     int index, w, h;
     if (objc != 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
@@ -2253,7 +2261,7 @@ static int
 PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
-    fprintf(stderr, "link the plane to the 2D renderer command\n");
+    TRACE("link the plane to the 2D renderer command\n");
 
     int plane_index, tf_index;
 
@@ -2278,7 +2286,7 @@ static int
 PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
-    fprintf(stderr,"enable a plane so the 2D renderer can render it command\n");
+    TRACE("enable a plane so the 2D renderer can render it command\n");
 
     if (objc != 3) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
@@ -2403,8 +2411,8 @@ initTcl()
     Tcl_InitHashTable(&NanoVis::heightmapTable, TCL_STRING_KEYS);
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
-        fprintf(NanoVis::logfile, "WARNING: bad default transfer function\n");
-        fprintf(NanoVis::logfile, "%s\n", Tcl_GetStringResult(interp));
+        WARN("bad default transfer function\n%s\n", 
+	     Tcl_GetStringResult(interp));
     }
     return interp;
 }

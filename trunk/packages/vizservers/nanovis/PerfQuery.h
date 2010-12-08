@@ -19,6 +19,7 @@
 #define _PERFQUERY_H_
 
 #include <stdio.h>
+#include "Trace.h"
 #include <GL/glew.h>
 
 #include "define.h"
@@ -30,11 +31,10 @@ inline bool check_query_support()
     glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
 		    &bitsSupported);
     if(bitsSupported == 0) {
-	fprintf(stderr, "occlusion query not supported!\n");
+	TRACE("occlusion query not supported!\n");
 	return false;
     } else {
-	fprintf(stderr, "Occlusion query with %d bits supported\n", 
-		bitsSupported);
+	TRACE("Occlusion query with %d bits supported\n", bitsSupported);
 	return true;
     }
 }

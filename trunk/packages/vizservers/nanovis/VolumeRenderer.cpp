@@ -36,7 +36,7 @@ VolumeRenderer::VolumeRenderer():
 
     const char *path = R2FilePath::getInstance()->getPath("Font.bmp");
     if (path == NULL) {
-	fprintf(stderr, "can't find Font.bmp\n");
+	ERROR("can't find Font.bmp\n");
 	assert(path != NULL);
     }
     init_font(path);
@@ -98,7 +98,7 @@ VolumeRenderer::render_all()
         ani_vol = _volumeInterpolator->getVolume();
         ani_tf = ani_vol->transferFunction();
 #endif
-	Trace("VOLUME INTERPOLATOR IS STARTED ----------------------------");
+	TRACE("VOLUME INTERPOLATOR IS STARTED ----------------------------");
     }
     // Determine the volumes that are to be rendered.
     vector<Volume *> volumes;
@@ -125,7 +125,7 @@ VolumeRenderer::render_all()
     //number of actual slices for each volume
     size_t* actual_slices = new size_t[volumes.size()]; 
 
-    Trace("start loop %d\n", volumes.size());
+    TRACE("start loop %d\n", volumes.size());
     for (size_t i = 0; i < volumes.size(); i++) {
 	Volume* volPtr;
 
@@ -349,7 +349,7 @@ VolumeRenderer::render_all()
         }
 	
     } //iterate all volumes
-    Trace("end loop\n");
+    TRACE("end loop\n");
     
     // We sort all the polygons according to their eye-space depth, from
     // farthest to the closest.  This step is critical for correct blending
@@ -387,8 +387,8 @@ VolumeRenderer::render_all()
 		 volPtr->aspect_ratio_depth);
 	
 #ifdef notdef
-	Trace("shading slice: volume %s addr=%x slice=%d, volume=%d\n", 
-	      volPtr->name(), volPtr, slice_index, volume_index);
+	TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d\n", 
+	       volPtr->name(), volPtr, slice_index, volume_index);
 #endif
         activate_volume_shader(volPtr, false);
         glPopMatrix();
@@ -620,19 +620,19 @@ VolumeRenderer::init_font(const char* filename)
     /* make sure the file is there and open it read-only (binary) */
     f = fopen(filename, "rb");
     if (f == NULL) {
-	fprintf(stderr, "can't open font file \"%s\"\n", filename);
+	ERROR("can't open font file \"%s\"\n", filename);
 	return false;
     }
     
     if (fread(&bfType, sizeof(short int), 1, f) != 1) {
-	fprintf(stderr, "can't read %lu bytes from font file \"%s\"\n", 
-		(unsigned long)sizeof(short int), filename);
+	ERROR("can't read %lu bytes from font file \"%s\"\n", 
+	       (unsigned long)sizeof(short int), filename);
 	goto error;
     }
     
     /* check if file is a bitmap */
     if (bfType != 19778) {
-	fprintf(stderr, "not a bmp file.\n");
+	ERROR("not a bmp file.\n");
 	goto error;
     }
     
@@ -642,7 +642,7 @@ VolumeRenderer::init_font(const char* filename)
     
     /* get the position of the actual bitmap data */
     if (fread(&bfOffBits, sizeof(int), 1, f) != 1) {
-	fprintf(stderr, "error reading file.\n");
+	ERROR("error reading file.\n");
 	goto error;
     }
     //printf("Data at Offset: %ld\n", bfOffBits);
@@ -652,37 +652,37 @@ VolumeRenderer::init_font(const char* filename)
     
     /* get the width of the bitmap */
     if (fread(&width, sizeof(int), 1, f) != 1) {
-	fprintf(stderr, "error reading file.\n");
+	ERROR("error reading file.\n");
 	goto error;
     }
     //printf("Width of Bitmap: %d\n", texture->width);
     
     /* get the height of the bitmap */
     if (fread(&height, sizeof(int), 1, f) != 1) {
-	fprintf(stderr, "error reading file.\n");
+	ERROR("error reading file.\n");
 	goto error;
     }
     //printf("Height of Bitmap: %d\n", texture->height);
     
     /* get the number of planes (must be set to 1) */
     if (fread(&biPlanes, sizeof(short int), 1, f) != 1) {
-	fprintf(stderr, "error reading file.\n");
+	ERROR("error reading file.\n");
 	goto error;
     }
     if (biPlanes != 1) {
-	fprintf(stderr, "Error: number of Planes not 1!\n");
+	ERROR("number of Planes not 1!\n");
 	goto error;
     }
     
     /* get the number of bits per pixel */
     if (fread(&biBitCount, sizeof(short int), 1, f) != 1) {
- 	fprintf(stderr, "error reading file.\n");
+ 	ERROR("error reading file.\n");
 	goto error;
     }
     
     //printf("Bits per Pixel: %d\n", biBitCount);
     if (biBitCount != 24) {
-	fprintf(stderr, "Bits per Pixel not 24\n");
+	ERROR("Bits per Pixel not 24\n");
 	goto error;
     }
 
@@ -691,14 +691,14 @@ VolumeRenderer::init_font(const char* filename)
     biSizeImage = width * height * 3 * sizeof(unsigned char);
     data = (unsigned char*) malloc(biSizeImage);
     if (data == NULL) {
-	fprintf(stderr, "Can't allocate memory for image\n");
+	ERROR("Can't allocate memory for image\n");
 	goto error;
     }
 
     /* seek to the actual data */
     fseek(f, bfOffBits, SEEK_SET);
     if (fread(data, biSizeImage, 1, f) != 1) {
-	fprintf(stderr, "Error loading file!\n");
+	ERROR("Error loading file!\n");
 	goto error;
     }
     fclose(f);

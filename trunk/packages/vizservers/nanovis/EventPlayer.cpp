@@ -164,7 +164,7 @@ void idle(void)
   }
   cur_event++;
 
-  fprintf(stderr, "% 6d %.6f\n", len, time_interval);
+  TRACE("% 6d %.6f\n", len, time_interval);
 }
 
 
@@ -180,29 +180,29 @@ int init_client(char* host, char* port, char* file){
     double interval;
     fscanf(fd, "%d %f %f %f %g\n", &type, param, param+1, param+2, &interval);
     event[i] = new Event(type, param, interval);
-    //fprintf(stderr, "%d %f %f %f\n", type, param[0], param[1], param[2]);
+    TRACE("%d %f %f %f\n", type, param[0], param[1], param[2]);
   }
   fclose(fd);
 
   socket_fd = connect_renderer(host, atoi(port), 100);
   if (socket_fd == -1) {
-     fprintf(stderr, "Could not connect to a server.\n");
-     return 1;
+      ERROR("Could not connect to a server.\n");
+      return 1;
   }
 
   return 0;
 }
 
-void help(const char *argv0)
+void 
+help(const char *argv0)
 {
-  fprintf(stderr,
-          "Syntax: %s addr port eventfile\n",
-          argv0);
-  exit(1);
+    TRACE("Syntax: %s addr port eventfile\n", argv0);
+    exit(1);
 }
 
 /* Program entry point */
-int main(int argc, char *argv[])
+int 
+main(int argc, char *argv[])
 {
     //parameters: host and port and event file
     if(argc!=4) help(argv[0]);

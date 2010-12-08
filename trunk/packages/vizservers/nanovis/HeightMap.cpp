@@ -39,7 +39,7 @@ HeightMap::HeightMap() :
     _visible(false),
     _scale(1.0f, 1.0f, 1.0f), 
     _centerPoint(0.0f, 0.0f, 0.0f),
-    heights_(NULL)
+    _heights(NULL)
 {
     _shader = new NvShader();
     _shader->loadFragmentProgram("heightcolor.cg", "main");
@@ -54,12 +54,13 @@ HeightMap::~HeightMap()
     if (_shader) {
         delete _shader;
     }
-
-    // TMP
-    //if (_tfPtr) delete _tfPtr;
+    if (_heights != NULL) {
+	free(_heights);
+    }
 }
 
-void HeightMap::render(graphics::RenderContext* renderContext)
+void 
+HeightMap::render(graphics::RenderContext* renderContext)
 {
     if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
         glDisable(GL_CULL_FACE);
@@ -137,7 +138,6 @@ void HeightMap::render(graphics::RenderContext* renderContext)
             cgGLDisableProfile(CG_PROFILE_FP30);
         }
     }
-    
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
@@ -172,6 +172,7 @@ HeightMap::createIndexBuffer(int xCount, int zCount, float* heights)
 {
     if (_indexBuffer != NULL) {
         delete [] _indexBuffer;
+	_indexBuffer = NULL;
     }
     _indexCount = (xCount - 1) * (zCount - 1) * 6;
     _indexBuffer = new int[_indexCount];
@@ -240,15 +241,19 @@ HeightMap::reset()
 {
     if (_vertexBufferObjectID) {
         glDeleteBuffers(1, &_vertexBufferObjectID);
-	_vertexBufferObjectID = 0;
+	_vertexBufferObjectID = NULL;
     }
     if (_textureBufferObjectID) {
         glDeleteBuffers(1, &_textureBufferObjectID);
-	_textureBufferObjectID = 0;
+	_textureBufferObjectID = NULL;
     }
     if (_contour != NULL) {
         delete _contour;
 	_contour = NULL;
+    }
+    if (_indexBuffer != NULL) {
+        delete [] _indexBuffer;
+	_indexBuffer = NULL;
     }
 }
 
@@ -258,7 +263,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     _vertexCount = xCount * yCount;
     reset();
     
-    heights_ = (float *)heights; 
+    _heights = (float *)heights; 
     float min, max;
     min = heights[0].y, max = heights[0].y;
 
@@ -301,7 +306,10 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     
     delete [] texcoord;
     
-    
+    if (_contour != NULL) {
+        delete _contour;
+	_contour = NULL;
+    }
     ContourLineFilter lineFilter;
     _contour = lineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
 
@@ -318,7 +326,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     //}
     //else
     //{
-    //printf("ERROR - HeightMap::setHeight\n");
+    //ERROR("HeightMap::setHeight\n");
     //}
 }
 
@@ -327,8 +335,8 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
                      int xNum, int yNum, float* heights)
 {
     _vertexCount = xNum * yNum;
-    xNum_ = xNum, yNum_ = yNum;
-    heights_ = heights; 
+    _xNum = xNum, _yNum = yNum;
+    _heights = heights; 
     reset();
     
     // Get the min/max of the heights. */
@@ -376,11 +384,12 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
         texcoord[i].set(0, 0, heights[i]);
     }
     
-    Vector3* heightMap = createHeightVertices(xMin, yMin, xMax, yMax, xNum, yNum, heights);
+    Vector3* map = createHeightVertices(xMin, yMin, xMax, yMax, xNum, yNum, 
+					heights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3 ), heightMap, 
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), map, 
         GL_STATIC_DRAW);
     glGenBuffers(1, &_textureBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
@@ -391,31 +400,21 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     delete [] texcoord;
     
     
+    if (_contour != NULL) {
+        delete _contour;
+	_contour = NULL;
+    }
     ContourLineFilter lineFilter;
     //lineFilter.transferFunction(_tfPtr);
-    _contour = lineFilter.create(0.0f, 1.0f, 10, heightMap, xNum, yNum);
+    _contour = lineFilter.create(0.0f, 1.0f, 10, map, xNum, yNum);
     
 #if TOPCONTOUR
     ContourLineFilter topLineFilter;
     topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heightMap, xNum, yNum);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, map, xNum, yNum);
 #endif
-
-
-    //if (heightMap)
-    //{
-    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xNum * yNum, 
-    // sizeof(Vector3) * xNum * yNum, heightMap, false);
-    if (_indexBuffer != NULL) {
-        free(_indexBuffer);
-	_indexBuffer = NULL;
-    }
     this->createIndexBuffer(xNum, yNum, heights);
-    //}
-    //else
-    //{
-    //printf("ERROR - HeightMap::setHeight\n");
-    //}
+    delete [] map;
 #endif
 }
 
@@ -423,7 +422,7 @@ Vector3*
 HeightMap::createHeightVertices(float xMin, float yMin, float xMax, 
 				float yMax, int xNum, int yNum, float* height)
 {
-    Vector3* vertices = (Vector3*) malloc(sizeof(Vector3) * xNum * yNum);
+    Vector3* vertices = new Vector3[xNum * yNum];
 
     Vector3* dstDataPtr = vertices;
     float* srcDataPtr = height;
@@ -449,7 +448,7 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
 void 
 HeightMap::MapToGrid(Grid *gridPtr)
 {
-    int count = xNum_ * yNum_;
+    int count = _xNum * _yNum;
 
     reset();
 
@@ -460,7 +459,7 @@ HeightMap::MapToGrid(Grid *gridPtr)
     float yScale = 1.0 / (gridPtr->yAxis.max() - gridPtr->yAxis.min());
     float *p, *q, *pend;
     float *normHeights = new float[count];
-    for (p = heights_, pend = p + count, q = normHeights; p < pend; p++, q++) {
+    for (p = _heights, pend = p + count, q = normHeights; p < pend; p++, q++) {
 	*q = (*p - gridPtr->yAxis.min()) * yScale;
     }
     Vector3 *t, *texcoord;
@@ -483,7 +482,7 @@ HeightMap::MapToGrid(Grid *gridPtr)
     zMax = (zAxis.max() - gridPtr->zAxis.min()) * zScale;
 
     Vector3* vertices;
-    vertices = createHeightVertices(xMin, zMin, xMax, zMax, xNum_, yNum_, 
+    vertices = createHeightVertices(xMin, zMin, xMax, zMax, _xNum, _yNum, 
 	normHeights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
@@ -497,20 +496,27 @@ HeightMap::MapToGrid(Grid *gridPtr)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     delete [] texcoord;
 
+    if (_contour != NULL) {
+        delete _contour;
+	_contour = NULL;
+    }
     ContourLineFilter lineFilter;
     //lineFilter.transferFunction(_tfPtr);
-    _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
+    _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, _xNum, _yNum);
     
 #if TOPCONTOUR
     ContourLineFilter topLineFilter;
     topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, vertices, xNum_, yNum_);
+    _topContour = topLineFilter.create(0.0f, 1.0f, 10, vertices, _xNum, _yNum);
 #endif
-    this->createIndexBuffer(xNum_, yNum_, normHeights);
+    this->createIndexBuffer(_xNum, _yNum, normHeights);
     delete [] normHeights;
+    delete [] vertices;
 }
 
-void HeightMap::render_topview(graphics::RenderContext* renderContext, int render_width, int render_height)
+void 
+HeightMap::render_topview(graphics::RenderContext* renderContext, 
+			  int render_width, int render_height)
 {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushAttrib(GL_VIEWPORT_BIT);

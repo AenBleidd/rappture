@@ -28,44 +28,44 @@
 { \
  GLenum status;  \
  status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);  \
- fprintf(stderr, "%x\n", status); \
+ TRACE("%x\n", status); \
  switch(status) {  \
  case GL_FRAMEBUFFER_COMPLETE_EXT:  \
-   fprintf(stderr,"framebuffer complete!\n"); \
+   TRACE("framebuffer complete!\n"); \
    break;  \
  case GL_FRAMEBUFFER_UNSUPPORTED_EXT:  \
-   fprintf(stderr,"framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n"); \
+   TRACE("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n"); \
     /* you gotta choose different formats */  \
    assert(0);  \
    break;  \
  case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:  \
-   fprintf(stderr,"framebuffer INCOMPLETE_ATTACHMENT\n"); \
+   TRACE("framebuffer INCOMPLETE_ATTACHMENT\n"); \
    break;  \
  case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:  \
-   fprintf(stderr,"framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n"); \
+   TRACE("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n"); \
    break;  \
  case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:  \
-   fprintf(stderr,"framebuffer FRAMEBUFFER_DIMENSIONS\n");\
+   TRACE("framebuffer FRAMEBUFFER_DIMENSIONS\n");\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_FORMATS\n");\
+   TRACE("framebuffer INCOMPLETE_FORMATS\n");\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_DRAW_BUFFER\n");\
+   TRACE("framebuffer INCOMPLETE_DRAW_BUFFER\n");\
    break; \
  case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT: \
-   fprintf(stderr,"framebuffer INCOMPLETE_READ_BUFFER\n");\
+   TRACE("framebuffer INCOMPLETE_READ_BUFFER\n");\
    break; \
  case GL_FRAMEBUFFER_BINDING_EXT: \
-   fprintf(stderr,"framebuffer BINDING_EXT\n");\
+   TRACE("framebuffer BINDING_EXT\n");\
    break; \
 /* 
  *  case GL_FRAMEBUFFER_STATUS_ERROR_EXT: \
- *     fprintf(stderr,"framebuffer STATUS_ERROR\n");\
+ *     TRACE("framebuffer STATUS_ERROR\n");\
  *        break; \
  *        */ \
  default: \
-   fprintf(stderr,"unknown framebuffer error %d\n", status);\
+   ERROR("unknown framebuffer error %d\n", status);\
    /* programming error; will fail on all hardware */ \
    assert(0); \
  }\
@@ -86,7 +86,7 @@
         break;                                                \
       default:                                                \
         /* programming error; will fail on all hardware */    \
-	fprintf(stderr, "programming error\n");               \
+	ERROR(stderr, "programming error\n");               \
         assert(0);                                            \
      }	                                                      \
    }
