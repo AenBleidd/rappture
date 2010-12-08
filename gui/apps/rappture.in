@@ -13,8 +13,6 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-
-RAPPTURE_INSTALL_DIR=@prefix@
-
-. $RAPPTURE_INSTALL_DIR/bin/rappture.env
-exec $RAPPTURE_INSTALL_DIR/bin/driver $*
+dir=`dirname $0`
+. $dir/rappture.env
+exec $dir/driver $*
