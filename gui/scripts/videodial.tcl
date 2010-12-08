@@ -63,13 +63,13 @@ itcl::class Rappture::Videodial {
 
     public method current {value}
     public method clear {}
-    public method color {value}
-    public method mark {type args}
+    public method mark {args}
     public method bball {}
 
     protected method _bindings {type args}
     protected method _redraw {}
     protected method _marker {tag action x y}
+    protected method _setmark {type args}
     protected method _move {action x y}
     protected method _knob {x y}
     protected method _navigate {offset}
@@ -114,6 +114,8 @@ itk::usual Videodial {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Videodial::constructor {args} {
 
+    # bind $itk_component(hull) <<Frame>> [itcl::code $this _updateCurrent]
+
     # ----------------------------------------------------------------------
     # controls for the major timeline.
     # ----------------------------------------------------------------------
@@ -136,7 +138,7 @@ itcl::body Rappture::Videodial::constructor {args} {
         [list $itk_component(majordial) configure -cursor ""]
 
     # ----------------------------------------------------------------------
-    # controls for the major timeline.
+    # controls for the minor timeline.
     # ----------------------------------------------------------------------
     itk_component add minordial {
         canvas $itk_interior.minordial -background blue
@@ -164,8 +166,11 @@ itcl::body Rappture::Videodial::constructor {args} {
 
     eval itk_initialize $args
 
-#    $itk_component(majordial) configure -background green
-#    $itk_component(minordial) configure -background cyan
+    $itk_component(majordial) configure -background green
+    $itk_component(minordial) configure -background cyan
+
+    #$itk_component(majordial) configure -relief sunken -borderwidth 1
+    #$itk_component(minordial) configure -relief sunken -borderwidth 1
 
     _fixSize
     _fixOffsets
@@ -192,10 +197,7 @@ itcl::body Rappture::Videodial::current {value} {
         return
     }
     _current [ms2rel $value]
-    set framenum [expr int($value)]
-    _see "frame$framenum"
-    mark current $framenum
-    event generate $itk_component(hull) <<Value>>
+    # event generate $itk_component(hull) <<Value>>
 }
 
 # ----------------------------------------------------------------------
@@ -214,33 +216,22 @@ itcl::body Rappture::Videodial::_current {relval} {
         set relval 1.0
     }
     set _current $relval
+
     after cancel [itcl::code $this _draw_major_timeline]
     after idle [itcl::code $this _draw_major_timeline]
+
+    # update the current marker and move the canvas so current is centered
+    set framenum [expr round([rel2ms $_current])]
+    #_see "frame$framenum"
+    #mark current $framenum
+    after idle [itcl::code $this _see "frame$framenum"]
+    after idle [_setmark current $framenum]
+
+    # update the upvar variable
     if { $_variable != "" } {
         upvar #0 $_variable var
-        set var [rel2ms $_current]
-        puts stderr "var = $var"
+        set var $framenum
     }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: color <value>
-#
-# Clients use this to query the color associated with a <value>
-# along the dial.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::color {value} {
-    if {"" != $_spectrum} {
-        set frac [expr {double($value-${_min})/(${_max}-${_min})}]
-        set color [$_spectrum get $frac]
-    } else {
-        if {$value == $_current} {
-            set color $_activecolor
-        } else {
-            set color $itk_option(-linecolor)
-        }
-    }
-    return $color
 }
 
 # ----------------------------------------------------------------------
@@ -254,20 +245,61 @@ itcl::body Rappture::Videodial::_bindings {type args} {
             bind $itk_component(minordial) <ButtonPress-1> [itcl::code $this _marker $tag click %x %y]
             bind $itk_component(minordial) <B1-Motion> [itcl::code $this _marker $tag drag %x %y]
             bind $itk_component(minordial) <ButtonRelease-1> [itcl::code $this _marker $tag release %x %y]
+            $itk_component(minordial) configure -cursor hand2
         }
         "timeline" {
             bind $itk_component(minordial) <ButtonPress-1> [itcl::code $this _move click %x %y]
             bind $itk_component(minordial) <B1-Motion> [itcl::code $this _move drag %x %y]
             bind $itk_component(minordial) <ButtonRelease-1> [itcl::code $this _move release %x %y]
+            $itk_component(minordial) configure -cursor ""
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: mark <type> ?[-xcoord|-tag]? <where>
+# USAGE: mark <property> <args>
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial::mark {property args} {
+    set retval 0
+
+    switch -- $property {
+        add {
+            set retval [eval _setmark $args]
+        }
+        remove {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"mark remove <type>\""
+            }
+            set type [lindex $args 0]
+            if {[info exists _marks($type)]} {
+                $itk_component(minordial) delete $type
+                array unset _marks $type
+            }
+        }
+        position {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"mark position <type>\""
+            }
+            set type [lindex $args 0]
+            if {[info exists _marks($type)]} {
+                return $_marks($type)
+            }
+            set retval [expr ${_min}-1]
+        }
+        default {
+            error "bad value \"$property\": should be one of add, remove, position"
+        }
+    }
+
+    return $retval
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _setmark <type> ?[-xcoord|-tag]? <where>
 #
 # Clients use this to add a mark to the timeline
-#   type can be any one of start, end
+#   type can be any one of loopstart, loopend, particle, arrow
 #   where is interpreted based on the preceeding flag if available.
 #       in the default case, <where> is interpreted as a frame number
 #       or "current". if the -xcoord flag is provided, where is
@@ -277,7 +309,7 @@ itcl::body Rappture::Videodial::_bindings {type args} {
 #       the provided x coordinate, and is not associated with any
 #       frame. It's purpose is mainly for <B1-Motion> events.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::mark {type args} {
+itcl::body Rappture::Videodial::_setmark {type args} {
 
     set c $itk_component(minordial)
 
@@ -298,10 +330,19 @@ itcl::body Rappture::Videodial::mark {type args} {
     if {$largs == 1} {
         set where [lindex $args 0]
         if {[string compare "current" $where] == 0} {
-            set where [expr int([rel2ms ${_current}])]
+            set where [expr round([rel2ms ${_current}])]
         } elseif {[string is integer $where] == 0} {
             error "bad value \"$where\": while trying to place marker \"$type\": <where> should be an integer value"
         }
+
+        # restrict <where> to valid frames between min and max
+        if {$where < ${_min}} {
+            set where ${_min}
+        }
+        if {$where > ${_max}} {
+            set where ${_max}
+        }
+
         set coords [$c coords "frame$where"]
         if {![llength $coords]} {
             # frame marker does not exist
@@ -322,7 +363,6 @@ itcl::body Rappture::Videodial::mark {type args} {
             }
             "-tag" {
                 set id [lindex $args 1]
-                foreach {frx0 fry0 frx1 fry1} [$c coords $id] break
                 # find the frame# tag to associate with the marker with
                 if {[regexp {frame([0-9]+)} $id] == 0} {
                     foreach tags [$c gettags $id] {
@@ -336,6 +376,16 @@ itcl::body Rappture::Videodial::mark {type args} {
                 }
                 # store the frame number in where
                 regexp {frame([0-9]+)} $where match where
+
+                # restrict <where> to valid frames between min and max
+                if {$where < ${_min}} {
+                    set where ${_min}
+                }
+                if {$where > ${_max}} {
+                    set where ${_max}
+                }
+
+                foreach {frx0 fry0 frx1 fry1} [$c coords frame$where] break
             }
             default {
                 error "bad value \"$flag\": should be -xcoord or -tag"
@@ -348,18 +398,18 @@ itcl::body Rappture::Videodial::mark {type args} {
         error "wrong # args: should be \"mark <type> ?-xcoord? <where>\""
     }
 
-    # place the marker
+    # add/remove the marker
 
     switch -glob -- $type {
-        "start" {
+        "loopstart" {
             # add start marker
 
-            set smx0 $frx0                              ;# start marker x0
-            set smy0 $cy0                               ;# start marker y0
+            set smx0 $frx0                              ;# loopstart marker x0
+            set smy0 $cy0                               ;# loopstart marker y0
 
             # polygon's outline adds a border to only one
             # side of the object? so we have weird +1 in
-            # the triangle base in start marker
+            # the triangle base in loopstart marker
 
             # marker stem is 3 pixels thick
             set smx1 [expr {$smx0+1}]                   ;# triangle top x
@@ -388,15 +438,23 @@ itcl::body Rappture::Videodial::mark {type args} {
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
+
+                # make sure loopstart marker is before loopend marker
+                if {[info exists _marks(loopend)]} {
+                    set endFrNum $_marks(loopend)
+                    if {$endFrNum < $where} {
+                        _setmark loopend -tag frame[expr $where+1]
+                    }
+                }
             }
 
             _fixMinorSize
         }
-        "end" {
-            # add end marker
+        "loopend" {
+            # add loopend marker
 
-            set emx0 $frx0                              ;# end marker x0
-            set emy0 $cy0                               ;# end marker y0
+            set emx0 $frx0                              ;# loopend marker x0
+            set emy0 $cy0                               ;# loopend marker y0
 
             set emx1 [expr {$emx0-1}]                   ;# triangle top x
             set emy1 [expr {$emy0-10}]                  ;# triangle top y
@@ -424,6 +482,14 @@ itcl::body Rappture::Videodial::mark {type args} {
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
+
+                # make sure loopend marker is after loopstart marker
+                if {[info exists _marks(loopstart)]} {
+                    set startFrNum $_marks(loopstart)
+                    if {$startFrNum > $where} {
+                        _setmark loopstart -tag frame[expr $where-1]
+                    }
+                }
             }
 
             _fixMinorSize
@@ -482,7 +548,7 @@ itcl::body Rappture::Videodial::mark {type args} {
             set cmx1 [expr {$cmx0+5}]                   ;# lower right diagonal edge x
             set cmy1 [expr {$cmy0-5}]                   ;# lower right diagonal edge y
             set cmx2 $cmx1                              ;# right top x
-            set cmy2 [expr {$cmy1-5}]                    ;# right top y
+            set cmy2 [expr {$cmy1-5}]                   ;# right top y
             set cmx3 [expr {$cmx0-5}]                   ;# left top x
             set cmy3 $cmy2                              ;# left top y
             set cmx4 $cmx3                              ;# lower left diagonal edge x
@@ -505,7 +571,7 @@ itcl::body Rappture::Videodial::mark {type args} {
 
         }
         default {
-            error "bad value \"$type\": should be \"start\" or \"end\""
+            error "bad value \"$type\": should be \"loopstart\" or \"loopend\""
         }
     }
     return
@@ -525,7 +591,8 @@ itcl::body Rappture::Videodial::_draw_major_timeline {} {
     set h [winfo height $c]
     set p [winfo pixels $c $itk_option(-padding)]
     set t [expr {$itk_option(-thickness)+1}]
-    set ay1 [expr {$h-3}]
+    # FIXME: hack to get the reduce spacing in widget
+    set y1 [expr {$h-2}]
 
     if {"" != $_knob} {
         set kw [image width $_knob]
@@ -538,66 +605,66 @@ itcl::body Rappture::Videodial::_draw_major_timeline {} {
             n@top - nw@top - ne@top {
                 set extra [expr {$t-$kh}]
                 if {$extra < 0} {set extra 0}
-                set ay1 [expr {$ay1-$extra}]
+                set y1 [expr {$y1-$extra}]
             }
             n@middle - nw@middle - ne@middle {
                 set extra [expr {int(ceil($kh-0.5*$t))}]
                 if {$extra < 0} {set extra 0}
-                set ay1 [expr {$ay1-$extra}]
+                set y1 [expr {$y1-$extra}]
             }
             n@bottom - nw@bottom - ne@bottom {
-               set ay1 [expr {$ay1-$kh}]
+               set y1 [expr {$y1-$kh}]
             }
 
             e@top - w@top - center@top -
             e@bottom - w@bottom - center@bottom {
                 set extra [expr {int(ceil(0.5*$kh))}]
-                set ay1 [expr {$ay1-$extra}]
+                set y1 [expr {$y1-$extra}]
             }
             e@middle - w@middle - center@middle {
                 set extra [expr {int(ceil(0.5*($kh-$t)))}]
                 if {$extra < 0} {set extra 0}
-                set ay1 [expr {$ay1-$extra}]
+                set y1 [expr {$y1-$extra}]
             }
 
             s@top - sw@top - se@top -
             s@middle - sw@middle - se@middle -
             s@bottom - sw@bottom - se@bottom {
-                set ay1 [expr {$ay1-1}]
+                set y1 [expr {$y1-1}]
             }
         }
     }
-    set ay0 [expr {$ay1-$t}]
-    set ax0 [expr {$p+1}]
-    set ax1 [expr {$w-$_vwidth-$p-4}]
-
+    set y0 [expr {$y1-$t}]
+    set x0 [expr {$p+1}]
+    set x1 [expr {$w-$_vwidth-$p-4}]
 
     # draw the background rectangle for the major time line
-    $c create rectangle $ax0 $ay0 $ax1 $ay1 \
+    $c create rectangle $x0 $y0 $x1 $y1 \
         -outline $itk_option(-dialoutlinecolor) \
-        -fill $itk_option(-dialfillcolor)
+        -fill $itk_option(-dialfillcolor) \
+        -tags "majorbg"
 
     # draw the optional progress bar for the major time line,
     # from start to current
     if {"" != $itk_option(-dialprogresscolor) } {
-        set xx1 [expr {$_current*($ax1-$ax0) + $ax0}]
-        $c create rectangle [expr {$ax0+1}] [expr {$ay0+3}] $xx1 [expr {$ay1-2}] \
+        set xx1 [expr {$_current*($x1-$x0) + $x0}]
+        $c create rectangle [expr {$x0+1}] [expr {$y0+3}] $xx1 [expr {$y1-2}] \
             -outline "" -fill $itk_option(-dialprogresscolor)
     }
 
     regexp {([nsew]+|center)@} $itk_option(-knobposition) match anchor
     switch -glob -- $itk_option(-knobposition) {
-        *@top    { set kpos $ay0 }
-        *@middle { set kpos [expr {int(ceil(0.5*($ay1+$ay0)))}] }
-        *@bottom { set kpos $ay1 }
+        *@top    { set kpos $y0 }
+        *@middle { set kpos [expr {int(ceil(0.5*($y1+$y0)))}] }
+        *@bottom { set kpos $y1 }
     }
 
-    set x [expr {$_current*($ax1-$ax0) + $ax0}]
+    set x [expr {$_current*($x1-$x0) + $x0}]
 
     set color $_activecolor
     set thick 3
     if {"" != $color} {
-        $c create line $x [expr {$ay0+1}] $x $ay1 -fill $color -width $thick
+        $c create line $x [expr {$y0+1}] $x $y1 -fill $color -width $thick
     }
 
     $c create image $x $kpos -anchor $anchor -image $_knob -tags "knob"
@@ -638,14 +705,14 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     set h [winfo height $c]
     set p [winfo pixels $c $itk_option(-padding)]
     set t [expr {$itk_option(-thickness)+1}]
-    set cy1 [expr {$h-1}]
-    set cy0 [expr {$cy1-$t}]
-    set cx0 [expr {$p+1}]
-    set cx1 [expr {$w-$_vwidth-$p-4}]
+    set y1 [expr {$h-1}]
+    set y0 [expr {$y1-$t}]
+    set x0 [expr {$p+1}]
+    set x1 [expr {$w-$_vwidth-$p-4}]
 
 
     # draw the background rectangle for the minor time line
-    $c create rectangle $cx0 $cy0 $cx1 $cy1 \
+    $c create rectangle $x0 $y0 $x1 $y1 \
         -outline $itk_option(-dialoutlinecolor) \
         -fill $itk_option(-dialfillcolor) \
         -tags "imbox"
@@ -654,18 +721,16 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     set imw 1.0                                 ;# intermediate mark width
 
     set imsh [expr {$t/3.0}]                    ;# intermediate mark short height
-    set imsy0 [expr {$cy0+(($t-$imsh)/2.0)}]    ;# precalc'd imark short y0 coord
+    set imsy0 [expr {$y0+(($t-$imsh)/2.0)}]     ;# precalc'd imark short y0 coord
     set imsy1 [expr {$imsy0+$imsh}]             ;# precalc'd imark short y1 coord
 
     set imlh [expr {$t*2.0/3.0}]                ;# intermediate mark long height
-    set imly0 [expr {$cy0+(($t-$imlh)/2.0)}]    ;# precalc'd imark long y0 coord
+    set imly0 [expr {$y0+(($t-$imlh)/2.0)}]     ;# precalc'd imark long y0 coord
     set imly1 [expr {$imly0+$imlh}]             ;# precalc'd imark long y1 coord
 
-    set imty [expr {$cy0-5}]                    ;# height of marker value
+    set imty [expr {$y0-5}]                     ;# height of marker value
 
-#    set _imspace 10                             ;# space between imarks
-
-    set imx $cx0
+    set imx $x0
     for {set i [expr {int(${_min})}]} {$i <= ${_max}} {incr i} {
         if {($i%${_majortick}) == 0} {
             # draw major tick
@@ -697,13 +762,13 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     if {![llength $box]} {
         set box [list 0 0 0 0]
     }
-    foreach {cx0 cy0 cx1 cy1} $box break
+    foreach {x0 y0 x1 y1} $box break
     $c coords "imbox" $box
 
     # add any marks that the user previously specified
     foreach n [array names _marks] {
         # mark $n -tag $_marks($n)
-        mark $n $_marks($n)
+        _setmark $n $_marks($n)
     }
 
     _fixMinorSize
@@ -731,7 +796,7 @@ itcl::body Rappture::Videodial::_fixMinorSize {} {
     }
 
     foreach {x0 y0 x1 y1} $box break
-    set h [expr $y1-$y0+1]                        ;# add a 1 pixel buffer
+    set h [expr $y1-$y0]
 
     $c configure -height $h -scrollregion $box -xscrollincrement 1p
 }
@@ -797,7 +862,7 @@ itcl::body Rappture::Videodial::_marker {tag action x y} {
         "click" {
         }
         "drag" {
-            mark $tag -xcoord $x
+            _setmark $tag -xcoord $x
             # if we are too close to the edge, scroll the canvas.
             # $c xview scroll $dist "unit"
         }
@@ -821,7 +886,7 @@ itcl::body Rappture::Videodial::_marker {tag action x y} {
                 error "could not find an intermediate mark to snap marker to"
             }
 
-            mark $tag -tag $id
+            _setmark $tag -tag $id
 
             # take care of cases where the mouse leaves the marker's boundries
             # before the button-1 has been released. we check if the last
@@ -862,7 +927,7 @@ itcl::body Rappture::Videodial::_move {action x y} {
         }
         "drag" {
             set c $itk_component(minordial)
-            set dist [expr ${_click(x)}-$x]
+            set dist [expr $_click(x)-$x]
             $c xview scroll $dist "units"
             set _click(x) $x
             set _click(y) $y
@@ -965,7 +1030,7 @@ itcl::body Rappture::Videodial::_fixSize {} {
                 set h [expr {$h + $kh}]
             }
             e@middle - w@middle - center@middle {
-                set h [expr {(($h > $kh) ? $h : $kh) + 1}]
+                set h [expr {(($h > $kh) ? $h : ($kh+1))}]
             }
             n@middle - ne@middle - nw@middle -
             s@middle - se@middle - sw@middle {
@@ -975,7 +1040,8 @@ itcl::body Rappture::Videodial::_fixSize {} {
             }
         }
     }
-    incr h 5
+    # FIXME: hack to get the reduce spacing in widget
+    incr h -1
 
     set w [winfo pixels $itk_component(hull) $itk_option(-length)]
 

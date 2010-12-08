@@ -17,6 +17,8 @@ itcl::class Rappture::Switch {
 
     itk_option define -oncolor onColor Color "#00cc00"
     itk_option define -state state State "normal"
+    itk_option define -showimage showimage Showimage "true"
+    itk_option define -showtext showtext Showtext "true"
 
     constructor {args} { # defined below }
     public method value {args}
@@ -24,7 +26,7 @@ itcl::class Rappture::Switch {
     private method _toggle {args}
     private variable _value 0  ;# value for this widget
 }
-                                                                                
+
 itk::usual Switch {
     keep -cursor -background
 }
@@ -81,14 +83,14 @@ itcl::body Rappture::Switch::value {args} {
 }
 
 # ----------------------------------------------------------------------
-# _toggle 
+# _toggle
 #
-#	Use internally to convert the toggled button into the
-#	proper boolean format.  Yes, right now it's hardcoded to 
-#	yes/no.  But in the future it could be some other text.
+#        Use internally to convert the toggled button into the
+#        proper boolean format.  Yes, right now it's hardcoded to 
+#        yes/no.  But in the future it could be some other text.
 #
-#	Can't use old "value" method because _value is already set
-#	be the widget and doesn't pass the value on the command line.
+#        Can't use old "value" method because _value is already set
+#        be the widget and doesn't pass the value on the command line.
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::Switch::_toggle {} {
@@ -98,15 +100,26 @@ itcl::body Rappture::Switch::_toggle {} {
 }
 
 itcl::body Rappture::Switch::updateText {} {
+    set image ""
+    set text ""
     if { $_value } {
-        $itk_component(button) configure -text "yes" \
-            -image [Rappture::icon cbon] 
+        if {$itk_option(-showimage)} {
+            set image "[Rappture::icon cbon]"
+        }
+        if {$itk_option(-showtext)} {
+            set text "\"yes\""
+        }
     } else {
-        $itk_component(button) configure -text "no" \
-            -image [Rappture::icon cboff] 
+        if {$itk_option(-showimage)} {
+            set image "[Rappture::icon cboff]"
+        }
+        if {$itk_option(-showtext)} {
+            set text "\"no\""
+        }
     }
+    $itk_component(button) configure -text $text -image $image
 }
-   
+
 
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -oncolor
@@ -124,4 +137,24 @@ itcl::configbody Rappture::Switch::state {
         error "bad value \"$itk_option(-state)\": should be [join $valid {, }]"
     }
     $itk_component(button) configure -state $itk_option(-state)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -showimage
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Switch::showimage {
+    if {[string is boolean $itk_option(-showimage)] != 1} {
+        error "bad value \"$itk_option(-showimage)\": should be a boolean"
+    }
+    updateText
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -showtext
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Switch::showtext {
+    if {[string is boolean $itk_option(-showtext)] != 1} {
+        error "bad value \"$itk_option(-showtext)\": should be a boolean"
+    }
+    updateText
 }

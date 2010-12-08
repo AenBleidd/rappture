@@ -19,46 +19,63 @@ itcl::class Rappture::VideoParticle {
     inherit itk::Widget
 
     itk_option define -halo halo Halo "10"
-    itk_option define -name name Name ""
     itk_option define -color color Color "green"
     itk_option define -fncallback fncallback Fncallback ""
+    itk_option define -bindentercb bindentercb Bindentercb ""
+    itk_option define -bindleavecb bindleavecb Bindleavecb ""
     itk_option define -trajcallback trajcallback Trajcallback ""
+    itk_option define -px2dist px2dist Px2dist ""
+    itk_option define -units units Units "m/s"
+    itk_option define -bindings bindings Bindings "enable"
 
-    constructor { args } {
+    constructor { name win args } {
         # defined below
     }
     destructor {
         # defined below
     }
 
-    public method Add {args}
     public method Delete {args}
     public method Show {args}
     public method Hide {args}
     public method Link {args}
-    public method Coords {}
-    public method Frame {}
+    public method Coords {args}
+    public method Frame {args}
+    public method drawVectors {}
+    public method next {args}
+    public method prev {args}
+    public method name {}
 
     public variable  fncallback ""      ;# framenumber callback - tells what frame we are on
+    public variable  bindentercb ""     ;# enter binding callback - call this when entering the object
+    public variable  bindleavecb ""     ;# leave binding callback - call this when leaving the object
     public variable  trajcallback ""    ;# trajectory callback - calculates and draws trajectory
 
     public method Move {status x y}
     public method Menu {args}
 
-    public method drawVectors {args}
-    public method next {args}
-    public method prev {args}
+    protected method Enter {}
+    protected method Leave {}
+    protected method CatchEvent {event}
+
+    protected method _fixValue {args}
+    protected method _fixPx2Dist {px2dist}
+    protected method _fixBindings {status}
 
     private variable _canvas        ""  ;# canvas which owns the particle
     private variable _name          ""  ;# id of the particle
     private variable _color         ""  ;# color of the particle
-    private variable _framexy       ""  ;# list of frame numbers and coords
-                                        ;# where the particle lives
+    private variable _frame          0  ;# frame number where this object lives
+    private variable _coords        ""  ;# list of coords where the object lives
     private variable _halo           0  ;# about the diameter of the particle
     private variable _menu          ""  ;# particle controls balloon widget
+    private variable _x              0  ;# x coord when "pressed" for motion
+    private variable _y              0  ;# y coord when "pressed" for motion
     private variable _nextnode      ""  ;# particle this particle points to
     private variable _prevnode      ""  ;# particle this particle is pointed to by
     private variable _link          ""  ;# tag of vector linking this and nextnode
+    private variable _units         ""  ;#
+    private variable _px2dist       ""  ;# variable associated with -px2dist
 }
 
 itk::usual VideoParticle {
@@ -69,7 +86,10 @@ itk::usual VideoParticle {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::constructor {win args} {
+itcl::body Rappture::VideoParticle::constructor {name win args} {
+
+    set _name $name
+    set _canvas $win
 
     # setup the particle control menu
     set _menu $itk_component(hull).particlecontrols
@@ -95,54 +115,19 @@ itcl::body Rappture::VideoParticle::constructor {win args} {
 
     grid columnconfigure $controls 0  -weight 1
 
-    set _canvas $win
-
     # finish configuring the particle
     eval itk_initialize $args
+
+    set _frame [uplevel \#0 $fncallback]
+
+    bind ${_name}-FrameEvent <<Frame>> [itcl::code $this CatchEvent Frame]
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoParticle::destructor {} {
-}
-
-# ----------------------------------------------------------------------
-# Add - add attributes to the particle
-#   frame <frameNum> <x> <y> - add a frame and location
-# ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::Add {args} {
-    set option [lindex $args 0]
-    switch -- $option {
-        "frame" {
-            if {[llength $args] == 4} {
-                foreach { frNum x y } [lrange $args 1 end] break
-                if {([string is integer $frNum] != 1)} {
-                    error "bad value: \"$frNum\": frame number should be an integer"
-                }
-                if {([string is double $x] != 1)} {
-                    error "bad value: \"$frNum\": x coordinate should be a number"
-                }
-                if {([string is double $y] != 1)} {
-                    error "bad value: \"$frNum\": y coordinate should be a number"
-                }
-                # if the particle is alread in the frame,
-                # update it's x,y coords. othrewise add it.
-                set idx [lsearch ${_framexy} $frNum]
-                if {$idx == -1} {
-                    lappend _framexy $frNum [list $x $y]
-                } else {
-                    incr idx
-                    set _framexy [lreplace ${_framexy} $idx $idx [list $x $y]]
-                }
-            } else {
-                error "wrong # args: should be \"frame <frameNumber> <x> <y>\""
-            }
-        }
-        default {
-            error "bad option \"$option\": should be frame."
-        }
-    }
+    configure -px2dist ""  ;# remove variable trace
 }
 
 # ----------------------------------------------------------------------
@@ -152,8 +137,7 @@ itcl::body Rappture::VideoParticle::Delete {args} {
 
     Menu deactivate
 
-    set _framexy ""
-    Hide particle
+    Hide object
 
     # delete the vectors originating from this particle
     if {[string compare "" ${_nextnode}] != 0} {
@@ -168,6 +152,43 @@ itcl::body Rappture::VideoParticle::Delete {args} {
     }
 }
 
+
+# ----------------------------------------------------------------------
+#   Enter - bindings if the mouse enters the object's space
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::Enter {} {
+    uplevel \#0 $bindentercb
+}
+
+
+# ----------------------------------------------------------------------
+#   Leave - bindings if the mouse leaves the object's space
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::Leave {} {
+    uplevel \#0 $bindleavecb
+}
+
+
+# ----------------------------------------------------------------------
+#   CatchEvent - bindings for caught events
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::CatchEvent {event} {
+    switch -- $event {
+        "Frame" {
+            if {[uplevel \#0 $fncallback] == ${_frame}} {
+                ${_canvas} itemconfigure ${_name}-particle -fill red
+            } else {
+                ${_canvas} itemconfigure ${_name}-particle -fill ${_color}
+            }
+        }
+        default {
+            error "bad event \"$event\": should be one of Frame."
+        }
+
+    }
+}
+
+
 # ----------------------------------------------------------------------
 # Show - draw the particle
 #   particle - draw the particle on the canvas
@@ -176,20 +197,20 @@ itcl::body Rappture::VideoParticle::Delete {args} {
 itcl::body Rappture::VideoParticle::Show {args} {
     set option [lindex $args 0]
     switch -- $option {
-        "particle" {
-            foreach {x y} [lindex ${_framexy} 1] break
+        "object" {
+            foreach {x y} ${_coords} break
             set coords [list [expr $x-${_halo}] [expr $y-${_halo}] \
                              [expr $x+${_halo}] [expr $y+${_halo}]]
             ${_canvas} create oval $coords \
                 -fill ${_color} \
                 -width 0 \
-                -tags "particle ${_name}"
+                -tags "particle ${_name} ${_name}-particle"
         }
-        name {
+        "name" {
 
         }
         default {
-            error "bad option \"$option\": should be \"frame <frameNumber>\"."
+            error "bad option \"$option\": should be one of object, name."
         }
     }
 }
@@ -202,44 +223,46 @@ itcl::body Rappture::VideoParticle::Show {args} {
 itcl::body Rappture::VideoParticle::Hide {args} {
     set option [lindex $args 0]
     switch -- $option {
-        "particle" {
+        "object" {
             if {[llength $args] != 1} {
                 error "wrong # args: should be \"particle\""
             }
-            puts "hiding ${_name}"
             ${_canvas} delete "${_name}"
         }
-        name {
+        "name" {
 
         }
         default {
-            error "bad option \"$option\": should be \"particle or name\"."
+            error "bad option \"$option\": should be one of object, name."
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# Move - move the particle to a new location
+# Move - move the object to a new location
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoParticle::Move {status x y} {
     switch -- $status {
         "press" {
+            set _x $x
+            set _y $y
         }
         "motion" {
+            ${_canvas} move ${_name} [expr $x-${_x}] [expr $y-${_y}]
+            foreach {x0 y0 x1 y1} [${_canvas} coords ${_name}-particle] break
+            set _coords [list [expr $x0+${_halo}] [expr $y0+${_halo}]]
+            set _x $x
+            set _y $y
+            drawVectors
+            if {[string compare "" ${_prevnode}] != 0} {
+                ${_prevnode} drawVectors
+            }
         }
         "release" {
         }
         default {
             error "bad option \"$option\": should be one of press, motion, release."
         }
-    }
-    set coords [list [expr $x-${_halo}] [expr $y-${_halo}] \
-                     [expr $x+${_halo}] [expr $y+${_halo}]]
-    eval ${_canvas} coords ${_name} $coords
-    set _framexy [lreplace ${_framexy} 1 1 [list $x $y]]
-    drawVectors
-    if {[string compare "" ${_prevnode}] != 0} {
-        ${_prevnode} drawVectors
     }
 }
 
@@ -273,8 +296,6 @@ itcl::body Rappture::VideoParticle::Menu {args} {
             error "bad option \"$option\": should be one of activate, deactivate."
         }
     }
-
-
 }
 
 # ----------------------------------------------------------------------
@@ -292,28 +313,63 @@ itcl::body Rappture::VideoParticle::Link {args} {
 # drawVectors - draw vectors from this particle
 #               to all particles it is linked to.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::drawVectors {args} {
+itcl::body Rappture::VideoParticle::drawVectors {} {
 
     if {[string compare "" $trajcallback] != 0} {
-        uplevel \#0 $trajcallback $this ${_nextnode}
+        set _link [uplevel \#0 $trajcallback $this ${_nextnode}]
     }
 }
 
 
 # ----------------------------------------------------------------------
-# Coords - return the x and y coordinates as a list
-#          for the first frame this particle appears in
+#   Coords ?<x0> <y0>? - update the coordinates of this object
 # ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::Coords {} {
-    return [lindex ${_framexy} 1]
+itcl::body Rappture::VideoParticle::Coords {args} {
+    if {[llength $args] == 0} {
+        return ${_coords}
+    } elseif {[llength $args] == 1} {
+        foreach {x0 y0} [lindex $args 0] break
+    } elseif {[llength $args] == 2} {
+        foreach {x0 y0} $args break
+    } else {
+        error "wrong # args: should be \"Coords ?<x0> <y0>?\""
+    }
+
+    if {([string is double $x0] != 1)} {
+        error "bad value: \"$x0\": x coordinate should be a double"
+    }
+    if {([string is double $y0] != 1)} {
+        error "bad value: \"$y0\": y coordinate should be a double"
+    }
+
+    set _coords [list $x0 $y0]
+    set coords [list [expr $x0-${_halo}] [expr $y0-${_halo}] \
+                     [expr $x0+${_halo}] [expr $y0+${_halo}]]
+
+    if {[llength [${_canvas} find withtag ${_name}-particle]] > 0} {
+        eval ${_canvas} coords ${_name}-particle $coords
+    }
+
+    _fixValue
+    return ${_coords}
 }
 
 # ----------------------------------------------------------------------
-# Frame - return the frame this particle appears in
+#   Frame ?<frameNum>? - update the frame this object is in
 # ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::Frame {} {
-    return [lindex ${_framexy} 0]
+itcl::body Rappture::VideoParticle::Frame {args} {
+    if {[llength $args] == 1} {
+        set val [lindex $args 0]
+        if {([string is integer $val] != 1)} {
+            error "bad value: \"$val\": frame number should be an integer"
+        }
+        set _frame $val
+    } elseif {[llength $args] != 0} {
+        error "wrong # args: should be \"Frame ?<number>?\""
+    }
+    return ${_frame}
 }
+
 
 # ----------------------------------------------------------------------
 # next - get/set the next particle
@@ -338,6 +394,86 @@ itcl::body Rappture::VideoParticle::prev {args} {
     return ${_prevnode}
 }
 
+# ----------------------------------------------------------------------
+# name - get the name of the particle
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::name {} {
+    return ${_name}
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixValue
+# Invoked automatically whenever the -px2dist associated with this
+# widget is modified.  Copies the value to the current settings for
+# the widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::_fixValue {args} {
+    if {"" == $itk_option(-px2dist)} {
+        return
+    }
+    upvar #0 $itk_option(-px2dist) var
+
+    drawVectors
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixPx2Dist
+# Invoked whenever the length part of the trajectory for this object
+# is changed by the user via the popup menu.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::_fixPx2Dist {px2dist} {
+    if {"" == $itk_option(-px2dist)} {
+        return
+    }
+    upvar #0 $itk_option(-px2dist) var
+    set var $px2dist
+}
+
+# ----------------------------------------------------------------------
+# _fixBindings - enable/disable bindings
+#   enable
+#   disable
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoParticle::_fixBindings {status} {
+    switch -- $status {
+        "enable" {
+            ${_canvas} bind ${_name} <ButtonPress-1>   [itcl::code $this Move press %x %y]
+            ${_canvas} bind ${_name} <B1-Motion>       [itcl::code $this Move motion %x %y]
+            ${_canvas} bind ${_name} <ButtonRelease-1> [itcl::code $this Move release %x %y]
+
+            ${_canvas} bind ${_name} <ButtonPress-3>   [itcl::code $this Menu activate %x %y]
+
+            ${_canvas} bind ${_name} <Enter>           [itcl::code $this Enter]
+            ${_canvas} bind ${_name} <Leave>           [itcl::code $this Leave]
+
+            ${_canvas} bind ${_name} <B1-Enter>        { }
+            ${_canvas} bind ${_name} <B1-Leave>        { }
+            # bind ${_canvas} <<Frame>>                  +[itcl::code $this CatchEvent Frame]
+            bindtags ${_canvas} [concat ${_name}-FrameEvent [bindtags ${_canvas}]]
+        }
+        "disable" {
+            ${_canvas} bind ${_name} <ButtonPress-1>   { }
+            ${_canvas} bind ${_name} <B1-Motion>       { }
+            ${_canvas} bind ${_name} <ButtonRelease-1> { }
+
+            ${_canvas} bind ${_name} <ButtonPress-3>   { }
+
+            ${_canvas} bind ${_name} <Enter>           { }
+            ${_canvas} bind ${_name} <Leave>           { }
+
+            ${_canvas} bind ${_name} <B1-Enter>        { }
+            ${_canvas} bind ${_name} <B1-Leave>        { }
+            set tagnum [lsearch [bindtags ${_canvas}] "${_name}-FrameEvent"]
+            if {$tagnum >= 0} {
+                bindtags ${_canvas} [lreplace [bindtags ${_canvas} $tagnum $tagnum]]
+            }
+        }
+        default {
+            error "bad option \"$status\": should be one of enable, disable."
+        }
+    }
+}
+
 
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -halo
@@ -351,13 +487,6 @@ itcl::configbody Rappture::VideoParticle::halo {
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -name
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::VideoParticle::name {
-    set _name $itk_option(-name)
-}
-
-# ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -color
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VideoParticle::color {
@@ -367,6 +496,45 @@ itcl::configbody Rappture::VideoParticle::color {
     } else {
         error "bad value: \"$itk_option(-color)\": should be a valid color"
     }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -px2dist
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoParticle::px2dist {
+    if {"" != $_px2dist} {
+        upvar #0 $_px2dist var
+        trace remove variable var write [itcl::code $this _fixValue]
+    }
+
+    set _px2dist $itk_option(-px2dist)
+
+    if {"" != $_px2dist} {
+        upvar #0 $_px2dist var
+        trace add variable var write [itcl::code $this _fixValue]
+
+        # sync to the current value of this variable
+        if {[info exists var]} {
+            _fixValue
+        }
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -units
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoParticle::units {
+    set _units $itk_option(-units)
+    # _fixValue
+}
+
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -bindings
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoParticle::bindings {
+    _fixBindings $itk_option(-bindings)
 }
 
 # ----------------------------------------------------------------------
