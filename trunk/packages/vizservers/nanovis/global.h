@@ -105,11 +105,11 @@ draw_quad(int w, int h, int tw, int th)
 inline void 
 system_info()
 {
-    TRACE("-----------------------------------------------------------\n");
-    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+    INFO("-----------------------------------------------------------\n");
+    INFO("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
 	   glGetString(GL_VERSION));
-    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    TRACE("-----------------------------------------------------------\n");
+    INFO("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    INFO("-----------------------------------------------------------\n");
 }
 
 extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 

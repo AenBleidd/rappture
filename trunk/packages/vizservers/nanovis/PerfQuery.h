@@ -31,10 +31,10 @@ inline bool check_query_support()
     glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
 		    &bitsSupported);
     if(bitsSupported == 0) {
-	TRACE("occlusion query not supported!\n");
+	INFO("occlusion query not supported!\n");
 	return false;
     } else {
-	TRACE("Occlusion query with %d bits supported\n", bitsSupported);
+	INFO("Occlusion query with %d bits supported\n", bitsSupported);
 	return true;
     }
 }
