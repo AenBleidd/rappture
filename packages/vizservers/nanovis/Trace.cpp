@@ -1,3 +1,4 @@
+
 #include "nanovis.h"
 #include <Trace.h>
 #include <stdio.h>
@@ -5,26 +6,28 @@
 
 #include <GL/glew.h>
 #include <GL/glut.h>
-
-static bool trace = false;
+#include <syslog.h>
 
 void 
-PrintMessage(const char *mesg, const char *fileName, int lineNum, 
-	     const char* format, ...)
+LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
 {
-    char buff[1024];
+#define MSG_LEN	(2047)
+    char message[MSG_LEN+1];
+    const char *s;
+    int length;
     va_list lst;
-    FILE *f;
 
-    f = NanoVis::logfile;
-    if (f == NULL) {
-	f = stderr;
+    va_start(lst, fmt);
+    s = strrchr(path, '/');
+    if (s == NULL) {
+	s = path;
+    } else {
+	s++;
     }
-    va_start(lst, format);
-    vsnprintf(buff, 1023, format, lst);
-    buff[1023] = '\0';
-    fprintf(f, "%s at line %d of \"%s\": %s\n", mesg, lineNum, fileName, buff);
-    fflush(f);
+    length = snprintf(message, MSG_LEN, "line %d of \"%s\": ", lineNum, s);
+    length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
+    message[MSG_LEN] = '\0';
+    syslog(priority, message, length);
 }
 
 bool

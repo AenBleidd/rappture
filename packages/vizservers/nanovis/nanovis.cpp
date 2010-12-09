@@ -396,6 +396,7 @@ DoExit(int code)
 #if KEEPSTATS
     WriteStats("nanovis", code);
 #endif
+    closelog();
     exit(code);
 }
 
@@ -768,11 +769,11 @@ void CgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print system information
-    TRACE("-----------------------------------------------------------\n");
-    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+    INFO("-----------------------------------------------------------\n");
+    INFO("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
 	   glGetString(GL_VERSION));
-    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    TRACE("-----------------------------------------------------------\n");
+    INFO("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    INFO("-----------------------------------------------------------\n");
     if (path == NULL) {
         ERROR("No path defined for shaders or resources\n");
         DoExit(1);
@@ -783,7 +784,7 @@ void NanoVis::init(const char* path)
         getchar();
         //assert(false);
     }
-    TRACE("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+    INFO("Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     if (!R2FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s\n", path);
@@ -2247,8 +2248,8 @@ main(int argc, char** argv)
     newPath = NULL;
     path = NULL;
     NanoVis::stdin = stdin;
-    NanoVis::logfile = stderr;
 
+    openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER);
     gettimeofday(&tv, NULL);
     stats.start = tv;
 
@@ -2275,7 +2276,6 @@ main(int argc, char** argv)
     while (1) {
         static struct option long_options[] = {
             {"infile",  required_argument, NULL,	   0},
-            {"logfile", required_argument, NULL,	   1},
             {"path",    required_argument, NULL,	   2},
             {"debug",   no_argument,       NULL,	   3},
             {"record",  required_argument, NULL,	   4},
@@ -2312,14 +2312,6 @@ main(int argc, char** argv)
         case 'i':
             NanoVis::stdin = fopen(optarg, "r");
             if (NanoVis::stdin == NULL) {
-                perror(optarg);
-                return 2;
-            }
-            break;
-        case 1:
-        case 'l':
-            NanoVis::logfile = fopen(optarg, "w");
-            if (NanoVis::logfile == NULL) {
                 perror(optarg);
                 return 2;
             }
