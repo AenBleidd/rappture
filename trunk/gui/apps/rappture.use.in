@@ -13,6 +13,7 @@ bindir=@bindir@
 vtkdir=@VTKDIR@
 python_version=@PYTHON_VERSION@
 tcl_version=@TCL_VERSION@
+octave_version=@OCTAVE_VERSION_MAJOR@
 
 prepend PATH ${bindir}
 
@@ -22,8 +23,8 @@ prepend DYLD_LIBRARY_PATH ${vtkdir}
 prepend DYLD_LIBRARY_PATH ${libdir}
 
 prepend MATLABPATH ${libdir}/matlab
-prepend OCTAVE_PATH :${libdir}/octave:
-prepend OCTAVE_LOADPATH :${libdir}/octave:
+prepend OCTAVE_PATH :${libdir}/octave${octave_version}:
+prepend OCTAVE_LOADPATH :${libdir}/octave3:
 
 prepend PERL5LIB ${libdir}/perl
 prepend RUBYLIB ${libdir}/ruby
