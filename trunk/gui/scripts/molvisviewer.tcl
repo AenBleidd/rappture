@@ -514,7 +514,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         9,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {1 0} \
 	10,0 $inner.cell -anchor w -columnspan 4 -pady {1 0} \
         11,1 $inner.spherescale -fill x -columnspan 4 -pady {1 0} \
-        11,1 $inner.stickradius -fill x -columnspan 4 -pady {1 0} \
+        12,1 $inner.stickradius -fill x -columnspan 4 -pady {1 0} \
 
     blt::table configure $inner c0 -resize expand -width 2
     blt::table configure $inner c1 c2 -resize none
