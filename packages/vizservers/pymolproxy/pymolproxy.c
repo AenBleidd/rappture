@@ -368,7 +368,7 @@ CreateTmpDir(Tcl_Interp *interp)
     return Tcl_GlobalEval(interp, script);
 }
 
-static int
+static void
 DestroyTmpDir()
 {
     char cmd[BUFSIZ];
