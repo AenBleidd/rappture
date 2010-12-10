@@ -128,7 +128,7 @@ itcl::class Rappture::MolvisViewer {
         # do nothing 
     }
     public method snap { w h }
-    private method Opacity {option {models "all"} }
+    private method Opacity {option}
     private method SphereScale {option {models "all"} }
     private method StickRadius {option {models "all"} }
     private method OrthoProjection {option}
@@ -777,7 +777,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                append _outbuf "loadpdb -defer follows $model $state $nBytes\n"
+                SendCmd "loadpdb -defer follows $model $state $nBytes"
                 append _outbuf $data1
                 set _dataobjs($model-$state)  1
             }
@@ -790,7 +790,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                append _outbuf "loadpdb -defer follows $model $state $nBytes\n"
+                SendCmd "loadpdb -defer follows $model $state $nBytes"
                 append _outbuf $data2
                 set _dataobjs($model-$state)  1
             }
@@ -839,8 +839,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                     # We know we're buffered here, so append the "loadpdb" 
                     # command with the data payload immediately afterwards.
-                    append _outbuf \
-                        "loadpdb -defer follows $model $state $nBytes\n"
+                    SendCmd "loadpdb -defer follows $model $state $nBytes"
                     append _outbuf $data3
                 }
                 set _dataobjs($model-$state) 1
@@ -947,6 +946,10 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         }]
         debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
+        SendCmd "raw -defer {zoom complete=1}"
+        set _restore 0
+    }
+    if { $changed } {
         # Default settings for all models.
         SphereScale update 
         StickRadius update
@@ -956,8 +959,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         Cell update
         OrthoProjection update 
         Representation update 
-        SendCmd "raw -defer {zoom complete=1}"
-        set _restore 0
     }
     set inner [$itk_component(main) panel "Settings"]
     if { $_cell } {
@@ -1824,7 +1825,7 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
 #       is inactive, then it overridden with the value "0.75".
 # ----------------------------------------------------------------------
 
-itcl::body Rappture::MolvisViewer::Opacity { option {models "all"} } {
+itcl::body Rappture::MolvisViewer::Opacity { option } {
     if { $option == "update" } {
         set opacity $_settings($this-opacity)
     } elseif { [string is double $option] } {
@@ -1837,16 +1838,15 @@ itcl::body Rappture::MolvisViewer::Opacity { option {models "all"} } {
     }
     set _settings($this-opacity) $opacity
     set transparency [expr 1.0 - $opacity]
-    if { $models == "all" } {
+    set models [array names _active]
+    if { [llength $models] == 0 } {
         SendCmd "transparency -model all $transparency"
         return
     }
     set overridetransparency 0.60
     SendCmd "transparency -model all $overridetransparency"
     foreach model $models {
-        if { [info exists _active($model)] } {
-            SendCmd "transparency -model $model $transparency"
-        }
+	SendCmd "transparency -model $model $transparency"
     }
 }
 
@@ -2070,24 +2070,21 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     } elseif { $n == 3 } {
 	origin set $values
     }
-    point0 set { 0.0 0.0 0.0 }
-    point4 expr {point2 + point1}
-    point5 expr {point4 + point3}
-    point6 expr {point2 + point3}
-    point7 expr {point1 + point3}
+
+    # Scale and translate points 
+    for { set i 0 } { $i < 8 } { incr i } {
+	point${i} expr "(point${i} * scale) + origin"
+    }
 
     # Generate vertices as a string for PyMOL
     set vertices ""
-    blt::vector x
     foreach n { 0 1 0 2 0 3 1 4 2 4 2 6 1 7 3 7 5 7 4 5 3 6 5 } {
-	x expr "(point${n} * scale) + origin"
-	set values [x range 0 end]
+	set values [point${n} values]
 	append vertices "\[ [join $values {, }] \], \\\n"
     }
-    x expr "(point6 * scale) + origin"
-    set values [x range 0 end]
+    set values [point6 values]
     append vertices "\[ [join $values {, }] \]  \\\n"
     blt::vector destroy point0 point1 point2 point3 point4 point5 point6 \
-	point7 x origin scale
+	point7 origin scale
     return $vertices
 }
