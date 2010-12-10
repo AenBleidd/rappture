@@ -95,7 +95,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = TRUE;
+static int debug = FALSE;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
@@ -731,6 +731,31 @@ SetStickRadius(PymolProxy *proxyPtr)
     }
 }
 
+static void
+UpdateSettings(PymolProxy *proxyPtr)
+{
+    /* Handle all the pending setting changes now. */
+    if (proxyPtr->flags & VIEWPORT_PENDING) {
+	SetViewport(proxyPtr);
+    }
+    if (proxyPtr->flags & ROTATE_PENDING) {
+	SetRotation(proxyPtr);
+    }
+    if (proxyPtr->flags & PAN_PENDING) {
+	SetPan(proxyPtr);
+    }
+    if (proxyPtr->flags & ZOOM_PENDING) {
+	SetZoom(proxyPtr);
+    }
+    if (proxyPtr->flags & ATOM_SCALE_PENDING) {
+	SetSphereScale(proxyPtr);
+    }
+    if (proxyPtr->flags & STICK_RADIUS_PENDING) {
+	SetStickRadius(proxyPtr);
+    }
+}
+
+
 static int
 BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
@@ -747,6 +772,8 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     proxyPtr->flags &= ~(UPDATE_PENDING|FORCE_UPDATE|INVALIDATE_CACHE);
 
     /* Force pymol to update the current scene. */
+    UpdateSettings(proxyPtr);
+
     Pymol(proxyPtr, "refresh\n");
     Pymol(proxyPtr, "bmp -\n");
     if (Expect(proxyPtr, "bmp image follows: ", buffer, BUFSIZ) != BUFFER_OK) {
@@ -1101,9 +1128,11 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	char fileName[200];
 	FILE *f;
 	ssize_t nWritten;
+	static unsigned long count = 0;
 
 	proxyPtr->status = TCL_ERROR;
-	sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
+	sprintf(fileName, "/tmp/pymol%d%ld.pdb", getpid(), count);
+	count++;
 	f = fopen(fileName, "w");
 	if (f == NULL) {
 	    Tcl_AppendResult(interp, "can't create temporary file \"",
@@ -2137,24 +2166,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	 */
 
 	/* Handle all the pending setting changes now. */
-	if (proxyPtr->flags & VIEWPORT_PENDING) {
-	    SetViewport(proxyPtr);
-	}
-	if (proxyPtr->flags & ROTATE_PENDING) {
-	    SetRotation(proxyPtr);
-	}
-	if (proxyPtr->flags & PAN_PENDING) {
-	    SetPan(proxyPtr);
-	}
-	if (proxyPtr->flags & ZOOM_PENDING) {
-	    SetZoom(proxyPtr);
-	}
-	if (proxyPtr->flags & ATOM_SCALE_PENDING) {
-	    SetSphereScale(proxyPtr);
-	}
-	if (proxyPtr->flags & STICK_RADIUS_PENDING) {
-	    SetStickRadius(proxyPtr);
-	}
+	UpdateSettings(proxyPtr);
 
 	/* Write the current image buffer. */
 	if (proxyPtr->headPtr == NULL) {
