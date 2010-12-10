@@ -95,7 +95,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = TRUE;
+static int debug = FALSE;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
@@ -374,7 +374,9 @@ DestroyTmpDir()
     char cmd[BUFSIZ];
 
     sprintf(cmd, "/bin/rm -rf /tmp/pymol%d", getpid());
-    system(cmd);
+    if (system(cmd) < 0) {
+	trace("can't delete tmp directory: %s\n", strerror(errno));
+    }
 }
 
 static int
