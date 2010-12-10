@@ -95,7 +95,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = FALSE;
+static int debug = TRUE;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
@@ -167,15 +167,16 @@ typedef struct {
     float xPan, yPan;
 } PymolProxy;
 
+
 static void PollForEvents(PymolProxy *proxyPtr);
 static void
-trace TCL_VARARGS_DEF(char *, arg1)
+trace TCL_VARARGS_DEF(const char *, arg1)
 {
     if (debug) {
-        char *format;
+        const char *format;
         va_list args;
 
-        format = TCL_VARARGS_START(char *, arg1, args);
+        format = TCL_VARARGS_START(const char *, arg1, args);
         fprintf(flog, "pymolproxy: ");
         vfprintf(flog, format, args);
         fprintf(flog, "\n");
@@ -184,13 +185,13 @@ trace TCL_VARARGS_DEF(char *, arg1)
 }
 
 static void
-script TCL_VARARGS_DEF(char *, arg1)
+script TCL_VARARGS_DEF(const char *, arg1)
 {
     if (savescript) {
-        char *format;
+        const char *format;
         va_list args;
 
-        format = TCL_VARARGS_START(char *, arg1, args);
+        format = TCL_VARARGS_START(const char *, arg1, args);
         vfprintf(scriptFile, format, args);
         fflush(scriptFile);
     }
@@ -355,6 +356,28 @@ clear_error(PymolProxy *proxyPtr)
 }
 
 static int
+CreateTmpDir(Tcl_Interp *interp)
+{
+    const char script[] = {
+	"set path \"/tmp/pymol[pid]\"\n"
+	"if { [file exists $path] } {\n"
+	"    file delete -force $path\n"
+	"}\n"
+	"file mkdir $path\n"
+    }; 
+    return Tcl_GlobalEval(interp, script);
+}
+
+static int
+DestroyTmpDir()
+{
+    char cmd[BUFSIZ];
+
+    sprintf(cmd, "/bin/rm -rf /tmp/pymol%d", getpid());
+    system(cmd);
+}
+
+static int
 Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 {
     char c;
@@ -513,12 +536,10 @@ WriteStats(const char *who, int code)
 static void
 DoExit(int code)
 {
-    char fileName[200];
 #if KEEPSTATS
     WriteStats("pymolproxy", code);
 #endif
-    sprintf(fileName, "/tmp/pymol%d.pdb", getpid());
-    unlink(fileName);
+    
     exit(code);
 }
 
@@ -1131,7 +1152,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	static unsigned long count = 0;
 
 	proxyPtr->status = TCL_ERROR;
-	sprintf(fileName, "/tmp/pymol%d%ld.pdb", getpid(), count);
+	sprintf(fileName, "/tmp/pymol%d/%ld.pdb", getpid(), count);
 	count++;
 	f = fopen(fileName, "w");
 	if (f == NULL) {
@@ -1948,6 +1969,9 @@ ProxyInit(int cin, int cout, char *const *argv)
     proxy.flags = CAN_UPDATE;
     proxy.frame = 1;
     interp = Tcl_CreateInterp();
+    if (CreateTmpDir(interp) != TCL_OK) {
+	trace(Tcl_GetStringResult(interp));
+    }
     Tcl_MakeSafe(interp);
     proxy.interp = interp;
 
@@ -2012,8 +2036,10 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
     
     trace("pymol server process ended (result=%d)", result);
-    
+    DestroyTmpDir();
+
     Tcl_DeleteInterp(interp);
+    
     if (WIFEXITED(result)) {
 	result = WEXITSTATUS(result);
     }
