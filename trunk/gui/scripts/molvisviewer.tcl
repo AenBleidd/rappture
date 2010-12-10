@@ -897,11 +897,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 set rep $_model($model-newrep)
                 set transp $_model($model-newtransparency)
                 SendCmd "representation -defer -model $model $rep"
-                if { $_model($model-newtransparency) == "ghost" } {
-                    SendCmd "deactivate -defer -model $model"
-                } else {
-                    SendCmd "activate -defer -model $model"
-                }
                 set changed 1
                 set _model($model-transparency) $_model($model-newtransparency)
                 set _model($model-rep) $_model($model-newrep)
