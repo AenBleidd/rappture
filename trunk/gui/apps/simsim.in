@@ -703,16 +703,6 @@ proc main {argv} {
 
     parseOptions argv params
 
-    # ----------------------------------------------------------------------
-    # LOAD RESOURCE SETTINGS
-    #
-    # Try to load the $SESSIONDIR/resources file, which contains
-    # middleware settings, such as the application name and the
-    # filexfer settings.
-    # ----------------------------------------------------------------------
-    Rappture::resources::load
-
-
     # keep the wish window from popping up
     catch {wm withdraw .}
 
