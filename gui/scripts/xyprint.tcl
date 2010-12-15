@@ -320,7 +320,6 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
         CopyOptions [list $oper configure $elem] $orig $_clone -data 
         if { [$_clone $oper cget $elem -hide] } {
             $_clone $oper configure $elem -label "" 
-            puts stderr [$_clone $oper configure]
         }
     }
     # Fix element display list
