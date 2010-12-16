@@ -1,7 +1,10 @@
 # ----------------------------------------------------------------------
 # COMPONENT: testview - display the results of a test
 #
-# Doesn't do anything yet.  TODO: Fill this in later.
+# Entire right hand side of the regression tester.  Contains a small
+# text widget, plus two TestAnalyzer widgets.  The analyzers are used to
+# show the golden set of results, and the new results if the test has
+# been ran.  Constructor requires a tool.xml for the tool being tested.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -25,73 +28,133 @@ option add *TestView.boldTextFont \
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    public method clearTest {}
-    public method clearResult {}
+    public method clear {}
     public method showTest {testxml}
     public method showResult {runfile}
-    public method showDefault {}
     public method showText {text}
+    public method update {datapairs}
 
-    constructor {tool args} { #defined later }
+    private variable _toolobj
+
+    constructor {toolxml args} { #defined later }
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::constructor {tool args} {
-    
+itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
+   
+    set _toolobj [Rappture::Tool ::#auto [Rappture::library $toolxml] \
+         [file dirname $toolxml]]
+ 
     itk_component add txt {
         text $itk_interior.txt -height 1
     }
-    pack $itk_component(txt) -expand yes -fill x
+    pack $itk_component(txt) -expand no -fill x -side top
 
     itk_component add analyzer1 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer1 $tool
+        Rappture::Tester::TestAnalyzer $itk_interior.analyzer1 $_toolobj
     } 
-    pack $itk_component(analyzer1) -expand yes -fill both
+    pack $itk_component(analyzer1) -expand no -fill both -side top
 
     itk_component add analyzer2 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer2 $tool
+        Rappture::Tester::TestAnalyzer $itk_interior.analyzer2 $_toolobj
     }
-    pack $itk_component(analyzer2) -expand yes -fill both
+    pack $itk_component(analyzer2) -expand no -fill both -side top
 
     eval itk_initialize $args
-
-    showDefault
 }
 
 itk::usual TestView {
     keep -background -foreground -font
 }
 
-itcl::body Rappture::Tester::TestView::clearTest {} {
-    $itk_component(analyzer1) clear
+# ----------------------------------------------------------------------
+# USAGE: clear
+#
+# Clears both result viewers by deleting the testanalyzer widgets.
+# Eventually, this should clear the results from the analyzer without
+# needing to destroy it.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestView::clear {} {
+    #$itk_component(analyzer1) clear
+    catch {destroy $itk_component(analyzer1)}
+    catch {destroy $itk_component(analyzer2)}
+    $itk_component(txt) delete 0.0 end
 }
 
-itcl::body Rappture::Tester::TestView::clearResult {} {
-    $itk_component(analyzer2) clear
-}
-
+# ----------------------------------------------------------------------
+# USAGE: showTest <testxml>
+#
+# Displays a new set of golden results by deleting the existing
+# analyzer and creating a new one.  Eventually, this should be able to
+# swap the currently visible set of resuls without needing to destroy
+# the widget.
+# ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::showTest {testxml} {
+    itk_component add analyzer1 {
+        Rappture::Tester::TestAnalyzer $itk_interior.analyzer1 $_toolobj
+    }
+    pack $itk_component(analyzer1) -expand no -fill both -side top
     $itk_component(analyzer1) display $testxml
 }
 
+# ----------------------------------------------------------------------
+# USAGE: showResult <runfile>
+#
+# Displays a new test result by deleting the existing analyzer and
+# creating a new one.  Eventually, this should be able to swap the
+# currently visible set of results without needing to destroy the
+# widget.
+# ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::showResult {runfile} {
+    itk_component add analyzer2 {
+        Rappture::Tester::TestAnalyzer $itk_interior.analyzer2 $_toolobj
+    }
+    pack $itk_component(analyzer2) -expand no -fill both -side top
     $itk_component(analyzer2) display $runfile
 }
 
-itcl::body Rappture::Tester::TestView::showDefault {} {
-    $itk_component(txt) configure -state normal 
-    $itk_component(txt) delete 0.0 end
-    $itk_component(txt) insert end "Default"
-    $itk_component(txt) configure -state disabled
-    clearTest
-    clearResult
-}
-
+# ----------------------------------------------------------------------
+# USAGE: showText <text>
+#
+# Displays a string in the text space at the top of the widget.
+# ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::showText {text} {
     $itk_component(txt) configure -state normal
     $itk_component(txt) delete 0.0 end
     $itk_component(txt) insert end "$text"
     $itk_component(txt) configure -state disabled
 }
+
+# ----------------------------------------------------------------------
+# USAGE: update <datapairs>
+#
+# Given a list of key value pairs from the test tree, shows the
+# golden result, plus the new result if the test has been ran.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestView::update {datapairs} {
+    clear
+    array set data $datapairs
+    # Data array is empty for branch nodes.
+    if {[array names data] != ""} {
+        if {$data(testxml) != ""} {
+            # Display golden results.
+            showTest $data(testxml)
+        }
+        if {$data(ran)} {
+            switch $data(result) {
+                Pass {showText "Test passed."}
+                Fail {showText "Diffs: $data(diffs)"}
+                Error {showText "Error while running test."}
+            }
+            if {$data(runfile) != ""} {
+                # Display new results.
+                showResult $data(runfile)
+            }
+        } else {
+            showText "Test has not yet ran."
+        }
+    } 
+}
+

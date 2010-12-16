@@ -3,7 +3,17 @@
 # object.  What I really need here is the analyze page of the analyzer's
 # notebook as a separate widget.
 
+# Strange errors are thrown when I try to swap in and out different result
+# sets with the same analyzer widget.  For now, I get around this by destroying
+# the analyzer and creating a new one every time a new result should be 
+# displayed.
+
+# TODO: Make a new widget with (only) the result viewing capabilites of the
+# Rappture analyzer.  Also, should be able to keep a single widget and swap
+# in and out new result sets.
+
 package require Itk
+package require RapptureGUI
 
 namespace eval Rappture::Tester::TestAnalyzer { # forward declaration}
 
