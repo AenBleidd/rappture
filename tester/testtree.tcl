@@ -133,7 +133,7 @@ itcl::configbody Rappture::Tester::TestTree::selectcommand {
 itcl::body Rappture::Tester::TestTree::populate {} {
     $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
-    set icon [Rappture::icon download]
+    set icon [Rappture::icon molvis-3dorth]
     # TODO: Descend through subdirectories inside testdir?
     foreach testxml [glob -nocomplain -directory $testdir *.xml] {
         set lib [Rappture::library $testxml]
