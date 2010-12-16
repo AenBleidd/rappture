@@ -2,6 +2,7 @@
 <run>
     <test>
         <label>roomtemp.0eV</label>
+        <description>This test is at room temperature and 0eV.  It should result in incorrect curve values in the "new" version of fermi.tcl</description>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>

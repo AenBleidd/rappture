@@ -72,6 +72,11 @@ panedwindow .pw
     -selectcommand Rappture::Tester::selectionHandler]
 .pw add [Rappture::Tester::TestView .view $params(-tool)]
 pack .pw -expand yes -fill both
+# TODO: Handle resizing better
+# TODO: Fix error that occurs only when you click and hold on a test
+#       while the right hand side is empty
+
+set curselection ""
 
 # ----------------------------------------------------------------------
 # USAGE: runAll ?-force?
@@ -102,7 +107,7 @@ proc Rappture::Tester::runSelected {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: runTest id ?-force?
+# USAGE: runTest <id> ?-force?
 #
 # Called by runAll and runSelected to run a single test at the tree node
 # specified by the given ide.  In most cases, this method should not be
@@ -149,6 +154,11 @@ proc Rappture::Tester::runTest {id args} {
 # node's data to the right hand side.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::selectionHandler {} {
-    .view update [.tree getData focus]
+    global curselection
+    set sel [.tree getSelected]
+    if {$sel != $curselection} {
+        .view update [.tree getData focus]
+        set curselection $sel
+    }
 }
 
