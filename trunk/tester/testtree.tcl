@@ -70,7 +70,6 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     $itk_component(treeview) column insert end testxml ran diffs runfile 
     $itk_component(treeview) column configure testxml ran diffs runfile \
         -hide yes
-    $itk_component(treeview) column configure runfile -hide no
     $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
