@@ -18,7 +18,7 @@
 package require Itk
 package require BLT
 package require Rappture
-
+# TODO: pipe separator allow spaces
 namespace eval Rappture::Tester::TestTree { #forward declaration }
 
 option add *TestTree.font \

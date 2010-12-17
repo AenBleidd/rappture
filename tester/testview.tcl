@@ -28,11 +28,12 @@ option add *TestView.boldTextFont \
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    private method clear {}
-    private method showTest {testxml}
-    private method showResult {runfile}
-    private method showStatus {text}
-    private method showDescription {text}
+    protected method clear {}
+    protected method showTest {testxml}
+    protected method showResult {runfile}
+    protected method showStatus {text}
+    protected method showDescription {text}
+    protected method changeTabs {}
     public method update {datapairs}
 
     private variable _toolobj
@@ -65,21 +66,52 @@ itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
     $itk_component(scroller) contents $itk_component(description)
     pack $itk_component(scroller) -expand no -fill x -side top
 
-    itk_component add analyzer1 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer1 $_toolobj
-    } 
-    pack $itk_component(analyzer1) -expand no -fill both -side top
-
-    itk_component add analyzer2 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer2 $_toolobj
+    itk_component add tabs {
+        blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
+            -side left -tearoff 0 -highlightthickness 0 \
+            -selectbackground $itk_option(-background) \
+            -selectcommand [itcl::code $this changeTabs]
+    } {
     }
-    pack $itk_component(analyzer2) -expand no -fill both -side top
+    $itk_component(tabs) insert end "Analyzer"
+    $itk_component(tabs) insert end "Result" -state disabled
+    pack $itk_component(tabs) -expand no -fill y -side left
 
+    itk_component add nb {
+        Rappture::Notebook $itk_interior.nb
+    }
+
+    $itk_component(nb) insert end "Analyzer" "Result"
+    itk_component add analyzer {
+        Rappture::Tester::TestAnalyzer \
+            [$itk_component(nb) page "Analyzer"].analyzer $_toolobj
+    } 
+    pack $itk_component(analyzer) -expand yes -fill both -side top
+    $itk_component(nb) current "Analyzer"
+
+    itk_component add result {
+        text [$itk_component(nb) page "Result"].result
+    }
+    pack $itk_component(result) -expand yes -fill both -side top
+
+    pack $itk_component(nb) -expand yes -fill both -side left
     eval itk_initialize $args
 }
 
 itk::usual TestView {
     keep -background -foreground -font
+}
+
+# ----------------------------------------------------------------------
+# USAGE: changeTabs
+#
+# Used internally to switch notebook pages when a tab is selected. Note
+# that the tab names must match the notebook page names.
+# TODO: Is there a better way of connecting the tabs to the notebook?
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestView::changeTabs {} {
+    set cur [$itk_component(tabs) get [$itk_component(tabs) index select]]
+    $itk_component(nb) current $cur
 }
 
 # ----------------------------------------------------------------------
@@ -90,9 +122,10 @@ itk::usual TestView {
 # needing to destroy it.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::clear {} {
-    #$itk_component(analyzer1) clear
-    catch {destroy $itk_component(analyzer1)}
-    catch {destroy $itk_component(analyzer2)}
+    catch {destroy $itk_component(analyzer)}
+    $itk_component(nb) current "Analyzer"
+    $itk_component(tabs) invoke [$itk_component(tabs) index -name "Result"]
+    $itk_component(tabs) tab configure "Result" -state disabled 
     showStatus ""
     showDescription ""
 }
@@ -106,29 +139,21 @@ itcl::body Rappture::Tester::TestView::clear {} {
 # the widget.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::showTest {testxml} {
-    itk_component add analyzer1 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer1 $_toolobj
+    itk_component add analyzer {
+        Rappture::Tester::TestAnalyzer \
+            [$itk_component(nb) page "Analyzer"].analyzer $_toolobj
     }
-    pack $itk_component(analyzer1) -expand no -fill both -side top \
-        -after $itk_component(scroller)
-    $itk_component(analyzer1) display $testxml
+    pack $itk_component(analyzer) -expand yes -fill both -side top
+    $itk_component(analyzer) display $testxml
 }
 
 # ----------------------------------------------------------------------
-# USAGE: showResult <runfile>
-#
-# Displays a new test result by deleting the existing analyzer and
-# creating a new one.  Eventually, this should be able to swap the
-# currently visible set of results without needing to destroy the
-# widget.
+# TODO: fill this in
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::showResult {runfile} {
-    itk_component add analyzer2 {
-        Rappture::Tester::TestAnalyzer $itk_interior.analyzer2 $_toolobj
-    }
-    pack $itk_component(analyzer2) -expand no -fill both -side top \
-        -after $itk_component(analyzer1)
-    $itk_component(analyzer2) display $runfile
+    $itk_component(tabs) tab configure "Result" -state normal 
+    $itk_component(result) delete 0.0 end
+    $itk_component(result) insert end $runfile
 }
 
 # ----------------------------------------------------------------------
