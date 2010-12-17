@@ -13,6 +13,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
+package require BLT 
 
 namespace eval Rappture::Tester::TestView { #forward declaration }
 
@@ -29,7 +30,7 @@ itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
     protected method updateAnalyzer {args}
-    protected method showResult {runfile}
+    protected method updateResult {runfile}
     protected method showStatus {text}
     protected method showDescription {text}
     public method update {datapairs}
@@ -72,7 +73,8 @@ itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
     } {
     }
     $itk_component(tabs) insert end "Analyzer" -ipady 25 -fill both
-    $itk_component(tabs) insert end "Result" -ipady 25 -fill both
+    $itk_component(tabs) insert end "Result" -ipady 25 -fill both \
+        -state disabled
     pack $itk_component(tabs) -expand yes -fill both -side top
 
     itk_component add analyzer {
@@ -99,11 +101,10 @@ itk::usual TestView {
 # Resets the entire TestView widget back to the default state.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::clear {} {
-    catch {
-        $itk_component(analyzer) clear
-        destroy $itk_component(analyzer)
-    }
-    $itk_component(tabs) invoke [$itk_component(tabs) index -name "Result"]
+    updateAnalyzer
+    updateResult
+    # TODO: Switch back to analyzer tab when disabling result tab
+    $itk_component(tabs) focus [$itk_component(tabs) index -name "Analyzer"]
     $itk_component(tabs) tab configure "Result" -state disabled 
     showStatus ""
     showDescription ""
@@ -113,7 +114,8 @@ itcl::body Rappture::Tester::TestView::clear {} {
 # USAGE: updateAnalyzer ?<lib> <lib>...?
 #
 # Clears the analyzer and loads the given library objects.  Used to load 
-# both the golden result as well as the test result.
+# both the golden result as well as the test result.  Clears the
+# analyzer space if no arguments are given.
 # Destroys the existing analyzer widget and creates a new one.  
 # Eventually this should be able to keep the same widget and swap in
 # and out different result sets.
@@ -135,12 +137,30 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
 }
 
 # ----------------------------------------------------------------------
-# TODO: fill this in
+# USAGE: updateResult ?datapairs?
+#
+# Given a set of key value pairs from the test tree, update the result
+# page of the testview widget.  If no arguments are given, disable the
+# result page.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::showResult {runfile} {
-    $itk_component(tabs) tab configure "Result" -state normal 
-    $itk_component(result) delete 0.0 end
-    $itk_component(result) insert end $runfile
+itcl::body Rappture::Tester::TestView::updateResult {args} {
+    if {[llength $args] == 0} {
+        $itk_component(result) delete 0.0 end 
+        $itk_component(tabs) focus [$itk_component(tabs) index -name "Result"]
+        $itk_component(tabs) tab configure "Result" -state disabled
+        return
+    } elseif {[llength $args] == 1} {
+        array set data [lindex $args 0]
+        $itk_component(tabs) tab configure "Result" -state normal
+        $itk_component(result) delete 0.0 end
+        $itk_component(result) insert end "Test xml: $data(testxml)\n"
+        $itk_component(result) insert end "Runfile: $data(runfile)\n"
+        if {$data(result) == "Fail"} {
+            $itk_component(result) insert end "Diffs: $data(diffs)\n" 
+        }
+    } else {
+        error "wrong # args: should be \"updateResult ?datapairs?\""
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -196,10 +216,13 @@ itcl::body Rappture::Tester::TestView::update {datapairs} {
                 set result [Rappture::library $data(runfile)] 
                 $result put input.run.current "Test"
                 updateAnalyzer $golden $result 
-                showResult $data(runfile)
+                updateResult $datapairs 
+            } else {
+                updateResult 
             }
         } else {
             showStatus "Test has not yet ran."
+            updateResult
             if {$data(testxml) != ""} {
                 updateAnalyzer [Rappture::library $data(testxml)] 
             }
@@ -210,8 +233,8 @@ itcl::body Rappture::Tester::TestView::update {datapairs} {
         }
         showDescription $descr 
     } else {
-       # clear entire screen if branch node selected
-#       clear
+       # clear everything if branch node selected
+       clear
     }
 }
 
