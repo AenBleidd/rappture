@@ -57,7 +57,6 @@ itcl::body Rappture::Tester::TestAnalyzer::constructor {tool args} {
 }
 
 itcl::body Rappture::Tester::TestAnalyzer::display {lib} {
-    puts "displaying $lib"
     load $lib 
     $itk_component(notebook) current analyze
 }

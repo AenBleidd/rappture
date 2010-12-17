@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <test>
-        <label>nitrogen|0eV</label>
+        <label>multiple|levels|of|separators</label>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>

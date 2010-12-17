@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <test>
-        <label>helium.0eV</label>
+        <label>helium|0eV</label>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>

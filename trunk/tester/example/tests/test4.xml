@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <test>
-        <label>helium.1eV</label>
+        <label>helium|1eV</label>
         <description>This test should result in an error in the "new" version of the fermi tool.</description>
     </test>
     <tool>

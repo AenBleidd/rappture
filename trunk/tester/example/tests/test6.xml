@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <test>
-        <label>roomtemp.1V</label>
+        <label>roomtemp|1V</label>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>
