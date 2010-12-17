@@ -28,15 +28,14 @@ option add *TestView.boldTextFont \
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    protected method clear {}
-    protected method showTest {testxml}
+    protected method updateAnalyzer {args}
     protected method showResult {runfile}
     protected method showStatus {text}
     protected method showDescription {text}
-    protected method changeTabs {}
     public method update {datapairs}
+    public method clear
 
-    private variable _toolobj
+    protected variable _toolobj
 
     constructor {toolxml args} { #defined later }
 }
@@ -69,32 +68,24 @@ itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
     itk_component add tabs {
         blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
             -side left -tearoff 0 -highlightthickness 0 \
-            -selectbackground $itk_option(-background) \
-            -selectcommand [itcl::code $this changeTabs]
+            -selectbackground $itk_option(-background)
     } {
     }
-    $itk_component(tabs) insert end "Analyzer"
-    $itk_component(tabs) insert end "Result" -state disabled
-    pack $itk_component(tabs) -expand no -fill y -side left
+    $itk_component(tabs) insert end "Analyzer" -ipady 25 -fill both
+    $itk_component(tabs) insert end "Result" -ipady 25 -fill both
+    pack $itk_component(tabs) -expand yes -fill both -side top
 
-    itk_component add nb {
-        Rappture::Notebook $itk_interior.nb
-    }
-
-    $itk_component(nb) insert end "Analyzer" "Result"
     itk_component add analyzer {
-        Rappture::Tester::TestAnalyzer \
-            [$itk_component(nb) page "Analyzer"].analyzer $_toolobj
-    } 
-    pack $itk_component(analyzer) -expand yes -fill both -side top
-    $itk_component(nb) current "Analyzer"
+        Rappture::Tester::TestAnalyzer $itk_component(tabs).analyzer $_toolobj
+    }
+    $itk_component(tabs) tab configure "Analyzer" \
+        -window $itk_component(tabs).analyzer
 
     itk_component add result {
-        text [$itk_component(nb) page "Result"].result
+        text $itk_component(tabs).result
     }
-    pack $itk_component(result) -expand yes -fill both -side top
+    $itk_component(tabs) tab configure "Result" -window $itk_component(result)
 
-    pack $itk_component(nb) -expand yes -fill both -side left
     eval itk_initialize $args
 }
 
@@ -103,27 +94,15 @@ itk::usual TestView {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: changeTabs
-#
-# Used internally to switch notebook pages when a tab is selected. Note
-# that the tab names must match the notebook page names.
-# TODO: Is there a better way of connecting the tabs to the notebook?
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::changeTabs {} {
-    set cur [$itk_component(tabs) get [$itk_component(tabs) index select]]
-    $itk_component(nb) current $cur
-}
-
-# ----------------------------------------------------------------------
 # USAGE: clear
 #
-# Clears both result viewers by deleting the testanalyzer widgets.
-# Eventually, this should clear the results from the analyzer without
-# needing to destroy it.
+# Resets the entire TestView widget back to the default state.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::clear {} {
-    catch {destroy $itk_component(analyzer)}
-    $itk_component(nb) current "Analyzer"
+    catch {
+        $itk_component(analyzer) clear
+        destroy $itk_component(analyzer)
+    }
     $itk_component(tabs) invoke [$itk_component(tabs) index -name "Result"]
     $itk_component(tabs) tab configure "Result" -state disabled 
     showStatus ""
@@ -131,20 +110,28 @@ itcl::body Rappture::Tester::TestView::clear {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: showTest <testxml>
+# USAGE: updateAnalyzer ?<lib> <lib>...?
 #
-# Displays a new set of golden results by deleting the existing
-# analyzer and creating a new one.  Eventually, this should be able to
-# swap the currently visible set of resuls without needing to destroy
-# the widget.
+# Clears the analyzer and loads the given library objects.  Used to load 
+# both the golden result as well as the test result.
+# Destroys the existing analyzer widget and creates a new one.  
+# Eventually this should be able to keep the same widget and swap in
+# and out different result sets.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::showTest {testxml} {
-    itk_component add analyzer {
-        Rappture::Tester::TestAnalyzer \
-            [$itk_component(nb) page "Analyzer"].analyzer $_toolobj
+itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
+    catch {
+        $itk_component(analyzer) clear
+        destroy $itk_component(analyzer)
     }
-    pack $itk_component(analyzer) -expand yes -fill both -side top
-    $itk_component(analyzer) display $testxml
+    itk_component add analyzer {
+        Rappture::Tester::TestAnalyzer $itk_component(tabs).analyzer $_toolobj
+    }
+    $itk_component(tabs) tab configure "Analyzer" \
+        -window $itk_component(analyzer)
+    foreach lib $args {
+        $itk_component(analyzer) display $lib
+    }
+    
 }
 
 # ----------------------------------------------------------------------
@@ -187,18 +174,13 @@ itcl::body Rappture::Tester::TestView::showDescription {text} {
 # ----------------------------------------------------------------------
 # USAGE: update <datapairs>
 #
-# Given a list of key value pairs from the test tree, shows the
-# golden result, plus the new result if the test has been ran.
+# Given a list of key value pairs from the test tree, update both the
+# analyzer and the result tab.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::update {datapairs} {
-    clear
     array set data $datapairs
     # Data array is empty for branch nodes.
     if {[array names data] != ""} {
-        if {$data(testxml) != ""} {
-            # Display golden results.
-            showTest $data(testxml)
-        }
         if {$data(ran)} {
             switch $data(result) {
                 Pass {showStatus "Test passed."}
@@ -206,17 +188,30 @@ itcl::body Rappture::Tester::TestView::update {datapairs} {
                 Error {showStatus "Error while running test."}
             }
             if {$data(runfile) != ""} {
-                # Display new results.
+                # HACK: Add a new input to differentiate between golden and
+                # test result.  Otherwise, the slider at the bottom won't
+                # be enabled.
+                set golden [Rappture::library $data(testxml)] 
+                $golden put input.run.current "Golden"
+                set result [Rappture::library $data(runfile)] 
+                $result put input.run.current "Test"
+                updateAnalyzer $golden $result 
                 showResult $data(runfile)
             }
         } else {
             showStatus "Test has not yet ran."
+            if {$data(testxml) != ""} {
+                updateAnalyzer [Rappture::library $data(testxml)] 
+            }
         }
         set descr [[Rappture::library $data(testxml)] get test.description]
         if {$descr == ""} {
             set descr "No description."
         }
         showDescription $descr 
-    } 
+    } else {
+       # clear entire screen if branch node selected
+#       clear
+    }
 }
 

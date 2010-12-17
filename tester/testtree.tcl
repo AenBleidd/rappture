@@ -43,8 +43,8 @@ itcl::class Rappture::Tester::TestTree {
     public method getData {id}
     public method setData {id data}
 
-    private method updateLabel {}
-    private method populate {}
+    protected method updateLabel {}
+    protected method populate {}
 
 }
  

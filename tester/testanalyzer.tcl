@@ -56,8 +56,8 @@ itcl::body Rappture::Tester::TestAnalyzer::constructor {tool args} {
     eval itk_initialize $args
 }
 
-itcl::body Rappture::Tester::TestAnalyzer::display {runfile} {
-    clear
-    load [Rappture::library $runfile]
+itcl::body Rappture::Tester::TestAnalyzer::display {lib} {
+    puts "displaying $lib"
+    load $lib 
     $itk_component(notebook) current analyze
 }
