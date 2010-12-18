@@ -40,6 +40,7 @@ itcl::class Rappture::Tester::TestTree {
     constructor {testdir args} { #defined later }
     public method getTests {{id 0}}
     public method getSelected {}
+    public method getFocus {}
     public method getData {id}
     public method setData {id data}
 
@@ -191,6 +192,15 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
         }
     }
     return $selectedTests
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getFocus
+#
+# Returns index of the focused node in the treeview.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestTree::getFocus {} {
+    return [$itk_component(treeview) index focus]
 }
 
 # ----------------------------------------------------------------------
