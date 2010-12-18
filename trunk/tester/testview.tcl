@@ -34,8 +34,9 @@ itcl::class Rappture::Tester::TestView {
     protected method showStatus {text}
     protected method showDescription {text}
     public method update {datapairs}
-    public method clear
+    public method reset 
 
+    public variable data
     protected variable _toolobj
 
     constructor {toolxml args} { #defined later }
@@ -75,7 +76,6 @@ itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
     $itk_component(tabs) insert end "Analyzer" -ipady 25 -fill both
     $itk_component(tabs) insert end "Result" -ipady 25 -fill both \
         -state disabled
-    pack $itk_component(tabs) -expand yes -fill both -side top
 
     itk_component add analyzer {
         Rappture::Tester::TestAnalyzer $itk_component(tabs).analyzer $_toolobj
@@ -87,8 +87,55 @@ itcl::body Rappture::Tester::TestView::constructor {toolxml args} {
         text $itk_component(tabs).result
     }
     $itk_component(tabs) tab configure "Result" -window $itk_component(result)
+    pack $itk_component(tabs) -expand yes -fill both -side top
 
     eval itk_initialize $args
+}
+
+# ----------------------------------------------------------------------
+# When the -data configuration option is modified, update the display
+# accordingly.  The data passed in should be a list of key value pairs
+# from the TestTree widget.
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Tester::TestView::data {
+    array set darray $data
+    # Data array is empty for branch nodes.
+    if {[array names darray] != ""} {
+        if {$darray(ran)} {
+            switch $darray(result) {
+                Pass {showStatus "Test passed."}
+                Fail {showStatus "Test failed."}
+                Error {showStatus "Error while running test."}
+            }
+            if {$darray(runfile) != ""} {
+                # HACK: Add a new input to differentiate between golden and
+                # test result.  Otherwise, the slider at the bottom won't
+                # be enabled.
+                set golden [Rappture::library $darray(testxml)]
+                $golden put input.run.current "Golden"
+                set result [Rappture::library $darray(runfile)]
+                $result put input.run.current "Test"
+                updateAnalyzer $golden $result
+                updateResult $data
+            } else {
+                updateResult
+            }
+        } else {
+            showStatus "Test has not yet ran."
+            updateResult
+            if {$darray(testxml) != ""} {
+                updateAnalyzer [Rappture::library $darray(testxml)]
+            }
+        }
+        set descr [[Rappture::library $darray(testxml)] get test.description]
+        if {$descr == ""} {
+            set descr "No description."
+        }
+        showDescription $descr
+    } else {
+       # Clear everything if branch node selected
+       reset 
+    }
 }
 
 itk::usual TestView {
@@ -96,16 +143,13 @@ itk::usual TestView {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: clear
+# USAGE: reset 
 #
 # Resets the entire TestView widget back to the default state.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::clear {} {
+itcl::body Rappture::Tester::TestView::reset {} {
     updateAnalyzer
     updateResult
-    # TODO: Switch back to analyzer tab when disabling result tab
-    $itk_component(tabs) focus [$itk_component(tabs) index -name "Analyzer"]
-    $itk_component(tabs) tab configure "Result" -state disabled 
     showStatus ""
     showDescription ""
 }
@@ -116,7 +160,7 @@ itcl::body Rappture::Tester::TestView::clear {} {
 # Clears the analyzer and loads the given library objects.  Used to load 
 # both the golden result as well as the test result.  Clears the
 # analyzer space if no arguments are given.
-# Destroys the existing analyzer widget and creates a new one.  
+# HACK: Destroys the existing analyzer widget and creates a new one.  
 # Eventually this should be able to keep the same widget and swap in
 # and out different result sets.
 # ----------------------------------------------------------------------
@@ -137,7 +181,7 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateResult ?datapairs?
+# USAGE: updateResult ?data?
 #
 # Given a set of key value pairs from the test tree, update the result
 # page of the testview widget.  If no arguments are given, disable the
@@ -145,21 +189,23 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::updateResult {args} {
     if {[llength $args] == 0} {
-        $itk_component(result) delete 0.0 end 
-        $itk_component(tabs) focus [$itk_component(tabs) index -name "Result"]
+        $itk_component(result) delete 0.0 end
+        # TODO: Switch back to analyzer tab.  Why doesn't this work?
+        $itk_component(tabs) invoke \
+            [$itk_component(tabs) index -name "Analyzer"]
         $itk_component(tabs) tab configure "Result" -state disabled
         return
     } elseif {[llength $args] == 1} {
-        array set data [lindex $args 0]
+        array set darray [lindex $args 0]
         $itk_component(tabs) tab configure "Result" -state normal
         $itk_component(result) delete 0.0 end
-        $itk_component(result) insert end "Test xml: $data(testxml)\n"
-        $itk_component(result) insert end "Runfile: $data(runfile)\n"
-        if {$data(result) == "Fail"} {
-            $itk_component(result) insert end "Diffs: $data(diffs)\n" 
+        $itk_component(result) insert end "Test xml: $darray(testxml)\n"
+        $itk_component(result) insert end "Runfile: $darray(runfile)\n"
+        if {$darray(result) == "Fail"} {
+            $itk_component(result) insert end "Diffs: $darray(diffs)\n" 
         }
     } else {
-        error "wrong # args: should be \"updateResult ?datapairs?\""
+        error "wrong # args: should be \"updateResult ?data?\""
     }
 }
 
@@ -188,53 +234,6 @@ itcl::body Rappture::Tester::TestView::showDescription {text} {
         $itk_component(description) configure -relief flat
     } else {
         $itk_component(description) configure -relief sunken
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: update <datapairs>
-#
-# Given a list of key value pairs from the test tree, update both the
-# analyzer and the result tab.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::update {datapairs} {
-    array set data $datapairs
-    # Data array is empty for branch nodes.
-    if {[array names data] != ""} {
-        if {$data(ran)} {
-            switch $data(result) {
-                Pass {showStatus "Test passed."}
-                Fail {showStatus "Test failed."}
-                Error {showStatus "Error while running test."}
-            }
-            if {$data(runfile) != ""} {
-                # HACK: Add a new input to differentiate between golden and
-                # test result.  Otherwise, the slider at the bottom won't
-                # be enabled.
-                set golden [Rappture::library $data(testxml)] 
-                $golden put input.run.current "Golden"
-                set result [Rappture::library $data(runfile)] 
-                $result put input.run.current "Test"
-                updateAnalyzer $golden $result 
-                updateResult $datapairs 
-            } else {
-                updateResult 
-            }
-        } else {
-            showStatus "Test has not yet ran."
-            updateResult
-            if {$data(testxml) != ""} {
-                updateAnalyzer [Rappture::library $data(testxml)] 
-            }
-        }
-        set descr [[Rappture::library $data(testxml)] get test.description]
-        if {$descr == ""} {
-            set descr "No description."
-        }
-        showDescription $descr 
-    } else {
-       # clear everything if branch node selected
-       clear
     }
 }
 
