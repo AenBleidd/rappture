@@ -2044,6 +2044,12 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     if { $count < 1 || $count > 3 } {
 	error "bad number of vectors supplied to parallelepiped"
     }
+    point0 set { 0.0 0.0 0.0 }
+    point4 expr {point2 + point1}
+    point5 expr {point4 + point3}
+    point6 expr {point2 + point3}
+    point7 expr {point1 + point3}
+
     set values [$dataobj get components.parallelepiped.scale]
     set n [llength $values]
     scale set { 1.0 1.0 1.0 }
