@@ -2074,10 +2074,10 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     # Generate vertices as a string for PyMOL
     set vertices ""
     foreach n { 0 1 0 2 0 3 1 4 2 4 2 6 1 7 3 7 5 7 4 5 3 6 5 } {
-	set values [point${n} values]
+	set values [point${n} range 0 end]
 	append vertices "\[ [join $values {, }] \], \\\n"
     }
-    set values [point6 values]
+    set values [point6 range 0 end]
     append vertices "\[ [join $values {, }] \]  \\\n"
     blt::vector destroy point0 point1 point2 point3 point4 point5 point6 \
 	point7 origin scale
