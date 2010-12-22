@@ -37,6 +37,7 @@ OBJS        = \
 		rpLibElementAsType.oct \
 		rpLibElement.oct \
 		rpLibGet.oct \
+		rpLibGetData.oct \
 		rpLibGetString.oct \
 		rpLibGetDouble.oct \
 		rpLibNodeComp.oct \
