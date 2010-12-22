@@ -29,25 +29,57 @@ proc Rappture::Tester::compare_elements {lib1 lib2 path} {
 # USAGE: compare <lib1> <lib2> ?path?
 #
 # Compares two library objects and returns a list of paths that do not
-# match.  Paths are relative to lib1 (i.e. if a path exists in lib2 but
-# not lib1, it will not be included in the result.  Result will contain
-# all differences that occur as descendants of an optional starting
-# path.  If the path argument is not given, then only the output
-# sections will be compared.
+# match.  Only paths which exist in both libraries are considered.
+# Return value will contain all differences that occur as descendants of
+# an optional starting path.  If the path argument is not given, then 
+# only the output sections will be compared.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::compare {lib1 lib2 {path output}} {
-    set diffs [list]
-    foreach child [$lib1 children $path] {
-        foreach diff [compare $lib1 $lib2 $path.$child] {
-            lappend diffs $diff
+    set paths [list]
+    set clist1 [$lib1 children $path]
+    set clist2 [$lib2 children $path]
+    foreach child $clist1 {
+        # Ignore if not present in both libraries
+        if {[lsearch -exact $clist2 $child] != -1} {
+            foreach p [compare $lib1 $lib2 $path.$child] {
+                lappend paths $p
+            }
         }
     }
     if {[compare_elements $lib1 $lib2 $path]} {
         # Ignore output.time and output.user
         if {$path != "output.time" && $path != "output.user"} {
-            lappend diffs $path
+            lappend paths $path
         }
     }
-    return $diffs
+    return $paths
+}
+
+# TODO: Should we report differences in input side as well?
+
+proc Rappture::Tester::missing {lib1 lib2 {path output}} {
+    set paths [list]
+    foreach child [$lib1 children $path] {
+        foreach p [missing $lib1 $lib2 $path.$child] {
+            lappend paths $p
+        }
+    }
+    if {[$lib1 get $path] != "" && [$lib2 get $path] == ""} {
+        lappend paths $path
+    }
+    return $paths
+}
+
+proc Rappture::Tester::added {lib1 lib2 {path output}} {
+    set paths [list]
+    foreach child [$lib2 children $path] {
+        foreach p [added $lib1 $lib2 $path.$child] {
+            lappend paths $p
+        }
+    }
+    if {[$lib1 get $path] == "" && [$lib2 get $path] != ""} {
+        lappend paths $path
+    }
+    return $paths
 }
 

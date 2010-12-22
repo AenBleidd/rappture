@@ -203,6 +203,8 @@ itcl::body Rappture::Tester::TestView::updateResult {args} {
         $itk_component(result) insert end "Runfile: $darray(runfile)\n"
         if {$darray(result) == "Fail"} {
             $itk_component(result) insert end "Diffs: $darray(diffs)\n" 
+            $itk_component(result) insert end "Missing: $darray(missing)\n"
+            $itk_component(result) insert end "Added: $darray(added)\n"
         }
     } else {
         error "wrong # args: should be \"updateResult ?data?\""
