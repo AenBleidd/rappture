@@ -120,13 +120,17 @@ proc Rappture::Tester::runTest {id} {
     set darray(ran) yes
     if {$status == 0 && [Rappture::library isvalid $result]} {
         set golden [Rappture::library $darray(testxml)]
-        set diffs [Rappture::Tester::compare $golden $result output]
-        if {$diffs == ""} {
+        set diffs [Rappture::Tester::compare $golden $result]
+        set missing [Rappture::Tester::missing $golden $result]
+        set added [Rappture::Tester::added $golden $result]
+        if {$diffs == "" && $missing == "" && $added == ""} {
             set darray(result) Pass
         } else {
             set darray(result) Fail
         }
         set darray(diffs) $diffs
+        set darray(missing) $missing
+        set darray(added) $added
         set darray(runfile) [$tool getRunFile]
     } else {
         set darray(result) Error
@@ -202,7 +206,12 @@ proc Rappture::Tester::merge {toolobj golden driver {path input}} {
 }
 
 # ----------------------------------------------------------------------
-# TODO
+# USAGE: regoldenize
+#
+# Regoldenizes the currently focused test case.  Displays a warning
+# message.  If confirmed, copy the test information from the existing
+# test xml into the new result, and write the new data into the test
+# xml.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::regoldenize {} {
     set data [.tree getData focus]

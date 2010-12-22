@@ -18,7 +18,7 @@
 package require Itk
 package require BLT
 package require Rappture
-# TODO: pipe separator allow spaces
+
 namespace eval Rappture::Tester::TestTree { #forward declaration }
 
 option add *TestTree.font \
@@ -68,9 +68,10 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
         keep -foreground -font -cursor
     }
     $itk_component(treeview) column insert 0 result -width 75 
-    $itk_component(treeview) column insert end testxml ran diffs runfile 
-    $itk_component(treeview) column configure testxml ran diffs runfile \
-        -hide yes
+    $itk_component(treeview) column insert end testxml ran diffs missing \
+        added runfile 
+    $itk_component(treeview) column configure testxml ran diffs missing \
+        added runfile -hide yes
     $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
