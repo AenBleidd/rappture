@@ -168,7 +168,6 @@ itcl::body Rappture::Tester::TestTree::getTest {args} {
 # added later for the given tree node id.  Mainly needed to update the
 # result from Fail to Pass after regoldenizing a test.  If no id is 
 # given, return the test associated with the currently focused node.
-# Returns empty string if the given id / focused node is a branch node.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestTree::refresh {args} {
     if {[llength $args] == 0} {
