@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <run>
     <test>
-        <label>multiple|levels|spaces are allowed|</label>
+        <label>multiple|levels|spaces are allowed...</label>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>

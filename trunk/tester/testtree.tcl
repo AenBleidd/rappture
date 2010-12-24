@@ -2,12 +2,11 @@
 #  COMPONENT: testtree - provides hierarchical view of regression tests
 #
 #  Used to display a collapsible view of all tests found in the test
-#  directory.  The -command configuration option will be called when
-#  the run button is clicked. Provides methods to get all tests or all 
-#  currently selected tests. Also helps handle data stored in treeview 
-#  columns.  In each test xml, a label must be located at the path 
+#  directory.  In each test xml, a label must be located at the path 
 #  test.label.  Test labels may be organized hierarchically by using 
-#  dots to separate components of the test label.
+#  dots to separate components of the test label.  The directory
+#  containing a set of test xml files, as well as the location of the
+#  new tool.xml must be given as configuration options.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -33,19 +32,23 @@ option add *TestTree.boldTextFont \
 itcl::class Rappture::Tester::TestTree {
     inherit itk::Widget 
 
-    public variable command
-    public variable selectcommand
-    public variable testdir
+    public variable selectcommand ""
+    public variable testdir ""
+    public variable toolxml ""
 
-    constructor {testdir args} { #defined later }
-    public method getTests {{id 0}}
-    public method getSelected {}
-    public method getFocus {}
-    public method getData {id}
-    public method setData {id data}
+    constructor {args} { #defined later }
 
-    protected method updateLabel {}
+    public method getTest {args}
+    public method refresh {args}
+
+    protected method getData {id}
+    protected method getLeaves {{id 0}}
+    protected method getSelected {}
     protected method populate {}
+    protected method runSelected {}
+    protected method runTest {id} 
+    protected method setData {id data}
+    protected method updateLabel {}
 
 }
  
@@ -68,10 +71,7 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
         keep -foreground -font -cursor
     }
     $itk_component(treeview) column insert 0 result -width 75 
-    $itk_component(treeview) column insert end testxml ran diffs missing \
-        added runfile 
-    $itk_component(treeview) column configure testxml ran diffs missing \
-        added runfile -hide yes
+    $itk_component(treeview) column insert end test -hide yes
     $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
@@ -92,10 +92,9 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     pack $itk_component(bSelectNone) -side left
 
     itk_component add bRun {
-        button $itk_component(bottomBar).bRun -text "Run" -state disabled
-    } {
-        keep -command
-    }
+        button $itk_component(bottomBar).bRun -text "Run" -state disabled \
+            -command [itcl::code $this runSelected]
+    } 
     pack $itk_component(bRun) -side right
 
     itk_component add lSelected {
@@ -108,57 +107,103 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     pack $itk_component(scrollbars) -side left -expand yes -fill both
 
     eval itk_initialize $args
+
+    if {$testdir == ""} {
+        error "no -testdir configuration option given."
+    }
+    if {$toolxml == ""} {
+        error "no -toolxml configuration option given."
+    }
 }
 
-# Repopulate tree if test directory changed
+# ----------------------------------------------------------------------
+# Repopulate tree if test directory or toolxml have been changed.
+# ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::testdir {
     populate
 }
 
-# Forward the TestTree's selectcommand to the treeview, and update the label
-# as well.
+itcl::configbody Rappture::Tester::TestTree::toolxml {
+    populate
+}
+
+# ----------------------------------------------------------------------
+# Forward the TestTree's selectcommand to the treeview, but tack on the
+# updateLabel method to keep the label refreshed when selection is
+# changed
+# ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::selectcommand {
     $itk_component(treeview) configure -selectcommand \
         "[itcl::code $itk_interior updateLabel]; $selectcommand"
 }
 
 # ----------------------------------------------------------------------
-# USAGE: populate
+# USAGE getTest ?id?
 #
-# Used internally to insert nodes into the treeview for each test xml
-# found in the test directory.  Skips any xml files that do not contain
-# information at path test.label.  Relies on the autocreate treeview
-# option so that branch nodes need not be explicitly created.  Deletes
-# any nodes previously contained by the treeview.
+# Returns the test object associated with a given treeview node id.  If
+# no id is given, return the test associated with the currently focused
+# node.  Returns empty string if the given id / focused node is a 
+# branch node.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestTree::populate {} {
-    $itk_component(treeview) delete 0
-    # TODO: add an appropriate icon
-    set icon [Rappture::icon molvis-3dorth]
-    # TODO: Descend through subdirectories inside testdir?
-    foreach testxml [glob -nocomplain -directory $testdir *.xml] {
-        set lib [Rappture::library $testxml]
-        set testpath [$lib get test.label]
-        if {$testpath != ""} {
-            $itk_component(treeview) insert end $testpath -data \
-                 [list testxml $testxml ran no result "" diffs ""] \
-                 -icons "$icon $icon" -activeicons "$icon $icon"
-        }
+itcl::body Rappture::Tester::TestTree::getTest {args} {
+    if {[llength $args] == 0} {
+         set id [$itk_component(treeview) index focus]
+    } elseif {[llength $args] == 1} {
+        set id [lindex $args 0]
+    } else {
+        error "wrong # args: should be getTest ?id?"
+    } 
+    array set darray [getData $id]
+    if {[lsearch -exact [getLeaves] $id] == -1} {
+        # Return empty string if branch node selected
+        return ""
     }
-    $itk_component(treeview) open -recurse root
-    # TODO: Fix width of main treeview column
+    return $darray(test)
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getTests ?id?
+# USAGE: refresh ?id?
+#
+# Refreshes the result column and any other information which may be
+# added later for the given tree node id.  Mainly needed to update the
+# result from Fail to Pass after regoldenizing a test.  If no id is 
+# given, return the test associated with the currently focused node.
+# Returns empty string if the given id / focused node is a branch node.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestTree::refresh {args} {
+    if {[llength $args] == 0} {
+         set id [$itk_component(treeview) index focus]
+    } elseif {[llength $args] == 1} {
+        set id [lindex $args 0]
+    } else {
+        error "wrong # args: should be refresh ?id?"
+    }
+    if {[lsearch -exact [getLeaves] $id] == -1} {
+         error "given id $id is not a leaf node."
+    }
+    set test [getTest $id]
+    setData $id [list result [$test getResult] test $test]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getData <id>
+#
+# Returns a list of key-value pairs representing the column data stored
+# at the tree node with the given id.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestTree::getData {id} {
+    return [$itk_component(treeview) entry cget $id -data]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getLeaves ?id?
 #
 # Returns a list of ids for all tests contained in the tree.  If an
 # optional id is given as an input parameter, then the returned list
 # will contain the ids of all tests that are descendants of the given
-# id.  Tests can only be leaf nodes in the tree (the ids in the returned
-# list will correspond to leaf nodes only).
+# id.  Tests can only be leaf nodes.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestTree::getTests {{id 0}} {
+itcl::body Rappture::Tester::TestTree::getLeaves {{id 0}} {
     set clist [$itk_component(treeview) entry children $id]
     if {$clist == "" && $id == 0} {
         # Return nothing if tree is empty 
@@ -169,7 +214,7 @@ itcl::body Rappture::Tester::TestTree::getTests {{id 0}} {
     }
     set tests [list]
     foreach child $clist {
-        set tests [concat $tests [getTests $child]]
+        set tests [concat $tests [getLeaves $child]]
     }
     return $tests
 }
@@ -186,7 +231,7 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
     set selection [$itk_component(treeview) curselection]
     set selectedTests [list]
     foreach id $selection {
-        foreach node [getTests $id] {
+        foreach node [getLeaves $id] {
             if {[lsearch -exact $selectedTests $node] == -1} {
                 lappend selectedTests $node
             }
@@ -196,22 +241,61 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getFocus
+# USAGE: populate
 #
-# Returns index of the focused node in the treeview.
+# Used internally to insert nodes into the treeview for each test xml
+# found in the test directory.  Skips any xml files that do not contain
+# information at path test.label.  Relies on the autocreate treeview
+# option so that branch nodes need not be explicitly created.  Deletes
+# any existing contents.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestTree::getFocus {} {
-    return [$itk_component(treeview) index focus]
+itcl::body Rappture::Tester::TestTree::populate {} {
+    $itk_component(treeview) delete 0
+    # TODO: add an appropriate icon
+    set icon [Rappture::icon molvis-3dorth]
+    # TODO: Descend through subdirectories inside testdir?
+    foreach testxml [glob -nocomplain -directory $testdir *.xml] {
+        set lib [Rappture::library $testxml]
+        set testpath [$lib get test.label]
+        if {$testpath != ""} {
+            set test [Rappture::Tester::Test ::#auto $toolxml $testxml]
+            $itk_component(treeview) insert end $testpath -data \
+                 [list test $test] -icons "$icon $icon" \
+                 -activeicons "$icon $icon"
+        }
+    }
+    $itk_component(treeview) open -recurse root
+    # TODO: Fix width of main treeview column
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getData <id>
+# USAGE: runSelected
 #
-# Returns a list of key-value pairs representing the column data stored
-# at the tree node with the given id.
+# Invoked by the run button to run all currently selected tests.
+# After completion, call selectcommand to re-select the newly completed
+# focused node.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestTree::getData {id} {
-    return [$itk_component(treeview) entry cget $id -data]
+itcl::body Rappture::Tester::TestTree::runSelected {} {
+    foreach id [$this getSelected] {
+        runTest $id
+    }
+    eval $selectcommand
+}
+
+# ----------------------------------------------------------------------
+# USAGE: runTest id
+#
+# Runs the test located at the tree node with the given id.  The id
+# must be a leaf node, because tests may not be located at branch nodes.
+# ---------------------------------------------------------------------- 
+itcl::body Rappture::Tester::TestTree::runTest {id} {
+    if {[lsearch -exact [getLeaves] $id] == -1} {
+        error "given id $id is not a leaf node"
+    }
+    set test [getTest $id]
+    setData $id [list result Running test $test]
+    $test run
+    setData $id [list result [$test getResult] test $test]
 }
 
 # ----------------------------------------------------------------------
