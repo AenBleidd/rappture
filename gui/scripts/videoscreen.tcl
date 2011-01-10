@@ -16,25 +16,18 @@ package require Rappture
 package require RapptureGUI
 
 option add *Video.width 300 widgetDefault
-option add *Video*cursor crosshair widgetDefault
 option add *Video.height 300 widgetDefault
 option add *Video.foreground black widgetDefault
 option add *Video.controlBackground gray widgetDefault
-option add *Video.controlDarkBackground #999999 widgetDefault
-option add *Video.plotBackground black widgetDefault
-option add *Video.plotForeground white widgetDefault
-option add *Video.plotOutline gray widgetDefault
 option add *Video.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 itcl::class Rappture::VideoScreen {
     inherit itk::Widget
 
-    itk_option define -plotforeground plotForeground Foreground ""
-    itk_option define -plotbackground plotBackground Background ""
-    itk_option define -plotoutline plotOutline PlotOutline ""
     itk_option define -width width Width -1
     itk_option define -height height Height -1
+    itk_option define -fileopen fileopen Fileopen ""
 
     constructor { args } {
         # defined below
@@ -108,7 +101,6 @@ itk::usual VideoScreen {
 itcl::body Rappture::VideoScreen::constructor {args} {
 
     array set _settings [subst {
-        $this-currenttime       0
         $this-framenum          0
         $this-loop              0
         $this-play              0
@@ -121,7 +113,6 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     }]
 
 
-
     # Create flow controls...
 
     itk_component add main {
@@ -131,9 +122,11 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         usual
         rename -background -controlbackground controlBackground Background
     }
-
-    # pack $itk_component(main) -side top -expand yes -fill both
     bind $itk_component(main) <Configure> [itcl::code $this fixSize]
+
+    # hold the video frames in an image on the canvas
+    set _imh [image create photo]
+    $itk_component(main) create image 0 0 -anchor nw -image $_imh
 
     # setup movie controls
     itk_component add moviecontrols {
@@ -153,6 +146,22 @@ itcl::body Rappture::VideoScreen::constructor {args} {
 
     set imagesDir [file join $RapptureGUI::library scripts images]
 
+    # ==== fileopen ====
+    itk_component add fileopen {
+        button $itk_component(moviecontrols).fileopen \
+            -borderwidth 1 -padx 1 -pady 1 \
+            -image [Rappture::icon upload] \
+            -command [itcl::code $this loadcb]
+            #-command [Rappture::filexfer::upload {piv tool} {id label desc} [itcl::code $this Upload]]
+            #-command [itcl::code $this video seek 0]
+    } {
+        usual
+        ignore -borderwidth
+        rename -highlightbackground -controlbackground controlBackground \
+            Background
+    }
+    Rappture::Tooltip::for $itk_component(fileopen) \
+        "Open file"
 
     # ==== measuring tool ====
     set measImg [image create photo -file [file join $imagesDir "line_darrow_green.png"]]
@@ -253,14 +262,20 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     Rappture::Tooltip::for $itk_component(loop) \
         "Play continuously between marked sections"
 
-    # Video Dial
     itk_component add dial {
-        Rappture::Videodial $itk_component(moviecontrols).dial \
+        frame $itk_interior.dial
+    } {
+        usual
+        rename -background -controlbackground controlBackground Background
+    }
+
+    # Video Dial Major
+    itk_component add dialmajor {
+        Rappture::Videodial1 $itk_component(dial).dialmajor \
             -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
             -linecolor "" -activelinecolor "" \
             -min 0 -max 1 \
-            -minortick 1 -majortick 5 \
-            -variable [itcl::scope _settings($this-currenttime)] \
+            -variable [itcl::scope _settings($this-framenum)] \
             -dialoutlinecolor black \
             -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
@@ -268,8 +283,23 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         ignore -dialprogresscolor
         rename -background -controlbackground controlBackground Background
     }
-    $itk_component(dial) current 0
-    bind $itk_component(dial) <<Value>> [itcl::code $this video update]
+    $itk_component(dialmajor) current 0
+    bind $itk_component(dialmajor) <<Value>> [itcl::code $this video update]
+
+    # Video Dial Minor
+    itk_component add dialminor {
+        Rappture::Videodial2 $itk_component(dial).dialminor \
+            -padding 0 \
+            -min 0 -max 1 \
+            -minortick 1 -majortick 5 \
+            -variable [itcl::scope _settings($this-framenum)] \
+            -dialoutlinecolor black
+    } {
+        usual
+        rename -background -controlbackground controlBackground Background
+    }
+    $itk_component(dialminor) current 0
+    bind $itk_component(dialminor) <<Value>> [itcl::code $this video update]
 
     itk_component add framenumlabel {
         label $itk_component(frnumfr).framenuml -text "Frame:" -font $fg \
@@ -281,8 +311,6 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     }
 
     # Current Frame Number
-    #set ffont "arial 9"
-    #set fwidth [calcLabelWidth $ffont]
     itk_component add framenum {
         label $itk_component(frnumfr).framenum \
             -background white -font "arial 9" \
@@ -292,9 +320,6 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         ignore -highlightthickness
         rename -background -controlbackground controlBackground Background
     }
-    #$itk_component(framenum) value 1
-    #bind $itk_component(framenum) <<Value>> \
-    #    [itcl::code $this video seek -framenum]
     Rappture::Tooltip::for $itk_component(framenum) \
         "Current frame number"
 
@@ -314,8 +339,8 @@ itcl::body Rappture::VideoScreen::constructor {args} {
 
     # Speed
     itk_component add speed {
-        Rappture::Flowspeed $itk_component(moviecontrols).speed \
-            -min 1 -max 10 -width 3 -font "arial 9"
+        Rappture::Videospeed $itk_component(moviecontrols).speed \
+            -min 0 -max 1 -width 4 -font "arial 9" -factor 2
     } {
         usual
         ignore -highlightthickness
@@ -324,13 +349,19 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     Rappture::Tooltip::for $itk_component(speed) \
         "Change speed of movie"
 
-    $itk_component(speed) value 1
+    $itk_component(speed) value 0.25
     bind $itk_component(speed) <<Value>> [itcl::code $this video speed]
 
 
+    blt::table $itk_component(dial) \
+        0,0 $itk_component(dialmajor) -fill x \
+        1,0 $itk_component(dialminor) -fill x
+
+
     blt::table $itk_component(moviecontrols) \
-        0,0 $itk_component(measure) -padx {2 0}  \
-        0,1 $itk_component(particle) -padx {4 0} \
+        0,0 $itk_component(fileopen) -padx {2 0}  \
+        0,1 $itk_component(measure) -padx {4 0}  \
+        0,2 $itk_component(particle) -padx {4 0} \
         0,5 $itk_component(dial) -fill x -padx {2 4} -rowspan 3 \
         1,0 $itk_component(rewind) -padx {2 0} \
         1,1 $itk_component(seekback) -padx {4 0} \
@@ -360,6 +391,9 @@ itcl::body Rappture::VideoScreen::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::destructor {} {
     array unset _settings $this-*
+    if {[info exists _imh]} {
+        image delete $_imh
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -393,21 +427,23 @@ itcl::body Rappture::VideoScreen::load {type data} {
         }
     }
 
+    if {([info exists _movie]) && ("" != ${_movie})} {
+        ${_movie} release
+    }
+
     set _movie [Rappture::Video $type $data]
     file delete $fname
     set _framerate [${_movie} get framerate]
-    set _mspf [expr round(((1.0/${_framerate})*1000)/pow(2,$_settings($this-speed)-1))]
-    set _delay [expr {${_mspf} - ${_ofrd}}]
-    puts stderr "framerate = ${_framerate}"
-    puts stderr "mspf = ${_mspf}"
-    puts stderr "ofrd = ${_ofrd}"
-    puts stderr "delay = ${_delay}"
+    video speed
 
-    ${_movie} seek 0
+    video seek 0
+
+    # update the dial and framenum widgets
+    set _settings($this-framenum) 0
+
 
     # setup the image display
 
-    set _imh [image create photo]
     foreach {w h} [query dimensions] break
     if {${_width} == -1} {
         set _width $w
@@ -415,12 +451,12 @@ itcl::body Rappture::VideoScreen::load {type data} {
     if {${_height} == -1} {
         set _height $h
     }
-    $itk_component(main) create image 0 0 -anchor nw -image $_imh
 
     set _lastFrame [$_movie get position end]
 
     # update the dial with video information
-    $itk_component(dial) configure -min 0 -max ${_lastFrame}
+    $itk_component(dialmajor) configure -min 0 -max ${_lastFrame}
+    $itk_component(dialminor) configure -min 0 -max ${_lastFrame}
 
     fixSize
 }
@@ -465,16 +501,25 @@ itcl::body Rappture::VideoScreen::fixSize {} {
         return
     }
 
-    set _width [winfo width $itk_component(main)]
-    set _height [winfo height $itk_component(main)]
+#    set _width [winfo width $itk_component(main)]
+#    set _height [winfo height $itk_component(main)]
+#
+#    # get an image with the new size
+#    ${_imh} put [${_movie} get image ${_width} ${_height}]
+#
+#    # fix the dimesions of the canvas
+#    #$itk_component(main) configure -width ${_width} -height ${_height}
+#
+#    $itk_component(main) configure -scrollregion [$itk_component(main) bbox all]
+
+######################
 
     # get an image with the new size
     ${_imh} put [${_movie} get image ${_width} ${_height}]
+    puts stderr "${_width} ${_height}"
 
-    # fix the dimesions of the canvas
-    #$itk_component(main) configure -width ${_width} -height ${_height}
-
-    $itk_component(main) configure -scrollregion [$itk_component(main) bbox all]
+    # fix the dimesions of the video canvas
+    $itk_component(main) configure -width ${_width} -height ${_height}
 }
 
 # ----------------------------------------------------------------------
@@ -485,16 +530,12 @@ itcl::body Rappture::VideoScreen::video { args } {
     switch -- $option {
         "play" {
             if {$_settings($this-play) == 1} {
-                # disable seek while playing
-                # bind $itk_component(dial) <<Value>> ""
                 eventually play
             } else {
                 # pause/stop
                 after cancel $_id
                 set _pendings(play) 0
                 set _settings($this-play) 0
-                # enable seek while paused
-                # bind $itk_component(dial) <<Value>> [itcl::code $this updateFrame]
             }
         }
         "seek" {
@@ -506,16 +547,13 @@ itcl::body Rappture::VideoScreen::video { args } {
         }
         "speed" {
             set speed [$itk_component(speed) value]
-            set _mspf [expr round(((1.0/${_framerate})*1000)/pow(2,$speed-1))]
+            set _mspf [expr round(((1.0/${_framerate})*1000)/$speed)]
             set _delay [expr {${_mspf} - ${_ofrd}}]
             puts stderr "_mspf = ${_mspf} | $speed | ${_ofrd} | ${_delay}"
         }
         "update" {
-            #video stop
-            # eventually seek [expr round($_settings($this-currenttime))]
-            Seek [expr round($_settings($this-currenttime))]
-            # Seek $_settings($this-framenum)
-            #after idle [itcl::code $this video play]
+            # eventually seek [expr round($_settings($this-framenum))]
+            Seek [expr round($_settings($this-framenum))]
         }
         default {
             error "bad option \"$option\": should be play, stop, toggle, position, or reset."
@@ -554,9 +592,14 @@ itcl::body Rappture::VideoScreen::query { type } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::Play {} {
 
+    set cur ${_nextframe}
+
     # time how long it takes to retrieve the next frame
     set _ofrd [time {
-        $_movie seek $_nextframe
+        # use seek instead of next fxn incase the ${_nextframe} is
+        # not the current frame+1. this happens when we skip frames
+        # because the underlying c lib is too slow at reading.
+        $_movie seek $cur
         $_imh put [$_movie get image ${_width} ${_height}]
     } 1]
     regexp {(\d+\.?\d*) microseconds per iteration} ${_ofrd} match _ofrd
@@ -573,15 +616,8 @@ itcl::body Rappture::VideoScreen::Play {} {
     set cur [$_movie get position cur]
 
     # update the dial and framenum widgets
-    set _settings($this-currenttime) $cur
     set _settings($this-framenum) $cur
 
-    if {[expr $cur%100] == 0} {
-#        puts stderr "ofrd = ${_ofrd}"
-#        puts stderr "delay = ${_delay}"
-#        puts stderr "after: [after info]"
-#        puts stderr "id = ${_id}"
-    }
 
     # no play cmds pending
     set _pendings(play) 0
@@ -589,17 +625,19 @@ itcl::body Rappture::VideoScreen::Play {} {
     # if looping is turned on and markers setup,
     # then loop back to loopstart when cur hits loopend
     if {$_settings($this-loop)} {
-        if {$cur == [$itk_component(dial) mark position loopend]} {
-            Seek [$itk_component(dial) mark position loopstart]
+        if {$cur == [$itk_component(dialminor) mark position loopend]} {
+            Seek [$itk_component(dialminor) mark position loopstart]
         }
     }
 
     # schedule the next frame to be displayed
     if {$cur < ${_lastFrame}} {
         set _id [after ${_delay} [itcl::code $this eventually play]]
+    } else {
+        video stop
     }
 
-#    event generate $itk_component(hull) <<Frame>>
+    event generate $itk_component(hull) <<Frame>>
 }
 
 
@@ -623,10 +661,8 @@ itcl::body Rappture::VideoScreen::Seek {args} {
     ${_imh} put [${_movie} get image ${_width} ${_height}]
 
     # update the dial and framenum widgets
+    set _settings($this-framenum) [$_movie get position cur]
     event generate $itk_component(main) <<Frame>>
-    set cur [$_movie get position cur]
-    set _settings($this-currenttime) $cur
-    set _settings($this-framenum) $cur
 
 }
 
@@ -835,7 +871,7 @@ itcl::body Rappture::VideoScreen::Measure {status win x y} {
                         -bindings disable]
             ${_obj} Coords $x $y $x $y
             ${_obj} Show object
-            $itk_component(dial) mark add arrow current
+            $itk_component(dialminor) mark add arrow current
         }
         "drag" {
             # FIXME: something wrong with the bindings, if the objects menu is
@@ -897,7 +933,7 @@ itcl::body Rappture::VideoScreen::Particle {status win x y} {
                         -units "m/s"]
             ${_obj} Coords $x $y
             ${_obj} Show object
-            $itk_component(dial) mark add $name current
+            $itk_component(dialminor) mark add $name current
             # bind $itk_component(hull) <<Frame>> [itcl::code $itk_component(main).$name UpdateFrame]
 
             # link the new particle to the last particle added
@@ -992,21 +1028,49 @@ itcl::body Rappture::VideoScreen::Trajectory {args} {
 #          offset text.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::writeText {x y text color tags width} {
-    # write text up-left
-    $itk_component(main) create text [expr $x-1] [expr $y-1] \
+    $itk_component(main) create text [expr $x-1] [expr $y] \
         -tags $tags \
         -justify center \
         -text $text \
         -fill black \
         -width $width
 
-    # write text down-right
-    $itk_component(main) create text [expr $x+1] [expr $y+1] \
+    $itk_component(main) create text [expr $x+1] [expr $y] \
         -tags $tags \
         -justify center \
         -text $text \
         -fill black \
         -width $width
+
+    $itk_component(main) create text [expr $x] [expr $y-1] \
+        -tags $tags \
+        -justify center \
+        -text $text \
+        -fill black \
+        -width $width
+
+    $itk_component(main) create text [expr $x] [expr $y+1] \
+        -tags $tags \
+        -justify center \
+        -text $text \
+        -fill black \
+        -width $width
+
+#    # write text up-left
+#    $itk_component(main) create text [expr $x-1] [expr $y-1] \
+#        -tags $tags \
+#        -justify center \
+#        -text $text \
+#        -fill black \
+#        -width $width
+#
+#    # write text down-right
+#    $itk_component(main) create text [expr $x+1] [expr $y+1] \
+#        -tags $tags \
+#        -justify center \
+#        -text $text \
+#        -fill black \
+#        -width $width
 
     # write text at x,y
     $itk_component(main) create text $x $y \
@@ -1030,7 +1094,7 @@ itcl::body Rappture::VideoScreen::calculateTrajectory {args} {
     set frames [expr $f1 - $f0]
 
     if {($frames != 0) && (${_px2dist} != 0)} {
-        set t [expr 1.0*$px/$frames/${_px2dist}*${_framerate}]
+        set t [expr 1.0*$px/$frames*${_px2dist}*${_framerate}]
     } else {
         set t 0.0
     }
@@ -1043,8 +1107,8 @@ itcl::body Rappture::VideoScreen::calculateTrajectory {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::toggleloop {} {
     if {$_settings($this-loop) == 0} {
-        $itk_component(dial) mark remove loopstart
-        $itk_component(dial) mark remove loopend
+        $itk_component(dialminor) mark remove loopstart
+        $itk_component(dialminor) mark remove loopend
     } else {
         set cur [$_movie get position cur]
         set end [$_movie get position end]
@@ -1059,8 +1123,8 @@ itcl::body Rappture::VideoScreen::toggleloop {} {
             set endframe $end
         }
 
-        $itk_component(dial) mark add loopstart $startframe
-        $itk_component(dial) mark add loopend $endframe
+        $itk_component(dialminor) mark add loopstart $startframe
+        $itk_component(dialminor) mark add loopend $endframe
     }
 
 }
@@ -1073,7 +1137,7 @@ itcl::configbody Rappture::VideoScreen::width {
     if {[string is integer $itk_option(-width)] == 0} {
         error "bad value: \"$itk_option(-width)\": width should be an integer"
     }
-    set ${_width} $itk_option(-width)
+    set _width $itk_option(-width)
     after idle [itcl::code $this fixSize]
 }
 
@@ -1085,6 +1149,13 @@ itcl::configbody Rappture::VideoScreen::height {
     if {[string is integer $itk_option(-height)] == 0} {
         error "bad value: \"$itk_option(-height)\": height should be an integer"
     }
-    set ${_height} $itk_option(-height)
+    set _height $itk_option(-height)
     after idle [itcl::code $this fixSize]
+}
+
+# ----------------------------------------------------------------------
+# OPTION: -fileopen
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoScreen::fileopen {
+    $itk_component(fileopen) configure -command $itk_option(-fileopen)
 }

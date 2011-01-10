@@ -113,10 +113,16 @@ FILES		= \
 		$(srcdir)/units.tcl \
 		$(srcdir)/utils.tcl \
 		$(srcdir)/valueresult.tcl \
+		$(srcdir)/videochooser.tcl \
+		$(srcdir)/videochooserinfo.tcl \
 		$(srcdir)/videodial.tcl \
+		$(srcdir)/videodial1.tcl \
+		$(srcdir)/videodial2.tcl \
 		$(srcdir)/videodistance.tcl \
 		$(srcdir)/videoscreen.tcl \
+		$(srcdir)/videospeed.tcl \
 		$(srcdir)/videoparticle.tcl \
+		$(srcdir)/videopreview.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \
 		$(srcdir)/xylegend.tcl \

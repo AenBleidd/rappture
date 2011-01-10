@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-#  COMPONENT: Videodial - selector, like the dial on a flow
+#  COMPONENT: Videodial2 - selector, like the dial on a flow
 #
 #  This widget looks like the dial on an old-fashioned car flow.
 #  It draws a series of values along an axis, and allows a selector
@@ -14,23 +14,13 @@
 package require Itk
 package require BLT
 
-option add *Videodial.dialProgressColor #6666cc widgetDefault
-option add *Videodial.thickness 10 widgetDefault
-option add *Videodial.length 2i widgetDefault
-option add *Videodial.knobImage knob widgetDefault
-option add *Videodial.knobPosition n@middle widgetDefault
-option add *Videodial.dialOutlineColor black widgetDefault
-option add *Videodial.dialFillColor white widgetDefault
-option add *Videodial.lineColor gray widgetDefault
-option add *Videodial.activeLineColor black widgetDefault
-option add *Videodial.padding 0 widgetDefault
-option add *Videodial.valueWidth 10 widgetDefault
-option add *Videodial.valuePadding 0.1 widgetDefault
-option add *Videodial.foreground black widgetDefault
-option add *Videodial.font \
+option add *Videodial2.thickness 10 widgetDefault
+option add *Videodial2.padding 0 widgetDefault
+option add *Videodial2.foreground black widgetDefault
+option add *Videodial2.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
-itcl::class Rappture::Videodial {
+itcl::class Rappture::Videodial2 {
     inherit itk::Widget
 
     itk_option define -min min Min 0
@@ -41,21 +31,13 @@ itcl::class Rappture::Videodial {
     itk_option define -offset offset Offset 1
 
     itk_option define -thickness thickness Thickness 0
-    itk_option define -length length Length 0
     itk_option define -padding padding Padding 0
 
-    itk_option define -foreground foreground Foreground "black"
     itk_option define -dialoutlinecolor dialOutlineColor Color "black"
     itk_option define -dialfillcolor dialFillColor Color "white"
-    itk_option define -dialprogresscolor dialProgressColor Color ""
-    itk_option define -linecolor lineColor Color "black"
-    itk_option define -activelinecolor activeLineColor Color "black"
-    itk_option define -knobimage knobImage KnobImage ""
-    itk_option define -knobposition knobPosition KnobPosition ""
+    itk_option define -foreground foreground Foreground "black"
 
     itk_option define -font font Font ""
-    itk_option define -valuewidth valueWidth ValueWidth 0
-    itk_option define -valuepadding valuePadding ValuePadding 0
 
 
     constructor {args} { # defined below }
@@ -67,21 +49,17 @@ itcl::class Rappture::Videodial {
     public method bball {}
 
     protected method _bindings {type args}
-    protected method _redraw {}
+    protected method _redraw {args}
     protected method _marker {tag action x y}
     protected method _setmark {type args}
     protected method _move {action x y}
-    protected method _knob {x y}
     protected method _navigate {offset}
     protected method _fixSize {}
-    protected method _fixMinorSize {}
     protected method _fixValue {args}
     protected method _fixOffsets {}
 
     private method _current {value}
     private method _see {item}
-    private method _draw_major_timeline {}
-    private method _draw_minor_timeline {}
     private method _offsetx {x}
     private method ms2rel {value}
     private method rel2ms {value}
@@ -91,51 +69,25 @@ itcl::class Rappture::Videodial {
     private variable _val2label       ;# maps value => string label(s)
     private variable _current 0       ;# current value (where pointer is)
     private variable _variable ""     ;# variable associated with -variable
-    private variable _knob ""         ;# image for knob
-    private variable _spectrum ""     ;# width allocated for values
-    private variable _activecolor ""  ;# width allocated for values
-    private variable _vwidth 0        ;# width allocated for values
     private variable _offset_pos 1    ;#
     private variable _offset_neg -1   ;#
     private variable _imspace 10      ;# pixels between intermediate marks
-    private variable _pmcnt 0         ;# particle marker count
     private variable _min 0
     private variable _max 1
     private variable _minortick 1
     private variable _majortick 5
 }
 
-itk::usual Videodial {
+itk::usual Videodial2 {
     keep -foreground -cursor -font
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::constructor {args} {
+itcl::body Rappture::Videodial2::constructor {args} {
 
     # bind $itk_component(hull) <<Frame>> [itcl::code $this _updateCurrent]
-
-    # ----------------------------------------------------------------------
-    # controls for the major timeline.
-    # ----------------------------------------------------------------------
-    itk_component add majordial {
-        canvas $itk_interior.majordial
-    }
-
-    bind $itk_component(majordial) <Configure> [itcl::code $this _draw_major_timeline]
-
-    bind $itk_component(majordial) <ButtonPress-1> [itcl::code $this _knob %x %y]
-    bind $itk_component(majordial) <B1-Motion> [itcl::code $this _knob %x %y]
-    bind $itk_component(majordial) <ButtonRelease-1> [itcl::code $this _knob %x %y]
-
-    #bind $itk_component(hull) <KeyPress-Left> [itcl::code $this _navigate $_offset_neg]
-    #bind $itk_component(hull) <KeyPress-Right> [itcl::code $this _navigate $_offset_pos]
-
-    $itk_component(majordial) bind  "knob" <Enter> \
-        [list $itk_component(majordial) configure -cursor sb_h_double_arrow]
-    $itk_component(majordial) bind  "knob" <Leave> \
-        [list $itk_component(majordial) configure -cursor ""]
 
     # ----------------------------------------------------------------------
     # controls for the minor timeline.
@@ -145,7 +97,7 @@ itcl::body Rappture::Videodial::constructor {args} {
     }
 
 
-    bind $itk_component(minordial) <Configure> [itcl::code $this _draw_minor_timeline]
+    bind $itk_component(minordial) <Configure> [itcl::code $this _redraw]
 
     bind $itk_component(minordial) <ButtonPress-1> [itcl::code $this _move click %x %y]
     bind $itk_component(minordial) <B1-Motion> [itcl::code $this _move drag %x %y]
@@ -156,30 +108,25 @@ itcl::body Rappture::Videodial::constructor {args} {
     # ----------------------------------------------------------------------
 
     blt::table $itk_interior \
-        0,0 $itk_component(majordial) -fill x \
-        1,0 $itk_component(minordial) -fill x
+        0,0 $itk_component(minordial) -fill x
 
     blt::table configure $itk_interior c* -resize both
     blt::table configure $itk_interior r0 -resize none
-    blt::table configure $itk_interior r1 -resize none
 
 
     eval itk_initialize $args
 
-    $itk_component(majordial) configure -background green
     $itk_component(minordial) configure -background cyan
 
-    #$itk_component(majordial) configure -relief sunken -borderwidth 1
     #$itk_component(minordial) configure -relief sunken -borderwidth 1
 
-    _fixSize
     _fixOffsets
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::destructor {} {
+itcl::body Rappture::Videodial2::destructor {} {
     configure -variable ""  ;# remove variable trace
     after cancel [itcl::code $this _redraw]
 }
@@ -192,7 +139,7 @@ itcl::body Rappture::Videodial::destructor {} {
 # then it is created automatically based on the number of elements
 # on the dial.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::current {value} {
+itcl::body Rappture::Videodial2::current {value} {
     if {"" == $value} {
         return
     }
@@ -208,7 +155,7 @@ itcl::body Rappture::Videodial::current {value} {
 # then it is created automatically based on the number of elements
 # on the dial.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_current {relval} {
+itcl::body Rappture::Videodial2::_current {relval} {
     if { $relval < 0.0 } {
         set relval 0.0
     }
@@ -216,14 +163,10 @@ itcl::body Rappture::Videodial::_current {relval} {
         set relval 1.0
     }
     set _current $relval
-
-    after cancel [itcl::code $this _draw_major_timeline]
-    after idle [itcl::code $this _draw_major_timeline]
+    _redraw
 
     # update the current marker and move the canvas so current is centered
     set framenum [expr round([rel2ms $_current])]
-    #_see "frame$framenum"
-    #mark current $framenum
     after idle [itcl::code $this _see "frame$framenum"]
     after idle [_setmark current $framenum]
 
@@ -238,7 +181,7 @@ itcl::body Rappture::Videodial::_current {relval} {
 # USAGE: _bindings <type> ?args?
 #
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_bindings {type args} {
+itcl::body Rappture::Videodial2::_bindings {type args} {
     switch -- $type {
         "marker" {
             set tag [lindex $args 0]
@@ -260,7 +203,7 @@ itcl::body Rappture::Videodial::_bindings {type args} {
 # USAGE: mark <property> <args>
 #
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::mark {property args} {
+itcl::body Rappture::Videodial2::mark {property args} {
     set retval 0
 
     switch -- $property {
@@ -309,7 +252,7 @@ itcl::body Rappture::Videodial::mark {property args} {
 #       the provided x coordinate, and is not associated with any
 #       frame. It's purpose is mainly for <B1-Motion> events.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_setmark {type args} {
+itcl::body Rappture::Videodial2::_setmark {type args} {
 
     set c $itk_component(minordial)
 
@@ -448,7 +391,6 @@ itcl::body Rappture::Videodial::_setmark {type args} {
                 }
             }
 
-            _fixMinorSize
         }
         "loopend" {
             # add loopend marker
@@ -492,7 +434,6 @@ itcl::body Rappture::Videodial::_setmark {type args} {
                 }
             }
 
-            _fixMinorSize
         }
         "particle*" {
             set radius 3
@@ -515,7 +456,6 @@ itcl::body Rappture::Videodial::_setmark {type args} {
                 set _marks($type) $where
             }
 
-            _fixMinorSize
 
         }
         "arrow" {
@@ -538,7 +478,6 @@ itcl::body Rappture::Videodial::_setmark {type args} {
                 set _marks($type) $where
             }
 
-            _fixMinorSize
         }
         "current" {
 
@@ -565,6 +504,9 @@ itcl::body Rappture::Videodial::_setmark {type args} {
                 -outline black -fill red -tags $tag
             $c create line $cmx0 $cmy0 $cmx0 $cy1 -fill red -tags $tag
 
+            #$c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
+            #$c bind $tag <Leave> [itcl::code $this _bindings timeline]
+
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
             }
@@ -578,105 +520,12 @@ itcl::body Rappture::Videodial::_setmark {type args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _draw_major_timeline
-#
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_draw_major_timeline {} {
-    set c $itk_component(majordial)
-    $c delete all
-
-    set fg $itk_option(-foreground)
-
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set p [winfo pixels $c $itk_option(-padding)]
-    set t [expr {$itk_option(-thickness)+1}]
-    # FIXME: hack to get the reduce spacing in widget
-    set y1 [expr {$h-2}]
-
-    if {"" != $_knob} {
-        set kw [image width $_knob]
-        set kh [image height $_knob]
-
-        # anchor refers to where on knob
-        # top/middle/bottom refers to where on the dial
-        # leave room for the bottom of the knob if needed
-        switch -- $itk_option(-knobposition) {
-            n@top - nw@top - ne@top {
-                set extra [expr {$t-$kh}]
-                if {$extra < 0} {set extra 0}
-                set y1 [expr {$y1-$extra}]
-            }
-            n@middle - nw@middle - ne@middle {
-                set extra [expr {int(ceil($kh-0.5*$t))}]
-                if {$extra < 0} {set extra 0}
-                set y1 [expr {$y1-$extra}]
-            }
-            n@bottom - nw@bottom - ne@bottom {
-               set y1 [expr {$y1-$kh}]
-            }
-
-            e@top - w@top - center@top -
-            e@bottom - w@bottom - center@bottom {
-                set extra [expr {int(ceil(0.5*$kh))}]
-                set y1 [expr {$y1-$extra}]
-            }
-            e@middle - w@middle - center@middle {
-                set extra [expr {int(ceil(0.5*($kh-$t)))}]
-                if {$extra < 0} {set extra 0}
-                set y1 [expr {$y1-$extra}]
-            }
-
-            s@top - sw@top - se@top -
-            s@middle - sw@middle - se@middle -
-            s@bottom - sw@bottom - se@bottom {
-                set y1 [expr {$y1-1}]
-            }
-        }
-    }
-    set y0 [expr {$y1-$t}]
-    set x0 [expr {$p+1}]
-    set x1 [expr {$w-$_vwidth-$p-4}]
-
-    # draw the background rectangle for the major time line
-    $c create rectangle $x0 $y0 $x1 $y1 \
-        -outline $itk_option(-dialoutlinecolor) \
-        -fill $itk_option(-dialfillcolor) \
-        -tags "majorbg"
-
-    # draw the optional progress bar for the major time line,
-    # from start to current
-    if {"" != $itk_option(-dialprogresscolor) } {
-        set xx1 [expr {$_current*($x1-$x0) + $x0}]
-        $c create rectangle [expr {$x0+1}] [expr {$y0+3}] $xx1 [expr {$y1-2}] \
-            -outline "" -fill $itk_option(-dialprogresscolor)
-    }
-
-    regexp {([nsew]+|center)@} $itk_option(-knobposition) match anchor
-    switch -glob -- $itk_option(-knobposition) {
-        *@top    { set kpos $y0 }
-        *@middle { set kpos [expr {int(ceil(0.5*($y1+$y0)))}] }
-        *@bottom { set kpos $y1 }
-    }
-
-    set x [expr {$_current*($x1-$x0) + $x0}]
-
-    set color $_activecolor
-    set thick 3
-    if {"" != $color} {
-        $c create line $x [expr {$y0+1}] $x $y1 -fill $color -width $thick
-    }
-
-    $c create image $x $kpos -anchor $anchor -image $_knob -tags "knob"
-}
-
-# ----------------------------------------------------------------------
 # USAGE: bball
 #   debug function to print out the bounding box information for
 #   minor dial
 #
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::bball {} {
+itcl::body Rappture::Videodial2::bball {} {
     set c $itk_component(minordial)
     foreach item [$c find all] {
         foreach {x0 y0 x1 y1} [$c bbox $item] break
@@ -691,11 +540,39 @@ itcl::body Rappture::Videodial::bball {} {
     puts stderr "parent height [winfo height [winfo parent $c]]"
 }
 
-# ----------------------------------------------------------------------
-# USAGE: _draw_minor_timeline
-#
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_draw_minor_timeline {} {
+itcl::body Rappture::Videodial2::_redraw {args} {
+
+    set disp_min 0
+    set disp_max 0
+
+    if {[llength $args] == 2} {
+        foreach {disp_min disp_max} $args break
+
+        if {[string is integer $disp_min] != 1} {
+            error "bad value \"$disp_min\": should be an integer"
+        }
+        if {($disp_min < ${_min}) || ($disp_min > ${_max})} {
+            error "bad value \"$disp_min\": should be between ${_min} and ${_max}"
+        }
+
+        if {[string is integer $disp_max] != 1} {
+            error "bad value \"$disp_max\": should be an integer"
+        }
+        if {($disp_max < ${_min}) || ($disp_max > ${_max})} {
+            error "bad value \"$disp_max\": should be between ${_min} and ${_max}"
+        }
+
+        if {$disp_min > $disp_max} {
+            set tmp $disp_min
+            set disp_min $disp_max
+            set disp_max $tmp
+        }
+
+    } elseif {[llength $args] != 0} {
+        error "wrong # args: should be \"_redraw ?<disp_min> <disp_max>?\""
+    }
+
+
     set c $itk_component(minordial)
     $c delete all
 
@@ -708,7 +585,7 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     set y1 [expr {$h-1}]
     set y0 [expr {$y1-$t}]
     set x0 [expr {$p+1}]
-    set x1 [expr {$w-$_vwidth-$p-4}]
+    set x1 [expr {$w-$p-4}]
 
 
     # draw the background rectangle for the minor time line
@@ -731,7 +608,37 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     set imty [expr {$y0-5}]                     ;# height of marker value
 
     set imx $x0
-    for {set i [expr {int(${_min})}]} {$i <= ${_max}} {incr i} {
+
+    if {($disp_min == 0) && ($disp_max == 0)} {
+        set x [expr ($x1-$x0)/2.0]
+        set ni [expr ($x-$x0)/${_imspace}]
+
+        set framenum [expr round([rel2ms ${_current}])]
+
+        set disp_min [expr ($framenum-$ni)]
+        set disp_max [expr ($framenum+$ni)]
+
+        # deal with edge cases
+        if {($disp_min < ${_min})} {
+            # don't display marks less than ${_min}
+            set disp_min ${_min}
+            set disp_max [expr (${_min}+($ni*2.0))]
+            if {$disp_max > ${_max}} {
+                set disp_max ${_max}
+            }
+        }
+
+        if {($disp_max > ${_max})} {
+            # don't display marks greater than ${_max}
+            set disp_min [expr (${_max}-($ni*2.0))]
+            if {$disp_min < ${_min}} {
+                set disp_min ${_min}
+            }
+            set disp_max ${_max}
+        }
+    }
+
+    for {set i [expr {int($disp_min)}]} {$i <= $disp_max} {incr i} {
         if {($i%${_majortick}) == 0} {
             # draw major tick
             $c create line $imx $imly0 $imx $imly1 \
@@ -762,21 +669,29 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
     if {![llength $box]} {
         set box [list 0 0 0 0]
     }
-    foreach {x0 y0 x1 y1} $box break
     $c coords "imbox" $box
+
+    # add an invisible box 15 pixels above and 20 pixels below imbox
+    # to keep the canvas from changing sizes when the we add
+    # particle, loopstart, loopend, and line markers
+    foreach {x0 y0 x1 y1} $box break
+    $c create rectangle $x0 [expr $y0-15] $x1 [expr $y1+20] \
+        -outline "" \
+        -fill "" \
+        -tags "markerbox"
 
     # add any marks that the user previously specified
     foreach n [array names _marks] {
-        # mark $n -tag $_marks($n)
-        _setmark $n $_marks($n)
+        if {($_marks($n) > $disp_min) && ($_marks($n) < $disp_max)} {
+            _setmark $n $_marks($n)
+        }
     }
 
-    _fixMinorSize
+    _fixSize
 }
 
-
 # ----------------------------------------------------------------------
-# USAGE: _fixMinorSize
+# USAGE: _fixSize
 #
 # Used internally to compute the height of the minor dial based
 # on the items placed on the canvas
@@ -784,7 +699,7 @@ itcl::body Rappture::Videodial::_draw_minor_timeline {} {
 # FIXME: instead of calling this in the mark command, figure out how to
 #   make the canvas the correct size to start with
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_fixMinorSize {} {
+itcl::body Rappture::Videodial2::_fixSize {} {
     # resize the height of the minor timeline canvas
     # to include everything we know about
 
@@ -801,44 +716,12 @@ itcl::body Rappture::Videodial::_fixMinorSize {} {
     $c configure -height $h -scrollregion $box -xscrollincrement 1p
 }
 
-
-# ----------------------------------------------------------------------
-# USAGE: _redraw
-#
-# Called automatically whenever the widget changes size to redraw
-# all elements within it.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_redraw {} {
-#    _draw_major_timeline
-#    _draw_minor_timeline
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _knob <x> <y>
-#
-# Called automatically whenever the user clicks or drags on the widget
-# to select a value.  Moves the current value to the one nearest the
-# click point.  If the value actually changes, it generates a <<Value>>
-# event to notify clients.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_knob {x y} {
-    set c $itk_component(majordial)
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set x0 1
-    set x1 [expr {$w-$_vwidth-4}]
-    focus $itk_component(hull)
-    if {$x >= $x0 && $x <= $x1} {
-        current [rel2ms [expr double($x - $x0) / double($x1 - $x0)]]
-    }
-}
-
 # ----------------------------------------------------------------------
 # USAGE: _offsetx <x>
 #
 # Calculate an x coordinate that has been offsetted by a scrolled canvas
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_offsetx {x} {
+itcl::body Rappture::Videodial2::_offsetx {x} {
     set c $itk_component(minordial)
     set w [lindex [$c cget -scrollregion] 2]
     set x0 [lindex [$c xview] 0]
@@ -855,7 +738,7 @@ itcl::body Rappture::Videodial::_offsetx {x} {
 # Called automatically whenever the user clicks or drags on a marker
 # widget.  Moves the selected marker to the next nearest tick mark.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_marker {tag action x y} {
+itcl::body Rappture::Videodial2::_marker {tag action x y} {
     set c $itk_component(minordial)
     set x [_offsetx $x]
     switch $action {
@@ -905,6 +788,11 @@ itcl::body Rappture::Videodial::_marker {tag action x y} {
                 # event generate $c <Leave>
                 _bindings timeline
             }
+            if {"current" == $tag} {
+                # if we move the current marker, update the frame number
+                current [mark position current]
+                event generate $itk_component(hull) <<Value>>
+            }
         }
     }
 }
@@ -914,12 +802,9 @@ itcl::body Rappture::Videodial::_marker {tag action x y} {
 #        _move drag <x> <y>
 #        _move release <x> <y>
 #
-# Called automatically whenever the user clicks or drags on the widget
-# to select a value.  Moves the current value to the one nearest the
-# click point.  If the value actually changes, it generates a <<Value>>
-# event to notify clients.
+# Scroll the timeline canvas based on user's b1 click, drag, and release
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_move {action x y} {
+itcl::body Rappture::Videodial2::_move {action x y} {
     switch $action {
         "click" {
             set _click(x) $x
@@ -928,9 +813,14 @@ itcl::body Rappture::Videodial::_move {action x y} {
         "drag" {
             set c $itk_component(minordial)
             set dist [expr $_click(x)-$x]
-            $c xview scroll $dist "units"
+            #$c xview scroll $dist "units"
             set _click(x) $x
             set _click(y) $y
+
+
+            #set disp_min
+            #set disp_max
+            #_redraw $disp_min $disp_max
         }
         "release" {
             _move drag $x $y
@@ -939,12 +829,16 @@ itcl::body Rappture::Videodial::_move {action x y} {
     }
 }
 
-## from http://tcl.sourceforge.net/faqs/tk/#canvas/see
-## "see" method alternative for canvas
-## Aligns the named item as best it can in the middle of the screen
-##
-## item - a canvas tagOrId
-itcl::body Rappture::Videodial::_see {item} {
+# ----------------------------------------------------------------------
+# USAGE: _see <item>
+#
+# from http://tcl.sourceforge.net/faqs/tk/#canvas/see
+# "see" method alternative for canvas
+# Aligns the named item as best it can in the middle of the screen
+#
+# item - a canvas tagOrId
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial2::_see {item} {
     set c $itk_component(minordial)
     set box [$c bbox $item]
     if {![llength $box]} return
@@ -969,7 +863,7 @@ itcl::body Rappture::Videodial::_see {item} {
 # value actually changes, it generates a <<Value>> event to notify
 # clients.
 # ----------------------------------------------------------------------
-#itcl::body Rappture::Videodial::_navigate {offset} {
+#itcl::body Rappture::Videodial2::_navigate {offset} {
 #    set index [lsearch -exact $_values $_current]
 #    if {$index >= 0} {
 #        incr index $offset
@@ -998,72 +892,9 @@ itcl::body Rappture::Videodial::_see {item} {
 # value actually changes, it generates a <<Value>> event to notify
 # clients.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_navigate {offset} {
-    _current [ms2rel [expr $_current + $offset]]
+itcl::body Rappture::Videodial2::_navigate {offset} {
+    _current [ms2rel [expr [rel2ms ${_current}] + $offset]]
     event generate $itk_component(hull) <<Value>>
-}
-
-
-# ----------------------------------------------------------------------
-# USAGE: _fixSize
-#
-# Used internally to compute the overall size of the widget based
-# on the -thickness and -length options.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_fixSize {} {
-    set h [winfo pixels $itk_component(hull) $itk_option(-thickness)]
-
-    if {"" != $_knob} {
-        set kh [image height $_knob]
-
-        switch -- $itk_option(-knobposition) {
-            n@top - nw@top - ne@top -
-            s@bottom - sw@bottom - se@bottom {
-                if {$kh > $h} { set h $kh }
-            }
-            n@middle - nw@middle - ne@middle -
-            s@middle - sw@middle - se@middle {
-                set h [expr {int(ceil(0.5*$h + $kh))}]
-            }
-            n@bottom - nw@bottom - ne@bottom -
-            s@top - sw@top - se@top {
-                set h [expr {$h + $kh}]
-            }
-            e@middle - w@middle - center@middle {
-                set h [expr {(($h > $kh) ? $h : ($kh+1))}]
-            }
-            n@middle - ne@middle - nw@middle -
-            s@middle - se@middle - sw@middle {
-                set extra [expr {int(ceil($kh-0.5*$h))}]
-                if {$extra < 0} { set extra 0 }
-                set h [expr {$h+$extra}]
-            }
-        }
-    }
-    # FIXME: hack to get the reduce spacing in widget
-    incr h -1
-
-    set w [winfo pixels $itk_component(hull) $itk_option(-length)]
-
-    # if the -valuewidth is > 0, then make room for the value
-    if {$itk_option(-valuewidth) > 0} {
-        set charw [font measure $itk_option(-font) "n"]
-        set _vwidth [expr {$itk_option(-valuewidth)*$charw}]
-        set w [expr {$w+$_vwidth+4}]
-    } else {
-        set _vwidth 0
-    }
-
-    $itk_component(majordial) configure -width $w -height $h
-
-#    # resize the height of the minor canvas to include everything we know about
-#    set box [$itk_component(minordial) bbox "all"]
-#    if {![llength $box]} {
-#        set box [list 0 0 0 0]
-#    }
-#    foreach {cx0 cy0 cx1 cy1} $box break
-#    set h [expr $cy1-$cy0+1]
-#    $itk_component(minordial) configure -height $h
 }
 
 # ----------------------------------------------------------------------
@@ -1073,7 +904,7 @@ itcl::body Rappture::Videodial::_fixSize {} {
 # widget is modified.  Copies the value to the current settings for
 # the widget.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_fixValue {args} {
+itcl::body Rappture::Videodial2::_fixValue {args} {
     if {"" == $itk_option(-variable)} {
         return
     }
@@ -1085,7 +916,7 @@ itcl::body Rappture::Videodial::_fixValue {args} {
 # USAGE: _fixOffsets
 #
 # ----------------------------------------------------------------------
-itcl::body Rappture::Videodial::_fixOffsets {} {
+itcl::body Rappture::Videodial2::_fixOffsets {} {
     if {0 == $itk_option(-offset)} {
         return
     }
@@ -1095,54 +926,41 @@ itcl::body Rappture::Videodial::_fixOffsets {} {
     bind $itk_component(hull) <KeyPress-Right> [itcl::code $this _navigate $_offset_pos]
 }
 
-itcl::body Rappture::Videodial::ms2rel { value } {
+# ----------------------------------------------------------------------
+# USAGE: ms2rel
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial2::ms2rel { value } {
     if { ${_max} > ${_min} } {
         return [expr {1.0 * ($value - ${_min}) / (${_max} - ${_min})}]
     }
     return 0
 }
 
-itcl::body Rappture::Videodial::rel2ms { value } {
+# ----------------------------------------------------------------------
+# USAGE: rel2ms
+#
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial2::rel2ms { value } {
     return [expr $value * (${_max} - ${_min}) + ${_min}]
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -thickness
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::thickness {
-    _fixSize
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -length
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::length {
-    _fixSize
+itcl::configbody Rappture::Videodial2::thickness {
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -font
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::font {
-    _fixSize
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -valuewidth
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::valuewidth {
-    if {![string is integer $itk_option(-valuewidth)]} {
-        error "bad value \"$itk_option(-valuewidth)\": should be integer"
-    }
-    _fixSize
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
+itcl::configbody Rappture::Videodial2::font {
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -foreground
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::foreground {
+itcl::configbody Rappture::Videodial2::foreground {
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
 }
@@ -1150,7 +968,7 @@ itcl::configbody Rappture::Videodial::foreground {
 # ----------------------------------------------------------------------
 # CONFIGURE: -dialoutlinecolor
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::dialoutlinecolor {
+itcl::configbody Rappture::Videodial2::dialoutlinecolor {
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
 }
@@ -1158,71 +976,7 @@ itcl::configbody Rappture::Videodial::dialoutlinecolor {
 # ----------------------------------------------------------------------
 # CONFIGURE: -dialfillcolor
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::dialfillcolor {
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -dialprogresscolor
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::dialprogresscolor {
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -linecolor
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::linecolor {
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -activelinecolor
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::activelinecolor {
-    set val $itk_option(-activelinecolor)
-    if {[catch {$val isa ::Rappture::Spectrum} valid] == 0 && $valid} {
-        set _spectrum $val
-        set _activecolor ""
-    } elseif {[catch {winfo rgb $itk_component(hull) $val}] == 0} {
-        set _spectrum ""
-        set _activecolor $val
-    } elseif {"" != $val} {
-        error "bad value \"$val\": should be Spectrum object or color"
-    }
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -knobimage
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::knobimage {
-    if {[regexp {^image[0-9]+$} $itk_option(-knobimage)]} {
-        set _knob $itk_option(-knobimage)
-    } elseif {"" != $itk_option(-knobimage)} {
-        set _knob [Rappture::icon $itk_option(-knobimage)]
-    } else {
-        set _knob ""
-    }
-    _fixSize
-
-    after cancel [itcl::code $this _redraw]
-    after idle [itcl::code $this _redraw]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURE: -knobposition
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::knobposition {
-    if {![regexp {^([nsew]+|center)@(top|middle|bottom)$} $itk_option(-knobposition)]} {
-        error "bad value \"$itk_option(-knobposition)\": should be anchor@top|middle|bottom"
-    }
-    _fixSize
-
+itcl::configbody Rappture::Videodial2::dialfillcolor {
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
 }
@@ -1231,27 +985,16 @@ itcl::configbody Rappture::Videodial::knobposition {
 # CONFIGURE: -padding
 # This adds padding on left/right side of dial background.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::padding {
+itcl::configbody Rappture::Videodial2::padding {
     if {[catch {winfo pixels $itk_component(hull) $itk_option(-padding)}]} {
         error "bad value \"$itk_option(-padding)\": should be size in pixels"
     }
 }
 
 # ----------------------------------------------------------------------
-# CONFIGURE: -valuepadding
-# This shifts min/max limits in by a fraction of the overall size.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::valuepadding {
-    if {![string is double $itk_option(-valuepadding)]
-          || $itk_option(-valuepadding) < 0} {
-        error "bad value \"$itk_option(-valuepadding)\": should be >= 0.0"
-    }
-}
-
-# ----------------------------------------------------------------------
 # CONFIGURE: -variable
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::variable {
+itcl::configbody Rappture::Videodial2::variable {
     if {"" != $_variable} {
         upvar #0 $_variable var
         trace remove variable var write [itcl::code $this _fixValue]
@@ -1273,7 +1016,7 @@ itcl::configbody Rappture::Videodial::variable {
 # ----------------------------------------------------------------------
 # CONFIGURE: -offset
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::offset {
+itcl::configbody Rappture::Videodial2::offset {
     if {![string is double $itk_option(-offset)]} {
         error "bad value \"$itk_option(-offset)\": should be >= 0.0"
     }
@@ -1283,7 +1026,7 @@ itcl::configbody Rappture::Videodial::offset {
 # ----------------------------------------------------------------------
 # CONFIGURE: -min
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::min {
+itcl::configbody Rappture::Videodial2::min {
     if {![string is integer $itk_option(-min)]} {
         error "bad value \"$itk_option(-min)\": should be an integer"
     }
@@ -1291,13 +1034,13 @@ itcl::configbody Rappture::Videodial::min {
         error "bad value \"$itk_option(-min)\": should be >= 0"
     }
     set _min $itk_option(-min)
-    _draw_minor_timeline
+    _redraw
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -max
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::max {
+itcl::configbody Rappture::Videodial2::max {
     if {![string is integer $itk_option(-max)]} {
         error "bad value \"$itk_option(-max)\": should be an integer"
     }
@@ -1305,13 +1048,13 @@ itcl::configbody Rappture::Videodial::max {
         error "bad value \"$itk_option(-max)\": should be >= 0"
     }
     set _max $itk_option(-max)
-    _draw_minor_timeline
+    _redraw
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -minortick
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::minortick {
+itcl::configbody Rappture::Videodial2::minortick {
     if {![string is integer $itk_option(-minortick)]} {
         error "bad value \"$itk_option(-minortick)\": should be an integer"
     }
@@ -1319,13 +1062,13 @@ itcl::configbody Rappture::Videodial::minortick {
         error "bad value \"$itk_option(-minortick)\": should be > 0"
     }
     set _minortick $itk_option(-minortick)
-    _draw_minor_timeline
+    _redraw
 }
 
 # ----------------------------------------------------------------------
 # CONFIGURE: -majortick
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::Videodial::majortick {
+itcl::configbody Rappture::Videodial2::majortick {
     if {![string is integer $itk_option(-majortick)]} {
         error "bad value \"$itk_option(-majortick)\": should be an integer"
     }
@@ -1333,5 +1076,5 @@ itcl::configbody Rappture::Videodial::majortick {
         error "bad value \"$itk_option(-majortick)\": should be > 0"
     }
     set _majortick $itk_option(-majortick)
-    _draw_minor_timeline
+    _redraw
 }

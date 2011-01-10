@@ -82,6 +82,7 @@ struct VideoObjRec {
     char *fileName;
     char mode[64];
     char fmt[64];
+    int lastframe;
 
     /* tmp buffer to give images back to user */
     void *img;
@@ -153,6 +154,7 @@ VideoSetData()
     vid->fileName = NULL;
     *vid->mode = '\0';
     *vid->fmt = '\0';
+    vid->lastframe = 0;
 
     vid->img = NULL;
     vid->imgHeaderLen = 0;
@@ -170,6 +172,7 @@ VideoOpenFile(vidPtr, fileName, mode)
 {
     int fnlen = 0;
     int err = 0;
+    int lastframe = 0;
 
     if (fileName == NULL) {
         // missing value for fileName
@@ -205,6 +208,9 @@ VideoOpenFile(vidPtr, fileName, mode)
         if (err) {
             return err;
         }
+
+        VideoFindLastFrame(vidPtr,&lastframe);
+        vidPtr->lastframe = lastframe;
     } else if (*mode == 'w') {
         /* we're now in "input" mode */
         // VideoModeWrite(vidPtr);
@@ -215,6 +221,56 @@ VideoOpenFile(vidPtr, fileName, mode)
 
     return 0;
 }
+
+/*
+ * ------------------------------------------------------------------------
+ *  VideoFindLastFrame()
+ *
+ *  Find the last readable frame.
+ * ------------------------------------------------------------------------
+ */
+int
+VideoFindLastFrame(vidPtr,lastframe)
+    VideoObj *vidPtr;
+    int *lastframe;
+{
+    int f = 0;
+    int nframe = 0;
+    int cur = 0;
+    AVStream *vstreamPtr;
+
+    if (vidPtr == NULL) {
+        return -1;
+    }
+
+    if (lastframe == NULL) {
+        return -1;
+    }
+
+    if (VideoModeRead(vidPtr) != 0) {
+        return -1;
+    }
+
+    // calculate an estimate of the last frame
+    vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
+    nframe = VideoTime2Frame(vstreamPtr,
+        vstreamPtr->start_time + vstreamPtr->duration);
+
+    // get the real last readable frame
+    // is 50 frames far enough to go back
+    // to be outside of the last key frame?
+    f = vidPtr->frameNumber;
+    cur = VideoGoToN(vidPtr,nframe-50);
+    while (cur != nframe) {
+        cur = nframe;
+        nframe = VideoGoNext(vidPtr);
+    }
+    *lastframe = nframe;
+    VideoGoToN(vidPtr,f);
+
+    return 0;
+}
+
 
 /*
  * ------------------------------------------------------------------------
@@ -821,7 +877,14 @@ int
 VideoGoNext(vidPtr)
     VideoObj *vidPtr;
 {
-    return VideoGoPlusMinusN(vidPtr,1);
+    int nabs;
+
+    if (vidPtr == NULL) {
+        return -1;
+    }
+
+    nabs = vidPtr->frameNumber + 1;
+    return VideoGoToN(vidPtr, nabs);
 }
 
 int
@@ -909,7 +972,13 @@ VideoGoToN(vidPtr, n)
 
         /* get at least one frame, unless we're done or at the beginning*/
         if (!gotframe && !vidPtr->atEnd) {
-            VideoNextFrame(vidPtr);
+            if (vidPtr->frameNumber > nabs) {
+                // we are probably at a key frame, just past
+                // the requested frame and need to seek backwards.
+                VideoGoToN(vidPtr,n);
+            } else {
+                VideoNextFrame(vidPtr);
+            }
         }
     }
     else {
@@ -1039,9 +1108,6 @@ VideoGetImage(vidPtr, iw, ih, img, bufSize)
                 // resize the image buffer
                 free(vidPtr->img);
                 VideoAllocImgBuffer(vidPtr,iw,ih);
-            } else {
-                // image buffer is the correct size
-                // do nothing
             }
         }
 
@@ -1154,7 +1220,6 @@ VideoGetPositionEnd(vidPtr, pos)
     VideoObj *vidPtr;      /* video object to act on */
     int *pos;
 {
-    int nframe = -1;
     AVStream *vstreamPtr;
 
     if (vidPtr == NULL) {
@@ -1169,13 +1234,7 @@ VideoGetPositionEnd(vidPtr, pos)
         return -1;
     }
 
-    if (vidPtr->pFormatCtx) {
-        vstreamPtr = vidPtr->pFormatCtx->streams[vidPtr->videoStream];
-        nframe = VideoTime2Frame(vstreamPtr,
-            vstreamPtr->start_time + vstreamPtr->duration);
-    }
-
-    *pos = nframe;
+    *pos = vidPtr->lastframe;
     return 0;
 }
 
