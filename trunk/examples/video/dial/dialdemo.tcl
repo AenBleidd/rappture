@@ -44,8 +44,8 @@ pack .f.d3 -expand yes -fill both
 
 after 200 {
     update idletasks
-    .f.d3 mark add loopstart 5
-    .f.d3 mark add loopend 10
+#    .f.d3 mark add loopstart 5
+#    .f.d3 mark add loopend 10
     .f.d3 mark add particle0 17
     .f.d3 mark add particle1 10
     .f.d3 mark add particle2 4

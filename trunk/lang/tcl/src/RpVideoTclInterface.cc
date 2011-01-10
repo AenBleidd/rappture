@@ -29,11 +29,11 @@ static Tcl_ObjCmdProc SizeOp;
 static Tcl_ObjCmdProc ReleaseOp;
 
 static Rp_OpSpec rpVideoOps[] = {
-    {"get",  1, (void *)GetOp, 3, 5, "[image ?width height?]|[position cur|end]|[framerate]",},
+    {"get",   1, (void *)GetOp, 3, 5, "[image ?width height?]|[position cur|end]|[framerate]",},
     {"next",  1, (void *)NextOp, 2, 2, "",},
+    {"release", 1, (void *)ReleaseOp, 2, 2, "",},
     {"seek",  1, (void *)SeekOp, 3, 3, "+n|-n|n",},
     {"size",  1, (void *)SizeOp, 2, 2, "",},
-    {"release", 1, (void *)ReleaseOp, 2, 2, "",},
 };
 
 static int nRpVideoOps = sizeof(rpVideoOps) / sizeof(Rp_OpSpec);
@@ -242,20 +242,10 @@ static int
 NextOp (ClientData clientData, Tcl_Interp *interp, int objc,
          Tcl_Obj *const *objv)
 {
-
-//    void *img = NULL;
-//    int width = 960;
-//    int height = 540;
-//    int bufSize = 0;
-
     int pos = 0;
     VideoGoNext((VideoObj *)clientData);
     VideoGetPositionCur((VideoObj *)clientData,&pos);
     Tcl_SetObjResult(interp, Tcl_NewIntObj(pos));
-//    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
-
-//    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
-//                        (const unsigned char*)img, bufSize);
 
     return TCL_OK;
 }
@@ -276,11 +266,6 @@ static int
 SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
          Tcl_Obj *const *objv)
 {
-
-//    void *img = NULL;
-//    int width = 960;
-//    int height = 540;
-//    int bufSize = 0;
     const char *val_s = NULL;
     int val = 0;
     int pos = 0;
@@ -310,17 +295,7 @@ SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
     else {
         int c = 0;
         c = VideoGoToN((VideoObj *)clientData, val);
-        // printf("c = %d\tval = %d\n",c,val);
     }
-
-//    VideoGetImage((VideoObj *)clientData, width, height, &img, &bufSize);
-
-//    if (img == NULL) {
-//        printf("img is null\n");
-//    }
-
-//    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
-//                        (const unsigned char*)img, bufSize);
 
     VideoGetPositionCur((VideoObj *)clientData,&pos);
     Tcl_SetObjResult(interp, Tcl_NewIntObj(pos));

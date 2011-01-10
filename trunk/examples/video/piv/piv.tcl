@@ -6,6 +6,7 @@ exec wish "$0" $*
 
 package require RapptureGUI
 package require BLT
+package require Img
 
 
 option add *font -*-helvetica-medium-r-normal-*-12-*
@@ -35,6 +36,13 @@ Rappture::grab::init
 
 wm title . "particle velocity estimate"
 wm withdraw .
+set width 960
+set height 625
+
+set installdir [file dirname [ \
+                Rappture::utils::expandPath [ \
+                file normalize [info script]]]]
+
 
 
 # ------------------------------------------------------------------
@@ -52,20 +60,11 @@ pack .nb -expand yes -fill both
 
 set f [$nb insert end about]
 
-# loader for videos
 
-set loader [frame $f.loader]
 
-label $loader.icon -image [Rappture::icon folder]
-pack $loader.icon -side left
-label $loader.name -borderwidth 1 -relief solid -background white -anchor w
-pack $loader.name -side left -expand yes -fill x -padx 2
-button $loader.go -text "Upload..."
-pack $loader.go -side right
+# html intro page
 
-# create an html intro page
-
-set intro [frame $f.intro -borderwidth 1 -width 300 -height 300]
+set intro [frame $f.intro]
 
 Rappture::Scroller $intro.scroller -xscrollmode auto -yscrollmode auto
 pack $intro.scroller -expand yes -fill both
@@ -78,14 +77,89 @@ set html [read $fid]
 close $fid
 $intro.scroller.html load $html
 
-set demo [frame $f.demo]
 
+# verticle divider
+set div [frame $f.div -width 1 -background black]
+
+
+set previewVar ""
+
+# movie chooser
+
+set chooser [frame $f.chooser_f]
+
+set fid [open [file join $installdir images step1.png] r]
+fconfigure $fid -translation binary -encoding binary
+set data [read $fid]
+close $fid
+set imh [image create photo]
+$imh put $data
+label $chooser.step1 -image $imh
+
+set vc [Rappture::VideoChooser $chooser.vc -variable ::previewVar]
+$vc load [glob "/home/derrick/projects/piv/video/*.mp4"]
+# $vc load [glob "/apps/piv/video/*.mp4"]
+
+pack $chooser.step1 -side top -anchor w -pady 8
+pack $vc -side bottom -anchor center
+
+
+
+# movie previewer
+
+set preview [frame $f.preview_f]
+
+set fid [open [file join $installdir images step2.png] r]
+fconfigure $fid -translation binary -encoding binary
+set data [read $fid]
+close $fid
+set imh [image create photo]
+$imh put $data
+label $preview.step2 -image $imh
+
+set vp [Rappture::VideoPreview $preview.preview -variable ::previewVar]
+
+pack $preview.step2 -side top -anchor w -pady 8
+pack $vp -side bottom -anchor center
+
+
+
+# analyze button gets us to the analyze page
+
+set analyze [frame $f.analyze_f]
+
+set fid [open [file join $installdir images step3.png] r]
+fconfigure $fid -translation binary -encoding binary
+set data [read $fid]
+close $fid
+set imh [image create photo]
+$imh put $data
+label $analyze.step3 -image $imh
+
+button $analyze.go \
+    -text "Analyze" \
+    -command {
+        $vp video stop
+        $vs load file $previewVar
+        $vs video seek [$vp query framenum]
+        $nb current next>
+        # FIXME: video loaded into memory twice
+    }
+pack $analyze.step3 -side left -anchor w
+pack $analyze.go -anchor center
+
+
+set reqwidth [expr round($width/2.0)]
 blt::table $f \
-    0,0 $intro -rowspan 3 -fill both \
-    0,1 $demo -fill x \
-    1,1 $loader -fill x
+    0,0 $intro -rowspan 3 -fill both -reqwidth $reqwidth\
+    0,1 $div -rowspan 3 -fill y -pady 8 -padx 8\
+    0,2 $chooser -fill x -padx {0 8}\
+    1,2 $preview -fill x \
+    2,2 $analyze -fill x
 
-blt::table configure $f c* -resize both
+blt::table configure $f c0 -resize none
+blt::table configure $f c1 -resize none
+blt::table configure $f c2 -resize none
 # blt::table configure $f r0 -pady 1
 
 # ------------------------------------------------------------------
@@ -93,27 +167,18 @@ blt::table configure $f c* -resize both
 # ------------------------------------------------------------------
 
 set f [$nb insert end video]
-set movieViewer [Rappture::VideoScreen $f.viewer]
-$loader.go configure -command {$nb current next>; $movieViewer loadcb}
+set vs [Rappture::VideoScreen $f.viewer -fileopen {$nb current about}]
+pack $vs -expand yes -fill both
 
-pack $movieViewer -expand yes -fill both
 
 # ------------------------------------------------------------------
 # SHOW WINDOW
 # ------------------------------------------------------------------
 
-$nb current about
-wm geometry . 900x600
-wm deiconify .
-update idletasks
 
-# for testing we automatically load a video
-array set videoFiles [list \
-    1 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-05-55.mp4" \
-    2 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-09-56.mp4" \
-    3 "/home/derrick/projects/piv/video/TOPHAT_06-03-10_16-13-56.mp4" \
-    4 "/home/derrick/junk/coa360download56Kbps240x160.mpg" \
-]
-$nb current video
-update idletasks
-$movieViewer load file $videoFiles(1)
+$nb current about
+wm geometry . ${width}x${height}
+wm deiconify .
+
+#update idletasks
+#image delete $imh

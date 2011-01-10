@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.1"
+   width="744.09448"
+   height="1052.3622"
+   id="svg2">
+  <defs
+     id="defs4" />
+  <g
+     id="layer1">
+    <g
+       id="g3672">
+      <g
+         id="g3651">
+        <path
+           d="m 110,182.36218 a 20,20 0 1 1 -40,0 20,20 0 1 1 40,0 z"
+           transform="translate(2.020305,-2.020305)"
+           id="path2830"
+           style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        <text
+           x="80"
+           y="192.36218"
+           id="text2816"
+           xml:space="preserve"
+           style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter Italic"><tspan
+             x="80"
+             y="192.36218"
+             id="tspan2818">1</tspan></text>
+        <text
+           x="120"
+           y="192.36218"
+           id="text3635"
+           xml:space="preserve"
+           style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter"><tspan
+             x="120"
+             y="192.36218"
+             id="tspan3637">Choose Video</tspan></text>
+      </g>
+    </g>
+    <text
+       x="138.3909"
+       y="276.56503"
+       id="text3639"
+       xml:space="preserve"
+       style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter Italic"><tspan
+         x="138.3909"
+         y="276.56503"
+         id="tspan3641" /></text>
+    <g
+       id="g3680">
+      <g
+         id="g3658">
+        <path
+           d="m 110,182.36218 a 20,20 0 1 1 -40,0 20,20 0 1 1 40,0 z"
+           transform="translate(1.0101525,78.989847)"
+           id="path2830-4"
+           style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        <text
+           x="80"
+           y="272.36218"
+           id="text2820"
+           xml:space="preserve"
+           style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter Italic"><tspan
+             x="80"
+             y="272.36218"
+             id="tspan2822">2</tspan></text>
+        <text
+           x="120"
+           y="272.36218"
+           id="text3643"
+           xml:space="preserve"
+           style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter"><tspan
+             x="120"
+             y="272.36218"
+             id="tspan3645">Preview</tspan></text>
+      </g>
+    </g>
+    <g
+       id="g3688">
+      <g
+         id="g3665">
+        <path
+           d="m 110,182.36218 a 20,20 0 1 1 -40,0 20,20 0 1 1 40,0 z"
+           transform="translate(1.0101525,158.98985)"
+           id="path2830-8"
+           style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.2;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        <text
+           x="80"
+           y="352.36218"
+           id="text2824"
+           xml:space="preserve"
+           style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter Italic"><tspan
+             x="80"
+             y="352.36218"
+             id="tspan2826">3</tspan></text>
+        <text
+           x="120"
+           y="352.36218"
+           id="text3647"
+           xml:space="preserve"
+           style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Courier 10 Pitch;-inkscape-font-specification:Bitstream Charter"><tspan
+             x="120"
+             y="352.36218"
+             id="tspan3649">Mark Particles</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>
