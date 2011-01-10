@@ -237,6 +237,7 @@ itcl::body Rappture::VideoPreview::load {type data} {
         }
     }
 
+    video stop
 
     if {([info exists _movie]) && ("" != ${_movie})} {
         ${_movie} release
@@ -275,10 +276,8 @@ itcl::body Rappture::VideoPreview::load {type data} {
 # loadcb - load callback
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoPreview::loadcb {args} {
-
+    video stop
     Rappture::filexfer::upload {piv tool} {id label desc} [itcl::code $this Upload]
-
-    #uplevel 1 [list $args]
 }
 
 # ----------------------------------------------------------------------
@@ -286,6 +285,7 @@ itcl::body Rappture::VideoPreview::loadcb {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoPreview::Upload {args} {
     array set data $args
+    video stop
 
     if {[info exists data(error)]} {
         Rappture::Tooltip::cue $itk::component(main) $data(error)
