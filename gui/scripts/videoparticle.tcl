@@ -27,6 +27,9 @@ itcl::class Rappture::VideoParticle {
     itk_option define -px2dist px2dist Px2dist ""
     itk_option define -units units Units "m/s"
     itk_option define -bindings bindings Bindings "enable"
+    itk_option define -ondelete ondelete Ondelete ""
+    itk_option define -onframe onframe Onframe ""
+    itk_option define -framerange framerange Framerange ""
 
     constructor { name win args } {
         # defined below
@@ -35,7 +38,6 @@ itcl::class Rappture::VideoParticle {
         # defined below
     }
 
-    public method Delete {args}
     public method Show {args}
     public method Hide {args}
     public method Link {args}
@@ -68,7 +70,6 @@ itcl::class Rappture::VideoParticle {
     private variable _frame          0  ;# frame number where this object lives
     private variable _coords        ""  ;# list of coords where the object lives
     private variable _halo           0  ;# about the diameter of the particle
-    private variable _menu          ""  ;# particle controls balloon widget
     private variable _x              0  ;# x coord when "pressed" for motion
     private variable _y              0  ;# y coord when "pressed" for motion
     private variable _nextnode      ""  ;# particle this particle points to
@@ -92,34 +93,52 @@ itcl::body Rappture::VideoParticle::constructor {name win args} {
     set _canvas $win
 
     # setup the particle control menu
-    set _menu $itk_component(hull).particlecontrols
-    Rappture::Balloon ${_menu} -title "Particle Controls"
-    set controls [${_menu} component inner]
+    itk_component add menu {
+        Rappture::Balloon $itk_interior.particlecontrols -title "Particle Controls"
+    }
 
-    # Link control
-    #button $controls.link -text Link \
-    #    -relief flat -pady 0 -padx 0  -font "Arial 9" \
-    #    -command [itcl::code $this Link]  -overrelief flat \
-    #    -activebackground grey90
+    set controls [$itk_component(menu) component inner]
+
+    # Frame number control
+    label $controls.framenuml -text "Frame" -font "Arial 9"\
+         -highlightthickness 0
+    Rappture::Spinint $controls.framenume \
+        -min 0 -width 5 -font "arial 9"
 
     # Delete control
-    button $controls.delete -text Delete \
-        -relief flat -pady 0 -padx 0  -font "Arial 9" \
-        -command [itcl::code $this Delete frame]  -overrelief flat \
+    label $controls.deletel -text "Delete" -font "Arial 9" \
+        -highlightthickness 0
+    Rappture::Switch $controls.deleteb -showtext "false"
+    $controls.deleteb value false
+
+    # Save button
+    button $controls.saveb -text Save \
+        -relief raised -pady 0 -padx 0  -font "Arial 9" \
+        -command [itcl::code $this Menu deactivate save] \
         -activebackground grey90
 
-    #grid $controls.link       -column 0 -row 0 -sticky w
-    grid $controls.delete     -column 0 -row 1 -sticky w
-    # grid $controls.rename     -column 0 -row 2 -sticky w
-    # grid $controls.recolor    -column 0 -row 3 -sticky w
+    # Cancel button
+    button $controls.cancelb -text Cancel \
+        -relief raised -pady 0 -padx 0  -font "Arial 9" \
+        -command [itcl::code $this Menu deactivate cancel] \
+        -activebackground grey90
 
-    grid columnconfigure $controls 0  -weight 1
+
+    grid $controls.framenuml -column 0 -row 0 -sticky e
+    grid $controls.framenume -column 1 -row 0 -sticky w
+    grid $controls.deletel   -column 0 -row 1 -sticky e
+    grid $controls.deleteb   -column 1 -row 1 -sticky w
+    grid $controls.saveb     -column 0 -row 2 -sticky e
+    grid $controls.cancelb   -column 1 -row 2 -sticky w
+
+
+    grid columnconfigure $controls 0 -weight 1
 
     # finish configuring the particle
     eval itk_initialize $args
 
-    set _frame [uplevel \#0 $fncallback]
-
+    # set the frame for the particle
+    Frame [uplevel \#0 $fncallback]
     bind ${_name}-FrameEvent <<Frame>> [itcl::code $this CatchEvent Frame]
 }
 
@@ -128,14 +147,6 @@ itcl::body Rappture::VideoParticle::constructor {name win args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoParticle::destructor {} {
     configure -px2dist ""  ;# remove variable trace
-}
-
-# ----------------------------------------------------------------------
-# Delete - remove the particle
-# ----------------------------------------------------------------------
-itcl::body Rappture::VideoParticle::Delete {args} {
-
-    Menu deactivate
 
     Hide object
 
@@ -150,8 +161,13 @@ itcl::body Rappture::VideoParticle::Delete {args} {
         ${_prevnode} next ${_nextnode}
         ${_prevnode} drawVectors
     }
-}
 
+    _fixBindings disable
+
+    if {"" != $itk_option(-ondelete)} {
+        uplevel \#0 $itk_option(-ondelete)
+    }
+}
 
 # ----------------------------------------------------------------------
 #   Enter - bindings if the mouse enters the object's space
@@ -270,7 +286,7 @@ itcl::body Rappture::VideoParticle::Move {status x y} {
 # Menu - popup a menu with the particle controls
 #   create
 #   activate x y
-#   deactivate
+#   deactivate status
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoParticle::Menu {args} {
     set option [lindex $args 0]
@@ -287,10 +303,38 @@ itcl::body Rappture::VideoParticle::Menu {args} {
             set h0 [winfo height ${_canvas}]
             set x [expr $x0+$x]
             set y [expr $y0+$y]
-            ${_menu} activate @$x,$y $dir
+            $itk_component(menu) activate @$x,$y $dir
+
+            # update the values in the menu
+            set controls [$itk_component(menu) component inner]
+            $controls.framenume value ${_frame}
+            $controls.deleteb value false
         }
         "deactivate" {
-            ${_menu} deactivate
+            $itk_component(menu) deactivate
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"deactivate <status>\""
+            }
+            set status [lindex $args 1]
+            switch -- $status {
+                "save" {
+                    set controls [$itk_component(menu) component inner]
+
+                    set newframenum [$controls.framenume value]
+                    if {${_frame} != $newframenum} {
+                        Frame $newframenum
+                    }
+
+                    if {[$controls.deleteb value]} {
+                        itcl::delete object $this
+                    }
+                }
+                "cancel" {
+                }
+                "default" {
+                    error "bad value \"$status\": should be one of save, cancel"
+                }
+            }
         }
         default {
             error "bad option \"$option\": should be one of activate, deactivate."
@@ -364,6 +408,10 @@ itcl::body Rappture::VideoParticle::Frame {args} {
             error "bad value: \"$val\": frame number should be an integer"
         }
         set _frame $val
+
+        if {"" != $itk_option(-onframe)} {
+            uplevel \#0 $itk_option(-onframe) ${_frame}
+        }
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"Frame ?<number>?\""
     }
@@ -465,7 +513,7 @@ itcl::body Rappture::VideoParticle::_fixBindings {status} {
             ${_canvas} bind ${_name} <B1-Leave>        { }
             set tagnum [lsearch [bindtags ${_canvas}] "${_name}-FrameEvent"]
             if {$tagnum >= 0} {
-                bindtags ${_canvas} [lreplace [bindtags ${_canvas} $tagnum $tagnum]]
+                bindtags ${_canvas} [lreplace [bindtags ${_canvas}] $tagnum $tagnum]
             }
         }
         default {
@@ -535,6 +583,24 @@ itcl::configbody Rappture::VideoParticle::units {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VideoParticle::bindings {
     _fixBindings $itk_option(-bindings)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURE: -framerange
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VideoParticle::framerange {
+    if {"" == $itk_option(-framerange)} {
+        return
+    }
+    if {[llength $itk_option(-framerange)] != 2} {
+        error "bad value \"$itk_option(-framerange)\": should be 2 integers"
+    }
+    foreach {min max} $itk_option(-framerange) break
+    if {!([string is integer $min]) || !([string is integer $max])} {
+        error "bad value \"$itk_option(-framerange)\": should be 2 integers"
+    }
+    set controls [$itk_component(menu) component inner]
+    $controls.framenume configure -min $min -max $max
 }
 
 # ----------------------------------------------------------------------

@@ -26,6 +26,9 @@ itcl::class Rappture::VideoDistance {
     itk_option define -px2dist px2dist Px2dist ""
     itk_option define -units units Units "m"
     itk_option define -bindings bindings Bindings "enable"
+    itk_option define -ondelete ondelete Ondelete ""
+    itk_option define -onframe onframe Onframe ""
+
 
     constructor { name win args } {
         # defined below
@@ -55,14 +58,11 @@ itcl::class Rappture::VideoDistance {
     protected method _fixPx2Dist {px2dist}
     protected method _fixBindings {status}
 
-    private method _controls {args}
-
     private variable _canvas        ""  ;# canvas which owns the object
     private variable _name          ""  ;# id of the object
     private variable _color         ""  ;# color of the object
     private variable _frame         0   ;# frame number where the object lives
     private variable _coords        ""  ;# coords of the object, x0 y0 x1 y1
-    private variable _menu          ""  ;# controls balloon widget
     private variable _x             0   ;# x coord when "pressed" for motion
     private variable _y             0   ;# y coord when "pressed" for motion
     private variable _px2dist       ""  ;# variable associated with -px2dist
@@ -84,9 +84,11 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
     set _canvas $win
 
     # setup the control menu
-    set _menu $itk_component(hull).distancecontrols
-    Rappture::Balloon ${_menu} -title "Controls"
-    set controls [${_menu} component inner]
+    set menu $itk_component(hull).distancecontrols
+    itk_component add menu {
+        Rappture::Balloon $itk_interior.menu -title "Controls"
+    }
+    set controls [$itk_component(menu) component inner]
 
     set fg [option get $itk_component(hull) font Font]
     label $controls.propertiesl -text "Properties" -font $fg \
@@ -96,6 +98,12 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
     label $controls.measurementl -text "Value" -font $fg \
         -highlightthickness 0
     entry $controls.measuremente -width 5 -background white
+
+    # Frame number control
+    label $controls.framenuml -text "Frame" -font "Arial 9"\
+         -highlightthickness 0
+    Rappture::Spinint $controls.framenume \
+        -min 0 -width 5 -font "arial 9"
 
     # x0
     label $controls.x0l -text "x0" -font $fg -highlightthickness 0
@@ -125,24 +133,26 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
     Rappture::Spinint $controls.y1e \
             -min 0 -max [winfo height ${_canvas}] -width 4 -font "arial 9"
 
-    # Hide control
-    label $controls.hidel -text "Hide" -font $fg \
+    # Delete control
+    label $controls.deletel -text "Delete" -font $fg \
         -highlightthickness 0
-    Rappture::Switch $controls.hideb -showtext "false"
-    $controls.hideb value false
+    Rappture::Switch $controls.deleteb -showtext "false"
+    $controls.deleteb value false
 
     button $controls.saveb -text Save \
         -relief raised -pady 0 -padx 0  -font "Arial 9" \
-        -command [itcl::code $this _controls save] \
+        -command [itcl::code $this Menu deactivate save] \
         -activebackground grey90
 
     button $controls.cancelb -text Cancel \
         -relief raised -pady 0 -padx 0  -font "Arial 9" \
-        -command [itcl::code $this _controls cancel] \
+        -command [itcl::code $this Menu deactivate cancel] \
         -activebackground grey90
 
     grid $controls.measurementl    -column 0 -row 0 -sticky e
     grid $controls.measuremente    -column 1 -row 0 -sticky w
+    grid $controls.framenuml       -column 2 -row 0 -sticky e
+    grid $controls.framenume       -column 3 -row 0 -sticky w
     grid $controls.x0l             -column 0 -row 1 -sticky e
     grid $controls.x0e             -column 1 -row 1 -sticky w
     grid $controls.y0l             -column 2 -row 1 -sticky e
@@ -151,8 +161,8 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
     grid $controls.x1e             -column 1 -row 2 -sticky w
     grid $controls.y1l             -column 2 -row 2 -sticky e
     grid $controls.y1e             -column 3 -row 2 -sticky w
-    grid $controls.hidel           -column 2 -row 3 -sticky e
-    grid $controls.hideb           -column 3 -row 3 -sticky w
+    grid $controls.deletel         -column 2 -row 3 -sticky e
+    grid $controls.deleteb         -column 3 -row 3 -sticky w
     grid $controls.saveb           -column 0 -row 4 -sticky e -columnspan 2
     grid $controls.cancelb         -column 2 -row 4 -sticky w -columnspan 2
 
@@ -160,8 +170,8 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
     # finish configuring the object
     eval itk_initialize $args
 
-    set _frame [uplevel \#0 $fncallback]
-
+    # set the frame for the particle
+    Frame [uplevel \#0 $fncallback]
     bind ${_name}-FrameEvent <<Frame>> [itcl::code $this CatchEvent Frame]
 }
 
@@ -170,6 +180,14 @@ itcl::body Rappture::VideoDistance::constructor {name win args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoDistance::destructor {} {
     configure -px2dist ""  ;# remove variable trace
+
+    Hide object
+    _fixBindings disable
+
+    if {"" != $itk_option(-ondelete)} {
+        uplevel \#0 $itk_option(-ondelete)
+    }
+
 }
 
 # ----------------------------------------------------------------------
@@ -182,6 +200,10 @@ itcl::body Rappture::VideoDistance::Frame {args} {
             error "bad value: \"$val\": frame number should be an integer"
         }
         set _frame $val
+
+        if {"" != $itk_option(-onframe)} {
+            uplevel \#0 $itk_option(-onframe) ${_frame}
+        }
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"Frame ?<frameNumber>?\""
     }
@@ -223,13 +245,6 @@ itcl::body Rappture::VideoDistance::Coords {args} {
 
     _fixValue
     return ${_coords}
-}
-
-# ----------------------------------------------------------------------
-#   _controls - save or cancel adjustments made in the controls menu
-# ----------------------------------------------------------------------
-itcl::body Rappture::VideoDistance::_controls {args} {
-    Menu deactivate $args
 }
 
 # ----------------------------------------------------------------------
@@ -362,28 +377,34 @@ itcl::body Rappture::VideoDistance::Menu {args} {
             set h0 [winfo height ${_canvas}]
             set x [expr $x0+$x]
             set y [expr $y0+$y]
-            ${_menu} activate @$x,$y $dir
+            $itk_component(menu) activate @$x,$y $dir
 
             # update the values in the menu
-            set controls [${_menu} component inner]
+            set controls [$itk_component(menu) component inner]
             foreach {x0 y0 x1 y1} ${_coords} break
             $controls.measuremente delete 0 end
             $controls.measuremente insert 0 "${_dist} ${_units}"
+            $controls.framenume value ${_frame}
             $controls.x0e value $x0
             $controls.y0e value $y0
             $controls.x1e value $x1
             $controls.y1e value $y1
-            $controls.hideb value false
+            $controls.deleteb value false
         }
         "deactivate" {
-            ${_menu} deactivate
+            $itk_component(menu) deactivate
             if {[llength $args] != 2} {
                 error "wrong # args: should be \"deactivate <status>\""
             }
             set status [lindex $args 1]
             switch -- $status {
                 "save" {
-                    set controls [${_menu} component inner]
+                    set controls [$itk_component(menu) component inner]
+
+                    set newframenum [$controls.framenume value]
+                    if {${_frame} != $newframenum} {
+                        Frame $newframenum
+                    }
 
                     foreach {oldx0 oldy0 oldx1 oldy1} ${_coords} break
                     set newx0 [$controls.x0e value]
@@ -412,14 +433,8 @@ itcl::body Rappture::VideoDistance::Menu {args} {
                         _fixPx2Dist $px2dist
                     }
 
-                    if {[$controls.hideb value]} {
-                        # FIXME: might need to do this in an after idle
-                        #        if the value is updated, and the object
-                        #        is scheduled to be hidden, writing
-                        #        the new value to the screen will
-                        #        occur after the object has been hidden,
-                        #        resulting in a floating value.
-                        Hide object
+                    if {[$controls.deleteb value]} {
+                        itcl::delete object $this
                     }
                 }
                 "cancel" {
@@ -470,7 +485,7 @@ itcl::body Rappture::VideoDistance::_fixBindings {status} {
             ${_canvas} bind ${_name} <B1-Leave>        { }
             set tagnum [lsearch [bindtags ${_canvas}] "${_name}-FrameEvent"]
             if {$tagnum >= 0} {
-                bindtags ${_canvas} [lreplace [bindtags ${_canvas} $tagnum $tagnum]]
+                bindtags ${_canvas} [lreplace [bindtags ${_canvas}] $tagnum $tagnum]
             }
         }
         default {
@@ -532,8 +547,8 @@ itcl::body Rappture::VideoDistance::_fixValue {args} {
     # remove old text
     ${_canvas} delete ${_name}-val
 
-    set controls [${_menu} component inner]
-    if {![$controls.hideb value]} {
+    set controls [$itk_component(menu) component inner]
+    if {![$controls.deleteb value]} {
         # if the object is not hidden, write _dist to the canvas
         uplevel \#0 $writetextcb $args
     }
