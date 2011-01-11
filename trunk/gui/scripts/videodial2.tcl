@@ -242,7 +242,7 @@ itcl::body Rappture::Videodial2::mark {property args} {
 # USAGE: _setmark <type> ?[-xcoord|-tag]? <where>
 #
 # Clients use this to add a mark to the timeline
-#   type can be any one of loopstart, loopend, particle, arrow
+#   type can be any one of loopstart, loopend, particle, measure
 #   where is interpreted based on the preceeding flag if available.
 #       in the default case, <where> is interpreted as a frame number
 #       or "current". if the -xcoord flag is provided, where is
@@ -458,7 +458,7 @@ itcl::body Rappture::Videodial2::_setmark {type args} {
 
 
         }
-        "arrow" {
+        "measure*" {
             set radius 3
             set amx0 $frx0
             set amy0 [expr {$cy1+15}]

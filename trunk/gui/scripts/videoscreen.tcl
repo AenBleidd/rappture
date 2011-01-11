@@ -553,8 +553,8 @@ itcl::body Rappture::VideoScreen::video { args } {
             puts stderr "_mspf = ${_mspf} | $speed | ${_ofrd} | ${_delay}"
         }
         "update" {
-            # eventually seek [expr round($_settings($this-framenum))]
-            Seek [expr round($_settings($this-framenum))]
+            eventually seek [expr round($_settings($this-framenum))]
+            # Seek [expr round($_settings($this-framenum))]
         }
         default {
             error "bad option \"$option\": should be play, stop, toggle, position, or reset."
@@ -866,13 +866,14 @@ itcl::body Rappture::VideoScreen::Measure {status win x y} {
                         -bindentercb [itcl::code $this togglePtrBind object] \
                         -bindleavecb [itcl::code $this togglePtrBind current] \
                         -writetextcb [itcl::code $this writeText] \
+                        -ondelete [itcl::code $itk_component(dialminor) mark remove $name] \
+                        -onframe [itcl::code $itk_component(dialminor) mark add $name] \
                         -px2dist [itcl::scope _px2dist] \
                         -units "m" \
                         -color green \
                         -bindings disable]
             ${_obj} Coords $x $y $x $y
             ${_obj} Show object
-            $itk_component(dialminor) mark add arrow current
         }
         "drag" {
             # FIXME: something wrong with the bindings, if the objects menu is
@@ -928,27 +929,33 @@ itcl::body Rappture::VideoScreen::Particle {status win x y} {
                         -bindentercb [itcl::code $this togglePtrBind object] \
                         -bindleavecb [itcl::code $this togglePtrBind current] \
                         -trajcallback [itcl::code $this Trajectory] \
+                        -ondelete [itcl::code $itk_component(dialminor) mark remove $name] \
+                        -onframe [itcl::code $itk_component(dialminor) mark add $name] \
+                        -framerange "0 ${_lastFrame}" \
                         -halo 5 \
                         -color green \
                         -px2dist [itcl::scope _px2dist] \
                         -units "m/s"]
             ${_obj} Coords $x $y
             ${_obj} Show object
-            $itk_component(dialminor) mark add $name current
+            #$itk_component(dialminor) mark add $name current
             # bind $itk_component(hull) <<Frame>> [itcl::code $itk_component(main).$name UpdateFrame]
 
-            # link the new particle to the last particle added
-            if {[llength ${_particles}] > 0} {
+            # link the new particle to the last particle added, if it exists
+            set lastp [lindex ${_particles} end]
+            while {"" == [info commands $lastp]} {
+                set _particles [lreplace ${_particles} end end]
+                if {[llength ${_particles}] == 0} {
+                    break
+                }
                 set lastp [lindex ${_particles} end]
+            }
+            if {"" != [info commands $lastp]} {
                 $lastp Link ${_obj}
             }
 
             # add the particle to the list
             lappend _particles ${_obj}
-
-#            set pm [Rappture::VideoParticleManager]
-#            $pm add $p0
-#            set plist [$pm list]
         }
         default {
             error "bad status \"$status\": should be new"

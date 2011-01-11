@@ -98,7 +98,7 @@ label $chooser.step1 -image $imh
 
 set vc [Rappture::VideoChooser $chooser.vc -variable ::previewVar]
 #$vc load [glob "/home/derrick/projects/piv/video/*.mp4"]
-$vc load [glob "/apps/piv/video/*.mp4"]
+$vc load [glob "/apps/video/*.mp4"]
 
 pack $chooser.step1 -side top -anchor w -pady 8
 pack $vc -side bottom -anchor center
@@ -167,7 +167,9 @@ blt::table configure $f c2 -resize none
 # ------------------------------------------------------------------
 
 set f [$nb insert end video]
-set vs [Rappture::VideoScreen $f.viewer -fileopen {$nb current about}]
+set vs [Rappture::VideoScreen $f.viewer -fileopen {
+            $vs video stop
+            $nb current about}]
 pack $vs -expand yes -fill both
 
 
