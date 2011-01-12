@@ -3,9 +3,8 @@
 #
 #  Entire right hand side of the regression tester.  Displays the
 #  golden test results, and compares them to the new results if the test
-#  has been ran.  The new version's tool.xml must be provided through the
-#  -toolxml configuration option, and the -test configuration option is
-#  used to provide a Test object to display.
+#  has been ran.  The -test configuration option is used to provide a
+#  Test object to display.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -31,9 +30,8 @@ itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
     public variable test 
-    public variable toolxml
 
-    constructor {toolxml args} { #defined later }
+    constructor {args} { #defined later }
 
     protected method reset 
     protected method showDescription {text}
@@ -89,19 +87,6 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 
     eval itk_initialize $args
 
-    if {$toolxml == "" } {
-        error "no -toolxml configuration option given."
-    }
-}
-
-# --------------------------------------------------------------------
-# Create a new Tool object if -toolxml option is changed.  Also
-# refresh the display by calling the configbody for the -test option.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Tester::TestView::toolxml {
-    #set _tool [Rappture::Tool ::#auto [Rappture::library $toolxml] \
-    #     [file dirname $toolxml]]
-    $this configure -test [$this cget -test]
 }
 
 # ----------------------------------------------------------------------

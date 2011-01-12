@@ -17,6 +17,8 @@ itcl::class Rappture::ResultsPage {
     itk_option define -codefont codeFont Font ""
     itk_option define -textfont textFont Font ""
     itk_option define -boldtextfont boldTextFont Font ""
+    itk_option define -clearcommand clearCommand ClearCommand ""
+    itk_option define -appname appName AppName ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -24,6 +26,7 @@ itcl::class Rappture::ResultsPage {
     public method load {xmlobj}
     public method clear {}
     public method download {option args}
+    public method resultset {}
 
     protected method _plot {args}
     protected method _fixResult {}
@@ -89,7 +92,7 @@ itcl::body Rappture::ResultsPage::constructor {args} {
         @download [Rappture::filexfer::label download]
 
     if {[Rappture::filexfer::enabled]} {
-        Rappture::Tooltop::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
+        Rappture::Tooltip::for $itk_component(download) "Downloads the current result to a new web browser window on your desktop.  From there, you can easily print or save results.
 
 NOTE:  Your web browser must allow pop-ups from this site.  If your output does not appear, look for a 'pop-up blocked' message and enable pop-ups."
     } else {
@@ -113,9 +116,6 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
         Rappture::ResultSet $f.rset \
             -clearcommand [itcl::code $this clear] \
             -settingscommand [itcl::code $this _plot] 
-    } {
-        usual
-        keep -promptcommand
     }
     pack $itk_component(resultset) -expand yes -fill both
     bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
@@ -128,7 +128,6 @@ itcl::body Rappture::ResultsPage::destructor {} {
     foreach obj $_runs {
         itcl::delete object $obj
     }
-    # TODO: after cancel [itcl::code $this simulate] ???
 }
   
 itcl::body Rappture::ResultsPage::_fixResult {} {
@@ -227,7 +226,8 @@ itcl::body Rappture::ResultsPage::download {option args} {
                 set ext ""
                 set f [$itk_component(resultpages) page $page]
                 set item [$itk_component(resultselector) value]
-                set result [$f.rviewer download now $widget $_appName $item]
+                set result [$f.rviewer download now $widget \
+                    $itk_option(-appname) $item]
                 if { $result == "" } {
                     return;                # User cancelled the download.
                 }
@@ -259,8 +259,6 @@ itcl::body Rappture::ResultsPage::download {option args} {
 }
 
 itcl::body Rappture::ResultsPage::load {xmlobj} {
-    # TODO: only show the last result? then clear first 
-
     # look for all output.load children and load them first
     # each run.xml is loaded as a previous simulation.
     foreach item [$xmlobj children -type run output.load] {
@@ -438,9 +436,11 @@ itcl::body Rappture::ResultsPage::clear {} {
     #$itk_component(resultpages) delete -all
     #set _pages 0
 
-    # TODO: _simState on
-    # TODO: _fixSimControl
-    # TODO: _reset
+    # Invoke -clearcommand option
+    if {[string length $itk_option(-clearcommand)] > 0} {
+        uplevel #0 $itk_option(-clearcommand)
+    }
+
 }
 
 itcl::body Rappture::ResultsPage::_resultTooltip {} {
@@ -536,5 +536,9 @@ itcl::body Rappture::ResultsPage::_reorder {comps} {
         }
     }
     return $comps
+}
+
+itcl::body Rappture::ResultsPage::resultset {} {
+    return $itk_component(resultset)
 }
 
