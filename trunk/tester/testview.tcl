@@ -1,13 +1,11 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: testview - display the results of a test
 #
-#  Entire right hand side of the regression tester.  Contains a text
-#  widget for the test description, plus two TestAnalyzer widgets.  The
-#  analyzers are used to show the golden results, and to compare them to
-#  the new results if the test has been ran.  The new version's tool.xml
-#  must be provided through the -toolxml configuration option, and the
-#  -test configuration option is used to provide a Test object to
-#  display.
+#  Entire right hand side of the regression tester.  Displays the
+#  golden test results, and compares them to the new results if the test
+#  has been ran.  The new version's tool.xml must be provided through the
+#  -toolxml configuration option, and the -test configuration option is
+#  used to provide a Test object to display.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
 #  Copyright (c) 2010  Purdue Research Foundation
@@ -34,7 +32,6 @@ itcl::class Rappture::Tester::TestView {
 
     public variable test 
     public variable toolxml
-    protected variable _tool
 
     constructor {toolxml args} { #defined later }
 
@@ -42,7 +39,7 @@ itcl::class Rappture::Tester::TestView {
     protected method showDescription {text}
     protected method showStatus {text}
     protected method updateAnalyzer {args}
-    protected method updateResult {runfile}
+    protected method updateInfo {runfile}
 
 }
 
@@ -79,7 +76,7 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
         -state disabled
 
     #itk_component add analyzer {
-    #    Rappture::Tester::TestAnalyzer $itk_component(tabs).analyzer $_tool
+    #    Rappture::ResultsPage $itk_component(tabs).analyzer
     #}
     #$itk_component(tabs) tab configure "Analyzer" \
     #    -window $itk_component(tabs).analyzer
@@ -102,8 +99,8 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 # refresh the display by calling the configbody for the -test option.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestView::toolxml {
-    set _tool [Rappture::Tool ::#auto [Rappture::library $toolxml] \
-         [file dirname $toolxml]]
+    #set _tool [Rappture::Tool ::#auto [Rappture::library $toolxml] \
+    #     [file dirname $toolxml]]
     $this configure -test [$this cget -test]
 }
 
@@ -133,13 +130,13 @@ itcl::configbody Rappture::Tester::TestView::test {
                 set runfile [Rappture::library [$test getRunfile]]
                 $runfile put input.run.current "Test result"
                 updateAnalyzer $golden $runfile
-                updateResult $test
+                updateInfo $test
             } else {
-                updateResult
+                updateInfo
             }
         } else {
             showStatus "Test has not yet ran."
-            updateResult
+            updateInfo
             if {[$test getTestxml] != ""} {
                 updateAnalyzer [Rappture::library [$test getTestxml]]
             }
@@ -166,7 +163,7 @@ itk::usual TestView {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::reset {} {
     updateAnalyzer
-    updateResult
+    updateInfo
     showStatus ""
     showDescription ""
 }
@@ -205,34 +202,33 @@ itcl::body Rappture::Tester::TestView::showStatus {text} {
 # Clears the analyzer and loads the given library objects.  Used to load 
 # both the golden result as well as the test result.  Clears the
 # analyzer space if no arguments are given.
-# HACK: Destroys the existing analyzer widget and creates a new one.  
-# Eventually this should be able to keep the same widget and swap in
-# and out different result sets.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
+    # HACK: Strange errors happen when the same widget is cleared and
+    # loaded with new data.  Instead, destroy the results page and
+    # create a new one.
     catch {
         $itk_component(analyzer) clear
         destroy $itk_component(analyzer)
     }
     itk_component add analyzer {
-        Rappture::Tester::TestAnalyzer $itk_component(tabs).analyzer $_tool
+        Rappture::ResultsPage $itk_component(tabs).analyzer
     }
     $itk_component(tabs) tab configure "Analyzer" \
         -window $itk_component(analyzer)
     foreach lib $args {
-        $itk_component(analyzer) display $lib
+        $itk_component(analyzer) load $lib
     }
-    
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateResult ?test?
+# USAGE: updateInfo ?test?
 #
 # Given a set of key value pairs from the test tree, update the info 
 # page of the testview widget.  If no arguments are given, disable the
 # info page.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateResult {args} {
+itcl::body Rappture::Tester::TestView::updateInfo {args} {
     if {[llength $args] == 0} {
         $itk_component(info) delete 0.0 end
         # TODO: Switch back to analyzer tab.  Why doesn't this work?
@@ -256,7 +252,7 @@ itcl::body Rappture::Tester::TestView::updateResult {args} {
             $itk_component(info) insert end "Added: $added\n"
         }
     } else {
-        error "wrong # args: should be \"updateResult ?data?\""
+        error "wrong # args: should be \"updateInfo ?data?\""
     }
 }
 
