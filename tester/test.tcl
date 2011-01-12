@@ -273,9 +273,6 @@ itcl::body Rappture::Tester::Test::diffs {lib1 lib2 {path output}} {
 # which do not exist in the test xml, use the default value.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::makeDriver {} {
-    # TODO: Test with various cases, especially with missing input elements
-    # TODO: Any way to copy an object rather than creating a duplicate?
-    # TODO: Sensible way of combining this proc with "merge" below?
     set toolobj [Rappture::library $_toolxml]
     set golden [Rappture::library $_testxml]
     set driver [Rappture::library $_toolxml]
