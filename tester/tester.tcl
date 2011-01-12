@@ -71,12 +71,13 @@ panedwindow .pw
     -toolxml $params(-tool) \
     -selectcommand Rappture::Tester::selectionHandler]
 .pw add [frame .right]
-Rappture::Tester::TestView .right.view -toolxml $params(-tool)
+Rappture::Tester::TestView .right.view
 button .right.regoldenize -text "Regoldenize" -state disabled \
     -command Rappture::Tester::regoldenize
 pack .right.regoldenize -side bottom -anchor e
 pack .right.view -side bottom -expand yes -fill both
 pack .pw -expand yes -fill both
+set lastsel ""
 
 # TODO: Handle resizing better
 # TODO: Fix error that occurs only when you click and hold on a test
@@ -90,12 +91,16 @@ pack .pw -expand yes -fill both
 # node's data to the right hand side.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::selectionHandler {args} {
+    global lastsel
     set test [.tree getTest]
-    .right.view configure -test $test 
-    if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
-        .right.regoldenize configure -state normal
-    } else {
-        .right.regoldenize configure -state disabled
+    if {$test != $lastsel} {
+        .right.view configure -test $test 
+        if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
+            .right.regoldenize configure -state normal
+        } else {
+            .right.regoldenize configure -state disabled
+        }
+        set lastsel $test
     }
 }
 
