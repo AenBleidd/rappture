@@ -553,6 +553,10 @@ itcl::body Rappture::VideoScreen::load {type data} {
     $itk_component(seekforward) configure -state normal
     $itk_component(loop) enable
 
+    # make sure looping is off
+    set _settings(loop) 0
+    $itk_component(dialminor) loop disable
+
     fixSize
 }
 
@@ -1210,8 +1214,7 @@ itcl::body Rappture::VideoScreen::calculateTrajectory {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::toggleloop {} {
     if {$_settings(loop) == 0} {
-        $itk_component(dialminor) mark remove loopstart
-        $itk_component(dialminor) mark remove loopend
+        $itk_component(dialminor) loop disable
     } else {
         set cur [$_movie get position cur]
         set end [$_movie get position end]
@@ -1226,8 +1229,7 @@ itcl::body Rappture::VideoScreen::toggleloop {} {
             set endframe $end
         }
 
-        $itk_component(dialminor) mark add loopstart $startframe
-        $itk_component(dialminor) mark add loopend $endframe
+        $itk_component(dialminor) loop between $startframe $endframe
     }
 
 }
