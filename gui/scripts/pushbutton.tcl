@@ -79,7 +79,6 @@ itcl::body Rappture::PushButton::constructor {args} {
 
 itcl::body Rappture::PushButton::invoke {} {
     if { !$_enabled } {
-        puts "in invoke button not enabled"
         return
     }
     toggle

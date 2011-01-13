@@ -407,10 +407,16 @@ itcl::body Rappture::VideoParticle::Frame {args} {
         if {([string is integer $val] != 1)} {
             error "bad value: \"$val\": frame number should be an integer"
         }
+
         set _frame $val
 
         if {"" != $itk_option(-onframe)} {
             uplevel \#0 $itk_option(-onframe) ${_frame}
+        }
+
+        drawVectors
+        if {[string compare "" ${_prevnode}] != 0} {
+            ${_prevnode} drawVectors
         }
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"Frame ?<number>?\""

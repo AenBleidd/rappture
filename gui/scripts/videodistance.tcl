@@ -199,6 +199,7 @@ itcl::body Rappture::VideoDistance::Frame {args} {
         if {([string is integer $val] != 1)} {
             error "bad value: \"$val\": frame number should be an integer"
         }
+
         set _frame $val
 
         if {"" != $itk_option(-onframe)} {

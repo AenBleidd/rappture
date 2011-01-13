@@ -31,6 +31,7 @@ int VideoGetImage (VideoObj *vidPtr,
 int VideoGetPositionCur (VideoObj *vidPtr, int *pos);
 int VideoGetPositionEnd (VideoObj *vidPtr, int *pos);
 int VideoGetFrameRate (VideoObj *vidPtr, double *fr);
+int VideoGetFileName (VideoObj *vidPtr, const char **fname);
 // static int VideoPutCmd (ClientData clientData,
 //     Tcl_Interp  *interp, int argc, CONST84 char *argv[]);
 int VideoGoNext (VideoObj *vidPtr);

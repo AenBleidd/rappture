@@ -1154,6 +1154,31 @@ VideoGetFrameRate (vidPtr, fr)
 }
 
 int
+VideoGetFileName (vidPtr, fname)
+    VideoObj *vidPtr;
+    const char **fname;
+{
+    AVStream *vstreamPtr;
+
+    if (vidPtr == NULL) {
+        return -1;
+    }
+
+    if (fname == NULL) {
+        return -1;
+    }
+
+    if (vidPtr->pFormatCtx == NULL) {
+        // vidPtr->pFormatCtx is NULL, video not open
+        return -1;
+    }
+
+    *fname = vidPtr->fileName;
+
+    return 0;
+}
+
+int
 VideoAllocImgBuffer(vidPtr, width, height)
     VideoObj *vidPtr;
     int width;

@@ -136,6 +136,7 @@ VideoCallCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * get position end
  * get image ?width height?
  * get framerate
+ * get filename
  *
  */
 static int
@@ -216,6 +217,24 @@ GetOp (ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
         Tcl_SetObjResult(interp, Tcl_NewDoubleObj(fr));
+    }
+    else if ((*info == 'f') && (strcmp(info,"filename") == 0)) {
+        if (objc != 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", cmd,
+                " filename\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        const char *fname = NULL;
+        int err = 0;
+
+        err = VideoGetFileName((VideoObj *)clientData, &fname);
+        if (err) {
+            Tcl_AppendResult(interp, "error while retrieving filename",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
+        Tcl_AppendResult(interp, fname, (char*)NULL);
     }
     else {
         Tcl_AppendResult(interp, "unrecognized command \"", info, "\": should be \"", cmd,
