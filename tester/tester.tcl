@@ -41,13 +41,17 @@ Rappture::getopts argv params {
 
 # If tool.xml and test directory locations are not given, try to find them.
 if {$params(-tool) == ""} {
-    if {[file exists tool.xml]} {
+    if {[file isfile tool.xml]} {
         set params(-tool) tool.xml
-    } elseif {[file exists [file join rappture tool.xml]]} {
+    } elseif {[file isfile [file join rappture tool.xml]]} {
         set params(-tool) [file join rappture tool.xml]
     } else {
-        error "Cannot find tool.xml"
+        puts "Cannot find tool.xml"
+        exit 1
     }
+} elseif {![file isfile $params(-tool)]} {
+    puts "Tool \"$params(-tool)\" does not exist"
+    exit 1
 }
 
 if {$params(-testdir) == ""} {
@@ -57,8 +61,12 @@ if {$params(-testdir) == ""} {
     } elseif {[file isdirectory [file join [file dirname $tooldir] tests]]} {
         set params(-testdir) [file join [file dirname $tooldir] tests]
     } else {
-        error "Cannot find test directory."
+        puts "Cannot find test directory"
+        exit 1
     }
+} elseif {![file isdirectory $params(-testdir)]} {
+    puts "Test directory \"$params(-testdir)\" does not exist"
+    exit 1
 }
 
 # ----------------------------------------------------------------------
@@ -66,35 +74,45 @@ if {$params(-testdir) == ""} {
 # ----------------------------------------------------------------------
 wm title . "Rappture Regression Tester"
 panedwindow .pw
+
 .pw add [Rappture::Tester::TestTree .tree \
     -testdir $params(-testdir) \
     -toolxml $params(-tool) \
     -selectcommand Rappture::Tester::selectionHandler]
+
 .pw add [frame .right]
 Rappture::Tester::TestView .right.view
 button .right.regoldenize -text "Regoldenize" -state disabled \
     -command Rappture::Tester::regoldenize
 pack .right.regoldenize -side bottom -anchor e
 pack .right.view -side bottom -expand yes -fill both
+
 pack .pw -expand yes -fill both
+
 set lastsel ""
 
 # TODO: Handle resizing better
 # TODO: Fix error that occurs only when you click and hold on a test
-#       while the right hand side is empty
+#       while the right hand side is empty.  Adding lastsel check
+#       removed the error, but tree selection still acts strange when
+#       holding down the mouse button.  selectionHandler actually gets
+#       invoked twice, somehow leading to an event dispatch error.
+#       If selectionHandler does NOT reconfigure the right side with the
+#       selected test, then no error occurs.
 
 # ----------------------------------------------------------------------
-# USAGE: selectionHandler
+# USAGE: selectionHandler ?-refresh?
 #
 # Used internally to communicate between the test tree and the right
 # hand side viewer.  Upon selecting a new tree node, pass the focused
-# node's data to the right hand side.
+# node's data to the right hand side.  Use the -refresh option to force
+# the selected test to be re-displayed on the right side.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::selectionHandler {args} {
     global lastsel
     set test [.tree getTest]
-    if {$test != $lastsel} {
-        .right.view configure -test $test 
+    if {$test != $lastsel || [lsearch $args "-refresh"] != -1} {
+        .right.view configure -test $test
         if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
             .right.regoldenize configure -state normal
         } else {
