@@ -134,7 +134,7 @@ itcl::configbody Rappture::Tester::TestTree::toolxml {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::selectcommand {
     $itk_component(treeview) configure -selectcommand \
-        "[itcl::code $itk_interior updateLabel]; $selectcommand"
+        "[itcl::code $this updateLabel]; $selectcommand"
 }
 
 # ----------------------------------------------------------------------
@@ -278,7 +278,7 @@ itcl::body Rappture::Tester::TestTree::runSelected {} {
     foreach id [$this getSelected] {
         runTest $id
     }
-    eval $selectcommand
+    eval $selectcommand -refresh
 }
 
 # ----------------------------------------------------------------------

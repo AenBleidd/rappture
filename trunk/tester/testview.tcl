@@ -69,14 +69,14 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
             -selectbackground $itk_option(-background)
     } {
     }
-    $itk_component(tabs) insert end "Analyzer" -ipady 25 -fill both
+    $itk_component(tabs) insert end "Results" -ipady 25 -fill both
     $itk_component(tabs) insert end "Info" -ipady 25 -fill both \
         -state disabled
 
     #itk_component add analyzer {
     #    Rappture::ResultsPage $itk_component(tabs).analyzer
     #}
-    #$itk_component(tabs) tab configure "Analyzer" \
+    #$itk_component(tabs) tab configure "Results" \
     #    -window $itk_component(tabs).analyzer
 
     itk_component add info {
@@ -199,7 +199,7 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
     itk_component add analyzer {
         Rappture::ResultsPage $itk_component(tabs).analyzer
     }
-    $itk_component(tabs) tab configure "Analyzer" \
+    $itk_component(tabs) tab configure "Results" \
         -window $itk_component(analyzer)
     foreach lib $args {
         $itk_component(analyzer) load $lib
@@ -216,9 +216,10 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
 itcl::body Rappture::Tester::TestView::updateInfo {args} {
     if {[llength $args] == 0} {
         $itk_component(info) delete 0.0 end
-        # TODO: Switch back to analyzer tab.  Why doesn't this work?
-        $itk_component(tabs) invoke \
-            [$itk_component(tabs) index -name "Analyzer"]
+        # TODO: Switch back to results tab.  Why doesn't this work?
+        set index [$itk_component(tabs) index -name "Results"]
+        $itk_component(tabs) select $index
+        $itk_component(tabs) focus $index
         $itk_component(tabs) tab configure "Info" -state disabled
         return
     } elseif {[llength $args] == 1} {
