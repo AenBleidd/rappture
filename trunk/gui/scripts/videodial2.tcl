@@ -47,6 +47,7 @@ itcl::class Rappture::Videodial2 {
     public method clear {}
     public method mark {args}
     public method bball {}
+    public method loop {action args}
 
     protected method _bindings {type args}
     protected method _redraw {args}
@@ -68,6 +69,7 @@ itcl::class Rappture::Videodial2 {
     private method _offsetx {x}
     private method ms2rel {value}
     private method rel2ms {value}
+    private method _goToFrame {framenum}
 
     private common _click             ;# x,y point where user clicked
     private common _marks             ;# list of marks
@@ -83,7 +85,7 @@ itcl::class Rappture::Videodial2 {
     private variable _max 1
     private variable _minortick 1
     private variable _majortick 5
-    private variable _lockdial 0
+    private variable _lockdial ""
     private variable _displayMin 0
     private variable _displayMax 0
 }
@@ -190,7 +192,7 @@ itcl::body Rappture::Videodial2::_current {relval} {
     set framenum [expr round([rel2ms $_current])]
 
     set updated 0
-    if {${_lockdial} == 1} {
+    if {[llength ${_lockdial}] != 0} {
         # the dial is "locked" this means we don't center the dial
         # on the current value. we only move the dial if the
         # current value is less than or greater than the marks alredy
@@ -225,32 +227,49 @@ itcl::body Rappture::Videodial2::_current {relval} {
 
 
 # ----------------------------------------------------------------------
-# USAGE: _centerCurrentMark <type> ?args?
-# ----------------------------------------------------------------------
-itcl::body Rappture::Videodial2::_bindings {type args} {
-
-}
-
-# ----------------------------------------------------------------------
 # USAGE: _bindings <type> ?args?
 # ----------------------------------------------------------------------
 itcl::body Rappture::Videodial2::_bindings {type args} {
+    set c $itk_component(minordial)
     switch -- $type {
         "marker" {
             set tag [lindex $args 0]
-            bind $itk_component(minordial) <ButtonPress-1> [itcl::code $this _marker $tag click %x %y]
-            bind $itk_component(minordial) <B1-Motion> [itcl::code $this _marker $tag drag %x %y]
-            bind $itk_component(minordial) <ButtonRelease-1> [itcl::code $this _marker $tag release %x %y]
-            $itk_component(minordial) configure -cursor sb_h_double_arrow
+            bind $c <ButtonPress-1> [itcl::code $this _marker $tag click %x %y]
+            bind $c <B1-Motion> [itcl::code $this _marker $tag drag %x %y]
+            bind $c <ButtonRelease-1> [itcl::code $this _marker $tag release %x %y]
+            $c configure -cursor sb_h_double_arrow
         }
         "timeline" {
-            # bind $itk_component(minordial) <ButtonPress-1> [itcl::code $this _move click %x %y]
-            # bind $itk_component(minordial) <B1-Motion> [itcl::code $this _move drag %x %y]
-            # bind $itk_component(minordial) <ButtonRelease-1> [itcl::code $this _move release %x %y]
-            bind $itk_component(minordial) <ButtonPress-1> { }
-            bind $itk_component(minordial) <B1-Motion> { }
-            bind $itk_component(minordial) <ButtonRelease-1> { }
-            $itk_component(minordial) configure -cursor ""
+            # bind $c <ButtonPress-1> [itcl::code $this _move click %x %y]
+            # bind $c <B1-Motion> [itcl::code $this _move drag %x %y]
+            # bind $c <ButtonRelease-1> [itcl::code $this _move release %x %y]
+            bind $c <ButtonPress-1> { }
+            bind $c <B1-Motion> { }
+            bind $c <ButtonRelease-1> { }
+            $c configure -cursor ""
+        }
+        "toolmark" {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be _bindings toolmark \[enter|leave\] <tag>"
+            }
+
+            foreach {mode tag} $args break
+
+            switch -- $mode {
+                "enter" {
+                    #$c create rectangle [$c bbox $tag] \
+                        -outline red \
+                        -tags "highlight"
+                    bind $c <ButtonPress-1> [itcl::code $this _goToFrame $_marks($tag)]
+                }
+                "leave" {
+                    #$c delete "highlight"
+                    _bindings timeline
+                }
+                default {
+                    error "bad argument \"$mode\": should be enter or leave"
+                }
+            }
         }
     }
 }
@@ -413,37 +432,39 @@ itcl::body Rappture::Videodial2::_setmark {type args} {
         "loopstart" {
             # add start marker
 
-            set smx0 $frx0                              ;# loopstart marker x0
-            set smy0 $cy0                               ;# loopstart marker y0
+            if {($where >= ${_displayMin}) && ($where < ${_displayMax})} {
+                set smx0 $frx0                              ;# loopstart marker x0
+                set smy0 $cy0                               ;# loopstart marker y0
 
-            # polygon's outline adds a border to only one
-            # side of the object? so we have weird +1 in
-            # the triangle base in loopstart marker
+                # polygon's outline adds a border to only one
+                # side of the object? so we have weird +1 in
+                # the triangle base in loopstart marker
 
-            # marker stem is 3 pixels thick
-            set smx1 [expr {$smx0+1}]                   ;# triangle top x
-            set smy1 [expr {$smy0-10}]                  ;# triangle top y
-            set smx2 $smx1                              ;# stem bottom right x
-            set smy2 $cy1                               ;# stem bottom right y
-            set smx3 [expr {$smx0-1}]                   ;# stem bottom left x
-            set smy3 $smy2                              ;# stem bottom left y
-            set smx4 $smx3                              ;# stem middle left x
-            set smy4 $smy0                              ;# stem middle left y
-            set smx5 [expr {$smx0-10+1}]                ;# triangle bottom left x
-            set smy5 $smy0                              ;# triangle bottom left y
+                # marker stem is 3 pixels thick
+                set smx1 [expr {$smx0+1}]                   ;# triangle top x
+                set smy1 [expr {$smy0-10}]                  ;# triangle top y
+                set smx2 $smx1                              ;# stem bottom right x
+                set smy2 $cy1                               ;# stem bottom right y
+                set smx3 [expr {$smx0-1}]                   ;# stem bottom left x
+                set smy3 $smy2                              ;# stem bottom left y
+                set smx4 $smx3                              ;# stem middle left x
+                set smy4 $smy0                              ;# stem middle left y
+                set smx5 [expr {$smx0-10+1}]                ;# triangle bottom left x
+                set smy5 $smy0                              ;# triangle bottom left y
 
-            set tag $type
-            $c delete $tag
-            $c create polygon \
-                $smx1 $smy1 \
-                $smx2 $smy2 \
-                $smx3 $smy3 \
-                $smx4 $smy4 \
-                $smx5 $smy5 \
-                -outline black -fill black -tags [list $tag dialval]
+                set tag $type
+                $c delete $tag
+                $c create polygon \
+                    $smx1 $smy1 \
+                    $smx2 $smy2 \
+                    $smx3 $smy3 \
+                    $smx4 $smy4 \
+                    $smx5 $smy5 \
+                    -outline black -fill black -tags [list $tag dialval]
 
-            $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
-            $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+                $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
+                $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+            }
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
@@ -461,32 +482,34 @@ itcl::body Rappture::Videodial2::_setmark {type args} {
         "loopend" {
             # add loopend marker
 
-            set emx0 $frx0                              ;# loopend marker x0
-            set emy0 $cy0                               ;# loopend marker y0
+            if {($where >= ${_displayMin}) && ($where < ${_displayMax})} {
+                set emx0 $frx0                              ;# loopend marker x0
+                set emy0 $cy0                               ;# loopend marker y0
 
-            set emx1 [expr {$emx0-1}]                   ;# triangle top x
-            set emy1 [expr {$emy0-10}]                  ;# triangle top y
-            set emx2 $emx1                              ;# stem bottom left x
-            set emy2 $cy1                               ;# stem bottom left y
-            set emx3 [expr {$emx0+1}]                   ;# stem bottom right x
-            set emy3 $emy2                              ;# stem bottom right y
-            set emx4 $emx3                              ;# stem middle right x
-            set emy4 $emy0                              ;# stem middle right  y
-            set emx5 [expr {$emx0+10-1}]                ;# triangle bottom right x
-            set emy5 $emy0                              ;# triangle bottom right y
+                set emx1 [expr {$emx0-1}]                   ;# triangle top x
+                set emy1 [expr {$emy0-10}]                  ;# triangle top y
+                set emx2 $emx1                              ;# stem bottom left x
+                set emy2 $cy1                               ;# stem bottom left y
+                set emx3 [expr {$emx0+1}]                   ;# stem bottom right x
+                set emy3 $emy2                              ;# stem bottom right y
+                set emx4 $emx3                              ;# stem middle right x
+                set emy4 $emy0                              ;# stem middle right  y
+                set emx5 [expr {$emx0+10-1}]                ;# triangle bottom right x
+                set emy5 $emy0                              ;# triangle bottom right y
 
-            set tag $type
-            $c delete $tag
-            $c create polygon \
-                $emx1 $emy1 \
-                $emx2 $emy2 \
-                $emx3 $emy3 \
-                $emx4 $emy4 \
-                $emx5 $emy5 \
-                -outline black -fill black -tags [list $tag dialval]
+                set tag $type
+                $c delete $tag
+                $c create polygon \
+                    $emx1 $emy1 \
+                    $emx2 $emy2 \
+                    $emx3 $emy3 \
+                    $emx4 $emy4 \
+                    $emx5 $emy5 \
+                    -outline black -fill black -tags [list $tag dialval]
 
-            $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
-            $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+                $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
+                $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+            }
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
@@ -501,43 +524,47 @@ itcl::body Rappture::Videodial2::_setmark {type args} {
             }
         }
         "particle*" {
-            set radius 3
-            set pmx0 $frx0
-            set pmy0 [expr {$cy1+5}]
-            set coords [list [expr $pmx0-$radius] [expr $pmy0-$radius] \
-                             [expr $pmx0+$radius] [expr $pmy0+$radius]]
+            if {($where >= ${_displayMin}) && ($where < ${_displayMax})} {
+                set radius 3
+                set pmx0 $frx0
+                set pmy0 [expr {$cy1+5}]
+                set coords [list [expr $pmx0-$radius] [expr $pmy0-$radius] \
+                                 [expr $pmx0+$radius] [expr $pmy0+$radius]]
 
-            set tag $type
-            $c delete $tag
-            $c create oval $coords \
-                -fill green \
-                -outline black \
-                -width 1 \
-                -tags [list $tag dialval]
+                set tag $type
+                $c delete $tag
+                $c create oval $coords \
+                    -fill green \
+                    -outline black \
+                    -width 1 \
+                    -tags [list $tag dialval]
 
-            #$c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
-            #$c bind $tag <Leave> [itcl::code $this _bindings timeline]
+                $c bind $tag <Enter> [itcl::code $this _bindings toolmark enter $tag]
+                $c bind $tag <Leave> [itcl::code $this _bindings toolmark leave $tag]
+            }
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
             }
         }
         "measure*" {
-            set radius 3
-            set amx0 $frx0
-            set amy0 [expr {$cy1+15}]
-            set coords [list [expr $amx0-$radius] [expr $amy0-$radius] \
-                             [expr $amx0+$radius] [expr $amy0+$radius]]
+            if {($where >= ${_displayMin}) && ($where < ${_displayMax})} {
+                set radius 3
+                set amx0 $frx0
+                set amy0 [expr {$cy1+15}]
+                set coords [list [expr $amx0-$radius] [expr $amy0-$radius] \
+                                 [expr $amx0+$radius] [expr $amy0+$radius]]
 
-            set tag $type
-            $c delete $tag
-            $c create line $coords \
-                -fill red \
-                -width 3  \
-                -tags [list $tag dialval]
+                set tag $type
+                $c delete $tag
+                $c create line $coords \
+                    -fill red \
+                    -width 3  \
+                    -tags [list $tag dialval]
 
-            #$c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
-            #$c bind $tag <Leave> [itcl::code $this _bindings timeline]
+                $c bind $tag <Enter> [itcl::code $this _bindings toolmark enter $tag]
+                $c bind $tag <Leave> [itcl::code $this _bindings toolmark leave $tag]
+            }
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
@@ -545,35 +572,37 @@ itcl::body Rappture::Videodial2::_setmark {type args} {
         }
         "currentmark" {
 
-            set cmx0 $frx0                              ;# current marker x0
-            set cmy0 $cy0                               ;# current marker y0
+            if {($where >= ${_displayMin}) && ($where < ${_displayMax})} {
+                set cmx0 $frx0                              ;# current marker x0
+                set cmy0 $cy0                               ;# current marker y0
 
-            set cmx1 [expr {$cmx0+5}]                   ;# lower right diagonal edge x
-            set cmy1 [expr {$cmy0-5}]                   ;# lower right diagonal edge y
-            set cmx2 $cmx1                              ;# right top x
-            set cmy2 [expr {$cmy1-5}]                   ;# right top y
-            set cmx3 [expr {$cmx0-5}]                   ;# left top x
-            set cmy3 $cmy2                              ;# left top y
-            set cmx4 $cmx3                              ;# lower left diagonal edge x
-            set cmy4 $cmy1                              ;# lower left diagonal edge y
+                set cmx1 [expr {$cmx0+5}]                   ;# lower right diagonal edge x
+                set cmy1 [expr {$cmy0-5}]                   ;# lower right diagonal edge y
+                set cmx2 $cmx1                              ;# right top x
+                set cmy2 [expr {$cmy1-5}]                   ;# right top y
+                set cmx3 [expr {$cmx0-5}]                   ;# left top x
+                set cmy3 $cmy2                              ;# left top y
+                set cmx4 $cmx3                              ;# lower left diagonal edge x
+                set cmy4 $cmy1                              ;# lower left diagonal edge y
 
-            set tag $type
-            $c delete $tag
-            $c create polygon \
-                $cmx0 $cmy0 \
-                $cmx1 $cmy1 \
-                $cmx2 $cmy2 \
-                $cmx3 $cmy3 \
-                $cmx4 $cmy4 \
-                -outline black \
-                -fill red \
-                -tags [list $tag dialval]
-            $c create line $cmx0 $cmy0 $cmx0 $cy1 \
-                -fill red \
-                -tags [list $tag dialval]
+                set tag $type
+                $c delete $tag
+                $c create polygon \
+                    $cmx0 $cmy0 \
+                    $cmx1 $cmy1 \
+                    $cmx2 $cmy2 \
+                    $cmx3 $cmy3 \
+                    $cmx4 $cmy4 \
+                    -outline black \
+                    -fill red \
+                    -tags [list $tag dialval]
+                $c create line $cmx0 $cmy0 $cmx0 $cy1 \
+                    -fill red \
+                    -tags [list $tag dialval]
 
-            $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
-            $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+                $c bind $tag <Enter> [itcl::code $this _bindings marker $tag]
+                $c bind $tag <Leave> [itcl::code $this _bindings timeline]
+            }
 
             if {[string compare "" $where] != 0} {
                 set _marks($type) $where
@@ -604,6 +633,37 @@ itcl::body Rappture::Videodial2::bball {} {
     puts stderr "height [winfo height $c]"
     puts stderr "bbox all [$c bbox all]"
     puts stderr "parent height [winfo height [winfo parent $c]]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: loop
+#   loop between <start> <end> - setup looping between frames <start> and <end>
+#   loop disable - disable looping
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial2::loop {action args} {
+    switch -- $action {
+        "between" {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be loop between <start> <end>"
+            }
+            foreach {startframe endframe} $args break
+            mark add loopstart $startframe
+            mark add loopend $endframe
+            lappend _lockdial "loop"
+        }
+        "disable" {
+            if {[llength $args] != 0} {
+                error "wrong # args: should be loop disable"
+            }
+            mark remove loopstart
+            mark remove loopend
+            set idx [lsearch -exact ${_lockdial} "loop"]
+            set _lockdial [lreplace ${_lockdial} $idx $idx]
+        }
+        default {
+            error "bad value \"$action\": should be \"between\" or \"disable\""
+        }
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -854,6 +914,19 @@ itcl::body Rappture::Videodial2::_fixSize {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _goToFrame <framenum>
+#
+# lock the dial and go to frame <framenum>
+# ----------------------------------------------------------------------
+itcl::body Rappture::Videodial2::_goToFrame {framenum} {
+    lappend _lockdial "_goToFrame"
+    current $framenum
+    event generate $itk_component(hull) <<Value>>
+    set idx [lsearch -exact ${_lockdial} "_goToFrame"]
+    set _lockdial [lreplace ${_lockdial} $idx $idx]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _offsetx <x>
 #
 # Calculate an x coordinate that has been offsetted by a scrolled canvas
@@ -928,7 +1001,8 @@ itcl::body Rappture::Videodial2::_marker {tag action x y} {
     switch $action {
         "click" {
             if {"currentmark" == $tag} {
-                set _lockdial 1
+                focus $itk_component(hull)
+                lappend _lockdial "currentmark"
             }
         }
         "drag" {
@@ -948,8 +1022,7 @@ itcl::body Rappture::Videodial2::_marker {tag action x y} {
                 set newfn [_getFramenumFromId $id]
                 set oldfn [expr round([rel2ms ${_current}])]
                 if {$newfn != $oldfn} {
-                    _current [ms2rel $newfn]
-                    event generate $itk_component(hull) <<Value>>
+                    _goToFrame $newfn
                 }
             } else {
                 _setmark $tag -tag $id
@@ -960,7 +1033,8 @@ itcl::body Rappture::Videodial2::_marker {tag action x y} {
             _marker $tag drag $x $y
 
             if {"currentmark" == $tag} {
-                set _lockdial 0
+                set idx [lsearch -exact ${_lockdial} "currentmark"]
+                set _lockdial [lreplace ${_lockdial} $idx $idx]
             }
 
             # take care of cases where the mouse leaves the marker's boundries
@@ -1081,8 +1155,7 @@ itcl::body Rappture::Videodial2::_see {item} {
 # clients.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Videodial2::_navigate {offset} {
-    _current [ms2rel [expr [rel2ms ${_current}] + $offset]]
-    event generate $itk_component(hull) <<Value>>
+    _goToFrame [expr [rel2ms ${_current}] + $offset]
 }
 
 # ----------------------------------------------------------------------
@@ -1205,8 +1278,9 @@ itcl::configbody Rappture::Videodial2::variable {
 # CONFIGURE: -offset
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Videodial2::offset {
-    if {![string is double $itk_option(-offset)]} {
-        error "bad value \"$itk_option(-offset)\": should be >= 0.0"
+    if {![string is integer $itk_option(-offset)] &&
+        ($itk_option(-offset) < 0)} {
+        error "bad value \"$itk_option(-offset)\": should be >= 1"
     }
     _fixOffsets
 }
