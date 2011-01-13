@@ -37,7 +37,7 @@ Rappture::grab::init
 wm title . "particle velocity estimate"
 wm withdraw .
 set width 960
-set height 625
+set height 630
 
 set installdir [file dirname [ \
                 Rappture::utils::expandPath [ \

@@ -59,12 +59,15 @@ itcl::class Rappture::VideoScreen {
     private method Trajectory {args}
     private method calculateTrajectory {args}
     private method writeText {x y text color tags width}
+    private method clearDrawings {}
 
     # video dial tools
     private method toggleloop {}
 
     private common   _settings
     private common   _pendings
+    private common   _pbvars
+    private common   _counters
 
     private variable _width -1      ;# start x for rubberbanding
     private variable _height -1     ;# start x for rubberbanding
@@ -77,15 +80,11 @@ itcl::class Rappture::VideoScreen {
     private variable _ofrd  19      ;# observed frame retrieval delay of
                                     ;# underlying c lib in milliseconds
     private variable _delay  0      ;# milliseconds between play calls
-    private variable _waiting 0     ;# number of frames behind we are
     private variable _nextframe 0   ;#
 
-    private variable _pbvlist ""    ;# list of the pushbutton variables
-    private variable _pcnt 0        ;# counter for naming particles
-    private variable _particles ""  ;# list of particles
     private variable _px2dist 0     ;# conversion for pixels to user specified distance
-    private variable _measTags ""   ;# tags of measurement lines
-    private variable _measCnt 0     ;# counter for naming measure lines
+    private variable _particles ""  ;# list of particles
+    private variable _measurements "" ;# list of all measurement lines
     private variable _obj ""        ;# temp var holding the last created object
 }
 
@@ -101,17 +100,21 @@ itk::usual VideoScreen {
 itcl::body Rappture::VideoScreen::constructor {args} {
 
     array set _settings [subst {
-        $this-framenum          0
-        $this-loop              0
-        $this-play              0
-        $this-speed             1
+        framenum          0
+        loop              0
+        play              0
+        speed             1
     }]
 
-    array set _pendings [subst {
+    array set _pendings {
         seek 0
         play 0
-    }]
+    }
 
+    array set _counters {
+        particle 0
+        measure 0
+    }
 
     # Create flow controls...
 
@@ -152,13 +155,8 @@ itcl::body Rappture::VideoScreen::constructor {args} {
             -borderwidth 1 -padx 1 -pady 1 \
             -image [Rappture::icon upload] \
             -command [itcl::code $this loadcb]
-            #-command [Rappture::filexfer::upload {piv tool} {id label desc} [itcl::code $this Upload]]
-            #-command [itcl::code $this video seek 0]
     } {
         usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-            Background
     }
     Rappture::Tooltip::for $itk_component(fileopen) \
         "Open file"
@@ -169,29 +167,31 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         Rappture::PushButton $itk_component(moviecontrols).measurepb \
             -onimage $measImg \
             -offimage $measImg \
-            -command [itcl::code $this togglePtrCtrl measPbVar] \
-            -variable measPbVar
+            -disabledimage $measImg \
+            -command [itcl::code $this togglePtrCtrl "measure"] \
+            -variable [itcl::scope _pbvars(measure)]
     } {
         usual
     }
+    $itk_component(measure) disable
     Rappture::Tooltip::for $itk_component(measure) \
         "Measure the distance of a structure"
-    lappend _pbvlist measPbVar
 
     # ==== particle mark tool ====
     set particleImg [image create photo -file [file join $imagesDir "volume-on.gif"]]
     itk_component add particle {
         Rappture::PushButton $itk_component(moviecontrols).particlepb \
-           -onimage $particleImg \
+            -onimage $particleImg \
             -offimage $particleImg \
-            -command [itcl::code $this togglePtrCtrl partPbVar] \
-            -variable partPbVar
+            -disabledimage $particleImg \
+            -command [itcl::code $this togglePtrCtrl "particle"] \
+            -variable [itcl::scope _pbvars(particle)]
     } {
         usual
     }
+    $itk_component(particle) disable
     Rappture::Tooltip::for $itk_component(particle) \
         "Mark the location of a particle to follow"
-    lappend _pbvlist partPbVar
 
 
     # Rewind
@@ -206,6 +206,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         rename -highlightbackground -controlbackground controlBackground \
             Background
     }
+    $itk_component(rewind) configure -state disabled
     Rappture::Tooltip::for $itk_component(rewind) \
         "Rewind movie"
 
@@ -221,6 +222,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         rename -highlightbackground -controlbackground controlBackground \
             Background
     }
+    $itk_component(seekback) configure -state disabled
     Rappture::Tooltip::for $itk_component(rewind) \
         "Seek backwards 1 frame"
 
@@ -229,10 +231,11 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         Rappture::PushButton $itk_component(moviecontrols).play \
             -onimage [Rappture::icon flow-pause] \
             -offimage [Rappture::icon flow-play] \
-            -variable [itcl::scope _settings($this-play)] \
+            -disabledimage [Rappture::icon flow-play] \
+            -variable [itcl::scope _settings(play)] \
             -command [itcl::code $this video play]
     }
-    set fg [option get $itk_component(hull) font Font]
+    $itk_component(play) disable
     Rappture::Tooltip::for $itk_component(play) \
         "Play/Pause movie"
 
@@ -248,6 +251,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         rename -highlightbackground -controlbackground controlBackground \
             Background
     }
+    $itk_component(seekforward) configure -state disabled
     Rappture::Tooltip::for $itk_component(seekforward) \
         "Seek forward 1 frame"
 
@@ -256,9 +260,11 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         Rappture::PushButton $itk_component(moviecontrols).loop \
             -onimage [Rappture::icon flow-loop] \
             -offimage [Rappture::icon flow-loop] \
-            -variable [itcl::scope _settings($this-loop)] \
+            -disabledimage [Rappture::icon flow-loop] \
+            -variable [itcl::scope _settings(loop)] \
             -command [itcl::code $this toggleloop]
     }
+    $itk_component(loop) disable
     Rappture::Tooltip::for $itk_component(loop) \
         "Play continuously between marked sections"
 
@@ -275,7 +281,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
             -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
             -linecolor "" -activelinecolor "" \
             -min 0 -max 1 \
-            -variable [itcl::scope _settings($this-framenum)] \
+            -variable [itcl::scope _settings(framenum)] \
             -dialoutlinecolor black \
             -knobimage [Rappture::icon knob2] -knobposition center@middle
     } {
@@ -292,7 +298,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
             -padding 0 \
             -min 0 -max 1 \
             -minortick 1 -majortick 5 \
-            -variable [itcl::scope _settings($this-framenum)] \
+            -variable [itcl::scope _settings(framenum)] \
             -dialoutlinecolor black
     } {
         usual
@@ -300,6 +306,8 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     }
     $itk_component(dialminor) current 0
     bind $itk_component(dialminor) <<Value>> [itcl::code $this video update]
+
+    set fg [option get $itk_component(hull) font Font]
 
     itk_component add framenumlabel {
         label $itk_component(frnumfr).framenuml -text "Frame:" -font $fg \
@@ -314,7 +322,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     itk_component add framenum {
         label $itk_component(frnumfr).framenum \
             -background white -font "arial 9" \
-            -textvariable [itcl::scope _settings($this-framenum)]
+            -textvariable [itcl::scope _settings(framenum)]
     } {
         usual
         ignore -highlightthickness
@@ -357,7 +365,6 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         0,0 $itk_component(dialmajor) -fill x \
         1,0 $itk_component(dialminor) -fill x
 
-
     blt::table $itk_component(moviecontrols) \
         0,0 $itk_component(fileopen) -padx {2 0}  \
         0,1 $itk_component(measure) -padx {4 0}  \
@@ -390,9 +397,61 @@ itcl::body Rappture::VideoScreen::constructor {args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::destructor {} {
-    array unset _settings $this-*
+    array unset _settings *
+    array unset _pendings *
+    array unset _pbvars *
+    array unset _counters *
+
+
     if {[info exists _imh]} {
-        image delete $_imh
+        image delete ${_imh}
+        set _imh ""
+    }
+
+    if {[info exists measImg]} {
+        image delete $measImg
+        set measImg ""
+    }
+
+    if {[info exists particleImg]} {
+        image delete $particleImg
+        set particleImg ""
+    }
+
+    if {("" != [info commands ${_movie}])} {
+        # clear the movie if it is still open
+        ${_movie} release
+        set _movie ""
+    }
+
+    clearDrawings
+}
+
+# ----------------------------------------------------------------------
+# clearDrawings - delete all particle and measurement objects
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoScreen::clearDrawings {} {
+
+    # delete all previously placed particles
+    set obj [lindex ${_particles} end]
+    while {"" != [info commands $obj]} {
+        itcl::delete object $obj
+        set _particles [lreplace ${_particles} end end]
+        if {[llength ${_particles}] == 0} {
+            break
+        }
+        set obj [lindex ${_particles} end]
+    }
+
+    # delete all previously placed measurements
+    set obj [lindex ${_measurements} end]
+    while {"" != [info commands $obj]} {
+        itcl::delete object $obj
+        set _measurements [lreplace ${_measurements} end end]
+        if {[llength ${_measurements}] == 0} {
+            break
+        }
+        set obj [lindex ${_measurements} end]
     }
 }
 
@@ -407,10 +466,13 @@ itcl::body Rappture::VideoScreen::destructor {} {
 itcl::body Rappture::VideoScreen::load {type data} {
 
     # open the file
-
     set fname ""
     switch $type {
         "data" {
+            if {"" == $data} {
+                error "bad value \"$data\": data should be a movie"
+            }
+
             set fname "/tmp/tmpVV[pid].video"
             set fid [open $fname "w"]
             fconfigure $fid -translation binary -encoding binary
@@ -420,6 +482,9 @@ itcl::body Rappture::VideoScreen::load {type data} {
             set data $fname
         }
         "file" {
+            if {"" == $data} {
+                error "bad value \"$data\": data should be a movie file path"
+            }
             # do nothing
         }
         default {
@@ -429,19 +494,38 @@ itcl::body Rappture::VideoScreen::load {type data} {
 
     video stop
 
-    if {([info exists _movie]) && ("" != ${_movie})} {
-        ${_movie} release
+    if {"file" == $type} {
+        if {("" != [info commands ${_movie}])} {
+            # compare the new file name to the name of the file
+            # we already have open in our _movie object.
+            # if they are the same, do not reopen the video.
+            # if they are different, close the old movie
+            # and clear out all old drawings from the canvas.
+            set err [catch {${_movie} get filename} filename]
+            if {($err == 0)&& ($data == $filename)} {
+                # video file already open, don't reopen it.
+                return
+            } else {
+                # clear the old movie
+                ${_movie} release
+
+                # delete drawings objects from canvas
+                clearDrawings
+            }
+        }
     }
 
     set _movie [Rappture::Video $type $data]
-    file delete $fname
+    if {"" != $fname} {
+        file delete $fname
+    }
     set _framerate [${_movie} get framerate]
     video speed
 
     video seek 0
 
     # update the dial and framenum widgets
-    set _settings($this-framenum) 0
+    set _settings(framenum) 0
 
 
     # setup the image display
@@ -459,6 +543,15 @@ itcl::body Rappture::VideoScreen::load {type data} {
     # update the dial with video information
     $itk_component(dialmajor) configure -min 0 -max ${_lastFrame}
     $itk_component(dialminor) configure -min 0 -max ${_lastFrame}
+
+    # turn on the buttons and dials
+    $itk_component(measure) enable
+    $itk_component(particle) enable
+    $itk_component(rewind) configure -state normal
+    $itk_component(seekback) configure -state normal
+    $itk_component(play) enable
+    $itk_component(seekforward) configure -state normal
+    $itk_component(loop) enable
 
     fixSize
 }
@@ -530,13 +623,13 @@ itcl::body Rappture::VideoScreen::video { args } {
     set option [lindex $args 0]
     switch -- $option {
         "play" {
-            if {$_settings($this-play) == 1} {
+            if {$_settings(play) == 1} {
                 eventually play
             } else {
                 # pause/stop
                 after cancel $_id
                 set _pendings(play) 0
-                set _settings($this-play) 0
+                set _settings(play) 0
             }
         }
         "seek" {
@@ -544,7 +637,7 @@ itcl::body Rappture::VideoScreen::video { args } {
         }
         "stop" {
             after cancel $_id
-            set _settings($this-play) 0
+            set _settings(play) 0
         }
         "speed" {
             set speed [$itk_component(speed) value]
@@ -553,8 +646,8 @@ itcl::body Rappture::VideoScreen::video { args } {
             puts stderr "_mspf = ${_mspf} | $speed | ${_ofrd} | ${_delay}"
         }
         "update" {
-            eventually seek [expr round($_settings($this-framenum))]
-            # Seek [expr round($_settings($this-framenum))]
+            eventually seek [expr round($_settings(framenum))]
+            # Seek [expr round($_settings(framenum))]
         }
         default {
             error "bad option \"$option\": should be play, stop, toggle, position, or reset."
@@ -617,7 +710,7 @@ itcl::body Rappture::VideoScreen::Play {} {
     set cur [$_movie get position cur]
 
     # update the dial and framenum widgets
-    set _settings($this-framenum) $cur
+    set _settings(framenum) $cur
 
 
     # no play cmds pending
@@ -625,7 +718,7 @@ itcl::body Rappture::VideoScreen::Play {} {
 
     # if looping is turned on and markers setup,
     # then loop back to loopstart when cur hits loopend
-    if {$_settings($this-loop)} {
+    if {$_settings(loop)} {
         if {$cur == [$itk_component(dialminor) mark position loopend]} {
             Seek [$itk_component(dialminor) mark position loopstart]
         }
@@ -656,15 +749,18 @@ itcl::body Rappture::VideoScreen::Seek {args} {
     set cur [$_movie get position cur]
     if {[string compare $cur $val] == 0} {
         # already at the frame to seek to
+        set _pendings(seek) 0
         return
     }
     ${_movie} seek $val
     ${_imh} put [${_movie} get image ${_width} ${_height}]
 
     # update the dial and framenum widgets
-    set _settings($this-framenum) [$_movie get position cur]
+    set _settings(framenum) [$_movie get position cur]
     event generate $itk_component(main) <<Frame>>
 
+    # removing pending
+    set _pendings(seek) 0
 }
 
 
@@ -677,9 +773,9 @@ itcl::body Rappture::VideoScreen::eventually {args} {
     set option [lindex $args 0]
     switch -- $option {
         "seek" {
-            if {$_pendings(seek) == 0} {
+            if {0 == $_pendings(seek)} {
                 # no seek pending, schedule one
-                set $_pendings(seek) 1
+                set _pendings(seek) 1
                 after idle [itcl::code $this Seek [lindex $args 1]]
             } else {
                 # there is a seek pending, update its seek value
@@ -706,19 +802,21 @@ itcl::body Rappture::VideoScreen::eventually {args} {
 # togglePtrCtrl - choose pointer mode:
 #                 rectangle, measure, particlemark
 # ----------------------------------------------------------------------
-itcl::body Rappture::VideoScreen::togglePtrCtrl {pbvar} {
+itcl::body Rappture::VideoScreen::togglePtrCtrl {tool} {
 
-    upvar 1 $pbvar inState
-    if {$inState == 1} {
+    if {[info exists _pbvars($tool)] == 0} {
+        return
+    }
+
+    if {$_pbvars($tool) == 1} {
         # unpush previously pushed buttons
-        foreach pbv $_pbvlist {
-            if {[string compare $pbvar $pbv] != 0} {
-                upvar 1 $pbv var
-                set var 0
+        foreach pbv [array names _pbvars] {
+            if {[string compare $tool $pbv] != 0} {
+                set _pbvars($pbv) 0
             }
         }
     }
-    togglePtrBind $pbvar
+    togglePtrBind $tool
 }
 
 
@@ -727,9 +825,8 @@ itcl::body Rappture::VideoScreen::togglePtrCtrl {pbvar} {
 #                 rectangle,  measure, particlemark
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::whatPtrCtrl {} {
-    foreach pbv $_pbvlist {
-        upvar #0 $pbv var
-        if {$var != "" && $var != 0} {
+    foreach pbv [array names _pbvars] {
+        if {$_pbvars($pbv) != 0} {
             return $pbv
         }
     }
@@ -745,7 +842,7 @@ itcl::body Rappture::VideoScreen::togglePtrBind {pbvar} {
         set pbvar [whatPtrCtrl]
     }
 
-    if {[string compare $pbvar rectPbVar] == 0} {
+    if {[string compare $pbvar rectangle] == 0} {
 
         # Bindings for selecting rectangle
         $itk_component(main) configure -cursor ""
@@ -757,7 +854,7 @@ itcl::body Rappture::VideoScreen::togglePtrBind {pbvar} {
         bind $itk_component(main) <ButtonRelease-1> \
             [itcl::code $this Rubberband release %W %x %y]
 
-    } elseif {[string compare $pbvar measPbVar] == 0} {
+    } elseif {[string compare $pbvar measure] == 0} {
 
         # Bindings for measuring distance
         $itk_component(main) configure -cursor ""
@@ -769,7 +866,7 @@ itcl::body Rappture::VideoScreen::togglePtrBind {pbvar} {
         bind $itk_component(main) <ButtonRelease-1> \
             [itcl::code $this Measure release %W %x %y]
 
-    } elseif {[string compare $pbvar partPbVar] == 0} {
+    } elseif {[string compare $pbvar particle] == 0} {
 
         # Bindings for marking particle locations
         $itk_component(main) configure -cursor ""
@@ -857,9 +954,7 @@ itcl::body Rappture::VideoScreen::Rubberband {status win x y} {
 itcl::body Rappture::VideoScreen::Measure {status win x y} {
     switch -- $status {
         "new" {
-            incr _measCnt
-            set name "measure${_measCnt}"
-            lappend _measTags $name
+            set name "measure[incr _counters(measure)]"
 
             set _obj [Rappture::VideoDistance $itk_component(main).$name $name $win \
                         -fncallback [itcl::code $this query framenum] \
@@ -874,6 +969,7 @@ itcl::body Rappture::VideoScreen::Measure {status win x y} {
                         -bindings disable]
             ${_obj} Coords $x $y $x $y
             ${_obj} Show object
+            lappend _measurements ${_obj}
         }
         "drag" {
             # FIXME: something wrong with the bindings, if the objects menu is
@@ -922,8 +1018,7 @@ itcl::body Rappture::VideoScreen::Measure {status win x y} {
 itcl::body Rappture::VideoScreen::Particle {status win x y} {
     switch -- $status {
         "new" {
-            incr _pcnt
-            set name "particle${_pcnt}"
+            set name "particle[incr _counters(particle)]"
             set _obj [Rappture::VideoParticle $itk_component(main).$name $name $win \
                         -fncallback [itcl::code $this query framenum] \
                         -bindentercb [itcl::code $this togglePtrBind object] \
@@ -1114,7 +1209,7 @@ itcl::body Rappture::VideoScreen::calculateTrajectory {args} {
 # toggleloop - add/remove a start/end loop mark to video dial.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::toggleloop {} {
-    if {$_settings($this-loop) == 0} {
+    if {$_settings(loop) == 0} {
         $itk_component(dialminor) mark remove loopstart
         $itk_component(dialminor) mark remove loopend
     } else {

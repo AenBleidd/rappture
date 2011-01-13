@@ -121,12 +121,14 @@ itcl::body Rappture::VideoPreview::constructor {args} {
         Rappture::PushButton $itk_component(moviecontrols).play \
             -onimage [Rappture::icon flow-pause] \
             -offimage [Rappture::icon flow-play] \
+            -disabledimage [Rappture::icon flow-play] \
             -variable [itcl::scope _settings($this-play)] \
             -command [itcl::code $this video play]
     }
     set fg [option get $itk_component(hull) font Font]
     Rappture::Tooltip::for $itk_component(play) \
         "Play/Pause movie"
+    $itk_component(play) disable
 
     # Video Dial Major
     itk_component add dialmajor {
@@ -192,8 +194,6 @@ itcl::body Rappture::VideoPreview::constructor {args} {
     eval itk_initialize $args
 
     $itk_component(main) configure -background black
-    puts "width = [$itk_component(main) cget -width]"
-    puts "height = [$itk_component(main) cget -height]"
 }
 
 # ----------------------------------------------------------------------
@@ -268,6 +268,7 @@ itcl::body Rappture::VideoPreview::load {type data} {
 
     # update the dial with video information
     $itk_component(dialmajor) configure -min 0 -max ${_lastFrame}
+    $itk_component(play) enable
 
     fixSize
 }
@@ -350,7 +351,6 @@ itcl::body Rappture::VideoPreview::fixSize {} {
 
     # make the canvas fit the image
     $itk_component(main) configure -width ${_width} -height ${_height}
-    puts "bbox = [$itk_component(main) bbox all]"
 }
 
 # ----------------------------------------------------------------------

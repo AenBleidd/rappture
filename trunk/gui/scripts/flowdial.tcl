@@ -60,7 +60,7 @@ itcl::class Rappture::Flowdial {
     public method current {value}
     public method clear {}
     public method color {value}
-                                                                                
+
     protected method _redraw {}
     protected method _click {x y}
     protected method _navigate {offset}
@@ -81,7 +81,7 @@ itcl::class Rappture::Flowdial {
     public variable min 0.0
     public variable max 1.0
 }
-                                                                                
+
 itk::usual Flowdial {
     keep -background -foreground -cursor -font
 }
