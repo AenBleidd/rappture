@@ -113,7 +113,7 @@ proc Rappture::Tester::selectionHandler {args} {
     global lastsel
     set test [.tree getTest]
     if {$test != $lastsel || [lsearch $args "-refresh"] != -1} {
-        .right.view configure -test $test
+#        .right.view configure -test $test
         if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
             .right.regoldenize configure -state normal
         } else {
@@ -137,7 +137,7 @@ proc Rappture::Tester::regoldenize {} {
     if {[tk_messageBox -type yesno -icon warning -message "Are you sure you want to regoldenize?\n$testxml will be overwritten."]} {
         $test regoldenize
         .tree refresh 
-        selectionHandler
+        selectionHandler -refresh
     }
 }
 
