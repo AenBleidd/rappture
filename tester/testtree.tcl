@@ -116,6 +116,8 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     }
 }
 
+# TODO: destructor
+
 # ----------------------------------------------------------------------
 # Repopulate tree if test directory or toolxml have been changed.
 # ----------------------------------------------------------------------
@@ -253,6 +255,7 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
 # any existing contents.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestTree::populate {} {
+    # TODO: Delete existing test objects
     $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
     set icon [Rappture::icon molvis-3dorth]
