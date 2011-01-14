@@ -51,6 +51,7 @@
         </number>
     </input>
     <output>
+        <string id="asdf"><current>asdf</current></string>
         <curve id="f12">
             <about>
                 <label>Fermi-Dirac Factor</label>

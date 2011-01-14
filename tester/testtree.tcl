@@ -32,9 +32,9 @@ option add *TestTree.boldTextFont \
 itcl::class Rappture::Tester::TestTree {
     inherit itk::Widget 
 
-    public variable selectcommand ""
-    public variable testdir ""
-    public variable toolxml ""
+    itk_option define -selectcommand selectCommand SelectCommand ""
+    itk_option define -testdir testDir TestDir ""
+    itk_option define -toolxml toolXml ToolXml ""
 
     constructor {args} { #defined later }
 
@@ -108,10 +108,10 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
 
     eval itk_initialize $args
 
-    if {$testdir == ""} {
+    if {$itk_option(-testdir) == ""} {
         error "no -testdir configuration option given."
     }
-    if {$toolxml == ""} {
+    if {$itk_option(-toolxml) == ""} {
         error "no -toolxml configuration option given."
     }
 }
@@ -120,11 +120,15 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
 # Repopulate tree if test directory or toolxml have been changed.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::testdir {
-    populate
+    if {$itk_option(-toolxml) != ""} {
+        populate
+    }
 }
 
 itcl::configbody Rappture::Tester::TestTree::toolxml {
-    populate
+    if {$itk_option(-testdir) != ""} {
+        populate
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -134,7 +138,7 @@ itcl::configbody Rappture::Tester::TestTree::toolxml {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::selectcommand {
     $itk_component(treeview) configure -selectcommand \
-        "[itcl::code $this updateLabel]; $selectcommand"
+        "[itcl::code $this updateLabel]; $itk_option(-selectcommand)"
 }
 
 # ----------------------------------------------------------------------
@@ -253,11 +257,12 @@ itcl::body Rappture::Tester::TestTree::populate {} {
     # TODO: add an appropriate icon
     set icon [Rappture::icon molvis-3dorth]
     # TODO: Descend through subdirectories inside testdir?
-    foreach testxml [glob -nocomplain -directory $testdir *.xml] {
+    foreach testxml [glob -nocomplain -directory $itk_option(-testdir) *.xml] {
         set lib [Rappture::library $testxml]
         set testpath [$lib get test.label]
         if {$testpath != ""} {
-            set test [Rappture::Tester::Test ::#auto $toolxml $testxml]
+            set test [Rappture::Tester::Test ::#auto \
+                $itk_option(-toolxml) $testxml]
             $itk_component(treeview) insert end $testpath -data \
                  [list test $test] -icons "$icon $icon" \
                  -activeicons "$icon $icon"
@@ -278,7 +283,7 @@ itcl::body Rappture::Tester::TestTree::runSelected {} {
     foreach id [$this getSelected] {
         runTest $id
     }
-    eval $selectcommand -refresh
+    eval $itk_option(-selectcommand) -refresh
 }
 
 # ----------------------------------------------------------------------

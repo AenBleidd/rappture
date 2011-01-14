@@ -36,8 +36,9 @@ itcl::class Rappture::Tester::TestView {
     protected method reset 
     protected method showDescription {text}
     protected method showStatus {text}
-    protected method updateAnalyzer {args}
-    protected method updateInfo {runfile}
+    protected method updateResults {args}
+    protected method updateInfo {args}
+    protected method updateInputs {args}
 
 }
 
@@ -70,20 +71,28 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
     } {
     }
     $itk_component(tabs) insert end "Results" -ipady 25 -fill both
-    $itk_component(tabs) insert end "Info" -ipady 25 -fill both \
+    $itk_component(tabs) insert end "Info" -ipady 25 -fill both -state disabled
+    $itk_component(tabs) insert end "Inputs" -ipady 25 -fill both \
         -state disabled
 
-    #itk_component add analyzer {
-    #    Rappture::ResultsPage $itk_component(tabs).analyzer
-    #}
-    #$itk_component(tabs) tab configure "Results" \
-    #    -window $itk_component(tabs).analyzer
+    itk_component add results {
+        Rappture::ResultsPage $itk_component(tabs).results
+    }
+    $itk_component(tabs) tab configure "Results" \
+        -window $itk_component(tabs).results
 
     itk_component add info {
         text $itk_component(tabs).info
     }
     $itk_component(tabs) tab configure "Info" -window $itk_component(info)
     pack $itk_component(tabs) -expand yes -fill both -side top
+
+    itk_component add inputs {
+        blt::treeview $itk_component(tabs).inputs -separator . -autocreate true
+    } {
+        keep -foreground -font -cursor
+    }
+    $itk_component(tabs) tab configure "Inputs" -window $itk_component(inputs)
 
     eval itk_initialize $args
 
@@ -106,27 +115,14 @@ itcl::configbody Rappture::Tester::TestView::test {
                 Fail {showStatus "Test failed."}
                 Error {showStatus "Error while running test."}
             }
-            if {[$test getRunfile] != ""} {
-                # HACK: Add a new input to differentiate between golden and
-                # test result.  Otherwise, the slider at the bottom won't
-                # be enabled.
-                set golden [Rappture::library [$test getTestxml]]
-                $golden put input.run.current "Golden"
-                set runfile [Rappture::library [$test getRunfile]]
-                $runfile put input.run.current "Test result"
-                updateAnalyzer $golden $runfile
-                updateInfo $test
-            } else {
-                updateInfo
-            }
+            updateInfo $test
         } else {
             showStatus "Test has not yet ran."
             updateInfo
-            if {[$test getTestxml] != ""} {
-                updateAnalyzer [Rappture::library [$test getTestxml]]
-            }
         }
-        set descr [[Rappture::library [$test getTestxml]] get test.description]
+        updateResults $test
+        updateInputs $test
+        set descr [[$test getTestobj] get test.description]
         if {$descr == ""} {
             set descr "No description."
         }
@@ -147,8 +143,9 @@ itk::usual TestView {
 # Resets the entire TestView widget back to the default state.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::reset {} {
-    updateAnalyzer
+    updateResults
     updateInfo
+    updateInputs
     showStatus ""
     showDescription ""
 }
@@ -182,28 +179,23 @@ itcl::body Rappture::Tester::TestView::showStatus {text} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateAnalyzer ?<lib> <lib>...?
+# USAGE: updateResults ?test?
 #
 # Clears the analyzer and loads the given library objects.  Used to load 
 # both the golden result as well as the test result.  Clears the
 # analyzer space if no arguments are given.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
-    # HACK: Strange errors happen when the same widget is cleared and
-    # loaded with new data.  Instead, destroy the results page and
-    # create a new one.
-    catch {
-        $itk_component(analyzer) clear
-        destroy $itk_component(analyzer)
+itcl::body Rappture::Tester::TestView::updateResults {args} {
+    $itk_component(results) clear -nodelete
+    if {[llength $args] == 0} {
+        # Already cleared, do nothing.
+    } elseif {[llength $args] == 1} {
+        $itk_component(results) load [$test getTestobj]
+        if {[$test hasRan]} {
+            $itk_component(results) load [$test getRunobj]
+        }
     }
-    itk_component add analyzer {
-        Rappture::ResultsPage $itk_component(tabs).analyzer
-    }
-    $itk_component(tabs) tab configure "Results" \
-        -window $itk_component(analyzer)
-    foreach lib $args {
-        $itk_component(analyzer) load $lib
-    }
+        
 }
 
 # ----------------------------------------------------------------------
@@ -216,12 +208,10 @@ itcl::body Rappture::Tester::TestView::updateAnalyzer {args} {
 itcl::body Rappture::Tester::TestView::updateInfo {args} {
     if {[llength $args] == 0} {
         $itk_component(info) delete 0.0 end
-        # TODO: Switch back to results tab.  Why doesn't this work?
         set index [$itk_component(tabs) index -name "Results"]
         $itk_component(tabs) select $index
         $itk_component(tabs) focus $index
         $itk_component(tabs) tab configure "Info" -state disabled
-        return
     } elseif {[llength $args] == 1} {
         set testxml [$test getTestxml]
         set runfile [$test getRunfile]
@@ -238,7 +228,20 @@ itcl::body Rappture::Tester::TestView::updateInfo {args} {
             $itk_component(info) insert end "Added: $added\n"
         }
     } else {
-        error "wrong # args: should be \"updateInfo ?data?\""
+        error "wrong # args: should be \"updateInfo ?test?\""
+    }
+}
+
+itcl::body Rappture::Tester::TestView::updateInputs {args} {
+    if {[llength $args] == 0} {
+        set index [$itk_component(tabs) index -name "Results"]
+        $itk_component(tabs) select $index
+        $itk_component(tabs) focus $index
+        $itk_component(tabs) tab configure "Inputs" -state disabled
+    } elseif {[llength $args] == 1} {
+        $itk_component(tabs) tab configure "Inputs" -state normal
+    } else {
+        error "wrong # args: should be \"updateInfo ?test?\""
     }
 }
 
