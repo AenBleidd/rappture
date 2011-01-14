@@ -29,7 +29,7 @@ option add *TestView.boldTextFont \
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    public variable test 
+    itk_option define -test test Test ""
 
     constructor {args} { #defined later }
 
@@ -104,6 +104,7 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 # empty string to clear the display.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestView::test {
+    set test $itk_option(-test)
     # Data array is empty for branch nodes.
     if {$test != ""} {
         if {![$test isa Test]} {
@@ -115,13 +116,12 @@ itcl::configbody Rappture::Tester::TestView::test {
                 Fail {showStatus "Test failed."}
                 Error {showStatus "Error while running test."}
             }
-            updateInfo $test
         } else {
             showStatus "Test has not yet ran."
-            updateInfo
         }
-        updateResults $test
-        updateInputs $test
+        updateResults
+        updateInfo
+        updateInputs
         set descr [[$test getTestobj] get test.description]
         if {$descr == ""} {
             set descr "No description."
@@ -179,41 +179,36 @@ itcl::body Rappture::Tester::TestView::showStatus {text} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateResults ?test?
-#
-# Clears the analyzer and loads the given library objects.  Used to load 
-# both the golden result as well as the test result.  Clears the
-# analyzer space if no arguments are given.
+# USAGE: updateResults
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateResults {args} {
+itcl::body Rappture::Tester::TestView::updateResults {} {
     $itk_component(results) clear -nodelete
-    if {[llength $args] == 0} {
+    set test $itk_option(-test)
+    if {$test == ""} {
         # Already cleared, do nothing.
         # TODO: Eventually display some kinds of message here.
-    } elseif {[llength $args] == 1} {
+    } else {
+        set test $itk_option(-test)
         $itk_component(results) load [$test getTestobj]
         if {[$test hasRan]} {
             $itk_component(results) load [$test getRunobj]
         }
     }
-        
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateInfo ?test?
-#
-# Given a set of key value pairs from the test tree, update the info 
-# page of the testview widget.  If no arguments are given, disable the
-# info page.
+# USAGE: updateInfo
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateInfo {args} {
-    if {[llength $args] == 0} {
+itcl::body Rappture::Tester::TestView::updateInfo {} {
+    set test $itk_option(-test)
+    if {$test == "" || ![$test hasRan]} {
         $itk_component(info) delete 0.0 end
         set index [$itk_component(tabs) index -name "Results"]
         $itk_component(tabs) select $index
         $itk_component(tabs) focus $index
         $itk_component(tabs) tab configure "Info" -state disabled
-    } elseif {[llength $args] == 1} {
+    } else {
+        set test $itk_option(-test) 
         set testxml [$test getTestxml]
         set runfile [$test getRunfile]
         $itk_component(tabs) tab configure "Info" -state normal
@@ -228,21 +223,19 @@ itcl::body Rappture::Tester::TestView::updateInfo {args} {
             $itk_component(info) insert end "Missing: $missing\n"
             $itk_component(info) insert end "Added: $added\n"
         }
-    } else {
-        error "wrong # args: should be \"updateInfo ?test?\""
     }
 }
 
-itcl::body Rappture::Tester::TestView::updateInputs {args} {
-    if {[llength $args] == 0} {
+itcl::body Rappture::Tester::TestView::updateInputs {} {
+    set test $itk_option(-test)
+    if {$test == ""} {
         set index [$itk_component(tabs) index -name "Results"]
         $itk_component(tabs) select $index
         $itk_component(tabs) focus $index
         $itk_component(tabs) tab configure "Inputs" -state disabled
-    } elseif {[llength $args] == 1} {
-        $itk_component(tabs) tab configure "Inputs" -state normal
     } else {
-        error "wrong # args: should be \"updateInfo ?test?\""
+        set test $itk_option(-test)
+        $itk_component(tabs) tab configure "Inputs" -state normal
     }
 }
 

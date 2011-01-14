@@ -18,6 +18,7 @@ namespace eval Rappture::Tester::Test { #forward declaration }
 itcl::class Rappture::Tester::Test {
 
     constructor {toolxml testxml} { #defined later }
+    destructor { #defined later }
 
     private variable _added ""
     private variable _diffs ""
@@ -68,6 +69,17 @@ itcl::body Rappture::Tester::Test::constructor {toolxml testxml} {
     }
     # HACK: Add a new input to differentiate between results
     $_testobj put input.run.current "Golden"
+}
+
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::destructor {} {
+    itcl::delete object $_toolobj
+    itcl::delete object $_testobj
+    if {$_ran} {
+        itcl::delete object $_runobj
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -214,6 +226,10 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
 # later be retrieved via the public accessors.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::run {} {
+    # Delete existing library if rerun
+    if {$_ran} {
+        itcl::delete object $_runobj
+    }
     set driver [makeDriver]
     set tool [Rappture::Tool ::#auto $driver [file dirname $_toolxml]]
     foreach {status _runobj} [eval $tool run] break
