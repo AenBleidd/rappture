@@ -19,12 +19,13 @@ itcl::class Rappture::ResultsPage {
     itk_option define -boldtextfont boldTextFont Font ""
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -appname appName AppName ""
+    itk_option define -promptcommand promptCommand PromptCommand ""
 
     constructor {args} { # defined below }
     destructor { # defined below }
 
     public method load {xmlobj}
-    public method clear {}
+    public method clear {args}
     public method download {option args}
     public method resultset {}
 
@@ -42,8 +43,6 @@ itcl::class Rappture::ResultsPage {
     private variable _lastlabel ""
     private variable _plotlist ""
 
-    # TODO: ???
-    public variable promptcommand ""
 }
 
 itk::usual ResultsPage {
@@ -115,7 +114,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     itk_component add resultset {
         Rappture::ResultSet $f.rset \
             -clearcommand [itcl::code $this clear] \
-            -settingscommand [itcl::code $this _plot] 
+            -settingscommand [itcl::code $this _plot]
     }
     pack $itk_component(resultset) -expand yes -fill both
     bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
@@ -128,6 +127,16 @@ itcl::body Rappture::ResultsPage::destructor {} {
     foreach obj $_runs {
         itcl::delete object $obj
     }
+}
+
+# -----------------------------------------------------------------------
+# CONFIGURATION OPTION: -promptcommand
+#
+# Forward the ResultsPage's promptcommand to the child ResultSet.
+# -----------------------------------------------------------------------
+itcl::configbody Rappture::ResultsPage::promptcommand {
+    $itk_component(resultset) configure \
+        -promptcommand $itk_option(-promptcommand)
 }
   
 itcl::body Rappture::ResultsPage::_fixResult {} {
@@ -397,10 +406,18 @@ itcl::body Rappture::ResultsPage::load {xmlobj} {
     }
 }
 
-
-itcl::body Rappture::ResultsPage::clear {} {
-    foreach obj $_runs {
-        itcl::delete object $obj
+# -----------------------------------------------------------------------
+# USAGE: clear ?-nodelete?
+#
+# Discards all results previously loaded into the results page.  Any
+# library objects that have been loaded will be destroyed unless the
+# -nodelete option is used.
+# -----------------------------------------------------------------------
+itcl::body Rappture::ResultsPage::clear {args} {
+    if {[lsearch $args "-nodelete"] == -1} {
+        foreach obj $_runs {
+            itcl::delete object $obj
+        }
     }
     set _runs ""
 

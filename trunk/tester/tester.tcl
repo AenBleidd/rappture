@@ -109,6 +109,7 @@ set lastsel ""
 # the selected test to be re-displayed on the right side.
 # ----------------------------------------------------------------------
 proc Rappture::Tester::selectionHandler {args} {
+    puts sh
     global lastsel
     set test [.tree getTest]
     if {$test != $lastsel || [lsearch $args "-refresh"] != -1} {
