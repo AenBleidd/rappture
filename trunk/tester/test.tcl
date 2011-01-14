@@ -196,8 +196,9 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
     $_runobj put test.description [$_testobj get test.description]
     set fid [open $_testxml w]
     puts $fid "<?xml version=\"1.0\"?>"
-    puts $fid [$newlib xml]
+    puts $fid [$_runobj xml]
     close $fid
+    set _testobj $_runobj
     set _result Pass
     set _diffs ""
     set _added ""

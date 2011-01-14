@@ -189,6 +189,7 @@ itcl::body Rappture::Tester::TestView::updateResults {args} {
     $itk_component(results) clear -nodelete
     if {[llength $args] == 0} {
         # Already cleared, do nothing.
+        # TODO: Eventually display some kinds of message here.
     } elseif {[llength $args] == 1} {
         $itk_component(results) load [$test getTestobj]
         if {[$test hasRan]} {
