@@ -15,8 +15,8 @@ package require Img
 package require Rappture
 package require RapptureGUI
 
-option add *Video.width 300 widgetDefault
-option add *Video.height 300 widgetDefault
+option add *Video.width -1 widgetDefault
+option add *Video.height -1 widgetDefault
 option add *Video.foreground black widgetDefault
 option add *Video.controlBackground gray widgetDefault
 option add *Video.font \
@@ -69,8 +69,8 @@ itcl::class Rappture::VideoScreen {
     private common   _pbvars
     private common   _counters
 
-    private variable _width -1      ;# start x for rubberbanding
-    private variable _height -1     ;# start x for rubberbanding
+    private variable _width -1      ;# width of the movie
+    private variable _height -1     ;# height of the movie
     private variable _movie ""      ;# movie we grab images from
     private variable _lastFrame 0   ;# last frame in the movie
     private variable _imh ""        ;# current image being displayed
@@ -119,17 +119,21 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     # Create flow controls...
 
     itk_component add main {
-        canvas $itk_interior.main \
-            -background black
+        canvas $itk_interior.main
     } {
         usual
         rename -background -controlbackground controlBackground Background
     }
     bind $itk_component(main) <Configure> [itcl::code $this fixSize]
 
+    # setup the image display
     # hold the video frames in an image on the canvas
     set _imh [image create photo]
-    $itk_component(main) create image 0 0 -anchor nw -image $_imh
+
+    $itk_component(main) create image 0 0 \
+        -anchor center \
+        -image ${_imh} \
+        -tags videoframe
 
     # setup movie controls
     itk_component add moviecontrols {
@@ -310,7 +314,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     set fg [option get $itk_component(hull) font Font]
 
     itk_component add framenumlabel {
-        label $itk_component(frnumfr).framenuml -text "Frame:" -font $fg \
+        label $itk_component(frnumfr).framenuml -text "Frame:" -font "arial 9" \
             -highlightthickness 0
     } {
         usual
@@ -375,7 +379,7 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         1,2 $itk_component(play) -padx {4 0} \
         1,3 $itk_component(seekforward) -padx {4 0} \
         1,4 $itk_component(loop) -padx {4 0} \
-        2,0 $itk_component(frnumfr) -padx {2 0} -columnspan 3 \
+        2,0 $itk_component(frnumfr) -padx {0 0} -columnspan 3 \
         2,3 $itk_component(speed) -padx {2 0} -columnspan 2
 
     blt::table configure $itk_component(moviecontrols) c* -resize none
@@ -391,6 +395,8 @@ itcl::body Rappture::VideoScreen::constructor {args} {
     blt::table configure $itk_interior r1 -resize none
 
     eval itk_initialize $args
+
+    $itk_component(main) configure -background black
 }
 
 # ----------------------------------------------------------------------
@@ -403,7 +409,7 @@ itcl::body Rappture::VideoScreen::destructor {} {
     array unset _counters *
 
 
-    if {[info exists _imh]} {
+    if {[info exists _imh] && ("" != ${_imh})} {
         image delete ${_imh}
         set _imh ""
     }
@@ -465,6 +471,8 @@ itcl::body Rappture::VideoScreen::clearDrawings {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VideoScreen::load {type data} {
 
+    video stop
+
     # open the file
     set fname ""
     switch $type {
@@ -492,8 +500,6 @@ itcl::body Rappture::VideoScreen::load {type data} {
         }
     }
 
-    video stop
-
     if {"file" == $type} {
         if {("" != [info commands ${_movie}])} {
             # compare the new file name to the name of the file
@@ -501,13 +507,15 @@ itcl::body Rappture::VideoScreen::load {type data} {
             # if they are the same, do not reopen the video.
             # if they are different, close the old movie
             # and clear out all old drawings from the canvas.
-            set err [catch {${_movie} get filename} filename]
+            set err [catch {${_movie} filename} filename]
             if {($err == 0)&& ($data == $filename)} {
                 # video file already open, don't reopen it.
                 return
             } else {
                 # clear the old movie
                 ${_movie} release
+                set _width -1
+                set _height -1
 
                 # delete drawings objects from canvas
                 clearDrawings
@@ -519,26 +527,11 @@ itcl::body Rappture::VideoScreen::load {type data} {
     if {"" != $fname} {
         file delete $fname
     }
-    set _framerate [${_movie} get framerate]
+    set _framerate [${_movie} framerate]
     video speed
+    puts stderr "framerate: ${_framerate}"
 
-    video seek 0
-
-    # update the dial and framenum widgets
-    set _settings(framenum) 0
-
-
-    # setup the image display
-
-    foreach {w h} [query dimensions] break
-    if {${_width} == -1} {
-        set _width $w
-    }
-    if {${_height} == -1} {
-        set _height $h
-    }
-
-    set _lastFrame [$_movie get position end]
+    set _lastFrame [${_movie} get position end]
 
     # update the dial with video information
     $itk_component(dialmajor) configure -min 0 -max ${_lastFrame}
@@ -558,6 +551,11 @@ itcl::body Rappture::VideoScreen::load {type data} {
     $itk_component(dialminor) loop disable
 
     fixSize
+
+    # goto the first frame
+    # update the dial and framenum widgets
+    video seek 0
+    set _settings(framenum) 0
 }
 
 # ----------------------------------------------------------------------
@@ -599,25 +597,50 @@ itcl::body Rappture::VideoScreen::fixSize {} {
         return
     }
 
-#    set _width [winfo width $itk_component(main)]
-#    set _height [winfo height $itk_component(main)]
-#
-#    # get an image with the new size
-#    ${_imh} put [${_movie} get image ${_width} ${_height}]
-#
-#    # fix the dimesions of the canvas
-#    #$itk_component(main) configure -width ${_width} -height ${_height}
-#
-#    $itk_component(main) configure -scrollregion [$itk_component(main) bbox all]
+    # get dimensions for the new image
+    # adjust the aspect ratio, if necessary
 
-######################
+    puts stderr "aspect ratio: [query aspectratio]"
+
+    foreach {w h} [query dimensions] break
+    foreach {num den} [query aspectratio] break
+
+    if {[expr 1.0*$w/$h] != [expr 1.0*$num/$den]} {
+        # we need to adjust the frame height and width
+        # to keep the correct aspect ratio
+        # hold the height constant,
+        # adjust the width as close as we can
+        # to the correct aspect ratio
+        set w [expr int(1.0*$num/$den*$h)]
+    }
+
+    if {-1 == ${_width}} {
+        set _width $w
+    }
+    if {-1 == ${_height}} {
+        set _height $h
+    }
 
     # get an image with the new size
+    ${_imh} blank
+    ${_imh} configure -width 1 -height 1
+    ${_imh} configure -width 0 -height 0
     ${_imh} put [${_movie} get image ${_width} ${_height}]
-    puts stderr "${_width} ${_height}"
 
-    # fix the dimesions of the video canvas
-    $itk_component(main) configure -width ${_width} -height ${_height}
+    # place the image in the center of the canvas
+    set ccw [winfo width $itk_component(main)]
+    set cch [winfo height $itk_component(main)]
+    $itk_component(main) coords videoframe [expr $ccw/2.0] [expr $cch/2.0]
+
+    puts stderr "----------------------------"
+    puts stderr "adjusted = $w $h"
+    puts stderr "data     = ${_width} ${_height}"
+    puts stderr "image    = [image width ${_imh}] [image height ${_imh}]"
+    foreach {x0 y0 x1 y1} [$itk_component(main) bbox videoframe] break
+    puts stderr "bbox     = $x0 $y0 $x1 $y1"
+    puts stderr "ccw cch  = [expr $ccw/2.0] [expr $cch/2.0]"
+    puts stderr "main     = [winfo width $itk_component(main)] [winfo height $itk_component(main)]"
+    puts stderr "hull     = [winfo width $itk_component(hull)] [winfo height $itk_component(hull)]"
 }
 
 # ----------------------------------------------------------------------
@@ -669,6 +692,9 @@ itcl::body Rappture::VideoScreen::video { args } {
 itcl::body Rappture::VideoScreen::query { type } {
     set ret ""
     switch -- $type {
+        "aspectratio" {
+            set ret [${_movie} aspect display]
+        }
         "dimensions" {
             set ret [${_movie} size]
         }
@@ -697,8 +723,8 @@ itcl::body Rappture::VideoScreen::Play {} {
         # use seek instead of next fxn incase the ${_nextframe} is
         # not the current frame+1. this happens when we skip frames
         # because the underlying c lib is too slow at reading.
-        $_movie seek $cur
-        $_imh put [$_movie get image ${_width} ${_height}]
+        ${_movie} seek $cur
+        ${_imh} put [${_movie} get image ${_width} ${_height}]
     } 1]
     regexp {(\d+\.?\d*) microseconds per iteration} ${_ofrd} match _ofrd
     set _ofrd [expr {round(${_ofrd}/1000)}]
@@ -711,7 +737,7 @@ itcl::body Rappture::VideoScreen::Play {} {
         set _delay 0
     }
 
-    set cur [$_movie get position cur]
+    set cur [${_movie} get position cur]
 
     # update the dial and framenum widgets
     set _settings(framenum) $cur
@@ -750,7 +776,7 @@ itcl::body Rappture::VideoScreen::Seek {args} {
     if {"" == $val} {
         error "bad value: \"$val\": should be \"seek value\""
     }
-    set cur [$_movie get position cur]
+    set cur [${_movie} get position cur]
     if {[string compare $cur $val] == 0} {
         # already at the frame to seek to
         set _pendings(seek) 0
@@ -760,7 +786,7 @@ itcl::body Rappture::VideoScreen::Seek {args} {
     ${_imh} put [${_movie} get image ${_width} ${_height}]
 
     # update the dial and framenum widgets
-    set _settings(framenum) [$_movie get position cur]
+    set _settings(framenum) [${_movie} get position cur]
     event generate $itk_component(main) <<Frame>>
 
     # removing pending
@@ -789,7 +815,7 @@ itcl::body Rappture::VideoScreen::eventually {args} {
             if {0 == $_pendings(play)} {
                 # no play pending schedule one
                 set _pendings(play) 1
-                set _nextframe [expr {[$_movie get position cur] + 1}]
+                set _nextframe [expr {[${_movie} get position cur] + 1}]
                 after idle [itcl::code $this Play]
             } else {
                 # there is a play pending, update its frame value
@@ -1216,8 +1242,8 @@ itcl::body Rappture::VideoScreen::toggleloop {} {
     if {$_settings(loop) == 0} {
         $itk_component(dialminor) loop disable
     } else {
-        set cur [$_movie get position cur]
-        set end [$_movie get position end]
+        set cur [${_movie} get position cur]
+        set end [${_movie} get position end]
 
         set startframe [expr $cur-10]
         if {$startframe < 0} {
@@ -1235,7 +1261,7 @@ itcl::body Rappture::VideoScreen::toggleloop {} {
 }
 
 # ----------------------------------------------------------------------
-# OPTION: -width
+# OPTION: -width - width of the video
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VideoScreen::width {
     # $_dispatcher event -idle !fixsize
@@ -1247,7 +1273,7 @@ itcl::configbody Rappture::VideoScreen::width {
 }
 
 # ----------------------------------------------------------------------
-# OPTION: -height
+# OPTION: -height - height of the video
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VideoScreen::height {
     # $_dispatcher event -idle !fixsize

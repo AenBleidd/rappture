@@ -767,7 +767,7 @@ VideoAvReleaseBuffer(c,fr)
 
 /*
  * ------------------------------------------------------------------------
- *  VideoInitCmd()
+ *  VideoInit()
  *
  *  Implements the body of the _ffmpeg_init method in the "video" class.
  *  Initializes the basic data structure and stores it in the _videodata
@@ -775,7 +775,7 @@ VideoAvReleaseBuffer(c,fr)
  * ------------------------------------------------------------------------
  */
 VideoObj *
-VideoInitCmd()
+VideoInit()
 {
     /*
      * Create an object to represent this video stream.
@@ -789,7 +789,7 @@ VideoInitCmd()
 
 /*
  * ------------------------------------------------------------------------
- *  VideoCleanupCmd()
+ *  VideoCleanup()
  *
  *  Implements the body of the _ffmpeg_cleanup method in the "video" class.
  *  Accesses the data structure stored in the _videodata variable and
@@ -797,7 +797,7 @@ VideoInitCmd()
  * ------------------------------------------------------------------------
  */
 int
-VideoCleanupCmd(vidPtr)
+VideoCleanup(vidPtr)
     VideoObj *vidPtr;
 {
     /*
@@ -825,14 +825,14 @@ VideoCleanupCmd(vidPtr)
 
 /*
  * ------------------------------------------------------------------------
- *  VideoSizeCmd()
+ *  VideoSize()
  *
  *  Implements the body of the "size" method in the "video" class.
  *  Returns the size of each frame in this video stream as a list {w h}.
  * ------------------------------------------------------------------------
  */
 int
-VideoSizeCmd(vidPtr, width, height)
+VideoSize(vidPtr, width, height)
     VideoObj *vidPtr;
     int *width;
     int *height;
@@ -862,7 +862,7 @@ VideoSizeCmd(vidPtr, width, height)
 
 /*
  * ------------------------------------------------------------------------
- *  VideoGoCmd()
+ *  VideoGo()
  *
  *  Implements the body of the "go" method in the "video" class.
  *  Advances by one or more frames, or seeks backward in the stream.
@@ -995,7 +995,7 @@ VideoGoToN(vidPtr, n)
 
 /*
  * ------------------------------------------------------------------------
- *  VideoGetCmd()
+ *  VideoGet()
  *
  *  Implements the body of the "get" method in the "video" class.
  *  Returns information about the current frame via the following
@@ -1122,7 +1122,7 @@ VideoGetImage(vidPtr, iw, ih, img, bufSize)
 }
 
 int
-VideoGetFrameRate (vidPtr, fr)
+VideoFrameRate (vidPtr, fr)
     VideoObj *vidPtr;
     double *fr;
 {
@@ -1154,7 +1154,7 @@ VideoGetFrameRate (vidPtr, fr)
 }
 
 int
-VideoGetFileName (vidPtr, fname)
+VideoFileName (vidPtr, fname)
     VideoObj *vidPtr;
     const char **fname;
 {
@@ -1174,6 +1174,78 @@ VideoGetFileName (vidPtr, fname)
     }
 
     *fname = vidPtr->fileName;
+
+    return 0;
+}
+
+int
+VideoPixelAspectRatio (vidPtr, num, den)
+    VideoObj *vidPtr;
+    int *num;
+    int *den;
+{
+    AVCodecContext *vcodecCtx;
+
+    if (vidPtr == NULL) {
+        return -1;
+    }
+
+    if ((num == NULL) || (den == NULL)) {
+        return -1;
+    }
+
+    if (vidPtr->pFormatCtx == NULL) {
+        // vidPtr->pFormatCtx is NULL, video not open
+        return -1;
+    }
+
+    vcodecCtx = vidPtr->pFormatCtx->streams[vidPtr->videoStream]->codec;
+
+    *num = vcodecCtx->sample_aspect_ratio.num;
+    *den = vcodecCtx->sample_aspect_ratio.den;
+
+    return 0;
+}
+
+int
+VideoDisplayAspectRatio (vidPtr, num, den)
+    VideoObj *vidPtr;
+    int *num;
+    int *den;
+{
+    AVCodecContext *vcodecCtx;
+    int width = 0;
+    int height = 0;
+    int64_t gcd = 0;
+    int64_t gcd2 = 0;
+
+    if (vidPtr == NULL) {
+        return -1;
+    }
+
+    if ((num == NULL) || (den == NULL)) {
+        return -1;
+    }
+
+    if (vidPtr->pFormatCtx == NULL) {
+        // vidPtr->pFormatCtx is NULL, video not open
+        return -1;
+    }
+
+    VideoSize(vidPtr, &width, &height);
+    VideoPixelAspectRatio(vidPtr, num, den);
+
+    width = (*num)*width;
+    height = (*den)*height;
+    gcd = av_gcd(FFABS(width), FFABS(height));
+
+    *num = width/gcd;
+    *den = height/gcd;
+
+    if (*den == 0) {
+        *num = 0;
+        *den = 1;
+    }
 
     return 0;
 }
@@ -1266,7 +1338,7 @@ VideoGetPositionEnd(vidPtr, pos)
 // FIXME: get this function working
 ///*
 // * ------------------------------------------------------------------------
-// *  VideoPutCmd()
+// *  VideoPut()
 // *
 // *  Implements the body of the "put" method in the "video" class.
 // *  Stores a single frame into the video stream:
@@ -1274,7 +1346,7 @@ VideoGetPositionEnd(vidPtr, pos)
 // * ------------------------------------------------------------------------
 // */
 //int
-//VideoPutCmd(cdata, interp, argc, argv)
+//VideoPut(cdata, interp, argc, argv)
 //    ClientData cdata;      /* not used */
 //    Tcl_Interp *interp;    /* interpreter */
 //    int argc;              /* number of arguments */

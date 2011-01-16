@@ -245,7 +245,7 @@ itcl::body Rappture::VideoPreview::load {type data} {
 
     set _movie [Rappture::Video $type $data]
     file delete $fname
-    set _framerate [${_movie} get framerate]
+    set _framerate [${_movie} framerate]
     set _mspf [expr round(((1.0/${_framerate})*1000))]
     set _delay [expr {${_mspf} - ${_ofrd}}]
 
@@ -264,7 +264,7 @@ itcl::body Rappture::VideoPreview::load {type data} {
         set _height $h
     }
 
-    set _lastFrame [$_movie get position end]
+    set _lastFrame [${_movie} get position end]
 
     # update the dial with video information
     $itk_component(dialmajor) configure -min 0 -max ${_lastFrame}
@@ -425,7 +425,7 @@ itcl::body Rappture::VideoPreview::Play {} {
         # not the current frame+1. this happens when we skip frames
         # because the underlying c lib is too slow at reading.
         $_movie seek $cur
-        $_imh put [$_movie get image ${_width} ${_height}]
+        $_imh put [${_movie} get image ${_width} ${_height}]
     } 1]
     regexp {(\d+\.?\d*) microseconds per iteration} ${_ofrd} match _ofrd
     set _ofrd [expr {round(${_ofrd}/1000)}]
@@ -438,7 +438,7 @@ itcl::body Rappture::VideoPreview::Play {} {
         set _delay 0
     }
 
-    set cur [$_movie get position cur]
+    set cur [${_movie} get position cur]
 
     # update the dial and framenum widgets
     set _settings($this-framenum) $cur
@@ -468,7 +468,7 @@ itcl::body Rappture::VideoPreview::Seek {args} {
     if {"" == $val} {
         error "bad value: \"$val\": should be \"seek value\""
     }
-    set cur [$_movie get position cur]
+    set cur [${_movie} get position cur]
     if {[string compare $cur $val] == 0} {
         # already at the frame to seek to
         return
@@ -477,7 +477,7 @@ itcl::body Rappture::VideoPreview::Seek {args} {
     ${_imh} put [${_movie} get image ${_width} ${_height}]
 
     # update the dial and framenum widgets
-    set _settings($this-framenum) [$_movie get position cur]
+    set _settings($this-framenum) [${_movie} get position cur]
     event generate $itk_component(main) <<Frame>>
 
 }
@@ -504,7 +504,7 @@ itcl::body Rappture::VideoPreview::eventually {args} {
             if {0 == $_pendings(play)} {
                 # no play pending schedule one
                 set _pendings(play) 1
-                set _nextframe [expr {[$_movie get position cur] + 1}]
+                set _nextframe [expr {[${_movie} get position cur] + 1}]
                 after idle [itcl::code $this Play]
             } else {
                 # there is a play pending, update its frame value

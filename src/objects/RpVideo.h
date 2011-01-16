@@ -22,22 +22,24 @@ extern "C" {
 
 typedef struct VideoObjRec VideoObj;
 
-VideoObj *VideoInitCmd ();
-int VideoCleanupCmd (VideoObj *vidPtr);
+VideoObj *VideoInit ();
+int VideoCleanup (VideoObj *vidPtr);
 int VideoOpenFile (VideoObj *vidPtr,
     const char *fileName, const char *mode);
 int VideoGetImage (VideoObj *vidPtr,
     int width, int height, void **img, int *bufSize);
 int VideoGetPositionCur (VideoObj *vidPtr, int *pos);
 int VideoGetPositionEnd (VideoObj *vidPtr, int *pos);
-int VideoGetFrameRate (VideoObj *vidPtr, double *fr);
-int VideoGetFileName (VideoObj *vidPtr, const char **fname);
-// static int VideoPutCmd (ClientData clientData,
+int VideoFrameRate (VideoObj *vidPtr, double *fr);
+int VideoFileName (VideoObj *vidPtr, const char **fname);
+int VideoPixelAspectRatio (VideoObj *vidPtr, int *num, int *den);
+int VideoDisplayAspectRatio (VideoObj *vidPtr, int *num, int *den);
+// static int VideoPut (ClientData clientData,
 //     Tcl_Interp  *interp, int argc, CONST84 char *argv[]);
 int VideoGoNext (VideoObj *vidPtr);
 int VideoGoPlusMinusN (VideoObj *vidPtr, int n);
 int VideoGoToN (VideoObj *vidPtr, int n);
-int VideoSizeCmd (VideoObj *vidPtr, int *width, int *height);
+int VideoSize (VideoObj *vidPtr, int *width, int *height);
 int VideoClose (VideoObj *vidPtr);
 
 #ifdef __cplusplus
