@@ -138,6 +138,7 @@ label $analyze.step3 -image $imh
 
 button $analyze.go \
     -text "Analyze" \
+    -state disabled \
     -command {
         $vp video stop
         $vs load file $previewVar
@@ -147,6 +148,17 @@ button $analyze.go \
     }
 pack $analyze.step3 -side left -anchor w
 pack $analyze.go -anchor center
+
+proc buttonState {b var args} {
+    upvar #0 $var v
+    set state disabled
+    if {"" != $v} {
+       set state normal
+    }
+    $b configure -state $state
+}
+
+trace add variable previewVar write "buttonState $analyze.go previewVar"
 
 
 set reqwidth [expr round($width/2.0)]

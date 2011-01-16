@@ -27,13 +27,19 @@ static Tcl_ObjCmdProc NextOp;
 static Tcl_ObjCmdProc SeekOp;
 static Tcl_ObjCmdProc SizeOp;
 static Tcl_ObjCmdProc ReleaseOp;
+static Tcl_ObjCmdProc FilenameOp;
+static Tcl_ObjCmdProc FramerateOp;
+static Tcl_ObjCmdProc AspectOp;
 
 static Rp_OpSpec rpVideoOps[] = {
-    {"get",   1, (void *)GetOp, 3, 5, "[image ?width height?]|[position cur|end]|[framerate]",},
-    {"next",  1, (void *)NextOp, 2, 2, "",},
-    {"release", 1, (void *)ReleaseOp, 2, 2, "",},
-    {"seek",  1, (void *)SeekOp, 3, 3, "+n|-n|n",},
-    {"size",  1, (void *)SizeOp, 2, 2, "",},
+    {"aspect",    1, (void *)AspectOp, 3, 3, "type",},
+    {"filename",  1, (void *)FilenameOp, 2, 2, "",},
+    {"framerate", 1, (void *)FramerateOp, 2, 2, "",},
+    {"get",       1, (void *)GetOp, 3, 5, "[image ?width height?]|[position cur|end]",},
+    {"next",      1, (void *)NextOp, 2, 2, "",},
+    {"release",   1, (void *)ReleaseOp, 2, 2, "",},
+    {"seek",      1, (void *)SeekOp, 3, 3, "+n|-n|n",},
+    {"size",      1, (void *)SizeOp, 2, 2, "",},
 };
 
 static int nRpVideoOps = sizeof(rpVideoOps) / sizeof(Rp_OpSpec);
@@ -80,22 +86,22 @@ VideoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     // create a new command
     VideoObj *movie = NULL;
-    movie = VideoInitCmd();
+    movie = VideoInit();
     if (movie == NULL) {
         Tcl_AppendResult(interp, "error while creating movie object", "\n",
-                         "VideoInitCmd(movie);", (char*)NULL);
+                         "VideoInit(movie);", (char*)NULL);
         return TCL_ERROR;
     }
 
     if ((*type == 'd') && (strcmp(type,"data") == 0)) {
         Tcl_AppendResult(interp, "error while creating movie: type == data not supported",
-                         "\n", "VideoInitCmd(movie);", (char*)NULL);
+                         "\n", "VideoInit(movie);", (char*)NULL);
         return TCL_ERROR;
     } else if ((*type == 'f') && (strcmp(type,"file") == 0)) {
         err = VideoOpenFile(movie,data,"r");
         if (err) {
             Tcl_AppendResult(interp, "error while creating movie object: ",
-                             "\n", "VideoInitCmd(movie);", (char*)NULL);
+                             "\n", "VideoInit(movie);", (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -137,6 +143,7 @@ VideoCallCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * get image ?width height?
  * get framerate
  * get filename
+ * get aspectratio
  *
  */
 static int
@@ -200,6 +207,7 @@ GetOp (ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_SetByteArrayObj(Tcl_GetObjResult(interp),
                             (const unsigned char*)img, bufSize);
     }
+/*
     else if ((*info == 'f') && (strcmp(info,"framerate") == 0)) {
         if (objc != 3) {
             Tcl_AppendResult(interp, "wrong # args: should be \"", cmd,
@@ -236,6 +244,31 @@ GetOp (ClientData clientData, Tcl_Interp *interp, int objc,
         }
         Tcl_AppendResult(interp, fname, (char*)NULL);
     }
+    else if ((*info == 'a') && (strcmp(info,"aspectratio") == 0)) {
+        if (objc != 3) {
+            Tcl_AppendResult(interp, "wrong # args: should be \"", cmd,
+                " aspectratio\"", (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        int num = 0;
+        int den = 0;
+        int err = 0;
+
+        err = VideoGetAspectRatio((VideoObj *)clientData, &num, &den);
+        if (err) {
+            Tcl_AppendResult(interp, "error while retrieving aspectratio",
+                (char*)NULL);
+            return TCL_ERROR;
+        }
+
+        Tcl_Obj *dim = NULL;
+        dim = Tcl_NewListObj(0, NULL);
+        Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(num));
+        Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(den));
+        Tcl_SetObjResult(interp, dim);
+    }
+*/
     else {
         Tcl_AppendResult(interp, "unrecognized command \"", info, "\": should be \"", cmd,
             " [image width height]|[position cur|end]|[framerate]\"", (char*)NULL);
@@ -324,9 +357,9 @@ SeekOp (ClientData clientData, Tcl_Interp *interp, int objc,
 
 /**********************************************************************/
 // FUNCTION: SizeOp()
-/// Get the size of the video
+/// Get the width height of the video
 /**
- * Return the original size of the video frame
+ * Return the original width and height of the video frame
  *
  * Full function call:
  *
@@ -344,7 +377,7 @@ SizeOp (ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_Obj *dim = NULL;
 
 
-    err = VideoSizeCmd((VideoObj *)clientData,&width,&height);
+    err = VideoSize((VideoObj *)clientData,&width,&height);
 
     if (err) {
         Tcl_AppendResult(interp, "error while calculating size of video",
@@ -361,6 +394,112 @@ SizeOp (ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+/**********************************************************************/
+// FUNCTION: FilenameOp()
+/// Get the filename of the video
+/**
+ * Return the original filename of the video
+ *
+ * Full function call:
+ *
+ * filename
+ *
+ */
+static int
+FilenameOp (ClientData clientData, Tcl_Interp *interp, int objc,
+         Tcl_Obj *const *objv)
+{
+    const char *fname = NULL;
+    int err = 0;
+
+    err = VideoFileName((VideoObj *)clientData, &fname);
+    if (err) {
+        Tcl_AppendResult(interp, "error while retrieving filename",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    Tcl_AppendResult(interp, fname, (char*)NULL);
+
+    return TCL_OK;
+}
+
+/**********************************************************************/
+// FUNCTION: FramerateOp()
+/// Get the framerate of the video
+/**
+ * Return the framerate of the video
+ *
+ * Full function call:
+ *
+ * framerate
+ *
+ */
+static int
+FramerateOp (ClientData clientData, Tcl_Interp *interp, int objc,
+         Tcl_Obj *const *objv)
+{
+    double fr = 0;
+    int err = 0;
+
+    err = VideoFrameRate((VideoObj *)clientData, &fr);
+    if (err) {
+        Tcl_AppendResult(interp, "error while calculating framerate",
+            (char*)NULL);
+        return TCL_ERROR;
+    }
+    Tcl_SetObjResult(interp, Tcl_NewDoubleObj(fr));
+
+    return TCL_OK;
+}
+
+/**********************************************************************/
+// FUNCTION: AspectOp()
+/// Get the aspect ratio of the video
+/**
+ * Return either the pixel or display aspect ratio of the video
+ * Full function call:
+ *
+ * aspect pixel
+ * aspect display
+ *
+ */
+static int
+AspectOp (ClientData clientData, Tcl_Interp *interp, int objc,
+         Tcl_Obj *const *objv)
+{
+    int err = 0;
+    int num = 0;
+    int den = 1;
+    Tcl_Obj *dim = NULL;
+
+    const char *cmd = Tcl_GetString(objv[1]);
+    const char *info = Tcl_GetString(objv[2]);
+
+    if ((*cmd == 'p') && (strcmp(info,"pixel") == 0)) {
+        err = VideoPixelAspectRatio((VideoObj *)clientData, &num, &den);
+    }
+    else if ((*info == 'd') && (strcmp(info,"display") == 0)) {
+        err = VideoDisplayAspectRatio((VideoObj *)clientData, &num, &den);
+    }
+    else {
+        Tcl_AppendResult(interp, "unrecognized command \"", info, "\": should be \"", cmd,
+            " pixel|display\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (err) {
+        Tcl_AppendResult(interp, "error while retrieving ", info,
+            " aspect ratio", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    dim = Tcl_NewListObj(0, NULL);
+    Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(num));
+    Tcl_ListObjAppendElement(interp, dim, Tcl_NewIntObj(den));
+    Tcl_SetObjResult(interp, dim);
+
+    return TCL_OK;
+}
 /**********************************************************************/
 // FUNCTION: ReleaseOp()
 /// Clean up memory from an open video in a movie player object
