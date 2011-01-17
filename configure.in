@@ -885,7 +885,7 @@ AC_CONFIG_FILES([
     examples/zoo/structure/examples/Makefile
     examples/zoo/table/Makefile
     examples/zoo/unirect2d/Makefile
-    test/Makefile
-    test/src/Makefile
+    oldtest/Makefile
+    oldtest/src/Makefile
 ])
 AC_OUTPUT
