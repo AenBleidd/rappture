@@ -37,7 +37,7 @@ DX_LIB_SPEC      = @DX_LIB_SPEC@ -lDXcallm
 FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
 # might also need -lavutil
 GL_INC_SPEC     = -I/usr/include/GL
-GL_LIB_SPEC     = -lGL -lglut -lGLEW
+GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
 IMG_DIR		= ./imgLoaders
 IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
 IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
