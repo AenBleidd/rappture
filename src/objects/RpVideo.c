@@ -704,7 +704,7 @@ VideoNextFrame(vidPtr)
                     /* save pts so we can grab it again in VideoAvGetBuffer */
                     global_video_pkt_pts = packet.pts;
 
-#if FFMPEG_AVCODEC_H
+#ifdef FFMPEG_AVCODEC_H
                     // old avcodec decode video function
                     avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
                         &frameFinished, packet.data, packet.size);
