@@ -704,11 +704,15 @@ VideoNextFrame(vidPtr)
                     /* save pts so we can grab it again in VideoAvGetBuffer */
                     global_video_pkt_pts = packet.pts;
 
+#if FFMPEG_AVCODEC_H
+                    // old avcodec decode video function
                     avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
                         &frameFinished, packet.data, packet.size);
-
-                    // avcodec_decode_video2(vcodecCtx, vidPtr->pFrameYUV,
-                    //    &frameFinished, &packet);
+#else
+                    // new avcodec decode video function
+                    avcodec_decode_video2(vcodecCtx, vidPtr->pFrameYUV,
+                        &frameFinished, &packet);
+#endif
 
                     if (packet.dts == AV_NOPTS_VALUE
                           && vidPtr->pFrameYUV->opaque
@@ -1237,7 +1241,14 @@ VideoDisplayAspectRatio (vidPtr, num, den)
 
     width = (*num)*width;
     height = (*den)*height;
+#ifdef FFMPEG_COMMON_H
+    // old gcd function
+    gcd = ff_gcd(FFABS(width), FFABS(height));
+#else
+    // new gcd function
     gcd = av_gcd(FFABS(width), FFABS(height));
+#endif
+
 
     *num = width/gcd;
     *den = height/gcd;
