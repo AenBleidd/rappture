@@ -1517,12 +1517,15 @@ itcl::body Rappture::XyResult::GetTextMarkerOptions {style} {
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::GetAxes {dataobj} {
-    # rebuild if needed, so we know about the axes
-    if {[$_dispatcher ispending !rebuild]} {
-        $_dispatcher cancel !rebuild
-        $_dispatcher event -now !rebuild
-    }
+    if 0 {
+	# Don't do this. Given dataobj may be deleted in the rebuild
 
+	# rebuild if needed, so we know about the axes
+	if {[$_dispatcher ispending !rebuild]} {
+	    $_dispatcher cancel !rebuild
+	    $_dispatcher event -now !rebuild
+	}
+    }
     # what is the x axis?  x? x2? x3? ...
     set xlabel [$dataobj hints xlabel]
     if {[info exists _label2axis(x-$xlabel)]} {
