@@ -66,7 +66,7 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     }
     itk_component add treeview {
         blt::treeview $itk_component(scrollbars).treeview -separator | \
-            -autocreate true -selectmode multiple 
+            -autocreate true -selectmode single
     } {
         keep -foreground -font -cursor
     }

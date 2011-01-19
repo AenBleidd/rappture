@@ -39,7 +39,7 @@ itcl::class Rappture::Tester::TestView {
     protected method updateResults {args}
     protected method updateInfo {args}
     protected method updateInputs {args}
-
+    private variable _lastTest ""
 }
 
 # ----------------------------------------------------------------------
@@ -105,6 +105,9 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestView::test {
     set test $itk_option(-test)
+    if { $test == $_lastTest } {
+	return
+    } 
     # Data array is empty for branch nodes.
     if {$test != ""} {
         if {![$test isa Test]} {
@@ -127,8 +130,10 @@ itcl::configbody Rappture::Tester::TestView::test {
             set descr "No description."
         }
         showDescription $descr
+ 	set _lastTest $test
     } else {
        # Clear everything if branch node selected
+	set _lastTest ""
        reset 
     }
 }
