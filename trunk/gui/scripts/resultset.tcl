@@ -1084,6 +1084,9 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
     } else {
         lappend params "???"
     }
+    if { $_active == "" } {
+	return;				# Nothing active. Don't do anything.
+    }
     eval lappend params [_getValues $_active all]
 
     switch -- [$_results size] {
