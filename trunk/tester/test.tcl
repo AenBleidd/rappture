@@ -34,7 +34,9 @@ itcl::class Rappture::Tester::Test {
 
     public method getAdded {}
     public method getDiffs {}
+    public method getInputs {{path input}}
     public method getMissing {}
+    public method getOutputs {{path output}}
     public method getResult {}
     public method getRunfile {}
     public method getRunobj {}
@@ -68,7 +70,7 @@ itcl::body Rappture::Tester::Test::constructor {toolxml testxml} {
         error "$testxml does not represent a valid library object"
     }
     # HACK: Add a new input to differentiate between results
-    $_testobj put input.run.current "Golden"
+    $_testobj put input.TestRun.current "Golden"
 }
 
 # ----------------------------------------------------------------------
@@ -109,6 +111,26 @@ itcl::body Rappture::Tester::Test::getDiffs {} {
     return $_diffs
 }
 
+# -----------------------------------------------------------------------
+# USAGE: getInputs
+#
+# TODO
+# -----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getInputs {{path input}} {
+    set retval [list]
+    foreach child [$_testobj children $path] {
+        set fullpath $path.$child
+        if {$fullpath != "input.TestRun"} {
+            set val [$_testobj get $fullpath.current]
+            if {$val != ""} {
+                lappend retval $fullpath $val
+            }
+        }
+        append retval [getInputs $fullpath]
+    }
+    return $retval
+}
+
 # ----------------------------------------------------------------------
 # USAGE: getMissing
 #
@@ -121,6 +143,46 @@ itcl::body Rappture::Tester::Test::getMissing {} {
         error "Test has not yet been ran."
     }
     return $_missing
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getOutputs
+#
+# TODO
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
+    if {!$_ran} {
+        error "Test has not yet been ran."
+    }
+    set retval [list]
+    foreach child [$_runobj children $path] {
+        set fullpath $path.$child
+        if {$fullpath != "output.time" && $fullpath != "output.user" && $fullpath != "output.status"} {
+            if {[lsearch $fullpath [getDiffs]] != -1} {
+                set status diff
+            } elseif {[lsearch $fullpath [getAdded]] != -1} {
+                set status added
+            #} elseif {[lsearch $fullpath [getMissing]] != -1} {
+            #    set status missing
+            } else {
+                if {[$_runobj get $fullpath] != ""} {
+                    set status ok
+                } else {
+                    set status ""
+                }
+            }
+            lappend retval $fullpath $status
+        }
+        append retval " [getOutputs $fullpath]"
+    }
+    # We won't find missing elements by searching through runobj.  Instead,
+    # tack on all missing items at the end (only do this once)
+    if {$path == "output"} {
+        foreach item $_missing {
+            lappend retval $item missing
+        }
+    }
+    return $retval
 }
 
 # ----------------------------------------------------------------------
@@ -236,7 +298,7 @@ itcl::body Rappture::Tester::Test::run {} {
     set _ran yes
     if {$status == 0 && [Rappture::library isvalid $_runobj]} {
         # HACK: Add a new input to differentiate between results
-        $_runobj put input.run.current "Test result"
+        $_runobj put input.TestRun.current "Test result"
         set _diffs [diffs $_testobj $_runobj]
         set _missing [missing $_testobj $_runobj]
         set _added [added $_testobj $_runobj]
@@ -247,6 +309,7 @@ itcl::body Rappture::Tester::Test::run {} {
             set _result Fail
         }
     } else {
+        set _runobj ""
         set _result Error
     }
 }
