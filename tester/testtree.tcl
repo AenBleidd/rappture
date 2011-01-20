@@ -37,6 +37,7 @@ itcl::class Rappture::Tester::TestTree {
     itk_option define -toolxml toolXml ToolXml ""
 
     constructor {args} { #defined later }
+    destructor { #defined later }
 
     public method getTest {args}
     public method refresh {args}
@@ -116,10 +117,21 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     }
 }
 
-# TODO: destructor
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::TestTree::destructor {} {
+    foreach id [getLeaves] {
+        itcl::delete object [getTest $id]
+    }
+}
 
 # ----------------------------------------------------------------------
-# Repopulate tree if test directory or toolxml have been changed.
+# CONFIGURATION OPTION: -testdir
+#
+# Location of the directory containing a set of test xml files.
+# Repopulate the tree if -testdir option is changed, but only if
+# -toolxml has already been defined.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::testdir {
     if {$itk_option(-toolxml) != ""} {
@@ -127,6 +139,12 @@ itcl::configbody Rappture::Tester::TestTree::testdir {
     }
 }
 
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -toolxml
+#
+# Location of the tool.xml for the tool being tested.  Repopulate the
+# tree if -toolxml is changed, but only if -testdir has already been
+# defined.
 itcl::configbody Rappture::Tester::TestTree::toolxml {
     if {$itk_option(-testdir) != ""} {
         populate
@@ -134,6 +152,8 @@ itcl::configbody Rappture::Tester::TestTree::toolxml {
 }
 
 # ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -selectcommand
+#
 # Forward the TestTree's selectcommand to the treeview, but tack on the
 # updateLabel method to keep the label refreshed when selection is
 # changed
@@ -255,7 +275,9 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
 # any existing contents.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestTree::populate {} {
-    # TODO: Delete existing test objects
+    foreach id [getLeaves] {
+        itcl::delete object [getTest $id]
+    }
     $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
     set icon [Rappture::icon molvis-3dorth]
