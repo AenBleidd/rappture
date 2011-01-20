@@ -66,7 +66,7 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     }
     itk_component add treeview {
         blt::treeview $itk_component(scrollbars).treeview -separator | \
-            -autocreate true -selectmode single
+            -autocreate true -selectmode multiple
     } {
         keep -foreground -font -cursor
     }
@@ -286,7 +286,11 @@ itcl::body Rappture::Tester::TestTree::runSelected {} {
     foreach id [$this getSelected] {
         runTest $id
     }
-    eval $itk_option(-selectcommand) -refresh
+    # Try calling selectcommand with the -refresh option.  If selectcommand
+    # does not accept this argument, then call it with no arguments.
+    if {[catch {eval $itk_option(-selectcommand) -refresh}]} {
+        eval $itk_option(-selectcommand)
+    }
 }
 
 # ----------------------------------------------------------------------

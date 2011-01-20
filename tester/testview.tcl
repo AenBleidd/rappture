@@ -37,9 +37,9 @@ itcl::class Rappture::Tester::TestView {
     protected method showDescription {text}
     protected method showStatus {text}
     protected method updateResults {args}
-    protected method updateInfo {args}
     protected method updateInputs {args}
-    private variable _lastTest ""
+    protected method updateOutputs {args}
+
 }
 
 # ----------------------------------------------------------------------
@@ -52,17 +52,17 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
     }
     pack $itk_component(status) -expand no -fill none -side top -anchor w 
 
-    itk_component add scroller {
-        Rappture::Scroller $itk_interior.scroller \
+    itk_component add descScroller {
+        Rappture::Scroller $itk_interior.descScroller \
             -xscrollmode auto -yscrollmode auto
     }
 
     itk_component add description {
-        text $itk_interior.scroller.description -height 0 -wrap word \
+        text $itk_interior.descScroller.description -height 0 -wrap word \
             -relief flat
     }
-    $itk_component(scroller) contents $itk_component(description)
-    pack $itk_component(scroller) -expand no -fill x -side top
+    $itk_component(descScroller) contents $itk_component(description)
+    pack $itk_component(descScroller) -expand no -fill x -side top
 
     itk_component add tabs {
         blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
@@ -71,8 +71,9 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
     } {
     }
     $itk_component(tabs) insert end "Results" -ipady 25 -fill both
-    $itk_component(tabs) insert end "Info" -ipady 25 -fill both -state disabled
     $itk_component(tabs) insert end "Inputs" -ipady 25 -fill both \
+        -state disabled
+    $itk_component(tabs) insert end "Outputs" -ipady 25 -fill both \
         -state disabled
 
     itk_component add results {
@@ -81,18 +82,39 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
     $itk_component(tabs) tab configure "Results" \
         -window $itk_component(tabs).results
 
-    itk_component add info {
-        text $itk_component(tabs).info
+    itk_component add inputScroller {
+        Rappture::Scroller $itk_component(tabs).inputScroller \
+            -xscrollmode auto -yscrollmode auto
     }
-    $itk_component(tabs) tab configure "Info" -window $itk_component(info)
-    pack $itk_component(tabs) -expand yes -fill both -side top
 
     itk_component add inputs {
-        blt::treeview $itk_component(tabs).inputs -separator . -autocreate true
+        blt::treeview $itk_component(inputScroller).inputs -separator . \
+            -autocreate true
     } {
         keep -foreground -font -cursor
     }
-    $itk_component(tabs) tab configure "Inputs" -window $itk_component(inputs)
+    $itk_component(inputs) column insert end "Value"
+    $itk_component(inputScroller) contents $itk_component(inputs)
+    $itk_component(tabs) tab configure "Inputs" \
+        -window $itk_component(inputScroller)
+
+    itk_component add outputScroller {
+        Rappture::Scroller $itk_component(tabs).outputScroller \
+            -xscrollmode auto -yscrollmode auto
+    }
+
+    itk_component add outputs {
+        blt::treeview $itk_component(outputScroller).outputs -separator . \
+            -autocreate true
+    } {
+        keep -foreground -font -cursor
+    }
+    $itk_component(outputs) column insert end "Status"
+    $itk_component(outputScroller) contents $itk_component(outputs)
+    $itk_component(tabs) tab configure "Outputs" \
+        -window $itk_component(outputScroller)
+
+    pack $itk_component(tabs) -expand yes -fill both -side top
 
     eval itk_initialize $args
 
@@ -105,9 +127,6 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestView::test {
     set test $itk_option(-test)
-    if { $test == $_lastTest } {
-	return
-    } 
     # Data array is empty for branch nodes.
     if {$test != ""} {
         if {![$test isa Test]} {
@@ -123,17 +142,15 @@ itcl::configbody Rappture::Tester::TestView::test {
             showStatus "Test has not yet ran."
         }
         updateResults
-        updateInfo
         updateInputs
+        updateOutputs
         set descr [[$test getTestobj] get test.description]
         if {$descr == ""} {
             set descr "No description."
         }
         showDescription $descr
- 	set _lastTest $test
     } else {
        # Clear everything if branch node selected
-	set _lastTest ""
        reset 
     }
 }
@@ -149,8 +166,8 @@ itk::usual TestView {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::reset {} {
     updateResults
-    updateInfo
     updateInputs
+    updateOutputs
     showStatus ""
     showDescription ""
 }
@@ -195,52 +212,45 @@ itcl::body Rappture::Tester::TestView::updateResults {} {
     } else {
         set test $itk_option(-test)
         $itk_component(results) load [$test getTestobj]
-        if {[$test hasRan]} {
+        if {[$test hasRan]  && [Rappture::library isvalid [$test getRunobj]]} {
             $itk_component(results) load [$test getRunobj]
         }
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: updateInfo
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateInfo {} {
+itcl::body Rappture::Tester::TestView::updateInputs {args} {
+    $itk_component(inputs) delete 0
     set test $itk_option(-test)
-    if {$test == "" || ![$test hasRan]} {
-        $itk_component(info) delete 0.0 end
-        set index [$itk_component(tabs) index -name "Results"]
-        $itk_component(tabs) select $index
-        $itk_component(tabs) focus $index
-        $itk_component(tabs) tab configure "Info" -state disabled
-    } else {
-        set test $itk_option(-test) 
-        set testxml [$test getTestxml]
-        set runfile [$test getRunfile]
-        $itk_component(tabs) tab configure "Info" -state normal
-        $itk_component(info) delete 0.0 end
-        $itk_component(info) insert end "Test xml: $testxml\n"
-        $itk_component(info) insert end "Runfile: $runfile\n"
-        if {[$test getResult] == "Fail"} {
-            set diffs [$test getDiffs]
-            set missing [$test getMissing]
-            set added [$test getAdded]
-            $itk_component(info) insert end "Diffs: $diffs\n" 
-            $itk_component(info) insert end "Missing: $missing\n"
-            $itk_component(info) insert end "Added: $added\n"
+    if {$test != ""} {
+        $itk_component(tabs) tab configure "Inputs" -state normal
+        foreach {path val} [$test getInputs] {
+            $itk_component(inputs) insert end $path -data [list Value $val]
         }
+        $itk_component(inputs) open -recurse root
     }
 }
 
-itcl::body Rappture::Tester::TestView::updateInputs {} {
+itcl::body Rappture::Tester::TestView::updateOutputs {args} {
+    $itk_component(outputs) delete 0
     set test $itk_option(-test)
-    if {$test == ""} {
-        set index [$itk_component(tabs) index -name "Results"]
-        $itk_component(tabs) select $index
-        $itk_component(tabs) focus $index
-        $itk_component(tabs) tab configure "Inputs" -state disabled
+    if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
+        $itk_component(tabs) tab configure "Outputs" -state normal
+        foreach {path status} [$test getOutputs] {
+            $itk_component(outputs) insert end $path -data [list Status $status]
+        }
+        $itk_component(outputs) open -recurse root
     } else {
-        set test $itk_option(-test)
-        $itk_component(tabs) tab configure "Inputs" -state normal
-    }
+        $itk_component(tabs) tab configure "Outputs" -state disabled
+        # Switch back to results tab if the outputs tab is open and the
+        # selected test has not been ran.
+        if {[$itk_component(tabs) index select] == \
+            [$itk_component(tabs) index -name "Outputs"]} {
+            set index [$itk_component(tabs) index -name "Results"]
+            $itk_component(tabs) select $index
+            $itk_component(tabs) focus $index
+        }
+    } 
 }
+        
+        
 
