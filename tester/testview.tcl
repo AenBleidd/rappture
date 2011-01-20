@@ -36,9 +36,9 @@ itcl::class Rappture::Tester::TestView {
     protected method reset 
     protected method showDescription {text}
     protected method showStatus {text}
-    protected method updateResults {args}
-    protected method updateInputs {args}
-    protected method updateOutputs {args}
+    protected method updateResults {}
+    protected method updateInputs {}
+    protected method updateOutputs {}
 
 }
 
@@ -122,13 +122,15 @@ itcl::body Rappture::Tester::TestView::constructor {args} {
 
 # ----------------------------------------------------------------------
 # When the -test configuration option is modified, update the display
-# accordingly.  The data passed in should be a Test object, or the
-# empty string to clear the display.
+# accordingly.  The data passed in should be a Test object, or an empty 
+# string to clear the display.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestView::test {
     set test $itk_option(-test)
-    # Data array is empty for branch nodes.
-    if {$test != ""} {
+    # If an empty string is passed in then clear everything
+    if {$test == ""} {
+        reset
+    } else {
         if {![$test isa Test]} {
             error "-test option must be a Test object.  $test was given."
         }
@@ -149,9 +151,6 @@ itcl::configbody Rappture::Tester::TestView::test {
             set descr "No description."
         }
         showDescription $descr
-    } else {
-       # Clear everything if branch node selected
-       reset 
     }
 }
 
@@ -218,7 +217,7 @@ itcl::body Rappture::Tester::TestView::updateResults {} {
     }
 }
 
-itcl::body Rappture::Tester::TestView::updateInputs {args} {
+itcl::body Rappture::Tester::TestView::updateInputs {} {
     $itk_component(inputs) delete 0
     set test $itk_option(-test)
     if {$test != ""} {
@@ -230,7 +229,7 @@ itcl::body Rappture::Tester::TestView::updateInputs {args} {
     }
 }
 
-itcl::body Rappture::Tester::TestView::updateOutputs {args} {
+itcl::body Rappture::Tester::TestView::updateOutputs {} {
     $itk_component(outputs) delete 0
     set test $itk_option(-test)
     if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
