@@ -167,7 +167,13 @@ itcl::body Rappture::HTMLviewer::add {htmlText args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HTMLviewer::followLink {url} {
     if {[regexp -nocase {^https?://} $url]} {
-        foreach prog {clientaction /apps/xvnc/bin/clientaction ""} {
+        foreach prog {
+                clientaction
+                /apps/bin/clientaction
+                /apps/xvnc/bin/clientaction
+                /usr/lib/mw/bin/clientaction
+                ""
+        } {
             if {"" != [auto_execok $prog]} {
                 break
             }
