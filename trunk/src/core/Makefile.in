@@ -180,10 +180,10 @@ install_libs: $(lib)  $(shared_lib)
 install_headers:
 	$(MKDIR_P) -m 0755 $(incdir)
 	for i in $(HEADERS) ; do \
-	  $(INSTALL) -m 444  $(srcdir)/$$i $(incdir) ; \
+	  $(INSTALL) -m 0444  $(srcdir)/$$i $(incdir) ; \
 	done
 	for i in $(LOCAL_HEADERS) ; do \
-	  $(INSTALL) -m 444  $$i $(incdir) ; \
+	  $(INSTALL) -m 0444  $$i $(incdir) ; \
 	done
 
 .cc.o:
