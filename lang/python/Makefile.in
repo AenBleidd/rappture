@@ -20,9 +20,11 @@ RM              = rm -f
 VPATH           = $(srcdir)
 
 PYTHON          = @PYTHON@
-PYTHON_FLAGS    = --library-dirs=$(libdir):../../src/core \
-                  --include-dirs=$(srcdir)/../../src/core:$(includedir)
+PYTHON_INCDIR	= @PYTHON_INCDIR@
 PYTHON_VERSION  = @PYTHON_VERSION@
+
+python_flags    = --library-dirs=$(libdir):../../src/core \
+                  --include-dirs=$(srcdir)/../../src/core:$(PYTHON_INCDIR)
 pythonlib       = $(libdir)/python$(PYTHON_VERSION)/site-packages
 envfile         = python.env
 
