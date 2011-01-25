@@ -50,9 +50,9 @@ tclIndex: $(FILES)
 		--outfile tclIndex
 
 install: tclIndex
-	$(MKDIR_P) $(destdir)
+	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES); do \
-	    $(INSTALL) -m 444 $$i $(destdir) ; \
+	    $(INSTALL) -m 0444 $$i $(destdir) ; \
 	done 
 	$(INSTALL) -m 0444 tclIndex $(destdir)
 

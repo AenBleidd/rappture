@@ -35,7 +35,7 @@ export ARCHFLAGS
 # into a temporary directory.
 #
 all: build/tmp
-	$(PYTHON) setup.py build_ext $(PYTHON_FLAGS) build
+	$(PYTHON) setup.py build_ext $(python_flags) build
 
 build/tmp:
 	$(MKDIR_P) -m 0755 build/tmp
