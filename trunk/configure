@@ -7206,35 +7206,23 @@ else
 fi
 
 
-TCLSH=
-if test "${rp_with_tclsh}" != "no" ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tclsh" >&5
-$as_echo_n "checking for tclsh... " >&6; }
-  if test -x "${rp_with_tclsh}/bin/tclsh"
-  then
-    TCLSH="${rp_with_tclsh}/bin/tclsh"
-  else
-    if test -x "${rp_with_tclsh}"
-    then
-      TCLSH="${rp_with_tclsh}"
-    else
-      if test -x "${exec_prefix}/bin/tclsh"
-      then
-	TCLSH="${exec_prefix}/bin/tclsh"
-      else
-	for v in 8.4 8.5 8.6 ; do
-	  if test -x "${exec_prefix}/bin/tclsh${v}"
-	  then
-	    TCLSH="${exec_prefix}/bin/tclsh${v}"
-	    break
-	  fi
-	done
-      fi
-    fi
+TCL_VERSION="8.4"
+for dir in \
+ ${exec_prefix} \
+ ${exec_prefix}/lib ; do
+  tclconfig="${dir}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
+    . $tclconfig
+    break
   fi
-  if ! test -x ${TCLSH} ; then
-    # Extract the first word of "tclsh", so it can be a program name with args.
-set dummy tclsh; ac_word=$2
+done
+
+TCLSH=""
+if test "${rp_with_tclsh}" != "no" ; then
+  tclsh="tclsh${TCL_VERSION}"
+  if test "${rp_with_tclsh}" = "yes" ; then
+    # Extract the first word of "${tclsh}", so it can be a program name with args.
+set dummy ${tclsh}; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
 if ${ac_cv_path_TCLSH+:} false; then :
@@ -7246,7 +7234,50 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+as_dummy="${exec_prefix}/bin:${PATH}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_TCLSH="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+TCLSH=$ac_cv_path_TCLSH
+if test -n "$TCLSH"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $TCLSH" >&5
+$as_echo "$TCLSH" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  else
+    # Extract the first word of "${tclsh}", so it can be a program name with args.
+set dummy ${tclsh}; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_TCLSH+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $TCLSH in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_TCLSH="$TCLSH" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${rp_with_tclsh}/bin:${rp_with_tclsh}"
+for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
@@ -7274,29 +7305,21 @@ fi
 
 
   fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${TCLSH}" >&5
-$as_echo "${TCLSH}" >&6; }
-
-
-TCL_VERSION="8.4"
-for dir in \
- ${exec_prefix} \
- ${exec_prefix}/lib ; do
-  tclconfig="${dir}/tclConfig.sh"
-  if test -f "$tclconfig" ; then
-    . $tclconfig
-    break
+  if test "x${TCLSH}" = "x" ; then
+    as_fn_error $? "cant find tclsh" "$LINENO" 5
   fi
-done
+fi
+
+
+
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
 if test "x$rp_with_tcllib" != "x" ; then
-   tclconfig="${rp_with_tcllib}/tclConfig.sh"
-   if test -f "$tclconfig" ; then
+  tclconfig="${rp_with_tcllib}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
     . $tclconfig
-   fi
-   TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
+  fi
+  TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
 fi
 if test "x$rp_with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${rp_with_tclinclude}"

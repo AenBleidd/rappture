@@ -122,38 +122,6 @@ AC_ARG_WITH(
     [],
     [rp_with_tclsh=$withval])
 
-TCLSH=
-if test "${rp_with_tclsh}" != "no" ; then
-  AC_MSG_CHECKING([for tclsh])
-  if test -x "${rp_with_tclsh}/bin/tclsh"
-  then
-    TCLSH="${rp_with_tclsh}/bin/tclsh"
-  else
-    if test -x "${rp_with_tclsh}"
-    then
-      TCLSH="${rp_with_tclsh}"
-    else
-      if test -x "${exec_prefix}/bin/tclsh"
-      then
-	TCLSH="${exec_prefix}/bin/tclsh"
-      else
-	for v in 8.4 8.5 8.6 ; do
-	  if test -x "${exec_prefix}/bin/tclsh${v}"
-	  then
-	    TCLSH="${exec_prefix}/bin/tclsh${v}"
-	    break
-	  fi
-	done
-      fi
-    fi
-  fi
-  if ! test -x ${TCLSH} ; then
-    AC_PATH_PROG(TCLSH, tclsh)
-  fi
-fi
-AC_MSG_RESULT([${TCLSH}])
-AC_SUBST(TCLSH)
-
 TCL_VERSION="8.4"
 for dir in \
  ${exec_prefix} \
@@ -164,14 +132,30 @@ for dir in \
     break
   fi
 done
+
+TCLSH=""
+if test "${rp_with_tclsh}" != "no" ; then
+  tclsh="tclsh${TCL_VERSION}"
+  if test "${rp_with_tclsh}" = "yes" ; then 
+    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${exec_prefix}/bin:${PATH}])
+  else 
+    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${rp_with_tclsh}/bin:${rp_with_tclsh}])
+  fi
+  if test "x${TCLSH}" = "x" ; then
+    AC_ERROR([cant find tclsh])
+  fi
+fi
+AC_SUBST(TCLSH)
+
+  
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
 if test "x$rp_with_tcllib" != "x" ; then
-   tclconfig="${rp_with_tcllib}/tclConfig.sh"
-   if test -f "$tclconfig" ; then
+  tclconfig="${rp_with_tcllib}/tclConfig.sh"
+  if test -f "$tclconfig" ; then
     . $tclconfig
-   fi
-   TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
+  fi
+  TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
 fi
 if test "x$rp_with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${rp_with_tclinclude}"
