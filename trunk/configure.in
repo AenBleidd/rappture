@@ -116,14 +116,6 @@ if test "$enable_gui" != "no" ; then
 fi
 AC_SUBST(ENABLE_GUI)
 
-rp_with_tclsh="yes"
-AC_ARG_WITH(
-    [tclsh],
-    [AS_HELP_STRING([--with-tclsh[=DIR]],
-        [location of tclsh @<:@default=yes@:>@])],
-    [rp_with_tclsh=no],
-    [rp_with_tclsh=$withval])
-
 TCL_VERSION="8.4"
 for dir in \
  ${exec_prefix} \
@@ -135,6 +127,15 @@ for dir in \
   fi
 done
 
+
+rp_with_tclsh="yes"
+AC_ARG_WITH(
+    [tclsh],
+    [AS_HELP_STRING([--with-tclsh[=DIR]],
+        [location of tclsh @<:@default=yes@:>@])],
+    [rp_with_tclsh=$withval],
+    [rp_with_tclsh=yes])
+
 TCLSH=""
 if test "${rp_with_tclsh}" != "no" ; then
   tclsh="tclsh${TCL_VERSION}"
@@ -144,24 +145,13 @@ if test "${rp_with_tclsh}" != "no" ; then
     AC_PATH_PROG(TCLSH, ${tclsh}, [], [${rp_with_tclsh}/bin:${rp_with_tclsh}])
   fi
   if test "x${TCLSH}" = "x" ; then
-    AC_ERROR([cant find tclsh])
+    AC_ERROR([can't find tclsh])
   fi
 fi
 AC_SUBST(TCLSH)
 
   
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
-if test "x$rp_with_tcllib" != "x" ; then
-  tclconfig="${rp_with_tcllib}/tclConfig.sh"
-  if test -f "$tclconfig" ; then
-    . $tclconfig
-  fi
-  TCL_LIB_SPEC="-L${rp_with_tcllib} -ltcl${TCL_VERSION}"
-fi
-if test "x$rp_with_tclinclude" != "x" ; then
-   TCL_INC_SPEC="-I${rp_with_tclinclude}"
-fi
 
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TCL_INC_SPEC)
