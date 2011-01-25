@@ -4,6 +4,8 @@ dnl AC_CONFIG_HEADER(src/core/RpConfig.h)
 AC_CONFIG_AUX_DIR(cf)
 AC_CONFIG_HEADER(src/core/config.h)
 
+with_tclsh=yes
+
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
 #------------------------------------------------------------------------
@@ -119,7 +121,7 @@ AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
         [location of tclsh @<:@default=yes@:>@])],
-    [],
+    [rp_with_tclsh=no],
     [rp_with_tclsh=$withval])
 
 TCL_VERSION="8.4"
