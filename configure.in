@@ -1,3 +1,4 @@
+
 AC_INIT([Rappture],[1.1],[rappture@nanohub.org])
 dnl AC_CONFIG_HEADER(src/core/RpConfig.h)
 AC_CONFIG_AUX_DIR(cf)
@@ -119,43 +120,37 @@ AC_ARG_WITH(
     [AS_HELP_STRING([--with-tclsh[=DIR]],
         [location of tclsh @<:@default=yes@:>@])],
     [],
-    [rp_with_tclsh=yes])
+    [rp_with_tclsh=$withval])
 
 TCLSH=
-if test "$rp_with_tclsh" != "no" ; then
-    AC_MSG_CHECKING([for tclsh])
-    if test -x "$rp_with_tclsh/bin/tclsh"
+if test "${rp_with_tclsh}" != "no" ; then
+  AC_MSG_CHECKING([for tclsh])
+  if test -x "${rp_with_tclsh}/bin/tclsh"
+  then
+    TCLSH="${rp_with_tclsh}/bin/tclsh"
+  else
+    if test -x "${rp_with_tclsh}"
     then
-        echo Found tclsh in $rp_with_tclsh/bin/tclsh
-        TCLSH="$rp_with_tclsh/bin/tclsh"
+      TCLSH="${rp_with_tclsh}"
     else
-       if test -x "$rp_with_tclsh"
-        then
-            echo Found tclsh in $rp_with_tclsh
-            TCLSH="$rp_with_tclsh"
-        else
-            if test -x "${exec_prefix}/bin/tclsh"
-            then
-                echo Found tclsh in ${exec_prefix}/bin/tclsh
-                TCLSH="${exec_prefix}/bin/tclsh"
-            else
-                for v in 8.4 8.5 8.6 ; do
-                    if test -x "${exec_prefix}/bin/tclsh${v}"
-                    then
-                        echo Found tclsh in ${exec_prefix}/bin/tclsh${v}
-                        TCLSH="${exec_prefix}/bin/tclsh${v}"
-                        break
-                    fi
-                done
-            fi
-        fi
+      if test -x "${exec_prefix}/bin/tclsh"
+      then
+	TCLSH="${exec_prefix}/bin/tclsh"
+      else
+	for v in 8.4 8.5 8.6 ; do
+	  if test -x "${exec_prefix}/bin/tclsh${v}"
+	  then
+	    TCLSH="${exec_prefix}/bin/tclsh${v}"
+	    break
+	  fi
+	done
+      fi
     fi
-    if ! test -x ${TCLSH}
-    then
-        AC_PATH_PROG(TCLSH, tclsh)
-    fi
+  fi
+  if ! test -x ${TCLSH} ; then
+    AC_PATH_PROG(TCLSH, tclsh)
+  fi
 fi
-
 AC_MSG_RESULT([${TCLSH}])
 AC_SUBST(TCLSH)
 
@@ -283,7 +278,6 @@ MKOCTFILE=
 MKOCTFILE2=
 MKOCTFILE3=
 if test "$rp_with_octave" != "no" ; then
-  AC_MSG_CHECKING([for octave and mkoctfile])
   if test "$rp_with_octave" = "yes" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
@@ -315,7 +309,6 @@ AC_ARG_WITH(
 
 if test "$rp_with_octave2" != "no" ; then
   if test "$rp_with_octave2" = "yes" ; then
-    AC_MSG_CHECKING([for octave and mkoctfile])
     AC_PATH_PROG(octave2, octave)
     AC_PATH_PROG(mkoctfile2, mkoctfile)
   else 
@@ -341,10 +334,8 @@ AC_ARG_WITH(
     [rp_with_octave3=$withval],
     [rp_with_octave3=no])
 
-echo rp_with_octave3=$rp_with_octave3
 if test "$rp_with_octave3" != "no" ; then
   if test "$rp_with_octave3" = "yes" ; then
-    AC_MSG_CHECKING([for octave and mkoctfile])
     AC_PATH_PROG(octave3, octave)
     AC_PATH_PROG(mkoctfile3, mkoctfile)
   else 
@@ -353,13 +344,9 @@ if test "$rp_with_octave3" != "no" ; then
   fi
 fi
 
-echo octave3=$octave3
 if test "x${octave3}" != "x" ; then
-  echo version="${octave3} -v | grep version | cut -d' ' -f4"
   version=`${octave3} -v | grep version | cut -d' ' -f4`
-  echo version=$version
   version_major=`echo ${version} | cut -d'.' -f1`
-  echo version_major=$version_major
   if test "$version_major" = "3" ; then
     OCTAVE3=$rp_with_octave3
     MKOCTFILE3=$mkoctfile3
@@ -393,7 +380,6 @@ PERL_CCFlAGS=
 PERL_VERSION_RV=
 PERL_LIBSPEC=
 if test "$rp_with_perl" != "no" ; then
-  AC_MSG_CHECKING([for perl])
   if test "$rp_with_perl" != "yes" ; then 
     AC_PATH_PROG(PERL, perl, [], [$rp_with_perl/bin:$rp_with_perl])
   else
@@ -409,15 +395,12 @@ if test "$rp_with_perl" != "no" ; then
     PERL_INSTALLARCHLIB=`${PERL} -MConfig -e 'print $Config{installarchlib}'`
     PERL_ARCHLIBEXP=`${PERL} -MConfig -e 'print $Config{archlibexp}'`
     PERL_VERSION_RV=`echo ${PERL_VERSION} | cut -d'.' -f1-2`
-    echo perllib="${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX}" 
-
     # libperl may or may not be installed.  Check for its existence.
     if test -f "${PERL_ARCHLIBEXP}/CORE/libperl${SHLIB_SUFFIX}" ; then 
       PERL_LIBSPEC="-L${PERL_ARCHLIBEXP}/CORE -lperl"
     fi
   fi
 fi
-AC_MSG_RESULT([${PERL}])
 AC_SUBST(PERL)
 AC_SUBST(PERL_INCLUDES)
 AC_SUBST(PERL_ARCHLIB)
@@ -434,7 +417,7 @@ AC_SUBST(PERL_LIBSPEC)
 PYTHON=""
 PYTHON_CFLAGS=""
 PYTHON_CPPFLAGS=""
-HAVE_PYTHON_DISTUTILS=""
+PYTHON_DISTUTILS=""
 PYTHON_INCLUDES=""
 PYTHON_LDFLAGS=""
 PYTHON_LIB=""
@@ -450,101 +433,78 @@ AC_ARG_WITH([python],
     [rp_with_python=yes])
 
 if test "$rp_with_python" != "no" ; then
-  AC_MSG_CHECKING([for python])
-  if test -x "$rp_with_python/bin/python"; then
-    echo Found python in $rp_with_python/bin/python
-    PYTHON="$rp_with_python/bin/python"
-  elif test -x "$rp_with_python"; then
-    echo Found python in $rp_with_python
-    PYTHON="$rp_with_python"
-  else
+  if test "$rp_with_python" = "yes" ; then
     AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
-  fi
-  if test "x${PYTHON}" != "x"; then
-    PYTHON_VERSION=`$PYTHON -c "import sys; print sys.version[[0:3]]"`
-    echo Using python version $PYTHON_VERSION
-  fi
-  if test "x${PYTHON_VERSION}" != "x"; then
-    if test -r $rp_with_python/include/python$PYTHON_VERSION/Python.h -a \
-     -d $rp_with_python/lib/python$PYTHON_VERSION/site-packages; then
-      PYTHON_INCLUDES=$rp_with_python/include/python$PYTHON_VERSION
-      PYTHON_SITE_PACKAGES=$rp_with_python/lib/python$PYTHON_VERSION/site-packages
-    else
-      if test -r $prefix/include/python$PYTHON_VERSION/Python.h; then
-        PYTHON_INCLUDES='$(prefix)/include/python$(PYTHON_VERSION)'
-        PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
-      else
-        if test -r /usr/include/python$PYTHON_VERSION/Python.h; then
-          PYTHON_INCLUDES=/usr/include/python$PYTHON_VERSION
-          PYTHON_SITE_PACKAGES='$(libdir)/python$(PYTHON_VERSION)/site-packages'
-        else
-          echo could not find python$PYTHON_VERSION/Python.h
-        fi
-      fi
-      if test ! -d "$PYTHON_SITE_PACKAGES"; then
-        PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
-      fi
-    fi
-  fi
-  if test "x$rp_with_python" != "x" ;  then
-    pythondir='$(PYTHON_SITE_PACKAGES)'
   else
-    pythondir='$(libdir)/python${PYTHON_VERSION}/site-packages'
+    AC_PATH_PROG(PYTHON, python, [], [${rp_with_python}/bin:${rp_with_python}])
   fi
+  AC_MSG_CHECKING([for Python version])
+  if test "x${PYTHON}" != "x"; then
+    PYTHON_VERSION=`${PYTHON} -c "import sys; print sys.version[[0:3]]"`
+  fi
+  AC_MSG_RESULT([$PYTHON_VERSION])
+fi
 
-  AC_MSG_CHECKING([for python distutils])
+if test "x${PYTHON_VERSION}" != "x"; then
+  PYTHON_INCLUDES=$incdir
+  AC_MSG_CHECKING([for Python distutils])
+  PYTHON_DISTUTILS=""
   ${PYTHON} -c "from distutils.core import setup; setup(name='test')" \
         build build_ext 2>&1 > /dev/null
   if test $? = 0 ; then
-    HAVE_PYTHON_DISTUTILS="yes"
-  else
-     HAVE_PYTHON_DISTUTILS="no"
+    PYTHON_DISTUTILS="yes"
   fi
-  AC_MSG_RESULT([$HAVE_PYTHON_DISTUTILS])
-
-  if test "${HAVE_PYTHON_DISTUTILS}" = "yes"; then
+  AC_MSG_RESULT([$PYTHON_DISTUTILS])
+  if test "${PYTHON_DISTUTILS}" = "yes" ; then
+    PYTHON_SITE_PACKAGES=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib()"`
     #
     # Check for Python include path
     #
-    AC_MSG_CHECKING([for Python include path])
-    if test "x${PYTHON_CPPFLAGS}" = "x"; then
-      incdir_path=`${PYTHON} -c "import distutils.sysconfig; \
-       print distutils.sysconfig.get_python_inc();"`
-      if test -n "${incdir}"; then
-        python_path="-I${incdir}"
-      fi
-      PYTHON_CPPFLAGS=$python_path
-    fi
-    AC_MSG_RESULT([$PYTHON_CPPFLAGS])
-    AC_SUBST([PYTHON_CPPFLAGS])
+    AC_MSG_CHECKING([path to Python headers])
+    PYTHON_INCDIR=`${PYTHON} -c "import distutils.sysconfig; \
+     print distutils.sysconfig.get_python_inc();"`
+    AC_MSG_RESULT([$PYTHON_INCDIR])
     #
-    # python distutils found, get settings from python directly
+    # Python distutils found, get settings from python directly
     #
-    AC_MSG_CHECKING([location of site-packages])
     PYTHON_SITE_DIR="`${PYTHON} -c 'from distutils import sysconfig; print sysconfig.get_python_lib(0);'`"
-
+    
     PYTHON_CFLAGS="`$PYTHON -c 'from distutils import sysconfig; flags = [[\"-I\" + sysconfig.get_python_inc(0), \"-I\" + sysconfig.get_python_inc(1), \" \".join(sysconfig.get_config_var(\"CFLAGS\").split())]]; print \" \".join(flags);'`"
     PYTHON_LDFLAGS="`$PYTHON -c 'from distutils import sysconfig; libs = sysconfig.get_config_var(\"LIBS\").split() + sysconfig.get_config_var(\"SYSLIBS\").split(); libs.append(\"-lpython\"+sysconfig.get_config_var(\"VERSION\")); print \" \".join(libs);'`"
     PYTHON_LIB="`$PYTHON -c 'from distutils import sysconfig; print \"python\" + sysconfig.get_config_var(\"VERSION\");'`"
     PYTHON_LIBDIR="`$PYTHON -c 'from distutils import sysconfig; print sysconfig.get_config_var(\"LIBDIR\");'`"
+    save_CPPFLAGS=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS -I${PYTHON_INCDIR}"
+    AC_CHECK_HEADERS([Python.h], [found=yes], [found=no])
+    CPPFLAGS=$save_CPPFLAGS
+    if test "$found" = "no" ; then
+      PYTHON_DISTUTILS=""
+    fi
   fi
-fi  
-AC_SUBST(pythondir)
+fi
 
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(PYTHON_INCLUDES)
+AC_SUBST(PYTHON_CFLAGS)
+AC_SUBST(PYTHON_INCDIR)
+AC_SUBST(PYTHON_LDFLAGS)
+AC_SUBST(PYTHON_LIB)
+AC_SUBST(PYTHON_SITE_DIR)
+AC_SUBST(PYTHON_LIBDIR)
 AC_SUBST(PYTHON_SITE_PACKAGES)
-AC_SUBST(HAVE_PYTHON_DISTUTILS)
+AC_SUBST(PYTHON_DISTUTILS)
 
 rp_with_ruby="yes"
 
 RUBY=""
 RUBY_DEV_PKG="no"
 
-AC_ARG_WITH(ruby,
-  AS_HELP_STRING([--with-ruby=PATH], [absolute path to ruby executable]),
-  [rp_with_ruby=$withval])
+AC_ARG_WITH(
+    [ruby],
+    [AS_HELP_STRING([--with-ruby=DIR], [location of ruby @<:@default=yes@:>@])],
+    [rp_with_ruby=$withval])
+
 if test "${rp_with_ruby}" != "no" ; then
   if test "${rp_with_ruby}" = "yes" ; then
     AC_PATH_PROG(RUBY, ruby)
@@ -575,14 +535,14 @@ JAVA=""
 JAVAH=""
 JAVAC=""
 JAVA_DEV_PKG="no"
-
-AC_ARG_WITH(java,
-  AS_HELP_STRING([--with-java=PATH], [absolute path to java executable]),
-  [rp_with_java=$withval])
+AC_ARG_WITH(
+    [java],
+    [AS_HELP_STRING([--with-java=DIR], [location of java @<:@default=yes@:>@])],
+    [rp_with_java=$withval])
 
 if test "${rp_with_java}" != "no" ; then
   if test "${rp_with_java}" = "yes" ; then
-    AC_PATH_PROG(JAVA, java)
+    AC_PATH_PROG(JAVA,  java)
     AC_PATH_PROG(JAVAC, javac)
     AC_PATH_PROG(JAVAH, javah)
   else
@@ -817,9 +777,9 @@ AC_CONFIG_FILES([
     examples/app-fermi/matlab/Makefile
     examples/app-fermi/matlab/compiled/Makefile
     examples/app-fermi/matlab/uncompiled/Makefile
-    examples/app-fermi/octave/Makefile
     examples/app-fermi/octave/2/Makefile
     examples/app-fermi/octave/3/Makefile
+    examples/app-fermi/octave/Makefile
     examples/app-fermi/perl/Makefile
     examples/app-fermi/python/Makefile
     examples/app-fermi/ruby/Makefile
@@ -855,7 +815,6 @@ AC_CONFIG_FILES([
     examples/zoo/Makefile
     examples/zoo/binary/Makefile
     examples/zoo/boolean/Makefile
-    examples/zoo/parallelepiped/Makefile
     examples/zoo/choice/Makefile
     examples/zoo/cloud/Makefile
     examples/zoo/cloud/matlab/Makefile
@@ -876,6 +835,7 @@ AC_CONFIG_FILES([
     examples/zoo/note/docs/Makefile
     examples/zoo/number/Makefile
     examples/zoo/number2/Makefile
+    examples/zoo/parallelepiped/Makefile
     examples/zoo/periodicelement/Makefile
     examples/zoo/phase/Makefile
     examples/zoo/sequence/Makefile
