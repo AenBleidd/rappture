@@ -548,6 +548,8 @@ bind .bugreport.banner.icon <Double-ButtonPress-1> \
     Rappture::bugreport::deactivate
 bind .bugreport.banner.title <Double-ButtonPress-1> \
     Rappture::bugreport::deactivate
+bind .bugreport <KeyPress-Escape> \
+    Rappture::bugreport::deactivate
 
 set bg [.bugreport cget -background]
 text .bugreport.expl -borderwidth 0 -highlightthickness 0 -background $bg \
