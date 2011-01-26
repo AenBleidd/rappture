@@ -31,6 +31,7 @@ itcl::class Rappture::VideoChooserInfo {
     }
 
     public method load {path about}
+    public method select {}
     public method query {what}
 
     protected method _fixSize {}
@@ -58,8 +59,7 @@ itk::usual VideoChooserInfo {
 itcl::body Rappture::VideoChooserInfo::constructor {args} {
 
     itk_component add main {
-        canvas $itk_interior.main \
-            -background black
+        canvas $itk_interior.main
     } {
         usual
         rename -background -controlbackground controlBackground Background
@@ -67,7 +67,7 @@ itcl::body Rappture::VideoChooserInfo::constructor {args} {
     bind $itk_component(main) <Configure> [itcl::code $this _fixSize]
 
     blt::table $itk_interior \
-        0,0 $itk_component(main) -fill both -padx 2
+        0,0 $itk_component(main) -fill both -pady 2
 
     blt::table configure $itk_interior c* -resize both
     blt::table configure $itk_interior r0 -resize both
@@ -95,7 +95,7 @@ itcl::body Rappture::VideoChooserInfo::load {path about} {
     set _path $path
 
     set movie [Rappture::Video file ${_path}]
-    $movie seek 50
+    $movie seek 60
 
     set _preview [image create photo]
     set _selected [image create photo]
@@ -114,9 +114,54 @@ itcl::body Rappture::VideoChooserInfo::load {path about} {
     $movie release
 
     $itk_component(main) bind preview <ButtonPress-1> [itcl::code $this _bindings b1press]
+    $itk_component(main) bind preview <Enter> [itcl::code $this _bindings enter]
+    $itk_component(main) bind preview <Leave> [itcl::code $this _bindings leave]
 
     _fixSize
 }
+
+# ----------------------------------------------------------------------
+# USAGE: select
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoChooserInfo::select {} {
+    if {"" == $_variable} {
+        return
+    }
+    # send this object's movie to the preview window
+
+    upvar #0 $_variable var
+    set var ${_path}
+
+    foreach {x0 y0 x1 y1} [$itk_component(main) bbox preview] break
+    set x0 [expr 0]
+    set y0 [expr 2]
+    set x1 [expr [$itk_component(main) cget -width]-2]
+    set y1 [expr [$itk_component(main) cget -height]-2]
+
+    # there is something wrong with the way we place the
+    # images on the canvas, or how the canvas is shapeed.
+    # the placement of the small image seems to be off
+    # by a pixel or two. for now we fudge the numbers to
+    # make the red line accesnts look decent.
+
+    $itk_component(main) create line $x0 $y0 $x1 $y0 \
+        -fill red \
+        -width 3 \
+        -tags previewselected
+
+    $itk_component(main) create line $x0 $y1 $x1 $y1 \
+        -fill red \
+        -width 3 \
+        -tags previewselected
+
+#    $itk_component(main) create rectangle \
+        [$itk_component(main) bbox preview] \
+        -outline red \
+        -width 4 \
+        -tags previewselected
+#    $itk_component(main) configure -background red
+}
+
 
 # ----------------------------------------------------------------------
 # USAGE: _bindings
@@ -124,19 +169,13 @@ itcl::body Rappture::VideoChooserInfo::load {path about} {
 itcl::body Rappture::VideoChooserInfo::_bindings {sequence} {
     switch -- $sequence {
         "b1press" {
-            if {"" == $_variable} {
-                return
-            }
-            # send this object's movie to the preview window
-
-            upvar #0 $_variable var
-            set var ${_path}
-            $itk_component(main) create rectangle \
-                [$itk_component(main) bbox preview] \
-                -outline red \
-                -width 4 \
-                -tags previewselected
-
+            select
+        }
+        "enter" {
+            $itk_component(main) itemconfigure previewselected -state hidden
+        }
+        "leave" {
+            $itk_component(main) itemconfigure previewselected -state normal
         }
         default {}
     }
@@ -157,6 +196,7 @@ itcl::body Rappture::VideoChooserInfo::_fixValue {args} {
     if {[string compare $var ${_path}] != 0} {
         # unselect this object
         $itk_component(main) delete previewselected
+        #$itk_component(main) configure -background black
     }
 }
 

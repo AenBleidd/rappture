@@ -597,6 +597,10 @@ itcl::body Rappture::VideoScreen::fixSize {} {
         return
     }
 
+    if {![winfo ismapped $itk_component(hull)]} {
+        return
+    }
+
     # get dimensions for the new image
     # adjust the aspect ratio, if necessary
 

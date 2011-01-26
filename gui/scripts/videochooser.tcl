@@ -29,12 +29,13 @@ itcl::class Rappture::VideoChooser {
         # defined below
     }
 
-    public method load {path}
-    public method choose {path}
+    public method load {paths}
+    public method select {id}
     protected method _fixSize {}
 
     private variable _vcnt 0            ;# counter of videos
     private variable _variable ""       ;# variable to pass along to each choice
+    private variable _paths ""          ;# list of choice paths
     private variable _objs ""           ;# list of choice objects
 }
 
@@ -82,13 +83,41 @@ itcl::body Rappture::VideoChooser::load {paths} {
         set ci [Rappture::VideoChooserInfo $f.vi${_vcnt} \
                     -variable ${_variable}]
         $ci load $path ""
-        pack $ci -expand yes -fill both -side right
+        pack $ci -expand yes -fill both -side left
 
         # add the object to the list of video info objs
+        lappend _paths $path
         lappend _objs $ci
     }
 
     _fixSize
+}
+
+# ----------------------------------------------------------------------
+# USAGE: select
+# ----------------------------------------------------------------------
+itcl::body Rappture::VideoChooser::select {id} {
+
+    set obj ""
+
+    if {[string is integer $id] == 1} {
+        # treat $id as the index
+        if {($id < 0) && ($id >= [llength ${_objs}])} {
+            error "invalid id \"$id\": must be in range 0 to [llength ${_objs}]"
+        }
+    } else {
+        # treat $id as a file path
+        set idx [lsearch -exact ${_paths} $id]
+        if {$idx == -1} {
+            error "invalid id \"$id\": not found in list of loaded objects"
+        }
+        set id $idx
+    }
+
+    # grab the object associated with the id
+    # and call it's select function.
+    set obj [lindex ${_objs} $id]
+    $obj select
 }
 
 
