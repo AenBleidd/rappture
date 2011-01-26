@@ -332,6 +332,10 @@ itcl::body Rappture::VideoPreview::fixSize {} {
         return
     }
 
+    if {![winfo ismapped $itk_component(hull)]} {
+        return
+    }
+
     set cw [winfo width $itk_component(main)]
     set ch [winfo height $itk_component(main)]
 
