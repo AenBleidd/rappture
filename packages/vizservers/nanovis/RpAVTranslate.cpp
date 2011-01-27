@@ -15,6 +15,8 @@
 
 #include "nvconf.h"
 
+#if defined(HAVE_FFMPEG_MEM_H) || defined(HAVE_LIBAVUTIL_MEM_H)
+
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -435,3 +437,4 @@ status.addContext("Rappture::Buffer::dump()");
 return status;
 */
 
+#endif /* HAVE_...*/
