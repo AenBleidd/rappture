@@ -1,5 +1,5 @@
 #include <nvconf.h>
-#if defined(HAVE_FFMPEG_AVFORMAT_H) || defined(HAVE_LIBAVFORMAT_AVFORMAT_H)
+#if defined(HAVE_LIBAVCODEC) || defined(HAVE_LIBAVFORMAT)
 #define HAVE_FFMPEG 1
 #endif
 

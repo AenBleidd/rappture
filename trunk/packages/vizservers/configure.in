@@ -31,6 +31,8 @@ AC_SUBST(SHLIB_CFLAGS)
 AC_SUBST(SHLIB_LDFLAGS)
 AC_SUBST(SHLIB_SUFFIX)
 
+AC_PATH_X
+
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_LN_S
@@ -208,7 +210,8 @@ for dir in \
 do
   saveLDFLAGS=$LDFLAGS
   LDFLAGS="-L$dir $LDFLAGS"
-  AC_CHECK_LIB([DXcallm], [DXGetComponentValue], [found=yes], [found=no])
+  unset ac_cv_lib_DXcallm_DXGetComponentValue
+  AC_CHECK_LIB([DXcallm], [DXGetComponentValue], [found=yes], [found=no], [-lX11])
   LDFLAGS=$saveLDFLAGS
   if test "$found" = "yes" ; then
     DX_LIB_DIR="$dir"
@@ -239,12 +242,10 @@ AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavf
 #endif
 ])
 
-oldLIBS=$LIBS
-LIBS=-lavcodec
-AC_CHECK_FUNCS(img_convert)
-LIBS=-lavformat
-AC_CHECK_FUNCS(avformat_alloc_context)
-LIBS=$oldLIBS
+AC_CHECK_LIB([avcodec], [avcodec_alloc_frame])
+AC_CHECK_LIB([avformat], [avformat_alloc_context])
+AC_CHECK_LIB([avutil], [av_free])
+AC_CHECK_FUNCS([img_convert])
 
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
