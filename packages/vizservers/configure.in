@@ -198,22 +198,29 @@ AC_MSG_RESULT([${DX_INC_DIR}])
 
 AC_MSG_CHECKING([for OpenDX libraries])
 DX_LIB_DIR=""
+found=no
 for dir in \
  /apps/rappture/lib \
  /usr/lib/dx/lib_linux \
  /usr/dx/lib_linux \
  /usr/lib
+ /usr/lib64/dx/lib_linux \
+ /usr/lib64
 do
-  if test -r "${dir}/libDXcallm.a" ; then
+  saveLIBS=$LIBS
+  LIBS=-L$dir
+  AC_CHECK_LIB([DXCallm], [], [found=yes], [found=no])
+  LIBS=$saveLIBS
+  if test "found" = "yes" ; then
     DX_LIB_DIR="$dir"
     break
   fi
 done
-if test "x${DX_LIB_DIR}" = "x" ; then
+if test "x{$DX_LIB_DIR}" = "x" ; then
   AC_MSG_ERROR([can't find OpenDX libraries])
 fi
 
-if test "${DX_LIB_DIR}" = "/usr" ; then
+if test "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
   DX_LIB_SPEC=""
 else
   DX_LIB_SPEC="-L${DX_LIB_DIR}"

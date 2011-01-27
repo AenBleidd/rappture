@@ -1,3 +1,7 @@
+#include <nvconf.h>
+#if defined(HAVE_FFMPEG_AVFORMAT_H) || defined(HAVE_LIBAVFORMAT_AVFORMAT_H)
+#define HAVE_FFMPEG 1
+#endif
 
 #include <assert.h>
 #include <stdlib.h>
@@ -11,7 +15,9 @@
 #include <RpFieldRect3D.h>
 #include <RpFieldPrism3D.h>
 #include <RpOutcome.h>
+#ifdef HAVE_FFMPEG
 #include <RpAVTranslate.h>
+#endif
 #include "Trace.h"
 #include "TransferFunction.h"
 
@@ -1356,50 +1362,6 @@ TransferFunctionSwitchProc(
     return TCL_OK;
 }
 
-/*
- *---------------------------------------------------------------------------
- *
- * VideoFormatSwitchProc --
- *
- *	Convert a Tcl_Obj representing the video format into its
- *	integer id.
- *
- * Results:
- *	The return value is a standard Tcl result.
- *
- *---------------------------------------------------------------------------
- */
-/*ARGSUSED*/
-static int
-VideoFormatSwitchProc(
-    ClientData clientData,	/* Not used. */
-    Tcl_Interp *interp,		/* Interpreter to send results back to */
-    const char *switchName,	/* Not used. */
-    Tcl_Obj *objPtr,		/* String representation */
-    char *record,		/* Structure record */
-    int offset,			/* Not used. */
-    int flags)			/* Not used. */
-{
-    Rappture::AVTranslate::VideoFormats *formatPtr = 
-	(Rappture::AVTranslate::VideoFormats *)(record + offset);
-    const char *string;
-    char c; 
-
-    string = Tcl_GetString(objPtr);
-    c = string[0];
-    if ((c == 'm') && (strcmp(string, "mpeg") == 0)) {
-	*formatPtr =  Rappture::AVTranslate::MPEG1;
-    } else if ((c == 't') && (strcmp(string, "theora") == 0)) {
-	*formatPtr = Rappture::AVTranslate::THEORA;
-    } else if ((c == 'm') && (strcmp(string, "mov") == 0)) {
-	*formatPtr = Rappture::AVTranslate::QUICKTIME;
-    } else {
-	Tcl_AppendResult(interp, "bad video format \"", string,
-                     "\": should be mpeg, theora, or mov", (char*)NULL);
-    }
-    return TCL_ERROR;
-}
-
 static int
 FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_Obj *const *objv)
@@ -1921,6 +1883,52 @@ FlowResetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+#ifdef HAVE_FFMPEG
+
+/*
+ *---------------------------------------------------------------------------
+ *
+ * VideoFormatSwitchProc --
+ *
+ *	Convert a Tcl_Obj representing the video format into its
+ *	integer id.
+ *
+ * Results:
+ *	The return value is a standard Tcl result.
+ *
+ *---------------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static int
+VideoFormatSwitchProc(
+    ClientData clientData,	/* Not used. */
+    Tcl_Interp *interp,		/* Interpreter to send results back to */
+    const char *switchName,	/* Not used. */
+    Tcl_Obj *objPtr,		/* String representation */
+    char *record,		/* Structure record */
+    int offset,			/* Not used. */
+    int flags)			/* Not used. */
+{
+    Rappture::AVTranslate::VideoFormats *formatPtr = 
+	(Rappture::AVTranslate::VideoFormats *)(record + offset);
+    const char *string;
+    char c; 
+
+    string = Tcl_GetString(objPtr);
+    c = string[0];
+    if ((c == 'm') && (strcmp(string, "mpeg") == 0)) {
+	*formatPtr =  Rappture::AVTranslate::MPEG1;
+    } else if ((c == 't') && (strcmp(string, "theora") == 0)) {
+	*formatPtr = Rappture::AVTranslate::THEORA;
+    } else if ((c == 'm') && (strcmp(string, "mov") == 0)) {
+	*formatPtr = Rappture::AVTranslate::QUICKTIME;
+    } else {
+	Tcl_AppendResult(interp, "bad video format \"", string,
+                     "\": should be mpeg, theora, or mov", (char*)NULL);
+    }
+    return TCL_ERROR;
+}
+
 struct FlowVideoValues {
     float frameRate;			/* Frame rate */
     int bitRate;			/* Video bitrate */
@@ -2069,7 +2077,14 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
 }
-
+#else
+static int
+FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+	    Tcl_Obj *const *objv)
+{
+    return TCL_OK;			/* Not implemented */
+}
+#endif	/* HAVE_FFMPEG */
 
 /*
  *---------------------------------------------------------------------------
