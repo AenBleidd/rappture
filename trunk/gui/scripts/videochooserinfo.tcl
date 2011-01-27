@@ -22,6 +22,7 @@ itcl::class Rappture::VideoChooserInfo {
     itk_option define -selectedwidth selectedwidth Selectedwidth 112
     itk_option define -selectedheight selectedheight Selectedheight 63
     itk_option define -variable variable Variable ""
+    itk_option define -thumbsdir thumbsdir Thumbsdir ""
 
     constructor { args } {
         # defined below
@@ -93,12 +94,44 @@ itcl::body Rappture::VideoChooserInfo::load {path about} {
     }
 
     set _path $path
-
-    set movie [Rappture::Video file ${_path}]
-    $movie seek 60
+    set preview_fname ""
+    set selected_fname ""
 
     set _preview [image create photo]
     set _selected [image create photo]
+
+    if {[string compare "" $itk_option(-thumbsdir)] != 0} {
+        set root [file tail [file rootname ${_path}]]
+        set preview_fname [file join $itk_option(-thumbsdir) ${root}_${_width}x${_height}.png]
+        set selected_fname [file join $itk_option(-thumbsdir) ${root}_${_selectedwidth}x${_selectedheight}.png]
+
+        if {[file readable $preview_fname] && [file readable $selected_fname]} {
+            set fid [open $preview_fname r]
+            fconfigure $fid -translation binary
+            ${_preview} put [read $fid]
+            close $fid
+
+            set fid [open $selected_fname r]
+            fconfigure $fid -translation binary
+            ${_selected} put [read $fid]
+            close $fid
+        }
+    } else {
+        # there are some incomplete movies that don't open up
+        set err [catch {
+            set movie [Rappture::Video file ${_path}]
+            $movie seek 60
+
+            ${_preview} put [$movie get image ${_width} ${_height}]
+            ${_selected} put [$movie get image ${_selectedwidth} ${_selectedheight}]
+
+            $movie release
+        }]
+        if {$err} {
+            puts stderr "Error while opening movie: $movie"
+            return
+        }
+    }
 
     set cw [expr round(${_selectedwidth}/2.0)]
     set ch [expr round(${_selectedheight}/2.0)]
@@ -107,11 +140,6 @@ itcl::body Rappture::VideoChooserInfo::load {path about} {
         -image ${_preview} \
         -activeimage ${_selected} \
         -tags preview
-
-    ${_preview} put [$movie get image ${_width} ${_height}]
-    ${_selected} put [$movie get image ${_selectedwidth} ${_selectedheight}]
-
-    $movie release
 
     $itk_component(main) bind preview <ButtonPress-1> [itcl::code $this _bindings b1press]
     $itk_component(main) bind preview <Enter> [itcl::code $this _bindings enter]
