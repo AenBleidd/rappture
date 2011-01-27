@@ -64,8 +64,11 @@ if {$params(-testdir) == ""} {
         puts "Cannot find test directory"
         exit 1
     }
-} elseif {![file isdirectory $params(-testdir)]} {
-    puts "Test directory \"$params(-testdir)\" does not exist"
+# If given test directory does not exist, create it.
+} elseif {![file exists $params(-testdir)]} {
+    file mkdir $params(-testdir)
+} else {
+    puts "Non-directory file exists at test location \"$params(-testdir)\""
     exit 1
 }
 
@@ -73,6 +76,19 @@ if {$params(-testdir) == ""} {
 # INITIALIZE WINDOW
 # ----------------------------------------------------------------------
 wm title . "Rappture Regression Tester"
+
+menu .mb
+menu .mb.file -tearoff 0
+.mb add cascade -label "File" -underline 0 -menu .mb.file
+.mb.file add command -label "Select tool" -underline 7 \
+    -command {set params(-tool) [tk_getOpenFile]
+              .tree configure -toolxml $params(-tool)}
+.mb.file add command -label "Select test directory" -underline 12 \
+    -command {set params(-testdir) [tk_chooseDirectory]
+              .tree configure -testdir $params(-testdir)}
+.mb.file add command -label "Exit" -underline 1 -command {destroy .}
+. configure -menu .mb
+
 panedwindow .pw
 
 .pw add [Rappture::Tester::TestTree .tree \

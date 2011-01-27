@@ -79,7 +79,7 @@ itcl::body Rappture::Tester::Test::constructor {toolxml testxml} {
 itcl::body Rappture::Tester::Test::destructor {} {
     itcl::delete object $_toolobj
     itcl::delete object $_testobj
-    if {$_ran} {
+    if {$_ran && $_testobj != $_runobj} {
         itcl::delete object $_runobj
     }
 }
@@ -192,13 +192,10 @@ itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
 # ----------------------------------------------------------------------
 # USAGE: getResult
 #
-# Returns the result of the test - either Pass, Fail, or Error.  Throws
-# an error if the test has not been ran.
+# Returns the result of the test - either Pass, Fail, or Error.  Returns
+# an empty string if the test has not been ran.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getResult {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
-    }
     return $_result
 }
 
@@ -293,7 +290,7 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::run {} {
     # Delete existing library if rerun
-    if {$_ran} {
+    if {$_ran && $_result != "Error"} {
         itcl::delete object $_runobj
     }
     set driver [makeDriver]
