@@ -196,38 +196,37 @@ fi
 AC_SUBST(DX_INC_SPEC)
 AC_MSG_RESULT([${DX_INC_DIR}])
 
-AC_MSG_CHECKING([for OpenDX libraries])
 DX_LIB_DIR=""
 found=no
 for dir in \
- /apps/rappture/lib \
- /usr/lib/dx/lib_linux \
+ /usr/lib \
+ /usr/lib64 \
  /usr/dx/lib_linux \
- /usr/lib
+ /usr/lib/dx/lib_linux \
  /usr/lib64/dx/lib_linux \
- /usr/lib64
+ /apps/rappture/lib 
 do
-  saveLIBS=$LIBS
-  LIBS=-L$dir
-  AC_CHECK_LIB([DXCallm], [], [found=yes], [found=no])
-  LIBS=$saveLIBS
-  if test "found" = "yes" ; then
+  saveLDFLAGS=$LDFLAGS
+  LDFLAGS="-L$dir $LDFLAGS"
+  AC_CHECK_LIB([DXcallm], [DXGetComponentValue], [found=yes], [found=no])
+  LDFLAGS=$saveLDFLAGS
+  if test "$found" = "yes" ; then
     DX_LIB_DIR="$dir"
     break
   fi
 done
 if test "x{$DX_LIB_DIR}" = "x" ; then
-  AC_MSG_ERROR([can't find OpenDX libraries])
+  AC_MSG_ERROR([cant find OpenDX libraries])
 fi
 
+AC_MSG_CHECKING([for libDXcallm library])
 if test "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
   DX_LIB_SPEC=""
 else
   DX_LIB_SPEC="-L${DX_LIB_DIR}"
 fi
-
+AC_MSG_RESULT([$DX_LIB_SPEC])
 AC_SUBST(DX_LIB_SPEC)
-AC_MSG_RESULT([${DX_LIB_DIR}])
 
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
 #define SIZEOF_LONG ${ac_cv_sizeof_long}
