@@ -21,6 +21,7 @@ itcl::class Rappture::VideoChooser {
     itk_option define -width width Width 300
     itk_option define -height height Height 300
     itk_option define -variable variable Variable ""
+    itk_option define -thumbsdir thumbsdir Thumbsdir ""
 
     constructor { args } {
         # defined below
@@ -81,7 +82,8 @@ itcl::body Rappture::VideoChooser::load {paths} {
         incr _vcnt
 
         set ci [Rappture::VideoChooserInfo $f.vi${_vcnt} \
-                    -variable ${_variable}]
+                    -variable ${_variable} \
+                    -thumbsdir $itk_option(-thumbsdir)]
         $ci load $path ""
         pack $ci -expand yes -fill both -side left
 
