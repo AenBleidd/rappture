@@ -30,7 +30,7 @@ INCLUDES        = -I../../../src/objects \
 LIBS    = \
 		-L../../../src/core -lrappture \
 		-L../../../src/objects -lRpObjects\
-		-L$(libdir) -lexpat -lz
+		-L$(libdir) -lexpat -lz -lm
 VPATH   = $(srcdir)
 
 CXX_SWITCHES    = $(CXXFLAGS) $(INCLUDES) $(DEFINES)
