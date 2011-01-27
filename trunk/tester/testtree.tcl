@@ -45,7 +45,7 @@ itcl::class Rappture::Tester::TestTree {
     protected method getData {id}
     protected method getLeaves {{id 0}}
     protected method getSelected {}
-    protected method populate {}
+    protected method populate {args}
     protected method runSelected {}
     protected method runTest {id} 
     protected method setData {id data}
@@ -115,6 +115,7 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     if {$itk_option(-toolxml) == ""} {
         error "no -toolxml configuration option given."
     }
+
 }
 
 # ----------------------------------------------------------------------
@@ -134,8 +135,12 @@ itcl::body Rappture::Tester::TestTree::destructor {} {
 # -toolxml has already been defined.
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::testdir {
-    if {$itk_option(-toolxml) != ""} {
-        populate
+    if {[file isdirectory $itk_option(-testdir)]} {
+        if {$itk_option(-toolxml) != ""} {
+            populate
+        }
+    } else {
+        error "Test directory \"$itk_option(-testdir)\" does not exist"
     }
 }
 
@@ -145,9 +150,14 @@ itcl::configbody Rappture::Tester::TestTree::testdir {
 # Location of the tool.xml for the tool being tested.  Repopulate the
 # tree if -toolxml is changed, but only if -testdir has already been
 # defined.
+# ----------------------------------------------------------------------
 itcl::configbody Rappture::Tester::TestTree::toolxml {
-    if {$itk_option(-testdir) != ""} {
-        populate
+    if {[file exists $itk_option(-toolxml)]} {
+        if {$itk_option(-testdir) != ""} {
+            populate
+        }
+    } else {
+        error "Tool \"$itk_option(-testdir)\" does not exist"
     }
 }
 
@@ -193,21 +203,25 @@ itcl::body Rappture::Tester::TestTree::getTest {args} {
 # Refreshes the result column and any other information which may be
 # added later for the given tree node id.  Mainly needed to update the
 # result from Fail to Pass after regoldenizing a test.  If no id is 
-# given, return the test associated with the currently focused node.
+# given, refresh all tests and search the test directory again to check
+# for new tests.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestTree::refresh {args} {
     if {[llength $args] == 0} {
-         set id [$itk_component(treeview) index focus]
+        foreach id [getLeaves] {
+            refresh $id
+        }
+        populate -noclear
     } elseif {[llength $args] == 1} {
         set id [lindex $args 0]
+        if {[lsearch -exact [getLeaves] $id] == -1} {
+            error "given id $id is not a leaf node."
+        }
+        set test [getTest $id]
+        setData $id [list result [$test getResult] test $test]
     } else {
         error "wrong # args: should be refresh ?id?"
     }
-    if {[lsearch -exact [getLeaves] $id] == -1} {
-         error "given id $id is not a leaf node."
-    }
-    set test [getTest $id]
-    setData $id [list result [$test getResult] test $test]
 }
 
 # ----------------------------------------------------------------------
@@ -266,26 +280,30 @@ itcl::body Rappture::Tester::TestTree::getSelected {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: populate
+# USAGE: populate ?-noclear?
 #
 # Used internally to insert nodes into the treeview for each test xml
 # found in the test directory.  Skips any xml files that do not contain
 # information at path test.label.  Relies on the autocreate treeview
 # option so that branch nodes need not be explicitly created.  Deletes
-# any existing contents.
+# any existing contents unless -noclear is given as an argument.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestTree::populate {} {
-    foreach id [getLeaves] {
-        itcl::delete object [getTest $id]
+itcl::body Rappture::Tester::TestTree::populate {args} {
+    if {[lsearch $args -noclear] == -1} {
+        foreach id [getLeaves] {
+            itcl::delete object [getTest $id]
+        }
+        $itk_component(treeview) delete 0
+        $itk_component(treeview) selection clearall
     }
-    $itk_component(treeview) delete 0
     # TODO: add an appropriate icon
     set icon [Rappture::icon molvis-3dorth]
     # TODO: Descend through subdirectories inside testdir?
     foreach testxml [glob -nocomplain -directory $itk_option(-testdir) *.xml] {
         set lib [Rappture::library $testxml]
         set testpath [$lib get test.label]
-        if {$testpath != ""} {
+        if {$testpath != "" && \
+            [$itk_component(treeview) find -full $testpath] == ""} {
             set test [Rappture::Tester::Test ::#auto \
                 $itk_option(-toolxml) $testxml]
             $itk_component(treeview) insert end $testpath -data \
@@ -295,6 +313,7 @@ itcl::body Rappture::Tester::TestTree::populate {} {
     }
     $itk_component(treeview) open -recurse root
     # TODO: Fix width of main treeview column
+    updateLabel
 }
 
 # ----------------------------------------------------------------------
