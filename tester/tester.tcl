@@ -108,13 +108,6 @@ pack .pw -expand yes -fill both
 set lastsel ""
 
 # TODO: Handle resizing better
-# TODO: Fix error that occurs only when you click and hold on a test
-#       while the right hand side is empty.  Adding lastsel check
-#       removed the error, but tree selection still acts strange when
-#       holding down the mouse button.  selectionHandler actually gets
-#       invoked twice, somehow leading to an event dispatch error.
-#       If selectionHandler does NOT reconfigure the right side with the
-#       selected test, then no error occurs.
 
 # ----------------------------------------------------------------------
 # USAGE: selectionHandler ?-refresh?

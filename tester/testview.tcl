@@ -144,7 +144,7 @@ itcl::configbody Rappture::Tester::TestView::test {
                 Error {showStatus "Error while running test."}
             }
         } else {
-            showStatus "Test has not yet ran."
+            showStatus "Test has not yet run."
         }
         updateResults
         updateInputs
@@ -238,7 +238,9 @@ itcl::body Rappture::Tester::TestView::updateInputs {} {
     set test $itk_option(-test)
     if {$test != ""} {
         $itk_component(tabs) tab configure "Inputs" -state normal
-        foreach {path val} [$test getInputs] {
+        foreach pair [$test getInputs] {
+            set path [lindex $pair 0]
+            set val [lindex $pair 1]
             $itk_component(inputs) insert end $path -data [list Value $val]
         }
         $itk_component(inputs) open -recurse root
@@ -260,7 +262,9 @@ itcl::body Rappture::Tester::TestView::updateOutputs {} {
     set test $itk_option(-test)
     if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
         $itk_component(tabs) tab configure "Outputs" -state normal
-        foreach {path status} [$test getOutputs] {
+        foreach pair [$test getOutputs] {
+            set path [lindex $pair 0]
+            set status [lindex $pair 1]
             $itk_component(outputs) insert end $path -data [list Status $status]
         }
         $itk_component(outputs) open -recurse root

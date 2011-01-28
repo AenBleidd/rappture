@@ -125,10 +125,10 @@ itcl::body Rappture::Tester::Test::getInputs {{path input}} {
         if {$fullpath != "input.TestRun"} {
             set val [$_testobj get $fullpath.current]
             if {$val != ""} {
-                lappend retval $fullpath $val
+                lappend retval [list $fullpath $val]
             }
         }
-        append retval [getInputs $fullpath]
+        append retval " [getInputs $fullpath]"
     }
     return $retval
 }
@@ -175,7 +175,7 @@ itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
                     set status ""
                 }
             }
-            lappend retval $fullpath $status
+            lappend retval [list $fullpath $status]
         }
         append retval " [getOutputs $fullpath]"
     }
