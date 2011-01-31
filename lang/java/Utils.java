@@ -25,6 +25,10 @@ public class Utils{
     jRpUtilsProgress(percent, text);
   }
 
+  public static void progress(int percent){
+    jRpUtilsProgress(percent, "");
+  }
+
   private static native void jRpUtilsProgress(int percent, String text);
 
 }

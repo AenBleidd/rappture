@@ -16,7 +16,7 @@
 #include "jRpUnits.h"
 #include "rappture.h"
 
-// convert
+// convertString
 JNIEXPORT jstring JNICALL Java_rappture_Units_jRpUnitsConvert
   (JNIEnv *env, jclass cls, jstring javaFromVal, jstring javaTo, jboolean units){
   const char* nativeFromVal = env->GetStringUTFChars(javaFromVal, 0);
@@ -33,7 +33,7 @@ JNIEXPORT jstring JNICALL Java_rappture_Units_jRpUnitsConvert
   if (err){
     ex = env->FindClass("java/lang/RuntimeException");
     if (ex){
-      errorMsg = "Connot convert ";
+      errorMsg = "Cannot convert ";
       errorMsg += nativeFromVal;
       errorMsg += " to ";
       errorMsg += nativeTo;

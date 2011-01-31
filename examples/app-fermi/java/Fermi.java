@@ -21,9 +21,9 @@ class Fermi{
 
     // read the input values and convert to correct units
     String Tstr = driver.get("input.number(temperature).current");
-    double T = Double.valueOf(rappture.Units.convert(Tstr, "K", false));
+    double T = Double.valueOf(rappture.Units.convertString(Tstr, "K", false));
     String Efstr = driver.get("input.number(Ef).current");
-    double Ef = Double.valueOf(rappture.Units.convert(Efstr, "eV", false));
+    double Ef = Double.valueOf(rappture.Units.convertString(Efstr, "eV", false));
 
     // Set the energy range and step size
     double kT = 8.61734E-5 * T;

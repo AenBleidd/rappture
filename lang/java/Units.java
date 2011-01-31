@@ -22,15 +22,23 @@ public class Units{
     System.loadLibrary("JRappture");
   }
 
-  public static String convert(String fromVal, String to, boolean units){
+  // Public Methods------------------------------------------------------------
+  public static double convertDouble(double fromVal, String to){
+    return Double.parseDouble(
+      jRpUnitsConvert(Double.toString(fromVal), to, false));
+  }
+
+  public static String convertString(String fromVal, String to, boolean units){
     return jRpUnitsConvert(fromVal, to, units);
   }
 
-  public static String convert(String fromVal, String to){
+  public static String convertString(String fromVal, String to){
     return jRpUnitsConvert(fromVal, to, true);
   }
 
-  private static native String jRpUnitsConvert(String fromVal, String to, boolean units);
+  // Native Functions----------------------------------------------------------
+  private static native String jRpUnitsConvert(String fromVal, String to,
+    boolean units);
 }
 
 

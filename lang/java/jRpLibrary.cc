@@ -144,3 +144,10 @@ JNIEXPORT void JNICALL Java_rappture_Library_jRpResult
   ((RpLibrary*)libPtr)->result(exitStatus);
 }
 
+// xml
+JNIEXPORT jstring JNICALL Java_rappture_Library_jRpXml
+  (JNIEnv *env, jobject obj, jlong libPtr) {
+  std::string retStr = ((RpLibrary*)libPtr)->xml();
+  return(env->NewStringUTF(retStr.c_str()));
+}
+
