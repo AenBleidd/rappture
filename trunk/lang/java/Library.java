@@ -99,6 +99,10 @@ public class Library{
     jRpResult(libPtr, 0);
   }
 
+  public String xml(){
+    return jRpXml(libPtr);
+  }
+
 
   // Native Functions----------------------------------------------------------
   private native long jRpLibrary(String path);
@@ -117,6 +121,7 @@ public class Library{
                                  boolean compress, boolean append);
 
   private native void jRpResult(long libPtr, int exitStatus);  
+  private native String jRpXml(long libPtr);
 
   // Private Attributes--------------------------------------------------------
   private long libPtr;  //pointer to c++ RpLibrary 
