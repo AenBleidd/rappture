@@ -34,10 +34,9 @@ typedef struct RpRusageStats {
 } RpRusageStats;
 
 static RpRusageStats RpRusage_Start;      /* time at start of program */
-static RpRusageStats RpRusage_MarkStats;  /* stats from last "mark" */
-
 
 static Tcl_ObjCmdProc RpRusageCmd;
+static Tcl_ObjCmdProc RpRusageForgetOp;
 static Tcl_ObjCmdProc RpRusageMarkOp;
 static Tcl_ObjCmdProc RpRusageMeasureOp;
 
@@ -45,13 +44,16 @@ static int RpRusageCapture _ANSI_ARGS_((Tcl_Interp *interp,
     RpRusageStats *rptr));
 static double RpRusageTimeDiff _ANSI_ARGS_((struct timeval *currptr,
     struct timeval *prevptr));
+static void RpDestroyMarkNames _ANSI_ARGS_((ClientData cdata,
+    Tcl_Interp *interp));
 
 /*
  * rusage subcommands:
  */
 static Rp_OpSpec rusageOps[] = {
-    {"mark",    2, RpRusageMarkOp, 2, 2, "",},
-    {"measure", 2, RpRusageMeasureOp, 2, 2, "",},
+    {"forget", 1, RpRusageForgetOp, 2, 0, "?name...?",},
+    {"mark",    2, RpRusageMarkOp, 2, 3, "?name?",},
+    {"measure", 2, RpRusageMeasureOp, 2, 3, "?name?",},
 };
 static int nRusageOps = sizeof(rusageOps) / sizeof(Rp_OpSpec);
 
@@ -67,16 +69,27 @@ int
 RpRusage_Init(interp)
     Tcl_Interp *interp;  /* interpreter being initialized */
 {
+    Tcl_HashTable *markNamesPtr;
+
     Tcl_CreateObjCommand(interp, "::Rappture::rusage", RpRusageCmd, 
 	NULL, NULL);
 
-    /* set an initial mark automatically */
-    if (RpRusageMarkOp(NULL, interp, 0, (Tcl_Obj**)NULL) != TCL_OK) {
+    /* set up a hash table for different mark names */
+    markNamesPtr = (Tcl_HashTable*)ckalloc(sizeof(Tcl_HashTable));
+    Tcl_InitHashTable(markNamesPtr, TCL_STRING_KEYS);
+
+    Tcl_SetAssocData(interp, "RpRusageMarks",
+        RpDestroyMarkNames, (ClientData)markNamesPtr);
+
+    /* capture the starting time for this program */
+    if (RpRusageCapture(interp, &RpRusage_Start) != TCL_OK) {
         return TCL_ERROR;
     }
 
-    /* capture the starting time for this program */
-    memcpy(&RpRusage_Start, &RpRusage_MarkStats, sizeof(RpRusageStats));
+    /* set an initial "global" mark automatically */
+    if (RpRusageMarkOp(NULL, interp, 0, (Tcl_Obj**)NULL) != TCL_OK) {
+        return TCL_ERROR;
+    }
 
     return TCL_OK;
 }
@@ -120,7 +133,7 @@ RpRusageCmd(cdata, interp, objc, objv)
  *  Invoked whenever someone uses the "rusage mark" command to mark
  *  the start of an execution.  Handles the following syntax:
  *
- *      rusage mark
+ *      rusage mark ?name?
  *
  *  Returns TCL_OK on success, and TCL_ERROR (along with an error
  *  message in the interpreter) if anything goes wrong.
@@ -131,9 +144,27 @@ RpRusageMarkOp(cdata, interp, objc, objv)
     ClientData cdata;         /* not used */
     Tcl_Interp *interp;       /* interpreter handling this request */
     int objc;                 /* number of command line args */
-    Tcl_Obj *const *objv;             /* strings for command line args */
+    Tcl_Obj *const *objv;     /* strings for command line args */
 {
-    return RpRusageCapture(interp, &RpRusage_MarkStats);
+    char *markName;
+    Tcl_HashTable *markNamesPtr;
+    Tcl_HashEntry *entryPtr;
+    int newEntry;
+    RpRusageStats *markPtr;
+
+    markNamesPtr = (Tcl_HashTable *)
+        Tcl_GetAssocData(interp, "RpRusageMarks", NULL);
+
+    markName = (objc > 2) ? Tcl_GetString(objv[2]): "global";
+    entryPtr = Tcl_CreateHashEntry(markNamesPtr, markName, &newEntry);
+    if (newEntry) {
+        markPtr = (RpRusageStats*)ckalloc(sizeof(RpRusageStats));
+        Tcl_SetHashValue(entryPtr, (ClientData)markPtr);
+    } else {
+        markPtr = (RpRusageStats*)Tcl_GetHashValue(entryPtr);
+    }
+
+    return RpRusageCapture(interp, markPtr);
 }
 
 /*
@@ -144,7 +175,7 @@ RpRusageMarkOp(cdata, interp, objc, objv)
  *  measure resource usage since the last "mark" operation.  Handles
  *  the following syntax:
  *
- *      rusage measure
+ *      rusage measure ?name?
  *
  *  Returns TCL_OK on success, and TCL_ERROR (along with an error
  *  message in the interpreter) if anything goes wrong.
@@ -157,6 +188,10 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
     int objc;                 /* number of command line args */
     Tcl_Obj *const *objv;     /* strings for command line args */
 {
+    char *markName;
+    Tcl_HashTable *markNamesPtr;
+    Tcl_HashEntry *entryPtr;
+    RpRusageStats *markPtr;
     double tval;
     RpRusageStats curstats;
     char buffer[TCL_DOUBLE_SPACE];
@@ -165,11 +200,23 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
         return TCL_ERROR;
     }
 
+    markNamesPtr = (Tcl_HashTable *)
+        Tcl_GetAssocData(interp, "RpRusageMarks", NULL);
+
+    markName = (objc > 2) ? Tcl_GetString(objv[2]): "global";
+    entryPtr = Tcl_FindHashEntry(markNamesPtr, markName);
+    if (entryPtr == NULL) {
+        Tcl_AppendResult(interp, "mark \"", markName,
+            "\" doesn't exist", NULL);
+        return TCL_ERROR;
+    }
+    markPtr = (RpRusageStats*)Tcl_GetHashValue(entryPtr);
+
     /*
      * Compute: START TIME
      */
     Tcl_AppendElement(interp, "start");
-    tval = RpRusageTimeDiff(&RpRusage_MarkStats.times, &RpRusage_Start.times);
+    tval = RpRusageTimeDiff(&markPtr->times, &RpRusage_Start.times);
     Tcl_PrintDouble(interp, tval, buffer);
     Tcl_AppendElement(interp, buffer);
 
@@ -177,7 +224,7 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
      * Compute: WALL TIME
      */
     Tcl_AppendElement(interp, "walltime");
-    tval = RpRusageTimeDiff(&curstats.times, &RpRusage_MarkStats.times);
+    tval = RpRusageTimeDiff(&curstats.times, &markPtr->times);
     Tcl_PrintDouble(interp, tval, buffer);
     Tcl_AppendElement(interp, buffer);
 
@@ -186,12 +233,75 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
      */
     Tcl_AppendElement(interp, "cputime");
     tval = RpRusageTimeDiff(&curstats.resources.ru_utime,
-             &RpRusage_MarkStats.resources.ru_utime)
+             &markPtr->resources.ru_utime)
          + RpRusageTimeDiff(&curstats.resources.ru_stime,
-             &RpRusage_MarkStats.resources.ru_stime);
+             &markPtr->resources.ru_stime);
     Tcl_PrintDouble(interp, tval, buffer);
     Tcl_AppendElement(interp, buffer);
 
+    return TCL_OK;
+}
+
+/*
+ * ------------------------------------------------------------------------
+ *  RpRusageForgetOp()
+ *
+ *  Invoked whenever someone uses the "rusage forget" command to release
+ *  information previous set by "rusage mark".  With no args, it releases
+ *  all known marks; otherwise, it releases just the specified mark
+ *  names.  This isn't usually needed, but if a program creates thousands
+ *  of marks, this gives a way to avoid a huge memory leak.
+ *  Handles the following syntax:
+ *
+ *      rusage forget ?name name...?
+ *
+ *  Returns TCL_OK on success, and TCL_ERROR (along with an error
+ *  message in the interpreter) if anything goes wrong.
+ * ------------------------------------------------------------------------
+ */
+static int
+RpRusageForgetOp(cdata, interp, objc, objv)
+    ClientData cdata;         /* not used */
+    Tcl_Interp *interp;       /* interpreter handling this request */
+    int objc;                 /* number of command line args */
+    Tcl_Obj *const *objv;     /* strings for command line args */
+{
+    int i;
+    char *markName;
+    Tcl_HashTable *markNamesPtr;
+    Tcl_HashEntry *entryPtr;
+    Tcl_HashSearch search;
+
+    markNamesPtr = (Tcl_HashTable *)
+        Tcl_GetAssocData(interp, "RpRusageMarks", NULL);
+
+    /*
+     * No args? Then clear all entries in the hash table.
+     */
+    if (objc == 2) {
+        for (entryPtr = Tcl_FirstHashEntry(markNamesPtr, &search);
+             entryPtr != NULL;
+             entryPtr = Tcl_NextHashEntry(&search)) {
+            ckfree((char *)Tcl_GetHashValue(entryPtr));
+        }
+        Tcl_DeleteHashTable(markNamesPtr);
+        Tcl_InitHashTable(markNamesPtr, TCL_STRING_KEYS);
+    }
+
+    /*
+     * Otherwise, delete only the specified marks.  Be forgiving.
+     * If a mark isn't recognized, ignore it.
+     */
+    else {
+        for (i=2; i < objc; i++) {
+            markName = Tcl_GetString(objv[i]);
+            entryPtr = Tcl_FindHashEntry(markNamesPtr, markName);
+            if (entryPtr) {
+                ckfree((char *)Tcl_GetHashValue(entryPtr));
+                Tcl_DeleteHashEntry(entryPtr);
+            }
+        }
+    }
     return TCL_OK;
 }
 
@@ -255,3 +365,28 @@ RpRusageTimeDiff(currptr, prevptr)
     return tval;
 }
 
+/*
+ * ------------------------------------------------------------------------
+ *  RpDestroyMarkNames()
+ *
+ *  Used internally to clean up the marker names when the interpreter
+ *  that owns them is being destroyed.
+ * ------------------------------------------------------------------------
+ */
+static void
+RpDestroyMarkNames(cdata, interp)
+    ClientData cdata;         /* data being destroyed */
+    Tcl_Interp *interp;       /* interpreter that owned the data */
+{
+    Tcl_HashTable *markNamesPtr;
+    Tcl_HashEntry *entryPtr;
+    Tcl_HashSearch search;
+
+    for (entryPtr=Tcl_FirstHashEntry(markNamesPtr, &search);
+         entryPtr != NULL;
+         entryPtr = Tcl_NextHashEntry(&search)) {
+        ckfree( (char*)Tcl_GetHashValue(entryPtr) );
+    }
+    Tcl_DeleteHashTable(markNamesPtr);
+    ckfree((char*)markNamesPtr);
+}
