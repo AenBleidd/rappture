@@ -26,5 +26,7 @@
 
 ----------------------------------------------------------------------
 
- Developed by Michael McLennan, Derrick Kearney, and Carol Song.
+ Developed by Michael McLennan, George Howlett, and Derrick Kearney.
+ Special thanks to Ben Rafferty for Java bindings and the Rappture
+ tester, and Ben Haley for Ruby bindings.
 

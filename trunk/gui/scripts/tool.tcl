@@ -350,6 +350,6 @@ itcl::body Rappture::Tool::reset {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::_output {data} {
     if {[string length $_outputcb] > 0} {
-        uplevel #0 [list $_outputcb $data]
+        uplevel #0 $_outputcb [list $data]
     }
 }

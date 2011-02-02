@@ -199,7 +199,7 @@ itcl::class Rappture::LibraryObj {
     public method put {args}
     public method copy {path from args}
     public method remove {{path ""}}
-    public method xml {}
+    public method xml {{path ""}}
 
     public method diff {libobj}
     public proc value {libobj path}
@@ -647,13 +647,18 @@ itcl::body Rappture::LibraryObj::remove {{path ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: xml
+# USAGE: xml ?<path>?
 #
 # Returns a string representing the XML information for the information
 # in this library.
 # ----------------------------------------------------------------------
-itcl::body Rappture::LibraryObj::xml {} {
-    return [$_node asXML]
+itcl::body Rappture::LibraryObj::xml {{path ""}} {
+    if {"" != $path} {
+        set n [find $path]
+    } else {
+        set n $_node
+    }
+    return [$n asXML]
 }
 
 # ----------------------------------------------------------------------
