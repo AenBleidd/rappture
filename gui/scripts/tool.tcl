@@ -27,14 +27,13 @@ itcl::class Rappture::Tool {
 
     public method run {args}
     public method abort {}
-    public method getRunFile {}
+    public method reset {}
 
     protected method _mkdir {dir}
     protected method _output {data}
 
     private variable _installdir ""  ;# installation directory for this tool
     private variable _outputcb ""    ;# callback for tool output
-    private variable _runFile ""     ;# location of last created run.xml
     private common job               ;# array var used for blt::bgexec jobs
     private common jobnum 0          ;# counter for unique job number
 
@@ -261,7 +260,6 @@ itcl::body Rappture::Tool::run {args} {
 
     # see if the job was aborted
     if {[regexp {^KILLED} $job(control)]} {
-        set _runFile ""
         return [list 0 "ABORT"]
     }
 
@@ -287,16 +285,12 @@ itcl::body Rappture::Tool::run {args} {
                         _mkdir $_resources(-resultdir)
                     }
                     file rename -force -- $file $_resources(-resultdir)
-                    set _runFile [file join $_resources(-resultdir) $file]
                 }
-            } else {
-                set _runFile $file
             }
         } else {
             set status 1
             set result "Can't find result file in output.\nDid you call Rappture
 ::result in your simulator?"
-            set _runFile ""
         }
         return [list $status $result]
     } elseif {"" != $job(output) || "" != $job(error)} {
@@ -333,6 +327,22 @@ itcl::body Rappture::Tool::abort {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: reset
+#
+# Resets all input values to their defaults.  Sometimes used just
+# before a run to reset to a clean state.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::reset {} {
+    foreach path [Rappture::entities -as path $_xmlobj input] {
+        if {[$_xmlobj element -as type $path.default] ne ""} {
+            set defval [$_xmlobj get $path.default]
+            $_xmlobj put $path $defval
+        }
+    }
+}
+
+
+# ----------------------------------------------------------------------
 # USAGE: _output <data>
 #
 # Used internally to send each bit of output <data> coming from the
@@ -343,14 +353,3 @@ itcl::body Rappture::Tool::_output {data} {
         uplevel #0 [list $_outputcb $data]
     }
 }
-
-# ----------------------------------------------------------------------
-# USAGE: getRunFile
-#
-# Returns the file name of the last generated run.xml, as opposed to a
-# library object as returned by the run method.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tool::getRunFile {} {
-    return $_runFile
-}
-
