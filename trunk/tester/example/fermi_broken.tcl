@@ -28,6 +28,17 @@ set Emax [expr {$Ef + 10*$kT}]
 set E $Emin
 set dE [expr {0.005*($Emax-$Emin)}]
 
+# take a while and give some output along the way
+puts "Taking a while to run..."
+after 2000
+puts "making some progress"
+after 2000
+puts "a little more"
+after 2000
+puts "almost there"
+after 2000
+puts "done"
+
 # Label output graph with title, x-axis label,
 # y-axis lable, and y-axis units
 $driver put -append no output.curve(f12).about.label "Fermi-Dirac Factor"

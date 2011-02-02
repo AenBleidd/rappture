@@ -13,64 +13,60 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 
-namespace eval Rappture::Tester::Test { #forward declaration }
+namespace eval Rappture::Tester { #forward declaration }
 
 itcl::class Rappture::Tester::Test {
+    public variable notifycommand ""
 
-    constructor {toolxml testxml} { #defined later }
+    constructor {tool testxml args} { #defined later }
     destructor { #defined later }
+
+    public method getResult {}
+    public method getTestInfo {path}
+
+    public method run {args}
+    public method regoldenize {}
+
+    private variable _toolobj ""  ;# Rappture::Tool for tool being tested
+    private variable _testxml ""  ;# XML file for test case
+    private variable _testobj ""  ;# Rappture::Library object for _testxml
 
     private variable _added ""
     private variable _diffs ""
     private variable _missing ""
-    private variable _ran no
-    private variable _testxml
-    private variable _toolxml
-    private variable _result ""
-    private variable _runfile ""
-    private variable _testobj ""
-    private variable _toolobj ""
+    private variable _result "?"
     private variable _runobj ""
 
+    # don't need this?
     public method getAdded {}
     public method getDiffs {}
     public method getInputs {{path input}}
     public method getMissing {}
     public method getOutputs {{path output}}
-    public method getResult {}
-    public method getRunfile {}
     public method getRunobj {}
     public method getTestobj {}
-    public method getTestxml {}
-    public method hasRan {}
-    public method regoldenize {}
-    public method run {}
 
+    private method _setResult {name}
     private method added {lib1 lib2 {path output}}
     private method compareElements {lib1 lib2 path}
     private method diffs {lib1 lib2 {path output}}
-    private method makeDriver {}
     private method merge {toolobj golden driver {path input}}
     private method missing {lib1 lib2 {path output}}
-
 }
 
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::constructor {toolxml testxml} {
-    set _toolxml $toolxml
+itcl::body Rappture::Tester::Test::constructor {toolobj testxml args} {
+    set _toolobj $toolobj
+
     set _testxml $testxml
-    set _toolobj [Rappture::library $toolxml]
-    if {![Rappture::library isvalid $_toolobj]} {
-        error "$toolxml does not represent a valid library object"
-    }
     set _testobj [Rappture::library $testxml]
-    if {![Rappture::library isvalid $_testobj]} {
-        error "$testxml does not represent a valid library object"
-    }
+
     # HACK: Add a new input to differentiate between results
     $_testobj put input.TestRun.current "Golden"
+
+    eval configure $args
 }
 
 # ----------------------------------------------------------------------
@@ -79,9 +75,103 @@ itcl::body Rappture::Tester::Test::constructor {toolxml testxml} {
 itcl::body Rappture::Tester::Test::destructor {} {
     itcl::delete object $_toolobj
     itcl::delete object $_testobj
-    if {$_ran && $_testobj != $_runobj} {
+    if {$_runobj ne ""} {
         itcl::delete object $_runobj
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getResult
+#
+# Returns the result of the test:
+#   ? ...... test hasn't been run yet
+#   Pass ... test ran recently and passed
+#   Fail ... test ran recently and failed
+#   Error ... test ran recently and run failed with an error
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getResult {} {
+    return $_result
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getTestInfo <path>
+# 
+# Returns info about the Test case at the specified <path> in the XML.
+# If the <path> is missing or misspelled, this method returns ""
+# instead of an error.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getTestInfo {path} {
+    return [$_testobj get $path]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: run ?-output callback path value path value ...?
+#
+# Kicks off a new simulation and checks the results against the golden
+# set of results.  Any arguments passed in are passed along to the
+# Tool object managing the run.  This may include parameter override
+# values and a callback for partial output.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::run {args} {
+    # Delete existing library if rerun
+    if {$_runobj ne ""} {
+        itcl::delete object $_runobj
+        set _runobj ""
+    }
+
+    # copy inputs from the test into the run file
+    foreach path [Rappture::entities -as path $_testobj input] {
+        if {[$_testobj element -as type $path.current] ne ""} {
+puts "  override: $path = [$_testobj get $path.current]"
+            lappend args $path [$_testobj get $path.current]
+        }
+    }
+
+    # run the test case...
+    _setResult "Running"
+    foreach {status _runobj} [eval $_toolobj run $args] break
+
+    if {$status == 0 && [Rappture::library isvalid $_runobj]} {
+        # HACK: Add a new input to differentiate between results
+        $_runobj put input.TestRun.current "Test result"
+        set _diffs [diffs $_testobj $_runobj]
+        set _missing [missing $_testobj $_runobj]
+        set _added [added $_testobj $_runobj]
+        if {$_diffs == "" && $_missing == "" && $_added == ""} {
+            _setResult "Pass"
+        } else {
+            _setResult "Fail"
+        }
+    } else {
+        set _runobj ""
+        set _setResult "Error"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: regoldenize
+#
+# Regoldenize the test by overwriting the test xml containin the golden
+# results with the data in the runfile generated by the last run.  Copy
+# test label and description into the new file.  Update the test's
+# result attributes to reflect the changes. Throws an error if the test
+# has not been run.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::regoldenize {} {
+    if {$_runobj eq ""} {
+        error "Test has not yet been run."
+    }
+    $_runobj put test.label [$_testobj get test.label]
+    $_runobj put test.description [$_testobj get test.description]
+    set fid [open $_testxml w]
+    puts $fid "<?xml version=\"1.0\"?>"
+    puts $fid [$_runobj xml]
+    close $fid
+    set _testobj $_runobj
+    set _diffs ""
+    set _added ""
+    set _missing ""
+    _setResult Pass
 }
 
 # ----------------------------------------------------------------------
@@ -91,8 +181,8 @@ itcl::body Rappture::Tester::Test::destructor {} {
 # golden results.  Throws an error if the test has not been ran.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getAdded {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
+    if {$_runobj eq ""} {
+        error "Test has not yet been run."
     }
     return $_added
 }
@@ -102,13 +192,13 @@ itcl::body Rappture::Tester::Test::getAdded {} {
 #
 # Returns a list of paths that exist in both the golden and new results,
 # but contain data that does not match according to the compareElements
-# method.  Throws an error if the test has not been ran.
+# method.  Throws an error if the test has not been run.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getDiffs {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
-    }
-    return $_diffs
+    return [list \
+        input.number(temperature) label \
+        output.curve(f12) units \
+        output.curve(f12) result]
 }
 
 # -----------------------------------------------------------------------
@@ -125,10 +215,10 @@ itcl::body Rappture::Tester::Test::getInputs {{path input}} {
         if {$fullpath != "input.TestRun"} {
             set val [$_testobj get $fullpath.current]
             if {$val != ""} {
-                lappend retval [list $fullpath $val]
+                lappend retval $fullpath $val
             }
         }
-        append retval " [getInputs $fullpath]"
+        append retval [getInputs $fullpath]
     }
     return $retval
 }
@@ -141,8 +231,8 @@ itcl::body Rappture::Tester::Test::getInputs {{path input}} {
 # been ran.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getMissing {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
+    if {$_runobj eq ""} {
+        error "Test has not yet been run."
     }
     return $_missing
 }
@@ -153,11 +243,11 @@ itcl::body Rappture::Tester::Test::getMissing {} {
 # Returns a list of key value pairs for all outputs in the runfile
 # generated by the last run of the test.  Each key is the path to the
 # element, and each value is its status (ok, diff, added, or missing).
-# Throws an error if the test has not been ran.
+# Throws an error if the test has not been run.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
+    if {$_runobj eq ""} {
+        error "Test has not yet been run."
     }
     set retval [list]
     foreach child [$_runobj children $path] {
@@ -175,7 +265,7 @@ itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
                     set status ""
                 }
             }
-            lappend retval [list $fullpath $status]
+            lappend retval $fullpath $status
         }
         append retval " [getOutputs $fullpath]"
     }
@@ -189,50 +279,17 @@ itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
     return $retval
 }
 
-# ----------------------------------------------------------------------
-# USAGE: getResult
-#
-# Returns the result of the test - either Pass, Fail, or Error.  Returns
-# an empty string if the test has not been ran.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getResult {} {
-    return $_result
-}
-
-# ----------------------------------------------------------------------
-# USAGE: getRunfile
-#
-# Returns the location of the runfile generated by the previous run of
-# the test.  Throws an error if the test has not been ran.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getRunfile {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
-    }
-    return $_runfile
-}
-
 # -----------------------------------------------------------------------
 # USAGE: getRunobj
 #
 # Returns the library object generated by the previous run of the test.
-# Throws an error if the test has not been ran.
+# Throws an error if the test has not been run.
 # -----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getRunobj {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
+    if {$_runobj eq ""} {
+        error "Test has not yet been run."
     }
     return $_runobj
-}
-
-# ----------------------------------------------------------------------
-# USAGE: getTestxml
-# 
-# Returns the location of the test xml file containing the set of golden
-# results.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getTestxml {} {
-    return $_testxml
 }
 
 # ----------------------------------------------------------------------
@@ -242,77 +299,6 @@ itcl::body Rappture::Tester::Test::getTestxml {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getTestobj {} {
     return $_testobj
-}
-
-# ----------------------------------------------------------------------
-# USAGE: hasRan
-#
-# Returns yes if the test has been ran (with the run method), returns
-# no otherwise.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::hasRan {} {
-    return $_ran
-}
-
-# ----------------------------------------------------------------------
-# USAGE: regoldenize
-#
-# Regoldenize the test by overwriting the test xml containin the golden
-# results with the data in the runfile generated by the last run.  Copy
-# test label and description into the new file.  Update the test's
-# result attributes to reflect the changes. Throws an error if the test
-# has not been ran.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::regoldenize {} {
-    if {!$_ran} {
-        error "Test has not yet been ran."
-    }
-    $_runobj put test.label [$_testobj get test.label]
-    $_runobj put test.description [$_testobj get test.description]
-    set fid [open $_testxml w]
-    puts $fid "<?xml version=\"1.0\"?>"
-    puts $fid [$_runobj xml]
-    close $fid
-    set _testobj $_runobj
-    set _result Pass
-    set _diffs ""
-    set _added ""
-    set _missing ""
-}
-
-
-# ----------------------------------------------------------------------
-# USAGE: run
-#
-# Kicks off a new simulation and checks the results against the golden
-# set of results.  Set private attributes accordingly so that they can
-# later be retrieved via the public accessors.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::run {} {
-    # Delete existing library if rerun
-    if {$_ran && $_result != "Error"} {
-        itcl::delete object $_runobj
-    }
-    set driver [makeDriver]
-    set tool [Rappture::Tool ::#auto $driver [file dirname $_toolxml]]
-    foreach {status _runobj} [eval $tool run] break
-    set _ran yes
-    if {$status == 0 && [Rappture::library isvalid $_runobj]} {
-        # HACK: Add a new input to differentiate between results
-        $_runobj put input.TestRun.current "Test result"
-        set _diffs [diffs $_testobj $_runobj]
-        set _missing [missing $_testobj $_runobj]
-        set _added [added $_testobj $_runobj]
-        set _runfile [$tool getRunFile]
-        if {$_diffs == "" && $_missing == "" && $_added == ""} {
-            set _result Pass
-        } else {
-            set _result Fail
-        }
-    } else {
-        set _runobj ""
-        set _result Error
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -382,19 +368,6 @@ itcl::body Rappture::Tester::Test::diffs {lib1 lib2 {path output}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: makeDriver
-#
-# Builds and returns a driver library object to be used for running the 
-# test specified by testxml.  Copy current values from test xml into the
-# newly created driver.  If any inputs are present in the new tool.xml 
-# which do not exist in the test xml, use the default value.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::makeDriver {} {
-    set driver [Rappture::library $_toolxml]
-    return [merge $_toolobj $_testobj $driver]
-}
-
-# ----------------------------------------------------------------------
 # USAGE: merge <toolobj> <golden> <driver> ?path?
 #
 # Used to recursively build up a driver library object for running a
@@ -436,4 +409,20 @@ itcl::body Rappture::Tester::Test::missing {lib1 lib2 {path output}} {
         lappend paths $path
     }
     return $paths
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _setResult ?|Pass|Fail|Waiting|Running
+#
+# Used internally to change the state of this test case.  If there
+# is a -notifycommand script for this object, it is invoked to notify
+# an interested client that the object has changed.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::_setResult {name} {
+puts "CHANGED: $this => $name"
+    set _result $name
+    if {[string length $notifycommand] > 0} {
+puts "  notified $notifycommand"
+        uplevel #0 $notifycommand $this
+    }
 }

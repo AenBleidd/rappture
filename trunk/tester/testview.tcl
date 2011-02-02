@@ -1,14 +1,13 @@
 # ----------------------------------------------------------------------
 #  COMPONENT: testview - display the results of a test
 #
-#  Entire right hand side of the regression tester.  Displays the
-#  golden test results, and compares them to the new results if the test
-#  has been ran.  Also show tree representation of all inputs and
-#  outputs.  The -test configuration option is used to provide a Test
-#  object to display.
+#  Top part of right hand side of the regression tester.  Displays an
+#  overview of selected test cases, and offers a button for running
+#  them.
 # ======================================================================
 #  AUTHOR:  Ben Rafferty, Purdue University
-#  Copyright (c) 2010  Purdue Research Foundation
+#           Michael McLennan, Purdue University
+#  Copyright (c) 2010-2011  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,29 +17,28 @@ package require BLT
 
 namespace eval Rappture::Tester::TestView { #forward declaration }
 
-option add *TestView.font \
-    -*-helvetica-medium-r-normal-*-12-* widgetDefault
-option add *TestView.codeFont \
-    -*-courier-medium-r-normal-*-12-* widgetDefault
-option add *TestView.textFont \
-    -*-helvetica-medium-r-normal-*-12-* widgetDefault
-option add *TestView.boldTextFont \
-    -*-helvetica-bold-r-normal-*-12-* widgetDefault
+option add *TestView.font {Arial -12} widgetDefault
+option add *TestView.titleFont {Arial -18 bold} widgetDefault
+option add *TestView.statusFont {Arial -12 italic} widgetDefault
+option add *TestView.statusPassColor black widgetDefault
+option add *TestView.statusFailColor red widgetDefault
+option add *TestView*descScroller.width 3i widgetDefault
+option add *TestView*descScroller.height 1i widgetDefault
 
 itcl::class Rappture::Tester::TestView {
     inherit itk::Widget 
 
-    itk_option define -test test Test ""
+    itk_option define -statuspasscolor statusPassColor StatusColor ""
+    itk_option define -statusfailcolor statusFailColor StatusColor ""
+    itk_option define -runcommand runCommand RunCommand ""
 
     constructor {args} { #defined later }
+    public method show {args}
 
-    protected method reset 
-    protected method showDescription {text}
-    protected method showStatus {text}
-    protected method updateResults {}
-    protected method updateInputs {}
-    protected method updateOutputs {}
+    private method _doRun {}
+    private method _plural {n}
 
+    private variable _testobjs ""  ;# objects being displayed
 }
 
 # ----------------------------------------------------------------------
@@ -48,238 +46,214 @@ itcl::class Rappture::Tester::TestView {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::TestView::constructor {args} {
 
-    itk_component add status {
-        label $itk_interior.status
+    # run button to run selected tests
+    itk_component add run {
+        button $itk_interior.run -text "Run" -padx 12 -pady 12 \
+            -command [itcl::code $this _doRun]
     }
-    pack $itk_component(status) -expand no -fill none -side top -anchor w 
+    pack $itk_component(run) -side right -anchor n
 
+    # shows the big icon for test: pass/fail
+    itk_component add statusicon {
+        label $itk_interior.sicon
+    }
+    pack $itk_component(statusicon) -side left -anchor n
+
+    # shows the name of the test
+    itk_component add title {
+        label $itk_interior.title -anchor w
+    } {
+        usual
+        rename -font -titlefont titleFont Font
+    }
+    pack $itk_component(title) -side top -anchor w
+
+    # shows the status of the test: pass/fail
+    itk_component add statusmesg {
+        label $itk_interior.smesg -anchor w
+    } {
+        usual
+        rename -font -statusfont statusFont Font
+        ignore -foreground
+    }
+    pack $itk_component(statusmesg) -side top -anchor w
+
+    # for the longer text describing the test
     itk_component add descScroller {
         Rappture::Scroller $itk_interior.descScroller \
             -xscrollmode auto -yscrollmode auto
     }
+    pack $itk_component(descScroller) -expand yes -fill both
 
     itk_component add description {
-        text $itk_interior.descScroller.description -height 0 -wrap word \
-            -relief flat
+        text $itk_component(descScroller).desc -height 1 \
+            -wrap word -relief flat
     }
     $itk_component(descScroller) contents $itk_component(description)
-    pack $itk_component(descScroller) -expand no -fill x -side top
-
-    itk_component add tabs {
-        blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
-            -side left -tearoff 0 -highlightthickness 0 \
-            -selectbackground $itk_option(-background)
-    } {
-    }
-    $itk_component(tabs) insert end "Results" -ipady 25 -fill both
-    $itk_component(tabs) insert end "Inputs" -ipady 25 -fill both \
-        -state disabled
-    $itk_component(tabs) insert end "Outputs" -ipady 25 -fill both \
-        -state disabled
-
-    itk_component add results {
-        Rappture::ResultsPage $itk_component(tabs).results
-    }
-    $itk_component(tabs) tab configure "Results" \
-        -window $itk_component(tabs).results
-
-    itk_component add inputScroller {
-        Rappture::Scroller $itk_component(tabs).inputScroller \
-            -xscrollmode auto -yscrollmode auto
-    }
-
-    itk_component add inputs {
-        blt::treeview $itk_component(inputScroller).inputs -separator . \
-            -autocreate true
-    } {
-        keep -foreground -font -cursor
-    }
-    $itk_component(inputs) column insert end "Value"
-    $itk_component(inputScroller) contents $itk_component(inputs)
-    $itk_component(tabs) tab configure "Inputs" \
-        -window $itk_component(inputScroller)
-
-    itk_component add outputScroller {
-        Rappture::Scroller $itk_component(tabs).outputScroller \
-            -xscrollmode auto -yscrollmode auto
-    }
-
-    itk_component add outputs {
-        blt::treeview $itk_component(outputScroller).outputs -separator . \
-            -autocreate true
-    } {
-        keep -foreground -font -cursor
-    }
-    $itk_component(outputs) column insert end "Status"
-    $itk_component(outputScroller) contents $itk_component(outputs)
-    $itk_component(tabs) tab configure "Outputs" \
-        -window $itk_component(outputScroller)
-
-    pack $itk_component(tabs) -expand yes -fill both -side top
 
     eval itk_initialize $args
-
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -test
-#
-# When the -test configuration option is modified, update the display
-# accordingly.  The data passed in should be a Test object, or an empty 
-# string to clear the display.
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::Tester::TestView::test {
-    set test $itk_option(-test)
-    # If an empty string is passed in then clear everything
-    if {$test == ""} {
-        reset
-    } else {
-        if {![$test isa Test]} {
-            error "-test option must be a Test object.  $test was given."
-        }
-        if {[$test hasRan]} {
-            switch [$test getResult] {
-                Pass {showStatus "Test passed."}
-                Fail {showStatus "Test failed."}
-                Error {showStatus "Error while running test."}
-            }
-        } else {
-            showStatus "Test has not yet run."
-        }
-        updateResults
-        updateInputs
-        updateOutputs
-        set descr [[$test getTestobj] get test.description]
-        if {$descr == ""} {
-            set descr "No description."
-        }
-        showDescription $descr
-    }
 }
 
 itk::usual TestView {
-    keep -background -foreground -font
+    keep -background -foreground -cursor
+    keep -font -titlefont -statusfont
 }
 
 # ----------------------------------------------------------------------
-# USAGE: reset 
+# USAGE: show <testObj> <testObj> ...
 #
-# Resets the entire TestView widget back to the default state.
+# Loads one or more Test objects into the display.  When a single
+# object is shown, we can display more detail.  When several objects
+# are shown, we provide overview info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::reset {} {
-    updateResults
-    updateInputs
-    updateOutputs
-    showStatus ""
-    showDescription ""
-}
+itcl::body Rappture::Tester::TestView::show {args} {
+    foreach obj $args {
+        if {[catch {$obj isa Test} valid] || !$valid} {
+            error "bad value \"$obj\": should be Test object"
+        }
+    }
+    set _testobjs $args
 
-# ----------------------------------------------------------------------
-# USAGE: showDescription <text>
-#
-# Displays a string in the description text space near the top of the
-# widget.  If given an empty string, disable the sunken relief effect
-# to partially hide the text box.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::showDescription {text} {
-    $itk_component(description) configure -state normal
-    $itk_component(description) delete 0.0 end
-    $itk_component(description) insert end "$text"
-    $itk_component(description) configure -state disabled
-    if {$text == ""} {
-        $itk_component(description) configure -relief flat
-    } else {
-        $itk_component(description) configure -relief sunken
+    switch -- [llength $_testobjs] {
+        0 {
+            # If an empty string is passed in then clear everything
+            $itk_component(title) configure -text ""
+            $itk_component(statusicon) configure -image ""
+            $itk_component(statusmesg) configure -text ""
+            $itk_component(description) configure -state normal
+            $itk_component(description) delete 1.0 end
+            $itk_component(description) configure -state disabled
+            $itk_component(run) configure -state disabled
+        }
+        1 {
+            set obj [lindex $_testobjs 0]
+            switch [$obj getResult] {
+                ? {
+                    set smesg "Ready to run"
+                    set sicon [Rappture::icon test64]
+                    set color $itk_option(-statuspasscolor)
+                }
+                Pass {
+                    set smesg "Test passed"
+                    set sicon [Rappture::icon pass64]
+                    set color $itk_option(-statuspasscolor)
+                }
+                Fail {
+                    set smesg "Test failed"
+                    set sicon [Rappture::icon fail64]
+                    set color $itk_option(-statusfailcolor)
+                }
+                default { error "unknown test state \"[$obj getResult]\"" }
+            }
+            set name [lindex [split [$obj getTestInfo test.label] |] end]
+            $itk_component(title) configure -text "Test: $name"
+            $itk_component(statusicon) configure -image $sicon
+            $itk_component(statusmesg) configure -text $smesg -foreground $color
+            $itk_component(description) configure -state normal
+            $itk_component(description) delete 1.0 end
+            set desc [string trim [$obj getTestInfo test.description]]
+            if {$desc eq ""} {
+                set desc "--"
+            }
+            $itk_component(description) insert 1.0 $desc
+            $itk_component(description) configure -state disabled
+            $itk_component(run) configure -state normal
+        }
+        default {
+            array set states { ? 0  Pass 0  Fail 0  total 0 }
+            foreach obj $_testobjs {
+                incr states(total)
+                incr states([$obj getResult])
+            }
+            if {$states(total) == 1} {
+                set thistest "This test"
+            } else {
+                set thistest "These tests"
+            }
+
+            $itk_component(title) configure \
+                -text [string totitle [_plural $states(total)]]
+
+            switch -glob -- $states(Pass)/$states(Fail)/$states(?) {
+                0/0/* {
+                    set smesg "Ready to run"
+                    set sicon [Rappture::icon test64]
+                    set color $itk_option(-statuspasscolor)
+                    set desc ""
+                }
+                */0/0 {
+                    set smesg "$thistest passed"
+                    set sicon [Rappture::icon pass64]
+                    set color $itk_option(-statuspasscolor)
+                    set desc ""
+                }
+                0/*/0 {
+                    set smesg "$thistest failed"
+                    set sicon [Rappture::icon fail64]
+                    set color $itk_option(-statusfailcolor)
+                    set desc ""
+                }
+                0/*/* {
+                    if {$states(Fail) == 1} {
+                        set smesg "One of these tests failed"
+                    } else {
+                        set smesg "Some of these tests failed"
+                    }
+                    set sicon [Rappture::icon fail64]
+                    set color $itk_option(-statusfailcolor)
+                    set desc "[_plural $states(Fail)] failed\n[_plural $states(?)] need to run"
+                }
+                */*/0 {
+                    if {$states(Pass) == 1} {
+                        set smesg "One of these tests passed"
+                    } else {
+                        set smesg "Some of these tests passed"
+                    }
+                    set sicon [Rappture::icon test64]
+                    set color $itk_option(-statuspasscolor)
+                    set desc "[_plural $states(Fail)] failed\n[_plural $states(Pass)] passed"
+                }
+                default {
+                    set smesg "Some tests passed, some failed"
+                    set sicon [Rappture::icon fail64]
+                    set color $itk_option(-statusfailcolor)
+                    set desc "[_plural $states(Fail)] failed\n[_plural $states(Pass)] passed\n[_plural $states(?)] need to run"
+                }
+            }
+            $itk_component(statusicon) configure -image $sicon
+            $itk_component(statusmesg) configure -text $smesg -foreground $color
+            $itk_component(description) configure -state normal
+            $itk_component(description) delete 1.0 end
+            $itk_component(description) insert end $desc
+            $itk_component(description) configure -state disabled
+            $itk_component(run) configure -state normal
+        }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: showStatus <text>
+# USAGE: _doRun
 #
-# Displays a string in the status info space at the top of the widget.
+# Invoked when the user presses the "Run" button to invoke the
+# -runcommand script for this widget.  Invokes the command with
+# the current test objects appended as arguments.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::showStatus {text} {
-    $itk_component(status) configure -text "$text"
-}
-
-# ----------------------------------------------------------------------
-# USAGE: updateResults
-
-# Used internally to update the results tab according to the test
-# currently specified by the -test configuration option.  Show the
-# golden results contained in the test xml, and if the the test has been
-# ran, show the new results as well.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateResults {} {
-    $itk_component(results) clear -nodelete
-    set test $itk_option(-test)
-    if {$test == ""} {
-        # Already cleared, do nothing.
-        # TODO: Eventually display some kinds of message here.
-    } else {
-        set test $itk_option(-test)
-        $itk_component(results) load [$test getTestobj]
-        if {[$test hasRan]  && [Rappture::library isvalid [$test getRunobj]]} {
-            $itk_component(results) load [$test getRunobj]
-        }
+itcl::body Rappture::Tester::TestView::_doRun {} {
+    if {[string length $itk_option(-runcommand)] > 0} {
+        uplevel #0 $itk_option(-runcommand) $_testobjs
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: updateInputs
+# USAGE: _plural <num>
 #
-# Used internally to update the inputs tab according to the test
-# currently specified by the -test configuration option.  Shows a tree
-# representation of all inputs given in the test xml and their given
-# values.
+# Handy way of generating a plural string.  If <num> is 1, it returns
+# "1 test".  Otherwise it returns "<num> tests".
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateInputs {} {
-    $itk_component(inputs) delete 0
-    set test $itk_option(-test)
-    if {$test != ""} {
-        $itk_component(tabs) tab configure "Inputs" -state normal
-        foreach pair [$test getInputs] {
-            set path [lindex $pair 0]
-            set val [lindex $pair 1]
-            $itk_component(inputs) insert end $path -data [list Value $val]
-        }
-        $itk_component(inputs) open -recurse root
+itcl::body Rappture::Tester::TestView::_plural {num} {
+    if {$num == 1} {
+        return "1 test"
+    } else {
+        return "$num tests"
     }
 }
-
-# ----------------------------------------------------------------------
-# USAGE: updateOutputs
-#
-# Used internally to update the outputs tab according to the test
-# currently specified by the -test configuration option.  Shows a tree
-# representation of all outputs in the runfile generated by the last run
-# of the test, along with their status (ok, diff, added, or missing).
-# Disable the outputs tab if test has not been ran, or resulted in an
-# error.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::TestView::updateOutputs {} {
-    $itk_component(outputs) delete 0
-    set test $itk_option(-test)
-    if {$test != "" && [$test hasRan] && [$test getResult] != "Error"} {
-        $itk_component(tabs) tab configure "Outputs" -state normal
-        foreach pair [$test getOutputs] {
-            set path [lindex $pair 0]
-            set status [lindex $pair 1]
-            $itk_component(outputs) insert end $path -data [list Status $status]
-        }
-        $itk_component(outputs) open -recurse root
-    } else {
-        $itk_component(tabs) tab configure "Outputs" -state disabled
-        # Switch back to results tab if the outputs tab is open and the
-        # selected test has not been ran.
-        if {[$itk_component(tabs) index select] == \
-            [$itk_component(tabs) index -name "Outputs"]} {
-            set index [$itk_component(tabs) index -name "Results"]
-            $itk_component(tabs) select $index
-            $itk_component(tabs) focus $index
-        }
-    } 
-}
-        
-        
-
