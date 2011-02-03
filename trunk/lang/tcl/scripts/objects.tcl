@@ -291,7 +291,8 @@ proc Rappture::objects::parse_object {args} {
         # look for an image for this object
         set rootf [file rootname $currFile]
         foreach ext {png jpg gif} {
-            if {[file readable $rootf.$ext]} {
+            if {[file readable $rootf.$ext]
+                  && [catch {package present Tk}] == 0} {
                 set imh [image create photo -file $rootf.$ext]
                 $currObjDef configure -image $imh
                 break

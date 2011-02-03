@@ -21,6 +21,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itcl
+package require Img
 package require Rappture
 package require RapptureGUI
 

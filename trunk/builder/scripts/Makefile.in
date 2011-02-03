@@ -1,0 +1,60 @@
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+TCLSH		= @TCLSH@
+VPATH		= $(srcdir)
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
+FILES		= \
+		$(srcdir)/dragdrop.tcl \
+		$(srcdir)/filmstrip.tcl \
+		$(srcdir)/hierlist.tcl \
+		$(srcdir)/main.tcl \
+		$(srcdir)/objpath.tcl \
+		$(srcdir)/slideframes.tcl \
+		$(srcdir)/tweener.tcl
+
+version 	= $(PACKAGE_VERSION)
+name 		= RapptureBuilder$(version)
+
+destdir		= $(libdir)/$(name)/scripts
+
+all: tclIndex
+
+tclIndex: $(FILES)
+	$(TCLSH) $(srcdir)/../../gui/tclconfig/mkindex.tcl --srcdir $(srcdir) \
+		--outfile tclIndex
+
+install: install_scripts install_images 
+
+install_scripts: 
+	$(MKDIR_P) -m 0755 $(destdir)
+	@for i in $(FILES); do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir) ; \
+	done 
+	$(INSTALL) -m 444 tclIndex $(destdir)
+
+install_images:
+	$(MKDIR_P) -m 0755 $(destdir)/images
+	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir)/images ; \
+	done 
+
+clean:
+	$(RM) tclIndex
+
+distclean: clean
+	$(RM) Makefile *~

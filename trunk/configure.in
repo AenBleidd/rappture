@@ -724,8 +724,10 @@ AC_CONFIG_FILES([
     gui/scripts/Makefile
     builder/Makefile
     builder/pkgIndex.tcl
+    builder/scripts/Makefile
     tester/Makefile
     tester/pkgIndex.tcl
+    tester/scripts/Makefile
     lang/Makefile
     lang/java/Makefile
     lang/java/rappture/Makefile

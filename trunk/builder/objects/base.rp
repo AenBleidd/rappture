@@ -1,5 +1,0 @@
-object base {
-    attr label -type string -path about.label
-    attr description -type string:lines=3 -expand yes -path about.description
-    attr enable -title "Enable" -type string:validate=enable -path about.enable
-}

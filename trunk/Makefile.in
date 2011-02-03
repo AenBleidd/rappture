@@ -34,7 +34,7 @@ ENABLE_GUI	= @ENABLE_GUI@
 TARGETS		= src 
 
 ifneq ($(ENABLE_GUI),)
-  TARGETS += gui lang lib builder examples 
+  TARGETS += gui lang lib builder tester examples 
 endif
 
 .PHONY: $(TARGETS)

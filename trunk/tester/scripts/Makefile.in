@@ -1,0 +1,59 @@
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+TCLSH		= @TCLSH@
+VPATH		= $(srcdir)
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
+FILES		= \
+		$(srcdir)/main.tcl \
+		$(srcdir)/resultspage.tcl \
+		$(srcdir)/statuslist.tcl \
+		$(srcdir)/test.tcl \
+		$(srcdir)/testtree.tcl \
+		$(srcdir)/testview.tcl
+
+version 	= $(PACKAGE_VERSION)
+name 		= RapptureTester$(version)
+
+destdir		= $(libdir)/$(name)/scripts
+
+all: tclIndex
+
+tclIndex: $(FILES)
+	$(TCLSH) $(srcdir)/../../gui/tclconfig/mkindex.tcl --srcdir $(srcdir) \
+		--outfile tclIndex
+
+install: install_scripts install_images 
+
+install_scripts: 
+	$(MKDIR_P) -m 0755 $(destdir)
+	@for i in $(FILES); do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir) ; \
+	done 
+	$(INSTALL) -m 444 tclIndex $(destdir)
+
+install_images:
+	$(MKDIR_P) -m 0755 $(destdir)/images
+	@for i in $(srcdir)/images/*.png; do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 444 $$i $(destdir)/images ; \
+	done 
+
+clean:
+	$(RM) tclIndex
+
+distclean: clean
+	$(RM) Makefile *~
