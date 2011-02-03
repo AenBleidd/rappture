@@ -1,0 +1,64 @@
+
+SHELL		= @SHELL@
+
+srcdir		= @srcdir@
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+libdir		= @libdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+mandir		= @mandir@
+includedir	= @includedir@
+
+pkgdatadir	= $(datadir)/$(PKG_DIR)
+pkglibdir	= $(libdir)/$(PKG_DIR)
+pkgincludedir	= $(includedir)/$(PKG_DIR)
+top_builddir	= .
+
+MKDIR_P		= @MKDIR_P@
+TCL_VERSION	= @TCL_VERSION@
+TCLSH           = $(bindir)/tclsh$(TCL_VERSION)
+INSTALL		= @INSTALL@
+
+FILES		= \
+		$(srcdir)/dragdrop.tcl \
+		$(srcdir)/filmstrip.tcl \
+		$(srcdir)/hierlist.tcl \
+		$(srcdir)/main.tcl \
+		$(srcdir)/objpath.tcl \
+		$(srcdir)/slideframes.tcl \
+		$(srcdir)/tweener.tcl
+
+IMAGEFILES	= \
+		$(srcdir)/images/drag.xbm \
+		$(srcdir)/images/dragm.xbm \
+		$(srcdir)/images/treemn.png \
+		$(srcdir)/images/treepl.png \
+		$(srcdir)/images/warn24.png \
+		$(srcdir)/images/err24.png
+
+PACKAGE_VERSION	= @PACKAGE_VERSION@
+
+version		= $(PACKAGE_VERSION)
+name		= RapptureBuilder$(version)
+
+destdir         = $(libdir)/$(name)
+
+all:
+
+install: install-pkg install-scripts
+
+install-pkg:
+	$(MKDIR_P) -m 0755 $(destdir)
+	$(INSTALL) -m 444 pkgIndex.tcl $(destdir)
+
+install-scripts: scripts
+	$(MAKE) -C scripts install
+
+clean:
+	$(RM) tool.xml
+
+distclean: clean
+	$(RM) Makefile *~
+

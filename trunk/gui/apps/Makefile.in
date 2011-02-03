@@ -21,7 +21,7 @@ INSTALL		= @INSTALL@
 
 SCRIPTS	= \
 		encodedata \
-		$(srcdir)/driver \
+		$(srcdir)/launcher.tcl \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
 		$(srcdir)/flowvis-test \

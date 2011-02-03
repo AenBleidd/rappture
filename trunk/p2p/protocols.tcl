@@ -80,7 +80,15 @@ proc p2p::protocol::init {obj protocol} {
         if {[info exists name2defn($name)]} {
             $obj protocol $name
             $obj define $name exception {message} {
-                log error "ERROR from client:  $message"
+                variable cid
+                variable handler
+                log error "ERROR from client [$handler connectionName $cid]:  $message"
+            }
+            $obj define $name identity {name} {
+                variable cid
+                variable handler
+                $handler connectionName $cid $name
+                return ""
             }
 
             # define the rest of the protocol as registered earlier

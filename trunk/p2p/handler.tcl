@@ -58,7 +58,6 @@ itcl::class Handler {
     protected method handle {cid}
     protected method finalize {protocol}
     protected method dropped {cid}
-    protected method handlerType {}
 }
 
 # ----------------------------------------------------------------------
@@ -195,7 +194,7 @@ itcl::body Handler::handle {cid} {
                 catch {puts $cid [list exception $result]}
                 append mesg "exception: $result"
             }
-            log debug "[handlerType] message from [connectionName $cid]: [string trimright $request \n] $mesg"
+            log debug "incoming message from [connectionName $cid]: [string trimright $request \n] $mesg"
         }
     }
 }
@@ -235,15 +234,4 @@ itcl::body Handler::dropped {cid} {
     catch {unset _buffer($cid)}
     catch {unset _protocol($cid)}
     catch {unset _cname($cid)}
-}
-
-# ----------------------------------------------------------------------
-#  USAGE: handlerType
-#
-#  Returns a descriptive string describing this handler.  Derived
-#  classes override this method to provide their own string.  Used
-#  for debug messages.
-# ----------------------------------------------------------------------
-itcl::body Handler::handlerType {} {
-    return "handler"
 }

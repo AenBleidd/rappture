@@ -1,0 +1,12 @@
+
+package ifneeded RapptureTester @PACKAGE_VERSION@ [format {
+    set dir [file normalize "%s"]
+    set version @PACKAGE_VERSION@
+    lappend auto_path [file join $dir scripts]
+    namespace eval RapptureTester {
+	variable version $version
+	variable library $dir
+    }
+    package provide RapptureTester $version
+} $dir]
+

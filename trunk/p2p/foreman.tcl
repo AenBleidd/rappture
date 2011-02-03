@@ -118,6 +118,7 @@ foreman-solicit transition init->fetching -onchange {
     }
 
     if {"" != [statedata authoritycnx]} {
+        [statedata authoritycnx] send "identity foreman"
         [statedata authoritycnx] send "workers"
     } else {
         error "can't connect to any authority\nAUTHORITY LIST: [p2p::options get authority_hosts]"
@@ -159,6 +160,7 @@ foreman-solicit transition informed->connected -onchange {
     }
 
     if {"" != [statedata workercnx]} {
+        [statedata workercnx] send "identity foreman"
         [statedata workercnx] send "solicit -job [expr {rand()}]"
     } else {
         after 2000 {foreman-solicit goto connected}

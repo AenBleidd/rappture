@@ -105,19 +105,6 @@ Rappture::getopts argv params {
 set dir [file dirname [info script]]
 set auto_path [linsert $auto_path 0 $dir]
 
-foreach fname [glob [file join $dir types *.tcl]] {
-    source $fname
-}
-
-foreach fname [glob [file join $dir validations *.tcl]] {
-    source $fname
-}
-
-if {[catch {Rappture::objects::load [file join $dir objects *.rp]} err]} {
-    puts stderr "Error loading object definitions:\n$err"
-    exit 1
-}
-
 Rappture::icon foo  ;# force loading of this module
 lappend Rappture::icon::iconpath [file join $dir images]
 

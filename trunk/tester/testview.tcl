@@ -143,6 +143,11 @@ itcl::body Rappture::Tester::TestView::show {args} {
                     set sicon [Rappture::icon fail64]
                     set color $itk_option(-statusfailcolor)
                 }
+                Running - Waiting {
+                    set smesg "Test waiting to run"
+                    set sicon [Rappture::icon wait64]
+                    set color $itk_option(-statuspasscolor)
+                }
                 default { error "unknown test state \"[$obj getResult]\"" }
             }
             set name [lindex [split [$obj getTestInfo test.label] |] end]
@@ -160,7 +165,7 @@ itcl::body Rappture::Tester::TestView::show {args} {
             $itk_component(run) configure -state normal
         }
         default {
-            array set states { ? 0  Pass 0  Fail 0  total 0 }
+            array set states { ? 0  Pass 0  Fail 0  Running 0  Waiting 0  total 0 }
             foreach obj $_testobjs {
                 incr states(total)
                 incr states([$obj getResult])

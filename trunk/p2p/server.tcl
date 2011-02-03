@@ -105,8 +105,6 @@ itcl::class Server {
     public method connectionSpeaks {cid protocol}
 
     protected method dropped {cid}
-    protected method handlerType {}
-
     private method accept {cid addr port}
 }
 
@@ -233,15 +231,4 @@ itcl::body Server::dropped {cid} {
 
     # call the base class method to clean up after the client
     chain $cid
-}
-
-# ----------------------------------------------------------------------
-#  USAGE: handlerType
-#
-#  Returns a descriptive string describing this handler.  Derived
-#  classes override this method to provide their own string.  Used
-#  for debug messages.
-# ----------------------------------------------------------------------
-itcl::body Server::handlerType {} {
-    return "server"
 }

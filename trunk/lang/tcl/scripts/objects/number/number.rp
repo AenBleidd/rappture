@@ -1,0 +1,78 @@
+object number -extends base {
+    palettes "Inputs"
+    help http://rappture.org/wiki/rp_xml_ele_number
+    attr default -title "Default Value" -type string:validate=number -path default
+    attr units -title "Units of Measurement" -type units -path units
+    attr min -title "Minimum Value" -type string:validate=number -path min
+    attr max -title "Maximum Value" -type string:validate=number -path max
+    attr color -title "Color" -type color -path color
+
+    check label {
+        if {[string length [string trim $attr(label)]] == 0} {
+            return [list warning "Should set a label that describes this value"]
+        }
+    }
+    check description {
+        set desc [string trim $attr(description)]
+        if {[string length $desc] == 0} {
+            return [list warning "Should include a description of what this value represents, typical settings, etc."]
+        } elseif {[string equal $desc $attr(label)]} {
+            return [list warning "Description should be different from the label and give additional information about the value."]
+        }
+    }
+
+    check default {
+        if {[string length [string trim $attr(default)]] == 0} {
+            return [list error "Must have a default value for this number."]
+        }
+        if {"" != $attr(units)} {
+            set base [Rappture::Units::System::for $attr(units)]
+            if {[validate_number_parse $attr(default) num units]
+               && "" != $units
+               && ![string equal [Rappture::Units::System::for $units] $base]} {
+                return [list error "Units for default value don't match the expected units for this value"]
+            }
+
+            set dval [Rappture::Units::convert $attr(default) -context $attr(units) -to $attr(units) -units off]
+
+            if {[validate_number_parse $attr(min) num units]
+                 && [catch {Rappture::Units::convert $attr(min) -context $attr(units) -to $attr(units) -units off} min] == 0
+                 && $dval < $min} {
+                return [list error "Default value is less than the minimum that you've specified for this value."]
+            }
+
+            if {[validate_number_parse $attr(max) num units]
+                 && [catch {Rappture::Units::convert $attr(max) -context $attr(units) -to $attr(units) -units off} max] == 0
+                 && $dval > $max} {
+                return [list error "Default value is greater than the maximum that you've specified for this value."]
+            }
+        }
+    }
+
+    check min {
+        if {"" != $attr(units)} {
+            set base [Rappture::Units::System::for $attr(units)]
+            if {[validate_number_parse $attr(min) num units]
+               && "" != $units
+               && ![string equal [Rappture::Units::System::for $units] $base]} {
+                return [list error "Units for minimum value don't match the expected units for this value"]
+            }
+        }
+        if {[catch {Rappture::Units::convert $attr(min) -context $attr(units) -to $attr(units) -units off} min] == 0
+              && [catch {Rappture::Units::convert $attr(max) -context $attr(units) -to $attr(units) -units off} max] == 0
+              && $min >= $max} {
+            return [list error "Minimum value should be less than the maximum.  If you don't want to see a min/max range, you can clear out either or both values."]
+        }
+    }
+
+    check max {
+        if {"" != $attr(units)} {
+            set base [Rappture::Units::System::for $attr(units)]
+            if {[validate_number_parse $attr(max) num units]
+               && "" != $units
+               && ![string equal [Rappture::Units::System::for $units] $base]} {
+                return [list error "Units for maximum value don't match the expected units for this value"]
+            }
+        }
+    }
+}

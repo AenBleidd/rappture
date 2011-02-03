@@ -76,9 +76,6 @@ Rappture::grab::init
 Rappture::icon foo  ;# forces auto-loading of Rappture::icon
 set Rappture::icon::iconpath [linsert $Rappture::icon::iconpath 0 [file join $testerdir images]]
 
-# current list of running tests
-set RunQueue ""
-
 
 Rappture::getopts argv params {
     value -tool ""
@@ -160,8 +157,11 @@ $win.testview.details.scrl contents $win.testview.details.scrl.list
 # Frame for viewing running tests
 # ----------------------------------------------------------------------
 frame $win.testrun
+label $win.testrun.title -text "Output from test run:" -anchor w
+pack $win.testrun.title -side top -anchor w
+
 button $win.testrun.abort -text "Abort"
-pack $win.testrun.abort -side bottom
+pack $win.testrun.abort -side bottom -pady {8 0}
 
 Rappture::Scroller $win.testrun.scrl -xscrollmode auto -yscrollmode auto
 pack $win.testrun.scrl -expand yes -fill both
@@ -212,12 +212,13 @@ proc tester_selection_changed {args} {
         foreach win [pack slaves $rhs] {
             pack forget $win
         }
-        pack $detailwidget -expand yes -fill both
+        if {$detailwidget ne ""} {
+            pack $detailwidget -expand yes -fill both -padx 8 -pady 8
+        }
     }
 
     if {[llength $tests] > 0} {
         eval $testview.overview show $tests
-        pack $testview -expand yes -fill both -padx 8 -pady 8
         if {[llength $tests] == 1 && [$tests getResult] eq "Fail"} {
             pack $testview.regoldenize -side bottom -anchor w
             $testview.regoldenize configure -state normal
@@ -227,20 +228,38 @@ proc tester_selection_changed {args} {
 
             set testobj [lindex $tests 0]
             $testview.details.scrl.list delete 0 end
-            foreach {path info} [$testobj getDiffs] {
-                set title [$testobj getTestInfo $path.about.label]
-                if {[string match output.* $path]} {
-                    set title "Output: $title"
-                }
-                switch -- [lindex $info 0] {
-                    result {
-                        set desc "Result differs from expected value"
-                        set icon [Rappture::icon fail16]
+            foreach {op path what v1 v2} [$testobj getDiffs] {
+                switch -- [lindex $what 0] {
+                  value {
+                    set title "Output: [$testobj getTestInfo $path.about.label]"
+                    set icon [Rappture::icon fail16]
+                    switch -- $op {
+                      - { set desc "Result is missing from current output" }
+                      + { set desc "Result was not expected to appear" }
+                      c { set desc "Result differs from expected value" }
+                      default {
+                          error "don't know how to handle difference $op"
+                      }
                     }
-                    default {
-                        set desc $info
-                        set icon [Rappture::icon warn16]
+                  }
+                  structure {
+                    set ppath [lindex $what 1]
+                    set title "Output: [$testobj getTestInfo $ppath.about.label]"
+                    set icon [Rappture::icon warn16]
+                    set pplen [string length $ppath]
+                    set tail [string range $path [expr {$pplen+1}] end]
+                    switch -- $op {
+                      - { set desc "Missing value \"$v1\" at $tail" }
+                      + { set desc "Extra value \"$v2\" at $tail" }
+                      c { set desc "Details at $tail have changed:\n       got: $v2\n  expected: $v1" }
+                      default {
+                          error "don't know how to handle difference $op"
+                      }
                     }
+                  }
+                  default {
+                    error "don't know how to handle difference \"$what\""
+                  }
                 }
 
                 # add to the list of differences
@@ -264,64 +283,59 @@ proc tester_selection_changed {args} {
 # the various test cases.
 # ----------------------------------------------------------------------
 proc tester_run {args} {
-    global RunQueue
-    set testtree [.pw pane 0].tree
+    # set up a callback for handling output from runs
+    Rappture::Tester::Test::queue status tester_run_output
 
     # add these tests to the run queue
-    foreach obj $args {
-        if {[lsearch $RunQueue $obj] < 0} {
-            lappend RunQueue $obj
+    eval Rappture::Tester::Test::queue add $args
+
+    # show the run output window
+    set rhs [.pw pane 1]
+    foreach win [pack slaves $rhs] {
+        pack forget $win
+    }
+    pack $rhs.testrun -expand yes -fill both -padx 8 -pady 8
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tester_run_output start <testObj>
+# USAGE: tester_run_output add <testObj> <string>
+#
+# Handles the output from running tests.  The "start" option clears
+# the current output area.  The "add" option adds output from a run.
+# ----------------------------------------------------------------------
+proc tester_run_output {option testobj args} {
+    set testrun [.pw pane 1].testrun
+
+    switch -- $option {
+        start {
+            # clear out any previous output
+            $testrun.scrl.info configure -state normal
+            $testrun.scrl.info delete 1.0 end
+            $testrun.scrl.info configure -state disabled
+
+            # plug this object into the "Abort" button
+            $testrun.abort configure -command [list $testobj abort]
+        }
+        add {
+            $testrun.scrl.info configure -state normal
+            $testrun.scrl.info insert end [lindex $args 0]
+
+            # if there are too many lines, delete some
+            set lines [lindex [split [$testrun.scrl.info index end-2char] .] 0]
+            if {$lines > 500} {
+                set extra [expr {$lines-500+1}]
+                $testrun.scrl.info delete 1.0 $extra.0
+            }
+
+            # show the newest stuff
+            $testrun.scrl.info see end
+            $testrun.scrl.info configure -state disabled
+        }
+        default {
+            error "bad option \"$option\": should be start, add"
         }
     }
-
-    after idle tester_run_next
-}
-
-# ----------------------------------------------------------------------
-# USAGE: tester_run_next
-#
-# Takes the next test from the queue and runs it.  Displays any
-# output during the run, then compares results and shows a final
-# pass/fail status.
-# ----------------------------------------------------------------------
-proc tester_run_next {} {
-    global RunQueue
-
-    set obj [lindex $RunQueue 0]
-    set RunQueue [lrange $RunQueue 1 end]
-
-    if {$obj ne ""} {
-puts "RUNNING: $obj"
-        set testrun [.pw pane 1].testrun
-        $testrun.abort configure -command [list $obj abort]
-        $obj run -output tester_run_output
-    }
-
-    # keep running remaining tests
-    after idle tester_run_next
-}
-
-# ----------------------------------------------------------------------
-# USAGE: tester_run_output <string>
-#
-# Adds the <string> output from running a test case into the viewer
-# for that test.
-# ----------------------------------------------------------------------
-proc tester_run_output {string} {
-    set testrun [.pw pane 1].testrun
-    $testrun.scrl.info configure -state normal
-    $testrun.scrl.info insert end $string
-
-    # if there are too many lines, delete some
-    set lines [lindex [split [$testrun.scrl.info index end-2char] .] 0]
-    if {$lines > 500} {
-        set extra [expr {$lines-500+1}]
-        $testrun.scrl.info delete 1.0 $extra.0
-    }
-
-    # show the newest stuff
-    $testrun.scrl.info see end
-    $testrun.scrl.info configure -state disabled
 }
 
 # ----------------------------------------------------------------------
