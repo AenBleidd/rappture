@@ -97,18 +97,4 @@ if {$toolxml eq ""} {
 }
 
 # invoke the main program with the args
-set bindir [file dirname [info nameofexecutable]]
-set prog ""
-foreach name {wish wish8.5 wish8.4} {
-    if {[file executable [file join $bindir $prog]]} {
-        set prog [file join $bindir $name]
-        break
-    }
-}
-
-if {$prog eq ""} {
-    puts stderr "rappture: can't find wish program in $bindir"
-}
-
-#eval exec [list $prog $mainscript] $alist
-puts "RUNNING: exec $prog $mainscript $alist"
+eval exec wish [list $mainscript] $alist

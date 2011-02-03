@@ -1,5 +1,0 @@
-object phase -extends base {
-    palettes "Grouping"
-    help http://rappture.org/wiki/rp_xml_ele_phase
-    terminal no
-}

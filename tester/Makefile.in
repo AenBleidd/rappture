@@ -24,7 +24,7 @@ INSTALL		= @INSTALL@
 PACKAGE_VERSION	= @PACKAGE_VERSION@
 
 version		= $(PACKAGE_VERSION)
-name		= RapptureBuilder$(version)
+name		= RapptureTester$(version)
 
 destdir         = $(libdir)/$(name)
 
@@ -42,7 +42,7 @@ install-scripts: scripts
 
 clean:
 	$(MAKE) -C scripts clean
-	$(RM) tool.xml
+	$(RM) example/driver*.xml example/run*.xml
 
 distclean: clean
 	$(RM) Makefile *~

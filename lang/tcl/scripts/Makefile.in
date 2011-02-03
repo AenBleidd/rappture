@@ -41,7 +41,6 @@ FILES		= \
 		$(srcdir)/exec.tcl \
 		$(srcdir)/library.tcl \
 		$(srcdir)/objects.tcl \
-		$(srcdir)/objects/base.rp \
 		$(srcdir)/result.tcl \
 		$(srcdir)/units.tcl
 
@@ -85,12 +84,13 @@ install: tclIndex
 
 install-objects:
 	$(MKDIR_P) -m 0755 $(destdir)/objects
+	$(INSTALL) -m 0444 $(srcdir)/objects/base.rp $(destdir)/objects
 	for i in $(OBJECTS); do \
 	    echo "Installing object definition: $$i" ; \
 	    $(MKDIR_P) -m 0755 $(destdir)/objects/$$i ; \
 	    for j in $(srcdir)/objects/$$i/*; do \
 		$(INSTALL) -m 0444 $$j $(destdir)/objects/$$i ; \
-	    done
+	    done \
 	done
 
 install-types: $(TYPEFILES)
