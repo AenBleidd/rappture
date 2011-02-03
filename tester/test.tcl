@@ -23,6 +23,7 @@ itcl::class Rappture::Tester::Test {
 
     public method getResult {}
     public method getTestInfo {path}
+    public method getDiffs {}
 
     public method run {args}
     public method regoldenize {}
@@ -31,27 +32,26 @@ itcl::class Rappture::Tester::Test {
     private variable _testxml ""  ;# XML file for test case
     private variable _testobj ""  ;# Rappture::Library object for _testxml
 
-    private variable _added ""
-    private variable _diffs ""
-    private variable _missing ""
-    private variable _result "?"
-    private variable _runobj ""
+    private variable _result "?"  ;# current status of this test
+    private variable _runobj ""   ;# results from last run
+    private variable _diffs ""    ;# diffs with respect to _runobj
 
     # don't need this?
-    public method getAdded {}
-    public method getDiffs {}
-    public method getInputs {{path input}}
-    public method getMissing {}
-    public method getOutputs {{path output}}
     public method getRunobj {}
-    public method getTestobj {}
 
+    private method _setWaiting {{newval ""}}
     private method _setResult {name}
-    private method added {lib1 lib2 {path output}}
-    private method compareElements {lib1 lib2 path}
-    private method diffs {lib1 lib2 {path output}}
-    private method merge {toolobj golden driver {path input}}
-    private method missing {lib1 lib2 {path output}}
+    private method _computeDiffs {obj1 obj2 args}
+    private method _getStructure {xmlobj path}
+
+    # use this to add tests to the "run" queue
+    public proc queue {op args}
+
+    private common _queue       ;# queue of objects waiting to run
+    set _queue(tests) ""        ;# list of tests in the queue
+    set _queue(pending) ""      ;# after event for "next" call
+    set _queue(running) ""      ;# test object currently running
+    set _queue(outputcmd) ""    ;# callback for reporting output
 }
 
 # ----------------------------------------------------------------------
@@ -117,9 +117,11 @@ itcl::body Rappture::Tester::Test::run {args} {
     if {$_runobj ne ""} {
         itcl::delete object $_runobj
         set _runobj ""
+        set _diffs ""
     }
 
     # copy inputs from the test into the run file
+    $_toolobj reset
     foreach path [Rappture::entities -as path $_testobj input] {
         if {[$_testobj element -as type $path.current] ne ""} {
 puts "  override: $path = [$_testobj get $path.current]"
@@ -129,22 +131,38 @@ puts "  override: $path = [$_testobj get $path.current]"
 
     # run the test case...
     _setResult "Running"
-    foreach {status _runobj} [eval $_toolobj run $args] break
+    foreach {status result} [eval $_toolobj run $args] break
 
-    if {$status == 0 && [Rappture::library isvalid $_runobj]} {
-        # HACK: Add a new input to differentiate between results
-        $_runobj put input.TestRun.current "Test result"
-        set _diffs [diffs $_testobj $_runobj]
-        set _missing [missing $_testobj $_runobj]
-        set _added [added $_testobj $_runobj]
-        if {$_diffs == "" && $_missing == "" && $_added == ""} {
-            _setResult "Pass"
+    if {$status == 0} {
+        if {$result eq "ABORT"} {
+            _setResult "?"
+            return "aborted"
+        } elseif {[Rappture::library isvalid $result]} {
+            set _runobj $result
+            set _diffs [_computeDiffs $_testobj $_runobj -section output]
+puts "DIFFS:"
+foreach {op path what v1 v2} $_diffs {
+puts "  $op $path ($what) $v1 $v2"
+}
+
+            # HACK: Add a new input to differentiate between results
+            $_runobj put input.TestRun.current "Test result"
+
+            # any differences from expected result mean test failed
+            if {[llength $_diffs] == 0} {
+                _setResult "Pass"
+            } else {
+                _setResult "Fail"
+            }
+            return "finished"
         } else {
             _setResult "Fail"
+            return "failed: $result"
         }
     } else {
-        set _runobj ""
-        set _setResult "Error"
+        _setResult "Fail"
+        tk_messageBox -icon error -message "Tool failed: $result"
+        return "finished"
     }
 }
 
@@ -159,32 +177,22 @@ puts "  override: $path = [$_testobj get $path.current]"
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::regoldenize {} {
     if {$_runobj eq ""} {
-        error "Test has not yet been run."
+        error "no test result to goldenize"
     }
     $_runobj put test.label [$_testobj get test.label]
     $_runobj put test.description [$_testobj get test.description]
+
     set fid [open $_testxml w]
     puts $fid "<?xml version=\"1.0\"?>"
     puts $fid [$_runobj xml]
     close $fid
-    set _testobj $_runobj
-    set _diffs ""
-    set _added ""
-    set _missing ""
-    _setResult Pass
-}
 
-# ----------------------------------------------------------------------
-# USAGE: getAdded
-#
-# Return a list of paths that have been added that do not exist in the
-# golden results.  Throws an error if the test has not been ran.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getAdded {} {
-    if {$_runobj eq ""} {
-        error "Test has not yet been run."
-    }
-    return $_added
+    itcl::delete object $_testobj
+    set _testobj $_runobj
+
+    set _runobj ""
+    set _diffs ""
+    _setResult Pass
 }
 
 # ----------------------------------------------------------------------
@@ -195,88 +203,7 @@ itcl::body Rappture::Tester::Test::getAdded {} {
 # method.  Throws an error if the test has not been run.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getDiffs {} {
-    return [list \
-        input.number(temperature) label \
-        output.curve(f12) units \
-        output.curve(f12) result]
-}
-
-# -----------------------------------------------------------------------
-# USAGE: getInputs
-#
-# Returns a list of key value pairs for all inputs given in the test xml.
-# Each key is the path to the input element, and each key is its current
-# value. 
-# -----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getInputs {{path input}} {
-    set retval [list]
-    foreach child [$_testobj children $path] {
-        set fullpath $path.$child
-        if {$fullpath != "input.TestRun"} {
-            set val [$_testobj get $fullpath.current]
-            if {$val != ""} {
-                lappend retval $fullpath $val
-            }
-        }
-        append retval [getInputs $fullpath]
-    }
-    return $retval
-}
-
-# ----------------------------------------------------------------------
-# USAGE: getMissing
-#
-# Return a list of paths that are present in the golden results, but are
-# missing in the new test results.  Throws an error if the test has not
-# been ran.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getMissing {} {
-    if {$_runobj eq ""} {
-        error "Test has not yet been run."
-    }
-    return $_missing
-}
-
-# ----------------------------------------------------------------------
-# USAGE: getOutputs
-#
-# Returns a list of key value pairs for all outputs in the runfile
-# generated by the last run of the test.  Each key is the path to the
-# element, and each value is its status (ok, diff, added, or missing).
-# Throws an error if the test has not been run.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getOutputs {{path output}} {
-    if {$_runobj eq ""} {
-        error "Test has not yet been run."
-    }
-    set retval [list]
-    foreach child [$_runobj children $path] {
-        set fullpath $path.$child
-        if {$fullpath != "output.time" && $fullpath != "output.user" \
-            && $fullpath != "output.status"} {
-            if {[lsearch $fullpath [getDiffs]] != -1} {
-                set status diff
-            } elseif {[lsearch $fullpath [getAdded]] != -1} {
-                set status added
-            } else {
-                if {[$_runobj get $fullpath] != ""} {
-                    set status ok
-                } else {
-                    set status ""
-                }
-            }
-            lappend retval $fullpath $status
-        }
-        append retval " [getOutputs $fullpath]"
-    }
-    # We won't find missing elements by searching through runobj.  Instead,
-    # tack on all missing items at the end (only do this once)
-    if {$path == "output"} {
-        foreach item $_missing {
-            lappend retval $item missing
-        }
-    }
-    return $retval
+    return $_diffs
 }
 
 # -----------------------------------------------------------------------
@@ -293,125 +220,6 @@ itcl::body Rappture::Tester::Test::getRunobj {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getTestobj
-# 
-# Returns the test library object containing the set of golden results.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getTestobj {} {
-    return $_testobj
-}
-
-# ----------------------------------------------------------------------
-# USAGE: added lib1 lib2 ?path?
-#
-# Compares two library objects and returns a list of paths that have
-# been added in the second library and do not exist in the first.
-# Return value will contain all differences that occur as descendants of
-# an optional starting path.  If the path argument is not given, then 
-# only the output sections will be compared.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::added {lib1 lib2 {path output}} {
-    set paths [list]
-    foreach child [$lib2 children $path] {
-        foreach p [added $lib1 $lib2 $path.$child] {
-            lappend paths $p
-        }
-    }
-    if {[$lib1 get $path] == "" && [$lib2 get $path] != ""} {
-        lappend paths $path
-    }
-    return $paths
-}
-
-# ----------------------------------------------------------------------
-# USAGE: compareElements <lib1> <lib2> <path>
-#
-# Compare data found in two library objects at the given path.  Returns
-# 1 if match, 0 if no match.  For now, just check if ascii identical.
-# Later, we can do something more sophisticated for different types of 
-# elements.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::compareElements {lib1 lib2 path} {
-    set val1 [$lib1 get $path]
-    set val2 [$lib2 get $path]
-    return [expr {$val1} != {$val2}]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: diffs <lib1> <lib2> ?path?
-#
-# Compares two library objects and returns a list of paths that do not
-# match.  Only paths which exist in both libraries are considered.
-# Return value will contain all differences that occur as descendants of
-# an optional starting path.  If the path argument is not given, then 
-# only the output sections will be compared.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::diffs {lib1 lib2 {path output}} {
-    set paths [list]
-    set clist1 [$lib1 children $path]
-    set clist2 [$lib2 children $path]
-    foreach child $clist1 {
-        # Ignore if not present in both libraries
-        if {[lsearch -exact $clist2 $child] != -1} {
-            foreach p [diffs $lib1 $lib2 $path.$child] {
-                lappend paths $p
-            }
-        }
-    }
-    if {[compareElements $lib1 $lib2 $path]} {
-        # Ignore output.time and output.user
-        if {$path != "output.time" && $path != "output.user"} {
-            lappend paths $path
-        }
-    }
-    return $paths
-}
-
-# ----------------------------------------------------------------------
-# USAGE: merge <toolobj> <golden> <driver> ?path?
-#
-# Used to recursively build up a driver library object for running a
-# test.  Should not be called directly - see makeDriver.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::merge {toolobj golden driver {path input}} {
-    foreach child [$toolobj children $path] {
-        set val [$golden get $path.$child.current]
-        if {$val != ""} {
-            $driver put $path.$child.current $val
-        } else {
-            set def [$toolobj get $path.$child.default]
-            if {$def != ""} {
-                $driver put $path.$child.current $def
-            }
-        }
-        merge $toolobj $golden $driver $path.$child
-    }
-    return $driver
-}
-
-# ----------------------------------------------------------------------
-# USAGE: added lib1 lib2 ?path?
-#
-# Compares two library objects and returns a list of paths that do not
-# exist in the first library and have been added in the second.
-# Return value will contain all differences that occur as descendants of
-# an optional starting path.  If the path argument is not given, then 
-# only the output sections will be compared.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::missing {lib1 lib2 {path output}} {
-    set paths [list]
-    foreach child [$lib1 children $path] {
-        foreach p [missing $lib1 $lib2 $path.$child] {
-            lappend paths $p
-        }
-    }
-    if {[$lib1 get $path] != "" && [$lib2 get $path] == ""} {
-        lappend paths $path
-    }
-    return $paths
-}
-
-# ----------------------------------------------------------------------
 # USAGE: _setResult ?|Pass|Fail|Waiting|Running
 #
 # Used internally to change the state of this test case.  If there
@@ -419,10 +227,284 @@ itcl::body Rappture::Tester::Test::missing {lib1 lib2 {path output}} {
 # an interested client that the object has changed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::_setResult {name} {
-puts "CHANGED: $this => $name"
     set _result $name
     if {[string length $notifycommand] > 0} {
-puts "  notified $notifycommand"
         uplevel #0 $notifycommand $this
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _setWaiting ?boolean?
+#
+# Used to mark a Test as "waiting".  This usually happens when a test
+# is added to the queue, about to be run.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::_setWaiting {{newval ""}} {
+    if {$newval ne "" && [string is boolean $newval]} {
+        if {$newval} {
+            _setResult "Waiting"
+        } else {
+            _setResult "?"
+        }
+    }
+    return $_result
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _computeDiffs <xmlObj1> <xmlObj2> ?-section xxx? \
+#            ?-what value|structure|all?
+#
+# Used internally to compute differences between two different XML
+# objects.  This is normally used to look for differences in the
+# output section between a test case and a new run, but can also
+# be used to look for differences in other sections via the -section
+# flag.
+#
+# Returns a list of the following form:
+#     <op> <path> <what> <val1> <val2>
+#
+#       where <op> is one of:
+#         - ...... element is missing from <xmlObj2>
+#         c ...... element changed between <xmlObj1> and <xmlObj2>
+#         + ...... element is missing from <xmlObj1>
+#
+#       and <what> is something like:
+#         value .............. difference affects "current" value 
+#         structure <path> ... affects structure of parent at <path>
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::_computeDiffs {obj1 obj2 args} {
+    Rappture::getopts args params {
+        value -section output
+        value -what all
+    }
+    if {$params(-what) == "all"} {
+        set params(-what) "structure value"
+    }
+
+    # query the values for all entities in both objects
+    set v1paths [Rappture::entities $obj1 $params(-section)]
+    set v2paths [Rappture::entities $obj2 $params(-section)]
+
+    # scan through values for obj1 and compare against obj2
+    set rlist ""
+    foreach path $v1paths {
+puts "checking $path"
+        set i [lsearch -exact $v2paths $path]
+        if {$i < 0} {
+puts "  missing from $obj2"
+            # missing from obj2
+            foreach {raw norm} [Rappture::LibraryObj::value $obj1 $path] break
+            lappend rlist - $path value $raw ""
+        } else {
+            foreach part $params(-what) {
+                switch -- $part {
+                  value {
+                    foreach {raw1 norm1} \
+                        [Rappture::LibraryObj::value $obj1 $path] break
+                    foreach {raw2 norm2} \
+                        [Rappture::LibraryObj::value $obj2 $path] break
+puts "  checking values $norm1 vs $norm2"
+                    if {![string equal $norm1 $norm2]} {
+puts "  => different!"
+                        # different from obj2
+                        lappend rlist c $path value $raw1 $raw2
+                    }
+                    # handled this comparison
+                    set v2paths [lreplace $v2paths $i $i]
+                  }
+                  structure {
+                    set what [list structure $path]
+                    set s1paths [_getStructure $obj1 $path]
+                    set s2paths [_getStructure $obj2 $path]
+                    foreach spath $s1paths {
+puts "  checking internal structure $spath"
+                        set i [lsearch -exact $s2paths $spath]
+                        if {$i < 0} {
+puts "    missing from $obj2"
+                            # missing from obj2
+                            set val1 [$obj1 get $spath]
+                            lappend rlist - $spath $what $val1 ""
+                        } else {
+                            set val1 [$obj1 get $spath]
+                            set val2 [$obj2 get $spath]
+                            if {![string match $val1 $val2]} {
+puts "    different from $obj2 ($val1 vs $val2)"
+                                # different from obj2
+                                lappend rlist c $spath $what $val1 $val2
+                            }
+                            # handled this comparison
+                            set s2paths [lreplace $s2paths $i $i]
+                        }
+                    }
+
+                    # look for leftover values
+                    foreach spath $s2paths {
+                        set val2 [$obj2 get $spath]
+puts "    extra $spath in $obj2"
+                        lappend rlist + $spath $what "" $val2
+                    }
+                  }
+                  default {
+                    error "bad part \"$part\": should be structure, value"
+                  }
+                }
+            }
+        }
+    }
+
+    # add any values left over in the obj2
+    foreach path $v2paths {
+puts "    extra $path in $obj2"
+        foreach {raw2 norm2} [Rappture::LibraryObj::value $obj2 $path] break
+        lappend rlist + $path value "" $raw2
+    }
+    return $rlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _getStructure <xmlObj> <path>
+#
+# Used internally by _computeDiffs to get a list of paths for important
+# parts of the internal structure of an object.  Avoids the "current"
+# element, but includes "default", "units", etc.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::_getStructure {xmlobj path} {
+    set rlist ""
+    set queue $path
+    while {[llength $queue] > 0} {
+        set qpath [lindex $queue 0]
+        set queue [lrange $queue 1 end]
+
+        foreach p [$xmlobj children -as path $qpath] {
+            if {[string match *.current $p]} {
+                continue
+            }
+            if {[llength [$xmlobj children $p]] > 0} {
+                # continue exploring nodes with children
+                lappend queue $p
+            } else {
+                # return the terminal nodes
+                lappend rlist $p
+            }
+        }
+    }
+    return $rlist
+}
+
+# ======================================================================
+# RUN QUEUE
+# ======================================================================
+# USAGE: queue add <testObj> <testObj>...
+# USAGE: queue clear ?<testObj> <testObj>...?
+# USAGE: queue status <command>
+# USAGE: queue next
+# USAGE: queue output <string>
+#
+# Used to manipulate the run queue for the program as a whole.
+#
+# The "queue add" option adds the given <testObj> objects to the run
+# queue.  As soon as an object is added to the queue, it is marked
+# "waiting".  When it runs, it is marked "running", and it finally
+# goes to the "pass" or "fail" state.  If an object is already in
+# the queue, then this operation does nothing.
+#
+# The "queue clear" option clears specific objects from the queue.
+# If no objects are specified, then it clears all remaining objects.
+#
+# The "queue status" option is used to set the callback for handling
+# output from runs.  This command is called two ways:
+#    command start <testObj>
+#    command add <testObj> "string of output"
+#
+# The "queue next" option is used internally to run the next object
+# in the queue.  The "queue output" option is also used internally
+# to handle the output coming back from a run.  The output gets
+# shuttled along to the callback specified by "queue status".
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::queue {option args} {
+    switch -- $option {
+        add {
+            # add these tests to the run queue
+            foreach obj $args {
+                if {[catch {$obj isa Rappture::Tester::Test} valid] || !$valid} {
+                    error "bad value \"$obj\": should be Test object"
+                }
+                if {[lsearch $_queue(tests) $obj] < 0} {
+                    $obj _setWaiting 1
+                    lappend _queue(tests) $obj
+                }
+            }
+            if {$_queue(running) eq "" && $_queue(pending) eq ""} {
+                set _queue(pending) [after idle \
+                    Rappture::Tester::Test::queue next]
+            }
+        }
+        clear {
+            # remove these tests from the run queue
+            foreach obj $args {
+                if {[catch {$obj isa Rappture::Tester::Test} valid] || !$valid} {
+                    error "bad value \"$obj\": should be Test object"
+                }
+
+                # remove the test from the queue
+                set i [lsearch $_queue(tests) $obj]
+                if {$i >= 0} {
+                    set _queue(tests) [lreplace $_queue(tests) $i $i]
+                }
+
+                # mark object as no longer "waiting"
+                if {[$obj _setWaiting]} {
+                    $obj _setWaiting 0
+                }
+            }
+        }
+        status {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"status command\""
+            }
+            set _queue(outputcmd) [lindex $args 0]
+        }
+        next {
+            set _queue(pending) ""
+
+            # get the next object from the queue
+            set obj [lindex $_queue(tests) 0]
+            set _queue(tests) [lrange $_queue(tests) 1 end]
+
+            if {$obj ne ""} {
+                set _queue(running) $obj
+                # invoke the callback to signal start of a run
+                if {[string length $_queue(outputcmd)] > 0} {
+                    uplevel #0 $_queue(outputcmd) start $obj
+                }
+
+                # run the test
+                set callback "Rappture::Tester::Test::queue output"
+                set status [$obj run -output $callback]
+                set _queue(running) ""
+
+                if {$status == "aborted"} {
+                    # if the test was aborted, clear any waiting tests
+                    Rappture::Tester::Test::queue clear
+                } elseif {[string match failed:* $status]} {
+                    bgerror $status
+                }
+
+                # set up to run the next test in the queue
+                set _queue(pending) [after idle \
+                    Rappture::Tester::Test::queue next]
+            }
+        }
+        output {
+            if {[llength $args] != 1} {
+                error "wrong # args: should be \"output string\""
+            }
+            if {[string length $_queue(outputcmd)] > 0} {
+                uplevel #0 $_queue(outputcmd) add $_queue(running) $args
+            }
+        }
+        default {
+            error "bad option \"$option\": should be add, clear, status, output, next"
+        }
     }
 }

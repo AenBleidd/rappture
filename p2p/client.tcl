@@ -85,8 +85,6 @@ itcl::class Client {
 
     public method send {message}
     public method address {}
-
-    protected method handlerType {}
 }
 
 # ----------------------------------------------------------------------
@@ -100,7 +98,7 @@ itcl::body Client::send {message} {
         if {[eof $_sid]} {
             set _sid ""
         } else {
-            log debug "sending: $message"
+            log debug "outgoing message to [address]: $message"
             puts $_sid $message
         }
     }
@@ -114,15 +112,4 @@ itcl::body Client::send {message} {
 # ----------------------------------------------------------------------
 itcl::body Client::address {} {
     return $_addr
-}
-
-# ----------------------------------------------------------------------
-#  USAGE: handlerType
-#
-#  Returns a descriptive string describing this handler.  Derived
-#  classes override this method to provide their own string.  Used
-#  for debug messages.
-# ----------------------------------------------------------------------
-itcl::body Client::handlerType {} {
-    return "client"
 }

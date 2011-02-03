@@ -1,18 +1,17 @@
-#!/bin/sh
 # ----------------------------------------------------------------------
-#  RAPPTURE
+#  VALIDATION: enable
 #
-#  This is the main script that most people use to invoke the
-#  Rappture GUI.  It sets environment variables so that the Rappture
-#  GUI driver will work properly for the current installation.
-#
+#  Handles the type:validate=enable setting for an object attribute.
+#  Checks the given string to see if it is a valid Rappture <enable>
+#  settings.  Returns an error if something is wrong.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2011  Purdue Research Foundation
+#  Copyright (c) 2004-2010  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-dir=`dirname $0`
-. $dir/rappture.env
-exec $dir/launcher.tcl $*
+proc validate_enable {str} {
+    # punt for now
+    return "ok"
+}

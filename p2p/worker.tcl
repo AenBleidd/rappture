@@ -117,7 +117,6 @@ p2p::protocol::register hubzero:worker<-foreman/1 {
     #  Foremen send this message to solicit bids for a simulation job.
     # ------------------------------------------------------------------
     define solicit {args} {
-log debug "SOLICIT from foreman: $args"
         variable cid
         log debug "solicitation request from foreman: $args"
         eval Solicitation ::#auto $args -connection $cid
@@ -160,7 +159,6 @@ p2p::protocol::register hubzero:workers<-workerc/1 {
     #  for a simulation job.
     # ------------------------------------------------------------------
     define solicit {args} {
-log debug "SOLICIT from peer: $args"
         variable cid
         log debug "solicitation request from peer: $args"
         eval Solicitation ::#auto $args -connection $cid
@@ -176,7 +174,6 @@ log debug "SOLICIT from peer: $args"
     #  solicitation.
     # ------------------------------------------------------------------
     define proffer {token details} {
-log debug "PROFFER from peer: $token $details"
         Solicitation::proffer $token $details
         return ""
     }
@@ -225,7 +222,6 @@ p2p::protocol::register hubzero:workerc<-workers/1 {
     #  for a simulation job.
     # ------------------------------------------------------------------
     define solicit {args} {
-log debug "SOLICIT from peer: $args"
         variable cid
         log debug "solicitation request from peer: $args"
         eval Solicitation ::#auto $args -connection $cid
@@ -241,7 +237,6 @@ log debug "SOLICIT from peer: $args"
     #  solicitation.
     # ------------------------------------------------------------------
     define proffer {token details} {
-log debug "PROFFER from peer: $token $details"
         Solicitation::proffer $token $details
         return ""
     }
@@ -635,14 +630,12 @@ itcl::class Solicitation {
         if {[llength $path] < $ttl} {
             set mesg [list solicit -job $job -path $path -avoid "$avoid @RECIPIENTS" -token $_serial]
             set _waitfor [broadcast_to_peers $mesg $avoid]
-log debug "WAIT FOR: $_waitfor"
 
             if {$_waitfor > 0} {
                 # add a delay proportional to ttl + time for wonks measurement
                 set delay [expr {($ttl-[llength $path]-1)*1000 + 3000}]
             }
         }
-log debug "TIMEOUT: $delay"
         set _timeout [after $delay [itcl::code $this finalize]]
     }
     destructor {
@@ -655,7 +648,6 @@ log debug "TIMEOUT: $delay"
         set addr [lindex $details 0]
         append _response $details "\n"
         if {[incr _waitfor -1] <= 0} {
-log debug "ALL RESPONSES"
             finalize
         }
     }
@@ -675,7 +667,6 @@ log debug "ALL RESPONSES"
         }
         # add details about this client to the message
         append block "$myaddress -job $job -cost 1 -wonks [p2p::wonks::current]"
-log debug "FINALIZE {$block}"
 
         # send the composite results back to the caller
         set cmd [list proffer $token $block]

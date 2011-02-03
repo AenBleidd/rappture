@@ -141,7 +141,15 @@ itcl::class Shape {
     #  -command templates, adding them to the canvas.
     # ------------------------------------------------------------------
     public proc draw {canvas time} {
+        global times
         if {[info exists _shapesOnCanvas($canvas)]} {
+            set y0 5
+            if {[info exists times($time)]} {
+                $canvas create text 5 $y0 -anchor nw -text $times($time)
+                incr y0 15
+            }
+            $canvas create text 5 $y0 -anchor nw -tags entity
+
             foreach obj $_shapesOnCanvas($canvas) {
                 if {[$obj exists $time]} {
                     set cmd [$obj cget -command]
@@ -221,6 +229,10 @@ pack .player.back -side left -padx 4 -pady 2
 button .player.fwd -text ">" -command {test_frame_go 1 nudge}
 pack .player.fwd -side left -padx 4 -pady 2
 
+button .player.err -text "0 errors" -command {wm deiconify .errors; raise .errors}
+pack .player.err -side right -padx 4 -pady 2
+.player.err configure -state disabled
+
 scale .player.scale -label "Frame" -orient horizontal \
     -from 0 -to 1 -showvalue 0 -command {test_frame_go 1}
 pack .player.scale -side left -expand yes -fill x -padx 4 -pady 2
@@ -240,6 +252,17 @@ canvas .diagram.network -width 500 -height 400
 canvas .diagram.traffic -width 500 -height 400
 
 after idle .view.traffic invoke
+
+toplevel .errors
+wm title .errors "Error Messages"
+wm withdraw .errors
+wm protocol .errors WM_DELETE_WINDOW {wm withdraw .errors}
+scrollbar .errors.ysbar -orient vertical -command {.errors.info yview}
+pack .errors.ysbar -side right -fill y
+text .errors.info -yscrollcommand {.errors.ysbar set} -font {Courier 12}
+pack .errors.info -expand yes -fill both
+.errors.info tag configure timecode -foreground gray
+.errors.info tag configure error -foreground red -font {Courier 12 bold}
 
 proc test_stop {} {
     global processes
@@ -278,16 +301,20 @@ proc test_start {} {
 }
 
 proc test_reload {} {
-    global time0 nodes actions nodeRadius
+    global time0 nodes actions times nodeRadius
 
     array set colors {
         authority blue
         worker gray
+        foreman red
     }
 
     Shape::clear .diagram.network
     Shape::clear .diagram.traffic
+    .errors.info configure -state normal
+    .errors.info delete 1.0 end
     set tmax 0
+    set errs 0
 
     #
     # Scan through all files and generate positions for all nodes.
@@ -297,28 +324,44 @@ proc test_reload {} {
         set info [read $fid]
         close $fid
 
-        if {[regexp -- {foreman<-} $info]} {
-            # skip log file from foreman
+        set lasttime ""
+        set t0val ""; set first ""
+        set t1val ""; set last ""
+        set info [split $info \n]
+        foreach line $info {
+            if {[regexp {^([0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+)} $line match tval]} {
+                if {"" == $t0val} {
+                    set first $line
+                    set t0val [expr {([clock scan $tval]-$time0)*100}]
+                } else {
+                    set last $line
+                    set t1val [expr {([clock scan $tval]-$time0)*100 + 99}]
+                }
+            }
+        }
+
+        if {"" == $t0val || "" == $t1val} {
+            # can't find any log statements -- skip this file!
             continue
         }
 
         # get the address for this host
-        regexp {started at port ([0-9]+)} $info match port
-        if {[regexp {options [^\n]+ ip ([^ ]+)} $info match ip]} {
-            set addr $ip:$port
+        if {[regexp {started at port ([0-9]+)} $info match port]} {
+            if {[regexp {options [^\n]+ ip ([^ ]+)} $info match ip]} {
+                set addr $ip:$port
+            } else {
+                set addr 127.0.0.1:$port
+            }
+            set shape oval
+            regexp {^([0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+) +(authority|worker)} $first match t0 type
+        } elseif {[regexp -- {foreman<-} $info]} {
+            set shape rectangle
+            set addr "foreman"
+            set type "foreman"
         } else {
-            set addr 127.0.0.1:$port
+            # unknown log file -- skip it
+            continue
         }
-
-        set lasttime ""
-        set info [split $info \n]
-        set first [lindex $info 0]
-        regexp {^([0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+) +(authority|worker)} $first match t0 type
-        set t0val [expr {([clock scan $t0]-$time0)*100}]
-
-        set last [lindex $info end-1]
-        regexp {^([0-9]+/[0-9]+/[0-9]+ [0-9]+:[0-9]+:[0-9]+)} $last match t1
-        set t1val [expr {([clock scan $t1]-$time0)*100 + 99}]
         set margin 20
         set r $nodeRadius
 
@@ -336,7 +379,7 @@ proc test_reload {} {
 
         foreach canv {.diagram.traffic .diagram.network} {
             set s [Shape ::#auto $canv -command \
-                [list %c create oval [expr {$x-$r}] [expr {$y-$r}] \
+                [list %c create $shape [expr {$x-$r}] [expr {$y-$r}] \
                 [expr {$x+$r}] [expr {$y+$r}] \
                 -outline black -fill $colors($type) \
                 -tags [list $fname $fname-node]]]
@@ -358,11 +401,6 @@ proc test_reload {} {
         close $fid
 puts "\nscanning $fname"
 
-        if {[regexp -- {foreman<-} $info]} {
-            # skip log file from foreman
-            continue
-        }
-
         catch {unset started}
         set peerlist(addrs) ""
         set peerlist(time) 0
@@ -379,12 +417,14 @@ puts "\nscanning $fname"
 
                 if {$tval > $tmax} { set tmax $tval }
 
+                set cid ""
                 if {[regexp {accepted: +([^ ]+) +\((.+)\)} $mesg match addr cid]} {
                     append actions($tval) $mesg \n
                     set started(connect$cid-time) $tval
                     set started(connect$cid-addr) ?
 
                 } elseif {[regexp {dropped: +([^ ]+) +\((.+)\)} $mesg match addr cid] && [info exists started(connect$cid-time)]} {
+                    incr tval 99  ;# end of this second
                     append actions($tval) $mesg \n
                     set from $nodes($fname)
                     set x0 $nodes($from-x)
@@ -398,42 +438,53 @@ puts "\nscanning $fname"
                     unset started(connect$cid-time)
                     unset started(connect$cid-addr)
 
-                } elseif {[regexp {(server|client) message from ([a-zA-Z0-9\.]+:[0-9]+) \(([a-z0-9]+)\): +(.+) => (.*)} $mesg match which addr cid cmd result]} {
-                    if {![string match identity* $cmd]} {
-                        append actions($tval) $mesg \n
-                        set from $nodes($fname)
-                        set x0 $nodes($from-x)
-                        set y0 $nodes($from-y)
-                        set x1 $nodes($addr-x)
-                        set y1 $nodes($addr-y)
-                        set w [expr {[winfo width .diagram]/2}]
-
-                        set s [Shape ::#auto .diagram.traffic -command \
-                            [list %c create line [expr $x0-3] [expr $y0-3] [expr $x1-3] [expr $y1-3] -fill black -arrow first -tags transient]]
-                        $s addRange $tval $tval
-
-                        set s [Shape ::#auto .diagram.traffic -command \
-                            [list %c create text [expr {0.5*($x0+$x1)}] [expr {0.5*($y0+$y1)-1}] -width $w -fill black -anchor s -text $cmd -tags transient]]
-                        $s addRange $tval $tval
-
-                        if {"" != [string trim $result]} {
-                            if {[regexp {^ok:} $result]} {
-                                set color black
-                            } else {
-                                set color red
-                            }
-                            set s [Shape ::#auto .diagram.traffic -command \
-                                [list %c create line [expr $x0+3] [expr $y0+3] [expr $x1+3] [expr $y1+3] -fill $color -arrow last -tags transient]]
-                            $s addRange $tval $tval
-
-                            set s [Shape ::#auto .diagram.traffic -command \
-                                [list %c create text [expr {0.5*($x0+$x1)}] [expr {0.5*($y0+$y1)+1}] -width $w -fill $color -anchor n -text $result -tags transient]]
-                            $s addRange $tval $tval
+                } elseif {[regexp {(incoming) message from ([^ ]+) \((sock[0-9]+)\): +(.+) => (.*)} $mesg match which addr cid cmd result]
+                       || [regexp {(outgoing) message to ([^ ]+): +(.+)} $mesg match which addr cmd]} {
+                    switch -- $which {
+                        outgoing {
+                            set from $addr
+                            set to $nodes($fname)
                         }
+                        incoming {
+                            set from $nodes($fname)
+                            set to $addr
+                            # show incoming messages later in time
+                            incr tval 50
+                        }
+                    }
+                    append actions($tval) $mesg \n
+                    set x0 $nodes($from-x)
+                    set y0 $nodes($from-y)
+                    set x1 $nodes($to-x)
+                    set y1 $nodes($to-y)
+                    set w [expr {[winfo width .diagram]/2}]
+
+                    set s [Shape ::#auto .diagram.traffic -command \
+                        [list %c create line [expr $x0-3] [expr $y0-3] [expr $x1-3] [expr $y1-3] -fill black -arrow first -tags transient]]
+                    $s addRange $tval $tval
+
+                    set s [Shape ::#auto .diagram.traffic -command \
+                        [list %c create text [expr {0.5*($x0+$x1)}] [expr {0.5*($y0+$y1)-1}] -width $w -fill black -anchor s -text $cmd -tags transient]]
+                    $s addRange $tval $tval
+
+                    if {$which == "incoming" && "" != [string trim $result]} {
+                        if {[regexp {^ok:} $result]} {
+                            set color black
+                        } else {
+                            set color red
+                        }
+                        set s [Shape ::#auto .diagram.traffic -command \
+                            [list %c create line [expr $x0+3] [expr $y0+3] [expr $x1+3] [expr $y1+3] -fill $color -arrow last -tags transient]]
+                        $s addRange $tval $tval
+
+                        set s [Shape ::#auto .diagram.traffic -command \
+                            [list %c create text [expr {0.5*($x0+$x1)}] [expr {0.5*($y0+$y1)+1}] -width $w -fill $color -anchor n -text $result -tags transient]]
+                        $s addRange $tval $tval
                     }
 
                     # no address for this client yet?  then save this info
-                    if {[info exists started(connect$cid-addr)]
+                    if {"" != $cid
+                           && [info exists started(connect$cid-addr)]
                            && $started(connect$cid-addr) == "?"} {
                         set started(connect$cid-addr) $addr
                     }
@@ -465,7 +516,11 @@ puts "\nscanning $fname"
                     # save the start of this new peer list
                     set peerlist(addrs) $plist
                     set peerlist(time) $tval
+                } elseif {[regexp {ERROR} $mesg match addr]} {
+                    .errors.info insert end $time timecode $mesg error "\n"
+                    incr errs
                 }
+                set times($tval) $time
             }
         }
 
@@ -496,11 +551,13 @@ puts "\nscanning $fname"
             %W itemconfigure $fname-node -outline red
             %W itemconfigure $fname-cnx -fill red
             %W raise $fname-cnx
+            %W itemconfigure entity -text {$nodes($fname)}
         "
         .diagram.traffic bind $fname <Leave> "
             %W itemconfigure $fname-node -outline black
             %W itemconfigure $fname-cnx -fill gray
             %W raise transient
+            %W itemconfigure entity -text {}
         "
 
         foreach canv {.diagram.network .diagram.traffic} {
@@ -536,6 +593,13 @@ puts "\nscanning $fname"
         "
     }
     .player.scale configure -to $tmax
+    .errors.info configure -state disabled
+    if {$errs == 0} {
+        .player.err configure -state normal -text "0 errors"
+        .player.err configure -state disabled
+    } else {
+        .player.err configure -state normal -text "$errs error[expr {($errs == 1) ? {} : {s}}]"
+    }
 
     after cancel test_visualize
     after idle test_visualize
@@ -564,7 +628,7 @@ proc worker_node_release {canv fname x y} {
 }
 
 proc test_frame_go {dir position} {
-    global actions
+    global actions times
 
     set tmax [.player.scale cget -to]
     if {"nudge" == $position} {

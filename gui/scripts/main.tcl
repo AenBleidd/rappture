@@ -8,23 +8,18 @@
 #  browse through output.
 #
 #  RUN AS FOLLOWS:
-#    driver ?-tool <toolfile>?
+#    wish main.tcl ?-tool <toolfile>?
 #
 #  If the <toolfile> is not specified, it defaults to "tool.xml" in
 #  the current working directory.
 #
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  Copyright (c) 2004-2011  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-#\
-exec wish "$0" $*
-# ----------------------------------------------------------------------
-# wish executes everything from here on...
-
 package require Itcl
 package require Rappture
 package require RapptureGUI

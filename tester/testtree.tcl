@@ -224,12 +224,21 @@ itcl::body Rappture::Tester::TestTree::_refresh {args} {
             switch -- [$obj getResult] {
                 Pass    { set data(result) "@[Rappture::icon pass16]" }
                 Fail    { set data(result) "@[Rappture::icon fail16]" }
-                Waiting { set data(result) "@[Rappture::icon wait]" }
+                Waiting { set data(result) "@[Rappture::icon wait16]" }
                 Running { set data(result) "@[spinner use]" }
                 default { set data(result) "" }
             }
 puts "ICON: $data(result)"
             $itk_component(treeview) entry configure $n -data [array get data]
+
+            # if the node that's changed is selected, invoke the
+            # -selectcommand code so the GUI will react to the new state
+            if {[$itk_component(treeview) selection includes $n]} {
+                set cmd [$itk_component(treeview) cget -selectcommand]
+                if {[string length $cmd] > 0} {
+                    uplevel #0 $cmd
+                }
+            }
         }
     }
 }
