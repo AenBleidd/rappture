@@ -33,10 +33,6 @@ puts "Taking a while to run..."
 after 2000
 puts "making some progress"
 after 2000
-puts "a little more"
-after 2000
-puts "almost there"
-after 2000
 puts "done"
 
 # Label output graph with title, x-axis label,

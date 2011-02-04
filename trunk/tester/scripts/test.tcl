@@ -73,6 +73,9 @@ itcl::body Rappture::Tester::Test::constructor {toolobj testxml args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::destructor {} {
+    # TODO: toolobj is created in main.tcl and passed into all tests
+    #  when they are created.  Should we really delete it here whenever
+    #  a test is destroyed?
     itcl::delete object $_toolobj
     itcl::delete object $_testobj
     if {$_runobj ne ""} {
