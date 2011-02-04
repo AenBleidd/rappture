@@ -218,6 +218,16 @@ itcl::body Rappture::Tester::TestView::show {args} {
                     set color $itk_option(-statuspasscolor)
                     set desc "[_plural $states(Fail)] failed\n[_plural $states(Pass)] passed"
                 }
+                */0/* {
+                    if {$states(Pass) == 1} {
+                        set smesg "One of these tests passed"
+                    } else {
+                        set smesg "Some of these tests passed"
+                    }
+                    set sicon [Rappture::icon pass64]
+                    set color $itk_option(-statuspasscolor)
+                    set desc "[_plural $states(Pass)] passed\n[_plural $states(?)] need to run"
+                }
                 default {
                     set smesg "Some tests passed, some failed"
                     set sicon [Rappture::icon fail64]
