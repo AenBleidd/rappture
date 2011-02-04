@@ -17,12 +17,6 @@ namespace eval Rappture {
     variable stdlib ""
 }
 
-# automatically load all Rappture object types
-if {[catch {Rappture::objects::init} err]} {
-    puts stderr "Error loading object definitions:\n$err"
-    exit 1
-}
-
 # ----------------------------------------------------------------------
 # USAGE: library <file>
 # USAGE: library standard

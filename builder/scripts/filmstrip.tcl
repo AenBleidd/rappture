@@ -277,6 +277,8 @@ itcl::body Rappture::Filmstrip::_fixLayout {args} {
         }
 
         # fix up the scrolling region to include all of these items
+        set x1 0
+        set y1 0
         foreach {x0 y0 x1 y1} [$itk_component(strip) bbox all] break
         set x1 [expr {$x1+$itk_option(-padding)}]
         $itk_component(strip) configure -scrollregion [list 0 0 $x1 $y1]

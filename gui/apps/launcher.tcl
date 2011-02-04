@@ -60,7 +60,7 @@ while {[llength $argv] > 0} {
                 }
                 lappend alist -tool $toolxml
             }
-            -testdir - -nosim {
+            -tool - -testdir - -nosim {
                 lappend alist $opt [lindex $argv 0]
                 set argv [lrange $argv 1 end]
             }
@@ -84,16 +84,6 @@ while {[llength $argv] > 0} {
             }
         }
     }
-}
-
-# if we didn't find a tool.xml file, then look for one here
-if {$toolxml eq ""} {
-    if {![file exists tool.xml]} {
-        puts stderr "rappture: can't find tool definition file \"tool.xml\""
-        puts stderr "  Use the -tool option to specify the location of this file."
-        exit 1
-    }
-    set alist [linsert $alist 0 -tool tool.xml]
 }
 
 # invoke the main program with the args
