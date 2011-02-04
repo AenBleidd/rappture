@@ -108,6 +108,16 @@ set auto_path [linsert $auto_path 0 $dir]
 Rappture::icon foo  ;# force loading of this module
 lappend Rappture::icon::iconpath [file join $dir images]
 
+# automatically load all Rappture object types
+if {[catch {Rappture::objects::init} err]} {
+    puts stderr "Error loading object definitions:\n$err"
+    exit 1
+}
+if {[catch {Rappture::objects::load [file join $dir tool.rp]} err]} {
+    puts stderr "Error loading tool object definition:\n$err"
+    exit 1
+}
+
 # ----------------------------------------------------------------------
 #  HACK ALERT!  Make it so the Analyzer can't possibly enable its
 #    simulate button in "preview" mode, or else the user might
@@ -813,7 +823,8 @@ proc main_preview {} {
     $win.pager insert end -name analyzer -title $simtxt
     set f [$win.pager page analyzer]
     # note: simcontrol on but disabled due to _simState code above
-    Rappture::Analyzer $f.analyze $ToolPreview -simcontrol on
+    Rappture::Analyzer $f.analyze $ToolPreview -simcontrol on \
+        -notebookpage about
     pack $f.analyze -expand yes -fill both
 
     # copy the ToolXml object and pass to analyzer to show outputs
@@ -895,7 +906,7 @@ foreach ptitle $plist {
         -dragdropcommand main_palette_source
     pack $iwin.strip -expand yes -fill both
 
-    foreach name [Rappture::objects::get] {
+    foreach name [lsort [Rappture::objects::get]] {
         set imh [Rappture::objects::get $name -image]
         if {"" == $imh} {
             continue

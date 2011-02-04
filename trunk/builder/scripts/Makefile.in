@@ -23,6 +23,7 @@ FILES		= \
 		$(srcdir)/main.tcl \
 		$(srcdir)/objpath.tcl \
 		$(srcdir)/slideframes.tcl \
+		$(srcdir)/tool.rp \
 		$(srcdir)/tweener.tcl
 
 version 	= $(PACKAGE_VERSION)

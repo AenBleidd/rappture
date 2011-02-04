@@ -78,12 +78,12 @@ proc Rappture::objects::init {} {
 
     # load supporting type definitions
     foreach fname [glob [file join $installdir types *.tcl]] {
-        source $fname
+        uplevel #0 source $fname
     }
 
     # load supporting validation procs
     foreach fname [glob [file join $installdir validations *.tcl]] {
-        source $fname
+        uplevel #0 source $fname
     }
 
     # load the base class
@@ -136,6 +136,8 @@ proc Rappture::objects::load {args} {
                 } else {
                     set errs($tname) 1
                 }
+            } else {
+                lappend newilist $obj
             }
             $objDefs($name) configure -inherit $newilist
         }
