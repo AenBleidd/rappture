@@ -134,11 +134,21 @@ set win [.pw insert end -fraction 0.8]
 # Frame for viewing tests
 # ----------------------------------------------------------------------
 frame $win.testview
-button $win.testview.regoldenize -text "<< New golden standard" \
+frame $win.testview.bbar
+pack $win.testview.bbar -side bottom -fill x -pady {8 0}
+button $win.testview.bbar.regoldenize -text "<< New golden standard" \
     -state disabled -command tester_regoldenize
-pack $win.testview.regoldenize -side bottom -anchor w
-Rappture::Tooltip::for $win.testview.regoldenize \
+pack $win.testview.bbar.regoldenize -side left
+Rappture::Tooltip::for $win.testview.bbar.regoldenize \
     "If this test result differs from the established test case, you would normally fix your tool to produce the correct result.  In some cases, however, your updated tool may be producing different, but correct, results.  In those cases, you can press this button to update the test itself to use the current output as the new golden standard for this test case."
+
+button $win.testview.bbar.viewoutputs -text "View outputs" -state disabled \
+    -command tester_view_outputs
+pack $win.testview.bbar.viewoutputs -side right 
+Rappture::Tooltip::for $win.testview.bbar.viewoutputs \
+    "Display the outputs for this test case as they would be seen when running the tool normally.  If the test has completed with no error, the new results can be compated against the set of golden results."
+
+pack $win.testview.bbar -side bottom -fill x
 
 Rappture::Tester::TestView $win.testview.overview \
     -runcommand tester_run
@@ -167,6 +177,16 @@ Rappture::Scroller $win.testrun.scrl -xscrollmode auto -yscrollmode auto
 pack $win.testrun.scrl -expand yes -fill both
 text $win.testrun.scrl.info -width 1 -height 1 -wrap none
 $win.testrun.scrl contents $win.testrun.scrl.info
+
+# Frame for viewing outputs
+# ---------------------------------------------------------------------
+frame $win.testoutput
+Rappture::ResultsPage $win.testoutput.rp
+pack $win.testoutput.rp -expand yes -fill both
+button $win.testoutput.back -text "Back" -command tester_selection_changed
+pack $win.testoutput.back -side bottom -anchor e -pady {8 0}
+Rappture::Tooltip::for $win.testoutput.back \
+    "Return to the previous window displaying the details for this test case."
 
 # Load all tests in the test directory
 # ----------------------------------------------------------------------
@@ -220,8 +240,8 @@ proc tester_selection_changed {args} {
     if {[llength $tests] > 0} {
         eval $testview.overview show $tests
         if {[llength $tests] == 1 && [$tests getResult] eq "Fail"} {
-            pack $testview.regoldenize -side bottom -anchor w
-            $testview.regoldenize configure -state normal
+            pack $testview.bbar.regoldenize -side left
+            $testview.bbar.regoldenize configure -state normal
 
             # build up a detailed list of diffs for this one test
             pack $testview.details -side bottom -expand yes -fill both
@@ -269,9 +289,18 @@ proc tester_selection_changed {args} {
             }
 
         } else {
-            $testview.regoldenize configure -state disabled
-            pack forget $testview.details $testview.regoldenize
+            $testview.bbar.regoldenize configure -state disabled
+            pack forget $testview.details $testview.bbar.regoldenize
         }
+    }
+
+    # Show/hide the show outputs button
+    if {[llength $tests] == 1} {
+        $testview.bbar.viewoutputs configure -state normal
+        pack $testview.bbar.viewoutputs -side right
+    } else {
+        $testview.bbar.viewoutputs configure -state disabled
+        pack forget $testview.bbar.viewoutputs
     }
 }
 
@@ -368,3 +397,38 @@ proc tester_regoldenize {} {
         tester_selection_changed
     }
 }
+
+# ----------------------------------------------------------------------
+# USAGE: tester_view_outputs
+#
+# TODO
+# ----------------------------------------------------------------------
+proc tester_view_outputs {args} {
+    set testtree [.pw pane 0].tree
+    set rhs [.pw pane 1]
+    set resultspage $rhs.testoutput.rp
+    set tests [$testtree curselection]
+
+    if {[llength $tests] != 1} {
+        error "Cannot display outputs. One test must be selected"
+    }
+
+    # Unpack right hand side
+    foreach win [pack slaves $rhs] {
+        pack forget $win
+    }
+
+    # Clear any previously loaded outputs from the resultspage
+    $resultspage clear -nodelete
+
+    # Display testobj, and runobj if test has completed successfully
+    set test [lindex $tests 0]
+    $resultspage load [$test getTestobj]
+    set result [$test getResult]
+    if {$result ne "?" && $result ne "Error"} {
+        $resultspage load [$test getRunobj]
+    }
+
+    pack $rhs.testoutput -expand yes -fill both -padx 8 -pady 8
+}
+
