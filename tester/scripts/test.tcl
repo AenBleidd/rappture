@@ -25,6 +25,9 @@ itcl::class Rappture::Tester::Test {
     public method getTestInfo {path}
     public method getDiffs {}
 
+    public method getRunobj {}
+    public method getTestobj {}
+
     public method run {args}
     public method regoldenize {}
 
@@ -35,9 +38,6 @@ itcl::class Rappture::Tester::Test {
     private variable _result "?"  ;# current status of this test
     private variable _runobj ""   ;# results from last run
     private variable _diffs ""    ;# diffs with respect to _runobj
-
-    # don't need this?
-    public method getRunobj {}
 
     private method _setWaiting {{newval ""}}
     private method _setResult {name}
@@ -220,6 +220,15 @@ itcl::body Rappture::Tester::Test::getRunobj {} {
         error "Test has not yet been run."
     }
     return $_runobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getTestobj
+#
+# Returns a library object representing the test case.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getTestobj {} {
+    return $_testobj
 }
 
 # ----------------------------------------------------------------------
