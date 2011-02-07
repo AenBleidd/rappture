@@ -27,6 +27,7 @@ itcl::class Rappture::Tester::Test {
 
     public method getRunobj {}
     public method getTestobj {}
+    public method getTestxml {}
 
     public method run {args}
     public method regoldenize {}
@@ -73,12 +74,10 @@ itcl::body Rappture::Tester::Test::constructor {toolobj testxml args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::destructor {} {
-    # TODO: toolobj is created in main.tcl and passed into all tests
-    #  when they are created.  Should we really delete it here whenever
-    #  a test is destroyed?
-    itcl::delete object $_toolobj
     itcl::delete object $_testobj
-    if {$_runobj ne ""} {
+    # runobj can point to testobj if the test has just been
+    # regoldenized.  Don't try to delete twice.
+    if {$_runobj ne "" && $_runobj ne $_testobj} {
         itcl::delete object $_runobj
     }
 }
@@ -177,6 +176,9 @@ puts "  $op $path ($what) $v1 $v2"
 # test label and description into the new file.  Update the test's
 # result attributes to reflect the changes. Throws an error if the test
 # has not been run.
+#
+# After regoldenizing, _testobj and _runobj will both refer to the same
+# library object, and the previous _runobj will be discarded.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::regoldenize {} {
     if {$_runobj eq ""} {
@@ -193,7 +195,6 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
     itcl::delete object $_testobj
     set _testobj $_runobj
 
-    set _runobj ""
     set _diffs ""
     _setResult Pass
 }
@@ -229,6 +230,15 @@ itcl::body Rappture::Tester::Test::getRunobj {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::getTestobj {} {
     return $_testobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: getTestxml
+#
+# Returns the name of the xml file representing the test case.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getTestxml {} {
+    return $_testxml
 }
 
 # ----------------------------------------------------------------------
