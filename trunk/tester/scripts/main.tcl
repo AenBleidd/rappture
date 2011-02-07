@@ -146,7 +146,7 @@ button $win.testview.bbar.viewoutputs -text "View outputs" -state disabled \
     -command tester_view_outputs
 pack $win.testview.bbar.viewoutputs -side right 
 Rappture::Tooltip::for $win.testview.bbar.viewoutputs \
-    "Display the outputs for this test case as they would be seen when running the tool normally.  If the test has completed with no error, the new results can be compated against the set of golden results."
+    "Display the outputs for this test case as they would be seen when running the tool normally.  If the test has completed with no error, the new results can be compared against the set of golden results."
 
 pack $win.testview.bbar -side bottom -fill x
 
@@ -387,8 +387,13 @@ proc tester_diff_show {args} {
 # ----------------------------------------------------------------------
 proc tester_regoldenize {} {
     set testtree [.pw pane 0].tree
+    set tests [$testtree curselection]
 
-    set test [$testtree getTest]
+    if {[llength $tests] != 1} {
+        error "Cannot regoldenize. One test must be selected"
+    }
+
+    set test [lindex $tests 0]
     set testxml [$test getTestxml]
     if {[tk_messageBox -type yesno -icon warning -message "Are you sure you want to regoldenize?\n$testxml will be overwritten."]} {
         $test regoldenize
@@ -401,9 +406,11 @@ proc tester_regoldenize {} {
 # ----------------------------------------------------------------------
 # USAGE: tester_view_outputs
 #
-# TODO
+# Displays the outputs of the currently selected test case as they would
+# be seen when running the tool normally.  If the test has completed
+# with no error, then show the new outputs alongside the golden results.
 # ----------------------------------------------------------------------
-proc tester_view_outputs {args} {
+proc tester_view_outputs {} {
     set testtree [.pw pane 0].tree
     set rhs [.pw pane 1]
     set resultspage $rhs.testoutput.rp
