@@ -29,11 +29,14 @@ set E $Emin
 set dE [expr {0.005*($Emax-$Emin)}]
 
 # take a while and give some output along the way
+Rappture::Utils::progress 0 -mesg "Starting..."
 puts "Taking a while to run..."
-after 2000
+after 1000
 puts "making some progress"
-after 2000
+after 1000
 puts "done"
+Rappture::Utils::progress 10 -mesg "Starting, for real now."
+after 1000
 
 # Label output graph with title, x-axis label,
 # y-axis lable, and y-axis units

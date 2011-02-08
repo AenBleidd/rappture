@@ -170,6 +170,7 @@ frame $win.testrun
 label $win.testrun.title -text "Output from test run:" -anchor w
 pack $win.testrun.title -side top -anchor w
 
+Rappture::Progress $win.testrun.progress
 button $win.testrun.abort -text "Abort"
 pack $win.testrun.abort -side bottom -pady {8 0}
 
@@ -345,10 +346,32 @@ proc tester_run_output {option testobj args} {
 
             # plug this object into the "Abort" button
             $testrun.abort configure -command [list $testobj abort]
+
+            # hide progress bar
+            pack forget $testrun.progress
         }
         add {
+            set message [lindex $args 0]
+            # scan for progress updates
+            while {[regexp -indices \
+                {=RAPPTURE-PROGRESS=> *([-+]?[0-9]+) +([^\n]*)(\n|$)} $message \
+                 match percent mesg]} {
+
+                foreach {i0 i1} $percent break
+                set percent [string range $message $i0 $i1]
+
+                foreach {i0 i1} $mesg break
+                set mesg [string range $message $i0 $i1]
+
+                pack $testrun.progress -fill x -padx 10 -pady 10
+                $testrun.progress settings -percent $percent -message $mesg
+
+                foreach {i0 i1} $match break
+                set message [string replace $message $i0 $i1]
+            }
+
             $testrun.scrl.info configure -state normal
-            $testrun.scrl.info insert end [lindex $args 0]
+            $testrun.scrl.info insert end $message
 
             # if there are too many lines, delete some
             set lines [lindex [split [$testrun.scrl.info index end-2char] .] 0]
