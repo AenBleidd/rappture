@@ -44,7 +44,6 @@ itcl::class Rappture::VtkViewer {
     private variable _actors ""    ;# list of actors for each renderer
     private variable _lights       ;# list of lights for each renderer
     private variable _click        ;# info used for _move operations
-    private variable _slicer       ;# vtk transform used for 3D slice plane
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
     private variable _download ""  ;# snapshot for download
@@ -78,17 +77,14 @@ itcl::class Rappture::VtkViewer {
     protected method Clear {}
     protected method Zoom {option}
     protected method Move {option x y}
-    protected method Slice {option args}
     protected method _3dView {theta phi}
     protected method _fixLimits {}
-    protected method Slicertip {axis}
     protected method _color2rgb {color}
     protected method SetActorProperties { actor style } 
 
     private method ComputeLimits { args }
     private method GetLimits {}
     private method BuildCameraTab {}
-    private method BuildCutplanesTab {}
     private method BuildViewTab {}
     private method BuildVolumeTab {}
     protected method FixSettings {what {value ""}}
@@ -107,13 +103,6 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
-    set _slicer(xplane) ""
-    set _slicer(yplane) ""
-    set _slicer(zplane) ""
-    set _slicer(xslice) ""
-    set _slicer(yslice) ""
-    set _slicer(zslice) ""
-    set _slicer(readout) ""
     set _view(theta) 0
     set _view(phi) 0
 
@@ -224,18 +213,15 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     set _axesWidget [vtkOrientationMarkerWidget $this-AxesWidget]
     $_axesWidget SetOrientationMarker $_axesActor
     $_axesWidget SetInteractor $_interactor
-    $_axesWidget SetEnabled 1
-    $_axesWidget SetInteractive 0
+    #$_axesWidget SetEnabled 1
+    #$_axesWidget SetInteractive 0
     $_axesWidget SetViewport .7 0 1.0 0.3
 
-    $_cubeAxesActor SetXTitle "X Axis (units)"
-    $_cubeAxesActor SetYTitle "Y Axis (units)"
-
     BuildViewTab
+    if 0 {
     BuildVolumeTab
-    BuildCutplanesTab
     BuildCameraTab
-
+    }
     set v0 0
     set v1 1
     set _lookup [vtkLookupTable $this-Lookup]
@@ -243,72 +229,13 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     $_lookup SetHueRange 0.66667 0.0
     $_lookup Build
 
-
-    #
-    # 3D CUT PLANES
-    #
-    foreach axis {x y z} norm {{1 0 0} {0 1 0} {0 0 1}} {
-
-        set plane [vtkPlane $this-${axis}cutplane]
-        eval $plane SetNormal $norm
-        set _slicer(${axis}plane) $plane
-        
-        set cutter [vtkCutter $this-${axis}cutter]
-        $cutter SetCutFunction $plane
-        
-        set mapper [vtkPolyDataMapper  $this-${axis}cutmapper]
-        $mapper SetInput [$cutter GetOutput]
-        $mapper SetScalarRange $v0 $v1
-        $mapper SetLookupTable $_lookup
-        
-        #lappend _obj2vtk($dataobj) $cutplane $cutter $mapper
-        
-        set actor [vtkActor $this-${axis}actor]
-        $actor VisibilityOn
-        $actor SetMapper $mapper
-        $actor SetPosition 0 0 0
-        [$actor GetProperty] SetColor 0 0 0
-        set _slicer(${axis}slice) $actor
-        
-        $_renderer AddActor $actor
-        lappend _actors $actor
-        #lappend _obj2vtk($dataobj) $actor
-    }
-    
-    #
-    # CUT PLANE READOUT
-    #
-    set mapper [vtkTextMapper $this-text]
-    set props [$mapper GetTextProperty]
-    #eval $props SetColor [_color2rgb $itk_option(-plotforeground)]
-    $props SetVerticalJustificationToTop
-    set _slicer(readout) $mapper
-            
-    set actor [vtkActor2D $this-texta]
-    $actor SetMapper $mapper
-    set coords [$actor GetPositionCoordinate] 
-    $coords SetCoordinateSystemToNormalizedDisplay
-    $coords SetValue 0.02 0.98
-            
-    $_renderer AddActor $actor
-    lappend _actors $actor
-    #lappend _obj2vtk($dataobj) $mapper $actor
-
-    # turn off all slicers by default
-    foreach axis {x y z} {
-        $itk_component(${axis}CutScale) configure -state normal
-        $itk_component(${axis}CutScale) set 50
-        Slice move $axis 50
-        Slice axis $axis off
-    }
-
     set lightKit [vtkLightKit $this-LightKit]
     $lightKit AddLightsToRenderer $_renderer
 
     #
     # Create a picture for download snapshots
     #
-    set _download [image create picture]
+    set _download [image create photo]
 
     eval itk_initialize $args
 }
@@ -445,10 +372,11 @@ itcl::body Rappture::VtkViewer::scale {args} {
 itcl::body Rappture::VtkViewer::download {option args} {
     switch $option {
         coming {
-            if {[catch {$_download snap $itk_component(area)} errs] != 0 } {
-                global errorInfo
-                puts stderr "$errorInfo"
-                $_download blank #000000
+            if {[catch {
+                blt::winop snap $itk_component(plotarea) $_download
+            }]} {
+                $_download configure -width 1 -height 1
+                $_download put #000000
             }
         }
         controls {
@@ -503,13 +431,6 @@ itcl::body Rappture::VtkViewer::Clear {} {
         }
         set _obj2vtk($dataobj) ""
     }
-    set _slicer(xplane) ""
-    set _slicer(yplane) ""
-    set _slicer(zplane) ""
-    set _slicer(xslice) ""
-    set _slicer(yslice) ""
-    set _slicer(zslice) ""
-    set _slicer(readout) ""
 }
 
 # ----------------------------------------------------------------------
@@ -604,82 +525,6 @@ itcl::body Rappture::VtkViewer::Move {option x y} {
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: Slice axis x|y|z ?on|off|toggle?
-# USAGE: Slice move x|y|z <newval>
-#
-# Called automatically when the user drags the slider to move the
-# cut plane that slices 3D data.  Gets the current value from the
-# slider and moves the cut plane to the appropriate point in the
-# data set.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::Slice {option args} {
-    if {$_slicer(xplane) == ""} {
-        # no slicer? then bail out!
-        return
-    }
-    switch -- $option {
-        axis {
-            if {[llength $args] < 1 || [llength $args] > 2} {
-                error "wrong # args: should be \"Slice axis x|y|z ?on|off|toggle?\""
-            }
-            set axis [lindex $args 0]
-            set op [lindex $args 1]
-            if {$op == ""} { set op "on" }
-
-            set current $_settings($this-${axis}cutplane)
-            if {$op == "toggle"} {
-                set op [expr $current==0]
-            }
-
-            if {$op} {
-                $itk_component(${axis}CutScale) configure -state normal
-                $_slicer(${axis}slice) VisibilityOn
-                $itk_component(${axis}CutButton) select
-            } else {
-                $itk_component(${axis}CutScale) configure -state disabled
-                $_slicer(${axis}slice) VisibilityOff
-                $itk_component(${axis}CutButton) deselect
-            }
-            $_window Render
-        }
-        move {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be \"Slice move x|y|z newval\""
-            }
-            set axis [lindex $args 0]
-            set newval [lindex $args 1]
-
-            set xm [expr {0.5*($_limits(xMax)+$_limits(xMin))}]
-            set ym [expr {0.5*($_limits(yMax)+$_limits(yMin))}]
-            set zm [expr {0.5*($_limits(zMax)+$_limits(zMin))}]
-
-            set newval [expr {0.01*($newval-50)
-                *($_limits(${axis}Max)-$_limits(${axis}Min))
-                  + 0.5*($_limits(${axis}Max)+$_limits(${axis}Min))}]
-
-            # show the current value in the readout
-            if {$_slicer(readout) != ""} {
-                $_slicer(readout) SetInput "$axis = $newval"
-            }
-
-            # keep a little inside the volume, or the slice will disappear!
-            if {$newval == $_limits(${axis}Min)} {
-                set range [expr {$_limits(${axis}Max)-$_limits(${axis}Min)}]
-                set newval [expr {$newval + 1e-6*$range}]
-            }
-
-            # xfer new value to the proper dimension and move the cut plane
-            set ${axis}m $newval
-            $_slicer(${axis}plane) SetOrigin $xm $ym $zm
-
-            $_window Render
-        }
-        default {
-            error "bad option \"$option\": should be axis or move"
-        }
-    }
-}
 
 # ----------------------------------------------------------------------
 # USAGE: _3dView <theta> <phi>
@@ -729,20 +574,6 @@ itcl::body Rappture::VtkViewer::_fixLimits {} {
     if 0 {
     $this-vtkRenderWindow2 Render
     }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: Slicertip <axis>
-#
-# Used internally to generate a tooltip for the x/y/z slicer controls.
-# Returns a message that includes the current slicer value.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::Slicertip {axis} {
-    set val [$itk_component(${axis}slicer) get]
-    set val [expr {0.01*($val-50)
-        *($_limits(${axis}Max)-$_limits(${axis}Min))
-          + 0.5*($_limits(${axis}Max)+$_limits(${axis}Min))}]
-    return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val"
 }
 
 # ----------------------------------------------------------------------
@@ -825,7 +656,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     }
     ComputeLimits
     $_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
-    puts stderr limits=[GetLimits]
     eval $_cubeAxesActor SetBounds [GetLimits]
 
     #
@@ -889,361 +719,26 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             $_renderer AddActor $actor
             SetActorProperties $actor $style
             set mapper [$dataobj data $comp]
-            $this-xcutter SetInput [$mapper GetInput]
-            #$_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
-            #eval $_cubeAxesActor SetBounds [$actor GetBounds]
-
-
-            if 0 {
-            #
-            # Add color contours.
-            #
-            if {$firstobj} {
-                if {$_dims == "3D"} {
-                    pack $itk_component(slicers) -side bottom -padx 4 -pady 4
-                    pack $itk_component(reset) -side left
-                    pack $itk_component(zoomin) -side left
-                    pack $itk_component(zoomout) -side left
-
-                    #
-                    # 3D DATA SET
-                    #
-                    set mesh [$dataobj mesh $comp]
-                    if {"" == $mesh} {
-                        set x [expr {[winfo rootx $itk_component(area)]+10}]
-                        set y [expr {[winfo rooty $itk_component(area)]+10}]
-                        Rappture::Tooltip::cue @$x,$y "This data requires the visualization server, and that appears to be down.  Please try your simulation again later."
-                        return
-                    }
-                    switch -- [$mesh GetClassName] {
-                      vtkPoints {
-                        # handle cloud of 3D points
-                        set pd $this-polydata
-                        vtkPolyData $pd
-                        $pd SetPoints $mesh
-                        [$pd GetPointData] SetScalars [$dataobj values $comp]
-
-                        set tr $this-triangles
-                        vtkDelaunay3D $tr
-                        $tr SetInput $pd
-                        $tr SetTolerance 0.0000000000001
-                        set source [$tr GetOutput]
-
-                        set mp $this-mapper
-                        vtkPolyDataMapper $mp
-
-                        lappend _obj2vtk($dataobj) $pd $tr $mp
-                      }
-                      vtkUnstructuredGrid {
-                        # handle 3D grid with connectivity
-                        set gr $this-grdata
-                        vtkUnstructuredGrid $gr
-                        $gr ShallowCopy $mesh
-                        [$gr GetPointData] SetScalars [$dataobj values $comp]
-                        set source $gr
-
-                        lappend _obj2vtk($dataobj) $gr
-                      }
-                      vtkRectilinearGrid {
-                        # handle 3D grid with connectivity
-                        set gr $this-grdata
-                        vtkRectilinearGrid $gr
-                        $gr ShallowCopy $mesh
-                        [$gr GetPointData] SetScalars [$dataobj values $comp]
-                        set source $gr
-
-                        lappend _obj2vtk($dataobj) $gr
-                      }
-                      default {
-                        error "don't know how to handle [$mesh GetClassName] data"
-                      }
-                    }
-
-                    #
-                    # 3D ISOSURFACES
-                    #
-                    set iso $this-iso
-                    vtkContourFilter $iso
-                      $iso SetInput $source
-
-                    set mp $this-isomap
-                    vtkPolyDataMapper $mp
-                      $mp SetInput [$iso GetOutput]
-
-                    set ac $this-isoactor
-                    vtkActor $ac
-                      $ac SetMapper $mp
-                      [$ac GetProperty] SetOpacity 0.3
-                      [$ac GetProperty] SetDiffuse 0.5
-                      [$ac GetProperty] SetAmbient 0.7
-                      [$ac GetProperty] SetSpecular 10.0
-                      [$ac GetProperty] SetSpecularPower 200.0
-                    $_renderer AddActor $ac
-
-                    lappend _obj2vtk($dataobj) $iso $mp $ac
-                    lappend _actors $ac
-
-                    catch {unset style}
-                    array set style [lindex [$dataobj components -style $comp] 0]
-                    if {[info exists style(-color)]} {
-                        $mp ScalarVisibilityOff  ;# take color from actor
-                        eval [$ac GetProperty] SetColor [_color2rgb $style(-color)]
-                    }
-
-                    if {[info exists style(-opacity)]} {
-                        [$ac GetProperty] SetOpacity $style(-opacity)
-                    }
-
-                    set levels 5
-                    if {[info exists style(-levels)]} {
-                        set levels $style(-levels)
-                    }
-                    if {$levels == 1} {
-                        $iso SetValue 0 [expr {0.5*($v1-$v0)+$v0}]
-                    } else {
-                        $iso GenerateValues [expr {$levels+2}] $v0 $v1
-                    }
-
-                    #
-                    # 3D CUT PLANES
-                    #
-                    if {$id == 0} {
-                        foreach axis {x y z} norm {{1 0 0} {0 1 0} {0 0 1}} {
-                            set pl $this-${axis}cutplane$id
-                            vtkPlane $pl
-                            eval $pl SetNormal $norm
-                            set _slicer(${axis}plane) $pl
-
-                            set ct $this-${axis}cutter$id
-                            vtkCutter $ct
-                            $ct SetInput $source
-                            $ct SetCutFunction $pl
-
-                            set mp $this-${axis}cutmapper$id
-                            vtkPolyDataMapper $mp
-                            $mp SetInput [$ct GetOutput]
-                            $mp SetScalarRange $v0 $v1
-                            $mp SetLookupTable $lu
-
-                            lappend _obj2vtk($dataobj) $pl $ct $mp
-
-                            set ac $this-${axis}actor$id
-                            vtkActor $ac
-                            $ac VisibilityOff
-                            $ac SetMapper $mp
-                            $ac SetPosition 0 0 0
-                            [$ac GetProperty] SetColor 0 0 0
-                            set _slicer(${axis}slice) $ac
-
-                            $_renderer AddActor $ac
-                            lappend _actors $ac
-                            lappend _obj2vtk($dataobj) $ac
-                        }
-
-                        #
-                        # CUT PLANE READOUT
-                        #
-                        set tx $this-text$id
-                        vtkTextMapper $tx
-                        set tp [$tx GetTextProperty]
-                        eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
-                        $tp SetVerticalJustificationToTop
-                        set _slicer(readout) $tx
-
-                        set txa $this-texta$id
-                        vtkActor2D $txa
-                        $txa SetMapper $tx
-                        [$txa GetPositionCoordinate] \
-                            SetCoordinateSystemToNormalizedDisplay
-                        [$txa GetPositionCoordinate] SetValue 0.02 0.98
-
-                        $_renderer AddActor $txa
-                        lappend _actors $txa
-
-                        lappend _obj2vtk($dataobj) $tx $txa
-
-                        # turn off all slicers by default
-                        foreach axis {x y z} {
-                            $itk_component(${axis}slicer) configure -state normal
-                            $itk_component(${axis}slicer) set 50
-                            Slice move $axis 50
-                            Slice axis $axis off
-                        }
-                    }
-
-                } else {
-                    pack forget $itk_component(slicers)
-                    pack $itk_component(reset) -side top
-                    pack $itk_component(zoomin) -side top
-                    pack $itk_component(zoomout) -side top
-
-                    set pd $this-polydata$id
-                    vtkPolyData $pd
-                    $pd SetPoints [$dataobj mesh $comp]
-                    [$pd GetPointData] SetScalars [$dataobj values $comp]
-
-                    set tr $this-triangles$id
-                    vtkDelaunay2D $tr
-                    $tr SetInput $pd
-                    $tr SetTolerance 0.0000000000001
-                    set source [$tr GetOutput]
-
-                    set mp $this-mapper$id
-                    vtkPolyDataMapper $mp
-                    $mp SetInput $source
-                    $mp SetScalarRange $v0 $v1
-                    $mp SetLookupTable $lu
-
-                    set ac $this-actor$id
-                    vtkActor $ac
-                    $ac SetMapper $mp
-                    $ac SetPosition 0 0 0
-                    [$ac GetProperty] SetColor 0 0 0
-                    $_renderer AddActor $ac
-                    lappend _actors $ac
-
-                    lappend _obj2vtk($dataobj) $pd $tr $mp $ac
-                }
-            } else {
-                #
-                # Add color lines
-                #
-                set cf $this-clfilter$id
-                vtkContourFilter $cf
-                $cf SetInput $source
-                $cf GenerateValues 20 $v0 $v1
-
-                set mp $this-clmapper$id
-                vtkPolyDataMapper $mp
-                $mp SetInput [$cf GetOutput]
-                $mp SetScalarRange $v0 $v1
-                $mp SetLookupTable $lu
-
-                set ac $this-clactor$id
-                vtkActor $ac
-                $ac SetMapper $mp
-                [$ac GetProperty] SetColor 1 1 1
-                $ac SetPosition 0 0 0
-                $_renderer AddActor $ac
-                lappend _actors $ac
-
-                lappend _obj2vtk($dataobj) $cf $mp $ac
-            }
-
-            #
-            # Add an outline around the data
-            #
-            if {$id == 0} {
-                set olf $this-olfilter$id
-                vtkOutlineFilter $olf
-                $olf SetInput $source
-
-                set olm $this-olmapper$id
-                vtkPolyDataMapper $olm
-                $olm SetInput [$olf GetOutput]
-
-                set ola $this-olactor$id
-                vtkActor $ola
-                $ola SetMapper $olm
-                eval [$ola GetProperty] SetColor [_color2rgb $itk_option(-plotforeground)]
-                $_renderer AddActor $ola
-                lappend _actors $ola
-
-                lappend _obj2vtk($dataobj) $olf $olm $ola
-
-                if {$_dims == "3D"} {
-                    # pick a good scale factor for text
-                    if {$xr < $yr} {
-                        set tscale [expr {0.1*$xr}]
-                    } else {
-                        set tscale [expr {0.1*$yr}]
-                    }
-
-                    foreach {i axis px py pz rx ry rz} {
-                        0  x   $xm   0   0   90   0   0
-                        1  y     0 $ym   0   90 -90   0
-                        2  z   $x1   0 $zm   90   0 -45
-                    } {
-                        set length "[expr {[set ${axis}1]-[set ${axis}0]}]"
-
-                        set vtx $this-${axis}label$id
-                        vtkVectorText $vtx
-                        $vtx SetText "$axis"
-
-                        set vmp $this-${axis}lmap$id
-                        vtkPolyDataMapper $vmp
-                        $vmp SetInput [$vtx GetOutput]
-
-                        set vac $this-${axis}lact$id
-                        vtkActor $vac
-                        $vac SetMapper $vmp
-                        $vac SetPosition [expr $px] [expr $py] [expr $pz]
-                        $vac SetOrientation $rx $ry $rz
-                        $vac SetScale $tscale
-                        $_renderer AddActor $vac
-
-                        lappend _obj2vtk($dataobj) $vtx $vmp $vac
-                        lappend _actors $vac
-
-                        $vmp Update
-                        foreach {xx0 xx1 yy0 yy1 zz0 zz1} [$vac GetBounds] break
-                        switch -- $axis {
-                          x {
-                            set dx [expr {-0.5*($xx1-$xx0)}]
-                            set dy 0
-                            set dz [expr {1.3*($zz0-$zz1)}]
-                          }
-                          y {
-                            set dx 0
-                            set dy [expr {0.5*($yy1-$yy0)}]
-                            set dz [expr {$zz0-$zz1}]
-                          }
-                          z {
-                            set dx [expr {0.2*$tscale}]
-                            set dy $dx
-                            set dz [expr {-0.5*($zz1-$zz0)}]
-                          }
-                        }
-                        $vac AddPosition $dx $dy $dz
-                    }
-                }
-            }
-
-            #
-            # Add a legend with the scale.
-            #
-            if {$id == 0} {
-                set lg $this-legend$id
-                vtkScalarBarActor $lg
-                $lg SetLookupTable $lu
-                [$lg GetPositionCoordinate] SetCoordinateSystemToNormalizedViewport
-                [$lg GetPositionCoordinate] SetValue 0.1 0.1
-                $lg SetOrientationToHorizontal
-                $lg SetWidth 0.8
-                $lg SetHeight 1.0
-
-                set tp [$lg GetLabelTextProperty]
-                eval $tp SetColor [_color2rgb $itk_option(-plotforeground)]
-                $tp BoldOff
-                $tp ItalicOff
-                $tp ShadowOff
-                #eval $tp SetShadowColor [_color2rgb gray]
-
-                if 0 {
-                $this-vtkRenderer2 AddActor2D $lg
-                lappend _actors $lg
-                lappend _obj2vtk($dataobj) $lg
-                }
-            }
-            }
             incr id
         }
         set firstobj 0
+    }
+    set top [lindex [get] end]
+    foreach axis { x y z } {
+	set title [$top hints ${axis}label]
+	set units [$top hints ${axis}units]
+	set method Set[string toupper $axis]Title
+	set label "$title"
+ 	if { $units != "" } {
+	    append label " ($units)"
+	}	    
+	$_cubeAxesActor $method $label
     }
     _fixLimits
     Zoom reset
     $_interactor Start
     $_window Render
+
 
     #
     # HACK ALERT!  A single ResetCamera doesn't seem to work for
@@ -1272,7 +767,6 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
         axes		1
         wireframe	0
         volume		1
-        legend		1
         particles	1
         lic		1
     } {
@@ -1285,6 +779,8 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
     set tab [$itk_component(main) insert end \
         -title "View Settings" \
         -icon [Rappture::icon wrench]]
+    set inner $tab
+    if 0 {
     blt::scrollset $tab.ss \
         -xscrollbar $tab.ss.xs \
         -yscrollbar $tab.ss.ys \
@@ -1294,7 +790,7 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
     blt::tk::scrollbar $tab.ss.ys		
     set inner [blt::tk::frame $tab.ss.frame]
     $inner configure -borderwidth 4
-
+    }
     set ::Rappture::VtkViewer::_settings($this-isosurface) 0
     checkbutton $inner.isosurface \
         -text "Isosurface shading" \
@@ -1320,28 +816,11 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
         -command [itcl::code $this FixSettings wireframe] \
         -font "Arial 9"
 
-    checkbutton $inner.legend \
-        -text "Legend" \
-        -variable [itcl::scope _settings($this-legend)] \
-        -command [itcl::code $this FixSettings legend] \
-        -font "Arial 9"
-
-    checkbutton $inner.volume \
-        -text "Volume" \
-        -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
-        -font "Arial 9"
-
     blt::table $inner \
         0,0 $inner.axes  -columnspan 2 -anchor w \
         1,0 $inner.edges  -columnspan 2 -anchor w \
-        2,0 $inner.wireframe  -columnspan 2 -anchor w \
-        3,0 $inner.volume  -columnspan 2 -anchor w \
-        4,0 $inner.legend  -columnspan 2 -anchor w 
+        2,0 $inner.wireframe  -columnspan 2 -anchor w 
 
-    if 0 {
-    bind $inner <Map> [itcl::code $this GetVolumeInfo $inner]
-    }
     blt::table configure $inner r* -resize none
     blt::table configure $inner r5 -resize expand
 }
@@ -1358,6 +837,8 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
     set tab [$itk_component(main) insert end \
         -title "Volume Settings" \
         -icon [Rappture::icon volume-on]]
+    set inner $tab
+    if 0 {
     blt::scrollset $tab.ss \
         -xscrollbar $tab.ss.xs \
         -yscrollbar $tab.ss.ys \
@@ -1367,7 +848,7 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
     blt::tk::scrollbar $tab.ss.ys		
     set inner [blt::tk::frame $tab.ss.frame]
     $inner configure -borderwidth 4
-
+    }
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
@@ -1414,145 +895,6 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
     blt::table configure $inner r6 -resize expand
 }
 
-itcl::body Rappture::VtkViewer::BuildCutplanesTab {} {
-
-    set tab [$itk_component(main) insert end \
-        -title "Cutplane Settings" \
-        -icon [Rappture::icon cutbutton]]
-    blt::scrollset $tab.ss \
-        -xscrollbar $tab.ss.xs \
-        -yscrollbar $tab.ss.ys \
-        -window $tab.ss.frame
-    pack $tab.ss -fill both -expand yes 
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
-    set inner [blt::tk::frame $tab.ss.frame]
-    $inner configure -borderwidth 4
-
-    # X-value slicer...
-    itk_component add xCutButton {
-        Rappture::PushButton $inner.xbutton \
-            -onimage [Rappture::icon x-cutplane] \
-            -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this FixSettings xcutplane] \
-            -variable [itcl::scope _settings($this-xcutplane)]
-    }
-    Rappture::Tooltip::for $itk_component(xCutButton) \
-        "Toggle the X cut plane on/off"
-
-    itk_component add xCutScale {
-        ::scale $inner.xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move x]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    # Set the default cutplane value before disabling the scale.
-    $itk_component(xCutScale) set 50
-    $itk_component(xCutScale) configure -state disabled
-    Rappture::Tooltip::for $itk_component(xCutScale) \
-        "@[itcl::code $this SlicerTip x]"
-
-    # Y-value slicer...
-    itk_component add yCutButton {
-        Rappture::PushButton $inner.ybutton \
-            -onimage [Rappture::icon y-cutplane] \
-            -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this FixSettings ycutplane] \
-            -variable [itcl::scope _settings($this-ycutplane)]
-    }
-    Rappture::Tooltip::for $itk_component(yCutButton) \
-        "Toggle the Y cut plane on/off"
-
-    itk_component add yCutScale {
-        ::scale $inner.yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move y]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    Rappture::Tooltip::for $itk_component(yCutScale) \
-        "@[itcl::code $this SlicerTip y]"
-    # Set the default cutplane value before disabling the scale.
-    $itk_component(yCutScale) set 50
-    $itk_component(yCutScale) configure -state disabled
-
-    # Z-value slicer...
-    itk_component add zCutButton {
-        Rappture::PushButton $inner.zbutton \
-            -onimage [Rappture::icon z-cutplane] \
-            -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this FixSettings zcutplane] \
-            -variable [itcl::scope _settings($this-zcutplane)]
-    }
-    Rappture::Tooltip::for $itk_component(zCutButton) \
-        "Toggle the Z cut plane on/off"
-
-    itk_component add zCutScale {
-        ::scale $inner.zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move z]
-    } {
-        usual
-        ignore -borderwidth -highlightthickness
-    }
-    $itk_component(zCutScale) set 50
-    $itk_component(zCutScale) configure -state disabled
-    #$itk_component(zCutScale) configure -state disabled
-    Rappture::Tooltip::for $itk_component(zCutScale) \
-        "@[itcl::code $this SlicerTip z]"
-
-    blt::table $inner \
-        1,1 $itk_component(xCutButton) \
-        1,2 $itk_component(yCutButton) \
-        1,3 $itk_component(zCutButton) \
-        0,1 $itk_component(xCutScale) \
-        0,2 $itk_component(yCutScale) \
-        0,3 $itk_component(zCutScale) 
-
-    blt::table configure $inner r0 r1 c* -resize none
-    blt::table configure $inner r2 c4 -resize expand
-    blt::table configure $inner c0 -width 2
-    blt::table configure $inner c1 c2 c3 -padx 2
-}
-
-itcl::body Rappture::VtkViewer::BuildCameraTab {} {
-    set tab [$itk_component(main) insert end \
-        -title "Camera Settings" \
-        -icon [Rappture::icon camera]]
-    blt::scrollset $tab.ss \
-        -xscrollbar $tab.ss.xs \
-        -yscrollbar $tab.ss.ys \
-        -window $tab.ss.frame
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
-    pack $tab.ss -fill both -expand yes 
-    set inner [blt::tk::frame $tab.ss.frame]
-    $inner configure -borderwidth 4
-
-    set labels { phi theta psi pan-x pan-y zoom }
-    set row 0
-    foreach tag $labels {
-        label $inner.${tag}label -text $tag -font "Arial 9"
-        entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _settings($this-$tag)]
-        bind $inner.${tag} <KeyPress-Return> \
-            [itcl::code $this camera set ${tag}]
-        blt::table $inner \
-            $row,0 $inner.${tag}label -anchor e -pady 2 \
-            $row,1 $inner.${tag} -anchor w -pady 2
-        blt::table configure $inner r$row -resize none
-        incr row
-    }
-    blt::table configure $inner c0 c1 -resize none
-    blt::table configure $inner c2 -resize expand
-    blt::table configure $inner r$row -resize expand
-}
 
 # ----------------------------------------------------------------------
 # USAGE: FixSettings <what> ?<value>?
@@ -1617,150 +959,10 @@ itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
             }
             $_window Render
         }
-        "legend" {
-            if { $_settings($this-legend) } {
-                blt::table $itk_component(plotarea) \
-                    0,0 $itk_component(3dview) -fill both \
-                    1,0 $itk_component(legend) -fill x 
-                blt::table configure $itk_component(plotarea) r1 -resize none
-            } else {
-                blt::table forget $itk_component(legend)
-            }
-        }
-        "volume" {
-        }
-        "xcutplane" - "ycutplane" - "zcutplane" {
-            set axis [string range $what 0 0]
-            set bool $_settings($this-$what)
-            if { $bool } {
-                $itk_component(${axis}CutScale) configure -state normal \
-                    -troughcolor white
-            } else {
-                $itk_component(${axis}CutScale) configure -state disabled \
-                    -troughcolor grey82
-            }
-        }
         default {
             error "don't know how to fix $what"
         }
     }
-}
-
-if 0 {
-    #
-    # Create slicer controls...
-    #
-    itk_component add slicers {
-        frame $itk_component(controls).slicers
-    } {
-        usual
-        rename -background -controlbackground controlBackground Background
-    }
-    pack $itk_component(slicers) -side bottom -padx 4 -pady 4
-    grid rowconfigure $itk_component(slicers) 1 -weight 1
-
-    #
-    # X-value slicer...
-    #
-    itk_component add xslice {
-        label $itk_component(slicers).xslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon x]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    bind $itk_component(xslice) <ButtonPress> \
-        [itcl::code $this Slice axis x toggle]
-    Rappture::Tooltip::for $itk_component(xslice) \
-        "Toggle the X cut plane on/off"
-    grid $itk_component(xslice) -row 0 -column 0 -sticky ew -padx 1
-
-    itk_component add xslicer {
-        ::scale $itk_component(slicers).xval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move x]
-    } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
-    }
-    grid $itk_component(xslicer) -row 1 -column 0 -padx 1
-    Rappture::Tooltip::for $itk_component(xslicer) \
-        "@[itcl::code $this Slicertip x]"
-
-    #
-    # Y-value slicer...
-    #
-    itk_component add yslice {
-        label $itk_component(slicers).yslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon y]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    bind $itk_component(yslice) <ButtonPress> \
-        [itcl::code $this Slice axis y toggle]
-    Rappture::Tooltip::for $itk_component(yslice) \
-        "Toggle the Y cut plane on/off"
-    grid $itk_component(yslice) -row 0 -column 1 -sticky ew -padx 1
-
-    itk_component add yslicer {
-        ::scale $itk_component(slicers).yval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move y]
-    } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
-    }
-    grid $itk_component(yslicer) -row 1 -column 1 -padx 1
-    Rappture::Tooltip::for $itk_component(yslicer) \
-        "@[itcl::code $this Slicertip y]"
-
-    #
-    # Z-value slicer...
-    #
-    itk_component add zslice {
-        label $itk_component(slicers).zslice \
-            -borderwidth 1 -relief raised -padx 1 -pady 1 \
-            -bitmap [Rappture::icon z]
-    } {
-        usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
-    }
-    grid $itk_component(zslice) -row 0 -column 2 -sticky ew -padx 1
-    bind $itk_component(zslice) <ButtonPress> \
-        [itcl::code $this Slice axis z toggle]
-    Rappture::Tooltip::for $itk_component(zslice) \
-        "Toggle the Z cut plane on/off"
-
-    itk_component add zslicer {
-        ::scale $itk_component(slicers).zval -from 100 -to 0 \
-            -width 10 -orient vertical -showvalue off -state disabled \
-            -borderwidth 1 -highlightthickness 0 \
-            -command [itcl::code $this Slice move z]
-    } {
-        usual
-        ignore -borderwidth
-        ignore -highlightthickness
-        rename -highlightbackground -controlbackground controlBackground Background
-        rename -troughcolor -controldarkbackground controlDarkBackground Background
-    }
-    grid $itk_component(zslicer) -row 1 -column 2 -padx 1
-    Rappture::Tooltip::for $itk_component(zslicer) \
-        "@[itcl::code $this Slicertip z]"
-
 }
 
 itcl::body Rappture::VtkViewer::GetLimits {} {

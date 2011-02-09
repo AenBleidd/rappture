@@ -105,6 +105,12 @@ itcl::body Rappture::Drawing3d::constructor {xmlobj path} {
         yscale  yaxis.scale
         ymin    yaxis.min
         ymax    yaxis.max
+        zlabel  zaxis.label
+        zdesc   zaxis.description
+        zunits  zaxis.units
+        zscale  zaxis.scale
+        zmin    zaxis.min
+        zmax    zaxis.max
     } {
         set str [$_drawing3d get $path]
         if {"" != $str} {
@@ -241,6 +247,7 @@ itcl::body Rappture::Drawing3d::limits {which} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing3d::hints { {keyword ""} } {
+    if 0 {
     if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
         && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
         set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
@@ -249,7 +256,7 @@ itcl::body Rappture::Drawing3d::hints { {keyword ""} } {
         && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
         set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
     }
-    
+    }
     if {[info exists _hints(group)] && [info exists _hints(label)]} {
         # pop-up help for each curve
         set _hints(tooltip) $_hints(label)

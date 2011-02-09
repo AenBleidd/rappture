@@ -231,6 +231,9 @@ fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
 AC_SUBST(DX_LIB_SPEC)
 
+AC_CHECK_HEADERS([<opencv/cv.h opencv/highgui.h])
+AC_CHECK_LIB([cv], [cvLoadImage])
+
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
 #define SIZEOF_LONG ${ac_cv_sizeof_long}
 #if SIZEOF_LONG == 8
@@ -241,7 +244,6 @@ AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavf
 #  define UINT64_C(c) c ## ULL
 #endif
 ])
-
 AC_CHECK_LIB([avcodec], [avcodec_alloc_frame])
 AC_CHECK_LIB([avformat], [avformat_alloc_context])
 AC_CHECK_LIB([avutil], [av_free])

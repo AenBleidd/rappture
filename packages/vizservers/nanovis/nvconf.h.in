@@ -39,6 +39,9 @@
 /* Define to 1 if you have the <libavutil/avutil.h> header file. */
 #undef HAVE_LIBAVUTIL_AVUTIL_H
 
+/* Define to 1 if you have the `cv' library (-lcv). */
+#undef HAVE_LIBCV
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -47,6 +50,9 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <opencv/highgui.h> header file. */
+#undef HAVE_OPENCV_HIGHGUI_H
 
 /* Define to 1 if you have the <rappture.h> header file. */
 #undef HAVE_RAPPTURE_H

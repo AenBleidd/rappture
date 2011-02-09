@@ -34,8 +34,8 @@ CG_INC_SPEC     = -I$(CG_DIR)/include
 CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
 DX_INC_SPEC      = @DX_INC_SPEC@
 DX_LIB_SPEC      = @DX_LIB_SPEC@ -lDXcallm
-FF_LIB_SPEC     = -lavformat -lavcodec -lavutil
-# might also need -lavutil
+FF_LIB_SPEC     = @LIBS@
+
 GL_INC_SPEC     = -I/usr/include/GL
 GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
 IMG_DIR		= ./imgLoaders
