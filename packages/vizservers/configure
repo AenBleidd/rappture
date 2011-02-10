@@ -605,6 +605,7 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 LD_RPATH
 CG_DIR
+FF_INC_SPEC
 DX_LIB_SPEC
 DX_INC_SPEC
 RP_DIR
@@ -705,13 +706,13 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_tcllib
+with_rappture
 enable_64bit
 enable_64bit_vis
 enable_corefoundation
 enable_load
 with_x
-with_tcllib
-with_rappture
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1350,11 +1351,11 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-x                use the X Window System
   --with-tcllib=DIR       location of Tcl binary library libtclstubs.a
                           [default=/usr/lib]
   --with-rappture=DIR     location of rappture files lib/librappture2.a and
                           include/rappture2/rappture2.h [default=/usr]
+  --with-x                use the X Window System
 
 Some influential environment variables:
   CC          C compiler command
@@ -2617,6 +2618,25 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 ac_config_headers="$ac_config_headers nanovis/nvconf.h nanoscale/config.h"
+
+
+
+
+# Check whether --with-tcllib was given.
+if test "${with_tcllib+set}" = set; then :
+  withval=$with_tcllib; with_tcllib=$withval
+else
+  with_tcllib=""
+fi
+
+
+
+# Check whether --with-rappture was given.
+if test "${with_rappture+set}" = set; then :
+  withval=$with_rappture; with_rappture=$withval
+else
+  with_rappture=/usr
+fi
 
 
 VERSION=0.0.1
@@ -7944,15 +7964,6 @@ LD_RPATH="";
 SUBDIRS="nanoscale nanovis pymolproxy"
 
 
-
-# Check whether --with-tcllib was given.
-if test "${with_tcllib+set}" = set; then :
-  withval=$with_tcllib; with_tcllib=$withval
-else
-  with_tcllib=""
-fi
-
-
 #
 # Need to check for the following dependencies:
 #	Rappture headers and library (done)
@@ -7995,15 +8006,6 @@ fi
 
 
 
-
-
-
-# Check whether --with-rappture was given.
-if test "${with_rappture+set}" = set; then :
-  withval=$with_rappture; with_rappture=$withval
-else
-  with_rappture=/usr
-fi
 
 
 RP2_INCL_DIR=""
@@ -8227,7 +8229,7 @@ fi
 $as_echo "$DX_LIB_SPEC" >&6; }
 
 
-for ac_header in <opencv/cv.h opencv/highgui.h
+for ac_header in opencv/cv.h opencv/highgui.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -8286,6 +8288,14 @@ _ACEOF
 fi
 
 
+save_CPPFLAGS=$CPPFLAGS
+# Test for redhat-specific location of ffmpeg headers.
+if test -d "/usr/include/ffmpeg" ; then
+  CPPFLAGS="$CPPFLAGS -I/usr/include/ffmpeg"
+  FF_INC_SPEC="-I/usr/include/ffmpeg"
+fi
+
+
 for ac_header in ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -8308,6 +8318,8 @@ _ACEOF
 fi
 
 done
+
+CPPFLAGS=$save_CPPFLAGS
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for avcodec_alloc_frame in -lavcodec" >&5
 $as_echo_n "checking for avcodec_alloc_frame in -lavcodec... " >&6; }
