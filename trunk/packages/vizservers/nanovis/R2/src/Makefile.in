@@ -21,6 +21,7 @@ RM		= rm -f
 AR		= ar rc
 RANLIB		= @RANLIB@
 CC		= @CC@
+CXX		= @CXX@
 VPATH		= $(srcdir)
 
 INCLUDES	= -I$(srcdir)/../include 
@@ -28,7 +29,7 @@ INCLUDES	= -I$(srcdir)/../include
 CFLAGS		= @CFLAGS@
 EXTRA_CFLAGS	= -Wall 
 DEFINES		= @DEFINES@
-CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
 OBJS		= \
 		R2FilePath.o \
@@ -51,7 +52,7 @@ $(R2LIB): $(OBJS)
 	$(RANLIB) $@
 
 .cpp.o:
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 clean:
 	$(RM) $(R2LIB) $(OBJS)
