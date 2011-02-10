@@ -150,7 +150,6 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 # to the plot; otherwise, default settings are used.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::plot {option args} {
-    puts stderr "plot option=$option args=$args"
     switch -- $option {
         add {
             set params ""
@@ -179,9 +178,6 @@ itcl::body Rappture::ResultViewer::plot {option args} {
                     }
                     # add override settings passed in here
                     eval lappend settings $opts
-
-		    puts stderr "_plotAdd $dobj $settings"
-
                     _plotAdd $dobj $settings
                 }
             }
@@ -190,10 +186,8 @@ itcl::body Rappture::ResultViewer::plot {option args} {
             }
         }
         clear {
-	    puts stderr "in plot clear mode=$_mode"
             # clear the contents of the current mode
             if {"" != $_mode} {
-		puts stderr "in plot clear mode=$_mode"
                 $_mode2widget($_mode) delete
             }
         }
@@ -223,10 +217,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
         ::Rappture::Drawing3d {
             set mode "vtkviewer"
-	    puts stderr mode2widget=[array names _mode2widget]
             if {![info exists _mode2widget($mode)]} {
                 set w $itk_interior.vtkviewer
-                catch { Rappture::VtkViewer $w }
+                Rappture::VtkViewer $w
                 set _mode2widget($mode) $w
             }
         }
@@ -402,7 +395,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
         pack $_mode2widget($mode) -expand yes -fill both
 
-	puts stderr "_mode=$_mode mode=$mode"
         set _mode $mode
         $_dispatcher event -idle !scale
     }
