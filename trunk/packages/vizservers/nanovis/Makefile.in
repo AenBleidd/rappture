@@ -35,6 +35,7 @@ CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
 DX_INC_SPEC      = @DX_INC_SPEC@
 DX_LIB_SPEC      = @DX_LIB_SPEC@ -lDXcallm
 FF_LIB_SPEC     = @LIBS@
+FF_INC_SPEC     = @FF_INC_SPEC@
 
 GL_INC_SPEC     = -I/usr/include/GL
 GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
@@ -99,6 +100,7 @@ INCLUDES	= \
 		$(VRUTIL_INC_SPEC) \
 		$(VR3D_INC_SPEC) \
 		$(TCL_INC_SPEC) \
+		$(FF_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
 		$(RP_INC_SPEC) \
