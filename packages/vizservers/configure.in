@@ -232,7 +232,7 @@ fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
 AC_SUBST(DX_LIB_SPEC)
 
-AC_CHECK_HEADERS([<opencv/cv.h opencv/highgui.h])
+AC_CHECK_HEADERS([opencv/cv.h opencv/highgui.h])
 AC_CHECK_LIB([cv], [cvLoadImage])
 
 save_CPPFLAGS=$CPPFLAGS
