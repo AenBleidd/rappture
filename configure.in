@@ -17,6 +17,20 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=$prefix
 fi
 
+AC_ARG_WITH(
+    [install],
+    [AS_HELP_STRING([--with-install[=DIR]],
+        [location of installation @<:@default=yes@:>@])],
+    [],
+    [with_install=yes])
+if test "$with_install" != "yes"; then
+    INSTALL_PREFIX=$with_install
+else
+    INSTALL_PREFIX=$prefix
+fi
+AC_SUBST(INSTALL_PREFIX)
+
+
 if test "${libdir}" != "${prefix}/lib"; then
     LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
