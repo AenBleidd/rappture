@@ -106,10 +106,11 @@ INCLUDES	= \
 		$(RP_INC_SPEC) \
 
 CC              = @CC@
+CXX             = @CXX@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
 DEFINES         = 
-CC_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+CXX_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 OBJS		= \
 		Axis.o \
@@ -250,27 +251,27 @@ $(IMG_LIB):
 	$(MAKE) -C $(IMG_DIR) all
 
 nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(VR3D_LIB) $(OBJS)
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 dxReader2.o: $(srcdir)/dxReader2.cpp
-	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $?
 RpDX.o: $(srcdir)/RpDX.cpp
-	$(CC) -c $(CC_SWITCHES) $(DX_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $?
 RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
-	$(CC) -c $(CC_SWITCHES) $(FF_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $?
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
-	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
 
 Socket.o: socket/Socket.cpp socket/Socket.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
-	$(CC) $(CC_SWITCHES) -o $@ -c $<
+	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 install-resources:
 	$(MKDIR_P) $(libdir)/resources
