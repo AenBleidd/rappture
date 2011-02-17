@@ -66,9 +66,9 @@ while {[llength $argv] > 0} {
             }
             -load {
                 lappend alist $opt
-                while {1} {
+                while { [llength $argv] > 0 } {
                     set val [lindex $argv 0]
-                    if {[string index $val 0] != "-"} {
+                    if { [string index $val 0] == "-" } {
                         break
                     }
                     lappend alist $val
@@ -87,4 +87,5 @@ while {[llength $argv] > 0} {
 }
 
 # invoke the main program with the args
+puts stderr alist=$alist
 eval exec wish [list $mainscript] $alist

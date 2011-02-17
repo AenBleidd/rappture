@@ -107,14 +107,22 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     set _view(phi) 0
 
     array set _limits {
-        xMin 0 
-        xMax 1
-        yMin 0
-        yMax 1
-        zMin 0
-        zMax 1
-        vMin 0
-        vMax 1
+        xMin	0 
+        xMax	1
+        yMin	0
+        yMax	1
+        zMin	0
+        zMax	1
+        vMin	0
+        vMax	1
+    }
+    foreach { key value } {
+        edges		1
+        axes		1
+        smallaxes	0
+        wireframe	0
+    } {
+        set _settings($this-$key) $value
     }
 
     itk_component add main {
@@ -213,8 +221,8 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     set _axesWidget [vtkOrientationMarkerWidget $this-AxesWidget]
     $_axesWidget SetOrientationMarker $_axesActor
     $_axesWidget SetInteractor $_interactor
-    #$_axesWidget SetEnabled 1
-    #$_axesWidget SetInteractive 0
+    $_axesWidget SetEnabled $_settings($this-smallaxes)
+    $_axesWidget SetInteractive 0
     $_axesWidget SetViewport .7 0 1.0 0.3
 
     BuildViewTab
@@ -337,8 +345,7 @@ itcl::body Rappture::VtkViewer::delete {args} {
             set changed 1
         }
     }
-
-    # if anything changed, then rebuild the plot
+    # If anything changed, then rebuild the plot
     if {$changed} {
         after cancel [itcl::code $this Rebuild]
         after idle [itcl::code $this Rebuild]
@@ -395,9 +402,12 @@ itcl::body Rappture::VtkViewer::download {option args} {
             $writer Write 
             rename $writer ""
             rename $large ""
-            $_axesWidget SetEnabled 1
+            FixSettings smallaxes
 
-            $_download export jpg -quality 100 -data bytes
+	    set img [image create photo -file junk.jpg]
+            set bytes [$img data -format "jpeg -quality 100"]
+            set bytes [Rappture::encoding::decode -as b64 $bytes]
+	    image delete $img
             return [list .jpg $bytes]
         }
         default {
@@ -426,6 +436,8 @@ itcl::body Rappture::VtkViewer::Clear {} {
         set _lights($ren) ""
     }
     foreach dataobj [array names _obj2vtk] {
+	set actor [$data values]
+	set data [$data values]
         foreach cmd $_obj2vtk($dataobj) {
             rename $cmd ""
         }
@@ -661,7 +673,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     #
     # LOOKUP TABLE FOR COLOR CONTOURS
     #
-    # use vmin/vmax if possible, otherwise get from data
+    # Use vmin/vmax if possible, otherwise get from data
     if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
         set v0 0
         set v1 1
@@ -716,23 +728,25 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             set actor [$dataobj values $comp]
             set style [$dataobj style $comp]
 
+	    lappend _actors $actor
             $_renderer AddActor $actor
             SetActorProperties $actor $style
-            set mapper [$dataobj data $comp]
             incr id
         }
         set firstobj 0
     }
     set top [lindex [get] end]
-    foreach axis { x y z } {
-	set title [$top hints ${axis}label]
-	set units [$top hints ${axis}units]
-	set method Set[string toupper $axis]Title
-	set label "$title"
- 	if { $units != "" } {
-	    append label " ($units)"
-	}	    
-	$_cubeAxesActor $method $label
+    if { $top != "" } {
+	foreach axis { x y z } {
+	    set title [$top hints ${axis}label]
+	    set units [$top hints ${axis}units]
+	    set method Set[string toupper $axis]Title
+	    set label "$title"
+	    if { $units != "" } {
+		append label " ($units)"
+	    }	    
+	    $_cubeAxesActor $method $label
+	}
     }
     _fixLimits
     Zoom reset
@@ -762,16 +776,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 }
 
 itcl::body Rappture::VtkViewer::BuildViewTab {} {
-    foreach { key value } {
-        edges		1
-        axes		1
-        wireframe	0
-        volume		1
-        particles	1
-        lic		1
-    } {
-        set _settings($this-$key) $value
-    }
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
@@ -810,6 +814,12 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
         -command [itcl::code $this FixSettings edges] \
         -font "Arial 9"
 
+    checkbutton $inner.smallaxes \
+        -text "Small Axes" \
+        -variable [itcl::scope _settings($this-smallaxes)] \
+        -command [itcl::code $this FixSettings smallaxes] \
+        -font "Arial 9"
+
     checkbutton $inner.wireframe \
         -text "Wireframe" \
         -variable [itcl::scope _settings($this-wireframe)] \
@@ -819,7 +829,8 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
     blt::table $inner \
         0,0 $inner.axes  -columnspan 2 -anchor w \
         1,0 $inner.edges  -columnspan 2 -anchor w \
-        2,0 $inner.wireframe  -columnspan 2 -anchor w 
+        2,0 $inner.wireframe  -columnspan 2 -anchor w \
+        3,0 $inner.smallaxes  -columnspan 2 -anchor w 
 
     blt::table configure $inner r* -resize none
     blt::table configure $inner r5 -resize expand
@@ -957,6 +968,10 @@ itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
             } else {
                 $_cubeAxesActor VisibilityOff
             }
+            $_window Render
+        }
+        "smallaxes" {
+            $_axesWidget SetEnabled $_settings($this-smallaxes)
             $_window Render
         }
         default {
