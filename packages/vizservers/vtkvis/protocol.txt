@@ -1,0 +1,60 @@
+================================================================================
+On connection, send 32-bit little endian int indicating memory requirements
+(comsumed by nanoscale server before exec-ing vtkvis)
+================================================================================
+Requests:
+
+screen bgcolor <r> <g> <b>
+screen <width> <height>
+
+axis visible <bool>
+     Affects both x/y axes
+
+grid visible <bool>
+     Currently unimplemented
+
+camera ortho <x> <y> <width> <height>
+     Supply world coordinate bounds of plot area
+
+dataset add <datasetName> data follows <nbytes>
+dataset delete <datasetName>
+dataset visible <bool> <datasetName>
+dataset opacity <val> <datasetName>
+dataset getvalue world <x> <y> <z> <datasetName>
+dataset getvalue pixel <x> <y> <datasetName>
+
+colormap add <colorMapName> <map>
+	 map = Tcl list of rgba values (currently no ramp is used, so supply
+         as many values as needed for lookup table)
+colormap delete <colorMapName>
+
+legend <colormapName> <legendTitle> <width> <height>
+
+pseudocolor add <datasetName>
+pseudocolor delete <datasetName>
+pseudocolor colormap <colormapName> <datasetName>
+pseudocolor visible <bool> <datasetName>
+
+contour2d add numcontours <n> <datasetName>
+contour2d add contourlist <list> <datasetName>
+	  list = {isoval1 isoval2 isoval3...}
+contour2d linecolor <r> <g> <b> <datasetName>
+contour2d linewidth <val> <datasetName>
+contour2d delete <datasetName>
+contour2d visible <bool> <datasetName>
+
+================================================================================
+Replies:
+
+nv>image -type image -bytes <nbytes>
+  <binary RGB data>
+nv>legend <colormapName> <nbytes>
+  <binary RGB data>
+nv>dataset value world <x> <y> <z> <value>
+nv>dataset value pixel <x> <y> <value>
+
+================================================================================
+Errors:
+
+Prefixed with "NanoVis Server Error: "
+Currently not guaranteed to be on a single line
