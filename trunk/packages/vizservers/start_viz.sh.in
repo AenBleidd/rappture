@@ -14,6 +14,7 @@ broadcast=`hostname -i | sed 's/\.[0-9]*$/.255/'`
 render_dir="@prefix@"
 nanoscale_port=2000
 nanovis_port=2000
+vtkvis_port=2010
 pymol_port=2020
 
 # Build the name of the run directory. This is where nanoscale and the
@@ -36,6 +37,7 @@ nvideo=`lspci | fgrep VGA | fgrep nVidia | wc -l`
 
 nanoscale="${dir}/bin/nanoscale -x ${nvideo} -b $nanoscale_port -s $broadcast"
 nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
+vtkvis="${dir}/bin/vtkvis"
 pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
 
 # Copy from render directory if the run copy doesn't already exist.
@@ -59,5 +61,5 @@ minutes=20
 ulimit -t $(expr ${minutes} \* 60 )
 
 echo "$nanoscale -l $nanovis_port -c \"$nanovis\" -l $pymol_port -c \"$pymolproxy\""
-$nanoscale -l $nanovis_port -c "$nanovis" -l $pymol_port -c "$pymolproxy"
+$nanoscale -l $nanovis_port -c "$nanovis" -l $vtkvis_port -c "$vtkvis" -l $pymol_port -c "$pymolproxy"
 
