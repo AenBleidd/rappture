@@ -1,0 +1,117 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+CC		= @CC@
+CXX		= @CXX@
+CFLAGS		= @CFLAGS@
+CXXFLAGS	= @CXXFLAGS@
+
+VPATH           = $(srcdir)
+
+INSTALL         = @INSTALL@
+INSTALL_PROGRAM = ${INSTALL} -m 555
+INSTALL_DATA    = ${INSTALL} -m 444
+INSTALL_SCRIPT  = ${INSTALL} -m 444
+MKDIR_P		= @MKDIR_P@
+
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TCL_INC_SPEC    = @TCL_INC_SPEC@
+
+VTK_LIB_SPEC	= @VTK_LIB_SPEC@
+VTK_INC_SPEC	= @VTK_INC_SPEC@
+
+VTK_LIBS	= $(VTK_LIB_SPEC) -lvtkIO -lvtkWidgets -lvtkRendering -lvtkGraphics -lvtkCommon
+
+LIBS		= \
+		$(TCL_LIB_SPEC) \
+		$(VTK_LIBS)
+
+INCLUDES	= \
+		-I. \
+		$(TCL_INC_SPEC) \
+		$(VTK_INC_SPEC)
+
+USE_CUSTOM_AXES = #yes
+DEBUG		= #yes
+TRACE		= #yes
+
+EXTRA_CFLAGS	= -Wall -Wno-deprecated #vtk uses deprecated strstream header (instead of sstream)
+DEFINES		=
+ifdef DEBUG
+DEFINES 	+= -DDEBUG
+CXXFLAGS	= -O0 -g
+endif
+ifdef TRACE
+DEFINES		+= -DWANT_TRACE
+endif
+ifdef USE_CUSTOM_AXES
+DEFINES 	+= -DUSE_CUSTOM_AXES
+endif
+CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+
+SERVER_SRCS	= \
+		CmdProc.cpp \
+		PPMWriter.cpp \
+		RpContour2D.cpp \
+		RpPseudoColor.cpp \
+		RpVtkDataSet.cpp \
+		RpVtkRenderer.cpp\
+		RpVtkRendererCmd.cpp \
+		RpVtkRenderServer.cpp \
+		TGAWriter.cpp \
+		Trace.cpp
+
+ifdef USE_CUSTOM_AXES
+SERVER_SRCS+=vtkRpCubeAxesActor2D.cpp
+endif
+
+SERVER_OBJS=$(SERVER_SRCS:.cpp=.o)
+
+SERVER=vtkvis
+
+.PHONY: all docs install clean clean-doc distclean
+
+all: $(SERVER)
+
+docs:
+	$(MKDIR_P) -m 0755 docs/doxygen
+	doxygen
+
+$(SERVER): $(SERVER_OBJS)
+	$(CXX) $(LIBS) -o $@ $(SERVER_OBJS)
+
+install: $(SERVER)
+	$(INSTALL_PROGRAM) $(SERVER) $(bindir)
+
+%.o: %.cpp
+	$(CXX) $(CXX_SWITCHES) -c $< -o $@
+
+clean:
+	$(RM) *~ *.o $(SERVER)
+
+clean-doc:
+	$(RM) -r docs
+
+distclean: clean clean-doc
+	$(RM) Makefile
+
+CmdProc.o: CmdProc.h
+PPMWriter.o: PPMWriter.h Trace.h
+RpContour2D.o: RpContour2D.h RpVtkDataSet.h
+RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h
+RpVtkDataSet.o: RpVtkDataSet.h
+RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h
+Trace.o: Trace.h
+TGAWriter.o: TGAWriter.h Trace.h
+contourPlotter.o: RpVtkRenderer.h
+vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h
