@@ -1,6 +1,6 @@
+AC_PREREQ([2.60])
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
 AC_CONFIG_HEADER(nanovis/nvconf.h nanoscale/config.h)
-
 
 AC_ARG_WITH(
     [tcllib],
@@ -15,6 +15,20 @@ AC_ARG_WITH(
         [location of rappture files lib/librappture2.a and include/rappture2/rappture2.h @<:@default=/usr@:>@])],
     [with_rappture=$withval],
     [with_rappture=/usr])
+
+AC_ARG_WITH(
+    [vtk-includes],
+    [AS_HELP_STRING([--with-vtk-includes=DIR],
+        [VTK include files are in DIR])],
+    [with_vtk_includes=$withval],
+    [with_vtk_includes=/usr/include/vtk-5.6])
+
+AC_ARG_WITH(
+    [vtk-libs],
+    [AS_HELP_STRING([--with-vtk-libs=DIR],
+        [VTK libraries are in DIR])],
+    [with_vtk_libs=$withval],
+    [with_vtk_libs=/usr/lib/vtk-5.6])
 
 VERSION=0.0.1
 AC_SUBST(VERSION)
@@ -78,7 +92,7 @@ AC_SUBST(SIZEOF_FLOAT, ${ac_cv_sizeof_float})
 
 LD_RPATH="";
 
-SUBDIRS="nanoscale nanovis pymolproxy"
+SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
 AC_SUBST(SUBDIRS)
 
 #
@@ -165,6 +179,22 @@ fi
 AC_MSG_RESULT([${RP_DIR}/include])
 AC_SUBST(RP2_INCL_DIR)
 AC_SUBST(RP_DIR)
+
+if test "x$with_vtk_includes" != "x"; then
+   VTK_INC_SPEC=-I$with_vtk_includes
+fi
+
+save_CPPFLAGS=$CPPFLAGS
+CPPFLAGS=$VTK_INC_SPEC
+AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_ERROR([cannot find VTK includes])])
+CPPFLAGS=$save_CPPFLAGS
+
+if test "x$with_vtk_libs" != "x"; then
+   VTK_LIB_SPEC=-L$with_vtk_libs
+fi
+
+AC_SUBST(VTK_INC_SPEC)
+AC_SUBST(VTK_LIB_SPEC)
 
 AC_CHECK_HEADER([GL/glui.h])
 AC_CHECK_HEADER([glui.h])
@@ -312,4 +342,5 @@ AC_OUTPUT(  Makefile \
             nanovis/imgLoaders/Makefile \
             nanovis/transfer-function/Makefile \
             pymolproxy/Makefile \
+            vtkvis/Makefile \
             start_viz.sh    )
