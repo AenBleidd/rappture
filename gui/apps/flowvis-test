@@ -15,7 +15,7 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #\
-bindir=`basename $0` ; \
+bindir=`dirname $0` ; \
 . $bindir/rappture.env ; \
 exec wish "$0" $*
 # ----------------------------------------------------------------------
