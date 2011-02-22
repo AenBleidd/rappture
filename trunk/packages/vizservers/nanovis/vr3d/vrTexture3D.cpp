@@ -49,11 +49,6 @@ void vrTexture3D::setPixels(TEXTARGET target,  COLORFORMAT internalColorFormat, 
 		glDeleteTextures(1, &_objectID);
 	}
 
-	if (_pixels)
-	{
-		delete [] _pixels;
-	}
-
 	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glGenTextures(1, &_objectID);
 	glBindTexture(_target, _objectID);

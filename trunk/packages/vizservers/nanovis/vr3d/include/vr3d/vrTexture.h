@@ -62,12 +62,6 @@ protected :
 	TEXFILTER		_magFilter;
 
 	/**
-	 * @brief image data
-	 * @brief Default value is NULL
-	 */
-	void*			_pixels;
-
-	/**
 	 * @brief component count
 	 */
 	int			_compCount;
