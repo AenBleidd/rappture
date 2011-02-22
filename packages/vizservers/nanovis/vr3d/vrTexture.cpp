@@ -8,7 +8,6 @@ vrTexture::vrTexture()
   _internalColorFormat(CF_RGBA),
   _minFilter(TF_LINEAR), 
   _magFilter(TF_LINEAR),
-  _pixels(0), 
   _compCount(4)
 {
 }
