@@ -14,7 +14,7 @@ MKDIR_P		= @MKDIR_P@
 VPATH		= @srcdir@
 
 JAVAC		= @JAVAC@ 
-CLASSPATH	= $(libdir)/java:../../../lang/java
+CLASSPATH	= ../../../lang/java:$(libdir)/java
 
 destdir		= $(prefix)/examples/app-fermi/java
 
