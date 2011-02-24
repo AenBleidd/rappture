@@ -219,7 +219,7 @@ shaders		= \
 		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/velocity.cg
 
-.PHONY: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis
+.PHONY: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
 
 all: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis 
 
