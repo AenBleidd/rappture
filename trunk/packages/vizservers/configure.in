@@ -190,11 +190,11 @@ AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_ERROR([cannot find VTK include
 CPPFLAGS=$save_CPPFLAGS
 
 if test "x$with_vtk_libs" != "x"; then
-   VTK_LIB_SPEC=-L$with_vtk_libs
+   VTK_LIB_DIR=$with_vtk_libs
 fi
 
 AC_SUBST(VTK_INC_SPEC)
-AC_SUBST(VTK_LIB_SPEC)
+AC_SUBST(VTK_LIB_DIR)
 
 AC_CHECK_HEADER([GL/glui.h])
 AC_CHECK_HEADER([glui.h])

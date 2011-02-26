@@ -25,14 +25,16 @@ MKDIR_P		= @MKDIR_P@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-VTK_LIB_SPEC	= @VTK_LIB_SPEC@
+VTK_LIB_DIR	= @VTK_LIB_DIR@
+VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) -lvtkIO -lvtkWidgets -lvtkRendering -lvtkGraphics -lvtkCommon
 VTK_INC_SPEC	= @VTK_INC_SPEC@
 
-VTK_LIBS	= $(VTK_LIB_SPEC) -lvtkIO -lvtkWidgets -lvtkRendering -lvtkGraphics -lvtkCommon
+LD_RUN_PATH	= $(VTK_LIB_DIR)
 
 LIBS		= \
 		$(TCL_LIB_SPEC) \
-		$(VTK_LIBS)
+		$(VTK_LIB_SPEC) \
+		-Wl,-rpath-link,$(LD_RUN_PATH)
 
 INCLUDES	= \
 		-I. \
