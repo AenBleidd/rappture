@@ -12,6 +12,7 @@ set -e
 broadcast=`hostname -i | sed 's/\.[0-9]*$/.255/'`
 
 render_dir="@prefix@"
+vtk_lib_dir="@VTK_LIB_DIR@"
 nanoscale_port=2000
 nanovis_port=2000
 vtkvis_port=2010
@@ -22,15 +23,17 @@ pymol_port=2020
 # render directory.
 dir="/tmp/`basename $render_dir`"
 
+# Get the versioned VTK library directory (e.g. "vtk-5.6")
+vtkdir="`basename $vtk_lib_dir`"
 
 PATH=${dir}/bin:$PATH
-LD_LIBRARY_PATH=${dir}/lib:$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=${dir}/lib:${dir}/lib/${vtkdir}:$LD_LIBRARY_PATH
 PYMOL_PATH=${dir}/lib/pymol
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
 # Determine the number of video cards we have.  The new render server
-# motherboards have the useless XGI Volaria onboard video controllers (no 3D
+# motherboards have the useless XGI Volari onboard video controllers (no 3D
 # capabilities) so we have to make sure we count only the nVidia cards.
 
 nvideo=`lspci | fgrep VGA | fgrep nVidia | wc -l`
