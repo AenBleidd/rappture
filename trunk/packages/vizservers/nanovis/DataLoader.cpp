@@ -285,7 +285,7 @@ void* LoadProcessedFlowRaw(const char* fname, int width, int height, int depth, 
 
 	int size = width * height * depth;
 	float* srcdata = (float*) malloc(size * sizeof(float) * 4);
-	size_t sz = fread(srcdata, size * 4 * sizeof(float), 1, fp);
+	fread(srcdata, size * 4 * sizeof(float), 1, fp);
 	fclose(fp);
 
 	axisScaleX = width;
@@ -313,7 +313,7 @@ void LoadProcessedFlowRaw(const char* fname, int width, int height, int depth, f
 	}
 
 	int size = width * height * depth;
-	size_t sz = fread(data, size * 4 * sizeof(float), 1, fp);
+	fread(data, size * 4 * sizeof(float), 1, fp);
 	fclose(fp);
 }
 
@@ -346,17 +346,11 @@ void* LoadFlowRaw(const char* fname, int width, int height, int depth, float& mi
 	int d, h, w;		
 	int index = 0;
 
-	union {
-		char ch[4];
-		int v;
-	} value;
-
 	int size = width * height * depth;
 	srcdata = (float*) malloc(size * sizeof(float) * 3);
 	memset(srcdata, 0, size * sizeof(float) * 3);
-	size_t sz;
-	if (skipByte != 0) sz = fread(srcdata, skipByte, 1, fp);
-	sz = fread(srcdata, size * 3 * sizeof(float), 1, fp);
+	if (skipByte != 0) fread(srcdata, skipByte, 1, fp);
+	fread(srcdata, size * 3 * sizeof(float), 1, fp);
 	fclose(fp);
 
 	if (bigEndian) {
