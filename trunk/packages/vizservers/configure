@@ -643,7 +643,7 @@ CG_DIR
 FF_INC_SPEC
 DX_LIB_SPEC
 DX_INC_SPEC
-VTK_LIB_SPEC
+VTK_LIB_DIR
 VTK_INC_SPEC
 RP_DIR
 RP2_INCL_DIR
@@ -11338,7 +11338,7 @@ done
 CPPFLAGS=$save_CPPFLAGS
 
 if test "x$with_vtk_libs" != "x"; then
-   VTK_LIB_SPEC=-L$with_vtk_libs
+   VTK_LIB_DIR=$with_vtk_libs
 fi
 
 
