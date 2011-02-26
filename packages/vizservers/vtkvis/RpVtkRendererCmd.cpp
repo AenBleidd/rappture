@@ -370,7 +370,7 @@ static int
 DataSetDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
+    const char *name = Tcl_GetString(objv[2]);
     g_renderer->deleteDataSet(name);
     return TCL_OK;
 }
