@@ -18,8 +18,12 @@ using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
     _dataSet(NULL),
-    _opacity(1.0)
+    _opacity(1.0),
+    _edgeWidth(1.0)
 {
+    _edgeColor[0] = 0.0;
+    _edgeColor[1] = 0.0;
+    _edgeColor[2] = 0.0;
 }
 
 PseudoColor::~PseudoColor()
@@ -57,16 +61,23 @@ void PseudoColor::update()
     _dsMapper->SetInput(ds);
     _dsMapper->StaticOff();
 
-    vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
-    TRACE("Data set scalars lookup table: %p\n", lut);
-    if (_lut == NULL) {
-        if (lut)
-            _lut = lut;
-        else
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL) {
+        ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+        if (_lut == NULL) {
             _lut = vtkSmartPointer<vtkLookupTable>::New();
+        }
     } else {
-        
+        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
+        TRACE("Data set scalars lookup table: %p\n", lut);
+        if (_lut == NULL) {
+            if (lut)
+                _lut = lut;
+            else
+                _lut = vtkSmartPointer<vtkLookupTable>::New();
+        }
     }
+
     _lut->SetRange(dataRange);
 
     _dsMapper->SetLookupTable(_lut);
@@ -80,7 +91,7 @@ void PseudoColor::update()
 }
 
 /**
- * \brief Get the VTK Actor for the colormap iamge
+ * \brief Get the VTK Actor for the colormapped dataset
  */
 vtkActor *PseudoColor::getActor()
 {
@@ -88,13 +99,16 @@ vtkActor *PseudoColor::getActor()
 }
 
 /**
- * \brief Create and initialize a VTK actor to render the colormap image
+ * \brief Create and initialize a VTK actor to render the colormapped dataset
  */
 void PseudoColor::initActor()
 {
     if (_dsActor == NULL) {
         _dsActor = vtkSmartPointer<vtkActor>::New();
         _dsActor->GetProperty()->SetOpacity(_opacity);
+        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
+        _dsActor->GetProperty()->EdgeVisibilityOff();
     }
 }
 
@@ -117,26 +131,32 @@ void PseudoColor::setLookupTable(vtkLookupTable *lut)
         _lut = lut;
     }
 
+    double dataRange[2];
     if (_dataSet != NULL) {
-        double dataRange[2];
         _dataSet->getDataRange(dataRange);
         _lut->SetRange(dataRange);
-
-        if (_dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable()) {
+#ifdef notdef
+        if (_dataSet->getVtkDataSet()->GetPointData() &&
+            _dataSet->getVtkDataSet()->GetPointData()->GetScalars() &&
+            _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable()) {
             TRACE("Change scalar table: %p %p\n", 
                   _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable(),
                   _lut.GetPointer());
             _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->SetLookupTable(_lut);
             TRACE("Scalar Table: %p\n", _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable());
         }
+#endif
     }
     if (_dsMapper != NULL) {
         _dsMapper->SetLookupTable(_lut);
+        if (_dataSet != NULL) {
+            _dsMapper->SetScalarRange(dataRange);
+        }
     }
 }
 
 /**
- * \brief Turn on/off rendering of this colormap image
+ * \brief Turn on/off rendering of this colormapped dataset
  */
 void PseudoColor::setVisibility(bool state)
 {
@@ -146,7 +166,21 @@ void PseudoColor::setVisibility(bool state)
 }
 
 /**
- * \brief Set opacity used to render the colormap image
+ * \brief Get visibility state of the colormapped dataset
+ * 
+ * \return Is PseudoColor visible?
+ */
+bool PseudoColor::getVisibility()
+{
+    if (_dsActor == NULL) {
+        return false;
+    } else {
+        return (_dsActor->GetVisibility() != 0);
+    }
+}
+
+/**
+ * \brief Set opacity used to render the colormapped dataset
  */
 void PseudoColor::setOpacity(double opacity)
 {
@@ -156,10 +190,48 @@ void PseudoColor::setOpacity(double opacity)
 }
 
 /**
+ * \brief Turn on/off rendering of mesh edges
+ */
+void PseudoColor::setEdgeVisibility(bool state)
+{
+    if (_dsActor != NULL) {
+        _dsActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Set RGB color of polygon edges
+ */
+void PseudoColor::setEdgeColor(float color[3])
+{
+    _edgeColor[0] = color[0];
+    _edgeColor[1] = color[1];
+    _edgeColor[2] = color[2];
+    if (_dsActor != NULL)
+        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+}
+
+/**
+ * \brief Set pixel width of polygon edges (may be a no-op)
+ */
+void PseudoColor::setEdgeWidth(float edgeWidth)
+{
+    _edgeWidth = edgeWidth;
+    if (_dsActor != NULL)
+        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
+}
+
+/**
  * \brief Set a group of world coordinate planes to clip rendering
+ *
+ * Passing NULL for planes will remove all cliping planes
  */
 void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_dsMapper != NULL)
-        _dsMapper->SetClippingPlanes(planes);
+    if (_dsMapper != NULL) {
+        if (planes == NULL)
+            _dsMapper->RemoveAllClippingPlanes();
+        else
+            _dsMapper->SetClippingPlanes(planes);
+    }
 }

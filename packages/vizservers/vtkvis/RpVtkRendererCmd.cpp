@@ -59,60 +59,245 @@ GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 }
 
 static int
-AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-        Tcl_Obj *const *objv)
+AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
 {
-    if (objc < 3) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " visible bool\"", (char*)NULL);
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
         return TCL_ERROR;
     }
-    const char *string = Tcl_GetString(objv[1]);
+    const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    if ((c == 'v') && (strcmp(string, "visible") == 0)) {
-        bool visible;
-
-        if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
-            return TCL_ERROR;
-        }
-
-        g_renderer->setAxesVisibility(visible);
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisGridVisibility(Renderer::X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisGridVisibility(Renderer::Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisGridVisibility(Renderer::Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesGridVisibility(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be visible", (char*)NULL);
+                         "\": should be axisName visible", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
 }
 
 static int
-CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-          Tcl_Obj *const *objv)
+AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
 {
-    if (objc < 6) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " ortho x y width height\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    const char *string = Tcl_GetString(objv[1]);
+    const char *title = Tcl_GetString(objv[3]);
+    const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    if ((c == 'o') && (strcmp(string, "ortho") == 0)) {
-        float x, y, width, height;
-
-        if (GetFloatFromObj(interp, objv[2], &x) != TCL_OK ||
-            GetFloatFromObj(interp, objv[3], &y) != TCL_OK ||
-            GetFloatFromObj(interp, objv[4], &width) != TCL_OK ||
-            GetFloatFromObj(interp, objv[5], &height) != TCL_OK) {
-            return TCL_ERROR;
-        }
-
-        g_renderer->setZoomRegion(x, y, width, height);
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTitle(Renderer::X_AXIS, title);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTitle(Renderer::Y_AXIS, title);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTitle(Renderer::Z_AXIS, title);
     } else {
-        Tcl_AppendResult(interp, "bad camera option \"", string,
-                         "\": should be ortho", (char*)NULL);
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName title", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
+}
+
+static int
+AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    const char *units = Tcl_GetString(objv[3]);
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisUnits(Renderer::X_AXIS, units);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisUnits(Renderer::Y_AXIS, units);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisUnits(Renderer::Z_AXIS, units);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName units", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisVisibility(Renderer::X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisVisibility(Renderer::Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisVisibility(Renderer::Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName visible", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec axisOps[] = {
+    {"grid", 1, AxisGridOp, 4, 4, "axis bool"},
+    {"name", 1, AxisNameOp, 4, 4, "axis title"},
+    {"units", 1, AxisUnitsOp, 4, 4, "axis units"},
+    {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"},
+};
+static int nAxisOps = NumCmdSpecs(axisOps);
+
+static int
+AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+        Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nAxisOps, axisOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+CameraModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    Renderer::CameraMode mode;
+    const char *string = Tcl_GetString(objv[2]);
+    if ((strcmp(string, "persp") == 0)) {
+        mode = Renderer::PERSPECTIVE;
+    } else if ((strcmp(string, "ortho") == 0)) {
+        mode = Renderer::ORTHO;
+    } else if ((strcmp(string, "image") == 0)) {
+        mode = Renderer::IMAGE;
+    } else {
+        Tcl_AppendResult(interp, "bad camera mode option \"", string,
+                         "\": should be perspective, ortho or image", (char*)NULL);
+        return TCL_ERROR;
+    }
+    g_renderer->setCameraMode(mode);
+    return TCL_OK;
+}
+
+static int
+CameraOrthoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    float x, y, width, height;
+
+    if (GetFloatFromObj(interp, objv[2], &x) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &y) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &width) != TCL_OK ||
+        GetFloatFromObj(interp, objv[5], &height) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setCameraZoomRegion(x, y, width, height);
+    return TCL_OK;
+}
+
+static int
+CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    float x, y;
+
+    if (GetFloatFromObj(interp, objv[2], &x) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->panCamera(x, y);
+    return TCL_OK;
+}
+
+static int
+CameraResetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *string = Tcl_GetString(objv[2]);
+        char c = string[0];
+        if ((c != 'a') || (strcmp(string, "all") != 0)) {
+            Tcl_AppendResult(interp, "bad camera reset option \"", string,
+                         "\": should be all", (char*)NULL);
+            return TCL_ERROR;
+        }
+        g_renderer->resetCamera(true);
+    } else {
+        g_renderer->resetCamera(false);
+    }
+    return TCL_OK;
+}
+
+static int
+CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    float yaw, pitch, roll;
+
+    if (GetFloatFromObj(interp, objv[2], &yaw) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &pitch) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &roll) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->rotateCamera(yaw, pitch, roll);
+    return TCL_OK;
+}
+
+static int
+CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    float z;
+
+    if (GetFloatFromObj(interp, objv[2], &z) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->zoomCamera(z);
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec cameraOps[] = {
+    {"mode", 1, CameraModeOp, 3, 3, "mode"},
+    {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
+    {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
+    {"reset", 2, CameraResetOp, 2, 3, "?all?"},
+    {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
+    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"},
+};
+static int nCameraOps = NumCmdSpecs(cameraOps);
+
+static int
+CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nCameraOps, cameraOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 static int
@@ -120,36 +305,78 @@ ColorMapAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
     const char *name = Tcl_GetString(objv[2]);
-    int cmapc;
+    int cmapc, omapc;
     Tcl_Obj **cmapv = NULL;
+    Tcl_Obj **omapv = NULL;
 
     if (Tcl_ListObjGetElements(interp, objv[3], &cmapc, &cmapv) != TCL_OK) {
         return TCL_ERROR;
     }
     if ((cmapc % 4) != 0) {
-        Tcl_AppendResult(interp, "wrong # elements is colormap: should be ",
-                         "{ r g b a ... }", (char*)NULL);
+        Tcl_AppendResult(interp, "wrong # elements in colormap: should be ",
+                         "{ value r g b ... }", (char*)NULL);
         return TCL_ERROR;
     }
-    int numEntries = cmapc / 4;
-    vtkLookupTable *lut = vtkLookupTable::New();
-    lut->Allocate(numEntries, numEntries);
+
+    ColorMap *colorMap = new ColorMap(name);
+    colorMap->setNumberOfTableEntries(256);
+
     for (int i = 0; i < cmapc; i += 4) {
         double val[4];
         for (int j = 0; j < 4; j++) {
             if (Tcl_GetDoubleFromObj(interp, cmapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
                 return TCL_ERROR;
             }
             if ((val[j] < 0.0) || (val[j] > 1.0)) {
                 Tcl_AppendResult(interp, "bad colormap value \"",
                                  Tcl_GetString(cmapv[i+j]),
                                  "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
                 return TCL_ERROR;
             }
         }
-        lut->SetTableValue(i/4, val);
+        ColorMap::ControlPoint cp;
+        cp.value = val[0];
+        for (int c = 0; c < 3; c++) {
+            cp.color[c] = val[c+1];
+        }
+        colorMap->addControlPoint(cp);
     }
-    g_renderer->addColorMap(name, lut);
+
+    if (Tcl_ListObjGetElements(interp, objv[4], &omapc, &omapv) != TCL_OK) {
+        delete colorMap;
+        return TCL_ERROR;
+    }
+    if ((omapc % 2) != 0) {
+        Tcl_AppendResult(interp, "wrong # elements in opacitymap: should be ",
+                         "{ value alpha ... }", (char*)NULL);
+        delete colorMap;
+        return TCL_ERROR;
+    }
+    for (int i = 0; i < omapc; i += 2) {
+        double val[2];
+        for (int j = 0; j < 2; j++) {
+            if (Tcl_GetDoubleFromObj(interp, omapv[i+j], &val[j]) != TCL_OK) {
+                delete colorMap;
+                return TCL_ERROR;
+            }
+            if ((val[j] < 0.0) || (val[j] > 1.0)) {
+                Tcl_AppendResult(interp, "bad opacitymap value \"",
+                                 Tcl_GetString(omapv[i+j]),
+                                 "\": should be in the range [0,1]", (char*)NULL);
+                delete colorMap;
+                return TCL_ERROR;
+            }
+        }
+        ColorMap::OpacityControlPoint ocp;
+        ocp.value = val[0];
+        ocp.alpha = val[1];
+        colorMap->addOpacityControlPoint(ocp);
+    }
+
+    colorMap->build();
+    g_renderer->addColorMap(name, colorMap);
     return TCL_OK;
 }
 
@@ -163,7 +390,7 @@ ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec colorMapOps[] = {
-    {"add", 1, ColorMapAddOp, 4, 4, "colorMapName map"},
+    {"add", 1, ColorMapAddOp, 5, 5, "colorMapName colormap alphamap"},
     {"delete", 1, ColorMapDeleteOp, 3, 3, "colorMapName"}
 };
 static int nColorMapOps = NumCmdSpecs(colorMapOps);
@@ -371,6 +598,7 @@ DataSetDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
     const char *name = Tcl_GetString(objv[2]);
+    TRACE("Deleting dataset %s", name);
     g_renderer->deleteDataSet(name);
     return TCL_OK;
 }
@@ -500,33 +728,6 @@ DataSetCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-GridCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-        Tcl_Obj *const *objv)
-{
-    if (objc < 3) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " visible bool\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-    const char *string = Tcl_GetString(objv[1]);
-    char c = string[0];
-    if ((c == 'v') && (strcmp(string, "visible") == 0)) {
-        bool visible;
-
-        if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        Tcl_AppendResult(interp, "Command not yet implemented", (char*)NULL);
-        return TCL_ERROR; // TODO: handle command
-    } else {
-        Tcl_AppendResult(interp, "bad grid option \"", string,
-                         "\": should be visible", (char*)NULL);
-        return TCL_ERROR;
-    }
-    return TCL_OK;
-}
-
-static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
@@ -601,10 +802,54 @@ PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                            Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPseudoColorEdgeVisibility(name, state);
+    return TCL_OK;
+}
+
+static int
+PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[5]);
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPseudoColorEdgeColor(name, color);
+    return TCL_OK;
+}
+
+static int
+PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPseudoColorEdgeWidth(name, width);
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add", 1, PseudoColorAddOp, 3, 3, "dataSetName"},
     {"colormap", 1, PseudoColorColorMapOp, 4, 4, "colorMapName dataSetName"},
     {"delete", 1, PseudoColorDeleteOp, 3, 3, "dataSetName"},
+    {"edges", 1, PseudoColorEdgeVisibilityOp, 4, 4, "bool dataSetName"},
+    {"linecolor", 5, PseudoColorLineColorOp, 6, 6, "r g b dataSetName"},
+    {"linewidth", 5, PseudoColorLineWidthOp, 4, 4, "width dataSetName"},
     {"visible", 1, PseudoColorVisibleOp, 4, 4, "bool dataSetName"}
 };
 static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
@@ -616,6 +861,132 @@ PseudoColorCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nPseudoColorOps, pseudoColorOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[2]);
+    g_renderer->addPolyData(name);
+    return TCL_OK;
+}
+
+static int
+PolyDataDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[2]);
+    g_renderer->deletePolyData(name);
+    return TCL_OK;
+}
+
+static int
+PolyDataColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[5]);
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataColor(name, color);
+    return TCL_OK;
+}
+
+static int
+PolyDataEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataEdgeVisibility(name, state);
+    return TCL_OK;
+}
+
+static int
+PolyDataLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[5]);
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataEdgeColor(name, color);
+    return TCL_OK;
+}
+
+static int
+PolyDataLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataEdgeWidth(name, width);
+    return TCL_OK;
+}
+
+static int
+PolyDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataVisibility(name, state);
+    return TCL_OK;
+}
+
+static int
+PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataWireframe(name, state);
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec polyDataOps[] = {
+    {"add", 1, PolyDataAddOp, 3, 3, "dataSetName"},
+    {"color", 1, PolyDataColorOp, 6, 6, "r g b dataSetName"},
+    {"delete", 1, PolyDataDeleteOp, 3, 3, "dataSetName"},
+    {"edges", 1, PolyDataEdgeVisibilityOp, 4, 4, "bool dataSetName"},
+    {"linecolor", 5, PolyDataLineColorOp, 6, 6, "r g b dataSetName"},
+    {"linewidth", 5, PolyDataLineWidthOp, 4, 4, "width dataSetName"},
+    {"visible", 1, PolyDataVisibleOp, 4, 4, "bool dataSetName"},
+    {"wireframe", 1, PolyDataWireframeOp, 4, 4, "bool dataSetName"}
+};
+static int nPolyDataOps = NumCmdSpecs(polyDataOps);
+
+static int
+PolyDataCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nPolyDataOps, polyDataOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -738,7 +1109,7 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout)
 
         nBytes = strlen(string);
         struct iovec iov[3];
-        iov[0].iov_base = (char *)"NanoVis Server Error: ";
+        iov[0].iov_base = (char *)"VtkVis Server Error: ";
         iov[0].iov_len = strlen((char *)iov[0].iov_base);
         iov[1].iov_base = (char *)string;
         iov[1].iov_len = nBytes;
@@ -771,8 +1142,8 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
-    Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
+    Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
     return interp;

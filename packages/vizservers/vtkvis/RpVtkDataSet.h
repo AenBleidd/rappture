@@ -12,6 +12,7 @@
 #include <vtkDataSet.h>
 #include <vtkDataSetReader.h>
 
+#include <string>
 #include <vector>
 
 namespace Rappture {
@@ -22,12 +23,14 @@ namespace VtkVis {
  */
 class DataSet {
 public:
-    DataSet();
+    DataSet(const std::string& name);
     virtual ~DataSet();
 
     bool setData(char *data, int nbytes);
 
     bool setDataFile(const char *filename);
+
+    const std::string& getName();
 
     vtkDataSet *getVtkDataSet();
 
@@ -36,8 +39,11 @@ public:
     double getDataValue(double x, double y, double z);
 
 private:
+    DataSet();
+
     bool setData(vtkDataSetReader *reader);
 
+    std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;
     double _dataRange[2];
 };

@@ -5,14 +5,12 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#ifndef __RAPPTURE_VTKVIS_PSEUDOCOLOR_H__
-#define __RAPPTURE_VTKVIS_PSEUDOCOLOR_H__
+#ifndef __RAPPTURE_VTKVIS_POLYDATA_H__
+#define __RAPPTURE_VTKVIS_POLYDATA_H__
 
 #include <vtkSmartPointer.h>
-#include <vtkLookupTable.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
-#include <vtkPlaneCollection.h>
 
 #include <vector>
 
@@ -22,26 +20,26 @@ namespace Rappture {
 namespace VtkVis {
 
 /**
- * \brief Color-mapped plot of data set
+ * \brief VTK Mesh (Polygon data)
  */
-class PseudoColor {
+class PolyData {
 public:
-    PseudoColor();
-    virtual ~PseudoColor();
+    PolyData();
+    virtual ~PolyData();
 
     void setDataSet(DataSet *dataset);
 
     vtkActor *getActor();
-
-    void setLookupTable(vtkLookupTable *lut);
-
-    vtkLookupTable *getLookupTable();
 
     void setVisibility(bool state);
 
     bool getVisibility();
 
     void setOpacity(double opacity);
+
+    void setWireframe(bool state);
+
+    void setColor(float color[3]);
 
     void setEdgeVisibility(bool state);
 
@@ -55,14 +53,14 @@ private:
     void initActor();
     void update();
 
-    DataSet * _dataSet;
+    DataSet *_dataSet;
 
-    double _opacity;
+    float _color[3];
     float _edgeColor[3];
     float _edgeWidth;
-    vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkDataSetMapper> _dsMapper;
-    vtkSmartPointer<vtkActor> _dsActor;
+    double _opacity;
+    vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
+    vtkSmartPointer<vtkActor> _pdActor;
 };
 
 }

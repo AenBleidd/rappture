@@ -139,6 +139,20 @@ void Contour2D::setVisibility(bool state)
 }
 
 /**
+ * \brief Get visibility state of the contour set
+ * 
+ * \return Is contour set visible?
+ */
+bool Contour2D::getVisibility()
+{
+    if (_contourActor == NULL) {
+        return false;
+    } else {
+        return (_contourActor->GetVisibility() != 0);
+    }
+}
+
+/**
  * \brief Set opacity used to render contour lines
  */
 void Contour2D::setOpacity(double opacity)
@@ -172,9 +186,15 @@ void Contour2D::setEdgeWidth(float edgeWidth)
 
 /**
  * \brief Set a group of world coordinate planes to clip rendering
+ *
+ * Passing NULL for planes will remove all cliping planes
  */
 void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    if (_contourMapper != NULL)
-        _contourMapper->SetClippingPlanes(planes);
+    if (_contourMapper != NULL) {
+        if (planes == NULL)
+            _contourMapper->RemoveAllClippingPlanes();
+        else
+            _contourMapper->SetClippingPlanes(planes);
+    }
 }
