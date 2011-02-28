@@ -38,6 +38,8 @@ public:
 
     void setVisibility(bool state);
 
+    bool getVisibility();
+
     void setOpacity(double opacity);
 
     void setEdgeColor(float color[3]);

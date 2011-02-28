@@ -61,8 +61,10 @@ CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
 		CmdProc.cpp \
+		ColorMap.cpp \
 		PPMWriter.cpp \
 		RpContour2D.cpp \
+		RpPolyData.cpp \
 		RpPseudoColor.cpp \
 		RpVtkDataSet.cpp \
 		RpVtkRenderer.cpp\
@@ -99,21 +101,22 @@ install: $(SERVER)
 clean:
 	$(RM) *~ *.o $(SERVER)
 
-clean-doc:
+clean-docs:
 	$(RM) -r docs
 
-distclean: clean clean-doc
-	$(RM) Makefile
+distclean: clean clean-docs
+	$(RM) Makefile Doxyfile
 
 CmdProc.o: CmdProc.h
+ColorMap.o: ColorMap.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
-RpContour2D.o: RpContour2D.h RpVtkDataSet.h
-RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h
-RpVtkDataSet.o: RpVtkDataSet.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpContour2D.o: RpContour2D.h RpVtkDataSet.h Trace.h
+RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
+RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h Trace.h
+RpVtkDataSet.o: RpVtkDataSet.h Trace.h
+RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPolyData.h RpPseudoColor.h RpContour2D.h ColorMap.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h ColorMap.h
 RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h Trace.h
-contourPlotter.o: RpVtkRenderer.h
 vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h

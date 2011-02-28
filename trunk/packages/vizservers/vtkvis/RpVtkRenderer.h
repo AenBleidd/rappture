@@ -10,6 +10,7 @@
 
 #include <vtkSmartPointer.h>
 #include <vtkLookupTable.h>
+#include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
 #include <vtkRpCubeAxesActor2D.h>
 #else
@@ -24,9 +25,11 @@
 #include <vector>
 #include <tr1/unordered_map>
 
+#include "ColorMap.h"
 #include "RpVtkDataSet.h"
 #include "RpPseudoColor.h"
 #include "RpContour2D.h"
+#include "RpPolyData.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -46,12 +49,21 @@ public:
         Z_AXIS
     };
 
+    enum CameraMode {
+        PERSPECTIVE,
+        ORTHO,
+        IMAGE
+    };
+
     typedef std::string DataSetId;
     typedef std::string ColorMapId;
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
-    typedef std::tr1::unordered_map<ColorMapId, vtkSmartPointer<vtkLookupTable> > ColorMapHashmap;
+    typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
+
+    // Data sets
 
     void addDataSet(DataSetId id);
 
@@ -67,43 +79,67 @@ public:
 
     double getDataValue(DataSetId id, double x, double y, double z);
 
+    void setOpacity(DataSetId id, double opacity);
+
+    void setVisibility(DataSetId id, bool state);
+
+    // Render window
+
     void setWindowSize(int width, int height);
-
-    void setZoomRegion(double x, double y, double width, double height);
-
-    void setBackgroundColor(float color[3]);
-
-    bool render();
 
     int getWindowWidth() const;
 
     int getWindowHeight() const;
 
+    // Camera controls
+
+    void setCameraMode(CameraMode mode);
+
+    void resetCamera(bool resetOrientation = true);
+
+    void setCameraZoomRegion(double x, double y, double width, double height);
+
+    void rotateCamera(double yaw, double pitch, double roll);
+
+    void panCamera(double x, double y);
+
+    void zoomCamera(double z);
+
+    // Rendering an image
+
+    void setBackgroundColor(float color[3]);
+
+    bool render();
+
     void getRenderedFrame(vtkUnsignedCharArray *imgData);
 
-    //
+    // Axes
+
+    void setAxesGridVisibility(bool state);
 
     void setAxesVisibility(bool state);
 
+    void setAxisGridVisibility(Axis axis, bool state);
+
     void setAxisVisibility(Axis axis, bool state);
 
-    //
+    void setAxisTitle(Axis axis, const char *title);
 
-    void addColorMap(ColorMapId id, vtkLookupTable *lut);
+    void setAxisUnits(Axis axis, const char *units);
+
+    // Colormaps
+
+    void addColorMap(ColorMapId id, ColorMap *colorMap);
 
     void deleteColorMap(ColorMapId id);
 
-    vtkLookupTable *getColorMap(ColorMapId id);
+    ColorMap *getColorMap(ColorMapId id);
 
     void renderColorMap(ColorMapId id, const char *title,
                         int width, int height,
                         vtkUnsignedCharArray *imgData);
 
-    void setOpacity(DataSetId id, double opacity);
-
-    void setVisibility(DataSetId id, bool state);
-
-    //
+    // Color-mapped surfaces
 
     void addPseudoColor(DataSetId id);
 
@@ -117,7 +153,13 @@ public:
 
     void setPseudoColorVisibility(DataSetId id, bool state);
 
-    //
+    void setPseudoColorEdgeVisibility(DataSetId id, bool state);
+
+    void setPseudoColorEdgeColor(DataSetId id, float color[3]);
+
+    void setPseudoColorEdgeWidth(DataSetId id, float edgeWidth);
+
+    // Contour plots
 
     void addContour2D(DataSetId id);
 
@@ -135,28 +177,69 @@ public:
 
     void setContourEdgeWidth(DataSetId id, float edgeWidth);
 
+    // Meshes
+
+    void addPolyData(DataSetId id);
+    
+    void deletePolyData(DataSetId id);
+
+    PolyData *getPolyData(DataSetId id);
+
+    void setPolyDataVisibility(DataSetId id, bool state);
+
+    void setPolyDataColor(DataSetId id, float color[3]);
+
+    void setPolyDataEdgeVisibility(DataSetId id, bool state);
+
+    void setPolyDataEdgeColor(DataSetId id, float color[3]);
+
+    void setPolyDataEdgeWidth(DataSetId id, float edgeWidth);
+
+    void setPolyDataWireframe(DataSetId id, bool state);
+
 private:
     static void printCameraInfo(vtkCamera *camera);
+    static inline double min2(double a, double b)
+    {
+        return ((a < b) ? a : b);
+    }
+    static inline double max2(double a, double b)
+    {
+        return ((a > b) ? a : b);
+    }
+    static void mergeBounds(double *boundsDest, const double *bounds1, const double *bounds2);
 
-    void initCamera(double bounds[6]);
+    void collectBounds(double *bounds, bool onlyVisible);
+
+    void storeCameraOrientation();
+    void restoreCameraOrientation();
+    void initCamera();
     void initAxes();
+    void resetAxes();
 
     bool _needsRedraw;
     int _windowWidth, _windowHeight;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
+    double _cameraPos[3];
+    double _cameraFocalPoint[3];
+    double _cameraUp[3];
     float _bgColor[3];
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
     PseudoColorHashmap _pseudoColors;
     Contour2DHashmap _contours;
+    PolyDataHashmap _polyDatas;
+
+    CameraMode _cameraMode;
 
     vtkSmartPointer<vtkPlaneCollection> _clippingPlanes;
+    vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
 #ifdef USE_CUSTOM_AXES
-    vtkSmartPointer<vtkRpCubeAxesActor2D> _axesActor;
+    vtkSmartPointer<vtkRpCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
 #else
-    vtkSmartPointer<vtkCubeAxesActor2D> _axesActor;
+    vtkSmartPointer<vtkCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
 #endif
     vtkSmartPointer<vtkScalarBarActor> _scalarBarActor;
     vtkSmartPointer<vtkRenderer> _renderer;

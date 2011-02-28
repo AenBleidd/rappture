@@ -17,8 +17,9 @@
 
 using namespace Rappture::VtkVis;
 
-DataSet::DataSet()
+DataSet::DataSet(const std::string& name)
 {
+    _name = name;
     _dataRange[0] = 0.0;
     _dataRange[1] = 1.0;
 }
@@ -51,6 +52,9 @@ bool DataSet::setData(char *data, int nbytes)
     return setData(reader);
 }
 
+/**
+ * \brief Read dataset using supplied reader
+ */
 bool DataSet::setData(vtkDataSetReader *reader)
 {
     // Force reading data set
@@ -61,6 +65,14 @@ bool DataSet::setData(vtkDataSetReader *reader)
 
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
     return true;
+}
+
+/**
+ * \brief Get the name/id of this dataset
+ */
+const std::string& DataSet::getName()
+{
+    return _name;
 }
 
 /**
