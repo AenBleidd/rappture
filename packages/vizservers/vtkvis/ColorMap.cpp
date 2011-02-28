@@ -47,8 +47,8 @@ void ColorMap::addControlPoint(ControlPoint& cp)
     if (cp.value > 1.0)
 	cp.value = 1.0;
 
-    TRACE("New control point: %g  = %g %g %g %g",
-	  cp.value, cp.color[0], cp.color[1], cp.color[2], cp.color[3]);
+    TRACE("New control point: %g  = %g %g %g",
+	  cp.value, cp.color[0], cp.color[1], cp.color[2]);
 
     for (std::list<ControlPoint>::iterator itr = _controlPoints.begin();
 	 itr != _controlPoints.end(); ++itr) {

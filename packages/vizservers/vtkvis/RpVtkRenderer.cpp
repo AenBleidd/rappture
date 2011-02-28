@@ -961,7 +961,7 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
     camera->Elevation(pitch); // Rotate about object
     //camera->SetPitch(pitch); // Rotate about camera
     camera->Roll(roll); // Roll about camera view axis
-   _renderer->ResetCameraClippingRange();
+    _renderer->ResetCameraClippingRange();
     storeCameraOrientation();
     _needsRedraw = true;
 }
@@ -978,7 +978,7 @@ void Renderer::panCamera(double x, double y)
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
     trans->Translate(x, y, 0);
     camera->ApplyTransform(trans);
-   _renderer->ResetCameraClippingRange();
+    _renderer->ResetCameraClippingRange();
     storeCameraOrientation();
     _needsRedraw = true;
 }
