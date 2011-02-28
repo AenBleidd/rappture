@@ -13214,7 +13214,7 @@ $as_echo "${CG_DIR}" >&6; }
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile vtkvis/Makefile start_viz.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -13825,6 +13825,7 @@ do
     "nanovis/imgLoaders/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/imgLoaders/Makefile" ;;
     "nanovis/transfer-function/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/transfer-function/Makefile" ;;
     "pymolproxy/Makefile") CONFIG_FILES="$CONFIG_FILES pymolproxy/Makefile" ;;
+    "vtkvis/Doxyfile") CONFIG_FILES="$CONFIG_FILES vtkvis/Doxyfile" ;;
     "vtkvis/Makefile") CONFIG_FILES="$CONFIG_FILES vtkvis/Makefile" ;;
     "start_viz.sh") CONFIG_FILES="$CONFIG_FILES start_viz.sh" ;;
 
