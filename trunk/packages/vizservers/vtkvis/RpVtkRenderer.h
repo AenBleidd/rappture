@@ -159,6 +159,8 @@ public:
 
     void setPseudoColorEdgeWidth(DataSetId id, float edgeWidth);
 
+    void setPseudoColorLighting(DataSetId id, bool state);
+
     // Contour plots
 
     void addContour2D(DataSetId id);
@@ -176,6 +178,8 @@ public:
     void setContourEdgeColor(DataSetId id, float color[3]);
 
     void setContourEdgeWidth(DataSetId id, float edgeWidth);
+
+    void setContourLighting(DataSetId id, bool state);
 
     // Meshes
 
@@ -196,6 +200,8 @@ public:
     void setPolyDataEdgeWidth(DataSetId id, float edgeWidth);
 
     void setPolyDataWireframe(DataSetId id, bool state);
+
+    void setPolyDataLighting(DataSetId id, bool state);
 
 private:
     static void printCameraInfo(vtkCamera *camera);

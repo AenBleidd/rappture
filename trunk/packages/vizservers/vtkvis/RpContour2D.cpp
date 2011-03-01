@@ -198,3 +198,12 @@ void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
             _contourMapper->SetClippingPlanes(planes);
     }
 }
+
+/**
+ * \brief Turn on/off lighting of this object
+ */
+void Contour2D::setLighting(bool state)
+{
+    if (_contourActor != NULL)
+        _contourActor->GetProperty()->SetLighting((state ? 1 : 0));
+}

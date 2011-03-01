@@ -48,6 +48,8 @@ public:
 
     void setClippingPlanes(vtkPlaneCollection *planes);
 
+    void setLighting(bool state);
+
 private:
     void initActor();
     void update();

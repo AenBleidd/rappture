@@ -480,6 +480,19 @@ Contour2DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setContourLighting(name, state);
+    return TCL_OK;
+}
+
+static int
 Contour2DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                      Tcl_Obj *const *objv)
 {
@@ -523,6 +536,7 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec contour2dOps[] = {
     {"add", 1, Contour2DAddOp, 5, 5, "oper value dataSetName"},
     {"delete", 1, Contour2DDeleteOp, 3, 3, "dataSetName"},
+    {"lighting", 3, Contour2DLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, Contour2DLineColorOp, 6, 6, "r g b dataSetName"},
     {"linewidth", 5, Contour2DLineWidthOp, 4, 4, "width dataSetName"},
     {"visible", 1, Contour2DVisibleOp, 4, 4, "bool dataSetName"},
@@ -816,6 +830,19 @@ PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPseudoColorLighting(name, state);
+    return TCL_OK;
+}
+
+static int
 PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
@@ -848,6 +875,7 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"colormap", 1, PseudoColorColorMapOp, 4, 4, "colorMapName dataSetName"},
     {"delete", 1, PseudoColorDeleteOp, 3, 3, "dataSetName"},
     {"edges", 1, PseudoColorEdgeVisibilityOp, 4, 4, "bool dataSetName"},
+    {"lighting", 3, PseudoColorLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, PseudoColorLineColorOp, 6, 6, "r g b dataSetName"},
     {"linewidth", 5, PseudoColorLineWidthOp, 4, 4, "width dataSetName"},
     {"visible", 1, PseudoColorVisibleOp, 4, 4, "bool dataSetName"}
@@ -915,6 +943,19 @@ PolyDataEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolyDataLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[3]);
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setPolyDataLighting(name, state);
+    return TCL_OK;
+}
+
+static int
 PolyDataLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
@@ -973,6 +1014,7 @@ static Rappture::CmdSpec polyDataOps[] = {
     {"color", 1, PolyDataColorOp, 6, 6, "r g b dataSetName"},
     {"delete", 1, PolyDataDeleteOp, 3, 3, "dataSetName"},
     {"edges", 1, PolyDataEdgeVisibilityOp, 4, 4, "bool dataSetName"},
+    {"lighting", 3, PolyDataLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, PolyDataLineColorOp, 6, 6, "r g b dataSetName"},
     {"linewidth", 5, PolyDataLineWidthOp, 4, 4, "width dataSetName"},
     {"visible", 1, PolyDataVisibleOp, 4, 4, "bool dataSetName"},

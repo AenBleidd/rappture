@@ -235,3 +235,12 @@ void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
             _dsMapper->SetClippingPlanes(planes);
     }
 }
+
+/**
+ * \brief Turn on/off lighting of this object
+ */
+void PseudoColor::setLighting(bool state)
+{
+    if (_dsActor != NULL)
+        _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
+}
