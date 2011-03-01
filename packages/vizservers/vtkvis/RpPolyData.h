@@ -49,6 +49,8 @@ public:
 
     void setClippingPlanes(vtkPlaneCollection *planes);
 
+    void setLighting(bool state);
+
 private:
     void initActor();
     void update();
@@ -59,6 +61,7 @@ private:
     float _edgeColor[3];
     float _edgeWidth;
     double _opacity;
+    bool _lighting;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
     vtkSmartPointer<vtkActor> _pdActor;
 };

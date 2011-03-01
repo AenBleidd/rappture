@@ -367,44 +367,6 @@ void Renderer::initAxes()
 }
 
 /**
- * \brief Create a new PseudoColor rendering for the specified DataSet
- */
-void Renderer::addPseudoColor(DataSetId id)
-{
-    DataSet *ds = getDataSet(id);
-    if (ds == NULL)
-        return;
-
-    if (getPseudoColor(id)) {
-        WARN("Replacing existing pseudocolor %s", id.c_str());
-        deletePseudoColor(id);
-    }
-    PseudoColor *pc = new PseudoColor();
-    _pseudoColors[id] = pc;
-
-    pc->setDataSet(ds);
-
-    _renderer->AddActor(pc->getActor());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Get the PseudoColor associated with the specified DataSet
- */
-PseudoColor *Renderer::getPseudoColor(DataSetId id)
-{
-    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
-
-    if (itr == _pseudoColors.end()) {
-        TRACE("PseudoColor not found: %s", id.c_str());
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
  * \brief Turn on/off rendering of all axes gridlines
  */
 void Renderer::setAxesGridVisibility(bool state)
@@ -629,6 +591,44 @@ void Renderer::renderColorMap(ColorMapId id, const char *title,
 }
 
 /**
+ * \brief Create a new PseudoColor rendering for the specified DataSet
+ */
+void Renderer::addPseudoColor(DataSetId id)
+{
+    DataSet *ds = getDataSet(id);
+    if (ds == NULL)
+        return;
+
+    if (getPseudoColor(id)) {
+        WARN("Replacing existing pseudocolor %s", id.c_str());
+        deletePseudoColor(id);
+    }
+    PseudoColor *pc = new PseudoColor();
+    _pseudoColors[id] = pc;
+
+    pc->setDataSet(ds);
+
+    _renderer->AddActor(pc->getActor());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the PseudoColor associated with the specified DataSet
+ */
+PseudoColor *Renderer::getPseudoColor(DataSetId id)
+{
+    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
+
+    if (itr == _pseudoColors.end()) {
+        TRACE("PseudoColor not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
  * \brief Associate an existing named color map with a DataSet
  */
 void Renderer::setPseudoColorColorMap(DataSetId id, ColorMapId colorMapId)
@@ -715,6 +715,18 @@ void Renderer::setPseudoColorEdgeWidth(DataSetId id, float edgeWidth)
 }
 
 /**
+ * \brief Turn mesh lighting on/off for the specified DataSet
+ */
+void Renderer::setPseudoColorLighting(DataSetId id, bool state)
+{
+    PseudoColor *pc = getPseudoColor(id);
+    if (pc) {
+        pc->setLighting(state);
+        _needsRedraw = true;
+    }
+}
+
+/**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
 void Renderer::addContour2D(DataSetId id)
@@ -790,6 +802,45 @@ void Renderer::setContourVisibility(DataSetId id, bool state)
 }
 
 /**
+ * \brief Set the RGB isoline color for the specified DataSet
+ */
+void Renderer::setContourEdgeColor(DataSetId id, float color[3])
+{
+    Contour2D *contour = getContour2D(id);
+    if (contour) {
+        contour->setEdgeColor(color);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set the isoline width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setContourEdgeWidth(DataSetId id, float edgeWidth)
+{
+    Contour2D *contour = getContour2D(id);
+    if (contour) {
+        contour->setEdgeWidth(edgeWidth);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Turn contour lighting on/off for the specified DataSet
+ */
+void Renderer::setContourLighting(DataSetId id, bool state)
+{
+    Contour2D *contour = getContour2D(id);
+    if (contour) {
+        contour->setLighting(state);
+        _needsRedraw = true;
+    }
+}
+
+/**
  * \brief Create a new PolyData and associate it with the named DataSet
  */
 void Renderer::addPolyData(DataSetId id)
@@ -838,6 +889,81 @@ void Renderer::setPolyDataVisibility(DataSetId id, bool state)
     PolyData *polyData = getPolyData(id);
     if (polyData) {
         polyData->setVisibility(state);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set the RGB polygon face color for the specified DataSet
+ */
+void Renderer::setPolyDataColor(DataSetId id, float color[3])
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setColor(color);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setPolyDataEdgeVisibility(DataSetId id, bool state)
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setEdgeVisibility(state);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set the RGB polygon edge color for the specified DataSet
+ */
+void Renderer::setPolyDataEdgeColor(DataSetId id, float color[3])
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setEdgeColor(color);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setPolyDataEdgeWidth(DataSetId id, float edgeWidth)
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setEdgeWidth(edgeWidth);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setPolyDataWireframe(DataSetId id, bool state)
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setWireframe(state);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Turn mesh lighting on/off for the specified DataSet
+ */
+void Renderer::setPolyDataLighting(DataSetId id, bool state)
+{
+    PolyData *polyData = getPolyData(id);
+    if (polyData) {
+        polyData->setLighting(state);
         _needsRedraw = true;
     }
 }
@@ -955,6 +1081,8 @@ void Renderer::resetCamera(bool resetOrientation)
  */
 void Renderer::rotateCamera(double yaw, double pitch, double roll)
 {
+    if (_cameraMode == IMAGE)
+        return;
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     camera->Azimuth(yaw); // Rotate about object
     //camera->SetYaw(yaw); // Rotate about camera
@@ -974,6 +1102,14 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
  */
 void Renderer::panCamera(double x, double y)
 {
+    if (_cameraMode == IMAGE) {
+        _imgWorldOrigin[0] += x;
+        _imgWorldOrigin[1] += y;
+        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                            _imgWorldDims[0], _imgWorldDims[1]);
+        _needsRedraw = true;
+        return;
+    }
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
     trans->Translate(x, y, 0);
@@ -990,6 +1126,20 @@ void Renderer::panCamera(double x, double y)
  */
 void Renderer::zoomCamera(double z)
 {
+    if (_cameraMode == IMAGE) {
+        double dx = _imgWorldDims[0];
+        double dy = _imgWorldDims[1];
+        _imgWorldDims[0] /= z;
+        _imgWorldDims[1] /= z;
+        dx -= _imgWorldDims[0];
+        dy -= _imgWorldDims[1];
+        _imgWorldOrigin[0] += dx/2.0;
+        _imgWorldOrigin[1] += dy/2.0;
+        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                            _imgWorldDims[0], _imgWorldDims[1]);
+        _needsRedraw = true;
+        return;
+    }
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     camera->Zoom(z); // Change perspective FOV angle or ortho parallel scale
     //camera->Dolly(z); // Move camera forward/back
@@ -1207,96 +1357,6 @@ void Renderer::setVisibility(DataSetId id, bool state)
     setPseudoColorVisibility(id, state);
     setContourVisibility(id, state);
     setPolyDataVisibility(id, state);
-}
-
-/**
- * \brief Set the RGB isoline color for the specified DataSet
- */
-void Renderer::setContourEdgeColor(DataSetId id, float color[3])
-{
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setEdgeColor(color);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set the isoline width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setContourEdgeWidth(DataSetId id, float edgeWidth)
-{
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setEdgeWidth(edgeWidth);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set the RGB polygon face color for the specified DataSet
- */
-void Renderer::setPolyDataColor(DataSetId id, float color[3])
-{
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setColor(color);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setPolyDataEdgeVisibility(DataSetId id, bool state)
-{
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeVisibility(state);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setPolyDataEdgeColor(DataSetId id, float color[3])
-{
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeColor(color);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setPolyDataEdgeWidth(DataSetId id, float edgeWidth)
-{
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeWidth(edgeWidth);
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setPolyDataWireframe(DataSetId id, bool state)
-{
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setWireframe(state);
-        _needsRedraw = true;
-    }
 }
 
 /**

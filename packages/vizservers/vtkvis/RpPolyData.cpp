@@ -18,7 +18,8 @@ using namespace Rappture::VtkVis;
 
 PolyData::PolyData() :
     _edgeWidth(1.0),
-    _opacity(1.0)
+    _opacity(1.0),
+    _lighting(true)
 {
     _color[0] = 0.0;
     _color[1] = 0.0;
@@ -52,6 +53,8 @@ void PolyData::initActor()
         _pdActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _pdActor->GetProperty()->SetLineWidth(_edgeWidth);
         _pdActor->GetProperty()->SetOpacity(_opacity);
+        if (!_lighting)
+            _pdActor->GetProperty()->LightingOff();
     }
 }
 
@@ -140,7 +143,7 @@ void PolyData::setWireframe(bool state)
             _pdActor->GetProperty()->LightingOff();
         } else {
             _pdActor->GetProperty()->SetRepresentationToSurface();
-            _pdActor->GetProperty()->LightingOn();
+            _pdActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
         }
     }
 }
@@ -202,4 +205,14 @@ void PolyData::setClippingPlanes(vtkPlaneCollection *planes)
         else
             _pdMapper->SetClippingPlanes(planes);
     }
+}
+
+/**
+ * \brief Turn on/off lighting of this object
+ */
+void PolyData::setLighting(bool state)
+{
+    _lighting = state;
+    if (_pdActor != NULL)
+        _pdActor->GetProperty()->SetLighting((state ? 1 : 0));
 }
