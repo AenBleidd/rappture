@@ -59,6 +59,20 @@ GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 }
 
 static int
+AxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setAxesColor(color);
+    return TCL_OK;
+}
+
+static int
 AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -153,6 +167,7 @@ AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec axisOps[] = {
+    {"color", 1, AxisColorOp, 5, 5, "r g b"},
     {"grid", 1, AxisGridOp, 4, 4, "axis bool"},
     {"name", 1, AxisNameOp, 4, 4, "axis title"},
     {"units", 1, AxisUnitsOp, 4, 4, "axis units"},

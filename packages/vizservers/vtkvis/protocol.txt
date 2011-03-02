@@ -7,6 +7,8 @@ Requests:
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
+axis color <r> <g> <b>
+     Set color of axis lines, labels, titles, ticks
 axis grid <bool>
 axis name <axis> <title>
 axis units <axis> <units>

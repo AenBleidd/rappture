@@ -119,6 +119,8 @@ public:
 
     void setAxesVisibility(bool state);
 
+    void setAxesColor(double color[3]);
+
     void setAxisGridVisibility(Axis axis, bool state);
 
     void setAxisVisibility(Axis axis, bool state);
