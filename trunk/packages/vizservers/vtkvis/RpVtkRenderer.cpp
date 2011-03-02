@@ -23,6 +23,7 @@
 #include <vtkContourFilter.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkProperty2D.h>
 #include <vtkPointData.h>
 #include <vtkLookupTable.h>
 #include <vtkTextProperty.h>
@@ -318,6 +319,7 @@ void Renderer::initAxes()
     if (_cubeAxesActor2D == NULL)
         _cubeAxesActor2D = vtkSmartPointer<vtkCubeAxesActor2D>::New();
 #endif
+
     _cubeAxesActor2D->SetCamera(_renderer->GetActiveCamera());
     _cubeAxesActor2D->ZAxisVisibilityOff();
     _cubeAxesActor2D->SetCornerOffset(0);
@@ -363,6 +365,30 @@ void Renderer::initAxes()
     } else {
         if (!_renderer->HasViewProp(_cubeAxesActor))
             _renderer->AddActor(_cubeAxesActor);
+    }
+}
+
+/**
+ * \brief Set color of axes, ticks, labels, titles
+ */
+void Renderer::setAxesColor(double color[3])
+{
+    if (_cubeAxesActor != NULL) {
+        _cubeAxesActor->GetProperty()->SetColor(color);
+        _needsRedraw = true;
+    }
+    if (_cubeAxesActor2D != NULL) {
+        _cubeAxesActor2D->GetProperty()->SetColor(color);
+#ifdef USE_CUSTOM_AXES
+        _cubeAxesActor2D->GetXAxisActor2D()->GetTitleTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->SetColor(color);
+#else
+        _cubeAxesActor2D->GetAxisTitleTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetAxisLabelTextProperty()->SetColor(color);
+#endif
+        _needsRedraw = true;
     }
 }
 
