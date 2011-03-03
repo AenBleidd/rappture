@@ -39,6 +39,7 @@ FILES		= \
 		$(srcdir)/deviceLayout1D.tcl \
 		$(srcdir)/deviceViewer1D.tcl \
 		$(srcdir)/deviceresult.tcl \
+		$(srcdir)/diffview.tcl \
 		$(srcdir)/dispatcher.tcl \
 		$(srcdir)/drawing.tcl \
 		$(srcdir)/drawing3d.tcl \

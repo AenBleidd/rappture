@@ -1,0 +1,73 @@
+
+bindir          = @bindir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir		= @srcdir@
+
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
+
+CC              = @CC@
+CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
+CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
+STLIB_LD        = @STLIB_LD@
+SHLIB_LD        = @SHLIB_LD@
+SHLIB_CFLAGS    = @SHLIB_CFLAGS@
+SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
+CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
+LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
+CFLAGS          = @CFLAGS@
+
+CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+
+INCLUDES	= -I$(srcdir) \
+		  -I$(includedir)
+version 	= @PACKAGE_VERSION@
+DEFINES 	= -DPACKAGE_VERSION=\"$(version)\"	
+
+RANLIB 		= @RANLIB@
+AR 		= ar
+VPATH		= $(srcdir)
+RM		= rm -f
+
+CDEBUGFLAGS     = -g -Wall
+
+LIBS		= \
+		-lrappture \
+		-L$(libdir) -ltcl8.4 -ltk8.4 -lm
+
+OBJS 		= \
+		RapptureGUI_Init.o \
+		RpCanvPlacard.o \
+		RpDiffview.o
+
+name		= RapptureGUI$(version)
+libname 	= $(name)
+lib		= $(libname)$(SHLIB_SUFFIX)
+destdir		= $(libdir)/$(name)
+
+all: $(lib)
+
+$(lib): $(OBJS)
+	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
+		$(LIB_SEARCH_DIRS) $(LIBS) 
+
+install: $(lib)
+	$(MKDIR_P) $(destdir)
+	$(INSTALL) -m 555 $(lib) $(destdir) 
+
+.c.o:
+	$(CC) $(CC_SWITCHES)-c $? 
+
+clean: 
+	$(RM) $(OBJS) $(lib)
+
+distclean: clean
+	$(RM) Makefile *~
