@@ -27,16 +27,16 @@ FILES		= \
 
 .PHONY:	src scripts apps
 
-all: scripts apps 
+all: src scripts apps 
 
 scripts:
 	$(MAKE) -C scripts all
 src:
-	$(MAKE) -C all
+	$(MAKE) -C src all
 apps:
 	$(MAKE) -C apps all
 
-install: install_scripts install_apps
+install: install_src install_scripts install_apps
 	$(MKDIR_P) -m 0755 $(destdir)
 	@for i in $(FILES); do \
 	    echo "Installing $$i" ; \
@@ -46,6 +46,8 @@ install: install_scripts install_apps
 
 install_scripts: scripts
 	$(MAKE) -C scripts install
+install_src: src
+	$(MAKE) -C src install
 install_apps: apps
 	$(MAKE) -C apps install
 

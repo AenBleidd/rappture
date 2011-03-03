@@ -7,6 +7,8 @@ package ifneeded RapptureGUI @PACKAGE_VERSION@ [format {
 	variable version $version
 	variable library $dir
     }
+    set ext [info sharedlibextension]
+    load [file join $dir "RapptureGUI${version}${ext}"]
     package provide RapptureGUI $version
 } $dir]
 
