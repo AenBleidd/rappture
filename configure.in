@@ -736,6 +736,7 @@ AC_CONFIG_FILES([
     gui/apps/xmldiff
     gui/pkgIndex.tcl
     gui/scripts/Makefile
+    gui/src/Makefile
     builder/Makefile
     builder/pkgIndex.tcl
     builder/scripts/Makefile
