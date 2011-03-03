@@ -1,18 +1,19 @@
 
 bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-srcdir		= @srcdir@
+srcdir          = @srcdir@
 
-SHELL		= @SHELL@
-INSTALL		= @INSTALL@
-MKDIR_P		= @MKDIR_P@
+SHELL           = @SHELL@
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
 
+CXX             = @CXX@
 CC              = @CC@
 CFLAGS_DEBUG    = @CFLAGS_DEBUG@ -Wall
 CFLAGS_OPTIMIZE = @CFLAGS_OPTIMIZE@
@@ -23,9 +24,12 @@ SHLIB_LDFLAGS   = @SHLIB_LDFLAGS@
 SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 CFLAGS_DEFAULT  = @CFLAGS_DEFAULT@
 LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
-CFLAGS          = @CFLAGS@
+CFLAGS          = @CFLAGS@ -fPIC
+TCL_VERSION     = @TCL_VERSION@
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 
-CC_SWITCHES	= $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CC_SWITCHES     = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
+CXX_SWITCHES    = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
 INCLUDES	= -I$(srcdir) \
 		  -I$(includedir)
@@ -40,7 +44,7 @@ RM		= rm -f
 CDEBUGFLAGS     = -g -Wall
 
 LIBS		= \
-		-lrappture \
+		-L../../src/core -lrappture \
 		-L$(libdir) -ltcl8.4 -ltk8.4 -lm
 
 OBJS 		= \
@@ -63,6 +67,8 @@ install: $(lib)
 	$(MKDIR_P) $(destdir)
 	$(INSTALL) -m 555 $(lib) $(destdir) 
 
+.cc.o:
+	$(CXX) $(CXX_SWITCHES) -c $?
 .c.o:
 	$(CC) $(CC_SWITCHES)-c $? 
 
