@@ -31,6 +31,12 @@ PolyData::PolyData() :
 
 PolyData::~PolyData()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting PolyData for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting PolyData with NULL DataSet");
+#endif
 }
 
 /**

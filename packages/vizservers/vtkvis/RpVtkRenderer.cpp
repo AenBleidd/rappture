@@ -29,6 +29,7 @@
 #include <vtkTextProperty.h>
 
 #include "RpVtkRenderer.h"
+#include "ColorMap.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
@@ -85,11 +86,6 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _colorMaps.clear();
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-             itr != _dataSets.end(); ++itr) {
-        delete itr->second;
-    }
-    _dataSets.clear();
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
         delete itr->second;
@@ -105,6 +101,11 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _polyDatas.clear();
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+             itr != _dataSets.end(); ++itr) {
+        delete itr->second;
+    }
+    _dataSets.clear();
 }
 
 /**
@@ -114,7 +115,7 @@ Renderer::~Renderer()
  * In order to render the data, a PseudoColor or Contour2D must
  * be added to the Renderer.
  */
-void Renderer::addDataSet(DataSetId id)
+void Renderer::addDataSet(const DataSetId& id)
 {
     if (getDataSet(id) != NULL) {
         WARN("Replacing existing dataset %s", id.c_str());
@@ -128,9 +129,18 @@ void Renderer::addDataSet(DataSetId id)
  *
  * The underlying PseudoColor object is deleted, freeing its memory
  */
-void Renderer::deletePseudoColor(DataSetId id)
+void Renderer::deletePseudoColor(const DataSetId& id)
 {
-    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
     if (itr == _pseudoColors.end()) {
         ERROR("PseudoColor not found: %s", id.c_str());
         return;
@@ -138,12 +148,15 @@ void Renderer::deletePseudoColor(DataSetId id)
 
     TRACE("Deleting PseudoColors for %s", id.c_str());
 
-    PseudoColor *ps = itr->second;
-    if (ps->getActor())
-        _renderer->RemoveActor(ps->getActor());
-    delete ps;
+    do  {
+        PseudoColor *ps = itr->second;
+        if (ps->getActor())
+            _renderer->RemoveActor(ps->getActor());
+        delete ps;
 
-    _pseudoColors.erase(itr);
+        _pseudoColors.erase(itr);
+    } while (doAll && ++itr != _pseudoColors.end());
+
     _needsRedraw = true;
 }
 
@@ -152,9 +165,18 @@ void Renderer::deletePseudoColor(DataSetId id)
  *
  * The underlying Contour2D is deleted, freeing its memory
  */
-void Renderer::deleteContour2D(DataSetId id)
+void Renderer::deleteContour2D(const DataSetId& id)
 {
-    Contour2DHashmap::iterator itr = _contours.find(id);
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
+    }
     if (itr == _contours.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
@@ -162,12 +184,15 @@ void Renderer::deleteContour2D(DataSetId id)
 
     TRACE("Deleting Contour2Ds for %s", id.c_str());
 
-    Contour2D *contour = itr->second;
-    if (contour->getActor())
-        _renderer->RemoveActor(contour->getActor());
-    delete contour;
+    do {
+        Contour2D *contour = itr->second;
+        if (contour->getActor())
+            _renderer->RemoveActor(contour->getActor());
+        delete contour;
 
-    _contours.erase(itr);
+        _contours.erase(itr);
+    } while (doAll && ++itr != _contours.end());
+
     _needsRedraw = true;
 }
 
@@ -176,9 +201,18 @@ void Renderer::deleteContour2D(DataSetId id)
  *
  * The underlying PolyData is deleted, freeing its memory
  */
-void Renderer::deletePolyData(DataSetId id)
+void Renderer::deletePolyData(const DataSetId& id)
 {
-    PolyDataHashmap::iterator itr = _polyDatas.find(id);
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
     if (itr == _polyDatas.end()) {
         ERROR("PolyData not found: %s", id.c_str());
         return;
@@ -186,12 +220,15 @@ void Renderer::deletePolyData(DataSetId id)
 
     TRACE("Deleting PolyDatas for %s", id.c_str());
 
-    PolyData *polyData = itr->second;
-    if (polyData->getActor())
-        _renderer->RemoveActor(polyData->getActor());
-    delete polyData;
+    do {
+        PolyData *polyData = itr->second;
+        if (polyData->getActor())
+            _renderer->RemoveActor(polyData->getActor());
+        delete polyData;
 
-    _polyDatas.erase(itr);
+        _polyDatas.erase(itr);
+    } while (doAll && ++itr != _polyDatas.end());
+
     _needsRedraw = true;
 }
 
@@ -201,19 +238,30 @@ void Renderer::deletePolyData(DataSetId id)
  * The underlying DataSet and any associated Contour2D and PseudoColor
  * objects are deleted, freeing the memory used.
  */
-void Renderer::deleteDataSet(DataSetId id)
+void Renderer::deleteDataSet(const DataSetId& id)
 {
-    DataSetHashmap::iterator itr = _dataSets.find(id);
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
         return;
-    } else {
-        TRACE("Deleting dataset %s", id.c_str());
+    }
 
-        deletePseudoColor(id);
-        deleteContour2D(id);
-        deletePolyData(id);
-        
+    do {
+        TRACE("Deleting dataset %s", itr->second->getName().c_str());
+
+        deletePseudoColor(itr->second->getName());
+        deleteContour2D(itr->second->getName());
+        deletePolyData(itr->second->getName());
+    
         TRACE("After deleting graphics objects");
 
         // Update cumulative data range
@@ -221,8 +269,9 @@ void Renderer::deleteDataSet(DataSetId id)
 
         delete itr->second;
         _dataSets.erase(itr);
-         _needsRedraw = true;
-    }
+    } while (doAll && ++itr != _dataSets.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -230,7 +279,7 @@ void Renderer::deleteDataSet(DataSetId id)
  *
  * \return A pointer to the DataSet, or NULL if not found
  */
-DataSet *Renderer::getDataSet(DataSetId id)
+DataSet *Renderer::getDataSet(const DataSetId& id)
 {
     DataSetHashmap::iterator itr = _dataSets.find(id);
     if (itr == _dataSets.end()) {
@@ -243,7 +292,7 @@ DataSet *Renderer::getDataSet(DataSetId id)
 /**
  * \brief (Re-)load the data for the specified DataSet key from a file
  */
-bool Renderer::setDataFile(DataSetId id, const char *filename)
+bool Renderer::setDataFile(const DataSetId& id, const char *filename)
 {
     DataSet *ds = getDataSet(id);
     if (ds) {
@@ -261,7 +310,7 @@ bool Renderer::setDataFile(DataSetId id, const char *filename)
 /**
  * \brief (Re-)load the data for the specified DataSet key from a memory buffer
  */
-bool Renderer::setData(DataSetId id, char *data, int nbytes)
+bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
 {
     DataSet *ds = getDataSet(id);
     if (ds) {
@@ -524,7 +573,7 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
 /**
  * \brief Add a color map for use in the Renderer
  */
-void Renderer::addColorMap(ColorMapId id, ColorMap *colorMap)
+void Renderer::addColorMap(const ColorMapId& id, ColorMap *colorMap)
 {
     if (colorMap != NULL) {
         colorMap->build();
@@ -541,7 +590,7 @@ void Renderer::addColorMap(ColorMapId id, ColorMap *colorMap)
 /**
  * \brief Return the ColorMap associated with the colormap key given
  */
-ColorMap *Renderer::getColorMap(ColorMapId id)
+ColorMap *Renderer::getColorMap(const ColorMapId& id)
 {
     ColorMapHashmap::iterator itr = _colorMaps.find(id);
 
@@ -557,7 +606,7 @@ ColorMap *Renderer::getColorMap(ColorMapId id)
  * The underlying vtkLookupTable will be deleted if it is not referenced
  * by any other objects
  */
-void Renderer::deleteColorMap(ColorMapId id)
+void Renderer::deleteColorMap(const ColorMapId& id)
 {
     ColorMapHashmap::iterator itr = _colorMaps.find(id);
     if (itr == _colorMaps.end())
@@ -571,12 +620,17 @@ void Renderer::deleteColorMap(ColorMapId id)
 /**
  * \brief Render a labelled legend image for the given colormap
  *
- * \return The image is rendered into the supplied array
+ * \return The image is rendered into the supplied array, false is 
+ * returned if the color map is not found
  */
-void Renderer::renderColorMap(ColorMapId id, const char *title,
+bool Renderer::renderColorMap(const ColorMapId& id, const char *title,
                               int width, int height,
                               vtkUnsignedCharArray *imgData)
 {
+    ColorMap *colorMap = getColorMap(id);
+    if (colorMap == NULL)
+        return false;
+
     if (_legendRenderWindow == NULL) {
         _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
         _legendRenderWindow->DoubleBufferOff();
@@ -596,7 +650,7 @@ void Renderer::renderColorMap(ColorMapId id, const char *title,
         _scalarBarActor->UseOpacityOn();
         _legendRenderer->AddActor(_scalarBarActor);
     }
-    _scalarBarActor->SetLookupTable(getColorMap(id)->getLookupTable());
+    _scalarBarActor->SetLookupTable(colorMap->getLookupTable());
     // Set viewport-relative width/height/pos
     if (width > height) {
         _scalarBarActor->SetOrientationToHorizontal();
@@ -618,12 +672,13 @@ void Renderer::renderColorMap(ColorMapId id, const char *title,
     _legendRenderWindow->Render();
 
     _legendRenderWindow->GetPixelData(0, 0, width-1, height-1, 1, imgData);
+    return true;
 }
 
 /**
  * \brief Create a new PseudoColor rendering for the specified DataSet
  */
-void Renderer::addPseudoColor(DataSetId id)
+void Renderer::addPseudoColor(const DataSetId& id)
 {
     DataSet *ds = getDataSet(id);
     if (ds == NULL)
@@ -647,7 +702,7 @@ void Renderer::addPseudoColor(DataSetId id)
 /**
  * \brief Get the PseudoColor associated with the specified DataSet
  */
-PseudoColor *Renderer::getPseudoColor(DataSetId id)
+PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
 {
     PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
 
@@ -661,7 +716,7 @@ PseudoColor *Renderer::getPseudoColor(DataSetId id)
 /**
  * \brief Associate an existing named color map with a DataSet
  */
-void Renderer::setPseudoColorColorMap(DataSetId id, ColorMapId colorMapId)
+void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -684,7 +739,7 @@ void Renderer::setPseudoColorColorMap(DataSetId id, ColorMapId colorMapId)
  *
  * \return The associated lookup table or NULL if not found
  */
-vtkLookupTable *Renderer::getPseudoColorColorMap(DataSetId id)
+vtkLookupTable *Renderer::getPseudoColorColorMap(const DataSetId& id)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc)
@@ -696,7 +751,7 @@ vtkLookupTable *Renderer::getPseudoColorColorMap(DataSetId id)
 /**
  * \brief Turn on/off rendering of the PseudoColor mapper for the given DataSet
  */
-void Renderer::setPseudoColorVisibility(DataSetId id, bool state)
+void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -708,7 +763,7 @@ void Renderer::setPseudoColorVisibility(DataSetId id, bool state)
 /**
  * \brief Set the visibility of polygon edges for the specified DataSet
  */
-void Renderer::setPseudoColorEdgeVisibility(DataSetId id, bool state)
+void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -720,7 +775,7 @@ void Renderer::setPseudoColorEdgeVisibility(DataSetId id, bool state)
 /**
  * \brief Set the RGB polygon edge color for the specified DataSet
  */
-void Renderer::setPseudoColorEdgeColor(DataSetId id, float color[3])
+void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -735,7 +790,7 @@ void Renderer::setPseudoColorEdgeColor(DataSetId id, float color[3])
  * If the OpenGL implementation/hardware does not support wide lines, 
  * this function may not have an effect.
  */
-void Renderer::setPseudoColorEdgeWidth(DataSetId id, float edgeWidth)
+void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -747,7 +802,7 @@ void Renderer::setPseudoColorEdgeWidth(DataSetId id, float edgeWidth)
 /**
  * \brief Turn mesh lighting on/off for the specified DataSet
  */
-void Renderer::setPseudoColorLighting(DataSetId id, bool state)
+void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -759,7 +814,7 @@ void Renderer::setPseudoColorLighting(DataSetId id, bool state)
 /**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
-void Renderer::addContour2D(DataSetId id)
+void Renderer::addContour2D(const DataSetId& id)
 {
     DataSet *ds = getDataSet(id);
     if (ds == NULL)
@@ -784,7 +839,7 @@ void Renderer::addContour2D(DataSetId id)
 /**
  * \brief Get the Contour2D associated with a named DataSet
  */
-Contour2D *Renderer::getContour2D(DataSetId id)
+Contour2D *Renderer::getContour2D(const DataSetId& id)
 {
     Contour2DHashmap::iterator itr = _contours.find(id);
 
@@ -798,7 +853,7 @@ Contour2D *Renderer::getContour2D(DataSetId id)
 /**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
-void Renderer::setContours(DataSetId id, int numContours)
+void Renderer::setContours(const DataSetId& id, int numContours)
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -810,7 +865,7 @@ void Renderer::setContours(DataSetId id, int numContours)
 /**
  * \brief Set a list of isovalues for the given DataSet
  */
-void Renderer::setContourList(DataSetId id, const std::vector<double>& contours)
+void Renderer::setContourList(const DataSetId& id, const std::vector<double>& contours)
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -822,7 +877,7 @@ void Renderer::setContourList(DataSetId id, const std::vector<double>& contours)
 /**
  * \brief Turn on/off rendering contour lines for the given DataSet
  */
-void Renderer::setContourVisibility(DataSetId id, bool state)
+void Renderer::setContourVisibility(const DataSetId& id, bool state)
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -834,7 +889,7 @@ void Renderer::setContourVisibility(DataSetId id, bool state)
 /**
  * \brief Set the RGB isoline color for the specified DataSet
  */
-void Renderer::setContourEdgeColor(DataSetId id, float color[3])
+void Renderer::setContourEdgeColor(const DataSetId& id, float color[3])
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -849,7 +904,7 @@ void Renderer::setContourEdgeColor(DataSetId id, float color[3])
  * If the OpenGL implementation/hardware does not support wide lines, 
  * this function may not have an effect.
  */
-void Renderer::setContourEdgeWidth(DataSetId id, float edgeWidth)
+void Renderer::setContourEdgeWidth(const DataSetId& id, float edgeWidth)
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -861,7 +916,7 @@ void Renderer::setContourEdgeWidth(DataSetId id, float edgeWidth)
 /**
  * \brief Turn contour lighting on/off for the specified DataSet
  */
-void Renderer::setContourLighting(DataSetId id, bool state)
+void Renderer::setContourLighting(const DataSetId& id, bool state)
 {
     Contour2D *contour = getContour2D(id);
     if (contour) {
@@ -873,7 +928,7 @@ void Renderer::setContourLighting(DataSetId id, bool state)
 /**
  * \brief Create a new PolyData and associate it with the named DataSet
  */
-void Renderer::addPolyData(DataSetId id)
+void Renderer::addPolyData(const DataSetId& id)
 {
     DataSet *ds = getDataSet(id);
     if (ds == NULL)
@@ -900,7 +955,7 @@ void Renderer::addPolyData(DataSetId id)
 /**
  * \brief Get the PolyData associated with a named DataSet
  */
-PolyData *Renderer::getPolyData(DataSetId id)
+PolyData *Renderer::getPolyData(const DataSetId& id)
 {
     PolyDataHashmap::iterator itr = _polyDatas.find(id);
 
@@ -914,7 +969,7 @@ PolyData *Renderer::getPolyData(DataSetId id)
 /**
  * \brief Turn on/off rendering of the PolyData mapper for the given DataSet
  */
-void Renderer::setPolyDataVisibility(DataSetId id, bool state)
+void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -926,7 +981,7 @@ void Renderer::setPolyDataVisibility(DataSetId id, bool state)
 /**
  * \brief Set the RGB polygon face color for the specified DataSet
  */
-void Renderer::setPolyDataColor(DataSetId id, float color[3])
+void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -938,7 +993,7 @@ void Renderer::setPolyDataColor(DataSetId id, float color[3])
 /**
  * \brief Set the visibility of polygon edges for the specified DataSet
  */
-void Renderer::setPolyDataEdgeVisibility(DataSetId id, bool state)
+void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -950,7 +1005,7 @@ void Renderer::setPolyDataEdgeVisibility(DataSetId id, bool state)
 /**
  * \brief Set the RGB polygon edge color for the specified DataSet
  */
-void Renderer::setPolyDataEdgeColor(DataSetId id, float color[3])
+void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -965,7 +1020,7 @@ void Renderer::setPolyDataEdgeColor(DataSetId id, float color[3])
  * If the OpenGL implementation/hardware does not support wide lines, 
  * this function may not have an effect.
  */
-void Renderer::setPolyDataEdgeWidth(DataSetId id, float edgeWidth)
+void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -977,7 +1032,7 @@ void Renderer::setPolyDataEdgeWidth(DataSetId id, float edgeWidth)
 /**
  * \brief Set wireframe rendering for the specified DataSet
  */
-void Renderer::setPolyDataWireframe(DataSetId id, bool state)
+void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -989,7 +1044,7 @@ void Renderer::setPolyDataWireframe(DataSetId id, bool state)
 /**
  * \brief Turn mesh lighting on/off for the specified DataSet
  */
-void Renderer::setPolyDataLighting(DataSetId id, bool state)
+void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
 {
     PolyData *polyData = getPolyData(id);
     if (polyData) {
@@ -1383,7 +1438,7 @@ void Renderer::setBackgroundColor(float color[3])
 /**
  * \brief Set the opacity of the specified DataSet's associated graphics objects
  */
-void Renderer::setOpacity(DataSetId id, double opacity)
+void Renderer::setOpacity(const DataSetId& id, double opacity)
 {
     PseudoColor *pc = getPseudoColor(id);
     if (pc) {
@@ -1405,7 +1460,7 @@ void Renderer::setOpacity(DataSetId id, double opacity)
 /**
  * \brief Turn on/off rendering of the specified DataSet's associated graphics objects
  */
-void Renderer::setVisibility(DataSetId id, bool state)
+void Renderer::setVisibility(const DataSetId& id, bool state)
 {
     setPseudoColorVisibility(id, state);
     setContourVisibility(id, state);
@@ -1481,7 +1536,7 @@ void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
  *
  * Note: no interpolation is performed on data
  */
-double Renderer::getDataValueAtPixel(DataSetId id, int x, int y)
+double Renderer::getDataValueAtPixel(const DataSetId& id, int x, int y)
 {
     vtkSmartPointer<vtkCoordinate> coord = vtkSmartPointer<vtkCoordinate>::New();
     coord->SetCoordinateSystemToDisplay();
@@ -1503,7 +1558,7 @@ double Renderer::getDataValueAtPixel(DataSetId id, int x, int y)
  *
  * Note: no interpolation is performed on data
  */
-double Renderer::getDataValue(DataSetId id, double x, double y, double z)
+double Renderer::getDataValue(const DataSetId& id, double x, double y, double z)
 {
     DataSet *ds = getDataSet(id);
     if (ds == NULL)

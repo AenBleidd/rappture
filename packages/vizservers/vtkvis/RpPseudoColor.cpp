@@ -28,6 +28,12 @@ PseudoColor::PseudoColor() :
 
 PseudoColor::~PseudoColor()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting PseudoColor for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting PseudoColor with NULL DataSet");
+#endif
 }
 
 /**
