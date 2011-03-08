@@ -17,10 +17,10 @@
 /*
  * Special options for controlling diffs.
  */
-enum diff {
+enum diffdir {
     DIFF_1TO2, DIFF_2TO1
 };
-static char *diffStrings[] = {
+static char *diffdirStrings[] = {
     "1->2", "2->1", (char*)NULL
 };
 
@@ -59,15 +59,30 @@ typedef struct {
 } DiffviewBuffer;
 
 /*
- * Data structure for one diff between text buffers:
+ * Data structure used internally by diff routine:
+ */
+typedef struct subseq {
+    int index1;			/* index in buffer #1 */
+    int index2;			/* index in buffer #2 */
+    struct subseq *subseqPtr;	/* LCS indices for buffer #1 */
+} DiffviewSubseq;
+
+/*
+ * Data structure returned by diff routine:
  */
 typedef struct {
-    int change;			/* what change? 'a'=add, 'd'=del, 'c'=change */
-    int fromIn1;		/* change starts at this index in buffer #1 */
-    int toIn1;			/* change ends at this index in buffer #1 */
-    int fromIn2;		/* change starts at this index in buffer #2 */
-    int toIn2;			/* change ends at this index in buffer #2 */
-} DiffviewDiff;
+    int op;			/* operation: 'a'=add 'd'=del 'c'=change */
+    int fromIndex1;		/* starts at this line in buffer 1 */
+    int toIndex1;		/* ends at this line in buffer 1 */
+    int fromIndex2;		/* starts at this line in buffer 2 */
+    int toIndex2;		/* ends at this line in buffer 2 */
+} DiffviewDiffOp;
+
+typedef struct {
+    int maxDiffs;		/* maximum storage space for diffs */
+    int numDiffs;		/* number of diffs stored in ops */
+    DiffviewDiffOp *ops;	/* list of diffs */
+} DiffviewDiffs;
 
 /*
  * Data structure for the widget:
@@ -92,7 +107,9 @@ typedef struct {
     int inset;			/* width of all borders--offset to ul corner */
 
     DiffviewBuffer buffer[2];	/* text to diff -- buffers #1 and #2 */
-    enum diff diff;             /* diff between these buffers */
+    DiffviewDiffs *diffsPtr;    /* diff: longest common subseq btwn buffers */
+
+    enum diffdir diffdir;       /* diff between these buffers */
     enum layoutStyle layout;    /* layout style (side-by-side or inline) */
     int maxWidth;               /* maximum width of world view in pixels */
     int maxHeight;              /* maximum height of world view in pixels */
@@ -190,8 +207,8 @@ static Tk_OptionSpec optionSpecs[] = {
 	 DEF_DIFFVIEW_CURSOR, -1, Tk_Offset(Diffview, cursor),
 	 TK_OPTION_NULL_OK, 0, 0},
     {TK_OPTION_STRING_TABLE, "-diff", "diff", "Diff",
-        DEF_DIFFVIEW_DIFF, -1, Tk_Offset(Diffview, diff),
-        0, (ClientData)diffStrings, 0},
+        DEF_DIFFVIEW_DIFF, -1, Tk_Offset(Diffview, diffdir),
+        0, (ClientData)diffdirStrings, 0},
     {TK_OPTION_SYNONYM, "-fg", "foreground", (char*)NULL,
 	 (char*)NULL, 0, -1, 0, (ClientData) "-foreground", 0},
     {TK_OPTION_FONT, "-font", "font", "Font",
@@ -256,43 +273,51 @@ static int		DiffviewWidgetObjCmd _ANSI_ARGS_((ClientData clientData,
 	                    Tcl_Obj *CONST objv[]));
 static int		DiffviewBboxSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
 	                    Diffview *dvPtr, int index));
+static int		DiffviewDiffsSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
+	                    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewTextSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
-			    Diffview *dvPtr, int objc,
-			    Tcl_Obj *CONST objv[]));
+			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewXviewSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
-			    Diffview *dvPtr, int objc,
-			    Tcl_Obj *CONST objv[]));
+			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewYviewSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
-			    Diffview *dvPtr, int objc,
-			    Tcl_Obj *CONST objv[]));
+			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 
-static void		DiffviewEventProc _ANSI_ARGS_((ClientData clientData,
-			    XEvent *eventPtr));
+static void		DestroyDiffview _ANSI_ARGS_((char *memPtr));
+static int		ConfigureDiffview _ANSI_ARGS_((Tcl_Interp *interp,
+			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[],
+			    int flags));
 static void		DiffviewWorldChanged _ANSI_ARGS_((
 			    ClientData instanceData));
 static void		EventuallyRedraw _ANSI_ARGS_((Diffview *dvPtr));
 static void		DisplayDiffview _ANSI_ARGS_((ClientData clientData));
-static int		ConfigureDiffview _ANSI_ARGS_((Tcl_Interp *interp,
-			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[],
-			    int flags));
-static void		DestroyDiffview _ANSI_ARGS_((char *memPtr));
 static void		DiffviewComputeGeometry _ANSI_ARGS_((Diffview *dvPtr));
+static void		DiffviewEventProc _ANSI_ARGS_((ClientData clientData,
+			    XEvent *eventPtr));
 static void		DiffviewCmdDeletedProc _ANSI_ARGS_((
 			    ClientData clientData));
-static void		DiffviewScanTo _ANSI_ARGS_((Diffview *dvPtr,
-			    int x, int y));
 static void		ChangeDiffviewView _ANSI_ARGS_((Diffview *dvPtr,
 			    int lnum));
-static void		DiffviewUpdateLayout _ANSI_ARGS_(
-    			    (Diffview *dvPtr));
-static void		DiffviewUpdateHScrollbar _ANSI_ARGS_(
-    			    (Diffview *dvPtr));
-static void		DiffviewUpdateVScrollbar _ANSI_ARGS_(
-			    (Diffview *dvPtr));
+static void		DiffviewScanTo _ANSI_ARGS_((Diffview *dvPtr,
+			    int x, int y));
+static void		DiffviewUpdateLayout _ANSI_ARGS_((
+    			    Diffview *dvPtr));
+static void		DiffviewUpdateVScrollbar _ANSI_ARGS_((
+			    Diffview *dvPtr));
+static void		DiffviewUpdateHScrollbar _ANSI_ARGS_((
+    			    Diffview *dvPtr));
 static DiffviewLines*	DiffviewLinesCreate _ANSI_ARGS_((char *textPtr,
 			    int textLen));
-static void		DiffviewLinesFree _ANSI_ARGS_(
-			    (DiffviewLines *lineLimitsPtr));
+static void		DiffviewLinesFree _ANSI_ARGS_((
+			    DiffviewLines *lineLimitsPtr));
+static DiffviewDiffs*	DiffviewDiffsCreate _ANSI_ARGS_((
+			    char *textPtr1, DiffviewLines *limsPtr1,
+			    char *textPtr2, DiffviewLines *limsPtr2));
+static void		DiffviewDiffsAppend _ANSI_ARGS_((
+			    DiffviewDiffs *diffsPtr, int op,
+			    int fromIndex1, int toIndex1,
+			    int fromIndex2, int toIndex2));
+static void		DiffviewDiffsFree _ANSI_ARGS_((
+			    DiffviewDiffs *diffsPtr));
 
 /*
  * Standard Tk procs invoked from generic window code.
@@ -380,7 +405,7 @@ DiffviewObjCmd(clientData, interp, objc, objv)
     dvPtr->buffer[0].lineLimits = NULL;
     dvPtr->buffer[1].textObj = NULL;
     dvPtr->buffer[1].lineLimits = NULL;
-    dvPtr->diff = DIFF_1TO2;
+    dvPtr->diffdir = DIFF_1TO2;
 
     dvPtr->cursor = None;
     dvPtr->relief = TK_RELIEF_SUNKEN;
@@ -507,6 +532,11 @@ DiffviewWidgetObjCmd(clientData, interp, objc, objv)
                 /* set one or more configuration options */
                 result = ConfigureDiffview(interp, dvPtr, objc-2, objv+2, 0);
             }
+            break;
+        }
+
+        case COMMAND_DIFFS: {
+            result = DiffviewDiffsSubCmd(interp, dvPtr, objc, objv);
             break;
         }
 
@@ -652,6 +682,205 @@ DiffviewBboxSubCmd(interp, dvPtr, index)
 
 /*
  * ----------------------------------------------------------------------
+ * DiffviewDiffsSubCmd()
+ *
+ * Handles the "diffs" operation on the widget with the following
+ * syntax:
+ *
+ *   widget diffs ?-std|-debug|-number?
+ *
+ * The default is "diffs -std", which returns the usual output from
+ * the Unix "diff" command.  The -debug option returns a more detailed
+ * output that is useful for testing/debugging.  The -number option
+ * returns the total number of diffs.  This is useful for commands
+ * such as "see #2", where you can bring a particular diff into view.
+ * ----------------------------------------------------------------------
+ */
+static int
+DiffviewDiffsSubCmd(interp, dvPtr, objc, objv)
+    Tcl_Interp *interp;       /* interp handling this command */
+    Diffview *dvPtr;          /* widget data */
+    int objc;                 /* number of command arguments */
+    Tcl_Obj *CONST objv[];    /* command arguments */
+{
+    Tcl_Obj *resultPtr;
+    char range1[128], range2[128];
+    int i, n;
+
+    static CONST char *options[] = {
+        "-std",		"-debug",	"-number",	(char*)NULL
+    };
+    enum options {
+        DIFFS_STD,	DIFFS_DEBUG,	DIFFS_NUMBER
+    };
+    int op = DIFFS_STD;
+
+
+    if (objc > 3) {
+        Tcl_WrongNumArgs(interp, 2, objv, "?-std? ?-debug? ?-number?");
+        return TCL_ERROR;
+    }
+
+    /* decode the option that controls the return result */
+    if (objc > 2) {
+        if (Tcl_GetIndexFromObj(interp, objv[2], options, "option", 0,
+                &op) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+
+    /* make sure that our layout info is up to date for queries below */
+    DiffviewUpdateLayout(dvPtr);
+
+    switch ((enum options)op) {
+        case DIFFS_STD: {
+            DiffviewDiffOp curr, *currOpPtr;
+            DiffviewLines *lines1, *lines2;
+
+            if (dvPtr->diffsPtr) {
+                resultPtr = Tcl_GetObjResult(interp);
+                for (i=0; i < dvPtr->diffsPtr->numDiffs; i++) {
+                    currOpPtr = &dvPtr->diffsPtr->ops[i];
+
+                    /* if we're diff'ing the other way, reverse the diff */
+                    if (dvPtr->diffdir == DIFF_1TO2) {
+                        memcpy((VOID*)&curr, (VOID*)currOpPtr,
+                            sizeof(DiffviewDiffOp));
+                        lines1 = dvPtr->buffer[0].lineLimits;
+                        lines2 = dvPtr->buffer[1].lineLimits;
+                    } else {
+                        switch (currOpPtr->op) {
+                            case 'a': curr.op = 'd'; break;
+                            case 'd': curr.op = 'a'; break;
+                            default:  curr.op = currOpPtr->op; break;
+                        }
+                        curr.fromIndex1 = currOpPtr->fromIndex2;
+                        curr.toIndex1   = currOpPtr->toIndex2;
+                        curr.fromIndex2 = currOpPtr->fromIndex1;
+                        curr.toIndex2   = currOpPtr->toIndex1;
+                        lines1 = dvPtr->buffer[1].lineLimits;
+                        lines2 = dvPtr->buffer[0].lineLimits;
+                    }
+
+                    /* append the diff info onto the output */
+                    if (curr.fromIndex1 == curr.toIndex1) {
+                        if (curr.op == 'a') {
+                            /* for append, use first index at raw value */
+                            sprintf(range1, "%d", curr.fromIndex1);
+                        } else {
+                            sprintf(range1, "%d", curr.fromIndex1+1);
+                        }
+                    } else {
+                        sprintf(range1, "%d,%d", curr.fromIndex1+1,
+                            curr.toIndex1+1);
+                    }
+
+                    if (curr.fromIndex2 == curr.toIndex2) {
+                        if (curr.op == 'd') {
+                            /* for delete, use second index at raw value */
+                            sprintf(range2, "%d", curr.fromIndex2);
+                        } else {
+                            sprintf(range2, "%d", curr.fromIndex2+1);
+                        }
+                    } else {
+                        sprintf(range2, "%d,%d", curr.fromIndex2+1,
+                            curr.toIndex2+1);
+                    }
+
+                    switch (curr.op) {
+                        case 'a': {
+                            Tcl_AppendToObj(resultPtr, range1, -1);
+                            Tcl_AppendToObj(resultPtr, "a", 1);
+                            Tcl_AppendToObj(resultPtr, range2, -1);
+                            Tcl_AppendToObj(resultPtr, "\n", 1);
+                            for (n=curr.fromIndex2; n <= curr.toIndex2; n++) {
+                                Tcl_AppendToObj(resultPtr, "> ", 2);
+                                Tcl_AppendToObj(resultPtr, lines2->startPtr[n],
+                                    lines2->lenPtr[n]);
+                                Tcl_AppendToObj(resultPtr, "\n", 1);
+                            }
+                            break;
+                        }
+                        case 'd': {
+                            Tcl_AppendToObj(resultPtr, range1, -1);
+                            Tcl_AppendToObj(resultPtr, "d", 1);
+                            Tcl_AppendToObj(resultPtr, range2, -1);
+                            Tcl_AppendToObj(resultPtr, "\n", 1);
+                            for (n=curr.fromIndex1; n <= curr.toIndex1; n++) {
+                                Tcl_AppendToObj(resultPtr, "< ", 2);
+                                Tcl_AppendToObj(resultPtr, lines1->startPtr[n],
+                                    lines1->lenPtr[n]);
+                                Tcl_AppendToObj(resultPtr, "\n", 1);
+                            }
+                            break;
+                        }
+                        case 'c': {
+                            Tcl_AppendToObj(resultPtr, range1, -1);
+                            Tcl_AppendToObj(resultPtr, "c", 1);
+                            Tcl_AppendToObj(resultPtr, range2, -1);
+                            Tcl_AppendToObj(resultPtr, "\n", 1);
+                            for (n=curr.fromIndex1; n <= curr.toIndex1; n++) {
+                                Tcl_AppendToObj(resultPtr, "< ", 2);
+                                Tcl_AppendToObj(resultPtr, lines1->startPtr[n],
+                                    lines1->lenPtr[n]);
+                                Tcl_AppendToObj(resultPtr, "\n", 1);
+                            }
+                            Tcl_AppendToObj(resultPtr, "---\n", 4);
+                            for (n=curr.fromIndex2; n <= curr.toIndex2; n++) {
+                                Tcl_AppendToObj(resultPtr, "> ", 2);
+                                Tcl_AppendToObj(resultPtr, lines2->startPtr[n],
+                                    lines2->lenPtr[n]);
+                                Tcl_AppendToObj(resultPtr, "\n", 1);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case DIFFS_DEBUG: {
+            DiffviewDiffOp *c;
+            char elem[256];
+
+            if (dvPtr->diffsPtr) {
+                for (i=0; i < dvPtr->diffsPtr->numDiffs; i++) {
+                    c = &dvPtr->diffsPtr->ops[i];
+
+                    /* append the diff info onto the output */
+                    if (c->fromIndex1 == c->toIndex1) {
+                        sprintf(range1, "%d", c->fromIndex1);
+                    } else {
+                        sprintf(range1, "%d,%d", c->fromIndex1, c->toIndex1);
+                    }
+
+                    if (c->fromIndex2 == c->toIndex2) {
+                        sprintf(range2, "%d", c->fromIndex2);
+                    } else {
+                        sprintf(range2, "%d,%d", c->fromIndex2, c->toIndex2);
+                    }
+
+                    sprintf(elem, "%c %s %s", c->op, range1, range2);
+                    Tcl_AppendElement(interp, elem);
+                }
+            }
+            break;
+        }
+        case DIFFS_NUMBER: {
+            int num = 0;
+            if (dvPtr->diffsPtr) {
+                num = dvPtr->diffsPtr->numDiffs;
+            }
+            resultPtr = Tcl_NewIntObj(num);
+            Tcl_SetObjResult(interp, resultPtr);
+            break;
+        }
+    }
+    return TCL_OK;
+}
+
+/*
+ * ----------------------------------------------------------------------
  * DiffviewTextSubCmd()
  *
  * Handles the "text" operation on the widget with the following
@@ -674,7 +903,7 @@ DiffviewTextSubCmd(interp, dvPtr, objc, objv)
     DiffviewBuffer *slotPtr;
 
     if (objc < 2 || objc > 4) {
-        Tcl_WrongNumArgs(interp, 1, objv, "text bufferNum ?string?");
+        Tcl_WrongNumArgs(interp, 2, objv, "bufferNum ?string?");
         return TCL_ERROR;
     }
 
@@ -921,6 +1150,10 @@ DestroyDiffview(memPtr)
         }
     }
 
+    if (dvPtr->diffsPtr) {
+        DiffviewDiffsFree(dvPtr->diffsPtr);
+    }
+
     /*
      * Free up GCs and configuration options.
      */
@@ -1025,6 +1258,26 @@ DiffviewWorldChanged(cdata)
 
 /*
  * ----------------------------------------------------------------------
+ * EventuallyRedraw()
+ *
+ * Arranges for the widget to redraw itself at the next idle point.
+ * ----------------------------------------------------------------------
+ */
+static void
+EventuallyRedraw(dvPtr)
+    Diffview *dvPtr;          /* widget data */
+{
+    if ((dvPtr->flags & REDRAW_PENDING) || (dvPtr->flags & WIDGET_DELETED)
+            || !Tk_IsMapped(dvPtr->tkwin)) {
+        return;  /* no need to redraw */
+    }
+
+    dvPtr->flags |= REDRAW_PENDING;
+    Tcl_DoWhenIdle(DisplayDiffview, (ClientData)dvPtr);
+}
+
+/*
+ * ----------------------------------------------------------------------
  * DisplayDiffview()
  *
  * Redraws the widget based on the current view and all data.
@@ -1097,10 +1350,10 @@ DisplayDiffview(cdata)
           - dvPtr->yOffset;
     x = dvPtr->inset - dvPtr->xOffset;
 
-    if (dvPtr->diff == DIFF_1TO2) {
-        bnum = 0;
+    if (dvPtr->diffdir == DIFF_1TO2) {
+        bnum = 1;  /* 1->2 means: show lines from buffer #2 */
     } else {
-        bnum = 1;
+        bnum = 0;  /* 2->1 means: show lines from buffer #1 */
     }
 
     if (dvPtr->buffer[bnum].lineLimits) {
@@ -1343,26 +1596,6 @@ DiffviewScanTo(dvPtr, x, y)
 
 /*
  * ----------------------------------------------------------------------
- * EventuallyRedraw()
- *
- * Arranges for the widget to redraw itself at the next idle point.
- * ----------------------------------------------------------------------
- */
-static void
-EventuallyRedraw(dvPtr)
-    Diffview *dvPtr;          /* widget data */
-{
-    if ((dvPtr->flags & REDRAW_PENDING) || (dvPtr->flags & WIDGET_DELETED)
-            || !Tk_IsMapped(dvPtr->tkwin)) {
-        return;  /* no need to redraw */
-    }
-
-    dvPtr->flags |= REDRAW_PENDING;
-    Tcl_DoWhenIdle(DisplayDiffview, (ClientData)dvPtr);
-}
-
-/*
- * ----------------------------------------------------------------------
  * DiffviewUpdateLayout()
  *
  * Called whenever the widget is about to access layout information
@@ -1378,7 +1611,7 @@ DiffviewUpdateLayout(dvPtr)
     int changes = 0;   /* no layout changes yet */
     DiffviewBuffer* bufferPtr;
     int i, bnum, pixelWidth, maxWidth, numLines, ySize;
-    char *textPtr; int textLen;
+    char *textPtr, *textPtr2; int textLen;
     Tk_FontMetrics fm;
 
     /* if the font changed, then re-measure everything */
@@ -1396,6 +1629,20 @@ DiffviewUpdateLayout(dvPtr)
     }
 
     if (changes) {
+        /* recompute the diffs between the buffers */
+        if (dvPtr->diffsPtr) {
+            DiffviewDiffsFree(dvPtr->diffsPtr);
+            dvPtr->diffsPtr = NULL;
+        }
+
+        if (dvPtr->buffer[0].textObj && dvPtr->buffer[1].textObj) {
+            textPtr = Tcl_GetStringFromObj(dvPtr->buffer[0].textObj, &textLen);
+            textPtr2 = Tcl_GetStringFromObj(dvPtr->buffer[1].textObj, &textLen);
+            dvPtr->diffsPtr = DiffviewDiffsCreate(
+                textPtr, dvPtr->buffer[0].lineLimits,
+                textPtr2, dvPtr->buffer[1].lineLimits);
+        }
+
         /* compute overall size of each buffer */
         for (bnum=0; bnum < 2; bnum++) {
             bufferPtr = &dvPtr->buffer[bnum];
@@ -1417,7 +1664,7 @@ DiffviewUpdateLayout(dvPtr)
         }
 
         /* compute overall size of the widget depending on the layout */
-        if (dvPtr->diff == DIFF_1TO2) {
+        if (dvPtr->diffdir == DIFF_1TO2) {
             bnum = 0;
         } else {
             bnum = 1;
@@ -1668,4 +1915,321 @@ DiffviewLinesFree(lineLimitsPtr)
         ckfree((char*)lineLimitsPtr->lenPtr);
     }
     ckfree((char*)lineLimitsPtr);
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewDiffsCreate()
+ *
+ * Considers two strings textPtr1 and textPtr2 (divided into segments
+ * according to limsPtr1 and limsPtr2), and computes the longest common
+ * subsequences between the two strings.  This is the first step in
+ * computing the differences between the two strings.
+ *
+ * Returns a data structure that contains a series of "diff" operations.
+ * This should be freed when it is no longer needed by calling
+ * DiffviewDiffsFree().
+ *
+ *   REFERENCE:
+ *   J. W. Hunt and M. D. McIlroy, "An algorithm for differential
+ *   file comparison," Comp. Sci. Tech. Rep. #41, Bell Telephone
+ *   Laboratories (1976). Available on the Web at the second
+ *   author's personal site: http://www.cs.dartmouth.edu/~doug/
+ *
+ * ----------------------------------------------------------------------
+ */
+static DiffviewDiffs*
+DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
+    char *textPtr1;           /* text from buffer #1 */
+    DiffviewLines *limsPtr1;  /* limits of individual strings in textPtr1 */
+    char *textPtr2;           /* text from buffer #2 */
+    DiffviewLines *limsPtr2;  /* limits of individual strings in textPtr2 */
+{
+    DiffviewDiffs *diffPtr = NULL;
+
+    Tcl_HashTable eqv;
+    Tcl_HashSearch iter;
+    Tcl_HashEntry *entryPtr;
+    Tcl_DString buffer;
+    DiffviewSubseq *K, *newK, *candidate, newCandidate; int Kmax; int Klen;
+    Tcl_Obj *listPtr, **objv;
+    int i, j, subseqLen, longestMatch, max, min, mid, midval, sLen, del;
+    int len, created, o, objc, index1, *lcsIndex1, index2, *lcsIndex2;
+    char *key;
+
+    /*
+     * Build a set of equivalence classes.  Scan through all of
+     * buffer #2 and map each string to a list of indices for the
+     * lines that have that string.
+     */
+    Tcl_DStringInit(&buffer);
+    Tcl_InitHashTable(&eqv, TCL_STRING_KEYS);
+    for (i=0; i < limsPtr2->numLines; i++) {
+        len = limsPtr2->lenPtr[i];
+        Tcl_DStringSetLength(&buffer, len);
+        key = Tcl_DStringValue(&buffer);
+        memcpy((VOID*)key, (VOID*)limsPtr2->startPtr[i], len);
+
+        entryPtr = Tcl_CreateHashEntry(&eqv, key, &created);
+        if (created) {
+            listPtr = Tcl_NewListObj(0, (Tcl_Obj**)NULL);
+            Tcl_IncrRefCount(listPtr);
+            Tcl_SetHashValue(entryPtr, (ClientData)listPtr);
+        }
+
+        listPtr = (Tcl_Obj*)Tcl_GetHashValue(entryPtr);
+        Tcl_ListObjAppendElement((Tcl_Interp*)NULL, listPtr, Tcl_NewIntObj(i));
+    }
+
+    /*
+     * Build a list K that holds the descriptions of the common
+     * subsequences.  At first, there is one common subsequence of
+     * length 0 with a fence that includes line -1 of both files.
+     */
+    Kmax = 10;
+    K = (DiffviewSubseq*)ckalloc(Kmax*sizeof(DiffviewSubseq));
+    K[0].index1 = -1;
+    K[0].index2 = -1;
+    K[0].subseqPtr = NULL;
+    K[1].index1 = limsPtr1->numLines;
+    K[1].index2 = limsPtr2->numLines;
+    K[1].subseqPtr = NULL;
+    Klen = 2;
+    longestMatch = 0;
+
+    /*
+     * Step through the first buffer line by line.
+     */
+    for (i=0; i < limsPtr1->numLines; i++) {
+        len = limsPtr1->lenPtr[i];
+        Tcl_DStringSetLength(&buffer, len);
+        key = Tcl_DStringValue(&buffer);
+        memcpy((VOID*)key, (VOID*)limsPtr1->startPtr[i], len);
+
+        /* look at each possible line j in second buffer */
+        entryPtr = Tcl_FindHashEntry(&eqv, key);
+        if (entryPtr) {
+            subseqLen = 0;
+            candidate = &K[0];
+
+            listPtr = (Tcl_Obj*)Tcl_GetHashValue(entryPtr);
+            Tcl_ListObjGetElements((Tcl_Interp*)NULL, listPtr, &objc, &objv);
+            for (o=0; o < objc; o++) {
+                Tcl_GetIntFromObj((Tcl_Interp*)NULL, objv[o], &j);
+
+                /*
+                 * Binary search to find a candidate common subsequence.
+                 * This match may get appended to that.
+                 */
+                max  = longestMatch;
+                min  = subseqLen;
+                mid  = subseqLen;
+                sLen = longestMatch + 1;
+                while (max >= min) {
+                    mid = (max+min)/2;
+                    midval = K[mid].index2;
+                    if (j == midval) {
+                        break;
+                    } else if (j < midval) {
+                        max = mid-1;
+                    } else {
+                        sLen = mid;
+                        min = mid+1;
+                    }
+                }
+
+                /* no good candidate? then go to the next match point */
+                if (j == K[mid].index2 || sLen > longestMatch) {
+                    continue;
+                }
+
+                /*
+                 * sLen = sequence length of the longest sequence that
+                 *        this match point can be appended to
+                 *
+                 * Make a new candidate match and store the old on in K.
+                 * Set subseqLen to the length of the new candidate match.
+                 */
+                if (subseqLen >= 0) {
+                    K[subseqLen].index1    = candidate->index1;
+                    K[subseqLen].index2    = candidate->index2;
+                    K[subseqLen].subseqPtr = candidate->subseqPtr;
+                }
+                newCandidate.index1 = i;
+                newCandidate.index2 = j;
+                newCandidate.subseqPtr = &K[sLen];
+                candidate = &newCandidate;
+                subseqLen = sLen + 1;
+
+                /*
+                 * If we've extended the length of the longest match,
+                 * we don't need to keep checking candidate lines.
+                 * We're done.  Move the fence.
+                 */
+                if (sLen >= longestMatch) {
+                    if (Klen >= Kmax) {
+                        Kmax *= 2;
+                        newK = (DiffviewSubseq*)ckalloc(Kmax*sizeof(DiffviewSubseq));
+                        memcpy((VOID*)newK, (VOID*)K, Klen*sizeof(DiffviewSubseq));
+                        ckfree((char*)K);
+                        K = newK;
+                    }
+                    K[Klen].index1    = K[Klen-1].index1;
+                    K[Klen].index2    = K[Klen-1].index2;
+                    K[Klen].subseqPtr = K[Klen-1].subseqPtr;
+                    Klen++;
+
+                    longestMatch++;
+                    break;
+                }
+            }
+
+            /* put the last candidate into the array */
+            K[subseqLen].index1    = candidate->index1;
+            K[subseqLen].index2    = candidate->index2;
+            K[subseqLen].subseqPtr = candidate->subseqPtr;
+        }
+    }
+
+    /*
+     * Translate the resulting info into a list of common subseq indices.
+     */
+    lcsIndex1 = (int*)ckalloc(longestMatch*sizeof(int));
+    memset((void*)lcsIndex1, 0, (longestMatch*sizeof(int)));
+    lcsIndex2 = (int*)ckalloc(longestMatch*sizeof(int));
+    memset((void*)lcsIndex2, 0, (longestMatch*sizeof(int)));
+    len = longestMatch;
+
+    candidate = &K[longestMatch];
+    while (candidate->index1 >= 0) {
+        longestMatch--;
+        lcsIndex1[longestMatch] = candidate->index1;
+        lcsIndex2[longestMatch] = candidate->index2;
+        candidate = candidate->subseqPtr;
+    }
+
+    /*
+     * Now, march through all lines in both buffers and convert the
+     * lcs indices into a sequence of diff-style operations.
+     */
+    diffPtr = (DiffviewDiffs*)ckalloc(sizeof(DiffviewDiffs));
+    diffPtr->maxDiffs = 0;
+    diffPtr->numDiffs = 0;
+    diffPtr->ops = NULL;
+
+    i = j = 0;
+    for (o=0; o < len; o++) {
+        index1 = lcsIndex1[o];
+        index2 = lcsIndex2[o];
+
+        if (index1-i == index2-j && index1-i > 0) {
+            del = index1-i;
+            DiffviewDiffsAppend(diffPtr, 'c', i, i+del-1, j, j+del-1);
+            i += del; j += del;
+        } else {
+            del = index1-i;
+            if (del > 0) {
+                DiffviewDiffsAppend(diffPtr, 'd', i, i+del-1, j, j);
+                i += del;
+            }
+
+            del = index2-j;
+            if (del > 0) {
+                DiffviewDiffsAppend(diffPtr, 'a', i, i, j, j+del-1);
+                j += del;
+            }
+        }
+        i++; j++;
+    }
+    if (i < limsPtr1->numLines) {
+        del = limsPtr1->numLines - i;
+        DiffviewDiffsAppend(diffPtr, 'd', i, i+del-1, j, j);
+        i += del;
+    }
+    if (j < limsPtr2->numLines) {
+        del = limsPtr2->numLines - j;
+        DiffviewDiffsAppend(diffPtr, 'a', i, i, j, j+del-1);
+        j += del;
+    }
+
+    /*
+     * Clean up all memory used during the diff.
+     */
+    ckfree((char*)K);
+    ckfree((char*)lcsIndex1);
+    ckfree((char*)lcsIndex2);
+
+    entryPtr = Tcl_FirstHashEntry(&eqv, &iter);
+    while (entryPtr) {
+        listPtr = (Tcl_Obj*)Tcl_GetHashValue(entryPtr);
+        Tcl_DecrRefCount(listPtr);
+        entryPtr = Tcl_NextHashEntry(&iter);
+    }
+    Tcl_DeleteHashTable(&eqv);
+
+    return diffPtr;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewDiffsAppend()
+ *
+ * Appends a "diff" operation onto a list of diffs.  The list is extended
+ * automatically, if need be, to store the new element.
+ * ----------------------------------------------------------------------
+ */
+static void
+DiffviewDiffsAppend(diffsPtr, op, fromIndex1, toIndex1, fromIndex2, toIndex2)
+    DiffviewDiffs *diffsPtr;  /* diffs being updated */
+    int op;                   /* diff operation: a/d/c */
+    int fromIndex1;           /* starts at this line in buffer 1 */
+    int toIndex1;             /* ends at this line in buffer 1 */
+    int fromIndex2;           /* starts at this line in buffer 2 */
+    int toIndex2;             /* ends at this line in buffer 2 */
+{
+    DiffviewDiffOp *newOpArray;
+    int last;
+
+    if (diffsPtr->numDiffs >= diffsPtr->maxDiffs) {
+        if (diffsPtr->maxDiffs == 0) {
+            diffsPtr->maxDiffs = 10;
+        } else {
+            diffsPtr->maxDiffs *= 2;
+        }
+        newOpArray = (DiffviewDiffOp*)ckalloc(
+            diffsPtr->maxDiffs*sizeof(DiffviewDiffOp));
+
+        if (diffsPtr->ops) {
+            memcpy((VOID*)newOpArray, (VOID*)diffsPtr->ops,
+                diffsPtr->numDiffs*sizeof(DiffviewDiffOp));
+            ckfree((char*)diffsPtr->ops);
+        }
+        diffsPtr->ops = newOpArray;
+    }
+
+    last = diffsPtr->numDiffs;
+    diffsPtr->ops[last].op         = op;
+    diffsPtr->ops[last].fromIndex1 = fromIndex1;
+    diffsPtr->ops[last].toIndex1   = toIndex1;
+    diffsPtr->ops[last].fromIndex2 = fromIndex2;
+    diffsPtr->ops[last].toIndex2   = toIndex2;
+    diffsPtr->numDiffs++;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewDiffsFree()
+ *
+ * Appends a "diff" operation onto a list of diffs.  The list is extended
+ * automatically, if need be, to store the new element.
+ * ----------------------------------------------------------------------
+ */
+static void
+DiffviewDiffsFree(diffsPtr)
+    DiffviewDiffs *diffsPtr;  /* diffs being freed */
+{
+    if (diffsPtr->ops) {
+        ckfree((char*)diffsPtr->ops);
+    }
+    ckfree((char*)diffsPtr);
 }
