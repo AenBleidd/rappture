@@ -219,6 +219,8 @@ private:
 
     void collectBounds(double *bounds, bool onlyVisible);
 
+    void collectDataRanges(double *range);
+
     void storeCameraOrientation();
     void restoreCameraOrientation();
     void initCamera();
@@ -233,6 +235,7 @@ private:
     double _cameraFocalPoint[3];
     double _cameraUp[3];
     float _bgColor[3];
+    double _cumulativeDataRange[2];
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;

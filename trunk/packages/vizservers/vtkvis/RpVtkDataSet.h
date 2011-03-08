@@ -28,6 +28,10 @@ public:
 
     bool setData(char *data, int nbytes);
 
+    bool setData(vtkDataSet *ds);
+
+    bool setData(vtkDataSetReader *reader);
+
     bool setDataFile(const char *filename);
 
     const std::string& getName();
@@ -40,8 +44,6 @@ public:
 
 private:
     DataSet();
-
-    bool setData(vtkDataSetReader *reader);
 
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;

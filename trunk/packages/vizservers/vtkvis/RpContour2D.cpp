@@ -58,6 +58,7 @@ void Contour2D::initActor()
         _contourActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_edgeWidth);
         _contourActor->GetProperty()->SetOpacity(_opacity);
+        _contourActor->GetProperty()->LightingOff();
     }
 }
 
@@ -75,6 +76,9 @@ void Contour2D::update()
     // Contour filter to generate isolines
     vtkSmartPointer<vtkContourFilter> contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     contourFilter->SetInput(_dataSet->getVtkDataSet());
+
+    contourFilter->ComputeNormalsOff();
+    contourFilter->ComputeGradientsOff();
 
     // Speed up multiple contour computation at cost of extra memory use
     if (_numContours > 1) {
@@ -192,10 +196,7 @@ void Contour2D::setEdgeWidth(float edgeWidth)
 void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
 {
     if (_contourMapper != NULL) {
-        if (planes == NULL)
-            _contourMapper->RemoveAllClippingPlanes();
-        else
-            _contourMapper->SetClippingPlanes(planes);
+        _contourMapper->SetClippingPlanes(planes);
     }
 }
 

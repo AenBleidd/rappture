@@ -200,10 +200,7 @@ void PolyData::setEdgeWidth(float edgeWidth)
 void PolyData::setClippingPlanes(vtkPlaneCollection *planes)
 {
     if (_pdMapper != NULL) {
-        if (planes == NULL)
-            _pdMapper->RemoveAllClippingPlanes();
-        else
-            _pdMapper->SetClippingPlanes(planes);
+        _pdMapper->SetClippingPlanes(planes);
     }
 }
 
