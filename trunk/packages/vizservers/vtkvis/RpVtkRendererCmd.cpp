@@ -171,7 +171,7 @@ static Rappture::CmdSpec axisOps[] = {
     {"grid", 1, AxisGridOp, 4, 4, "axis bool"},
     {"name", 1, AxisNameOp, 4, 4, "axis title"},
     {"units", 1, AxisUnitsOp, 4, 4, "axis units"},
-    {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"},
+    {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"}
 };
 static int nAxisOps = NumCmdSpecs(axisOps);
 
@@ -297,7 +297,7 @@ static Rappture::CmdSpec cameraOps[] = {
     {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
     {"reset", 2, CameraResetOp, 2, 3, "?all?"},
     {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
-    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"},
+    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
@@ -489,8 +489,12 @@ static int
 Contour2DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->deleteContour2D(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteContour2D(name);
+    } else {
+        g_renderer->deleteContour2D("all");
+    }
     return TCL_OK;
 }
 
@@ -550,11 +554,11 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec contour2dOps[] = {
     {"add", 1, Contour2DAddOp, 5, 5, "oper value dataSetName"},
-    {"delete", 1, Contour2DDeleteOp, 3, 3, "dataSetName"},
+    {"delete", 1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
     {"lighting", 3, Contour2DLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, Contour2DLineColorOp, 6, 6, "r g b dataSetName"},
     {"linewidth", 5, Contour2DLineWidthOp, 4, 4, "width dataSetName"},
-    {"visible", 1, Contour2DVisibleOp, 4, 4, "bool dataSetName"},
+    {"visible", 1, Contour2DVisibleOp, 4, 4, "bool dataSetName"}
 };
 static int nContour2dOps = NumCmdSpecs(contour2dOps);
 
@@ -626,9 +630,13 @@ static int
 DataSetDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    TRACE("Deleting dataset %s", name);
-    g_renderer->deleteDataSet(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        TRACE("Deleting dataset %s", name);
+        g_renderer->deleteDataSet(name);
+    } else {
+        g_renderer->deleteDataSet("all");
+    }
     return TCL_OK;
 }
 
@@ -735,7 +743,7 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec dataSetOps[] = {
     {"add", 1, DataSetAddOp, 6, 6, "name data follows nBytes"},
-    {"delete", 1, DataSetDeleteOp, 3, 3, "name"},
+    {"delete", 1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
     {"opacity", 1, DataSetOpacityOp, 4, 4, "value name"},
     {"visible", 1, DataSetVisibleOp, 4, 4, "bool name"}
@@ -777,7 +785,11 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
-    g_renderer->renderColorMap(name, title, width, height, imgData);
+    if (!g_renderer->renderColorMap(name, title, width, height, imgData)) {
+        Tcl_AppendResult(interp, "Color map \"",
+                name, "\" was not found", (char*)NULL);
+        return TCL_ERROR;
+    }
 
 #ifdef DEBUG
     writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height);
@@ -813,8 +825,12 @@ static int
 PseudoColorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->deletePseudoColor(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deletePseudoColor(name);
+    } else {
+        g_renderer->deletePseudoColor("all");
+    }
     return TCL_OK;
 }
 
@@ -888,7 +904,7 @@ PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add", 1, PseudoColorAddOp, 3, 3, "dataSetName"},
     {"colormap", 1, PseudoColorColorMapOp, 4, 4, "colorMapName dataSetName"},
-    {"delete", 1, PseudoColorDeleteOp, 3, 3, "dataSetName"},
+    {"delete", 1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
     {"edges", 1, PseudoColorEdgeVisibilityOp, 4, 4, "bool dataSetName"},
     {"lighting", 3, PseudoColorLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, PseudoColorLineColorOp, 6, 6, "r g b dataSetName"},
@@ -924,8 +940,12 @@ static int
 PolyDataDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->deletePolyData(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deletePolyData(name);
+    } else {
+        g_renderer->deletePolyData("all");
+    }
     return TCL_OK;
 }
 
@@ -1027,7 +1047,7 @@ PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec polyDataOps[] = {
     {"add", 1, PolyDataAddOp, 3, 3, "dataSetName"},
     {"color", 1, PolyDataColorOp, 6, 6, "r g b dataSetName"},
-    {"delete", 1, PolyDataDeleteOp, 3, 3, "dataSetName"},
+    {"delete", 1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
     {"edges", 1, PolyDataEdgeVisibilityOp, 4, 4, "bool dataSetName"},
     {"lighting", 3, PolyDataLightingOp, 4, 4, "bool dataSetName"},
     {"linecolor", 5, PolyDataLineColorOp, 6, 6, "r g b dataSetName"},

@@ -10,6 +10,7 @@
 #include <vtkProperty.h>
 
 #include "RpContour2D.h"
+#include "Trace.h"
 
 using namespace Rappture::VtkVis;
 
@@ -26,6 +27,12 @@ Contour2D::Contour2D() :
 
 Contour2D::~Contour2D()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting Contour2D for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting Contour2D with NULL DataSet");
+#endif
 }
 
 /**

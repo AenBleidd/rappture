@@ -65,23 +65,23 @@ public:
 
     // Data sets
 
-    void addDataSet(DataSetId id);
+    void addDataSet(const DataSetId& id);
 
-    void deleteDataSet(DataSetId id);
+    void deleteDataSet(const DataSetId& id);
 
-    DataSet *getDataSet(DataSetId id);
+    DataSet *getDataSet(const DataSetId& id);
 
-    bool setData(DataSetId id, char *data, int nbytes);
+    bool setData(const DataSetId& id, char *data, int nbytes);
 
-    bool setDataFile(DataSetId id, const char *filename);
+    bool setDataFile(const DataSetId& id, const char *filename);
 
-    double getDataValueAtPixel(DataSetId id, int x, int y);
+    double getDataValueAtPixel(const DataSetId& id, int x, int y);
 
-    double getDataValue(DataSetId id, double x, double y, double z);
+    double getDataValue(const DataSetId& id, double x, double y, double z);
 
-    void setOpacity(DataSetId id, double opacity);
+    void setOpacity(const DataSetId& id, double opacity);
 
-    void setVisibility(DataSetId id, bool state);
+    void setVisibility(const DataSetId& id, bool state);
 
     // Render window
 
@@ -131,79 +131,79 @@ public:
 
     // Colormaps
 
-    void addColorMap(ColorMapId id, ColorMap *colorMap);
+    void addColorMap(const ColorMapId& id, ColorMap *colorMap);
 
-    void deleteColorMap(ColorMapId id);
+    void deleteColorMap(const ColorMapId& id);
 
-    ColorMap *getColorMap(ColorMapId id);
+    ColorMap *getColorMap(const ColorMapId& id);
 
-    void renderColorMap(ColorMapId id, const char *title,
+    bool renderColorMap(const ColorMapId& id, const char *title,
                         int width, int height,
                         vtkUnsignedCharArray *imgData);
 
     // Color-mapped surfaces
 
-    void addPseudoColor(DataSetId id);
+    void addPseudoColor(const DataSetId& id);
 
-    void deletePseudoColor(DataSetId id);
+    void deletePseudoColor(const DataSetId& id);
 
-    PseudoColor *getPseudoColor(DataSetId id);
+    PseudoColor *getPseudoColor(const DataSetId& id);
 
-    void setPseudoColorColorMap(DataSetId id, ColorMapId colorMapId);
+    void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
-    vtkLookupTable *getPseudoColorColorMap(DataSetId id);
+    vtkLookupTable *getPseudoColorColorMap(const DataSetId& id);
 
-    void setPseudoColorVisibility(DataSetId id, bool state);
+    void setPseudoColorVisibility(const DataSetId& id, bool state);
 
-    void setPseudoColorEdgeVisibility(DataSetId id, bool state);
+    void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
 
-    void setPseudoColorEdgeColor(DataSetId id, float color[3]);
+    void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
 
-    void setPseudoColorEdgeWidth(DataSetId id, float edgeWidth);
+    void setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    void setPseudoColorLighting(DataSetId id, bool state);
+    void setPseudoColorLighting(const DataSetId& id, bool state);
 
     // Contour plots
 
-    void addContour2D(DataSetId id);
+    void addContour2D(const DataSetId& id);
 
-    void deleteContour2D(DataSetId id);
+    void deleteContour2D(const DataSetId& id);
 
-    Contour2D *getContour2D(DataSetId id);
+    Contour2D *getContour2D(const DataSetId& id);
 
-    void setContours(DataSetId id, int numContours);
+    void setContours(const DataSetId& id, int numContours);
 
-    void setContourList(DataSetId id, const std::vector<double>& contours);
+    void setContourList(const DataSetId& id, const std::vector<double>& contours);
 
-    void setContourVisibility(DataSetId id, bool state);
+    void setContourVisibility(const DataSetId& id, bool state);
 
-    void setContourEdgeColor(DataSetId id, float color[3]);
+    void setContourEdgeColor(const DataSetId& id, float color[3]);
 
-    void setContourEdgeWidth(DataSetId id, float edgeWidth);
+    void setContourEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    void setContourLighting(DataSetId id, bool state);
+    void setContourLighting(const DataSetId& id, bool state);
 
     // Meshes
 
-    void addPolyData(DataSetId id);
+    void addPolyData(const DataSetId& id);
     
-    void deletePolyData(DataSetId id);
+    void deletePolyData(const DataSetId& id);
 
-    PolyData *getPolyData(DataSetId id);
+    PolyData *getPolyData(const DataSetId& id);
 
-    void setPolyDataVisibility(DataSetId id, bool state);
+    void setPolyDataVisibility(const DataSetId& id, bool state);
 
-    void setPolyDataColor(DataSetId id, float color[3]);
+    void setPolyDataColor(const DataSetId& id, float color[3]);
 
-    void setPolyDataEdgeVisibility(DataSetId id, bool state);
+    void setPolyDataEdgeVisibility(const DataSetId& id, bool state);
 
-    void setPolyDataEdgeColor(DataSetId id, float color[3]);
+    void setPolyDataEdgeColor(const DataSetId& id, float color[3]);
 
-    void setPolyDataEdgeWidth(DataSetId id, float edgeWidth);
+    void setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    void setPolyDataWireframe(DataSetId id, bool state);
+    void setPolyDataWireframe(const DataSetId& id, bool state);
 
-    void setPolyDataLighting(DataSetId id, bool state);
+    void setPolyDataLighting(const DataSetId& id, bool state);
 
 private:
     static void printCameraInfo(vtkCamera *camera);
