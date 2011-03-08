@@ -216,6 +216,9 @@ void Renderer::deleteDataSet(DataSetId id)
         
         TRACE("After deleting graphics objects");
 
+        // Update cumulative data range
+        collectDataRanges(_cumulativeDataRange);
+
         delete itr->second;
         _dataSets.erase(itr);
          _needsRedraw = true;
@@ -264,6 +267,7 @@ bool Renderer::setData(DataSetId id, char *data, int nbytes)
     if (ds) {
         _needsRedraw = true;
         return ds->setData(data, nbytes);
+        collectDataRanges(_cumulativeDataRange);
     } else
         return false;
 }
@@ -1290,6 +1294,29 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     }
 }
 
+/**
+ * \brief Collect cumulative data range of all DataSets
+ *
+ * \param[inout] range Data range of all DataSets
+ */
+void Renderer::collectDataRanges(double *range)
+{
+    range[0] = DBL_MAX;
+    range[1] = -DBL_MAX;
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        double r[2];
+        itr->second->getDataRange(r);
+        range[0] = min2(range[0], r[0]);
+        range[1] = max2(range[1], r[1]);
+    }
+    if (range[0] == DBL_MAX)
+        range[0] = 0;
+    if (range[1] == -DBL_MAX)
+        range[1] = 1;
+}
+
 #ifdef notdef
 void Renderer::setPerspectiveCameraByBounds(double bounds[6])
 {
@@ -1403,6 +1430,10 @@ bool Renderer::render()
                  itr != _contours.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
+            for (PolyDataHashmap::iterator itr = _polyDatas.begin();
+                 itr != _polyDatas.end(); ++itr) {
+                itr->second->setClippingPlanes(_clippingPlanes);
+            }
         } else {
             for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
                  itr != _pseudoColors.end(); ++itr) {
@@ -1410,6 +1441,10 @@ bool Renderer::render()
             }
             for (Contour2DHashmap::iterator itr = _contours.begin();
                  itr != _contours.end(); ++itr) {
+                itr->second->setClippingPlanes(NULL);
+            }
+            for (PolyDataHashmap::iterator itr = _polyDatas.begin();
+                 itr != _polyDatas.end(); ++itr) {
                 itr->second->setClippingPlanes(NULL);
             }
         }

@@ -68,6 +68,19 @@ bool DataSet::setData(vtkDataSetReader *reader)
 }
 
 /**
+ * \brief Read dataset using supplied reader
+ */
+bool DataSet::setData(vtkDataSet *ds)
+{
+    _dataSet = ds;
+    _dataSet->Update();
+    _dataSet->GetScalarRange(_dataRange);
+
+    TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+    return true;
+}
+
+/**
  * \brief Get the name/id of this dataset
  */
 const std::string& DataSet::getName()
@@ -96,11 +109,17 @@ void DataSet::getDataRange(double minmax[2])
  * \brief Get nearest data value given world coordinates x,y,z
  *
  * Note: no interpolation is performed on data
+ *
+ * \return the value of the nearest point or 0 if no scalar data available
  */
 double DataSet::getDataValue(double x, double y, double z)
 {
     if (_dataSet == NULL)
         return 0;
+    if (_dataSet->GetPointData() == NULL ||
+        _dataSet->GetPointData()->GetScalars() == NULL) {
+        return 0.0;
+    }
     vtkIdType pt = _dataSet->FindPoint(x, y, z);
     return _dataSet->GetPointData()->GetScalars()->GetComponent(pt, 0);
 }

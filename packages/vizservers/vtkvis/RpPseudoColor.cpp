@@ -148,10 +148,8 @@ void PseudoColor::setLookupTable(vtkLookupTable *lut)
 #endif
     }
     if (_dsMapper != NULL) {
+        _dsMapper->UseLookupTableScalarRangeOn();
         _dsMapper->SetLookupTable(_lut);
-        if (_dataSet != NULL) {
-            _dsMapper->SetScalarRange(dataRange);
-        }
     }
 }
 
@@ -229,10 +227,7 @@ void PseudoColor::setEdgeWidth(float edgeWidth)
 void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
 {
     if (_dsMapper != NULL) {
-        if (planes == NULL)
-            _dsMapper->RemoveAllClippingPlanes();
-        else
-            _dsMapper->SetClippingPlanes(planes);
+        _dsMapper->SetClippingPlanes(planes);
     }
 }
 
