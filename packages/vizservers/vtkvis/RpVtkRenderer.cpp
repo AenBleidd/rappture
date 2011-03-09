@@ -42,6 +42,8 @@ Renderer::Renderer() :
     _bgColor[0] = 0;
     _bgColor[1] = 0;
     _bgColor[2] = 0;
+    _cumulativeDataRange[0] = 0.0;
+    _cumulativeDataRange[1] = 1.0;
     // clipping planes to prevent overdrawing axes
     _clippingPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
@@ -608,13 +610,27 @@ ColorMap *Renderer::getColorMap(const ColorMapId& id)
  */
 void Renderer::deleteColorMap(const ColorMapId& id)
 {
-    ColorMapHashmap::iterator itr = _colorMaps.find(id);
-    if (itr == _colorMaps.end())
-        return;
+    ColorMapHashmap::iterator itr;
 
-    // TODO: Check if color map is used in PseudoColors?
-    delete itr->second;
-    _colorMaps.erase(itr);
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _colorMaps.begin();
+        doAll = true;
+    } else {
+        itr = _colorMaps.find(id);
+    }
+
+    if (itr == _colorMaps.end()) {
+        ERROR("Unknown ColorMap %s", id.c_str());
+        return;
+    }
+
+    do {
+        // TODO: Check if color map is used in PseudoColors?
+        delete itr->second;
+        _colorMaps.erase(itr);
+    } while (doAll && ++itr != _colorMaps.end());
 }
 
 /**

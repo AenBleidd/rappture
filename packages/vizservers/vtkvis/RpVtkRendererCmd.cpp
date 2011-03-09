@@ -399,14 +399,18 @@ static int
 ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->deleteColorMap(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteColorMap(name);
+    } else {
+        g_renderer->deleteColorMap("all");
+    }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec colorMapOps[] = {
     {"add", 1, ColorMapAddOp, 5, 5, "colorMapName colormap alphamap"},
-    {"delete", 1, ColorMapDeleteOp, 3, 3, "colorMapName"}
+    {"delete", 1, ColorMapDeleteOp, 2, 3, "?colorMapName?"}
 };
 static int nColorMapOps = NumCmdSpecs(colorMapOps);
 
