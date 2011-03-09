@@ -2,7 +2,25 @@
  * ----------------------------------------------------------------------
  *  RpDiffview - like a textbox, but for showing diffs
  *
- *  Loads two strings, performs a diff, and shows the results.
+ *  Loads two strings, performs a diff, and shows the results.  Use
+ *  it as follows:
+ *
+ *  Rappture::Diffview .dv \
+ *      -addedbackground blue -addedforeground white \
+ *      -deletedbackground red -deletedforeground white -overstrike true \
+ *      -changedbackground black -changedforeground yellow \
+ *      -xscrollcommand {.x set} -yscrollcommand {.y set}
+ *  
+ *  scrollbar .x -orient horizontal -command {.dv xview}
+ *  scrollbar .y -orient vertical -command {.dv yview}
+ *  
+ *  .dv text 1 [exec cat /tmp/file1]
+ *  .dv text 2 [exec cat /tmp/file2]
+ *  .dv configure -diff 2->1 -layout sidebyside
+ *  
+ *  puts "DIFF OUTPUT:"
+ *  puts [.dv diffs -std]
+ *
  * ======================================================================
  *  AUTHOR:  Michael McLennan, Purdue University
  *  Copyright (c) 2004-2011  Purdue Research Foundation
@@ -13,6 +31,7 @@
  */
 #include "tk.h"
 #include <string.h>
+#include <stdlib.h>
 
 /*
  * Special options for controlling diffs.
@@ -45,7 +64,6 @@ static CONST char *scanCommandNames[] = {
 typedef struct {
     int numLines;		/* number of lines */
     int maxLines;		/* max size of storage in startPtr/endPtr */
-    int maxWidth;		/* max length in pixels for all lines */
     char **startPtr;		/* array of start pointers for each line */
     int *lenPtr;		/* array of lengths for each line */
 } DiffviewLines;
@@ -76,6 +94,8 @@ typedef struct {
     int toIndex1;		/* ends at this line in buffer 1 */
     int fromIndex2;		/* starts at this line in buffer 2 */
     int toIndex2;		/* ends at this line in buffer 2 */
+    int fromWorld;		/* starts at this line in world view */
+    int toWorld;		/* ends at this line in world view */
 } DiffviewDiffOp;
 
 typedef struct {
@@ -83,6 +103,22 @@ typedef struct {
     int numDiffs;		/* number of diffs stored in ops */
     DiffviewDiffOp *ops;	/* list of diffs */
 } DiffviewDiffs;
+
+/*
+ * Data structure used for each line of the final layout:
+ */
+typedef struct {
+    char style;			/* layout style: 'a'=add, 'd'=del, etc. */
+    char bnum;			/* show line from this buffer */
+    int bline;			/* line number in buffer bnum */
+    int diffNum;		/* line is part of this diff */
+} DiffviewLayoutLine;
+
+typedef struct {
+    int maxLines;		/* maximum number of lines allocated */
+    int numLines;		/* current number of lines in layout */
+    DiffviewLayoutLine *lines;	/* info for all lines in world view */
+} DiffviewLayout;
 
 /*
  * Data structure for the widget:
@@ -108,37 +144,50 @@ typedef struct {
 
     DiffviewBuffer buffer[2];	/* text to diff -- buffers #1 and #2 */
     DiffviewDiffs *diffsPtr;    /* diff: longest common subseq btwn buffers */
+    DiffviewLayout worldview;   /* array mapping each real line in world
+				 * coordinates to the corresponding line
+				 * in buffer #1/#2, along with its style */
 
-    enum diffdir diffdir;       /* diff between these buffers */
-    enum layoutStyle layout;    /* layout style (side-by-side or inline) */
-    int maxWidth;               /* maximum width of world view in pixels */
-    int maxHeight;              /* maximum height of world view in pixels */
-    int lineHeight;             /* height of a line with current font */
-    int lineAscent;             /* ascent of a line with current font */
-    int topLine;                /* index of topmost line in view */
-    int btmLine;                /* index of bottommost line in view */
-    int fullLines;              /* number of full lines that fit in view */
+    enum diffdir diffdir;	/* diff between these buffers */
+    enum layoutStyle layout;	/* layout style (side-by-side or inline) */
+    int maxWidth;		/* maximum width of world view in pixels */
+    int maxHeight;		/* maximum height of world view in pixels */
+    int lineHeight;		/* height of a line with current font */
+    int lineAscent;		/* ascent of a line with current font */
+    int topLine;		/* index of topmost line in view */
+    int btmLine;		/* index of bottommost line in view */
+    int fullLines;		/* number of full lines that fit in view */
 
-    int xOffset;                /* offset in pixels to left edge of view */
-    int xScrollUnit;            /* num pixels for one unit of horizontal
-                                 * scrolling (one average character) */
-    int yOffset;                /* offset in pixels to top edge of view */
-    int yScrollUnit;            /* num pixels for one unit of vertical
-                                 * scrolling (one average line) */
+    int xOffset;		/* offset in pixels to left edge of view */
+    int xScrollUnit;		/* num pixels for one unit of horizontal
+				 * scrolling (one average character) */
+    int yOffset;		/* offset in pixels to top edge of view */
+    int yScrollUnit;		/* num pixels for one unit of vertical
+				 * scrolling (one average line) */
     char *takeFocus;		/* value of -takefocus option */
     char *yScrollCmd;		/* command prefix for scrolling */
     char *xScrollCmd;		/* command prefix for scrolling */
 
-    int scanMarkX;              /* x-coord for "scan mark" */
-    int scanMarkY;              /* y-coord for "scan mark" */
-    int scanMarkXStart;         /* xOffset at start of scan */
-    int scanMarkYStart;         /* yOffset at start of scan */
+    int scanMarkX;		/* x-coord for "scan mark" */
+    int scanMarkY;		/* y-coord for "scan mark" */
+    int scanMarkXStart;		/* xOffset at start of scan */
+    int scanMarkYStart;		/* yOffset at start of scan */
 
 
     Tk_Font tkfont;		/* text font for content of widget */
     Tk_Font tklastfont;		/* previous text font (so we detect changes) */
     XColor *fgColorPtr;		/* normal foreground color */
-    GC textGC;			/* GC for drawing text */
+    XColor *addBgColorPtr;	/* background for "added" text in diff */
+    XColor *addFgColorPtr;	/* foreground for "added" text in diff */
+    XColor *delBgColorPtr;	/* background for "deleted" text in diff */
+    XColor *delFgColorPtr;	/* foreground for "deleted" text in diff */
+    XColor *chgBgColorPtr;	/* background for "changed" text in diff */
+    XColor *chgFgColorPtr;	/* foreground for "changed" text in diff */
+    int overStrDel;		/* non-zero => overstrike deleted text */
+    GC normGC;			/* GC for drawing normal text */
+    GC addFgGC;			/* GC for drawing "added" text in diff */
+    GC delFgGC;			/* GC for drawing "deleted" text in diff */
+    GC chgFgGC;			/* GC for drawing "changed" text in diff */
     int width;			/* overall width of widget, in pixels */
     int height;			/* overall height of widget, in pixels */
 
@@ -171,18 +220,25 @@ typedef struct {
 #define WHITE				"#ffffff"
 #define NORMAL_BG			"#d9d9d9"
 
+#define DEF_DIFFVIEW_ADDBG		"#ccffcc"
+#define DEF_DIFFVIEW_ADDFG		BLACK
 #define DEF_DIFFVIEW_BG_COLOR		NORMAL_BG
 #define DEF_DIFFVIEW_BG_MONO		WHITE
 #define DEF_DIFFVIEW_BORDERWIDTH	"2"
+#define DEF_DIFFVIEW_CHGBG		"#ffffcc"
+#define DEF_DIFFVIEW_CHGFG		BLACK
 #define DEF_DIFFVIEW_CURSOR		""
+#define DEF_DIFFVIEW_DELBG		"#ffcccc"
+#define DEF_DIFFVIEW_DELFG		"#666666"
 #define DEF_DIFFVIEW_DIFF		"1->2"
 #define DEF_DIFFVIEW_FG			BLACK
-#define DEF_DIFFVIEW_FONT		"*-Helvetica-Medium-R-Normal-*-12-120-*"
+#define DEF_DIFFVIEW_FONT		"Courier -12"
 #define DEF_DIFFVIEW_HEIGHT		"2i"
 #define DEF_DIFFVIEW_HIGHLIGHT_BG	NORMAL_BG
 #define DEF_DIFFVIEW_HIGHLIGHT		BLACK
 #define DEF_DIFFVIEW_HIGHLIGHT_WIDTH	"1"
 #define DEF_DIFFVIEW_LAYOUT		"inline"
+#define DEF_DIFFVIEW_OVERSTRDEL		"true"
 #define DEF_DIFFVIEW_RELIEF		"sunken"
 #define DEF_DIFFVIEW_TAKE_FOCUS		(char*)NULL
 #define DEF_DIFFVIEW_WIDTH		"2i"
@@ -193,6 +249,12 @@ typedef struct {
  * (must be in alphabetical order)
  */
 static Tk_OptionSpec optionSpecs[] = {
+    {TK_OPTION_COLOR, "-addedbackground", "addedBackground", "Background",
+	 DEF_DIFFVIEW_ADDBG, -1, Tk_Offset(Diffview, addBgColorPtr),
+	 TK_OPTION_NULL_OK, 0, 0},
+    {TK_OPTION_COLOR, "-addedforeground", "addedForeground", "Foreground",
+	 DEF_DIFFVIEW_ADDFG, -1, Tk_Offset(Diffview, addFgColorPtr),
+	 TK_OPTION_NULL_OK, 0, 0},
     {TK_OPTION_BORDER, "-background", "background", "Background",
 	 DEF_DIFFVIEW_BG_COLOR, -1, Tk_Offset(Diffview, normalBorder),
 	 0, (ClientData) DEF_DIFFVIEW_BG_MONO, 0},
@@ -203,8 +265,20 @@ static Tk_OptionSpec optionSpecs[] = {
     {TK_OPTION_PIXELS, "-borderwidth", "borderWidth", "BorderWidth",
 	 DEF_DIFFVIEW_BORDERWIDTH, -1, Tk_Offset(Diffview, borderWidth),
 	 0, 0, 0},
+    {TK_OPTION_COLOR, "-changedbackground", "changedBackground", "Background",
+	 DEF_DIFFVIEW_CHGBG, -1, Tk_Offset(Diffview, chgBgColorPtr),
+	 TK_OPTION_NULL_OK, 0, 0},
+    {TK_OPTION_COLOR, "-changedforeground", "changedForeground", "Foreground",
+	 DEF_DIFFVIEW_CHGFG, -1, Tk_Offset(Diffview, chgFgColorPtr),
+	 TK_OPTION_NULL_OK, 0, 0},
     {TK_OPTION_CURSOR, "-cursor", "cursor", "Cursor",
 	 DEF_DIFFVIEW_CURSOR, -1, Tk_Offset(Diffview, cursor),
+	 TK_OPTION_NULL_OK, 0, 0},
+    {TK_OPTION_COLOR, "-deletedbackground", "deletedBackground", "Background",
+	 DEF_DIFFVIEW_DELBG, -1, Tk_Offset(Diffview, delBgColorPtr),
+	 TK_OPTION_NULL_OK, 0, 0},
+    {TK_OPTION_COLOR, "-deletedforeground", "deletedForeground", "Foreground",
+	 DEF_DIFFVIEW_DELFG, -1, Tk_Offset(Diffview, delFgColorPtr),
 	 TK_OPTION_NULL_OK, 0, 0},
     {TK_OPTION_STRING_TABLE, "-diff", "diff", "Diff",
         DEF_DIFFVIEW_DIFF, -1, Tk_Offset(Diffview, diffdir),
@@ -229,6 +303,8 @@ static Tk_OptionSpec optionSpecs[] = {
     {TK_OPTION_STRING_TABLE, "-layout", "layout", "Layout",
         DEF_DIFFVIEW_LAYOUT, -1, Tk_Offset(Diffview, layout),
         0, (ClientData)layoutStyleStrings, 0},
+    {TK_OPTION_BOOLEAN, "-overstrike", "overstrike", "Overstrike",
+	 DEF_DIFFVIEW_OVERSTRDEL, -1, Tk_Offset(Diffview, overStrDel), 0, 0, 0},
     {TK_OPTION_RELIEF, "-relief", "relief", "Relief",
 	 DEF_DIFFVIEW_RELIEF, -1, Tk_Offset(Diffview, relief), 0, 0, 0},
     {TK_OPTION_STRING, "-takefocus", "takeFocus", "TakeFocus",
@@ -272,7 +348,7 @@ static int		DiffviewWidgetObjCmd _ANSI_ARGS_((ClientData clientData,
 	                    Tcl_Interp *interp, int objc,
 	                    Tcl_Obj *CONST objv[]));
 static int		DiffviewBboxSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
-	                    Diffview *dvPtr, int index));
+			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewDiffsSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
 	                    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewTextSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
@@ -281,6 +357,9 @@ static int		DiffviewXviewSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
 			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
 static int		DiffviewYviewSubCmd _ANSI_ARGS_ ((Tcl_Interp *interp,
 			    Diffview *dvPtr, int objc, Tcl_Obj *CONST objv[]));
+static int		DiffviewGetIndex _ANSI_ARGS_ ((Tcl_Interp *interp,
+			    Diffview *dvPtr, Tcl_Obj *objPtr, int *linePtr,
+			    DiffviewDiffOp **diffOpPtrPtr));
 
 static void		DestroyDiffview _ANSI_ARGS_((char *memPtr));
 static int		ConfigureDiffview _ANSI_ARGS_((Tcl_Interp *interp,
@@ -318,6 +397,13 @@ static void		DiffviewDiffsAppend _ANSI_ARGS_((
 			    int fromIndex2, int toIndex2));
 static void		DiffviewDiffsFree _ANSI_ARGS_((
 			    DiffviewDiffs *diffsPtr));
+static void		DiffviewLayoutAdd _ANSI_ARGS_((
+			    DiffviewLayout *layoutPtr,
+			    DiffviewLayoutLine *linePtr));
+static void		DiffviewLayoutClear _ANSI_ARGS_((
+			    DiffviewLayout *layoutPtr));
+static void		DiffviewLayoutFree _ANSI_ARGS_((
+			    DiffviewLayout *layoutPtr));
 
 /*
  * Standard Tk procs invoked from generic window code.
@@ -409,7 +495,10 @@ DiffviewObjCmd(clientData, interp, objc, objv)
 
     dvPtr->cursor = None;
     dvPtr->relief = TK_RELIEF_SUNKEN;
-    dvPtr->textGC = None;
+    dvPtr->normGC = None;
+    dvPtr->addFgGC = None;
+    dvPtr->delFgGC = None;
+    dvPtr->chgFgGC = None;
     dvPtr->xScrollUnit = 1;
     dvPtr->yScrollUnit = 1;
 
@@ -459,7 +548,7 @@ DiffviewWidgetObjCmd(clientData, interp, objc, objv)
 {
     Diffview *dvPtr = (Diffview*)clientData;
     int result = TCL_OK;
-    int cmdToken, index;
+    int cmdToken;
     
     if (objc < 2) {
         Tcl_WrongNumArgs(interp, 1, objv, "option ?arg arg ...?");
@@ -481,16 +570,7 @@ DiffviewWidgetObjCmd(clientData, interp, objc, objv)
 
     switch (cmdToken) {
         case COMMAND_BBOX: {
-            if (objc != 3) {
-                Tcl_WrongNumArgs(interp, 2, objv, "index");
-                result = TCL_ERROR;
-                break;
-            }
-            result = Tcl_GetIntFromObj(interp, objv[2], &index);
-            if (result != TCL_OK) {
-                break;
-            }
-            result = DiffviewBboxSubCmd(interp, dvPtr, index);
+            result = DiffviewBboxSubCmd(interp, dvPtr, objc, objv);
             break;
         }
 
@@ -578,32 +658,43 @@ DiffviewWidgetObjCmd(clientData, interp, objc, objv)
         }
 
         case COMMAND_SEE: {
-            int maxLines;
+            DiffviewDiffOp *diffOpPtr;
+            int line1, line2, topline;
+
             if (objc != 3) {
                 Tcl_WrongNumArgs(interp, 2, objv, "index");
                 result = TCL_ERROR;
                 break;
             }
-            result = Tcl_GetIntFromObj(interp, objv[2], &index);
+            result = DiffviewGetIndex(interp, dvPtr, objv[2],
+                &line1, &diffOpPtr);
             if (result != TCL_OK) {
                 break;
             }
 
-            maxLines = dvPtr->maxHeight/dvPtr->lineHeight;
-            if (index >= maxLines) {
-                index = maxLines-1;
-            }
-            if (index < 0) {
-                index = 0;
+            if (line1 < 0 && diffOpPtr != NULL) {
+                line1 = diffOpPtr->fromWorld;
+                line2 = diffOpPtr->toWorld;
+            } else {
+                line2 = line1;
             }
 
-            if (index < dvPtr->topLine || index > dvPtr->btmLine) {
+            if (line1 >= dvPtr->worldview.numLines) {
+                line1 = line2 = dvPtr->worldview.numLines-1;
+            }
+            if (line1 < 0) {
+                line1 = line2 = 0;
+            }
+
+            if (line1 < dvPtr->topLine || line1 > dvPtr->btmLine) {
                 /* location off screen? then center it in y-view */
-                index -= dvPtr->fullLines/2;
-                if (index < 0) {
-                    index = 0;
+                if (line2-line1 >= dvPtr->fullLines) {
+                    topline = line1;
+                } else {
+                    topline = (line1+line2)/2 - dvPtr->fullLines/2;
+                    if (topline < 0) topline = 0;
                 }
-                ChangeDiffviewView(dvPtr, index);
+                ChangeDiffviewView(dvPtr, topline);
             }
             result = TCL_OK;
             break;
@@ -639,44 +730,79 @@ DiffviewWidgetObjCmd(clientData, interp, objc, objv)
  * ----------------------------------------------------------------------
  */
 static int
-DiffviewBboxSubCmd(interp, dvPtr, index)
+DiffviewBboxSubCmd(interp, dvPtr, objc, objv)
     Tcl_Interp *interp;       /* interp handling this command */
     Diffview *dvPtr;          /* widget data */
-    int index;                /* desired element for bounding box */
+    int objc;                 /* number of command arguments */
+    Tcl_Obj *CONST objv[];    /* command arguments */
 {
-#ifdef FOO
-    int lastVisibleIndex;
-    /* Determine the index of the last visible item in the listbox */
-    lastVisibleIndex = dvPtr->topIndex + dvPtr->fullLines
-        + dvPtr->partialLine;
-    if (dvPtr->nElements < lastVisibleIndex) {
-        lastVisibleIndex = dvPtr->nElements;
+    char *opt, buf[256];
+    DiffviewDiffOp *diffOpPtr;
+    int line, bnum, bline, x1, y0, y1, wd;
+    char *textPtr; int textLen;
+
+    if (objc != 3) {
+        Tcl_WrongNumArgs(interp, 2, objv, "index");
+        return TCL_ERROR;
     }
 
-    /* Only allow bbox requests for indices that are visible */
-    if ((dvPtr->topIndex <= index) && (index < lastVisibleIndex)) {
-        char buf[TCL_INTEGER_SPACE * 4];
-        Tcl_Obj *el;
-        char *stringRep;
-        int pixelWidth, stringLen, x, y, result;
-        Tk_FontMetrics fm;
+    /* make sure that our layout info is up to date for queries below */
+    DiffviewUpdateLayout(dvPtr);
 
-        /* Compute the pixel width of the requested element */
-        result = Tcl_ListObjIndex(interp, dvPtr->listObj, index, &el);
-        if (result != TCL_OK) {
-            return result;
+    opt = Tcl_GetString(objv[2]);
+    if (*opt == 'a' && strcmp(opt,"all") == 0) {
+        sprintf(buf, "0 0 %d %d", dvPtr->maxWidth, dvPtr->maxHeight);
+        Tcl_SetResult(interp, buf, TCL_VOLATILE);
+        return TCL_OK;
+    }
+
+    if (DiffviewGetIndex(interp, dvPtr, objv[2], &line, &diffOpPtr) != TCL_OK) {
+        Tcl_AppendResult(interp, " or all", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    /* return the bounding box for a line in world coords */
+    if (line >= 0) {
+        y0 = line*dvPtr->lineHeight;
+        y1 = (line+1)*dvPtr->lineHeight;
+        x1 = 0;
+        if (line < dvPtr->worldview.numLines) {
+            bnum = dvPtr->worldview.lines[line].bnum;
+            bline = dvPtr->worldview.lines[line].bline;
+            if (bline >= 0) {
+                textPtr = dvPtr->buffer[bnum].lineLimits->startPtr[bline];
+                textLen = dvPtr->buffer[bnum].lineLimits->lenPtr[bline];
+                x1 = Tk_TextWidth(dvPtr->tkfont, textPtr, textLen);
+            }
         }
+        sprintf(buf, "0 %d %d %d", y0, x1, y1);
+        Tcl_SetResult(interp, buf, TCL_VOLATILE);
+        return TCL_OK;
+    }
 
-        stringRep = Tcl_GetStringFromObj(el, &stringLen);
-        Tk_GetFontMetrics(dvPtr->tkfont, &fm);
-        pixelWidth = Tk_TextWidth(dvPtr->tkfont, stringRep, stringLen);
+    /* return the bounding box for a diff in world coords */
+    if (diffOpPtr) {
+        y0 = diffOpPtr->fromWorld*dvPtr->lineHeight;
+        y1 = (diffOpPtr->toWorld+1)*dvPtr->lineHeight;
+        x1 = 0;
 
-        x = dvPtr->inset - dvPtr->xOffset;
-        y = ((index - dvPtr->topIndex)*dvPtr->lineHeight) + dvPtr->inset;
-        sprintf(buf, "%d %d %d %d", x, y, pixelWidth, fm.linespace);
+        for (line=diffOpPtr->fromWorld; line <= diffOpPtr->toWorld; line++) {
+            if (line < dvPtr->worldview.numLines) {
+                bnum = dvPtr->worldview.lines[line].bnum;
+                bline = dvPtr->worldview.lines[line].bline;
+                if (bline >= 0) {
+                    textPtr = dvPtr->buffer[bnum].lineLimits->startPtr[bline];
+                    textLen = dvPtr->buffer[bnum].lineLimits->lenPtr[bline];
+                    wd = Tk_TextWidth(dvPtr->tkfont, textPtr, textLen);
+                    if (wd > x1) {
+                        x1 = wd;
+                    }
+                }
+            }
+        }
+        sprintf(buf, "0 %d %d %d", y0, x1, y1);
         Tcl_SetResult(interp, buf, TCL_VOLATILE);
     }
-#endif
     return TCL_OK;
 }
 
@@ -1124,6 +1250,61 @@ DiffviewYviewSubCmd(interp, dvPtr, objc, objv)
 
 /*
  * ----------------------------------------------------------------------
+ * DiffviewGetIndex()
+ *
+ * Used by many of the widget operations to parse an index into the
+ * widget view.  Handles the following syntax:
+ *   #NN ...... particular diff number, starting from 1
+ *   NN ....... particular line number in world view, starting from 0
+ *
+ * Returns TCL_OK if successful, and TCL_ERROR (along with an error
+ * message) if anything goes wrong.
+ * ----------------------------------------------------------------------
+ */
+static int
+DiffviewGetIndex(interp, dvPtr, objPtr, linePtr, diffOpPtrPtr)
+    Tcl_Interp *interp;             /* interp handling this command */
+    Diffview *dvPtr;                /* widget data */
+    Tcl_Obj *objPtr;                /* argument being parsed */
+    int *linePtr;                   /* returns: line number or -1 */
+    DiffviewDiffOp **diffOpPtrPtr;  /* returns: specific diff or NULL */
+{
+    int result = TCL_OK;
+    char *opt = Tcl_GetString(objPtr);
+    char *tail;
+    int dnum;
+
+    /* clear the return values */
+    if (linePtr) *linePtr = -1;
+    if (diffOpPtrPtr) *diffOpPtrPtr = NULL;
+
+    if (*opt == '#') {
+        dnum = strtol(opt+1, &tail, 10);
+        if (*tail != '\0' || dnum <= 0) {
+           result = TCL_ERROR;
+        }
+        else if (dvPtr->diffsPtr == NULL
+                   || dnum > dvPtr->diffsPtr->numDiffs) {
+           Tcl_AppendResult(interp, "diff \"", opt, "\" doesn't exist",
+               (char*)NULL);
+           return TCL_ERROR;
+        }
+        *diffOpPtrPtr = &dvPtr->diffsPtr->ops[dnum-1];
+    } else {
+        result = Tcl_GetIntFromObj(interp, objPtr, linePtr);
+    }
+
+    if (result != TCL_OK) {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, "bad index \"", opt, "\": should be "
+            "\"#n\" for diff, or an integer value for line number",
+            (char*)NULL);
+    }
+    return result;
+}
+
+/*
+ * ----------------------------------------------------------------------
  * DestroyDiffview()
  *
  * Used by Tcl_Release/Tcl_EventuallyFree to clean up the data associated
@@ -1153,13 +1334,24 @@ DestroyDiffview(memPtr)
     if (dvPtr->diffsPtr) {
         DiffviewDiffsFree(dvPtr->diffsPtr);
     }
+    DiffviewLayoutFree(&dvPtr->worldview);
 
     /*
      * Free up GCs and configuration options.
      */
-    if (dvPtr->textGC != None) {
-        Tk_FreeGC(dvPtr->display, dvPtr->textGC);
+    if (dvPtr->normGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->normGC);
     }
+    if (dvPtr->addFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->addFgGC);
+    }
+    if (dvPtr->delFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->delFgGC);
+    }
+    if (dvPtr->chgFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->chgFgGC);
+    }
+
     Tk_FreeConfigOptions((char*)dvPtr, dvPtr->optionTable, dvPtr->tkwin);
     Tcl_Release((ClientData) dvPtr->tkwin);
     dvPtr->tkwin = NULL;
@@ -1239,16 +1431,56 @@ DiffviewWorldChanged(cdata)
     GC gc; XGCValues gcValues;
     unsigned long mask;
 
+    /* GC for normal widget text */
     gcValues.foreground = dvPtr->fgColorPtr->pixel;
     gcValues.graphics_exposures = False;
     gcValues.font = Tk_FontId(dvPtr->tkfont);
     mask = GCForeground | GCFont | GCGraphicsExposures;
 
     gc = Tk_GetGC(dvPtr->tkwin, mask, &gcValues);
-    if (dvPtr->textGC != None) {
-        Tk_FreeGC(dvPtr->display, dvPtr->textGC);
+    if (dvPtr->normGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->normGC);
     }
-    dvPtr->textGC = gc;
+    dvPtr->normGC = gc;
+
+    /* GC for added diff text */
+    gcValues.foreground = dvPtr->addFgColorPtr->pixel;
+    gcValues.graphics_exposures = False;
+    gcValues.font = Tk_FontId(dvPtr->tkfont);
+    mask = GCForeground | GCFont | GCGraphicsExposures;
+
+    gc = Tk_GetGC(dvPtr->tkwin, mask, &gcValues);
+    if (dvPtr->addFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->addFgGC);
+    }
+    dvPtr->addFgGC = gc;
+
+    /* GC for deleted diff text */
+    gcValues.foreground = dvPtr->delFgColorPtr->pixel;
+    gcValues.graphics_exposures = False;
+    gcValues.font = Tk_FontId(dvPtr->tkfont);
+    mask = GCForeground | GCFont | GCGraphicsExposures;
+
+    gc = Tk_GetGC(dvPtr->tkwin, mask, &gcValues);
+    if (dvPtr->delFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->delFgGC);
+    }
+    dvPtr->delFgGC = gc;
+
+    /* GC for changed diff text */
+    gcValues.foreground = dvPtr->chgFgColorPtr->pixel;
+    gcValues.graphics_exposures = False;
+    gcValues.font = Tk_FontId(dvPtr->tkfont);
+    mask = GCForeground | GCFont | GCGraphicsExposures;
+
+    gc = Tk_GetGC(dvPtr->tkwin, mask, &gcValues);
+    if (dvPtr->chgFgGC != None) {
+        Tk_FreeGC(dvPtr->display, dvPtr->chgFgGC);
+    }
+    dvPtr->chgFgGC = gc;
+
+    /* this call comes when the font changes -- fix the layout */
+    dvPtr->flags |= FONT_CHANGED;
 
     /* get ready to redraw */
     DiffviewComputeGeometry(dvPtr);
@@ -1290,9 +1522,10 @@ DisplayDiffview(cdata)
     Diffview *dvPtr = (Diffview*)cdata;
     Tk_Window tkwin = dvPtr->tkwin;
 
-    int i, bnum, x, y;
+    int i, bnum, bline, x, xw, y, ymid, width;
     char *textPtr; int textLen;
     Pixmap pixmap;
+    GC bg, fg;
 
     /* handling redraw now -- no longer pending */
     dvPtr->flags &= ~REDRAW_PENDING;
@@ -1349,34 +1582,61 @@ DisplayDiffview(cdata)
     y = dvPtr->inset + dvPtr->topLine*dvPtr->lineHeight + dvPtr->lineAscent
           - dvPtr->yOffset;
     x = dvPtr->inset - dvPtr->xOffset;
+    width = Tk_Width(tkwin);
 
-    if (dvPtr->diffdir == DIFF_1TO2) {
-        bnum = 1;  /* 1->2 means: show lines from buffer #2 */
-    } else {
-        bnum = 0;  /* 2->1 means: show lines from buffer #1 */
-    }
+    for (i=dvPtr->topLine;
+         i <= dvPtr->btmLine && i < dvPtr->worldview.numLines;
+         i++) {
 
-    if (dvPtr->buffer[bnum].lineLimits) {
-        for (i=dvPtr->topLine; i <= dvPtr->btmLine; i++) {
-            if (i >= dvPtr->buffer[bnum].lineLimits->numLines) {
+        /* draw any diff rectangle for this line */
+        fg = dvPtr->normGC;
+        bg = None;
+
+        switch (dvPtr->worldview.lines[i].style) {
+            case 'a': {
+                fg = dvPtr->addFgGC;
+                bg = Tk_GCForColor(dvPtr->addBgColorPtr, pixmap);
                 break;
             }
+            case 'd': {
+                fg = dvPtr->delFgGC;
+                bg = Tk_GCForColor(dvPtr->delBgColorPtr, pixmap);
+                break;
+            }
+            case 'c': {
+                fg = dvPtr->chgFgGC;
+                bg = Tk_GCForColor(dvPtr->chgBgColorPtr, pixmap);
+                break;
+            }
+        }
 
-            /* draw any diff rectangle for this line */
-            /*
-            Tk_Fill3DRectangle(tkwin, pixmap, selectedBg, x, y,
-                width, dvPtr->lineHeight, 0, TK_RELIEF_FLAT);
-            */
+        if (bg != None) {
+            XFillRectangle(Tk_Display(tkwin), pixmap, bg,
+                x, y - dvPtr->lineAscent,
+                (unsigned int)width, (unsigned int)dvPtr->lineHeight);
+        }
 
-            textPtr = dvPtr->buffer[bnum].lineLimits->startPtr[i];
-            textLen = dvPtr->buffer[bnum].lineLimits->lenPtr[i];
+        bnum = dvPtr->worldview.lines[i].bnum;
+        bline = dvPtr->worldview.lines[i].bline;
+
+        /* a negative number means "leave the line blank" */
+        if (bline >= 0) {
+            textPtr = dvPtr->buffer[bnum].lineLimits->startPtr[bline];
+            textLen = dvPtr->buffer[bnum].lineLimits->lenPtr[bline];
 
             /* Draw the actual text of this item */
-            Tk_DrawChars(dvPtr->display, pixmap, dvPtr->textGC, dvPtr->tkfont,
-                    textPtr, textLen, x, y);
+            Tk_DrawChars(dvPtr->display, pixmap, fg, dvPtr->tkfont,
+                textPtr, textLen, x, y);
 
-            y += dvPtr->lineHeight;
+            /* Draw an overstrike on deleted text */
+            if (dvPtr->worldview.lines[i].style == 'd' && dvPtr->overStrDel) {
+                xw = Tk_TextWidth(dvPtr->tkfont, textPtr, textLen) + 5;
+                ymid = y - dvPtr->lineAscent/2;
+                XDrawLine(Tk_Display(tkwin), pixmap, fg, 0, ymid, xw, ymid);
+            }
         }
+
+        y += dvPtr->lineHeight;
     }
 
     /*
@@ -1400,7 +1660,7 @@ DisplayDiffview(cdata)
 
 #ifndef TK_NO_DOUBLE_BUFFERING
     XCopyArea(dvPtr->display, pixmap, Tk_WindowId(tkwin),
-            dvPtr->textGC, 0, 0, (unsigned) Tk_Width(tkwin),
+            dvPtr->normGC, 0, 0, (unsigned) Tk_Width(tkwin),
             (unsigned) Tk_Height(tkwin), 0, 0);
     Tk_FreePixmap(dvPtr->display, pixmap);
 #endif
@@ -1610,7 +1870,10 @@ DiffviewUpdateLayout(dvPtr)
 {
     int changes = 0;   /* no layout changes yet */
     DiffviewBuffer* bufferPtr;
-    int i, bnum, pixelWidth, maxWidth, numLines, ySize;
+    DiffviewDiffOp *currOp;
+    DiffviewLayoutLine line;
+    int i, bnum, bline, pixelWidth, maxWidth, ySize;
+    int numLines1, numLines2, lnum1, lnum2, dnum, lastdnum, pastDiff;
     char *textPtr, *textPtr2; int textLen;
     Tk_FontMetrics fm;
 
@@ -1638,60 +1901,235 @@ DiffviewUpdateLayout(dvPtr)
         if (dvPtr->buffer[0].textObj && dvPtr->buffer[1].textObj) {
             textPtr = Tcl_GetStringFromObj(dvPtr->buffer[0].textObj, &textLen);
             textPtr2 = Tcl_GetStringFromObj(dvPtr->buffer[1].textObj, &textLen);
+
             dvPtr->diffsPtr = DiffviewDiffsCreate(
                 textPtr, dvPtr->buffer[0].lineLimits,
                 textPtr2, dvPtr->buffer[1].lineLimits);
         }
 
-        /* compute overall size of each buffer */
-        for (bnum=0; bnum < 2; bnum++) {
-            bufferPtr = &dvPtr->buffer[bnum];
+        /*
+         * Compute the layout of all lines according to the current
+         * view mode.  Each line in the world view is stored in the
+         * array dvPtr->worldview.lines.  Each line has a style (color
+         * for normal, add, delete, etc.) and an indication of which
+         * buffer it comes from.
+         */
+        DiffviewLayoutClear(&dvPtr->worldview);
 
-            if (bufferPtr->lineLimits) {
-                maxWidth = 0;
+        /*
+         * March through the lines and figure out the source and style
+         * of each line based on the diffs:
+         *   'n' = normal (common) line
+         *   'a' = draw with the "added" style
+         *   'd' = draw with the "deleted" style
+         *   'c' = draw with the "changed" style
+         */
+        numLines1 = (dvPtr->buffer[0].lineLimits)
+                       ? dvPtr->buffer[0].lineLimits->numLines : 0;
+        numLines2 = (dvPtr->buffer[1].lineLimits)
+                       ? dvPtr->buffer[1].lineLimits->numLines : 0;
 
-                for (i=0; i < bufferPtr->lineLimits->numLines; i++) {
-                    textPtr = bufferPtr->lineLimits->startPtr[i];
-                    textLen = bufferPtr->lineLimits->lenPtr[i];
+        dnum = 0;  /* current difference in diffsPtr */
+        lnum1 = lnum2 = 0;
+
+        while (lnum1 < numLines1 || lnum2 < numLines2) {
+            /* assume it's a normal-looking line (buffers are the same) */
+            line.style = 'n';
+            line.bnum = 0;
+            line.bline = lnum1;
+            line.diffNum = -1;
+
+            /* is there a diff that contains this line? */
+            if (dvPtr->diffsPtr && dnum < dvPtr->diffsPtr->numDiffs) {
+              currOp = &dvPtr->diffsPtr->ops[dnum];
+
+              if ( (lnum1 >= currOp->fromIndex1
+                     && lnum1 <= currOp->toIndex1)
+                || (lnum2 >= currOp->fromIndex2
+                     && lnum2 <= currOp->toIndex2) ) {
+
+                line.diffNum = dnum;  /* line is part of this diff */
+
+                switch (currOp->op) {
+                    case 'c': {
+                        if (dvPtr->layout == LAYOUT_INLINE) {
+                            if (dvPtr->diffdir == DIFF_1TO2) {
+                                /* show the buffer #1 lines first, then #2 */
+                                if (lnum1 <= currOp->toIndex1) {
+                                    line.style = 'd';
+                                    line.bnum = 0;
+                                    line.bline = lnum1++;
+                                } else {
+                                    line.style = 'a';
+                                    line.bnum = 1;
+                                    line.bline = lnum2++;
+                                }
+                            } else {
+                                /* reverse -- show #2 lines first, then #1 */
+                                if (lnum2 <= currOp->toIndex2) {
+                                    line.style = 'd';
+                                    line.bnum = 1;
+                                    line.bline = lnum2++;
+                                } else {
+                                    line.style = 'a';
+                                    line.bnum = 0;
+                                    line.bline = lnum1++;
+                                }
+                            }
+                        } else {
+                            if (dvPtr->diffdir == DIFF_1TO2) {
+                                /* show final lines in buf #2 as "changed" */
+                                line.style = 'c';
+                                line.bnum = 1;
+                                line.bline = lnum2++;
+                                lnum1 = currOp->toIndex1+1;
+                            } else {
+                                /* show final lines in buf #1 as "changed" */
+                                line.style = 'c';
+                                line.bnum = 0;
+                                line.bline = lnum1++;
+                                lnum2 = currOp->toIndex2+1;
+                            }
+                        }
+                        break;
+                    }
+                    case 'a': {
+                        if (dvPtr->diffdir == DIFF_1TO2) {
+                            /* show lines in buffer #2 as 'added' */
+                            line.style = 'a';
+                            line.bnum = 1;
+                            line.bline = lnum2++;
+                            lnum1 = currOp->toIndex1;
+                        } else {
+                            /* reverse diff -- like we're deleting lines */
+                            if (dvPtr->layout == LAYOUT_INLINE) {
+                                line.style = 'd';
+                                line.bnum = 1;
+                                line.bline = lnum2++;
+                                lnum1 = currOp->toIndex1;
+                            } else {
+                                /* show lines from buffer #2 as empty */
+                                line.style = 'd';
+                                line.bnum = 0;
+                                line.bline = -1;
+                                lnum2++;
+                                lnum1 = currOp->toIndex1;
+                            }
+                        }
+                        break;
+                    }
+                    case 'd': {
+                        if (dvPtr->diffdir == DIFF_1TO2) {
+                            if (dvPtr->layout == LAYOUT_INLINE) {
+                                line.style = 'd';
+                                line.bnum = 0;
+                                line.bline = lnum1++;
+                                lnum2 = currOp->toIndex2;
+                            } else {
+                                /* show lines from buffer #2 as empty */
+                                line.style = 'd';
+                                line.bnum = 0;
+                                line.bline = -1;
+                                lnum1++;
+                                lnum2 = currOp->toIndex2;
+                            }
+                        } else {
+                            /* reverse diff -- like we're adding lines */
+                            line.style = 'a';
+                            line.bnum = 0;
+                            line.bline = lnum1++;
+                            lnum2 = currOp->toIndex2;
+                        }
+                        break;
+                    }
+                    default: {
+                        Tcl_Panic("bad diff type '%c' found in layout",
+                            currOp->op);
+                        break;
+                    }
+                }
+              } else {
+                /* normal line -- keep moving forward */
+                lnum1++; lnum2++;
+              }
+
+              /* have we reached the end of the diff? then move on */
+              pastDiff = 0;
+              switch (currOp->op) {
+                  case 'c':
+                      pastDiff = (lnum1 > currOp->toIndex1
+                               && lnum2 > currOp->toIndex2);
+                      break;
+                  case 'a':
+                      pastDiff = (lnum2 > currOp->toIndex2);
+                      break;
+                  case 'd':
+                      pastDiff = (lnum1 > currOp->toIndex1);
+                      break;
+              }
+              if (pastDiff) {
+                  dnum++;
+              }
+            } else {
+                /* no more diffs -- keep moving forward */
+                lnum1++; lnum2++;
+            }
+
+            /* add this new line to the layout */
+            DiffviewLayoutAdd(&dvPtr->worldview, &line);
+        }
+
+        /*
+         * Figure out where the diffs are located, and put that info
+         * back into the diffs.  This makes it easy later to refer to
+         * diff "#3" and understand what lines we're talking about.
+         */
+        lastdnum = -1;
+        for (i=0; i < dvPtr->worldview.numLines; i++) {
+            dnum = dvPtr->worldview.lines[i].diffNum;
+            if (dnum != lastdnum) {
+                if (lastdnum < 0) {
+                    /* leading edge -- catch the "from" line */
+                    lnum1 = i;
+                } else {
+                    /* trailing edge -- save diff info */
+                    dvPtr->diffsPtr->ops[lastdnum].fromWorld = lnum1;
+                    dvPtr->diffsPtr->ops[lastdnum].toWorld = i-1;
+                }
+            }
+            lastdnum = dnum;
+        }
+        if (lastdnum >= 0) {
+            dvPtr->diffsPtr->ops[lastdnum].fromWorld = lnum1;
+            dvPtr->diffsPtr->ops[lastdnum].toWorld = i-1;
+        }
+
+        /* compute overall text width for all lines */
+        maxWidth = 0;
+        for (i=0; i < dvPtr->worldview.numLines; i++) {
+            bline = dvPtr->worldview.lines[i].bline;
+            if (bline >= 0) {
+                bnum = dvPtr->worldview.lines[i].bnum;
+                bufferPtr = &dvPtr->buffer[bnum];
+
+                if (bufferPtr->lineLimits) {
+                    textPtr = bufferPtr->lineLimits->startPtr[bline];
+                    textLen = bufferPtr->lineLimits->lenPtr[bline];
                     pixelWidth = Tk_TextWidth(dvPtr->tkfont, textPtr, textLen);
 
                     if (pixelWidth > maxWidth) {
                         maxWidth = pixelWidth;
                     }
                 }
-                bufferPtr->lineLimits->maxWidth = maxWidth;
-            }
-        }
-
-        /* compute overall size of the widget depending on the layout */
-        if (dvPtr->diffdir == DIFF_1TO2) {
-            bnum = 0;
-        } else {
-            bnum = 1;
-        }
-
-        maxWidth = 0;
-        numLines = 0;
-        if (dvPtr->buffer[bnum].lineLimits) {
-            maxWidth = dvPtr->buffer[bnum].lineLimits->maxWidth;
-            if (dvPtr->layout == LAYOUT_INLINE) {
-                numLines = dvPtr->buffer[bnum].lineLimits->numLines;
-            } else {
-                /* WARNING - should compute the height by looking at diffs */
-                for (i=0; i < 2; i++) {
-                    if (dvPtr->buffer[i].lineLimits
-                          && dvPtr->buffer[i].lineLimits->numLines > numLines) {
-                        numLines = dvPtr->buffer[i].lineLimits->numLines;
-                    }
-                }
             }
         }
         dvPtr->maxWidth = maxWidth;
 
+        /* compute overall height of the widget */
         Tk_GetFontMetrics(dvPtr->tkfont, &fm);
         dvPtr->lineHeight = fm.linespace;
         dvPtr->lineAscent = fm.ascent;
-        dvPtr->maxHeight = numLines * fm.linespace;
+        dvPtr->maxHeight = dvPtr->worldview.numLines * fm.linespace;
 
         /* figure out the limits of the current view */
         ySize = Tk_Height(dvPtr->tkwin) - 2*dvPtr->inset;
@@ -1839,7 +2277,6 @@ DiffviewLinesCreate(textPtr, textLen)
 
     lineLimitsPtr = (DiffviewLines*)ckalloc(sizeof(DiffviewLines));
     lineLimitsPtr->maxLines = 0;
-    lineLimitsPtr->maxWidth = 0;
     lineLimitsPtr->startPtr = NULL;
     lineLimitsPtr->lenPtr = NULL;
 
@@ -2220,8 +2657,8 @@ DiffviewDiffsAppend(diffsPtr, op, fromIndex1, toIndex1, fromIndex2, toIndex2)
  * ----------------------------------------------------------------------
  * DiffviewDiffsFree()
  *
- * Appends a "diff" operation onto a list of diffs.  The list is extended
- * automatically, if need be, to store the new element.
+ * Frees up the storage previously created by calling
+ * DiffviewDiffsAppend().
  * ----------------------------------------------------------------------
  */
 static void
@@ -2232,4 +2669,90 @@ DiffviewDiffsFree(diffsPtr)
         ckfree((char*)diffsPtr->ops);
     }
     ckfree((char*)diffsPtr);
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewLayoutAdd()
+ *
+ * Clears out the layout storage in preparation for building another
+ * layout.  If the previous number of lines was much less than the
+ * maximum allocated, then this routine reallocates a smaller storage
+ * space.  This provides a way to give back a large chunk of memory
+ * if the contents of the widget is nulled out, for example.
+ * ----------------------------------------------------------------------
+ */
+static void
+DiffviewLayoutAdd(layoutPtr, linePtr)
+    DiffviewLayout *layoutPtr;    /* line layout being updated */
+    DiffviewLayoutLine *linePtr;  /* line being added to layout */
+{
+    DiffviewLayoutLine *newLineArray;
+
+    /* expand the array as needed */
+    if (layoutPtr->numLines >= layoutPtr->maxLines) {
+        if (layoutPtr->maxLines == 0) {
+            layoutPtr->maxLines = 100;
+        } else {
+            layoutPtr->maxLines *= 2;
+        }
+        newLineArray = (DiffviewLayoutLine*)ckalloc(
+            (unsigned)(layoutPtr->maxLines*sizeof(DiffviewLayoutLine)));
+
+        if (layoutPtr->lines) {
+            memcpy((VOID*)newLineArray, (VOID*)layoutPtr->lines,
+                layoutPtr->numLines*sizeof(DiffviewLayoutLine));
+            ckfree((char*)layoutPtr->lines);
+        }
+        layoutPtr->lines = newLineArray;
+    }
+
+    /* copy the latest line in and bump the count */
+    memcpy((VOID*)&layoutPtr->lines[layoutPtr->numLines],
+        (VOID*)linePtr, sizeof(DiffviewLayoutLine));
+
+    layoutPtr->numLines++;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewLayoutClear()
+ *
+ * Clears out the layout storage in preparation for building another
+ * layout.  If the previous number of lines was much less than the
+ * maximum allocated, then this routine reallocates a smaller storage
+ * space.  This provides a way to give back a large chunk of memory
+ * if the contents of the widget is nulled out, for example.
+ * ----------------------------------------------------------------------
+ */
+static void
+DiffviewLayoutClear(layoutPtr)
+    DiffviewLayout *layoutPtr;  /* line layout being freed */
+{
+    if (layoutPtr->numLines > 0
+          && layoutPtr->numLines < layoutPtr->maxLines/3
+          && layoutPtr->maxLines > 100) {
+        ckfree((char*)layoutPtr->lines);
+        layoutPtr->lines = (DiffviewLayoutLine*)ckalloc(
+            (unsigned)(layoutPtr->numLines * sizeof(DiffviewLayoutLine)));
+    }
+    layoutPtr->numLines = 0;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * DiffviewLayoutFree()
+ *
+ * Frees the storage associated with the layout of all lines within
+ * the widget.
+ * ----------------------------------------------------------------------
+ */
+static void
+DiffviewLayoutFree(layoutPtr)
+    DiffviewLayout *layoutPtr;  /* line layout being freed */
+{
+    if (layoutPtr->lines) {
+        ckfree((char*)layoutPtr->lines);
+        layoutPtr->lines = NULL;
+    }
 }
