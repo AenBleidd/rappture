@@ -86,6 +86,14 @@ while {[llength $argv] > 0} {
     }
 }
 
-# invoke the main program with the args
-puts stderr alist=$alist
-eval exec wish [list $mainscript] $alist
+# Invoke the main program with the args
+
+# Note: We're sourcing the driver file "main.tcl" rather than exec-ing
+#       wish because we want to see stderr and stdout messages when they
+#	written, rather than when the program completes.  It also eliminates
+#	one process waiting for the other to complete. If "exec" is needed, 
+#	then the following could be replaced with blt::bgexec.  It doesn't
+#	try to redirect stderr into a file.
+set argv $alist
+package require Tk
+source  $mainscript
