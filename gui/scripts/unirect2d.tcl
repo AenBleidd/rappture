@@ -23,6 +23,7 @@ itcl::class Rappture::Unirect2d {
 
     public method limits {axis}
     public method blob {}
+    public method mesh.old {}
     public method mesh {}
     public method values {}
     public method hints {{keyword ""}} 
@@ -136,12 +137,12 @@ itcl::body Rappture::Unirect2d::blob {} {
 }
 
 # ----------------------------------------------------------------------
-# method mesh 
+# method mesh.old 
 #	Returns a base64 encoded, gzipped Tcl list that represents the
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::mesh {} {
+itcl::body Rappture::Unirect2d::mesh.old {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
     set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
     for { set i 0 } { $i < $_xNum } { incr i } {
@@ -152,6 +153,17 @@ itcl::body Rappture::Unirect2d::mesh {} {
         }
     }
     return $data
+}
+
+# ----------------------------------------------------------------------
+# method mesh
+#	Returns a base64 encoded, gzipped Tcl list that represents the
+#	Tcl command and data to recreate the uniform rectangular grid 
+#	on the nanovis server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Unirect2d::mesh {} {
+    lappend out $_xMin $_xMax $_xNum $_yMin $_yMax $_yNum
+    return $out
 }
 
 # ----------------------------------------------------------------------
