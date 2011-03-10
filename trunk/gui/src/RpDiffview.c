@@ -82,7 +82,7 @@ typedef struct {
 typedef struct subseq {
     int index1;			/* index in buffer #1 */
     int index2;			/* index in buffer #2 */
-    struct subseq *subseqPtr;	/* LCS indices for buffer #1 */
+    int next;			/* next candidate match in the chain */
 } DiffviewSubseq;
 
 /*
@@ -2388,9 +2388,10 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
     Tcl_HashSearch iter;
     Tcl_HashEntry *entryPtr;
     Tcl_DString buffer;
-    DiffviewSubseq *K, *newK, *candidate, newCandidate; int Kmax; int Klen;
+    DiffviewSubseq *K, *newK, newCandidate; int Kmax; int Klen;
     Tcl_Obj *listPtr, **objv;
-    int i, j, subseqLen, longestMatch, max, min, mid, midval, sLen, del;
+    int i, j, candidateIdx, subseqLen, longestMatch;
+    int max, min, mid, midval, sLen, del;
     int len, created, o, objc, index1, *lcsIndex1, index2, *lcsIndex2;
     char *key;
 
@@ -2427,10 +2428,10 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
     K = (DiffviewSubseq*)ckalloc(Kmax*sizeof(DiffviewSubseq));
     K[0].index1 = -1;
     K[0].index2 = -1;
-    K[0].subseqPtr = NULL;
+    K[0].next = -1;
     K[1].index1 = limsPtr1->numLines;
     K[1].index2 = limsPtr2->numLines;
-    K[1].subseqPtr = NULL;
+    K[1].next = -1;
     Klen = 2;
     longestMatch = 0;
 
@@ -2447,7 +2448,7 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
         entryPtr = Tcl_FindHashEntry(&eqv, key);
         if (entryPtr) {
             subseqLen = 0;
-            candidate = &K[0];
+            candidateIdx = 0;
 
             listPtr = (Tcl_Obj*)Tcl_GetHashValue(entryPtr);
             Tcl_ListObjGetElements((Tcl_Interp*)NULL, listPtr, &objc, &objv);
@@ -2488,14 +2489,20 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
                  * Set subseqLen to the length of the new candidate match.
                  */
                 if (subseqLen >= 0) {
-                    K[subseqLen].index1    = candidate->index1;
-                    K[subseqLen].index2    = candidate->index2;
-                    K[subseqLen].subseqPtr = candidate->subseqPtr;
+                    if (candidateIdx >= 0) {
+                        K[subseqLen].index1 = K[candidateIdx].index1;
+                        K[subseqLen].index2 = K[candidateIdx].index2;
+                        K[subseqLen].next   = K[candidateIdx].next;
+                    } else {
+                        K[subseqLen].index1 = newCandidate.index1;
+                        K[subseqLen].index2 = newCandidate.index2;
+                        K[subseqLen].next   = newCandidate.next;
+                    }
                 }
                 newCandidate.index1 = i;
                 newCandidate.index2 = j;
-                newCandidate.subseqPtr = &K[sLen];
-                candidate = &newCandidate;
+                newCandidate.next = sLen;
+                candidateIdx = -1;  /* use newCandidate info */
                 subseqLen = sLen + 1;
 
                 /*
@@ -2511,9 +2518,9 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
                         ckfree((char*)K);
                         K = newK;
                     }
-                    K[Klen].index1    = K[Klen-1].index1;
-                    K[Klen].index2    = K[Klen-1].index2;
-                    K[Klen].subseqPtr = K[Klen-1].subseqPtr;
+                    K[Klen].index1 = K[Klen-1].index1;
+                    K[Klen].index2 = K[Klen-1].index2;
+                    K[Klen].next   = K[Klen-1].next;
                     Klen++;
 
                     longestMatch++;
@@ -2522,9 +2529,15 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
             }
 
             /* put the last candidate into the array */
-            K[subseqLen].index1    = candidate->index1;
-            K[subseqLen].index2    = candidate->index2;
-            K[subseqLen].subseqPtr = candidate->subseqPtr;
+            if (candidateIdx >= 0) {
+                K[subseqLen].index1 = K[candidateIdx].index1;
+                K[subseqLen].index2 = K[candidateIdx].index2;
+                K[subseqLen].next   = K[candidateIdx].next;
+            } else {
+                K[subseqLen].index1 = newCandidate.index1;
+                K[subseqLen].index2 = newCandidate.index2;
+                K[subseqLen].next   = newCandidate.next;
+            }
         }
     }
 
@@ -2537,12 +2550,14 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
     memset((void*)lcsIndex2, 0, (longestMatch*sizeof(int)));
     len = longestMatch;
 
-    candidate = &K[longestMatch];
-    while (candidate->index1 >= 0) {
-        longestMatch--;
-        lcsIndex1[longestMatch] = candidate->index1;
-        lcsIndex2[longestMatch] = candidate->index2;
-        candidate = candidate->subseqPtr;
+    candidateIdx = longestMatch;
+    while (K[candidateIdx].index1 >= 0) {
+        if (longestMatch-- < 0) {
+            Tcl_Panic("internal mismatch in diff algorithm");
+        }
+        lcsIndex1[longestMatch] = K[candidateIdx].index1;
+        lcsIndex2[longestMatch] = K[candidateIdx].index2;
+        candidateIdx = K[candidateIdx].next;
     }
 
     /*
