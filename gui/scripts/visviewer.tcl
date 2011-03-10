@@ -22,6 +22,7 @@ itcl::class ::Rappture::VisViewer {
     private common _servers         ;# array of visualization server lists
     set _servers(nanovis) "localhost:2000"
     set _servers(pymol)   "localhost:2020"
+    set _servers(vtkvis)  "localhost:2010"
 
     private variable _sid ""        ;# socket connection to server
     private common _done            ;# Used to indicate status of send.
@@ -83,6 +84,9 @@ itcl::class ::Rappture::VisViewer {
     }
     public proc SetNanovisServerList { namelist } {
         SetServerList "nanovis" $namelist
+    }
+    public proc SetVtkServerList { namelist } {
+        SetServerList "vtk" $namelist
     }
 }
 
