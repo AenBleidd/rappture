@@ -63,6 +63,11 @@ itcl::body Rappture::Field2DResult::constructor {args} {
                     Rappture::HeightmapViewer $itk_interior.ren $servers 
                 }
             }
+            "vtkcontour" {
+                itk_component add renderer {
+                    Rappture::VtkContourViewer $itk_interior.ren $servers 
+                }
+            }
             "flowvis" {
                 itk_component add renderer {
                     Rappture::FlowvisViewer $itk_interior.ren $servers
