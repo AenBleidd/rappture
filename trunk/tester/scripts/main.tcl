@@ -42,6 +42,7 @@ option add *Gauge.textBackground white
 option add *TemperatureGauge.textBackground white
 option add *Switch.textBackground white
 option add *Progress.barColor #ffffcc
+option add *Diffview.background white
 option add *Balloon.titleBackground #6666cc
 option add *Balloon.titleForeground white
 option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-12-*
@@ -57,6 +58,19 @@ option add *BugReport*banner*background #a9a9a9
 option add *BugReport*banner*highlightBackground #a9a9a9
 option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-18-*
 
+option add *testdiffs.hd*background #666666
+option add *testdiffs.hd*highlightBackground #666666
+option add *testdiffs.hd*foreground white
+option add *testdiffs.hd.inner.highlightBackground #999999
+option add *testdiffs.hd.inner*font {Arial -12 bold}
+option add *testdiffs.hd.inner*help.font {Arial -10 italic}
+option add *testdiffs.hd.inner*help.padX 2
+option add *testdiffs.hd.inner*help.padY 2
+option add *testdiffs.hd.inner*help.borderWidth 1
+option add *testdiffs.hd.inner*help.relief flat
+option add *testdiffs.hd.inner*help.overRelief raised
+option add *testdiffs.legend*font {Arial -12}
+
 switch $tcl_platform(platform) {
     unix - windows {
         event add <<PopupMenu>> <ButtonPress-3>
@@ -71,6 +85,9 @@ Rappture::bugreport::install
 
 # fix the "grab" command to support a stack of grab windows
 Rappture::grab::init
+
+# bring in the Rappture object system
+Rappture::objects::init
 
 # add the local image directory onto the path
 Rappture::icon foo  ;# forces auto-loading of Rappture::icon
@@ -142,12 +159,6 @@ pack $win.testview.bbar.regoldenize -side left
 Rappture::Tooltip::for $win.testview.bbar.regoldenize \
     "If this test result differs from the established test case, you would normally fix your tool to produce the correct result.  In some cases, however, your updated tool may be producing different, but correct, results.  In those cases, you can press this button to update the test itself to use the current output as the new golden standard for this test case."
 
-button $win.testview.bbar.viewoutputs -text "View outputs" -state disabled \
-    -command tester_view_outputs
-pack $win.testview.bbar.viewoutputs -side right 
-Rappture::Tooltip::for $win.testview.bbar.viewoutputs \
-    "Display the outputs for this test case as they would be seen when running the tool normally.  If the test has completed with no error, the new results can be compared against the set of golden results."
-
 pack $win.testview.bbar -side bottom -fill x
 
 Rappture::Tester::TestView $win.testview.overview \
@@ -161,7 +172,7 @@ Rappture::Scroller $win.testview.details.scrl \
     -xscrollmode auto -yscrollmode auto
 pack $win.testview.details.scrl -expand yes -fill both
 Rappture::Tester::StatusList $win.testview.details.scrl.list \
-    -selectcommand tester_diff_show
+    -viewcommand tester_diff_show
 $win.testview.details.scrl contents $win.testview.details.scrl.list
 
 # Frame for viewing running tests
@@ -179,15 +190,79 @@ pack $win.testrun.scrl -expand yes -fill both
 text $win.testrun.scrl.info -width 1 -height 1 -wrap none
 $win.testrun.scrl contents $win.testrun.scrl.info
 
-# Frame for viewing outputs
+# Frame for viewing diffs
 # ---------------------------------------------------------------------
-frame $win.testoutput
-Rappture::ResultsPage $win.testoutput.rp
-pack $win.testoutput.rp -expand yes -fill both
-button $win.testoutput.back -text "Back" -command tester_selection_changed
-pack $win.testoutput.back -side bottom -anchor e -pady {8 0}
-Rappture::Tooltip::for $win.testoutput.back \
-    "Return to the previous window displaying the details for this test case."
+frame .testdiffs -borderwidth 10 -relief flat
+
+# header at the top with info about the diff, help, and close button
+frame .testdiffs.hd -borderwidth 4 -relief flat
+pack .testdiffs.hd -side top -fill x
+frame .testdiffs.hd.inner -highlightthickness 1 -borderwidth 2 -relief flat
+pack .testdiffs.hd.inner -expand yes -fill both
+button .testdiffs.hd.inner.close -relief flat -overrelief raised \
+    -bitmap [Rappture::icon dismiss] -command tester_diff_hide
+pack .testdiffs.hd.inner.close -side right -padx 8
+label .testdiffs.hd.inner.title -compound left -anchor w -padx 8
+pack .testdiffs.hd.inner.title -side left
+button .testdiffs.hd.inner.help -anchor w -text "Help..." \
+    -command "::Rappture::Tooltip::tooltip show .testdiffs.hd.inner.help +10,0"
+pack .testdiffs.hd.inner.help -side left -padx 10
+
+# show add/deleted styles at the bottom
+frame .testdiffs.legend
+pack .testdiffs.legend -side bottom -fill x
+frame .testdiffs.legend.line -height 1 -background black
+pack .testdiffs.legend.line -side top -fill x -pady {0 2}
+label .testdiffs.legend.lleg -text "Legend: "
+pack .testdiffs.legend.lleg -side left
+frame .testdiffs.legend.add -width 16 -height 16 -borderwidth 1 -relief solid
+pack .testdiffs.legend.add -side left -padx {6 0}
+label .testdiffs.legend.addl -text "= Added"
+pack .testdiffs.legend.addl -side left
+frame .testdiffs.legend.del -width 16 -height 16 -borderwidth 1 -relief solid
+pack .testdiffs.legend.del -side left -padx {10 0}
+label .testdiffs.legend.dell -text "= Deleted"
+pack .testdiffs.legend.dell -side left
+
+# diff viewer goes in this spot
+frame .testdiffs.body
+pack .testdiffs.body -expand yes -fill both -padx 10 -pady {20 10}
+
+# viewer for attribute diffs
+Rappture::Tester::ObjView .testdiffs.body.attrs
+
+# viewer for value diffs where object is extra or missing
+frame .testdiffs.body.val
+Rappture::Tester::ObjView .testdiffs.body.val.obj -details max -showdiffs no
+pack .testdiffs.body.val.obj -expand yes -fill both
+
+# viewer for value diffs where we have just one string
+frame .testdiffs.body.val1str
+Rappture::Tester::ObjView .testdiffs.body.val1str.obj \
+    -details min -showdiffs no
+pack .testdiffs.body.val1str.obj -side top -fill x
+label .testdiffs.body.val1str.l -text "Value:"
+pack .testdiffs.body.val1str.l -anchor w -padx 10 -pady {10 0}
+Rappture::Scroller .testdiffs.body.val1str.scrl \
+    -xscrollmode auto -yscrollmode auto
+pack .testdiffs.body.val1str.scrl -expand yes -fill both -padx 10 -pady {0 10}
+text .testdiffs.body.val1str.scrl.text -width 10 -height 1 -wrap char
+.testdiffs.body.val1str.scrl contents .testdiffs.body.val1str.scrl.text
+
+# viewer for value diffs where we have two strings but no special viewers
+frame .testdiffs.body.val2strs
+Rappture::Tester::ObjView .testdiffs.body.val2strs.obj \
+    -details min -showdiffs no
+pack .testdiffs.body.val2strs.obj -side top -fill x
+Rappture::Tester::StringDiffs .testdiffs.body.val2strs.diffs \
+    -title1 "Expected this:" -title2 "Got this:"
+pack .testdiffs.body.val2strs.diffs -expand yes -fill both -padx 10 -pady 10
+
+# plug the proper diff colors into the legend area
+.testdiffs.legend.add configure \
+    -background [.testdiffs.body.attrs cget -addedbackground]
+.testdiffs.legend.del configure \
+    -background [.testdiffs.body.attrs cget -deletedbackground]
 
 # Load all tests in the test directory
 # ----------------------------------------------------------------------
@@ -249,33 +324,79 @@ proc tester_selection_changed {args} {
 
             set testobj [lindex $tests 0]
             $testview.details.scrl.list delete 0 end
-            foreach {op path what v1 v2} [$testobj getDiffs] {
-                switch -- [lindex $what 0] {
+            foreach rec [$testobj getDiffs] {
+                catch {unset diff}
+                array set diff $rec
+
+                set section [string totitle [lindex [split $diff(-path) .] 0]]
+                set title "$section: [$testobj getTestInfo $diff(-path).about.label]"
+                set desc ""
+                set help ""
+
+                set difftype [lindex $diff(-what) 0]
+                set op [lindex $diff(-what) 1]
+                switch -- $difftype {
                   value {
-                    set title "Output: [$testobj getTestInfo $path.about.label]"
-                    set icon [Rappture::icon fail16]
-                    switch -- $op {
-                      - { set desc "Result is missing from current output" }
-                      + { set desc "Result was not expected to appear" }
-                      c { set desc "Result differs from expected value" }
-                      default {
-                          error "don't know how to handle difference $op"
-                      }
+                    if {$section eq "Output"} {
+                        set icon [Rappture::icon fail16]
+                        switch -- $op {
+                          - {
+                              set desc "Result is missing from current output"
+                              set help "This result was defined in the test case, but was missing from the output from the current test run.  Perhaps the tool is not producing the result as it should, or else the latest version of the tool no longer produces that result and the test case needs to be updated."
+                          }
+                          + {
+                              set desc "Result was not expected to appear"
+                              set help "The test run contained a result that was not part of the expected output.  Perhaps the tool is not supposed to produce that result, or else the latest version produces a new result and the test case needs to be updated."
+                          }
+                          c {
+                              set desc "Result differs from expected value"
+                              set help "The result from the test run doesn't match the expected result in the test case.  The tool should be fixed to produce the expected result.  If you can verify that the tool is working correctly, then the test case should be updated to contain this new result."
+                          }
+                          default {
+                            error "don't know how to handle difference $op"
+                          }
+                        }
+                    } elseif {$section eq "Input"} {
+                        set icon [Rappture::icon warn16]
+                        switch -- $op {
+                          - {
+                              set desc "Test case doesn't specify this input value"
+                              set help "The test case is missing a setting for this input value that appears in the current tool definition.  Is this a new input that was recently added to the tool?  If so, the test case should be updated."
+                          }
+                          + {
+                              set desc "Test case has this extra input value"
+                              set help "The test case has an extra input value that does not appear in the current tool definition.  Was this input recently removed from the tool?  If so, the test case should be updated."
+                          }
+                          c {
+                              # don't give a warning in this case
+                              # input is supposed to be different from tool.xml
+                          }
+                          default {
+                            error "don't know how to handle difference $op"
+                          }
+                        }
                     }
                   }
-                  structure {
-                    set ppath [lindex $what 1]
-                    set title "Output: [$testobj getTestInfo $ppath.about.label]"
-                    set icon [Rappture::icon warn16]
-                    set pplen [string length $ppath]
-                    set tail [string range $path [expr {$pplen+1}] end]
-                    switch -- $op {
-                      - { set desc "Missing value \"$v1\" at $tail" }
-                      + { set desc "Extra value \"$v2\" at $tail" }
-                      c { set desc "Details at $tail have changed:\n       got: $v2\n  expected: $v1" }
-                      default {
-                          error "don't know how to handle difference $op"
-                      }
+                  attrs {
+                    if {$section eq "Output"} {
+                        set icon [Rappture::icon warn16]
+                        set desc "Details about this result have changed"
+                        set help "The test run produced an output with slightly different information.  This may be as simple as a change in the label or description, or as serious as a change in the physical system of units.  Perhaps the tool is producing the wrong output, or else the tool has been modified and the test case needs to be updated."
+                    } elseif {$section eq "Input"} {
+                        set icon [Rappture::icon warn16]
+                        set help "The test run contains an input with slightly different information.  This may be as simple as a change in the label or description, or as serious as a change in the physical system of units.  Perhaps this input has been modified in the latest version of the tool and the test case is outdated."
+                    }
+                  }
+                  type {
+                    if {$section eq "Output"} {
+                        set icon [Rappture::icon fail16]
+                        set desc "Result has the wrong type"
+                        set help "The test run contains an output that is completely different from what was expected--not even the same type of object.  The tool should be fixed to produce the expected result.  If you can verify that the tool is working correctly, then the test case should be updated to contain this new result."
+                    } elseif {$section eq "Input"} {
+                        set icon [Rappture::icon warn16]
+                        set desc "Input value has a different type"
+                        set help "The test run contains an output that is completely different from what was expected--not even the same type of object.  The tool should be fixed to produce the expected result.  If you can verify that the tool is working correctly, then the test case should be updated to contain this new result."
+                        set help "The test run contains an input value that is completely different from the corresponding input defined in the test case.  Was this input recently modified in the tool?  If so, the test case should be updated."
                     }
                   }
                   default {
@@ -284,24 +405,18 @@ proc tester_selection_changed {args} {
                 }
 
                 # add to the list of differences
-                $testview.details.scrl.list insert end \
-                    -title $title -subtitle $path -body $desc \
-                    -icon $icon -clientdata $testobj
+                if {$desc ne ""} {
+                    $testview.details.scrl.list insert end \
+                        -title $title -subtitle $diff(-path) \
+                        -icon $icon -body $desc -help $help \
+                        -clientdata [linsert $rec 0 -testobj $testobj]
+                }
             }
 
         } else {
             $testview.bbar.regoldenize configure -state disabled
             pack forget $testview.details $testview.bbar.regoldenize
         }
-    }
-
-    # Show/hide the show outputs button
-    if {[llength $tests] == 1} {
-        $testview.bbar.viewoutputs configure -state normal
-        pack $testview.bbar.viewoutputs -side right
-    } else {
-        $testview.bbar.viewoutputs configure -state disabled
-        pack forget $testview.bbar.viewoutputs
     }
 }
 
@@ -397,7 +512,143 @@ proc tester_run_output {option testobj args} {
 # difference found in a particular test case.
 # ----------------------------------------------------------------------
 proc tester_diff_show {args} {
-    puts "SHOW DETAIL: $args"
+    global Viewers
+
+    set testtree [.pw pane 0].tree
+    set rhs [.pw pane 1]
+    set testview $rhs.testview
+
+    # show the test data in the header -- doesn't accept the -index, though
+    array set data $args
+puts "SHOW: [array get data]"
+    .testdiffs.hd.inner.title configure -image $data(-icon) -text $data(-body)
+
+    #
+    # Figure out how to visualize the difference.
+    #
+    array set diff $data(-clientdata)
+
+    if {[info exists data(-help)]} {
+        Rappture::Tooltip::text .testdiffs.hd.inner.help $data(-help)
+    } else {
+        Rappture::Tooltip::text .testdiffs.hd.inner.help ""
+    }
+
+    switch -glob -- $diff(-what) {
+        "value +" {
+            # get a string rep for the second value
+            if {[catch {Rappture::objects::import $diff(-obj2) $diff(-path)} val2] == 0 && $val2 ne ""} {
+                set status [$val2 export string str]
+                if {[lindex $status 0]} {
+                    set v2 $str
+                }
+                itcl::delete object $val2
+            }
+
+            if {[info exists v2]} {
+                # we have a value -- show it
+                set win .testdiffs.body.val1str
+                set bg [$win.obj cget -addedbackground]
+                $win.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+                $win.scrl.text configure -state normal
+                $win.scrl.text delete 1.0 end
+                $win.scrl.text insert end $v2
+                $win.scrl.text configure -state disabled -background $bg
+            } else {
+                # don't have a value -- show the attributes
+                set win .testdiffs.body.val
+                set bg [$win.obj cget -addedbackground]
+                $win.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+            }
+        }
+        "value -" {
+            # get a string rep for the first value
+            if {[catch {Rappture::objects::import $diff(-obj1) $diff(-path)} val1] == 0 && $val1 ne ""} {
+                set status [$val1 export string str]
+                if {[lindex $status 0]} {
+                    set v1 $str
+                }
+                itcl::delete object $val1
+            }
+
+            if {[info exists v1]} {
+                # we have a value -- show it
+                set win .testdiffs.body.val1str
+                set bg [$win.obj cget -deletedbackground]
+                $win.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+                $win.scrl.text configure -state normal
+                $win.scrl.text delete 1.0 end
+                $win.scrl.text insert end $v1
+                $win.scrl.text configure -state disabled -background $bg
+            } else {
+                # don't have a value -- show the attributes
+                set win .testdiffs.body.val
+                set bg [$win.obj cget -deletedbackground]
+                $win.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+            }
+        }
+        "value c" {
+            set win .testdiffs.body.val2strs
+            set bg [lindex [$win.obj configure -background] 3]
+            
+            $win.obj configure -background $bg \
+                -testobj $diff(-testobj) -path $diff(-path)
+
+            # get a string rep for the first value
+            set v1 "???"
+            if {[catch {Rappture::objects::import $diff(-obj1) $diff(-path)} val1] == 0 && $val1 ne ""} {
+                set status [$val1 export string str]
+                if {[lindex $status 0]} {
+                    set v1 $str
+                }
+                itcl::delete object $val1
+            }
+
+            # get a string rep for the second value
+            set v2 "???"
+            if {[catch {Rappture::objects::import $diff(-obj2) $diff(-path)} val2] == 0 && $val2 ne ""} {
+                set status [$val2 export string str]
+                if {[lindex $status 0]} {
+                    set v2 $str
+                }
+                itcl::delete object $val2
+            }
+
+            $win.diffs show $v1 $v2
+        }
+        "attrs *" {
+            set win .testdiffs.body.attrs
+            set bg [lindex [$win configure -background] 3]
+            $win configure -testobj $diff(-testobj) -background $bg \
+                -path $diff(-path) -details max -showdiffs yes
+        }
+        "type *" {
+            error "don't know how to show type diffs"
+        }
+    }
+    if {[pack slaves .testdiffs.body] ne $win} {
+        foreach w [pack slaves .testdiffs.body] {
+            pack forget $w
+        }
+        pack $win -expand yes -fill both
+    }
+
+    # pop up the viewer
+    place .testdiffs -x 0 -y 0 -anchor nw -relwidth 1 -relheight 1
+    raise .testdiffs
+}
+
+# ----------------------------------------------------------------------
+# USAGE: tester_diff_hide
+#
+# Takes down the panel posted by tester_diff_show.
+# ----------------------------------------------------------------------
+proc tester_diff_hide {} {
+    place forget .testdiffs
 }
 
 # ----------------------------------------------------------------------

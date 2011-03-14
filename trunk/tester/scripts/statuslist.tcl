@@ -1,11 +1,11 @@
 # ----------------------------------------------------------------------
-#  COMPONENT: testview - display the results of a test
+#  COMPONENT: statuslist - display differences within a test
 #
-#  Entire right hand side of the regression tester.  Displays the
-#  golden test results, and compares them to the new results if the test
-#  has been run.  Also show tree representation of all inputs and
-#  outputs.  The -test configuration option is used to provide a Test
-#  object to display.
+#  This is the list of differences shown for a particular test failure.
+#  Each line in this list shows an icon (error or warning) and some
+#  details about the difference.  When you mouse over any entry, it
+#  pops up a "View" button that will invoke the -viewcommand to pop up
+#  a more detailed comparison.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2010-2011  Purdue Research Foundation
@@ -26,6 +26,7 @@ itcl::class Rappture::Tester::StatusEntry {
     public variable title ""
     public variable subtitle ""
     public variable body ""
+    public variable help ""
     public variable icon ""
     public variable clientdata ""
 
@@ -38,7 +39,7 @@ itcl::class Rappture::Tester::StatusList {
     itk_option define -font font Font ""
     itk_option define -titlefont titleFont Font ""
     itk_option define -subtitlefont subTitleFont Font ""
-    itk_option define -selectcommand selectCommand SelectCommand ""
+    itk_option define -viewcommand viewCommand ViewCommand ""
     itk_option define -selectbackground selectBackground Foreground ""
 
     constructor {args} { # defined later }
@@ -48,6 +49,8 @@ itcl::class Rappture::Tester::StatusList {
     public method delete {from {to ""}}
     public method size {} { return [llength $_entries] }
     public method get {pos args}
+    public method invoke {{index "current"}}
+    public method view {{index "current"}}
 
     public method xview {args} {
         return [eval $itk_component(listview) xview $args]
@@ -57,10 +60,11 @@ itcl::class Rappture::Tester::StatusList {
     }
 
     protected method _redraw {}
-    protected method _select {tag}
+    protected method _motion {y}
 
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _entries ""     ;# list of status entries
+    private variable _hover ""       ;# mouse is over item with this tag
 }
 
 # ----------------------------------------------------------------------
@@ -78,6 +82,20 @@ itcl::body Rappture::Tester::StatusList::constructor {args} {
         keep -xscrollcommand -yscrollcommand
     }
     pack $itk_component(listview) -expand yes -fill both
+
+    # add binding so that each item reacts to mouseover events
+    bind $itk_component(listview) <Motion> [itcl::code $this _motion %y]
+
+    # add binding for double-click-to-open
+    bind $itk_component(listview) <Double-Button-1> [itcl::code $this view]
+
+    # this pops up on each entry
+    itk_component add view {
+        button $itk_interior.view -text "View"
+    } {
+        usual
+        rename -highlightbackground -selectbackground selectBackground Foreground
+    }
 
     eval itk_initialize $args
 }
@@ -124,6 +142,56 @@ itcl::body Rappture::Tester::StatusList::delete {pos {to ""}} {
     $_dispatcher event -idle !redraw
 }
 
+# ----------------------------------------------------------------------
+# USAGE: get <pos> ?-key?
+#
+# Queries information about a particular entry at index <pos>.  With
+# no extra args, it returns a list of "-key value -key value ..."
+# representing all of the data about that entry.  Otherwise, the value
+# for a particular -key can be requested.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::StatusList::get {pos {option ""}} {
+    set obj [lindex $_entries $pos]
+    if {$obj eq ""} {
+        return ""
+    }
+    if {$option eq ""} {
+        set vlist ""
+        foreach opt [$obj configure] {
+            lappend vlist [lindex $opt 0] [lindex $opt end]
+        }
+        return $vlist
+    }
+    return [$obj cget $option]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: view ?<index>?
+#
+# Handles the action of clicking the "View" button on items in the
+# status list.  Invokes the -viewcommand to pop up a more detailed
+# view of the item.  Additional details about the item are appended
+# onto the command as a list of options and values.  These include
+# the integer -index for the position of the selected item, along
+# with details defined when the item was inserted into the list.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::StatusList::view {{index "current"}} {
+    if {$index eq "current"} {
+        set index $_hover
+    }
+    if {[string length $itk_option(-viewcommand)] > 0
+          && [string is integer -strict $index]} {
+
+        set obj [lindex $_entries $index]
+        set vlist ""
+        if {$obj ne ""} {
+            foreach opt [$obj configure] {
+                lappend vlist [lindex $opt 0] [lindex $opt end]
+            }
+        }
+        uplevel #0 $itk_option(-viewcommand) -index $index $vlist
+    }
+}
 
 # ----------------------------------------------------------------------
 # USAGE: _redraw
@@ -162,12 +230,12 @@ itcl::body Rappture::Tester::StatusList::_redraw {} {
                 -tags [list $tag main]
             set iconh [image height $icon]
         }
-        set x1 [expr {$x0+$iw+3}]
+        set x1 [expr {$x0+$iw+6}]
         set y1 $y0
 
         set title [$obj cget -title]
         if {$title ne ""} {
-            $c create text $x1 $y1 -anchor nw -text $title \
+            $c create text [expr {$x1-4}] $y1 -anchor nw -text $title \
                 -font $itk_option(-titlefont) -tags [list $tag main]
             set y1 [expr {$y1+$tlineh+2}]
         }
@@ -201,45 +269,55 @@ itcl::body Rappture::Tester::StatusList::_redraw {} {
             -outline "" -fill "" -tags [list allbg $tag:bg]]
         $c lower $id
 
-        foreach item [list $tag $tag:bg] {
-            $c bind $item <ButtonPress> \
-                [itcl::code $this _select $tag]
-        }
-
         set y0 [expr {$y1+10}]
         incr n
     }
 
     # set the scrolling region to the "main" part (no bg boxes)
+    set x1 0; set y1 0
     foreach {x0 y0 x1 y1} [$c bbox main] break
     $c configure -scrollregion [list 0 0 [expr {$x1+4}] [expr {$y1+4}]]
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _select <tag>
+# USAGE: _motion <y>
 #
-# Called internally when the user clicks on an item in the status
-# list that shows specific test failures.  Highlights the item and
-# invokes any -statuscommand configured for the widget.  Additional
-# details about the item are appended onto the command as a list of
-# options and values.  These include the integer -index for the
-# position of the selected item, along with details defined when
-# the item was inserted into the list.
+# Called internally when the user moves the mouse over an item in the
+# status list that shows specific test failures.  Highlights the item
+# and posts a "View" button on the right-hand side of the list.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::StatusList::_select {tag} {
+itcl::body Rappture::Tester::StatusList::_motion {y} {
     set c $itk_component(listview)
-    $c itemconfigure allbg -fill ""
-    $c itemconfigure $tag:bg -fill $itk_option(-selectbackground)
 
-    if {[string length $itk_option(-selectcommand)] > 0} {
-        set id ""; regexp {[0-9]+$} $tag id
-        set vlist ""
-        set obj [lindex $_entries $id]
-        if {$obj ne ""} {
-            foreach opt [$obj configure] {
-                lappend vlist [lindex $opt 0] [lindex $opt end]
+    set index ""
+    foreach id [$c find overlapping 10 $y 10 $y] {
+        foreach tag [$c gettags $id] {
+            if {[regexp {^entry([0-9]+)} $tag match n]} {
+                set index $n
+                break
             }
         }
-        uplevel #0 $itk_option(-selectcommand) -index $id $vlist
+        if {$index ne ""} {
+            break
+        }
+    }
+
+    if {$index ne $_hover} {
+        $c itemconfigure allbg -fill ""
+        $c delete viewbtn
+
+        if {$index ne ""} {
+            set tag "entry$index:bg"
+            $c itemconfigure $tag -fill $itk_option(-selectbackground)
+
+            foreach {x0 y0 x1 y1} [$c bbox $tag] break
+            set w [winfo width $c]
+            $c create window [expr {$w-10}] [expr {($y0+$y1)/2}] \
+                -anchor e -window $itk_component(view) -tags viewbtn
+
+            $itk_component(view) configure \
+                -command [itcl::code $this view $index]
+        }
+        set _hover $index
     }
 }

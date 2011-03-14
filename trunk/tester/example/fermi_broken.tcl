@@ -33,7 +33,7 @@ Rappture::Utils::progress 0 -mesg "Starting..."
 puts "Taking a while to run..."
 after 1000
 puts "making some progress"
-after 1000
+after 2000
 puts "done"
 Rappture::Utils::progress 10 -mesg "Starting, for real now."
 after 1000

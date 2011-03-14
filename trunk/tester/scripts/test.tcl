@@ -22,8 +22,8 @@ itcl::class Rappture::Tester::Test {
     destructor { #defined later }
 
     public method getResult {}
-    public method getTestInfo {path}
-    public method getDiffs {}
+    public method getTestInfo {args}
+    public method getDiffs {args}
 
     public method getRunobj {}
     public method getTestobj {}
@@ -43,7 +43,6 @@ itcl::class Rappture::Tester::Test {
     private method _setWaiting {{newval ""}}
     private method _setResult {name}
     private method _computeDiffs {obj1 obj2 args}
-    private method _getStructure {xmlobj path}
 
     # use this to add tests to the "run" queue
     public proc queue {op args}
@@ -97,13 +96,19 @@ itcl::body Rappture::Tester::Test::getResult {} {
 
 # ----------------------------------------------------------------------
 # USAGE: getTestInfo <path>
+# USAGE: getTestInfo children <path>
+# USAGE: getTestInfo element ?-as type? <path>
 # 
 # Returns info about the Test case at the specified <path> in the XML.
 # If the <path> is missing or misspelled, this method returns ""
 # instead of an error.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getTestInfo {path} {
-    return [$_testobj get $path]
+itcl::body Rappture::Tester::Test::getTestInfo {args} {
+    if {[llength $args] == 1} {
+        set path [lindex $args 0]
+        return [$_testobj get $path]
+    }
+    return [eval $_testobj $args]
 }
 
 # ----------------------------------------------------------------------
@@ -141,10 +146,12 @@ puts "  override: $path = [$_testobj get $path.current]"
             return "aborted"
         } elseif {[Rappture::library isvalid $result]} {
             set _runobj $result
-            set _diffs [_computeDiffs $_testobj $_runobj -section output]
+            set idiffs [_computeDiffs [$_toolobj xml] $_testobj -in input]
+            set odiffs [_computeDiffs $_testobj $_runobj -in output]
+            set _diffs [concat $idiffs $odiffs]
 puts "DIFFS:"
-foreach {op path what v1 v2} $_diffs {
-puts "  $op $path ($what) $v1 $v2"
+foreach rec $_diffs {
+puts ">> $rec"
 }
 
             # HACK: Add a new input to differentiate between results
@@ -200,14 +207,32 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: getDiffs
+# USAGE: getDiffs ?<path>?
 #
-# Returns a list of paths that exist in both the golden and new results,
-# but contain data that does not match according to the compareElements
-# method.  Throws an error if the test has not been run.
+# With no extra args, this returns a list of paths that differ between
+# the golden and new results--either because the data values are
+# different, or because elements are missing or their attributes have
+# changed.
+#
+# If a particular <path> is specified, then detailed diffs are returned
+# for that path.  This is useful for "structure" diffs, where many
+# things may be different within a single object.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getDiffs {} {
-    return $_diffs
+itcl::body Rappture::Tester::Test::getDiffs {args} {
+    if {[llength $args] == 0} {
+        return $_diffs
+    } elseif {[llength $args] != 1} {
+        error "wrong # args: should be \"getDiffs ?path?\""
+    }
+
+    set path [lindex $args 0]
+    if {[string match input.* $path]} {
+        # if we're matching input, compare the original XML vs. the test
+        return [_computeDiffs [$_toolobj xml] $_testobj -in $path -detail max]
+    }
+
+    # otherwise, compare the golden test vs. the test result
+    return [_computeDiffs $_testobj $_runobj -in $path -detail max]
 }
 
 # -----------------------------------------------------------------------
@@ -273,141 +298,141 @@ itcl::body Rappture::Tester::Test::_setWaiting {{newval ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _computeDiffs <xmlObj1> <xmlObj2> ?-section xxx? \
-#            ?-what value|structure|all?
+# USAGE: _computeDiffs <xmlObj1> <xmlObj2> ?-in xxx? \
+#            ?-what value|attrs|all? ?-detail min|max?
 #
 # Used internally to compute differences between two different XML
-# objects.  This is normally used to look for differences in the
-# output section between a test case and a new run, but can also
-# be used to look for differences in other sections via the -section
-# flag.
+# objects.  This is normally used to look for differences between an
+# entire test case and a new run, but can also be used to look at
+# differences within a particular section or element via the -in flag.
 #
 # Returns a list of the following form:
-#     <op> <path> <what> <val1> <val2>
+#     -what <diff> -path <path> -obj1 <xmlobj> -obj2 <xmlobj> \
+#           -v1 <value1> -v2 <value2>
 #
-#       where <op> is one of:
-#         - ...... element is missing from <xmlObj2>
-#         c ...... element changed between <xmlObj1> and <xmlObj2>
-#         + ...... element is missing from <xmlObj1>
-#
-#       and <what> is something like:
-#         value .............. difference affects "current" value 
-#         structure <path> ... affects structure of parent at <path>
+#       where <diff> is one of:
+#         value - ....... element is missing from <xmlObj2>
+#         value c ....... element changed between <xmlObj1> and <xmlObj2>
+#         value + ....... element is missing from <xmlObj1>
+#         attrs c ....... attributes are different <xmlObj1> and <xmlObj2>
+#         type c ........ object types are different <xmlObj1> and <xmlObj2>
+#         attr - <path>.. attribute at <path> is missing from <xmlObj2>
+#         attr + <path>.. attribute at <path> is missing from <xmlObj1>
+#         attr c <path>.. attribute at <path> changed between objects
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::_computeDiffs {obj1 obj2 args} {
     Rappture::getopts args params {
-        value -section output
+        value -in output
         value -what all
+        value -detail min
     }
     if {$params(-what) == "all"} {
-        set params(-what) "structure value"
+        set params(-what) "attrs value"
     }
 
-    # query the values for all entities in both objects
-    set v1paths [Rappture::entities $obj1 $params(-section)]
-    set v2paths [Rappture::entities $obj2 $params(-section)]
-
-    # scan through values for obj1 and compare against obj2
+    # scan through the specified sections or paths
     set rlist ""
-    foreach path $v1paths {
-puts "checking $path"
-        set i [lsearch -exact $v2paths $path]
-        if {$i < 0} {
-puts "  missing from $obj2"
-            # missing from obj2
-            foreach {raw norm} [Rappture::LibraryObj::value $obj1 $path] break
-            lappend rlist - $path value $raw ""
+    foreach elem $params(-in) {
+        if {[string first . $elem] >= 0} {
+            set v1paths $elem
+            set v2paths $elem
         } else {
-            foreach part $params(-what) {
-                switch -- $part {
-                  value {
-                    foreach {raw1 norm1} \
-                        [Rappture::LibraryObj::value $obj1 $path] break
-                    foreach {raw2 norm2} \
-                        [Rappture::LibraryObj::value $obj2 $path] break
-puts "  checking values $norm1 vs $norm2"
-                    if {![string equal $norm1 $norm2]} {
-puts "  => different!"
-                        # different from obj2
-                        lappend rlist c $path value $raw1 $raw2
-                    }
-                    # handled this comparison
-                    set v2paths [lreplace $v2paths $i $i]
-                  }
-                  structure {
-                    set what [list structure $path]
-                    set s1paths [_getStructure $obj1 $path]
-                    set s2paths [_getStructure $obj2 $path]
-                    foreach spath $s1paths {
-puts "  checking internal structure $spath"
-                        set i [lsearch -exact $s2paths $spath]
-                        if {$i < 0} {
-puts "    missing from $obj2"
-                            # missing from obj2
-                            set val1 [$obj1 get $spath]
-                            lappend rlist - $spath $what $val1 ""
-                        } else {
-                            set val1 [$obj1 get $spath]
-                            set val2 [$obj2 get $spath]
-                            if {![string match $val1 $val2]} {
-puts "    different from $obj2 ($val1 vs $val2)"
-                                # different from obj2
-                                lappend rlist c $spath $what $val1 $val2
-                            }
-                            # handled this comparison
-                            set s2paths [lreplace $s2paths $i $i]
-                        }
-                    }
+            # query the values for all entities in both objects
+            set v1paths [Rappture::entities $obj1 $elem]
+            set v2paths [Rappture::entities $obj2 $elem]
+        }
 
-                    # look for leftover values
-                    foreach spath $s2paths {
-                        set val2 [$obj2 get $spath]
-puts "    extra $spath in $obj2"
-                        lappend rlist + $spath $what "" $val2
+        # scan through values for obj1 and compare against obj2
+        foreach path $v1paths {
+            set details [list -path $path -obj1 $obj1 -obj2 $obj2]
+
+            set i [lsearch -exact $v2paths $path]
+            if {$i < 0} {
+                # missing from obj2
+                lappend rlist [linsert $details 0 -what "value -"]
+            } else {
+                foreach part $params(-what) {
+                    switch -- $part {
+                      value {
+                        set val1 [Rappture::objects::import $obj1 $path]
+                        set val2 [Rappture::objects::import $obj2 $path]
+                        lappend details -val1 $val1 -val2 $val2
+
+puts "COMPARE: $path $obj1 =?= $obj2"
+puts "  $val1 =?= $val2"
+                        if {$val1 eq "" || $val2 eq ""} {
+                            lappend rlist [linsert $details 0 -what "value c"]
+                        } elseif {[$val1 info class] != [$val2 info class]} {
+                            lappend rlist [linsert $details 0 -what "value c"]
+                        } elseif {[$val1 compare $val2] != 0} {
+                            lappend rlist [linsert $details 0 -what "value c"]
+                        } else {
+                            itcl::delete object $val1 $val2
+                        }
+                        # handled this comparison
+                        set v2paths [lreplace $v2paths $i $i]
+                      }
+                      attrs {
+                        set what [list structure $path]
+                        set type1 [$obj1 element -as type $path]
+                        set type2 [$obj2 element -as type $path]
+                        if {$type1 eq $type2} {
+                          set same yes
+                          set alist [Rappture::objects::get $type1 -attributes]
+                          foreach rec $alist {
+                              array set attr [lrange $rec 1 end]
+                              set apath $path.$attr(-path)
+                              set v1 [$obj1 get $apath]
+                              set v2 [$obj2 get $apath]
+                              set dt [linsert $details end -v1 $v1 -v2 $v2]
+
+                              if {$v2 eq "" && $v1 ne ""} {
+                                  # missing from obj2
+                                  if {$params(-detail) == "max"} {
+                                      lappend rlist [linsert $dt 0 -what [list attr - $attr(-path)]]
+                                  } else {
+                                      set same no
+                                      break
+                                  }
+                              } elseif {$v1 eq "" && $v2 ne ""} {
+                                  # missing from obj1
+                                  if {$params(-detail) == "max"} {
+                                      lappend rlist [linsert $dt 0 -what [list attr + $attr(-path)]]
+                                  } else {
+                                      set same no
+                                      break
+                                  }
+                              } elseif {$v1 ne $v2} {
+                                  # different from obj2
+                                  if {$params(-detail) == "max"} {
+                                      lappend rlist [linsert $dt 0 -what [list attr c $attr(-path)]]
+                                  } else {
+                                      set same no
+                                      break
+                                  }
+                              }
+                          }
+                          if {$params(-detail) == "min" && !$same} {
+                              lappend details -what attrs
+                              lappend rlist [linsert $dt 0 -what "attrs c"]
+                          }
+                        } else {
+                          lappend details -val1 $type1 -val2 $type2
+                          lappend rlist [linsert $details 0 -what "type c"]
+                        }
+                      }
+                      default {
+                        error "bad part \"$part\": should be attrs, value"
+                      }
                     }
-                  }
-                  default {
-                    error "bad part \"$part\": should be structure, value"
-                  }
                 }
             }
         }
-    }
 
-    # add any values left over in the obj2
-    foreach path $v2paths {
-puts "    extra $path in $obj2"
-        foreach {raw2 norm2} [Rappture::LibraryObj::value $obj2 $path] break
-        lappend rlist + $path value "" $raw2
-    }
-    return $rlist
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getStructure <xmlObj> <path>
-#
-# Used internally by _computeDiffs to get a list of paths for important
-# parts of the internal structure of an object.  Avoids the "current"
-# element, but includes "default", "units", etc.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::_getStructure {xmlobj path} {
-    set rlist ""
-    set queue $path
-    while {[llength $queue] > 0} {
-        set qpath [lindex $queue 0]
-        set queue [lrange $queue 1 end]
-
-        foreach p [$xmlobj children -as path $qpath] {
-            if {[string match *.current $p]} {
-                continue
-            }
-            if {[llength [$xmlobj children $p]] > 0} {
-                # continue exploring nodes with children
-                lappend queue $p
-            } else {
-                # return the terminal nodes
-                lappend rlist $p
-            }
+        # add any values left over in the obj2
+        foreach path $v2paths {
+            set details [list -path $path -obj1 $obj1 -obj2 $obj2]
+            lappend rlist [linsert $details 0 -what "value +"]
         }
     }
     return $rlist
