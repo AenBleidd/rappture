@@ -2,6 +2,7 @@
 <run>
     <test>
         <label>helium|0eV</label>
+        <description>Tests the Fermi-Dirac function at liquid helium temperatures, where the distribution is relatively sharp.  Should match in spite of the sharp distribution change, which is nearly a step function at this temperature.</description>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>
@@ -54,11 +55,8 @@
         <string id="asdf"><current>asdf</current></string>
         <curve id="f12">
             <about>
-                <label>Fermi-Dirac Factor</label>
+                <label>Fermi-Dirac Statistics</label>
             </about>
-            <xaxis>
-                <label>Fermi-Dirac Factor</label>
-            </xaxis>
             <yaxis>
                 <label>Energy</label>
                 <units>eV</units>

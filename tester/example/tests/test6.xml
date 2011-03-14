@@ -2,6 +2,7 @@
 <run>
     <test>
         <label>roomtemp|1V</label>
+        <description>This test should generate a warning due to differences in the input parameters.</description>
     </test>
     <tool>
         <about>Press Simulate to view results.</about>
@@ -49,8 +50,21 @@
             <default>0eV</default>
             <current>1eV</current>
         </number>
+        <boolean id="extra">
+            <about>
+                <label>Control value</label>
+                <description>Old parameter that was removed.</description>
+            </about>
+            <default>true</default>
+        </boolean>
     </input>
     <output>
+        <number id="extra">
+            <about>
+                <label>Extra number in output</label>
+            </about>
+            <current>1234</current>
+        </number>
         <curve id="f12">
             <about>
                 <label>Fermi-Dirac Factor</label>
