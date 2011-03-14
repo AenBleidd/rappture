@@ -1,7 +1,34 @@
 object string -extends base {
     palettes "Inputs"
+
     help http://rappture.org/wiki/rp_xml_ele_string
+
     attr default -title "Default Value" -type string -path default
     attr size -title "Size" -type string:validate=size -path size
     attr hints -title "Hint String" -type string -path about.hints
+
+    storage {
+        private variable _val   ;# string value
+    }
+
+    import xml {xmlobj path} {
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        set _val $val
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        return [string compare $_val $_val2]
+    }
 }

@@ -1,25 +1,27 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: number
+#
+#  A number is a real value with units of measure.  It is usually
+#  used as an input, but it can also be an output from a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object number -extends base {
-    palettes "Inputs"
+    palettes "Inputs" "Outputs"
+
     help http://rappture.org/wiki/rp_xml_ele_number
+
     attr default -title "Default Value" -type string:validate=number -path default
     attr units -title "Units of Measurement" -type units -path units
     attr min -title "Minimum Value" -type string:validate=number -path min
     attr max -title "Maximum Value" -type string:validate=number -path max
     attr color -title "Color" -type color -path color
-
-    check label {
-        if {[string length [string trim $attr(label)]] == 0} {
-            return [list warning "Should set a label that describes this value"]
-        }
-    }
-    check description {
-        set desc [string trim $attr(description)]
-        if {[string length $desc] == 0} {
-            return [list warning "Should include a description of what this value represents, typical settings, etc."]
-        } elseif {[string equal $desc $attr(label)]} {
-            return [list warning "Description should be different from the label and give additional information about the value."]
-        }
-    }
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {
@@ -74,5 +76,72 @@ object number -extends base {
                 return [list error "Units for maximum value don't match the expected units for this value"]
             }
         }
+    }
+
+    storage {
+        private variable _num 0.0   ;# real number value
+        private variable _units ""  ;# physical units
+    }
+
+    import xml {xmlobj path} {
+        set units [getAttr units $xmlobj $path]
+        import_string [$xmlobj get $path.current] $units
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path "${_num}${_units}"
+    }
+
+    import string {val {defunits ""}} {
+puts "IMPORTING: $val (number with units $defunits)"
+        if {[regexp {^([-+]?(?:[0-9]+\.|\.)?[0-9]+(?:[eE][-+]?[0-9]+)?)( *(?:[a-zA-Z]+[0-9]*)+(?:\/(?:[a-zA-Z]+[0-9]*)+)*)*$} $val match num units]} {
+            set sys [Rappture::Units::System::for $units]
+            set base [Rappture::Units::System::for $defunits]
+            if {$sys eq "" && $base ne ""} {
+                error "don't recognize value"
+            }
+            if {$sys ne $base} {
+                error "bad units \"$sys\": should be $base"
+            }
+            set _num $num
+            set _units $units
+        } elseif {[string is double -strict $val]} {
+            set _num $val
+            set _units $defunits
+        } else {
+            error "don't recognize value"
+        }
+    }
+
+    export string {var} {
+        upvar $var val
+        set val "${_num}${_units}"
+    }
+
+    compare {
+        set sys1 [Rappture::Units::System::for $_units]
+        set sys2 [Rappture::Units::System::for $_units2]
+        if {$sys1 ne $sys2} {
+            # different units systems -- order by physical quantities
+            return [string compare $sys1 $sys2]
+        }
+
+        # normalize the value of num1
+        if {$_units ne ""} {
+            set num1 [Rappture::Units::convert $_num \
+                -context $_units -to $_units -units off]
+        } else {
+            set num1 $_num
+        }
+
+        # normalize the value of num2
+        if {$_units2 ne ""} {
+            set num2 [Rappture::Units::convert $_num2 \
+                -context $_units2 -to $_units -units off]
+        } else {
+            set num2 $_num2
+        }
+
+        return [cmpdbl $num1 $num2]
     }
 }

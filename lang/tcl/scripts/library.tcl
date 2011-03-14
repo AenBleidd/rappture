@@ -17,6 +17,9 @@ namespace eval Rappture {
     variable stdlib ""
 }
 
+# load the object system along with the XML library code
+Rappture::objects::init
+
 # ----------------------------------------------------------------------
 # USAGE: library <file>
 # USAGE: library standard
@@ -132,7 +135,8 @@ proc Rappture::entities {args} {
         set queue [lrange $queue 1 end]
 
         foreach cpath [$xmlobj children -as path $path] {
-            switch -- [$xmlobj element -as type $cpath] {
+            set type [$xmlobj element -as type $cpath]
+            switch -- $type {
                 group - phase {
                     lappend queue $cpath
                 }
@@ -166,11 +170,13 @@ proc Rappture::entities {args} {
                     }
                 }
                 default {
-                    # add this to the return list with the right flavor
-                    if {$params(-as) == "component"} {
-                        lappend rlist $cpath
-                    } else {
-                        lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                    if {[catch {Rappture::objects::get $type}] == 0} {
+                        # add this to the return list with the right flavor
+                        if {$params(-as) == "component"} {
+                            lappend rlist $cpath
+                        } else {
+                            lappend rlist [$xmlobj element -as $params(-as) $cpath]
+                        }
                     }
 
                     # if this element has embedded groups, add them to the queue

@@ -1,23 +1,11 @@
 object integer -extends base {
     palettes "Inputs"
+
     help http://rappture.org/wiki/rp_xml_ele_integer
+
     attr default -title "Default Value" -type string:validate=int -path default
     attr min -title "Minimum Value" -type string:validate=int -path min
     attr max -title "Maximum Value" -type string:validate=int -path max
-
-    check label {
-        if {[string length [string trim $attr(label)]] == 0} {
-            return [list warning "Should set a label that describes this value."]
-        }
-    }
-    check description {
-        set desc [string trim $attr(description)]
-        if {[string length $desc] == 0} {
-            return [list warning "Should include a description of what this value represents, typical settings, etc."]
-        } elseif {[string equal $desc $attr(label)]} {
-            return [list warning "Description should be different from the label and give additional information about the value."]
-        }
-    }
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {
@@ -34,6 +22,41 @@ object integer -extends base {
     check min {
         if {"" != $attr(min) && "" != $attr(max) && $attr(min) >= $attr(max)} {
             return [list error "Minimum value should be less than the maximum.  If you don't want to see a min/max range, you can clear out either or both values."]
+        }
+    }
+
+    storage {
+        private variable _val 0     ;# integer value
+    }
+
+    import xml {xmlobj path} {
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        if {[string is integer -strict $val]} {
+            set _val $val
+        } else {
+            error "don't recognize value"
+        }
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        if {$_val < $_val2} {
+            return -1
+        } elseif {$_val > $_val2} {
+            return 1
+        } else {
+            return 0
         }
     }
 }

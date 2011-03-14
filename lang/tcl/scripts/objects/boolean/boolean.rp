@@ -1,19 +1,42 @@
 object boolean -extends base {
     palettes "Inputs"
+
     help http://rappture.org/wiki/rp_xml_ele_boolean
+
     attr default -title "Default Value" -type boolean -path default
 
-    check label {
-        if {[string length [string trim $attr(label)]] == 0} {
-            return [list warning "Should set a label that describes this value."]
+    storage {
+        private variable _val   ;# boolean value
+    }
+
+    import xml {xmlobj path} {
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        set v [expr {($_val) ? "true" : "false"}]
+        $xmlobj put $path $v
+    }
+
+    import string {val} {
+        if {[string is boolean -strict $val]} {
+            set _val $val
+        } else {
+            error "don't recognize value"
         }
     }
-    check description {
-        set desc [string trim $attr(description)]
-        if {[string length $desc] == 0} {
-            return [list warning "Should include a description of what this value represents, typical settings, etc."]
-        } elseif {[string equal $desc $attr(label)]} {
-            return [list warning "Description should be different from the label and give additional information about the value."]
+
+    export string {var} {
+        upvar $var v
+        set v [expr {($_val) ? "true" : "false"}]
+    }
+
+    compare {
+        if {$_val && !$_val2} {
+            return 1
+        } elseif {!$_val && $_val} {
+            return -1
         }
+        return 0
     }
 }

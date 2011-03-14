@@ -1,5 +1,20 @@
 object base {
-    attr label -type string -path about.label
-    attr description -type string:lines=3 -expand yes -path about.description
+    attr label -title "Label" -type string -path about.label
+    attr description -title "Description" -type string:lines=3 -expand yes -path about.description
     attr enable -title "Enable" -type string:validate=enable -path about.enable
+
+    check label {
+        if {[string length [string trim $attr(label)]] == 0} {
+            return [list warning "Should set a label that describes this value"]
+        }
+    }
+
+    check description {
+        set desc [string trim $attr(description)]
+        if {[string length $desc] == 0} {
+            return [list warning "Should include a description of what this value represents, typical settings, etc."]
+        } elseif {[string equal $desc $attr(label)]} {
+            return [list warning "Description should be different from the label and give additional information about the value."]
+        }
+    }
 }
