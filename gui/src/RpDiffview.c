@@ -1582,7 +1582,12 @@ DisplayDiffview(cdata)
     y = dvPtr->inset + dvPtr->topLine*dvPtr->lineHeight + dvPtr->lineAscent
           - dvPtr->yOffset;
     x = dvPtr->inset - dvPtr->xOffset;
-    width = Tk_Width(tkwin);
+
+    if (Tk_Width(tkwin) > dvPtr->maxWidth) {
+        width = Tk_Width(tkwin)+10;
+    } else {
+        width = dvPtr->maxWidth+10;
+    }
 
     for (i=dvPtr->topLine;
          i <= dvPtr->btmLine && i < dvPtr->worldview.numLines;
@@ -2345,13 +2350,15 @@ static void
 DiffviewLinesFree(lineLimitsPtr)
     DiffviewLines *lineLimitsPtr;   /* data structure being freed */
 {
-    if (lineLimitsPtr->startPtr) {
-        ckfree((char*)lineLimitsPtr->startPtr);
+    if (lineLimitsPtr) {
+        if (lineLimitsPtr->startPtr) {
+            ckfree((char*)lineLimitsPtr->startPtr);
+        }
+        if (lineLimitsPtr->lenPtr) {
+            ckfree((char*)lineLimitsPtr->lenPtr);
+        }
+        ckfree((char*)lineLimitsPtr);
     }
-    if (lineLimitsPtr->lenPtr) {
-        ckfree((char*)lineLimitsPtr->lenPtr);
-    }
-    ckfree((char*)lineLimitsPtr);
 }
 
 /*
@@ -2593,6 +2600,17 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
         }
         i++; j++;
     }
+
+    /* lines left over? mark as many "changed" as possible */
+    if (limsPtr1->numLines-i > 0 && limsPtr2->numLines-j > 0) {
+        del = (limsPtr1->numLines-i < limsPtr2->numLines-j)
+                ? limsPtr1->numLines-i : limsPtr2->numLines-j;
+        DiffviewDiffsAppend(diffPtr, 'c', i, i+del-1, j, j+del-1);
+        i += del;
+        j += del;
+    }
+
+    /* still have lines left over? then mark them added or deleted */
     if (i < limsPtr1->numLines) {
         del = limsPtr1->numLines - i;
         DiffviewDiffsAppend(diffPtr, 'd', i, i+del-1, j, j);

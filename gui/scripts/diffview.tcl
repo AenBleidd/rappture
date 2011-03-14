@@ -15,6 +15,21 @@
 namespace eval Rappture { # forward declaration }
 
 # ----------------------------------------------------------------------
+# Code for "usual" itk options
+# ----------------------------------------------------------------------
+if {[catch {package require Itk}] == 0} {
+    itk::usual Diffview {
+        keep -background -foreground -cursor
+        keep -addedbackground -addedforeground
+        keep -deletedbackground -deletedforeground -overstrike
+        keep -changedbackground -changedforeground
+        keep -highlightcolor -highlightthickness
+        rename -highlightbackground -background background Background
+    }
+}
+
+
+# ----------------------------------------------------------------------
 # Key navigation
 # ----------------------------------------------------------------------
 bind Diffview <Key-Up> {

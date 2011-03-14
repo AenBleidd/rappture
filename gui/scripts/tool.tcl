@@ -28,6 +28,7 @@ itcl::class Rappture::Tool {
     public method run {args}
     public method abort {}
     public method reset {}
+    public method xml {args}
 
     protected method _mkdir {dir}
     protected method _output {data}
@@ -336,11 +337,26 @@ itcl::body Rappture::Tool::reset {} {
     foreach path [Rappture::entities -as path $_xmlobj input] {
         if {[$_xmlobj element -as type $path.default] ne ""} {
             set defval [$_xmlobj get $path.default]
-            $_xmlobj put $path $defval
+            $_xmlobj put $path.current $defval
         }
     }
 }
 
+# ----------------------------------------------------------------------
+# USAGE: xml ?<option> <arg> <arg>...?
+#
+# Used to access the XML specification for this tool.  With no extra
+# args, it returns the Rappture XML object.  Otherwise, it applies
+# the option/args to the object and returns the result.  The <option>
+# might be something like "children" or "element" or any other
+# operation supported by a Rappture::library object.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::xml {args} {
+    if {[llength $args] == 0} {
+        return $_xmlobj
+    }
+    return [eval $_xmlobj $args]
+}
 
 # ----------------------------------------------------------------------
 # USAGE: _output <data>
