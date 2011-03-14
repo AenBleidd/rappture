@@ -50,16 +50,24 @@ namespace eval Rappture::objects {
     }
     $attrParser alias attr Rappture::objects::parse_attr
     $attrParser alias check Rappture::objects::parse_check
+    $attrParser alias clear Rappture::objects::parse_clear
+    $attrParser alias compare Rappture::objects::parse_compare
+    $attrParser alias export Rappture::objects::parse_export
     $attrParser alias help Rappture::objects::parse_help
+    $attrParser alias import Rappture::objects::parse_import
     $attrParser alias palettes Rappture::objects::parse_palettes
+    $attrParser alias storage Rappture::objects::parse_storage
     $attrParser alias terminal Rappture::objects::parse_terminal
     $attrParser alias unknown Rappture::objects::parse_attr_unknown
     proc ::Rappture::objects::parse_attr_unknown {args} {
-        error "bad option \"[lindex $args 0]\": should be attr, check, help, palettes, terminal"
+        error "bad option \"[lindex $args 0]\": should be attr, check, clear, compare, export, help, import, palettes, storage, terminal"
     }
 
     # this variable will hold ObjDef object as it is being built
     variable currObjDef ""
+
+    # this variable will hold storage/import/export for object defn
+    variable currObjValDef
 
     # this variable will hold the name of the object file being parsed
     variable currFile ""
@@ -93,6 +101,9 @@ proc Rappture::objects::init {} {
     foreach dir [glob -nocomplain -types d [file join $installdir objects *]] {
         Rappture::objects::load [file join $dir *.rp]
     }
+
+    # if anyone tries to load again, do nothing
+    proc ::Rappture::objects::init {} { # already loaded }
 }
 
 # ----------------------------------------------------------------------
@@ -119,7 +130,7 @@ proc Rappture::objects::load {args} {
             close $fid
 
             if {[catch {$objParser eval $info} err] != 0} {
-                error $err "\n    (while loading object definition from file \"$fname\")"
+                error $err "$err\n    (while loading object definition from file \"$fname\")"
             }
         }
     }
@@ -169,6 +180,10 @@ proc Rappture::objects::get {{name ""} {what ""}} {
         return [array names objDefs]
     }
 
+    if {![info exists objDefs($name)]} {
+        error "bad object type \"$name\": should be one of [join [lsort [array names objDefs]] {, }]"
+    }
+
     set name [string tolower $name]  ;# doesn't matter: Tool or tool
     set info(-image) [$objDefs($name) cget -image]
     set info(-help) [$objDefs($name) cget -help]
@@ -203,6 +218,32 @@ proc Rappture::objects::get {{name ""} {what ""}} {
         return $info($what)
     }
     error "bad option \"$what\": should be [join [lsort [array names info]] {, }]"
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::objects::import <xmlobj> <path>
+#
+# Tries to extract a value from the given <xmlobj> at the <path>.
+# ----------------------------------------------------------------------
+proc Rappture::objects::import {xmlobj path} {
+    set type [$xmlobj element -as type $path]
+    set ovclass "::Rappture::objects::[string totitle $type]Value"
+
+    # does this object type have a value class?
+    if {[catch {$ovclass ::#auto} obj]} {
+puts "OOPS! can't construct: $obj"
+        return ""
+    }
+
+    # try to load the object via its xml scheme
+    if {[catch {$obj import xml $xmlobj $path} result] == 0} {
+        return $obj
+    }
+puts "OOPS! $result\nin $obj = [$obj info class]\nfrom: $obj import xml $xmlobj $path\n$::errorInfo"
+
+    # can't seem to load anything -- return null
+    itcl::delete object $obj
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -257,6 +298,7 @@ proc Rappture::objects::check {type attrinfo debug} {
 # ----------------------------------------------------------------------
 proc Rappture::objects::parse_object {args} {
     variable currObjDef
+    variable currObjValDef
     variable currFile
     variable objDefs
     variable attrParser
@@ -285,7 +327,17 @@ proc Rappture::objects::parse_object {args} {
     set body [lindex $args end]
 
     # create an object definition and add attributes to it
+    catch {unset currObjValDef}
+    array set currObjValDef {
+        clear ""
+        compare ""
+        storage ""
+        import ""
+        export ""
+    }
+
     set currObjDef [Rappture::objects::ObjDef ::#auto -inherit $ilist]
+
     set cmds {
         # parse attribute definitions
         $attrParser eval $body
@@ -300,6 +352,85 @@ proc Rappture::objects::parse_object {args} {
                 break
             }
         }
+
+        #
+        # Create a class to manage the object's value...
+        #
+        set ovdefn "inherit ::Rappture::objects::ObjVal\n"
+        append ovdefn $currObjValDef(storage) "\n"
+        append ovdefn "destructor { clear }\n"
+        append ovdefn "public method clear {} [list $currObjValDef(clear)]\n"
+        append ovdefn "public method definition {} {return $currObjDef}\n"
+
+        append ovdefn [format "private method importTypes {} { return %s }\n" [list $currObjValDef(import)]]
+        append ovdefn [format "private method exportTypes {} { return %s }\n" [list $currObjValDef(export)]]
+
+        # define methods to handle each import type
+        foreach fmt $currObjValDef(import) {
+            append ovdefn [list public method import_$fmt $currObjValDef(im-$fmt-arglist) $currObjValDef(im-$fmt-body)] "\n"
+        }
+
+        # define methods to handle each export type
+        foreach fmt $currObjValDef(export) {
+            append ovdefn [list public method export_$fmt $currObjValDef(ex-$fmt-arglist) $currObjValDef(ex-$fmt-body)] "\n"
+        }
+
+        # define the "compare" method
+        set varcode ""
+        foreach line [split $currObjValDef(storage) \n] {
+            if {[regexp {(?:variable|common) +([a-zA-Z0-9_]+)} $line match var]} {
+                append varcode "_linkvar import \$obj $var\n"
+            }
+        }
+        if {$currObjValDef(compare) eq ""} {
+            set currObjValDef(compare) "return 1"
+        }
+        append ovdefn [format { public method compare {obj} { %s %s }
+            } $varcode $currObjValDef(compare)] "\n"
+
+        append ovdefn {
+            # utility used in "compare" method
+            # this must be defined in each derived class at the most
+            # specific scope, so that it has access to all of the storage
+            # variables for the class.  If it's defined in the base class,
+            # then it sees only the base class variables.
+            protected method _linkvar {option args} {
+              switch -- $option {
+                export {
+                    #
+                    # Look for the variable in the current object scope
+                    # and return a command that can be used to rebuild it.
+                    #
+                    set vname [lindex $args 0]
+                    set suffix [lindex $args 1]
+                    if {[array exists $vname]} {
+                        return [list array set ${vname}${suffix} [array get $vname]]
+                    } elseif {[info exists $vname]} {
+                        return [list set ${vname}${suffix} [set $vname]]
+                    } else {
+                        return [list set ${vname}${suffix} ""]
+                    }
+                }
+                import {
+                    #
+                    # The "_linkvar export" command produces a script that
+                    # will replicate the variable.  Invoke this script in
+                    # the calling context (uplevel) to copy the variable
+                    # to the proper call stack.
+                    #
+                    set obj [lindex $args 0]
+                    set vname [lindex $args 1]
+                    uplevel [$obj _linkvar export $vname 2]
+                }
+                default {
+                    error "bad option \"$option\": should be import, export"
+                }
+              }
+            }
+        }
+
+        # create the object value class
+        itcl::class "::Rappture::objects::[string totitle $name]Value" $ovdefn
     }
 
     if {[catch $cmds err] != 0} {
@@ -349,6 +480,73 @@ proc Rappture::objects::parse_check {attr code} {
 }
 
 # ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_clear
+#
+# Used internally to parse the definition of a clear block within a
+# Rappture object definition:
+#
+#   clear <body>
+#
+# The clear block is a block of code that clears the storage variables
+# before a new import operation, or whenever the object is destroyed.
+# Frees any objects stored in the storage variables.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_clear {body} {
+    variable currObjValDef
+
+    if {$currObjValDef(clear) ne ""} {
+        error "clear block already defined"
+    }
+    set currObjValDef(clear) $body
+}
+
+# ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_compare
+#
+# Used internally to parse the definition of a compare block for the
+# object value within a Rappture object definition:
+#
+#   compare <body>
+#
+# The compare block is a block of code that compares the value of
+# the current object to another object, and returns -1/0/1, similar
+# to str_cmp.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_compare {body} {
+    variable currObjValDef
+
+    if {$currObjValDef(compare) ne ""} {
+        error "compare block already defined"
+    }
+    set currObjValDef(compare) $body
+}
+
+# ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_export
+#
+# Used internally to parse the definition of an export scheme within
+# a Rappture object definition:
+#
+#   export <name> <arglist> <body>
+#
+# The export <name> defines a data type that the object's value can
+# be exported to.  The <arglist> arguments include the XML object, the
+# file handle, etc, depending on the export type.  The <body> is a
+# body of code invoked to handle the export operation.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_export {name arglist body} {
+    variable currObjValDef
+
+    set i [lsearch $currObjValDef(export) $name]
+    if {$i >= 0} {
+        error "export type \"$name\" already defined"
+    }
+    lappend currObjValDef(export) $name
+    set currObjValDef(ex-$name-arglist) $arglist
+    set currObjValDef(ex-$name-body) $body
+}
+
+# ----------------------------------------------------------------------
 # PARSER:  Rappture::objects::parse_help
 #
 # Used internally to parse the definition of the help page URL for a
@@ -368,6 +566,31 @@ proc Rappture::objects::parse_help {url} {
 }
 
 # ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_import
+#
+# Used internally to parse the definition of an import scheme within
+# a Rappture object definition:
+#
+#   import <name> <arglist> <body>
+#
+# The import <name> defines a data type that the object's value can
+# be imported to.  The <arglist> arguments include the XML object, the
+# file handle, etc, depending on the import type.  The <body> is a
+# body of code invoked to handle the import operation.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_import {name arglist body} {
+    variable currObjValDef
+
+    set i [lsearch $currObjValDef(import) $name]
+    if {$i >= 0} {
+        error "import type \"$name\" already defined"
+    }
+    lappend currObjValDef(import) $name
+    set currObjValDef(im-$name-arglist) $arglist
+    set currObjValDef(im-$name-body) $body
+}
+
+# ----------------------------------------------------------------------
 # PARSER:  Rappture::objects::parse_palettes
 #
 # Used internally to parse the definition of the palettes for a
@@ -381,6 +604,29 @@ proc Rappture::objects::parse_help {url} {
 proc Rappture::objects::parse_palettes {args} {
     variable currObjDef
     $currObjDef configure -palettes $args
+}
+
+# ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_storage
+#
+# Used internally to parse the definition of a storage block for the
+# object value within a Rappture object definition:
+#
+#   storage {
+#       private variable ...
+#   }
+#
+# The storage block is added directly to a class defined to hold the
+# object value.  Import/export code moves values into and out of the
+# storage area.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_storage {body} {
+    variable currObjValDef
+
+    if {$currObjValDef(storage) ne ""} {
+        error "storage block already defined"
+    }
+    set currObjValDef(storage) $body
 }
 
 # ----------------------------------------------------------------------
@@ -487,5 +733,94 @@ itcl::class Rappture::objects::ObjAttr {
 
     constructor {args} {
         eval configure $args
+    }
+}
+
+# ----------------------------------------------------------------------
+#  CLASS: ObjVal
+#  Able to import/export the value for a particular object class.
+# ----------------------------------------------------------------------
+itcl::class Rappture::objects::ObjVal {
+    public method clear {} { # nothing to do for base class }
+
+    public method import {pattern args} {
+        clear
+        set errs ""
+
+        # scan through all matching types and try to import the value
+        foreach type [importTypes] {
+puts "checking $type = $pattern"
+            if {[string match $pattern $type]} {
+                set cmd [format {eval $this import_%s $args} $type]
+puts "  testing $type = ($cmd)"
+                if {[catch $cmd result] == 0} {
+puts "  success!"
+                    return 1
+                }
+                lappend errs "not $type: $result"
+            }
+        }
+puts "  failed: $errs"
+        return [concat 0 $errs]
+    }
+
+    public method export {pattern args} {
+        set errs ""
+
+        # scan through all matching types and try to export the value
+        foreach type [exportTypes] {
+            if {[string match $pattern $type]} {
+                set cmd {uplevel $this export_$type $args}
+                if {[catch $cmd result] == 0} {
+                    return 1
+                }
+                lappend errs "not $type: $result"
+            }
+        }
+        return [concat 0 $errs]
+    }
+
+    # use this to query the current attribute value from an XML definition
+    public method getAttr {name xmlobj path} {
+        array set attr [lrange [[$this definition] get $name] 1 end]
+puts "getAttr: [$xmlobj get $path.$attr(-path)] at $xmlobj $path.$attr(-path)"
+        return [$xmlobj get $path.$attr(-path)]
+    }
+
+    private method importTypes {} { # derived classes override this }
+    private method exportTypes {} { # derived classes override this }
+
+    # utility used in "compare" method
+    # links a variable $vname from object $obj into the current scope
+    # with a similar variable name, but with $suffix on the end
+    #
+    # usage: _linkvar import _foo 2
+    #
+    # this triggers a call to "$obj _linkvar export" to produce a command
+    # that can be used to rebuild the desired variable from $obj into the
+    # local context.
+    #
+    # the _linkvar method must be defined in each derived class so that
+    # it has access to variables in the most-specific object context.
+    protected method _linkvar {option args} {
+        error "derived classes should override this method"
+    }
+
+    # utility to compare two double-prec numbers within a tolerance
+    proc cmpdbl {num1 num2 {max ""}} {
+        set mag [expr {0.5*(abs($num1)+abs($num2))}]
+        set diff [expr {abs($num1-$num2)}]
+
+        if {$diff <= 1e-6*$mag} {
+            # very small difference
+            return 0
+        } elseif {$max ne "" && $mag <= 1e-6*abs($max)} {
+            # very small numbers -- treat them as zero
+            return 0
+        } elseif {$num1 < $num2} {
+            return -1
+        } else {
+            return 1
+        }
     }
 }

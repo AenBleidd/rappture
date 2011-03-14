@@ -1,26 +1,14 @@
 object histogram -extends base {
     palettes "Outputs"
+
     help http://rappture.org/wiki/rp_xml_ele_histogram
+
     attr xlabel -title "X-axis Label" -type string -path xaxis.label
     attr xdesc  -title "X-axis Description" -type string -path xaxis.description
     attr xunits -title "X-axis Units" -type units -path xaxis.units
     attr ylabel -title "Y-axis Label" -type string -path yaxis.label
     attr ydesc  -title "Y-axis Description" -type string -path yaxis.description
     attr yunits -title "Y-axis Units" -type units -path yaxis.units
-
-    check label {
-        if {[string length [string trim $attr(label)]] == 0} {
-            return [list warning "Should set a label that describes this value."]
-        }
-    }
-    check description {
-        set desc [string trim $attr(description)]
-        if {[string length $desc] == 0} {
-            return [list warning "Should include a description of what this value represents, typical settings, etc."]
-        } elseif {[string equal $desc $attr(label)]} {
-            return [list warning "Description should be different from the label and give additional information about the value."]
-        }
-    }
 
     check xlabel {
         if {[string length [string trim $attr(xlabel)]] == 0} {

@@ -1,6 +1,8 @@
 object curve -extends base {
     palettes "Outputs"
+
     help http://rappture.org/wiki/rp_xml_ele_curve
+
     attr group -title "Plotting Group" -type string -path about.group
     attr xlabel -title "X-axis Label" -type string -path xaxis.label
     attr xdesc  -title "X-axis Description" -type string -path xaxis.description
@@ -8,20 +10,6 @@ object curve -extends base {
     attr ylabel -title "Y-axis Label" -type string -path yaxis.label
     attr ydesc  -title "Y-axis Description" -type string -path yaxis.description
     attr yunits -title "Y-axis Units" -type units -path yaxis.units
-
-    check label {
-        if {[string length [string trim $attr(label)]] == 0} {
-            return [list warning "Should set a label that describes this value."]
-        }
-    }
-    check description {
-        set desc [string trim $attr(description)]
-        if {[string length $desc] == 0} {
-            return [list warning "Should include a description of what this value represents, typical settings, etc."]
-        } elseif {[string equal $desc $attr(label)]} {
-            return [list warning "Description should be different from the label and give additional information about the value."]
-        }
-    }
 
     check xlabel {
         if {[string length [string trim $attr(xlabel)]] == 0} {
@@ -43,5 +31,181 @@ object curve -extends base {
         if {[string length [string trim $attr(ydesc)]] == 0} {
             return [list warning "Should include a description of what the y-axis represents, physical meaning, expected range, etc."]
         }
+    }
+
+    storage {
+        private variable _xvecs    ;# maps comp name => x-axis vector
+        private variable _yvecs    ;# maps comp name => y-axis vector
+    }
+    clear {
+        foreach comp [array names _xvecs] {
+            blt::vector destroy $_xvecs($comp)
+            blt::vector destroy $_yvecs($comp)
+        }
+        catch {unset _xvecs}
+        catch {unset _yvecs}
+    }
+
+    import string {val} {
+        set xv [blt::vector create \#auto]
+        set yv [blt::vector create \#auto]
+
+        set num 0
+        foreach line [split $val \n] {
+            if {[string index $line 0] eq "#"} {
+                # skip over lines that start with hash mark
+                continue
+            }
+
+            if {[string trim $line] eq ""} {
+                # blank line means new component
+                if {[$xv length] > 0} {
+                    # if we have something stored, save this and start another
+                    set cname "c[incr num]"
+                    set _xvecs($cname) $xv
+                    set _yvecs($cname) $yv
+                    set xv [blt::vector create \#auto]
+                    set yv [blt::vector create \#auto]
+                }
+                continue
+            }
+
+            set x [lindex $line 0]
+            if {![string is double -strict $x]} {
+                blt::vector destroy $xv $yv
+                error "bad value \"$x\": should be double number"
+            }
+
+            set y [lindex $line 1]; if {$y eq ""} { set y 0 }
+            if {![string is double -strict $y]} {
+                blt::vector destroy $xv $yv
+                error "bad value \"$y\": should be double number"
+            }
+
+            $xv append $x
+            $yv append $y
+        }
+
+        if {[$xv length] > 0} {
+            # if we have something stored, save the last component
+            set cname "c[incr num]"
+            set _xvecs($cname) $xv
+            set _yvecs($cname) $yv
+        }
+    }
+
+    export string {var} {
+        upvar $var v
+        set v ""
+        set nseparators [expr {[array size _xvecs] - 1}]
+
+        foreach cname [array names _xvecs] {
+            foreach x [$_xvecs($cname) range 0 end] y [$_yvecs($cname) range 0 end] {
+                append v "$x\t$y\n"
+            }
+
+            # add blank lines between components
+            if {$nseparators > 0} {
+                append v "\n"
+                incr nseparators -1
+            }
+        }
+    }
+
+    import xml {xmlobj path} {
+        foreach cname [$xmlobj children -type component $path] {
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+
+            set xydata [$xmlobj get $path.$cname.xy]
+            if {[string length $xydata] > 0} {
+                set tmp [blt::vector create \#auto]
+                $tmp set $xydata
+                $tmp split $xv $yv
+                blt::vector destroy $tmp
+            } else {
+                $xv set [$xmlobj get $path.$cname.xvector]
+                $yv set [$xmlobj get $path.$cname.yvector]
+            }
+
+            set xlen [$xv length]
+            set ylen [$yv length]
+            if {$xlen == 0 && $ylen == 0} {
+                blt::vector destroy $xv $yv
+                error "can't find any data at $path.$cname"
+            } elseif {[$xv length] != [$yv length]} {
+                blt::vector destroy $xv $yv
+                error "mismatch between x- and y-axes: $xlen x values, versus $ylen y values"
+            }
+            set _xvecs($cname) $xv
+            set _yvecs($cname) $yv
+        }
+    }
+
+    export xml {xmlobj path} {
+        foreach cname [array names _xvecs] {
+            set data ""
+            foreach x [$_xvecs($cname) range 0 end] y [$_yvecs($cname) range 0 end] {
+                append data "$x $y\n"
+            }
+            if {$cname ne ""} {
+                set elem "component($cname)"
+            } else {
+                set elem "component"
+            }
+            $xmlobj put $path.$elem.xy $data
+        }
+    }
+
+    compare {
+        if {[array size _xvecs] != [array size _xvecs2]} {
+puts "components: [array size _xvecs] vs [array size _xvecs2]"
+            return 1  ;# different numbers of components
+        }
+        foreach cname [array names _xvecs] cname2 [array names _xvecs2] {
+puts "checking component $cname..."
+            # take a quick look at the x vector
+            set xvlen [$_xvecs($cname) length]
+puts "  x-lengths: [$_xvecs($cname) length] [$_xvecs2($cname2) length]"
+            if {$xvlen != [$_xvecs2($cname2) length]} {
+puts "  different lengths"
+                return 1  ;# different lengths of this component
+            }
+
+            # take a quick look at the y vector
+            set yvlen [$_yvecs($cname) length]
+puts "  y-lengths: [$_yvecs($cname) length] [$_yvecs2($cname2) length]"
+            if {$yvlen != [$_yvecs2($cname2) length]} {
+puts "  different lengths"
+                return 1  ;# different lengths of this component
+            }
+
+            # scan through all values and see if they match
+            set xv $_xvecs($cname)
+            set xv2 $_xvecs2($cname2)
+puts "  comparing: $xv vs $xv2"
+            set scale [blt::vector expr {0.5*(abs(max($xv)-min($xv))
+                + abs(max($xv2)-min($xv2)))}]
+            foreach num [$xv range 0 end] num2 [$xv2 range 0 end] {
+                set result [cmpdbl $num $num2 $scale]
+                if {$result != 0} {
+                    return $result
+                }
+            }
+
+            # scan through all values and see if they match
+            set yv $_yvecs($cname)
+            set yv2 $_yvecs2($cname2)
+puts "  comparing: $yv vs $yv2"
+            set scale [blt::vector expr {0.5*(abs(max($yv)-min($yv))
+                + abs(max($yv2)-min($yv2)))}]
+            foreach num [$yv range 0 end] num2 [$yv2 range 0 end] {
+                set result [cmpdbl $num $num2 $scale]
+                if {$result != 0} {
+                    return $result
+                }
+            }
+        }
+        return 0  ;# same!
     }
 }
