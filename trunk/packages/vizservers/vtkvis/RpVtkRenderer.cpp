@@ -696,20 +696,35 @@ bool Renderer::renderColorMap(const ColorMapId& id, const char *title,
  */
 void Renderer::addPseudoColor(const DataSetId& id)
 {
-    DataSet *ds = getDataSet(id);
-    if (ds == NULL)
-        return;
+    DataSetHashmap::iterator itr;
 
-    if (getPseudoColor(id)) {
-        WARN("Replacing existing pseudocolor %s", id.c_str());
-        deletePseudoColor(id);
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
     }
-    PseudoColor *pc = new PseudoColor();
-    _pseudoColors[id] = pc;
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
 
-    pc->setDataSet(ds);
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
 
-    _renderer->AddActor(pc->getActor());
+        if (getPseudoColor(dsID)) {
+            WARN("Replacing existing pseudocolor %s", dsID.c_str());
+            deletePseudoColor(dsID);
+        }
+        PseudoColor *pc = new PseudoColor();
+        _pseudoColors[dsID] = pc;
+
+        pc->setDataSet(ds);
+
+        _renderer->AddActor(pc->getActor());
+    } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
     _needsRedraw = true;
@@ -734,20 +749,36 @@ PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
  */
 void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        ColorMap *cmap = getColorMap(colorMapId);
-        if (cmap) {
-            TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
-                  id.c_str());
-            pc->setLookupTable(cmap->getLookupTable());
-             _needsRedraw = true;
-        } else {
-            ERROR("Unknown colormap: %s", colorMapId.c_str());
-        }
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
     } else {
-        ERROR("No pseudocolor for dataset %s", id.c_str());
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        itr->second->setLookupTable(cmap->getLookupTable());
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -765,15 +796,59 @@ vtkLookupTable *Renderer::getPseudoColorColorMap(const DataSetId& id)
 }
 
 /**
+ * \brief Set opacity of the PseudoColor for the given DataSet
+ */
+void Renderer::setPseudoColorOpacity(const DataSetId& id, double opacity)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn on/off rendering of the PseudoColor mapper for the given DataSet
  */
 void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setVisibility(state);
-        _needsRedraw = true;
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -781,11 +856,27 @@ void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
  */
 void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setEdgeVisibility(state);
-        _needsRedraw = true;
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -793,11 +884,27 @@ void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
  */
 void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setEdgeColor(color);
-        _needsRedraw = true;
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -808,11 +915,27 @@ void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
  */
 void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setEdgeWidth(edgeWidth);
-        _needsRedraw = true;
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -820,11 +943,27 @@ void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
  */
 void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setLighting(state);
-        _needsRedraw = true;
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
     }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -832,21 +971,36 @@ void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
  */
 void Renderer::addContour2D(const DataSetId& id)
 {
-    DataSet *ds = getDataSet(id);
-    if (ds == NULL)
-        return;
+    DataSetHashmap::iterator itr;
 
-    if (getContour2D(id)) {
-        WARN("Replacing existing contour2d %s", id.c_str());
-        deleteContour2D(id);
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
     }
 
-    Contour2D *contour = new Contour2D();
-    _contours[id] = contour;
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
 
-    contour->setDataSet(ds);
+        if (getContour2D(dsID)) {
+            WARN("Replacing existing contour2d %s", dsID.c_str());
+            deleteContour2D(dsID);
+        }
 
-    _renderer->AddActor(contour->getActor());
+        Contour2D *contour = new Contour2D();
+        _contours[dsID] = contour;
+
+        contour->setDataSet(ds);
+
+        _renderer->AddActor(contour->getActor());
+    } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
     _needsRedraw = true;
@@ -871,11 +1025,26 @@ Contour2D *Renderer::getContour2D(const DataSetId& id)
  */
 void Renderer::setContours(const DataSetId& id, int numContours)
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setContours(numContours);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContours(numContours);
+    } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -883,11 +1052,53 @@ void Renderer::setContours(const DataSetId& id, int numContours)
  */
 void Renderer::setContourList(const DataSetId& id, const std::vector<double>& contours)
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setContourList(contours);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourList(contours);
+    } while (doAll && ++itr != _contours.end());
+
+     _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of contour lines for the given DataSet
+ */
+void Renderer::setContourOpacity(const DataSetId& id, double opacity)
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
+    }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -895,11 +1106,26 @@ void Renderer::setContourList(const DataSetId& id, const std::vector<double>& co
  */
 void Renderer::setContourVisibility(const DataSetId& id, bool state)
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setVisibility(state);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -907,11 +1133,26 @@ void Renderer::setContourVisibility(const DataSetId& id, bool state)
  */
 void Renderer::setContourEdgeColor(const DataSetId& id, float color[3])
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setEdgeColor(color);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -922,11 +1163,26 @@ void Renderer::setContourEdgeColor(const DataSetId& id, float color[3])
  */
 void Renderer::setContourEdgeWidth(const DataSetId& id, float edgeWidth)
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setEdgeWidth(edgeWidth);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -934,11 +1190,25 @@ void Renderer::setContourEdgeWidth(const DataSetId& id, float edgeWidth)
  */
 void Renderer::setContourLighting(const DataSetId& id, bool state)
 {
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setLighting(state);
-        _needsRedraw = true;
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contours.begin();
+        doAll = true;
+    } else {
+        itr = _contours.find(id);
     }
+    if (itr == _contours.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _contours.end());
+    _needsRedraw = true;
 }
 
 /**
@@ -946,21 +1216,36 @@ void Renderer::setContourLighting(const DataSetId& id, bool state)
  */
 void Renderer::addPolyData(const DataSetId& id)
 {
-    DataSet *ds = getDataSet(id);
-    if (ds == NULL)
-        return;
+    DataSetHashmap::iterator itr;
 
-    if (getPolyData(id)) {
-        WARN("Replacing existing polydata %s", id.c_str());
-        deletePolyData(id);
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
     }
 
-    PolyData *polyData = new PolyData();
-    _polyDatas[id] = polyData;
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
 
-    polyData->setDataSet(ds);
+        if (getPolyData(dsID)) {
+            WARN("Replacing existing polydata %s", dsID.c_str());
+            deletePolyData(dsID);
+        }
 
-    _renderer->AddActor(polyData->getActor());
+        PolyData *polyData = new PolyData();
+        _polyDatas[dsID] = polyData;
+
+        polyData->setDataSet(ds);
+
+        _renderer->AddActor(polyData->getActor());
+    } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
         setCameraMode(PERSPECTIVE);
@@ -983,15 +1268,57 @@ PolyData *Renderer::getPolyData(const DataSetId& id)
 }
 
 /**
+ * \brief Set opacity of the PolyData for the given DataSet
+ */
+void Renderer::setPolyDataOpacity(const DataSetId& id, double opacity)
+{
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn on/off rendering of the PolyData mapper for the given DataSet
  */
 void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setVisibility(state);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -999,11 +1326,25 @@ void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
  */
 void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setColor(color);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColor(color);
+    } while (doAll && ++itr != _polyDatas.end());
+    _needsRedraw = true;
 }
 
 /**
@@ -1011,11 +1352,26 @@ void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
  */
 void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeVisibility(state);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1023,11 +1379,26 @@ void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
  */
 void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeColor(color);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1038,11 +1409,26 @@ void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
  */
 void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setEdgeWidth(edgeWidth);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1050,11 +1436,26 @@ void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
  */
 void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setWireframe(state);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1062,11 +1463,26 @@ void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
  */
 void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
 {
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setLighting(state);
-        _needsRedraw = true;
+    PolyDataHashmap::iterator itr;
+    
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
     }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1456,21 +1872,9 @@ void Renderer::setBackgroundColor(float color[3])
  */
 void Renderer::setOpacity(const DataSetId& id, double opacity)
 {
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc) {
-        pc->setOpacity(opacity);
-        _needsRedraw = true;
-    }
-    Contour2D *contour = getContour2D(id);
-    if (contour) {
-        contour->setOpacity(opacity);
-        _needsRedraw = true;
-    }
-    PolyData *polyData = getPolyData(id);
-    if (polyData) {
-        polyData->setOpacity(opacity);
-        _needsRedraw = true;
-    }
+    setPseudoColorOpacity(id, opacity);
+    setContourOpacity(id, opacity);
+    setPolyDataOpacity(id, opacity);
 }
 
 /**

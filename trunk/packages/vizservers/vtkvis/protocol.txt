@@ -43,33 +43,39 @@ dataset delete <?datasetName?>
 dataset getvalue world <x> <y> <z> <datasetName>
 dataset getvalue pixel <x> <y> <datasetName>
         Use pixel for image camera mode
-dataset opacity <val> <datasetName>
-dataset visible <bool> <datasetName>
+dataset opacity <val> <?datasetName?>
+dataset visible <bool> <?datasetName?>
 
-pseudocolor add <datasetName>
-pseudocolor colormap <colormapName> <datasetName>
+pseudocolor add <?datasetName?>
+pseudocolor colormap <colormapName> <?datasetName?>
 pseudocolor delete <?datasetName?>
-pseudocolor edges <bool> <datasetName>
-pseudocolor linecolor <r> <g> <b> <datasetName>
-pseudocolor linewidth <val> <datasetName>
-pseudocolor visible <bool> <datasetName>
+pseudocolor edges <bool> <?datasetName?>
+pseudocolor lighting <bool> <?datasetName?>
+pseudocolor linecolor <r> <g> <b> <?datasetName?>
+pseudocolor linewidth <val> <?datasetName?>
+pseudocolor opacity <val> <?datasetName?>
+pseudocolor visible <bool> <?datasetName?>
 
-contour2d add numcontours <n> <datasetName>
-contour2d add contourlist <list> <datasetName>
+contour2d add numcontours <n> <?datasetName?>
+contour2d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
 contour2d delete <?datasetName?>
-contour2d linecolor <r> <g> <b> <datasetName>
-contour2d linewidth <val> <datasetName>
-contour2d visible <bool> <datasetName>
+contour2d lighting <bool> <?datasetName?>
+contour2d linecolor <r> <g> <b> <?datasetName?>
+contour2d linewidth <val> <?datasetName?>
+contour2d opacity <val> <?datasetName?>
+contour2d visible <bool> <?datasetName?>
 
-polydata add <datasetName>
-polydata color <r> <g> <b> <datasetName>
+polydata add <?datasetName?>
+polydata color <r> <g> <b> <?datasetName?>
 polydata delete <?datasetName?>
-polydata edges <bool> <datasetName>
-polydata linecolor <r> <g> <b> <datasetName>
-polydata linewidth <val> <datasetName>
-polydata visible <bool> <datasetName>
-polydata wireframe <bool> <datasetName>
+polydata edges <bool> <?datasetName?>
+polydata lighting <bool> <?datasetName?>
+polydata linecolor <r> <g> <b> <?datasetName?>
+polydata linewidth <val> <?datasetName?>
+polydata opacity <val> <?datasetName?>
+polydata visible <bool> <?datasetName?>
+polydata wireframe <bool> <?datasetName?>
 
 ================================================================================
 Replies:

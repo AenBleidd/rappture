@@ -153,6 +153,8 @@ public:
 
     vtkLookupTable *getPseudoColorColorMap(const DataSetId& id);
 
+    void setPseudoColorOpacity(const DataSetId& id, double opacity);
+
     void setPseudoColorVisibility(const DataSetId& id, bool state);
 
     void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
@@ -175,6 +177,8 @@ public:
 
     void setContourList(const DataSetId& id, const std::vector<double>& contours);
 
+    void setContourOpacity(const DataSetId& id, double opacity);
+
     void setContourVisibility(const DataSetId& id, bool state);
 
     void setContourEdgeColor(const DataSetId& id, float color[3]);
@@ -190,6 +194,8 @@ public:
     void deletePolyData(const DataSetId& id);
 
     PolyData *getPolyData(const DataSetId& id);
+
+    void setPolyDataOpacity(const DataSetId& id, double opacity);
 
     void setPolyDataVisibility(const DataSetId& id, bool state);
 

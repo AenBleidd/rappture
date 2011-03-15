@@ -31,6 +31,8 @@ public:
 
     void setDataSet(DataSet *dataset);
 
+    DataSet *getDataSet();
+
     vtkActor *getActor();
 
     void setLookupTable(vtkLookupTable *lut);
