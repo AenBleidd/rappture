@@ -30,6 +30,8 @@ public:
 
     void setDataSet(DataSet *dataset);
 
+    DataSet *getDataSet();
+
     vtkActor *getActor();
 
     void setContours(int numContours);

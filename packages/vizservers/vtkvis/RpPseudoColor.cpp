@@ -48,6 +48,14 @@ void PseudoColor::setDataSet(DataSet *dataSet)
 }
 
 /**
+ * \brief Returns the DataSet this PseudoColor renders
+ */
+DataSet *PseudoColor::getDataSet()
+{
+    return _dataSet;
+}
+
+/**
  * \brief Internal method to set up color mapper after a state change
  */
 void PseudoColor::update()

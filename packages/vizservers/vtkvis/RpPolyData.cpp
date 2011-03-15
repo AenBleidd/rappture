@@ -84,6 +84,14 @@ void PolyData::setDataSet(DataSet *dataSet)
 }
 
 /**
+ * \brief Returns the DataSet this PolyData renders
+ */
+DataSet *PolyData::getDataSet()
+{
+    return _dataSet;
+}
+
+/**
  * \brief Internal method to re-compute contours after a state change
  */
 void PolyData::update()

@@ -432,8 +432,6 @@ static int
 Contour2DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                           Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[4]);
-    g_renderer->addContour2D(name);
     std::vector<double> contourList;
 
     int clistc;
@@ -451,7 +449,14 @@ Contour2DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
         contourList.push_back(val);
     }
 
-    g_renderer->setContourList(name, contourList);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addContour2D(name);
+        g_renderer->setContourList(name, contourList);
+    } else {
+        g_renderer->addContour2D("all");
+        g_renderer->setContourList("all", contourList);
+    }
     return TCL_OK;
 }
 
@@ -459,19 +464,24 @@ static int
 Contour2DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                           Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[4]);
-    g_renderer->addContour2D(name);
     int numContours;
     if (Tcl_GetIntFromObj(interp, objv[3], &numContours) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setContours(name, numContours);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addContour2D(name);
+        g_renderer->setContours(name, numContours);
+    } else {
+        g_renderer->addContour2D("all");
+        g_renderer->setContours("all", numContours);
+    }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec contour2dAddOps[] = {
-    {"contourlist", 1, Contour2DAddContourListOp, 5, 5, "contourList dataSetName"},
-    {"numcontours", 1, Contour2DAddNumContoursOp, 5, 5, "numContours dataSetName"}
+    {"contourlist", 1, Contour2DAddContourListOp, 4, 5, "contourList ?dataSetName?"},
+    {"numcontours", 1, Contour2DAddNumContoursOp, 4, 5, "numContours ?dataSetName?"}
 };
 static int nContour2dAddOps = NumCmdSpecs(contour2dAddOps);
 
@@ -506,12 +516,16 @@ static int
 Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setContourLighting(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContourLighting(name, state);
+    } else {
+        g_renderer->setContourLighting("all", state);
+    }
     return TCL_OK;
 }
 
@@ -519,14 +533,18 @@ static int
 Contour2DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                      Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[5]);
     float color[3];
     if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
         GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
         GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setContourEdgeColor(name, color);
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContourEdgeColor(name, color);
+    } else {
+        g_renderer->setContourEdgeColor("all", color);
+    }
     return TCL_OK;
 }
 
@@ -534,12 +552,33 @@ static int
 Contour2DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                      Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     float width;
     if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setContourEdgeWidth(name, width);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContourEdgeWidth(name, width);
+    } else {
+        g_renderer->setContourEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour2DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContourOpacity(name, opacity);
+    } else {
+        g_renderer->setContourOpacity("all", opacity);
+    }
     return TCL_OK;
 }
 
@@ -547,22 +586,27 @@ static int
 Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setContourVisibility(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContourVisibility(name, state);
+    } else {
+        g_renderer->setContourVisibility("all", state);
+    }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec contour2dOps[] = {
-    {"add", 1, Contour2DAddOp, 5, 5, "oper value dataSetName"},
+    {"add", 1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
     {"delete", 1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
-    {"lighting", 3, Contour2DLightingOp, 4, 4, "bool dataSetName"},
-    {"linecolor", 5, Contour2DLineColorOp, 6, 6, "r g b dataSetName"},
-    {"linewidth", 5, Contour2DLineWidthOp, 4, 4, "width dataSetName"},
-    {"visible", 1, Contour2DVisibleOp, 4, 4, "bool dataSetName"}
+    {"lighting", 3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, Contour2DLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity", 1, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible", 1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nContour2dOps = NumCmdSpecs(contour2dOps);
 
@@ -723,12 +767,16 @@ static int
 DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     double opacity;
     if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setOpacity(name, opacity);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setOpacity(name, opacity);
+    } else {
+        g_renderer->setOpacity("all", opacity);
+    }
     return TCL_OK;
 }
 
@@ -736,12 +784,16 @@ static int
 DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setVisibility(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setVisibility(name, state);
+    } else {
+        g_renderer->setVisibility("all", state);
+    }
     return TCL_OK;
 }
 
@@ -749,8 +801,8 @@ static Rappture::CmdSpec dataSetOps[] = {
     {"add", 1, DataSetAddOp, 6, 6, "name data follows nBytes"},
     {"delete", 1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
-    {"opacity", 1, DataSetOpacityOp, 4, 4, "value name"},
-    {"visible", 1, DataSetVisibleOp, 4, 4, "bool name"}
+    {"opacity", 1, DataSetOpacityOp, 3, 4, "value ?name?"},
+    {"visible", 1, DataSetVisibleOp, 3, 4, "bool ?name?"}
 };
 static int nDataSetOps = NumCmdSpecs(dataSetOps);
 
@@ -810,8 +862,12 @@ static int
 PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->addPseudoColor(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addPseudoColor(name);
+    } else {
+        g_renderer->addPseudoColor("all");
+    }
     return TCL_OK;
 }
 
@@ -820,8 +876,12 @@ PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       Tcl_Obj *const *objv)
 {
     const char *colorMapName = Tcl_GetString(objv[2]);
-    const char *dataSetName = Tcl_GetString(objv[3]);
-    g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setPseudoColorColorMap("all", colorMapName);
+    }
     return TCL_OK;
 }
 
@@ -839,28 +899,19 @@ PseudoColorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                     Tcl_Obj *const *objv)
-{
-    const char *name = Tcl_GetString(objv[3]);
-    bool state;
-    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    g_renderer->setPseudoColorVisibility(name, state);
-    return TCL_OK;
-}
-
-static int
 PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                             Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPseudoColorEdgeVisibility(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorEdgeVisibility(name, state);
+    } else {
+        g_renderer->setPseudoColorEdgeVisibility("all", state);
+    }
     return TCL_OK;
 }
 
@@ -868,12 +919,16 @@ static int
 PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPseudoColorLighting(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorLighting(name, state);
+    } else {
+        g_renderer->setPseudoColorLighting("all", state);
+    }
     return TCL_OK;
 }
 
@@ -881,14 +936,18 @@ static int
 PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[5]);
     float color[3];
     if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
         GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
         GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPseudoColorEdgeColor(name, color);
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPseudoColorEdgeColor(name, color);
+    } else {
+        g_renderer->setPseudoColorEdgeColor("all", color);
+    }
     return TCL_OK;
 }
 
@@ -896,24 +955,63 @@ static int
 PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     float width;
     if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPseudoColorEdgeWidth(name, width);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorEdgeWidth(name, width);
+    } else {
+        g_renderer->setPseudoColorEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorOpacity(name, opacity);
+    } else {
+        g_renderer->setPseudoColorOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorVisibility(name, state);
+    } else {
+        g_renderer->setPseudoColorVisibility("all", state);
+    }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec pseudoColorOps[] = {
-    {"add", 1, PseudoColorAddOp, 3, 3, "dataSetName"},
-    {"colormap", 1, PseudoColorColorMapOp, 4, 4, "colorMapName dataSetName"},
+    {"add", 1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
+    {"colormap", 1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete", 1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges", 1, PseudoColorEdgeVisibilityOp, 4, 4, "bool dataSetName"},
-    {"lighting", 3, PseudoColorLightingOp, 4, 4, "bool dataSetName"},
-    {"linecolor", 5, PseudoColorLineColorOp, 6, 6, "r g b dataSetName"},
-    {"linewidth", 5, PseudoColorLineWidthOp, 4, 4, "width dataSetName"},
-    {"visible", 1, PseudoColorVisibleOp, 4, 4, "bool dataSetName"}
+    {"edges", 1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting", 3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity", 1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible", 1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
 
@@ -935,8 +1033,12 @@ static int
 PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[2]);
-    g_renderer->addPolyData(name);
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addPolyData(name);
+    } else {
+        g_renderer->addPolyData("all");
+    }
     return TCL_OK;
 }
 
@@ -957,14 +1059,18 @@ static int
 PolyDataColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[5]);
     float color[3];
     if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
         GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
         GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataColor(name, color);
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPolyDataColor(name, color);
+    } else {
+        g_renderer->setPolyDataColor("all", color);
+    }
     return TCL_OK;
 }
 
@@ -972,12 +1078,16 @@ static int
 PolyDataEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                          Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataEdgeVisibility(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataEdgeVisibility(name, state);
+    } else {
+        g_renderer->setPolyDataEdgeVisibility("all", state);
+    }
     return TCL_OK;
 }
 
@@ -985,12 +1095,16 @@ static int
 PolyDataLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataLighting(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataLighting(name, state);
+    } else {
+        g_renderer->setPolyDataLighting("all", state);
+    }
     return TCL_OK;
 }
 
@@ -998,14 +1112,18 @@ static int
 PolyDataLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[5]);
     float color[3];
     if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
         GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
         GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataEdgeColor(name, color);
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPolyDataEdgeColor(name, color);
+    } else {
+        g_renderer->setPolyDataEdgeColor("all", color);
+    }
     return TCL_OK;
 }
 
@@ -1013,12 +1131,33 @@ static int
 PolyDataLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     float width;
     if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataEdgeWidth(name, width);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataEdgeWidth(name, width);
+    } else {
+        g_renderer->setPolyDataEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+PolyDataOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataOpacity(name, opacity);
+    } else {
+        g_renderer->setPolyDataOpacity("all", opacity);
+    }
     return TCL_OK;
 }
 
@@ -1026,12 +1165,16 @@ static int
 PolyDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataVisibility(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataVisibility(name, state);
+    } else {
+        g_renderer->setPolyDataVisibility("all", state);
+    }
     return TCL_OK;
 }
 
@@ -1039,25 +1182,30 @@ static int
 PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
-    const char *name = Tcl_GetString(objv[3]);
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setPolyDataWireframe(name, state);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataWireframe(name, state);
+    } else {
+        g_renderer->setPolyDataWireframe("all", state);
+    }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec polyDataOps[] = {
-    {"add", 1, PolyDataAddOp, 3, 3, "dataSetName"},
-    {"color", 1, PolyDataColorOp, 6, 6, "r g b dataSetName"},
+    {"add", 1, PolyDataAddOp, 2, 3, "?dataSetName?"},
+    {"color", 1, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
     {"delete", 1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges", 1, PolyDataEdgeVisibilityOp, 4, 4, "bool dataSetName"},
-    {"lighting", 3, PolyDataLightingOp, 4, 4, "bool dataSetName"},
-    {"linecolor", 5, PolyDataLineColorOp, 6, 6, "r g b dataSetName"},
-    {"linewidth", 5, PolyDataLineWidthOp, 4, 4, "width dataSetName"},
-    {"visible", 1, PolyDataVisibleOp, 4, 4, "bool dataSetName"},
-    {"wireframe", 1, PolyDataWireframeOp, 4, 4, "bool dataSetName"}
+    {"edges", 1, PolyDataEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting", 3, PolyDataLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, PolyDataLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, PolyDataLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity", 1, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible", 1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe", 1, PolyDataWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPolyDataOps = NumCmdSpecs(polyDataOps);
 

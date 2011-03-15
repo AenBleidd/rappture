@@ -47,6 +47,14 @@ void Contour2D::setDataSet(DataSet *dataSet)
 }
 
 /**
+ * \brief Returns the DataSet this Contour2D renders
+ */
+DataSet *Contour2D::getDataSet()
+{
+    return _dataSet;
+}
+
+/**
  * \brief Get the VTK Actor for the contour lines
  */
 vtkActor *Contour2D::getActor()
