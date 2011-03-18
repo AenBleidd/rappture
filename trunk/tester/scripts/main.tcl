@@ -269,6 +269,13 @@ Rappture::Tester::StringDiffs $win.diffs \
     -title1 "Expected this:" -title2 "Got this:"
 pack $win.diffs -expand yes -fill both -padx 4 -pady 4
 
+# viewer for showing string info if all else fails (e.g. unkobj errors)
+Rappture::Scroller .testdiffs.body.info \
+    -xscrollmode auto -yscrollmode auto
+pack .testdiffs.body.info -expand yes -fill both -padx 10 -pady {0 10}
+text .testdiffs.body.info.text -width 10 -height 1 -wrap char
+.testdiffs.body.info contents .testdiffs.body.info.text
+
 # plug the proper diff colors into the legend area
 .testdiffs.legend insert end -title "= Added" -shape box \
     -color [.testdiffs.body.val2strs.diffs cget -addedbackground]
@@ -427,8 +434,14 @@ proc tester_selection_changed {args} {
                         set help "The test run failed as expected, but produced different output.  Fix the tool to produce the correct error message for the failure.  If you can verify that the latest error message is better, then the test case should be updated to contain this new output."
                     }
                   }
+                  unkobj {
+                    set icon [Rappture::icon warn16]
+                    set title "Unsupported object type"
+                    set desc "Test contains an object type that is not yet supported"
+                    set help "The Rappture Regression Tester is still in beta.  Some object types supported by the Rappture runtime environment are not yet supported by the tester.  These warnings will go away as the Rappture Regression Tester improves and support for all object types is put into place."
+                  }
                   default {
-                    error "don't know how to handle difference \"$what\""
+                    error "don't know how to handle difference \"$difftype\""
                   }
                 }
 
@@ -698,6 +711,14 @@ proc tester_diff_show {args} {
         }
         "type *" {
             error "don't know how to show type diffs"
+            set legsettings {2 disabled 3 disabled 4 disabled}
+        }
+        "unkobj" {
+            set win .testdiffs.body.info
+            $win.text configure -state normal
+            $win.text delete 1.0 end
+            $win.text insert end "The following object type is not yet supported within the Rappture Regression Tester:\n\n[$diff(-testobj) getTestInfo xml $diff(-path)]"
+            $win.text configure -state disabled
             set legsettings {2 disabled 3 disabled 4 disabled}
         }
     }
