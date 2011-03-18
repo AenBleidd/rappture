@@ -49,7 +49,6 @@ itcl::class Rappture::Tester::StatusList {
     public method delete {from {to ""}}
     public method size {} { return [llength $_entries] }
     public method get {pos args}
-    public method invoke {{index "current"}}
     public method view {{index "current"}}
 
     public method xview {args} {

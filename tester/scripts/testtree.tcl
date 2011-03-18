@@ -84,6 +84,9 @@ itcl::body Rappture::Tester::TestTree::constructor {args} {
     $itk_component(treeview) column insert 0 result -title "Result"
     $itk_component(treeview) column insert end test -hide yes
     $itk_component(treeview) column configure treeView -justify left -title "Test Case"
+    $itk_component(treeview) sort configure -mode dictionary -column treeView
+    $itk_component(treeview) sort auto yes
+
     $itk_component(scrollbars) contents $itk_component(treeview)
 
     itk_component add bottomBar {
@@ -228,7 +231,6 @@ itcl::body Rappture::Tester::TestTree::_refresh {args} {
                 Running { set data(result) "@[spinner use]" }
                 default { set data(result) "" }
             }
-puts "ICON: $data(result)"
             $itk_component(treeview) entry configure $n -data [array get data]
 
             # if the node that's changed is selected, invoke the

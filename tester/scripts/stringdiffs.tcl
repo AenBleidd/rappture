@@ -18,6 +18,7 @@ namespace eval Rappture::Tester { # forward declaration }
 
 option add *StringDiffs.titleFont {Arial -12 bold} widgetDefault
 option add *StringDiffs.bodyFont {Courier -12} widgetDefault
+option add *StringDiffs.bodyBackground white widgetDefault
 
 itcl::class Rappture::Tester::StringDiffs {
     inherit itk::Widget 
@@ -60,10 +61,11 @@ itcl::body Rappture::Tester::StringDiffs::constructor {args} {
             -highlightthickness 0 \
             -diff 1->2 -layout inline
     } {
-        keep -background -foreground -cursor
+        keep -foreground -cursor
         keep -addedbackground -addedforeground
         keep -deletedbackground -deletedforeground -overstrike
         keep -changedbackground -changedforeground
+        rename -background -bodybackground bodyBackground Background
         rename -font -bodyfont bodyFont Font
     }
     $itk_component(scrl) contents $itk_component(body)
@@ -82,12 +84,13 @@ itcl::body Rappture::Tester::StringDiffs::constructor {args} {
     itk_component add body1 {
         Rappture::Diffview $itk_component(sidebyside).s1 \
             -highlightthickness 0 \
-            -diff 1->2 -layout sidebyside
+            -diff 2->1 -layout sidebyside
     } {
         keep -background -foreground -cursor
         keep -addedbackground -addedforeground
         keep -deletedbackground -deletedforeground -overstrike
         keep -changedbackground -changedforeground
+        rename -background -bodybackground bodyBackground Background
         rename -font -bodyfont bodyFont Font
     }
     itk_component add xsbar1 {
@@ -104,12 +107,13 @@ itcl::body Rappture::Tester::StringDiffs::constructor {args} {
     itk_component add body2 {
         Rappture::Diffview $itk_component(sidebyside).s2 \
             -highlightthickness 0 \
-            -diff 2->1 -layout sidebyside
+            -diff 1->2 -layout sidebyside
     } {
         keep -background -foreground -cursor
         keep -addedbackground -addedforeground
         keep -deletedbackground -deletedforeground -overstrike
         keep -changedbackground -changedforeground
+        rename -background -bodybackground bodyBackground Background
         rename -font -bodyfont bodyFont Font
     }
     itk_component add xsbar2 {
@@ -154,6 +158,14 @@ itk::usual StringDiffs {
 # they are show with side-by-side viewers.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::StringDiffs::show {v1 v2} {
+    #
+    # HACK ALERT!  The Diffview widget doesn't handle tabs at all.
+    #   We'll convert all tabs to a few spaces until we get a chance
+    #   to fix it properly.
+    #
+    set v1 [string map [list \t "   "] $v1]
+    set v2 [string map [list \t "   "] $v2]
+
     #
     # Figure out whether to show inline diffs or side-by-side.
     # If the strings are short, it looks better inline.  Otherwise,
