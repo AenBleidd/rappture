@@ -18,8 +18,10 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 
 FILES		= \
 		$(srcdir)/main.tcl \
+		$(srcdir)/legend.tcl \
 		$(srcdir)/objview.tcl \
 		$(srcdir)/resultspage.tcl \
+		$(srcdir)/runview.tcl \
 		$(srcdir)/statuslist.tcl \
 		$(srcdir)/stringdiffs.tcl \
 		$(srcdir)/test.tcl \

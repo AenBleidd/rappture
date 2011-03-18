@@ -163,12 +163,12 @@ itcl::body Rappture::Tester::Test::run {args} {
 
             if {[$_testobj get output.status] ne "ok"} {
                 # expected test to fail, but it didn't
-                set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+                set idiffs [_computeDiffs [$_toolobj xml object] $_runobj -in input]
                 set odiffs [_computeDiffs $_testobj $_runobj -what run]
                 set _diffs [concat $idiffs $odiffs]
                 _setResult "Fail"
             } else {
-                set idiffs [_computeDiffs [$_toolobj xml] $_testobj -in input]
+                set idiffs [_computeDiffs [$_toolobj xml object] $_testobj -in input]
                 set odiffs [_computeDiffs $_testobj $_runobj -in output]
                 set _diffs [concat $idiffs $odiffs]
 
@@ -186,7 +186,7 @@ itcl::body Rappture::Tester::Test::run {args} {
                   && [$_testobj get output.log] eq $result} {
                 _setResult "Pass"
             } else {
-                set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+                set idiffs [_computeDiffs [$_toolobj xml object] $_runobj -in input]
                 set odiffs [_computeDiffs $_testobj $_runobj -what run]
                 set _diffs [concat $idiffs $odiffs]
                 _setResult "Fail"
@@ -199,7 +199,7 @@ itcl::body Rappture::Tester::Test::run {args} {
               && [$_testobj get output.log] eq $result} {
             _setResult "Pass"
         } else {
-            set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+            set idiffs [_computeDiffs [$_toolobj xml object] $_runobj -in input]
             set odiffs [_computeDiffs $_testobj $_runobj -what run]
             set _diffs [concat $idiffs $odiffs]
             _setResult "Fail"
@@ -270,7 +270,7 @@ itcl::body Rappture::Tester::Test::getDiffs {args} {
     set path [lindex $args 0]
     if {[string match input.* $path]} {
         # if we're matching input, compare the original XML vs. the test
-        return [_computeDiffs [$_toolobj xml] $_testobj -in $path -detail max]
+        return [_computeDiffs [$_toolobj xml object] $_testobj -in $path -detail max]
     }
 
     # otherwise, compare the golden test vs. the test result
@@ -425,7 +425,11 @@ itcl::body Rappture::Tester::Test::_computeDiffs {obj1 obj2 args} {
                         set type2 [$obj2 element -as type $path]
                         if {$type1 eq $type2} {
                           set same yes
-                          set alist [Rappture::objects::get $type1 -attributes]
+                          if {[catch {Rappture::objects::get $type1 -attributes} alist]} {
+                              # oops! unknown object type
+                              lappend rlist [linsert $details 0 -what unkobj]
+                              set alist ""
+                          }
                           foreach rec $alist {
                               array set attr [lrange $rec 1 end]
                               set apath $path.$attr(-path)
