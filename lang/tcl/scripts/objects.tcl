@@ -55,12 +55,13 @@ namespace eval Rappture::objects {
     $attrParser alias export Rappture::objects::parse_export
     $attrParser alias help Rappture::objects::parse_help
     $attrParser alias import Rappture::objects::parse_import
+    $attrParser alias method Rappture::objects::parse_method
     $attrParser alias palettes Rappture::objects::parse_palettes
     $attrParser alias storage Rappture::objects::parse_storage
     $attrParser alias terminal Rappture::objects::parse_terminal
     $attrParser alias unknown Rappture::objects::parse_attr_unknown
     proc ::Rappture::objects::parse_attr_unknown {args} {
-        error "bad option \"[lindex $args 0]\": should be attr, check, clear, compare, export, help, import, palettes, storage, terminal"
+        error "bad option \"[lindex $args 0]\": should be attr, check, clear, compare, export, help, import, method, palettes, storage, terminal"
     }
 
     # this variable will hold ObjDef object as it is being built
@@ -180,11 +181,11 @@ proc Rappture::objects::get {{name ""} {what ""}} {
         return [array names objDefs]
     }
 
+    set name [string tolower $name]  ;# doesn't matter: Tool or tool
     if {![info exists objDefs($name)]} {
         error "bad object type \"$name\": should be one of [join [lsort [array names objDefs]] {, }]"
     }
 
-    set name [string tolower $name]  ;# doesn't matter: Tool or tool
     set info(-image) [$objDefs($name) cget -image]
     set info(-help) [$objDefs($name) cget -help]
     set info(-palettes) [$objDefs($name) cget -palettes]
@@ -206,8 +207,8 @@ proc Rappture::objects::get {{name ""} {what ""}} {
         set obj [lindex $olist 0]
         set olist [lrange $olist 1 end]
 
-        foreach aname [$obj get] {
-            lappend rlist [$obj get $aname]
+        foreach aname [$obj getAttr] {
+            lappend rlist [$obj getAttr $aname]
         }
     }
     set info(-attributes) $rlist
@@ -243,6 +244,70 @@ puts "OOPS! $result\nin $obj = [$obj info class]\nfrom: $obj import xml $xmlobj 
 
     # can't seem to load anything -- return null
     itcl::delete object $obj
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::objects::viewer <objVal>|<objDef>|<type> \
+    ?-for input|output? ?-parent win?
+#
+# Used to find/create a viewer for the given object.  The object can
+# be specified by an ObjVal object, an ObjDef object definition, or
+# a string name <type>.  The -for flag indicates whether the viewer
+# widget is for input or output.  The -parent indicates the parent
+# containing the widget.  If the widget already exists, it is returned
+# directly.  Otherwise, it is created and returned.
+# ----------------------------------------------------------------------
+proc Rappture::objects::viewer {what args} {
+    variable objDefs
+
+    # figure out the name of the desired object type
+    if {[catch {$what isa ::Rappture::objects::ObjVal} valid] == 0 && $valid} {
+        set type [[$what definition] type]
+    } elseif {[catch {$what isa ::Rappture::objects::ObjDef} valid] == 0
+                        && $valid} {
+        set type [$what type]
+    } else {
+        set type [string tolower $what]  ;# doesn't matter: Number or number
+        if {![info exists objDefs($type)]} {
+            error "bad object type \"$type\": should be one of [join [lsort [array names objDefs]] {, }]"
+        }
+    }
+
+    # process additional options
+    array set opt {
+        -for output
+        -parent "."
+    }
+    foreach {key val} $args {
+        if {![info exists opt($key)]} {
+            error "bad option \"$key\": should be [join [array names opt] {, }]"
+        }
+        set opt($key) $val
+    }
+    if {![winfo exists $opt(-parent)]} {
+        error "bad parent window \"$opt(-parent)\""
+    }
+    if {$opt(-parent) eq "."} {
+        set opt(-parent) ""  ;# avoid ".." below when we say: $parent.foo
+    }
+    if {[lsearch {input output} $opt(-for)] < 0} {
+        error "bad value \"$opt(-for)\": should be input, output"
+    }
+
+    # build the class name and widget name:
+    #   class: Rappture::objects::CurveOutput
+    #  widget: .foo.bar.curveOutput
+    set which [string totitle $opt(-for)]
+    set class "::Rappture::objects::[string totitle $type]$which"
+    set win "$opt(-parent).v$type$opt(-for)"
+
+    if {[winfo exists $win]} {
+        return $win
+    }
+    if {[catch {$class $win} err] == 0} {
+        return $win
+    }
     return ""
 }
 
@@ -334,9 +399,10 @@ proc Rappture::objects::parse_object {args} {
         storage ""
         import ""
         export ""
+        method ""
     }
 
-    set currObjDef [Rappture::objects::ObjDef ::#auto -inherit $ilist]
+    set currObjDef [Rappture::objects::ObjDef ::#auto $name -inherit $ilist]
 
     set cmds {
         # parse attribute definitions
@@ -361,6 +427,11 @@ proc Rappture::objects::parse_object {args} {
         append ovdefn "destructor { clear }\n"
         append ovdefn "public method clear {} [list $currObjValDef(clear)]\n"
         append ovdefn "public method definition {} {return $currObjDef}\n"
+
+        # define extra methods added specially to this object
+        foreach mn $currObjValDef(method) {
+            append ovdefn [list public method $mn $currObjValDef(m-$mn-arglist) $currObjValDef(m-$mn-body)] "\n"
+        }
 
         append ovdefn [format "private method importTypes {} { return %s }\n" [list $currObjValDef(import)]]
         append ovdefn [format "private method exportTypes {} { return %s }\n" [list $currObjValDef(export)]]
@@ -591,6 +662,31 @@ proc Rappture::objects::parse_import {name arglist body} {
 }
 
 # ----------------------------------------------------------------------
+# PARSER:  Rappture::objects::parse_method
+#
+# Used internally to parse the definition of an object method within
+# a Rappture object definition:
+#
+#   method <name> <arglist> <body>
+#
+# A method is an extra function supported by this object, used to
+# query or modify the object value (usually by the GUI viewer).
+# The <arglist> defines the arguments to the method, and the <body>
+# is the body of code invoked to implement the method.
+# ----------------------------------------------------------------------
+proc Rappture::objects::parse_method {name arglist body} {
+    variable currObjValDef
+
+    set i [lsearch $currObjValDef(method) $name]
+    if {$i >= 0} {
+        error "method \"$name\" already defined"
+    }
+    lappend currObjValDef(method) $name
+    set currObjValDef(m-$name-arglist) $arglist
+    set currObjValDef(m-$name-body) $body
+}
+
+# ----------------------------------------------------------------------
 # PARSER:  Rappture::objects::parse_palettes
 #
 # Used internally to parse the definition of the palettes for a
@@ -659,9 +755,14 @@ itcl::class Rappture::objects::ObjDef {
     public variable terminal "yes"
     public variable palettes ""
 
-    constructor {args} {
+    constructor {type args} {
+        set _type $type
         set _checks(num) 0
         eval configure $args
+    }
+
+    public method type {} {
+        return $_type
     }
 
     public method add {what name args} {
@@ -686,16 +787,41 @@ itcl::class Rappture::objects::ObjDef {
         }
     }
 
-    public method get {{name ""}} {
-        if {"" == $name} {
-            return $_attrs
-        } elseif {[info exists _attr2def($name)]} {
+    public method getAttr {args} {
+        if {[llength $args] == 0} {
+            set rlist ""
+            foreach baseobj [cget -inherit] {
+                eval lappend rlist [$baseobj getAttr]
+            }
+            eval lappend rlist $_attrs
+            return $rlist
+        } elseif {[llength $args] > 2} {
+            error "wrong # args: should be \"getAttrs ?name? ?-part?\""
+        }
+
+        set name [lindex $args 0]
+        set part [lindex $args 1]
+
+        # handle attributes defined right in this class
+        if {[info exists _attr2def($name)]} {
             set rlist $name
             foreach opt [$_attr2def($name) configure] {
+                if {[lindex $opt 0] eq $part} {
+                    return [lindex $opt 2]
+                }
                 lappend rlist [lindex $opt 0] [lindex $opt 2]
             }
             return $rlist
         }
+
+        # handle attributes defined in a base class
+        foreach baseobj [cget -inherit] {
+            set rval [eval $baseobj getAttr $name $part]
+            if {$rval ne ""} {
+                return $rval
+            }
+        }
+        return ""
     }
 
     # call this to check the integrity of all values
@@ -717,6 +843,7 @@ itcl::class Rappture::objects::ObjDef {
         return $rlist
     }
 
+    private variable _type ""   ;# type name (lowercase) for object type
     private variable _attrs ""  ;# list of attr names in order
     private variable _attr2def  ;# maps attr name => ObjAttr object
     private variable _checks    ;# bits of code used for checks
@@ -741,6 +868,83 @@ itcl::class Rappture::objects::ObjAttr {
 #  Able to import/export the value for a particular object class.
 # ----------------------------------------------------------------------
 itcl::class Rappture::objects::ObjVal {
+    public method definition {} { # returns the ObjDef class for this value }
+
+    public method attr {option args} {
+        switch -- $option {
+            get {
+                if {[llength $args] == 0} {
+                    return [[$this definition] getAttr]
+                } elseif {[llength $args] == 1} {
+                    set name [lindex $args 0]
+                    if {[catch {[$this definition] getAttr $name}]} {
+                        error "attribute \"$name\" not defined on $this"
+                    }
+                    if {[info exists attr($name)]} {
+                        return $attr($name)
+                    }
+                    return ""
+                } else {
+                    error "wrong # args: should be \"attr get ?name?\""
+                }
+            }
+            set {
+                if {[llength $args] != 2} {
+                    error "wrong # args: should be \"attr set name value\""
+                }
+                set name [lindex $args 0]
+                set val [lindex $args 1]
+                if {[catch {[$this definition] getAttr $name}] == 0} {
+                    set attr($name) $val
+                }
+                return $val
+            }
+            info {
+                if {[llength $args] == 1} {
+                    set name [lindex $args 0]
+                    return [[$this definition] getAttr $name]
+                } else {
+                    error "wrong # args: should be \"attr info name\""
+                }
+            }
+            import {
+                if {[llength $args] != 2} {
+                    error "wrong # args: should be \"attr import xmlobj path\""
+                }
+                set xmlobj [lindex $args 0]
+                set path [lindex $args 1]
+
+                set odef [$this definition]
+                foreach name [$odef getAttr] {
+                    set tail [$odef getAttr $name -path]
+                    set apath $path.$tail
+                    if {[$xmlobj element -as type $apath] ne ""} {
+                        set attr($name) [$xmlobj get $apath]
+                    }
+                }
+            }
+            export {
+                if {[llength $args] != 2} {
+                    error "wrong # args: should be \"attr export xmlobj path\""
+                }
+                set xmlobj [lindex $args 0]
+                set path [lindex $args 1]
+
+                set odef [$this definition]
+                foreach name [$odef getAttr] {
+                    if {[info exists attr($name)]} {
+                        set tail [$odef getAttr $name -path]
+                        $xmlobj put $path.$tail $attr($name)
+                    }
+                }
+            }
+            default {
+                error "bad option \"$option\": should be get, set, info, import, export"
+            }
+        }
+    }
+    protected variable attr  ;# maps attribute name => value
+
     public method clear {} { # nothing to do for base class }
 
     public method import {pattern args} {
@@ -778,13 +982,6 @@ puts "  failed: $errs"
             }
         }
         return [concat 0 $errs]
-    }
-
-    # use this to query the current attribute value from an XML definition
-    public method getAttr {name xmlobj path} {
-        array set attr [lrange [[$this definition] get $name] 1 end]
-puts "getAttr: [$xmlobj get $path.$attr(-path)] at $xmlobj $path.$attr(-path)"
-        return [$xmlobj get $path.$attr(-path)]
     }
 
     private method importTypes {} { # derived classes override this }

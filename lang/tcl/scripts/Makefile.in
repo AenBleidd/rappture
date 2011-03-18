@@ -74,6 +74,8 @@ all: tclIndex
 tclIndex: install-objects install-types install-validations $(FILES)
 	$(TCLSH) $(srcdir)/../tclconfig/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
+	$(TCLSH) $(srcdir)/../tclconfig/mkobjects.tcl --srcdir $(srcdir) \
+		$(OBJECTS)
 
 install: tclIndex
 	$(MKDIR_P) -m 0755 $(destdir)

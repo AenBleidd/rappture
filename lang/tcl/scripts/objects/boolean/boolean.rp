@@ -10,6 +10,7 @@ object boolean -extends base {
     }
 
     import xml {xmlobj path} {
+        attr import $xmlobj $path
         import_string [$xmlobj get $path.current]
     }
 
