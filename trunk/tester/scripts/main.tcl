@@ -766,7 +766,7 @@ proc tester_regoldenize {} {
 
     set test [lindex $seltests 0]
     set testxml [$test getTestxml]
-    if {[tk_messageBox -type yesno -icon warning -message "Are you sure you want to regoldenize?\n$testxml will be overwritten."]} {
+    if {[tk_messageBox -type yesno -icon warning -title "Rappture Tester: Confirm" -message "Are you sure that the latest run results are completely correct for this test case?  If so, then $testxml will be overwritten with the latest output, and all future test runs will be compared with this new standard.\n\nContinue?"]} {
         $test regoldenize
 
         # reload the updated description for this test
