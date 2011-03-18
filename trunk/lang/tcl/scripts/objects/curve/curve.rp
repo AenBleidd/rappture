@@ -34,8 +34,11 @@ object curve -extends base {
     }
 
     storage {
-        private variable _xvecs    ;# maps comp name => x-axis vector
-        private variable _yvecs    ;# maps comp name => y-axis vector
+        private variable _xvecs       ;# maps comp name => x-axis vector
+        private variable _yvecs       ;# maps comp name => y-axis vector
+        private variable _hints       ;# store "hints" based on attributes
+        private variable _xmarkers "" ;# list of {x,label,options} for markers
+        private variable _ymarkers "" ;# list of {y,label,options} for markers
     }
     clear {
         foreach comp [array names _xvecs] {
@@ -44,8 +47,14 @@ object curve -extends base {
         }
         catch {unset _xvecs}
         catch {unset _yvecs}
+        catch {unset _hints}
+        set _xmarkers ""
+        set _ymarkers ""
     }
 
+    # ------------------------------------------------------------------
+    # IMPORT: string
+    # ------------------------------------------------------------------
     import string {val} {
         set xv [blt::vector create \#auto]
         set yv [blt::vector create \#auto]
@@ -94,6 +103,9 @@ object curve -extends base {
         }
     }
 
+    # ------------------------------------------------------------------
+    # EXPORT: string
+    # ------------------------------------------------------------------
     export string {var} {
         upvar $var v
         set v ""
@@ -112,7 +124,12 @@ object curve -extends base {
         }
     }
 
+    # ------------------------------------------------------------------
+    # IMPORT: xml
+    # ------------------------------------------------------------------
     import xml {xmlobj path} {
+        attr import $xmlobj $path
+
         foreach cname [$xmlobj children -type component $path] {
             set xv [blt::vector create \#auto]
             set yv [blt::vector create \#auto]
@@ -140,8 +157,24 @@ object curve -extends base {
             set _xvecs($cname) $xv
             set _yvecs($cname) $yv
         }
+
+        foreach elem [$xmlobj children -type "marker" $path.xaxis] {
+            set at     [$xmlobj get $path.xaxis.$elem.at]
+            set label  [$xmlobj get $path.xaxis.$elem.label]
+            set styles [$xmlobj get $path.xaxis.$elem.style]
+            lappend _xmarkers [list $at $label $styles]
+        }
+        foreach elem [$xmlobj children -type "marker" $path.yaxis] {
+            set at     [$xmlobj get $path.yaxis.$elem.at]
+            set label  [$xmlobj get $path.yaxis.$elem.label]
+            set styles [$xmlobj get $path.yaxis.$elem.style]
+            lappend _ymarkers [list $at $label $styles]
+        }
     }
 
+    # ------------------------------------------------------------------
+    # EXPORT: xml
+    # ------------------------------------------------------------------
     export xml {xmlobj path} {
         foreach cname [array names _xvecs] {
             set data ""
@@ -157,33 +190,29 @@ object curve -extends base {
         }
     }
 
+    # ------------------------------------------------------------------
+    # COMPARE
+    # ------------------------------------------------------------------
     compare {
         if {[array size _xvecs] != [array size _xvecs2]} {
-puts "components: [array size _xvecs] vs [array size _xvecs2]"
             return 1  ;# different numbers of components
         }
         foreach cname [array names _xvecs] cname2 [array names _xvecs2] {
-puts "checking component $cname..."
             # take a quick look at the x vector
             set xvlen [$_xvecs($cname) length]
-puts "  x-lengths: [$_xvecs($cname) length] [$_xvecs2($cname2) length]"
             if {$xvlen != [$_xvecs2($cname2) length]} {
-puts "  different lengths"
                 return 1  ;# different lengths of this component
             }
 
             # take a quick look at the y vector
             set yvlen [$_yvecs($cname) length]
-puts "  y-lengths: [$_yvecs($cname) length] [$_yvecs2($cname2) length]"
             if {$yvlen != [$_yvecs2($cname2) length]} {
-puts "  different lengths"
                 return 1  ;# different lengths of this component
             }
 
             # scan through all values and see if they match
             set xv $_xvecs($cname)
             set xv2 $_xvecs2($cname2)
-puts "  comparing: $xv vs $xv2"
             set scale [blt::vector expr {0.5*(abs(max($xv)-min($xv))
                 + abs(max($xv2)-min($xv2)))}]
             foreach num [$xv range 0 end] num2 [$xv2 range 0 end] {
@@ -196,7 +225,6 @@ puts "  comparing: $xv vs $xv2"
             # scan through all values and see if they match
             set yv $_yvecs($cname)
             set yv2 $_yvecs2($cname2)
-puts "  comparing: $yv vs $yv2"
             set scale [blt::vector expr {0.5*(abs(max($yv)-min($yv))
                 + abs(max($yv2)-min($yv2)))}]
             foreach num [$yv range 0 end] num2 [$yv2 range 0 end] {
@@ -207,5 +235,181 @@ puts "  comparing: $yv vs $yv2"
             }
         }
         return 0  ;# same!
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: components ?<pattern>?
+    #
+    # Returns a list of names for the various components of this
+    # curve.  If the optional glob-style <pattern> is specified, then
+    # it returns only the component names matching the pattern.
+    # ------------------------------------------------------------------
+    method components {{pattern *}} {
+        set rlist ""
+        foreach cname [array names _xvecs] {
+            if {[string match $pattern $cname]} {
+                lappend rlist $cname
+            }
+        }
+        return $rlist
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: mesh <name>
+    #
+    # Returns the xvec for the specified curve component <name>.
+    # ------------------------------------------------------------------
+    method mesh {cname} {
+        if {[info exists _xvecs($cname)]} {
+            return $_xvecs($cname)  ;# return xv
+        }
+        error "bad option \"$cname\": should be [join [lsort [array names _xvecs]] {, }]"
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: values <name>
+    #
+    # Returns the yvec for the specified curve component <name>.
+    # ------------------------------------------------------------------
+    method values {cname} {
+        if {[info exists _yvecs($cname)]} {
+            return $_yvecs($cname)  ;# return yv
+        }
+        error "bad option \"$cname\": should be [join [lsort [array names _yvecs]] {, }]"
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: limits x|xlin|xlog|y|ylin|ylog
+    #
+    # Returns the {min max} limits for the specified axis.
+    # ------------------------------------------------------------------
+    method limits {which} {
+        set min ""
+        set max ""
+        switch -- $which {
+            x - xlin { set pos 0; set log 0; set axis xaxis }
+            xlog { set pos 0; set log 1; set axis xaxis }
+            y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+            ylog - vlog { set pos 1; set log 1; set axis yaxis }
+            default {
+                error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
+            }
+        }
+
+        blt::vector create tmp zero
+        foreach comp [array names _xvecs] {
+            set arrvar [lindex {_xvecs _yvecs} $pos]
+            set vname [set ${arrvar}($comp)]
+            $vname variable vec
+
+            if {$log} {
+                # on a log scale, use abs value and ignore 0's
+                $vname dup tmp
+                $vname dup zero
+                zero expr {tmp == 0}            ;# find the 0's
+                tmp expr {abs(tmp)}             ;# get the abs value
+                tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+                set vmin [blt::vector expr min(tmp)]
+                set vmax [blt::vector expr max(tmp)]
+            } else {
+                set vmin $vec(min)
+                set vmax $vec(max)
+            }
+
+            if {"" == $min} {
+                set min $vmin
+            } elseif {$vmin < $min} {
+                set min $vmin
+            }
+            if {"" == $max} {
+                set max $vmax
+            } elseif {$vmax > $max} {
+                set max $vmax
+            }
+        }
+        blt::vector destroy tmp zero
+
+        set val [attr get min]
+        if {$val ne "" && $min ne ""} {
+            if {$val > $min} {
+                # tool specified this min -- don't go any lower
+                set min $val
+            }
+        }
+
+        set val [attr get max]
+        if {$val ne "" && $max ne ""} {
+            if {$val < $max} {
+                # tool specified this max -- don't go any higher
+                set max $val
+            }
+        }
+
+        return [list $min $max]
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: xmarkers
+    #
+    # Returns the list of settings for each marker on the x-axis.
+    # If no markers have been specified the empty string is returned.
+    # ------------------------------------------------------------------
+    method xmarkers {} {
+        return $_xmarkers
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: ymarkers
+    #
+    # Returns the list of settings for each marker on the y-axis.
+    # If no markers have been specified the empty string is returned.
+    # ------------------------------------------------------------------
+    method ymarkers {} {
+        return $_ymarkers
+    }
+
+    # ------------------------------------------------------------------
+    # USAGE: hints ?keyword?
+    #
+    # This has been replaced by the "attrs" method in the ObjVal
+    # base class, but is provided here for backward-compatibility
+    # with the XyResult viewer.
+    #
+    # With no args, it returns a list of keywords and corresponding
+    # values for all attributes in this object.  If a particular
+    # keyword is specified, then it returns the value for that
+    # attribute.  There are a few more "hints" defined here beyond
+    # the object attributes.
+    # ------------------------------------------------------------------
+    method hints {{keyword ""}} {
+        # first time through, build all of these hint values
+        if {![info exists _hints]} {
+            # start with all of the usual attributes
+            foreach key [attr get] {
+                set _hints($key) [attr get $key]
+            }
+
+            # tweak them a little to produce the values needed for XyResult
+            if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+                  && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+                set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+            }
+            if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+                  && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+                set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+            }
+
+            if {[info exists _hints(group)] && [info exists _hints(label)]} {
+                # pop-up help for each curve
+                set _hints(tooltip) $_hints(label)
+            }
+        }
+        if {$keyword != ""} {
+            if {[info exists _hints($keyword)]} {
+                return $_hints($keyword)
+            }
+            return ""
+        }
+        return [array get _hints]
     }
 }
