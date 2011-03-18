@@ -728,8 +728,7 @@ itcl::body Rappture::XyResult::Rebuild {} {
         }
         foreach elem $label2elem($label) {
             set dataobj $_elem2dataobj($elem)
-	    puts stderr dataobj=$dataobj
-            scan $dataobj "::curve%d" suffix
+            regexp {^::curve(?:Value)?([0-9]+)$} $dataobj match suffix
             incr suffix
             set elabel [format "%s \#%d" $label $suffix]
             $g element configure $elem -label $elabel
