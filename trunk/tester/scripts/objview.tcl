@@ -103,6 +103,9 @@ itcl::body Rappture::Tester::ObjView::_reload {} {
     set type ""
     if {$testobj ne "" && $path ne ""} {
         set type [$testobj getTestInfo element -as type $path]
+        if {$type eq ""} {
+            set type [$testobj getRunInfo element -as type $path]
+        }
     }
 
     if {$type eq ""} {

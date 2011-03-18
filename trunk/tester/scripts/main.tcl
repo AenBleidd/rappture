@@ -43,6 +43,7 @@ option add *TemperatureGauge.textBackground white
 option add *Switch.textBackground white
 option add *Progress.barColor #ffffcc
 option add *Diffview.background white
+option add *Text.background white
 option add *Balloon.titleBackground #6666cc
 option add *Balloon.titleForeground white
 option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-12-*
@@ -132,6 +133,7 @@ if {$params(-testdir) == ""} {
 set installdir [file dirname [file normalize $params(-tool)]]
 set xmlobj [Rappture::library $params(-tool)]
 set ToolObj [Rappture::Tool ::#auto $xmlobj $installdir]
+set DiffShow ""  ;# used to track which diff objects are being displayed
 
 # ----------------------------------------------------------------------
 # INITIALIZE WINDOW
@@ -209,20 +211,10 @@ button .testdiffs.hd.inner.help -anchor w -text "Help..." \
 pack .testdiffs.hd.inner.help -side left -padx 10
 
 # show add/deleted styles at the bottom
-frame .testdiffs.legend
+Rappture::Tester::Legend .testdiffs.legend
 pack .testdiffs.legend -side bottom -fill x
-frame .testdiffs.legend.line -height 1 -background black
-pack .testdiffs.legend.line -side top -fill x -pady {0 2}
-label .testdiffs.legend.lleg -text "Legend: "
-pack .testdiffs.legend.lleg -side left
-frame .testdiffs.legend.add -width 16 -height 16 -borderwidth 1 -relief solid
-pack .testdiffs.legend.add -side left -padx {6 0}
-label .testdiffs.legend.addl -text "= Added"
-pack .testdiffs.legend.addl -side left
-frame .testdiffs.legend.del -width 16 -height 16 -borderwidth 1 -relief solid
-pack .testdiffs.legend.del -side left -padx {10 0}
-label .testdiffs.legend.dell -text "= Deleted"
-pack .testdiffs.legend.dell -side left
+frame .testdiffs.line -height 1 -background black
+pack .testdiffs.line -side bottom -fill x -pady {0 2}
 
 # diff viewer goes in this spot
 frame .testdiffs.body
@@ -230,6 +222,9 @@ pack .testdiffs.body -expand yes -fill both -padx 10 -pady {20 10}
 
 # viewer for attribute diffs
 Rappture::Tester::ObjView .testdiffs.body.attrs
+
+# viewer for run status diffs
+Rappture::Tester::RunView .testdiffs.body.runs
 
 # viewer for value diffs where object is extra or missing
 frame .testdiffs.body.val
@@ -258,11 +253,33 @@ Rappture::Tester::StringDiffs .testdiffs.body.val2strs.diffs \
     -title1 "Expected this:" -title2 "Got this:"
 pack .testdiffs.body.val2strs.diffs -expand yes -fill both -padx 10 -pady 10
 
+# viewer for value diffs where we have a special object viewer
+Rappture::Panes .testdiffs.body.val2objs -orientation horizontal -sashcursor sb_h_double_arrow
+
+# empty area for the object value viewer
+set win [.testdiffs.body.val2objs pane 0]
+frame $win.val
+pack $win.val -expand yes -fill both
+
+# show object details and diff on the right-hand side
+set win [.testdiffs.body.val2objs insert end -fraction 0.5]
+Rappture::Tester::ObjView $win.obj -details min -showdiffs no
+pack $win.obj -side top -fill x
+Rappture::Tester::StringDiffs $win.diffs \
+    -title1 "Expected this:" -title2 "Got this:"
+pack $win.diffs -expand yes -fill both -padx 4 -pady 4
+
 # plug the proper diff colors into the legend area
-.testdiffs.legend.add configure \
-    -background [.testdiffs.body.attrs cget -addedbackground]
-.testdiffs.legend.del configure \
-    -background [.testdiffs.body.attrs cget -deletedbackground]
+.testdiffs.legend insert end -title "= Added" -shape box \
+    -color [.testdiffs.body.val2strs.diffs cget -addedbackground]
+.testdiffs.legend insert end -title "= Deleted" -shape box \
+    -color [.testdiffs.body.val2strs.diffs cget -deletedbackground]
+.testdiffs.legend insert end -title "= Changed" -shape box \
+    -color [.testdiffs.body.val2strs.diffs cget -changedbackground]
+.testdiffs.legend insert end -title "= Test Result" -shape line \
+    -color red -anchor e
+.testdiffs.legend insert end -title "= Expected Result" -shape line \
+    -color black -anchor e
 
 # Load all tests in the test directory
 # ----------------------------------------------------------------------
@@ -399,6 +416,17 @@ proc tester_selection_changed {args} {
                         set help "The test run contains an input value that is completely different from the corresponding input defined in the test case.  Was this input recently modified in the tool?  If so, the test case should be updated."
                     }
                   }
+                  status {
+                    set icon [Rappture::icon fail16]
+                    set title "Run failure"
+                    if {$diff(-path) eq "output.status"} {
+                        set desc "Test run failure was not expected"
+                        set help "The test run failed, but the test case was expected to finish successfully.  The tool should be fixed to avoid the failure.  If you can verify that the tool is working correctly, then the test case should be updated to contain this new result."
+                    } else {
+                        set desc "Test run failure produced different output"
+                        set help "The test run failed as expected, but produced different output.  Fix the tool to produce the correct error message for the failure.  If you can verify that the latest error message is better, then the test case should be updated to contain this new output."
+                    }
+                  }
                   default {
                     error "don't know how to handle difference \"$what\""
                   }
@@ -512,15 +540,25 @@ proc tester_run_output {option testobj args} {
 # difference found in a particular test case.
 # ----------------------------------------------------------------------
 proc tester_diff_show {args} {
-    global Viewers
+    global DiffShow
 
     set testtree [.pw pane 0].tree
     set rhs [.pw pane 1]
     set testview $rhs.testview
+    set viewarea [.testdiffs.body.val2objs pane 0].val
 
-    # show the test data in the header -- doesn't accept the -index, though
+    # clean up from the last call
+    set viewer [lindex $DiffShow 0]
+    if {$viewer ne ""} {
+        $viewer delete
+        foreach obj [lrange $DiffShow 1 end] {
+            itcl::delete object $obj
+        }
+    }
+    set DiffShow ""
+
+    # show the diff overview in the header
     array set data $args
-puts "SHOW: [array get data]"
     .testdiffs.hd.inner.title configure -image $data(-icon) -text $data(-body)
 
     #
@@ -535,99 +573,132 @@ puts "SHOW: [array get data]"
     }
 
     switch -glob -- $diff(-what) {
-        "value +" {
-            # get a string rep for the second value
-            if {[catch {Rappture::objects::import $diff(-obj2) $diff(-path)} val2] == 0 && $val2 ne ""} {
-                set status [$val2 export string str]
-                if {[lindex $status 0]} {
-                    set v2 $str
-                }
-                itcl::delete object $val2
+        "value *" {
+            foreach w [pack slaves $viewarea] {
+                pack forget $w
             }
 
-            if {[info exists v2]} {
-                # we have a value -- show it
+            set op [lindex $diff(-what) 1]
+            set w .testdiffs.body.val1str.obj
+            switch -- $op {
+                +       { set bg [$w cget -addedbackground] }
+                -       { set bg [$w cget -deletedbackground] }
+                default { set bg [lindex [$w configure -background] 3] }
+            }
+
+            # get the first value in obj or string form
+            set val1 ""
+            if {[catch {Rappture::objects::import $diff(-obj1) $diff(-path)} val1] == 0 && $val1 ne ""} {
+                set viewer [Rappture::objects::viewer $val1 \
+                    -for output -parent $viewarea]
+                if {$viewer ne ""} {
+                    set DiffShow [list $viewer $val1]
+                }
+                # try to get a string rep too
+                set status [$val1 export string str]
+                if {[lindex $status 0]} { set vstr1 $str }
+            }
+
+            # get a string rep for the second value
+            set val2 ""
+            if {[catch {Rappture::objects::import $diff(-obj2) $diff(-path)} val2] == 0 && $val2 ne ""} {
+                set viewer [Rappture::objects::viewer $val2 \
+                    -for output -parent $viewarea]
+                if {$viewer ne ""} {
+                    if {$DiffShow ne ""} {
+                        if {[lindex $DiffShow 0] eq $viewer} {
+                            lappend DiffShow $val2
+                        } else {
+                            error "type mismatch between values: $diff(-obj1) vs $diff(-obj2) -- diff should have caught this as \"type\" difference"
+                        }
+                    } else {
+                        set DiffShow [list $viewer $val2]
+                    }
+                }
+                # try to get a string rep too
+                set status [$val2 export string str]
+                if {[lindex $status 0]} { set vstr2 $str }
+            }
+
+            if {$DiffShow ne ""} {
+                # we have a value viewer -- show the values in that
+                pack $viewer -expand yes -fill both
+
+                if {$val1 ne ""} {
+                    $viewer add $val1 [list -color black -description "Expected Result"]
+                }
+                if {$val2 ne ""} {
+                    $viewer add $val2 [list -color red -description "Test Result"]
+                }
+
+                # show the string diffs too
+                set w [.testdiffs.body.val2objs pane 1]
+                $w.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+
+                if {[info exists vstr1]} { set v1 $vstr1 } else { set v1 "" }
+                if {[info exists vstr2]} { set v2 $vstr2 } else { set v2 "" }
+                $w.diffs show $v1 $v2
+
+                set win .testdiffs.body.val2objs
+
+                set legsettings [list 2 normal \
+                    3 [expr {($val2 ne "") ? "normal" : "disabled"}] \
+                    4 [expr {($val1 ne "") ? "normal" : "disabled"}]]
+
+            } elseif {[info exists vstr1] && [info exists vstr2]} {
+                # we have two value strings -- show as a diff
+                set win .testdiffs.body.val2strs
+                $win.obj configure -background $bg \
+                    -testobj $diff(-testobj) -path $diff(-path)
+                $win.diffs show $vstr1 $vstr2
+                set legsettings {2 normal 3 disabled 4 disabled}
+            } elseif {[info exists vstr1] || [info exists vstr2]} {
+                # we have one value string -- show it
+                if {[info exists vstr1]} {
+                    set val $vstr1
+                } else {
+                    set val $vstr2
+                }
                 set win .testdiffs.body.val1str
-                set bg [$win.obj cget -addedbackground]
                 $win.obj configure -background $bg \
                     -testobj $diff(-testobj) -path $diff(-path)
                 $win.scrl.text configure -state normal
                 $win.scrl.text delete 1.0 end
-                $win.scrl.text insert end $v2
-                $win.scrl.text configure -state disabled -background $bg
+                $win.scrl.text insert end $val
+                $win.scrl.text configure -state disabled
+                set legsettings {2 disabled 3 disabled 4 disabled}
             } else {
                 # don't have a value -- show the attributes
                 set win .testdiffs.body.val
-                set bg [$win.obj cget -addedbackground]
                 $win.obj configure -background $bg \
                     -testobj $diff(-testobj) -path $diff(-path)
+                set legsettings {2 disabled 3 disabled 4 disabled}
             }
-        }
-        "value -" {
-            # get a string rep for the first value
-            if {[catch {Rappture::objects::import $diff(-obj1) $diff(-path)} val1] == 0 && $val1 ne ""} {
-                set status [$val1 export string str]
-                if {[lindex $status 0]} {
-                    set v1 $str
-                }
+
+            # clean up any objects that are not being stored
+            if {$val1 ne "" && [lsearch $DiffShow $val1] < 0} {
                 itcl::delete object $val1
             }
-
-            if {[info exists v1]} {
-                # we have a value -- show it
-                set win .testdiffs.body.val1str
-                set bg [$win.obj cget -deletedbackground]
-                $win.obj configure -background $bg \
-                    -testobj $diff(-testobj) -path $diff(-path)
-                $win.scrl.text configure -state normal
-                $win.scrl.text delete 1.0 end
-                $win.scrl.text insert end $v1
-                $win.scrl.text configure -state disabled -background $bg
-            } else {
-                # don't have a value -- show the attributes
-                set win .testdiffs.body.val
-                set bg [$win.obj cget -deletedbackground]
-                $win.obj configure -background $bg \
-                    -testobj $diff(-testobj) -path $diff(-path)
-            }
-        }
-        "value c" {
-            set win .testdiffs.body.val2strs
-            set bg [lindex [$win.obj configure -background] 3]
-            
-            $win.obj configure -background $bg \
-                -testobj $diff(-testobj) -path $diff(-path)
-
-            # get a string rep for the first value
-            set v1 "???"
-            if {[catch {Rappture::objects::import $diff(-obj1) $diff(-path)} val1] == 0 && $val1 ne ""} {
-                set status [$val1 export string str]
-                if {[lindex $status 0]} {
-                    set v1 $str
-                }
-                itcl::delete object $val1
-            }
-
-            # get a string rep for the second value
-            set v2 "???"
-            if {[catch {Rappture::objects::import $diff(-obj2) $diff(-path)} val2] == 0 && $val2 ne ""} {
-                set status [$val2 export string str]
-                if {[lindex $status 0]} {
-                    set v2 $str
-                }
+            if {$val2 ne "" && [lsearch $DiffShow $val2] < 0} {
                 itcl::delete object $val2
             }
-
-            $win.diffs show $v1 $v2
         }
         "attrs *" {
             set win .testdiffs.body.attrs
             set bg [lindex [$win configure -background] 3]
             $win configure -testobj $diff(-testobj) -background $bg \
                 -path $diff(-path) -details max -showdiffs yes
+            set legsettings {2 disabled 3 disabled 4 disabled}
+        }
+        "status" {
+            set win .testdiffs.body.runs
+            $win configure -testobj $diff(-testobj) -showdiffs yes
+            set legsettings {2 disabled 3 disabled 4 disabled}
         }
         "type *" {
             error "don't know how to show type diffs"
+            set legsettings {2 disabled 3 disabled 4 disabled}
         }
     }
     if {[pack slaves .testdiffs.body] ne $win} {
@@ -635,6 +706,11 @@ puts "SHOW: [array get data]"
             pack forget $w
         }
         pack $win -expand yes -fill both
+    }
+
+    # fix up the legend to best explain the current result
+    foreach {index state} $legsettings {
+        .testdiffs.legend itemconfigure $index -state $state
     }
 
     # pop up the viewer
@@ -661,13 +737,13 @@ proc tester_diff_hide {} {
 # ----------------------------------------------------------------------
 proc tester_regoldenize {} {
     set testtree [.pw pane 0].tree
-    set tests [$testtree curselection]
+    set seltests [$testtree curselection]
 
-    if {[llength $tests] != 1} {
-        error "Cannot regoldenize. One test must be selected"
+    if {[llength $seltests] != 1} {
+        error "Oops! Multiple tests selected to regoldenize.  How did we get here?"
     }
 
-    set test [lindex $tests 0]
+    set test [lindex $seltests 0]
     set testxml [$test getTestxml]
     if {[tk_messageBox -type yesno -icon warning -message "Are you sure you want to regoldenize?\n$testxml will be overwritten."]} {
         $test regoldenize
@@ -676,40 +752,3 @@ proc tester_regoldenize {} {
         tester_selection_changed
     }
 }
-
-# ----------------------------------------------------------------------
-# USAGE: tester_view_outputs
-#
-# Displays the outputs of the currently selected test case as they would
-# be seen when running the tool normally.  If the test has completed
-# with no error, then show the new outputs alongside the golden results.
-# ----------------------------------------------------------------------
-proc tester_view_outputs {} {
-    set testtree [.pw pane 0].tree
-    set rhs [.pw pane 1]
-    set resultspage $rhs.testoutput.rp
-    set tests [$testtree curselection]
-
-    if {[llength $tests] != 1} {
-        error "Cannot display outputs. One test must be selected"
-    }
-
-    # Unpack right hand side
-    foreach win [pack slaves $rhs] {
-        pack forget $win
-    }
-
-    # Clear any previously loaded outputs from the resultspage
-    $resultspage clear -nodelete
-
-    # Display testobj, and runobj if test has completed successfully
-    set test [lindex $tests 0]
-    $resultspage load [$test getTestobj]
-    set result [$test getResult]
-    if {$result ne "?" && $result ne "Error"} {
-        $resultspage load [$test getRunobj]
-    }
-
-    pack $rhs.testoutput -expand yes -fill both -padx 8 -pady 8
-}
-

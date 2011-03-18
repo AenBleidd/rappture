@@ -23,13 +23,14 @@ itcl::class Rappture::Tester::Test {
 
     public method getResult {}
     public method getTestInfo {args}
+    public method getRunInfo {args}
     public method getDiffs {args}
 
-    public method getRunobj {}
     public method getTestobj {}
     public method getTestxml {}
 
     public method run {args}
+    public method abort {}
     public method regoldenize {}
 
     private variable _toolobj ""  ;# Rappture::Tool for tool being tested
@@ -43,6 +44,7 @@ itcl::class Rappture::Tester::Test {
     private method _setWaiting {{newval ""}}
     private method _setResult {name}
     private method _computeDiffs {obj1 obj2 args}
+    private method _buildFailure {str}
 
     # use this to add tests to the "run" queue
     public proc queue {op args}
@@ -59,12 +61,8 @@ itcl::class Rappture::Tester::Test {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::Test::constructor {toolobj testxml args} {
     set _toolobj $toolobj
-
     set _testxml $testxml
     set _testobj [Rappture::library $testxml]
-
-    # HACK: Add a new input to differentiate between results
-    $_testobj put input.TestRun.current "Golden"
 
     eval configure $args
 }
@@ -112,6 +110,23 @@ itcl::body Rappture::Tester::Test::getTestInfo {args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: getRunInfo <path>
+# USAGE: getRunInfo children <path>
+# USAGE: getRunInfo element ?-as type? <path>
+# 
+# Returns info about the most recent run at the specified <path> in
+# the XML.  If the <path> is missing or misspelled, this method returns
+# "" instead of an error.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::getRunInfo {args} {
+    if {[llength $args] == 1} {
+        set path [lindex $args 0]
+        return [$_runobj get $path]
+    }
+    return [eval $_runobj $args]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: run ?-output callback path value path value ...?
 #
 # Kicks off a new simulation and checks the results against the golden
@@ -131,7 +146,6 @@ itcl::body Rappture::Tester::Test::run {args} {
     $_toolobj reset
     foreach path [Rappture::entities -as path $_testobj input] {
         if {[$_testobj element -as type $path.current] ne ""} {
-puts "  override: $path = [$_testobj get $path.current]"
             lappend args $path [$_testobj get $path.current]
         }
     }
@@ -146,33 +160,61 @@ puts "  override: $path = [$_testobj get $path.current]"
             return "aborted"
         } elseif {[Rappture::library isvalid $result]} {
             set _runobj $result
-            set idiffs [_computeDiffs [$_toolobj xml] $_testobj -in input]
-            set odiffs [_computeDiffs $_testobj $_runobj -in output]
-            set _diffs [concat $idiffs $odiffs]
-puts "DIFFS:"
-foreach rec $_diffs {
-puts ">> $rec"
-}
 
-            # HACK: Add a new input to differentiate between results
-            $_runobj put input.TestRun.current "Test result"
-
-            # any differences from expected result mean test failed
-            if {[llength $_diffs] == 0} {
-                _setResult "Pass"
-            } else {
+            if {[$_testobj get output.status] ne "ok"} {
+                # expected test to fail, but it didn't
+                set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+                set odiffs [_computeDiffs $_testobj $_runobj -what run]
+                set _diffs [concat $idiffs $odiffs]
                 _setResult "Fail"
+            } else {
+                set idiffs [_computeDiffs [$_toolobj xml] $_testobj -in input]
+                set odiffs [_computeDiffs $_testobj $_runobj -in output]
+                set _diffs [concat $idiffs $odiffs]
+
+                # any differences from expected result mean test failed
+                if {[llength $_diffs] == 0} {
+                    _setResult "Pass"
+                } else {
+                    _setResult "Fail"
+                }
             }
             return "finished"
         } else {
-            _setResult "Fail"
-            return "failed: $result"
+            set _runobj [_buildFailure $result]
+            if {[$_testobj get output.status] eq "failed"
+                  && [$_testobj get output.log] eq $result} {
+                _setResult "Pass"
+            } else {
+                set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+                set odiffs [_computeDiffs $_testobj $_runobj -what run]
+                set _diffs [concat $idiffs $odiffs]
+                _setResult "Fail"
+            }
+            return "finished"
         }
     } else {
-        _setResult "Fail"
-        tk_messageBox -icon error -message "Tool failed: $result"
+        set _runobj [_buildFailure $result]
+        if {[$_testobj get output.status] eq "failed"
+              && [$_testobj get output.log] eq $result} {
+            _setResult "Pass"
+        } else {
+            set idiffs [_computeDiffs [$_toolobj xml] $_runobj -in input]
+            set odiffs [_computeDiffs $_testobj $_runobj -what run]
+            set _diffs [concat $idiffs $odiffs]
+            _setResult "Fail"
+        }
         return "finished"
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: abort
+#
+# Causes the current test kicked off by the "run" method to be aborted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::abort {} {
+    $_toolobj abort
 }
 
 # ----------------------------------------------------------------------
@@ -235,19 +277,6 @@ itcl::body Rappture::Tester::Test::getDiffs {args} {
     return [_computeDiffs $_testobj $_runobj -in $path -detail max]
 }
 
-# -----------------------------------------------------------------------
-# USAGE: getRunobj
-#
-# Returns the library object generated by the previous run of the test.
-# Throws an error if the test has not been run.
-# -----------------------------------------------------------------------
-itcl::body Rappture::Tester::Test::getRunobj {} {
-    if {$_runobj eq ""} {
-        error "Test has not yet been run."
-    }
-    return $_runobj
-}
-
 # ----------------------------------------------------------------------
 # USAGE: getTestobj
 #
@@ -299,7 +328,7 @@ itcl::body Rappture::Tester::Test::_setWaiting {{newval ""}} {
 
 # ----------------------------------------------------------------------
 # USAGE: _computeDiffs <xmlObj1> <xmlObj2> ?-in xxx? \
-#            ?-what value|attrs|all? ?-detail min|max?
+#            ?-what value|attrs|run|all? ?-detail min|max?
 #
 # Used internally to compute differences between two different XML
 # objects.  This is normally used to look for differences between an
@@ -323,15 +352,35 @@ itcl::body Rappture::Tester::Test::_setWaiting {{newval ""}} {
 itcl::body Rappture::Tester::Test::_computeDiffs {obj1 obj2 args} {
     Rappture::getopts args params {
         value -in output
-        value -what all
+        value -what "attrs value"
         value -detail min
     }
     if {$params(-what) == "all"} {
-        set params(-what) "attrs value"
+        set params(-what) "attrs value run"
+    }
+
+    # handle any run output diffs first, so they appear at the top
+    # report this as one incident -- not separate reports for status/log
+    set rlist ""
+    if {[lsearch $params(-what) "run"] >= 0} {
+        set st1 [$obj1 get output.status]
+        set st2 [$obj2 get output.status]
+        if {$st1 ne $st2} {
+            # status changes are most serious
+            lappend rlist [list -what status -path output.status \
+                -obj1 $obj1 -obj2 $obj2]
+        } else {
+            set log1 [$obj1 get output.log]
+            set log2 [$obj2 get output.log]
+            if {$log1 ne $log2} {
+                # flag log changes instead if status agrees
+                lappend rlist [list -what status -path output.log \
+                    -obj1 $obj1 -obj2 $obj2]
+            }
+        }
     }
 
     # scan through the specified sections or paths
-    set rlist ""
     foreach elem $params(-in) {
         if {[string first . $elem] >= 0} {
             set v1paths $elem
@@ -358,8 +407,6 @@ itcl::body Rappture::Tester::Test::_computeDiffs {obj1 obj2 args} {
                         set val2 [Rappture::objects::import $obj2 $path]
                         lappend details -val1 $val1 -val2 $val2
 
-puts "COMPARE: $path $obj1 =?= $obj2"
-puts "  $val1 =?= $val2"
                         if {$val1 eq "" || $val2 eq ""} {
                             lappend rlist [linsert $details 0 -what "value c"]
                         } elseif {[$val1 info class] != [$val2 info class]} {
@@ -421,8 +468,14 @@ puts "  $val1 =?= $val2"
                           lappend rlist [linsert $details 0 -what "type c"]
                         }
                       }
+                      run {
+                        # do nothing -- already handled above
+
+                        # handled this comparison
+                        set v2paths [lreplace $v2paths $i $i]
+                      }
                       default {
-                        error "bad part \"$part\": should be attrs, value"
+                        error "bad part \"$part\": should be attrs, value, run"
                       }
                     }
                 }
@@ -436,6 +489,27 @@ puts "  $val1 =?= $val2"
         }
     }
     return $rlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _buildFailure <output>
+#
+# Returns a new Rappture::library object that contains a copy of the
+# original test with the given <output> and a failing status.  This
+# is used to represent the result of a test that aborts without
+# producing a valid run.xml file.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::Test::_buildFailure {output} {
+    set info "<?xml version=\"1.0\"?>\n[$_testobj xml]"
+    set obj [Rappture::LibraryObj ::#auto $info]
+    $obj remove test
+
+    $obj put output.time [clock format [clock seconds]]
+    $obj put output.status failed
+    $obj put output.user $::tcl_platform(user)
+    $obj put output.log $output
+
+    return $obj
 }
 
 # ======================================================================

@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<run>
+    <test>
+        <label>helium|2eV</label>
+        <description>This test is exepcted to fail, but won't in the "new" version of the fermi tool.</description>
+    </test>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>tclsh @tool/fermi.tcl @driver</command>
+        <version>
+            <rappture>
+                <revision>$LastChangedRevision: 1018 $</revision>
+                <modified>$LastChangedDate: 2008-06-08 21:24:34 -0400 (Sun, 08 Jun 2008) $</modified>
+                <language>tcl</language>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <number id="temperature">
+            <about>
+                <label>Ambient temperature</label>
+                <description>Temperature of the environment.</description>
+            </about>
+            <units>K</units>
+            <min>0K</min>
+            <max>500K</max>
+            <default>300K</default>
+            <current>4.2K</current>
+            <preset>
+                <value>300K</value>
+                <label>300K (room temperature)</label>
+            </preset>
+            <preset>
+                <value>77K</value>
+                <label>77K (liquid nitrogen)</label>
+            </preset>
+            <preset>
+                <value>4.2K</value>
+                <label>4.2K (liquid helium)</label>
+            </preset>
+        </number>
+        <number id="Ef">
+            <about>
+                <label>Fermi Level</label>
+                <description>Energy at center of distribution.</description>
+            </about>
+            <units>eV</units>
+            <min>-10eV</min>
+            <max>10eV</max>
+            <default>0eV</default>
+            <current>2eV</current>
+        </number>
+    </input>
+    <output>
+        <time>Fri Mar 18 09:02:48 EDT 2011</time>
+        <status>failed</status>
+        <user>mmc</user>
+        <log>Bad Fermi level value 2eV</log>
+    </output>
+</run>
+
