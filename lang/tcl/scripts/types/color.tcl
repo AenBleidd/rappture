@@ -68,9 +68,9 @@ itcl::class AttrColor {
 
     public method choose {} {
         if {"" != $_color} {
-            _redraw [tk_chooseColor -title "iRappture: Choose Color" -initialcolor $_color]
+            _redraw [tk_chooseColor -title "Rappture: Choose Color" -initialcolor $_color]
         } else {
-            _redraw [tk_chooseColor -title "iRappture: Choose Color"]
+            _redraw [tk_chooseColor -title "Rappture: Choose Color"]
         }
     }
 

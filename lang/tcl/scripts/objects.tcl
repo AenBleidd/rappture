@@ -192,24 +192,8 @@ proc Rappture::objects::get {{name ""} {what ""}} {
     set info(-terminal) [$objDefs($name) cget -terminal]
 
     set rlist ""
-    set olist $objDefs($name)
-    while {[llength $olist] > 0} {
-        set obj [lindex $olist 0]
-        if {![info exists gotparents($obj)]} {
-            set pos 0
-            foreach baseobj [$obj cget -inherit] {
-                set olist [linsert $olist $pos $baseobj]
-                incr pos
-            }
-            set gotparents($obj) 1
-        }
-
-        set obj [lindex $olist 0]
-        set olist [lrange $olist 1 end]
-
-        foreach aname [$obj getAttr] {
-            lappend rlist [$obj getAttr $aname]
-        }
+    foreach aname [$objDefs($name) getAttr] {
+        lappend rlist [$objDefs($name) getAttr $aname]
     }
     set info(-attributes) $rlist
 

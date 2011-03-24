@@ -96,7 +96,7 @@ itcl::class AttrFile {
     }
 
     protected method _getfile {} {
-        set fname [tk_getOpenFile -title "iRappture: Select HTML File" -defaultextension .html -filetypes { {{HTML files} {.html .htm}} {{All files} *} }]
+        set fname [tk_getOpenFile -title "Rappture: Select HTML File" -defaultextension .html -filetypes { {{HTML files} {.html .htm}} {{All files} *} }]
         if {"" != $fname} {
             $_win.file configure -text "file://$fname" -foreground black
 
