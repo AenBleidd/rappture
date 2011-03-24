@@ -826,7 +826,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc < 4) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " colormapName title width height\"", (char*)NULL);
+                Tcl_GetString(objv[0]), " colormapName title width height ?dataSetName?\"", (char*)NULL);
         return TCL_ERROR;
     }
     const char *name = Tcl_GetString(objv[1]);
@@ -841,10 +841,19 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
-    if (!g_renderer->renderColorMap(name, title, width, height, imgData)) {
-        Tcl_AppendResult(interp, "Color map \"",
-                name, "\" was not found", (char*)NULL);
-        return TCL_ERROR;
+    if (objc == 6) {
+        const char *dataSetName = Tcl_GetString(objv[5]);
+        if (!g_renderer->renderColorMap(name, dataSetName, title, width, height, imgData)) {
+            Tcl_AppendResult(interp, "Color map \"",
+                             name, "\" was not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->renderColorMap(name, "all", title, width, height, imgData)) {
+            Tcl_AppendResult(interp, "Color map \"",
+                             name, "\" was not found", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
 
 #ifdef DEBUG

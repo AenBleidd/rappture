@@ -35,7 +35,7 @@ colormap add <colorMapName> <colorMap> <opacityMap>
          opacityMap = Tcl list of {value alpha} control points
 colormap delete <?colorMapName?>
 
-legend <colormapName> <legendTitle> <width> <height>
+legend <colormapName> <legendTitle> <width> <height> <?datasetName?>
        Causes legend to be rendered and written back with labels and title
 
 dataset add <datasetName> data follows <nbytes>
