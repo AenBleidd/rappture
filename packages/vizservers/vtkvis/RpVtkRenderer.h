@@ -137,7 +137,9 @@ public:
 
     ColorMap *getColorMap(const ColorMapId& id);
 
-    bool renderColorMap(const ColorMapId& id, const char *title,
+    bool renderColorMap(const ColorMapId& id, 
+                        const DataSetId& dataSetID,
+                        const char *title,
                         int width, int height,
                         vtkUnsignedCharArray *imgData);
 
@@ -227,6 +229,8 @@ private:
 
     void collectDataRanges(double *range);
 
+    void updateRanges(bool useCumulative);
+
     void storeCameraOrientation();
     void restoreCameraOrientation();
     void initCamera();
@@ -241,6 +245,7 @@ private:
     double _cameraFocalPoint[3];
     double _cameraUp[3];
     float _bgColor[3];
+    bool _useCumulativeRanges;
     double _cumulativeDataRange[2];
 
     ColorMapHashmap _colorMaps;

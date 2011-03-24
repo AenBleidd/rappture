@@ -94,14 +94,12 @@ void PseudoColor::update()
 
     _lut->SetRange(dataRange);
 
+    _dsMapper->UseLookupTableScalarRangeOn();
     _dsMapper->SetLookupTable(_lut);
-    _dsMapper->SetScalarRange(dataRange);
-    //_dsMapper->GetLookupTable()->SetRange(dataRange);
     //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
     initActor();
     _dsActor->SetMapper(_dsMapper);
-    //_dsActor->GetProperty()->SetRepresentationToWireframe();
 }
 
 /**

@@ -37,7 +37,8 @@ using namespace Rappture::VtkVis;
 Renderer::Renderer() :
     _needsRedraw(true),
     _windowWidth(320),
-    _windowHeight(320)
+    _windowHeight(320),
+    _useCumulativeRanges(true)
 {
     _bgColor[0] = 0;
     _bgColor[1] = 0;
@@ -47,22 +48,22 @@ Renderer::Renderer() :
     // clipping planes to prevent overdrawing axes
     _clippingPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
-    vtkPlane *plane0 = vtkPlane::New();
+    vtkSmartPointer<vtkPlane> plane0 = vtkSmartPointer<vtkPlane>::New();
     plane0->SetNormal(0, 1, 0);
     plane0->SetOrigin(0, 0, 0);
     _clippingPlanes->AddItem(plane0);
     // left
-    vtkPlane *plane1 = vtkPlane::New();
+    vtkSmartPointer<vtkPlane> plane1 = vtkSmartPointer<vtkPlane>::New();
     plane1->SetNormal(1, 0, 0);
     plane1->SetOrigin(0, 0, 0);
     _clippingPlanes->AddItem(plane1);
    // top
-    vtkPlane *plane2 = vtkPlane::New();
+    vtkSmartPointer<vtkPlane> plane2 = vtkSmartPointer<vtkPlane>::New();
     plane2->SetNormal(0, -1, 0);
     plane2->SetOrigin(0, 1, 0);
     _clippingPlanes->AddItem(plane2);
     // right
-    vtkPlane *plane3 = vtkPlane::New();
+    vtkSmartPointer<vtkPlane> plane3 = vtkSmartPointer<vtkPlane>::New();
     plane3->SetNormal(-1, 0, 0);
     plane3->SetOrigin(1, 0, 0);
     _clippingPlanes->AddItem(plane3);
@@ -299,10 +300,8 @@ bool Renderer::setDataFile(const DataSetId& id, const char *filename)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setDataFile(filename);
-        PseudoColor *ps = getPseudoColor(id);
-        if (ps) {
-            ps->setDataSet(ds);
-        }
+        collectDataRanges(_cumulativeDataRange);
+        updateRanges(_useCumulativeRanges);
         _needsRedraw = true;
         return ret;
     } else
@@ -316,9 +315,11 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
 {
     DataSet *ds = getDataSet(id);
     if (ds) {
-        _needsRedraw = true;
-        return ds->setData(data, nbytes);
+        bool ret = ds->setData(data, nbytes);
         collectDataRanges(_cumulativeDataRange);
+        updateRanges(_useCumulativeRanges);
+        _needsRedraw = true;
+        return ret;
     } else
         return false;
 }
@@ -627,6 +628,8 @@ void Renderer::deleteColorMap(const ColorMapId& id)
     }
 
     do {
+        TRACE("Deleting ColorMap %s", itr->second->getName().c_str());
+
         // TODO: Check if color map is used in PseudoColors?
         delete itr->second;
         _colorMaps.erase(itr);
@@ -639,7 +642,9 @@ void Renderer::deleteColorMap(const ColorMapId& id)
  * \return The image is rendered into the supplied array, false is 
  * returned if the color map is not found
  */
-bool Renderer::renderColorMap(const ColorMapId& id, const char *title,
+bool Renderer::renderColorMap(const ColorMapId& id, 
+                              const DataSetId& dataSetID,
+                              const char *title,
                               int width, int height,
                               vtkUnsignedCharArray *imgData)
 {
@@ -666,7 +671,22 @@ bool Renderer::renderColorMap(const ColorMapId& id, const char *title,
         _scalarBarActor->UseOpacityOn();
         _legendRenderer->AddActor(_scalarBarActor);
     }
-    _scalarBarActor->SetLookupTable(colorMap->getLookupTable());
+
+    vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
+    if (dataSetID.compare("all") == 0) {
+        lut->SetRange(_cumulativeDataRange);
+    } else {
+        DataSet *dataSet = getDataSet(dataSetID);
+        if (dataSet == NULL) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            dataSet->getDataRange(range);
+            lut->SetRange(range);
+        }
+    }
+    _scalarBarActor->SetLookupTable(lut);
+
     // Set viewport-relative width/height/pos
     if (width > height) {
         _scalarBarActor->SetOrientationToHorizontal();
@@ -775,7 +795,13 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
         TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        itr->second->setLookupTable(cmap->getLookupTable());
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        itr->second->setLookupTable(lut);
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;
@@ -1777,6 +1803,30 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
         } else {
             if (bounds[i] == -DBL_MAX)
                 bounds[i] = 1;
+        }
+    }
+}
+
+/**
+ * \brief Update data ranges for color-mapping
+ *
+ * \param[in] useCumulative Use cumulative range of all DataSets
+ */
+void Renderer::updateRanges(bool useCumulative)
+{
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+         itr != _pseudoColors.end(); ++itr) {
+        vtkLookupTable *lut = itr->second->getLookupTable();
+        if (lut) {
+            if (useCumulative) {
+                lut->SetRange(_cumulativeDataRange);
+            } else {
+                double range[2];
+                if (itr->second->getDataSet()) {
+                    itr->second->getDataSet()->getDataRange(range);
+                    lut->SetRange(range);
+                }
+            }
         }
     }
 }
