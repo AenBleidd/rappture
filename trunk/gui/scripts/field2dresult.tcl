@@ -55,7 +55,18 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         -mode auto
     }
     array set flags $args
-    set servers [Rappture::VisViewer::GetServerList "nanovis"]
+    set servers ""
+    switch -- $flags(-mode) {
+	"auto" - "heightmap" - "flowvis" {
+	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
+	}
+	"vtkcontour" {
+	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+	}
+	default {
+	    puts stderr "unknown render mode \"$flags(-mode)\""
+	}
+    }		
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "heightmap" {
