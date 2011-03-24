@@ -78,6 +78,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
         yscale  yaxis.scale
         ymin    yaxis.min
         ymax    yaxis.max
+	type	about.type
     } {
         set str [$m get $path]
         if {"" != $str} {

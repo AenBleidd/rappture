@@ -263,7 +263,11 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
                         if { [$dataobj isunirect2d] } {
-                            set resultMode "vtkcontour" 
+			    if { [$dataobj hints type] == "contour" } {
+				set resultMode "vtkcontour" 
+			    } else {
+				set resultMode "heightmap"
+			    }
                         } else {
                             set resultMode "vtk"
                         }

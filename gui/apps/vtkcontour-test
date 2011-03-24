@@ -351,8 +351,8 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 VtkContourViewer_init_resources
-#set servers [Rappture::VtkContourViewer::GetServerList "vtkvis"]
-Rappture::VtkContourViewer $f.viewer "localhost:2010"
+set servers [Rappture::VtkContourViewer::GetServerList "vtkvis"]
+Rappture::VtkContourViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(vtkcontourviewer) $f.viewer
 

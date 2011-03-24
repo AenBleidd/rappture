@@ -466,7 +466,11 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 switch -- $dimensions {
                     2D {
                         if { [$dataobj isunirect2d] } {
-                            set mode "heightmap"
+			    if { [$dataobj hints type] == "contour" } {
+				set mode "vtkcontour" 
+			    } else {
+				set mode "heightmap"
+			    }
                         } else {
                             set mode "vtk"
                         }
