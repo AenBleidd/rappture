@@ -50,6 +50,7 @@ OBJECTS		= \
 		curve \
 		group \
 		histogram \
+		image \
 		integer \
 		note \
 		number \
@@ -60,12 +61,15 @@ TYPEFILES	= \
 		$(srcdir)/types/boolean.tcl \
 		$(srcdir)/types/color.tcl \
 		$(srcdir)/types/file.tcl \
+		$(srcdir)/types/image.tcl \
 		$(srcdir)/types/string.tcl \
 		$(srcdir)/types/units.tcl
 
 VALIDATEFILES	= \
 		$(srcdir)/validations/enable.tcl \
 		$(srcdir)/validations/int.tcl \
+		$(srcdir)/validations/imformat.tcl \
+		$(srcdir)/validations/imresize.tcl \
 		$(srcdir)/validations/number.tcl \
 		$(srcdir)/validations/size.tcl
 
