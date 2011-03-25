@@ -219,7 +219,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
                 set w $itk_interior.vtkviewer
-                Rappture::VtkViewer $w
+                catch { Rappture::VtkViewer $w } errs
+		puts stderr errs=$errs
                 set _mode2widget($mode) $w
             }
         }
