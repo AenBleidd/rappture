@@ -40,8 +40,8 @@ itcl::class Rappture::VtkViewer {
     private variable _obj2color    ;# maps dataobj => plotting color
     private variable _obj2width    ;# maps dataobj => line width
     private variable _obj2raise    ;# maps dataobj => raise flag 0/1
-    private variable _obj2vtk      ;# maps dataobj => vtk objects
-    private variable _actors ""    ;# list of actors for each renderer
+    private variable _dataobj2vtk  ;# maps dataobj => vtk objects
+    private variable _actors       ;# array of actors for each dataobj.
     private variable _lights       ;# list of lights for each renderer
     private variable _click        ;# info used for _move operations
     private variable _limits       ;# autoscale min/max for all axes
@@ -85,6 +85,7 @@ itcl::class Rappture::VtkViewer {
     private method ComputeLimits { args }
     private method GetLimits {}
     private method BuildCameraTab {}
+    private method UpdateCameraInfo {}
     private method BuildViewTab {}
     private method BuildVolumeTab {}
     protected method FixSettings {what {value ""}}
@@ -102,10 +103,9 @@ itk::usual VtkViewer {
 itcl::body Rappture::VtkViewer::constructor {args} {
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
-
     set _view(theta) 0
     set _view(phi) 0
-
+    
     array set _limits {
         xMin	0 
         xMax	1
@@ -116,6 +116,8 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         vMin	0
         vMax	1
     }
+
+
     foreach { key value } {
         edges		1
         axes		1
@@ -124,13 +126,12 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     } {
         set _settings($this-$key) $value
     }
-
     itk_component add main {
         Rappture::SidebarFrame $itk_interior.main
     }
     pack $itk_component(main) -expand yes -fill both
     set f [$itk_component(main) component frame]
-
+    
     itk_component add controls {
         frame $f.cntls
     } {
@@ -146,7 +147,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         rename -background -controlbackground controlBackground Background
     }
     pack $itk_component(zoom) -side top
-
+    
     itk_component add reset {
         button $itk_component(zoom).reset \
             -borderwidth 1 -padx 1 -pady 1 \
@@ -158,7 +159,8 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         rename -highlightbackground -controlbackground controlBackground Background
     }
     pack $itk_component(reset) -padx 4 -pady 4
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $itk_component(zoom).zin \
@@ -168,11 +170,12 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(zoomin) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
-
+    
     itk_component add zoomout {
         button $itk_component(zoom).zout \
             -borderwidth 1 -padx 1 -pady 1 \
@@ -181,11 +184,12 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     } {
         usual
         ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        rename -highlightbackground -controlbackground controlBackground \
+	    Background
     }
     pack $itk_component(zoomout) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
-
+    
     #
     # RENDERING AREA
     #
@@ -193,29 +197,30 @@ itcl::body Rappture::VtkViewer::constructor {args} {
         frame $f.area
     }
     pack $itk_component(area) -expand yes -fill both
-
+    
     set _renderer [vtkRenderer $this-Renderer]
     set _window [vtkRenderWindow $this-RenderWindow]
     itk_component add plot {
         vtkTkRenderWidget $itk_component(area).plot -rw $_window \
             -width 1 -height 1
     } {
+	# empty
     }
     pack $itk_component(plot) -expand yes -fill both
     $_window AddRenderer $_renderer
     $_window LineSmoothingOn
     $_window PolygonSmoothingOn
-
+    
     set _interactor [vtkRenderWindowInteractor $this-Interactor]
     set _style [vtkInteractorStyleTrackballCamera $this-InteractorStyle]
     $_interactor SetRenderWindow $_window
     $_interactor SetInteractorStyle $_style
     $_interactor Initialize
-
+    
     set _cubeAxesActor [vtkCubeAxesActor $this-CubeAxesActor]
     $_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
     $_renderer AddActor $_cubeAxesActor
-
+    
     # Supply small axes guide.
     set _axesActor [vtkAxesActor $this-AxesActor]
     set _axesWidget [vtkOrientationMarkerWidget $this-AxesWidget]
@@ -224,27 +229,25 @@ itcl::body Rappture::VtkViewer::constructor {args} {
     $_axesWidget SetEnabled $_settings($this-smallaxes)
     $_axesWidget SetInteractive 0
     $_axesWidget SetViewport .7 0 1.0 0.3
-
+    
     BuildViewTab
-    if 0 {
-    BuildVolumeTab
     BuildCameraTab
-    }
+    
     set v0 0
     set v1 1
     set _lookup [vtkLookupTable $this-Lookup]
     $_lookup SetTableRange $v0 $v1
     $_lookup SetHueRange 0.66667 0.0
     $_lookup Build
-
+    
     set lightKit [vtkLightKit $this-LightKit]
     $lightKit AddLightsToRenderer $_renderer
-
+    
     #
     # Create a picture for download snapshots
     #
     set _download [image create photo]
-
+    
     eval itk_initialize $args
 }
 
@@ -254,7 +257,7 @@ itcl::body Rappture::VtkViewer::constructor {args} {
 itcl::body Rappture::VtkViewer::destructor {} {
     Clear
     after cancel [itcl::code $this Rebuild]
-
+    
     foreach c [info commands $this-vtk*] {
         rename $c ""
     }
@@ -288,14 +291,14 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
         # can't handle -autocolors yet
         set params(-color) black
     }
-
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
         lappend _dlist $dataobj
+
         set _obj2color($dataobj) $params(-color)
         set _obj2width($dataobj) $params(-width)
         set _obj2raise($dataobj) $params(-raise)
-
+	
         after cancel [itcl::code $this Rebuild]
         after idle [itcl::code $this Rebuild]
     }
@@ -336,12 +339,17 @@ itcl::body Rappture::VtkViewer::delete {args} {
     # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
+        set i [lsearch -exact $_dlist $dataobj]
+        if {$i >= 0} {
+            set _dlist [lreplace $_dlist $i $i]
             catch {unset _obj2color($dataobj)}
             catch {unset _obj2width($dataobj)}
             catch {unset _obj2raise($dataobj)}
+	    foreach actor $_actors($dataobj) {
+		$_renderer RemoveActor $actor
+	    }
+	    array unset _actors $dataobj
+	    array unset _dataobj2vtk $dataobj-*
             set changed 1
         }
     }
@@ -424,10 +432,7 @@ itcl::body Rappture::VtkViewer::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Clear {} {
     # clear out any old constructs
-    foreach actor $_actors {
-        $_renderer RemoveActor $actor
-    }
-    set _actors ""
+    
     foreach ren [array names _lights] {
         foreach light $_lights($ren) {
             $ren RemoveLight $light
@@ -435,14 +440,14 @@ itcl::body Rappture::VtkViewer::Clear {} {
         }
         set _lights($ren) ""
     }
-    foreach dataobj [array names _obj2vtk] {
-	set actor [$data values]
-	set data [$data values]
-        foreach cmd $_obj2vtk($dataobj) {
-            rename $cmd ""
-        }
-        set _obj2vtk($dataobj) ""
+    foreach dataobj $_dlist {
+	foreach actor $_actors($dataobj) {
+	    $_renderer RemoveActor $actor
+	}
     }
+    array unset _actors
+    set _dlist ""
+    array unset _dataobj2vtk
 }
 
 # ----------------------------------------------------------------------
@@ -454,20 +459,35 @@ itcl::body Rappture::VtkViewer::Clear {} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Zoom {option} {
-    set camera [$_renderer GetActiveCamera]
+    set cam [$_renderer GetActiveCamera]
     switch -- $option {
         in {
-            $camera Zoom 1.25
+            $cam Zoom 1.25
             $_window Render
         }
         out {
-            $camera Zoom 0.8
+            $cam Zoom 0.8
             $_window Render
         }
         reset {
-            $camera SetViewAngle 30
+            $cam SetViewAngle 30
             $_renderer ResetCamera
             _3dView 90 -90
+	    array set camera {
+		xpos 1.73477e-06 ypos 74.7518 zpos -1.73477e-06
+		xviewup 5.38569e-16 yviewup 2.32071e-08 zviewup 1.0
+		xfocal 0.0 yfocal 0.0 zfocal 0.0
+	    }
+	    set dataobj [lindex $_dlist end]
+	    if { $dataobj != "" } {
+		array set camera [$dataobj hints camera]
+	    }
+	    $cam SetFocalPoint $camera(xfocal) $camera(yfocal) $camera(zfocal)
+	    $cam SetPosition $camera(xpos) $camera(ypos) $camera(zpos)
+	    $cam SetViewUp $camera(xviewup) $camera(yviewup) $camera(zviewup)
+	    foreach key [array names camera] {
+		set _settings($this-$key) $camera($key)
+	    }
             $_window Render
         }
     }
@@ -505,10 +525,13 @@ itcl::body Rappture::VtkViewer::Move {option x y} {
                     #
                     # Shift the contour plot in 2D
                     #
-                    foreach actor $_actors {
-                        foreach {ax ay az} [$actor GetPosition] break
-                        $actor SetPosition [expr {$ax+$dx}] [expr {$ay-$dy}] 0
-                    }
+		    foreach dataobj $_dlist {
+			foreach actor $_actors($dataobj) {
+			    foreach {ax ay az} [$actor GetPosition] break
+			    $actor SetPosition [expr {$ax+$dx}] \
+				[expr {$ay-$dy}] 0
+			}
+		    }
                     $_window Render
                 } elseif {$_dims == "3D"} {
                     #
@@ -518,7 +541,7 @@ itcl::body Rappture::VtkViewer::Move {option x y} {
                     if {$theta < 2} { set theta 2 }
                     if {$theta > 178} { set theta 178 }
                     set phi [expr {$_view(phi) - $dx*360}]
-
+		    
                     _3dView $theta $phi
                     $_window Render
                 }
@@ -535,6 +558,7 @@ itcl::body Rappture::VtkViewer::Move {option x y} {
             error "bad option \"$option\": should be click, drag, release"
         }
     }
+    UpdateCameraInfo
 }
 
 
@@ -551,15 +575,14 @@ itcl::body Rappture::VtkViewer::_3dView {theta phi} {
     set xn [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
     set yn [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
     set zn [expr {cos($theta*$deg2rad)}]
-
+    
     set xm [expr {0.5*($_limits(xMax)+$_limits(xMin))}]
     set ym [expr {0.5*($_limits(yMax)+$_limits(yMin))}]
     set zm [expr {0.5*($_limits(zMax)+$_limits(zMin))}]
-
+    
     set cam [$_renderer GetActiveCamera]
     set zoom [$cam GetViewAngle]
     $cam SetViewAngle 30
-
     $cam SetFocalPoint $xm $ym $zm
     $cam SetPosition [expr {$xm-$xn}] [expr {$ym-$yn}] [expr {$zm+$zn}]
     $cam ComputeViewPlaneNormal
@@ -567,7 +590,7 @@ itcl::body Rappture::VtkViewer::_3dView {theta phi} {
     $cam OrthogonalizeViewUp
     $_renderer ResetCamera
     $cam SetViewAngle $zoom
-
+    
     set _view(theta) $theta
     set _view(phi) $phi
 }
@@ -584,7 +607,7 @@ itcl::body Rappture::VtkViewer::_fixLimits {} {
     $camera Zoom 1.5
     $_window Render
     if 0 {
-    $this-vtkRenderWindow2 Render
+	$this-vtkRenderWindow2 Render
     }
 }
 
@@ -610,8 +633,8 @@ itcl::configbody Rappture::VtkViewer::plotbackground {
     $_renderer SetBackground $r $g $b
     $_window Render
     if 0 {
-    $this-vtkRenderer2 SetBackground $r $g $b
-    $this-vtkRenderWindow2 Render
+	$this-vtkRenderer2 SetBackground $r $g $b
+	$this-vtkRenderWindow2 Render
     }
 }
 
@@ -655,9 +678,8 @@ itcl::body Rappture::VtkViewer::SetActorProperties { actor style } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Rebuild {} {
-    Clear
     set id 0
-
+    
     # determine the dimensionality from the topmost (raised) object
     set dlist [get]
     set dataobj [lindex $dlist end]
@@ -669,71 +691,42 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     ComputeLimits
     $_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
     eval $_cubeAxesActor SetBounds [GetLimits]
-
-    #
-    # LOOKUP TABLE FOR COLOR CONTOURS
-    #
-    # Use vmin/vmax if possible, otherwise get from data
-    if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
-        set v0 0
-        set v1 1
-        if {[info exists _obj2vtk($dataobj)]} {
-            set pd [lindex $_obj2vtk($dataobj) 0]
-            if {"" != $pd} {
-                foreach {v0 v1} [$pd GetScalarRange] break
-            }
-        }
-    } else {
-        set v0 $_limits(vMin)
-        set v1 $_limits(vMax)
-    }
-
-    if 0 {
-        set lu $this-vtkLookup
-        vtkLookupTable $lu
-        $lu SetTableRange $v0 $v1
-        $lu SetHueRange 0.66667 0.0
-        $lu Build
-        
-        lappend _obj2vtk($dataobj) $lu
-        
-        #
-        # 3D LIGHTS (on both sides of all three axes)
-        #
-        set x0 $_limits(xMin)
-        set x1 $_limits(xMax)
-        set xm [expr {0.5*($x0+$x1)}]
-        set y0 $_limits(yMin)
-        set y1 $_limits(yMax)
-        set ym [expr {0.5*($y0+$y1)}]
-        set z0 $_limits(zMin)
-        set z1 $_limits(zMax)
-        set zm [expr {0.5*($z0+$z1)}]
-        set xr [expr {$x1-$x0}]
-        set yr [expr {$y1-$y0}]
-        set zr [expr {$z1-$z0}]
-
-        set light [vtkLight $this-vtkLight]
-        $light SetColor 1 1 1
-        $light SetAttenuationValues 0 0 0
-        $light SetFocalPoint $xm $ym $zm
-        $light SetLightTypeToHeadlight
-        $_renderer AddLight $light
-        lappend _lights($_renderer) $light
-    }
+    
+    if 1 {
+	#
+	# LOOKUP TABLE FOR COLOR CONTOURS
+	#
+	# Use vmin/vmax if possible, otherwise get from data
+	if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
+	    set v0 0
+	    set v1 1
+	    if { [info exists _dataobj2vtk($dataobj)] } {
+		set pd [lindex $_dataobj2vtk($dataobj) 0]
+		if {"" != $pd} {
+		    foreach {v0 v1} [$pd GetScalarRange] break
+		}
+	    }
+	} else {
+	    set v0 $_limits(vMin)
+	    set v1 $_limits(vMax)
+	}
+    }	
     # scan through all data objects and build the contours
     set firstobj 1
-    foreach dataobj [get] {
-        foreach comp [$dataobj components] {
-            set actor [$dataobj values $comp]
-            set style [$dataobj style $comp]
-
-	    lappend _actors $actor
-            $_renderer AddActor $actor
-            SetActorProperties $actor $style
-            incr id
-        }
-        set firstobj 0
+    foreach dataobj $_dlist {
+	foreach comp [$dataobj components] {
+	    set tag $dataobj-$comp
+	    if { ![info exists _dataobj2vtk($tag)] } {
+		set actor [$dataobj values $comp]
+		set style [$dataobj style $comp]
+		set _dataobj2vtk($tag) $actor
+		lappend _actors($dataobj) $actor
+		$_renderer AddActor $actor
+		SetActorProperties $actor $style
+		incr id
+	    }
+	}
+	set firstobj 0
     }
     set top [lindex [get] end]
     if { $top != "" } {
@@ -748,11 +741,14 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	    $_cubeAxesActor $method $label
 	}
     }
-    _fixLimits
-    Zoom reset
+    if 1 {
+	_fixLimits
+	Zoom reset
+
+    }
     $_interactor Start
     $_window Render
-
+    return
 
     #
     # HACK ALERT!  A single ResetCamera doesn't seem to work for
@@ -764,7 +760,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         $_renderer ResetCamera
         [$_renderer GetActiveCamera] Zoom 1.5
     }
-
     # prevent interactions -- use our own
     blt::busy hold $itk_component(area) -cursor left_ptr
     bind $itk_component(area)_Busy <ButtonPress> \
@@ -906,6 +901,68 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
     blt::table configure $inner r6 -resize expand
 }
 
+itcl::body Rappture::VtkViewer::UpdateCameraInfo {} {
+    set cam [$_renderer GetActiveCamera]
+    foreach key { x y z } \
+            pt  [$cam GetFocalPoint] \
+            up  [$cam GetViewUp] \
+            pos [$cam GetPosition] {
+	set _settings($this-${key}focal) $pt
+	set _settings($this-${key}up) $up
+	set _settings($this-${key}pos) $pos
+    }
+}
+
+itcl::body Rappture::VtkViewer::BuildCameraTab {} {
+    set inner [$itk_component(main) insert end \
+        -title "Camera Settings" \
+        -icon [Rappture::icon camera]] 
+    $inner configure -borderwidth 4
+    bind $inner <Map> [itcl::code $this UpdateCameraInfo]
+
+    label $inner.xposl -text "Position"
+    entry $inner.xpos -bg white \
+	-textvariable [itcl::scope _settings($this-xpos)]
+    entry $inner.ypos -bg white \
+	-textvariable [itcl::scope _settings($this-ypos)]
+    entry $inner.zpos -bg white \
+	-textvariable [itcl::scope _settings($this-zpos)]
+    label $inner.xviewupl -text "View Up"
+    entry $inner.xviewup -bg white \
+	-textvariable [itcl::scope _settings($this-xviewup)]
+    entry $inner.yviewup -bg white \
+	-textvariable [itcl::scope _settings($this-yviewup)]
+    entry $inner.zviewup -bg white \
+	-textvariable [itcl::scope _settings($this-zviewup)]
+    label $inner.xfocall -text "Focal Point"
+    entry $inner.xfocal -bg white \
+	-textvariable [itcl::scope _settings($this-xfocal)]
+    entry $inner.yfocal -bg white \
+	-textvariable [itcl::scope _settings($this-yfocal)]
+    entry $inner.zfocal -bg white \
+	-textvariable [itcl::scope _settings($this-zfocal)]
+
+    button $inner.refresh -text "Refresh" \
+	-command [itcl::code $this UpdateCameraInfo]
+    blt::table $inner \
+	0,0 $inner.xposl -anchor w -pady 2 \
+	1,0 $inner.xpos -pady 2 -fill x\
+	2,0 $inner.ypos -pady 2 -fill x\
+	3,0 $inner.zpos -pady 2 -fill x\
+	4,0 $inner.xviewupl -anchor w -pady 2 \
+	5,0 $inner.xviewup -pady 2 -fill x \
+	6,0 $inner.yviewup -pady 2 -fill x \
+	7,0 $inner.zviewup -pady 2 -fill x \
+	8,0 $inner.xfocall -anchor w -pady 2 \
+	9,0 $inner.xfocal -pady 2 -fill x \
+	10,0 $inner.yfocal -pady 2 -fill x \
+	11,0 $inner.zfocal -pady 2 -fill x \
+	12,0 $inner.refresh 
+
+    blt::table configure $inner r* c* -resize none
+    blt::table configure $inner c0 -resize expand
+    blt::table configure $inner r13 -resize expand
+}
 
 # ----------------------------------------------------------------------
 # USAGE: FixSettings <what> ?<value>?
