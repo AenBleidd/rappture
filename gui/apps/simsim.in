@@ -9,7 +9,7 @@
 #\
 dir=`dirname $0` ; \
 . $dir/rappture.env ; \
-exec $dir/wish "$0" $*
+exec $dir/tclsh "$0" $*
 
 package require Rappture
 package require RapptureGUI
@@ -702,9 +702,6 @@ proc main {argv} {
     }
 
     parseOptions argv params
-
-    # keep the wish window from popping up
-    catch {wm withdraw .}
 
     # parse out path=val combinations from the list of orphaned parameters
     parsePathVal params(oParams) presets
