@@ -370,7 +370,6 @@ itcl::body Rappture::VtkContourViewer::DoResize {} {
 	set _height 500
     }
     SendCmd "screen size $_width $_height"
-    SendCmd "camera reset all"
     if { $_settings($this-legend) } {
 	EventuallyResizeLegend
     }

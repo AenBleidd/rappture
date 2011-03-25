@@ -92,6 +92,7 @@ itcl::body Rappture::Drawing3d::constructor {xmlobj path} {
         group   about.group
         label   about.label
         color   about.color
+	camera	about.camera
         type    about.type
         xlabel  xaxis.label
         xdesc   xaxis.description
