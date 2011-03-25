@@ -476,18 +476,27 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
 	    array set camera {
 		xpos 1.73477e-06 ypos 74.7518 zpos -1.73477e-06
 		xviewup 5.38569e-16 yviewup 2.32071e-08 zviewup 1.0
-		xfocal 0.0 yfocal 0.0 zfocal 0.0
+		xfocal 0.0 yfocal 0.0 zfocal 0.0 
+		angle 30
 	    }
 	    set dataobj [lindex $_dlist end]
 	    if { $dataobj != "" } {
 		array set camera [$dataobj hints camera]
 	    }
+	    if { [info exists camera(clipmin)] } {
+		$cam SetClippingRange $camera(clipmin) $camera(clipmax)
+	    }
+	    if { [info exists camera(parallelscale)] } {
+		$cam SetParallelScale $camera(parallelscale) 
+	    }
+	    $cam SetViewAngle $camera(angle)
 	    $cam SetFocalPoint $camera(xfocal) $camera(yfocal) $camera(zfocal)
 	    $cam SetPosition $camera(xpos) $camera(ypos) $camera(zpos)
 	    $cam SetViewUp $camera(xviewup) $camera(yviewup) $camera(zviewup)
 	    foreach key [array names camera] {
 		set _settings($this-$key) $camera($key)
 	    }
+	    $cam ComputeViewPlaneNormal
             $_window Render
         }
     }
@@ -571,6 +580,7 @@ itcl::body Rappture::VtkViewer::Move {option x y} {
 # Both angles are in degrees.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::_3dView {theta phi} {
+    return
     set deg2rad 0.0174532927778
     set xn [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
     set yn [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
@@ -906,11 +916,22 @@ itcl::body Rappture::VtkViewer::UpdateCameraInfo {} {
     foreach key { x y z } \
             pt  [$cam GetFocalPoint] \
             up  [$cam GetViewUp] \
-            pos [$cam GetPosition] {
+  	    pos [$cam GetPosition] {
 	set _settings($this-${key}focal) $pt
 	set _settings($this-${key}up) $up
 	set _settings($this-${key}pos) $pos
     }
+    foreach {min max} [$cam GetClippingRange] break
+    set _settings($this-clipmin) $min
+    set _settings($this-clipmax) $max
+    set _settings($this-parallelscale) [$cam GetParallelScale]
+    set _settings($this-angle) [$cam GetViewAngle]
+    foreach key { xpos ypos zpos xviewup yviewup zviewup 
+	xfocal yfocal zfocal angle clipmin clipmax parallelscale
+    } {
+	set out($key) $_settings($this-$key)
+    }
+    puts \"[array get out]\"
 }
 
 itcl::body Rappture::VtkViewer::BuildCameraTab {} {
@@ -941,6 +962,17 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
 	-textvariable [itcl::scope _settings($this-yfocal)]
     entry $inner.zfocal -bg white \
 	-textvariable [itcl::scope _settings($this-zfocal)]
+    label $inner.anglel -text "View Angle"
+    entry $inner.angle -bg white \
+	-textvariable [itcl::scope _settings($this-angle)]
+    label $inner.clipl -text "Clipping Range"
+    entry $inner.clipmin -bg white \
+	-textvariable [itcl::scope _settings($this-clipmin)]
+    entry $inner.clipmax -bg white \
+	-textvariable [itcl::scope _settings($this-clipmax)]
+    label $inner.pscalel -text "Parallel Scale"
+    entry $inner.pscale -bg white \
+	-textvariable [itcl::scope _settings($this-parallelscale)]
 
     button $inner.refresh -text "Refresh" \
 	-command [itcl::code $this UpdateCameraInfo]
@@ -957,11 +989,18 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
 	9,0 $inner.xfocal -pady 2 -fill x \
 	10,0 $inner.yfocal -pady 2 -fill x \
 	11,0 $inner.zfocal -pady 2 -fill x \
-	12,0 $inner.refresh 
+	16,0 $inner.anglel -anchor w -pady 2 \
+	17,0 $inner.angle -pady 2 -fill x \
+	18,0 $inner.clipl -anchor w -pady 2 \
+	19,0 $inner.clipmin -pady 2 -fill x \
+	20,0 $inner.clipmax -pady 2 -fill x \
+	21,0 $inner.pscalel -anchor w -pady 2 \
+	22,0 $inner.pscale -pady 2 -fill x \
+	23,0 $inner.refresh 
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner c0 -resize expand
-    blt::table configure $inner r13 -resize expand
+    blt::table configure $inner r24 -resize expand
 }
 
 # ----------------------------------------------------------------------
