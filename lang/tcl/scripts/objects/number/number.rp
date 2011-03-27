@@ -21,6 +21,7 @@ object number -extends base {
     attr units -title "Units of Measurement" -type units -path units
     attr min -title "Minimum Value" -type string:validate=number -path min
     attr max -title "Maximum Value" -type string:validate=number -path max
+    attr icon -title "Icon" -type image:maxsize=20,rescale=yes -path about.icon
     attr color -title "Color" -type color -path color
 
     check default {

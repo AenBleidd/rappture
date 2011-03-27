@@ -216,7 +216,6 @@ proc Rappture::objects::import {xmlobj path} {
 
     # does this object type have a value class?
     if {[catch {$ovclass ::#auto} obj]} {
-puts "OOPS! can't construct: $obj"
         return ""
     }
 
@@ -224,7 +223,6 @@ puts "OOPS! can't construct: $obj"
     if {[catch {$obj import xml $xmlobj $path} result] == 0} {
         return $obj
     }
-puts "OOPS! $result\nin $obj = [$obj info class]\nfrom: $obj import xml $xmlobj $path\n$::errorInfo"
 
     # can't seem to load anything -- return null
     itcl::delete object $obj
@@ -937,18 +935,14 @@ itcl::class Rappture::objects::ObjVal {
 
         # scan through all matching types and try to import the value
         foreach type [importTypes] {
-puts "checking $type = $pattern"
             if {[string match $pattern $type]} {
                 set cmd [format {eval $this import_%s $args} $type]
-puts "  testing $type = ($cmd)"
                 if {[catch $cmd result] == 0} {
-puts "  success!"
                     return 1
                 }
                 lappend errs "not $type: $result"
             }
         }
-puts "  failed: $errs"
         return [concat 0 $errs]
     }
 
