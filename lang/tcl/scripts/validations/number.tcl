@@ -14,7 +14,16 @@
 proc validate_number_parse {str numvar unitsvar} {
     upvar $numvar num
     upvar $unitsvar units
-    return [regexp {^([-+]?(?:[0-9]+\.|\.)?[0-9]+(?:[eE][-+]?[0-9]+)?)( *(?:[a-zA-Z]+[0-9]*)+(?:\/(?:[a-zA-Z]+[0-9]*)+)*)*$} $str match num units]
+    if {![regexp {^([-+]?(?:[0-9]+\.|\.)?[0-9]+(?:[eE][-+]?[0-9]+)?)( *[a-zA-Z/]?[a-zA-Z0-9/ \t]*)$} $str match num rest]} {
+        return 0
+    }
+    regsub -all {[ \t]+} $rest "" rest  ;# strip out spaces from units
+    if {$rest eq ""} {
+        set units ""
+    } elseif {![regexp {^(/?[a-zA-Z]+[0-9]*)*$} $rest units]} {
+        return 0  ;# units failed to match
+    }
+    return 1;
 }
 
 proc validate_number {str} {

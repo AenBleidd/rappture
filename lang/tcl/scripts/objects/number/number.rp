@@ -102,7 +102,6 @@ object number -extends base {
     }
 
     import string {val {defunits ""}} {
-puts "IMPORTING: $val (number with units $defunits)"
         if {[regexp {^([-+]?(?:[0-9]+\.|\.)?[0-9]+(?:[eE][-+]?[0-9]+)?)( *(?:[a-zA-Z]+[0-9]*)+(?:\/(?:[a-zA-Z]+[0-9]*)+)*)*$} $val match num units]} {
             set sys [Rappture::Units::System::for $units]
             set base [Rappture::Units::System::for $defunits]
