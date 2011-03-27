@@ -1,9 +1,12 @@
 object tool {
     help http://rappture.org/wiki/rappture_xml_elements
 
-    attr title -type string -path title
-    attr description -type string:lines=6 -expand yes -path about
-    attr command -title "Program" -type language -path command
+    attr title -type string -path title -tooltip "Sets the title of your tool, which usually appears on the right-hand side of your tool when it first starts up."
+
+    attr description -type string:lines=6 -expand yes -path about -tooltip "A few paragraphs describing your tool, which usually appear just below the title on the right-hand side of your tool when it first starts up."
+
+    attr command -title "Program" -type language -path command -tooltip "Sets the programming language used to implement your underlying simulation tool.  This determines the command line that Rappture will use to invoke your tool."
+
 
     check title {
         if {[string length [string trim $attr(title)]] == 0} {

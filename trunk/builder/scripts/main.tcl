@@ -189,8 +189,7 @@ proc main_open {{what "-new"}} {
     }
 
     if {$what == "-new"} {
-        set xmlobj [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run/>"]
-        $xmlobj put tool.command ""
+        set xmlobj [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run><tool/></run>"]
     } else {
         if {$what == "-file"} {
             set fname [tk_getOpenFile -title "Rappture: Open Tool" -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
@@ -1030,7 +1029,7 @@ proc main_preview {} {
     pack $f.analyze -expand yes -fill both
 
     # copy the ToolXml object and pass to analyzer to show outputs
-    set synthrun [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run/>"]
+    set synthrun [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run><tool/></run>"]
     $synthrun copy "" from $ToolXml ""
     $f.analyze load $synthrun
     $f.analyze configure -notebookpage analyze
@@ -1245,6 +1244,11 @@ proc main_options_load {} {
                     set val "validate_$val"
                 }
                 lappend atargs -$key $val
+            }
+
+            # add any tooltip info for this attribute
+            if {[info exists info(-tooltip)] && $info(-tooltip) ne ""} {
+                lappend atargs -tooltip $info(-tooltip)
             }
 
             set win [frame $frame.val$wnum]
