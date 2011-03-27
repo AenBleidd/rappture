@@ -16,6 +16,7 @@
 itcl::class AttrLanguage {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
 
         Rappture::Combobox $win.val -width 12 -editable no
@@ -27,11 +28,14 @@ itcl::class AttrLanguage {
 
         bind $win.val <<Value>> [itcl::code $this _react]
 
+        Rappture::Tooltip::for $win.val $params(-tooltip)
+
         frame $win.custom
         label $win.custom.l -text "Command:"
         pack $win.custom.l -side left
         entry $win.custom.val
         pack $win.custom.val -side left -expand yes -fill x
+        Rappture::Tooltip::for $win.custom.val "Enter the command line that Rappture should invoke to run your simulation program.  Include @driver somewhere on this line; it will be replaced with the name of the Rappture driver file (usually passed in as the first argument on the command line).  If you include @tool, it will be replaced with the name of the directory where the tool.xml file is installed.  Instead of hard-coding your program path, you can express it as a relative path from @tool."
 
         set _win $win
     }
@@ -94,7 +98,10 @@ itcl::class AttrLanguage {
     }
 
     public proc export {xmlobj path value} {
-        $xmlobj put $path $value
+        set value [string trim $value]
+        if {$value ne ""} {
+            $xmlobj put $path $value
+        }
     }
 
     # invoked whenever the user changes the language choice

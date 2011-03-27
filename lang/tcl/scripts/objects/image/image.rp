@@ -17,9 +17,12 @@ object image -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_image
 
-    attr default -title "Default Value" -type image -path default
-    attr resize -title "Resize" -type string:validate=imresize -path resize
-    attr convert -title "Convert" -type string:validate=imformat -path convert
+    attr default -title "Default Value" -type image -path default -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr resize -title "Resize" -type string:validate=imresize -path resize -only input -tooltip "Limits the size of the thumbnail shown for any image uploaded into this input.  Valid options are:  auto, none, width=XX, height=XX"
+
+    attr convert -title "Convert" -type string:validate=imformat -path convert -only input -tooltip "Causes the image to be converted to a particular image format before being passed along to your simulation program.  Valid options are:  bmp, gif, ico, jpeg, pcx, png, pgm, ppm, ps, pdf, sgi, sun, tga, tiff, xbm, xpm"
+
 
     storage {
         private variable _img ""  ;# image handle

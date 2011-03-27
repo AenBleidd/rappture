@@ -17,7 +17,7 @@ object boolean -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_boolean
 
-    attr default -title "Default Value" -type boolean -path default -only input
+    attr default -title "Default Value" -type boolean -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {

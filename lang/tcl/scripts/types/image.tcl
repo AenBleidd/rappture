@@ -14,6 +14,7 @@ itcl::class AttrImage {
         Rappture::getopts args params {
             value -maxsize ""
             value -rescale no
+            value -tooltip ""
         }
         set _currview [image create photo]
         set _maxsize $params(-maxsize)
@@ -21,6 +22,7 @@ itcl::class AttrImage {
 
         label $win.image -image $_currview -borderwidth 1 -relief solid
         pack $win.image -side left
+        Rappture::Tooltip::for $win.image $params(-tooltip)
 
         frame $win.btns
         button $win.btns.load -text "Load..." \

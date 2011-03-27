@@ -18,7 +18,8 @@ object note {
 
     help http://rappture.org/wiki/rp_xml_ele_note
 
-    attr contents -title "HTML File" -type file -path contents
+    attr contents -title "HTML File" -type file -path contents -tooltip "Name of an HTML file loaded into the note area as documentation.  The file may contain embedded images and links, as long as those files reside in the same directory as the HTML file or have explicit http:// paths."
+
 
     check contents {
         set fname [string trim $attr(contents)]

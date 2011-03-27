@@ -15,9 +15,12 @@
 itcl::class AttrFile {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
         label $win.file -text "select a file" -width 10 -anchor e -fg gray60
         pack $win.file -side left
+        Rappture::Tooltip::for $win.file $params(-tooltip)
+
         button $win.getfile -text "Choose..." -command [itcl::code $this _getfile]
         pack $win.getfile -side left
 

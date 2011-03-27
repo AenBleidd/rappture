@@ -13,14 +13,17 @@
 itcl::class AttrChoices {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
 
         frame $win.cntls
         pack $win.cntls -fill x
         button $win.cntls.add -text "Add" -command [itcl::code $this _add]
         pack $win.cntls.add -side left
+        Rappture::Tooltip::for $win.cntls.add "Adds a new option to the list of choices."
         button $win.cntls.del -text "Delete" -command [itcl::code $this _delete]
         pack $win.cntls.del -side right
+        Rappture::Tooltip::for $win.cntls.del "Removes an option from the list of choices."
 
         Rappture::Scroller $win.scrl -height 1.5i \
             -xscrollmode auto -yscrollmode auto
@@ -28,6 +31,7 @@ itcl::class AttrChoices {
         listbox $win.scrl.lbox -selectmode single -exportselection off
         bind $win.scrl.lbox <<ListboxSelect>> [itcl::code $this _edit]
         $win.scrl contents $win.scrl.lbox
+        Rappture::Tooltip::for $win.scrl.lbox $params(-tooltip)
 
         frame $win.editelem
         pack $win.editelem -fill x
@@ -38,10 +42,12 @@ itcl::class AttrChoices {
         label $win.editelem.l -text "Label:"
         grid $win.editelem.l -row 1 -column 0 -sticky e
         entry $win.editelem.label
+        Rappture::Tooltip::for $win.editelem.label "Label for the option that appears in the drop-down list of choices."
         grid $win.editelem.label -row 1 -column 1 -columnspan 2 -sticky ew
         label $win.editelem.v -text "Value:"
         grid $win.editelem.v -row 2 -column 0 -sticky e
         entry $win.editelem.value
+        Rappture::Tooltip::for $win.editelem.value "Value for the option reported to your program when this choice is selected."
         grid $win.editelem.value -row 2 -column 1 -sticky ew
         label $win.editelem.vopt -text "(optional)"
         grid $win.editelem.vopt -row 2 -column 2 -sticky e
@@ -51,6 +57,7 @@ itcl::class AttrChoices {
         grid $win.editelem.scrl -row 3 -column 1 -columnspan 2 -sticky nsew
         text $win.editelem.scrl.desc -wrap char
         $win.editelem.scrl contents $win.editelem.scrl.desc
+        Rappture::Tooltip::for $win.editelem.scrl.desc "Description of the option that appears in the tooltip when you mouse over the choice when it appears in the combobox."
 
         bind $win.editelem.label <KeyPress-Return> \
             "[itcl::code $this _finalize label]; focus \[tk_focusNext %W\]"
