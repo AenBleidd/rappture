@@ -39,6 +39,8 @@ option add *BugReport*banner*background #a9a9a9
 option add *BugReport*banner*highlightBackground #a9a9a9
 option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-18-*
 option add *Filmstrip.background #aaaaaa
+option add *Hierlist.selectBackground #9999ff
+option add *errorHighlightColor #9999ff
 option add *previewButtonBackground #4a758c
 option add *previewButtonActiveBackground #a3c3cc
 option add *previewButtonForeground white
@@ -51,7 +53,12 @@ option add *build*cntls*Button.relief flat
 option add *build*cntls*Button.overRelief raised
 option add *build*cntls*Button.padX 2
 option add *build*cntls*Editor.background white
+option add *build*editelem*background #cccccc
+option add *build*editelem*font {helvetica -12}
+option add *build*editelem*title.font {helvetica -12 italic}
+option add *build*editelem*vopt.font {helvetica -12 italic}
 option add *options*Entry.background white
+option add *options*Listbox.background white
 option add *options*Text.background white
 option add *options*Text.font {Helvetica -12}
 option add *options*Button.font {Helvetica -10}
@@ -152,7 +159,8 @@ proc main_palette_source {type} {
     set term [Rappture::objects::get $type -terminal]
     set vname "value[incr ValueId]"
     set type [string totitle $type]
-    return [list node: id $vname type $type terminal $term attributes ""]
+    return [list node: id $vname type $type terminal $term \
+        attributes [list label $type]]
 }
 
 # ----------------------------------------------------------------------
@@ -174,11 +182,6 @@ proc main_open {{what "-new"}} {
     main_generate_xml
 
     if {[string length $LastToolXmlLoaded] > 0 && [$ToolXml xml] ne $LastToolXmlLoaded} {
-puts ">>>>"
-puts $LastToolXmlLoaded
-puts "----"
-puts [$ToolXml xml]
-puts "<<<<"
         set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
         if {$choice == "yes" && ![main_saveas]} {
             return
@@ -288,6 +291,7 @@ proc main_open_children {hierlist xmlobj node} {
 proc main_open_import_attrs {xmlobj path} {
     set alist ""
     set type [$xmlobj element -as type $path]
+    set side [lindex [split $path .] 0]
 
     if {[catch {Rappture::objects::get $type -attributes} attr] == 0} {
         # scan through and ingest all known attributes
@@ -295,6 +299,11 @@ proc main_open_import_attrs {xmlobj path} {
             set name [lindex $rec 0]
             catch {unset info}
             array set info [lrange $rec 1 end]
+
+            # see if this attribute is excluded based on the -only option
+            if {$info(-only) ne "" && [lsearch $info(-only) $side] < 0} {
+                continue  ;# skip it!
+            }
 
             set atype [lindex [split $info(-type) :] 0]
             set proc "Attr[string totitle $atype]::import"
@@ -341,6 +350,25 @@ proc main_errors {} {
 
         set type [string tolower [$hlist tree get $node type]]
 
+        # make sure this object has a viewer
+        if {[catch {Rappture::objects::get $type -palettes} pals]} {
+            # must not have an object definition
+            continue
+        }
+        set debug [list -node $node -counter [incr counter]]
+
+        set path [$hlist tree path $node "%lc:type(%id)"]
+        regsub -all {\(%id\)} $path "" path
+        # convert input.foo to palette name "Inputs"
+        set side [lindex [split $path .] 0]
+        set pname "[string totitle $side]s"
+
+        if {$side ne "tool" && [lsearch $pals $pname] < 0} {
+            lappend ErrList [list error "This object doesn't yet have a visualizer that lets it be used as an $side to the program.  Support for this probably will be added in a future version of Rappture, but for now, it must be removed from the $side section." $debug]
+            continue
+        }
+
+        # query attributes for this type and check their values
         if {[catch {Rappture::objects::get $type -attributes} attrdef]
              || [catch {$hlist tree get $node attributes} attrlist]} {
             # can't find any attributes for this node or node type
@@ -354,11 +382,10 @@ proc main_errors {} {
                 set ainfo($name) ""
             }
         }
-        set debug [list -node $node -counter [incr counter]]
 
         # perform all checks for this attribute type and append to ErrList
         eval lappend ErrList [Rappture::objects::check $type \
-            [array get ainfo] $debug]
+            $side [array get ainfo] $debug]
     }
 
     if {[llength $ErrList] > 0} {
@@ -405,11 +432,24 @@ proc main_errors {} {
         if {$nerrs+$nwarn+$nother == 1} {
             set thereis "There is"
             set problem "this problem"
+            set errors "this error"
         } else {
             set thereis "There are"
             set problem "these problems"
+            if {$nwarn+$nother == 0} {
+                set errors "these errors"
+            } else {
+                set errors "at least the $nerrs errors"
+            }
         }
 
+        # if there are errors, we can't continue on
+        if {$nerrs > 0} {
+            tk_messageBox -icon error -type ok -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  You must resolve $errors before you continue with the preview."
+            return 1
+        }
+
+        # let the user decide whether to proceed
         set choice [tk_messageBox -icon error -type yesno -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  Examine and resolve $problem?"]
         if {$choice == "yes"} {
             return 1
@@ -463,10 +503,15 @@ proc main_errors_nav {where} {
     }
 
     set win [.func.build.options.panes pane 0]
-    set ErrFocusAttr $debug(-attribute)
+    if {[info exists debug(-attribute)]} {
+        set ErrFocusAttr $debug(-attribute)
+    } else {
+        set ErrFocusAttr ""
+    }
     $win.scrl.skel select none -silent  ;# force a reload of options
     $win.scrl.skel select $debug(-node) ;# so we can highlight ErrFocusAttr
 
+    # fix the navigation buttons for next/prev error
     .func.build.options.errs.nav.prev configure \
         -state [expr {($ErrListPos == 0) ? "disabled" : "normal"}]
     .func.build.options.errs.nav.next configure \
@@ -550,6 +595,7 @@ proc main_generate_xml {} {
         set path [$hlist tree path $node "%lc:type(%id)"]
         regsub -all {\(%id\)} $path "" path
         set type [string tolower [$hlist tree get $node type]]
+        set side [lindex [split $path .] 0]
 
         if {[catch {Rappture::objects::get $type -attributes} attrdef]
              || [catch {$hlist tree get $node attributes} attrlist]} {
@@ -564,6 +610,12 @@ proc main_generate_xml {} {
                 continue
             }
             array set info [lrange $rec 1 end]
+
+            # see if this attribute is excluded based on the -only option
+            if {$info(-only) ne "" && [lsearch $info(-only) $side] < 0} {
+                continue  ;# skip it!
+            }
+
             set atype [lindex [split $info(-type) :] 0]
             set proc "Attr[string totitle $atype]::export"
             if {[catch {$proc $ToolXml $path.$info(-path) $ainfo($name)} result]} {
@@ -1135,6 +1187,7 @@ proc main_options_load {} {
     set type [$hlist curselection -field type]
     set path [$hlist curselection -path "%lc:type(%id)"]
     regsub -all {\(%id\)} $path "" path
+    set side [lindex [split $path .] 0]
 
     # set the value column to expand
     set win [.func.build.options.panes pane 1]
@@ -1175,6 +1228,12 @@ proc main_options_load {} {
             set name [lindex $rec 0]
             array set info [lrange $rec 1 end]
 
+            # see if this attribute is excluded based on the -only option
+            if {$info(-only) ne "" && [lsearch $info(-only) $side] < 0} {
+                continue  ;# skip it!
+            }
+
+            # create the widget to edit this attribute
             set atype [split $info(-type) :]
             set atname [lindex $atype 0]
             set atname "Attr[string totitle $atname]"
@@ -1211,6 +1270,8 @@ proc main_options_load {} {
             # if an error was found at this attribute, set focus there
             if {$name eq $ErrFocusAttr} {
                 $obj edit
+                set errbg [option get $frame errorHighlightColor Background]
+                $frame.l$wnum configure -background $errbg
                 set ErrFocusAttr ""
             }
 
