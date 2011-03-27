@@ -65,7 +65,7 @@ itcl::class AttrImage {
     }
 
     public method edit {} {
-        focus $_win.load
+        focus -force $_win.btns.load
     }
 
     public proc import {xmlobj path} {

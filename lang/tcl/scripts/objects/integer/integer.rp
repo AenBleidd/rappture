@@ -1,11 +1,25 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: integer
+#
+#  A integer is an integral value.  It is usually used as an input,
+#  but it can also be an output from a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object integer -extends base {
-    palettes "Inputs"
+    palettes "Inputs" "Outputs"
 
     help http://rappture.org/wiki/rp_xml_ele_integer
 
-    attr default -title "Default Value" -type string:validate=int -path default
-    attr min -title "Minimum Value" -type string:validate=int -path min
-    attr max -title "Maximum Value" -type string:validate=int -path max
+    attr default -title "Default Value" -type string:validate=int -path default -only input
+    attr min -title "Minimum Value" -type string:validate=int -path min -only input
+    attr max -title "Maximum Value" -type string:validate=int -path max -only input
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {
