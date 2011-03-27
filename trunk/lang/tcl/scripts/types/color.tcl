@@ -12,11 +12,14 @@
 itcl::class AttrColor {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
         set _icon [image create photo -width 20 -height 20]
 
         label $win.sample -image $_icon
         pack $win.sample -side left
+        Rappture::Tooltip::for $win.sample $params(-tooltip)
+
         button $win.change -text "Choose..." -command [itcl::code $this choose]
         pack $win.change -side left
         _redraw ""

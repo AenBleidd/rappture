@@ -13,6 +13,7 @@
 itcl::class AttrUnits {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
 
         Rappture::Combobox $win.val -width 10 -editable yes
@@ -56,6 +57,8 @@ itcl::class AttrUnits {
           T   "Magnetic Units" \
           T   "  T - Teslas" \
           G   "  G - Gauss"
+
+        Rappture::Tooltip::for $win.val $params(-tooltip)
 
         set _win $win
     }
@@ -112,7 +115,10 @@ itcl::class AttrUnits {
     }
 
     public proc export {xmlobj path value} {
-        $xmlobj put $path $value
+        set value [string trim $value]
+        if {$value ne ""} {
+            $xmlobj put $path $value
+        }
     }
 
     private variable _win ""       ;# containing frame

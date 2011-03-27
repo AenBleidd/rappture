@@ -13,11 +13,15 @@
 itcl::class AttrBoolean {
     constructor {win args} {
         Rappture::getopts args params {
+            value -tooltip ""
         }
 
         Rappture::Combobox $win.val -width 10 -editable no
         pack $win.val -side left
         $win.val choices insert end 1 "True" 0 "False"
+
+        Rappture::Tooltip::for $win.val $params(-tooltip)
+
         set _win $win
     }
 

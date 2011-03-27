@@ -18,13 +18,20 @@ object curve -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_curve
 
-    attr group -title "Plotting Group" -type string -path about.group
-    attr xlabel -title "X-axis Label" -type string -path xaxis.label
-    attr xdesc  -title "X-axis Description" -type string -path xaxis.description
-    attr xunits -title "X-axis Units" -type units -path xaxis.units
-    attr ylabel -title "Y-axis Label" -type string -path yaxis.label
-    attr ydesc  -title "Y-axis Description" -type string -path yaxis.description
-    attr yunits -title "Y-axis Units" -type units -path yaxis.units
+    attr group -title "Plotting Group" -type string -path about.group -tooltip "If two or more curves share the same name for their plotting group, they are overlayed on the same plot.  The name for the plotting group becomes the name of the overall output, and the label for each curve appears in a tooltip when you mouse over its points."
+
+    attr xlabel -title "X-axis Label" -type string -path xaxis.label -tooltip "Label shown on the x-axis for the plot."
+
+    attr xdesc  -title "X-axis Description" -type string -path xaxis.description -tooltip "Description of the x-axis that appears in a tooltip window when you mouse over the x-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr xunits -title "X-axis Units" -type units -path xaxis.units -tooltip "Units for the physical quantity that the x-axis represents."
+
+    attr ylabel -title "Y-axis Label" -type string -path yaxis.label -tooltip "Label shown on the y-axis for the plot."
+
+    attr ydesc  -title "Y-axis Description" -type string -path yaxis.description -tooltip "Description of the y-axis that appears in a tooltip window when you mouse over the y-axis.  This should not merely repeat what the label says, but explain what it means."
+
+    attr yunits -title "Y-axis Units" -type units -path yaxis.units -tooltip "Units for the physical quantity that the y-axis represents."
+
 
     check xlabel {
         if {[string length [string trim $attr(xlabel)]] == 0} {

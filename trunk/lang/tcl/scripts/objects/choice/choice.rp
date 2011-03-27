@@ -17,8 +17,9 @@ object choice -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_choice
 
-    attr options -title "Options" -type choices -path option
-    attr default -title "Default Value" -type string -path default -only input
+    attr options -title "Options" -type choices -path option -tooltip "List of choices that will appear on the drop-down menu in your program."
+
+    attr default -title "Default Value" -type string -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
 
     check options {
         if {[llength $attr(options)] < 2} {

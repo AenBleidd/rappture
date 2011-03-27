@@ -864,6 +864,7 @@ itcl::class Rappture::objects::ObjAttr {
     public variable path ""
     public variable only ""
     public variable expand "no"
+    public variable tooltip ""
 
     constructor {args} {
         eval configure $args

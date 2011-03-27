@@ -19,6 +19,7 @@ itcl::class AttrString {
         Rappture::getopts args params {
             value -lines 1
             value -validate ""
+            value -tooltip ""
         }
 
         if {$params(-lines) > 1} {
@@ -26,9 +27,11 @@ itcl::class AttrString {
             pack $win.scrl -expand yes -fill both
             text $win.scrl.text -width 10 -height $params(-lines) -wrap word
             $win.scrl contents $win.scrl.text
+            Rappture::Tooltip::for $win.scrl.text $params(-tooltip)
         } else {
             entry $win.str
             pack $win.str -fill x
+            Rappture::Tooltip::for $win.str $params(-tooltip)
         }
         set _win $win
         set _validate $params(-validate)

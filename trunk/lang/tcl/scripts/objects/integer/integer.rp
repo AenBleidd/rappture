@@ -17,9 +17,12 @@ object integer -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_integer
 
-    attr default -title "Default Value" -type string:validate=int -path default -only input
-    attr min -title "Minimum Value" -type string:validate=int -path min -only input
-    attr max -title "Maximum Value" -type string:validate=int -path max -only input
+    attr default -title "Default Value" -type string:validate=int -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr min -title "Minimum Value" -type string:validate=int -path min -only input -tooltip "Sets the minimum value for this integer.  The value can be equal to the minimum, but no lower."
+
+    attr max -title "Maximum Value" -type string:validate=int -path max -only input -tooltip "Sets the maximum value for this integer.  The value can be equal to the maximum, but no higher."
+
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {

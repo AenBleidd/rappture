@@ -17,12 +17,18 @@ object number -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_number
 
-    attr default -title "Default Value" -type string:validate=number -path default -only input
-    attr units -title "Units of Measurement" -type units -path units
-    attr min -title "Minimum Value" -type string:validate=number -path min -only input
-    attr max -title "Maximum Value" -type string:validate=number -path max -only input
-    attr icon -title "Icon" -type image:maxsize=20,rescale=yes -path about.icon -only input
-    attr color -title "Color" -type color -path color -only input
+    attr default -title "Default Value" -type string:validate=number -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    attr units -title "Units of Measurement" -type units -path units -tooltip "Units for the physical quantity that this number represents."
+
+    attr min -title "Minimum Value" -type string:validate=number -path min -only input -tooltip "Sets the minimum value for this number.  The value can be equal to the minimum, but no lower."
+
+    attr max -title "Maximum Value" -type string:validate=number -path max -only input -tooltip "Sets the maximum value for this number.  The value can be equal to the maximum, but no higher."
+
+    attr icon -title "Icon" -type image:maxsize=20,rescale=yes -path about.icon -only input -tooltip "Sets an icon shown next to the number, which is normally used to indicate the quantity that the number represents.  If the icon is transparent, any color set for the number will show through."
+
+    attr color -title "Color" -type color -path color -only input -tooltip "Sets the color shown next to the number to indicate its strength.  If the number is near the minimum, the color will be white; as it nears the maximum, it will be the color selected here."
+
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {
