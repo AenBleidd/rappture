@@ -62,6 +62,7 @@ TYPEFILES	= \
 		$(srcdir)/types/color.tcl \
 		$(srcdir)/types/file.tcl \
 		$(srcdir)/types/image.tcl \
+		$(srcdir)/types/language.tcl \
 		$(srcdir)/types/string.tcl \
 		$(srcdir)/types/units.tcl
 

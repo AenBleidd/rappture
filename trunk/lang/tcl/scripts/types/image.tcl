@@ -160,9 +160,9 @@ itcl::class AttrImage {
                     }
                 } else {
                     if {$_actual eq ""} {
-                        set _actual [image create photo -data $bytes]
+                        set _actual [image create photo -data $data]
                     } else {
-                        $_actual configure -data $bytes
+                        $_actual configure -data $data
                     }
                 }
             }
