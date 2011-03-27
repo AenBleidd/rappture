@@ -3,7 +3,7 @@ object tool {
 
     attr title -type string -path title
     attr description -type string:lines=6 -expand yes -path about
-    attr command -type string -path command
+    attr command -title "Program" -type language -path command
 
     check title {
         if {[string length [string trim $attr(title)]] == 0} {

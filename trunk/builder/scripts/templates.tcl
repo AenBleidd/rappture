@@ -20,8 +20,8 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itcl
+package require RapptureBuilder
 
-namespace eval RapptureBuilder { # forward declaration }
 namespace eval RapptureBuilder::templates {
     #
     # Set up a safe interpreter for loading language defn files...
@@ -43,9 +43,14 @@ namespace eval RapptureBuilder::templates {
     foreach cmd [$langParser eval {info commands}] {
         $langParser hide $cmd
     }
+    $langParser alias extension RapptureBuilder::templates::parse_template extension
+    $langParser alias command RapptureBuilder::templates::parse_template command
+    $langParser alias makefile RapptureBuilder::templates::parse_template makefile
+
     $langParser alias main RapptureBuilder::templates::parse_template main
     $langParser alias input RapptureBuilder::templates::parse_pattern input
     $langParser alias output RapptureBuilder::templates::parse_pattern output
+
     $langParser alias unknown RapptureBuilder::templates::parse_lang_unknown
     proc ::RapptureBuilder::templates::parse_lang_unknown {args} {
         error "bad option \"[lindex $args 0]\": should be main, input, output"
@@ -109,13 +114,13 @@ proc RapptureBuilder::templates::languages {} {
 
 # ----------------------------------------------------------------------
 # USAGE: RapptureBuilder::templates::generate <what> \
-#           ?-language name? ?-xmlobj obj?
+#           ?-language name? ?-xmlobj obj? ?-macros <string-map>?
 #
 # Builds a string of generated information starting with <what> as
-# the main template.  This string may contain other @NAME@ fields,
+# the main template.  This string may contain other @@NAME@@ fields,
 # which are substituted recursively until all substitutions have
 # been made.  The -language option specifies which language template
-# should be used.  The -xmlobj option gives data for the @NAME@
+# should be used.  The -xmlobj option gives data for the @@NAME@@
 # substitutions.
 #
 # Returns the generated string with all possible substitutions.
@@ -126,6 +131,7 @@ proc RapptureBuilder::templates::generate {what args} {
     Rappture::getopts args params {
         value -language ""
         value -xmlobj ""
+        value -macros ""
     }
     if {[llength $args] > 0} {
         error "wrong # args: should be \"generate what ?-language name? ?-xmlobj obj?\""
@@ -150,7 +156,7 @@ proc RapptureBuilder::templates::generate {what args} {
     set inputs ""
     if {$xmlobj ne ""} {
         foreach path [Rappture::entities -as path $xmlobj input] {
-            append inputs [$langDefs($lang) generate $xmlobj $path]
+            append inputs [$langDefs($lang) generate $xmlobj $path -code]
         }
     }
 
@@ -158,11 +164,48 @@ proc RapptureBuilder::templates::generate {what args} {
     set outputs ""
     if {$xmlobj ne ""} {
         foreach path [Rappture::entities -as path $xmlobj output] {
-            append outputs [$langDefs($lang) generate $xmlobj $path]
+            append outputs [$langDefs($lang) generate $xmlobj $path -code]
         }
     }
 
-    set info [string map [list @@INPUTS@@ $inputs @@OUTPUTS@@ $outputs] $info]
+    # produce the @@DECLARATIONS@@ section...
+    set decls ""
+    if {$xmlobj ne ""} {
+        foreach path [Rappture::entities -as path $xmlobj input] {
+            append decls [$langDefs($lang) generate $xmlobj $path -decl]
+        }
+        foreach path [Rappture::entities -as path $xmlobj output] {
+            append decls [$langDefs($lang) generate $xmlobj $path -decl]
+        }
+    }
+
+    # handle the @@INPUTS@@ / @@OUTPUTS@@ / @@DECLARATIONS@@ specially
+    # preserve the indent at the beginning of each line
+    foreach {macro var} {
+        @@INPUTS@@ inputs
+        @@OUTPUTS@@ outputs
+        @@DECLARATIONS@@ decls
+    } {
+        set re [format {(?:^|\n)([ \t]*)%s} $macro]
+        while {[regexp -indices $re $info match indent]} {
+            set code [set $var]
+            foreach {m0 m1} $match break
+            foreach {i0 i1} $indent break
+            if {$i1-$i0 > 0} {
+                set indent [string range $info $i0 $i1]
+                set newcode ""
+                foreach line [split $code \n] {
+                    append newcode $indent $line "\n"
+                }
+                set code [string trimright $newcode \n]
+            }
+            if {[string index $info $m0] eq "\n"} { set code "\n$code" }
+            set info [string replace $info $m0 $m1 $code]
+        }
+    }
+
+    # make substitutions for any remaining macros
+    set info [string map $params(-macros) $info]
 
     # return the generated code
     return $info
@@ -264,15 +307,16 @@ itcl::class RapptureBuilder::templates::LangDef {
 
     # used to register a script that processes an input/output element
     public method handler {pattern body} {
-        set i [lsearch $_patterns $pattern]
+        set i [lsearch -exact $_patterns $pattern]
         if {$i < 0} { lappend _patterns $pattern }
         set _pat2code($pattern) $body
     }
 
     # used to generate the output for a specific Rappture object in this lang
-    public method generate {xmlobj path} {
+    public method generate {xmlobj path {what "-code"}} {
         variable genParser
         variable genOutput ""
+        variable genDecls ""
         variable genXmlobj $xmlobj
         variable genPath $path
 
@@ -296,7 +340,11 @@ itcl::class RapptureBuilder::templates::LangDef {
         $genParser eval [list set id [$xmlobj element -as id $path]]
         $genParser eval $code
 
-        return $genOutput
+        switch -- $what {
+            -code   { return $genOutput }
+            -decl   { return $genDecls }
+            default { error "bad option \"$what\": should be -code, -decl" }
+        }
     }
 
     private variable _lang ""     ;# name of this language
@@ -308,15 +356,17 @@ itcl::class RapptureBuilder::templates::LangDef {
     # Set up a safe interpreter for the "generate" method...
     #
     private common genParser [interp create -safe]
-    $genParser alias puts RapptureBuilder::templates::LangDef::cmd_puts
+    $genParser alias code RapptureBuilder::templates::LangDef::cmd_code
+    $genParser alias decl RapptureBuilder::templates::LangDef::cmd_decl
     $genParser alias attr RapptureBuilder::templates::LangDef::cmd_attr
 
-    private common genOutput ""  ;# gathers the output from genParser
+    private common genOutput ""  ;# gathers code output from genParser
+    private common genDecls ""   ;# gathers declarations from genParser
     private common genXmlobj ""  ;# Rappture tool spec
     private common genPath ""    ;# current path in the genXmlobj data
 
     # like the std "puts" command, but adds output to the generated code
-    proc cmd_puts {args} {
+    proc cmd_code {args} {
         set nl "\n"
         while {[llength $args] > 1} {
             set opt [lindex $args 0]
@@ -331,6 +381,24 @@ itcl::class RapptureBuilder::templates::LangDef {
             error "wrong # args: should be \"puts ?-nonewline? string\""
         }
         append genOutput [lindex $args 0] $nl
+    }
+
+    # like the std "puts" command, but adds output to code declarations
+    proc cmd_decl {args} {
+        set nl "\n"
+        while {[llength $args] > 1} {
+            set opt [lindex $args 0]
+            set args [lrange $args 1 end]
+            if {$opt eq "-nonewline"} {
+                set nl ""
+            } else {
+                error "bad option \"$opt\": should be -nonewline"
+            }
+        }
+        if {[llength $args] != 1} {
+            error "wrong # args: should be \"puts ?-nonewline? string\""
+        }
+        append genDecls [lindex $args 0] $nl
     }
 
     # used to query attribute info for the current object

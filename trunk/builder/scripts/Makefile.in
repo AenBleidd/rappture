@@ -23,8 +23,20 @@ FILES		= \
 		$(srcdir)/main.tcl \
 		$(srcdir)/objpath.tcl \
 		$(srcdir)/slideframes.tcl \
+		$(srcdir)/templates.tcl \
 		$(srcdir)/tool.rp \
 		$(srcdir)/tweener.tcl
+
+TEMPLATEFILES	= \
+		$(srcdir)/templates/clang.tl \
+		$(srcdir)/templates/fortran77.tl \
+		$(srcdir)/templates/java.tl \
+		$(srcdir)/templates/matlab.tl \
+		$(srcdir)/templates/octave.tl \
+		$(srcdir)/templates/perl.tl \
+		$(srcdir)/templates/python.tl \
+		$(srcdir)/templates/ruby.tl \
+		$(srcdir)/templates/tcl.tl
 
 version 	= $(PACKAGE_VERSION)
 name 		= RapptureBuilder$(version)
@@ -37,7 +49,7 @@ tclIndex: $(FILES)
 	$(TCLSH) $(srcdir)/../../gui/tclconfig/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
 
-install: install_scripts install_images 
+install: install_scripts install_templates install_images 
 
 install_scripts: 
 	$(MKDIR_P) -m 0755 $(destdir)
@@ -47,9 +59,16 @@ install_scripts:
 	done 
 	$(INSTALL) -m 444 tclIndex $(destdir)
 
+install_templates: $(TEMPLATEFILES)
+	$(MKDIR_P) -m 0755 $(destdir)/templates
+	@for i in $(TEMPLATEFILES); do \
+	    echo "Installing $$i" ; \
+	    $(INSTALL) -m 555 $$i $(destdir)/templates ; \
+	done
+
 install_images:
 	$(MKDIR_P) -m 0755 $(destdir)/images
-	@for i in $(srcdir)/images/*.gif $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
+	@for i in $(srcdir)/images/*.png $(srcdir)/images/*.xbm; do \
 	    echo "Installing $$i" ; \
 	    $(INSTALL) -m 444 $$i $(destdir)/images ; \
 	done 

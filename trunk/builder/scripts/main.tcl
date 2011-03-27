@@ -73,9 +73,6 @@ option add *saveas*progv*Button.font {Helvetica -12}
 option add *saveas*progv*Button.borderWidth 1
 option add *saveas*progv*Button.padX 2
 option add *saveas*progv*Button.padY 2
-option add *saveas*progl*Label.font {Helvetica -12}
-option add *saveas*progl*Combobox.textBackground #d9d9d9
-option add *saveas*progl*Combobox.borderWidth 1
 
 switch $tcl_platform(platform) {
     unix - windows {
@@ -87,7 +84,7 @@ switch $tcl_platform(platform) {
 }
 
 wm protocol . WM_DELETE_WINDOW main_exit
-wm title . "Instant Rappture"
+wm title . "Rappture Builder"
 
 # install a better bug handler
 Rappture::bugreport::install
@@ -117,6 +114,9 @@ if {[catch {Rappture::objects::load [file join $dir tool.rp]} err]} {
     puts stderr "Error loading tool object definition:\n$err"
     exit 1
 }
+
+# load all languages recognized by the builder
+RapptureBuilder::templates::init
 
 # ----------------------------------------------------------------------
 #  HACK ALERT!  Make it so the Analyzer can't possibly enable its
@@ -168,20 +168,29 @@ proc main_open {{what "-new"}} {
     if {![main_options_save -clear]} {
         return
     }
+    set win [.func.build.options.panes pane 0]
+    $win.scrl.skel select none
+
     main_generate_xml
 
-    if {[string length $LastToolXmlLoaded] > 0 && ![string equal [$ToolXml xml] $LastToolXmlLoaded]} {
-        set choice [tk_messageBox -icon warning -type yesno -title "iRappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
+    if {[string length $LastToolXmlLoaded] > 0 && [$ToolXml xml] ne $LastToolXmlLoaded} {
+puts ">>>>"
+puts $LastToolXmlLoaded
+puts "----"
+puts [$ToolXml xml]
+puts "<<<<"
+        set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
         if {$choice == "yes" && ![main_saveas]} {
             return
         }
     }
 
     if {$what == "-new"} {
-        set xmlobj [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run><tool/></run>"]
+        set xmlobj [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run/>"]
+        $xmlobj put tool.command ""
     } else {
         if {$what == "-file"} {
-            set fname [tk_getOpenFile -title "iRappture: Open Tool" -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
+            set fname [tk_getOpenFile -title "Rappture: Open Tool" -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
         } else {
             set fname $what
         }
@@ -196,7 +205,7 @@ proc main_open {{what "-new"}} {
         main_saveas update
 
         if {[catch {Rappture::library $fname} xmlobj]} {
-            tk_messageBox -icon error -title "iRappture: Error" -message "Error loading tool description: $xmlobj"
+            tk_messageBox -icon error -title "Rappture: Error" -message "Error loading tool description: $xmlobj"
             return
         }
     }
@@ -401,7 +410,7 @@ proc main_errors {} {
             set problem "these problems"
         }
 
-        set choice [tk_messageBox -icon error -type yesno -title "iRappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  Examine and resolve $problem?"]
+        set choice [tk_messageBox -icon error -type yesno -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  Examine and resolve $problem?"]
         if {$choice == "yes"} {
             return 1
         } else {
@@ -581,8 +590,57 @@ proc main_saveas {{option "start"}} {
             if {![main_options_save -clear]} {
                 return
             }
+            set win [.func.build.options.panes pane 0]
+            $win.scrl.skel select none
+
             # generate now to catch any errors
             main_generate_xml
+
+            # get the language choice and update the skeleton program option
+            set lang ""
+            set cmd [$ToolXml get tool.command]
+            if {[string index $cmd 0] == "!"} {
+                set lang [string range $cmd 1 end]
+            } else {
+                # It's hard to reload a real command from a tool.xml file.
+                # Scan through all languages and treat @@FILENAME@@ as a
+                # wildcard.  See if any of the languages match.
+                foreach name [RapptureBuilder::templates::languages] {
+                    set pat [RapptureBuilder::templates::generate command \
+                        -language $name -macros {@@FILENAME@@ * @@FILEROOT@@ *}]
+
+                    if {[string match $pat $cmd]} {
+                        set lang $name
+                        break
+                    }
+                }
+            }
+            if {$lang ne ""} {
+                .saveas.opts.prog configure -text "Skeleton program ($lang)" -state normal
+                .saveas.opts.progv.getfile configure -state normal
+                set ext [RapptureBuilder::templates::generate extension -language $lang]
+                .saveas.opts.progv.file configure -text "main$ext"
+                set SaveAs(lang) $lang
+                set SaveAs(ext) $ext
+
+                # see if there's a makefile for this program
+                if {[catch {RapptureBuilder::templates::generate makefile -language $lang}]} {
+                    set SaveAs(make) 0
+                    .saveas.opts.make configure -state disabled
+                } else {
+                    .saveas.opts.make configure -state normal
+                }
+            } else {
+                .saveas.opts.prog configure -text "Skeleton program (select language under Tool section)" -state disabled
+                .saveas.opts.progv.file configure -text "select a file"
+                .saveas.opts.progv.getfile configure -state disabled
+                .saveas.opts.make configure -state disabled
+                set SaveAs(lang) ?
+                set SaveAs(ext) ?
+                set SaveAs(prog) 0
+                set SaveAs(make) 0
+            }
+            main_saveas update
 
             # make the saveas dialog big enough and center it on the main win
             set w 400
@@ -620,11 +678,34 @@ proc main_saveas {{option "start"}} {
             set tfile [.saveas.opts.toolv.file cget -text]
             set pfile [.saveas.opts.progv.file cget -text]
 
-            if {$SaveAs(tool) && ![string equal "select a file" $tfile]} {
+            if {$SaveAs(tool) && $tfile ne "select a file"} {
+                set tfile [file normalize $tfile]
+
+                if {$SaveAs(prog) && $pfile ne "select a file"} {
+                    # if we have a tool.xml file, put the program in same dir
+                    set tail [file tail $pfile]
+                    set pfile [file join [file dirname $tfile] $tail]
+                }
+            }
+
+            if {$SaveAs(tool) && $tfile ne "select a file"} {
                 # generate again now that we know the file name to get
                 # relative file paths for things like <note>'s
                 set LastToolXmlFile $tfile
                 main_generate_xml
+
+                set cmd [$ToolXml get tool.command]
+                if {[string index $cmd 0] eq "!"} {
+                    if {$pfile eq "select a file"} {
+                        set pfile "main$SaveAs(ext)"
+                    }
+                    set tail [file tail $pfile]
+                    set cmd [RapptureBuilder::templates::generate command \
+                        -language $SaveAs(lang) \
+                        -macros [list @@FILENAME@@ $tail \
+                                      @@FILEROOT@@ [file rootname $tail]]]
+                    $ToolXml put tool.command $cmd
+                }
 
                 set cmds {
                     set fid [open $tfile w]
@@ -633,15 +714,70 @@ proc main_saveas {{option "start"}} {
                     close $fid
                 }
                 if {[catch $cmds result]} {
-                    tk_messageBox -icon error -title "iRappture: Error" -message "Error saving tool description: $result"
+                    tk_messageBox -icon error -title "Rappture: Error" -message "Error saving tool description: $result"
                     set status "error"
                 } else {
                     set LastToolXmlLoaded [$ToolXml xml]
                 }
             }
 
-            if {$SaveAs(prog) && ![string equal "select a file" $pfile]} {
-                tk_messageBox -icon error -title "iRappture: Error" -message "Generating script file is not yet implemented"
+            if {$SaveAs(prog) && $pfile ne "select a file"} {
+                if {[file exists $pfile]} {
+                    set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Confirm" -message "File \"$pfile\" already exists.\n\nOverwrite?"]
+                    if {$choice == "no"} {
+                        # pop the dialog back up
+                        wm deiconify .saveas
+                        raise .saveas
+                        grab set .saveas
+                        return
+                    }
+                }
+                set code [RapptureBuilder::templates::generate main \
+                    -language $SaveAs(lang) -xmlobj $ToolXml]
+
+                set cmds {
+                    set fid [open $pfile w]
+                    puts -nonewline $fid $code
+                    close $fid
+                }
+                if {[catch $cmds result]} {
+                    tk_messageBox -icon error -title "Rappture: Error" -message "Error saving skeleton program file: $result"
+                    set status "error"
+                }
+            }
+
+            if {$SaveAs(make)} {
+                if {$pfile eq "select a file"} {
+                    set pfile "main$SaveAs(ext)"
+                }
+                set mfile [file join [file dirname $pfile] Makefile]
+                if {[file exists $mfile]} {
+                    set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Confirm" -message "File \"$mfile\" already exists.\n\nOverwrite?"]
+                    if {$choice == "no"} {
+                        # pop the dialog back up
+                        wm deiconify .saveas
+                        raise .saveas
+                        grab set .saveas
+                        return
+                    }
+                }
+
+                set fname [file tail $pfile]
+                set dir [file dirname [file dirname $::Rappture::installdir]]
+                set macros [list @@RAPPTUREDIR@@ $dir]
+                lappend macros @@FILENAME@@ $fname
+                lappend macros @@FILEROOT@@ [file rootname $fname]
+                if {[catch {RapptureBuilder::templates::generate makefile -language $SaveAs(lang) -macros $macros} code] == 0} {
+                    set cmds {
+                        set fid [open $mfile w]
+                        puts -nonewline $fid $code
+                        close $fid
+                    }
+                    if {[catch $cmds result]} {
+                        tk_messageBox -icon error -title "Rappture: Error" -message "Error saving Makefile: $result"
+                        set status "error"
+                    }
+                }
             }
 
             after idle [list set SaveAs(status) $status]
@@ -649,23 +785,32 @@ proc main_saveas {{option "start"}} {
 
         update {
             set havefile 0
+            set missingfile 0
             set tfile [.saveas.opts.toolv.file cget -text]
-            if {$SaveAs(tool) && ![string equal $tfile "select a file"]} {
-                .saveas.opts.toolv.file configure -fg black
-                set havefile 1
+            if {$SaveAs(tool)} {
+                if {$tfile ne "select a file"} {
+                    .saveas.opts.toolv.file configure -fg black
+                    set havefile 1
+                } else {
+                    set missingfile 1
+                }
             } else {
                 .saveas.opts.toolv.file configure -fg gray60
             }
 
             set pfile [.saveas.opts.progv.file cget -text]
-            if {$SaveAs(prog) && ![string equal $pfile "select a file"]} {
-                .saveas.opts.progv.file configure -fg black
-                set havefile 1
+            if {$SaveAs(prog)} {
+                if {$pfile ne "select a file"} {
+                    .saveas.opts.progv.file configure -fg black
+                    set havefile 1
+                } else {
+                    set missingfile 1
+                }
             } else {
                 .saveas.opts.progv.file configure -fg gray60
             }
 
-            if {$havefile} {
+            if {$havefile && !$missingfile} {
                 .saveas.cntls.save configure -state normal
             } else {
                 .saveas.cntls.save configure -state disabled
@@ -673,7 +818,7 @@ proc main_saveas {{option "start"}} {
         }
 
         gettoolfile {
-            set fname [tk_getSaveFile -title "iRappture: Save Tool" -parent .saveas -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
+            set fname [tk_getSaveFile -title "Rappture: Save Tool" -parent .saveas -initialfile "tool.xml" -defaultextension .xml -filetypes { {{XML files} .xml} {{All files} *} }]
 
             if {"" != $fname} {
                 .saveas.opts.toolv.file configure -text $fname
@@ -683,18 +828,20 @@ proc main_saveas {{option "start"}} {
         }
 
         getprogfile {
-            set ext .tcl
-            set fname [tk_getSaveFile -title "iRappture: Save Program Skeleton" -parent .saveas -initialfile "wrapper$ext" -defaultextension $ext -filetypes {
-    {{C programs} .c}
-    {{C++ programs} .cpp}
-    {{F77 programs} .f}
-    {{MATLAB scripts} .m}
-    {{Perl scripts} .pl}
-    {{Python scripts} .py}
-    {{Tcl scripts} .tcl}
-    {{Ruby scripts} .ruby}
-    {{All files} *}
-}]
+            set flist ""
+            lappend flist [list "$SaveAs(lang) files" $SaveAs(ext)]
+            lappend flist [list "All files" *]
+
+            set pfile [.saveas.opts.progv.file cget -text]
+            if {$pfile eq "select a file"} {
+                set init ""
+                set ext ""
+            } else {
+                set init $pfile
+                set ext [file extension $pfile]
+            }
+
+            set fname [tk_getSaveFile -title "Rappture: Save Program Skeleton" -parent .saveas -initialfile $init -defaultextension $ext -filetypes $flist]
 
             if {"" != $fname} {
                 .saveas.opts.progv.file configure -text $fname
@@ -723,10 +870,13 @@ proc main_exit {} {
     if {![main_options_save -clear]} {
         return
     }
+    set win [.func.build.options.panes pane 0]
+    $win.scrl.skel select none
+
     main_generate_xml
 
-    if {![string equal [$ToolXml xml] $LastToolXmlLoaded]} {
-        set choice [tk_messageBox -icon warning -type yesno -title "iRappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
+    if {[$ToolXml xml] ne $LastToolXmlLoaded} {
+        set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
         if {$choice == "yes" && ![main_saveas]} {
             return
         }
@@ -845,11 +995,6 @@ proc main_preview {} {
 # MAIN WINDOW
 # ----------------------------------------------------------------------
 wm geometry . 800x600
-
-# ----------------------------------------------------------------------
-# MAIN WINDOW
-# ----------------------------------------------------------------------
-wm geometry . 600x500
 Rappture::Postern .postern
 pack .postern -side bottom -fill x
 
@@ -1003,7 +1148,7 @@ proc main_options_load {} {
         frame $frame.cntls -borderwidth 4 -relief flat
         grid $frame.cntls -row 0 -column 0 -columnspan 2 -sticky nsew
 
-        if {![string equal $type "Tool"]} {
+        if {$type ne "Tool"} {
             # can't let people delete the tool info
             button $frame.cntls.del -text "Delete" -command main_options_delete
             pack $frame.cntls.del -side right
@@ -1017,7 +1162,7 @@ proc main_options_load {} {
             -renamecommand main_options_rename
         pack $frame.cntls.path -side left -expand yes -fill both
 
-        if {[string equal $type "Tool"]} {
+        if {$type eq "Tool"} {
             # if this is a tool, then lose the rename button
             pack forget [$frame.cntls.path component button]
         }
@@ -1064,7 +1209,7 @@ proc main_options_load {} {
             grid rowconfigure $frame $wnum -weight [expr {$info(-expand)? 1:0}]
 
             # if an error was found at this attribute, set focus there
-            if {[string equal $name $ErrFocusAttr]} {
+            if {$name eq $ErrFocusAttr} {
                 $obj edit
                 set ErrFocusAttr ""
             }
@@ -1133,10 +1278,10 @@ proc main_options_save {{op -keep}} {
         }
         catch {unset OptionsPanelObjs}
 
-        set win [.func.build.options.panes pane 1]
-        set frame [$win.vals contents frame]
-        foreach win [winfo children $frame] {
-            destroy $win
+        set bwin [.func.build.options.panes pane 1]
+        set frame [$bwin.vals contents frame]
+        foreach w [winfo children $frame] {
+            destroy $w
         }
     }
     return 1
@@ -1217,7 +1362,7 @@ blt::tile::frame .func.preview.stripes -tile [Rappture::icon diag]
 # ----------------------------------------------------------------------
 toplevel .saveas
 pack propagate .saveas off
-wm title .saveas "iRappture: Save As..."
+wm title .saveas "Rappture: Save As..."
 wm withdraw .saveas
 wm protocol .saveas WM_DELETE_WINDOW {.saveas.cntls.cancel invoke}
 
@@ -1239,7 +1384,7 @@ checkbutton .saveas.opts.tool -text "Tool definition file" -variable SaveAs(tool
 pack .saveas.opts.tool -side top -anchor w -pady {10 0}
 frame .saveas.opts.toolv
 pack .saveas.opts.toolv -anchor w
-label .saveas.opts.toolv.filel -text "File:" -width 12 -anchor e
+label .saveas.opts.toolv.filel -text "File:" -width 7 -anchor e
 pack .saveas.opts.toolv.filel -side left
 button .saveas.opts.toolv.getfile -text "Choose..." -command {main_saveas gettoolfile}
 pack .saveas.opts.toolv.getfile -side right
@@ -1251,28 +1396,15 @@ checkbutton .saveas.opts.prog -text "Skeleton program" -variable SaveAs(prog) -c
 pack .saveas.opts.prog -side top -anchor w -pady {10 0}
 frame .saveas.opts.progv
 pack .saveas.opts.progv -anchor w
-label .saveas.opts.progv.filel -text "File:" -width 12 -anchor e
+label .saveas.opts.progv.filel -text "File:" -width 7 -anchor e
 pack .saveas.opts.progv.filel -side left
 button .saveas.opts.progv.getfile -text "Choose..." -command {main_saveas getprogfile}
 pack .saveas.opts.progv.getfile -side right
 label .saveas.opts.progv.file -text "select a file" -anchor e -fg gray60
 pack .saveas.opts.progv.file -side left -expand yes -fill x
-frame .saveas.opts.progl
-pack .saveas.opts.progl -anchor w
-label .saveas.opts.progl.l -text "Language:" -width 12 -anchor e
-pack .saveas.opts.progl.l -side left
-Rappture::Combobox .saveas.opts.progl.val -width 20 -editable no
-pack .saveas.opts.progl.val -side left -pady {4 0}
-.saveas.opts.progl.val choices insert end \
-    .c    "C programs" \
-    .cpp  "C++ programs" \
-    .f    "F77 programs" \
-    .m    "MATLAB scripts" \
-    .pl   "Perl scripts" \
-    .py   "Python scripts" \
-    .tcl  "Tcl scripts" \
-    .ruby "Ruby scripts"
-.saveas.opts.progl.val value "Python scripts"
+
+checkbutton .saveas.opts.make -text "Makefile for building this program" -variable SaveAs(make) -command {main_saveas update}
+pack .saveas.opts.make -side top -anchor w -pady {10 0}
 
 # ----------------------------------------------------------------------
 #  Open the given XML file or create a new one
