@@ -49,7 +49,7 @@ itcl::class AttrBoolean {
     }
 
     public method edit {} {
-        focus $_win.val
+        focus -force $_win.val
     }
 
     public proc import {xmlobj path} {

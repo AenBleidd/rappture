@@ -51,7 +51,7 @@ itcl::class AttrColor {
     }
 
     public method edit {} {
-        focus $_win.change
+        focus -force $_win.change
     }
 
     public proc import {xmlobj path} {

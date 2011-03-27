@@ -101,7 +101,7 @@ itcl::class AttrUnits {
     }
 
     public method edit {} {
-        focus $_win.val
+        focus -force $_win.val
         $_win.val component entry selection from 0
         $_win.val component entry selection to end
     }

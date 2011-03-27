@@ -1,3 +1,18 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: curve
+#
+#  A set of (x,y) points.  Usually used as the output from a simulation,
+#  although it could also be an input if we create an input editor
+#  to specify values.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object curve -extends base {
     palettes "Outputs"
 

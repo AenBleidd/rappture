@@ -59,6 +59,7 @@ OBJECTS		= \
 
 TYPEFILES	= \
 		$(srcdir)/types/boolean.tcl \
+		$(srcdir)/types/choices.tcl \
 		$(srcdir)/types/color.tcl \
 		$(srcdir)/types/file.tcl \
 		$(srcdir)/types/image.tcl \

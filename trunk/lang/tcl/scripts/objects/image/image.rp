@@ -1,3 +1,17 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: image
+#
+#  An image is a picture of some sort.  It is usually used as an
+#  output, but could also be an input to an image manipulation program.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object image -extends base {
     palettes "Inputs" "Outputs"
 

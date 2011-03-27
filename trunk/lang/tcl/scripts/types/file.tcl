@@ -66,7 +66,7 @@ itcl::class AttrFile {
     }
 
     public method edit {} {
-        focus $_win.getfile
+        focus -force $_win.getfile
     }
 
     public proc import {xmlobj path} {

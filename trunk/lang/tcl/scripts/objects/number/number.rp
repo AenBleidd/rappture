@@ -17,12 +17,12 @@ object number -extends base {
 
     help http://rappture.org/wiki/rp_xml_ele_number
 
-    attr default -title "Default Value" -type string:validate=number -path default
+    attr default -title "Default Value" -type string:validate=number -path default -only input
     attr units -title "Units of Measurement" -type units -path units
-    attr min -title "Minimum Value" -type string:validate=number -path min
-    attr max -title "Maximum Value" -type string:validate=number -path max
-    attr icon -title "Icon" -type image:maxsize=20,rescale=yes -path about.icon
-    attr color -title "Color" -type color -path color
+    attr min -title "Minimum Value" -type string:validate=number -path min -only input
+    attr max -title "Maximum Value" -type string:validate=number -path max -only input
+    attr icon -title "Icon" -type image:maxsize=20,rescale=yes -path about.icon -only input
+    attr color -title "Color" -type color -path color -only input
 
     check default {
         if {[string length [string trim $attr(default)]] == 0} {
@@ -75,6 +75,14 @@ object number -extends base {
                && "" != $units
                && ![string equal [Rappture::Units::System::for $units] $base]} {
                 return [list error "Units for maximum value don't match the expected units for this value"]
+            }
+        }
+    }
+
+    check color {
+        if {$attr(color) ne ""} {
+            if {$attr(min) eq "" || $attr(max) eq ""} {
+                return [list warning "The color for this number won't show up unless both minimum and maximum values are set.  The color indicates the current value in the range between the min/max limits."]
             }
         }
     }

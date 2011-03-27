@@ -310,21 +310,23 @@ proc Rappture::objects::palettes {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rappture::objects::check <type> {<key> <val>...} <debugInfo>
+# USAGE: Rappture::objects::check <type> <side> {<key> <val>...} <debugInfo>
 #
 # Checks the definition for an object of the given <type> to see if
-# there are any errors in the values.  The attribute values are
-# specified as a key/value list.  Returns a list of the form:
+# there are any errors in the values.  The <side> indicates whether
+# it is an input or an output.  Some attributes don't apply when an
+# object is an output.  The current attribute values are specified as
+# a key/value list.  Returns a list of the form:
 #   error "something went wrong"
 #   warning "might check this"
 # ----------------------------------------------------------------------
-proc Rappture::objects::check {type attrinfo debug} {
+proc Rappture::objects::check {type side attrinfo debug} {
     variable objDefs
 
     set type [string tolower $type]  ;# doesn't matter: Tool or tool
 
     if {[info exists objDefs($type)]} {
-        return [$objDefs($type) check $attrinfo $debug]
+        return [$objDefs($type) check $side $attrinfo $debug]
     }
     return ""
 }
@@ -778,7 +780,7 @@ itcl::class Rappture::objects::ObjDef {
             eval lappend rlist $_attrs
             return $rlist
         } elseif {[llength $args] > 2} {
-            error "wrong # args: should be \"getAttrs ?name? ?-part?\""
+            error "wrong # args: should be \"getAttr ?name? ?-part?\""
         }
 
         set name [lindex $args 0]
@@ -807,10 +809,32 @@ itcl::class Rappture::objects::ObjDef {
     }
 
     # call this to check the integrity of all values
-    public method check {data debug} {
+    public method check {side data debug {extra ""}} {
         set rlist ""
         array set attr $data
+
+        # code snippets sometimes use this object info
+        if {$extra ne ""} {
+            array set object $extra
+        } else {
+            array set object [list type [type] palettes $palettes help $help]
+        }
+
+        # handle checks defined in a base class
+        foreach baseobj [cget -inherit] {
+            eval lappend rlist [$baseobj check $side $data $debug [array get object]]
+        }
+
+        # add checks defined in the current class
         for {set n 1} {$n <= $_checks(num)} {incr n} {
+            # look at the -only option and see if the check applies here
+            set aname $_checks($n-attr)
+            set only [getAttr $aname -only]
+            if {$only ne "" && [lsearch $only $side] < 0} {
+                continue
+            }
+
+            # execute the code to look for errors in the value
             set status [catch $_checks($n-code) result]
             if {$status != 0 && $status != 2} {
                 puts stderr "ERROR DURING VALUE CHECK:\n$result"
@@ -818,7 +842,7 @@ itcl::class Rappture::objects::ObjDef {
                 set class [lindex $result 0]
                 set mesg [lindex $result 1]
                 set dinfo $debug
-                lappend dinfo -attribute $_checks($n-attr)
+                lappend dinfo -attribute $aname
                 lappend rlist [list $class $mesg $dinfo]
             }
         }
@@ -838,6 +862,7 @@ itcl::class Rappture::objects::ObjAttr {
     public variable title ""
     public variable type ""
     public variable path ""
+    public variable only ""
     public variable expand "no"
 
     constructor {args} {

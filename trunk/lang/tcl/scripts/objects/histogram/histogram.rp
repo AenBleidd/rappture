@@ -1,3 +1,18 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: histogram
+#
+#  A histogram is like a curve but in bar chart form.  Right now, it
+#  is only used as an output, but it could become an input in the
+#  future if we create an input editor for it.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object histogram -extends base {
     palettes "Outputs"
 

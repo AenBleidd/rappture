@@ -76,11 +76,11 @@ itcl::class AttrString {
 
     public method edit {} {
         if {[winfo exists $_win.str]} {
-            focus $_win.str
+            focus -force $_win.str
             $_win.str selection from 0
             $_win.str selection to end
         } else {
-            focus $_win.scrl.text
+            focus -force $_win.scrl.text
             $_win.scrl.text tag add sel 1.0 end
         }
     }

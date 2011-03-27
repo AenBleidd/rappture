@@ -1,9 +1,29 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: boolean
+#
+#  A logical on/off value.  It is usually used as an input, but it
+#  can also be an output from a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
 object boolean -extends base {
-    palettes "Inputs"
+    palettes "Inputs" "Outputs"
 
     help http://rappture.org/wiki/rp_xml_ele_boolean
 
-    attr default -title "Default Value" -type boolean -path default
+    attr default -title "Default Value" -type boolean -path default -only input
+
+    check default {
+        if {[string length [string trim $attr(default)]] == 0} {
+            return [list error "Must have a default value for this boolean value."]
+        }
+    }
 
     storage {
         private variable _val   ;# boolean value
