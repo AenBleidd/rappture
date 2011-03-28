@@ -18,6 +18,10 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+
+# take the main window down for now, so we can avoid a flash on the screen
+wm withdraw .
+
 package require Itcl
 package require Rappture
 package require RapptureGUI
@@ -1489,3 +1493,5 @@ if {"" != $params(-tool)} {
 } else {
     main_open -new
 }
+
+wm deiconify .
