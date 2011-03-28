@@ -420,7 +420,7 @@ itcl::body Rappture::Controls::_layout {} {
             set lwidget $_name2info($name-label)
             set vwidget $_name2info($name-value)
             if {[lsearch -exact {group image structure} $type] >= 0} {
-                if {$show} {
+                if {$show ne "" && $show} {
                     lappend showing $name
                 } else {
                     lappend hidden $name
@@ -428,7 +428,7 @@ itcl::body Rappture::Controls::_layout {} {
             } else {
                 # show other objects, but enable/disable them
                 lappend showing $name
-                if {$show} {
+                if {$show ne "" && $show} {
                     if {[winfo exists $vwidget]} {
                         $vwidget configure -state normal
                     }

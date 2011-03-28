@@ -161,7 +161,7 @@ itcl::body Rappture::Editor::activate {} {
     _resize
     wm deiconify $itk_component(hull)
     raise $itk_component(hull)
-    focus $itk_component(editor)
+    focus -force $itk_component(editor)
 
     # try to grab the pointer, and keep trying...
     update

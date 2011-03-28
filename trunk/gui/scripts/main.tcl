@@ -20,6 +20,10 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
+
+# take the main window down for now, so we can avoid a flash on the screen
+wm withdraw .
+
 package require Itcl
 package require Img
 package require Rappture
@@ -183,7 +187,6 @@ Rappture::filexfer::init
 # ----------------------------------------------------------------------
 # MAIN WINDOW
 # ----------------------------------------------------------------------
-wm withdraw .
 Rappture::MainWin .main -borderwidth 0
 .main configure -title [$tool xml get tool.title]
 wm withdraw .main

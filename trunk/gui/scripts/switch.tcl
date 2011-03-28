@@ -107,14 +107,14 @@ itcl::body Rappture::Switch::updateText {} {
             set image "[Rappture::icon cbon]"
         }
         if {$itk_option(-showtext)} {
-            set text "\"yes\""
+            set text "yes"
         }
     } else {
         if {$itk_option(-showimage)} {
             set image "[Rappture::icon cboff]"
         }
         if {$itk_option(-showtext)} {
-            set text "\"no\""
+            set text "no"
         }
     }
     $itk_component(button) configure -text $text -image $image
