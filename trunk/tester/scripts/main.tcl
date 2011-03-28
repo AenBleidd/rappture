@@ -27,6 +27,9 @@ exec tclsh "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
+# take the main window down for now, so we can avoid a flash on the screen
+wm withdraw .
+
 set testerdir [file dirname [file normalize [info script]]]
 lappend auto_path $testerdir
 
@@ -773,3 +776,5 @@ proc tester_regoldenize {} {
         tester_selection_changed
     }
 }
+
+wm deiconify .
