@@ -23,6 +23,8 @@ itcl::class Rappture::Tool {
         Rappture::ControlOwner::constructor ""
     } { # defined below }
 
+    destructor { # defined below }
+
     public method installdir {} { return $_installdir }
 
     public method run {args}
@@ -32,6 +34,7 @@ itcl::class Rappture::Tool {
     protected method _mkdir {dir}
     protected method _output {data}
 
+    private variable _origxml ""     ;# copy of original XML (for reset)
     private variable _installdir ""  ;# installation directory for this tool
     private variable _outputcb ""    ;# callback for tool output
     private common job               ;# array var used for blt::bgexec jobs
@@ -60,7 +63,7 @@ proc tool_init_resources {} {
         job_protocol      Rappture::Tool::setJobPrt \
         results_directory Rappture::Tool::setResultDir
 }
-                                                                                
+
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
@@ -70,12 +73,23 @@ itcl::body Rappture::Tool::constructor {xmlobj installdir args} {
     }
     set _xmlobj $xmlobj
 
+    # stash a copy of the original XML for later "reset" operations
+    set _origxml [Rappture::LibraryObj ::#auto "<?xml version=\"1.0\"?><run/>"]
+    $_origxml copy "" from $_xmlobj ""
+
     if {![file exists $installdir]} {
         error "directory \"$installdir\" doesn't exist"
     }
     set _installdir $installdir
 
     eval configure $args
+}
+
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tool::destructor {} {
+    itcl::delete object $_origxml
 }
 
 # ----------------------------------------------------------------------
@@ -333,6 +347,7 @@ itcl::body Rappture::Tool::abort {} {
 # before a run to reset to a clean state.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::reset {} {
+    $_xmlobj copy "" from $_origxml ""
     foreach path [Rappture::entities -as path $_xmlobj input] {
         if {[$_xmlobj element -as type $path.default] ne ""} {
             set defval [$_xmlobj get $path.default]
