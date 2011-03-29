@@ -411,6 +411,7 @@ proc tester_selection_changed {args} {
                         set help "The test run produced an output with slightly different information.  This may be as simple as a change in the label or description, or as serious as a change in the physical system of units.  Perhaps the tool is producing the wrong output, or else the tool has been modified and the test case needs to be updated."
                     } elseif {$section eq "Input"} {
                         set icon [Rappture::icon warn16]
+                        set desc "Details about this result have changed"
                         set help "The test run contains an input with slightly different information.  This may be as simple as a change in the label or description, or as serious as a change in the physical system of units.  Perhaps this input has been modified in the latest version of the tool and the test case is outdated."
                     }
                   }
