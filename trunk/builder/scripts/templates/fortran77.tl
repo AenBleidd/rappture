@@ -23,7 +23,7 @@ c ----------------------------------------------------------------------
 c       stuff needed for Rappture:
         integer rp_lib, rp_units_convert_dbl
         integer io, ok
-        CHARACTER*255 inFile, strVal
+        character*255 inFile, strVal
 
 @@DECLARATIONS@@
 
@@ -98,6 +98,12 @@ c       ----------------------------------------------------------
       code "        read(strVal,*) $id"
     }
   }
+  input string {
+    decl "\nc       for $path"
+    decl "        character*255 $id"
+    code "\nc       get input value for $path"
+    code "        call rp_lib_get(io,\n     +    \"$path.current\", $id)"
+  }
   input * {
     code "\nc       get input value for $path"
     code "        call rp_lib_get(io,\n     +    \"$path.current\", strVal)"
@@ -145,6 +151,12 @@ c       ----------------------------------------------------------
     code "\nc       save output value for $path"
     code "        write(strVal,*) $id"
     code "        call rp_lib_put_str(io,\n     +    \"$path.current\",strVal,0)"
+  }
+  output string {
+    decl "\nc       for $path"
+    decl "        character*255 $id"
+    code "\nc       save output value for $path"
+    code "        call rp_lib_put_str(io,\n     +    \"$path.current\",$id,0)"
   }
   output * {
     code "\nc       save output value for $path"

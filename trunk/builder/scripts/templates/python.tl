@@ -48,12 +48,16 @@ sys.exit()
   input boolean {
     code "\n# get input value for $path"
     code "# returns value as string \"yes\" or \"no\""
-    code "$id = io.get('$path.current')"
+    code "$id = io.get('$path.current') == 'yes'"
   }
   input image {
     code "\n# get input value for $path"
     code "# returns base64-encoded image data"
     code "$id = io.get('$path.current')"
+  }
+  input integer {
+    code "\n# get input value for $path"
+    code "$id = int(io.get('$path.current'))"
   }
   input number {
     set units [attr get units]
@@ -63,7 +67,7 @@ sys.exit()
       code "$id = Rappture.Units.convert(str, to=\"$units\", units=\"off\")"
     } else {
       code "\n# get input value for $path"
-      code "$id = io.get('$path.current')"
+      code "$id = float(io.get('$path.current'))"
     }
   }
   input * {
