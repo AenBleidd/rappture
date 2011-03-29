@@ -53,6 +53,10 @@ quit;
     code "% returns base64-encoded image data"
     code "$id = rpLibGetString(io,'$path.current');"
   }
+  input integer {
+    code "\n% get input value for $path"
+    code "$id = int32(rpLibGetDouble(io,'$path.current'));"
+  }
   input number {
     set units [attr get units]
     if {$units ne ""} {
@@ -61,8 +65,7 @@ quit;
       code "\[$id,err\] = rpUnitsConvertDbl(str, '$units');"
     } else {
       code "\n% get input value for $path"
-      code "str = rpLibGetString(io,'$path.current');"
-      code "$id = str2num(str);"
+      code "$id = rpLibGetDouble(io,'$path.current');"
     }
   }
   input * {
@@ -88,6 +91,14 @@ quit;
     code "\n% save output value for $path"
     code "% data should be base64-encoded image data"
     code "rpLibPutString(io,'$path.current',imdata,0);"
+  }
+  output integer {
+    code "\n% save output value for $path"
+    code "rpLibPutString(io,'$path.current',num2str($id),0);"
+  }
+  output number {
+    code "\n% save output value for $path"
+    code "rpLibPutString(io,'$path.current',num2str($id),0);"
   }
   output * {
     code "\n% save output value for $path"

@@ -21,8 +21,9 @@ language "C Language" {
  */
 #include "rappture.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <unistd.h>
 
@@ -108,6 +109,11 @@ int main(int argc, char * argv[]) {
       code "$id = atof(data);"
     }
   }
+  input string {
+    decl "const char* $id;  /* for $path */"
+    code "\n/* get input value for $path */"
+    code "rpGetString(io,\"$path.current\", &$id);"
+  }
   input * {
     code "\n/* get input value for $path */"
     code "rpGetString(io,\"$path.current\", &data);"
@@ -147,6 +153,11 @@ int main(int argc, char * argv[]) {
     code "\n/* save output value for $path */"
     code "sprintf(line, \"%g\\n\", $id);"
     code "rpPutString(io, \"$path.current\", line, RPLIB_OVERWRITE);"
+  }
+  output string {
+    decl "char $id\[1024\];  /* for $path */"
+    code "\n/* save output value for $path */"
+    code "rpPutString(io, \"$path.current\", $id, RPLIB_OVERWRITE);"
   }
   output * {
     code "\n/* save output value for $path */"
