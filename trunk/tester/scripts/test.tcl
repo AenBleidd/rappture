@@ -49,6 +49,11 @@ itcl::class Rappture::Tester::Test {
     # use this to add tests to the "run" queue
     public proc queue {op args}
 
+    # useful helper function -- looks for val among choices
+    public proc oneof {choices val} {
+        return [expr {[lsearch -exact $choices $val] >= 0}]
+    }
+
     private common _queue       ;# queue of objects waiting to run
     set _queue(tests) ""        ;# list of tests in the queue
     set _queue(pending) ""      ;# after event for "next" call
@@ -161,7 +166,7 @@ itcl::body Rappture::Tester::Test::run {args} {
         } elseif {[Rappture::library isvalid $result]} {
             set _runobj $result
 
-            if {[$_testobj get output.status] ne "ok"} {
+            if {![oneof {0 ok} [$_testobj get output.status]]} {
                 # expected test to fail, but it didn't
                 set idiffs [_computeDiffs [$_toolobj xml object] $_runobj -in input]
                 set odiffs [_computeDiffs $_testobj $_runobj -what run]
@@ -182,7 +187,7 @@ itcl::body Rappture::Tester::Test::run {args} {
             return "finished"
         } else {
             set _runobj [_buildFailure $result]
-            if {[$_testobj get output.status] eq "failed"
+            if {![oneof {0 ok} [$_testobj get output.status]]
                   && [$_testobj get output.log] eq $result} {
                 _setResult "Pass"
             } else {
@@ -195,7 +200,7 @@ itcl::body Rappture::Tester::Test::run {args} {
         }
     } else {
         set _runobj [_buildFailure $result]
-        if {[$_testobj get output.status] eq "failed"
+        if {![oneof {0 ok} [$_testobj get output.status]]
               && [$_testobj get output.log] eq $result} {
             _setResult "Pass"
         } else {
