@@ -19,10 +19,10 @@ itcl::class AttrChoices {
         frame $win.cntls
         pack $win.cntls -fill x
         button $win.cntls.add -text "Add" -command [itcl::code $this _add]
-        pack $win.cntls.add -side left
+        pack $win.cntls.add -side left -padx 2 -pady 2
         Rappture::Tooltip::for $win.cntls.add "Adds a new option to the list of choices."
         button $win.cntls.del -text "Delete" -command [itcl::code $this _delete]
-        pack $win.cntls.del -side right
+        pack $win.cntls.del -side right -padx 2 -pady 2
         Rappture::Tooltip::for $win.cntls.del "Removes an option from the list of choices."
 
         Rappture::Scroller $win.scrl -height 1.5i \
@@ -33,7 +33,7 @@ itcl::class AttrChoices {
         $win.scrl contents $win.scrl.lbox
         Rappture::Tooltip::for $win.scrl.lbox $params(-tooltip)
 
-        frame $win.editelem
+        frame $win.editelem -borderwidth 4 -relief flat
         pack $win.editelem -fill x
         grid columnconfigure $win.editelem 1 -weight 1
 
@@ -148,6 +148,10 @@ itcl::class AttrChoices {
 
     public method clear {} {
         set _options ""
+        set _editing ""
+        $_win.editelem.label delete 0 end
+        $_win.editelem.value delete 0 end
+        $_win.editelem.scrl.desc delete 1.0 end
     }
 
     # add a new entry into the list and load it for editing
