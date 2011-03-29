@@ -86,7 +86,7 @@ itcl::class AttrFile {
                 set dir [file dirname $LastToolXmlFile]
                 if {[string match $dir/* $fname]} {
                     set len [string length "$dir/"]
-                    set value [string range $fname $len end]
+                    set value "file://[string range $fname $len end]"
                 } elseif {"" != $LastToolXmlFile} {
                     error "Can't find file \"$fname\" relative to tool.xml file.  All items for a tool should be bundled together in the same directory, so they can be easily relocated later."
                 }
