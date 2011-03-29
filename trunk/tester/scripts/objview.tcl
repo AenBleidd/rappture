@@ -252,7 +252,7 @@ itcl::body Rappture::Tester::ObjView::_reload {} {
                             $itk_component($vcomp) contents \
                                 $itk_component(${vcomp}val)
                         }
-                        set tx $itk_component($vcomp)
+                        set tx $itk_component(${vcomp}val)
                         $tx configure -state normal
                         $tx delete 1.0 end
                         $tx insert end $str
