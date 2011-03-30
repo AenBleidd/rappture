@@ -248,6 +248,7 @@ itcl::body Rappture::Tester::Test::regoldenize {} {
 
     itcl::delete object $_testobj
     set _testobj $_runobj
+    set _runobj ""
 
     set _diffs ""
     _setResult Pass
