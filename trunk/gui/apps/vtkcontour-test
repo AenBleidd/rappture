@@ -350,8 +350,7 @@ Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
 pack .main -expand yes -fill both
 
 set f [.main pane 0]
-VtkContourViewer_init_resources
-set servers [Rappture::VtkContourViewer::GetServerList "vtkvis"]
+set servers [Rappture::VisViewer::GetServerList "vtkvis"]
 Rappture::VtkContourViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(vtkcontourviewer) $f.viewer
