@@ -1,19 +1,19 @@
 
 bindir          = @bindir@
-datadir         = @datadir@
-datarootdir     = @datarootdir@
+datadir		= @datadir@
+datarootdir	= @datarootdir@
 exec_prefix     = @exec_prefix@
 includedir      = @includedir@
 libdir          = @libdir@
 mandir          = @mandir@
 prefix          = @prefix@
-destdir         = $(prefix)/examples/3D
+destdir		= $(prefix)/examples/3D
 
-SHELL           = @SHELL@
-INSTALL         = @INSTALL@
-MKDIR_P         = @MKDIR_P@
+SHELL		= @SHELL@
+INSTALL		= @INSTALL@
+MKDIR_P		= @MKDIR_P@
 
-destdir         = $(prefix)/examples
+destdir		= $(prefix)/examples
 
 FILES		= \
 		demo.bash
@@ -26,10 +26,10 @@ SUBDIRS		= \
 		flow \
 		graph \
 		objects \
-		zoo
+		zoo 
 
 
-.PHONY: $(SUBDIRS)
+.PHONY: 	$(SUBDIRS)
 
 all:  build
 
@@ -41,7 +41,7 @@ build:
 install: 
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
-	  $(INSTALL) -m 555 $$i $(destdir) ; \
+	  $(INSTALL) -m 0555 $$i $(destdir) ; \
 	done
 	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i install || exit 1 ; \

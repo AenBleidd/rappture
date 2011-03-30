@@ -14,24 +14,22 @@ destdir         = $(prefix)/examples/app-fermi/octave
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 
-all: all_2 all_3
+SUBDIRS		= 2 3
 
-all_2:
-	$(MAKE) -C 2 all
+all: 
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 
-all_3:
-	$(MAKE) -C 3 all
-
-
-install: install_2 install_3
-
-install_2:
-	$(MAKE) -C 2 install
-
-install_3:
-	$(MAKE) -C 3 install
+install: 
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ;\
+	done
 
 clean:
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i clean ;\
+	done
 
 distclean: clean
 	$(RM) Makefile
