@@ -508,11 +508,14 @@ itcl::body Rappture::LibraryObj::get {args} {
     if {$node == ""} {
         return ""
     }
+    # Expat (via tDOM) will always produce utf-8 output, regardless of the
+    # encoding of the tool.xml.  We need to convert utf-8 to unicode for
+    # Tcl/Tk.  This shouldn't affect ASCII tool.xml files.
+    set string [encoding convertfrom utf-8 [$node text]]
     if {$params(-decode) == "yes"} {
-        return [Rappture::encoding::decode -- [string trim [$node text]]]
-    } else {
-        return [string trim [$node text]]
+        set string [Rappture::encoding::decode -- $string]
     }
+    return [string trim $string]
 }
 
 # ----------------------------------------------------------------------

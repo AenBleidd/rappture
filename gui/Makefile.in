@@ -27,40 +27,35 @@ FILES		= \
 
 .PHONY:	src scripts apps
 
-all: src scripts apps 
+SUBDIRS		= src scripts apps 
 
-scripts:
-	$(MAKE) -C scripts all
-src:
-	$(MAKE) -C src all
-apps:
-	$(MAKE) -C apps all
+all:
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i all || exit 1 ;\
+	done
 
-install: install_src install_scripts install_apps
+install: 
 	$(MKDIR_P) -m 0755 $(destdir)
-	@for i in $(FILES); do \
+	for i in $(FILES); do \
 	    echo "Installing $$i" ; \
-	    $(INSTALL) -m 444 $$i $(destdir) ; \
+	    $(INSTALL) -m 0444 $$i $(destdir) ; \
 	done 
-	$(INSTALL) -m 444 pkgIndex.tcl $(destdir)
-
-install_scripts: scripts
-	$(MAKE) -C scripts install
-install_src: src
-	$(MAKE) -C src install
-install_apps: apps
-	$(MAKE) -C apps install
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i install || exit 1 ;\
+	done
 
 test: 
 	#$(TCLSH) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TESTFLAGS)
 
 clean:
-	$(MAKE) -C scripts clean
-	$(MAKE) -C apps clean
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i clean ;\
+	done
 
 distclean: 
-	$(MAKE) -C scripts distclean
-	$(MAKE) -C apps distclean
+	for i in $(SUBDIRS) ; do \
+	  $(MAKE) -C $$i distclean ;\
+	done
 	$(RM) Makefile pkgIndex.tcl 
 	$(RM) config.cache config.log config.status
 

@@ -188,6 +188,12 @@ itcl::body Rappture::Controls::insert {pos path} {
     # If this element has an <enable> expression, then register
     # its controlling widget here.
     #
+    set notify [string trim [$_owner xml get $path.about.notify]]
+
+    #
+    # If this element has an <enable> expression, then register
+    # its controlling widget here.
+    #
     set enable [string trim [$_owner xml get $path.about.enable]]
     if {"" == $enable} {
         set enable yes

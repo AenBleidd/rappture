@@ -1154,7 +1154,7 @@ itcl::body Rappture::Analyzer::_fixNotebook {} {
 # USAGE: _isPdbTrajectory <data>
 #
 # Used internally to determine whether pdb or lammps data represents a
-# trajectory rather than a single model 
+# trajectory rather than a single frame
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
     if { [llength $data]  == 0 } {
@@ -1178,7 +1178,7 @@ itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
 # USAGE: _isLammpsTrajectory <data>
 #
 # Used internally to determine whether pdb or lammps data represents a
-# trajectory rather than a single model 
+# trajectory rather than a single frame
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isLammpsTrajectory { data } {
     if { [llength $data]  == 0 } {
@@ -1218,9 +1218,9 @@ itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
     set sequence  $path.sequence($id)
     $xmlobj put ${sequence}.about.label $seqLabel
     $xmlobj put ${sequence}.about.description $descr
-    $xmlobj put ${sequence}.index.label "Model"
+    $xmlobj put ${sequence}.index.label "Frame"
 
-    set modelNum 1
+    set frameNum 0
     set numLines [llength $data]
     for { set i 0 } { $i < $numLines } { incr i } {
         set line [lindex $data $i]
@@ -1239,13 +1239,13 @@ itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
                 }
                 append contents $line\n
             }
-            set model ${sequence}.element($modelNum)
-            $xmlobj put ${model}.index $modelNum
+            set frame ${sequence}.element($frameNum)
+            $xmlobj put ${frame}.index $frameNum
             
-            set molecule ${model}.structure.components.molecule
+            set molecule ${frame}.structure.components.molecule
             $xmlobj put ${molecule}.pdb $contents
             $xmlobj put ${molecule}.formula $formula
-            incr modelNum
+            incr frameNum
         }
     }
 }
@@ -1270,10 +1270,10 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
     set sequence ${path}.sequence($id)
     $xmlobj put ${sequence}.about.label $seqLabel
     $xmlobj put ${sequence}.about.description $descr
-    $xmlobj put ${sequence}.index.label "Model"
+    $xmlobj put ${sequence}.index.label "Frame"
 
-    set modelNum 1
-    set modelContents ""
+    set frameNum 0
+    set frameContents ""
     set inModel 0
     foreach line $data {
         set line [string trim $line]
@@ -1281,16 +1281,16 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
             continue;			# Skip blank lines
         }
         if {[regexp {^[\t ]*ITEM:[ \t]+ATOMS} $line] } {
-            if { $inModel && $modelContents != "" } {
-                set model ${sequence}.element($modelNum)
-                $xmlobj put ${model}.index $modelNum
+            if { $inModel && $frameContents != "" } {
+                set frame ${sequence}.element($frameNum)
+                $xmlobj put ${frame}.index $frameNum
                 
-                set molecule ${model}.structure.components.molecule
-                $xmlobj put ${molecule}.lammps $modelContents
+                set molecule ${frame}.structure.components.molecule
+                $xmlobj put ${molecule}.lammps $frameContents
                 $xmlobj put ${molecule}.lammpstypemap $typemap
                 
-                incr modelNum
-                set modelContents ""
+                incr frameNum
+                set frameContents ""
             }
             set inModel 1
         } elseif { [scan $line "%d %d %f %f %f" a b c d e] == 5 } {
@@ -1298,15 +1298,15 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
                 puts stderr "found \"$line\" without previous \"ITEM: ATOMS\""
                 set inModel 1
             }
-            append modelContents $line\n
+            append frameContents $line\n
         }
     }
-    if { $modelContents != "" } {
-        set model ${sequence}.element($modelNum)
-        $xmlobj put ${model}.index $modelNum
+    if { $frameContents != "" } {
+        set frame ${sequence}.element($frameNum)
+        $xmlobj put ${frame}.index $frameNum
         
-        set molecule ${model}.structure.components.molecule
-        $xmlobj put ${molecule}.lammps $modelContents
+        set molecule ${frame}.structure.components.molecule
+        $xmlobj put ${molecule}.lammps $frameContents
         $xmlobj put ${molecule}.lammpstypemap $typemap
     }
 }

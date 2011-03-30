@@ -194,7 +194,7 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
     RpRusageStats *markPtr;
     double tval;
     RpRusageStats curstats;
-    char buffer[TCL_DOUBLE_SPACE];
+    Tcl_Obj *listObjPtr, *objPtr;
 
     if (RpRusageCapture(interp, &curstats) != TCL_OK) {
         return TCL_ERROR;
@@ -212,33 +212,38 @@ RpRusageMeasureOp(cdata, interp, objc, objv)
     }
     markPtr = (RpRusageStats*)Tcl_GetHashValue(entryPtr);
 
+    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
     /*
      * Compute: START TIME
      */
-    Tcl_AppendElement(interp, "start");
+    objPtr = Tcl_NewStringObj("start", 5);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     tval = RpRusageTimeDiff(&markPtr->times, &RpRusage_Start.times);
-    Tcl_PrintDouble(interp, tval, buffer);
-    Tcl_AppendElement(interp, buffer);
+    objPtr = Tcl_NewDoubleObj(tval);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
 
     /*
      * Compute: WALL TIME
      */
-    Tcl_AppendElement(interp, "walltime");
+    objPtr = Tcl_NewStringObj("walltime", 8);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     tval = RpRusageTimeDiff(&curstats.times, &markPtr->times);
-    Tcl_PrintDouble(interp, tval, buffer);
-    Tcl_AppendElement(interp, buffer);
+    objPtr = Tcl_NewDoubleObj(tval);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+
 
     /*
      * Compute: CPU TIME = user time + system time
      */
-    Tcl_AppendElement(interp, "cputime");
+    objPtr = Tcl_NewStringObj("cputime", 7);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     tval = RpRusageTimeDiff(&curstats.resources.ru_utime,
              &markPtr->resources.ru_utime)
          + RpRusageTimeDiff(&curstats.resources.ru_stime,
              &markPtr->resources.ru_stime);
-    Tcl_PrintDouble(interp, tval, buffer);
-    Tcl_AppendElement(interp, buffer);
-
+    objPtr = Tcl_NewDoubleObj(tval);
+    Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+    Tcl_SetObjResult(interp, listObjPtr);
     return TCL_OK;
 }
 
