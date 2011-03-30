@@ -296,7 +296,14 @@ text .testdiffs.body.info.text -width 10 -height 1 -wrap char
 set testtree [.pw pane 0].tree
 foreach file [glob -nocomplain -directory $params(-testdir) *.xml] {
     set testobj [Rappture::Tester::Test ::#auto $ToolObj $file]
-    $testtree add $testobj
+    if {[$testobj getTestInfo test.label] eq ""} {
+        puts stderr "ERROR:  Missing test label in $file"
+        puts stderr "        skipping that test..."
+    } elseif {[catch {$testtree add $testobj} err]} {
+        puts stderr "ERROR:  Can't load test $file"
+        puts stderr "        $err"
+        puts stderr "        skipping that test..."
+    }
 }
 $testtree component treeview open -recurse root
 
