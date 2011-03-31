@@ -11,14 +11,14 @@ srcdir          = @srcdir@
 
 INSTALL         = @INSTALL@
 RM              = rm -f
-OCTAVE2		= @OCTAVE2@
-OCTAVE3		= @OCTAVE3@
+MKOCTFILE2		= @MKOCTFILE2@
+MKOCTFILE3		= @MKOCTFILE3@
 
 LANGS		= 
-ifneq ($(OCTAVE3),)
+ifneq ($(MKOCTFILE3),)
   LANGS += octave3
 endif
-ifneq ($(OCTAVE2),)
+ifneq ($(MKOCTFILE2),)
   LANGS += octave2
 endif
 
