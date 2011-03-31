@@ -21,7 +21,7 @@ PERL = 		@PERL@
 TCLSH = 	@TCLSH@
 PYTHON = 	@PYTHON@
 MEX = 		@MEX@
-MKOCTFILE = 	@MKOCTFILE@
+OCTAVE = 	@OCTAVE_VERSION@
 JAVA_HOME =	@JAVA_HOME@
 
 .PHONY: tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
@@ -30,7 +30,7 @@ LANGS = cee tcl wrapper 2.0
 ifneq ($(F77),)
     LANGS += fortran
 endif
-ifneq ($(MKOCTFILE),)
+ifneq ($(OCTAVE),)
     LANGS += octave
 endif
 ifneq ($(MEX),)

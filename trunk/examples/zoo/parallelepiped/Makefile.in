@@ -21,18 +21,14 @@ FILES		= \
 destdir		= $(prefix)/examples/zoo/parallelepiped
 
 all: 
-	$(MAKE) -C examples all
 
 install: 
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \
 	done
-	$(MAKE) -C examples install
 
 clean:
-	$(MAKE) -C examples clean
 
 distclean: 
-	$(MAKE) -C examples distclean
 	$(RM) Makefile *~
