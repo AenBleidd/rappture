@@ -318,24 +318,19 @@ if test "x${OCTAVE}" != "x" ; then
   fi
 fi
 
-# Check if mkoctfile2 was designated *in addition* to the installed version.
-# This can override the default version if they are the same versions.
-AC_ARG_WITH(
-    [mkoctfile2],
-    [AS_HELP_STRING([--with-mkoctfile2[=DIR]],
-        [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
-    [rp_with_mkoctfile2=$withval],
-    [rp_with_mkoctfile2=no])
-
-if test "$rp_with_mkoctfile2" != "no" ; then
-  if test "$rp_with_mkoctfile2" = "yes" ; then
-    AC_PATH_PROG(mkoctfile2, mkoctfile)
-  else 
-    MKOCTFILE2=$rp_with_mkoctfile2
-  fi
-  OCTAVE_VERSION=`${MKOCTFILE2} --version 2>&1 | cut -d' ' -f3`
-  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
-fi
+#
+# Check for octave3 before octave2 so that we can override the 
+# OCTAVE_VERSION variables.  
+#
+# Rappture doesn't normally really support both octave2 and octave3 
+# simultaneously.  NANOhub has a hacked version of octave3 that 
+# looks for OCTAVE_LOADPATH before looking at OCTAVE_PATH (i.e. 
+# OCTAVE_PATH tells octave2 where to load the rappture bindings 
+# and OCTAVE_LOADPATH tells octave3 where to load).
+#
+# Usually you will have installed either octave2 or octave3, but 
+# not both.  
+#
 
 # Check if octave3 was designated *in addition* to the installed version.
 # This can override the default version if they are the same versions.
@@ -355,6 +350,26 @@ if test "$rp_with_mkoctfile3" != "no" ; then
   OCTAVE_VERSION=`${MKOCTFILE3} --version 2>&1 | cut -d' ' -f3`
   OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
 fi
+
+# Check if mkoctfile2 was designated *in addition* to the installed version.
+# This can override the default version if they are the same versions.
+AC_ARG_WITH(
+    [mkoctfile2],
+    [AS_HELP_STRING([--with-mkoctfile2[=DIR]],
+        [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
+    [rp_with_mkoctfile2=$withval],
+    [rp_with_mkoctfile2=no])
+
+if test "$rp_with_mkoctfile2" != "no" ; then
+  if test "$rp_with_mkoctfile2" = "yes" ; then
+    AC_PATH_PROG(mkoctfile2, mkoctfile)
+  else 
+    MKOCTFILE2=$rp_with_mkoctfile2
+  fi
+  OCTAVE_VERSION=`${MKOCTFILE2} --version 2>&1 | cut -d' ' -f3`
+  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
+fi
+
 
 echo "MKOCTFILE2 = $MKOCTFILE2"
 echo "MKOCTFILE3 = $MKOCTFILE3"
