@@ -272,10 +272,14 @@ if test "$rp_with_octave" != "no" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    MKOCTFILE=$rp_with_octave
     OCTAVE=$rp_with_octave
+    MKOCTFILE=`dirname $rp_with_octave`/mkoctfile
   fi
 fi
+
+echo MKOCTFILE=$MKOCTFILE
+echo OCTAVE=$OCTAVE
+
 if test "x${OCTAVE}" != "x" ; then 
   OCTAVE_VERSION=`${OCTAVE} -v | grep version | cut -d' ' -f4`
   OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
@@ -302,21 +306,12 @@ if test "$rp_with_octave2" != "no" ; then
     AC_PATH_PROG(octave2, octave)
     AC_PATH_PROG(mkoctfile2, mkoctfile)
   else 
-    octave2=$rp_with_octave2
-    mkoctfile2=`dirname $rp_with_octave2`/mkoctfile
-  fi
-fi
-if test "x${octave2}" != "x" ; then
-  version=`${octave2} -v | grep version | cut -d' ' -f4`
-  version_major=`echo ${version} | cut -d'.' -f1`
-  if test "$version_major" = "2" ; then
-    OCTAVE2=$octave2
-    MKOCTFILE2=$mkoctfile2
+    OCTAVE2=$rp_with_octave2
+    MKOCTFILE2=`dirname $rp_with_octave2`/mkoctfile
   fi
 fi
 
 # Check if octave3 was designated *in addition* to the installed version.
-
 AC_ARG_WITH(
     [octave3],
     [AS_HELP_STRING([--with-octave3[=DIR]],
@@ -329,19 +324,15 @@ if test "$rp_with_octave3" != "no" ; then
     AC_PATH_PROG(octave3, octave)
     AC_PATH_PROG(mkoctfile3, mkoctfile)
   else 
-    octave3=$rp_with_octave3
-    mkoctfile3=`dirname $rp_with_octave3`/mkoctfile
+    OCTAVE3=$rp_with_octave3
+    MKOCTFILE3=`dirname $rp_with_octave3`/mkoctfile
   fi
 fi
 
-if test "x${octave3}" != "x" ; then
-  version=`${octave3} -v | grep version | cut -d' ' -f4`
-  version_major=`echo ${version} | cut -d'.' -f1`
-  if test "$version_major" = "3" ; then
-    OCTAVE3=$rp_with_octave3
-    MKOCTFILE3=$mkoctfile3
-  fi
-fi
+echo MKOCTFILE2=$MKOCTFILE2
+echo OCTAVE2=$OCTAVE2
+echo MKOCTFILE3=$MKOCTFILE3
+echo OCTAVE3=$OCTAVE3
 
 AC_SUBST(OCTAVE2)
 AC_SUBST(OCTAVE3)
