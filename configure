@@ -7901,8 +7901,10 @@ fi
   else
     MKOCTFILE2=$rp_with_mkoctfile2
   fi
-  OCTAVE_VERSION=2.x.x
-  OCTAVE_VERSION_MAJOR=2
+  # Have to use octave to get a version, instead of mkoctfile.
+  octave=`dirname $MKOCTFILE2`/octave
+  OCTAVE_VERSION=`${octave} -v | grep version | cut -d' ' -f4`
+  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
 fi
 
 
