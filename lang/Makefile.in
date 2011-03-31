@@ -19,8 +19,8 @@ PERL            = @PERL@
 TCLSH           = @TCLSH@
 PYTHON          = @PYTHON_DISTUTILS@
 MEX             = @MEX@
-MKOCTFILE       = @MKOCTFILE@
-JAVA_HOME		= @JAVA_HOME@
+OCTAVE		= @OCTAVE_VERSION@
+JAVA_HOME	= @JAVA_HOME@
 
 # Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
@@ -37,7 +37,7 @@ endif
 ifneq ($(MEX),)
   LANGS += matlab
 endif
-ifneq ($(MKOCTFILE),)
+ifneq ($(OCTAVE),)
   LANGS += octave
 endif
 ifneq ($(JAVA_HOME),)

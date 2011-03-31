@@ -11,8 +11,8 @@ srcdir          = @srcdir@
 
 INSTALL         = @INSTALL@
 RM              = rm -f
-MKOCTFILE2		= @MKOCTFILE2@
-MKOCTFILE3		= @MKOCTFILE3@
+MKOCTFILE2	= @MKOCTFILE2@
+MKOCTFILE3	= @MKOCTFILE3@
 
 LANGS		= 
 ifneq ($(MKOCTFILE3),)

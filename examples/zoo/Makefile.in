@@ -44,21 +44,21 @@ destdir		= $(prefix)/examples/zoo
 
 all: 
 	for i in $(examples) ; do \
-	  $(MAKE) -C $$i all; \
+	  $(MAKE) -C $$i all || exit 1; \
 	done
 
 install: 
 	for i in $(examples) ; do \
-	  $(MAKE) -C $$i install; \
+	  $(MAKE) -C $$i install || exit 1; \
 	done
 
 clean:
 	for i in $(examples) ; do \
-	  $(MAKE) -C $$i clean; \
+	  $(MAKE) -C $$i clean || exit 1; \
 	done
 
 distclean: 
 	for i in $(examples) ; do \
-	  $(MAKE) -C $$i distclean; \
+	  $(MAKE) -C $$i distclean || exit 1; \
 	done
 	$(RM) Makefile *~

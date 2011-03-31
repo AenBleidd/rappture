@@ -14,7 +14,13 @@ destdir         = $(prefix)/examples/app-fermi/octave
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 
-SUBDIRS		= 2 3
+SUBDIRS		= 
+ifneq ($(MKOCTFILE3),)
+  LANGS += 3
+endif
+ifneq ($(MKOCTFILE2),)
+  LANGS += 2
+endif
 
 all: 
 	for i in $(SUBDIRS) ; do \

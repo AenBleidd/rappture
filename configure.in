@@ -5,6 +5,17 @@ AC_CONFIG_AUX_DIR(cf)
 AC_CONFIG_HEADER(src/core/config.h)
 
 with_tclsh=yes
+rp_with_tclsh="yes"
+rp_with_mkoctfile2="no"
+rp_with_mkoctfile3="no"
+rp_with_octave="yes"
+rp_with_vtk="yes"
+rp_with_matlab="yes"
+rp_with_perl="yes"
+rp_with_python="yes"
+rp_with_ruby="yes"
+rp_with_java="yes"
+with_install="yes"
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -142,7 +153,6 @@ for dir in \
 done
 
 
-rp_with_tclsh="yes"
 AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
@@ -251,22 +261,28 @@ AC_SUBST(MATLAB)
 AC_SUBST(MEX_ARCH)
 AC_SUBST(MEXEXT)
 
+#
+# Octave variables:
+#
+#	OCTAVE		Path to default octave executable.  Will use
+#			to determine the version os 
+#	MKOCTFILE	Path to the default octave 
+#
+
 # Standard octave search (use the installed version of octave)
 AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
-        [location of octave compiler MKOCTFILE @<:@default=yes@:>@])],
+        [path of default octave compiler `mkoctfile' @<:@default=yes@:>@])],
     [rp_with_octave=$withval],
     [rp_with_octave=yes])
 
 OCTAVE=
-OCTAVE2=
-OCTAVE3=
 OCTAVE_VERSION=
 OCTAVE_VERSION_MAJOR=
-MKOCTFILE=
 MKOCTFILE2=
 MKOCTFILE3=
+
 if test "$rp_with_octave" != "no" ; then
   if test "$rp_with_octave" = "yes" ; then
     AC_PATH_PROG(OCTAVE, octave)
@@ -276,9 +292,6 @@ if test "$rp_with_octave" != "no" ; then
     MKOCTFILE=`dirname $rp_with_octave`/mkoctfile
   fi
 fi
-
-echo MKOCTFILE=$MKOCTFILE
-echo OCTAVE=$OCTAVE
 
 if test "x${OCTAVE}" != "x" ; then 
   OCTAVE_VERSION=`${OCTAVE} -v | grep version | cut -d' ' -f4`
@@ -293,53 +306,50 @@ if test "x${OCTAVE}" != "x" ; then
   fi
 fi
 
-# Check if octave2 was designated *in addition* to the installed version.
+# Check if mkoctfile2 was designated *in addition* to the installed version.
 AC_ARG_WITH(
-    [octave2],
-    [AS_HELP_STRING([--with-octave2[=DIR]],
-        [location of octave compiler MKOCTFILE @<:@default=no@:>@])],
-    [rp_with_octave2=$withval],
-    [rp_with_octave2=no])
+    [mkoctfile2],
+    [AS_HELP_STRING([--with-mkoctfile2[=DIR]],
+        [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
+    [rp_with_mkoctfile2=$withval],
+    [rp_with_mkoctfile2=no])
 
-if test "$rp_with_octave2" != "no" ; then
-  if test "$rp_with_octave2" = "yes" ; then
-    AC_PATH_PROG(octave2, octave)
+if test "$rp_with_mkoctfile2" != "no" ; then
+  if test "$rp_with_mkoctfile2" = "yes" ; then
     AC_PATH_PROG(mkoctfile2, mkoctfile)
   else 
-    OCTAVE2=$rp_with_octave2
-    MKOCTFILE2=`dirname $rp_with_octave2`/mkoctfile
+    MKOCTFILE2=$rp_with_mkoctfile2
   fi
+  OCTAVE_VERSION=`${MKOCTFILE2} --version 2>&1 | cut -d' ' -f3`
+  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
 fi
 
 # Check if octave3 was designated *in addition* to the installed version.
 AC_ARG_WITH(
-    [octave3],
-    [AS_HELP_STRING([--with-octave3[=DIR]],
-        [location of octave compiler MKOCTFILE @<:@default=no@:>@])],
-    [rp_with_octave3=$withval],
-    [rp_with_octave3=no])
+    [mkoctfile3],
+    [AS_HELP_STRING([--with-mkoctfile3[=DIR]],
+        [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
+    [rp_with_mkoctfile3=$withval],
+    [rp_with_mkoctfile3=no])
 
-if test "$rp_with_octave3" != "no" ; then
-  if test "$rp_with_octave3" = "yes" ; then
-    AC_PATH_PROG(octave3, octave)
+if test "$rp_with_mkoctfile3" != "no" ; then
+  if test "$rp_with_mkoctfile3" = "yes" ; then
     AC_PATH_PROG(mkoctfile3, mkoctfile)
   else 
-    OCTAVE3=$rp_with_octave3
-    MKOCTFILE3=`dirname $rp_with_octave3`/mkoctfile
+    MKOCTFILE3=$rp_with_mkoctfile3
   fi
+  OCTAVE_VERSION=`${MKOCTFILE3} --version 2>&1 | cut -d' ' -f3`
+  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
 fi
 
-echo MKOCTFILE2=$MKOCTFILE2
-echo OCTAVE2=$OCTAVE2
-echo MKOCTFILE3=$MKOCTFILE3
-echo OCTAVE3=$OCTAVE3
+echo "MKOCTFILE2 = $MKOCTFILE2"
+echo "MKOCTFILE3 = $MKOCTFILE3"
+echo "OCTAVE_VERSION_MAJOR = $OCTAVE_VERSION_MAJOR"
+echo "OCTAVE_VERSION = $OCTAVE_VERSION"
 
-AC_SUBST(OCTAVE2)
-AC_SUBST(OCTAVE3)
 AC_SUBST(OCTAVE)
 AC_SUBST(OCTAVE_VERSION)
 AC_SUBST(OCTAVE_VERSION_MAJOR)
-AC_SUBST(MKOCTFILE)
 AC_SUBST(MKOCTFILE2)
 AC_SUBST(MKOCTFILE3)
 
@@ -511,7 +521,6 @@ AC_SUBST(HAVE_RUBY_DEVEL)
 AC_SUBST(RUBY_VERSION_RV)
 AC_SUBST(RUBY_PLATFORM)
 
-rp_with_java="yes"
 JAVA=""
 JAVAH=""
 JAVAC=""
