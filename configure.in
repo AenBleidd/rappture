@@ -264,9 +264,21 @@ AC_SUBST(MEXEXT)
 #
 # Octave variables:
 #
-#	OCTAVE		Path to default octave executable.  Will use
-#			to determine the version os 
-#	MKOCTFILE	Path to the default octave 
+#	OCTAVE			Path to default octave executable.  Will use
+#				to determine the version.
+#	OCTAVE_VERSION		Full version of octave (X.X.X).  Used in 
+#				Makefiles to indicate if we are building 
+#				the octave language bindings.  The empty
+#				string indicates octave is not available.
+#	OCTAVE_VERSION_MAJOR	Single verion number of octave.  Used in 
+#				rappture.env scripts to indicate how to set 
+#				OCTAVE_PATH and OCTAVE_LOADPATH variables.
+#	MKOCTFILE		Path to the default octave compiler.  This
+#				variable isn't used directly.  Either 
+#				MKOCTFILE2 or MKOCTFILE3 will be set to its
+#				value.
+#	MKOCTFILE2		Path to octave version 2 compiler.
+#	MKOCTFILE3		Path to octave version 3 compiler.
 #
 
 # Standard octave search (use the installed version of octave)
@@ -307,6 +319,7 @@ if test "x${OCTAVE}" != "x" ; then
 fi
 
 # Check if mkoctfile2 was designated *in addition* to the installed version.
+# This can override the default version if they are the same versions.
 AC_ARG_WITH(
     [mkoctfile2],
     [AS_HELP_STRING([--with-mkoctfile2[=DIR]],
@@ -325,6 +338,7 @@ if test "$rp_with_mkoctfile2" != "no" ; then
 fi
 
 # Check if octave3 was designated *in addition* to the installed version.
+# This can override the default version if they are the same versions.
 AC_ARG_WITH(
     [mkoctfile3],
     [AS_HELP_STRING([--with-mkoctfile3[=DIR]],
@@ -347,7 +361,6 @@ echo "MKOCTFILE3 = $MKOCTFILE3"
 echo "OCTAVE_VERSION_MAJOR = $OCTAVE_VERSION_MAJOR"
 echo "OCTAVE_VERSION = $OCTAVE_VERSION"
 
-AC_SUBST(OCTAVE)
 AC_SUBST(OCTAVE_VERSION)
 AC_SUBST(OCTAVE_VERSION_MAJOR)
 AC_SUBST(MKOCTFILE2)

@@ -7636,9 +7636,21 @@ fi
 #
 # Octave variables:
 #
-#	OCTAVE		Path to default octave executable.  Will use
-#			to determine the version os
-#	MKOCTFILE	Path to the default octave
+#	OCTAVE			Path to default octave executable.  Will use
+#				to determine the version.
+#	OCTAVE_VERSION		Full version of octave (X.X.X).  Used in
+#				Makefiles to indicate if we are building
+#				the octave language bindings.  The empty
+#				string indicates octave is not available.
+#	OCTAVE_VERSION_MAJOR	Single verion number of octave.  Used in
+#				rappture.env scripts to indicate how to set
+#				OCTAVE_PATH and OCTAVE_LOADPATH variables.
+#	MKOCTFILE		Path to the default octave compiler.  This
+#				variable isn't used directly.  Either
+#				MKOCTFILE2 or MKOCTFILE3 will be set to its
+#				value.
+#	MKOCTFILE2		Path to octave version 2 compiler.
+#	MKOCTFILE3		Path to octave version 3 compiler.
 #
 
 # Standard octave search (use the installed version of octave)
@@ -7759,6 +7771,7 @@ if test "x${OCTAVE}" != "x" ; then
 fi
 
 # Check if mkoctfile2 was designated *in addition* to the installed version.
+# This can override the default version if they are the same versions.
 
 # Check whether --with-mkoctfile2 was given.
 if test "${with_mkoctfile2+set}" = set; then :
@@ -7818,6 +7831,7 @@ fi
 fi
 
 # Check if octave3 was designated *in addition* to the installed version.
+# This can override the default version if they are the same versions.
 
 # Check whether --with-mkoctfile3 was given.
 if test "${with_mkoctfile3+set}" = set; then :
@@ -7879,8 +7893,7 @@ fi
 echo "MKOCTFILE2 = $MKOCTFILE2"
 echo "MKOCTFILE3 = $MKOCTFILE3"
 echo "OCTAVE_VERSION_MAJOR = $OCTAVE_VERSION_MAJOR"
-echo "OCTAVE_VERSION = $OCTAVE_VERSION_MAJOR"
-
+echo "OCTAVE_VERSION = $OCTAVE_VERSION"
 
 
 
