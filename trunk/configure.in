@@ -334,6 +334,7 @@ fi
 
 # Check if octave3 was designated *in addition* to the installed version.
 # This can override the default version if they are the same versions.
+
 AC_ARG_WITH(
     [mkoctfile3],
     [AS_HELP_STRING([--with-mkoctfile3[=DIR]],
@@ -366,8 +367,8 @@ if test "$rp_with_mkoctfile2" != "no" ; then
   else 
     MKOCTFILE2=$rp_with_mkoctfile2
   fi
-  OCTAVE_VERSION=`${MKOCTFILE2} --version 2>&1 | cut -d' ' -f3`
-  OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
+  OCTAVE_VERSION=2.x.x
+  OCTAVE_VERSION_MAJOR=2
 fi
 
 
