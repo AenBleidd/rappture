@@ -989,7 +989,7 @@ itcl::body Rappture::VtkContourViewer::PanCamera {} {
     #set y [expr ($_view(pan-y)) / $_limits(yrange)]
     set x $_view(pan-x)
     set y $_view(pan-y)
-    #SendCmd "camera pan $x $y"
+    SendCmd "camera pan $x $y"
 }
 
 
@@ -1087,8 +1087,8 @@ itcl::body Rappture::VtkContourViewer::Pan {option x y} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $option == "set" } {
-        set x [expr (($w - $x) / double($w))]
-        set y [expr (($h - $y) / double($h))]
+        set x [expr $x / double($w)]
+        set y [expr $y / double($h)]
         set _view(pan-x) [expr $_view(pan-x) + $x]
         set _view(pan-y) [expr $_view(pan-y) + $y]
         PanCamera

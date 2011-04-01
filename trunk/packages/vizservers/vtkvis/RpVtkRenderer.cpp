@@ -6,6 +6,8 @@
  */
 
 #include <cfloat>
+#include <cstring>
+#include <cassert>
 
 #include <vtkCamera.h>
 #include <vtkCoordinate.h>
@@ -38,11 +40,15 @@ Renderer::Renderer() :
     _needsRedraw(true),
     _windowWidth(320),
     _windowHeight(320),
-    _useCumulativeRanges(true)
+    _cameraZoomRatio(1),
+    _useCumulativeRange(true),
+    _cumulativeRangeOnlyVisible(false)
 {
     _bgColor[0] = 0;
     _bgColor[1] = 0;
     _bgColor[2] = 0;
+    _cameraPan[0] = 0;
+    _cameraPan[1] = 0;
     _cumulativeDataRange[0] = 0.0;
     _cumulativeDataRange[1] = 1.0;
     // clipping planes to prevent overdrawing axes
@@ -267,12 +273,13 @@ void Renderer::deleteDataSet(const DataSetId& id)
     
         TRACE("After deleting graphics objects");
 
-        // Update cumulative data range
-        collectDataRanges(_cumulativeDataRange);
-
         delete itr->second;
         _dataSets.erase(itr);
     } while (doAll && ++itr != _dataSets.end());
+
+    // Update cumulative data range
+    collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+    updateRanges(_useCumulativeRange);
 
     _needsRedraw = true;
 }
@@ -300,8 +307,8 @@ bool Renderer::setDataFile(const DataSetId& id, const char *filename)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setDataFile(filename);
-        collectDataRanges(_cumulativeDataRange);
-        updateRanges(_useCumulativeRanges);
+        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+        updateRanges(_useCumulativeRange);
         _needsRedraw = true;
         return ret;
     } else
@@ -316,12 +323,27 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setData(data, nbytes);
-        collectDataRanges(_cumulativeDataRange);
-        updateRanges(_useCumulativeRanges);
+        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+        updateRanges(_useCumulativeRange);
         _needsRedraw = true;
         return ret;
     } else
         return false;
+}
+
+/**
+ * \brief Control whether the cumulative data range of datasets is used for 
+ * colormapping and contours
+ */
+void Renderer::setUseCumulativeDataRange(bool state, bool onlyVisible)
+{
+    if (state != _useCumulativeRange) {
+        _useCumulativeRange = state;
+        _cumulativeRangeOnlyVisible = onlyVisible;
+        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+        updateRanges(_useCumulativeRange);
+        _needsRedraw = true;
+    }
 }
 
 void Renderer::resetAxes()
@@ -383,7 +405,7 @@ void Renderer::initAxes()
 
     _cubeAxesActor2D->ScalingOff();
     //_cubeAxesActor2D->SetShowActualBounds(0);
-    _cubeAxesActor2D->SetFontFactor(2);
+    _cubeAxesActor2D->SetFontFactor(1.25);
     // Use "nice" range and number of ticks/labels
     _cubeAxesActor2D->GetXAxisActor2D()->AdjustLabelsOn();
     _cubeAxesActor2D->GetYAxisActor2D()->AdjustLabelsOn();
@@ -743,6 +765,20 @@ void Renderer::addPseudoColor(const DataSetId& id)
 
         pc->setDataSet(ds);
 
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+
+        pc->setLookupTable(lut);
+
         _renderer->AddActor(pc->getActor());
     } while (doAll && ++itr != _dataSets.end());
 
@@ -800,6 +836,16 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
         // dataset being plotted
         vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
         lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
 
         itr->second->setLookupTable(lut);
     } while (doAll && ++itr != _pseudoColors.end());
@@ -1067,7 +1113,11 @@ void Renderer::setContours(const DataSetId& id, int numContours)
     }
 
     do {
-        itr->second->setContours(numContours);
+        if (_useCumulativeRange) {
+            itr->second->setContours(numContours, _cumulativeDataRange);
+        } else {
+            itr->second->setContours(numContours);
+        }
     } while (doAll && ++itr != _contours.end());
 
     _needsRedraw = true;
@@ -1519,10 +1569,10 @@ void Renderer::setWindowSize(int width, int height)
     _windowWidth = width;
     _windowHeight = height;
     _renderWindow->SetSize(_windowWidth, _windowHeight);
-#ifdef notdef
-    setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                        _imgWorldDims[0], _imgWorldDims[1]);
-#endif
+    if (_cameraMode == IMAGE) {
+        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                            _imgWorldDims[0], _imgWorldDims[1]);
+    }
     _needsRedraw = true;
 }
 
@@ -1576,6 +1626,14 @@ void Renderer::setCameraMode(CameraMode mode)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Get the current camera mode
+ */
+Renderer::CameraMode Renderer::getCameraMode() const
+{
+    return _cameraMode;
+}
+
 void Renderer::storeCameraOrientation()
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
@@ -1613,7 +1671,11 @@ void Renderer::resetCamera(bool resetOrientation)
         }
         _renderer->ResetCamera();
         _renderer->ResetCameraClippingRange();
+        computeScreenWorldCoords();
     }
+    _cameraZoomRatio = 1;
+    _cameraPan[0] = 0;
+    _cameraPan[1] = 0;
     _needsRedraw = true;
 }
 
@@ -1634,31 +1696,50 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
     camera->Roll(roll); // Roll about camera view axis
     _renderer->ResetCameraClippingRange();
     storeCameraOrientation();
+    computeScreenWorldCoords();
     _needsRedraw = true;
 }
 
 /**
- * \brief Perform a relative 2D translation of the camera
+ * \brief Perform a 2D translation of the camera
  *
- * \param[in] x World coordinate horizontal panning
- * \param[in] y World coordinate vertical panning
+ * \param[in] x [0,1] Viewport coordinate horizontal panning
+ * \param[in] y [0,1] Viewport coordinate vertical panning (with origin at top)
+ * \param[in] absolute Control if pan amount is relative to current or absolute
  */
-void Renderer::panCamera(double x, double y)
+void Renderer::panCamera(double x, double y, bool absolute)
 {
+    // Reverse x rather than y, since we are panning the camera, and client
+    // expects to be panning/moving the object
+    x = -x * _screenWorldCoords[2];
+    y = y * _screenWorldCoords[3];
+
+    if (absolute) {
+        double panAbs[2];
+        panAbs[0] = x;
+        panAbs[1] = y;
+        x -= _cameraPan[0];
+        y -= _cameraPan[1];
+        _cameraPan[0] = panAbs[0];
+        _cameraPan[1] = panAbs[1];
+    } else {
+        _cameraPan[0] += x;
+        _cameraPan[1] += y;
+    }
     if (_cameraMode == IMAGE) {
         _imgWorldOrigin[0] += x;
         _imgWorldOrigin[1] += y;
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
-        _needsRedraw = true;
-        return;
+    } else {
+        vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+        trans->Translate(x, y, 0);
+        camera->ApplyTransform(trans);
+        _renderer->ResetCameraClippingRange();
+        storeCameraOrientation();
+        computeScreenWorldCoords();
     }
-    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-    trans->Translate(x, y, 0);
-    camera->ApplyTransform(trans);
-    _renderer->ResetCameraClippingRange();
-    storeCameraOrientation();
     _needsRedraw = true;
 }
 
@@ -1666,9 +1747,18 @@ void Renderer::panCamera(double x, double y)
  * \brief Change the FOV of the camera
  *
  * \param[in] z Ratio to change zoom (greater than 1 is zoom in, less than 1 is zoom out)
+ * \param[in] absolute Control if zoom factor is relative to current setting or absolute
  */
-void Renderer::zoomCamera(double z)
+void Renderer::zoomCamera(double z, bool absolute)
 {
+    if (absolute) {
+        assert(_cameraZoomRatio > 0.0);
+        double zAbs = z;
+        z *= 1.0/_cameraZoomRatio;
+        _cameraZoomRatio = zAbs;
+    } else {
+        _cameraZoomRatio *= z;
+    }
     if (_cameraMode == IMAGE) {
         double dx = _imgWorldDims[0];
         double dy = _imgWorldDims[1];
@@ -1680,14 +1770,13 @@ void Renderer::zoomCamera(double z)
         _imgWorldOrigin[1] += dy/2.0;
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
-        _needsRedraw = true;
-        return;
+    } else {
+        vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+        camera->Zoom(z); // Change perspective FOV angle or ortho parallel scale
+        //camera->Dolly(z); // Move camera forward/back
+        _renderer->ResetCameraClippingRange();
+        storeCameraOrientation();
     }
-    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    camera->Zoom(z); // Change perspective FOV angle or ortho parallel scale
-    //camera->Dolly(z); // Move camera forward/back
-    _renderer->ResetCameraClippingRange();
-    storeCameraOrientation();
     _needsRedraw = true;
 }
 
@@ -1703,12 +1792,17 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 {
     double camPos[2];
 
-    int pxOffsetX = 75;
+    int pxOffsetX = 85;
     int pxOffsetY = 75;
     int outerGutter = 15;
 
     int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
-    double pxToWorld = height / imgHeightPx;
+    int imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
+    double pxToWorld;
+    if (height > width) 
+        pxToWorld = height / imgHeightPx;
+    else
+        pxToWorld = width / imgWidthPx;
     double offsetX = pxOffsetX * pxToWorld;
     double offsetY = pxOffsetY * pxToWorld;
 
@@ -1748,6 +1842,9 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
                                 _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1], 0, 0);
 
+    // Compute screen world coordinates
+    computeScreenWorldCoords();
+
 #ifdef DEBUG
     printCameraInfo(camera);
 #endif
@@ -1755,6 +1852,93 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     _needsRedraw = true;
 }
 
+void Renderer::computeScreenWorldCoords()
+{
+    // Start with viewport coords [-1,1]
+    double x0 = -1;
+    double y0 = -1;
+    double z0 = 0;
+    double x1 = 1;
+    double y1 = 1;
+    double z1 = 0;
+
+    vtkMatrix4x4 *mat = vtkMatrix4x4::New();
+    double result[4];
+
+    // get the perspective transformation from the active camera
+    mat->DeepCopy(_renderer->GetActiveCamera()->
+                  GetCompositeProjectionTransformMatrix(_renderer->GetTiledAspectRatio(),0,1));
+
+    // use the inverse matrix
+    mat->Invert();
+
+    // Transform point to world coordinates
+    result[0] = x0;
+    result[1] = y0;
+    result[2] = z0;
+    result[3] = 1.0;
+
+    mat->MultiplyPoint(result, result);
+
+    // Get the transformed vector & set WorldPoint
+    // while we are at it try to keep w at one
+    if (result[3]) {
+        x0 = result[0] / result[3];
+        y0 = result[1] / result[3];
+        z0 = result[2] / result[3];
+    }
+
+    result[0] = x1;
+    result[1] = y1;
+    result[2] = z1;
+    result[3] = 1.0;
+
+    mat->MultiplyPoint(result, result);
+
+    if (result[3]) {
+        x1 = result[0] / result[3];
+        y1 = result[1] / result[3];
+        z1 = result[2] / result[3];
+    }
+
+    mat->Delete();
+
+    _screenWorldCoords[0] = x0;
+    _screenWorldCoords[1] = y0;
+    _screenWorldCoords[2] = x1 - x0;
+    _screenWorldCoords[3] = y1 - y0;
+}
+
+/**
+ * \brief Get the world coordinates of the image camera plot area
+ *
+ * \param[out] xywh Array to hold x,y,width,height world coordinates
+ */
+void Renderer::getCameraZoomRegion(double xywh[4]) const
+{
+    xywh[0] = _imgWorldOrigin[0];
+    xywh[1] = _imgWorldOrigin[1];
+    xywh[2] = _imgWorldDims[0];
+    xywh[3] = _imgWorldDims[1];
+}
+
+/**
+ * \brief Get the world origin and dimensions of the screen
+ *
+ * \param[out] xywh Array to hold x,y,width,height world coordinates
+ */
+void Renderer::getScreenWorldCoords(double xywh[4]) const
+{
+    memcpy(xywh, _screenWorldCoords, sizeof(double)*4);
+}
+
+/**
+ * \brief Compute bounding box containing the two input bounding boxes
+ *
+ * \param[out] boundsDest Union of the two input bounding boxes
+ * \param[in] bounds1 Input bounding box
+ * \param[in] bounds2 Input bounding box
+ */
 void Renderer::mergeBounds(double *boundsDest,
                            const double *bounds1, const double *bounds2)
 {
@@ -1808,7 +1992,7 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
 }
 
 /**
- * \brief Update data ranges for color-mapping
+ * \brief Update data ranges for color-mapping and contours
  *
  * \param[in] useCumulative Use cumulative range of all DataSets
  */
@@ -1829,24 +2013,38 @@ void Renderer::updateRanges(bool useCumulative)
             }
         }
     }
+    for (Contour2DHashmap::iterator itr = _contours.begin();
+         itr != _contours.end(); ++itr) {
+        // Only need to update range if using evenly spaced contours
+        if (itr->second->getContourList().empty()) {
+            if (useCumulative) {
+                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
+            } else {
+                itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
 }
 
 /**
  * \brief Collect cumulative data range of all DataSets
  *
  * \param[inout] range Data range of all DataSets
+ * \param[in] onlyVisible Only collect range of visible DataSets
  */
-void Renderer::collectDataRanges(double *range)
+void Renderer::collectDataRanges(double *range, bool onlyVisible)
 {
     range[0] = DBL_MAX;
     range[1] = -DBL_MAX;
 
     for (DataSetHashmap::iterator itr = _dataSets.begin();
          itr != _dataSets.end(); ++itr) {
-        double r[2];
-        itr->second->getDataRange(r);
-        range[0] = min2(range[0], r[0]);
-        range[1] = max2(range[1], r[1]);
+        if (!onlyVisible || itr->second->getVisibility()) {
+            double r[2];
+            itr->second->getDataRange(r);
+            range[0] = min2(range[0], r[0]);
+            range[1] = max2(range[1], r[1]);
+        }
     }
     if (range[0] == DBL_MAX)
         range[0] = 0;
@@ -1874,6 +2072,9 @@ void Renderer::initCamera()
     _imgWorldOrigin[1] = bounds[2];
     _imgWorldDims[0] = bounds[1] - bounds[0];
     _imgWorldDims[1] = bounds[3] - bounds[2];
+    _cameraPan[0] = 0;
+    _cameraPan[1] = 0;
+    _cameraZoomRatio = 1;
 
     if (_cameraMode == IMAGE) {
         _renderer->ResetCamera();
@@ -1884,10 +2085,12 @@ void Renderer::initCamera()
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes();
         _renderer->ResetCamera();
+        computeScreenWorldCoords();
     } else if (_cameraMode == PERSPECTIVE) {
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes();
         _renderer->ResetCamera();
+        computeScreenWorldCoords();
     }
 }
 
@@ -1932,6 +2135,25 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
  */
 void Renderer::setVisibility(const DataSetId& id, bool state)
 {
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _dataSets.end());
+
     setPseudoColorVisibility(id, state);
     setContourVisibility(id, state);
     setPolyDataVisibility(id, state);
@@ -2013,12 +2235,10 @@ double Renderer::getDataValueAtPixel(const DataSetId& id, int x, int y)
     coord->SetValue(x, y, 0);
     double *worldCoords = coord->GetComputedWorldValue(_renderer);
 
-#ifdef DEBUG
     TRACE("Pixel coords: %d, %d\nWorld coords: %.12e, %.12e, %12e", x, y,
           worldCoords[0], 
           worldCoords[1], 
           worldCoords[2]);
-#endif
 
     return getDataValue(id, worldCoords[0], worldCoords[1], worldCoords[2]);
 }

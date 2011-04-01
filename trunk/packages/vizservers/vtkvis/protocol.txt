@@ -43,6 +43,12 @@ dataset delete <?datasetName?>
 dataset getvalue world <x> <y> <z> <datasetName>
 dataset getvalue pixel <x> <y> <datasetName>
         Use pixel for image camera mode
+dataset maprange <val>
+        <val> = all|visible|separate
+        Controls if data range for colormapping and contours is based on
+        cumulative range of all datasets ("all"), only visible datasets
+        ("visible") or each individual dataset ("separate").  Defaults to
+        "all"
 dataset opacity <val> <?datasetName?>
 dataset visible <bool> <?datasetName?>
 
@@ -57,6 +63,8 @@ pseudocolor opacity <val> <?datasetName?>
 pseudocolor visible <bool> <?datasetName?>
 
 contour2d add numcontours <n> <?datasetName?>
+          Generate evenly spaced contours including range endpoints.  See also
+          'dataset maprange' command.
 contour2d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
 contour2d delete <?datasetName?>
@@ -82,6 +90,11 @@ Replies:
 
 nv>image -type image -bytes <nbytes>
   <binary RGB data>
+nv>image -type image -bbox {x1 y1 x2 y2} -bytes <nbytes>
+  <binary RGB data>
+  Note: in this form, the bbox is the upper left and lower right screen corners
+  in world coordinates.  This form is currently used only if the camera mode is
+  set to 'image'.
 nv>legend <colormapName> <nbytes>
   <binary RGB data>
 nv>dataset value world <x> <y> <z> <value>

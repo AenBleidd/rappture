@@ -34,7 +34,9 @@ public:
 
     bool setDataFile(const char *filename);
 
-    const std::string& getName();
+    bool is2D() const;
+
+    const std::string& getName() const;
 
     vtkDataSet *getVtkDataSet();
 
@@ -42,12 +44,18 @@ public:
 
     double getDataValue(double x, double y, double z);
 
+    void setVisibility(bool state);
+
+    bool getVisibility() const;
+
 private:
     DataSet();
 
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;
     double _dataRange[2];
+    double _bounds[6];
+    bool _visible;
 };
 
 }

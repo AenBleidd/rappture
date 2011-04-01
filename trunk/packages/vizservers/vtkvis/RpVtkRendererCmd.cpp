@@ -781,6 +781,23 @@ DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    const char *value = Tcl_GetString(objv[2]);
+    if (strcmp(value, "all") == 0) {
+        g_renderer->setUseCumulativeDataRange(true);
+    } else if (strcmp(value, "visible") == 0) {
+        g_renderer->setUseCumulativeDataRange(true, true);
+    } else if (strcmp(value, "separate") == 0) {
+        g_renderer->setUseCumulativeDataRange(false);
+    } else {
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -801,6 +818,7 @@ static Rappture::CmdSpec dataSetOps[] = {
     {"add", 1, DataSetAddOp, 6, 6, "name data follows nBytes"},
     {"delete", 1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
+    {"maprange", 1, DataSetMapRangeOp, 3, 3, "value"},
     {"opacity", 1, DataSetOpacityOp, 3, 4, "value ?name?"},
     {"visible", 1, DataSetVisibleOp, 3, 4, "bool ?name?"}
 };

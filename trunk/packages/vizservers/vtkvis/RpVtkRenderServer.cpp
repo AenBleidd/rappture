@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <string>
+#include <sstream>
 #include <unistd.h>
 #include <signal.h>
 
@@ -31,15 +33,44 @@ static void
 writeFrame(int fd, vtkUnsignedCharArray *imgData)
 {
 #ifdef DEBUG
+    if (g_renderer->getCameraMode() == Renderer::IMAGE) {
+        double xywh[4];
+        g_renderer->getScreenWorldCoords(xywh);
+        TRACE("Image bbox: %g %g %g %g", 
+              xywh[0], 
+              (xywh[1] + xywh[3]), 
+              (xywh[0] + xywh[2]), 
+              xywh[1]);
+    }
+
     writeTGAFile("/tmp/frame.tga",
                  imgData->GetPointer(0),
                  g_renderer->getWindowWidth(),
                  g_renderer->getWindowHeight());
 #else
-    writePPM(fd, "nv>image -type image -bytes",
-             imgData->GetPointer(0),
-             g_renderer->getWindowWidth(),
-             g_renderer->getWindowHeight());
+    if (g_renderer->getCameraMode() == Renderer::IMAGE) {
+        double xywh[4];
+        g_renderer->getScreenWorldCoords(xywh);
+        std::ostringstream oss;
+        oss.precision(12);
+        // Send upper left and lower right corners as bbox
+        oss << "nv>image -type image -bbox {"
+            << std::scientific
+            << xywh[0] << " "
+            << (xywh[1] + xywh[3]) << " "
+            << (xywh[0] + xywh[2]) << " "
+            << xywh[1] << "} -bytes";
+
+        writePPM(fd, oss.str().c_str(),
+                 imgData->GetPointer(0),
+                 g_renderer->getWindowWidth(),
+                 g_renderer->getWindowHeight());
+    } else {
+        writePPM(fd, "nv>image -type image -bytes",
+                 imgData->GetPointer(0),
+                 g_renderer->getWindowWidth(),
+                 g_renderer->getWindowHeight());
+    }
 #endif
 }
 

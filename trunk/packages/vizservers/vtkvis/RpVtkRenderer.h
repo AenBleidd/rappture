@@ -83,6 +83,8 @@ public:
 
     void setVisibility(const DataSetId& id, bool state);
 
+    void setUseCumulativeDataRange(bool state, bool onlyVisible = false);
+
     // Render window
 
     void setWindowSize(int width, int height);
@@ -95,15 +97,21 @@ public:
 
     void setCameraMode(CameraMode mode);
 
+    CameraMode getCameraMode() const;
+
     void resetCamera(bool resetOrientation = true);
 
     void setCameraZoomRegion(double x, double y, double width, double height);
 
+    void getCameraZoomRegion(double xywh[4]) const;
+
+    void getScreenWorldCoords(double xywh[4]) const;
+
     void rotateCamera(double yaw, double pitch, double roll);
 
-    void panCamera(double x, double y);
+    void panCamera(double x, double y, bool absolute = true);
 
-    void zoomCamera(double z);
+    void zoomCamera(double z, bool absolute = true);
 
     // Rendering an image
 
@@ -227,9 +235,11 @@ private:
 
     void collectBounds(double *bounds, bool onlyVisible);
 
-    void collectDataRanges(double *range);
+    void collectDataRanges(double *range, bool onlyVisible);
 
     void updateRanges(bool useCumulative);
+
+    void computeScreenWorldCoords();
 
     void storeCameraOrientation();
     void restoreCameraOrientation();
@@ -241,11 +251,15 @@ private:
     int _windowWidth, _windowHeight;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
+    double _screenWorldCoords[4];
     double _cameraPos[3];
     double _cameraFocalPoint[3];
     double _cameraUp[3];
+    double _cameraZoomRatio;
+    double _cameraPan[2];
     float _bgColor[3];
-    bool _useCumulativeRanges;
+    bool _useCumulativeRange;
+    bool _cumulativeRangeOnlyVisible;
     double _cumulativeDataRange[2];
 
     ColorMapHashmap _colorMaps;
