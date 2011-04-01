@@ -143,22 +143,6 @@ void PseudoColor::setLookupTable(vtkLookupTable *lut)
         _lut = lut;
     }
 
-    double dataRange[2];
-    if (_dataSet != NULL) {
-        _dataSet->getDataRange(dataRange);
-        _lut->SetRange(dataRange);
-#ifdef notdef
-        if (_dataSet->getVtkDataSet()->GetPointData() &&
-            _dataSet->getVtkDataSet()->GetPointData()->GetScalars() &&
-            _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable()) {
-            TRACE("Change scalar table: %p %p\n", 
-                  _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable(),
-                  _lut.GetPointer());
-            _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->SetLookupTable(_lut);
-            TRACE("Scalar Table: %p\n", _dataSet->getVtkDataSet()->GetPointData()->GetScalars()->GetLookupTable());
-        }
-#endif
-    }
     if (_dsMapper != NULL) {
         _dsMapper->UseLookupTableScalarRangeOn();
         _dsMapper->SetLookupTable(_lut);

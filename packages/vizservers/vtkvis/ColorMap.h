@@ -26,7 +26,7 @@ namespace VtkVis {
 class ColorMap {
 public:
     /**
-     * \brief RGBA inflection point in a transfer function
+     * \brief RGB inflection point in a transfer function
      */
     struct ControlPoint {
         ControlPoint() :
@@ -51,6 +51,10 @@ public:
         double value; ///< Normalized scalar data value [0,1]
         double color[3]; ///< RGB color
     };
+
+    /**
+     * \brief Opacity(alpha) inflection point in a transfer function
+     */
     struct OpacityControlPoint {
         OpacityControlPoint() :
             value(0),

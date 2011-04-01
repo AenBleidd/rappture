@@ -26,11 +26,17 @@ ColorMap::~ColorMap()
 {
 }
 
+/**
+ * \brief Return the name/ID of the ColorMap
+ */
 const std::string& ColorMap::getName()
 {
     return _name;
 }
 
+/**
+ * \brief Build and return the vtkLookupTable from the transfer function
+ */
 vtkLookupTable *ColorMap::getLookupTable()
 {
     build();
@@ -38,6 +44,9 @@ vtkLookupTable *ColorMap::getLookupTable()
     return _lookupTable;
 }
 
+/**
+ * \brief Insert a new RGB control point into the transfer function
+ */
 void ColorMap::addControlPoint(ControlPoint& cp)
 {
     _needsBuild = true;
@@ -64,6 +73,9 @@ void ColorMap::addControlPoint(ControlPoint& cp)
     _controlPoints.insert(_controlPoints.end(), cp);
 }
 
+/**
+ * \brief Insert a new opacity/alpha control point into the transfer function
+ */
 void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
 {
     _needsBuild = true;
@@ -108,6 +120,10 @@ void ColorMap::setNumberOfTableEntries(int numEntries)
     }
 }
 
+/**
+ * \brief Build the lookup table from the control points in the transfer 
+ * function
+ */
 void ColorMap::build()
 {
     if (!_needsBuild)
@@ -192,6 +208,9 @@ void ColorMap::lerp(double *result, const OpacityControlPoint& cp1, const Opacit
     *result = cp1.alpha * (1.0 - factor) + cp2.alpha * factor;
 }
 
+/**
+ * \brief Remove all control points and lookup table
+ */
 void ColorMap::clear()
 {
     _controlPoints.clear();
@@ -199,6 +218,9 @@ void ColorMap::clear()
     _lookupTable = NULL;
 }
 
+/**
+ * \brief Create a default ColorMap with a blue-cyan-green-yellow-red ramp
+ */
 ColorMap * ColorMap::createDefault()
 {
     ColorMap *colorMap = new ColorMap("default");

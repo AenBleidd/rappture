@@ -473,7 +473,8 @@ itcl::body Rappture::VisViewer::ReceiveHelper {} {
                 puts stderr "err=$err errorInfo=$errorInfo"
             }
         }
-    } elseif { [string compare -length 20 $line "NanoVis Server Error:"] == 0} {
+    } elseif { [string compare -length 21 $line "NanoVis Server Error:"] == 0 ||
+               [string compare -length 20 $line "VtkVis Server Error:"] == 0} {
         # this shows errors coming back from the engine
         ReceiveEcho <<error $line
         puts stderr "Render Server Error: $line\n"
@@ -533,8 +534,8 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
 # ReceiveEcho --
 #
 #     Echoes received data to clients interested in this widget.  If the
-#     -receivecommand option is set, then it is # invoked in the global
-#     scope with the <channel> and <data> values # as arguments.  Otherwise,
+#     -receivecommand option is set, then it is invoked in the global
+#     scope with the <channel> and <data> values as arguments.  Otherwise,
 #     this does nothing.
 #
 itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {

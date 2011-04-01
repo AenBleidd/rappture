@@ -9,6 +9,7 @@
 #define __RAPPTURE_VTKVIS_CONTOUR2D_H__
 
 #include <vtkSmartPointer.h>
+#include <vtkContourFilter.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
@@ -36,11 +37,17 @@ public:
 
     void setContours(int numContours);
 
+    void setContours(int numContours, double range[2]);
+
     void setContourList(const std::vector<double>& contours);
+
+    int getNumContours() const;
+
+    const std::vector<double>& getContourList() const;
 
     void setVisibility(bool state);
 
-    bool getVisibility();
+    bool getVisibility() const;
 
     void setOpacity(double opacity);
 
@@ -60,10 +67,12 @@ private:
 
     int _numContours;
     std::vector<double> _contours;
+    double _dataRange[2];
 
     float _edgeColor[3];
     float _edgeWidth;
     double _opacity;
+    vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
     vtkSmartPointer<vtkActor> _contourActor;
 };

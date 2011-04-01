@@ -17,15 +17,42 @@
 
 using namespace Rappture::VtkVis;
 
-DataSet::DataSet(const std::string& name)
+DataSet::DataSet(const std::string& name) :
+    _name(name),
+    _visible(true)
 {
     _name = name;
-    _dataRange[0] = 0.0;
-    _dataRange[1] = 1.0;
+    _dataRange[0] = 0;
+    _dataRange[1] = 1;
+    for (int i = 0; i < 6; i++) {
+        _bounds[i] = 0;
+    }
 }
 
 DataSet::~DataSet()
 {
+}
+
+/**
+ * \brief Set visibility flag in DataSet
+ *
+ * This method is used for record-keeping.  The renderer controls
+ * the visibility of related graphics objects.
+ */
+void DataSet::setVisibility(bool state)
+{
+    _visible = state;
+}
+
+/**
+ * \brief Get visibility flag in DataSet
+ *
+ * This method is used for record-keeping.  The renderer controls
+ * the visibility of related graphics objects.
+ */
+bool DataSet::getVisibility() const
+{
+    return _visible;
 }
 
 /**
@@ -75,15 +102,24 @@ bool DataSet::setData(vtkDataSet *ds)
     _dataSet = ds;
     _dataSet->Update();
     _dataSet->GetScalarRange(_dataRange);
+    _dataSet->GetBounds(_bounds);
 
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
     return true;
 }
 
 /**
+ * \brief Does DataSet lie in the XY plane (z = 0)
+ */
+bool DataSet::is2D() const
+{
+    return (_bounds[4] == 0. && _bounds[4] == _bounds[5]);
+}
+
+/**
  * \brief Get the name/id of this dataset
  */
-const std::string& DataSet::getName()
+const std::string& DataSet::getName() const
 {
     return _name;
 }

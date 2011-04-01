@@ -20,6 +20,8 @@ Contour2D::Contour2D() :
     _edgeWidth(1.0f),
     _opacity(1.0)
 {
+    _dataRange[0] = 0;
+    _dataRange[1] = 1;
     _edgeColor[0] = 0;
     _edgeColor[1] = 0;
     _edgeColor[2] = 0;
@@ -42,6 +44,14 @@ void Contour2D::setDataSet(DataSet *dataSet)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
+
+        if (_dataSet != NULL) {
+            double dataRange[2];
+            _dataSet->getDataRange(dataRange);
+            _dataRange[0] = dataRange[0];
+            _dataRange[1] = dataRange[1];
+        }
+
         update();
     }
 }
@@ -89,36 +99,39 @@ void Contour2D::update()
     initActor();
 
     // Contour filter to generate isolines
-    vtkSmartPointer<vtkContourFilter> contourFilter = vtkSmartPointer<vtkContourFilter>::New();
-    contourFilter->SetInput(_dataSet->getVtkDataSet());
+    if (_contourFilter == NULL) {
+        _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
+    }
 
-    contourFilter->ComputeNormalsOff();
-    contourFilter->ComputeGradientsOff();
+    _contourFilter->SetInput(_dataSet->getVtkDataSet());
+
+    _contourFilter->ComputeNormalsOff();
+    _contourFilter->ComputeGradientsOff();
 
     // Speed up multiple contour computation at cost of extra memory use
     if (_numContours > 1) {
-        contourFilter->UseScalarTreeOn();
+        _contourFilter->UseScalarTreeOn();
     } else {
-        contourFilter->UseScalarTreeOff();
+        _contourFilter->UseScalarTreeOff();
     }
+
+    _contourFilter->SetNumberOfContours(_numContours);
+
     if (_contours.empty()) {
         // Evenly spaced isovalues
-        double dataRange[2];
-        _dataSet->getDataRange(dataRange);
-        contourFilter->GenerateValues(_numContours, dataRange[0], dataRange[1]);
+        _contourFilter->GenerateValues(_numContours, _dataRange[0], _dataRange[1]);
     } else {
         // User-supplied isovalues
-        for (int i = 0; i < (int)_contours.size(); i++) {
-            contourFilter->SetValue(i, _contours[i]);
+        for (int i = 0; i < _numContours; i++) {
+            _contourFilter->SetValue(i, _contours[i]);
         }
     }
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _contourActor->SetMapper(_contourMapper);
+        _contourMapper->SetInput(_contourFilter->GetOutput());
     }
-
-    _contourMapper->SetInput(contourFilter->GetOutput());
 }
 
 /**
@@ -131,6 +144,30 @@ void Contour2D::setContours(int numContours)
     _contours.clear();
     _numContours = numContours;
 
+    if (_dataSet != NULL) {
+        double dataRange[2];
+        _dataSet->getDataRange(dataRange);
+        _dataRange[0] = dataRange[0];
+        _dataRange[1] = dataRange[1];
+    }
+
+    update();
+}
+
+/**
+ * \brief Specify number of evenly spaced contour lines to render
+ * between the given range (including range endpoints)
+ *
+ * Will override any existing contours
+ */
+void Contour2D::setContours(int numContours, double range[2])
+{
+    _contours.clear();
+    _numContours = numContours;
+
+    _dataRange[0] = range[0];
+    _dataRange[1] = range[1];
+
     update();
 }
 
@@ -142,9 +179,26 @@ void Contour2D::setContours(int numContours)
 void Contour2D::setContourList(const std::vector<double>& contours)
 {
     _contours = contours;
-    _numContours = _contours.size();
+    _numContours = (int)_contours.size();
 
     update();
+}
+
+/**
+ * \brief Get the number of contours
+ */
+int Contour2D::getNumContours() const
+{
+    return _numContours;
+}
+
+/**
+ * \brief Get the contour list (may be empty if number of contours
+ * was specified in place of a list)
+ */
+const std::vector<double>& Contour2D::getContourList() const
+{
+    return _contours;
 }
 
 /**
@@ -162,7 +216,7 @@ void Contour2D::setVisibility(bool state)
  * 
  * \return Is contour set visible?
  */
-bool Contour2D::getVisibility()
+bool Contour2D::getVisibility() const
 {
     if (_contourActor == NULL) {
         return false;
