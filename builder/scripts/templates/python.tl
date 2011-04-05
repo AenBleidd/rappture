@@ -78,14 +78,14 @@ sys.exit()
   output curve {
     code "\n# save output value for $path"
     code "# this shows just one (x,y) point -- modify as needed"
-    code "line = "%g %g\n" % (x, y)"
+    code "line = \"%g %g\n\" % (x, y)"
     code "io.put('$path.component.xy', line, append=1)"
   }
   output histogram {
     code "\n# save output value for $path"
     code "# this shows just one point -- modify as needed"
     code "# (x,h,w) = x-coord, height of bar, and width of bar (optional)"
-    code "line = "%g %g %g\n" % (x, h, w)"
+    code "line = \"%g %g %g\n\" % (x, h, w)"
     code "io.put('$path.component.xhw', line, append=1)"
   }
   output image {
