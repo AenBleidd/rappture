@@ -16,7 +16,7 @@
  * ======================================================================
  */
 #include <assert.h>
-#include "RpMesh1D.h"
+#include <rappture2/RpMesh1D.h>
 
 using namespace Rappture;
 

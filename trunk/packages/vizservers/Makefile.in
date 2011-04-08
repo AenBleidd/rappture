@@ -18,10 +18,23 @@ RM		= rm -f
 VPATH		= $(srcdir)
 
 SUBDIRS         = @SUBDIRS@
-FILES		= \
-		start_viz.sh
+VTK_LIB_DIR	= @VTK_LIB_DIR@
+CG_LIB_DIR	= @CG_LIB_DIR@
+
+SUBDIRS		= nanoscale pymolproxy
+
+ifneq ($(VTK_LIB_DIR),)
+  SUBDIRS += vtkvis
+endif
+
+ifneq ($(CG_LIB_DIR),)
+  SUBDIRS += nanovis
+endif
 
 .PHONY: $(SUBDIRS)
+
+FILES		= \
+		start_viz.sh
 
 all:
 	for i in $(SUBDIRS) ; do \

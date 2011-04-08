@@ -2,6 +2,13 @@ AC_PREREQ([2.60])
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
 AC_CONFIG_HEADER(nanovis/nvconf.h nanoscale/config.h)
 
+with_vtk="yes"
+with_vtk_libs=""
+with_vtk_includes=""
+with_rappture=""
+with_tcllib=""
+with_rappture="yes"
+
 AC_ARG_WITH(
     [tcllib],
     [AS_HELP_STRING([--with-tcllib[=DIR]],
@@ -12,9 +19,9 @@ AC_ARG_WITH(
 AC_ARG_WITH(
     [rappture],
     [AS_HELP_STRING([--with-rappture[=DIR]],
-        [location of rappture files lib/librappture2.a and include/rappture2/rappture2.h @<:@default=/usr@:>@])],
+        [location of rappture files lib/librappture.a and include/rappture.h @<:@default=/usr@:>@])],
     [with_rappture=$withval],
-    [with_rappture=/usr])
+    [with_rappture=yes])
 
 AC_ARG_WITH(
     [vtk-includes],
@@ -30,8 +37,14 @@ AC_ARG_WITH(
     [with_vtk_libs=$withval],
     [with_vtk_libs=/usr/lib/vtk-5.6])
 
+AC_ARG_WITH(
+    [vtk],
+    [AS_HELP_STRING([--with-vtk=VERSION],
+        [Version of VTK required])],
+    [with_vtk=$withval],
+    [with_vtk=yes])
+
 VERSION=0.0.1
-AC_SUBST(VERSION)
 
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
@@ -44,6 +57,11 @@ if test "${exec_prefix}" = "NONE"; then
     exec_prefix=$prefix
 fi
 
+if test "x${incdir}" == "x"; then
+  incdir=${exec_prefix}/include
+fi
+libdir=${exec_prefix}/lib
+
 if test "${libdir}" != "${prefix}/lib"; then
     LIB_SEARCH_DIRS="-L ${prefix}/lib -L ${libdir}"
 else
@@ -52,13 +70,6 @@ fi
 
 SC_CONFIG_CFLAGS
 
-AC_SUBST(CFLAGS_DEBUG)
-AC_SUBST(CFLAGS_OPTIMIZE)
-AC_SUBST(STLIB_LD)
-AC_SUBST(SHLIB_LD)
-AC_SUBST(SHLIB_CFLAGS)
-AC_SUBST(SHLIB_LDFLAGS)
-AC_SUBST(SHLIB_SUFFIX)
 
 AC_PATH_X
 
@@ -84,16 +95,8 @@ AC_CHECK_SIZEOF(float, 4)
 # Save the values as shell variables so that we can substitute them
 # into bltHash.h for situtations where there's no bltInt.h.
 
-AC_SUBST(SIZEOF_INT, ${ac_cv_sizeof_int})
-AC_SUBST(SIZEOF_LONG, ${ac_cv_sizeof_long})
-AC_SUBST(SIZEOF_LONG_LONG, ${ac_cv_sizeof_long_long})
-AC_SUBST(SIZEOF_VOID_P, ${ac_cv_sizeof_void_p})
-AC_SUBST(SIZEOF_FLOAT, ${ac_cv_sizeof_float})
 
 LD_RPATH="";
-
-SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
-AC_SUBST(SUBDIRS)
 
 #
 # Need to check for the following dependencies:
@@ -135,53 +138,60 @@ if test "x$with_tclinclude" != "x" ; then
    TCL_INC_SPEC="-I${with_tclinclude}"
 fi
 
-AC_SUBST(TCL_VERSION)
-AC_SUBST(TCL_INC_SPEC)
-AC_SUBST(TCL_LIB_SPEC)
-
 RP2_INCL_DIR=""
 RP_DIR=""
 AC_MSG_CHECKING([for rappture])
-if test "x$with_rappture" != "x" ; then
-    if test "x$with_rappture" != "xprefix" ; then
-        if test -f "$with_rappture"
-        then
-            AC_MSG_RESULT([no])
-            AC_MSG_ERROR([please provide --with-rappture with directory])
-        else
-            if test -d "$with_rappture"
-            then
-                if test -r "$with_rappture/include/rappture2/rappture2.h" -a -r "$with_rappture/lib/librappture2.a"
-                then
-                    RP2_INCL_DIR="$with_rappture/include/rappture2"
-                    RP_DIR="$with_rappture"
-                    AC_MSG_RESULT([yes])
-                else
-                    AC_MSG_RESULT([no])
-                    AC_MSG_ERROR([cannot find rappture2.h and librappture2.a, try using --with-rappture])
-                fi
-            else
-                AC_MSG_RESULT([no])
-                AC_MSG_ERROR([cannot find rappture2.h and librappture2.a inside $with_rappture, try using --with-rappture])
-            fi
-        fi
-    else
-        RP2_INCL_DIR="$prefix/include/rappture2"
-        RP_DIR="$prefix"
-        AC_MSG_RESULT([set to prefix])
+if test "$with_rappture" == "yes" ; then
+  for dir in "$exec_prefix" "/usr" ; do
+    if test -r "$dir/include/rappture2/rappture2.h" -a \
+     -r "$dir/lib/librappture.a"; then
+      RP_INCL_SPEC="-I$dir/include"
+      RP_DIR="$dir"
+      RP_LIB_DIR="$dir/lib"
+      AC_MSG_RESULT([$dir])
+      break
     fi
+  done
 else
-    AC_CHECK_HEADERS([rappture.h], [],
-           [AC_MSG_ERROR([cannot find rappture.h, try using --with-rappture])])
-
-
+  if test -d "$with_rappture" ; then 
+    AC_MSG_ERROR([--with-rappture: no such directory $with_rappture])
+  fi
+  RP_LIB=$with_rappture
+  RP_INCL_SPEC="-I$with_rappture/include"
+  RP_LIB_DIR="$with_rappture/lib"
 fi
-AC_MSG_RESULT([${RP_DIR}/include])
-AC_SUBST(RP2_INCL_DIR)
-AC_SUBST(RP_DIR)
+if test "x${RP_DIR}" = "x" ; then
+  AC_MSG_ERROR([cannot find rappture.h and librappture2.a, try using --with-rappture])
+else
+  AC_MSG_RESULT([$with_rappture])
+fi
+
+dnl Prefer our VTK installation over systems. --with-vtk overrides.
+if test "$with_vtk" != "no" ; then
+  if test "$with_vtk" = "yes" ; then
+    for dir in vtk-5.{9,8,7,6,5,4,3,2,1} ; do 
+      if test -d "${libdir}/$dir" -a -d "${incdir}/$dir"; then
+	VTK_LIB_SPEC="-L${libdir}/$dir"
+	VTK_LIB_DIR="${libdir}/$dir"
+	VTK_INC_SPEC="-I${incdir}/$dir"
+	break
+      fi
+      if test -d "/usr/lib/$dir" -a -d "/usr/include/$dir"; then
+	VTK_LIB_SPEC=-L/usr/lib/$dir
+	VTK_LIB_DIR=/usr/lib/$dir
+	VTK_INC_SPEC=-I/usr/include/$dir
+	break
+      fi
+    done
+  fi
+fi
 
 if test "x$with_vtk_includes" != "x"; then
    VTK_INC_SPEC=-I$with_vtk_includes
+fi
+
+if test "x$with_vtk_libs" != "x"; then
+   VTK_LIB_DIR=$with_vtk_libs
 fi
 
 save_CPPFLAGS=$CPPFLAGS
@@ -189,18 +199,10 @@ CPPFLAGS=$VTK_INC_SPEC
 AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_ERROR([cannot find VTK includes])])
 CPPFLAGS=$save_CPPFLAGS
 
-if test "x$with_vtk_libs" != "x"; then
-   VTK_LIB_DIR=$with_vtk_libs
-fi
-
-AC_SUBST(VTK_INC_SPEC)
-AC_SUBST(VTK_LIB_DIR)
-
 AC_CHECK_HEADER([GL/glui.h])
 AC_CHECK_HEADER([glui.h])
 AC_CHECK_HEADER([GL/glut.h])
 AC_CHECK_HEADER([GL/glew.h])
-AC_CHECK_HEADER([Cg/cgGL.h])
 
 AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
@@ -218,7 +220,7 @@ do
   fi
 done
 if test "x${DX_INC_DIR}" = "x" ; then
-  AC_MSG_ERROR([can't find OpenDX include files])
+  AC_MSG_ERROR([cannot find OpenDX include files])
 fi
 
 if test "${DX_INC_DIR}" = "/usr/include" ; then
@@ -226,7 +228,6 @@ if test "${DX_INC_DIR}" = "/usr/include" ; then
 else 
   DX_INC_SPEC="-I{DX_INC_DIR}"
 fi
-AC_SUBST(DX_INC_SPEC)
 AC_MSG_RESULT([${DX_INC_DIR}])
 
 DX_LIB_DIR=""
@@ -250,7 +251,7 @@ do
   fi
 done
 if test "x{$DX_LIB_DIR}" = "x" ; then
-  AC_MSG_ERROR([cant find OpenDX libraries])
+  AC_MSG_ERROR([cannot find OpenDX libraries])
 fi
 
 AC_MSG_CHECKING([for libDXcallm library])
@@ -260,7 +261,6 @@ else
   DX_LIB_SPEC="-L${DX_LIB_DIR}"
 fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
-AC_SUBST(DX_LIB_SPEC)
 
 AC_CHECK_HEADERS([opencv/cv.h opencv/highgui.h])
 AC_CHECK_LIB([cv], [cvLoadImage])
@@ -271,7 +271,6 @@ if test -d "/usr/include/ffmpeg" ; then
   CPPFLAGS="$CPPFLAGS -I/usr/include/ffmpeg"
   FF_INC_SPEC="-I/usr/include/ffmpeg"
 fi
-AC_SUBST(FF_INC_SPEC)
 
 AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
 #define SIZEOF_LONG ${ac_cv_sizeof_long}
@@ -293,6 +292,7 @@ AC_CHECK_LIB([avformat], [avformat_alloc_context], [],
 AC_CHECK_LIB([avutil], [av_free])
 AC_CHECK_FUNCS([img_convert])
 
+
 AC_MSG_CHECKING([for nVidia Cg installation])
 CG_DIR=""
 for dir in \
@@ -300,48 +300,73 @@ for dir in \
  /usr/cg \
  /usr
 do
-  if test -r "${dir}/include/Cg/cgGL.h" ; then
-    CG_DIR="$dir"
+  if test -r "$dir/include" ; then
+    CG_DIR=$dir
     break
   fi
 done
-if test "x${CG_DIR}" = "x" ; then
-  AC_MSG_ERROR([can't find nVidia Cg installation])
-fi
+AC_MSG_RESULT([${CG_DIR}])
 
-if test "${CG_DIR}" = "/usr" ; then
+CG_INC_DIR="$dir/include"
+CG_LIB_DIR="$dir/lib"
+
+echo CGDIR=$CG_DIR
+save_CPPFLAGS=$CPPFLAGS
+CPPFLAGS="-I${CG_INC_DIR} $CPPFLAGS"
+AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_ERROR([cannot find nVidia Cg headers]))
+CPPFLAGS=$save_CPPFLAGS
+
+ if test "${CG_DIR}" = "/usr" ; then
   CG_DIR=""
 else 
-  LD_RPATH="$loader_run_path:${CG_DIR}/lib"
+  LD_RPATH="$loader_run_path:${CG_LIB_DIR}"
 fi
 
+SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
+
+AC_SUBST(CFLAGS_DEBUG)
+AC_SUBST(CFLAGS_OPTIMIZE)
 AC_SUBST(CG_DIR)
-AC_MSG_RESULT([${CG_DIR}])
+AC_SUBST(CG_INC_DIR)
+AC_SUBST(CG_LIB_DIR)
+AC_SUBST(DX_INC_SPEC)
+AC_SUBST(DX_LIB_SPEC)
+AC_SUBST(FF_INC_SPEC)
 AC_SUBST(LD_RPATH)
+AC_SUBST(RP_DIR)
+AC_SUBST(RP_INC_SPEC)
+AC_SUBST(RP_LIB_DIR)
+AC_SUBST(SHLIB_CFLAGS)
+AC_SUBST(SHLIB_LD)
+AC_SUBST(SHLIB_LDFLAGS)
+AC_SUBST(SHLIB_SUFFIX)
+AC_SUBST(SIZEOF_FLOAT)
+AC_SUBST(SIZEOF_INT)
+AC_SUBST(SIZEOF_LONG)
+AC_SUBST(SIZEOF_LONG_LONG)
+AC_SUBST(SIZEOF_VOID_P)
+AC_SUBST(STLIB_LD)
+AC_SUBST(SUBDIRS)
+AC_SUBST(TCL_INC_SPEC)
+AC_SUBST(TCL_LIB_SPEC)
+AC_SUBST(TCL_VERSION)
+AC_SUBST(VERSION)
+AC_SUBST(VTK_INC_SPEC)
+AC_SUBST(VTK_LIB_DIR)
 
-dnl AC_MSG_CHECKING(tcl library version)
-dnl TCL=`AC_TRY_RUN([#include <tcl.h>
-dnl         int main() {printf("tcl%s",TCL_VERSION);return(0);}],,
-dnl         echo "tcl8.4", echo "tcl8.4")`
-dnl AC_MSG_RESULT($TCL)
-dnl AC_MSG_CHECKING(tk library version)
-dnl TK=`AC_TRY_RUN([#include <tk.h>
-dnl         main() {printf("tk%s", TK_VERSION); exit(0);}],,
-dnl         echo "tk8.4", echo "tk8.4")`
-dnl AC_MSG_RESULT($TK)
-
-
-AC_OUTPUT(  Makefile \
-            nanoscale/Makefile \
-            nanovis/Makefile \
-            nanovis/newmat11/Makefile \
-            nanovis/R2/src/Makefile \
-            nanovis/vrutil/Makefile \
-            nanovis/vrmath/Makefile \
-            nanovis/vr3d/Makefile \
-            nanovis/imgLoaders/Makefile \
-            nanovis/transfer-function/Makefile \
-            pymolproxy/Makefile \
-            vtkvis/Doxyfile \
-            vtkvis/Makefile \
-            start_viz.sh    )
+AC_OUTPUT([
+  Makefile \
+   nanoscale/Makefile \
+   nanovis/Makefile \
+   nanovis/newmat11/Makefile \
+   nanovis/R2/src/Makefile \
+   nanovis/vrutil/Makefile \
+   nanovis/vrmath/Makefile \
+   nanovis/vr3d/Makefile \
+   nanovis/imgLoaders/Makefile \
+   nanovis/transfer-function/Makefile \
+   pymolproxy/Makefile \
+   vtkvis/Doxyfile \
+   vtkvis/Makefile \
+   start_viz.sh])
+  
