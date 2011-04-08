@@ -599,6 +599,9 @@ itcl::body Rappture::LibraryObj::put {args} {
 
     if {[Rappture::library isvalid $str]} {
         foreach n [[$str info variable _node -value] childNodes] {
+	    if { [$n nodeType] == "COMMENT_NODE" } {
+		continue
+	    }
             $node appendXML [$n asXML]
         }
     } else {
