@@ -75,10 +75,10 @@ Renderer::Renderer() :
     _clippingPlanes->AddItem(plane3);
     _renderer = vtkSmartPointer<vtkRenderer>::New();
     _renderer->LightFollowCameraOn();
-    storeCameraOrientation();
     _cameraMode = PERSPECTIVE;
     initAxes();
     initCamera();
+    storeCameraOrientation();
     _renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
     _renderWindow->DoubleBufferOff();
     //_renderWindow->BordersOff();
@@ -1634,6 +1634,27 @@ Renderer::CameraMode Renderer::getCameraMode() const
     return _cameraMode;
 }
 
+void Renderer::setCameraOrientation(double position[3],
+                                    double focalPoint[3],
+                                    double viewUp[3])
+{
+    memcpy(_cameraPos, position, sizeof(double)*3);
+    memcpy(_cameraFocalPoint, focalPoint, sizeof(double)*3);
+    memcpy(_cameraUp, viewUp, sizeof(double)*3);
+    // Apply the new parameters to the VTK camera
+    restoreCameraOrientation();
+    _needsRedraw = true;
+}
+
+void Renderer::getCameraOrientation(double position[3],
+                                    double focalPoint[3],
+                                    double viewUp[3])
+{
+    memcpy(position, _cameraPos, sizeof(double)*3);
+    memcpy(focalPoint, _cameraFocalPoint, sizeof(double)*3);
+    memcpy(viewUp, _cameraUp, sizeof(double)*3);
+}
+
 void Renderer::storeCameraOrientation()
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
@@ -1676,6 +1697,7 @@ void Renderer::resetCamera(bool resetOrientation)
     _cameraZoomRatio = 1;
     _cameraPan[0] = 0;
     _cameraPan[1] = 0;
+
     _needsRedraw = true;
 }
 
@@ -1703,39 +1725,88 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
 /**
  * \brief Perform a 2D translation of the camera
  *
- * \param[in] x [0,1] Viewport coordinate horizontal panning
- * \param[in] y [0,1] Viewport coordinate vertical panning (with origin at top)
+ * x,y pan amount are specified as signed absolute pan amount in viewport
+ * units -- i.e. 0 is no pan, .5 is half the viewport, 2 is twice the viewport,
+ * etc.
+ *
+ * \param[in] x Viewport coordinate horizontal panning
+ * \param[in] y Viewport coordinate vertical panning (with origin at top)
  * \param[in] absolute Control if pan amount is relative to current or absolute
  */
 void Renderer::panCamera(double x, double y, bool absolute)
 {
-    // Reverse x rather than y, since we are panning the camera, and client
-    // expects to be panning/moving the object
-    x = -x * _screenWorldCoords[2];
-    y = y * _screenWorldCoords[3];
-
-    if (absolute) {
-        double panAbs[2];
-        panAbs[0] = x;
-        panAbs[1] = y;
-        x -= _cameraPan[0];
-        y -= _cameraPan[1];
-        _cameraPan[0] = panAbs[0];
-        _cameraPan[1] = panAbs[1];
-    } else {
-        _cameraPan[0] += x;
-        _cameraPan[1] += y;
-    }
     if (_cameraMode == IMAGE) {
+        // Reverse x rather than y, since we are panning the camera, and client
+        // expects to be panning/moving the object
+        x = -x * _screenWorldCoords[2];
+        y = y * _screenWorldCoords[3];
+
+        if (absolute) {
+            double panAbs[2];
+            panAbs[0] = x;
+            panAbs[1] = y;
+            x -= _cameraPan[0];
+            y -= _cameraPan[1];
+            _cameraPan[0] = panAbs[0];
+            _cameraPan[1] = panAbs[1];
+        } else {
+            _cameraPan[0] += x;
+            _cameraPan[1] += y;
+        }
+
         _imgWorldOrigin[0] += x;
         _imgWorldOrigin[1] += y;
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
     } else {
+        y = -y;
+        if (absolute) {
+            double panAbs[2];
+            panAbs[0] = x;
+            panAbs[1] = y;
+            x -= _cameraPan[0];
+            y -= _cameraPan[1];
+            _cameraPan[0] = panAbs[0];
+            _cameraPan[1] = panAbs[1];
+        } else {
+            _cameraPan[0] += x;
+            _cameraPan[1] += y;
+        }
+
         vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-        trans->Translate(x, y, 0);
-        camera->ApplyTransform(trans);
+        double viewFocus[4], focalDepth, viewPoint[3];
+        double newPickPoint[4], oldPickPoint[4], motionVector[3];
+
+        camera->GetFocalPoint(viewFocus);
+        computeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2], 
+                              viewFocus);
+        focalDepth = viewFocus[2];
+
+        computeDisplayToWorld(( x * 2. + 1.) * _windowWidth / 2.0,
+                              ( y * 2. + 1.) * _windowHeight / 2.0,
+                              focalDepth, 
+                              newPickPoint);
+
+        computeDisplayToWorld(_windowWidth / 2.0,
+                              _windowHeight / 2.0,
+                              focalDepth, 
+                              oldPickPoint);
+ 
+        // Camera motion is reversed
+        motionVector[0] = oldPickPoint[0] - newPickPoint[0];
+        motionVector[1] = oldPickPoint[1] - newPickPoint[1];
+        motionVector[2] = oldPickPoint[2] - newPickPoint[2];
+
+        camera->GetFocalPoint(viewFocus);
+        camera->GetPosition(viewPoint);
+        camera->SetFocalPoint(motionVector[0] + viewFocus[0],
+                              motionVector[1] + viewFocus[1],
+                              motionVector[2] + viewFocus[2]);
+
+        camera->SetPosition(motionVector[0] + viewPoint[0],
+                            motionVector[1] + viewPoint[1],
+                            motionVector[2] + viewPoint[2]);
+
         _renderer->ResetCameraClippingRange();
         storeCameraOrientation();
         computeScreenWorldCoords();
@@ -1798,11 +1869,18 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 
     int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
     int imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
+
+    double imgAspect = width / height;
+    double winAspect = (double)_windowWidth / _windowHeight;
+
     double pxToWorld;
-    if (height > width) 
-        pxToWorld = height / imgHeightPx;
-    else
+
+    if (imgAspect >= winAspect) {
         pxToWorld = width / imgWidthPx;
+    } else {
+        pxToWorld = height / imgHeightPx;
+    }
+
     double offsetX = pxOffsetX * pxToWorld;
     double offsetY = pxOffsetY * pxToWorld;
 
@@ -1852,15 +1930,35 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     _needsRedraw = true;
 }
 
+void Renderer::computeDisplayToWorld(double x, double y, double z, double worldPt[4])
+{
+    _renderer->SetDisplayPoint(x, y, z);
+    _renderer->DisplayToWorld();
+    _renderer->GetWorldPoint(worldPt);
+    if (worldPt[3]) {
+        worldPt[0] /= worldPt[3];
+        worldPt[1] /= worldPt[3];
+        worldPt[2] /= worldPt[3];
+        worldPt[3] = 1.0;
+    }
+}
+
+void Renderer::computeWorldToDisplay(double x, double y, double z, double displayPt[3])
+{
+    _renderer->SetWorldPoint(x, y, z, 1.0);
+    _renderer->WorldToDisplay();
+    _renderer->GetDisplayPoint(displayPt);
+}
+
 void Renderer::computeScreenWorldCoords()
 {
     // Start with viewport coords [-1,1]
     double x0 = -1;
     double y0 = -1;
-    double z0 = 0;
+    double z0 = -1;
     double x1 = 1;
     double y1 = 1;
-    double z1 = 0;
+    double z1 = -1;
 
     vtkMatrix4x4 *mat = vtkMatrix4x4::New();
     double result[4];
@@ -2099,11 +2197,17 @@ void Renderer::initCamera()
  */
 void Renderer::printCameraInfo(vtkCamera *camera)
 {
-    TRACE("Parallel Scale: %g, Cam pos: %g %g %g, Clipping range: %g %g",
+    TRACE("Parallel Scale: %g, Cam pos: %g %g %g, focal pt: %g %g %g, view up: %g %g %g, Clipping range: %g %g",
           camera->GetParallelScale(),
 	  camera->GetPosition()[0],
           camera->GetPosition()[1],
           camera->GetPosition()[2], 
+          camera->GetFocalPoint()[0],
+          camera->GetFocalPoint()[1],
+          camera->GetFocalPoint()[2],
+          camera->GetViewUp()[0],
+          camera->GetViewUp()[1],
+          camera->GetViewUp()[2],
           camera->GetClippingRange()[0],
           camera->GetClippingRange()[1]);
 }
