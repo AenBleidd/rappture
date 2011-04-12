@@ -16,8 +16,13 @@ axis units <axis> <units>
 axis visible <axis> <bool>
      <axis> = x|y|z|all
 
+camera get
+       Request current camera orientation
 camera mode <mode>
        <mode> = persp|ortho|image
+camera orient <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
+       Set camera orientation using camera position, focal point and view up 
+       vector
 camera ortho <x> <y> <width> <height>
        Supply world coordinate bounds of plot area for image camera mode
        Data is assumed to lie in XY plane (z = 0)
@@ -88,6 +93,8 @@ polydata wireframe <bool> <?datasetName?>
 ================================================================================
 Replies:
 
+nv>camera orient <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
+   Reply to "camera get"
 nv>image -type image -bytes <nbytes>
   <binary RGB data>
 nv>image -type image -bbox {x1 y1 x2 y2} -bytes <nbytes>

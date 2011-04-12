@@ -109,6 +109,14 @@ public:
 
     void rotateCamera(double yaw, double pitch, double roll);
 
+    void setCameraOrientation(double position[3],
+                              double focalPoint[3],
+                              double viewUp[3]);
+
+    void getCameraOrientation(double position[3],
+                              double focalPoint[3],
+                              double viewUp[3]);
+
     void panCamera(double x, double y, bool absolute = true);
 
     void zoomCamera(double z, bool absolute = true);
@@ -238,6 +246,10 @@ private:
     void collectDataRanges(double *range, bool onlyVisible);
 
     void updateRanges(bool useCumulative);
+
+    void computeDisplayToWorld(double x, double y, double z, double worldPt[4]);
+
+    void computeWorldToDisplay(double x, double y, double z, double displayPt[3]);
 
     void computeScreenWorldCoords();
 
