@@ -605,25 +605,62 @@ enable_option_checking=no
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 subdirs
-HAVE_FFMPEG_LIBS
-LDFLAGS_DEFAULT
-CFLAGS_DEFAULT
+VTKDIR
+TK_XLIBSW
+TK_LIB_SPEC
+TK_VERSION
+TCL_VERSION
+TCL_LIB_SPEC
+TCL_INC_SPEC
 SIZEOF_VOID_P
 SIZEOF_LONG_LONG
 SIZEOF_LONG
 SIZEOF_INT
-TK_VERSION
 SHLIB_LDFLAGS
+RUBY_VERSION_RV
+RUBY_PLATFORM
 RP_BASE
+PYTHON_VERSION
+PYTHON_SITE_PACKAGES
+PYTHON_SITE_DIR
+PYTHON_LIBDIR
+PYTHON_LIB
+PYTHON_LDFLAGS
+PYTHON_INCLUDES
+PYTHON_INCDIR
+PYTHON_DISTUTILS
+PYTHON_CFLAGS
+PERL_VERSION_RV
+PERL_VERSION
+PERL_VENDORLIB
+PERL_PRIVLIB
+PERL_LIBSPEC
+PERL_INSTALLARCHLIB
+PERL_INCLUDES
+PERL_CPPFLAGS
+PERL_CCFLAGS
+PERL_ARCHLIBEXP
+PERL_ARCHLIB
+OCTAVE_VERSION_MAJOR
+OCTAVE_VERSION
+MKOCTFILE3
+MKOCTFILE2
+MEX_ARCH
+MAKE
+LIB_SEARCH_DIRS
 JAVA_INC_SPEC
 JAVA_INC_DIR
 JAVA_HOME
+INSTALL_PREFIX
+HAVE_RUBY_DEVEL
+HAVE_INTTYPES_H
+HAVE_FFMPEG_LIBS
+ENABLE_GUI
+LDFLAGS_DEFAULT
+CFLAGS_DEFAULT
 JAVAH
 JAVAC
 JAVA
-RUBY_PLATFORM
-RUBY_VERSION_RV
-HAVE_RUBY_DEVEL
 RUBY_EXTRA_LIBS
 RUBY_SITE_PKG
 RUBY_LDFLAGS
@@ -632,49 +669,17 @@ AWK
 RUBY_VERSION
 SED
 RUBY
-PYTHON_DISTUTILS
-PYTHON_SITE_PACKAGES
-PYTHON_LIBDIR
-PYTHON_SITE_DIR
-PYTHON_LIB
-PYTHON_LDFLAGS
-PYTHON_INCDIR
-PYTHON_CFLAGS
-PYTHON_INCLUDES
-PYTHON_VERSION
 PYTHON
-PERL_LIBSPEC
-PERL_VERSION_RV
-PERL_INSTALLARCHLIB
-PERL_PRIVLIB
-PERL_VENDORLIB
-PERL_CPPFLAGS
-PERL_CCFLAGS
-PERL_VERSION
-PERL_ARCHLIBEXP
-PERL_ARCHLIB
-PERL_INCLUDES
 PERL
-MKOCTFILE3
-MKOCTFILE2
-OCTAVE_VERSION_MAJOR
-OCTAVE_VERSION
 mkoctfile2
 mkoctfile3
 MKOCTFILE
 OCTAVE
-MEX_ARCH
 MCC
 MEXEXT
 MEX
 MATLAB
-VTKDIR
-TCL_LIB_SPEC
-TCL_INC_SPEC
-TCL_VERSION
 TCLSH
-ENABLE_GUI
-MAKE
 INSTALL_STUB_LIB
 INSTALL_LIB
 MAKE_STUB_LIB
@@ -698,7 +703,6 @@ PLAT_OBJS
 DL_OBJS
 DL_LIBS
 AR
-HAVE_INTTYPES_H
 CXXCPP
 EGREP
 GREP
@@ -723,8 +727,6 @@ RANLIB
 INSTALL_DATA
 INSTALL_SCRIPT
 INSTALL_PROGRAM
-LIB_SEARCH_DIRS
-INSTALL_PREFIX
 target_alias
 host_alias
 build_alias
@@ -2751,13 +2753,11 @@ else
 fi
 
 
-
 if test "${libdir}" != "${prefix}/lib"; then
     LIB_SEARCH_DIRS="-L${prefix}/lib -L${libdir}"
 else
     LIB_SEARCH_DIRS="-L${libdir}"
 fi
-
 
 
 # Find a good install program.  We prefer a C program (faster),
@@ -5384,7 +5384,6 @@ fi
 
 
 
-
     # Step 0.a: Enable 64 bit support?
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking if 64bit support is requested" >&5
@@ -7208,8 +7207,6 @@ done
 if test "x${make_command}" = "x" ; then
   as_fn_error $? "Requires GNU make. You can specify a version with \$MAKE" "$LINENO" 5
 fi
-MAKE=${make_command}
-
 
 # Check whether --enable-gui was given.
 if test "${enable_gui+set}" = set; then :
@@ -7223,7 +7220,6 @@ ENABLE_GUI=
 if test "$enable_gui" != "no" ; then
     ENABLE_GUI="yes"
 fi
-
 
 TCL_VERSION="8.4"
 for dir in \
@@ -7340,11 +7336,7 @@ fi
 fi
 
 
-
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
-
-
 
 
 
@@ -7379,7 +7371,6 @@ if test "$rp_with_vtk" != "no" ; then
     done
   fi
 fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $VTKDIR" >&5
 $as_echo "$VTKDIR" >&6; }
 
@@ -7626,11 +7617,6 @@ fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for mcc extension" >&5
 $as_echo_n "checking for mcc extension... " >&6; }
 fi
-
-
-
-
-
 
 
 #
@@ -7915,10 +7901,6 @@ echo "OCTAVE_VERSION = $OCTAVE_VERSION"
 
 
 
-
-
-
-
 # Check whether --with-perl was given.
 if test "${with_perl+set}" = set; then :
   withval=$with_perl;
@@ -8039,18 +8021,6 @@ fi
     fi
   fi
 fi
-
-
-
-
-
-
-
-
-
-
-
-
 
 PYTHON=""
 PYTHON_CFLAGS=""
@@ -8224,17 +8194,6 @@ done
 fi
 
 
-
-
-
-
-
-
-
-
-
-
-
 rp_with_ruby="yes"
 
 RUBY=""
@@ -8333,7 +8292,6 @@ fi
 
   fi
 fi
-
 
 RUBY_VERSION_RV=
 RUBY_PLATFORM=
@@ -8651,9 +8609,6 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
   fi
 fi
 
-
-
-
 JAVA=""
 JAVAH=""
 JAVAC=""
@@ -8939,14 +8894,7 @@ if test "x${JAVA}" != "x" ; then
 fi
 
 
-
-
-
-
-
-
 RP_BASE=`pwd`
-
 
 
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to build libraries" >&5
@@ -8986,21 +8934,12 @@ $as_echo "static" >&6; }
 #--------------------------------------------------------------------
 
 
-
-
-
-
-
-
-
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tclConfig.sh
 fi
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tkConfig.sh
 fi
-
-
 
 # -----------------------------------------------------------------------
 #
@@ -9372,10 +9311,6 @@ SIZEOF_VOID_P="${ac_cv_sizeof_void_p}"
 SIZEOF_INT="${ac_cv_sizeof_int}"
 
 
-
-
-
-
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols
 # option.
@@ -9620,6 +9555,76 @@ _ACEOF
 
 fi
 done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MAKE=${make_command}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
