@@ -658,9 +658,6 @@ HAVE_FFMPEG_LIBS
 ENABLE_GUI
 LDFLAGS_DEFAULT
 CFLAGS_DEFAULT
-JAVAH
-JAVAC
-JAVA
 RUBY_EXTRA_LIBS
 RUBY_SITE_PKG
 RUBY_LDFLAGS
@@ -669,6 +666,9 @@ AWK
 RUBY_VERSION
 SED
 RUBY
+JAVAH
+JAVAC
+JAVA
 PYTHON
 PERL
 mkoctfile2
@@ -782,8 +782,8 @@ with_mkoctfile3
 with_mkoctfile2
 with_perl
 with_python
-with_ruby
 with_java
+with_ruby
 enable_shared
 enable_symbols
 '
@@ -1435,8 +1435,8 @@ Optional Packages:
   --with-mkoctfile2=DIR   path of octave compiler `mkoctfile' [default=no]
   --with-perl=DIR         location of perl [default=yes]
   --with-python=DIR       location of python [default=yes]
-  --with-ruby=DIR         location of ruby [default=yes]
   --with-java=DIR         location of java [default=yes]
+  --with-ruby=DIR         location of ruby [default=yes]
 
 Some influential environment variables:
   CC          C compiler command
@@ -7619,27 +7619,6 @@ $as_echo_n "checking for mcc extension... " >&6; }
 fi
 
 
-#
-# Octave variables:
-#
-#	OCTAVE			Path to default octave executable.  Will use
-#				to determine the version.
-#	OCTAVE_VERSION		Full version of octave (X.X.X).  Used in
-#				Makefiles to indicate if we are building
-#				the octave language bindings.  The empty
-#				string indicates octave is not available.
-#	OCTAVE_VERSION_MAJOR	Single verion number of octave.  Used in
-#				rappture.env scripts to indicate how to set
-#				OCTAVE_PATH and OCTAVE_LOADPATH variables.
-#	MKOCTFILE		Path to the default octave compiler.  This
-#				variable isn't used directly.  Either
-#				MKOCTFILE2 or MKOCTFILE3 will be set to its
-#				value.
-#	MKOCTFILE2		Path to octave version 2 compiler.
-#	MKOCTFILE3		Path to octave version 3 compiler.
-#
-
-# Standard octave search (use the installed version of octave)
 
 # Check whether --with-octave was given.
 if test "${with_octave+set}" = set; then :
@@ -7920,6 +7899,8 @@ PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
 PERL_LIBSPEC=
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Perl" >&5
+$as_echo_n "checking for Perl... " >&6; }
 if test "$rp_with_perl" != "no" ; then
   if test "$rp_with_perl" != "yes" ; then
     # Extract the first word of "perl", so it can be a program name with args.
@@ -8021,6 +8002,9 @@ fi
     fi
   fi
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $PERL" >&5
+$as_echo_n "checking $PERL... " >&6; }
+
 
 PYTHON=""
 PYTHON_CFLAGS=""
@@ -8034,7 +8018,6 @@ PYTHON_SITE_DIR=""
 PYTHON_SITE_PACKAGES=""
 PYTHON_VERSION=""
 pythondir=""
-
 
 # Check whether --with-python was given.
 if test "${with_python+set}" = set; then :
@@ -8191,6 +8174,291 @@ done
       PYTHON_DISTUTILS=""
     fi
   fi
+fi
+
+
+JAVA=""
+JAVAH=""
+JAVAC=""
+JAVA_DEV_PKG="no"
+
+# Check whether --with-java was given.
+if test "${with_java+set}" = set; then :
+  withval=$with_java; rp_with_java=$withval
+fi
+
+
+if test "${rp_with_java}" != "no" ; then
+  if test "${rp_with_java}" = "yes" ; then
+    # Extract the first word of "java", so it can be a program name with args.
+set dummy java; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVA+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVA in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVA="$JAVA" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVA="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVA=$ac_cv_path_JAVA
+if test -n "$JAVA"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVA" >&5
+$as_echo "$JAVA" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    # Extract the first word of "javac", so it can be a program name with args.
+set dummy javac; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVAC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVAC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVAC="$JAVAC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVAC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVAC=$ac_cv_path_JAVAC
+if test -n "$JAVAC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAC" >&5
+$as_echo "$JAVAC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    # Extract the first word of "javah", so it can be a program name with args.
+set dummy javah; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVAH+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVAH in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVAH="$JAVAH" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVAH="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVAH=$ac_cv_path_JAVAH
+if test -n "$JAVAH"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAH" >&5
+$as_echo "$JAVAH" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  else
+    # Extract the first word of "java", so it can be a program name with args.
+set dummy java; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVA+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVA in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVA="$JAVA" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVA="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVA=$ac_cv_path_JAVA
+if test -n "$JAVA"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVA" >&5
+$as_echo "$JAVA" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    # Extract the first word of "javac", so it can be a program name with args.
+set dummy javac; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVAC+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVAC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVAC="$JAVAC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVAC="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVAC=$ac_cv_path_JAVAC
+if test -n "$JAVAC"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAC" >&5
+$as_echo "$JAVAC" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    # Extract the first word of "javah", so it can be a program name with args.
+set dummy javah; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_JAVAH+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $JAVAH in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_JAVAH="$JAVAH" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${rp_with_java}/bin:${rp_with_java}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_JAVAH="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+JAVAH=$ac_cv_path_JAVAH
+if test -n "$JAVAH"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAH" >&5
+$as_echo "$JAVAH" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  fi
+fi
+JDK=
+JAVA_INC_DIR=
+JAVA_INC_SPEC=
+
+# If java exists, let's look for the jni.h file.
+if test "x${JAVA}" != "x" ; then
+  for d in \
+   ${JAVA_HOME} \
+   /apps/java/jdk1.6.0_01 \
+   /usr/lib/jvm/*sun-1.6* \
+   /opt/sun-jdk-1.6* \
+   /opt/icedtea6-* \
+   /opt/sun-jdk-1.5* \
+   /usr/lib/jvm/*sun-1.5*
+  do
+    if test -r "${d}/include/jni.h" ; then
+      JDK=${d}
+      break;
+    fi
+  done
+  JAVA_HOME=$JDK
+  JAVA_INC_DIR=${JDK}/include
+  JAVA_INC_SPEC="-I${JDK}/include -I${JDK}/include/linux"
 fi
 
 
@@ -8607,290 +8875,6 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
     #
 
   fi
-fi
-
-JAVA=""
-JAVAH=""
-JAVAC=""
-JAVA_DEV_PKG="no"
-
-# Check whether --with-java was given.
-if test "${with_java+set}" = set; then :
-  withval=$with_java; rp_with_java=$withval
-fi
-
-
-if test "${rp_with_java}" != "no" ; then
-  if test "${rp_with_java}" = "yes" ; then
-    # Extract the first word of "java", so it can be a program name with args.
-set dummy java; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVA+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVA in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVA="$JAVA" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVA="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVA=$ac_cv_path_JAVA
-if test -n "$JAVA"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVA" >&5
-$as_echo "$JAVA" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-    # Extract the first word of "javac", so it can be a program name with args.
-set dummy javac; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVAC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVAC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVAC="$JAVAC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVAC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVAC=$ac_cv_path_JAVAC
-if test -n "$JAVAC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAC" >&5
-$as_echo "$JAVAC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-    # Extract the first word of "javah", so it can be a program name with args.
-set dummy javah; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVAH+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVAH in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVAH="$JAVAH" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVAH="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVAH=$ac_cv_path_JAVAH
-if test -n "$JAVAH"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAH" >&5
-$as_echo "$JAVAH" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  else
-    # Extract the first word of "java", so it can be a program name with args.
-set dummy java; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVA+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVA in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVA="$JAVA" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rp_with_java}/bin:${rp_with_java}"
-for as_dir in $as_dummy
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVA="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVA=$ac_cv_path_JAVA
-if test -n "$JAVA"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVA" >&5
-$as_echo "$JAVA" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-    # Extract the first word of "javac", so it can be a program name with args.
-set dummy javac; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVAC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVAC in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVAC="$JAVAC" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rp_with_java}/bin:${rp_with_java}"
-for as_dir in $as_dummy
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVAC="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVAC=$ac_cv_path_JAVAC
-if test -n "$JAVAC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAC" >&5
-$as_echo "$JAVAC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-    # Extract the first word of "javah", so it can be a program name with args.
-set dummy javah; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_JAVAH+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $JAVAH in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_JAVAH="$JAVAH" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="${rp_with_java}/bin:${rp_with_java}"
-for as_dir in $as_dummy
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_JAVAH="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-JAVAH=$ac_cv_path_JAVAH
-if test -n "$JAVAH"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAH" >&5
-$as_echo "$JAVAH" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  fi
-fi
-JDK=
-JAVA_HOME=
-JAVA_INC_DIR=
-JAVA_INC_SPEC=
-
-# If java exists, let's look for the jni.h file.
-if test "x${JAVA}" != "x" ; then
-  for d in \
-   /apps/java/jdk1.6.0_01 \
-   /usr/lib/jvm/*sun-1.6* \
-   /opt/sun-jdk-1.6* \
-   /opt/icedtea6-* \
-   /opt/sun-jdk-1.5* \
-   /usr/lib/jvm/*sun-1.5*
-  do
-    if test -r "${d}/include/jni.h" ; then
-      JDK=${d}
-      break;
-    fi
-  done
-  JAVA_HOME=$JDK
-  JAVA_INC_DIR=${JDK}/include
-  JAVA_INC_SPEC="-I${JDK}/include -I${JDK}/include/linux"
 fi
 
 

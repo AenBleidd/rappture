@@ -63,6 +63,9 @@ itcl::body Rappture::Field2DResult::constructor {args} {
 	"vtkcontour" {
 	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
 	}
+	"vtk" {
+	    # Old vtk contour widget
+	}
 	default {
 	    puts stderr "unknown render mode \"$flags(-mode)\""
 	}
