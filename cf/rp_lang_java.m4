@@ -36,11 +36,18 @@ if test "x${JAVA}" != "x" ; then
   do
     if test -r "${d}/include/jni.h" ; then
       JDK=${d}
+      JAVA_HOME=$JDK
+      JAVA_INC_DIR=${JDK}/include
+      JAVA_INC_SPEC="-I${JDK}/include -I${JDK}/include/linux"
+      break;
+    fi
+    if test -r "${d}/Headers/jni.h" ; then
+      JDK=${d}
+      JAVA_HOME=$JDK
+      JAVA_INC_DIR=${JDK}/Headers
+      JAVA_INC_SPEC="-I${JDK}/Headers -I${JDK}/Headers/macos"
       break;
     fi
   done
-  JAVA_HOME=$JDK
-  JAVA_INC_DIR=${JDK}/include
-  JAVA_INC_SPEC="-I${JDK}/include -I${JDK}/include/linux"
 fi
 ])
