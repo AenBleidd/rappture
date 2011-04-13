@@ -55,7 +55,20 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args
 
-    set servers [Rappture::VisViewer::GetServerList "nanovis"]
+    switch -- $flags(-mode) {
+	"auto" - "nanovis" - "flowvis" {
+	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
+	}
+	"vtkcontour" {
+	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+	}
+	"vtk" {
+	    # Old vtk contour widget
+	}
+	default {
+	    puts stderr "unknown render mode \"$flags(-mode)\""
+	}
+    }		
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "nanovis" {
