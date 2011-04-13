@@ -27,6 +27,8 @@ LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@ -fPIC
 TCL_VERSION     = @TCL_VERSION@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TK_LIB_SPEC     = @TK_LIB_SPEC@
+TK_XLIBSW	= @TK_XLIBSW@
 
 CC_SWITCHES     = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(SHLIB_CFLAGS) $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -45,7 +47,7 @@ CDEBUGFLAGS     = -g -Wall
 
 LIBS		= \
 		-L../../src/core -lrappture \
-		-L$(libdir) -ltcl8.4 -ltk8.4 -lm
+		-L$(libdir) $(TCL_LIB_SPEC) $(TK_LIB_SPEC) $(TK_XLIBSW) -lm
 
 OBJS 		= \
 		RapptureGUI_Init.o \
