@@ -12,9 +12,10 @@ PYTHON_SITE_DIR=""
 PYTHON_SITE_PACKAGES=""
 PYTHON_VERSION=""
 pythondir=""
+rp_with_python="yes"
 AC_ARG_WITH([python],
     [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=yes@:>@])],
-    [],
+    [rp_with_python=$withval],
     [rp_with_python=yes])
 
 if test "$rp_with_python" != "no" ; then

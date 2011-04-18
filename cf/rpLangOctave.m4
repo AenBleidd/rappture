@@ -21,6 +21,7 @@
 
 # Standard octave search (use the installed version of octave)
 AC_DEFUN([RP_LANG_OCTAVE],[
+rp_with_octave="yes"
 AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
