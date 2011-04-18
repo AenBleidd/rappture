@@ -1,4 +1,9 @@
 AC_DEFUN([RP_LANG_JAVA],[
+rp_with_java="yes"
+AC_ARG_WITH([java],
+    [AS_HELP_STRING([--with-java[=DIR]],[location of java @<:@default=yes@:>@])],
+    [rp_with_java=$withval],
+    [rp_with_java=yes])
 JAVA=""
 JAVAH=""
 JAVAC=""
@@ -26,8 +31,9 @@ JAVA_INC_SPEC=
 # If java exists, let's look for the jni.h file.
 if test "x${JAVA}" != "x" ; then
   for d in \
+   ${rp_with_java} \
    ${JAVA_HOME} \
-   /apps/java/jdk1.6.0_01 \
+   /apps/java/jdk1.6* \
    /usr/lib/jvm/*sun-1.6* \
    /opt/sun-jdk-1.6* \
    /opt/icedtea6-* \
