@@ -109,13 +109,15 @@ public:
 
     void rotateCamera(double yaw, double pitch, double roll);
 
-    void setCameraOrientation(double position[3],
-                              double focalPoint[3],
-                              double viewUp[3]);
+    void setSceneOrientation(double quat[4]);
 
-    void getCameraOrientation(double position[3],
-                              double focalPoint[3],
-                              double viewUp[3]);
+    void setCameraOrientationAndPosition(double position[3],
+                                         double focalPoint[3],
+                                         double viewUp[3]);
+
+    void getCameraOrientationAndPosition(double position[3],
+                                         double focalPoint[3],
+                                         double viewUp[3]);
 
     void panCamera(double x, double y, bool absolute = true);
 
