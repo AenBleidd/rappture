@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cassert>
 
+#include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkCoordinate.h>
 #include <vtkTransform.h>
@@ -1637,12 +1638,12 @@ Renderer::CameraMode Renderer::getCameraMode() const
 void Renderer::setSceneOrientation(double quat[4])
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkPerspectiveTransform>::New();
+    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
     double mat3[3][3];
     vtkMath::QuaternionToMatrix3x3(quat, mat3);
     vtkSmartPointer<vtkMatrix4x4> mat4 = vtkSmartPointer<vtkMatrix4x4>::New();
     for (int r = 0; r < 3; r++) {
-        memcpy(mat4[r], mat3[r], sizeof(double)*3);
+        memcpy((*mat4)[r], mat3[r], sizeof(double)*3);
     }
     trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
     trans->Concatenate(mat4);
@@ -2223,7 +2224,7 @@ void Renderer::printCameraInfo(vtkCamera *camera)
 {
     TRACE("Parallel Scale: %g, Cam pos: %g %g %g, focal pt: %g %g %g, view up: %g %g %g, Clipping range: %g %g",
           camera->GetParallelScale(),
-	  camera->GetPosition()[0],
+          camera->GetPosition()[0],
           camera->GetPosition()[1],
           camera->GetPosition()[2], 
           camera->GetFocalPoint()[0],
