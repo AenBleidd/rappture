@@ -218,7 +218,7 @@ CameraGetOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc,
     double focalPt[3];
     double viewUp[3];
 
-    g_renderer->getCameraOrientation(pos, focalPt, viewUp);
+    g_renderer->getCameraOrientationAndPosition(pos, focalPt, viewUp);
 
     char buf[256];
     snprintf(buf, sizeof(buf), "nv>camera orient %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e", 
@@ -241,19 +241,12 @@ static int
 CameraOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
-    double pos[3];
-    double focalPt[3];
-    double viewUp[3];
+    double quat[4];
 
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[5], &focalPt[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[6], &focalPt[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[7], &focalPt[2]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[8], &viewUp[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[9], &viewUp[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[10], &viewUp[2]) != TCL_OK) {
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
         return TCL_ERROR;
     }
 
@@ -329,6 +322,30 @@ CameraRotateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraSetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double pos[3];
+    double focalPt[3];
+    double viewUp[3];
+
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &focalPt[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[6], &focalPt[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[7], &focalPt[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[8], &viewUp[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[9], &viewUp[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[10], &viewUp[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setCameraOrientationAndPosition(pos, focalPt, viewUp);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -345,11 +362,12 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec cameraOps[] = {
     {"get", 1, CameraGetOrientationOp, 2, 2, ""},
     {"mode", 1, CameraModeOp, 3, 3, "mode"},
-    {"orient", 3, CameraOrientationOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
+    {"orient", 3, CameraOrientationOp, 6, 6, "qx qy qz qw"},
     {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
     {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
     {"reset", 2, CameraResetOp, 2, 3, "?all?"},
     {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
+    {"set", 1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
     {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);

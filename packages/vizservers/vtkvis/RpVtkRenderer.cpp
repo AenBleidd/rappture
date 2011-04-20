@@ -1634,9 +1634,33 @@ Renderer::CameraMode Renderer::getCameraMode() const
     return _cameraMode;
 }
 
-void Renderer::setCameraOrientation(double position[3],
-                                    double focalPoint[3],
-                                    double viewUp[3])
+void Renderer::setSceneOrientation(double quat[4])
+{
+    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkPerspectiveTransform>::New();
+    double mat3[3][3];
+    vtkMath::QuaternionToMatrix3x3(quat, mat3);
+    vtkSmartPointer<vtkMatrix4x4> mat4 = vtkSmartPointer<vtkMatrix4x4>::New();
+    for (int r = 0; r < 3; r++) {
+        memcpy(mat4[r], mat3[r], sizeof(double)*3);
+    }
+    trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
+    trans->Concatenate(mat4);
+    trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
+    camera->SetPosition(0, 0, 1);
+    camera->SetFocalPoint(0, 0, 0);
+    camera->SetViewUp(0, 1, 0);
+    camera->ApplyTransform(trans);
+    storeCameraOrientation();
+    if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
+        panCamera(_cameraPan[0], _cameraPan[1], true);
+    }
+    _needsRedraw = true;
+}
+
+void Renderer::setCameraOrientationAndPosition(double position[3],
+                                               double focalPoint[3],
+                                               double viewUp[3])
 {
     memcpy(_cameraPos, position, sizeof(double)*3);
     memcpy(_cameraFocalPoint, focalPoint, sizeof(double)*3);
@@ -1646,9 +1670,9 @@ void Renderer::setCameraOrientation(double position[3],
     _needsRedraw = true;
 }
 
-void Renderer::getCameraOrientation(double position[3],
-                                    double focalPoint[3],
-                                    double viewUp[3])
+void Renderer::getCameraOrientationAndPosition(double position[3],
+                                               double focalPoint[3],
+                                               double viewUp[3])
 {
     memcpy(position, _cameraPos, sizeof(double)*3);
     memcpy(focalPoint, _cameraFocalPoint, sizeof(double)*3);

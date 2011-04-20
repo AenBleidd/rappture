@@ -20,9 +20,8 @@ camera get
        Request current camera orientation
 camera mode <mode>
        <mode> = persp|ortho|image
-camera orient <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
-       Set camera orientation using camera position, focal point and view up 
-       vector
+camera orient <quatX> <quatY> <quatZ> <quatW>
+       Set scene orientation using a quaternion
 camera ortho <x> <y> <width> <height>
        Supply world coordinate bounds of plot area for image camera mode
        Data is assumed to lie in XY plane (z = 0)
@@ -32,6 +31,9 @@ camera reset <?all?>
        Option all resets orientation/rotation as well as pan/zoom/clip range
 camera rotate <yaw> <pitch> <roll>
        Specify relative rotation in Euler angles (FIXME)
+camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
+       Set camera orientation using camera position, focal point and view up 
+       vector
 camera zoom <z>
        Specify zoom ratio
 
