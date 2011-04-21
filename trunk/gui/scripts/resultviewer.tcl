@@ -13,7 +13,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
-package require Img
 
 itcl::class Rappture::ResultViewer {
     inherit itk::Widget
@@ -218,8 +217,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         ::Rappture::Drawing3d {
             set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
+		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
                 set w $itk_interior.vtkviewer
-                catch { Rappture::VtkViewer $w } errs
+                catch { Rappture::VtkViewer2 $w $servers } errs
 		puts stderr errs=$errs
                 set _mode2widget($mode) $w
             }
@@ -349,7 +349,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 number - integer {
                     set mode "number"
                     if {![info exists _mode2widget($mode)]} {
-                        set w $itk_interior.number
+p                        set w $itk_interior.number
                         Rappture::NumberResult $w
                         set _mode2widget($mode) $w
                     }

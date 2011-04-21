@@ -321,7 +321,7 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
         bind $itk_component(view) <5> [itcl::code $this Zoom in]
     }
 
-    set _image(download) [image create picture]
+    set _image(download) [image create photo]
 
     eval itk_initialize $args
 
@@ -799,10 +799,10 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     set _settings($this-zoom)  $_view(zoom)
 
     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera rotate $xyz"
+    #SendCmd "camera rotate $xyz"
     PanCamera
     SendCmd "camera mode persp"
-    SendCmd "camera zoom $_view(zoom)"
+    #SendCmd "camera zoom $_view(zoom)"
     FixSettings opacity
     FixSettings grid-x
     FixSettings grid-y
@@ -913,7 +913,7 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
                 }
             }
             set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            SendCmd "camera rotate $xyz"
+            #SendCmd "camera rotate $xyz"
             PanCamera
             set _settings($this-theta) $_view(theta)
             set _settings($this-phi)   $_view(phi)
@@ -933,7 +933,7 @@ itcl::body Rappture::VtkViewer2::PanCamera {} {
     set y [expr ($_view(pan-y)) / $h]
     set x [expr $x * $_limits(xmax) - $_limits(xmin)]
     set y [expr $y * $_limits(ymax) - $_limits(ymin)]
-    SendCmd "camera pan $x $y"
+    #SendCmd "camera pan $x $y"
 }
 
 
@@ -978,49 +978,20 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 		} else {
 		    set _click(q1) $q
 		}
-		puts stderr q=$q
-		puts stderr m1=[blt::arcball matrix $_click(q1)]
-		puts stderr m2=[blt::arcball matrix $q]
-                #
-                # Rotate the camera in 3D
-                #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$_view(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
-
-                if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
-                } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
-                }
-
-                set _view(theta)        $theta
-                set _view(phi)          $phi
-                set _view(psi)          $psi
-                set xyz [Euler2XYZ $theta $phi $psi]
-                set _settings($this-theta) $_view(theta)
-                set _settings($this-phi)   $_view(phi)
-                set _settings($this-psi)   $_view(psi)
-                SendCmd "camera rotate $xyz" 
+                SendCmd "camera orient $_click(q1)" 
+                #SendCmd "camera orient $q" 
                 set _click(x) $x
                 set _click(y) $y
+		puts stderr q=$_click(q1)
+		puts stderr m1=[blt::arcball matrix $_click(q1)]
+		puts stderr m2=[blt::arcball matrix $q]
             }
         }
         "release" {
             Rotate drag $x $y
             $itk_component(view) configure -cursor ""
-	    #puts stderr "unsetting _click"
-            #catch {unset _click}
+	    puts stderr "unsetting _click"
+            catch {unset _click}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
@@ -1423,7 +1394,7 @@ itcl::body Rappture::VtkViewer2::camera {option args} {
                 "phi" - "theta" - "psi" {
                     set _view($who) $_settings($this-$who)
                     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-                    SendCmd "camera rotate $xyz"
+                    #SendCmd "camera rotate $xyz"
                 }
                 "zoom" {
                     set _view($who) $_settings($this-$who)
@@ -1517,6 +1488,7 @@ itcl::body Rappture::VtkViewer2::BuildDownloadPopup { popup command } {
 }
 
 itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
+    puts stderr "Entering SetObjectStyle: dataobj=$dataobj"
     array set props {
         -color \#6666FF
         -edgevisibility 1
