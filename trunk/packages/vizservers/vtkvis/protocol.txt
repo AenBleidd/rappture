@@ -20,7 +20,7 @@ camera get
        Request current camera orientation
 camera mode <mode>
        <mode> = persp|ortho|image
-camera orient <quatX> <quatY> <quatZ> <quatW>
+camera orient <quatW> <quatX> <quatY> <quatZ>
        Set scene orientation using a quaternion
 camera ortho <x> <y> <width> <height>
        Supply world coordinate bounds of plot area for image camera mode
