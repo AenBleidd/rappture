@@ -360,15 +360,15 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    { "get",    1, CameraGetOrientationOp, 2, 2, ""},
-    { "mode",   1, CameraModeOp, 3, 3, "mode"},
-    { "orient", 3, CameraOrientationOp, 6, 6, "qx qy qz qw"},
-    { "ortho",  3, CameraOrthoOp, 6, 6, "x y width height"},
-    { "pan",    1, CameraPanOp, 4, 4, "panX panY"},
-    { "reset",  2, CameraResetOp, 2, 3, "?all?"},
-    { "rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
-    { "set",    1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
-    { "zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
+    {"get", 1, CameraGetOrientationOp, 2, 2, ""},
+    {"mode", 1, CameraModeOp, 3, 3, "mode"},
+    {"orient", 3, CameraOrientationOp, 6, 6, "qw qx qy qz"},
+    {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
+    {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
+    {"reset", 2, CameraResetOp, 2, 3, "?all?"},
+    {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
+    {"set", 1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
+    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
