@@ -167,10 +167,10 @@ AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec axisOps[] = {
-    {"color", 1, AxisColorOp, 5, 5, "r g b"},
-    {"grid", 1, AxisGridOp, 4, 4, "axis bool"},
-    {"name", 1, AxisNameOp, 4, 4, "axis title"},
-    {"units", 1, AxisUnitsOp, 4, 4, "axis units"},
+    {"color",   1, AxisColorOp, 5, 5, "r g b"},
+    {"grid",    1, AxisGridOp, 4, 4, "axis bool"},
+    {"name",    1, AxisNameOp, 4, 4, "axis title"},
+    {"units",   1, AxisUnitsOp, 4, 4, "axis units"},
     {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"}
 };
 static int nAxisOps = NumCmdSpecs(axisOps);
@@ -360,15 +360,15 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    {"get", 1, CameraGetOrientationOp, 2, 2, ""},
-    {"mode", 1, CameraModeOp, 3, 3, "mode"},
-    {"orient", 3, CameraOrientationOp, 6, 6, "qx qy qz qw"},
-    {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
-    {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
-    {"reset", 2, CameraResetOp, 2, 3, "?all?"},
-    {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
-    {"set", 1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
-    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"}
+    { "get",    1, CameraGetOrientationOp, 2, 2, ""},
+    { "mode",   1, CameraModeOp, 3, 3, "mode"},
+    { "orient", 3, CameraOrientationOp, 6, 6, "qx qy qz qw"},
+    { "ortho",  3, CameraOrthoOp, 6, 6, "x y width height"},
+    { "pan",    1, CameraPanOp, 4, 4, "panX panY"},
+    { "reset",  2, CameraResetOp, 2, 3, "?all?"},
+    { "rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
+    { "set",    1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
+    { "zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
@@ -480,8 +480,8 @@ ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec colorMapOps[] = {
-    {"add", 1, ColorMapAddOp, 5, 5, "colorMapName colormap alphamap"},
-    {"delete", 1, ColorMapDeleteOp, 2, 3, "?colorMapName?"}
+    { "add",    1, ColorMapAddOp,    5, 5, "colorMapName colormap alphamap"},
+    { "delete", 1, ColorMapDeleteOp, 2, 3, "?colorMapName?"}
 };
 static int nColorMapOps = NumCmdSpecs(colorMapOps);
 
@@ -671,13 +671,13 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec contour2dOps[] = {
-    {"add", 1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"delete", 1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
-    {"lighting", 3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"add",       1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"delete",    1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
+    {"lighting",  3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, Contour2DLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity", 1, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"visible", 1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"opacity",   1, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",   1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nContour2dOps = NumCmdSpecs(contour2dOps);
 
@@ -886,12 +886,12 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec dataSetOps[] = {
-    {"add", 1, DataSetAddOp, 6, 6, "name data follows nBytes"},
-    {"delete", 1, DataSetDeleteOp, 2, 3, "?name?"},
+    {"add",      1, DataSetAddOp, 6, 6, "name data follows nBytes"},
+    {"delete",   1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
     {"maprange", 1, DataSetMapRangeOp, 3, 3, "value"},
-    {"opacity", 1, DataSetOpacityOp, 3, 4, "value ?name?"},
-    {"visible", 1, DataSetVisibleOp, 3, 4, "bool ?name?"}
+    {"opacity",  1, DataSetOpacityOp, 3, 4, "value ?name?"},
+    {"visible",  1, DataSetVisibleOp, 3, 4, "bool ?name?"}
 };
 static int nDataSetOps = NumCmdSpecs(dataSetOps);
 
@@ -1101,15 +1101,15 @@ PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec pseudoColorOps[] = {
-    {"add", 1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
-    {"colormap", 1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"delete", 1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges", 1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting", 3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",  1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity", 1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"visible", 1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"opacity",   1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
 
@@ -1294,15 +1294,15 @@ PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec polyDataOps[] = {
-    {"add", 1, PolyDataAddOp, 2, 3, "?dataSetName?"},
-    {"color", 1, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"delete", 1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges", 1, PolyDataEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting", 3, PolyDataLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"add",       1, PolyDataAddOp, 2, 3, "?dataSetName?"},
+    {"color",     1, PolyDataColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"delete",    1, PolyDataDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",     1, PolyDataEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",  3, PolyDataLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, PolyDataLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, PolyDataLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity", 1, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"visible", 1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"opacity",   1, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",   1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PolyDataWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPolyDataOps = NumCmdSpecs(polyDataOps);
