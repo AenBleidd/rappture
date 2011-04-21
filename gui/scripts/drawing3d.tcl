@@ -71,20 +71,7 @@ itcl::body Rappture::Drawing3d::constructor {xmlobj path} {
     foreach elem [$_xmlobj children $path] {
         switch -glob -- $elem {
             polygon* {
-                set data [$_xmlobj get $path.$elem.vtk]
-                set arr [vtkCharArray $this-xvtkCharArray]
-                $arr SetArray $data [string length $data] 1
-                set reader [vtkPolyDataReader $this-xvtkPolyDataReader]
-                $reader SetInputArray $arr
-                $reader ReadFromInputStringOn
-                set mapper [vtkPolyDataMapper $this-xvtkPolyDataMapper]
-                $mapper SetInput [$reader GetOutput]
-                set actor [vtkActor $this-xvthActor]
-                $actor SetMapper $mapper
-                set _actors($elem) $actor
-                set _limits($elem) [$actor GetBounds]
-                set _styles($elem) [$_xmlobj get $path.$elem.style]
-                set _data($elem) $mapper
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
             }
         }
     }
@@ -130,9 +117,7 @@ itcl::body Rappture::Drawing3d::constructor {xmlobj path} {
 # Destructor
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing3d::destructor {} {
-    foreach key [array names _actors] {
-        set actor _actors($key)
-    }
+    # empty
 }
 
 # ----------------------------------------------------------------------
@@ -168,14 +153,14 @@ itcl::body Rappture::Drawing3d::data { elem } {
 #	on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing3d::values { elem } {
-    if { [info exists _actors($elem)] } {
-        return $_actors($elem)
+    if { [info exists _data($elem)] } {
+        return $_data($elem)
     } 
     return ""
 }
 
 itcl::body Rappture::Drawing3d::components { args } {
-    return [array names _actors] 
+    return [array names _data] 
 }
 
 # ----------------------------------------------------------------------
@@ -186,7 +171,7 @@ itcl::body Rappture::Drawing3d::components { args } {
 itcl::body Rappture::Drawing3d::limits {which} {
     set min ""
     set max ""
-    foreach key [array names _actors] {
+    foreach key [array names _data] {
         set actor $_actors($key)
         foreach key { xMin xMax yMin yMax zMin zMax} value [$actor GetBounds] {
             set _limits($key) $value
