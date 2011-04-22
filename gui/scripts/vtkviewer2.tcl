@@ -90,6 +90,7 @@ itcl::class Rappture::VtkViewer2 {
     private method SetObjectStyle { dataobj comp } 
     private method IsValidObject { dataobj } 
 
+    private variable _arcball ""
     private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
@@ -158,6 +159,9 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
 	x2 -1
 	y2 -1
     }
+    set _arcball [blt::arcball create 100 100]
+    $_arcball matrix { 1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0 }
+    puts stderr start=[$_arcball quaternion]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -340,6 +344,7 @@ itcl::body Rappture::VtkViewer2::destructor {} {
     image delete $_image(plot)
     image delete $_image(download)
     array unset _settings $this-*
+    blt::arcball destroy $_arcball
 }
 
 itcl::body Rappture::VtkViewer2::DoResize {} {
@@ -356,6 +361,7 @@ itcl::body Rappture::VtkViewer2::DoResize {} {
 itcl::body Rappture::VtkViewer2::EventuallyResize { w h } {
     set _width $w
     set _height $h
+    $_arcball resize $w $h
     if { !$_resizePending } {
         $_dispatcher event -after 100 !resize
         set _resizePending 1
@@ -922,6 +928,7 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
             set _settings($this-pan-y) $_view(pan-y)
             set _settings($this-zoom)  $_view(zoom)
             SendCmd "camera reset all"
+	    $_arcball reset
         }
     }
 }
@@ -972,19 +979,17 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
                 }]} {
                     return
                 }
-		set q [blt::arcball rotate $w $h $_click(x) $_click(y) $x $y]
-		if { [info exists _click(q1)] } {
-		    set _click(q1) [blt::arcball combine $_click(q1) $q]
-		} else {
-		    set _click(q1) $q
+		if { $dx == 0 && $dy == 0 } {
+		    return
 		}
-                SendCmd "camera orient $_click(q1)" 
+		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+                SendCmd "camera orient $q" 
                 #SendCmd "camera orient $q" 
+		puts stderr "rotate q=$q"
+		puts stderr "arcball matrix=[$_arcball matrix]"
+		puts stderr "arcball quaternion=[$_arcball quaternion]"
                 set _click(x) $x
                 set _click(y) $y
-		puts stderr q=$_click(q1)
-		puts stderr m1=[blt::arcball matrix $_click(q1)]
-		puts stderr m2=[blt::arcball matrix $q]
             }
         }
         "release" {
