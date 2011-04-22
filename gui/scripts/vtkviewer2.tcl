@@ -1403,7 +1403,7 @@ itcl::body Rappture::VtkViewer2::camera {option args} {
                 }
                 "zoom" {
                     set _view($who) $_settings($this-$who)
-                    #SendCmd "camera zoom $_view(zoom)"
+                    SendCmd "camera zoom $_view(zoom)"
                 }
             }
         }
