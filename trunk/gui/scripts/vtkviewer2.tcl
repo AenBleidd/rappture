@@ -934,13 +934,15 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
 }
 
 itcl::body Rappture::VtkViewer2::PanCamera {} {
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    set x [expr ($_view(pan-x)) / $w]
-    set y [expr ($_view(pan-y)) / $h]
-    set x [expr $x * $_limits(xmax) - $_limits(xmin)]
-    set y [expr $y * $_limits(ymax) - $_limits(ymin)]
-    #SendCmd "camera pan $x $y"
+#    set w [winfo width $itk_component(view)]
+#    set h [winfo height $itk_component(view)]
+#    set x [expr ($_view(pan-x)) / $w]
+#    set y [expr ($_view(pan-y)) / $h]
+#    set x [expr $x * $_limits(xmax) - $_limits(xmin)]
+#    set y [expr $y * $_limits(ymax) - $_limits(ymin)]
+    set x $_view(pan-x)
+    set y $_view(pan-y)
+    SendCmd "camera pan $x $y"
 }
 
 
@@ -984,7 +986,6 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 		}
 		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
                 SendCmd "camera orient $q" 
-                #SendCmd "camera orient $q" 
 		puts stderr "rotate q=$q"
 		puts stderr "arcball matrix=[$_arcball matrix]"
 		puts stderr "arcball quaternion=[$_arcball quaternion]"
@@ -1018,8 +1019,8 @@ itcl::body Rappture::VtkViewer2::Pan {option x y} {
 	"set" {
 	    set w [winfo width $itk_component(view)]
 	    set h [winfo height $itk_component(view)]
-	    set x [expr (($w - $x) / double($w))]
-	    set y [expr (($h - $y) / double($h))]
+	    set x [expr $x / double($w)]
+	    set y [expr $y / double($h)]
 	    set _view(pan-x) [expr $_view(pan-x) + $x]
 	    set _view(pan-y) [expr $_view(pan-y) + $y]
 	    PanCamera
