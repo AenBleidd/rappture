@@ -250,7 +250,7 @@ CameraOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    g_renderer->setSceneOrientation(quat);
+    g_renderer->setCameraOrientation(quat);
     return TCL_OK;
 }
 

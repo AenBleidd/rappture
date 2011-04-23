@@ -109,7 +109,7 @@ public:
 
     void rotateCamera(double yaw, double pitch, double roll);
 
-    void setSceneOrientation(double quat[4]);
+    void setCameraOrientation(double quat[4]);
 
     void setCameraOrientationAndPosition(double position[3],
                                          double focalPoint[3],
