@@ -1635,7 +1635,7 @@ Renderer::CameraMode Renderer::getCameraMode() const
     return _cameraMode;
 }
 
-void Renderer::setSceneOrientation(double quat[4])
+void Renderer::setCameraOrientation(double quat[4])
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
@@ -1645,17 +1645,34 @@ void Renderer::setSceneOrientation(double quat[4])
     for (int r = 0; r < 3; r++) {
         memcpy((*mat4)[r], mat3[r], sizeof(double)*3);
     }
-    trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
-    trans->Concatenate(mat4);
-    trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
+    TRACE("Arcball camera matrix: %g %g %g %g %g %g %g %g %g",
+          (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
+          (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
+          (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
     camera->SetPosition(0, 0, 1);
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
+    camera->SetViewAngle(30);
+    _renderer->ResetCamera();
+    camera->GetFocalPoint(_cameraFocalPoint);
+    trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
+    trans->Concatenate(mat4);
+    trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
     camera->ApplyTransform(trans);
     storeCameraOrientation();
-    if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
-        panCamera(_cameraPan[0], _cameraPan[1], true);
+    if (_cameraZoomRatio != 1.0) {
+        double z = _cameraZoomRatio;
+        _cameraZoomRatio = 1.0;
+        zoomCamera(z, true);
     }
+    if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
+        double panx = _cameraPan[0];
+        double pany = -_cameraPan[1];
+        _cameraPan[0] = 0;
+        _cameraPan[1] = 0;
+        panCamera(panx, pany, true);
+    }
+    printCameraInfo(camera);
     _needsRedraw = true;
 }
 
@@ -1680,6 +1697,10 @@ void Renderer::getCameraOrientationAndPosition(double position[3],
     memcpy(viewUp, _cameraUp, sizeof(double)*3);
 }
 
+/**
+ * \brief Saves the current camera orientation and position in order to
+ * be able to later restore the saved orientation and position
+ */
 void Renderer::storeCameraOrientation()
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
@@ -1688,6 +1709,10 @@ void Renderer::storeCameraOrientation()
     camera->GetViewUp(_cameraUp);
 }
 
+/**
+ * \brief Use the stored orientation and position to set the camera's
+ * current state
+ */
 void Renderer::restoreCameraOrientation()
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
@@ -1703,11 +1728,11 @@ void Renderer::restoreCameraOrientation()
  */
 void Renderer::resetCamera(bool resetOrientation)
 {
+    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     if (_cameraMode == IMAGE) {
         initCamera();
     } else {
         if (resetOrientation) {
-            vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
             camera->SetPosition(0, 0, 1);
             camera->SetFocalPoint(0, 0, 0);
             camera->SetViewUp(0, 1, 0);
@@ -1715,10 +1740,14 @@ void Renderer::resetCamera(bool resetOrientation)
         } else {
             restoreCameraOrientation();
         }
+        camera->SetViewAngle(30);
         _renderer->ResetCamera();
         _renderer->ResetCameraClippingRange();
         computeScreenWorldCoords();
     }
+
+    printCameraInfo(camera);
+
     _cameraZoomRatio = 1;
     _cameraPan[0] = 0;
     _cameraPan[1] = 0;
@@ -1760,6 +1789,9 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
  */
 void Renderer::panCamera(double x, double y, bool absolute)
 {
+    TRACE("Enter panCamera: %g %g, current abs: %g %g",
+          x, y, _cameraPan[0], _cameraPan[1]);
+
     if (_cameraMode == IMAGE) {
         // Reverse x rather than y, since we are panning the camera, and client
         // expects to be panning/moving the object
@@ -1836,6 +1868,10 @@ void Renderer::panCamera(double x, double y, bool absolute)
         storeCameraOrientation();
         computeScreenWorldCoords();
     }
+
+    TRACE("Leave panCamera: %g %g, current abs: %g %g",
+          x, y, _cameraPan[0], _cameraPan[1]);
+
     _needsRedraw = true;
 }
 
@@ -1847,6 +1883,10 @@ void Renderer::panCamera(double x, double y, bool absolute)
  */
 void Renderer::zoomCamera(double z, bool absolute)
 {
+    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+    TRACE("Enter Zoom: current abs: %g, z: %g, view angle %g",
+          _cameraZoomRatio, z, camera->GetViewAngle());
+
     if (absolute) {
         assert(_cameraZoomRatio > 0.0);
         double zAbs = z;
@@ -1855,6 +1895,7 @@ void Renderer::zoomCamera(double z, bool absolute)
     } else {
         _cameraZoomRatio *= z;
     }
+
     if (_cameraMode == IMAGE) {
         double dx = _imgWorldDims[0];
         double dy = _imgWorldDims[1];
@@ -1867,12 +1908,15 @@ void Renderer::zoomCamera(double z, bool absolute)
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
     } else {
-        vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
         camera->Zoom(z); // Change perspective FOV angle or ortho parallel scale
         //camera->Dolly(z); // Move camera forward/back
         _renderer->ResetCameraClippingRange();
         storeCameraOrientation();
     }
+
+    TRACE("Leave Zoom: rel %g, new abs: %g, view angle %g", 
+          z, _cameraZoomRatio, camera->GetViewAngle());
+
     _needsRedraw = true;
 }
 
@@ -2222,8 +2266,9 @@ void Renderer::initCamera()
  */
 void Renderer::printCameraInfo(vtkCamera *camera)
 {
-    TRACE("Parallel Scale: %g, Cam pos: %g %g %g, focal pt: %g %g %g, view up: %g %g %g, Clipping range: %g %g",
+    TRACE("Parallel Scale: %g, View angle: %g, Cam pos: %g %g %g, focal pt: %g %g %g, view up: %g %g %g, Clipping range: %g %g",
           camera->GetParallelScale(),
+          camera->GetViewAngle(),
           camera->GetPosition()[0],
           camera->GetPosition()[1],
           camera->GetPosition()[2], 
