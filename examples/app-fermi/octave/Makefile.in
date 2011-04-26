@@ -18,10 +18,10 @@ MKOCTFILE2	= @MKOCTFILE2@
 
 SUBDIRS		= 
 ifneq ($(MKOCTFILE3),)
-  LANGS += 3
+  SUBDIRS += 3
 endif
 ifneq ($(MKOCTFILE2),)
-  LANGS += 2
+  SUBDIRS += 2
 endif
 
 all: 
