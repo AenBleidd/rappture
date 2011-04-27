@@ -39,6 +39,7 @@ destdir		= $(prefix)/lib/Rappture$(VERSION)/scripts
 
 FILES		= \
 		$(srcdir)/exec.tcl \
+		$(srcdir)/getopts.tcl \
 		$(srcdir)/library.tcl \
 		$(srcdir)/objects.tcl \
 		$(srcdir)/result.tcl \
