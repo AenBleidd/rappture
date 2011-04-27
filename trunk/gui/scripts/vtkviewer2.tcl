@@ -161,7 +161,6 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
     }
     set _arcball [blt::arcball create 100 100]
     $_arcball matrix { 1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0 }
-    puts stderr start=[$_arcball quaternion]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -330,9 +329,6 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
     eval itk_initialize $args
 
     Connect
-    puts stderr waiting
-    #after 30000
-    puts stderr continuing
 }
 
 # ----------------------------------------------------------------------
@@ -389,7 +385,6 @@ itcl::body Rappture::VtkViewer2::add {dataobj {settings ""}} {
     array set params $settings
     set params(-description) ""
     set params(-param) ""
-    puts stderr "vtkviewer2 add dataobj=$dataobj settings=[array get params]"
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
@@ -421,7 +416,6 @@ itcl::body Rappture::VtkViewer2::add {dataobj {settings ""}} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::delete {args} {
-    puts stderr "vtkviewer2 delete args=$args"
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -433,8 +427,6 @@ itcl::body Rappture::VtkViewer2::delete {args} {
 	    continue;			# Don't know anything about it.
 	}
 	# Remove it from the dataobj list.
-	puts stderr "remove dataobj=$dataobj from dlist=$_dlist"
-	puts stderr "components dataobj=$dataobj component=[$dataobj components]"
 	set _dlist [lreplace $_dlist $pos $pos]
 	foreach comp [$dataobj components] {
 	    SendCmd "dataset visible 0 $dataobj-$comp"
@@ -733,11 +725,9 @@ itcl::body Rappture::VtkViewer2::ReceiveDataset { args } {
 	    switch -- $option {
 		"world" {
 		    foreach { x y z value } [lrange $args 2 end] break
-		    puts stderr "world x=$x y=$y z=$z value=$value"
 		}
 		"pixel" {
 		    foreach { x y value } [lrange $args 2 end] break
-		    puts stderr "pixel x=$x y=$y value=$value"
 		}
 	    }
 	}
@@ -769,7 +759,6 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     set _limits(vmax) ""
     set _first ""
     foreach dataobj [get -objects] {
-	puts stderr "dataobj=$dataobj"
 	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
 	    set _first $dataobj
 	}
@@ -955,7 +944,6 @@ itcl::body Rappture::VtkViewer2::PanCamera {} {
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::Rotate {option x y} {
-    puts stderr "Rotate option=$option x=$x y=$y"
     switch -- $option {
         "click" {
             $itk_component(view) configure -cursor fleur
@@ -986,9 +974,6 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 		}
 		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
                 SendCmd "camera orient $q" 
-		puts stderr "rotate q=$q"
-		puts stderr "arcball matrix=[$_arcball matrix]"
-		puts stderr "arcball quaternion=[$_arcball quaternion]"
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -996,7 +981,6 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
         "release" {
             Rotate drag $x $y
             $itk_component(view) configure -cursor ""
-	    puts stderr "unsetting _click"
             catch {unset _click}
         }
         default {
@@ -1014,7 +998,6 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::Pan {option x y} {
-    puts stderr "Pan option=$option x=$x y=$y"
     switch -- $option {
 	"set" {
 	    set w [winfo width $itk_component(view)]
@@ -1170,7 +1153,6 @@ itcl::body Rappture::VtkViewer2::SetStyles { dataobj comp } {
 # BuildColormap --
 #
 itcl::body Rappture::VtkViewer2::BuildColormap { colormap dataobj comp } {
-    puts stderr "BuildColormap $colormap"
     array set style {
         -color rainbow
         -levels 6
@@ -1494,7 +1476,6 @@ itcl::body Rappture::VtkViewer2::BuildDownloadPopup { popup command } {
 }
 
 itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
-    puts stderr "Entering SetObjectStyle: dataobj=$dataobj"
     array set props {
         -color \#6666FF
         -edgevisibility 1
@@ -1514,7 +1495,6 @@ itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
     SendCmd "polydata linecolor [Color2RGB $props(-edgecolor)] $tag"
     SendCmd "polydata linewidth $props(-linewidth) $tag"
     SendCmd "polydata opacity $props(-opacity) $tag"
-    puts stderr "SetObjectStyle: dataobj=$dataobj _first=$_first"
     if { $dataobj != $_first } {
 	set props(-wireframe) 1
     }
