@@ -9,6 +9,8 @@ screen size <width> <height>
 
 axis color <r> <g> <b>
      Set color of axis lines, labels, titles, ticks
+axis flymode <mode>
+     <mode> = static_edges|static_triad|outer_edges|furthest_triad|closest_triad
 axis grid <bool>
 axis name <axis> <title>
 axis units <axis> <units>

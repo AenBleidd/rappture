@@ -49,6 +49,14 @@ public:
         Z_AXIS
     };
 
+    enum AxesFlyMode {
+        FLY_OUTER_EDGES = 0,
+        FLY_CLOSEST_TRIAD,
+        FLY_FURTHEST_TRIAD,
+        FLY_STATIC_EDGES,
+        FLY_STATIC_TRIAD
+    };
+
     enum CameraMode {
         PERSPECTIVE,
         ORTHO,
@@ -132,6 +140,8 @@ public:
     void getRenderedFrame(vtkUnsignedCharArray *imgData);
 
     // Axes
+
+    void setAxesFlyMode(AxesFlyMode mode);
 
     void setAxesGridVisibility(bool state);
 

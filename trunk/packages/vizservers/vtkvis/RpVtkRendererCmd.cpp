@@ -73,6 +73,32 @@ AxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+AxisFlyModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Renderer::AxesFlyMode mode;
+    if ((c == 's') && (strcmp(string, "static_edges") == 0)) {
+        mode = Renderer::FLY_STATIC_EDGES;
+    } else if ((c == 's') && (strcmp(string, "static_triad") == 0)) {
+        mode = Renderer::FLY_STATIC_TRIAD;
+    } else if ((c == 'o') && (strcmp(string, "outer_edges") == 0)) {
+        mode = Renderer::FLY_OUTER_EDGES;
+    } else if ((c == 'f') && (strcmp(string, "furthest_triad") == 0)) {
+        mode = Renderer::FLY_FURTHEST_TRIAD;
+    } else if ((c == 'c') && (strcmp(string, "closest_triad") == 0)) {
+        mode = Renderer::FLY_CLOSEST_TRIAD;
+    } else {
+        Tcl_AppendResult(interp, "bad axis flymode option \"", string,
+                         "\": should be static_edges, static_triad, outer_edges, furthest_triad, or closest_triad", (char*)NULL);
+        return TCL_ERROR;
+    }
+    g_renderer->setAxesFlyMode(mode);
+    return TCL_OK;
+}
+
+static int
 AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -168,6 +194,7 @@ AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec axisOps[] = {
     {"color",   1, AxisColorOp, 5, 5, "r g b"},
+    {"flymode", 1, AxisFlyModeOp, 3, 3, "mode"},
     {"grid",    1, AxisGridOp, 4, 4, "axis bool"},
     {"name",    1, AxisNameOp, 4, 4, "axis title"},
     {"units",   1, AxisUnitsOp, 4, 4, "axis units"},
@@ -203,7 +230,7 @@ CameraModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Renderer::IMAGE;
     } else {
         Tcl_AppendResult(interp, "bad camera mode option \"", string,
-                         "\": should be perspective, ortho or image", (char*)NULL);
+                         "\": should be persp, ortho or image", (char*)NULL);
         return TCL_ERROR;
     }
     g_renderer->setCameraMode(mode);

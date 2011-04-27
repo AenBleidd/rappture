@@ -373,7 +373,7 @@ void Renderer::resetAxes()
             _renderer->AddActor(_cubeAxesActor);
         }
         double bounds[6];
-        collectBounds(bounds, true);
+        collectBounds(bounds, false);
         _cubeAxesActor->SetBounds(bounds);
     }
 }
@@ -445,6 +445,34 @@ void Renderer::initAxes()
         if (!_renderer->HasViewProp(_cubeAxesActor))
             _renderer->AddActor(_cubeAxesActor);
     }
+}
+
+/**
+ * \brief Set Fly mode of axes
+ */
+void Renderer::setAxesFlyMode(AxesFlyMode mode)
+{
+    if (_cubeAxesActor == NULL)
+        initAxes();
+    switch (mode) {
+    case FLY_STATIC_EDGES:
+        _cubeAxesActor->SetFlyModeToStaticEdges();
+        break;
+    case FLY_STATIC_TRIAD:
+        _cubeAxesActor->SetFlyModeToStaticTriad();
+        break;
+    case FLY_OUTER_EDGES:
+        _cubeAxesActor->SetFlyModeToOuterEdges();
+        break;
+    case FLY_FURTHEST_TRIAD:
+        _cubeAxesActor->SetFlyModeToFurthestTriad();
+        break;
+    case FLY_CLOSEST_TRIAD:
+    default:
+        _cubeAxesActor->SetFlyModeToClosestTriad();
+        break;
+    }
+    _needsRedraw = true;
 }
 
 /**
@@ -1653,7 +1681,9 @@ void Renderer::setCameraOrientation(double quat[4])
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
     camera->SetViewAngle(30);
-    _renderer->ResetCamera();
+    double bounds[6];
+    collectBounds(bounds, false);
+    _renderer->ResetCamera(bounds);
     camera->GetFocalPoint(_cameraFocalPoint);
     trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
     trans->Concatenate(mat4);
@@ -1741,7 +1771,9 @@ void Renderer::resetCamera(bool resetOrientation)
             restoreCameraOrientation();
         }
         camera->SetViewAngle(30);
-        _renderer->ResetCamera();
+        double bounds[6];
+        collectBounds(bounds, false);
+        _renderer->ResetCamera(bounds);
         _renderer->ResetCameraClippingRange();
         computeScreenWorldCoords();
     }
@@ -2234,7 +2266,7 @@ void Renderer::setPerspectiveCameraByBounds(double bounds[6])
 void Renderer::initCamera()
 {
     double bounds[6];
-    collectBounds(bounds, true);
+    collectBounds(bounds, false);
     _imgWorldOrigin[0] = bounds[0];
     _imgWorldOrigin[1] = bounds[2];
     _imgWorldDims[0] = bounds[1] - bounds[0];
@@ -2244,19 +2276,19 @@ void Renderer::initCamera()
     _cameraZoomRatio = 1;
 
     if (_cameraMode == IMAGE) {
-        _renderer->ResetCamera();
+        _renderer->ResetCamera(bounds);
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
         resetAxes();
     } else if (_cameraMode == ORTHO) {
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes();
-        _renderer->ResetCamera();
+        _renderer->ResetCamera(bounds);
         computeScreenWorldCoords();
     } else if (_cameraMode == PERSPECTIVE) {
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes();
-        _renderer->ResetCamera();
+        _renderer->ResetCamera(bounds);
         computeScreenWorldCoords();
     }
 }
