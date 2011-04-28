@@ -159,20 +159,22 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
 	x2 -1
 	y2 -1
     }
-    set _arcball [blt::arcball create 100 100]
-    $_arcball matrix { 1.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 1.0 }
-
     # Initialize the view to some default parameters.
     array set _view {
-        theta		45
-        phi		45
-        psi		0 
+	qx		0
+	qy		0
+	qz		0
+	qw		1
         zoom		1.0 
         pan-x		0
         pan-y		0
 	zoom-x		1.0
 	zoom-y		1.0
     }
+    set _arcball [blt::arcball create 100 100]
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
@@ -181,17 +183,11 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
         $this-edges		1
         $this-lighting		1
         $this-opacity		1
-        $this-pan-x		$_view(pan-x)
-        $this-pan-y		$_view(pan-y)
-        $this-phi		$_view(phi)
-        $this-psi		$_view(psi)
-        $this-theta		$_view(theta)
         $this-volume		1
         $this-wireframe		0
         $this-grid-x		0
         $this-grid-y		0
         $this-grid-z		0
-        $this-zoom		$_view(zoom)
     }]
 
     itk_component add view {
@@ -785,19 +781,13 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     #
     # Reset the camera and other view parameters
     #
-
-    set _settings($this-theta) $_view(theta)
-    set _settings($this-phi)   $_view(phi)
-    set _settings($this-psi)   $_view(psi)
-    set _settings($this-pan-x) $_view(pan-x)
-    set _settings($this-pan-y) $_view(pan-y)
-    set _settings($this-zoom)  $_view(zoom)
-
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    #SendCmd "camera rotate $xyz"
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
     PanCamera
     SendCmd "camera mode persp"
-    #SendCmd "camera zoom $_view(zoom)"
+    Zoom reset
+
     FixSettings opacity
     FixSettings grid-x
     FixSettings grid-y
@@ -882,42 +872,36 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-            set _settings($this-zoom) $_view(zoom)
 	    SendCmd "camera zoom $_view(zoom)"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-            set _settings($this-zoom) $_view(zoom)
 	    SendCmd "camera zoom $_view(zoom)"
         }
         "reset" {
             array set _view {
-                theta   45
-                phi     45
-                psi     0
+                qx	0
+                qy      0
+                qz      0
+                qw      1
                 zoom    1.0
                 pan-x   0
                 pan-y   0
 		zoom-x  1.0
 		zoom-y  1.0
             }
+            SendCmd "camera reset all"
             if { $_first != "" } {
                 set location [$_first hints camera]
                 if { $location != "" } {
                     array set _view $location
+		    parray _view
                 }
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            #SendCmd "camera rotate $xyz"
+	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+	    $_arcball quaternion $q
+	    SendCmd "camera orient $q" 
             PanCamera
-            set _settings($this-theta) $_view(theta)
-            set _settings($this-phi)   $_view(phi)
-            set _settings($this-psi)   $_view(psi)
-            set _settings($this-pan-x) $_view(pan-x)
-            set _settings($this-pan-y) $_view(pan-y)
-            set _settings($this-zoom)  $_view(zoom)
-            SendCmd "camera reset all"
-	    $_arcball reset
         }
     }
 }
@@ -949,8 +933,6 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
             $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
         }
         "drag" {
             if {[array size _click] == 0} {
@@ -973,6 +955,7 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 		    return
 		}
 		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+		foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
                 SendCmd "camera orient $q" 
                 set _click(x) $x
                 set _click(y) $y
@@ -1007,8 +990,6 @@ itcl::body Rappture::VtkViewer2::Pan {option x y} {
 	    set _view(pan-x) [expr $_view(pan-x) + $x]
 	    set _view(pan-y) [expr $_view(pan-y) + $y]
 	    PanCamera
-	    set _settings($this-pan-x) $_view(pan-x)
-	    set _settings($this-pan-y) $_view(pan-y)
 	    return
 	}
 	"click" {
@@ -1026,8 +1007,6 @@ itcl::body Rappture::VtkViewer2::Pan {option x y} {
 	    set _view(pan-x) [expr $_view(pan-x) - $dx]
 	    set _view(pan-y) [expr $_view(pan-y) - $dy]
 	    PanCamera
-	    set _settings($this-pan-x) $_view(pan-x)
-	    set _settings($this-pan-y) $_view(pan-y)
 	}
 	"release" {
 	    Pan drag $x $y
@@ -1338,12 +1317,12 @@ itcl::body Rappture::VtkViewer2::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set labels { phi theta psi pan-x pan-y zoom }
+    set labels { qx qy qz qw pan-x pan-y zoom }
     set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _settings($this-$tag)]
+            -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
             [itcl::code $this camera set ${tag}]
         blt::table $inner \
@@ -1368,24 +1347,22 @@ itcl::body Rappture::VtkViewer2::camera {option args} {
         }
         "set" {
             set who [lindex $args 0]
-            set x $_settings($this-$who)
+            set x $_view($who)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
-                set _settings($this-$who) $_view($who)
+                set x _view($who)
                 return
             }
             switch -- $who {
                 "pan-x" - "pan-y" {
-                    set _view($who) $_settings($this-$who)
                     PanCamera
                 }
-                "phi" - "theta" - "psi" {
-                    set _view($who) $_settings($this-$who)
-                    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-                    #SendCmd "camera rotate $xyz"
+                "qx" - "qy" - "qz" - "qw" {
+                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+		    $_arcball quaternion $q
+                    SendCmd "camera orient $q"
                 }
                 "zoom" {
-                    set _view($who) $_settings($this-$who)
                     SendCmd "camera zoom $_view(zoom)"
                 }
             }
