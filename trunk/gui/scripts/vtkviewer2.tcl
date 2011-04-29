@@ -346,16 +346,18 @@ itcl::body Rappture::VtkViewer2::DoResize {} {
     if { $_height < 2 } {
 	set _height 500
     }
+    puts stderr "screen size $_width $_height"
     SendCmd "screen size $_width $_height"
     set _resizePending 0
 }
 
 itcl::body Rappture::VtkViewer2::EventuallyResize { w h } {
+    puts stderr "EventuallyResize $w $h"
     set _width $w
     set _height $h
     $_arcball resize $w $h
     if { !$_resizePending } {
-        $_dispatcher event -after 100 !resize
+        $_dispatcher event -after 10 !resize
         set _resizePending 1
     }
 }
@@ -1097,7 +1099,6 @@ itcl::body Rappture::VtkViewer2::FixSettings {what {value ""}} {
         }
     }
 }
-
 
 #
 # SetStyles --

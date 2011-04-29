@@ -17,6 +17,7 @@
 using namespace Rappture::VtkVis;
 
 PolyData::PolyData() :
+    _dataSet(NULL),
     _edgeWidth(1.0),
     _opacity(1.0),
     _lighting(true)

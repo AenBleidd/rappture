@@ -11,24 +11,17 @@ set -e
 
 broadcast=`hostname -i | sed 's/\.[0-9]*$/.255/'`
 
-render_dir="@prefix@"
-vtk_lib_dir="@VTK_LIB_DIR@"
+exec_prefix="@exec_prefix@"
+bindir="@bindir@"
+libdir="@libdir@"
+. ${bindir}/rappture.env
+
 nanoscale_port=2000
 nanovis_port=2000
 vtkvis_port=2010
 pymol_port=2020
 
-# Build the name of the run directory. This is where nanoscale and the
-# visualization programs will reside.  The directory name is the same as the
-# render directory.
-dir="/tmp/`basename $render_dir`"
-
-# Get the versioned VTK library directory (e.g. "vtk-5.6")
-vtkdir="`basename $vtk_lib_dir`"
-
-PATH=${dir}/bin:$PATH
-LD_LIBRARY_PATH=${dir}/lib:${dir}/lib/${vtkdir}:$LD_LIBRARY_PATH
-PYMOL_PATH=${dir}/lib/pymol
+PYMOL_PATH=${libdir}/pymol
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
@@ -38,31 +31,23 @@ export PATH LD_LIBRARY_PATH PYMOL_PATH
 
 nvideo=`lspci | fgrep VGA | fgrep nVidia | wc -l`
 
-nanoscale="${dir}/bin/nanoscale -x ${nvideo} -b $nanoscale_port -s $broadcast"
-nanovis="${dir}/bin/nanovis -p ${dir}/lib/shaders:${dir}/lib/resources"
-vtkvis="${dir}/bin/vtkvis"
-pymolproxy="${dir}/bin/pymolproxy ${dir}/bin/pymol -p -q -i -x -X 0 -Y 0"
+nanoscale="${bindir}/nanoscale -x ${nvideo} -b $nanoscale_port -s $broadcast"
+nanovis="${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources"
+vtkvis="${bindir}/vtkvis"
+pymolproxy="${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0"
 
-# Copy from render directory if the run copy doesn't already exist.
-# Otherwise use what's there.  This means that successive invocations
-# of nanoscale won't create their own run directories (only the first
-# one will).
-
-if test -d "$dir" ; then
-  echo "Reusing previously installed version from $render_dir"
-else 
-  echo "Copying rappture from $render_dir"
-  mkdir -p $dir
-  tar -C ${render_dir} -clf - . | tar -C $dir -xpf - 
-fi
-
-cd ${dir}
+cd /tmp
 
 # Don't let nanoscale and the visualization servers run away.
 # Limit cpu time to 20 minutes.
 minutes=20
 ulimit -t $(expr ${minutes} \* 60 )
 
-echo "$nanoscale -l $nanovis_port -c \"$nanovis\" -l $pymol_port -c \"$pymolproxy\""
-$nanoscale -l $nanovis_port -c "$nanovis" -l $vtkvis_port -c "$vtkvis" -l $pymol_port -c "$pymolproxy"
+set -xv
+echo `ldd $vtkvis`
+exec $nanoscale \
+ -l $nanovis_port -c "$nanovis" \
+ -l $vtkvis_port  -c "$vtkvis" \
+ -l $pymol_port   -c "$pymolproxy"
+
 
