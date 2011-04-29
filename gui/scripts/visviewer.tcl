@@ -539,7 +539,7 @@ itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
 #     this does nothing.
 #
 itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
-    #puts stderr "<<line $data"
+    puts stderr "<<line $data"
     if {[string length $itk_option(-receivecommand)] > 0} {
         uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
