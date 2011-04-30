@@ -1663,6 +1663,11 @@ Renderer::CameraMode Renderer::getCameraMode() const
     return _cameraMode;
 }
 
+/**
+ * \brief Set the orientation of the camera from a quaternion
+ *
+ * \param[in] quat A quaternion with scalar part first: w,x,y,z
+ */
 void Renderer::setCameraOrientation(double quat[4])
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
@@ -1706,6 +1711,13 @@ void Renderer::setCameraOrientation(double quat[4])
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set the position and orientation of the camera
+ *
+ * \param[in] position x,y,z position of camera in world coordinates
+ * \param[in] focalPoint x,y,z look-at point in world coordinates
+ * \param[in] viewUp x,y,z up vector of camera
+ */
 void Renderer::setCameraOrientationAndPosition(double position[3],
                                                double focalPoint[3],
                                                double viewUp[3])
@@ -1718,6 +1730,13 @@ void Renderer::setCameraOrientationAndPosition(double position[3],
     _needsRedraw = true;
 }
 
+/**
+ * \brief Get the position and orientation of the camera
+ *
+ * \param[out] position x,y,z position of camera in world coordinates
+ * \param[out] focalPoint x,y,z look-at point in world coordinates
+ * \param[out] viewUp x,y,z up vector of camera
+ */
 void Renderer::getCameraOrientationAndPosition(double position[3],
                                                double focalPoint[3],
                                                double viewUp[3])
@@ -1898,7 +1917,7 @@ void Renderer::panCamera(double x, double y, bool absolute)
 
         _renderer->ResetCameraClippingRange();
         storeCameraOrientation();
-        computeScreenWorldCoords();
+        //computeScreenWorldCoords();
     }
 
     TRACE("Leave panCamera: %g %g, current abs: %g %g",
@@ -1944,6 +1963,7 @@ void Renderer::zoomCamera(double z, bool absolute)
         //camera->Dolly(z); // Move camera forward/back
         _renderer->ResetCameraClippingRange();
         storeCameraOrientation();
+        //computeScreenWorldCoords();
     }
 
     TRACE("Leave Zoom: rel %g, new abs: %g, view angle %g", 
@@ -2031,6 +2051,9 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     _needsRedraw = true;
 }
 
+/**
+ * \brief Convert pixel/display coordinates to world coordinates based on current camera
+ */
 void Renderer::computeDisplayToWorld(double x, double y, double z, double worldPt[4])
 {
     _renderer->SetDisplayPoint(x, y, z);
@@ -2044,6 +2067,9 @@ void Renderer::computeDisplayToWorld(double x, double y, double z, double worldP
     }
 }
 
+/**
+ * \brief Convert world coordinates to pixel/display coordinates based on current camera
+ */
 void Renderer::computeWorldToDisplay(double x, double y, double z, double displayPt[3])
 {
     _renderer->SetWorldPoint(x, y, z, 1.0);
@@ -2051,6 +2077,9 @@ void Renderer::computeWorldToDisplay(double x, double y, double z, double displa
     _renderer->GetDisplayPoint(displayPt);
 }
 
+/**
+ * \brief Compute the world coordinate bounds of the display rectangle
+ */
 void Renderer::computeScreenWorldCoords()
 {
     // Start with viewport coords [-1,1]
@@ -2331,9 +2360,12 @@ void Renderer::setBackgroundColor(float color[3])
  */
 void Renderer::setOpacity(const DataSetId& id, double opacity)
 {
-    setPseudoColorOpacity(id, opacity);
-    setContourOpacity(id, opacity);
-    setPolyDataOpacity(id, opacity);
+    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
+        setPseudoColorOpacity(id, opacity);
+    if (id.compare("all") == 0 || getContour2D(id) != NULL)
+        setContourOpacity(id, opacity);
+    if (id.compare("all") == 0 || getPolyData(id) != NULL)
+        setPolyDataOpacity(id, opacity);
 }
 
 /**
@@ -2360,9 +2392,12 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         itr->second->setVisibility(state);
     } while (doAll && ++itr != _dataSets.end());
 
-    setPseudoColorVisibility(id, state);
-    setContourVisibility(id, state);
-    setPolyDataVisibility(id, state);
+    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
+        setPseudoColorVisibility(id, state);
+    if (id.compare("all") == 0 || getContour2D(id) != NULL)
+        setContourVisibility(id, state);
+    if (id.compare("all") == 0 || getPolyData(id) != NULL)
+        setPolyDataVisibility(id, state);
 }
 
 /**
