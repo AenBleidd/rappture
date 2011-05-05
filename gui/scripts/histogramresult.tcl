@@ -968,8 +968,6 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
             } else {
                 set state 0
             }
-        } else {
-            set state 0
         }
     }
 

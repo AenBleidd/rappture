@@ -79,6 +79,7 @@ itcl::class Rappture::VtkViewer2 {
     # The following methods are only used by this class.
     private method BuildCameraTab {}
     private method BuildViewTab {}
+    private method BuildAxisTab {}
     private method BuildColormap { colormap dataobj comp }
     private method EventuallyResize { w h } 
     private method SetStyles { dataobj comp }
@@ -113,8 +114,9 @@ itcl::class Rappture::VtkViewer2 {
     # defined but not loaded.  If 1 the transfer function has been named
     # and loaded.
     private variable _first ""     ;# This is the topmost dataset.
+    private variable _start 0
     private variable _buffering 0
-
+    
     # This indicates which isomarkers and transfer function to use when
     # changing markers, opacity, or thickness.
     common _downloadPopup          ;# download options from popup
@@ -255,6 +257,7 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
     BuildViewTab
+    BuildAxisTab
     BuildCameraTab
 
     # Hack around the Tk panewindow.  The problem is that the requested 
@@ -347,6 +350,7 @@ itcl::body Rappture::VtkViewer2::DoResize {} {
 	set _height 500
     }
     puts stderr "screen size $_width $_height"
+    set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
     set _resizePending 0
 }
@@ -357,7 +361,7 @@ itcl::body Rappture::VtkViewer2::EventuallyResize { w h } {
     set _height $h
     $_arcball resize $w $h
     if { !$_resizePending } {
-        $_dispatcher event -after 10 !resize
+        $_dispatcher event -after 400 !resize
         set _resizePending 1
     }
 }
@@ -698,11 +702,20 @@ itcl::body Rappture::VtkViewer2::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-	set f [open "last.ppm" "w"] 
-	puts $f $bytes
-	close $f
+	if 0 {
+	    set f [open "last.ppm" "w"] 
+	    puts $f $bytes
+	    close $f
+	}
         $_image(plot) configure -data $bytes
-        #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+	set time [clock seconds]
+	set date [clock format $time]
+        puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+	if { $_start > 0 } {
+	    set finish [clock clicks -milliseconds]
+	    puts stderr "round trip time [expr $finish -$_start] milliseconds"
+	    set _start 0
+	}
     } elseif { $info(type) == "print" } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
@@ -1094,6 +1107,14 @@ itcl::body Rappture::VtkViewer2::FixSettings {what {value ""}} {
                 SendCmd "axis visible all $bool"
             }
         }
+        "axismode" {
+            if { [isconnected] } {
+		parray itk_component
+		set mode [$itk_component(axismode) value]
+		set mode [$itk_component(axismode) translate $mode]
+                SendCmd "axis flymode $mode"
+            }
+        }
         default {
             error "don't know how to fix $what"
         }
@@ -1124,7 +1145,7 @@ itcl::body Rappture::VtkViewer2::SetStyles { dataobj comp } {
 	BuildColormap $colormap $dataobj $comp
 	set _colormaps($colormap) 1
     }
-    SendCmd "contour2d add numcontours $style(-levels) $tag\n"
+    #SendCmd "polydata add $style(-levels) $tag\n"
     SendCmd "pseudocolor colormap $colormap $tag"
     return $colormap
 }
@@ -1252,23 +1273,6 @@ itcl::body Rappture::VtkViewer2::BuildViewTab {} {
         -command [itcl::code $this FixSettings axes] \
         -font "Arial 9"
 
-    label $inner.grid -text "Grid:"
-    checkbutton $inner.gridx \
-        -text "X" \
-        -variable [itcl::scope _settings($this-grid-x)] \
-        -command [itcl::code $this FixSettings grid-x] \
-        -font "Arial 9"
-    checkbutton $inner.gridy \
-        -text "Y" \
-        -variable [itcl::scope _settings($this-grid-y)] \
-        -command [itcl::code $this FixSettings grid-y] \
-        -font "Arial 9"
-    checkbutton $inner.gridz \
-        -text "Z" \
-        -variable [itcl::scope _settings($this-grid-z)] \
-        -command [itcl::code $this FixSettings grid-z] \
-        -font "Arial 9"
-
     checkbutton $inner.volume \
         -text "Volume" \
         -variable [itcl::scope _settings($this-volume)] \
@@ -1300,16 +1304,72 @@ itcl::body Rappture::VtkViewer2::BuildViewTab {} {
         2,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
         3,0 $inner.lighting  -columnspan 4 -anchor w \
         4,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
-        5,0 $inner.grid -anchor w -pady 2 \
-        5,1 $inner.gridx -anchor w -pady 2 \
-        5,2 $inner.gridy -anchor w -pady 2 \
-        5,3 $inner.gridz -anchor w -pady 2 \
-        6,0 $inner.clear -anchor e -pady 2 \
+        5,0 $inner.clear -anchor e -pady 2 \
         6,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
         6,3 $inner.opaque -anchor w -pady 2 
 
     blt::table configure $inner r* -resize none
     blt::table configure $inner r7 -resize expand
+}
+
+itcl::body Rappture::VtkViewer2::BuildAxisTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Axis Settings" \
+        -icon [Rappture::icon cog]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.axes \
+        -text "Visible" \
+        -variable [itcl::scope _settings($this-axes)] \
+        -command [itcl::code $this FixSettings axes] \
+        -font "Arial 9"
+
+    label $inner.grid -text "Grid" -font "Arial 9"
+    set f [frame $inner.gridf]
+    checkbutton $f.x \
+        -text "X" \
+        -variable [itcl::scope _settings($this-grid-x)] \
+        -command [itcl::code $this FixSettings grid-x] \
+        -font "Arial 9"
+    checkbutton $f.y \
+        -text "Y" \
+        -variable [itcl::scope _settings($this-grid-y)] \
+        -command [itcl::code $this FixSettings grid-y] \
+        -font "Arial 9"
+    checkbutton $f.z \
+        -text "Z" \
+        -variable [itcl::scope _settings($this-grid-z)] \
+        -command [itcl::code $this FixSettings grid-z] \
+        -font "Arial 9"
+    pack $f.x $f.y $f.z -side left 
+
+    label $inner.axismode -text "Mode" \
+        -font "Arial 9" 
+
+    itk_component add axismode {
+	Rappture::Combobox $inner.axismode_combo -width 10 -editable no
+    }
+    $inner.axismode_combo choices insert end \
+        "static_triad"    "static" \
+        "closest_triad"   "closest" \
+        "furthest_triad"  "furthest" \
+        "outer_edges"     "outer"         
+    $itk_component(axismode) value "static"
+    bind $inner.axismode_combo <<Value>> [itcl::code $this FixSettings axismode]
+
+    blt::table $inner \
+        0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.axismode -anchor w -pady 2 \
+        1,1 $inner.axismode_combo -cspan 3 -anchor w -pady 2 \
+        2,0 $inner.grid -anchor w -pady 2 \
+        2,1 $inner.gridf -anchor w -cspan 3 -fill x 
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r3 -resize expand
 }
 
 itcl::body Rappture::VtkViewer2::BuildCameraTab {} {
