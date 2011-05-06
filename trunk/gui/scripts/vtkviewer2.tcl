@@ -110,6 +110,9 @@ itcl::class Rappture::VtkViewer2 {
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
     private common   _settings
+    private variable _reset 1	   ;# indicates if camera needs to be reset
+                                    # to starting position.
+
     # Array of transfer functions in server.  If 0 the transfer has been
     # defined but not loaded.  If 1 the transfer function has been named
     # and loaded.
@@ -642,6 +645,7 @@ itcl::body Rappture::VtkViewer2::isconnected {} {
 #
 itcl::body Rappture::VtkViewer2::disconnect {} {
     Disconnect
+    set _reset 1
 }
 
 #
@@ -702,7 +706,7 @@ itcl::body Rappture::VtkViewer2::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-	if 0 {
+	if 1 {
 	    set f [open "last.ppm" "w"] 
 	    puts $f $bytes
 	    close $f
@@ -757,14 +761,28 @@ itcl::body Rappture::VtkViewer2::ReceiveDataset { args } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::Rebuild {} {
 
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    if { $w < 2 || $h < 2 } {
+	update
+	update idletasks
+	set w [winfo width $itk_component(view)]
+	set h [winfo height $itk_component(view)]
+	if { $w < 2 || $h < 2 } {
+	    return
+	}
+    }
+
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
+
     set _buffering 1
 
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    EventuallyResize $w $h
+    set _width $w
+    set _height $h
+    $_arcball resize $w $h
+    DoResize
     
     set _limits(vmin) ""
     set _limits(vmax) ""
@@ -801,8 +819,10 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     SendCmd "camera orient $q" 
     PanCamera
     SendCmd "camera mode persp"
-    Zoom reset
-
+    if { $_reset || $_first == "" } {
+	Zoom reset
+	set _reset 0
+    }
     FixSettings opacity
     FixSettings grid-x
     FixSettings grid-y
@@ -811,6 +831,7 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     FixSettings lighting
     FixSettings axes
     FixSettings edges
+    FixSettings axismode
 
 
     if {"" != $_first} {
@@ -1109,7 +1130,6 @@ itcl::body Rappture::VtkViewer2::FixSettings {what {value ""}} {
         }
         "axismode" {
             if { [isconnected] } {
-		parray itk_component
 		set mode [$itk_component(axismode) value]
 		set mode [$itk_component(axismode) translate $mode]
                 SendCmd "axis flymode $mode"
@@ -1358,7 +1378,7 @@ itcl::body Rappture::VtkViewer2::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "furthest" \
         "outer_edges"     "outer"         
-    $itk_component(axismode) value "static"
+    $itk_component(axismode) value "outer"
     bind $inner.axismode_combo <<Value>> [itcl::code $this FixSettings axismode]
 
     blt::table $inner \

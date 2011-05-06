@@ -34,7 +34,7 @@ LD_RUN_PATH	= $(VTK_LIB_DIR)
 LIBS		= \
 		$(TCL_LIB_SPEC) \
 		$(VTK_LIB_SPEC) \
-		-Wl,-rpath-link,$(LD_RUN_PATH)
+		-Wl,-rpath,$(LD_RUN_PATH)
 
 INCLUDES	= \
 		-I. \

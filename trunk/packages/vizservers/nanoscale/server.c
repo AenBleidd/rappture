@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <getopt.h>
 #include <errno.h>
+#include <tcl.h>
 
 // The initial request load for a new renderer.
 #define INITIAL_LOAD 100000000.0
@@ -74,50 +75,6 @@ struct child_info child_array[100];
 	    (void) (&_x == &_y);		\
 	    _x > _y ? _x : _y; })
 
-#ifdef notdef
-static int 
-find_best_host(void)
-{
-    int h;
-    float best = load;
-    int index = -1;
-    //printf("My load is %f\n", best);
-    for(h=0; h<sizeof(host_array)/sizeof(host_array[0]); h++) {
-	if (host_array[h].in_addr.s_addr == 0)
-	    continue;
-	//printf("%d I think load for %s is %f   ", h,
-	//       inet_ntoa(host_array[h].in_addr), host_array[h].load);
-	if (host_array[h].children <= children) {
-	    if (host_array[h].load < best) {
-		//if ((random() % 100) < 75) {
-		index = h;
-		best = host_array[h].load;
-		//}
-		//printf(" Better\n");
-	    } else {
-		//printf(" Worse\n");
-	    }
-	}
-    }
-
-    //printf("I choose %d\n", index);
-    return index;
-}
-#endif
-
-static void 
-broadcast_load(void)
-{
-    int msg[2];
-    msg[0] = htonl(load);
-    msg[1] = htonl(children);
-    int status;
-    status = sendto(send_fd, &msg, sizeof(msg), 0, (struct sockaddr *)&send_addr,
-		    sizeof(send_addr));
-    if (status < 0) {
-	perror("sendto");
-    }
-}
 
 static void
 close_child(int pipe_fd)
@@ -139,9 +96,6 @@ close_child(int pipe_fd)
     printf("processes=%d, memory=%d, load=%f\n",
 	   children, memory_in_use, load);
 
-#ifdef notdef
-    broadcast_load();
-#endif
 }
 
 void note_request(int fd, float value)
@@ -157,27 +111,6 @@ void note_request(int fd, float value)
 #endif
 	    return;
 	}
-    }
-}
-
-static void 
-update_load_average(void)
-{
-    static unsigned int counter;
-
-    load = load / LOAD_DROP_OFF;
-    float newload = 0.0;
-    int c;
-    for(c=0; c < sizeof(child_array)/sizeof(child_array[0]); c++) {
-	if (child_array[c].pipefd != 0) {
-	    newload += child_array[c].requests * child_array[c].memory;
-	    child_array[c].requests = 0;
-	}
-    }
-    load = load + newload;
-
-    if ((counter++ % BROADCAST_INTERVAL) == 0) {
-	broadcast_load();
     }
 }
 
@@ -290,7 +223,6 @@ main(int argc, char *argv[])
 	recv_port == -1 ||
 	server_command[0][0]=='\0') {
 	int i;
-	fprintf(stderr, "nservices=%d, recv_port=%d, server_command[0]=%s\n", nservices, recv_port, server_command[0]);
 	for (i = 0; i < argc; i++) {
 	    fprintf(stderr, "argv[%d]=(%s)\n", i, argv[i]);
 	}
@@ -398,9 +330,6 @@ main(int argc, char *argv[])
 
     // We're ready to go.  Before going into the main loop,
     // broadcast a load announcement to other machines.
-#ifdef notdef
-    broadcast_load();
-#endif
     int maxfd = send_fd;
     FD_ZERO(&saved_rfds);
     FD_ZERO(&pipe_rfds);
@@ -427,12 +356,10 @@ main(int argc, char *argv[])
 	status = select(maxfd+1, &rfds, NULL, NULL, 0);
 	if (status <= 0) {
 	    if (sigalarm_set) {
-		update_load_average();
 		sigalarm_set = 0;
 	    }
 	    continue;
 	}
-      
       
 	int accepted = 0;
 	for(n = 0; n < nservices; n++) {
@@ -536,38 +463,8 @@ main(int argc, char *argv[])
 		// find the new memory increment
 		int newmemory = ntohl(msg);
 	      
-#ifdef notdef
-		// Find the best host to create a new child on.
-		int index = find_best_host();
-	      
-		// Only redirect if another host's load is significantly less
-		// than our own...
-		if (index != -1 &&
-		    (host_array[index].load < (LOAD_REDIRECT_FACTOR * load))) {
-		  
-		    // If we're redirecting to another machine, give that
-		    // machine an extra boost in our copy of the load
-		    // statistics.  This will keep us from sending the very
-		    // next job to it.  Eventually, the other machine will
-		    // broadcast its real load and we can make an informed
-		    // decision as to who redirect to again.
-		    host_array[index].load += newmemory * INITIAL_LOAD;
-		  
-		    // Redirect to another machine.
-		    printf("Redirecting to %s\n",
-			   inet_ntoa(host_array[index].in_addr));
-		    write(i, &host_array[index].in_addr.s_addr, 4);
-		    FD_CLR(i, &saved_rfds);
-		    clear_service_fd(i);
-		    close(i);
-		    continue;
-		}
-#endif 
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
-#ifdef notdef
-		broadcast_load();
-#endif
 		printf("Accepted new job with memory %d\n", newmemory);
 		//printf("My load is now %f\n", load);
 	      
@@ -653,7 +550,6 @@ main(int argc, char *argv[])
 		    }
 		  
 		    children++;
-		    broadcast_load();
 		}
 	      
 	      
