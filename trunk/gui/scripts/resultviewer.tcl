@@ -298,7 +298,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     }
                 }
                 default {
-                    error "can't handle [$dataobj components -dimensions] field"
+                    error "can't handle \"$dims\" dimension field"
                 }
             }
         }
