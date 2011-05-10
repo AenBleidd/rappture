@@ -764,19 +764,13 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
-	update
-	update idletasks
-	set w [winfo width $itk_component(view)]
-	set h [winfo height $itk_component(view)]
-	if { $w < 2 || $h < 2 } {
-	    return
-	}
+	$_dispatcher event -idle !rebuild
+	return
     }
 
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-
     set _buffering 1
 
     set _width $w
