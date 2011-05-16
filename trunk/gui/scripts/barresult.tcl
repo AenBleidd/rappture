@@ -250,7 +250,6 @@ itcl::body Rappture::BarResult::constructor {args} {
         Rappture::XyLegend $inner.legend $itk_component(plot)
     }
     pack $itk_component(legend) -expand yes -fill both
-
     after idle [subst {
         update idletasks
         $itk_component(legend) reset 
@@ -900,7 +899,7 @@ itcl::body Rappture::BarResult::_zoom {option args} {
 itcl::body Rappture::BarResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
-  
+    
     # Peek inside of Blt_ZoomStack package to see if we're currently in the
     # middle of a zoom selection.
     if {[info exists ::zoomInfo($g,corner)] && $::zoomInfo($g,corner) == "B" } {
@@ -1128,7 +1127,6 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarResult::_axis {option args} {
     set inner [$itk_component(hull).axes component inner]
-
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {

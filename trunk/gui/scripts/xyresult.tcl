@@ -262,7 +262,7 @@ itcl::body Rappture::XyResult::destructor {} {
 # ----------------------------------------------------------------------
 # USAGE: add <dataobj> ?<settings>?
 #
-# Clients use this to add a data object to the plot.  The optional <settings>
+# Clients use this to add a dataobj to the plot.  The optional <settings>
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
@@ -347,9 +347,10 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::get {} {
-    # put the data object list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
+    # put the dataobj list in order according to -raise options
+    set bottom {}
+    set top {}
+    foreach obj $_dlist {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
             set i [lsearch -exact $dlist $obj]
             if {$i >= 0} {

@@ -568,7 +568,6 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             set haveresults 1
         }
     }
-
     # if there are any valid results, add them to the resultset
     if {$haveresults} {
         set index [$itk_component(resultset) add $xmlobj]
@@ -579,10 +578,10 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             if {"" == $label} {
                 set label [$xmlobj get output.$item.about.label]
             }
-
             set hidden [$xmlobj get output.$item.hide]
-            set hidden [expr {"" != $hidden && $hidden}]
-
+	    if { $hidden == "" } {
+		set hidden 0
+	    }
             if {"" != $label && !$hidden} {
                 if {![info exists _label2page($label)]} {
                     set name "page[incr _pages]"
@@ -652,7 +651,8 @@ itcl::body Rappture::Analyzer::clear {} {
 
     foreach label [array names _label2page] {
         set page $_label2page($label)
-        $page.rviewer clear
+	destroy $page.rviewer
+        #$page.rviewer clear
     }
     $itk_component(resultselector) value ""
     $itk_component(resultselector) choices delete 0 end
@@ -967,7 +967,7 @@ itcl::body Rappture::Analyzer::_simState {state args} {
                 foreach {path val} $settings {
                     set str [$_tool xml get $path.about.label]
                     if {"" == $str} {
-1                        set str [$_tool xml element -as id $path]
+                        set str [$_tool xml element -as id $path]
                     }
                     append details "$str = $val\n"
                 }
