@@ -352,14 +352,13 @@ itcl::body Rappture::XyResult::get {} {
     set top {}
     foreach obj $_dlist {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
+	    lappend top $obj
+	} else {
+	    lappend bottom $obj
+	}
     }
-    return $dlist
+    set _dlist [concat $bottom $top]
+    return $_dlist
 }
 
 # ----------------------------------------------------------------------
