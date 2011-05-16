@@ -349,7 +349,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 number - integer {
                     set mode "number"
                     if {![info exists _mode2widget($mode)]} {
-p                        set w $itk_interior.number
+                        set w $itk_interior.number
                         Rappture::NumberResult $w
                         set _mode2widget($mode) $w
                     }
