@@ -139,6 +139,7 @@ itk::usual VtkViewer2 {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
+    puts stderr "Enter constructor: [info level -1]"
 
     # Rebuild event
     $_dispatcher register !rebuild
@@ -337,12 +338,13 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::destructor {} {
+    Disconnect
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !resize
     image delete $_image(plot)
     image delete $_image(download)
     array unset _settings $this-*
-    blt::arcball destroy $_arcball
+    catch { blt::arcball destroy $_arcball}
 }
 
 itcl::body Rappture::VtkViewer2::DoResize {} {
@@ -618,12 +620,14 @@ itcl::body Rappture::VtkViewer2::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::Connect {} {
+    puts stderr "Enter Connect: [info level -1]"
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
     }
     set result [VisViewer::Connect $_hosts]
     if { $result } {
+	puts stderr "Connected to $_hostname sid=$_sid"
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -827,7 +831,6 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
     FixSettings edges
     FixSettings axismode
 
-
     if {"" != $_first} {
         set location [$_first hints camera]
         if { $location != "" } {
@@ -925,7 +928,6 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
                 set location [$_first hints camera]
                 if { $location != "" } {
                     array set _view $location
-		    parray _view
                 }
             }
 	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]

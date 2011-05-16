@@ -24,7 +24,7 @@ itcl::class ::Rappture::VisViewer {
     set _servers(pymol)   "localhost:2020"
     set _servers(vtkvis)  "localhost:2010"
 
-    private variable _sid ""        ;# socket connection to server
+    protected variable _sid ""        ;# socket connection to server
     private common _done            ;# Used to indicate status of send.
     private variable _buffer        ;# buffer for incoming/outgoing commands
     private variable _initialized 
@@ -40,6 +40,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _hosts ""    ;# list of hosts for server
     protected variable _parser ""   ;# interpreter for incoming commands
     protected variable _image
+    protected variable _hostname
 
     constructor { hostlist args } {
         # defined below
@@ -221,6 +222,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
             set servers [lrange $servers 1 end]
             continue
         }
+	set _hostname $hostname:$port
         fconfigure $_sid -translation binary -encoding binary
 
         # Send memory requirement to the load balancer
