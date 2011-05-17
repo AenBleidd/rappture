@@ -13,7 +13,6 @@
 #include <netinet/in.h>
 #include <getopt.h>
 #include <errno.h>
-#include <tcl.h>
 
 // The initial request load for a new renderer.
 #define INITIAL_LOAD 100000000.0
