@@ -12,8 +12,10 @@
 #ifdef _WIN32
 #include <GL/glaux.h>
 #else
+#ifdef notdef
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
+#endif
 #endif
 
 #include <vrutil/vrFilePath.h>
