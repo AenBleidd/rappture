@@ -1,6 +1,6 @@
 #!/bin/sh
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for VtkContourViewer
+#  TEST PROGRAM for VtkViewer2
 #
 #  This program is a test harness for the VtkVis visualization
 #  engine.  It allows you to monitor the commands being sent back
