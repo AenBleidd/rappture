@@ -22,6 +22,8 @@ vtkvis_port=2010
 pymol_port=2020
 
 PYMOL_PATH=${libdir}/pymol
+# lspci is either in /sbin or /usr/sbin
+PATH=/sbin:/usr/sbin:${PATH}
 
 export PATH LD_LIBRARY_PATH PYMOL_PATH
 
