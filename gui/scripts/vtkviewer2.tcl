@@ -139,7 +139,11 @@ itk::usual VtkViewer2 {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
-    puts stderr "Enter constructor: [info level -1]"
+    if {[catch {info level -1} caller]} {
+        puts stderr "Enter constructor"
+    } else {
+        puts stderr "Enter constructor: $caller"
+    }
 
     # Rebuild event
     $_dispatcher register !rebuild
