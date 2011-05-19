@@ -82,9 +82,10 @@ Renderer::Renderer() :
     storeCameraOrientation();
     _renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
     _renderWindow->DoubleBufferOff();
-    //_renderWindow->BordersOff();
     _renderWindow->SetSize(_windowWidth, _windowHeight);
+#ifdef USE_OFFSCREEN_RENDERING
     _renderWindow->OffScreenRenderingOn();
+#endif
     _renderWindow->AddRenderer(_renderer);
     addColorMap("default", ColorMap::createDefault());
 }
