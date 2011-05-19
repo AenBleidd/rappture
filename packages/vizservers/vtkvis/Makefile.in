@@ -41,9 +41,10 @@ INCLUDES	= \
 		$(TCL_INC_SPEC) \
 		$(VTK_INC_SPEC)
 
-USE_CUSTOM_AXES = #yes
-DEBUG		= #yes
-TRACE		= #yes
+USE_CUSTOM_AXES 	= #yes
+USE_OFFSCREEN_RENDERING = #yes
+DEBUG			= #yes
+TRACE			= #yes
 
 EXTRA_CFLAGS	= -Wall -Wno-deprecated #vtk uses deprecated strstream header (instead of sstream)
 DEFINES		=
@@ -56,6 +57,9 @@ DEFINES		+= -DWANT_TRACE
 endif
 ifdef USE_CUSTOM_AXES
 DEFINES 	+= -DUSE_CUSTOM_AXES
+endif
+ifdef USE_OFFSCREEN_RENDERING
+DEFINES         += -DUSE_OFFSCREEN_RENDERING
 endif
 CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
