@@ -322,15 +322,29 @@ proc main_open_import_attrs {xmlobj path} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: main_errors
+# USAGE: main_errors ?-strict?
 #
 # Checks the values of all objects in the tree to look for errors
-# before previewing and saving.  If any errors are found, the user
-# is prompted to look at them, and they can be popped up in a viewer
-# above the object tree.
+# before previewing and saving.  If any errors are found and the
+# -strict flag is set, the user is forced to look at them before
+# continuing on.  Otherwise, the user may choose to look at warnings
+# and errors before continuing.  Usually called before previewing
+# and saving the tool definition.  Returns 1 if there are errors that
+# should be viewed/fixed, and 0 otherwise.
 # ----------------------------------------------------------------------
-proc main_errors {} {
+proc main_errors {args} {
     global ErrList ErrListPos
+
+    set strict no
+    while {[llength $args] > 0} {
+        set flag [lindex $args 0]
+        set args [lrange $args 1 end]
+        if {$flag eq "-strict"} {
+            set strict yes
+        } else {
+            error "bad option \"$flag\": should be -strict"
+        }
+    }
 
     set ErrList ""
     set ErrListPos 0
@@ -442,14 +456,20 @@ proc main_errors {} {
             if {$nwarn+$nother == 0} {
                 set errors "these errors"
             } else {
-                set errors "at least the $nerrs errors"
+                set errors "at least the $nerrs error"
+                if {$nerrs > 1} {lappend errors "s"}
             }
         }
 
         # if there are errors, we can't continue on
         if {$nerrs > 0} {
-            tk_messageBox -icon error -type ok -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  You must resolve $errors before you continue with the preview."
-            return 1
+            if {$strict} {
+                tk_messageBox -icon error -type ok -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  You must resolve $errors before you continue with the preview."
+                return 1
+            } else {
+                set resp [tk_messageBox -icon error -type yesno -title "Rappture: Problems with your tool definition" -message "$thereis $phrases for your current tool definition.  Examine and resolve $problem?"]
+                return $resp
+            }
         }
 
         # let the user decide whether to proceed
@@ -648,8 +668,22 @@ proc main_saveas {{option "start"}} {
             set win [.func.build.options.panes pane 0]
             $win.scrl.skel select none
 
-            # generate now to catch any errors
-            main_generate_xml
+            # freshen up the ToolXml
+            if {![main_generate_xml]} {
+                # something went wrong while saving the xml
+                # pull up the build tab, so we can see the error
+                .func select [.func index -name "Build"]
+                return
+            }
+
+            if {[main_errors]} {
+                .func select [.func index -name "Build"]
+                pack .func.build.options.errs \
+                    -before .func.build.options.panes \
+                    -pady {10 0} -fill x
+                main_errors_nav 0
+                return
+            }
 
             # get the language choice and update the skeleton program option
             set lang ""
@@ -964,7 +998,7 @@ proc main_preview {} {
         return
     }
 
-    if {[main_errors]} {
+    if {[main_errors -strict]} {
         .func select [.func index -name "Build"]
         pack .func.build.options.errs -before .func.build.options.panes \
             -pady {10 0} -fill x
