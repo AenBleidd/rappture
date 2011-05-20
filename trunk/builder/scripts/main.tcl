@@ -783,6 +783,12 @@ proc main_saveas {{option "start"}} {
                 set LastToolXmlFile $tfile
                 main_generate_xml
 
+                # change any !Language for the command into a proper
+                # invocation command.  Grab the XML before we do this
+                # as the last official XML that's been saved.  We'll
+                # know later if things changed and we need to save again.
+                set xmlBeforeCmdSubst [$ToolXml xml]
+
                 set cmd [$ToolXml get tool.command]
                 if {[string index $cmd 0] eq "!"} {
                     if {$pfile eq "select a file"} {
@@ -806,7 +812,7 @@ proc main_saveas {{option "start"}} {
                     tk_messageBox -icon error -title "Rappture: Error" -message "Error saving tool description: $result"
                     set status "error"
                 } else {
-                    set LastToolXmlLoaded [$ToolXml xml]
+                    set LastToolXmlLoaded $xmlBeforeCmdSubst
                 }
             }
 
@@ -965,8 +971,10 @@ proc main_exit {} {
     main_generate_xml
 
     if {[$ToolXml xml] ne $LastToolXmlLoaded} {
-        set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
+        set choice [tk_messageBox -icon warning -type yesnocancel -title "Rappture: Save Changes?" -message "Changes to the current tool haven't been saved.\n\nSave changes?"]
         if {$choice == "yes" && ![main_saveas]} {
+            return
+        } elseif {$choice == "cancel"} {
             return
         }
     }
