@@ -81,11 +81,11 @@ Renderer::Renderer() :
     initCamera();
     storeCameraOrientation();
     _renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
-    _renderWindow->DoubleBufferOff();
-    _renderWindow->SetSize(_windowWidth, _windowHeight);
 #ifdef USE_OFFSCREEN_RENDERING
+    _renderWindow->DoubleBufferOff();
     _renderWindow->OffScreenRenderingOn();
 #endif
+    _renderWindow->SetSize(_windowWidth, _windowHeight);
     _renderWindow->AddRenderer(_renderer);
     addColorMap("default", ColorMap::createDefault());
 }
@@ -706,8 +706,10 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     if (_legendRenderWindow == NULL) {
         _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+#ifdef USE_OFFSCREEN_RENDERING
         _legendRenderWindow->DoubleBufferOff();
         _legendRenderWindow->OffScreenRenderingOn();
+#endif
     }
 
     _legendRenderWindow->SetSize(width, height);
@@ -759,7 +761,9 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     _legendRenderWindow->Render();
 
-    _legendRenderWindow->GetPixelData(0, 0, width-1, height-1, 1, imgData);
+    _legendRenderWindow->GetPixelData(0, 0, width-1, height-1,
+                                      !_legendRenderWindow->GetDoubleBuffer(),
+                                      imgData);
     return true;
 }
 
@@ -2461,7 +2465,8 @@ int Renderer::getWindowHeight() const
  */
 void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
 {
-    _renderWindow->GetPixelData(0, 0, _windowWidth-1, _windowHeight-1, 1, imgData);
+    _renderWindow->GetPixelData(0, 0, _windowWidth-1, _windowHeight-1,
+                                !_renderWindow->GetDoubleBuffer(), imgData);
     TRACE("Image data size: %d", imgData->GetSize());
 }
 
