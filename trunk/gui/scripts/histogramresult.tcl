@@ -689,6 +689,9 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
         set xv [$dataobj locations]
         set yv [$dataobj heights]
         set zv [$dataobj widths]
+        if {$xv eq "" || $yv eq "" || $zv eq ""} {
+            continue
+        }
         
         if {[info exists _dataobj2color($dataobj)]} {
             set color $_dataobj2color($dataobj)
