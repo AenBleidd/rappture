@@ -214,12 +214,20 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 set _mode2widget($mode) $w
             }
         }
-        ::Rappture::Drawing3d {
+        ::Rappture::Drawing1 {
             set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
+                set w $itk_interior.vtkviewer1
+                Rappture::VtkViewer $w
+                set _mode2widget($mode) $w
+            }
+        }
+        ::Rappture::Drawing2 {
+            set mode "vtkviewer2"
+            if {![info exists _mode2widget($mode)]} {
 		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-                set w $itk_interior.vtkviewer
-                catch { Rappture::VtkViewer2 $w $servers } errs
+                set w $itk_interior.vtkviewer2
+		catch { Rappture::VtkViewer2 $w $servers } errs
 		puts stderr errs=$errs
                 set _mode2widget($mode) $w
             }
@@ -485,8 +493,11 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         number - integer - boolean - choice {
             return [$xmlobj element -as object $path]
         }
-        drawing3d {
-            return [Rappture::Drawing3d ::#auto $xmlobj $path]
+        drawing1 {
+            return [Rappture::Drawing1 ::#auto $xmlobj $path]
+        }
+        drawing2 {
+            return [Rappture::Drawing2 ::#auto $xmlobj $path]
         }
         time - status {
             return ""
