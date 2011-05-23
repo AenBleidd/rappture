@@ -26,6 +26,7 @@ LIBS		= -L../../../src/core -lrappture \
 FC_SWITCHES 	= $(FCFLAGS) $(FCDEBUGFLAGS) $(DEFINES) $(INCLUDES)
 
 FILES		= \
+		Makefile \
 		$(srcdir)/fermi.f \
 		$(srcdir)/tool.xml 
 
