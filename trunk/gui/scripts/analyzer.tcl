@@ -543,7 +543,7 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             string* {
                 _autoLabel $xmlobj output.$item "String" counters
             }
-            histogram* - curve* - field* - drawing3d* {
+            histogram* - curve* - field* - drawing2* {
                 _autoLabel $xmlobj output.$item "Plot" counters
             }
             structure* {
