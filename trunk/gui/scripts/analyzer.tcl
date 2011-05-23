@@ -543,8 +543,11 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             string* {
                 _autoLabel $xmlobj output.$item "String" counters
             }
-            histogram* - curve* - field* - drawing2* {
+            histogram* - curve* - field* {
                 _autoLabel $xmlobj output.$item "Plot" counters
+            }
+            scene* - drawing3d* {
+                _autoLabel $xmlobj output.$item "Drawing" counters
             }
             structure* {
                 _autoLabel $xmlobj output.$item "Structure" counters
@@ -555,6 +558,9 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             sequence* {
                 _autoLabel $xmlobj output.$item "Sequence" counters
             }
+	    default {
+		puts stderr "unknown output $item"
+	    }
         }
         set label [$xmlobj get output.$item.about.group]
         if {"" == $label} {

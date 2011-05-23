@@ -1561,7 +1561,7 @@ itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
 }
 
 itcl::body Rappture::VtkViewer2::IsValidObject { dataobj } {
-    if {[catch {$dataobj isa Rappture::Drawing2} valid] != 0 || !$valid} {
+    if {[catch {$dataobj isa Rappture::Scene} valid] != 0 || !$valid} {
 	return 0
     }
     return 1
