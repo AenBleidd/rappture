@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: drawing1 - represents a vtk drawing.
+#  COMPONENT: scene - represents a vtk drawing.
 #
 #  This object represents one field in an XML description of a device.
 #  It simplifies the process of extracting data vectors that represent
@@ -20,7 +20,7 @@ namespace eval Rappture {
     # forward declaration 
 }
 
-itcl::class Rappture::Drawing1 {
+itcl::class Rappture::Scene {
     constructor {xmlobj path} { 
         # defined below 
     }
@@ -34,7 +34,7 @@ itcl::class Rappture::Drawing1 {
     public method hints {{keyword ""}} 
     public method components { args } 
 
-    private variable _drawing3d
+    private variable _scene
     private variable _xmlobj 
     private variable _actors 
     private variable _styles 
@@ -47,13 +47,13 @@ itcl::class Rappture::Drawing1 {
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::constructor {xmlobj path} {
+itcl::body Rappture::Scene::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
-    set _drawing3d [$xmlobj element -as object $path]
-    set _units [$_drawing3d get units]
+    set _scene [$xmlobj element -as object $path]
+    set _units [$_scene get units]
 
     set xunits [$xmlobj get units]
     if {"" == $xunits || "arbitrary" == $xunits} {
@@ -71,20 +71,7 @@ itcl::body Rappture::Drawing1::constructor {xmlobj path} {
     foreach elem [$_xmlobj children $path] {
         switch -glob -- $elem {
             polygon* {
-                set data [$_xmlobj get $path.$elem.vtk]
-                set arr [vtkCharArray $this-xvtkCharArray]
-                $arr SetArray $data [string length $data] 1
-                set reader [vtkPolyDataReader $this-xvtkPolyDataReader]
-                $reader SetInputArray $arr
-                $reader ReadFromInputStringOn
-                set mapper [vtkPolyDataMapper $this-xvtkPolyDataMapper]
-                $mapper SetInput [$reader GetOutput]
-                set actor [vtkActor $this-xvthActor]
-                $actor SetMapper $mapper
-                set _actors($elem) $actor
-                set _limits($elem) [$actor GetBounds]
-                set _styles($elem) [$_xmlobj get $path.$elem.style]
-                set _data($elem) $mapper
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
             }
         }
     }
@@ -113,13 +100,13 @@ itcl::body Rappture::Drawing1::constructor {xmlobj path} {
         zmin    zaxis.min
         zmax    zaxis.max
     } {
-        set str [$_drawing3d get $path]
+        set str [$_scene get $path]
         if {"" != $str} {
             set _hints($key) $str
         }
     }
     foreach {key} { axisorder } {
-        set str [$_drawing3d get $key]
+        set str [$_scene get $key]
         if {"" != $str} {
             set _hints($key) $str
         }
@@ -129,10 +116,8 @@ itcl::body Rappture::Drawing1::constructor {xmlobj path} {
 # ----------------------------------------------------------------------
 # Destructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::destructor {} {
-    foreach key [array names _actors] {
-        set actor _actors($key)
-    }
+itcl::body Rappture::Scene::destructor {} {
+    # empty
 }
 
 # ----------------------------------------------------------------------
@@ -141,7 +126,7 @@ itcl::body Rappture::Drawing1::destructor {} {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::style { elem } {
+itcl::body Rappture::Scene::style { elem } {
     if { [info exists _styles($elem)] } {
         return $_styles($elem)
     } 
@@ -154,7 +139,7 @@ itcl::body Rappture::Drawing1::style { elem } {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::data { elem } {
+itcl::body Rappture::Scene::data { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)
     } 
@@ -167,15 +152,15 @@ itcl::body Rappture::Drawing1::data { elem } {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::values { elem } {
-    if { [info exists _actors($elem)] } {
-        return $_actors($elem)
+itcl::body Rappture::Scene::values { elem } {
+    if { [info exists _data($elem)] } {
+        return $_data($elem)
     } 
     return ""
 }
 
-itcl::body Rappture::Drawing1::components { args } {
-    return [array names _actors] 
+itcl::body Rappture::Scene::components { args } {
+    return [array names _data] 
 }
 
 # ----------------------------------------------------------------------
@@ -183,10 +168,10 @@ itcl::body Rappture::Drawing1::components { args } {
 #	Returns a list {min max} representing the limits for the 
 #	specified axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::limits {which} {
+itcl::body Rappture::Scene::limits {which} {
     set min ""
     set max ""
-    foreach key [array names _actors] {
+    foreach key [array names _data] {
         set actor $_actors($key)
         foreach key { xMin xMax yMin yMax zMin zMax} value [$actor GetBounds] {
             set _limits($key) $value
@@ -247,7 +232,7 @@ itcl::body Rappture::Drawing1::limits {which} {
 # this curve.  If a particular <keyword> is specified, then it returns
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing1::hints { {keyword ""} } {
+itcl::body Rappture::Scene::hints { {keyword ""} } {
     if 0 {
     if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
         && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
