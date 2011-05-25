@@ -20,12 +20,21 @@
 /**
  * \brief Writes image command + data to supplied file descriptor.
  *
- * The image data must be supplied in BGR order with bottom to 
+ * The image data must be supplied in BGR(A) order with bottom to 
  * top scanline ordering.
+ *
+ * \param[in] fd File descriptor that will be written to
+ * \param[in] cmdName Command name to send (byte length will be appended)
+ * \param[in] data Image data
+ * \param[in] width Width of image in pixels
+ * \param[in] height Height of image in pixels
+ * \param[in] bytesPerPixel Should be 3 or 4, depending on alpha
  */
 void
-Rappture::VtkVis::writeTGA(int fd, const char *cmdName, const unsigned char *data,
-                           int width, int height)
+Rappture::VtkVis::writeTGA(int fd, const char *cmdName,
+                           const unsigned char *data,
+                           int width, int height,
+                           int bytesPerPixel)
 {
     TRACE("(%dx%d)\n", width, height);
 
@@ -38,12 +47,12 @@ Rappture::VtkVis::writeTGA(int fd, const char *cmdName, const unsigned char *dat
     header[13] = (char)(width >> 8);
     header[14] = (char)height;
     header[15] = (char)(height >> 8);
-    header[16] = (char)24; // bits per pixel
+    header[16] = (char)(bytesPerPixel*8); // bits per pixel
 
-    size_t dataLength = width * height * 3;
+    size_t dataLength = width * height * bytesPerPixel;
 
     char command[200];
-    snprintf(command, sizeof(command), "%simage -type image -bytes %lu\n", cmdName, 
+    snprintf(command, sizeof(command), "%s %lu\n", cmdName, 
              (unsigned long)headerLength + dataLength);
 
     size_t nRecs = 3;
@@ -58,7 +67,7 @@ Rappture::VtkVis::writeTGA(int fd, const char *cmdName, const unsigned char *dat
     // Header of image data
     iov[1].iov_base = header;
     iov[1].iov_len = headerLength;
-    // Image data **must be BGR!**
+    // Image data **must be BGR(A)!**
     iov[2].iov_base = const_cast<unsigned char *>(data);
     iov[2].iov_len = dataLength;
 
@@ -73,12 +82,26 @@ Rappture::VtkVis::writeTGA(int fd, const char *cmdName, const unsigned char *dat
 /**
  * \brief Writes image data to supplied file name
  *
- * The image data must be supplied in BGR order with bottom to 
- * top scanline ordering.
+ * The image data must be supplied with bottom to top 
+ * scanline ordering.  Source data should have BGR(A) 
+ * ordering, unless srcIsRGB is true, in which case 
+ * the source data will be converted from RGB(A) to 
+ * BGR(A).  Note that this is slow and it is better 
+ * to pass in BGR(A) data.
+ *
+ * \param[in] filename Path to file that will be written
+ * \param[in] imgData Image data
+ * \param[in] width Width of image in pixels
+ * \param[in] height Height of image in pixels
+ * \param[in] bytesPerPixel Should be 3 or 4, depending on alpha
+ * \param[in] srcIsRGB If true source data will be re-ordered
  */
 void
-Rappture::VtkVis::writeTGAFile(const char *filename, const unsigned char *imgData,
-                               int width, int height)
+Rappture::VtkVis::writeTGAFile(const char *filename,
+                               const unsigned char *imgData,
+                               int width, int height,
+                               int bytesPerPixel,
+                               bool srcIsRGB)
 {
     TRACE("%s (%dx%d)\n", filename, width, height);
 
@@ -90,15 +113,22 @@ Rappture::VtkVis::writeTGAFile(const char *filename, const unsigned char *imgDat
     header[13] = (char)(width >> 8);
     header[14] = (char)height;
     header[15] = (char)(height >> 8);
-    header[16] = (char)24; // bits per pixel
+    header[16] = (char)(bytesPerPixel*8); // bits per pixel
 
     outfile.write(header, sizeof(header));
 
-    // RGB -> BGR
-    for (int i = 0; i < width * height; i++) {
-        outfile << imgData[i*3+2]
-                << imgData[i*3+1]
-                << imgData[i*3];
+    if (!srcIsRGB) {
+        outfile.write((const char *)imgData, width * height * bytesPerPixel);
+    } else {
+        // RGB(A) -> BGR(A)
+        for (int i = 0; i < width * height; i++) {
+            outfile << imgData[i*bytesPerPixel+2]
+                    << imgData[i*bytesPerPixel+1]
+                    << imgData[i*bytesPerPixel];
+            if (bytesPerPixel == 4) {
+                outfile << imgData[i*bytesPerPixel+3];
+            }
+        }
     }
 
     outfile.close();

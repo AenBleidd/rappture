@@ -937,6 +937,341 @@ DataSetCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    std::vector<double> contourList;
+
+    int clistc;
+    Tcl_Obj **clistv;
+
+    if (Tcl_ListObjGetElements(interp, objv[3], &clistc, &clistv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    for (int i = 0; i < clistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, clistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        contourList.push_back(val);
+    }
+
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addHeightMap(name);
+        g_renderer->setHeightMapContourList(name, contourList);
+    } else {
+        g_renderer->addHeightMap("all");
+        g_renderer->setHeightMapContourList("all", contourList);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    int numContours;
+    if (Tcl_GetIntFromObj(interp, objv[3], &numContours) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addHeightMap(name);
+        g_renderer->setHeightMapContours(name, numContours);
+    } else {
+        g_renderer->addHeightMap("all");
+        g_renderer->setHeightMapContours("all", numContours);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec heightmapAddOps[] = {
+    {"contourlist", 1, HeightMapAddContourListOp, 4, 5, "contourList ?dataSetName?"},
+    {"numcontours", 1, HeightMapAddNumContoursOp, 4, 5, "numContours ?dataSetName?"}
+};
+static int nHeightmapAddOps = NumCmdSpecs(heightmapAddOps);
+
+static int
+HeightMapAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nHeightmapAddOps, heightmapAddOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+HeightMapColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setHeightMapColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                            Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setHeightMapContourEdgeColor(name, color);
+    } else {
+        g_renderer->setHeightMapContourEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                            Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapContourEdgeWidth(name, width);
+    } else {
+        g_renderer->setHeightMapContourEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapContourVisibility(name, state);
+    } else {
+        g_renderer->setHeightMapContourVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteHeightMap(name);
+    } else {
+        g_renderer->deleteHeightMap("all");
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapEdgeVisibility(name, state);
+    } else {
+        g_renderer->setHeightMapEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapHeightScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapHeightScale(name, scale);
+    } else {
+        g_renderer->setHeightMapHeightScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapLighting(name, state);
+    } else {
+        g_renderer->setHeightMapLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setHeightMapEdgeColor(name, color);
+    } else {
+        g_renderer->setHeightMapEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapEdgeWidth(name, width);
+    } else {
+        g_renderer->setHeightMapEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapOpacity(name, opacity);
+    } else {
+        g_renderer->setHeightMapOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapVisibility(name, state);
+    } else {
+        g_renderer->setHeightMapVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double ratio;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &ratio) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    HeightMap::Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = HeightMap::X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = HeightMap::Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = HeightMap::Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName ratio", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setHeightMapVolumeSlice(name, axis, ratio);
+    } else {
+        g_renderer->setHeightMapVolumeSlice("all", axis, ratio);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec heightmapOps[] = {
+    {"add",          1, HeightMapAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"colormap",     1, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, HeightMapEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"heightscale",  1, HeightMapHeightScaleOp, 3, 4, "value ?dataSetName?"},
+    {"isolinecolor", 8, HeightMapContourLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"isolines",     8, HeightMapContourVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"isolinewidth", 8, HeightMapContourLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"lighting",     3, HeightMapLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, HeightMapLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, HeightMapLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      1, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",      2, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
+};
+static int nHeightmapOps = NumCmdSpecs(heightmapOps);
+
+static int
+HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nHeightmapOps, heightmapOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
@@ -973,11 +1308,17 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
 #ifdef DEBUG
-    writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height);
+    writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height,
+                 TARGA_BYTES_PER_PIXEL);
 #else
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "nv>legend %s", name);
+#ifdef RENDER_TARGA
+    writeTGA(g_fdOut, cmd, imgData->GetPointer(0), width, height,
+                 TARGA_BYTES_PER_PIXEL);
+#else
     writePPM(g_fdOut, cmd, imgData->GetPointer(0), width, height);
+#endif
 #endif
 
     return TCL_OK;
@@ -1496,6 +1837,7 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
+    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);

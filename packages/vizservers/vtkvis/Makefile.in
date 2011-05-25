@@ -22,6 +22,8 @@ INSTALL_DATA    = ${INSTALL} -m 0644
 INSTALL_SCRIPT  = ${INSTALL} -m 0644
 MKDIR_P		= @MKDIR_P@
 
+GL_LIB_SPEC	= -lGL
+
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
@@ -32,6 +34,7 @@ VTK_INC_SPEC	= @VTK_INC_SPEC@
 LD_RUN_PATH	= $(VTK_LIB_DIR)
 
 LIBS		= \
+		$(GL_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(VTK_LIB_SPEC) \
 		-Wl,-rpath,$(LD_RUN_PATH)
@@ -68,6 +71,7 @@ SERVER_SRCS	= \
 		ColorMap.cpp \
 		PPMWriter.cpp \
 		RpContour2D.cpp \
+		RpHeightMap.cpp \
 		RpPolyData.cpp \
 		RpPseudoColor.cpp \
 		RpVtkDataSet.cpp \
@@ -116,11 +120,12 @@ ColorMap.o: ColorMap.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkDataSet.h Trace.h
 RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
+RpHeightMap.o: RpHeightMap.h RpVtkDataSet.h Trace.h
 RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
 RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPolyData.h RpPseudoColor.h RpContour2D.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h ColorMap.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h ColorMap.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h Trace.h
 vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h

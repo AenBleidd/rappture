@@ -29,7 +29,13 @@
 #include "RpVtkDataSet.h"
 #include "RpPseudoColor.h"
 #include "RpContour2D.h"
+#include "RpHeightMap.h"
 #include "RpPolyData.h"
+#include "Trace.h"
+
+// Controls if TGA format is sent to client
+//#define RENDER_TARGA
+#define TARGA_BYTES_PER_PIXEL 3
 
 namespace Rappture {
 namespace VtkVis {
@@ -69,6 +75,7 @@ public:
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
 
     // Data sets
@@ -217,6 +224,44 @@ public:
 
     void setContourLighting(const DataSetId& id, bool state);
 
+    // Height maps
+
+    void addHeightMap(const DataSetId& id);
+
+    void deleteHeightMap(const DataSetId& id);
+
+    HeightMap *getHeightMap(const DataSetId& id);
+
+    void setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis, double ratio);
+
+    void setHeightMapHeightScale(const DataSetId& id, double scale);
+
+    void setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    vtkLookupTable *getHeightMapColorMap(const DataSetId& id);
+
+    void setHeightMapContours(const DataSetId& id, int numContours);
+
+    void setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours);
+
+    void setHeightMapOpacity(const DataSetId& id, double opacity);
+
+    void setHeightMapVisibility(const DataSetId& id, bool state);
+
+    void setHeightMapEdgeVisibility(const DataSetId& id, bool state);
+
+    void setHeightMapEdgeColor(const DataSetId& id, float color[3]);
+
+    void setHeightMapEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setHeightMapContourVisibility(const DataSetId& id, bool state);
+
+    void setHeightMapContourEdgeColor(const DataSetId& id, float color[3]);
+
+    void setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setHeightMapLighting(const DataSetId& id, bool state);
+
     // Meshes
 
     void addPolyData(const DataSetId& id);
@@ -290,6 +335,7 @@ private:
     DataSetHashmap _dataSets;
     PseudoColorHashmap _pseudoColors;
     Contour2DHashmap _contours;
+    HeightMapHashmap _heightMaps;
     PolyDataHashmap _polyDatas;
 
     CameraMode _cameraMode;

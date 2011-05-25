@@ -13,6 +13,10 @@
 #include <unistd.h>
 #include <signal.h>
 
+#ifdef WANT_TRACE
+#include <sys/time.h>
+#endif
+
 #include "Trace.h"
 #include "RpVtkRenderServer.h"
 #include "RpVtkRendererCmd.h"
@@ -29,6 +33,10 @@ FILE *Rappture::VtkVis::g_fOut = stdout; ///< Output file handle
 FILE *Rappture::VtkVis::g_fLog = NULL; ///< Trace logging file handle
 Renderer *Rappture::VtkVis::g_renderer = NULL; ///< Main render worker
 
+#define ELAPSED_TIME(t1, t2) \
+    ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3f) : \
+     (((t2).tv_sec - (t1).tv_sec))*1.0e+3f + (float)((t2).tv_usec - (t1).tv_usec)/1.0e+3f)
+
 static void
 writeFrame(int fd, vtkUnsignedCharArray *imgData)
 {
@@ -43,10 +51,21 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
               xywh[1]);
     }
 
+#ifdef RENDER_TARGA
     writeTGAFile("/tmp/frame.tga",
                  imgData->GetPointer(0),
                  g_renderer->getWindowWidth(),
-                 g_renderer->getWindowHeight());
+                 g_renderer->getWindowHeight(),
+                 TARGA_BYTES_PER_PIXEL);
+#else
+    writeTGAFile("/tmp/frame.tga",
+                 imgData->GetPointer(0),
+                 g_renderer->getWindowWidth(),
+                 g_renderer->getWindowHeight(),
+                 TARGA_BYTES_PER_PIXEL,
+                 true);
+#endif
+
 #else
     if (g_renderer->getCameraMode() == Renderer::IMAGE) {
         double xywh[4];
@@ -61,15 +80,31 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
             << (xywh[0] + xywh[2]) << " "
             << xywh[1] << "} -bytes";
 
+#ifdef RENDER_TARGA
+        writeTGA(fd, oss.str().c_str(),
+                 imgData->GetPointer(0),
+                 g_renderer->getWindowWidth(),
+                 g_renderer->getWindowHeight(),
+                 TARGA_BYTES_PER_PIXEL);
+#else
         writePPM(fd, oss.str().c_str(),
                  imgData->GetPointer(0),
                  g_renderer->getWindowWidth(),
                  g_renderer->getWindowHeight());
+#endif
     } else {
+#ifdef RENDER_TARGA
+        writeTGA(fd, "nv>image -type image -bytes",
+                 imgData->GetPointer(0),
+                 g_renderer->getWindowWidth(),
+                 g_renderer->getWindowHeight(),
+                 TARGA_BYTES_PER_PIXEL);
+#else
         writePPM(fd, "nv>image -type image -bytes",
                  imgData->GetPointer(0),
                  g_renderer->getWindowWidth(),
                  g_renderer->getWindowHeight());
+#endif
     }
 #endif
 }

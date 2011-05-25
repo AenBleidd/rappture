@@ -5,11 +5,20 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cassert>
+
 #include <vtkDataSet.h>
 #include <vtkDataSetMapper.h>
+#include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkPointData.h>
+#include <vtkImageData.h>
 #include <vtkLookupTable.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
+#include <vtkGaussianSplatter.h>
+#include <vtkExtractVOI.h>
+#include <vtkDataSetSurfaceFilter.h>
 
 #include "RpPseudoColor.h"
 #include "Trace.h"
@@ -43,8 +52,10 @@ PseudoColor::~PseudoColor()
  */
 void PseudoColor::setDataSet(DataSet *dataSet)
 {
-    _dataSet = dataSet;
-    update();
+    if (_dataSet != dataSet) {
+        _dataSet = dataSet;
+        update();
+    }
 }
 
 /**
@@ -72,8 +83,71 @@ void PseudoColor::update()
     if (_dsMapper == NULL) {
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
     }
-    _dsMapper->SetInput(ds);
-    _dsMapper->StaticOff();
+
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+    if (pd) {
+        // DataSet is a vtkPolyData
+        if (pd->GetNumberOfLines() == 0 &&
+            pd->GetNumberOfPolys() == 0 &&
+            pd->GetNumberOfStrips() == 0) {
+            // DataSet is a point cloud
+            if (_dataSet->is2D()) {
+#if 0
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                mesher->SetInput(pd);
+                pd = mesher->GetOutput();
+#else
+                vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                splatter->SetInput(pd);
+                int dims[3];
+                splatter->GetSampleDimensions(dims);
+                TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
+                dims[2] = 3;
+                splatter->SetSampleDimensions(dims);
+                double bounds[6];
+                splatter->Update();
+                splatter->GetModelBounds(bounds);
+                TRACE("Model bounds: %g %g %g %g %g %g",
+                      bounds[0], bounds[1],
+                      bounds[2], bounds[3],
+                      bounds[4], bounds[5]);
+                vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
+                slicer->SetInput(splatter->GetOutput());
+                slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
+                slicer->SetSampleRate(1, 1, 1);
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInput(slicer->GetOutput());
+                gf->Update();
+                pd = gf->GetOutput();
+#endif
+                assert(pd);
+                _dsMapper->SetInput(pd);
+            } else {
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                mesher->SetInput(pd);
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInput(mesher->GetOutput());
+                gf->Update();
+                pd = gf->GetOutput();
+                assert(pd);
+                _dsMapper->SetInput(pd);
+             }
+        } else {
+            // DataSet is a vtkPolyData with lines and/or polygons
+            _dsMapper->SetInput(ds);
+        }
+    } else {
+        TRACE("Generating surface for data set");
+        // DataSet is NOT a vtkPolyData
+        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+        gf->SetInput(ds);
+        gf->Update();
+        pd = gf->GetOutput();
+        assert(pd);
+        _dsMapper->SetInput(pd);
+    }
+
+    //_dsMapper->StaticOn();
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
@@ -105,7 +179,7 @@ void PseudoColor::update()
 /**
  * \brief Get the VTK Actor for the colormapped dataset
  */
-vtkActor *PseudoColor::getActor()
+vtkProp *PseudoColor::getActor()
 {
     return _dsActor;
 }

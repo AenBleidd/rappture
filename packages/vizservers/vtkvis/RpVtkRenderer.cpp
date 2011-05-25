@@ -9,6 +9,12 @@
 #include <cstring>
 #include <cassert>
 
+#include <GL/gl.h>
+
+#ifdef WANT_TRACE
+#include <sys/time.h>
+#endif
+
 #include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkCoordinate.h>
@@ -30,10 +36,15 @@
 #include <vtkPointData.h>
 #include <vtkLookupTable.h>
 #include <vtkTextProperty.h>
+#include <vtkOpenGLRenderWindow.h>
 
 #include "RpVtkRenderer.h"
 #include "ColorMap.h"
 #include "Trace.h"
+
+#define ELAPSED_TIME(t1, t2) \
+    ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3f) : \
+     (((t2).tv_sec - (t1).tv_sec))*1.0e+3f + (float)((t2).tv_usec - (t1).tv_usec)/1.0e+3f)
 
 using namespace Rappture::VtkVis;
 
@@ -43,7 +54,8 @@ Renderer::Renderer() :
     _windowHeight(320),
     _cameraZoomRatio(1),
     _useCumulativeRange(true),
-    _cumulativeRangeOnlyVisible(false)
+    _cumulativeRangeOnlyVisible(false),
+    _cameraMode(PERSPECTIVE)
 {
     _bgColor[0] = 0;
     _bgColor[1] = 0;
@@ -76,7 +88,6 @@ Renderer::Renderer() :
     _clippingPlanes->AddItem(plane3);
     _renderer = vtkSmartPointer<vtkRenderer>::New();
     _renderer->LightFollowCameraOn();
-    _cameraMode = PERSPECTIVE;
     initAxes();
     initCamera();
     storeCameraOrientation();
@@ -84,6 +95,8 @@ Renderer::Renderer() :
 #ifdef USE_OFFSCREEN_RENDERING
     _renderWindow->DoubleBufferOff();
     _renderWindow->OffScreenRenderingOn();
+#else
+    _renderWindow->SwapBuffersOff();
 #endif
     _renderWindow->SetSize(_windowWidth, _windowHeight);
     _renderWindow->AddRenderer(_renderer);
@@ -107,6 +120,11 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _contours.clear();
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+             itr != _heightMaps.end(); ++itr) {
+        delete itr->second;
+    }
+    _heightMaps.clear();
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         delete itr->second;
@@ -162,7 +180,7 @@ void Renderer::deletePseudoColor(const DataSetId& id)
     do  {
         PseudoColor *ps = itr->second;
         if (ps->getActor())
-            _renderer->RemoveActor(ps->getActor());
+            _renderer->RemoveViewProp(ps->getActor());
         delete ps;
 
         _pseudoColors.erase(itr);
@@ -198,11 +216,47 @@ void Renderer::deleteContour2D(const DataSetId& id)
     do {
         Contour2D *contour = itr->second;
         if (contour->getActor())
-            _renderer->RemoveActor(contour->getActor());
+            _renderer->RemoveViewProp(contour->getActor());
         delete contour;
 
         _contours.erase(itr);
     } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the HeightMap for the specified DataSet
+ *
+ * The underlying HeightMap is deleted, freeing its memory
+ */
+void Renderer::deleteHeightMap(const DataSetId& id)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting HeightMaps for %s", id.c_str());
+
+    do {
+        HeightMap *hmap = itr->second;
+        if (hmap->getActor())
+            _renderer->RemoveViewProp(hmap->getActor());
+        delete hmap;
+
+        _heightMaps.erase(itr);
+    } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
 }
@@ -234,7 +288,7 @@ void Renderer::deletePolyData(const DataSetId& id)
     do {
         PolyData *polyData = itr->second;
         if (polyData->getActor())
-            _renderer->RemoveActor(polyData->getActor());
+            _renderer->RemoveViewProp(polyData->getActor());
         delete polyData;
 
         _polyDatas.erase(itr);
@@ -246,7 +300,7 @@ void Renderer::deletePolyData(const DataSetId& id)
 /**
  * \brief Remove the specified DataSet and associated rendering objects
  *
- * The underlying DataSet and any associated Contour2D and PseudoColor
+ * The underlying DataSet and any associated graphics 
  * objects are deleted, freeing the memory used.
  */
 void Renderer::deleteDataSet(const DataSetId& id)
@@ -271,6 +325,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
 
         deletePseudoColor(itr->second->getName());
         deleteContour2D(itr->second->getName());
+        deleteHeightMap(itr->second->getName());
         deletePolyData(itr->second->getName());
     
         TRACE("After deleting graphics objects");
@@ -358,20 +413,20 @@ void Renderer::resetAxes()
     if (_cameraMode == IMAGE) {
         if (_renderer->HasViewProp(_cubeAxesActor)) {
             TRACE("Removing 3D axes");
-            _renderer->RemoveActor(_cubeAxesActor);
+            _renderer->RemoveViewProp(_cubeAxesActor);
         }
         if (!_renderer->HasViewProp(_cubeAxesActor2D)) {
             TRACE("Adding 2D axes");
-            _renderer->AddActor(_cubeAxesActor2D);
+            _renderer->AddViewProp(_cubeAxesActor2D);
         }
     } else {
         if (_renderer->HasViewProp(_cubeAxesActor2D)) {
             TRACE("Removing 2D axes");
-            _renderer->RemoveActor(_cubeAxesActor2D);
+            _renderer->RemoveViewProp(_cubeAxesActor2D);
         }
         if (!_renderer->HasViewProp(_cubeAxesActor)) {
             TRACE("Adding 3D axes");
-            _renderer->AddActor(_cubeAxesActor);
+            _renderer->AddViewProp(_cubeAxesActor);
         }
         double bounds[6];
         collectBounds(bounds, false);
@@ -441,10 +496,10 @@ void Renderer::initAxes()
 
     if (_cameraMode == IMAGE) {
         if (!_renderer->HasViewProp(_cubeAxesActor2D))
-            _renderer->AddActor(_cubeAxesActor2D);
+            _renderer->AddViewProp(_cubeAxesActor2D);
     } else {
         if (!_renderer->HasViewProp(_cubeAxesActor))
-            _renderer->AddActor(_cubeAxesActor);
+            _renderer->AddViewProp(_cubeAxesActor);
     }
 }
 
@@ -723,7 +778,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     if (_scalarBarActor == NULL) {
         _scalarBarActor = vtkSmartPointer<vtkScalarBarActor>::New();
         _scalarBarActor->UseOpacityOn();
-        _legendRenderer->AddActor(_scalarBarActor);
+        _legendRenderer->AddViewProp(_scalarBarActor);
     }
 
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
@@ -761,9 +816,38 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     _legendRenderWindow->Render();
 
+#ifdef RENDER_TARGA
+    _legendRenderWindow->MakeCurrent();
+    // Must clear previous errors first.
+    while (glGetError() != GL_NO_ERROR){
+        ;
+    }
+    int bytesPerPixel = TARGA_BYTES_PER_PIXEL;
+    int size = bytesPerPixel * width * height;
+
+    if (imgData->GetMaxId() + 1 != size)
+    {
+        imgData->SetNumberOfComponents(bytesPerPixel);
+        imgData->SetNumberOfValues(size);
+    }
+    glDisable(GL_TEXTURE_2D);
+    glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_renderWindow)->GetFrontLeftBuffer()));
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    if (bytesPerPixel == 4) {
+        glReadPixels(0, 0, width, height, GL_BGRA,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    } else {
+        glReadPixels(0, 0, width, height, GL_BGR,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    }
+    if (glGetError() != GL_NO_ERROR) {
+        ERROR("glReadPixels");
+    }
+#else
     _legendRenderWindow->GetPixelData(0, 0, width-1, height-1,
                                       !_legendRenderWindow->GetDoubleBuffer(),
                                       imgData);
+#endif
     return true;
 }
 
@@ -813,7 +897,7 @@ void Renderer::addPseudoColor(const DataSetId& id)
 
         pc->setLookupTable(lut);
 
-        _renderer->AddActor(pc->getActor());
+        _renderer->AddViewProp(pc->getActor());
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
@@ -1105,7 +1189,7 @@ void Renderer::addContour2D(const DataSetId& id)
 
         contour->setDataSet(ds);
 
-        _renderer->AddActor(contour->getActor());
+        _renderer->AddViewProp(contour->getActor());
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
@@ -1322,6 +1406,507 @@ void Renderer::setContourLighting(const DataSetId& id, bool state)
 }
 
 /**
+ * \brief Create a new HeightMap and associate it with the named DataSet
+ */
+void Renderer::addHeightMap(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getHeightMap(dsID)) {
+            WARN("Replacing existing HeightMap %s", dsID.c_str());
+            deleteHeightMap(dsID);
+        }
+
+        HeightMap *hmap = new HeightMap();
+        _heightMaps[dsID] = hmap;
+
+        hmap->setDataSet(ds);
+
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+
+        hmap->setLookupTable(lut);
+
+        _renderer->AddViewProp(hmap->getActor());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the HeightMap associated with a named DataSet
+ */
+HeightMap *Renderer::getHeightMap(const DataSetId& id)
+{
+    HeightMapHashmap::iterator itr = _heightMaps.find(id);
+
+    if (itr == _heightMaps.end()) {
+        TRACE("HeightMap not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Set the volume slice used for mapping volumetric data
+ */
+void Renderer::setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis, double ratio)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->selectVolumeSlice(axis, ratio);
+     } while (doAll && ++itr != _heightMaps.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set amount to scale scalar values when creating elevations
+ * in the height map
+ */
+void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setHeightScale(scale);
+     } while (doAll && ++itr != _heightMaps.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with a DataSet
+ */
+void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the height map's color map (vtkLookupTable) for the given DataSet
+ *
+ * \return The associated lookup table or NULL if not found
+ */
+vtkLookupTable *Renderer::getHeightMapColorMap(const DataSetId& id)
+{
+    HeightMap *hm = getHeightMap(id);
+    if (hm)
+        return hm->getLookupTable();
+    else
+        return NULL;
+}
+
+/**
+ * \brief Set the number of equally spaced contour isolines for the given DataSet
+ */
+void Renderer::setHeightMapContours(const DataSetId& id, int numContours)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        if (_useCumulativeRange) {
+            itr->second->setContours(numContours, _cumulativeDataRange);
+        } else {
+            itr->second->setContours(numContours);
+        }
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set a list of height map contour isovalues for the given DataSet
+ */
+void Renderer::setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourList(contours);
+    } while (doAll && ++itr != _heightMaps.end());
+
+     _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of height map for the given DataSet
+ */
+void Renderer::setHeightMapOpacity(const DataSetId& id, double opacity)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map for the given DataSet
+ */
+void Renderer::setHeightMapVisibility(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map mesh edges for the given DataSet
+ */
+void Renderer::setHeightMapEdgeVisibility(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB height map mesh edge color for the specified DataSet
+ */
+void Renderer::setHeightMapEdgeColor(const DataSetId& id, float color[3])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the height map mesh edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setHeightMapEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map contour lines for the given DataSet
+ */
+void Renderer::setHeightMapContourVisibility(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourVisibility(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB height map isoline color for the specified DataSet
+ */
+void Renderer::setHeightMapContourEdgeColor(const DataSetId& id, float color[3])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourEdgeColor(color);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the height map isoline width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn height map lighting on/off for the specified DataSet
+ */
+void Renderer::setHeightMapLighting(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _heightMaps.end());
+    _needsRedraw = true;
+}
+
+/**
  * \brief Create a new PolyData and associate it with the named DataSet
  */
 void Renderer::addPolyData(const DataSetId& id)
@@ -1354,7 +1939,7 @@ void Renderer::addPolyData(const DataSetId& id)
 
         polyData->setDataSet(ds);
 
-        _renderer->AddActor(polyData->getActor());
+        _renderer->AddViewProp(polyData->getActor());
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
@@ -1600,6 +2185,15 @@ void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
  */
 void Renderer::setWindowSize(int width, int height)
 {
+    // FIXME: Fix up panning on aspect change
+#ifdef notdef
+    if (_cameraPan[0] != 0.0) {
+        _cameraPan[0] *= ((double)_windowWidth / width);
+    }
+    if (_cameraPan[1] != 0.0) {
+        _cameraPan[1] *= ((double)_windowHeight / height);
+    }
+#endif
     _windowWidth = width;
     _windowHeight = height;
     _renderWindow->SetSize(_windowWidth, _windowHeight);
@@ -1675,6 +2269,8 @@ Renderer::CameraMode Renderer::getCameraMode() const
  */
 void Renderer::setCameraOrientation(double quat[4])
 {
+    if (_cameraMode == IMAGE)
+        return;
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
     double mat3[3][3];
@@ -1712,6 +2308,7 @@ void Renderer::setCameraOrientation(double quat[4])
         _cameraPan[1] = 0;
         panCamera(panx, pany, true);
     }
+    _renderer->ResetCameraClippingRange();
     printCameraInfo(camera);
     _needsRedraw = true;
 }
@@ -1904,7 +2501,7 @@ void Renderer::panCamera(double x, double y, bool absolute)
                               _windowHeight / 2.0,
                               focalDepth, 
                               oldPickPoint);
- 
+
         // Camera motion is reversed
         motionVector[0] = oldPickPoint[0] - newPickPoint[0];
         motionVector[1] = oldPickPoint[1] - newPickPoint[1];
@@ -2175,6 +2772,12 @@ void Renderer::getScreenWorldCoords(double xywh[4]) const
 void Renderer::mergeBounds(double *boundsDest,
                            const double *bounds1, const double *bounds2)
 {
+    assert(boundsDest != NULL);
+    assert(bounds1 != NULL);
+    if (bounds2 == NULL) {
+        WARN("NULL bounds2 array");
+        return;
+    }
     for (int i = 0; i < 6; i++) {
         if (i % 2 == 0)
             boundsDest[i] = min2(bounds1[i], bounds2[i]);
@@ -2208,6 +2811,11 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
     }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+             itr != _heightMaps.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
+    }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
@@ -2222,6 +2830,13 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
                 bounds[i] = 1;
         }
     }
+    TRACE("Bounds: %g %g %g %g %g %g",
+          bounds[0],
+          bounds[1],
+          bounds[2],
+          bounds[3],
+          bounds[4],
+          bounds[5]);
 }
 
 /**
@@ -2249,6 +2864,29 @@ void Renderer::updateRanges(bool useCumulative)
     for (Contour2DHashmap::iterator itr = _contours.begin();
          itr != _contours.end(); ++itr) {
         // Only need to update range if using evenly spaced contours
+        if (itr->second->getContourList().empty()) {
+            if (useCumulative) {
+                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
+            } else {
+                itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+         itr != _heightMaps.end(); ++itr) {
+        vtkLookupTable *lut = itr->second->getLookupTable();
+        if (lut) {
+            if (useCumulative) {
+                lut->SetRange(_cumulativeDataRange);
+            } else {
+                double range[2];
+                if (itr->second->getDataSet()) {
+                    itr->second->getDataSet()->getDataRange(range);
+                    lut->SetRange(range);
+                }
+            }
+        }
+        // Only need to update contour range if using evenly spaced contours
         if (itr->second->getContourList().empty()) {
             if (useCumulative) {
                 itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
@@ -2285,20 +2923,26 @@ void Renderer::collectDataRanges(double *range, bool onlyVisible)
         range[1] = 1;
 }
 
-#ifdef notdef
-void Renderer::setPerspectiveCameraByBounds(double bounds[6])
-{
-    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    camera->ParallelProjectionOff();
-    camera->Reset();
-}
-#endif
-
 /**
  * \brief Initialize the camera zoom region to include the bounding volume given
  */
 void Renderer::initCamera()
 {
+#ifdef WANT_TRACE
+    switch (_cameraMode) {
+    case IMAGE:
+        TRACE("Image camera");
+        break;
+    case ORTHO:
+        TRACE("Ortho camera");
+        break;
+    case PERSPECTIVE:
+        TRACE("Perspective camera");
+        break;
+    default:
+        TRACE("Unknown camera mode");
+    }
+#endif
     double bounds[6];
     collectBounds(bounds, false);
     _imgWorldOrigin[0] = bounds[0];
@@ -2309,22 +2953,31 @@ void Renderer::initCamera()
     _cameraPan[1] = 0;
     _cameraZoomRatio = 1;
 
-    if (_cameraMode == IMAGE) {
+    switch (_cameraMode) {
+    case IMAGE:
         _renderer->ResetCamera(bounds);
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
         resetAxes();
-    } else if (_cameraMode == ORTHO) {
+        break;
+    case ORTHO:
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes();
         _renderer->ResetCamera(bounds);
         computeScreenWorldCoords();
-    } else if (_cameraMode == PERSPECTIVE) {
+        break;
+    case PERSPECTIVE:
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes();
         _renderer->ResetCamera(bounds);
         computeScreenWorldCoords();
+        break;
+    default:
+        ERROR("Unknown camera mode");
     }
+#ifdef WANT_TRACE
+    printCameraInfo(_renderer->GetActiveCamera());
+#endif
 }
 
 /**
@@ -2369,6 +3022,8 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
         setPseudoColorOpacity(id, opacity);
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
         setContourOpacity(id, opacity);
+    if (id.compare("all") == 0 || getHeightMap(id) != NULL)
+        setHeightMapOpacity(id, opacity);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataOpacity(id, opacity);
 }
@@ -2401,6 +3056,8 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         setPseudoColorVisibility(id, state);
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
         setContourVisibility(id, state);
+    if (id.compare("all") == 0 || getHeightMap(id) != NULL)
+        setHeightMapVisibility(id, state);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataVisibility(id, state);
 }
@@ -2423,6 +3080,10 @@ bool Renderer::render()
                  itr != _contours.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
+            for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+                 itr != _heightMaps.end(); ++itr) {
+                itr->second->setClippingPlanes(_clippingPlanes);
+            }
             for (PolyDataHashmap::iterator itr = _polyDatas.begin();
                  itr != _polyDatas.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
@@ -2434,6 +3095,10 @@ bool Renderer::render()
             }
             for (Contour2DHashmap::iterator itr = _contours.begin();
                  itr != _contours.end(); ++itr) {
+                itr->second->setClippingPlanes(NULL);
+            }
+            for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+                 itr != _heightMaps.end(); ++itr) {
                 itr->second->setClippingPlanes(NULL);
             }
             for (PolyDataHashmap::iterator itr = _polyDatas.begin();
@@ -2465,8 +3130,55 @@ int Renderer::getWindowHeight() const
  */
 void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
 {
+#ifdef RENDER_TARGA
+    _renderWindow->MakeCurrent();
+    // Must clear previous errors first.
+    while (glGetError() != GL_NO_ERROR){
+        ;
+    }
+    int bytesPerPixel = TARGA_BYTES_PER_PIXEL;
+    int size = bytesPerPixel * _windowWidth * _windowHeight;
+
+    if (imgData->GetMaxId() + 1 != size)
+    {
+        imgData->SetNumberOfComponents(bytesPerPixel);
+        imgData->SetNumberOfValues(size);
+    }
+    glDisable(GL_TEXTURE_2D);
+    if (_renderWindow->GetDoubleBuffer()) {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_renderWindow)->GetBackLeftBuffer()));
+    } else {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_renderWindow)->GetFrontLeftBuffer()));
+    }
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+#ifdef WANT_TRACE
+    struct timeval t1, t2;
+    glFinish();
+    gettimeofday(&t1, 0);
+#endif
+    if (bytesPerPixel == 4) {
+        glReadPixels(0, 0, _windowWidth, _windowHeight, GL_BGRA,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    } else {
+        glReadPixels(0, 0, _windowWidth, _windowHeight, GL_BGR,
+                     GL_UNSIGNED_BYTE, imgData->GetPointer(0));
+    }
+#ifdef WANT_TRACE
+    gettimeofday(&t2, 0);
+    static unsigned int numFrames = 0;
+    static double accum = 0;
+    numFrames++;
+    accum += ELAPSED_TIME(t1, t2);
+#endif
+    TRACE("Readback time: %g ms", ELAPSED_TIME(t1, t2));
+    TRACE("Readback avg: %g ms", accum/numFrames);
+    if (glGetError() != GL_NO_ERROR) {
+        ERROR("glReadPixels");
+    }
+#else
     _renderWindow->GetPixelData(0, 0, _windowWidth-1, _windowHeight-1,
                                 !_renderWindow->GetDoubleBuffer(), imgData);
+#endif
     TRACE("Image data size: %d", imgData->GetSize());
 }
 

@@ -31,7 +31,7 @@ public:
 
     DataSet *getDataSet();
 
-    vtkActor *getActor();
+    vtkProp *getActor();
 
     void setVisibility(bool state);
 

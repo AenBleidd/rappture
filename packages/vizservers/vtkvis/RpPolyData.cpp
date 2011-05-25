@@ -5,11 +5,17 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cassert>
+
 #include <vtkDataSet.h>
 #include <vtkPolyData.h>
+#include <vtkDataSetMapper.h>
+#include <vtkUnstructuredGrid.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
 
 #include "RpPolyData.h"
 #include "Trace.h"
@@ -43,7 +49,7 @@ PolyData::~PolyData()
 /**
  * \brief Get the VTK Actor for the mesh
  */
-vtkActor *PolyData::getActor()
+vtkProp *PolyData::getActor()
 {
     return _pdActor;
 }
@@ -77,8 +83,16 @@ void PolyData::setDataSet(DataSet *dataSet)
         if (!ds->IsA("vtkPolyData")) {
             ERROR("DataSet is not a PolyData");
             return;
+        } else {
+            TRACE("DataSet is a vtkPolyData");
+            vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+            assert(pd);
+            TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
+                  pd->GetNumberOfVerts(),
+                  pd->GetNumberOfLines(),
+                  pd->GetNumberOfPolys(),
+                  pd->GetNumberOfStrips());
         }
-        TRACE("DataSet is a vtkPolyData");
         _dataSet = dataSet;
         update();
     }
@@ -110,7 +124,33 @@ void PolyData::update()
     initActor();
     _pdActor->SetMapper(_pdMapper);
 
-    _pdMapper->SetInput(vtkPolyData::SafeDownCast(_dataSet->getVtkDataSet()));
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(_dataSet->getVtkDataSet());
+    assert(pd);
+
+    if (pd->GetNumberOfLines() == 0 &&
+        pd->GetNumberOfPolys() == 0 &&
+        pd->GetNumberOfStrips() == 0) {
+        // Point cloud
+        if (_dataSet->is2D()) {
+            vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+            mesher->SetInput(pd);
+            _pdMapper->SetInput(mesher->GetOutput());
+        } else {
+            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+            mesher->SetInput(pd);
+            // Delaunay3D returns an UnstructuredGrid, so feed it through a generic mapper
+            // to get the grid boundary as a PolyData
+            vtkSmartPointer<vtkDataSetMapper> dsMapper =  vtkSmartPointer<vtkDataSetMapper>::New();
+            dsMapper->SetInput(mesher->GetOutput());
+            dsMapper->StaticOn();
+            _pdMapper = dsMapper->GetPolyDataMapper();
+            _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
+            _pdMapper->ScalarVisibilityOff();
+        }
+    } else {
+        _pdMapper->SetInput(pd);
+        _pdMapper->StaticOn();
+    }
 }
 
 /**

@@ -12,10 +12,13 @@ namespace Rappture {
 namespace VtkVis {
 
 extern
-void writeTGA(int fd, const char *cmdName, const unsigned char *data, int width, int height);
+void writeTGA(int fd, const char *cmdName, const unsigned char *data,
+              int width, int height, int bytesPerPixel);
 
 extern
-void writeTGAFile(const char *filename, const unsigned char *data, int width, int height);
+void writeTGAFile(const char *filename, const unsigned char *data,
+                  int width, int height, int bytesPerPixel,
+                  bool srcIsRGB = false);
 
 }
 }

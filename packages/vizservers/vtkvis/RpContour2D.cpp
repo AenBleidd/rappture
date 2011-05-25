@@ -5,9 +5,16 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cassert>
+
 #include <vtkContourFilter.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
+#include <vtkPointData.h>
+#include <vtkDelaunay2D.h>
+#include <vtkDelaunay3D.h>
+#include <vtkDataSetSurfaceFilter.h>
 
 #include "RpContour2D.h"
 #include "Trace.h"
@@ -67,7 +74,7 @@ DataSet *Contour2D::getDataSet()
 /**
  * \brief Get the VTK Actor for the contour lines
  */
-vtkActor *Contour2D::getActor()
+vtkProp *Contour2D::getActor()
 {
     return _contourActor;
 }
@@ -95,6 +102,7 @@ void Contour2D::update()
     if (_dataSet == NULL) {
         return;
     }
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
 
     initActor();
 
@@ -102,8 +110,44 @@ void Contour2D::update()
     if (_contourFilter == NULL) {
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
-
-    _contourFilter->SetInput(_dataSet->getVtkDataSet());
+ 
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+    if (pd) {
+        // DataSet is a vtkPolyData
+        if (pd->GetNumberOfLines() == 0 &&
+            pd->GetNumberOfPolys() == 0 &&
+            pd->GetNumberOfStrips() == 0) {
+            // DataSet is a point cloud
+            if (_dataSet->is2D()) {
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                mesher->SetInput(pd);
+                pd = mesher->GetOutput();
+                assert(pd);
+                _contourFilter->SetInput(pd);
+            } else {
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                mesher->SetInput(pd);
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInput(mesher->GetOutput());
+                gf->Update();
+                pd = gf->GetOutput();
+                assert(pd);
+                _contourFilter->SetInput(pd);
+             }
+        } else {
+            // DataSet is a vtkPolyData with lines and/or polygons
+            _contourFilter->SetInput(ds);
+        }
+    } else {
+        TRACE("Generating surface for data set");
+        // DataSet is NOT a vtkPolyData
+        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+        gf->SetInput(ds);
+        gf->Update();
+        pd = gf->GetOutput();
+        assert(pd);
+        _contourFilter->SetInput(pd);
+    }
 
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
@@ -129,8 +173,8 @@ void Contour2D::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _contourActor->SetMapper(_contourMapper);
         _contourMapper->SetInput(_contourFilter->GetOutput());
+        _contourActor->SetMapper(_contourMapper);
     }
 }
 

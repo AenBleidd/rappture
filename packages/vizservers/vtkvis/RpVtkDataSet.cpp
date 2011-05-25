@@ -90,12 +90,13 @@ bool DataSet::setData(vtkDataSetReader *reader)
     _dataSet->Update();
     _dataSet->GetScalarRange(_dataRange);
 
+    TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
     return true;
 }
 
 /**
- * \brief Read dataset using supplied reader
+ * \brief Set dataset from existing vtkDataSet object
  */
 bool DataSet::setData(vtkDataSet *ds)
 {
@@ -104,6 +105,7 @@ bool DataSet::setData(vtkDataSet *ds)
     _dataSet->GetScalarRange(_dataRange);
     _dataSet->GetBounds(_bounds);
 
+    TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
     return true;
 }
@@ -130,6 +132,14 @@ const std::string& DataSet::getName() const
 vtkDataSet *DataSet::getVtkDataSet()
 {
     return _dataSet;
+}
+
+/**
+ * \brief Get the underlying VTK DataSet subclass class name
+ */
+const char *DataSet::getVtkType()
+{
+    return _dataSet->GetClassName();
 }
 
 /**
