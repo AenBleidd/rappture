@@ -83,6 +83,27 @@ contour2d linewidth <val> <?datasetName?>
 contour2d opacity <val> <?datasetName?>
 contour2d visible <bool> <?datasetName?>
 
+heightmap add numcontours <n> <?dataSetName?>
+          Generate evenly spaced contours including range endpoints.  See also
+          'dataset maprange' command.
+heightmap add contourlist <list> <?dataSetName?>
+	  list = {isoval1 isoval2 isoval3...}
+heightmap colormap <colorMapName> <?dataSetName?>
+heightmap delete <?dataSetName?>
+heightmap edges <bool> <?dataSetName?>
+heightmap heightscale <value> <?dataSetName?>
+heightmap isolinecolor <r> <g> <b> <?dataSetName?>
+heightmap isolines <bool> <?dataSetName?>
+heightmap isolinewidth <width> <?dataSetName?>
+heightmap lighting <bool> <?dataSetName?>
+heightmap linecolor <r> <g> <b> <?dataSetName?>
+heightmap linewidth <width> <?dataSetName?>
+heightmap opacity <value> <?dataSetName?>
+heightmap visible <bool> <?dataSetName?>
+heightmap volumeslice axis ratio <?dataSetName?>
+          For 3D data, select a slice along a principle axis of the volume. The
+          ratio is [0,1]
+
 polydata add <?datasetName?>
 polydata color <r> <g> <b> <?datasetName?>
 polydata delete <?datasetName?>

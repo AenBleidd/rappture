@@ -30,6 +30,12 @@ using namespace Rappture::VtkVis;
  * Note that currently the image data has bottom to top scanlines.  This 
  * routine could be made even simpler (faster) if the image data had top 
  * to bottom scanlines.
+ *
+ * \param[in] fd File descriptor that will be written to
+ * \param[in] cmdName Command name to send (byte length will be appended)
+ * \param[in] data Image data
+ * \param[in] width Width of image in pixels
+ * \param[in] height Height of image in pixels
  */
 void
 Rappture::VtkVis::writePPM(int fd, const char *cmdName, const unsigned char *data,

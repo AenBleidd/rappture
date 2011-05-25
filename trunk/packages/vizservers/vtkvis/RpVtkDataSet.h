@@ -40,6 +40,8 @@ public:
 
     vtkDataSet *getVtkDataSet();
 
+    const char *getVtkType();
+
     void getDataRange(double minmax[2]);
 
     double getDataValue(double x, double y, double z);

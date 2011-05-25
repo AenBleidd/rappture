@@ -33,7 +33,7 @@ public:
 
     DataSet *getDataSet();
 
-    vtkActor *getActor();
+    vtkProp *getActor();
 
     void setContours(int numContours);
 
