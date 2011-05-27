@@ -98,6 +98,8 @@ void HeightMap::update()
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
+    TRACE("DataSet type: %s", _dataSet->getVtkType());
+
     // Contour filter to generate isolines
     if (_contourFilter == NULL) {
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
@@ -205,6 +207,7 @@ void HeightMap::update()
                     _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
                 int dims[3];
                 imageData->GetDimensions(dims);
+                TRACE("Image data dimensions: %d %d %d", dims[0], dims[1], dims[2]);
                 _volumeSlicer->SetInput(ds);
                 _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
                 _volumeSlicer->SetSampleRate(1, 1, 1);
