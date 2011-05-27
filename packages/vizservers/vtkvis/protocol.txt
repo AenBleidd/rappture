@@ -115,6 +115,15 @@ polydata opacity <val> <?datasetName?>
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 
+volume add <?datasetName?>
+volume colormap <colorMapName> <?datasetName?>
+volume delete <?datasetName?>
+volume lighting <bool> <?datasetName?>
+volume shading ambient <coeff> <?datasetName?>
+volume shading diffuse <coeff> <?datasetName?>
+volume shading specular <coeff> <power> <?datasetName?>
+volume visible <bool> <?datasetName?>
+
 ================================================================================
 Replies:
 

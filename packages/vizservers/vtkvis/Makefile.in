@@ -28,7 +28,7 @@ TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 VTK_LIB_DIR	= @VTK_LIB_DIR@
-VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) -lvtkIO -lvtkWidgets -lvtkRendering -lvtkGraphics -lvtkCommon
+VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) -lvtkIO -lvtkWidgets -lvtkFiltering -lvtkVolumeRendering -lvtkRendering -lvtkHybrid -lvtkGraphics -lvtkImaging -lvtkCommon
 VTK_INC_SPEC	= @VTK_INC_SPEC@
 
 LD_RUN_PATH	= $(VTK_LIB_DIR)
@@ -44,10 +44,11 @@ INCLUDES	= \
 		$(TCL_INC_SPEC) \
 		$(VTK_INC_SPEC)
 
-USE_CUSTOM_AXES 	= #yes
-USE_OFFSCREEN_RENDERING = yes
 DEBUG			= #yes
 TRACE			= #yes
+USE_CUSTOM_AXES 	= #yes
+USE_GPU_RAYCASTING      = yes
+USE_OFFSCREEN_RENDERING = yes
 
 EXTRA_CFLAGS	= -Wall -Wno-deprecated #vtk uses deprecated strstream header (instead of sstream)
 DEFINES		=
@@ -64,6 +65,9 @@ endif
 ifdef USE_OFFSCREEN_RENDERING
 DEFINES         += -DUSE_OFFSCREEN_RENDERING
 endif
+ifdef USE_GPU_RAYCASTING
+DEFINES         += -DUSE_GPU_RAYCAST_MAPPER
+endif
 CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
@@ -74,6 +78,7 @@ SERVER_SRCS	= \
 		RpHeightMap.cpp \
 		RpPolyData.cpp \
 		RpPseudoColor.cpp \
+		RpVolume.cpp \
 		RpVtkDataSet.cpp \
 		RpVtkRenderer.cpp\
 		RpVtkRendererCmd.cpp \
@@ -122,6 +127,7 @@ RpContour2D.o: RpContour2D.h RpVtkDataSet.h Trace.h
 RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
 RpHeightMap.o: RpHeightMap.h RpVtkDataSet.h Trace.h
 RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h Trace.h
+RpVolume.o: RpVolume.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
 RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPolyData.h RpPseudoColor.h RpContour2D.h ColorMap.h Trace.h
 RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h ColorMap.h PPMWriter.h TGAWriter.h

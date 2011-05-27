@@ -12,6 +12,8 @@
 #include <list>
 #include <cstring>
 #include <vtkSmartPointer.h>
+#include <vtkColorTransferFunction.h>
+#include <vtkPiecewiseFunction.h>
 #include <vtkLookupTable.h>
 
 namespace Rappture {
@@ -83,7 +85,12 @@ public:
     virtual ~ColorMap();
 
     const std::string& getName();
+
     vtkLookupTable *getLookupTable();
+
+    vtkSmartPointer<vtkColorTransferFunction> getColorTransferFunction(double range[2]);
+
+    vtkSmartPointer<vtkPiecewiseFunction> getOpacityTransferFunction(double range[2]);
 
     void setNumberOfTableEntries(int numEntries);
 
@@ -95,9 +102,13 @@ public:
 
     void clear();
 
-    static ColorMap* createDefault();
+    static ColorMap *getDefault();
+    static ColorMap *getVolumeDefault();
 
 private:
+    static ColorMap *_default;
+    static ColorMap *_volumeDefault;
+
     ColorMap();
 
     void lerp(double *result, const ControlPoint& cp1, const ControlPoint& cp2, double value);
@@ -108,6 +119,8 @@ private:
     std::list<OpacityControlPoint> _opacityControlPoints;
     bool _needsBuild;
     int _numTableEntries;
+    vtkSmartPointer<vtkColorTransferFunction> _colorTF;
+    vtkSmartPointer<vtkPiecewiseFunction> _opacityTF;
     vtkSmartPointer<vtkLookupTable> _lookupTable;
 };
 

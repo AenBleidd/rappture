@@ -31,7 +31,7 @@ public:
 
     DataSet *getDataSet();
 
-    vtkProp *getActor();
+    vtkProp *getProp();
 
     void setVisibility(bool state);
 
@@ -54,7 +54,7 @@ public:
     void setLighting(bool state);
 
 private:
-    void initActor();
+    void initProp();
     void update();
 
     DataSet *_dataSet;

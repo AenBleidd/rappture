@@ -9,17 +9,26 @@
 #include <list>
 #include <cassert>
 #include <vtkLookupTable.h>
+#include <vtkColorTransferFunction.h>
+#include <vtkPiecewiseFunction.h>
 
 #include "ColorMap.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
 
+ColorMap *ColorMap::_default = NULL;
+ColorMap *ColorMap::_volumeDefault = NULL;
+
 ColorMap::ColorMap(const std::string& name) :
     _name(name),
     _needsBuild(true),
     _numTableEntries(256)
 {
+    _colorTF = vtkSmartPointer<vtkColorTransferFunction>::New();
+    _colorTF->ClampingOn();
+    _opacityTF = vtkSmartPointer<vtkPiecewiseFunction>::New();
+    _opacityTF->ClampingOn();
 }
 
 ColorMap::~ColorMap()
@@ -42,6 +51,42 @@ vtkLookupTable *ColorMap::getLookupTable()
     build();
     assert(_lookupTable != NULL);
     return _lookupTable;
+}
+
+/**
+ * \brief Return a newly allocated color transfer function with values
+ * scaled to the given data range
+ */
+vtkSmartPointer<vtkColorTransferFunction>
+ColorMap::getColorTransferFunction(double range[2])
+{
+    vtkSmartPointer<vtkColorTransferFunction> tf = vtkSmartPointer<vtkColorTransferFunction>::New();
+    tf->DeepCopy(_colorTF);
+    double tmp[6];
+    for (int i = 0; i < tf->GetSize(); i++) {
+        tf->GetNodeValue(i, tmp);
+        tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
+        tf->SetNodeValue(i, tmp);
+    }
+    return tf;
+}
+
+/**
+ * \brief Return a newly allocated opacity transfer function with values
+ * scaled to the given data range
+ */
+vtkSmartPointer<vtkPiecewiseFunction>
+ColorMap::getOpacityTransferFunction(double range[2])
+{
+    vtkSmartPointer<vtkPiecewiseFunction> tf = vtkSmartPointer<vtkPiecewiseFunction>::New();
+    tf->DeepCopy(_opacityTF);
+    double tmp[4];
+    for (int i = 0; i < tf->GetSize(); i++) {
+        tf->GetNodeValue(i, tmp);
+        tmp[0] = range[0] + tmp[0] * (range[1] - range[0]);
+        tf->SetNodeValue(i, tmp);
+    }
+    return tf;
 }
 
 /**
@@ -71,6 +116,7 @@ void ColorMap::addControlPoint(ControlPoint& cp)
     }
     // If we reach here, our control point goes at the end
     _controlPoints.insert(_controlPoints.end(), cp);
+    _colorTF->AddRGBPoint(cp.value, cp.color[0], cp.color[1], cp.color[2]);
 }
 
 /**
@@ -100,6 +146,7 @@ void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
     }
     // If we reach here, our control point goes at the end
     _opacityControlPoints.insert(_opacityControlPoints.end(), cp);
+    _opacityTF->AddPoint(cp.value, cp.alpha);
 }
 
 /**
@@ -194,6 +241,9 @@ void ColorMap::build()
     _needsBuild = false;
 }
 
+/**
+ * \brief Perform linear interpolation of two color control points
+ */
 void ColorMap::lerp(double *result, const ControlPoint& cp1, const ControlPoint& cp2, double value)
 {
     double factor = (value - cp1.value) / (cp2.value - cp1.value);
@@ -202,6 +252,9 @@ void ColorMap::lerp(double *result, const ControlPoint& cp1, const ControlPoint&
     }
 }
 
+/**
+ * \brief Perform linear interpolation of two opacity control points
+ */
 void ColorMap::lerp(double *result, const OpacityControlPoint& cp1, const OpacityControlPoint& cp2, double value)
 {
     double factor = (value - cp1.value) / (cp2.value - cp1.value);
@@ -214,16 +267,22 @@ void ColorMap::lerp(double *result, const OpacityControlPoint& cp1, const Opacit
 void ColorMap::clear()
 {
     _controlPoints.clear();
+    _colorTF->RemoveAllPoints();
     _opacityControlPoints.clear();
+    _opacityTF->RemoveAllPoints();
     _lookupTable = NULL;
 }
 
 /**
  * \brief Create a default ColorMap with a blue-cyan-green-yellow-red ramp
  */
-ColorMap * ColorMap::createDefault()
+ColorMap * ColorMap::getDefault()
 {
-    ColorMap *colorMap = new ColorMap("default");
+    if (_default != NULL) {
+        return _default;
+    }
+
+    _default = new ColorMap("default");
     ControlPoint cp[5];
     cp[0].value = 0.0;
     cp[0].color[0] = 0.0;
@@ -246,15 +305,61 @@ ColorMap * ColorMap::createDefault()
     cp[4].color[1] = 0.0;
     cp[4].color[2] = 0.0;
     for (int i = 0; i < 5; i++) {
-	colorMap->addControlPoint(cp[i]);
+	_default->addControlPoint(cp[i]);
     }
     OpacityControlPoint ocp[2];
     ocp[0].value = 0.0;
     ocp[0].alpha = 1.0;
     ocp[1].value = 1.0;
     ocp[1].alpha = 1.0;
-    colorMap->addOpacityControlPoint(ocp[0]);
-    colorMap->addOpacityControlPoint(ocp[1]);
-    colorMap->build();
-    return colorMap;
+    _default->addOpacityControlPoint(ocp[0]);
+    _default->addOpacityControlPoint(ocp[1]);
+    _default->build();
+    return _default;
+}
+
+/**
+ * \brief Create a default ColorMap with a blue-cyan-green-yellow-red ramp
+ * and transparent to opaque ramp
+ */
+ColorMap * ColorMap::getVolumeDefault()
+{
+    if (_volumeDefault != NULL) {
+        return _volumeDefault;
+    }
+
+    _volumeDefault = new ColorMap("volumeDefault");
+    ControlPoint cp[5];
+    cp[0].value = 0.0;
+    cp[0].color[0] = 0.0;
+    cp[0].color[1] = 0.0;
+    cp[0].color[2] = 1.0;
+    cp[1].value = 0.25;
+    cp[1].color[0] = 0.0;
+    cp[1].color[1] = 1.0;
+    cp[1].color[2] = 1.0;
+    cp[2].value = 0.5;
+    cp[2].color[0] = 0.0;
+    cp[2].color[1] = 1.0;
+    cp[2].color[2] = 0.0;
+    cp[3].value = 0.75;
+    cp[3].color[0] = 1.0;
+    cp[3].color[1] = 1.0;
+    cp[3].color[2] = 0.0;
+    cp[4].value = 1.0;
+    cp[4].color[0] = 1.0;
+    cp[4].color[1] = 0.0;
+    cp[4].color[2] = 0.0;
+    for (int i = 0; i < 5; i++) {
+	_volumeDefault->addControlPoint(cp[i]);
+    }
+    OpacityControlPoint ocp[2];
+    ocp[0].value = 0.0;
+    ocp[0].alpha = 0.0;
+    ocp[1].value = 1.0;
+    ocp[1].alpha = 1.0;
+    _volumeDefault->addOpacityControlPoint(ocp[0]);
+    _volumeDefault->addOpacityControlPoint(ocp[1]);
+    _volumeDefault->build();
+    return _volumeDefault;
 }

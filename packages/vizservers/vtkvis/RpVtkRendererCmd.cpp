@@ -1740,6 +1740,198 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
+static int
+VolumeAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addVolume(name);
+    } else {
+        g_renderer->addVolume("all");
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setVolumeColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteVolume(name);
+    } else {
+        g_renderer->deleteVolume("all");
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeLighting(name, state);
+    } else {
+        g_renderer->setVolumeLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeOpacity(name, opacity);
+    } else {
+        g_renderer->setVolumeOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeShadingAmbientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double coeff;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &coeff) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setVolumeAmbient(name, coeff);
+    } else {
+        g_renderer->setVolumeAmbient("all", coeff);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double coeff;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &coeff) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setVolumeDiffuse(name, coeff);
+    } else {
+        g_renderer->setVolumeDiffuse("all", coeff);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    double coeff, power;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &coeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &power) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setVolumeSpecular(name, coeff, power);
+    } else {
+        g_renderer->setVolumeSpecular("all", coeff, power);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec volumeShadingOps[] = {
+    {"ambient",  1, VolumeShadingAmbientOp, 4, 5, "coeff ?dataSetName?"},
+    {"diffuse",  1, VolumeShadingDiffuseOp, 4, 5, "coeff ?dataSetName?"},
+    {"specular", 1, VolumeShadingSpecularOp, 5, 6, "coeff power ?dataSetName?"}
+};
+static int nVolumeShadingOps = NumCmdSpecs(volumeShadingOps);
+
+static int
+VolumeShadingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nVolumeShadingOps, volumeShadingOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeVisibility(name, state);
+    } else {
+        g_renderer->setVolumeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec volumeOps[] = {
+    {"add",      1, VolumeAddOp, 2, 3, "?dataSetName?"},
+    {"colormap", 1, VolumeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",   1, VolumeDeleteOp, 2, 3, "?dataSetName?"},
+    {"lighting", 1, VolumeLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"opacity",  1, VolumeOpacityOp, 3, 4, "val ?dataSetName?"},
+    {"shading",  1, VolumeShadingOp, 4, 6, "oper val ?dataSetName?"},
+    {"visible",  1, VolumeVisibleOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nVolumeOps = NumCmdSpecs(volumeOps);
+
+static int
+VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nVolumeOps, volumeOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
 /**
  * \brief Execute commands from client in Tcl interpreter
  */
@@ -1842,5 +2034,6 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
+    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
     return interp;
 }

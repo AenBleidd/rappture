@@ -21,7 +21,6 @@ DataSet::DataSet(const std::string& name) :
     _name(name),
     _visible(true)
 {
-    _name = name;
     _dataRange[0] = 0;
     _dataRange[1] = 1;
     for (int i = 0; i < 6; i++) {

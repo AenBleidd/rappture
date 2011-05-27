@@ -9,7 +9,6 @@
 #define __RAPPTURE_VTKVIS_RENDERER_H__
 
 #include <vtkSmartPointer.h>
-#include <vtkLookupTable.h>
 #include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
 #include <vtkRpCubeAxesActor2D.h>
@@ -31,6 +30,7 @@
 #include "RpContour2D.h"
 #include "RpHeightMap.h"
 #include "RpPolyData.h"
+#include "RpVolume.h"
 #include "Trace.h"
 
 // Controls if TGA format is sent to client
@@ -77,6 +77,7 @@ public:
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
 
     // Data sets
 
@@ -188,8 +189,6 @@ public:
 
     void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
-    vtkLookupTable *getPseudoColorColorMap(const DataSetId& id);
-
     void setPseudoColorOpacity(const DataSetId& id, double opacity);
 
     void setPseudoColorVisibility(const DataSetId& id, bool state);
@@ -238,8 +237,6 @@ public:
 
     void setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
-    vtkLookupTable *getHeightMapColorMap(const DataSetId& id);
-
     void setHeightMapContours(const DataSetId& id, int numContours);
 
     void setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours);
@@ -285,6 +282,28 @@ public:
     void setPolyDataWireframe(const DataSetId& id, bool state);
 
     void setPolyDataLighting(const DataSetId& id, bool state);
+
+    // Volumes
+
+    void addVolume(const DataSetId& id);
+
+    void deleteVolume(const DataSetId& id);
+
+    Volume *getVolume(const DataSetId& id);
+
+    void setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setVolumeOpacity(const DataSetId& id, double opacity);
+
+    void setVolumeVisibility(const DataSetId& id, bool state);
+
+    void setVolumeAmbient(const DataSetId& id, double coeff);
+
+    void setVolumeDiffuse(const DataSetId& id, double coeff);
+
+    void setVolumeSpecular(const DataSetId& id, double coeff, double power);
+
+    void setVolumeLighting(const DataSetId& id, bool state);
 
 private:
     static void printCameraInfo(vtkCamera *camera);
@@ -337,6 +356,7 @@ private:
     Contour2DHashmap _contours;
     HeightMapHashmap _heightMaps;
     PolyDataHashmap _polyDatas;
+    VolumeHashmap _volumes;
 
     CameraMode _cameraMode;
 

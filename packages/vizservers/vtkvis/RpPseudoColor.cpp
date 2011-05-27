@@ -172,22 +172,22 @@ void PseudoColor::update()
     _dsMapper->SetLookupTable(_lut);
     //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
-    initActor();
+    initProp();
     _dsActor->SetMapper(_dsMapper);
 }
 
 /**
- * \brief Get the VTK Actor for the colormapped dataset
+ * \brief Get the VTK Prop for the colormapped dataset
  */
-vtkProp *PseudoColor::getActor()
+vtkProp *PseudoColor::getProp()
 {
     return _dsActor;
 }
 
 /**
- * \brief Create and initialize a VTK actor to render the colormapped dataset
+ * \brief Create and initialize a VTK Prop to render the colormapped dataset
  */
-void PseudoColor::initActor()
+void PseudoColor::initProp()
 {
     if (_dsActor == NULL) {
         _dsActor = vtkSmartPointer<vtkActor>::New();
