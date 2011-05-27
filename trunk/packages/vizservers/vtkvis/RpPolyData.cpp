@@ -16,6 +16,7 @@
 #include <vtkProperty.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
+#include <vtkDataSetSurfaceFilter.h>
 
 #include "RpPolyData.h"
 #include "Trace.h"
@@ -47,17 +48,17 @@ PolyData::~PolyData()
 }
 
 /**
- * \brief Get the VTK Actor for the mesh
+ * \brief Get the VTK Prop for the mesh
  */
-vtkProp *PolyData::getActor()
+vtkProp *PolyData::getProp()
 {
     return _pdActor;
 }
 
 /**
- * \brief Create and initialize a VTK actor to render a mesh
+ * \brief Create and initialize a VTK Prop to render a mesh
  */
-void PolyData::initActor()
+void PolyData::initProp()
 {
     if (_pdActor == NULL) {
         _pdActor = vtkSmartPointer<vtkActor>::New();
@@ -79,20 +80,6 @@ void PolyData::initActor()
 void PolyData::setDataSet(DataSet *dataSet)
 {
     if (_dataSet != dataSet) {
-        vtkDataSet *ds = dataSet->getVtkDataSet();
-        if (!ds->IsA("vtkPolyData")) {
-            ERROR("DataSet is not a PolyData");
-            return;
-        } else {
-            TRACE("DataSet is a vtkPolyData");
-            vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-            assert(pd);
-            TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
-                  pd->GetNumberOfVerts(),
-                  pd->GetNumberOfLines(),
-                  pd->GetNumberOfPolys(),
-                  pd->GetNumberOfStrips());
-        }
         _dataSet = dataSet;
         update();
     }
@@ -121,35 +108,52 @@ void PolyData::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
-    initActor();
+    initProp();
     _pdActor->SetMapper(_pdMapper);
 
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(_dataSet->getVtkDataSet());
-    assert(pd);
-
-    if (pd->GetNumberOfLines() == 0 &&
-        pd->GetNumberOfPolys() == 0 &&
-        pd->GetNumberOfStrips() == 0) {
-        // Point cloud
-        if (_dataSet->is2D()) {
-            vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-            mesher->SetInput(pd);
-            _pdMapper->SetInput(mesher->GetOutput());
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+    if (pd) {
+        TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
+                  pd->GetNumberOfVerts(),
+                  pd->GetNumberOfLines(),
+                  pd->GetNumberOfPolys(),
+                  pd->GetNumberOfStrips());
+        // DataSet is a vtkPolyData
+        if (pd->GetNumberOfLines() == 0 &&
+            pd->GetNumberOfPolys() == 0 &&
+            pd->GetNumberOfStrips() == 0) {
+            // DataSet is a point cloud
+            if (_dataSet->is2D()) {
+                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                mesher->SetInput(pd);
+                _pdMapper->SetInput(mesher->GetOutput());
+            } else {
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                mesher->SetInput(pd);
+                // Delaunay3D returns an UnstructuredGrid, so feed it through a generic mapper
+                // to get the grid boundary as a PolyData
+                vtkSmartPointer<vtkDataSetMapper> dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+                dsMapper->SetInput(mesher->GetOutput());
+                dsMapper->StaticOn();
+                _pdMapper = dsMapper->GetPolyDataMapper();
+                _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
+                _pdMapper->ScalarVisibilityOff();
+            }
         } else {
-            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
-            mesher->SetInput(pd);
-            // Delaunay3D returns an UnstructuredGrid, so feed it through a generic mapper
-            // to get the grid boundary as a PolyData
-            vtkSmartPointer<vtkDataSetMapper> dsMapper =  vtkSmartPointer<vtkDataSetMapper>::New();
-            dsMapper->SetInput(mesher->GetOutput());
-            dsMapper->StaticOn();
-            _pdMapper = dsMapper->GetPolyDataMapper();
-            _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
-            _pdMapper->ScalarVisibilityOff();
+            // DataSet is a vtkPolyData with lines and/or polygons
+            _pdMapper->SetInput(pd);
+            _pdMapper->StaticOn();
         }
     } else {
+        // DataSet is NOT a vtkPolyData
+        WARN("DataSet is not a PolyData");
+        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+        gf->SetInput(ds);
+        gf->Update();
+        pd = gf->GetOutput();
+        assert(pd);
         _pdMapper->SetInput(pd);
-        _pdMapper->StaticOn();
     }
 }
 

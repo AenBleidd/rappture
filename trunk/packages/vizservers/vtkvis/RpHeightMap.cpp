@@ -39,6 +39,8 @@ HeightMap::HeightMap() :
     _opacity(1.0),
     _warpScale(1.0)
 {
+    _dataRange[0] = 0.0;
+    _dataRange[1] = 1.0;
     _edgeColor[0] = 0.0;
     _edgeColor[1] = 0.0;
     _edgeColor[2] = 0.0;
@@ -244,7 +246,7 @@ void HeightMap::update()
 
     _lut->SetRange(_dataRange);
 
-    initActors();
+    initProp();
 
     _dsMapper->UseLookupTableScalarRangeOn();
     _dsMapper->SetLookupTable(_lut);
@@ -383,17 +385,17 @@ vtkPolyData *HeightMap::initWarp(vtkPolyData *input)
 }
 
 /**
- * \brief Get the VTK Actor for the colormapped dataset
+ * \brief Get the VTK Prop for the colormapped dataset
  */
-vtkProp *HeightMap::getActor()
+vtkProp *HeightMap::getProp()
 {
     return _props;
 }
 
 /**
- * \brief Create and initialize a VTK actor to render the colormapped dataset
+ * \brief Create and initialize VTK Props to render the colormapped dataset
  */
-void HeightMap::initActors()
+void HeightMap::initProp()
 {
     if (_dsActor == NULL) {
         _dsActor = vtkSmartPointer<vtkActor>::New();

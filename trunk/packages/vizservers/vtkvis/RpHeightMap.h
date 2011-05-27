@@ -45,7 +45,7 @@ public:
 
     DataSet *getDataSet();
 
-    vtkProp *getActor();
+    vtkProp *getProp();
 
     void selectVolumeSlice(Axis axis, double ratio);
 
@@ -89,7 +89,7 @@ public:
 
 private:
     vtkPolyData *initWarp(vtkPolyData *input);
-    void initActors();
+    void initProp();
     void update();
 
     DataSet * _dataSet;

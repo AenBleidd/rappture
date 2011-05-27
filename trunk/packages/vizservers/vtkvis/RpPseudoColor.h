@@ -33,7 +33,7 @@ public:
 
     DataSet *getDataSet();
 
-    vtkProp *getActor();
+    vtkProp *getProp();
 
     void setLookupTable(vtkLookupTable *lut);
 
@@ -56,7 +56,7 @@ public:
     void setLighting(bool state);
 
 private:
-    void initActor();
+    void initProp();
     void update();
 
     DataSet * _dataSet;

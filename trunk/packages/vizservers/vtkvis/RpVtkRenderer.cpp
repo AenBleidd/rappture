@@ -100,7 +100,8 @@ Renderer::Renderer() :
 #endif
     _renderWindow->SetSize(_windowWidth, _windowHeight);
     _renderWindow->AddRenderer(_renderer);
-    addColorMap("default", ColorMap::createDefault());
+    addColorMap("default", ColorMap::getDefault());
+    addColorMap("volumeDefault", ColorMap::getVolumeDefault());
 }
 
 Renderer::~Renderer()
@@ -130,6 +131,11 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _polyDatas.clear();
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+             itr != _volumes.end(); ++itr) {
+        delete itr->second;
+    }
+    _volumes.clear();
     for (DataSetHashmap::iterator itr = _dataSets.begin();
              itr != _dataSets.end(); ++itr) {
         delete itr->second;
@@ -179,8 +185,8 @@ void Renderer::deletePseudoColor(const DataSetId& id)
 
     do  {
         PseudoColor *ps = itr->second;
-        if (ps->getActor())
-            _renderer->RemoveViewProp(ps->getActor());
+        if (ps->getProp())
+            _renderer->RemoveViewProp(ps->getProp());
         delete ps;
 
         _pseudoColors.erase(itr);
@@ -215,8 +221,8 @@ void Renderer::deleteContour2D(const DataSetId& id)
 
     do {
         Contour2D *contour = itr->second;
-        if (contour->getActor())
-            _renderer->RemoveViewProp(contour->getActor());
+        if (contour->getProp())
+            _renderer->RemoveViewProp(contour->getProp());
         delete contour;
 
         _contours.erase(itr);
@@ -251,8 +257,8 @@ void Renderer::deleteHeightMap(const DataSetId& id)
 
     do {
         HeightMap *hmap = itr->second;
-        if (hmap->getActor())
-            _renderer->RemoveViewProp(hmap->getActor());
+        if (hmap->getProp())
+            _renderer->RemoveViewProp(hmap->getProp());
         delete hmap;
 
         _heightMaps.erase(itr);
@@ -269,7 +275,7 @@ void Renderer::deleteHeightMap(const DataSetId& id)
 void Renderer::deletePolyData(const DataSetId& id)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -287,12 +293,48 @@ void Renderer::deletePolyData(const DataSetId& id)
 
     do {
         PolyData *polyData = itr->second;
-        if (polyData->getActor())
-            _renderer->RemoveViewProp(polyData->getActor());
+        if (polyData->getProp())
+            _renderer->RemoveViewProp(polyData->getProp());
         delete polyData;
 
         _polyDatas.erase(itr);
     } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the Volume for the specified DataSet
+ *
+ * The underlying Volume is deleted, freeing its memory
+ */
+void Renderer::deleteVolume(const DataSetId& id)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Volumes for %s", id.c_str());
+
+    do {
+        Volume *volume = itr->second;
+        if (volume->getProp())
+            _renderer->RemoveViewProp(volume->getProp());
+        delete volume;
+
+        _volumes.erase(itr);
+    } while (doAll && ++itr != _volumes.end());
 
     _needsRedraw = true;
 }
@@ -327,6 +369,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteContour2D(itr->second->getName());
         deleteHeightMap(itr->second->getName());
         deletePolyData(itr->second->getName());
+        deleteVolume(itr->second->getName());
     
         TRACE("After deleting graphics objects");
 
@@ -897,7 +940,7 @@ void Renderer::addPseudoColor(const DataSetId& id)
 
         pc->setLookupTable(lut);
 
-        _renderer->AddViewProp(pc->getActor());
+        _renderer->AddViewProp(pc->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
@@ -919,7 +962,7 @@ PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
 }
 
 /**
- * \brief Associate an existing named color map with a DataSet
+ * \brief Associate an existing named color map with a PseudoColor for the given DataSet
  */
 void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
@@ -946,7 +989,7 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
     }
 
     do {
-        TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
+        TRACE("Set PseudoColor color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
         // Make a copy of the generic colormap lookup table, so 
@@ -969,20 +1012,6 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;
-}
-
-/**
- * \brief Get the color map (vtkLookupTable) for the given DataSet
- *
- * \return The associated lookup table or NULL if not found
- */
-vtkLookupTable *Renderer::getPseudoColorColorMap(const DataSetId& id)
-{
-    PseudoColor *pc = getPseudoColor(id);
-    if (pc)
-        return pc->getLookupTable();
-    else
-        return NULL;
 }
 
 /**
@@ -1189,7 +1218,7 @@ void Renderer::addContour2D(const DataSetId& id)
 
         contour->setDataSet(ds);
 
-        _renderer->AddViewProp(contour->getActor());
+        _renderer->AddViewProp(contour->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
@@ -1452,7 +1481,7 @@ void Renderer::addHeightMap(const DataSetId& id)
 
         hmap->setLookupTable(lut);
 
-        _renderer->AddViewProp(hmap->getActor());
+        _renderer->AddViewProp(hmap->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
@@ -1534,7 +1563,7 @@ void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
 }
 
 /**
- * \brief Associate an existing named color map with a DataSet
+ * \brief Associate an existing named color map with a HeightMap for the given DataSet
  */
 void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId)
 {
@@ -1561,7 +1590,7 @@ void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& color
     }
 
     do {
-        TRACE("Set color map: %s for dataset %s", colorMapId.c_str(),
+        TRACE("Set HeightMap color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
         // Make a copy of the generic colormap lookup table, so 
@@ -1584,20 +1613,6 @@ void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& color
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
-}
-
-/**
- * \brief Get the height map's color map (vtkLookupTable) for the given DataSet
- *
- * \return The associated lookup table or NULL if not found
- */
-vtkLookupTable *Renderer::getHeightMapColorMap(const DataSetId& id)
-{
-    HeightMap *hm = getHeightMap(id);
-    if (hm)
-        return hm->getLookupTable();
-    else
-        return NULL;
 }
 
 /**
@@ -1939,7 +1954,7 @@ void Renderer::addPolyData(const DataSetId& id)
 
         polyData->setDataSet(ds);
 
-        _renderer->AddViewProp(polyData->getActor());
+        _renderer->AddViewProp(polyData->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
@@ -1968,7 +1983,7 @@ PolyData *Renderer::getPolyData(const DataSetId& id)
 void Renderer::setPolyDataOpacity(const DataSetId& id, double opacity)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -1995,7 +2010,7 @@ void Renderer::setPolyDataOpacity(const DataSetId& id, double opacity)
 void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2022,7 +2037,7 @@ void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
 void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2048,7 +2063,7 @@ void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
 void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2075,7 +2090,7 @@ void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
 void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2105,7 +2120,7 @@ void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
 void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2132,7 +2147,7 @@ void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
 void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2159,7 +2174,7 @@ void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
 void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
 {
     PolyDataHashmap::iterator itr;
-    
+
     bool doAll = false;
 
     if (id.compare("all") == 0) {
@@ -2176,6 +2191,282 @@ void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Volume and associate it with the named DataSet
+ */
+void Renderer::addVolume(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getVolume(dsID)) {
+            WARN("Replacing existing volume %s", dsID.c_str());
+            deleteVolume(dsID);
+        }
+
+        Volume *volume = new Volume();
+        _volumes[dsID] = volume;
+
+        volume->setDataSet(ds);
+
+        if (_useCumulativeRange) {
+            ColorMap *cmap = volume->getColorMap();
+            volume->setColorMap(cmap, _cumulativeDataRange);
+        }
+
+        _renderer->AddViewProp(volume->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the Volume associated with a named DataSet
+ */
+Volume *Renderer::getVolume(const DataSetId& id)
+{
+    VolumeHashmap::iterator itr = _volumes.find(id);
+
+    if (itr == _volumes.end()) {
+        TRACE("Volume not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Associate an existing named color map with a Volume for the given DataSet
+ */
+void Renderer::setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Volume color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+#ifdef notdef
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+#endif
+        itr->second->setColorMap(cmap);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Volume opacity scaling for the specified DataSet
+ */
+void Renderer::setVolumeOpacity(const DataSetId& id, double opacity)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Volume mapper for the given DataSet
+ */
+void Renderer::setVolumeVisibility(const DataSetId& id, bool state)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set volume ambient lighting/shading coefficient for the specified DataSet
+ */
+void Renderer::setVolumeAmbient(const DataSetId& id, double coeff)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAmbient(coeff);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set volume diffuse lighting/shading coefficient for the specified DataSet
+ */
+void Renderer::setVolumeDiffuse(const DataSetId& id, double coeff)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setDiffuse(coeff);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set volume specular lighting/shading coefficient and power for the specified DataSet
+ */
+void Renderer::setVolumeSpecular(const DataSetId& id, double coeff, double power)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSpecular(coeff, power);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn volume lighting/shading on/off for the specified DataSet
+ */
+void Renderer::setVolumeLighting(const DataSetId& id, bool state)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _volumes.end());
 
     _needsRedraw = true;
 }
@@ -2804,22 +3095,27 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
-            mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (Contour2DHashmap::iterator itr = _contours.begin();
              itr != _contours.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
-            mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
              itr != _heightMaps.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
-            mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
-            mergeBounds(bounds, bounds, itr->second->getActor()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+             itr != _volumes.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (int i = 0; i < 6; i++) {
         if (i % 2 == 0) {
@@ -2892,6 +3188,17 @@ void Renderer::updateRanges(bool useCumulative)
                 itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
             } else {
                 itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+         itr != _volumes.end(); ++itr) {
+        ColorMap *cmap = itr->second->getColorMap();
+        if (cmap) {
+            if (useCumulative) {
+                itr->second->setColorMap(cmap, _cumulativeDataRange);
+            } else {
+                itr->second->setColorMap(cmap);
             }
         }
     }
@@ -3026,6 +3333,8 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
         setHeightMapOpacity(id, opacity);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataOpacity(id, opacity);
+    if (id.compare("all") == 0 || getVolume(id) != NULL)
+        setVolumeOpacity(id, opacity);
 }
 
 /**
@@ -3060,6 +3369,8 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         setHeightMapVisibility(id, state);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataVisibility(id, state);
+    if (id.compare("all") == 0 || getVolume(id) != NULL)
+        setVolumeVisibility(id, state);
 }
 
 /**
@@ -3088,6 +3399,10 @@ bool Renderer::render()
                  itr != _polyDatas.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
+            for (VolumeHashmap::iterator itr = _volumes.begin();
+                 itr != _volumes.end(); ++itr) {
+                itr->second->setClippingPlanes(_clippingPlanes);
+            }
         } else {
             for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
                  itr != _pseudoColors.end(); ++itr) {
@@ -3103,6 +3418,10 @@ bool Renderer::render()
             }
             for (PolyDataHashmap::iterator itr = _polyDatas.begin();
                  itr != _polyDatas.end(); ++itr) {
+                itr->second->setClippingPlanes(NULL);
+            }
+            for (VolumeHashmap::iterator itr = _volumes.begin();
+                 itr != _volumes.end(); ++itr) {
                 itr->second->setClippingPlanes(NULL);
             }
         }

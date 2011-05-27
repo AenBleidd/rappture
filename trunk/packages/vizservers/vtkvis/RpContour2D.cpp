@@ -72,17 +72,17 @@ DataSet *Contour2D::getDataSet()
 }
 
 /**
- * \brief Get the VTK Actor for the contour lines
+ * \brief Get the VTK Prop for the contour lines
  */
-vtkProp *Contour2D::getActor()
+vtkProp *Contour2D::getProp()
 {
     return _contourActor;
 }
 
 /**
- * \brief Create and initialize a VTK actor to render isolines
+ * \brief Create and initialize a VTK Prop to render isolines
  */
-void Contour2D::initActor()
+void Contour2D::initProp()
 {
     if (_contourActor == NULL) {
         _contourActor = vtkSmartPointer<vtkActor>::New();
@@ -104,7 +104,7 @@ void Contour2D::update()
     }
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-    initActor();
+    initProp();
 
     // Contour filter to generate isolines
     if (_contourFilter == NULL) {
