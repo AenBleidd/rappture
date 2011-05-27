@@ -9,7 +9,6 @@
 
 #include <vtkDataSet.h>
 #include <vtkPolyData.h>
-#include <vtkDataSetMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
@@ -131,14 +130,14 @@ void PolyData::update()
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                 mesher->SetInput(pd);
-                // Delaunay3D returns an UnstructuredGrid, so feed it through a generic mapper
+                // Delaunay3D returns an UnstructuredGrid, so feed it through a surface filter
                 // to get the grid boundary as a PolyData
-                vtkSmartPointer<vtkDataSetMapper> dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
-                dsMapper->SetInput(mesher->GetOutput());
-                dsMapper->StaticOn();
-                _pdMapper = dsMapper->GetPolyDataMapper();
-                _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
-                _pdMapper->ScalarVisibilityOff();
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInput(mesher->GetOutput());
+                gf->Update();
+                pd = gf->GetOutput();
+                assert(pd);
+                _pdMapper->SetInput(pd);
             }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
