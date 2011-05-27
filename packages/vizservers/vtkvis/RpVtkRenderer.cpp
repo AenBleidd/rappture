@@ -2286,24 +2286,12 @@ void Renderer::setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMap
     do {
         TRACE("Set Volume color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
-#ifdef notdef
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
 
         if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
+            itr->second->setColorMap(cmap, _cumulativeDataRange);
         } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
+            itr->second->setColorMap(cmap);
         }
-#endif
-        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _volumes.end());
 
     _needsRedraw = true;
