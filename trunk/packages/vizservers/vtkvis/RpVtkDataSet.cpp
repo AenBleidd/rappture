@@ -88,6 +88,7 @@ bool DataSet::setData(vtkDataSetReader *reader)
     _dataSet = reader->GetOutput();
     _dataSet->Update();
     _dataSet->GetScalarRange(_dataRange);
+    _dataSet->GetBounds(_bounds);
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
