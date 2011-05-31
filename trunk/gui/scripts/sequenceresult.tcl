@@ -373,7 +373,9 @@ itcl::body Rappture::SequenceResult::pause {} {
     }
     global readyForNextFrame 
     set readyForNextFrame 1;		# By default, always ready
-
+					
+    # Check if the play button still exists. We may be in the process
+    # of destroying the widget.
     if { [info exists itk_component(play)] } {
 	# toggle the button to "play" mode
 	$itk_component(play) configure \
