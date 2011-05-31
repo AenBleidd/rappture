@@ -374,10 +374,12 @@ itcl::body Rappture::SequenceResult::pause {} {
     global readyForNextFrame 
     set readyForNextFrame 1;		# By default, always ready
 
-    # toggle the button to "play" mode
-    $itk_component(play) configure \
-        -bitmap [Rappture::icon play] \
-        -command [itcl::code $this play]
+    if { [info exists itk_component(play)] } {
+	# toggle the button to "play" mode
+	$itk_component(play) configure \
+	    -bitmap [Rappture::icon play] \
+	    -command [itcl::code $this play]
+    }
 }
 
 # ----------------------------------------------------------------------
