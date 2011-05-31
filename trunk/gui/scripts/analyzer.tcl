@@ -559,7 +559,9 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
                 _autoLabel $xmlobj output.$item "Sequence" counters
             }
 	    default {
-		puts stderr "unknown output $item"
+		if 0 {
+		    puts stderr "unknown output $item"
+		}
 	    }
         }
         set label [$xmlobj get output.$item.about.group]
