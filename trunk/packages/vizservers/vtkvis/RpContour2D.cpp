@@ -7,11 +7,14 @@
 
 #include <cassert>
 
+#include <vtkDataSet.h>
+#include <vtkPointData.h>
+#include <vtkCellData.h>
+#include <vtkCellDataToPointData.h>
 #include <vtkContourFilter.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
-#include <vtkPointData.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
@@ -111,6 +114,22 @@ void Contour2D::update()
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
  
+    vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL) {
+        ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+        if (ds->GetCellData() != NULL &&
+            ds->GetCellData()->GetScalars() != NULL) {
+            cellToPtData = 
+                vtkSmartPointer<vtkCellDataToPointData>::New();
+            cellToPtData->SetInput(ds);
+            ds = cellToPtData->GetOutput();
+        } else {
+            ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+        }
+    }
+
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
         // DataSet is a vtkPolyData

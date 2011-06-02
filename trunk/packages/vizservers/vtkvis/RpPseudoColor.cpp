@@ -8,10 +8,10 @@
 #include <cassert>
 
 #include <vtkDataSet.h>
+#include <vtkPointData.h>
 #include <vtkDataSetMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
-#include <vtkPointData.h>
 #include <vtkImageData.h>
 #include <vtkLookupTable.h>
 #include <vtkDelaunay2D.h>
@@ -151,7 +151,7 @@ void PseudoColor::update()
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
-        ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
         if (_lut == NULL) {
             _lut = vtkSmartPointer<vtkLookupTable>::New();
         }

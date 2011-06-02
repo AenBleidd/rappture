@@ -8,11 +8,13 @@
 #include <cassert>
 
 #include <vtkDataSet.h>
+#include <vtkPointData.h>
+#include <vtkCellData.h>
+#include <vtkCellDataToPointData.h>
 #include <vtkDataSetMapper.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
-#include <vtkPointData.h>
 #include <vtkImageData.h>
 #include <vtkLookupTable.h>
 #include <vtkDelaunay2D.h>
@@ -29,7 +31,7 @@
 
 using namespace Rappture::VtkVis;
 
-#define MESH_POINTS
+//#define MESH_POINTS
 
 HeightMap::HeightMap() :
     _dataSet(NULL),
@@ -111,6 +113,22 @@ void HeightMap::update()
     }
 
     if (_transformedData == NULL) {
+        vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+
+        if (ds->GetPointData() == NULL ||
+            ds->GetPointData()->GetScalars() == NULL) {
+            ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+            if (ds->GetCellData() != NULL &&
+                ds->GetCellData()->GetScalars() != NULL) {
+                cellToPtData = 
+                    vtkSmartPointer<vtkCellDataToPointData>::New();
+                cellToPtData->SetInput(ds);
+                ds = cellToPtData->GetOutput();
+            } else {
+                ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+            }
+        }
+
         vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
         if (pd != NULL) {
             // DataSet is a vtkPolyData
@@ -213,7 +231,7 @@ void HeightMap::update()
                 _volumeSlicer->SetSampleRate(1, 1, 1);
                 gf->SetInput(_volumeSlicer->GetOutput());
             } else {
-                // structured grid, unstructured grid, or rectilinear grid
+                // 2D image data, structured grid, unstructured grid, or rectilinear grid
                 gf->SetInput(ds);
             }
             gf->Update();
@@ -242,8 +260,9 @@ void HeightMap::update()
         if (_lut == NULL) {
             if (lut)
                 _lut = lut;
-            else
+            else {
                 _lut = vtkSmartPointer<vtkLookupTable>::New();
+            }
         }
     }
 
