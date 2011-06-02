@@ -26,10 +26,11 @@
 
 #include "ColorMap.h"
 #include "RpVtkDataSet.h"
-#include "RpPseudoColor.h"
 #include "RpContour2D.h"
+#include "RpGlyphs.h"
 #include "RpHeightMap.h"
 #include "RpPolyData.h"
+#include "RpPseudoColor.h"
 #include "RpVolume.h"
 #include "Trace.h"
 
@@ -73,10 +74,11 @@ public:
     typedef std::string ColorMapId;
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
-    typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
+    typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
 
     // Data sets
@@ -179,28 +181,6 @@ public:
                         int width, int height,
                         vtkUnsignedCharArray *imgData);
 
-    // Color-mapped surfaces
-
-    void addPseudoColor(const DataSetId& id);
-
-    void deletePseudoColor(const DataSetId& id);
-
-    PseudoColor *getPseudoColor(const DataSetId& id);
-
-    void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
-    void setPseudoColorOpacity(const DataSetId& id, double opacity);
-
-    void setPseudoColorVisibility(const DataSetId& id, bool state);
-
-    void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
-
-    void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
-
-    void setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setPseudoColorLighting(const DataSetId& id, bool state);
-
     // Contour plots
 
     void addContour2D(const DataSetId& id);
@@ -222,6 +202,26 @@ public:
     void setContourEdgeWidth(const DataSetId& id, float edgeWidth);
 
     void setContourLighting(const DataSetId& id, bool state);
+
+    // Glyphs
+
+    void addGlyphs(const DataSetId& id);
+
+    void deleteGlyphs(const DataSetId& id);
+
+    Glyphs *getGlyphs(const DataSetId& id);
+
+    void setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape);
+
+    void setGlyphsScaleFactor(const DataSetId& id, double scale);
+
+    void setGlyphsOpacity(const DataSetId& id, double opacity);
+
+    void setGlyphsVisibility(const DataSetId& id, bool state);
+
+    void setGlyphsLighting(const DataSetId& id, bool state);
 
     // Height maps
 
@@ -282,6 +282,28 @@ public:
     void setPolyDataWireframe(const DataSetId& id, bool state);
 
     void setPolyDataLighting(const DataSetId& id, bool state);
+
+    // Color-mapped surfaces
+
+    void addPseudoColor(const DataSetId& id);
+
+    void deletePseudoColor(const DataSetId& id);
+
+    PseudoColor *getPseudoColor(const DataSetId& id);
+
+    void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setPseudoColorOpacity(const DataSetId& id, double opacity);
+
+    void setPseudoColorVisibility(const DataSetId& id, bool state);
+
+    void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
+
+    void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
+
+    void setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setPseudoColorLighting(const DataSetId& id, bool state);
 
     // Volumes
 
@@ -352,10 +374,11 @@ private:
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
-    PseudoColorHashmap _pseudoColors;
     Contour2DHashmap _contours;
+    GlyphsHashmap _glyphs;
     HeightMapHashmap _heightMaps;
     PolyDataHashmap _polyDatas;
+    PseudoColorHashmap _pseudoColors;
     VolumeHashmap _volumes;
 
     CameraMode _cameraMode;

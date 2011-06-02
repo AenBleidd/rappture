@@ -937,6 +937,209 @@ DataSetCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    Glyphs::GlyphShape shape;
+
+    const char *shapeOpt = Tcl_GetString(objv[2]);
+    if (shapeOpt[0] == 'a' && strcmp(shapeOpt, "arrow") == 0) {
+        shape = Glyphs::ARROW;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cone") == 0) {
+        shape = Glyphs::CONE;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cube") == 0) {
+        shape = Glyphs::CUBE;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cylinder") == 0) {
+        shape = Glyphs::CYLINDER;
+    } else if (shapeOpt[0] == 'd' && strcmp(shapeOpt, "dodecahedron") == 0) {
+        shape = Glyphs::DODECAHEDRON;
+    } else if (shapeOpt[0] == 'i' && strcmp(shapeOpt, "icosahedron") == 0) {
+        shape = Glyphs::ICOSAHEDRON;
+    } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
+        shape = Glyphs::OCTAHEDRON;
+    } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
+        shape = Glyphs::SPHERE;
+    } else if (shapeOpt[0] == 't' && strcmp(shapeOpt, "tetrahedron") == 0) {
+        shape = Glyphs::TETRAHEDRON;
+    } else {
+        Tcl_AppendResult(interp, "bad shape option \"", shapeOpt,
+                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->addGlyphs(name);
+        g_renderer->setGlyphsShape(name, shape);
+    } else {
+        g_renderer->addGlyphs("all");
+        g_renderer->setGlyphsShape("all", shape);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGlyphsColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGlyphs(name);
+    } else {
+        g_renderer->deleteGlyphs("all");
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsLighting(name, state);
+    } else {
+        g_renderer->setGlyphsLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsOpacity(name, opacity);
+    } else {
+        g_renderer->setGlyphsOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsScaleFactor(name, scale);
+    } else {
+        g_renderer->setGlyphsScaleFactor("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsShapeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    Glyphs::GlyphShape shape;
+
+    const char *shapeOpt = Tcl_GetString(objv[2]);
+    if (shapeOpt[0] == 'a' && strcmp(shapeOpt, "arrow") == 0) {
+        shape = Glyphs::ARROW;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cone") == 0) {
+        shape = Glyphs::CONE;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cube") == 0) {
+        shape = Glyphs::CUBE;
+    } else if (shapeOpt[0] == 'c' && strcmp(shapeOpt, "cylinder") == 0) {
+        shape = Glyphs::CYLINDER;
+    } else if (shapeOpt[0] == 'd' && strcmp(shapeOpt, "dodecahedron") == 0) {
+        shape = Glyphs::DODECAHEDRON;
+    } else if (shapeOpt[0] == 'i' && strcmp(shapeOpt, "icosahedron") == 0) {
+        shape = Glyphs::ICOSAHEDRON;
+    } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
+        shape = Glyphs::OCTAHEDRON;
+    } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
+        shape = Glyphs::SPHERE;
+    } else if (shapeOpt[0] == 't' && strcmp(shapeOpt, "tetrahedron") == 0) {
+        shape = Glyphs::TETRAHEDRON;
+    } else {
+        Tcl_AppendResult(interp, "bad shape option \"", shapeOpt,
+                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsShape(name, shape);
+    } else {
+        g_renderer->setGlyphsShape("all", shape);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsVisibility(name, state);
+    } else {
+        g_renderer->setGlyphsVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec glyphsOps[] = {
+    {"add",      1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
+    {"colormap", 1, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
+    {"delete",   1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
+    {"lighting", 1, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"opacity",  1, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"scale",    2, GlyphsScaleOp, 3, 4, "scaleFactor ?dataSetName?"},
+    {"shape",    2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
+    {"visible",  1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nGlyphsOps = NumCmdSpecs(glyphsOps);
+
+static int
+GlyphsCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nGlyphsOps, glyphsOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 HeightMapAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                           Tcl_Obj *const *objv)
 {
@@ -2029,6 +2232,7 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
+    Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);

@@ -61,16 +61,6 @@ dataset maprange <val>
 dataset opacity <val> <?datasetName?>
 dataset visible <bool> <?datasetName?>
 
-pseudocolor add <?datasetName?>
-pseudocolor colormap <colormapName> <?datasetName?>
-pseudocolor delete <?datasetName?>
-pseudocolor edges <bool> <?datasetName?>
-pseudocolor lighting <bool> <?datasetName?>
-pseudocolor linecolor <r> <g> <b> <?datasetName?>
-pseudocolor linewidth <val> <?datasetName?>
-pseudocolor opacity <val> <?datasetName?>
-pseudocolor visible <bool> <?datasetName?>
-
 contour2d add numcontours <n> <?datasetName?>
           Generate evenly spaced contours including range endpoints.  See also
           'dataset maprange' command.
@@ -82,6 +72,15 @@ contour2d linecolor <r> <g> <b> <?datasetName?>
 contour2d linewidth <val> <?datasetName?>
 contour2d opacity <val> <?datasetName?>
 contour2d visible <bool> <?datasetName?>
+
+glyphs add <?dataSetName?>
+glyphs colormap <colorMapName> <?dataSetName?>
+glyphs delete <?dataSetName?>
+glyphs lighting <bool> <?datasetName?>
+glyphs opacity <val> <?datasetName?>
+glyphs scale <scaleFactor> <?datasetName?>
+glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|octahedron|sphere|tetrahedron> <?datasetName?>
+glyphs visible <bool> <?datasetName?>
 
 heightmap add numcontours <n> <?dataSetName?>
           Generate evenly spaced contours including range endpoints.  See also
@@ -114,6 +113,16 @@ polydata linewidth <val> <?datasetName?>
 polydata opacity <val> <?datasetName?>
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
+
+pseudocolor add <?datasetName?>
+pseudocolor colormap <colormapName> <?datasetName?>
+pseudocolor delete <?datasetName?>
+pseudocolor edges <bool> <?datasetName?>
+pseudocolor lighting <bool> <?datasetName?>
+pseudocolor linecolor <r> <g> <b> <?datasetName?>
+pseudocolor linewidth <val> <?datasetName?>
+pseudocolor opacity <val> <?datasetName?>
+pseudocolor visible <bool> <?datasetName?>
 
 volume add <?datasetName?>
 volume colormap <colorMapName> <?datasetName?>

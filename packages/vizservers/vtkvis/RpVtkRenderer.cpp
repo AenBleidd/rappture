@@ -106,21 +106,16 @@ Renderer::Renderer() :
 
 Renderer::~Renderer()
 {
-    for (ColorMapHashmap::iterator itr = _colorMaps.begin();
-             itr != _colorMaps.end(); ++itr) {
-        delete itr->second;
-    }
-    _colorMaps.clear();
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-             itr != _pseudoColors.end(); ++itr) {
-        delete itr->second;
-    }
-    _pseudoColors.clear();
     for (Contour2DHashmap::iterator itr = _contours.begin();
              itr != _contours.end(); ++itr) {
         delete itr->second;
     }
     _contours.clear();
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+             itr != _glyphs.end(); ++itr) {
+        delete itr->second;
+    }
+    _glyphs.clear();
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
              itr != _heightMaps.end(); ++itr) {
         delete itr->second;
@@ -131,11 +126,23 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _polyDatas.clear();
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+             itr != _pseudoColors.end(); ++itr) {
+        delete itr->second;
+    }
+    _pseudoColors.clear();
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
         delete itr->second;
     }
     _volumes.clear();
+    // Delete color maps and data sets last in case references still
+    // exist
+    for (ColorMapHashmap::iterator itr = _colorMaps.begin();
+             itr != _colorMaps.end(); ++itr) {
+        delete itr->second;
+    }
+    _colorMaps.clear();
     for (DataSetHashmap::iterator itr = _dataSets.begin();
              itr != _dataSets.end(); ++itr) {
         delete itr->second;
@@ -157,42 +164,6 @@ void Renderer::addDataSet(const DataSetId& id)
         deleteDataSet(id);
     }
     _dataSets[id] = new DataSet(id);
-}
-
-/**
- * \brief Remove the PseudoColor mapping for the specified DataSet
- *
- * The underlying PseudoColor object is deleted, freeing its memory
- */
-void Renderer::deletePseudoColor(const DataSetId& id)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting PseudoColors for %s", id.c_str());
-
-    do  {
-        PseudoColor *ps = itr->second;
-        if (ps->getProp())
-            _renderer->RemoveViewProp(ps->getProp());
-        delete ps;
-
-        _pseudoColors.erase(itr);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
 }
 
 /**
@@ -227,6 +198,42 @@ void Renderer::deleteContour2D(const DataSetId& id)
 
         _contours.erase(itr);
     } while (doAll && ++itr != _contours.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the Glyphs for the specified DataSet
+ *
+ * The underlying Glyphs is deleted, freeing its memory
+ */
+void Renderer::deleteGlyphs(const DataSetId& id)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Glyphs for %s", id.c_str());
+
+    do {
+        Glyphs *glyphs = itr->second;
+        if (glyphs->getProp())
+            _renderer->RemoveViewProp(glyphs->getProp());
+        delete glyphs;
+
+        _glyphs.erase(itr);
+    } while (doAll && ++itr != _glyphs.end());
 
     _needsRedraw = true;
 }
@@ -304,6 +311,42 @@ void Renderer::deletePolyData(const DataSetId& id)
 }
 
 /**
+ * \brief Remove the PseudoColor mapping for the specified DataSet
+ *
+ * The underlying PseudoColor object is deleted, freeing its memory
+ */
+void Renderer::deletePseudoColor(const DataSetId& id)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting PseudoColors for %s", id.c_str());
+
+    do  {
+        PseudoColor *ps = itr->second;
+        if (ps->getProp())
+            _renderer->RemoveViewProp(ps->getProp());
+        delete ps;
+
+        _pseudoColors.erase(itr);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Remove the Volume for the specified DataSet
  *
  * The underlying Volume is deleted, freeing its memory
@@ -365,10 +408,11 @@ void Renderer::deleteDataSet(const DataSetId& id)
     do {
         TRACE("Deleting dataset %s", itr->second->getName().c_str());
 
-        deletePseudoColor(itr->second->getName());
         deleteContour2D(itr->second->getName());
+        deleteGlyphs(itr->second->getName());
         deleteHeightMap(itr->second->getName());
         deletePolyData(itr->second->getName());
+        deletePseudoColor(itr->second->getName());
         deleteVolume(itr->second->getName());
     
         TRACE("After deleting graphics objects");
@@ -895,297 +939,6 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 }
 
 /**
- * \brief Create a new PseudoColor rendering for the specified DataSet
- */
-void Renderer::addPseudoColor(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getPseudoColor(dsID)) {
-            WARN("Replacing existing pseudocolor %s", dsID.c_str());
-            deletePseudoColor(dsID);
-        }
-        PseudoColor *pc = new PseudoColor();
-        _pseudoColors[dsID] = pc;
-
-        pc->setDataSet(ds);
-
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
-        }
-
-        pc->setLookupTable(lut);
-
-        _renderer->AddViewProp(pc->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Get the PseudoColor associated with the specified DataSet
- */
-PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
-{
-    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
-
-    if (itr == _pseudoColors.end()) {
-        TRACE("PseudoColor not found: %s", id.c_str());
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Associate an existing named color map with a PseudoColor for the given DataSet
- */
-void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set PseudoColor color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of the PseudoColor for the given DataSet
- */
-void Renderer::setPseudoColorOpacity(const DataSetId& id, double opacity)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the PseudoColor mapper for the given DataSet
- */
-void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn mesh lighting on/off for the specified DataSet
- */
-void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
 void Renderer::addContour2D(const DataSetId& id)
@@ -1431,6 +1184,264 @@ void Renderer::setContourLighting(const DataSetId& id, bool state)
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != _contours.end());
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Glyphs and associate it with the named DataSet
+ */
+void Renderer::addGlyphs(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getGlyphs(dsID)) {
+            WARN("Replacing existing Glyphs %s", dsID.c_str());
+            deleteGlyphs(dsID);
+        }
+
+        Glyphs *glyphs = new Glyphs();
+        _glyphs[dsID] = glyphs;
+
+        glyphs->setDataSet(ds);
+
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+
+        glyphs->setLookupTable(lut);
+
+        _renderer->AddViewProp(glyphs->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the Glyphs associated with a named DataSet
+ */
+Glyphs *Renderer::getGlyphs(const DataSetId& id)
+{
+    GlyphsHashmap::iterator itr = _glyphs.find(id);
+
+    if (itr == _glyphs.end()) {
+        TRACE("Glyphs not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Associate an existing named color map with a Glyphs for the given DataSet
+ */
+void Renderer::setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Glyphs color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the shape of Glyphs for the given DataSet
+ */
+void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setGlyphShape(shape);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _renderer->ResetCameraClippingRange();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the glyph scaling factor for the given DataSet
+ */
+void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScaleFactor(scale);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _renderer->ResetCameraClippingRange();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of Glyphs for the given DataSet
+ */
+void Renderer::setGlyphsOpacity(const DataSetId& id, double opacity)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering Glyphs for the given DataSet
+ */
+void Renderer::setGlyphsVisibility(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn Glyphs lighting on/off for the specified DataSet
+ */
+void Renderer::setGlyphsLighting(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _glyphs.end());
     _needsRedraw = true;
 }
 
@@ -2191,6 +2202,297 @@ void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new PseudoColor rendering for the specified DataSet
+ */
+void Renderer::addPseudoColor(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getPseudoColor(dsID)) {
+            WARN("Replacing existing pseudocolor %s", dsID.c_str());
+            deletePseudoColor(dsID);
+        }
+        PseudoColor *pc = new PseudoColor();
+        _pseudoColors[dsID] = pc;
+
+        pc->setDataSet(ds);
+
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+
+        pc->setLookupTable(lut);
+
+        _renderer->AddViewProp(pc->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the PseudoColor associated with the specified DataSet
+ */
+PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
+{
+    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
+
+    if (itr == _pseudoColors.end()) {
+        TRACE("PseudoColor not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Associate an existing named color map with a PseudoColor for the given DataSet
+ */
+void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set PseudoColor color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of the PseudoColor for the given DataSet
+ */
+void Renderer::setPseudoColorOpacity(const DataSetId& id, double opacity)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the PseudoColor mapper for the given DataSet
+ */
+void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB polygon edge color for the specified DataSet
+ */
+void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn mesh lighting on/off for the specified DataSet
+ */
+void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;
 }
@@ -3080,13 +3382,13 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     bounds[4] = DBL_MAX;
     bounds[5] = -DBL_MAX;
 
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-             itr != _pseudoColors.end(); ++itr) {
+    for (Contour2DHashmap::iterator itr = _contours.begin();
+             itr != _contours.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-             itr != _contours.end(); ++itr) {
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+             itr != _glyphs.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
@@ -3097,6 +3399,11 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+             itr != _pseudoColors.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
@@ -3130,8 +3437,19 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
  */
 void Renderer::updateRanges(bool useCumulative)
 {
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
+    for (Contour2DHashmap::iterator itr = _contours.begin();
+         itr != _contours.end(); ++itr) {
+        // Only need to update range if using evenly spaced contours
+        if (itr->second->getContourList().empty()) {
+            if (useCumulative) {
+                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
+            } else {
+                itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+         itr != _glyphs.end(); ++itr) {
         vtkLookupTable *lut = itr->second->getLookupTable();
         if (lut) {
             if (useCumulative) {
@@ -3142,17 +3460,6 @@ void Renderer::updateRanges(bool useCumulative)
                     itr->second->getDataSet()->getDataRange(range);
                     lut->SetRange(range);
                 }
-            }
-        }
-    }
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-         itr != _contours.end(); ++itr) {
-        // Only need to update range if using evenly spaced contours
-        if (itr->second->getContourList().empty()) {
-            if (useCumulative) {
-                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
-            } else {
-                itr->second->setContours(itr->second->getNumContours());
             }
         }
     }
@@ -3176,6 +3483,21 @@ void Renderer::updateRanges(bool useCumulative)
                 itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
             } else {
                 itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+         itr != _pseudoColors.end(); ++itr) {
+        vtkLookupTable *lut = itr->second->getLookupTable();
+        if (lut) {
+            if (useCumulative) {
+                lut->SetRange(_cumulativeDataRange);
+            } else {
+                double range[2];
+                if (itr->second->getDataSet()) {
+                    itr->second->getDataSet()->getDataRange(range);
+                    lut->SetRange(range);
+                }
             }
         }
     }
@@ -3313,14 +3635,16 @@ void Renderer::setBackgroundColor(float color[3])
  */
 void Renderer::setOpacity(const DataSetId& id, double opacity)
 {
-    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
-        setPseudoColorOpacity(id, opacity);
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
         setContourOpacity(id, opacity);
+    if (id.compare("all") == 0 || getGlyphs(id) != NULL)
+        setGlyphsOpacity(id, opacity);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
         setHeightMapOpacity(id, opacity);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataOpacity(id, opacity);
+    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
+        setPseudoColorOpacity(id, opacity);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeOpacity(id, opacity);
 }
@@ -3349,14 +3673,16 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         itr->second->setVisibility(state);
     } while (doAll && ++itr != _dataSets.end());
 
-    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
-        setPseudoColorVisibility(id, state);
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
         setContourVisibility(id, state);
+    if (id.compare("all") == 0 || getGlyphs(id) != NULL)
+        setGlyphsVisibility(id, state);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
         setHeightMapVisibility(id, state);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataVisibility(id, state);
+    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
+        setPseudoColorVisibility(id, state);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeVisibility(id, state);
 }
@@ -3371,12 +3697,12 @@ bool Renderer::render()
 {
     if (_needsRedraw) {
         if (_cameraMode == IMAGE) {
-            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-                 itr != _pseudoColors.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
             for (Contour2DHashmap::iterator itr = _contours.begin();
                  itr != _contours.end(); ++itr) {
+                itr->second->setClippingPlanes(_clippingPlanes);
+            }
+            for (GlyphsHashmap::iterator itr = _glyphs.begin();
+                 itr != _glyphs.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
             for (HeightMapHashmap::iterator itr = _heightMaps.begin();
@@ -3385,6 +3711,10 @@ bool Renderer::render()
             }
             for (PolyDataHashmap::iterator itr = _polyDatas.begin();
                  itr != _polyDatas.end(); ++itr) {
+                itr->second->setClippingPlanes(_clippingPlanes);
+            }
+            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+                 itr != _pseudoColors.end(); ++itr) {
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
             for (VolumeHashmap::iterator itr = _volumes.begin();
@@ -3392,12 +3722,12 @@ bool Renderer::render()
                 itr->second->setClippingPlanes(_clippingPlanes);
             }
         } else {
-            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-                 itr != _pseudoColors.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
             for (Contour2DHashmap::iterator itr = _contours.begin();
                  itr != _contours.end(); ++itr) {
+                itr->second->setClippingPlanes(NULL);
+            }
+            for (GlyphsHashmap::iterator itr = _glyphs.begin();
+                 itr != _glyphs.end(); ++itr) {
                 itr->second->setClippingPlanes(NULL);
             }
             for (HeightMapHashmap::iterator itr = _heightMaps.begin();
@@ -3406,6 +3736,10 @@ bool Renderer::render()
             }
             for (PolyDataHashmap::iterator itr = _polyDatas.begin();
                  itr != _polyDatas.end(); ++itr) {
+                itr->second->setClippingPlanes(NULL);
+            }
+            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+                 itr != _pseudoColors.end(); ++itr) {
                 itr->second->setClippingPlanes(NULL);
             }
             for (VolumeHashmap::iterator itr = _volumes.begin();
