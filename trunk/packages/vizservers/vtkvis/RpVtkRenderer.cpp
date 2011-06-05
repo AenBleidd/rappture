@@ -65,27 +65,31 @@ Renderer::Renderer() :
     _cumulativeDataRange[0] = 0.0;
     _cumulativeDataRange[1] = 1.0;
     // clipping planes to prevent overdrawing axes
-    _clippingPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
+    _activeClipPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
-    vtkSmartPointer<vtkPlane> plane0 = vtkSmartPointer<vtkPlane>::New();
-    plane0->SetNormal(0, 1, 0);
-    plane0->SetOrigin(0, 0, 0);
-    _clippingPlanes->AddItem(plane0);
+    _clipPlanes[0] = vtkSmartPointer<vtkPlane>::New();
+    _clipPlanes[0]->SetNormal(0, 1, 0);
+    _clipPlanes[0]->SetOrigin(0, 0, 0);
+    if (_cameraMode == IMAGE)
+        _activeClipPlanes->AddItem(_clipPlanes[0]);
     // left
-    vtkSmartPointer<vtkPlane> plane1 = vtkSmartPointer<vtkPlane>::New();
-    plane1->SetNormal(1, 0, 0);
-    plane1->SetOrigin(0, 0, 0);
-    _clippingPlanes->AddItem(plane1);
-   // top
-    vtkSmartPointer<vtkPlane> plane2 = vtkSmartPointer<vtkPlane>::New();
-    plane2->SetNormal(0, -1, 0);
-    plane2->SetOrigin(0, 1, 0);
-    _clippingPlanes->AddItem(plane2);
+    _clipPlanes[1] = vtkSmartPointer<vtkPlane>::New();
+    _clipPlanes[1]->SetNormal(1, 0, 0);
+    _clipPlanes[1]->SetOrigin(0, 0, 0);
+    if (_cameraMode == IMAGE)
+        _activeClipPlanes->AddItem(_clipPlanes[1]);
+    // top
+    _clipPlanes[2] = vtkSmartPointer<vtkPlane>::New();
+    _clipPlanes[2]->SetNormal(0, -1, 0);
+    _clipPlanes[2]->SetOrigin(0, 1, 0);
+    if (_cameraMode == IMAGE)
+        _activeClipPlanes->AddItem(_clipPlanes[2]);
     // right
-    vtkSmartPointer<vtkPlane> plane3 = vtkSmartPointer<vtkPlane>::New();
-    plane3->SetNormal(-1, 0, 0);
-    plane3->SetOrigin(1, 0, 0);
-    _clippingPlanes->AddItem(plane3);
+    _clipPlanes[3] = vtkSmartPointer<vtkPlane>::New();
+    _clipPlanes[3]->SetNormal(-1, 0, 0);
+    _clipPlanes[3]->SetOrigin(1, 0, 0);
+    if (_cameraMode == IMAGE)
+        _activeClipPlanes->AddItem(_clipPlanes[3]);
     _renderer = vtkSmartPointer<vtkRenderer>::New();
     _renderer->LightFollowCameraOn();
     initAxes();
@@ -106,36 +110,44 @@ Renderer::Renderer() :
 
 Renderer::~Renderer()
 {
+    TRACE("Enter");
+    TRACE("Deleting Contours");
     for (Contour2DHashmap::iterator itr = _contours.begin();
              itr != _contours.end(); ++itr) {
         delete itr->second;
     }
     _contours.clear();
+    TRACE("Deleting Glyphs");
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
         delete itr->second;
     }
     _glyphs.clear();
+    TRACE("Deleting HeightMaps");
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
              itr != _heightMaps.end(); ++itr) {
         delete itr->second;
     }
     _heightMaps.clear();
+    TRACE("Deleting PolyDatas");
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         delete itr->second;
     }
     _polyDatas.clear();
+    TRACE("Deleting PseudoColors");
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
         delete itr->second;
     }
     _pseudoColors.clear();
+    TRACE("Deleting Volumes");
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
         delete itr->second;
     }
     _volumes.clear();
+    TRACE("Deleting ColorMaps");
     // Delete color maps and data sets last in case references still
     // exist
     for (ColorMapHashmap::iterator itr = _colorMaps.begin();
@@ -143,11 +155,13 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _colorMaps.clear();
+    TRACE("Deleting DataSets");
     for (DataSetHashmap::iterator itr = _dataSets.begin();
              itr != _dataSets.end(); ++itr) {
         delete itr->second;
     }
     _dataSets.clear();
+    TRACE("Leave");
 }
 
 /**
@@ -1237,6 +1251,8 @@ void Renderer::addGlyphs(const DataSetId& id)
         _renderer->AddViewProp(glyphs->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
     initCamera();
 
     _needsRedraw = true;
@@ -1495,6 +1511,8 @@ void Renderer::addHeightMap(const DataSetId& id)
         _renderer->AddViewProp(hmap->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
     initCamera();
 
     _needsRedraw = true;
@@ -2809,7 +2827,7 @@ void Renderer::setCameraMode(CameraMode mode)
         TRACE("Set camera to Ortho mode");
         camera->ParallelProjectionOn();
         if (origMode == IMAGE) {
-            resetCamera(false);
+            resetCamera(true);
         }
         break;
     }
@@ -2817,7 +2835,7 @@ void Renderer::setCameraMode(CameraMode mode)
         TRACE("Set camera to Perspective mode");
         camera->ParallelProjectionOff();
         if (origMode == IMAGE) {
-            resetCamera(false);
+            resetCamera(true);
         }
         break;
     }
@@ -2832,6 +2850,7 @@ void Renderer::setCameraMode(CameraMode mode)
         ERROR("Unkown camera mode: %d", mode);
     }
     resetAxes();
+
     _needsRedraw = true;
 }
 
@@ -3213,13 +3232,13 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     camera->SetParallelScale(_windowHeight * pxToWorld / 2.0);
 
     // bottom
-    _clippingPlanes->GetItem(0)->SetOrigin(0, _imgWorldOrigin[1], 0);
+    _clipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
     // left
-    _clippingPlanes->GetItem(1)->SetOrigin(_imgWorldOrigin[0], 0, 0);
+    _clipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
     // top
-    _clippingPlanes->GetItem(2)->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+    _clipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
     // right
-    _clippingPlanes->GetItem(3)->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+    _clipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
 
     _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
                                 _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1], 0, 0);
@@ -3688,6 +3707,57 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
 }
 
 /**
+ * \brief Set up clipping planes for image camera mode if needed
+ */
+void Renderer::setCameraClippingPlanes()
+{
+    /* XXX: Note that there appears to be a bug with setting the 
+     * clipping plane collection to NULL in the VTK Mappers -- 
+     * the old clip planes are still applied.  The workaround here 
+     * is to keep the PlaneCollection and add/remove the planes 
+     * to/from the PlaneCollection as needed.
+     */
+    if (_cameraMode == IMAGE) {
+        if (_activeClipPlanes->GetNumberOfItems() == 0) {
+            for (int i = 0; i < 4; i++)
+                _activeClipPlanes->AddItem(_clipPlanes[i]);
+        }
+    } else {
+        if (_activeClipPlanes->GetNumberOfItems() > 0)
+            _activeClipPlanes->RemoveAllItems();
+    }
+
+    /* Ensure all Mappers are using the PlaneCollection
+     * This will not change the state or timestamp of 
+     * Mappers already using the PlaneCollection
+     */
+    for (Contour2DHashmap::iterator itr = _contours.begin();
+         itr != _contours.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+         itr != _glyphs.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+         itr != _heightMaps.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
+         itr != _polyDatas.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+         itr != _pseudoColors.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+         itr != _volumes.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+}
+
+/**
  * \brief Cause the rendering to render a new image if needed
  *
  * The _needsRedraw flag indicates if a state change has occured since
@@ -3696,57 +3766,7 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
 bool Renderer::render()
 {
     if (_needsRedraw) {
-        if (_cameraMode == IMAGE) {
-            for (Contour2DHashmap::iterator itr = _contours.begin();
-                 itr != _contours.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-            for (GlyphsHashmap::iterator itr = _glyphs.begin();
-                 itr != _glyphs.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-            for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-                 itr != _heightMaps.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-            for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-                 itr != _polyDatas.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-                 itr != _pseudoColors.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-            for (VolumeHashmap::iterator itr = _volumes.begin();
-                 itr != _volumes.end(); ++itr) {
-                itr->second->setClippingPlanes(_clippingPlanes);
-            }
-        } else {
-            for (Contour2DHashmap::iterator itr = _contours.begin();
-                 itr != _contours.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-            for (GlyphsHashmap::iterator itr = _glyphs.begin();
-                 itr != _glyphs.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-            for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-                 itr != _heightMaps.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-            for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-                 itr != _polyDatas.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-            for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-                 itr != _pseudoColors.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-            for (VolumeHashmap::iterator itr = _volumes.begin();
-                 itr != _volumes.end(); ++itr) {
-                itr->second->setClippingPlanes(NULL);
-            }
-        }
+        setCameraClippingPlanes();
         _renderWindow->Render();
         _needsRedraw = false;
         return true;

@@ -7,7 +7,11 @@
 
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
-#include <vtkDataSetMapper.h>
+#include <vtkPolyData.h>
+#include <vtkStructuredPoints.h>
+#include <vtkStructuredGrid.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkPointData.h>
 #include <vtkLookupTable.h>
@@ -60,7 +64,14 @@ bool DataSet::getVisibility() const
 bool DataSet::setDataFile(const char *filename)
 {
     vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
+
+#if defined(WANT_TRACE) && defined(DEBUG)
+    reader->DebugOn();
+#endif
+
     reader->SetFileName(filename);
+    reader->ReadAllScalarsOn();
+    reader->ReadAllVectorsOn();
     return setData(reader);
 }
 
@@ -69,24 +80,44 @@ bool DataSet::setDataFile(const char *filename)
  */
 bool DataSet::setData(char *data, int nbytes)
 {
+    TRACE("Entering");
+
     vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
     vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
+
+#if defined(WANT_TRACE) && defined(DEBUG)
+    reader->DebugOn();
+    dataSetString->DebugOn();
+#endif
 
     dataSetString->SetArray(data, nbytes, 1);
     reader->SetInputArray(dataSetString);
     reader->ReadFromInputStringOn();
-    return setData(reader);
+    reader->ReadAllScalarsOn();
+    reader->ReadAllVectorsOn();
+
+    bool status = setData(reader);
+
+    TRACE("Leaving");
+    return status;
 }
 
 /**
  * \brief Read dataset using supplied reader
+ *
+ * Pipeline information is removed from the resulting 
+ * vtkDataSet, so that the reader and its data can be 
+ * released
  */
 bool DataSet::setData(vtkDataSetReader *reader)
 {
     // Force reading data set
     reader->SetLookupTableName("");
+    reader->Update();
+
     _dataSet = reader->GetOutput();
-    _dataSet->Update();
+    _dataSet->SetPipelineInformation(NULL);
+
     _dataSet->GetScalarRange(_dataRange);
     _dataSet->GetBounds(_bounds);
 
@@ -96,18 +127,56 @@ bool DataSet::setData(vtkDataSetReader *reader)
 }
 
 /**
- * \brief Set dataset from existing vtkDataSet object
+ * \brief Set DataSet from existing vtkDataSet object
+ *
+ * Pipeline information is removed from the supplied vtkDataSet
  */
 bool DataSet::setData(vtkDataSet *ds)
 {
     _dataSet = ds;
-    _dataSet->Update();
+    _dataSet->SetPipelineInformation(NULL);
     _dataSet->GetScalarRange(_dataRange);
     _dataSet->GetBounds(_bounds);
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
     return true;
+}
+
+/**
+ * \brief Copy an existing vtkDataSet object
+ *
+ * Pipeline information is not copied from the supplied vtkDataSet
+ * into this DataSet, but pipeline information in the supplied 
+ * vtkDataSet is not removed
+ */
+vtkDataSet *DataSet::copyData(vtkDataSet *ds)
+{
+    if (vtkPolyData::SafeDownCast(ds) != NULL) {
+        _dataSet = vtkSmartPointer<vtkPolyData>::New();
+        _dataSet->DeepCopy(vtkPolyData::SafeDownCast(ds));
+    } else if (vtkStructuredPoints::SafeDownCast(ds) != NULL) {
+        _dataSet = vtkSmartPointer<vtkStructuredPoints>::New();
+        _dataSet->DeepCopy(vtkStructuredPoints::SafeDownCast(ds));
+    } else if (vtkStructuredGrid::SafeDownCast(ds) != NULL) {
+        _dataSet = vtkSmartPointer<vtkStructuredGrid>::New();
+        _dataSet->DeepCopy(vtkStructuredGrid::SafeDownCast(ds));
+    } else if (vtkRectilinearGrid::SafeDownCast(ds) != NULL) {
+        _dataSet = vtkSmartPointer<vtkRectilinearGrid>::New();
+        _dataSet->DeepCopy(vtkRectilinearGrid::SafeDownCast(ds));
+    } else if (vtkUnstructuredGrid::SafeDownCast(ds) != NULL) {
+        _dataSet = vtkSmartPointer<vtkUnstructuredGrid>::New();
+        _dataSet->DeepCopy(vtkUnstructuredGrid::SafeDownCast(ds));
+    } else {
+        ERROR("Unknown data type");
+        return NULL;
+    }
+    _dataSet->GetScalarRange(_dataRange);
+    _dataSet->GetBounds(_bounds);
+
+    TRACE("DataSet class: %s", _dataSet->GetClassName());
+    TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+    return _dataSet;
 }
 
 /**

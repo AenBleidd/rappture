@@ -356,6 +356,7 @@ private:
     void initCamera();
     void initAxes();
     void resetAxes();
+    void setCameraClippingPlanes();
 
     bool _needsRedraw;
     int _windowWidth, _windowHeight;
@@ -383,7 +384,8 @@ private:
 
     CameraMode _cameraMode;
 
-    vtkSmartPointer<vtkPlaneCollection> _clippingPlanes;
+    vtkSmartPointer<vtkPlane> _clipPlanes[4];
+    vtkSmartPointer<vtkPlaneCollection> _activeClipPlanes;
     vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
 #ifdef USE_CUSTOM_AXES
     vtkSmartPointer<vtkRpCubeAxesActor2D> _cubeAxesActor2D; // For 2D view

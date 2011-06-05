@@ -9,6 +9,7 @@
 #define __RAPPTURE_VTKVIS_HEIGHTMAP_H__
 
 #include <vtkSmartPointer.h>
+#include <vtkAlgorithmOutput.h>
 #include <vtkContourFilter.h>
 #include <vtkLookupTable.h>
 #include <vtkDataSetMapper.h>
@@ -88,7 +89,8 @@ public:
     void setLighting(bool state);
 
 private:
-    vtkPolyData *initWarp(vtkPolyData *input);
+    vtkAlgorithmOutput *initWarp(vtkAlgorithmOutput *input);
+    vtkAlgorithmOutput *initWarp(vtkPolyData *input);
     void initProp();
     void update();
 
@@ -104,8 +106,8 @@ private:
     float _contourEdgeWidth;
     double _opacity;
     double _warpScale;
+    bool _pipelineInitialized;
 
-    vtkSmartPointer<vtkPolyData> _transformedData;
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
     vtkSmartPointer<vtkContourFilter> _contourFilter;

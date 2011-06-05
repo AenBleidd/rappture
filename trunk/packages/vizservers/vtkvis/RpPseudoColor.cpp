@@ -95,7 +95,7 @@ void PseudoColor::update()
 #if 0
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                 mesher->SetInput(pd);
-                pd = mesher->GetOutput();
+                _dsMapper->SetInputConnection(mesher->GetOutputPort());
 #else
                 vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                 splatter->SetInput(pd);
@@ -112,25 +112,19 @@ void PseudoColor::update()
                       bounds[2], bounds[3],
                       bounds[4], bounds[5]);
                 vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
-                slicer->SetInput(splatter->GetOutput());
+                slicer->SetInputConnection(splatter->GetOutputPort());
                 slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                 slicer->SetSampleRate(1, 1, 1);
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInput(slicer->GetOutput());
-                gf->Update();
-                pd = gf->GetOutput();
+                gf->SetInputConnection(slicer->GetOutputPort());
+                _dsMapper->SetInputConnection(gf->GetOutputPort());
 #endif
-                assert(pd);
-                _dsMapper->SetInput(pd);
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                 mesher->SetInput(pd);
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInput(mesher->GetOutput());
-                gf->Update();
-                pd = gf->GetOutput();
-                assert(pd);
-                _dsMapper->SetInput(pd);
+                gf->SetInputConnection(mesher->GetOutputPort());
+                _dsMapper->SetInputConnection(gf->GetOutputPort());
              }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
@@ -141,13 +135,8 @@ void PseudoColor::update()
         // DataSet is NOT a vtkPolyData
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
         gf->SetInput(ds);
-        gf->Update();
-        pd = gf->GetOutput();
-        assert(pd);
-        _dsMapper->SetInput(pd);
+        _dsMapper->SetInputConnection(gf->GetOutputPort());
     }
-
-    //_dsMapper->StaticOn();
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
@@ -174,6 +163,7 @@ void PseudoColor::update()
 
     initProp();
     _dsActor->SetMapper(_dsMapper);
+    _dsMapper->Update();
 }
 
 /**
