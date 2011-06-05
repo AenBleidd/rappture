@@ -105,10 +105,9 @@ void Volume::update()
                 vtkSmartPointer<vtkDataSetTriangleFilter>::New();
             filter->SetInput(ugrid);
             filter->TetrahedraOnlyOn();
-            filter->Update();
-            _volumeMapper->SetInput(filter->GetOutput());
+            _volumeMapper->SetInputConnection(filter->GetOutputPort());
         }
-        
+
         vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper)->
             SetBlendModeToComposite();
     } else {
@@ -133,6 +132,7 @@ void Volume::update()
     _volumeProp->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
 
     _volumeProp->SetMapper(_volumeMapper);
+    _volumeMapper->Update();
 }
 
 /**

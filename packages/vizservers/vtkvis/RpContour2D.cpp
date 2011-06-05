@@ -113,17 +113,18 @@ void Contour2D::update()
     if (_contourFilter == NULL) {
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
- 
-    vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
-        ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
         if (ds->GetCellData() != NULL &&
             ds->GetCellData()->GetScalars() != NULL) {
+            vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
             cellToPtData->SetInput(ds);
+            //cellToPtData->PassCellDataOn();
+            cellToPtData->Update();
             ds = cellToPtData->GetOutput();
         } else {
             ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
@@ -140,19 +141,14 @@ void Contour2D::update()
             if (_dataSet->is2D()) {
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                 mesher->SetInput(pd);
-                pd = mesher->GetOutput();
-                assert(pd);
-                _contourFilter->SetInput(pd);
+                _contourFilter->SetInputConnection(mesher->GetOutputPort());
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                 mesher->SetInput(pd);
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInput(mesher->GetOutput());
-                gf->Update();
-                pd = gf->GetOutput();
-                assert(pd);
-                _contourFilter->SetInput(pd);
-             }
+                gf->SetInputConnection(mesher->GetOutputPort());
+                _contourFilter->SetInputConnection(gf->GetOutputPort());
+            }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
             _contourFilter->SetInput(ds);
@@ -162,10 +158,7 @@ void Contour2D::update()
         // DataSet is NOT a vtkPolyData
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
         gf->SetInput(ds);
-        gf->Update();
-        pd = gf->GetOutput();
-        assert(pd);
-        _contourFilter->SetInput(pd);
+        _contourFilter->SetInputConnection(gf->GetOutputPort());
     }
 
     _contourFilter->ComputeNormalsOff();
@@ -192,9 +185,11 @@ void Contour2D::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _contourMapper->SetInput(_contourFilter->GetOutput());
+        _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
         _contourActor->SetMapper(_contourMapper);
     }
+
+    _contourMapper->Update();
 }
 
 /**

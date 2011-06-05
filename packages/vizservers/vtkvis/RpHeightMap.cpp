@@ -39,7 +39,8 @@ HeightMap::HeightMap() :
     _edgeWidth(1.0),
     _contourEdgeWidth(1.0),
     _opacity(1.0),
-    _warpScale(1.0)
+    _warpScale(1.0),
+    _pipelineInitialized(false)
 {
     _dataRange[0] = 0.0;
     _dataRange[1] = 1.0;
@@ -112,20 +113,22 @@ void HeightMap::update()
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
     }
 
-    if (_transformedData == NULL) {
-        vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
-
+    if (!_pipelineInitialized) {
         if (ds->GetPointData() == NULL ||
             ds->GetPointData()->GetScalars() == NULL) {
-            ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
+            WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
             if (ds->GetCellData() != NULL &&
                 ds->GetCellData()->GetScalars() != NULL) {
+                vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
                 cellToPtData = 
                     vtkSmartPointer<vtkCellDataToPointData>::New();
                 cellToPtData->SetInput(ds);
+                //cellToPtData->PassCellDataOn();
+                cellToPtData->Update();
                 ds = cellToPtData->GetOutput();
             } else {
                 ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+                return;
             }
         }
 
@@ -140,8 +143,9 @@ void HeightMap::update()
 #ifdef MESH_POINTS
                     vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                     mesher->SetInput(pd);
-                    pd = mesher->GetOutput();
-                    assert(pd);
+                    vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
+                    _dsMapper->SetInputConnection(warpOutput);
+                    _contourFilter->SetInputConnection(warpOutput);
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
@@ -160,23 +164,21 @@ void HeightMap::update()
                           bounds[4], bounds[5]);
                     if (_volumeSlicer == NULL)
                         _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
-                    _volumeSlicer->SetInput(_pointSplatter->GetOutput());
+                    _volumeSlicer->SetInputConnection(_pointSplatter->GetOutputPort());
                     _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->SetInput(_volumeSlicer->GetOutput());
-                    gf->Update();
-                    pd = gf->GetOutput();
+                    gf->SetInputConnection(_volumeSlicer->GetOutputPort());
+                    vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+                    _dsMapper->SetInputConnection(warpOutput);
+                    _contourFilter->SetInputConnection(warpOutput);
 #endif
-                    pd = initWarp(pd);
-                    assert(pd);
-                    _transformedData = pd;
                 } else {
 #ifdef MESH_POINTS
                     vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                     mesher->SetInput(pd);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->SetInput(mesher->GetOutput());
+                    gf->SetInputConnection(mesher->GetOutputPort());
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
@@ -195,24 +197,26 @@ void HeightMap::update()
                           bounds[4], bounds[5]);
                     if (_volumeSlicer == NULL)
                         _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
-                    _volumeSlicer->SetInput(_pointSplatter->GetOutput());
+                    _volumeSlicer->SetInputConnection(_pointSplatter->GetOutputPort());
                     _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->SetInput(_volumeSlicer->GetOutput());
+                    gf->SetInputConnection(_volumeSlicer->GetOutputPort());
 #endif
-                    gf->Update();
-                    pd = gf->GetOutput();
-                    assert(pd);
-                    pd = initWarp(pd);
-                    assert(pd);
-                    _transformedData = pd;
+                    vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+                    _dsMapper->SetInputConnection(warpOutput);
+                    _contourFilter->SetInputConnection(warpOutput);
                 }
             } else {
                 // DataSet is a vtkPolyData with lines and/or polygons
-                pd = initWarp(pd);
-                assert(pd);
-                _transformedData = pd;
+                vtkAlgorithmOutput *warpOutput = initWarp(pd);
+                if (warpOutput != NULL) {
+                    _dsMapper->SetInputConnection(warpOutput);
+                    _contourFilter->SetInputConnection(warpOutput);
+                } else {
+                    _dsMapper->SetInput(pd);
+                    _contourFilter->SetInput(pd);
+                }
             }
         } else {
             // DataSet is NOT a vtkPolyData
@@ -229,24 +233,18 @@ void HeightMap::update()
                 _volumeSlicer->SetInput(ds);
                 _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
                 _volumeSlicer->SetSampleRate(1, 1, 1);
-                gf->SetInput(_volumeSlicer->GetOutput());
+                gf->SetInputConnection(_volumeSlicer->GetOutputPort());
             } else {
                 // 2D image data, structured grid, unstructured grid, or rectilinear grid
                 gf->SetInput(ds);
             }
-            gf->Update();
-            pd = gf->GetOutput();
-            assert(pd);
-            pd = initWarp(pd);
-            assert(pd);
-            _transformedData = pd;
+            vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+            _dsMapper->SetInputConnection(warpOutput);
+            _contourFilter->SetInputConnection(warpOutput);
         }
     }
 
-    _dsMapper->SetInput(_transformedData);
-    _contourFilter->SetInput(_transformedData);
-
-    _dsMapper->StaticOn();
+    _pipelineInitialized = true;
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
@@ -298,7 +296,7 @@ void HeightMap::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _contourMapper->SetInput(_contourFilter->GetOutput());
+        _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
         _contourActor->SetMapper(_contourMapper);
     }
 
@@ -309,15 +307,74 @@ void HeightMap::update()
         _props->AddPart(_dsActor);
         _props->AddPart(_contourActor);
     }
+
+    _dsMapper->Update();
+    _contourMapper->Update();
+}
+
+vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
+{
+    TRACE("Warp scale: %g", _warpScale);
+    if (_warpScale == 0.0) {
+        _warp = NULL;
+        return input;
+    } else if (input == NULL) {
+        ERROR("NULL input");
+        return input;
+    } else {
+        if (_warp == NULL)
+            _warp = vtkSmartPointer<vtkWarpScalar>::New();
+        _warp->SetNormal(0, 0, 1);
+        _warp->UseNormalOn();
+        _warp->SetScaleFactor(_warpScale);
+        _warp->SetInputConnection(input);
+        return _warp->GetOutputPort();
+    }
+}
+
+vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
+{
+    TRACE("Warp scale: %g", _warpScale);
+    if (_warpScale == 0.0) {
+        _warp = NULL;
+        return NULL;
+    } else if (pdInput == NULL) {
+        ERROR("NULL input");
+        return NULL;
+    } else {
+        if (_warp == NULL)
+            _warp = vtkSmartPointer<vtkWarpScalar>::New();
+        _warp->SetNormal(0, 0, 1);
+        _warp->UseNormalOn();
+        _warp->SetScaleFactor(_warpScale);
+        _warp->SetInput(pdInput);
+        return _warp->GetOutputPort();
+    }
 }
 
 void HeightMap::setHeightScale(double scale)
 {
+    if (_warpScale == scale)
+        return;
+
     _warpScale = scale;
-    if (_warp != NULL) {
-        _warp->SetScaleFactor(scale);
-        _warp->Update();
+    if (_warp == NULL) {
+        vtkAlgorithmOutput *warpOutput = initWarp(_dsMapper->GetInputConnection(0, 0));
+        _dsMapper->SetInputConnection(warpOutput);
+        _contourFilter->SetInputConnection(warpOutput);
+    } else if (scale == 0.0) {
+        vtkAlgorithmOutput *warpInput = _warp->GetInputConnection(0, 0);
+        _dsMapper->SetInputConnection(warpInput);
+        _contourFilter->SetInputConnection(warpInput);
+        _warp = NULL;
+    } else {
+        _warp->SetScaleFactor(_warpScale);
     }
+
+    if (_dsMapper != NULL)
+        _dsMapper->Update();
+    if (_contourMapper != NULL)
+        _contourMapper->Update();
 }
 
 void HeightMap::selectVolumeSlice(Axis axis, double ratio)
@@ -378,32 +435,10 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
     }
 
     _volumeSlicer->SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
-    _warp->Update();
-}
-
-vtkPolyData *HeightMap::initWarp(vtkPolyData *input)
-{
-    TRACE("Warp scale: %g", _warpScale);
-     if (_warpScale == 0.0) {
-        _warp = NULL;
-        return input;
-    } else if (input == NULL) {
-        ERROR("NULL input");
-        return input;
-    } else if (input->GetPointData() != NULL &&
-               input->GetPointData()->GetScalars() != NULL) {
-        if (_warp == NULL)
-            _warp = vtkSmartPointer<vtkWarpScalar>::New();
-        _warp->SetNormal(0, 0, 1);
-        _warp->UseNormalOn();
-        _warp->SetScaleFactor(_warpScale);
-        _warp->SetInput(input);
-        _warp->Update();
-        return _warp->GetPolyDataOutput();
-    } else {
-        ERROR("No scalar data for input");
-        return input;
-    }
+    if (_dsMapper != NULL)
+        _dsMapper->Update();
+    if (_contourMapper != NULL)
+        _contourMapper->Update();
 }
 
 /**
@@ -650,7 +685,6 @@ void HeightMap::setContourEdgeWidth(float edgeWidth)
  */
 void HeightMap::setClippingPlanes(vtkPlaneCollection *planes)
 {
-    TRACE("planes: %p", planes);
     if (_dsMapper != NULL) {
         _dsMapper->SetClippingPlanes(planes);
     }

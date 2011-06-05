@@ -107,9 +107,6 @@ void PolyData::update()
         _pdMapper->ScalarVisibilityOff();
     }
 
-    initProp();
-    _pdActor->SetMapper(_pdMapper);
-
     vtkDataSet *ds = _dataSet->getVtkDataSet();
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
@@ -126,34 +123,40 @@ void PolyData::update()
             if (_dataSet->is2D()) {
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                 mesher->SetInput(pd);
-                _pdMapper->SetInput(mesher->GetOutput());
+#if defined(DEBUG) && defined(WANT_TRACE)
+                mesher->Update();
+                vtkPolyData *outpd = mesher->GetOutput();
+                TRACE("Delaunay2D Verts: %d Lines: %d Polys: %d Strips: %d",
+                      outpd->GetNumberOfVerts(),
+                      outpd->GetNumberOfLines(),
+                      outpd->GetNumberOfPolys(),
+                      outpd->GetNumberOfStrips());
+#endif
+                _pdMapper->SetInputConnection(mesher->GetOutputPort());
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                 mesher->SetInput(pd);
                 // Delaunay3D returns an UnstructuredGrid, so feed it through a surface filter
                 // to get the grid boundary as a PolyData
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInput(mesher->GetOutput());
-                gf->Update();
-                pd = gf->GetOutput();
-                assert(pd);
-                _pdMapper->SetInput(pd);
+                gf->SetInputConnection(mesher->GetOutputPort());
+                _pdMapper->SetInputConnection(gf->GetOutputPort());
             }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
             _pdMapper->SetInput(pd);
-            _pdMapper->StaticOn();
         }
     } else {
         // DataSet is NOT a vtkPolyData
         WARN("DataSet is not a PolyData");
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
         gf->SetInput(ds);
-        gf->Update();
-        pd = gf->GetOutput();
-        assert(pd);
-        _pdMapper->SetInput(pd);
+        _pdMapper->SetInputConnection(gf->GetOutputPort());
     }
+
+    initProp();
+    _pdActor->SetMapper(_pdMapper);
+    _pdMapper->Update();
 }
 
 /**

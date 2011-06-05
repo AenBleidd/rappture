@@ -26,13 +26,15 @@ public:
     DataSet(const std::string& name);
     virtual ~DataSet();
 
-    bool setData(char *data, int nbytes);
+    bool setDataFile(const char *filename);
 
-    bool setData(vtkDataSet *ds);
+    bool setData(char *data, int nbytes);
 
     bool setData(vtkDataSetReader *reader);
 
-    bool setDataFile(const char *filename);
+    bool setData(vtkDataSet *ds);
+
+    vtkDataSet *copyData(vtkDataSet *ds);
 
     bool is2D() const;
 
