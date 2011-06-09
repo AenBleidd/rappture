@@ -126,7 +126,7 @@ void Glyphs::setGlyphShape(GlyphShape shape)
 	return;
     }
     if (_glyphGenerator != NULL) {
-	_glyphGenerator->SetSource(_glyphSource->GetOutput());
+	_glyphGenerator->SetSourceConnection(_glyphSource->GetOutputPort());
     }
 }
 
@@ -172,8 +172,7 @@ void Glyphs::update()
     _glyphGenerator->SetScaleFactor(_scaleFactor);
     _glyphGenerator->ScalingOn();
     _glyphGenerator->SetColorModeToColorByScalar();
-    if (_glyphShape == CUBE ||
-	_glyphShape == SPHERE) {
+    if (_glyphShape == SPHERE) {
 	_glyphGenerator->OrientOff();
     }
 
