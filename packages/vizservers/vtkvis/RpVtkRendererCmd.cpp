@@ -2241,3 +2241,26 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
     return interp;
 }
+
+/**
+ * \brief Delete Tcl commands and interpreter
+ *
+ */
+void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
+{
+
+    Tcl_DeleteCommand(interp, "axis");
+    Tcl_DeleteCommand(interp, "camera");
+    Tcl_DeleteCommand(interp, "colormap");
+    Tcl_DeleteCommand(interp, "contour2d");
+    Tcl_DeleteCommand(interp, "dataset");
+    Tcl_DeleteCommand(interp, "glyphs");
+    Tcl_DeleteCommand(interp, "heightmap");
+    Tcl_DeleteCommand(interp, "legend");
+    Tcl_DeleteCommand(interp, "polydata");
+    Tcl_DeleteCommand(interp, "pseudocolor");
+    Tcl_DeleteCommand(interp, "screen");
+    Tcl_DeleteCommand(interp, "volume");
+
+    Tcl_DeleteInterp(interp);
+}
