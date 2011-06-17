@@ -210,8 +210,8 @@ void Renderer::deleteContour2D(const DataSetId& id)
             _renderer->RemoveViewProp(contour->getProp());
         delete contour;
 
-        _contours.erase(itr);
-    } while (doAll && ++itr != _contours.end());
+        itr = _contours.erase(itr);
+    } while (doAll && itr != _contours.end());
 
     _needsRedraw = true;
 }
@@ -246,8 +246,8 @@ void Renderer::deleteGlyphs(const DataSetId& id)
             _renderer->RemoveViewProp(glyphs->getProp());
         delete glyphs;
 
-        _glyphs.erase(itr);
-    } while (doAll && ++itr != _glyphs.end());
+        itr = _glyphs.erase(itr);
+    } while (doAll && itr != _glyphs.end());
 
     _needsRedraw = true;
 }
@@ -282,8 +282,8 @@ void Renderer::deleteHeightMap(const DataSetId& id)
             _renderer->RemoveViewProp(hmap->getProp());
         delete hmap;
 
-        _heightMaps.erase(itr);
-    } while (doAll && ++itr != _heightMaps.end());
+        itr = _heightMaps.erase(itr);
+    } while (doAll && itr != _heightMaps.end());
 
     _needsRedraw = true;
 }
@@ -318,8 +318,8 @@ void Renderer::deletePolyData(const DataSetId& id)
             _renderer->RemoveViewProp(polyData->getProp());
         delete polyData;
 
-        _polyDatas.erase(itr);
-    } while (doAll && ++itr != _polyDatas.end());
+        itr = _polyDatas.erase(itr);
+    } while (doAll && itr != _polyDatas.end());
 
     _needsRedraw = true;
 }
@@ -354,8 +354,8 @@ void Renderer::deletePseudoColor(const DataSetId& id)
             _renderer->RemoveViewProp(ps->getProp());
         delete ps;
 
-        _pseudoColors.erase(itr);
-    } while (doAll && ++itr != _pseudoColors.end());
+        itr = _pseudoColors.erase(itr);
+    } while (doAll && itr != _pseudoColors.end());
 
     _needsRedraw = true;
 }
@@ -390,8 +390,8 @@ void Renderer::deleteVolume(const DataSetId& id)
             _renderer->RemoveViewProp(volume->getProp());
         delete volume;
 
-        _volumes.erase(itr);
-    } while (doAll && ++itr != _volumes.end());
+        itr = _volumes.erase(itr);
+    } while (doAll && itr != _volumes.end());
 
     _needsRedraw = true;
 }
@@ -432,8 +432,8 @@ void Renderer::deleteDataSet(const DataSetId& id)
         TRACE("After deleting graphics objects");
 
         delete itr->second;
-        _dataSets.erase(itr);
-    } while (doAll && ++itr != _dataSets.end());
+        itr = _dataSets.erase(itr);
+    } while (doAll && itr != _dataSets.end());
 
     // Update cumulative data range
     collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
@@ -840,8 +840,8 @@ void Renderer::deleteColorMap(const ColorMapId& id)
 
         // TODO: Check if color map is used in PseudoColors?
         delete itr->second;
-        _colorMaps.erase(itr);
-    } while (doAll && ++itr != _colorMaps.end());
+        itr = _colorMaps.erase(itr);
+    } while (doAll && itr != _colorMaps.end());
 }
 
 /**
