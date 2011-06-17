@@ -16,6 +16,7 @@ namespace VtkVis {
 
 extern int processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout);
 extern Tcl_Interp *initTcl();
+extern void exitTcl(Tcl_Interp *interp);
 
 }
 }

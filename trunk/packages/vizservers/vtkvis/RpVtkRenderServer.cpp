@@ -192,7 +192,11 @@ main(int argc, char *argv[])
             break;
     }
 
+    exitTcl(interp);
+    interp = NULL;
+
     delete g_renderer;
+    g_renderer = NULL;
 
     TRACE("Exiting VTKVis Server");
 
