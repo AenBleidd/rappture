@@ -116,6 +116,15 @@ int xmlparser_1_0 ()
         Rp_ParserXmlDestroy(&p);
     }
 
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
+    }
+    if (expected) {
+        delete[] expected;
+        expected = NULL;
+    }
+
     return retVal;
 }
 
@@ -155,6 +164,15 @@ int xmlparser_1_1 ()
 
     if (p) {
         Rp_ParserXmlDestroy(&p);
+    }
+
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
+    }
+    if (expected) {
+        delete[] expected;
+        expected = NULL;
     }
 
     return retVal;
@@ -206,6 +224,11 @@ run.input.number(Ef).current 0eV\n";
         Rp_ParserXmlDestroy(&p);
     }
 
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
+    }
+
     return retVal;
 }
 
@@ -245,6 +268,11 @@ int xmlparser_3_0 ()
         Rp_ParserXmlDestroy(&p);
     }
 
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
+    }
+
     return retVal;
 }
 
@@ -282,6 +310,11 @@ int xmlparser_4_0 ()
 
     if (p) {
         Rp_ParserXmlDestroy(&p);
+    }
+
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
     }
 
     return retVal;
@@ -337,6 +370,11 @@ run.input.number(Ef).preset.label 4.2K (liquid helium)\n\
 
     if (p) {
         Rp_ParserXmlDestroy(&p);
+    }
+
+    if (xmltext) {
+        delete[] xmltext;
+        xmltext = NULL;
     }
 
     return retVal;
