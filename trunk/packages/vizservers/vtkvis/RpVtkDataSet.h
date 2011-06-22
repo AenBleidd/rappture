@@ -46,6 +46,8 @@ public:
 
     void getDataRange(double minmax[2]);
 
+    void getBounds(double bounds[6]);
+
     double getDataValue(double x, double y, double z);
 
     void setVisibility(bool state);

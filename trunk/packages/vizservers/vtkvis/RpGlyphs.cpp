@@ -146,12 +146,13 @@ void Glyphs::update()
 
     setGlyphShape(_glyphShape);
 
+    vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
         WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
         if (ds->GetCellData() != NULL &&
             ds->GetCellData()->GetScalars() != NULL) {
-            vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
             cellToPtData->SetInput(ds);

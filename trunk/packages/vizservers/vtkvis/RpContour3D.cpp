@@ -19,38 +19,42 @@
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
 
-#include "RpContour2D.h"
+#include "RpContour3D.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
 
-Contour2D::Contour2D() :
+Contour3D::Contour3D() :
     _dataSet(NULL),
     _numContours(0),
     _edgeWidth(1.0f),
-    _opacity(1.0)
+    _opacity(1.0),
+    _lighting(true)
 {
     _dataRange[0] = 0;
     _dataRange[1] = 1;
+    _color[0] = 0;
+    _color[1] = 0;
+    _color[2] = 1;
     _edgeColor[0] = 0;
     _edgeColor[1] = 0;
     _edgeColor[2] = 0;
 }
 
-Contour2D::~Contour2D()
+Contour3D::~Contour3D()
 {
 #ifdef WANT_TRACE
     if (_dataSet != NULL)
-        TRACE("Deleting Contour2D for %s", _dataSet->getName().c_str());
+        TRACE("Deleting Contour3D for %s", _dataSet->getName().c_str());
     else
-        TRACE("Deleting Contour2D with NULL DataSet");
+        TRACE("Deleting Contour3D with NULL DataSet");
 #endif
 }
 
 /**
  * \brief Specify input DataSet used to extract contours
  */
-void Contour2D::setDataSet(DataSet *dataSet)
+void Contour3D::setDataSet(DataSet *dataSet)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
@@ -67,40 +71,67 @@ void Contour2D::setDataSet(DataSet *dataSet)
 }
 
 /**
- * \brief Returns the DataSet this Contour2D renders
+ * \brief Returns the DataSet this Contour3D renders
  */
-DataSet *Contour2D::getDataSet()
+DataSet *Contour3D::getDataSet()
 {
     return _dataSet;
 }
 
 /**
- * \brief Get the VTK Prop for the contour lines
+ * \brief Get the VTK Prop for the isosurfaces
  */
-vtkProp *Contour2D::getProp()
+vtkProp *Contour3D::getProp()
 {
     return _contourActor;
 }
 
 /**
- * \brief Create and initialize a VTK Prop to render isolines
+ * \brief Create and initialize a VTK Prop to render isosurfaces
  */
-void Contour2D::initProp()
+void Contour3D::initProp()
 {
     if (_contourActor == NULL) {
         _contourActor = vtkSmartPointer<vtkActor>::New();
-        _contourActor->GetProperty()->EdgeVisibilityOn();
+        _contourActor->GetProperty()->EdgeVisibilityOff();
+        _contourActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
         _contourActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_edgeWidth);
         _contourActor->GetProperty()->SetOpacity(_opacity);
-        _contourActor->GetProperty()->LightingOff();
+        if (!_lighting)
+            _contourActor->GetProperty()->LightingOff();
+    }
+}
+
+/**
+ * \brief Get the VTK colormap lookup table in use
+ */
+vtkLookupTable *Contour3D::getLookupTable()
+{ 
+    return _lut;
+}
+
+/**
+ * \brief Associate a colormap lookup table with the DataSet
+ */
+void Contour3D::setLookupTable(vtkLookupTable *lut)
+{
+    if (lut == NULL) {
+        _lut = vtkSmartPointer<vtkLookupTable>::New();
+    } else {
+        _lut = lut;
+    }
+
+    if (_contourMapper != NULL) {
+        _contourMapper->UseLookupTableScalarRangeOn();
+        _contourMapper->SetLookupTable(_lut);
     }
 }
 
 /**
  * \brief Internal method to re-compute contours after a state change
  */
-void Contour2D::update()
+void Contour3D::update()
 {
     if (_dataSet == NULL) {
         return;
@@ -109,7 +140,12 @@ void Contour2D::update()
 
     initProp();
 
-    // Contour filter to generate isolines
+    if (_dataSet->is2D()) {
+        ERROR("DataSet is 2D");
+        return;
+    }
+
+    // Contour filter to generate isosurfaces
     if (_contourFilter == NULL) {
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
@@ -139,30 +175,21 @@ void Contour2D::update()
             pd->GetNumberOfPolys() == 0 &&
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
-            if (_dataSet->is2D()) {
-                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                mesher->SetInput(pd);
-                _contourFilter->SetInputConnection(mesher->GetOutputPort());
-            } else {
-                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
-                mesher->SetInput(pd);
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInputConnection(mesher->GetOutputPort());
-                _contourFilter->SetInputConnection(gf->GetOutputPort());
-            }
+            // Generate a 3D unstructured grid
+            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+            mesher->SetInput(pd);
+            _contourFilter->SetInputConnection(mesher->GetOutputPort());
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
-            _contourFilter->SetInput(ds);
+            ERROR("Not a 3D DataSet");
+            return;
         }
     } else {
-        TRACE("Generating surface for data set");
-        // DataSet is NOT a vtkPolyData
-        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-        gf->SetInput(ds);
-        _contourFilter->SetInputConnection(gf->GetOutputPort());
+         // DataSet is NOT a vtkPolyData
+         _contourFilter->SetInput(ds);
     }
 
-    _contourFilter->ComputeNormalsOff();
+    _contourFilter->ComputeNormalsOn();
     _contourFilter->ComputeGradientsOff();
 
     // Speed up multiple contour computation at cost of extra memory use
@@ -190,7 +217,34 @@ void Contour2D::update()
         _contourActor->SetMapper(_contourMapper);
     }
 
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL) {
+        if (_lut == NULL) {
+            _lut = vtkSmartPointer<vtkLookupTable>::New();
+        }
+    } else {
+        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
+        TRACE("Data set scalars lookup table: %p\n", lut);
+        if (_lut == NULL) {
+            if (lut)
+                _lut = lut;
+            else
+                _lut = vtkSmartPointer<vtkLookupTable>::New();
+        }
+    }
+
+    if (_lut != NULL) {
+        _lut->SetRange(_dataRange);
+
+        _contourMapper->SetColorModeToMapScalars();
+        _contourMapper->UseLookupTableScalarRangeOn();
+        _contourMapper->SetLookupTable(_lut);
+    }
+
     _contourMapper->Update();
+    TRACE("Contour output %d polys, %d strips",
+          _contourFilter->GetOutput()->GetNumberOfPolys(),
+          _contourFilter->GetOutput()->GetNumberOfStrips());
 }
 
 /**
@@ -198,7 +252,7 @@ void Contour2D::update()
  *
  * Will override any existing contours
  */
-void Contour2D::setContours(int numContours)
+void Contour3D::setContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;
@@ -219,7 +273,7 @@ void Contour2D::setContours(int numContours)
  *
  * Will override any existing contours
  */
-void Contour2D::setContours(int numContours, double range[2])
+void Contour3D::setContours(int numContours, double range[2])
 {
     _contours.clear();
     _numContours = numContours;
@@ -235,7 +289,7 @@ void Contour2D::setContours(int numContours, double range[2])
  *
  * Will override any existing contours
  */
-void Contour2D::setContourList(const std::vector<double>& contours)
+void Contour3D::setContourList(const std::vector<double>& contours)
 {
     _contours = contours;
     _numContours = (int)_contours.size();
@@ -246,7 +300,7 @@ void Contour2D::setContourList(const std::vector<double>& contours)
 /**
  * \brief Get the number of contours
  */
-int Contour2D::getNumContours() const
+int Contour3D::getNumContours() const
 {
     return _numContours;
 }
@@ -255,7 +309,7 @@ int Contour2D::getNumContours() const
  * \brief Get the contour list (may be empty if number of contours
  * was specified in place of a list)
  */
-const std::vector<double>& Contour2D::getContourList() const
+const std::vector<double>& Contour3D::getContourList() const
 {
     return _contours;
 }
@@ -263,7 +317,7 @@ const std::vector<double>& Contour2D::getContourList() const
 /**
  * \brief Turn on/off rendering of this contour set
  */
-void Contour2D::setVisibility(bool state)
+void Contour3D::setVisibility(bool state)
 {
     if (_contourActor != NULL) {
         _contourActor->SetVisibility((state ? 1 : 0));
@@ -275,7 +329,7 @@ void Contour2D::setVisibility(bool state)
  * 
  * \return Is contour set visible?
  */
-bool Contour2D::getVisibility() const
+bool Contour3D::getVisibility() const
 {
     if (_contourActor == NULL) {
         return false;
@@ -285,9 +339,9 @@ bool Contour2D::getVisibility() const
 }
 
 /**
- * \brief Set opacity used to render contour lines
+ * \brief Set opacity used to render isosurfaces
  */
-void Contour2D::setOpacity(double opacity)
+void Contour3D::setOpacity(double opacity)
 {
     _opacity = opacity;
     if (_contourActor != NULL)
@@ -295,9 +349,47 @@ void Contour2D::setOpacity(double opacity)
 }
 
 /**
- * \brief Set RGB color of contour lines
+ * \brief Switch between wireframe and surface representations
  */
-void Contour2D::setEdgeColor(float color[3])
+void Contour3D::setWireframe(bool state)
+{
+    if (_contourActor != NULL) {
+        if (state) {
+            _contourActor->GetProperty()->SetRepresentationToWireframe();
+            _contourActor->GetProperty()->LightingOff();
+        } else {
+            _contourActor->GetProperty()->SetRepresentationToSurface();
+            _contourActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
+        }
+    }
+}
+
+/**
+ * \brief Set RGB color of isosurfaces
+ */
+void Contour3D::setColor(float color[3])
+{
+    _color[0] = color[0];
+    _color[1] = color[1];
+    _color[2] = color[2];
+    if (_contourActor != NULL)
+        _contourActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
+}
+
+/**
+ * \brief Turn on/off rendering of mesh edges
+ */
+void Contour3D::setEdgeVisibility(bool state)
+{
+    if (_contourActor != NULL) {
+        _contourActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Set RGB color of isosurface edges
+ */
+void Contour3D::setEdgeColor(float color[3])
 {
     _edgeColor[0] = color[0];
     _edgeColor[1] = color[1];
@@ -309,7 +401,7 @@ void Contour2D::setEdgeColor(float color[3])
 /**
  * \brief Set pixel width of contour lines (may be a no-op)
  */
-void Contour2D::setEdgeWidth(float edgeWidth)
+void Contour3D::setEdgeWidth(float edgeWidth)
 {
     _edgeWidth = edgeWidth;
     if (_contourActor != NULL)
@@ -321,7 +413,7 @@ void Contour2D::setEdgeWidth(float edgeWidth)
  *
  * Passing NULL for planes will remove all cliping planes
  */
-void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
+void Contour3D::setClippingPlanes(vtkPlaneCollection *planes)
 {
     if (_contourMapper != NULL) {
         _contourMapper->SetClippingPlanes(planes);
@@ -331,8 +423,9 @@ void Contour2D::setClippingPlanes(vtkPlaneCollection *planes)
 /**
  * \brief Turn on/off lighting of this object
  */
-void Contour2D::setLighting(bool state)
+void Contour3D::setLighting(bool state)
 {
+    _lighting = state;
     if (_contourActor != NULL)
         _contourActor->GetProperty()->SetLighting((state ? 1 : 0));
 }

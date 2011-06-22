@@ -19,6 +19,7 @@
 #include <vtkLookupTable.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
+#include <vtkProbeFilter.h>
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkDataSetSurfaceFilter.h>
@@ -31,7 +32,7 @@
 
 using namespace Rappture::VtkVis;
 
-//#define MESH_POINTS
+#define MESH_POINT_CLOUDS
 
 HeightMap::HeightMap() :
     _dataSet(NULL),
@@ -40,6 +41,7 @@ HeightMap::HeightMap() :
     _contourEdgeWidth(1.0),
     _opacity(1.0),
     _warpScale(1.0),
+    _sliceAxis(Z_AXIS),
     _pipelineInitialized(false)
 {
     _dataRange[0] = 0.0;
@@ -77,6 +79,26 @@ void HeightMap::setDataSet(DataSet *dataSet)
             _dataSet->getDataRange(dataRange);
             _dataRange[0] = dataRange[0];
             _dataRange[1] = dataRange[1];
+
+            // Compute a data scaling factor to make maximum
+            // height (at default _warpScale) equivalent to 
+            // largest dimension of data set
+            double bounds[6];
+            double boundsRange = 0.0;
+            _dataSet->getBounds(bounds);
+            for (int i = 0; i < 6; i+=2) {
+                double r = bounds[i+1] - bounds[i];
+                if (r > boundsRange)
+                    boundsRange = r;
+            }
+            double datRange = _dataRange[1] - _dataRange[0];
+            if (datRange < 1.0e-10) {
+                _dataScale = 1.0;
+            } else {
+                _dataScale = boundsRange / datRange;
+            }
+            TRACE("Bounds range: %g data range: %g scaling: %g",
+                  boundsRange, datRange, _dataScale);
         }
 
         update();
@@ -114,12 +136,13 @@ void HeightMap::update()
     }
 
     if (!_pipelineInitialized) {
+        vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+
         if (ds->GetPointData() == NULL ||
             ds->GetPointData()->GetScalars() == NULL) {
             WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
             if (ds->GetCellData() != NULL &&
                 ds->GetCellData()->GetScalars() != NULL) {
-                vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
                 cellToPtData = 
                     vtkSmartPointer<vtkCellDataToPointData>::New();
                 cellToPtData->SetInput(ds);
@@ -140,7 +163,8 @@ void HeightMap::update()
                 pd->GetNumberOfStrips() == 0) {
                 // DataSet is a point cloud
                 if (_dataSet->is2D()) {
-#ifdef MESH_POINTS
+#ifdef MESH_POINT_CLOUDS
+                    // Result of Delaunay2D is a PolyData
                     vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                     mesher->SetInput(pd);
                     vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
@@ -168,17 +192,40 @@ void HeightMap::update()
                     _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
                     gf->SetInputConnection(_volumeSlicer->GetOutputPort());
                     vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
                     _dsMapper->SetInputConnection(warpOutput);
                     _contourFilter->SetInputConnection(warpOutput);
 #endif
                 } else {
-#ifdef MESH_POINTS
+#ifdef MESH_POINT_CLOUDS
+                    // Data Set is a 3D point cloud
+                    // Result of Delaunay3D mesher is unstructured grid
                     vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
                     mesher->SetInput(pd);
+                    // Run the mesher
+                    mesher->Update();
+                    // Get bounds of resulting grid
+                    double bounds[6];
+                    mesher->GetOutput()->GetBounds(bounds);
+                    // Sample a plane within the grid bounding box
+                    if (_probeFilter == NULL)
+                        _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
+                    _probeFilter->SetSourceConnection(mesher->GetOutputPort());
+                    vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+                    int xdim = 256;
+                    int ydim = 256;
+                    int zdim = 1;
+                    imageData->SetDimensions(xdim, ydim, zdim);
+                    imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])/2.);
+                    imageData->SetSpacing((bounds[1]-bounds[0])/((double)(xdim-1)), 
+                                          (bounds[3]-bounds[2])/((double)(ydim-1)),
+                                          0);
+                    _probeFilter->SetInput(imageData);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                    gf->SetInputConnection(mesher->GetOutputPort());
+                    gf->UseStripsOn();
+                    gf->SetInputConnection(_probeFilter->GetOutputPort());
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
@@ -201,6 +248,7 @@ void HeightMap::update()
                     _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->UseStripsOn();
                     gf->SetInputConnection(_volumeSlicer->GetOutputPort());
 #endif
                     vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
@@ -222,6 +270,7 @@ void HeightMap::update()
             // DataSet is NOT a vtkPolyData
             // Can be: image/volume/uniform grid, structured grid, unstructured grid, rectilinear grid
             vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+            gf->UseStripsOn();
             vtkImageData *imageData = vtkImageData::SafeDownCast(ds);
             if (!_dataSet->is2D() && imageData != NULL) {
                 // 3D image/volume/uniform grid
@@ -234,8 +283,27 @@ void HeightMap::update()
                 _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
                 _volumeSlicer->SetSampleRate(1, 1, 1);
                 gf->SetInputConnection(_volumeSlicer->GetOutputPort());
+            } else if (imageData == NULL) {
+                // structured grid, unstructured grid, or rectilinear grid
+                double bounds[6];
+                ds->GetBounds(bounds);
+                // Sample a plane within the grid bounding box
+                if (_probeFilter == NULL)
+                    _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
+                _probeFilter->SetSource(ds);
+                vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+                int xdim = 256;
+                int ydim = 256;
+                int zdim = 1;
+                imageData->SetDimensions(xdim, ydim, zdim);
+                imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])/2.);
+                imageData->SetSpacing((bounds[1]-bounds[0])/((double)(xdim-1)), 
+                                      (bounds[3]-bounds[2])/((double)(ydim-1)),
+                                      0);
+                _probeFilter->SetInput(imageData);
+                gf->SetInputConnection(_probeFilter->GetOutputPort());
             } else {
-                // 2D image data, structured grid, unstructured grid, or rectilinear grid
+                // 2D image data
                 gf->SetInput(ds);
             }
             vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
@@ -268,6 +336,7 @@ void HeightMap::update()
 
     initProp();
 
+    _dsMapper->SetColorModeToMapScalars();
     _dsMapper->UseLookupTableScalarRangeOn();
     _dsMapper->SetLookupTable(_lut);
     //_dsMapper->InterpolateScalarsBeforeMappingOn();
@@ -324,9 +393,18 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
     } else {
         if (_warp == NULL)
             _warp = vtkSmartPointer<vtkWarpScalar>::New();
-        _warp->SetNormal(0, 0, 1);
+        switch (_sliceAxis) {
+        case X_AXIS:
+            _warp->SetNormal(1, 0, 0);
+            break;
+        case Y_AXIS:
+            _warp->SetNormal(0, 1, 0);
+            break;
+        default:
+            _warp->SetNormal(0, 0, 1);
+        }
         _warp->UseNormalOn();
-        _warp->SetScaleFactor(_warpScale);
+        _warp->SetScaleFactor(_warpScale * _dataScale);
         _warp->SetInputConnection(input);
         return _warp->GetOutputPort();
     }
@@ -344,9 +422,18 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
     } else {
         if (_warp == NULL)
             _warp = vtkSmartPointer<vtkWarpScalar>::New();
-        _warp->SetNormal(0, 0, 1);
+        switch (_sliceAxis) {
+        case X_AXIS:
+            _warp->SetNormal(1, 0, 0);
+            break;
+        case Y_AXIS:
+            _warp->SetNormal(0, 1, 0);
+            break;
+        default:
+            _warp->SetNormal(0, 0, 1);
+        }
         _warp->UseNormalOn();
-        _warp->SetScaleFactor(_warpScale);
+        _warp->SetScaleFactor(_warpScale * _dataScale);
         _warp->SetInput(pdInput);
         return _warp->GetOutputPort();
     }
@@ -368,7 +455,7 @@ void HeightMap::setHeightScale(double scale)
         _contourFilter->SetInputConnection(warpInput);
         _warp = NULL;
     } else {
-        _warp->SetScaleFactor(_warpScale);
+        _warp->SetScaleFactor(_warpScale * _dataScale);
     }
 
     if (_dsMapper != NULL)
@@ -384,57 +471,117 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
         return;
     }
 
-    if (_warp == NULL ||
-        _volumeSlicer == NULL) {
+    if (_volumeSlicer == NULL &&
+         _probeFilter == NULL) {
         WARN("Called before update() or DataSet is not a volume");
         return;
     }
 
     int dims[3];
-    int voi[6];
 
     if (_pointSplatter != NULL) {
         _pointSplatter->GetSampleDimensions(dims);
     } else {
         vtkImageData *imageData = vtkImageData::SafeDownCast(_dataSet->getVtkDataSet());
         if (imageData == NULL) {
-            ERROR("Not a volume data set");
-            return;
+            if (_probeFilter != NULL) {
+                imageData = vtkImageData::SafeDownCast(_probeFilter->GetInput());
+                if (imageData == NULL) {
+                    ERROR("Couldn't get probe filter input image");
+                    return;
+                }
+            } else {
+                ERROR("Not a volume data set");
+                return;
+            }
         }
         imageData->GetDimensions(dims);
     }
 
-    switch (axis) {
-    case X_AXIS:
-        voi[0] = voi[1] = (int)((dims[0]-1) * ratio);
-        voi[2] = 0;
-        voi[3] = dims[1]-1;
-        voi[4] = 0;
-        voi[5] = dims[2]-1;
-        _warp->SetNormal(1, 0, 0);
-        break;
-    case Y_AXIS:
-        voi[2] = voi[3] = (int)((dims[1]-1) * ratio);
-        voi[0] = 0;
-        voi[1] = dims[0]-1;
-        voi[4] = 0;
-        voi[5] = dims[2]-1;
-        _warp->SetNormal(0, 1, 0);
-        break;
-    case Z_AXIS:
-        voi[4] = voi[5] = (int)((dims[2]-1) * ratio);
-        voi[0] = 0;
-        voi[1] = dims[0]-1;
-        voi[2] = 0;
-        voi[3] = dims[1]-1;
-        _warp->SetNormal(0, 0, 1);
-        break;
-    default:
-        ERROR("Invalid Axis");
-        return;
+    _sliceAxis = axis;
+    if (_warp != NULL) {
+        switch (axis) {
+        case X_AXIS:
+            _warp->SetNormal(1, 0, 0);
+            break;
+        case Y_AXIS:
+            _warp->SetNormal(0, 1, 0);
+            break;
+        case Z_AXIS:
+            _warp->SetNormal(0, 0, 1);
+            break;
+        default:
+            ERROR("Invalid Axis");
+            return;
+        }
     }
 
-    _volumeSlicer->SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
+    if (_probeFilter != NULL) {
+        vtkImageData *imageData = vtkImageData::SafeDownCast(_probeFilter->GetInput());
+        double bounds[6];
+        assert(vtkDataSet::SafeDownCast(_probeFilter->GetSource()) != NULL);
+        vtkDataSet::SafeDownCast(_probeFilter->GetSource())->GetBounds(bounds);
+        int dim = 256;
+
+        switch (axis) {
+        case X_AXIS:
+            imageData->SetDimensions(1, dim, dim);
+            imageData->SetOrigin(bounds[0] + (bounds[1]-bounds[0])*ratio, bounds[2], bounds[4]);
+            imageData->SetSpacing(0,
+                                  (bounds[3]-bounds[2])/((double)(dim-1)), 
+                                  (bounds[5]-bounds[4])/((double)(dim-1)));
+            break;
+        case Y_AXIS:
+            imageData->SetDimensions(dim, 1, dim);
+            imageData->SetOrigin(bounds[0], bounds[2] + (bounds[3]-bounds[2])*ratio, bounds[4]);
+            imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
+                                  0,
+                                  (bounds[5]-bounds[4])/((double)(dim-1)));
+            break;
+        case Z_AXIS:
+            imageData->SetDimensions(dim, dim, 1);
+            imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])*ratio);
+            imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
+                                  (bounds[3]-bounds[2])/((double)(dim-1)),
+                                  0);
+            break;
+        default:
+            ERROR("Invalid Axis");
+            return;
+        }
+    } else {
+        int voi[6];
+
+        switch (axis) {
+        case X_AXIS:
+            voi[0] = voi[1] = (int)((dims[0]-1) * ratio);
+            voi[2] = 0;
+            voi[3] = dims[1]-1;
+            voi[4] = 0;
+            voi[5] = dims[2]-1;
+            break;
+        case Y_AXIS:
+            voi[2] = voi[3] = (int)((dims[1]-1) * ratio);
+            voi[0] = 0;
+            voi[1] = dims[0]-1;
+            voi[4] = 0;
+            voi[5] = dims[2]-1;
+            break;
+        case Z_AXIS:
+            voi[4] = voi[5] = (int)((dims[2]-1) * ratio);
+            voi[0] = 0;
+            voi[1] = dims[0]-1;
+            voi[2] = 0;
+            voi[3] = dims[1]-1;
+            break;
+        default:
+            ERROR("Invalid Axis");
+            return;
+        }
+
+        _volumeSlicer->SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
+    }
+
     if (_dsMapper != NULL)
         _dsMapper->Update();
     if (_contourMapper != NULL)

@@ -23,6 +23,8 @@
 #include "RpPseudoColor.h"
 #include "Trace.h"
 
+#define MESH_POINT_CLOUDS
+
 using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
@@ -92,10 +94,12 @@ void PseudoColor::update()
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
             if (_dataSet->is2D()) {
-#if 0
+#ifdef MESH_POINT_CLOUDS
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
                 mesher->SetInput(pd);
-                _dsMapper->SetInputConnection(mesher->GetOutputPort());
+                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->SetInputConnection(mesher->GetOutputPort());
+                _dsMapper->SetInputConnection(gf->GetOutputPort());
 #else
                 vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                 splatter->SetInput(pd);
@@ -116,6 +120,7 @@ void PseudoColor::update()
                 slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                 slicer->SetSampleRate(1, 1, 1);
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->UseStripsOn();
                 gf->SetInputConnection(slicer->GetOutputPort());
                 _dsMapper->SetInputConnection(gf->GetOutputPort());
 #endif
@@ -157,6 +162,7 @@ void PseudoColor::update()
 
     _lut->SetRange(dataRange);
 
+    _dsMapper->SetColorModeToMapScalars();
     _dsMapper->UseLookupTableScalarRangeOn();
     _dsMapper->SetLookupTable(_lut);
     //_dsMapper->InterpolateScalarsBeforeMappingOn();

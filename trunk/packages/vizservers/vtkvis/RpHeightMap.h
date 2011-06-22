@@ -11,6 +11,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkAlgorithmOutput.h>
 #include <vtkContourFilter.h>
+#include <vtkProbeFilter.h>
 #include <vtkLookupTable.h>
 #include <vtkDataSetMapper.h>
 #include <vtkActor.h>
@@ -106,6 +107,8 @@ private:
     float _contourEdgeWidth;
     double _opacity;
     double _warpScale;
+    double _dataScale;
+    Axis _sliceAxis;
     bool _pipelineInitialized;
 
     vtkSmartPointer<vtkLookupTable> _lut;
@@ -113,6 +116,7 @@ private:
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
     vtkSmartPointer<vtkGaussianSplatter> _pointSplatter;
+    vtkSmartPointer<vtkProbeFilter> _probeFilter;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
     vtkSmartPointer<vtkWarpScalar> _warp;
     vtkSmartPointer<vtkActor> _dsActor;
