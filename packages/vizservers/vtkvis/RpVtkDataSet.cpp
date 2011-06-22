@@ -123,6 +123,10 @@ bool DataSet::setData(vtkDataSetReader *reader)
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+    TRACE("DataSet bounds: %g %g %g %g %g %g",
+          _bounds[0], _bounds[1],
+          _bounds[2], _bounds[3],
+          _bounds[4], _bounds[5]);
     return true;
 }
 
@@ -140,6 +144,10 @@ bool DataSet::setData(vtkDataSet *ds)
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
     TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+    TRACE("DataSet bounds: %g %g %g %g %g %g",
+          _bounds[0], _bounds[1],
+          _bounds[2], _bounds[3],
+          _bounds[4], _bounds[5]);
     return true;
 }
 
@@ -216,8 +224,15 @@ const char *DataSet::getVtkType()
  */
 void DataSet::getDataRange(double minmax[2])
 {
-    minmax[0] = _dataRange[0];
-    minmax[1] = _dataRange[1];
+    memcpy(minmax, _dataRange, sizeof(double)*2);
+}
+
+/**
+ * \brief Get the bounds the DataSet
+ */
+void DataSet::getBounds(double bounds[6])
+{
+    memcpy(bounds, _bounds, sizeof(double)*6);
 }
 
 /**

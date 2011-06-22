@@ -75,6 +75,7 @@ SERVER_SRCS	= \
 		ColorMap.cpp \
 		PPMWriter.cpp \
 		RpContour2D.cpp \
+		RpContour3D.cpp \
 		RpGlyphs.cpp \
 		RpHeightMap.cpp \
 		RpPolyData.cpp \
@@ -125,6 +126,7 @@ CmdProc.o: CmdProc.h
 ColorMap.o: ColorMap.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkDataSet.h Trace.h
+RpContour3D.o: RpContour3D.h RpVtkDataSet.h Trace.h
 RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
 RpGlyphs.o: RpGlyphs.h RpVtkDataSet.h ColorMap.h Trace.h
 RpHeightMap.o: RpHeightMap.h RpVtkDataSet.h Trace.h

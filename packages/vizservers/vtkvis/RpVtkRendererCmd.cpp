@@ -550,10 +550,10 @@ Contour2DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
         g_renderer->addContour2D(name);
-        g_renderer->setContourList(name, contourList);
+        g_renderer->setContour2DContourList(name, contourList);
     } else {
         g_renderer->addContour2D("all");
-        g_renderer->setContourList("all", contourList);
+        g_renderer->setContour2DContourList("all", contourList);
     }
     return TCL_OK;
 }
@@ -569,10 +569,10 @@ Contour2DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
         g_renderer->addContour2D(name);
-        g_renderer->setContours(name, numContours);
+        g_renderer->setContour2DContours(name, numContours);
     } else {
         g_renderer->addContour2D("all");
-        g_renderer->setContours("all", numContours);
+        g_renderer->setContour2DContours("all", numContours);
     }
     return TCL_OK;
 }
@@ -620,9 +620,9 @@ Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContourLighting(name, state);
+        g_renderer->setContour2DLighting(name, state);
     } else {
-        g_renderer->setContourLighting("all", state);
+        g_renderer->setContour2DLighting("all", state);
     }
     return TCL_OK;
 }
@@ -639,9 +639,9 @@ Contour2DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContourEdgeColor(name, color);
+        g_renderer->setContour2DEdgeColor(name, color);
     } else {
-        g_renderer->setContourEdgeColor("all", color);
+        g_renderer->setContour2DEdgeColor("all", color);
     }
     return TCL_OK;
 }
@@ -656,9 +656,9 @@ Contour2DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContourEdgeWidth(name, width);
+        g_renderer->setContour2DEdgeWidth(name, width);
     } else {
-        g_renderer->setContourEdgeWidth("all", width);
+        g_renderer->setContour2DEdgeWidth("all", width);
     }
     return TCL_OK;
 }
@@ -673,9 +673,9 @@ Contour2DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContourOpacity(name, opacity);
+        g_renderer->setContour2DOpacity(name, opacity);
     } else {
-        g_renderer->setContourOpacity("all", opacity);
+        g_renderer->setContour2DOpacity("all", opacity);
     }
     return TCL_OK;
 }
@@ -690,9 +690,9 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContourVisibility(name, state);
+        g_renderer->setContour2DVisibility(name, state);
     } else {
-        g_renderer->setContourVisibility("all", state);
+        g_renderer->setContour2DVisibility("all", state);
     }
     return TCL_OK;
 }
@@ -715,6 +715,273 @@ Contour2DCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nContour2dOps, contour2dOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+Contour3DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    std::vector<double> contourList;
+
+    int clistc;
+    Tcl_Obj **clistv;
+
+    if (Tcl_ListObjGetElements(interp, objv[3], &clistc, &clistv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    for (int i = 0; i < clistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, clistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        contourList.push_back(val);
+    }
+
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addContour3D(name);
+        g_renderer->setContour3DContourList(name, contourList);
+    } else {
+        g_renderer->addContour3D("all");
+        g_renderer->setContour3DContourList("all", contourList);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    int numContours;
+    if (Tcl_GetIntFromObj(interp, objv[3], &numContours) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->addContour3D(name);
+        g_renderer->setContour3DContours(name, numContours);
+    } else {
+        g_renderer->addContour3D("all");
+        g_renderer->setContour3DContours("all", numContours);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec contour3dAddOps[] = {
+    {"contourlist", 1, Contour3DAddContourListOp, 4, 5, "contourList ?dataSetName?"},
+    {"numcontours", 1, Contour3DAddNumContoursOp, 4, 5, "numContours ?dataSetName?"}
+};
+static int nContour3dAddOps = NumCmdSpecs(contour3dAddOps);
+
+static int
+Contour3DAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nContour3dAddOps, contour3dAddOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+Contour3DColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour3DColor(name, color);
+    } else {
+        g_renderer->setContour3DColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setContour3DColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteContour3D(name);
+    } else {
+        g_renderer->deleteContour3D("all");
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DEdgeVisibility(name, state);
+    } else {
+        g_renderer->setContour3DEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DLighting(name, state);
+    } else {
+        g_renderer->setContour3DLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour3DEdgeColor(name, color);
+    } else {
+        g_renderer->setContour3DEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DEdgeWidth(name, width);
+    } else {
+        g_renderer->setContour3DEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DOpacity(name, opacity);
+    } else {
+        g_renderer->setContour3DOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DVisibility(name, state);
+    } else {
+        g_renderer->setContour3DVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DWireframe(name, state);
+    } else {
+        g_renderer->setContour3DWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec contour3dOps[] = {
+    {"add",       1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"color",     6, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  6, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",    1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",     1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",  3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, Contour3DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, Contour3DLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",   1, Contour3DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",   1, Contour3DVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe", 1, Contour3DWireframeOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nContour3dOps = NumCmdSpecs(contour3dOps);
+
+static int
+Contour3DCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nContour3dOps, contour3dOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -757,12 +1024,14 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     TRACE("bytesRead: %d", ofs);
     if (bytesRead < 0) {
+        free(data);
         return TCL_ERROR;
     }
 #else
     size_t bytesRead = fread(data, 1, nbytes, g_fIn);
     TRACE("bytesRead: %d '%c'", bytesRead, data[0]);
     if (bytesRead < (size_t)nbytes) {
+        free(data);
         return TCL_ERROR;
     }
 #endif
@@ -1893,6 +2162,37 @@ PolyDataCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setUseDepthPeeling(state);
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec rendererOps[] = {
+    {"depthpeel", 1, RendererDepthPeelingOp, 3, 3, "bool"}
+};
+static int nRendererOps = NumCmdSpecs(rendererOps);
+
+static int
+RendererCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nRendererOps, rendererOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 ScreenBgColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
@@ -2231,12 +2531,14 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
+    Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
+    Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
     return interp;
@@ -2253,12 +2555,14 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "colormap");
     Tcl_DeleteCommand(interp, "contour2d");
+    Tcl_DeleteCommand(interp, "contour3d");
     Tcl_DeleteCommand(interp, "dataset");
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "heightmap");
     Tcl_DeleteCommand(interp, "legend");
     Tcl_DeleteCommand(interp, "polydata");
     Tcl_DeleteCommand(interp, "pseudocolor");
+    Tcl_DeleteCommand(interp, "renderer");
     Tcl_DeleteCommand(interp, "screen");
     Tcl_DeleteCommand(interp, "volume");
 

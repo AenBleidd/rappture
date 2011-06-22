@@ -103,6 +103,11 @@ Renderer::Renderer() :
     _renderWindow->SwapBuffersOff();
 #endif
     _renderWindow->SetSize(_windowWidth, _windowHeight);
+    // Next 2 options needed to support depth peeling
+    _renderWindow->SetAlphaBitPlanes(1);
+    _renderWindow->SetMultiSamples(0);
+    _renderer->SetMaximumNumberOfPeels(100);
+    _renderer->SetUseDepthPeeling(1);
     _renderWindow->AddRenderer(_renderer);
     addColorMap("default", ColorMap::getDefault());
     addColorMap("volumeDefault", ColorMap::getVolumeDefault());
@@ -111,12 +116,18 @@ Renderer::Renderer() :
 Renderer::~Renderer()
 {
     TRACE("Enter");
-    TRACE("Deleting Contours");
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-             itr != _contours.end(); ++itr) {
+    TRACE("Deleting Contour2Ds");
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+             itr != _contour2Ds.end(); ++itr) {
         delete itr->second;
     }
-    _contours.clear();
+    _contour2Ds.clear();
+    TRACE("Deleting Contour3Ds");
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+             itr != _contour3Ds.end(); ++itr) {
+        delete itr->second;
+    }
+    _contour3Ds.clear();
     TRACE("Deleting Glyphs");
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
@@ -168,8 +179,8 @@ Renderer::~Renderer()
  * \brief Add a DataSet to this Renderer
  *
  * This just adds the DataSet to the Renderer's list of data sets.
- * In order to render the data, a PseudoColor or Contour2D must
- * be added to the Renderer.
+ * In order to render the data, a graphics object using the data
+ * set must be added to the Renderer.
  */
 void Renderer::addDataSet(const DataSetId& id)
 {
@@ -192,12 +203,12 @@ void Renderer::deleteContour2D(const DataSetId& id)
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
@@ -210,8 +221,44 @@ void Renderer::deleteContour2D(const DataSetId& id)
             _renderer->RemoveViewProp(contour->getProp());
         delete contour;
 
-        itr = _contours.erase(itr);
-    } while (doAll && itr != _contours.end());
+        itr = _contour2Ds.erase(itr);
+    } while (doAll && itr != _contour2Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the Contour3D isosurfaces for the specified DataSet
+ *
+ * The underlying Contour3D is deleted, freeing its memory
+ */
+void Renderer::deleteContour3D(const DataSetId& id)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Contour3Ds for %s", id.c_str());
+
+    do {
+        Contour3D *contour = itr->second;
+        if (contour->getProp())
+            _renderer->RemoveViewProp(contour->getProp());
+        delete contour;
+
+        itr = _contour3Ds.erase(itr);
+    } while (doAll && itr != _contour3Ds.end());
 
     _needsRedraw = true;
 }
@@ -423,6 +470,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         TRACE("Deleting dataset %s", itr->second->getName().c_str());
 
         deleteContour2D(itr->second->getName());
+        deleteContour3D(itr->second->getName());
         deleteGlyphs(itr->second->getName());
         deleteHeightMap(itr->second->getName());
         deletePolyData(itr->second->getName());
@@ -981,7 +1029,7 @@ void Renderer::addContour2D(const DataSetId& id)
         }
 
         Contour2D *contour = new Contour2D();
-        _contours[dsID] = contour;
+        _contour2Ds[dsID] = contour;
 
         contour->setDataSet(ds);
 
@@ -997,9 +1045,9 @@ void Renderer::addContour2D(const DataSetId& id)
  */
 Contour2D *Renderer::getContour2D(const DataSetId& id)
 {
-    Contour2DHashmap::iterator itr = _contours.find(id);
+    Contour2DHashmap::iterator itr = _contour2Ds.find(id);
 
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         TRACE("Contour2D not found: %s", id.c_str());
         return NULL;
     } else
@@ -1009,19 +1057,19 @@ Contour2D *Renderer::getContour2D(const DataSetId& id)
 /**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
-void Renderer::setContours(const DataSetId& id, int numContours)
+void Renderer::setContour2DContours(const DataSetId& id, int numContours)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
@@ -1032,7 +1080,7 @@ void Renderer::setContours(const DataSetId& id, int numContours)
         } else {
             itr->second->setContours(numContours);
         }
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
 }
@@ -1040,26 +1088,26 @@ void Renderer::setContours(const DataSetId& id, int numContours)
 /**
  * \brief Set a list of isovalues for the given DataSet
  */
-void Renderer::setContourList(const DataSetId& id, const std::vector<double>& contours)
+void Renderer::setContour2DContourList(const DataSetId& id, const std::vector<double>& contours)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setContourList(contours);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
      _needsRedraw = true;
 }
@@ -1067,26 +1115,26 @@ void Renderer::setContourList(const DataSetId& id, const std::vector<double>& co
 /**
  * \brief Set opacity of contour lines for the given DataSet
  */
-void Renderer::setContourOpacity(const DataSetId& id, double opacity)
+void Renderer::setContour2DOpacity(const DataSetId& id, double opacity)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
 }
@@ -1094,26 +1142,26 @@ void Renderer::setContourOpacity(const DataSetId& id, double opacity)
 /**
  * \brief Turn on/off rendering contour lines for the given DataSet
  */
-void Renderer::setContourVisibility(const DataSetId& id, bool state)
+void Renderer::setContour2DVisibility(const DataSetId& id, bool state)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setVisibility(state);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
 }
@@ -1121,26 +1169,26 @@ void Renderer::setContourVisibility(const DataSetId& id, bool state)
 /**
  * \brief Set the RGB isoline color for the specified DataSet
  */
-void Renderer::setContourEdgeColor(const DataSetId& id, float color[3])
+void Renderer::setContour2DEdgeColor(const DataSetId& id, float color[3])
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
 }
@@ -1151,26 +1199,26 @@ void Renderer::setContourEdgeColor(const DataSetId& id, float color[3])
  * If the OpenGL implementation/hardware does not support wide lines, 
  * this function may not have an effect.
  */
-void Renderer::setContourEdgeWidth(const DataSetId& id, float edgeWidth)
+void Renderer::setContour2DEdgeWidth(const DataSetId& id, float edgeWidth)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
 }
@@ -1178,26 +1226,427 @@ void Renderer::setContourEdgeWidth(const DataSetId& id, float edgeWidth)
 /**
  * \brief Turn contour lighting on/off for the specified DataSet
  */
-void Renderer::setContourLighting(const DataSetId& id, bool state)
+void Renderer::setContour2DLighting(const DataSetId& id, bool state)
 {
     Contour2DHashmap::iterator itr;
 
     bool doAll = false;
 
     if (id.compare("all") == 0) {
-        itr = _contours.begin();
+        itr = _contour2Ds.begin();
         doAll = true;
     } else {
-        itr = _contours.find(id);
+        itr = _contour2Ds.find(id);
     }
-    if (itr == _contours.end()) {
+    if (itr == _contour2Ds.end()) {
         ERROR("Contour2D not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setLighting(state);
-    } while (doAll && ++itr != _contours.end());
+    } while (doAll && ++itr != _contour2Ds.end());
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Contour3D and associate it with the named DataSet
+ */
+void Renderer::addContour3D(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getContour3D(dsID)) {
+            WARN("Replacing existing contour3d %s", dsID.c_str());
+            deleteContour3D(dsID);
+        }
+
+        Contour3D *contour = new Contour3D();
+        _contour3Ds[dsID] = contour;
+
+        contour->setDataSet(ds);
+
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+
+        contour->setLookupTable(lut);
+
+        _renderer->AddViewProp(contour->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the Contour3D associated with a named DataSet
+ */
+Contour3D *Renderer::getContour3D(const DataSetId& id)
+{
+    Contour3DHashmap::iterator itr = _contour3Ds.find(id);
+
+    if (itr == _contour3Ds.end()) {
+        TRACE("Contour3D not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Set the number of equally spaced isosurfaces for the given DataSet
+ */
+void Renderer::setContour3DContours(const DataSetId& id, int numContours)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        if (_useCumulativeRange) {
+            itr->second->setContours(numContours, _cumulativeDataRange);
+        } else {
+            itr->second->setContours(numContours);
+        }
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set a list of isovalues for the given DataSet
+ */
+void Renderer::setContour3DContourList(const DataSetId& id, const std::vector<double>& contours)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourList(contours);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    initCamera();
+     _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of isosurfaces for the given DataSet
+ */
+void Renderer::setContour3DOpacity(const DataSetId& id, double opacity)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering isosurfaces for the given DataSet
+ */
+void Renderer::setContour3DVisibility(const DataSetId& id, bool state)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with a Contour3D for the given 
+ * DataSet
+ */
+void Renderer::setContour3DColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Contour3D color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB isosurface color for the specified DataSet
+ */
+void Renderer::setContour3DColor(const DataSetId& id, float color[3])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColor(color);
+    } while (doAll && ++itr != _contour3Ds.end());
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering isosurface edges for the given DataSet
+ */
+void Renderer::setContour3DEdgeVisibility(const DataSetId& id, bool state)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB isosurface edge color for the specified DataSet
+ */
+void Renderer::setContour3DEdgeColor(const DataSetId& id, float color[3])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the isosurface edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setContour3DEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setContour3DWireframe(const DataSetId& id, bool state)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn contour lighting on/off for the specified DataSet
+ */
+void Renderer::setContour3DLighting(const DataSetId& id, bool state)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _contour3Ds.end());
     _needsRedraw = true;
 }
 
@@ -3401,8 +3850,13 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     bounds[4] = DBL_MAX;
     bounds[5] = -DBL_MAX;
 
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-             itr != _contours.end(); ++itr) {
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+             itr != _contour2Ds.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+             itr != _contour3Ds.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
@@ -3456,8 +3910,19 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
  */
 void Renderer::updateRanges(bool useCumulative)
 {
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-         itr != _contours.end(); ++itr) {
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+         itr != _contour2Ds.end(); ++itr) {
+        // Only need to update range if using evenly spaced contours
+        if (itr->second->getContourList().empty()) {
+            if (useCumulative) {
+                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
+            } else {
+                itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+         itr != _contour3Ds.end(); ++itr) {
         // Only need to update range if using evenly spaced contours
         if (itr->second->getContourList().empty()) {
             if (useCumulative) {
@@ -3655,7 +4120,9 @@ void Renderer::setBackgroundColor(float color[3])
 void Renderer::setOpacity(const DataSetId& id, double opacity)
 {
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
-        setContourOpacity(id, opacity);
+        setContour2DOpacity(id, opacity);
+    if (id.compare("all") == 0 || getContour3D(id) != NULL)
+        setContour3DOpacity(id, opacity);
     if (id.compare("all") == 0 || getGlyphs(id) != NULL)
         setGlyphsOpacity(id, opacity);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
@@ -3693,7 +4160,9 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
     } while (doAll && ++itr != _dataSets.end());
 
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
-        setContourVisibility(id, state);
+        setContour2DVisibility(id, state);
+    if (id.compare("all") == 0 || getContour3D(id) != NULL)
+        setContour3DVisibility(id, state);
     if (id.compare("all") == 0 || getGlyphs(id) != NULL)
         setGlyphsVisibility(id, state);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
@@ -3731,8 +4200,12 @@ void Renderer::setCameraClippingPlanes()
      * This will not change the state or timestamp of 
      * Mappers already using the PlaneCollection
      */
-    for (Contour2DHashmap::iterator itr = _contours.begin();
-         itr != _contours.end(); ++itr) {
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+         itr != _contour2Ds.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+         itr != _contour3Ds.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
@@ -3755,6 +4228,15 @@ void Renderer::setCameraClippingPlanes()
          itr != _volumes.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
+}
+
+/**
+ * \brief Control the use of the depth peeling algorithm for transparency
+ */
+void Renderer::setUseDepthPeeling(bool state)
+{
+    _renderer->SetUseDepthPeeling(state ? 1 : 0);
+    _needsRedraw = true;
 }
 
 /**

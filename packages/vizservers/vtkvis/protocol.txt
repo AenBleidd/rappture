@@ -7,6 +7,9 @@ Requests:
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
+renderer depthpeel <bool>
+         Set use of depth peeling algorithm for transparency
+
 axis color <r> <g> <b>
      Set color of axis lines, labels, titles, ticks
 axis flymode <mode>
@@ -72,6 +75,22 @@ contour2d linecolor <r> <g> <b> <?datasetName?>
 contour2d linewidth <val> <?datasetName?>
 contour2d opacity <val> <?datasetName?>
 contour2d visible <bool> <?datasetName?>
+
+contour3d add numcontours <n> <?datasetName?>
+          Generate evenly spaced contours including range endpoints.  See also
+          'dataset maprange' command.
+contour3d add contourlist <list> <?datasetName?>
+	  list = {isoval1 isoval2 isoval3...}
+contour3d color r g b <?datasetName?>
+contour3d colormap <colorMapName> <?dataSetName?>
+contour3d delete <?datasetName?>
+contour3d edges <bool> <?datasetName?>
+contour3d lighting <bool> <?datasetName?>
+contour3d linecolor <r> <g> <b> <?datasetName?>
+contour3d linewidth <val> <?datasetName?>
+contour3d opacity <val> <?datasetName?>
+contour3d visible <bool> <?datasetName?>
+contour3d wireframe <bool> <?datasetName?>
 
 glyphs add <?dataSetName?>
 glyphs colormap <colorMapName> <?dataSetName?>

@@ -27,6 +27,7 @@
 #include "ColorMap.h"
 #include "RpVtkDataSet.h"
 #include "RpContour2D.h"
+#include "RpContour3D.h"
 #include "RpGlyphs.h"
 #include "RpHeightMap.h"
 #include "RpPolyData.h"
@@ -75,6 +76,7 @@ public:
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
@@ -145,6 +147,8 @@ public:
 
     void setBackgroundColor(float color[3]);
 
+    void setUseDepthPeeling(bool state);
+
     bool render();
 
     void getRenderedFrame(vtkUnsignedCharArray *imgData);
@@ -181,7 +185,7 @@ public:
                         int width, int height,
                         vtkUnsignedCharArray *imgData);
 
-    // Contour plots
+    // 2D Contour plots
 
     void addContour2D(const DataSetId& id);
 
@@ -189,19 +193,49 @@ public:
 
     Contour2D *getContour2D(const DataSetId& id);
 
-    void setContours(const DataSetId& id, int numContours);
+    void setContour2DContours(const DataSetId& id, int numContours);
 
-    void setContourList(const DataSetId& id, const std::vector<double>& contours);
+    void setContour2DContourList(const DataSetId& id, const std::vector<double>& contours);
 
-    void setContourOpacity(const DataSetId& id, double opacity);
+    void setContour2DOpacity(const DataSetId& id, double opacity);
 
-    void setContourVisibility(const DataSetId& id, bool state);
+    void setContour2DVisibility(const DataSetId& id, bool state);
 
-    void setContourEdgeColor(const DataSetId& id, float color[3]);
+    void setContour2DEdgeColor(const DataSetId& id, float color[3]);
 
-    void setContourEdgeWidth(const DataSetId& id, float edgeWidth);
+    void setContour2DEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    void setContourLighting(const DataSetId& id, bool state);
+    void setContour2DLighting(const DataSetId& id, bool state);
+
+    // 3D Contour (isosurface) plots
+
+    void addContour3D(const DataSetId& id);
+
+    void deleteContour3D(const DataSetId& id);
+
+    Contour3D *getContour3D(const DataSetId& id);
+
+    void setContour3DContours(const DataSetId& id, int numContours);
+
+    void setContour3DContourList(const DataSetId& id, const std::vector<double>& contours);
+
+    void setContour3DColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setContour3DOpacity(const DataSetId& id, double opacity);
+
+    void setContour3DVisibility(const DataSetId& id, bool state);
+
+    void setContour3DColor(const DataSetId& id, float color[3]);
+
+    void setContour3DEdgeVisibility(const DataSetId& id, bool state);
+
+    void setContour3DEdgeColor(const DataSetId& id, float color[3]);
+
+    void setContour3DEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setContour3DWireframe(const DataSetId& id, bool state);
+
+    void setContour3DLighting(const DataSetId& id, bool state);
 
     // Glyphs
 
@@ -375,7 +409,8 @@ private:
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
-    Contour2DHashmap _contours;
+    Contour2DHashmap _contour2Ds;
+    Contour3DHashmap _contour3Ds;
     GlyphsHashmap _glyphs;
     HeightMapHashmap _heightMaps;
     PolyDataHashmap _polyDatas;
