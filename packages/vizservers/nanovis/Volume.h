@@ -116,7 +116,7 @@ public :
     Volume(float x, float y, float z, int width, int height, int depth, 
 	   float size, int n_component, float* data, double vmin, double vmax, 
 	   double nonzero_min);
-    ~Volume();
+    virtual ~Volume();
 	
 public :
     void visible(bool value) { 
