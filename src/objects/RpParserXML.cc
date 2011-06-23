@@ -96,7 +96,7 @@ Rp_ParserXmlEndHandler(
             strcpy(newValue,value+j);
             Rp_TreeSetValue(inf->tree,inf->curr,Rp_ParserXml_Field_VALUE,
                 (void *)newValue);
-            delete value;
+            delete[] value;
             value = NULL;
         }
     }
@@ -419,7 +419,7 @@ Rp_ParserXmlPut(
                 strncpy(newval,oldval,oldval_len);
             }
             // free the old data
-            delete(oldval);
+            delete[] oldval;
             oldval = NULL;
         }
     }
@@ -476,7 +476,7 @@ Rp_ParserXmlPutF(
                     (void **)&oldval)) {
         if (oldval != NULL) {
             // free the old data
-            delete(oldval);
+            delete[] oldval;
             oldval = NULL;
         }
     }
@@ -490,7 +490,7 @@ Rp_ParserXmlPutF(
     va_start(lst, format);
     n = vsnprintf(stackSpace, stackSize, format, lst);
     if (n >= stackSize) {
-        delete stackSpace;
+        delete[] stackSpace;
         stackSpace = new char[n];
         vsnprintf(stackSpace, n, format, lst);
     }
@@ -544,7 +544,7 @@ Rp_ParserXmlAppendF(
     va_start(lst, format);
     n = vsnprintf(stackSpace, stackSize, format, lst);
     if (n >= stackSize) {
-        delete stackSpace;
+        delete[] stackSpace;
         stackSpace = new char[n];
         vsnprintf(stackSpace, n, format, lst);
     }
@@ -557,9 +557,9 @@ Rp_ParserXmlAppendF(
         strcpy(newval, oldval);
         strcat(newval,stackSpace);
         // free the old data
-        delete(oldval);
+        delete[] oldval;
         oldval = NULL;
-        delete(stackSpace);
+        delete[] stackSpace;
         stackSpace = NULL;
     }
 
