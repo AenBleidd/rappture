@@ -784,8 +784,8 @@ CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cutplaneOps[] = {
-    {"position", 1, CutplanePositionOp, 4, 0, "bool axis ?indices?",},
-    {"state",    1, CutplaneStateOp,    4, 0, "relval axis ?indices?",},
+    {"position", 1, CutplanePositionOp, 4, 0, "relval axis ?indices?",},
+    {"state",    1, CutplaneStateOp,    4, 0, "bool axis ?indices?",},
 };
 static int nCutplaneOps = NumCmdSpecs(cutplaneOps);
 
