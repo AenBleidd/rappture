@@ -67,11 +67,11 @@ option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-*-180-*
 Rappture::resources::load
 
 # ----------------------------------------------------------------------
-# Fake data object for sending DX or flow data...
+# Fake data object for sending VTK data file...
 # ----------------------------------------------------------------------
 itcl::class visData {
     constructor {args} {
-        set _data [Rappture::encoding::encode -as zb64 [lindex $args 0]]
+        set _data [lindex $args 0]
     }
 
     public method components {args} {
@@ -79,6 +79,9 @@ itcl::class visData {
             return "one"
         }
         return ""
+    }
+    public method data {args} {
+        return $_data
     }
     public method values {args} {
         return $_data
@@ -99,7 +102,7 @@ itcl::class visData {
 proc send_file {} {
     global widgets
 
-    set file [tk_getOpenFile -title "Open Command File"]
+    set file [tk_getOpenFile -title "Open VTK File"]
     if {"" != $file && [catch {
             set fid [open $file r]
             fconfigure $fid -translation binary
@@ -108,29 +111,6 @@ proc send_file {} {
           }] == 0} {
         set obj [visData #auto $info]
         $widgets(vtkcontourviewer) add $obj
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: send_flow_file
-#
-# Prompts the user for a text file, and then sends the text within
-# that file along to the rendering widget.
-# ----------------------------------------------------------------------
-proc send_flow_file {} {
-    global widgets
-
-    set file [tk_getOpenFile -title "Open Command File"]
-    if {"" != $file && [catch {
-            set fid [open $file r]
-            fconfigure $fid -translation binary
-            set info [read $fid]
-            close $fid
-          }] == 0} {
-        set _data [Rappture::encoding::encode -as zb64 $info ]
-        set _data "flow data follows [string length $_data]\n$_data"
-        $widgets(command) insert 0 $_data
-        send_command
     }
 }
 
@@ -329,8 +309,7 @@ $widgets(viewer) create rectangle 0 0 1 1 -width 2 -outline red -fill "" \
 # ----------------------------------------------------------------------
 menu .mbar
 menu .mbar.file
-.mbar.file add command -label "Send Volume File..." -underline 0 -command send_file
-.mbar.file add command -label "Send Flow File..." -underline 0 -command send_flow_file
+.mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
