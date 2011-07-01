@@ -70,10 +70,10 @@ Rappture::resources::load
 # Fake data object for sending VTK data file...
 # ----------------------------------------------------------------------
 itcl::class visData {
-    inherit Rappture::Drawing3d
+    inherit Rappture::Scene
 
     constructor {args} {
-        Rappture::Drawing3d::constructor [Rappture::library standard] ""
+        Rappture::Scene::constructor [Rappture::library standard] ""
     } {
         set _data [lindex $args 0]
     }
