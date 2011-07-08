@@ -11,6 +11,5 @@ package ifneeded Rappture @PACKAGE_VERSION@ [format {
     }
     set ext [info sharedlibextension] 
     load [file join $dir "Rappture${version}${ext}"]
-    package require BLT
     package provide Rappture $version
 } $dir]
