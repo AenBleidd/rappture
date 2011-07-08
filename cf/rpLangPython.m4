@@ -12,17 +12,16 @@ PYTHON_SITE_DIR=""
 PYTHON_SITE_PACKAGES=""
 PYTHON_VERSION=""
 pythondir=""
-rp_with_python="yes"
 AC_ARG_WITH([python],
     [AS_HELP_STRING([--with-python[=DIR]],[location of python @<:@default=yes@:>@])],
-    [rp_with_python=$withval],
-    [rp_with_python=yes])
+    [],
+    [with_python=yes])
 
-if test "$rp_with_python" != "no" ; then
-  if test "$rp_with_python" = "yes" ; then
+if test "$with_python" != "no" ; then
+  if test "$with_python" = "yes" ; then
     AC_PATH_PROG(PYTHON, python python2.5 python2.4 python2.3 python2.2 python2.1 python2.0 python1.6 python1.5)
   else
-    AC_PATH_PROG(PYTHON, python, [], [${rp_with_python}/bin:${rp_with_python}])
+    AC_PATH_PROG(PYTHON, python, [], [${with_python}/bin:${with_python}])
   fi
   AC_MSG_CHECKING([for Python version])
   if test "x${PYTHON}" != "x"; then

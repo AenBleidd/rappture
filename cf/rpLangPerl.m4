@@ -4,7 +4,7 @@ AC_ARG_WITH(
     [perl],
     [AS_HELP_STRING([--with-perl[=DIR]], [location of perl @<:@default=yes@:>@])],
     [],
-    [rp_with_perl=yes])
+    [with_perl=yes])
 
 PERL=
 PERL_INCLUDES=
@@ -17,9 +17,9 @@ PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
 PERL_LIBSPEC=
-if test "$rp_with_perl" != "no" ; then
-  if test "$rp_with_perl" != "yes" ; then 
-    AC_PATH_PROG(PERL, perl, [], [$rp_with_perl/bin:$rp_with_perl])
+if test "$with_perl" != "no" ; then
+  if test "$with_perl" != "yes" ; then 
+    AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
   else
     AC_PATH_PROG(PERL, perl)
   fi

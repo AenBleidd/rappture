@@ -254,13 +254,13 @@ SC_ENABLE_SHARED
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tclConfig.sh
 fi
-if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
+if test -f "${exec_prefix}/lib/tkConfig.sh" ; then
   . ${exec_prefix}/lib/tkConfig.sh
 fi
 
 # -----------------------------------------------------------------------
 #
-# Compiler characteristics:
+# Compiler characteristics:	
 #   Check for existence of types of size_t and pid_t
 #
 # -----------------------------------------------------------------------

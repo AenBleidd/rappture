@@ -1,22 +1,22 @@
 AC_DEFUN([RP_LANG_MATLAB],[
-rp_with_matlab="yes"
+with_matlab="yes"
 AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
         [location of matlab and mex compiler @<:@default=yes@:>@])],
-    [rp_with_matlab=$withval],
-    [rp_with_matlab=yes])
+    [],
+    [with_matlab=yes])
 
 MCC=""
 MEX=""
 MEX_ARCH=""
 MEXEXT=""
 MATLAB=
-if test "$rp_with_matlab" != "no" ; then
-  if test "$rp_with_matlab" = "yes" ; then
+if test "$with_matlab" != "no" ; then
+  if test "$with_matlab" = "yes" ; then
     AC_PATH_PROG(MATLAB, matlab)
   else
-    AC_PATH_PROG(MATLAB, matlab, [], [${rp_with_matlab}/bin:${rp_with_matlab}])
+    AC_PATH_PROG(MATLAB, matlab, [], [${with_matlab}/bin:${with_matlab}])
   fi
 fi
 

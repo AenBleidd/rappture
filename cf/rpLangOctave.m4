@@ -21,13 +21,12 @@
 
 # Standard octave search (use the installed version of octave)
 AC_DEFUN([RP_LANG_OCTAVE],[
-rp_with_octave="yes"
 AC_ARG_WITH(
     [octave],
     [AS_HELP_STRING([--with-octave[=DIR]],
         [path of default octave compiler `mkoctfile' @<:@default=yes@:>@])],
-    [rp_with_octave=$withval],
-    [rp_with_octave=yes])
+    [],
+    [with_octave=yes])
 
 OCTAVE=
 OCTAVE_VERSION=
@@ -35,13 +34,13 @@ OCTAVE_VERSION_MAJOR=
 MKOCTFILE2=
 MKOCTFILE3=
 
-if test "$rp_with_octave" != "no" ; then
-  if test "$rp_with_octave" = "yes" ; then
+if test "$with_octave" != "no" ; then
+  if test "$with_octave" = "yes" ; then
     AC_PATH_PROG(OCTAVE, octave)
     AC_PATH_PROG(MKOCTFILE, mkoctfile)
   else
-    OCTAVE=$rp_with_octave
-    MKOCTFILE=`dirname $rp_with_octave`/mkoctfile
+    OCTAVE=$with_octave
+    MKOCTFILE=`dirname $with_octave`/mkoctfile
   fi
 fi
 
@@ -79,14 +78,14 @@ AC_ARG_WITH(
     [mkoctfile3],
     [AS_HELP_STRING([--with-mkoctfile3[=DIR]],
         [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
-    [rp_with_mkoctfile3=$withval],
-    [rp_with_mkoctfile3=no])
+    [],
+    [with_mkoctfile3=no])
 
-if test "$rp_with_mkoctfile3" != "no" ; then
-  if test "$rp_with_mkoctfile3" = "yes" ; then
+if test "$with_mkoctfile3" != "no" ; then
+  if test "$with_mkoctfile3" = "yes" ; then
     AC_PATH_PROG(mkoctfile3, mkoctfile)
   else 
-    MKOCTFILE3=$rp_with_mkoctfile3
+    MKOCTFILE3=$with_mkoctfile3
   fi
   OCTAVE_VERSION=`${MKOCTFILE3} --version 2>&1 | cut -d' ' -f3`
   OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
@@ -98,24 +97,18 @@ AC_ARG_WITH(
     [mkoctfile2],
     [AS_HELP_STRING([--with-mkoctfile2[=DIR]],
         [path of octave compiler `mkoctfile' @<:@default=no@:>@])],
-    [rp_with_mkoctfile2=$withval],
-    [rp_with_mkoctfile2=no])
+    [],
+    [with_mkoctfile2=no])
 
-if test "$rp_with_mkoctfile2" != "no" ; then
-  if test "$rp_with_mkoctfile2" = "yes" ; then
+if test "$with_mkoctfile2" != "no" ; then
+  if test "$with_mkoctfile2" = "yes" ; then
     AC_PATH_PROG(mkoctfile2, mkoctfile)
   else 
-    MKOCTFILE2=$rp_with_mkoctfile2
+    MKOCTFILE2=$with_mkoctfile2
   fi
   # Have to use octave to get a version, instead of mkoctfile.
   octave=`dirname $MKOCTFILE2`/octave
   OCTAVE_VERSION=`${octave} -v | grep version | cut -d' ' -f4`
   OCTAVE_VERSION_MAJOR=`echo ${OCTAVE_VERSION} | cut -d'.' -f1`
 fi
-
-
-echo "MKOCTFILE2 = $MKOCTFILE2"
-echo "MKOCTFILE3 = $MKOCTFILE3"
-echo "OCTAVE_VERSION_MAJOR = $OCTAVE_VERSION_MAJOR"
-echo "OCTAVE_VERSION = $OCTAVE_VERSION"
 ])
