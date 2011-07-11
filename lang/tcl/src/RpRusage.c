@@ -379,16 +379,15 @@ RpRusageTimeDiff(currptr, prevptr)
  * ------------------------------------------------------------------------
  */
 static void
-RpDestroyMarkNames(cdata, interp)
-    ClientData cdata;         /* data being destroyed */
-    Tcl_Interp *interp;       /* interpreter that owned the data */
+RpDestroyMarkNames(
+    ClientData cdata,			/* data being destroyed */
+    Tcl_Interp *interp)			/* Interpreter that owned the data */
 {
     Tcl_HashTable *markNamesPtr = cdata;
     Tcl_HashEntry *entryPtr;
     Tcl_HashSearch search;
 
-    for (entryPtr=Tcl_FirstHashEntry(markNamesPtr, &search);
-         entryPtr != NULL;
+    for (entryPtr = Tcl_FirstHashEntry(markNamesPtr, &search); entryPtr != NULL;
          entryPtr = Tcl_NextHashEntry(&search)) {
         ckfree( (char*)Tcl_GetHashValue(entryPtr) );
     }

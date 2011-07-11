@@ -2395,12 +2395,17 @@ DiffviewDiffsCreate(textPtr1, limsPtr1, textPtr2, limsPtr2)
     Tcl_HashSearch iter;
     Tcl_HashEntry *entryPtr;
     Tcl_DString buffer;
-    DiffviewSubseq *K, *newK, newCandidate; int Kmax; int Klen;
+    DiffviewSubseq *K, *newK, newCandidate; 
+    int Kmax; int Klen;
     Tcl_Obj *listPtr, **objv;
     int i, j, candidateIdx, subseqLen, longestMatch;
     int max, min, mid, midval, sLen, del;
     int len, created, o, objc, index1, *lcsIndex1, index2, *lcsIndex2;
     char *key;
+
+    newCandidate.index1 = -1;		/* Suppress compiler warning. */
+    newCandidate.index2 = -1;
+    newCandidate.next = -1;
 
     /*
      * Build a set of equivalence classes.  Scan through all of
