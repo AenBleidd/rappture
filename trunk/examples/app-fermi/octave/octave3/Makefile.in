@@ -9,7 +9,7 @@ mandir          = @mandir@
 prefix          = @prefix@
 srcdir          = @srcdir@
 
-destdir         = $(prefix)/examples/app-fermi/octave/3
+destdir         = $(prefix)/examples/app-fermi/octave/octave3
 
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
