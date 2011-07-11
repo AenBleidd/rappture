@@ -137,6 +137,13 @@ done
 
 
 AC_ARG_WITH(
+    [ffmpeg],
+    [AS_HELP_STRING([--with-ffmpeg[=DIR]],
+      [location of ffmpeg @<:@default=yes@:>@])],
+    [],
+    [with_ffmpeg=yes])
+
+AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
         [location of tclsh @<:@default=yes@:>@])],
@@ -334,7 +341,8 @@ AC_CHECK_HEADERS([libswscale/swscale.h],[],[],
 ]])
 
 HAVE_FFMPEG_LIBS=""
-if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
+if test "${with_ffmpeg}" != "no"; then
+  if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
         "${ac_cv_header_libavcodec_avcodec_h}" = "yes" \) -a \
      \( "${ac_cv_header_ffmpeg_avformat_h}" = "yes" -o \
         "${ac_cv_header_libavformat_avformat_h}" = "yes" \) -a \
@@ -342,10 +350,9 @@ if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
         "${ac_cv_header_libavutil_avutil_h}" = "yes" \) -a \
      \( "${ac_cv_header_ffmpeg_swscale_h}" = "yes" -o \
         "${ac_cv_header_libswscale_swscale_h}" = "yes" \) ]] ; then
-  HAVE_FFMPEG_LIBS="yes"
-  AC_DEFINE(BUILD_with_ffmpeg, 1, [Build rappture with ffmpeg widgets])
-else
-  HAVE_FFMPEG_LIBS=""
+    HAVE_FFMPEG_LIBS="yes"
+    AC_DEFINE(BUILD_with_ffmpeg, 1, [Build rappture with ffmpeg widgets])
+  fi
 fi
 
 AC_CHECK_FUNCS(img_convert)
@@ -528,7 +535,7 @@ AC_CONFIG_FILES([
     examples/zoo/enable/Makefile
     examples/zoo/field/Makefile
     examples/zoo/group/Makefile
-    examples/zoo/image/Makefilexs
+    examples/zoo/image/Makefile
     examples/zoo/image/docs/Makefile
     examples/zoo/image/examples/Makefile
     examples/zoo/integer/Makefile
