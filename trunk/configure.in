@@ -4,19 +4,6 @@ dnl AC_CONFIG_HEADER(src/core/RpConfig.h)
 AC_CONFIG_AUX_DIR(cf)
 AC_CONFIG_HEADER(src/core/config.h)
 
-with_tclsh=yes
-rp_with_tclsh="yes"
-rp_with_mkoctfile2="no"
-rp_with_mkoctfile3="no"
-rp_with_octave="yes"
-rp_with_vtk="yes"
-rp_with_matlab="yes"
-rp_with_perl="yes"
-rp_with_python="yes"
-rp_with_ruby="yes"
-rp_with_java="yes"
-with_install="yes"
-
 #------------------------------------------------------------------------
 # Handle the --prefix=... option
 #------------------------------------------------------------------------
@@ -34,6 +21,7 @@ AC_ARG_WITH(
         [location of installation @<:@default=yes@:>@])],
     [],
     [with_install=yes])
+
 if test "$with_install" != "yes"; then
     INSTALL_PREFIX=$with_install
 else
@@ -152,16 +140,16 @@ AC_ARG_WITH(
     [tclsh],
     [AS_HELP_STRING([--with-tclsh[=DIR]],
         [location of tclsh @<:@default=yes@:>@])],
-    [rp_with_tclsh=$withval],
-    [rp_with_tclsh=yes])
+    [],
+    [with_tclsh=yes])
 
 TCLSH=""
-if test "${rp_with_tclsh}" != "no" ; then
+if test "${with_tclsh}" != "no" ; then
   tclsh="tclsh${TCL_VERSION}"
-  if test "${rp_with_tclsh}" = "yes" ; then 
+  if test "${with_tclsh}" = "yes" ; then 
     AC_PATH_PROG(TCLSH, ${tclsh}, [], [${exec_prefix}/bin:${PATH}])
   else 
-    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${rp_with_tclsh}/bin:${rp_with_tclsh}])
+    AC_PATH_PROG(TCLSH, ${tclsh}, [], [${with_tclsh}/bin:${with_tclsh}])
   fi
   if test "x${TCLSH}" = "x" ; then
     AC_ERROR([can't find tclsh])
@@ -176,13 +164,14 @@ AC_ARG_WITH(
     [vtk],
     [AS_HELP_STRING([--with-vtk[=DIR]],
         [location of vtk library @<:@default=yes@:>@])],
-    [rp_with_vtk=$withval], [rp_with_vtk=yes])
+    [], 
+    [with_vtk=yes])
 
 AC_MSG_CHECKING([for vtk])
 VTKDIR=""
 
-if test "$rp_with_vtk" != "no" ; then
-  if test "$rp_with_vtk" = "yes" ; then
+if test "$with_vtk" != "no" ; then
+  if test "$with_vtk" = "yes" ; then
     for path in \
      $libdir \
      $prefix/lib \
@@ -208,21 +197,20 @@ RP_LANG_PERL
 RP_LANG_PYTHON
 RP_LANG_JAVA
 
-rp_with_ruby="yes"
-
 RUBY=""
 RUBY_DEV_PKG="no"
 
 AC_ARG_WITH(
     [ruby],
     [AS_HELP_STRING([--with-ruby=DIR], [location of ruby @<:@default=yes@:>@])],
-    [rp_with_ruby=$withval])
+    [],
+    [with_ruby="yes"])
 
-if test "${rp_with_ruby}" != "no" ; then
-  if test "${rp_with_ruby}" = "yes" ; then
+if test "${with_ruby}" != "no" ; then
+  if test "${with_ruby}" = "yes" ; then
     AC_PATH_PROG(RUBY, ruby)
   else
-    AC_PATH_PROG(RUBY, ruby, [], [${rp_with_ruby}/bin:${rp_with_ruby}])
+    AC_PATH_PROG(RUBY, ruby, [], [${with_ruby}/bin:${with_ruby}])
   fi
 fi
 
@@ -260,7 +248,7 @@ fi
 
 # -----------------------------------------------------------------------
 #
-# Compiler characteristics:	
+# Compiler characteristics:
 #   Check for existence of types of size_t and pid_t
 #
 # -----------------------------------------------------------------------
@@ -428,9 +416,10 @@ AC_SUBST(TCL_INC_SPEC)
 AC_SUBST(TCL_LIB_SPEC)
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TCL_VERSION)
-AC_SUBST(TK_VERSION)
+AC_SUBST(TK_INC_SPEC)
 AC_SUBST(TK_LIB_SPEC)
 AC_SUBST(TK_XLIBSW)
+AC_SUBST(TK_VERSION)
 AC_SUBST(VTKDIR)
 
 ac_configure_args="--disable-threads --enable-shared"
@@ -494,8 +483,8 @@ AC_CONFIG_FILES([
     examples/app-fermi/matlab/Makefile
     examples/app-fermi/matlab/compiled/Makefile
     examples/app-fermi/matlab/uncompiled/Makefile
-    examples/app-fermi/octave/2/Makefile
-    examples/app-fermi/octave/3/Makefile
+    examples/app-fermi/octave/octave2/Makefile
+    examples/app-fermi/octave/octave3/Makefile
     examples/app-fermi/octave/Makefile
     examples/app-fermi/perl/Makefile
     examples/app-fermi/python/Makefile
@@ -539,7 +528,7 @@ AC_CONFIG_FILES([
     examples/zoo/enable/Makefile
     examples/zoo/field/Makefile
     examples/zoo/group/Makefile
-    examples/zoo/image/Makefile
+    examples/zoo/image/Makefilexs
     examples/zoo/image/docs/Makefile
     examples/zoo/image/examples/Makefile
     examples/zoo/integer/Makefile
