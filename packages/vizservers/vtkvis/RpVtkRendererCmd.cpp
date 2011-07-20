@@ -2524,9 +2524,9 @@ Rappture::VtkVis::initTcl()
 {
     Tcl_Interp *interp;
     interp = Tcl_CreateInterp();
-    /*
+
     Tcl_MakeSafe(interp);
-    */
+
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
