@@ -609,6 +609,7 @@ void HeightMap::initProp()
                                               _edgeColor[2]);
         _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
         _dsActor->GetProperty()->EdgeVisibilityOff();
+        _dsActor->GetProperty()->SetAmbient(.2);
         _dsActor->GetProperty()->LightingOn();
     }
     if (_contourActor == NULL) {
@@ -619,6 +620,7 @@ void HeightMap::initProp()
                                                    _contourEdgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_contourEdgeWidth);
         _contourActor->GetProperty()->EdgeVisibilityOn();
+        _contourActor->GetProperty()->SetAmbient(.2);
         _contourActor->GetProperty()->LightingOff();
     }
 }

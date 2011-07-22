@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <cstring>
 #include <cassert>
+#include <cmath>
 
 #include <GL/gl.h>
 
@@ -17,6 +18,7 @@
 
 #include <vtkMath.h>
 #include <vtkCamera.h>
+#include <vtkLight.h>
 #include <vtkCoordinate.h>
 #include <vtkTransform.h>
 #include <vtkCharArray.h>
@@ -67,34 +69,44 @@ Renderer::Renderer() :
     // clipping planes to prevent overdrawing axes
     _activeClipPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
-    _clipPlanes[0] = vtkSmartPointer<vtkPlane>::New();
-    _clipPlanes[0]->SetNormal(0, 1, 0);
-    _clipPlanes[0]->SetOrigin(0, 0, 0);
+    _cameraClipPlanes[0] = vtkSmartPointer<vtkPlane>::New();
+    _cameraClipPlanes[0]->SetNormal(0, 1, 0);
+    _cameraClipPlanes[0]->SetOrigin(0, 0, 0);
     if (_cameraMode == IMAGE)
-        _activeClipPlanes->AddItem(_clipPlanes[0]);
+        _activeClipPlanes->AddItem(_cameraClipPlanes[0]);
     // left
-    _clipPlanes[1] = vtkSmartPointer<vtkPlane>::New();
-    _clipPlanes[1]->SetNormal(1, 0, 0);
-    _clipPlanes[1]->SetOrigin(0, 0, 0);
+    _cameraClipPlanes[1] = vtkSmartPointer<vtkPlane>::New();
+    _cameraClipPlanes[1]->SetNormal(1, 0, 0);
+    _cameraClipPlanes[1]->SetOrigin(0, 0, 0);
     if (_cameraMode == IMAGE)
-        _activeClipPlanes->AddItem(_clipPlanes[1]);
+        _activeClipPlanes->AddItem(_cameraClipPlanes[1]);
     // top
-    _clipPlanes[2] = vtkSmartPointer<vtkPlane>::New();
-    _clipPlanes[2]->SetNormal(0, -1, 0);
-    _clipPlanes[2]->SetOrigin(0, 1, 0);
+    _cameraClipPlanes[2] = vtkSmartPointer<vtkPlane>::New();
+    _cameraClipPlanes[2]->SetNormal(0, -1, 0);
+    _cameraClipPlanes[2]->SetOrigin(0, 1, 0);
     if (_cameraMode == IMAGE)
-        _activeClipPlanes->AddItem(_clipPlanes[2]);
+        _activeClipPlanes->AddItem(_cameraClipPlanes[2]);
     // right
-    _clipPlanes[3] = vtkSmartPointer<vtkPlane>::New();
-    _clipPlanes[3]->SetNormal(-1, 0, 0);
-    _clipPlanes[3]->SetOrigin(1, 0, 0);
+    _cameraClipPlanes[3] = vtkSmartPointer<vtkPlane>::New();
+    _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
+    _cameraClipPlanes[3]->SetOrigin(1, 0, 0);
     if (_cameraMode == IMAGE)
-        _activeClipPlanes->AddItem(_clipPlanes[3]);
+        _activeClipPlanes->AddItem(_cameraClipPlanes[3]);
     _renderer = vtkSmartPointer<vtkRenderer>::New();
+    vtkSmartPointer<vtkLight> headlight = vtkSmartPointer<vtkLight>::New();
+    headlight->SetLightTypeToHeadlight();
+    headlight->PositionalOff();
+    //headlight->SetAmbientColor(1, 1, 1);
+    _renderer->SetAmbient(.2, .2, .2);
+    _renderer->AddLight(headlight);
+    vtkSmartPointer<vtkLight> skylight = vtkSmartPointer<vtkLight>::New();
+    skylight->SetLightTypeToCameraLight();
+    skylight->SetPosition(0, 1, 0);
+    skylight->SetFocalPoint(0, 0, 0);
+    skylight->PositionalOff();
+    //skylight->SetAmbientColor(1, 1, 1);
+    _renderer->AddLight(skylight);
     _renderer->LightFollowCameraOn();
-    initAxes();
-    initCamera();
-    storeCameraOrientation();
     _renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
 #ifdef USE_OFFSCREEN_RENDERING
     _renderWindow->DoubleBufferOff();
@@ -109,6 +121,10 @@ Renderer::Renderer() :
     _renderer->SetMaximumNumberOfPeels(100);
     _renderer->SetUseDepthPeeling(1);
     _renderWindow->AddRenderer(_renderer);
+    setViewAngle(_windowHeight);
+    initAxes();
+    initCamera();
+    storeCameraOrientation();
     addColorMap("default", ColorMap::getDefault());
     addColorMap("volumeDefault", ColorMap::getVolumeDefault());
 }
@@ -152,6 +168,12 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _pseudoColors.clear();
+    TRACE("Deleting Streamlines");
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+             itr != _streamlines.end(); ++itr) {
+        delete itr->second;
+    }
+    _streamlines.clear();
     TRACE("Deleting Volumes");
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
@@ -408,6 +430,42 @@ void Renderer::deletePseudoColor(const DataSetId& id)
 }
 
 /**
+ * \brief Remove the Streamlines mapping for the specified DataSet
+ *
+ * The underlying Streamlines object is deleted, freeing its memory
+ */
+void Renderer::deleteStreamlines(const DataSetId& id)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Streamlines for %s", id.c_str());
+
+    do  {
+        Streamlines *sl = itr->second;
+        if (sl->getProp())
+            _renderer->RemoveViewProp(sl->getProp());
+        delete sl;
+
+        itr = _streamlines.erase(itr);
+    } while (doAll && itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Remove the Volume for the specified DataSet
  *
  * The underlying Volume is deleted, freeing its memory
@@ -475,8 +533,9 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteHeightMap(itr->second->getName());
         deletePolyData(itr->second->getName());
         deletePseudoColor(itr->second->getName());
+        deleteStreamlines(itr->second->getName());
         deleteVolume(itr->second->getName());
-    
+ 
         TRACE("After deleting graphics objects");
 
         delete itr->second;
@@ -592,6 +651,7 @@ void Renderer::initAxes()
     if (_cubeAxesActor == NULL)
         _cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
     _cubeAxesActor->SetCamera(_renderer->GetActiveCamera());
+    _cubeAxesActor->GetProperty()->LightingOff();
     // Don't offset labels at origin
     _cubeAxesActor->SetCornerOffset(0);
     _cubeAxesActor->SetFlyModeToClosestTriad();
@@ -1826,7 +1886,7 @@ void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
         itr->second->setScaleFactor(scale);
     } while (doAll && ++itr != _glyphs.end());
 
-    _renderer->ResetCameraClippingRange();
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -2937,6 +2997,33 @@ void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
 }
 
 /**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setPseudoColorWireframe(const DataSetId& id, bool state)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn mesh lighting on/off for the specified DataSet
  */
 void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
@@ -2960,6 +3047,507 @@ void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Streamlines and associate it with the named DataSet
+ */
+void Renderer::addStreamlines(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getStreamlines(dsID)) {
+            WARN("Replacing existing Streamlines %s", dsID.c_str());
+            deleteStreamlines(dsID);
+        }
+
+        Streamlines *streamlines = new Streamlines();
+        _streamlines[dsID] = streamlines;
+
+        streamlines->setDataSet(ds);
+
+        // Use the default color map
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        ColorMap *cmap = getColorMap("default");
+        lut->DeepCopy(cmap->getLookupTable());
+#if 0
+        // Currently lookup table/scalar data range not used, colormap is used to
+        // color streamlines by vector magnitude
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            double range[2];
+            ds->getDataRange(range);
+            lut->SetRange(range);
+        }
+#endif
+        streamlines->setLookupTable(lut);
+
+        _renderer->AddViewProp(streamlines->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the Streamlines associated with a named DataSet
+ */
+Streamlines *Renderer::getStreamlines(const DataSetId& id)
+{
+    StreamlinesHashmap::iterator itr = _streamlines.find(id);
+
+    if (itr == _streamlines.end()) {
+        TRACE("Streamlines not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToRandomPoints(numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToRake(start, end, numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Streamlines rendering to polylines for the specified DataSet
+ */
+void Renderer::setStreamlinesTypeToLines(const DataSetId& id)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLineTypeToLines();
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Streamlines rendering to tubes for the specified DataSet
+ */
+void Renderer::setStreamlinesTypeToTubes(const DataSetId& id, int numSides, double radius)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLineTypeToTubes(numSides, radius);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Streamlines rendering to ribbons for the specified DataSet
+ */
+void Renderer::setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLineTypeToRibbons(width, angle);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Streamlines maximum length for the specified DataSet
+ */
+void Renderer::setStreamlinesLength(const DataSetId& id, double length)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setMaxPropagation(length);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set Streamlines opacity scaling for the specified DataSet
+ */
+void Renderer::setStreamlinesOpacity(const DataSetId& id, double opacity)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Streamlines mapper for the given DataSet
+ */
+void Renderer::setStreamlinesVisibility(const DataSetId& id, bool state)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Streamlines seed geometry for the given DataSet
+ */
+void Renderer::setStreamlinesSeedVisibility(const DataSetId& id, bool state)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedVisibility(state);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with a Streamlines for the given DataSet
+ */
+void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Streamlines color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB line/edge color for the specified DataSet
+ */
+void Renderer::setStreamlinesSeedColor(const DataSetId& id, float color[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedColor(color);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setStreamlinesEdgeVisibility(const DataSetId& id, bool state)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+
+/**
+ * \brief Set the RGB line/edge color for the specified DataSet
+ */
+void Renderer::setStreamlinesEdgeColor(const DataSetId& id, float color[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the line/edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setStreamlinesEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn Streamlines lighting on/off for the specified DataSet
+ */
+void Renderer::setStreamlinesLighting(const DataSetId& id, bool state)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _streamlines.end());
 
     _needsRedraw = true;
 }
@@ -3228,11 +3816,26 @@ void Renderer::setVolumeLighting(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+void Renderer::setViewAngle(int height)
+{
+    // Distance of eyes from screen in inches
+    double d = 20.0;
+    // Assume 72 dpi screen
+    double h = (double)height / 72.0;
+
+    double angle = vtkMath::DegreesFromRadians(2.0 * atan((h/2.0)/d));
+    _renderer->GetActiveCamera()->SetViewAngle(angle);
+
+    TRACE("Setting view angle: %g", angle);
+}
+
 /**
  * \brief Resize the render window (image size for renderings)
  */
 void Renderer::setWindowSize(int width, int height)
 {
+    setViewAngle(height);
+
     // FIXME: Fix up panning on aspect change
 #ifdef notdef
     if (_cameraPan[0] != 0.0) {
@@ -3335,7 +3938,7 @@ void Renderer::setCameraOrientation(double quat[4])
     camera->SetPosition(0, 0, 1);
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
-    camera->SetViewAngle(30);
+    setViewAngle(_windowHeight);
     double bounds[6];
     collectBounds(bounds, false);
     _renderer->ResetCamera(bounds);
@@ -3440,7 +4043,7 @@ void Renderer::resetCamera(bool resetOrientation)
         } else {
             restoreCameraOrientation();
         }
-        camera->SetViewAngle(30);
+        setViewAngle(_windowHeight);
         double bounds[6];
         collectBounds(bounds, false);
         _renderer->ResetCamera(bounds);
@@ -3609,9 +4212,12 @@ void Renderer::zoomCamera(double z, bool absolute)
         _imgWorldOrigin[1] += dy/2.0;
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
+    } else if (_cameraMode == ORTHO) {
+        camera->Zoom(z); // Change ortho parallel scale (Dolly has no effect in ortho)
+        _renderer->ResetCameraClippingRange();
+        storeCameraOrientation();
     } else {
-        camera->Zoom(z); // Change perspective FOV angle or ortho parallel scale
-        //camera->Dolly(z); // Move camera forward/back
+        camera->Dolly(z); // Move camera forward/back
         _renderer->ResetCameraClippingRange();
         storeCameraOrientation();
         //computeScreenWorldCoords();
@@ -3681,13 +4287,13 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     camera->SetParallelScale(_windowHeight * pxToWorld / 2.0);
 
     // bottom
-    _clipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
+    _cameraClipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
     // left
-    _clipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
+    _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
     // top
-    _clipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+    _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
     // right
-    _clipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+    _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
 
     _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
                                 _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1], 0, 0);
@@ -3880,6 +4486,11 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+             itr != _streamlines.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
@@ -3985,6 +4596,25 @@ void Renderer::updateRanges(bool useCumulative)
             }
         }
     }
+#if 0
+    // Currently lookup table/scalar data range not used, colormap is used to
+    // color streamlines by vector magnitude
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+         itr != _streamlines.end(); ++itr) {
+        vtkLookupTable *lut = itr->second->getLookupTable();
+        if (lut) {
+            if (useCumulative) {
+                lut->SetRange(_cumulativeDataRange);
+            } else {
+                double range[2];
+                if (itr->second->getDataSet()) {
+                    itr->second->getDataSet()->getDataRange(range);
+                    lut->SetRange(range);
+                }
+            }
+        }
+    }
+#endif
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
         ColorMap *cmap = itr->second->getColorMap();
@@ -4131,6 +4761,8 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
         setPolyDataOpacity(id, opacity);
     if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
         setPseudoColorOpacity(id, opacity);
+    if (id.compare("all") == 0 || getStreamlines(id) != NULL)
+        setStreamlinesOpacity(id, opacity);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeOpacity(id, opacity);
 }
@@ -4171,8 +4803,109 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         setPolyDataVisibility(id, state);
     if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
         setPseudoColorVisibility(id, state);
+    if (id.compare("all") == 0 || getStreamlines(id) != NULL)
+        setStreamlinesVisibility(id, state);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeVisibility(id, state);
+}
+
+/**
+ * \brief Toggle rendering of actors' bounding box
+ */
+void Renderer::showBounds(bool state)
+{
+    if (state) {
+        ; // TODO: Add bounding box actor/mapper
+    } else {
+        ; // TODO: Remove bounding box actor/mapper
+    }
+}
+
+/**
+ * \brief Set a user clipping plane
+ *
+ * TODO: Fix clip plane positions after a change in actor bounds
+ */
+void Renderer::setClipPlane(Axis axis, double ratio, int direction)
+{
+    double bounds[6];
+    collectBounds(bounds, false);
+
+    switch (axis) {
+    case X_AXIS:
+        if (direction > 0) {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[0] == NULL) {
+                    _userClipPlanes[0] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[0]->SetNormal(1, 0, 0);
+                }
+                _userClipPlanes[0]->SetOrigin(bounds[0] + (bounds[1]-bounds[0])*ratio, 0, 0);
+            } else {
+                _userClipPlanes[0] = NULL;
+            }
+        } else {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[1] == NULL) {
+                    _userClipPlanes[1] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[1]->SetNormal(-1, 0, 0);
+                }
+                _userClipPlanes[1]->SetOrigin(bounds[0] + (bounds[1]-bounds[0])*ratio, 0, 0);
+            } else {
+                _userClipPlanes[1] = NULL;
+            }
+        }
+        break;
+    case Y_AXIS:
+        if (direction > 0) {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[2] == NULL) {
+                    _userClipPlanes[2] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[2]->SetNormal(0, 1, 0);
+                }
+                _userClipPlanes[2]->SetOrigin(0, bounds[2] + (bounds[3]-bounds[2])*ratio, 0);
+            } else {
+                _userClipPlanes[2] = NULL;
+            }
+        } else {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[3] == NULL) {
+                    _userClipPlanes[3] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[3]->SetNormal(0, -1, 0);
+                }
+                _userClipPlanes[3]->SetOrigin(0, bounds[2] + (bounds[3]-bounds[2])*ratio, 0);
+            } else {
+                _userClipPlanes[3] = NULL;
+            }
+        }
+        break;
+    case Z_AXIS:
+        if (direction > 0) {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[4] == NULL) {
+                    _userClipPlanes[4] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[4]->SetNormal(0, 0, 1);
+                }
+                _userClipPlanes[4]->SetOrigin(0, 0, bounds[4] + (bounds[5]-bounds[4])*ratio);
+            } else {
+                _userClipPlanes[4] = NULL;
+            }
+        } else {
+            if (ratio > 0.0) {
+                if (_userClipPlanes[5] == NULL) {
+                    _userClipPlanes[5] = vtkSmartPointer<vtkPlane>::New();
+                    _userClipPlanes[5]->SetNormal(0, 0, -1);
+                }
+                _userClipPlanes[5]->SetOrigin(0, 0, bounds[4] + (bounds[5]-bounds[4])*ratio);
+            } else {
+                _userClipPlanes[5] = NULL;
+            }
+        }
+        break;
+    default:
+        ;
+    }
+
+    _needsRedraw = true;
 }
 
 /**
@@ -4189,11 +4922,16 @@ void Renderer::setCameraClippingPlanes()
     if (_cameraMode == IMAGE) {
         if (_activeClipPlanes->GetNumberOfItems() == 0) {
             for (int i = 0; i < 4; i++)
-                _activeClipPlanes->AddItem(_clipPlanes[i]);
+                _activeClipPlanes->AddItem(_cameraClipPlanes[i]);
         }
     } else {
         if (_activeClipPlanes->GetNumberOfItems() > 0)
             _activeClipPlanes->RemoveAllItems();
+        for (int i = 0; i < 6; i++) {
+            if (_userClipPlanes[i] != NULL) {
+                _activeClipPlanes->AddItem(_userClipPlanes[i]);
+            }
+        }
     }
 
     /* Ensure all Mappers are using the PlaneCollection
@@ -4222,6 +4960,10 @@ void Renderer::setCameraClippingPlanes()
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
          itr != _pseudoColors.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+         itr != _streamlines.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();

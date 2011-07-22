@@ -7,6 +7,7 @@
 
 #include <string>
 #include <list>
+#include <cstring>
 #include <cassert>
 #include <vtkLookupTable.h>
 #include <vtkColorTransferFunction.h>

@@ -55,6 +55,7 @@ void Glyphs::initProp()
         _prop = vtkSmartPointer<vtkActor>::New();
         _prop->GetProperty()->EdgeVisibilityOff();
         _prop->GetProperty()->SetOpacity(_opacity);
+        _prop->GetProperty()->SetAmbient(.2);
         if (!_lighting)
             _prop->GetProperty()->LightingOff();
     }
@@ -130,6 +131,9 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     }
 }
 
+/**
+ * \brief Internal method to set up pipeline after a state change
+ */
 void Glyphs::update()
 {
     if (_dataSet == NULL) {
@@ -165,6 +169,7 @@ void Glyphs::update()
     }
 
     _glyphGenerator->SetInput(ds);
+
     if (ds->GetPointData()->GetVectors() != NULL) {
 	_glyphGenerator->SetScaleModeToScaleByVector();
     } else {
@@ -172,7 +177,12 @@ void Glyphs::update()
     }
     _glyphGenerator->SetScaleFactor(_scaleFactor);
     _glyphGenerator->ScalingOn();
-    _glyphGenerator->SetColorModeToColorByScalar();
+
+    if (ds->GetPointData()->GetScalars() == NULL) {
+        _glyphGenerator->SetColorModeToColorByVector();
+    } else {
+        _glyphGenerator->SetColorModeToColorByScalar();
+     }
     if (_glyphShape == SPHERE) {
 	_glyphGenerator->OrientOff();
     }
@@ -182,7 +192,6 @@ void Glyphs::update()
         _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _pdMapper->ScalarVisibilityOn();
     }
-
     _pdMapper->SetInputConnection(_glyphGenerator->GetOutputPort());
 
     if (ds->GetPointData() == NULL ||
@@ -201,9 +210,13 @@ void Glyphs::update()
         }
     }
 
-    _lut->SetRange(dataRange);
+    if (ds->GetPointData()->GetScalars() == NULL) {
+        _pdMapper->UseLookupTableScalarRangeOff();
+    } else {
+        _lut->SetRange(dataRange);
+        _pdMapper->UseLookupTableScalarRangeOn();
+    }
 
-    _pdMapper->UseLookupTableScalarRangeOn();
     _pdMapper->SetLookupTable(_lut);
 
     initProp();
@@ -216,7 +229,8 @@ void Glyphs::setScaleFactor(double scale)
 {
     _scaleFactor = scale;
     if (_glyphGenerator != NULL) {
-	_glyphGenerator->SetScaleFactor(scale);
+        _glyphGenerator->SetScaleFactor(scale);
+        _pdMapper->Update();
     }
 }
 
@@ -240,7 +254,6 @@ void Glyphs::setLookupTable(vtkLookupTable *lut)
     }
 
     if (_pdMapper != NULL) {
-        _pdMapper->UseLookupTableScalarRangeOn();
         _pdMapper->SetLookupTable(_lut);
     }
 }

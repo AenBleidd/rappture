@@ -7,6 +7,11 @@ Requests:
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
+renderer clipplane <axis> <ratio> <direction>
+         Set a user clipping plane, ratio is [0,1] and is always interpreted as
+         0 = min_bound, 1 = max_bound, regardless of direction.  Sign of 
+         direction determines normal of clipping plane.  User clip planes do not
+         apply if camera mode is image.
 renderer depthpeel <bool>
          Set use of depth peeling algorithm for transparency
 
@@ -142,6 +147,34 @@ pseudocolor linecolor <r> <g> <b> <?datasetName?>
 pseudocolor linewidth <val> <?datasetName?>
 pseudocolor opacity <val> <?datasetName?>
 pseudocolor visible <bool> <?datasetName?>
+pseudocolor wireframe <bool> <?datasetName?>
+
+streamlines add <?datasetName?>
+streamlines colormap <colormapName> <?datasetName?>
+            Colormap used to color streamlines/tubes/ribbons by vector magnitude
+streamlines delete <?datasetName?>
+streamlines edges <bool> <?datasetName?>
+            Turn on/off edges for tubes, ribbons
+streamlines length <?datasetName?>
+            Set maximum length in world coordinates of streamlines
+streamlines lighting <bool> <?datasetName?>
+streamlines linecolor <r> <g> <b> <?datasetName?>
+            Set color of edges for tubes, ribbons (lines are colored by colormap)
+streamlines lines <?datasetName?>
+            Set rendering type to polylines
+streamlines linewidth <val> <?datasetName?>
+streamlines opacity <val> <?datasetName?>
+streamlines ribbons <width> <angle> <?datasetName?>
+            Set rendering type to ribbons, width is minimum half-width, angle is
+            degrees offset from normal orientation
+streamlines seed color <r> <g> <b> <?datasetName?>
+streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
+streamlines seed random <numPoints> <?datasetName?>
+streamlines seed visible <bool> <?datasetName?>
+streamlines tubes <numSides> <radius> <?datasetName?>
+            Set rendering type to tubes, numSides is number of sides of tubes,
+            radius is minimum tube radius
+streamlines visible <bool> <?datasetName?>
 
 volume add <?datasetName?>
 volume colormap <colorMapName> <?datasetName?>
@@ -155,7 +188,7 @@ volume visible <bool> <?datasetName?>
 ================================================================================
 Replies:
 
-nv>camera orient <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
+nv>camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
    Reply to "camera get"
 nv>image -type image -bytes <nbytes>
   <binary RGB data>

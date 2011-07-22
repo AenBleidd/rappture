@@ -66,6 +66,7 @@ void PolyData::initProp()
         _pdActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _pdActor->GetProperty()->SetLineWidth(_edgeWidth);
         _pdActor->GetProperty()->SetOpacity(_opacity);
+        _pdActor->GetProperty()->SetAmbient(.2);
         if (!_lighting)
             _pdActor->GetProperty()->LightingOff();
     }

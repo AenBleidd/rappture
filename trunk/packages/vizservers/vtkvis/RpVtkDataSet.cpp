@@ -5,6 +5,8 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cstring>
+
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
 #include <vtkPolyData.h>
