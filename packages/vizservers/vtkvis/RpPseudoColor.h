@@ -45,6 +45,8 @@ public:
 
     void setOpacity(double opacity);
 
+    void setWireframe(bool state);
+
     void setEdgeVisibility(bool state);
 
     void setEdgeColor(float color[3]);
@@ -61,9 +63,10 @@ private:
 
     DataSet * _dataSet;
 
-    double _opacity;
     float _edgeColor[3];
     float _edgeWidth;
+    double _opacity;
+    bool _lighting;
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
     vtkSmartPointer<vtkActor> _dsActor;

@@ -32,6 +32,7 @@
 #include "RpHeightMap.h"
 #include "RpPolyData.h"
 #include "RpPseudoColor.h"
+#include "RpStreamlines.h"
 #include "RpVolume.h"
 #include "Trace.h"
 
@@ -81,6 +82,7 @@ public:
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
 
     // Data sets
@@ -115,6 +117,8 @@ public:
 
     // Camera controls
 
+    void setViewAngle(int height);
+
     void setCameraMode(CameraMode mode);
 
     CameraMode getCameraMode() const;
@@ -146,6 +150,10 @@ public:
     // Rendering an image
 
     void setBackgroundColor(float color[3]);
+
+    void showBounds(bool state);
+
+    void setClipPlane(Axis axis, double ratio, int direction);
 
     void setUseDepthPeeling(bool state);
 
@@ -337,7 +345,49 @@ public:
 
     void setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth);
 
+    void setPseudoColorWireframe(const DataSetId& id, bool state);
+
     void setPseudoColorLighting(const DataSetId& id, bool state);
+
+    // Streamlines
+
+    void addStreamlines(const DataSetId& id);
+
+    void deleteStreamlines(const DataSetId& id);
+
+    Streamlines *getStreamlines(const DataSetId& id);
+
+    void setStreamlinesSeedToDataSet(const DataSetId& id, vtkDataSet *seed);
+
+    void setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints);
+
+    void setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints);
+
+    void setStreamlinesLength(const DataSetId& id, double length);
+
+    void setStreamlinesTypeToLines(const DataSetId& id);
+
+    void setStreamlinesTypeToTubes(const DataSetId& id, int numSides, double radius);
+
+    void setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle);
+
+    void setStreamlinesOpacity(const DataSetId& id, double opacity);
+
+    void setStreamlinesVisibility(const DataSetId& id, bool state);
+
+    void setStreamlinesSeedVisibility(const DataSetId& id, bool state);
+
+    void setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setStreamlinesSeedColor(const DataSetId& id, float color[3]);
+
+    void setStreamlinesEdgeVisibility(const DataSetId& id, bool state);
+
+    void setStreamlinesEdgeColor(const DataSetId& id, float color[3]);
+
+    void setStreamlinesEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setStreamlinesLighting(const DataSetId& id, bool state);
 
     // Volumes
 
@@ -415,11 +465,13 @@ private:
     HeightMapHashmap _heightMaps;
     PolyDataHashmap _polyDatas;
     PseudoColorHashmap _pseudoColors;
+    StreamlinesHashmap _streamlines;
     VolumeHashmap _volumes;
 
     CameraMode _cameraMode;
 
-    vtkSmartPointer<vtkPlane> _clipPlanes[4];
+    vtkSmartPointer<vtkPlane> _cameraClipPlanes[4];
+    vtkSmartPointer<vtkPlane> _userClipPlanes[6];
     vtkSmartPointer<vtkPlaneCollection> _activeClipPlanes;
     vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
 #ifdef USE_CUSTOM_AXES

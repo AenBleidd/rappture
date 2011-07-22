@@ -29,8 +29,9 @@ using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
     _dataSet(NULL),
+    _edgeWidth(1.0),
     _opacity(1.0),
-    _edgeWidth(1.0)
+    _lighting(true)
 {
     _edgeColor[0] = 0.0;
     _edgeColor[1] = 0.0;
@@ -191,6 +192,9 @@ void PseudoColor::initProp()
         _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
         _dsActor->GetProperty()->EdgeVisibilityOff();
+        _dsActor->GetProperty()->SetAmbient(.2);
+        if (!_lighting)
+            _dsActor->GetProperty()->LightingOff();
     }
 }
 
@@ -254,6 +258,22 @@ void PseudoColor::setOpacity(double opacity)
 }
 
 /**
+ * \brief Switch between wireframe and surface representations
+ */
+void PseudoColor::setWireframe(bool state)
+{
+    if (_dsActor != NULL) {
+        if (state) {
+            _dsActor->GetProperty()->SetRepresentationToWireframe();
+            _dsActor->GetProperty()->LightingOff();
+        } else {
+            _dsActor->GetProperty()->SetRepresentationToSurface();
+            _dsActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
+        }
+    }
+}
+
+/**
  * \brief Turn on/off rendering of mesh edges
  */
 void PseudoColor::setEdgeVisibility(bool state)
@@ -302,6 +322,7 @@ void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
  */
 void PseudoColor::setLighting(bool state)
 {
+    _lighting = state;
     if (_dsActor != NULL)
         _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
 }

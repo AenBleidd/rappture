@@ -80,6 +80,7 @@ SERVER_SRCS	= \
 		RpHeightMap.cpp \
 		RpPolyData.cpp \
 		RpPseudoColor.cpp \
+		RpStreamlines.cpp \
 		RpVolume.cpp \
 		RpVtkDataSet.cpp \
 		RpVtkRenderer.cpp\
@@ -131,9 +132,10 @@ RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
 RpGlyphs.o: RpGlyphs.h RpVtkDataSet.h ColorMap.h Trace.h
 RpHeightMap.o: RpHeightMap.h RpVtkDataSet.h Trace.h
 RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h Trace.h
+RpStreamlines.o: RpStreamlines.h RpVtkDataSet.h Trace.h
 RpVolume.o: RpVolume.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpPolyData.h RpPseudoColor.h RpContour2D.h ColorMap.h Trace.h
+RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpPolyData.h RpGlyphs.h RpHeightMap.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
 RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h ColorMap.h PPMWriter.h TGAWriter.h
 RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h

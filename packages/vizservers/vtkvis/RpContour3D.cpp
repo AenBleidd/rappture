@@ -98,6 +98,7 @@ void Contour3D::initProp()
         _contourActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_edgeWidth);
         _contourActor->GetProperty()->SetOpacity(_opacity);
+        _contourActor->GetProperty()->SetAmbient(.2);
         if (!_lighting)
             _contourActor->GetProperty()->LightingOff();
     }

@@ -238,8 +238,8 @@ CameraModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraGetOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+CameraGetOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
 {
     double pos[3];
     double focalPt[3];
@@ -248,7 +248,7 @@ CameraGetOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc,
     g_renderer->getCameraOrientationAndPosition(pos, focalPt, viewUp);
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>camera orient %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e", 
+    snprintf(buf, sizeof(buf), "nv>camera set %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e", 
              pos[0], pos[1], pos[2], focalPt[0], focalPt[1], focalPt[2], viewUp[0], viewUp[1], viewUp[2]);
     ssize_t bytesWritten;
     size_t len = strlen(buf);
@@ -265,8 +265,8 @@ CameraGetOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-CameraOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                    Tcl_Obj *const *objv)
+CameraOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
 {
     double quat[4];
 
@@ -387,9 +387,9 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    {"get", 1, CameraGetOrientationOp, 2, 2, ""},
+    {"get", 1, CameraGetOp, 2, 2, ""},
     {"mode", 1, CameraModeOp, 3, 3, "mode"},
-    {"orient", 3, CameraOrientationOp, 6, 6, "qw qx qy qz"},
+    {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
     {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
     {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
     {"reset", 2, CameraResetOp, 2, 3, "?all?"},
@@ -1940,6 +1940,23 @@ PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorWireframe(name, state);
+    } else {
+        g_renderer->setPseudoColorWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
     {"colormap",  1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
@@ -1949,7 +1966,8 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",   1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
 
@@ -2162,6 +2180,36 @@ PolyDataCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+RendererClipPlaneOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Renderer::Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = Renderer::X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = Renderer::Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = Renderer::Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad clipplane option \"", string,
+                         "\": should be axisName ratio direction", (char*)NULL);
+        return TCL_ERROR;
+    }
+    double ratio;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &ratio) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    int direction;
+    if (Tcl_GetIntFromObj(interp, objv[4], &direction) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setClipPlane(axis, ratio, direction);
+    return TCL_OK;
+}
+
+static int
 RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
@@ -2174,6 +2222,7 @@ RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec rendererOps[] = {
+    {"clipplane", 1, RendererClipPlaneOp, 5, 5, "axis ratio direction"},
     {"depthpeel", 1, RendererDepthPeelingOp, 3, 3, "bool"}
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
@@ -2236,6 +2285,354 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nScreenOps, screenOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+StreamlinesAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addStreamlines(name);
+    } else {
+        g_renderer->addStreamlines("all");
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setStreamlinesColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteStreamlines(name);
+    } else {
+        g_renderer->deleteStreamlines("all");
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                            Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesEdgeVisibility(name, state);
+    } else {
+        g_renderer->setStreamlinesEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesLengthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double length;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &length) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesLength(name, length);
+    } else {
+        g_renderer->setStreamlinesLength("all", length);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesLighting(name, state);
+    } else {
+        g_renderer->setStreamlinesLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setStreamlinesEdgeColor(name, color);
+    } else {
+        g_renderer->setStreamlinesEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesLinesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->setStreamlinesTypeToLines(name);
+    } else {
+        g_renderer->setStreamlinesTypeToLines("all");
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesEdgeWidth(name, width);
+    } else {
+        g_renderer->setStreamlinesEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesOpacity(name, opacity);
+    } else {
+        g_renderer->setStreamlinesOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesRibbonsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double width, angle;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &angle) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesTypeToRibbons(name, width, angle);
+    } else {
+        g_renderer->setStreamlinesTypeToRibbons("all", width, angle);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setStreamlinesSeedColor(name, color);
+    } else {
+        g_renderer->setStreamlinesSeedColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedRakeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double start[3], end[3];
+    int numPoints;
+    for (int i = 0; i < 3; i++) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3+i], &start[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetDoubleFromObj(interp, objv[6+i], &end[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (Tcl_GetIntFromObj(interp, objv[9], &numPoints) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 11) {
+        const char *name = Tcl_GetString(objv[10]);
+        g_renderer->setStreamlinesSeedToRake(name, start, end, numPoints);
+    } else {
+        g_renderer->setStreamlinesSeedToRake("all", start, end, numPoints);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedRandomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    int numPoints;
+    if (Tcl_GetIntFromObj(interp, objv[3], &numPoints) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesSeedToRandomPoints(name, numPoints);
+    } else {
+        g_renderer->setStreamlinesSeedToRandomPoints("all", numPoints);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesSeedVisibility(name, state);
+    } else {
+        g_renderer->setStreamlinesSeedVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec streamlinesSeedOps[] = {
+    {"color",   1, StreamlinesSeedColorOp, 6, 7, "r g b ?dataSetName?"},
+    {"rake",    3, StreamlinesSeedRakeOp, 10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
+    {"random",  3, StreamlinesSeedRandomOp, 4, 5, "numPoints ?dataSetName?"},
+    {"visible", 1, StreamlinesSeedVisibleOp, 4, 5, "bool ?dataSetName?"}
+};
+static int nStreamlinesSeedOps = NumCmdSpecs(streamlinesSeedOps);
+
+static int
+StreamlinesSeedOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nStreamlinesSeedOps, streamlinesSeedOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+StreamlinesTubesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    int numSides;
+    double radius;
+    if (Tcl_GetIntFromObj(interp, objv[2], &numSides) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &radius) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesTypeToTubes(name, numSides, radius);
+    } else {
+        g_renderer->setStreamlinesTypeToTubes("all", numSides, radius);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesVisibility(name, state);
+    } else {
+        g_renderer->setStreamlinesVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec streamlinesOps[] = {
+    {"add",       1, StreamlinesAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",  1, StreamlinesColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",    1, StreamlinesDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"length",    2, StreamlinesLengthOp, 3, 4, "length ?dataSetName?"},
+    {"lighting",  3, StreamlinesLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, StreamlinesLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"lines",     5, StreamlinesLinesOp, 2, 3, "?dataSetName?"},
+    {"linewidth", 5, StreamlinesLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",   1, StreamlinesOpacityOp, 3, 4, "val ?dataSetName?"},
+    {"ribbons",   1, StreamlinesRibbonsOp, 4, 5, "width angle ?dataSetName?"},
+    {"seed",      1, StreamlinesSeedOp, 4, 11, "op params... ?dataSetName?"},
+    {"tubes",     1, StreamlinesTubesOp, 4, 5, "numSides radius ?dataSetName?"},
+    {"visible",   1, StreamlinesVisibleOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nStreamlinesOps = NumCmdSpecs(streamlinesOps);
+
+static int
+StreamlinesCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nStreamlinesOps, streamlinesOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -2540,6 +2937,7 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
     Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
+    Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, NULL, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
     return interp;
 }
@@ -2564,6 +2962,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "pseudocolor");
     Tcl_DeleteCommand(interp, "renderer");
     Tcl_DeleteCommand(interp, "screen");
+    Tcl_DeleteCommand(interp, "streamlines");
     Tcl_DeleteCommand(interp, "volume");
 
     Tcl_DeleteInterp(interp);
