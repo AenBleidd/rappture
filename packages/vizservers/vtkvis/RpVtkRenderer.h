@@ -357,11 +357,12 @@ public:
 
     Streamlines *getStreamlines(const DataSetId& id);
 
-    void setStreamlinesSeedToDataSet(const DataSetId& id, vtkDataSet *seed);
-
     void setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints);
 
     void setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints);
+
+    void setStreamlinesSeedToPolygon(const DataSetId& id, double center[3], double normal[3],
+                                           double radius, int numSides);
 
     void setStreamlinesLength(const DataSetId& id, double length);
 

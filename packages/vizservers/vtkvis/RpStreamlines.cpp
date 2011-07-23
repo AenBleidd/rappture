@@ -13,6 +13,7 @@
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
 #include <vtkPolyLine.h>
+#include <vtkRegularPolygonSource.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
@@ -212,7 +213,7 @@ void Streamlines::update()
     seed->SetPoints(pts);
     seed->SetVerts(cells);
 
-    TRACE("Seed points: %d", seed->GetNumberOfVerts());
+    TRACE("Seed points: %d", seed->GetNumberOfPoints());
 
     _streamTracer->SetMaximumPropagation(maxBound);
     _streamTracer->SetSource(seed);
@@ -313,7 +314,7 @@ void Streamlines::setSeedToRandomPoints(int numPoints)
         seed->SetPoints(pts);
         seed->SetVerts(cells);
 
-        TRACE("Seed points: %d", seed->GetNumberOfVerts());
+        TRACE("Seed points: %d", seed->GetNumberOfPoints());
         vtkSmartPointer<vtkDataSet> oldSeed;
         if (_streamTracer->GetSource() != NULL) {
             oldSeed = _streamTracer->GetSource();
@@ -329,7 +330,7 @@ void Streamlines::setSeedToRandomPoints(int numPoints)
 }
 
 /**
- * \brief Use randomly distributed seed points
+ * \brief Use seed points along a line
  *
  * \param[in] numPoints Number of random seed points to generate
  */
@@ -349,7 +350,6 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
             dir[i] = end[i] - start[i];
         }
 
-        srand((unsigned int)time(NULL));
         polyline->GetPointIds()->SetNumberOfIds(numPoints);
         for (int i = 0; i < numPoints; i++) {
             double pt[3];
@@ -365,7 +365,7 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
         seed->SetPoints(pts);
         seed->SetLines(cells);
 
-        TRACE("Seed points: %d", seed->GetNumberOfVerts());
+        TRACE("Seed points: %d", seed->GetNumberOfPoints());
         vtkSmartPointer<vtkDataSet> oldSeed;
         if (_streamTracer->GetSource() != NULL) {
             oldSeed = _streamTracer->GetSource();
@@ -377,6 +377,41 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
         }
 
         _seedMapper->SetInput(seed);
+    }
+}
+
+/**
+ * \brief Use seed points from an n-sided polygon
+ *
+ * \param[in] numPoints Number of random seed points to generate
+ */
+void Streamlines::setSeedToPolygon(double center[3],
+                                   double normal[3],
+                                   double radius,
+                                   int numSides)
+{
+    if (_streamTracer != NULL) {
+        // Set up seed source object
+        vtkSmartPointer<vtkRegularPolygonSource> seed = vtkSmartPointer<vtkRegularPolygonSource>::New();
+
+        seed->SetCenter(center);
+        seed->SetNormal(normal);
+        seed->SetRadius(radius);
+        seed->SetNumberOfSides(numSides);
+        seed->GeneratePolygonOn();
+
+        TRACE("Seed points: %d", numSides);
+        vtkSmartPointer<vtkDataSet> oldSeed;
+        if (_streamTracer->GetSource() != NULL) {
+            oldSeed = _streamTracer->GetSource();
+        }
+
+        _streamTracer->SetSourceConnection(seed->GetOutputPort());
+        if (oldSeed != NULL) {
+            oldSeed->SetPipelineInformation(NULL);
+        }
+
+        _seedMapper->SetInputConnection(seed->GetOutputPort());
     }
 }
 
