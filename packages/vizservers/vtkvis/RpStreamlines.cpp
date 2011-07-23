@@ -47,7 +47,7 @@ Streamlines::~Streamlines()
 }
 
 /**
- * \brief Get the VTK Prop for the Glyphs
+ * \brief Get the VTK Prop for the Streamlines
  */
 vtkProp *Streamlines::getProp()
 {
@@ -332,7 +332,9 @@ void Streamlines::setSeedToRandomPoints(int numPoints)
 /**
  * \brief Use seed points along a line
  *
- * \param[in] numPoints Number of random seed points to generate
+ * \param[in] start Starting point of rake line
+ * \param[in] end End point of rake line
+ * \param[in] numPoints Number of points along line to generate
  */
 void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
 {
@@ -383,7 +385,10 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
 /**
  * \brief Use seed points from an n-sided polygon
  *
- * \param[in] numPoints Number of random seed points to generate
+ * \param[in] center Center point of polygon
+ * \param[in] normal Normal vector to orient polygon
+ * \param[in] radius Radius of circumscribing circle
+ * \param[in] numSides Number of polygon sides (and points) to generate
  */
 void Streamlines::setSeedToPolygon(double center[3],
                                    double normal[3],
