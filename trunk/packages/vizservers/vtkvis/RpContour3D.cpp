@@ -249,7 +249,7 @@ void Contour3D::update()
 }
 
 /**
- * \brief Specify number of evenly spaced contour lines to render
+ * \brief Specify number of evenly spaced isosurfaces to render
  *
  * Will override any existing contours
  */
@@ -269,7 +269,7 @@ void Contour3D::setContours(int numContours)
 }
 
 /**
- * \brief Specify number of evenly spaced contour lines to render
+ * \brief Specify number of evenly spaced isosurfaces to render
  * between the given range (including range endpoints)
  *
  * Will override any existing contours

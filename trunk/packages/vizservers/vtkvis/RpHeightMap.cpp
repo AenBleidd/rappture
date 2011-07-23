@@ -439,6 +439,9 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
     }
 }
 
+/**
+ * \brief Controls relative scaling of height of mountain plot
+ */
 void HeightMap::setHeightScale(double scale)
 {
     if (_warpScale == scale)
@@ -464,6 +467,12 @@ void HeightMap::setHeightScale(double scale)
         _contourMapper->Update();
 }
 
+/**
+ * \brief Select a 2D slice plane from a 3D DataSet
+ *
+ * \param[in] axis Axis of slice plane
+ * \param[in] ratio Position [0,1] of slice plane along axis
+ */
 void HeightMap::selectVolumeSlice(Axis axis, double ratio)
 {
     if (_dataSet->is2D()) {
@@ -718,7 +727,7 @@ const std::vector<double>&  HeightMap::getContourList() const
 }
 
 /**
- * \brief Turn on/off rendering of this colormapped dataset
+ * \brief Turn on/off rendering of this HeightMap
  */
 void HeightMap::setVisibility(bool state)
 {
@@ -731,7 +740,7 @@ void HeightMap::setVisibility(bool state)
 }
 
 /**
- * \brief Get visibility state of the colormapped dataset
+ * \brief Get visibility state of the HeightMap
  * 
  * \return Is HeightMap visible?
  */
@@ -748,7 +757,7 @@ bool HeightMap::getVisibility()
 }
 
 /**
- * \brief Set opacity used to render the colormapped dataset
+ * \brief Set opacity used to render the HeightMap
  */
 void HeightMap::setOpacity(double opacity)
 {

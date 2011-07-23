@@ -225,6 +225,9 @@ void Glyphs::update()
     _pdMapper->Update();
 }
 
+/**
+ * \brief Controls relative scaling of glyphs
+ */
 void Glyphs::setScaleFactor(double scale)
 {
     _scaleFactor = scale;

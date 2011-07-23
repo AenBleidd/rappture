@@ -24,7 +24,7 @@ namespace Rappture {
 namespace VtkVis {
 
 /**
- * \brief 3D Glyphs
+ * \brief Oriented and scaled 3D glyph shapes
  */
 class Glyphs {
 public:
@@ -56,8 +56,6 @@ public:
     void setLookupTable(vtkLookupTable *lut);
 
     vtkLookupTable *getLookupTable();
-
-    ColorMap *getColorMap();
 
     void setOpacity(double opacity);
 
