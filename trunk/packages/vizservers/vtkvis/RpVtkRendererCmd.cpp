@@ -2489,6 +2489,35 @@ StreamlinesSeedColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+StreamlinesSeedPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    double center[3], normal[3], radius;
+    int numSides;
+    for (int i = 0; i < 3; i++) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3+i], &center[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetDoubleFromObj(interp, objv[6+i], &normal[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[9], &radius) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetIntFromObj(interp, objv[10], &numSides) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 12) {
+        const char *name = Tcl_GetString(objv[11]);
+        g_renderer->setStreamlinesSeedToPolygon(name, center, normal, radius, numSides);
+    } else {
+        g_renderer->setStreamlinesSeedToPolygon("all", center, normal, radius, numSides);
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesSeedRakeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -2550,6 +2579,7 @@ StreamlinesSeedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec streamlinesSeedOps[] = {
     {"color",   1, StreamlinesSeedColorOp, 6, 7, "r g b ?dataSetName?"},
+    {"polygon", 1, StreamlinesSeedPolygonOp, 11, 12, "centerX centerY centerZ normalX normalY normalZ radius numSides ?dataSetName?"},
     {"rake",    3, StreamlinesSeedRakeOp, 10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
     {"random",  3, StreamlinesSeedRandomOp, 4, 5, "numPoints ?dataSetName?"},
     {"visible", 1, StreamlinesSeedVisibleOp, 4, 5, "bool ?dataSetName?"}

@@ -3122,6 +3122,10 @@ Streamlines *Renderer::getStreamlines(const DataSetId& id)
         return itr->second;
 }
 
+/**
+ * \brief Set the streamlines seed to points distributed randomly inside
+ * cells of DataSet
+ */
 void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints)
 {
     StreamlinesHashmap::iterator itr;
@@ -3146,6 +3150,9 @@ void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoin
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set the streamlines seed to points along a line
+ */
 void Renderer::setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints)
 {
     StreamlinesHashmap::iterator itr;
@@ -3165,6 +3172,35 @@ void Renderer::setStreamlinesSeedToRake(const DataSetId& id, double start[3], do
 
     do {
         itr->second->setSeedToRake(start, end, numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to vertices of an n-sided polygon
+ */
+void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
+                                           double center[3], double normal[3],
+                                           double radius, int numSides)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToPolygon(center, normal, radius, numSides);
     } while (doAll && ++itr != _streamlines.end());
 
     _needsRedraw = true;
@@ -3396,6 +3432,7 @@ void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& col
         vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
         lut->DeepCopy(cmap->getLookupTable());
 
+#if 0
         if (_useCumulativeRange) {
             lut->SetRange(_cumulativeDataRange);
         } else {
@@ -3405,6 +3442,7 @@ void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& col
                 lut->SetRange(range);
             }
         }
+#endif
 
         itr->second->setLookupTable(lut);
     } while (doAll && ++itr != _streamlines.end());

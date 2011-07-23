@@ -46,6 +46,9 @@ public:
 
     void setSeedToRake(double start[3], double end[3], int numPoints);
 
+    void setSeedToPolygon(double center[3], double normal[3],
+                          double radius, int numSides);
+
     void setMaxPropagation(double length);
 
     void setLineTypeToLines();

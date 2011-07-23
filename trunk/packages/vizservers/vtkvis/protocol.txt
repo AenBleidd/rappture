@@ -168,6 +168,7 @@ streamlines ribbons <width> <angle> <?datasetName?>
             Set rendering type to ribbons, width is minimum half-width, angle is
             degrees offset from normal orientation
 streamlines seed color <r> <g> <b> <?datasetName?>
+streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <numSides> <?dataSetName?>
 streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
 streamlines seed random <numPoints> <?datasetName?>
 streamlines seed visible <bool> <?datasetName?>
