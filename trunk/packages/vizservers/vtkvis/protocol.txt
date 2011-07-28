@@ -127,6 +127,34 @@ heightmap volumeslice axis ratio <?dataSetName?>
           For 3D data, select a slice along a principle axis of the volume. The
           ratio is [0,1]
 
+lic add <?datasetName?>
+lic colormap <colormapName> <?datasetName?>
+lic delete <?datasetName?>
+lic edges <bool> <?datasetName?>
+lic lighting <bool> <?datasetName?>
+lic linecolor <r> <g> <b> <?datasetName?>
+lic linewidth <val> <?datasetName?>
+lic opacity <val> <?datasetName?>
+lic visible <bool> <?datasetName?>
+lic volumeslice <axis> <ratio> <?datasetName?>
+
+molecule add <?datasetName?>
+molecule atoms <bool> <?datasetName?>
+         Toggle rendering of atoms
+molecule bonds <bool> <?datasetName?>
+         Toggle rendering of bonds
+molecule colormap <colormapName> <?datasetName?>
+molecule delete <?datasetName?>
+molecule edges <bool> <?datasetName?>
+molecule lighting <bool> <?datasetName?>
+molecule linecolor <r> <g> <b> <?datasetName?>
+molecule linewidth <val> <?datasetName?>
+molecule opacity <val> <?datasetName?>
+molecule scaleatoms <val> <?dataSetName?>
+         val = van_der_walls|covalent|atomic|none
+molecule visible <bool> <?datasetName?>
+molecule wireframe <bool> <?datasetName?>
+
 polydata add <?datasetName?>
 polydata color <r> <g> <b> <?datasetName?>
 polydata delete <?datasetName?>

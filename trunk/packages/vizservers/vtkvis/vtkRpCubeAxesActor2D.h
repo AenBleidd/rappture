@@ -40,8 +40,8 @@
 // .SECTION See Also
 // vtkActor2D vtkAxisActor2D vtkXYPlotActor vtkTextProperty
 
-#ifndef __vtkCubeAxesActor2D_h
-#define __vtkCubeAxesActor2D_h
+#ifndef __vtkRpCubeAxesActor2D_h
+#define __vtkRpCubeAxesActor2D_h
 
 #include "vtkActor2D.h"
 

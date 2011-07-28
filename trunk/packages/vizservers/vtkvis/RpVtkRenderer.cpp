@@ -127,6 +127,7 @@ Renderer::Renderer() :
     storeCameraOrientation();
     addColorMap("default", ColorMap::getDefault());
     addColorMap("volumeDefault", ColorMap::getVolumeDefault());
+    addColorMap("elementDefault", ColorMap::getElementDefault());
 }
 
 Renderer::~Renderer()
@@ -156,6 +157,18 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _heightMaps.clear();
+    TRACE("Deleting LICs");
+    for (LICHashmap::iterator itr = _lics.begin();
+             itr != _lics.end(); ++itr) {
+        delete itr->second;
+    }
+    _lics.clear();
+    TRACE("Deleting Molecules");
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+             itr != _molecules.end(); ++itr) {
+        delete itr->second;
+    }
+    _molecules.clear();
     TRACE("Deleting PolyDatas");
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
@@ -207,7 +220,7 @@ Renderer::~Renderer()
 void Renderer::addDataSet(const DataSetId& id)
 {
     if (getDataSet(id) != NULL) {
-        WARN("Replacing existing dataset %s", id.c_str());
+        WARN("Replacing existing DataSet %s", id.c_str());
         deleteDataSet(id);
     }
     _dataSets[id] = new DataSet(id);
@@ -353,6 +366,78 @@ void Renderer::deleteHeightMap(const DataSetId& id)
 
         itr = _heightMaps.erase(itr);
     } while (doAll && itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the LIC for the specified DataSet
+ *
+ * The underlying LIC is deleted, freeing its memory
+ */
+void Renderer::deleteLIC(const DataSetId& id)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting LICs for %s", id.c_str());
+
+    do {
+        LIC *lic = itr->second;
+        if (lic->getProp())
+            _renderer->RemoveViewProp(lic->getProp());
+        delete lic;
+
+        itr = _lics.erase(itr);
+    } while (doAll && itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the Molecule for the specified DataSet
+ *
+ * The underlying Molecule is deleted, freeing its memory
+ */
+void Renderer::deleteMolecule(const DataSetId& id)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Molecules for %s", id.c_str());
+
+    do {
+        Molecule *molecule = itr->second;
+        if (molecule->getProp())
+            _renderer->RemoveViewProp(molecule->getProp());
+        delete molecule;
+
+        itr = _molecules.erase(itr);
+    } while (doAll && itr != _molecules.end());
 
     _needsRedraw = true;
 }
@@ -531,6 +616,8 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteContour3D(itr->second->getName());
         deleteGlyphs(itr->second->getName());
         deleteHeightMap(itr->second->getName());
+        deleteLIC(itr->second->getName());
+        deleteMolecule(itr->second->getName());
         deletePolyData(itr->second->getName());
         deletePseudoColor(itr->second->getName());
         deleteStreamlines(itr->second->getName());
@@ -897,7 +984,7 @@ void Renderer::addColorMap(const ColorMapId& id, ColorMap *colorMap)
     if (colorMap != NULL) {
         colorMap->build();
         if (getColorMap(id) != NULL) {
-            WARN("Replacing existing colormap %s", id.c_str());
+            WARN("Replacing existing ColorMap %s", id.c_str());
             deleteColorMap(id);
         }
         _colorMaps[id] = colorMap;
@@ -1084,7 +1171,7 @@ void Renderer::addContour2D(const DataSetId& id)
         const DataSetId& dsID = ds->getName();
 
         if (getContour2D(dsID)) {
-            WARN("Replacing existing contour2d %s", dsID.c_str());
+            WARN("Replacing existing Contour2D %s", dsID.c_str());
             deleteContour2D(dsID);
         }
 
@@ -1333,7 +1420,7 @@ void Renderer::addContour3D(const DataSetId& id)
         const DataSetId& dsID = ds->getName();
 
         if (getContour3D(dsID)) {
-            WARN("Replacing existing contour3d %s", dsID.c_str());
+            WARN("Replacing existing Contour3D %s", dsID.c_str());
             deleteContour3D(dsID);
         }
 
@@ -2460,6 +2547,691 @@ void Renderer::setHeightMapLighting(const DataSetId& id, bool state)
 }
 
 /**
+ * \brief Create a new LIC and associate it with the named DataSet
+ */
+void Renderer::addLIC(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getLIC(dsID)) {
+            WARN("Replacing existing LIC %s", dsID.c_str());
+            deleteLIC(dsID);
+        }
+
+        LIC *lic = new LIC();
+        _lics[dsID] = lic;
+
+        lic->setDataSet(ds);
+
+        _renderer->AddViewProp(lic->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the LIC associated with a named DataSet
+ */
+LIC *Renderer::getLIC(const DataSetId& id)
+{
+    LICHashmap::iterator itr = _lics.find(id);
+
+    if (itr == _lics.end()) {
+        TRACE("LIC not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Set the volume slice used for mapping volumetric data
+ */
+void Renderer::setLICVolumeSlice(const DataSetId& id, LIC::Axis axis, double ratio)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->selectVolumeSlice(axis, ratio);
+     } while (doAll && ++itr != _lics.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with an LIC for the given DataSet
+ */
+void Renderer::setLICColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set LIC color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of the LIC for the given DataSet
+ */
+void Renderer::setLICOpacity(const DataSetId& id, double opacity)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the LIC for the given DataSet
+ */
+void Renderer::setLICVisibility(const DataSetId& id, bool state)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setLICEdgeVisibility(const DataSetId& id, bool state)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB polygon edge color for the specified DataSet
+ */
+void Renderer::setLICEdgeColor(const DataSetId& id, float color[3])
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setLICEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn LIC lighting on/off for the specified DataSet
+ */
+void Renderer::setLICLighting(const DataSetId& id, bool state)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _lics.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Molecule and associate it with the named DataSet
+ */
+void Renderer::addMolecule(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getMolecule(dsID)) {
+            WARN("Replacing existing Molecule %s", dsID.c_str());
+            deleteMolecule(dsID);
+        }
+
+        Molecule *molecule = new Molecule();
+        _molecules[dsID] = molecule;
+
+        molecule->setDataSet(ds);
+
+        _renderer->AddViewProp(molecule->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Get the Molecule associated with a named DataSet
+ */
+Molecule *Renderer::getMolecule(const DataSetId& id)
+{
+    MoleculeHashmap::iterator itr = _molecules.find(id);
+
+    if (itr == _molecules.end()) {
+        TRACE("Molecule not found: %s", id.c_str());
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Associate an existing named color map with a Molecule for the given DataSet
+ */
+void Renderer::setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Molecule color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        // Make a copy of the generic colormap lookup table, so 
+        // data range can be set in the copy table to match the 
+        // dataset being plotted
+        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+        lut->DeepCopy(cmap->getLookupTable());
+
+        if (_useCumulativeRange) {
+            lut->SetRange(_cumulativeDataRange);
+        } else {
+            if (itr->second->getDataSet() != NULL) {
+                double range[2];
+                itr->second->getDataSet()->getDataRange(range);
+                lut->SetRange(range);
+            }
+        }
+
+        itr->second->setLookupTable(lut);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of the Molecule for the given DataSet
+ */
+void Renderer::setMoleculeOpacity(const DataSetId& id, double opacity)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set radius standard for scaling atoms
+ */
+void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAtomScaling(scaling);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Molecule atoms for the given DataSet
+ */
+void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAtomVisibility(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Molecule bonds for the given DataSet
+ */
+void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondVisibility(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering of the Molecule for the given DataSet
+ */
+void Renderer::setMoleculeVisibility(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setMoleculeEdgeVisibility(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB polygon edge color for the specified DataSet
+ */
+void Renderer::setMoleculeEdgeColor(const DataSetId& id, float color[3])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setMoleculeEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setMoleculeWireframe(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn Molecule lighting on/off for the specified DataSet
+ */
+void Renderer::setMoleculeLighting(const DataSetId& id, bool state)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Create a new PolyData and associate it with the named DataSet
  */
 void Renderer::addPolyData(const DataSetId& id)
@@ -2483,7 +3255,7 @@ void Renderer::addPolyData(const DataSetId& id)
         const DataSetId& dsID = ds->getName();
 
         if (getPolyData(dsID)) {
-            WARN("Replacing existing polydata %s", dsID.c_str());
+            WARN("Replacing existing PolyData %s", dsID.c_str());
             deletePolyData(dsID);
         }
 
@@ -2757,7 +3529,7 @@ void Renderer::addPseudoColor(const DataSetId& id)
         const DataSetId& dsID = ds->getName();
 
         if (getPseudoColor(dsID)) {
-            WARN("Replacing existing pseudocolor %s", dsID.c_str());
+            WARN("Replacing existing PseudoColor %s", dsID.c_str());
             deletePseudoColor(dsID);
         }
         PseudoColor *pc = new PseudoColor();
@@ -3614,7 +4386,7 @@ void Renderer::addVolume(const DataSetId& id)
         const DataSetId& dsID = ds->getName();
 
         if (getVolume(dsID)) {
-            WARN("Replacing existing volume %s", dsID.c_str());
+            WARN("Replacing existing Volume %s", dsID.c_str());
             deleteVolume(dsID);
         }
 
@@ -3854,11 +4626,17 @@ void Renderer::setVolumeLighting(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set camera FOV based on render window height
+ * 
+ * Computes a field-of-view angle based on some assumptions about
+ * viewer's distance to screen and pixel density
+ */
 void Renderer::setViewAngle(int height)
 {
     // Distance of eyes from screen in inches
     double d = 20.0;
-    // Assume 72 dpi screen
+    // Assume 72 ppi screen
     double h = (double)height / 72.0;
 
     double angle = vtkMath::DegreesFromRadians(2.0 * atan((h/2.0)/d));
@@ -4219,7 +4997,7 @@ void Renderer::panCamera(double x, double y, bool absolute)
 }
 
 /**
- * \brief Change the FOV of the camera
+ * \brief Dolly camera or set orthographic scaling based on camera type
  *
  * \param[in] z Ratio to change zoom (greater than 1 is zoom in, less than 1 is zoom out)
  * \param[in] absolute Control if zoom factor is relative to current setting or absolute
@@ -4514,6 +5292,16 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (LICHashmap::iterator itr = _lics.begin();
+             itr != _lics.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+             itr != _molecules.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility())
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility())
@@ -4616,6 +5404,21 @@ void Renderer::updateRanges(bool useCumulative)
                 itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
             } else {
                 itr->second->setContours(itr->second->getNumContours());
+            }
+        }
+    }
+    for (LICHashmap::iterator itr = _lics.begin();
+         itr != _lics.end(); ++itr) {
+        vtkLookupTable *lut = itr->second->getLookupTable();
+        if (lut) {
+            if (useCumulative) {
+                lut->SetRange(_cumulativeDataRange);
+            } else {
+                double range[2];
+                if (itr->second->getDataSet()) {
+                    itr->second->getDataSet()->getDataRange(range);
+                    lut->SetRange(range);
+                }
             }
         }
     }
@@ -4795,6 +5598,10 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
         setGlyphsOpacity(id, opacity);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
         setHeightMapOpacity(id, opacity);
+    if (id.compare("all") == 0 || getLIC(id) != NULL)
+        setLICOpacity(id, opacity);
+    if (id.compare("all") == 0 || getMolecule(id) != NULL)
+        setMoleculeOpacity(id, opacity);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataOpacity(id, opacity);
     if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
@@ -4837,6 +5644,10 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         setGlyphsVisibility(id, state);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
         setHeightMapVisibility(id, state);
+    if (id.compare("all") == 0 || getLIC(id) != NULL)
+        setLICVisibility(id, state);
+    if (id.compare("all") == 0 || getMolecule(id) != NULL)
+        setMoleculeVisibility(id, state);
     if (id.compare("all") == 0 || getPolyData(id) != NULL)
         setPolyDataVisibility(id, state);
     if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
@@ -4990,6 +5801,14 @@ void Renderer::setCameraClippingPlanes()
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
          itr != _heightMaps.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (LICHashmap::iterator itr = _lics.begin();
+         itr != _lics.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+         itr != _molecules.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();

@@ -14,8 +14,6 @@
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
 
-#include <vector>
-
 #include "RpVtkDataSet.h"
 
 namespace Rappture {

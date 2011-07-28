@@ -12,8 +12,6 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 
-#include <vector>
-
 #include "RpVtkDataSet.h"
 
 namespace Rappture {

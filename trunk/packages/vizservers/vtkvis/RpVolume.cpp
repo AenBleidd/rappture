@@ -45,7 +45,7 @@ Volume::~Volume()
 /**
  * \brief Specify input DataSet with scalars
  *
- * Currently the DataSet must be image data (2D uniform grid),
+ * Currently the DataSet must be image data (3D uniform grid),
  * or an UnstructuredGrid
  */
 void Volume::setDataSet(DataSet *dataSet)
@@ -65,7 +65,7 @@ DataSet *Volume::getDataSet()
 }
 
 /**
- * \brief Internal method to set up volume mapper after a state change
+ * \brief Internal method to set up pipeline after a state change
  */
 void Volume::update()
 {
