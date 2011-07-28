@@ -78,6 +78,8 @@ SERVER_SRCS	= \
 		RpContour3D.cpp \
 		RpGlyphs.cpp \
 		RpHeightMap.cpp \
+		RpLIC.cpp \
+		RpMolecule.cpp \
 		RpPolyData.cpp \
 		RpPseudoColor.cpp \
 		RpStreamlines.cpp \
@@ -124,20 +126,22 @@ distclean: clean clean-docs
 	$(RM) Makefile Doxyfile
 
 CmdProc.o: CmdProc.h
-ColorMap.o: ColorMap.h Trace.h
+ColorMap.o: ColorMap.h RpMolecule.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkDataSet.h Trace.h
 RpContour3D.o: RpContour3D.h RpVtkDataSet.h Trace.h
-RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
 RpGlyphs.o: RpGlyphs.h RpVtkDataSet.h ColorMap.h Trace.h
 RpHeightMap.o: RpHeightMap.h RpVtkDataSet.h Trace.h
+RpLIC.o: RpLIC.h RpVtkDataSet.h Trace.h RpVtkRenderServer.h
+RpMolecule.o: RpMolecule.h RpMoleculeData.h RpVtkDataSet.h ColorMap.h Trace.h
+RpPolyData.o: RpPolyData.h RpVtkDataSet.h Trace.h
 RpPseudoColor.o: RpPseudoColor.h RpVtkDataSet.h Trace.h
 RpStreamlines.o: RpStreamlines.h RpVtkDataSet.h Trace.h
 RpVolume.o: RpVolume.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpPolyData.h RpGlyphs.h RpHeightMap.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h CmdProc.h ColorMap.h PPMWriter.h TGAWriter.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRenderer.h RpVtkDataSet.h RpPseudoColor.h RpContour2D.h Trace.h PPMWriter.h TGAWriter.h
+RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h Trace.h
 vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h

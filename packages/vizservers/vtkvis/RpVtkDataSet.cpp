@@ -74,6 +74,7 @@ bool DataSet::setDataFile(const char *filename)
     reader->SetFileName(filename);
     reader->ReadAllScalarsOn();
     reader->ReadAllVectorsOn();
+    reader->ReadAllFieldsOn();
     return setData(reader);
 }
 
@@ -97,6 +98,7 @@ bool DataSet::setData(char *data, int nbytes)
     reader->ReadFromInputStringOn();
     reader->ReadAllScalarsOn();
     reader->ReadAllVectorsOn();
+    reader->ReadAllFieldsOn();
 
     bool status = setData(reader);
 

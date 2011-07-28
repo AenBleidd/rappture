@@ -70,7 +70,7 @@ DataSet *PseudoColor::getDataSet()
 }
 
 /**
- * \brief Internal method to set up color mapper after a state change
+ * \brief Internal method to set up pipeline after a state change
  */
 void PseudoColor::update()
 {

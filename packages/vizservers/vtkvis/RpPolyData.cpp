@@ -94,7 +94,7 @@ DataSet *PolyData::getDataSet()
 }
 
 /**
- * \brief Internal method to re-compute contours after a state change
+ * \brief Internal method to set up pipeline after a state change
  */
 void PolyData::update()
 {

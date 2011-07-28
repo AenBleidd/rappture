@@ -1797,48 +1797,48 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-               Tcl_Obj *const *objv)
+LICAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+         Tcl_Obj *const *objv)
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addPseudoColor(name);
+        g_renderer->addLIC(name);
     } else {
-        g_renderer->addPseudoColor("all");
+        g_renderer->addLIC("all");
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                      Tcl_Obj *const *objv)
+LICColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
 {
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
+        g_renderer->setLICColorMap(dataSetName, colorMapName);
     } else {
-        g_renderer->setPseudoColorColorMap("all", colorMapName);
+        g_renderer->setLICColorMap("all", colorMapName);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                  Tcl_Obj *const *objv)
+LICDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deletePseudoColor(name);
+        g_renderer->deleteLIC(name);
     } else {
-        g_renderer->deletePseudoColor("all");
+        g_renderer->deleteLIC("all");
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                            Tcl_Obj *const *objv)
+LICEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
 {
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
@@ -1846,16 +1846,16 @@ PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorEdgeVisibility(name, state);
+        g_renderer->setLICEdgeVisibility(name, state);
     } else {
-        g_renderer->setPseudoColorEdgeVisibility("all", state);
+        g_renderer->setLICEdgeVisibility("all", state);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                      Tcl_Obj *const *objv)
+LICLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
 {
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
@@ -1863,16 +1863,16 @@ PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorLighting(name, state);
+        g_renderer->setLICLighting(name, state);
     } else {
-        g_renderer->setPseudoColorLighting("all", state);
+        g_renderer->setLICLighting("all", state);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+LICLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
 {
     float color[3];
     if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
@@ -1882,16 +1882,16 @@ PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPseudoColorEdgeColor(name, color);
+        g_renderer->setLICEdgeColor(name, color);
     } else {
-        g_renderer->setPseudoColorEdgeColor("all", color);
+        g_renderer->setLICEdgeColor("all", color);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+LICLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
 {
     float width;
     if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
@@ -1899,16 +1899,16 @@ PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorEdgeWidth(name, width);
+        g_renderer->setLICEdgeWidth(name, width);
     } else {
-        g_renderer->setPseudoColorEdgeWidth("all", width);
+        g_renderer->setLICEdgeWidth("all", width);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                     Tcl_Obj *const *objv)
+LICOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
 {
     double opacity;
     if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
@@ -1916,16 +1916,16 @@ PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorOpacity(name, opacity);
+        g_renderer->setLICOpacity(name, opacity);
     } else {
-        g_renderer->setPseudoColorOpacity("all", opacity);
+        g_renderer->setLICOpacity("all", opacity);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                     Tcl_Obj *const *objv)
+LICVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
 {
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
@@ -1933,51 +1933,319 @@ PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorVisibility(name, state);
+        g_renderer->setLICVisibility(name, state);
     } else {
-        g_renderer->setPseudoColorVisibility("all", state);
+        g_renderer->setLICVisibility("all", state);
     }
     return TCL_OK;
 }
 
 static int
-PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+LICVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
 {
-    bool state;
-    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+    double ratio;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &ratio) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorWireframe(name, state);
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    LIC::Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = LIC::X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = LIC::Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = LIC::Z_AXIS;
     } else {
-        g_renderer->setPseudoColorWireframe("all", state);
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName ratio", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setLICVolumeSlice(name, axis, ratio);
+    } else {
+        g_renderer->setLICVolumeSlice("all", axis, ratio);
     }
     return TCL_OK;
 }
 
-static Rappture::CmdSpec pseudoColorOps[] = {
-    {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
-    {"colormap",  1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
+static Rappture::CmdSpec licOps[] = {
+    {"add",         1, LICAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",    1, LICColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",      1, LICDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",       1, LICEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",    3, LICLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",   5, LICLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",   5, LICLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",     1, LICOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",     2, LICVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"volumeslice", 2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
 };
-static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
+static int nLICOps = NumCmdSpecs(licOps);
 
 static int
-PseudoColorCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-               Tcl_Obj *const *objv)
+LICCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nPseudoColorOps, pseudoColorOps,
+    proc = Rappture::GetOpFromObj(interp, nLICOps, licOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+MoleculeAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addMolecule(name);
+    } else {
+        g_renderer->addMolecule("all");
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeAtomVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeAtomVisibility(name, state);
+    } else {
+        g_renderer->setMoleculeAtomVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeAtomScalingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    Molecule::AtomScaling scaling;
+    const char *scalingOpt = Tcl_GetString(objv[2]);
+    if (scalingOpt[0] == 'v' && strcmp(scalingOpt, "van_der_waals") == 0) {
+        scaling = Molecule::VAN_DER_WAALS_RADIUS;
+    } else if (scalingOpt[0] == 'c' && strcmp(scalingOpt, "covalent") == 0) {
+        scaling = Molecule::COVALENT_RADIUS;
+    } else if (scalingOpt[0] == 'a' && strcmp(scalingOpt, "atomic") == 0) {
+        scaling = Molecule::ATOMIC_RADIUS;
+    } else if (scalingOpt[0] == 'n' && strcmp(scalingOpt, "none") == 0) {
+        scaling = Molecule::NO_ATOM_SCALING;
+    } else {
+        Tcl_AppendResult(interp, "bad atomscale option \"", scalingOpt,
+                         "\": should be van_der_waals, covalent, atomic, or none", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeAtomScaling(name, scaling);
+    } else {
+        g_renderer->setMoleculeAtomScaling("all", scaling);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeBondVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeBondVisibility(name, state);
+    } else {
+        g_renderer->setMoleculeBondVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setMoleculeColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteMolecule(name);
+    } else {
+        g_renderer->deleteMolecule("all");
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeEdgeVisibility(name, state);
+    } else {
+        g_renderer->setMoleculeEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeLighting(name, state);
+    } else {
+        g_renderer->setMoleculeLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setMoleculeEdgeColor(name, color);
+    } else {
+        g_renderer->setMoleculeEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeEdgeWidth(name, width);
+    } else {
+        g_renderer->setMoleculeEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeOpacity(name, opacity);
+    } else {
+        g_renderer->setMoleculeOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeVisibility(name, state);
+    } else {
+        g_renderer->setMoleculeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeWireframe(name, state);
+    } else {
+        g_renderer->setMoleculeWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec moleculeOps[] = {
+    {"add",        2, MoleculeAddOp, 2, 3, "?dataSetName?"},
+    {"atoms",      2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"colormap",   1, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",     1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",      1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",   3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",  5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",  5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",    1, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"scaleatoms", 1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
+    {"visible",    1, MoleculeVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",  1, MoleculeWireframeOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nMoleculeOps = NumCmdSpecs(moleculeOps);
+
+static int
+MoleculeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nMoleculeOps, moleculeOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -2172,6 +2440,195 @@ PolyDataCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nPolyDataOps, polyDataOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->addPseudoColor(name);
+    } else {
+        g_renderer->addPseudoColor("all");
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setPseudoColorColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deletePseudoColor(name);
+    } else {
+        g_renderer->deletePseudoColor("all");
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                            Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorEdgeVisibility(name, state);
+    } else {
+        g_renderer->setPseudoColorEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorLighting(name, state);
+    } else {
+        g_renderer->setPseudoColorLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPseudoColorEdgeColor(name, color);
+    } else {
+        g_renderer->setPseudoColorEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorEdgeWidth(name, width);
+    } else {
+        g_renderer->setPseudoColorEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorOpacity(name, opacity);
+    } else {
+        g_renderer->setPseudoColorOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorVisibility(name, state);
+    } else {
+        g_renderer->setPseudoColorVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorWireframe(name, state);
+    } else {
+        g_renderer->setPseudoColorWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec pseudoColorOps[] = {
+    {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",  1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",   1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nPseudoColorOps = NumCmdSpecs(pseudoColorOps);
+
+static int
+PseudoColorCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nPseudoColorOps, pseudoColorOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -2963,6 +3420,8 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
+    Tcl_CreateObjCommand(interp, "lic",         LICCmd,         NULL, NULL);
+    Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
     Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    NULL, NULL);
@@ -2988,6 +3447,8 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "heightmap");
     Tcl_DeleteCommand(interp, "legend");
+    Tcl_DeleteCommand(interp, "lic");
+    Tcl_DeleteCommand(interp, "molecule");
     Tcl_DeleteCommand(interp, "polydata");
     Tcl_DeleteCommand(interp, "pseudocolor");
     Tcl_DeleteCommand(interp, "renderer");

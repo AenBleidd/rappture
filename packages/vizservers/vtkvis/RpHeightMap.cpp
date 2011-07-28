@@ -114,7 +114,7 @@ DataSet *HeightMap::getDataSet()
 }
 
 /**
- * \brief Internal method to set up color mapper after a state change
+ * \brief Internal method to set up pipeline after a state change
  */
 void HeightMap::update()
 {
@@ -481,7 +481,7 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
     }
 
     if (_volumeSlicer == NULL &&
-         _probeFilter == NULL) {
+        _probeFilter == NULL) {
         WARN("Called before update() or DataSet is not a volume");
         return;
     }
@@ -588,7 +588,7 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
             return;
         }
 
-        _volumeSlicer->SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
+        _volumeSlicer->SetVOI(voi);
     }
 
     if (_dsMapper != NULL)

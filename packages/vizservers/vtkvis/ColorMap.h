@@ -104,10 +104,12 @@ public:
 
     static ColorMap *getDefault();
     static ColorMap *getVolumeDefault();
+    static ColorMap *getElementDefault();
 
 private:
     static ColorMap *_default;
     static ColorMap *_volumeDefault;
+    static ColorMap *_elementDefault;
 
     ColorMap();
 

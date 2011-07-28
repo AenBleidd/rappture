@@ -30,6 +30,8 @@
 #include "RpContour3D.h"
 #include "RpGlyphs.h"
 #include "RpHeightMap.h"
+#include "RpLIC.h"
+#include "RpMolecule.h"
 #include "RpPolyData.h"
 #include "RpPseudoColor.h"
 #include "RpStreamlines.h"
@@ -80,6 +82,8 @@ public:
     typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
+    typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
@@ -108,6 +112,11 @@ public:
     void setUseCumulativeDataRange(bool state, bool onlyVisible = false);
 
     // Render window
+
+    vtkRenderWindow *getRenderWindow()
+    {
+        return _renderWindow;
+    }
 
     void setWindowSize(int width, int height);
 
@@ -301,7 +310,61 @@ public:
 
     void setHeightMapLighting(const DataSetId& id, bool state);
 
-    // Meshes
+    // LIC plots
+
+    void addLIC(const DataSetId& id);
+    
+    void deleteLIC(const DataSetId& id);
+
+    LIC *getLIC(const DataSetId& id);
+
+    void setLICVolumeSlice(const DataSetId& id, LIC::Axis axis, double ratio);
+
+    void setLICColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setLICOpacity(const DataSetId& id, double opacity);
+
+    void setLICVisibility(const DataSetId& id, bool state);
+
+    void setLICEdgeVisibility(const DataSetId& id, bool state);
+
+    void setLICEdgeColor(const DataSetId& id, float color[3]);
+
+    void setLICEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setLICLighting(const DataSetId& id, bool state);
+
+    // Molecules
+
+    void addMolecule(const DataSetId& id);
+    
+    void deleteMolecule(const DataSetId& id);
+
+    Molecule *getMolecule(const DataSetId& id);
+
+    void setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setMoleculeOpacity(const DataSetId& id, double opacity);
+
+    void setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling);
+
+    void setMoleculeAtomVisibility(const DataSetId& id, bool state);
+
+    void setMoleculeBondVisibility(const DataSetId& id, bool state);
+
+    void setMoleculeVisibility(const DataSetId& id, bool state);
+
+    void setMoleculeEdgeVisibility(const DataSetId& id, bool state);
+
+    void setMoleculeEdgeColor(const DataSetId& id, float color[3]);
+
+    void setMoleculeEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setMoleculeWireframe(const DataSetId& id, bool state);
+
+    void setMoleculeLighting(const DataSetId& id, bool state);
+
+    // PolyData Meshes
 
     void addPolyData(const DataSetId& id);
     
@@ -464,6 +527,8 @@ private:
     Contour3DHashmap _contour3Ds;
     GlyphsHashmap _glyphs;
     HeightMapHashmap _heightMaps;
+    LICHashmap _lics;
+    MoleculeHashmap _molecules;
     PolyDataHashmap _polyDatas;
     PseudoColorHashmap _pseudoColors;
     StreamlinesHashmap _streamlines;

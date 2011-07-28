@@ -14,12 +14,14 @@
 #include <vtkPiecewiseFunction.h>
 
 #include "ColorMap.h"
+#include "RpMolecule.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
 
 ColorMap *ColorMap::_default = NULL;
 ColorMap *ColorMap::_volumeDefault = NULL;
+ColorMap *ColorMap::_elementDefault = NULL;
 
 ColorMap::ColorMap(const std::string& name) :
     _name(name),
@@ -277,7 +279,7 @@ void ColorMap::clear()
 /**
  * \brief Create a default ColorMap with a blue-cyan-green-yellow-red ramp
  */
-ColorMap * ColorMap::getDefault()
+ColorMap *ColorMap::getDefault()
 {
     if (_default != NULL) {
         return _default;
@@ -323,7 +325,7 @@ ColorMap * ColorMap::getDefault()
  * \brief Create a default ColorMap with a blue-cyan-green-yellow-red ramp
  * and transparent to opaque ramp
  */
-ColorMap * ColorMap::getVolumeDefault()
+ColorMap *ColorMap::getVolumeDefault()
 {
     if (_volumeDefault != NULL) {
         return _volumeDefault;
@@ -363,4 +365,18 @@ ColorMap * ColorMap::getVolumeDefault()
     _volumeDefault->addOpacityControlPoint(ocp[1]);
     _volumeDefault->build();
     return _volumeDefault;
+}
+
+/**
+ * \brief Create a default ColorMap for coloring by atomic
+ * number in Molecules
+ */
+ColorMap *ColorMap::getElementDefault()
+{
+    if (_elementDefault != NULL) {
+        return _elementDefault;
+    }
+
+    _elementDefault = Molecule::createElementColorMap();
+    return _elementDefault;
 }
