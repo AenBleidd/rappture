@@ -535,6 +535,7 @@ AC_CONFIG_FILES([
     examples/zoo/enable/Makefile
     examples/zoo/field/Makefile
     examples/zoo/group/Makefile
+    examples/zoo/histogram/Makefile
     examples/zoo/image/Makefile
     examples/zoo/image/docs/Makefile
     examples/zoo/image/examples/Makefile
