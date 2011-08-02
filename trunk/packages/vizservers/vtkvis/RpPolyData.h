@@ -12,6 +12,7 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 
+#include "RpVtkGraphicsObject.h"
 #include "RpVtkDataSet.h"
 
 namespace Rappture {
@@ -19,51 +20,26 @@ namespace VtkVis {
 
 /**
  * \brief VTK Mesh (Polygon data)
+ *
+ * The DataSet must be a PolyData object
  */
-class PolyData {
+class PolyData : public VtkGraphicsObject {
 public:
     PolyData();
     virtual ~PolyData();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "PolyData";
+    }
 
-    DataSet *getDataSet();
-
-    vtkProp *getProp();
-
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setOpacity(double opacity);
-
-    void setWireframe(bool state);
-
-    void setColor(float color[3]);
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
 private:
-    void initProp();
-    void update();
+    virtual void initProp();
+    virtual void update();
 
-    DataSet *_dataSet;
-
-    float _color[3];
-    float _edgeColor[3];
-    float _edgeWidth;
-    double _opacity;
-    bool _lighting;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
-    vtkSmartPointer<vtkActor> _pdActor;
 };
 
 }

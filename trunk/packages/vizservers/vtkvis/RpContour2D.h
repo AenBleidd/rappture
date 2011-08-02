@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -24,16 +24,19 @@ namespace VtkVis {
 /**
  * \brief 2D Contour lines (isolines)
  */
-class Contour2D {
+class Contour2D : public VtkGraphicsObject {
 public:
     Contour2D();
     virtual ~Contour2D();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "Contour2D";
+    }
 
-    DataSet *getDataSet();
+    virtual void setDataSet(DataSet *dataset);
 
-    vtkProp *getProp();
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setContours(int numContours);
 
@@ -45,36 +48,16 @@ public:
 
     const std::vector<double>& getContourList() const;
 
-    void setVisibility(bool state);
-
-    bool getVisibility() const;
-
-    void setOpacity(double opacity);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
-
-    DataSet *_dataSet;
+    virtual void initProp();
+    virtual void update();
 
     int _numContours;
     std::vector<double> _contours;
     double _dataRange[2];
 
-    float _edgeColor[3];
-    float _edgeWidth;
-    double _opacity;
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
-    vtkSmartPointer<vtkActor> _contourActor;
 };
 
 }

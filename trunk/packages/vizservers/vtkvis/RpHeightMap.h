@@ -19,12 +19,12 @@
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkWarpScalar.h>
-#include <vtkPropAssembly.h>
+#include <vtkAssembly.h>
 #include <vtkPolyData.h>
 
 #include <vector>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -32,7 +32,7 @@ namespace VtkVis {
 /**
  * \brief Color-mapped plot of data set
  */
-class HeightMap {
+class HeightMap : public VtkGraphicsObject {
 public:
     enum Axis {
         X_AXIS,
@@ -43,11 +43,22 @@ public:
     HeightMap();
     virtual ~HeightMap();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "HeightMap";
+    }
 
-    DataSet *getDataSet();
+    virtual void setDataSet(DataSet *dataset);
 
-    vtkProp *getProp();
+    virtual void setLighting(bool state);
+
+    virtual void setEdgeVisibility(bool state);
+
+    virtual void setEdgeColor(float color[3]);
+
+    virtual void setEdgeWidth(float edgeWidth);
+
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void selectVolumeSlice(Axis axis, double ratio);
 
@@ -67,35 +78,18 @@ public:
 
     vtkLookupTable *getLookupTable();
 
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setOpacity(double opacity);
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
     void setContourVisibility(bool state);
 
     void setContourEdgeColor(float color[3]);
 
     void setContourEdgeWidth(float edgeWidth);
 
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
+    virtual void initProp();
+    virtual void update();
+
     vtkAlgorithmOutput *initWarp(vtkAlgorithmOutput *input);
     vtkAlgorithmOutput *initWarp(vtkPolyData *input);
-    void initProp();
-    void update();
-
-    DataSet * _dataSet;
 
     int _numContours;
     std::vector<double> _contours;
@@ -105,7 +99,6 @@ private:
     float _contourEdgeColor[3];
     float _edgeWidth;
     float _contourEdgeWidth;
-    double _opacity;
     double _warpScale;
     double _dataScale;
     Axis _sliceAxis;
@@ -121,7 +114,6 @@ private:
     vtkSmartPointer<vtkWarpScalar> _warp;
     vtkSmartPointer<vtkActor> _dsActor;
     vtkSmartPointer<vtkActor> _contourActor;
-    vtkSmartPointer<vtkPropAssembly> _props;
 };
 
 }

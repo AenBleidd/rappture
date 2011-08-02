@@ -28,14 +28,8 @@
 using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
-    _dataSet(NULL),
-    _edgeWidth(1.0),
-    _opacity(1.0),
-    _lighting(true)
+    VtkGraphicsObject()
 {
-    _edgeColor[0] = 0.0;
-    _edgeColor[1] = 0.0;
-    _edgeColor[2] = 0.0;
 }
 
 PseudoColor::~PseudoColor()
@@ -49,24 +43,21 @@ PseudoColor::~PseudoColor()
 }
 
 /**
- * \brief Specify input DataSet with scalars to colormap
- *
- * Currently the DataSet must be image data (2D uniform grid)
+ * \brief Create and initialize a VTK Prop to render the colormapped dataset
  */
-void PseudoColor::setDataSet(DataSet *dataSet)
+void PseudoColor::initProp()
 {
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkActor>::New();
+        vtkProperty *property = getActor()->GetProperty();
+        property->SetOpacity(_opacity);
+        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        property->SetLineWidth(_edgeWidth);
+        property->EdgeVisibilityOff();
+        property->SetAmbient(.2);
+        if (!_lighting)
+            property->LightingOff();
     }
-}
-
-/**
- * \brief Returns the DataSet this PseudoColor renders
- */
-DataSet *PseudoColor::getDataSet()
-{
-    return _dataSet;
 }
 
 /**
@@ -169,33 +160,8 @@ void PseudoColor::update()
     //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
     initProp();
-    _dsActor->SetMapper(_dsMapper);
+    getActor()->SetMapper(_dsMapper);
     _dsMapper->Update();
-}
-
-/**
- * \brief Get the VTK Prop for the colormapped dataset
- */
-vtkProp *PseudoColor::getProp()
-{
-    return _dsActor;
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render the colormapped dataset
- */
-void PseudoColor::initProp()
-{
-    if (_dsActor == NULL) {
-        _dsActor = vtkSmartPointer<vtkActor>::New();
-        _dsActor->GetProperty()->SetOpacity(_opacity);
-        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
-        _dsActor->GetProperty()->EdgeVisibilityOff();
-        _dsActor->GetProperty()->SetAmbient(.2);
-        if (!_lighting)
-            _dsActor->GetProperty()->LightingOff();
-    }
 }
 
 /**
@@ -224,88 +190,6 @@ void PseudoColor::setLookupTable(vtkLookupTable *lut)
 }
 
 /**
- * \brief Turn on/off rendering of this colormapped dataset
- */
-void PseudoColor::setVisibility(bool state)
-{
-    if (_dsActor != NULL) {
-        _dsActor->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the colormapped dataset
- * 
- * \return Is PseudoColor visible?
- */
-bool PseudoColor::getVisibility()
-{
-    if (_dsActor == NULL) {
-        return false;
-    } else {
-        return (_dsActor->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render the colormapped dataset
- */
-void PseudoColor::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_dsActor != NULL)
-        _dsActor->GetProperty()->SetOpacity(opacity);
-}
-
-/**
- * \brief Switch between wireframe and surface representations
- */
-void PseudoColor::setWireframe(bool state)
-{
-    if (_dsActor != NULL) {
-        if (state) {
-            _dsActor->GetProperty()->SetRepresentationToWireframe();
-            _dsActor->GetProperty()->LightingOff();
-        } else {
-            _dsActor->GetProperty()->SetRepresentationToSurface();
-            _dsActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
-        }
-    }
-}
-
-/**
- * \brief Turn on/off rendering of mesh edges
- */
-void PseudoColor::setEdgeVisibility(bool state)
-{
-    if (_dsActor != NULL) {
-        _dsActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Set RGB color of polygon edges
- */
-void PseudoColor::setEdgeColor(float color[3])
-{
-    _edgeColor[0] = color[0];
-    _edgeColor[1] = color[1];
-    _edgeColor[2] = color[2];
-    if (_dsActor != NULL)
-        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-}
-
-/**
- * \brief Set pixel width of polygon edges (may be a no-op)
- */
-void PseudoColor::setEdgeWidth(float edgeWidth)
-{
-    _edgeWidth = edgeWidth;
-    if (_dsActor != NULL)
-        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
-}
-
-/**
  * \brief Set a group of world coordinate planes to clip rendering
  *
  * Passing NULL for planes will remove all cliping planes
@@ -315,14 +199,4 @@ void PseudoColor::setClippingPlanes(vtkPlaneCollection *planes)
     if (_dsMapper != NULL) {
         _dsMapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void PseudoColor::setLighting(bool state)
-{
-    _lighting = state;
-    if (_dsActor != NULL)
-        _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
 }

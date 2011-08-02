@@ -25,62 +25,28 @@
 using namespace Rappture::VtkVis;
 
 LIC::LIC() :
-    _dataSet(NULL),
-    _edgeWidth(1.0f),
-    _opacity(1.0),
-    _lighting(false),
+    VtkGraphicsObject(),
     _sliceAxis(Z_AXIS)
 {
-    _edgeColor[0] = 0.0f;
-    _edgeColor[1] = 0.0f;
-    _edgeColor[2] = 0.0f;
 }
 
 LIC::~LIC()
 {
 }
 
-/**
- * \brief Get the VTK Prop for the LIC
- */
-vtkProp *LIC::getProp()
-{
-    return _prop;
-}
-
 void LIC::initProp()
 {
     if (_prop == NULL) {
         _prop = vtkSmartPointer<vtkActor>::New();
-        _prop->GetProperty()->SetOpacity(_opacity);
-        _prop->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        _prop->GetProperty()->SetLineWidth(_edgeWidth);
-        _prop->GetProperty()->EdgeVisibilityOff();
-        _prop->GetProperty()->SetAmbient(.2);
+        vtkProperty *property = getActor()->GetProperty();
+        property->SetOpacity(_opacity);
+        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        property->SetLineWidth(_edgeWidth);
+        property->EdgeVisibilityOff();
+        property->SetAmbient(.2);
         if (!_lighting)
-            _prop->GetProperty()->LightingOff();
+            property->LightingOff();
     }
-}
-
-/**
- * \brief Specify input DataSet
- *
- * The DataSet must contain vectors
- */
-void LIC::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
-    }
-}
-
-/**
- * \brief Returns the DataSet this LIC renders
- */
-DataSet *LIC::getDataSet()
-{
-    return _dataSet;
 }
 
 void LIC::update()
@@ -223,7 +189,7 @@ void LIC::update()
     }
 
     initProp();
-    _prop->SetMapper(_mapper);
+    getActor()->SetMapper(_mapper);
 
     _mapper->Update();
 #ifdef WANT_TRACE
@@ -368,81 +334,6 @@ void LIC::setLookupTable(vtkLookupTable *lut)
 }
 
 /**
- * \brief Turn on/off rendering of this LIC
- */
-void LIC::setVisibility(bool state)
-{
-    if (_prop != NULL) {
-        _prop->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the LIC
- * 
- * \return Is the LIC texture visible?
- */
-bool LIC::getVisibility()
-{
-    if (_prop == NULL) {
-        return false;
-    } else {
-        return (_prop->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render the LIC
- */
-void LIC::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_prop != NULL) {
-        _prop->GetProperty()->SetOpacity(opacity);
-    }
-}
-
-/**
- * \brief Get opacity used to render the LIC
- */
-double LIC::getOpacity()
-{
-    return _opacity;
-}
-
-/**
- * \brief Turn on/off rendering of edges
- */
-void LIC::setEdgeVisibility(bool state)
-{
-    if (_prop != NULL) {
-        _prop->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Set RGB color of edges
- */
-void LIC::setEdgeColor(float color[3])
-{
-    _edgeColor[0] = color[0];
-    _edgeColor[1] = color[1];
-    _edgeColor[2] = color[2];
-    if (_prop != NULL)
-        _prop->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-}
-
-/**
- * \brief Set pixel width of edges (may be a no-op)
- */
-void LIC::setEdgeWidth(float edgeWidth)
-{
-    _edgeWidth = edgeWidth;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetLineWidth(_edgeWidth);
-}
-
-/**
  * \brief Set a group of world coordinate planes to clip rendering
  *
  * Passing NULL for planes will remove all cliping planes
@@ -452,14 +343,4 @@ void LIC::setClippingPlanes(vtkPlaneCollection *planes)
     if (_mapper != NULL) {
         _mapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void LIC::setLighting(bool state)
-{
-    _lighting = state;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetLighting((state ? 1 : 0));
 }

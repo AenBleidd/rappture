@@ -26,8 +26,7 @@
 using namespace Rappture::VtkVis;
 
 Volume::Volume() :
-    _dataSet(NULL),
-    _opacity(1.0),
+    VtkGraphicsObject(),
     _colorMap(NULL)
 {
 }
@@ -43,25 +42,14 @@ Volume::~Volume()
 }
 
 /**
- * \brief Specify input DataSet with scalars
- *
- * Currently the DataSet must be image data (3D uniform grid),
- * or an UnstructuredGrid
+ * \brief Create and initialize a VTK Prop to render the Volume
  */
-void Volume::setDataSet(DataSet *dataSet)
+void Volume::initProp()
 {
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkVolume>::New();
+        getVolume()->GetProperty()->SetInterpolationTypeToLinear();
     }
-}
-
-/**
- * \brief Returns the DataSet this Volume renders
- */
-DataSet *Volume::getDataSet()
-{
-    return _dataSet;
 }
 
 /**
@@ -128,30 +116,12 @@ void Volume::update()
         _colorMap = ColorMap::getVolumeDefault();
     }
 
-    _volumeProp->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
-    _volumeProp->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
+    vtkVolumeProperty *volProperty = getVolume()->GetProperty();
+    volProperty->SetColor(_colorMap->getColorTransferFunction(dataRange));
+    volProperty->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
 
-    _volumeProp->SetMapper(_volumeMapper);
+    getVolume()->SetMapper(_volumeMapper);
     _volumeMapper->Update();
-}
-
-/**
- * \brief Get the VTK Prop for the Volume
- */
-vtkProp *Volume::getProp()
-{
-    return _volumeProp;
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render the Volume
- */
-void Volume::initProp()
-{
-    if (_volumeProp == NULL) {
-        _volumeProp = vtkSmartPointer<vtkVolume>::New();
-        _volumeProp->GetProperty()->SetInterpolationTypeToLinear();
-    }
 }
 
 /**
@@ -160,11 +130,11 @@ void Volume::initProp()
 void Volume::setColorMap(ColorMap *cmap)
 {
     _colorMap = cmap;
-    if (_volumeProp != NULL) {
+    if (getVolume() != NULL) {
         double dataRange[2];
         _dataSet->getDataRange(dataRange);
-        _volumeProp->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
-        _volumeProp->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
+        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
     }
 }
 
@@ -175,9 +145,9 @@ void Volume::setColorMap(ColorMap *cmap)
 void Volume::setColorMap(ColorMap *cmap, double dataRange[2])
 {
     _colorMap = cmap;
-    if (_volumeProp != NULL) {
-        _volumeProp->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
-        _volumeProp->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
+    if (getVolume() != NULL) {
+        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
     }
 }
 
@@ -198,34 +168,10 @@ void Volume::setOpacity(double opacity)
     // FIXME: There isn't really a good opacity scaling option that works
     // across the different mappers/algorithms.  This only works with the
     // 3D texture mapper, not the GPU raycast mapper
-    if (_volumeProp != NULL) {
+    if (getVolume() != NULL) {
         if (opacity < 1.0e-6)
             opacity = 1.0e-6;
-        _volumeProp->GetProperty()->SetScalarOpacityUnitDistance(1.0/opacity);
-    }
-}
-
-/**
- * \brief Turn on/off rendering of this Volume
- */
-void Volume::setVisibility(bool state)
-{
-    if (_volumeProp != NULL) {
-        _volumeProp->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the Volume
- * 
- * \return Is PseudoColor visible?
- */
-bool Volume::getVisibility()
-{
-    if (_volumeProp == NULL) {
-        return false;
-    } else {
-        return (_volumeProp->GetVisibility() != 0);
+        getVolume()->GetProperty()->SetScalarOpacityUnitDistance(1.0/opacity);
     }
 }
 
@@ -239,44 +185,4 @@ void Volume::setClippingPlanes(vtkPlaneCollection *planes)
     if (_volumeMapper != NULL) {
         _volumeMapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Set the ambient lighting/shading coefficient
- */
-void Volume::setAmbient(double coeff)
-{
-    if (_volumeProp != NULL) {
-        _volumeProp->GetProperty()->SetAmbient(coeff);
-    }
-}
-
-/**
- * \brief Set the diffuse lighting/shading coefficient
- */
-void Volume::setDiffuse(double coeff)
-{
-    if (_volumeProp != NULL) {
-        _volumeProp->GetProperty()->SetDiffuse(coeff);
-    }
-}
-
-/**
- * \brief Set the specular lighting/shading coefficient and power
- */
-void Volume::setSpecular(double coeff, double power)
-{
-    if (_volumeProp != NULL) {
-        _volumeProp->GetProperty()->SetSpecular(coeff);
-        _volumeProp->GetProperty()->SetSpecularPower(power);
-    }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void Volume::setLighting(bool state)
-{
-    if (_volumeProp != NULL)
-        _volumeProp->GetProperty()->SetShade((state ? 1 : 0));
 }

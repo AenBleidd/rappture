@@ -23,17 +23,11 @@
 using namespace Rappture::VtkVis;
 
 PolyData::PolyData() :
-    _dataSet(NULL),
-    _edgeWidth(1.0),
-    _opacity(1.0),
-    _lighting(true)
+    VtkGraphicsObject()
 {
-    _color[0] = 0.0;
-    _color[1] = 0.0;
-    _color[2] = 1.0;
-    _edgeColor[0] = 0.0;
-    _edgeColor[1] = 0.0;
-    _edgeColor[2] = 0.0;
+    _color[0] = 0.0f;
+    _color[1] = 0.0f;
+    _color[2] = 1.0f;
 }
 
 PolyData::~PolyData()
@@ -47,50 +41,22 @@ PolyData::~PolyData()
 }
 
 /**
- * \brief Get the VTK Prop for the mesh
- */
-vtkProp *PolyData::getProp()
-{
-    return _pdActor;
-}
-
-/**
  * \brief Create and initialize a VTK Prop to render a mesh
  */
 void PolyData::initProp()
 {
-    if (_pdActor == NULL) {
-        _pdActor = vtkSmartPointer<vtkActor>::New();
-        _pdActor->GetProperty()->EdgeVisibilityOn();
-        _pdActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
-        _pdActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        _pdActor->GetProperty()->SetLineWidth(_edgeWidth);
-        _pdActor->GetProperty()->SetOpacity(_opacity);
-        _pdActor->GetProperty()->SetAmbient(.2);
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkActor>::New();
+        vtkProperty *property = getActor()->GetProperty();
+        property->EdgeVisibilityOn();
+        property->SetColor(_color[0], _color[1], _color[2]);
+        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        property->SetLineWidth(_edgeWidth);
+        property->SetOpacity(_opacity);
+        property->SetAmbient(.2);
         if (!_lighting)
-            _pdActor->GetProperty()->LightingOff();
+            property->LightingOff();
     }
-}
-
-/**
- * \brief Specify input DataSet (PolyData)
- *
- * The DataSet must be a PolyData object
- */
-void PolyData::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
-    }
-}
-
-/**
- * \brief Returns the DataSet this PolyData renders
- */
-DataSet *PolyData::getDataSet()
-{
-    return _dataSet;
 }
 
 /**
@@ -156,102 +122,8 @@ void PolyData::update()
     }
 
     initProp();
-    _pdActor->SetMapper(_pdMapper);
+    getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
-}
-
-/**
- * \brief Turn on/off rendering of this mesh
- */
-void PolyData::setVisibility(bool state)
-{
-    if (_pdActor != NULL) {
-        _pdActor->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the mesh
- * 
- * \return Is mesh visible?
- */
-bool PolyData::getVisibility()
-{
-    if (_pdActor == NULL) {
-        return false;
-    } else {
-        return (_pdActor->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render the mesh
- */
-void PolyData::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_pdActor != NULL)
-        _pdActor->GetProperty()->SetOpacity(opacity);
-}
-
-/**
- * \brief Switch between wireframe and surface representations
- */
-void PolyData::setWireframe(bool state)
-{
-    if (_pdActor != NULL) {
-        if (state) {
-            _pdActor->GetProperty()->SetRepresentationToWireframe();
-            _pdActor->GetProperty()->LightingOff();
-        } else {
-            _pdActor->GetProperty()->SetRepresentationToSurface();
-            _pdActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
-        }
-    }
-}
-
-/**
- * \brief Set RGB color of polygon faces
- */
-void PolyData::setColor(float color[3])
-{
-    _color[0] = color[0];
-    _color[1] = color[1];
-    _color[2] = color[2];
-    if (_pdActor != NULL)
-        _pdActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
-}
-
-/**
- * \brief Turn on/off rendering of mesh edges
- */
-void PolyData::setEdgeVisibility(bool state)
-{
-    if (_pdActor != NULL) {
-        _pdActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Set RGB color of polygon edges
- */
-void PolyData::setEdgeColor(float color[3])
-{
-    _edgeColor[0] = color[0];
-    _edgeColor[1] = color[1];
-    _edgeColor[2] = color[2];
-    if (_pdActor != NULL)
-        _pdActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-}
-
-/**
- * \brief Set pixel width of polygon edges (may be a no-op)
- */
-void PolyData::setEdgeWidth(float edgeWidth)
-{
-    _edgeWidth = edgeWidth;
-    if (_pdActor != NULL)
-        _pdActor->GetProperty()->SetLineWidth(_edgeWidth);
 }
 
 /**
@@ -266,12 +138,3 @@ void PolyData::setClippingPlanes(vtkPlaneCollection *planes)
     }
 }
 
-/**
- * \brief Turn on/off lighting of this object
- */
-void PolyData::setLighting(bool state)
-{
-    _lighting = state;
-    if (_pdActor != NULL)
-        _pdActor->GetProperty()->SetLighting((state ? 1 : 0));
-}

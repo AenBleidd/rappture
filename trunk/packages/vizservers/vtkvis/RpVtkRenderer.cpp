@@ -852,36 +852,6 @@ void Renderer::setAxesColor(double color[3])
 }
 
 /**
- * \brief Turn on/off rendering of all axes gridlines
- */
-void Renderer::setAxesGridVisibility(bool state)
-{
-    if (_cubeAxesActor != NULL) {
-        _cubeAxesActor->SetDrawXGridlines((state ? 1 : 0));
-        _cubeAxesActor->SetDrawYGridlines((state ? 1 : 0));
-        _cubeAxesActor->SetDrawZGridlines((state ? 1 : 0));
-        _needsRedraw = true;
-    }
-}
-
-/**
- * \brief Turn on/off rendering of single axis gridlines
- */
-void Renderer::setAxisGridVisibility(Axis axis, bool state)
-{
-    if (_cubeAxesActor != NULL) {
-        if (axis == X_AXIS) {
-            _cubeAxesActor->SetDrawXGridlines((state ? 1 : 0));
-        } else if (axis == Y_AXIS) {
-            _cubeAxesActor->SetDrawYGridlines((state ? 1 : 0));
-        } else if (axis == Z_AXIS) {
-            _cubeAxesActor->SetDrawZGridlines((state ? 1 : 0));
-        }
-        _needsRedraw = true;
-    }
-}
-
-/**
  * \brief Turn on/off rendering of all axes
  */
 void Renderer::setAxesVisibility(bool state)
@@ -897,6 +867,36 @@ void Renderer::setAxesVisibility(bool state)
     setAxisVisibility(X_AXIS, state);
     setAxisVisibility(Y_AXIS, state);
     setAxisVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axes gridlines
+ */
+void Renderer::setAxesGridVisibility(bool state)
+{
+    setAxisGridVisibility(X_AXIS, state);
+    setAxisGridVisibility(Y_AXIS, state);
+    setAxisGridVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axis labels
+ */
+void Renderer::setAxesLabelVisibility(bool state)
+{
+    setAxisLabelVisibility(X_AXIS, state);
+    setAxisLabelVisibility(Y_AXIS, state);
+    setAxisLabelVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axis ticks
+ */
+void Renderer::setAxesTickVisibility(bool state)
+{
+    setAxisTickVisibility(X_AXIS, state);
+    setAxisTickVisibility(Y_AXIS, state);
+    setAxisTickVisibility(Z_AXIS, state);
 }
 
 /**
@@ -919,6 +919,73 @@ void Renderer::setAxisVisibility(Axis axis, bool state)
             _cubeAxesActor2D->SetXAxisVisibility((state ? 1 : 0));
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->SetYAxisVisibility((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Turn on/off rendering of single axis gridlines
+ */
+void Renderer::setAxisGridVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor->SetDrawXGridlines((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor->SetDrawYGridlines((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor->SetDrawZGridlines((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Toggle label visibility for the specified axis
+ */
+void Renderer::setAxisLabelVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor->SetXAxisLabelVisibility((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor->SetYAxisLabelVisibility((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor->SetZAxisLabelVisibility((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+    if (_cubeAxesActor2D != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor2D->GetXAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor2D->GetYAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Toggle tick visibility for the specified axis
+ */
+void Renderer::setAxisTickVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor->SetXAxisTickVisibility((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor->SetYAxisTickVisibility((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor->SetZAxisTickVisibility((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+    if (_cubeAxesActor2D != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor2D->GetXAxisActor2D()->SetTickVisibility((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor2D->GetYAxisActor2D()->SetTickVisibility((state ? 1 : 0));
         }
         _needsRedraw = true;
     }
@@ -2032,6 +2099,33 @@ void Renderer::setGlyphsVisibility(const DataSetId& id, bool state)
 }
 
 /**
+ * \brief Turn on/off wireframe rendering of Glyphs for the given DataSet
+ */
+void Renderer::setGlyphsWireframe(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn Glyphs lighting on/off for the specified DataSet
  */
 void Renderer::setGlyphsLighting(const DataSetId& id, bool state)
@@ -2126,6 +2220,146 @@ HeightMap *Renderer::getHeightMap(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set an additional transform on the prop
+ */
+void Renderer::setHeightMapTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setHeightMapOrientation(const DataSetId& id, double quat[4])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setHeightMapOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setHeightMapPosition(const DataSetId& id, double pos[3])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setHeightMapScale(const DataSetId& id, double scale[3])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**
@@ -2906,6 +3140,146 @@ Molecule *Renderer::getMolecule(const DataSetId& id)
 }
 
 /**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setMoleculeTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _molecules.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setMoleculeOrientation(const DataSetId& id, double quat[4])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _molecules.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setMoleculeOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _molecules.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setMoleculePosition(const DataSetId& id, double pos[3])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _molecules.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setMoleculeScale(const DataSetId& id, double scale[3])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _molecules.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Associate an existing named color map with a Molecule for the given DataSet
  */
 void Renderer::setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorMapId)
@@ -3285,6 +3659,146 @@ PolyData *Renderer::getPolyData(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set an additional transform on the prop
+ */
+void Renderer::setPolyDataTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setPolyDataOrientation(const DataSetId& id, double quat[4])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setPolyDataOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setPolyDataPosition(const DataSetId& id, double pos[3])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setPolyDataScale(const DataSetId& id, double scale[3])
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**
@@ -5835,6 +6349,14 @@ void Renderer::setCameraClippingPlanes()
 void Renderer::setUseDepthPeeling(bool state)
 {
     _renderer->SetUseDepthPeeling(state ? 1 : 0);
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Sets flag to trigger rendering next time render() is called
+ */
+void Renderer::eventuallyRender()
+{
     _needsRedraw = true;
 }
 

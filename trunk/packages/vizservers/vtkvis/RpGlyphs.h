@@ -17,7 +17,7 @@
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 #include "ColorMap.h"
 
 namespace Rappture {
@@ -25,8 +25,11 @@ namespace VtkVis {
 
 /**
  * \brief Oriented and scaled 3D glyph shapes
+ *
+ * The DataSet must be a PolyData point set
+ * with vectors and/or scalars
  */
-class Glyphs {
+class Glyphs : public VtkGraphicsObject {
 public:
     enum GlyphShape {
         ARROW,
@@ -43,11 +46,12 @@ public:
     Glyphs();
     virtual ~Glyphs();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "Glyphs";
+    }
 
-    DataSet *getDataSet();
-
-    vtkProp *getProp();
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setGlyphShape(GlyphShape shape);
 
@@ -57,32 +61,13 @@ public:
 
     vtkLookupTable *getLookupTable();
 
-    void setOpacity(double opacity);
-
-    double getOpacity();
-
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
-
-    DataSet *_dataSet;
-
-    double _opacity;
-    bool _lighting;
+    virtual void update();
 
     GlyphShape _glyphShape;
     double _scaleFactor;
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkActor> _prop;
     vtkSmartPointer<vtkGlyph3D> _glyphGenerator;
     vtkSmartPointer<vtkPolyDataAlgorithm> _glyphSource;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;

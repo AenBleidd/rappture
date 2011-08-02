@@ -27,16 +27,10 @@
 using namespace Rappture::VtkVis;
 
 Streamlines::Streamlines() :
-    _dataSet(NULL),
+    VtkGraphicsObject(),
     _lineType(LINES),
-    _edgeWidth(1.0f),
-    _opacity(1.0),
-    _lighting(false),
     _seedVisible(true)
 {
-    _edgeColor[0] = 0.0f;
-    _edgeColor[1] = 0.0f;
-    _edgeColor[2] = 0.0f;
     _seedColor[0] = 1.0f;
     _seedColor[1] = 1.0f;
     _seedColor[2] = 1.0f;
@@ -47,38 +41,30 @@ Streamlines::~Streamlines()
 }
 
 /**
- * \brief Get the VTK Prop for the Streamlines
- */
-vtkProp *Streamlines::getProp()
-{
-    return _props;
-}
-
-/**
  * \brief Create and initialize a VTK Prop to render Streamlines
  */
 void Streamlines::initProp()
 {
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        _prop->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        _prop->GetProperty()->SetLineWidth(_edgeWidth);
-        _prop->GetProperty()->SetOpacity(_opacity);
-        _prop->GetProperty()->SetAmbient(.2);
+    if (_linesActor == NULL) {
+        _linesActor = vtkSmartPointer<vtkActor>::New();
+        _linesActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        _linesActor->GetProperty()->SetLineWidth(_edgeWidth);
+        _linesActor->GetProperty()->SetOpacity(_opacity);
+        _linesActor->GetProperty()->SetAmbient(.2);
         if (!_lighting)
-            _prop->GetProperty()->LightingOff();
+            _linesActor->GetProperty()->LightingOff();
         switch (_lineType) {
         case LINES:
-            _prop->GetProperty()->SetRepresentationToWireframe();
-            _prop->GetProperty()->EdgeVisibilityOff();
+            _linesActor->GetProperty()->SetRepresentationToWireframe();
+            _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case TUBES:
-            _prop->GetProperty()->SetRepresentationToSurface();
-            _prop->GetProperty()->EdgeVisibilityOff();
+            _linesActor->GetProperty()->SetRepresentationToSurface();
+            _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case RIBBONS:
-            _prop->GetProperty()->SetRepresentationToSurface();
-            _prop->GetProperty()->EdgeVisibilityOff();
+            _linesActor->GetProperty()->SetRepresentationToSurface();
+            _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         default:
             ;
@@ -93,32 +79,11 @@ void Streamlines::initProp()
         _seedActor->GetProperty()->SetRepresentationToWireframe();
         _seedActor->GetProperty()->LightingOff();
     }
-    if (_props == NULL) {
-        _props = vtkSmartPointer<vtkPropAssembly>::New();
-        _props->AddPart(_prop);
-        _props->AddPart(_seedActor);
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkAssembly>::New();
+        getAssembly()->AddPart(_linesActor);
+        getAssembly()->AddPart(_seedActor);
     }
-}
-
-/**
- * \brief Specify input DataSet
- *
- * The DataSet must contain vectors
- */
-void Streamlines::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
-    }
-}
-
-/**
- * \brief Returns the DataSet this Streamlines renders
- */
-DataSet *Streamlines::getDataSet()
-{
-    return _dataSet;
 }
 
 void Streamlines::getRandomPoint(double pt[3], const double bounds[6])
@@ -283,7 +248,7 @@ void Streamlines::update()
     _pdMapper->UseLookupTableScalarRangeOff();
     _pdMapper->SetLookupTable(_lut);
 
-    _prop->SetMapper(_pdMapper);
+    _linesActor->SetMapper(_pdMapper);
     _pdMapper->Update();
     _seedMapper->Update();
 }
@@ -441,8 +406,8 @@ void Streamlines::setLineTypeToLines()
         _streamTracer->SetComputeVorticity(false);
         _pdMapper->SetInputConnection(_streamTracer->GetOutputPort());
         _lineFilter = NULL;
-        _prop->GetProperty()->SetRepresentationToWireframe();
-        _prop->GetProperty()->LightingOff();
+        _linesActor->GetProperty()->SetRepresentationToWireframe();
+        _linesActor->GetProperty()->LightingOff();
     }
 }
 
@@ -467,8 +432,8 @@ void Streamlines::setLineTypeToTubes(int numSides, double radius)
         tubeFilter->SetNumberOfSides(numSides);
         tubeFilter->SetRadius(radius);
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
-        _prop->GetProperty()->SetRepresentationToSurface();
-        _prop->GetProperty()->LightingOn();
+        _linesActor->GetProperty()->SetRepresentationToSurface();
+        _linesActor->GetProperty()->LightingOn();
      }
 }
 
@@ -492,8 +457,8 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
         ribbonFilter->SetAngle(angle);
         ribbonFilter->UseDefaultNormalOn();
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
-        _prop->GetProperty()->SetRepresentationToSurface();
-        _prop->GetProperty()->LightingOn();
+        _linesActor->GetProperty()->SetRepresentationToSurface();
+        _linesActor->GetProperty()->LightingOn();
     }
 }
 
@@ -522,12 +487,22 @@ void Streamlines::setLookupTable(vtkLookupTable *lut)
 }
 
 /**
+ * \brief Turn on/off lighting of this object
+ */
+void Streamlines::setLighting(bool state)
+{
+    _lighting = state;
+    if (_linesActor != NULL)
+        _linesActor->GetProperty()->SetLighting((state ? 1 : 0));
+}
+
+/**
  * \brief Turn on/off rendering of this Streamlines
  */
 void Streamlines::setVisibility(bool state)
 {
-    if (_prop != NULL) {
-        _prop->SetVisibility((state ? 1 : 0));
+    if (_linesActor != NULL) {
+        _linesActor->SetVisibility((state ? 1 : 0));
     }
     if (_seedActor != NULL) {
         if (!state ||
@@ -555,33 +530,11 @@ void Streamlines::setSeedVisibility(bool state)
  */
 bool Streamlines::getVisibility()
 {
-    if (_prop == NULL) {
+    if (_linesActor == NULL) {
         return false;
     } else {
-        return (_prop->GetVisibility() != 0);
+        return (_linesActor->GetVisibility() != 0);
     }
-}
-
-/**
- * \brief Set opacity used to render the Streamlines
- */
-void Streamlines::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_prop != NULL) {
-        _prop->GetProperty()->SetOpacity(opacity);
-    }
-    if (_seedActor != NULL) {
-        _seedActor->GetProperty()->SetOpacity(opacity);
-    }
-}
-
-/**
- * \brief Get opacity used to render the Streamlines
- */
-double Streamlines::getOpacity()
-{
-    return _opacity;
 }
 
 /**
@@ -589,8 +542,8 @@ double Streamlines::getOpacity()
  */
 void Streamlines::setEdgeVisibility(bool state)
 {
-    if (_prop != NULL) {
-        _prop->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
+    if (_linesActor != NULL) {
+        _linesActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
     }
 }
 
@@ -602,8 +555,8 @@ void Streamlines::setEdgeColor(float color[3])
     _edgeColor[0] = color[0];
     _edgeColor[1] = color[1];
     _edgeColor[2] = color[2];
-    if (_prop != NULL)
-        _prop->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+    if (_linesActor != NULL)
+        _linesActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
 }
 
 /**
@@ -624,8 +577,8 @@ void Streamlines::setSeedColor(float color[3])
 void Streamlines::setEdgeWidth(float edgeWidth)
 {
     _edgeWidth = edgeWidth;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetLineWidth(_edgeWidth);
+    if (_linesActor != NULL)
+        _linesActor->GetProperty()->SetLineWidth(_edgeWidth);
 }
 
 /**
@@ -641,14 +594,4 @@ void Streamlines::setClippingPlanes(vtkPlaneCollection *planes)
     if (_seedMapper != NULL) {
         _seedMapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void Streamlines::setLighting(bool state)
-{
-    _lighting = state;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetLighting((state ? 1 : 0));
 }

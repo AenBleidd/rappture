@@ -18,15 +18,17 @@
 #include <vtkMapper.h>
 #include <vtkLookupTable.h>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
 
 /**
  * \brief Line Integral Convolution visualization of vector fields
+ *
+ *  The DataSet must contain vectors
  */
-class LIC {
+class LIC : public VtkGraphicsObject {
 public:
     enum Axis {
         X_AXIS,
@@ -37,11 +39,12 @@ public:
     LIC();
     virtual ~LIC();
 
-    void setDataSet(DataSet *dataset);
-
-    DataSet *getDataSet();
-
-    vtkProp *getProp();
+    virtual const char *getClassName() const
+    {
+        return "LIC";
+    }
+    
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void selectVolumeSlice(Axis axis, double ratio);
 
@@ -49,38 +52,13 @@ public:
 
     vtkLookupTable *getLookupTable();
 
-    void setOpacity(double opacity);
-
-    double getOpacity();
-
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
+    virtual void initProp();
+    virtual void update();
 
-    DataSet *_dataSet;
-
-    float _edgeColor[3];
-    float _edgeWidth;
-    double _opacity;
-    bool _lighting;
     Axis _sliceAxis;
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkActor> _prop;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
     vtkSmartPointer<vtkProbeFilter> _probeFilter;
     vtkSmartPointer<vtkImageDataLIC2D> _lic;
