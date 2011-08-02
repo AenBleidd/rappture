@@ -125,6 +125,32 @@ AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+AxisLabelsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelVisibility(Renderer::X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelVisibility(Renderer::Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelVisibility(Renderer::Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName visible", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -140,6 +166,32 @@ AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName title", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisTicksVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTickVisibility(Renderer::X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTickVisibility(Renderer::Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTickVisibility(Renderer::Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesTickVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName visible", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -196,7 +248,9 @@ static Rappture::CmdSpec axisOps[] = {
     {"color",   1, AxisColorOp, 5, 5, "r g b"},
     {"flymode", 1, AxisFlyModeOp, 3, 3, "mode"},
     {"grid",    1, AxisGridOp, 4, 4, "axis bool"},
+    {"labels",  1, AxisLabelsVisibleOp, 4, 4, "axis bool"},
     {"name",    1, AxisNameOp, 4, 4, "axis title"},
+    {"ticks",   1, AxisTicksVisibleOp, 4, 4, "axis bool"},
     {"units",   1, AxisUnitsOp, 4, 4, "axis units"},
     {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"}
 };
@@ -1382,15 +1436,33 @@ GlyphsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsWireframe(name, state);
+    } else {
+        g_renderer->setGlyphsWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec glyphsOps[] = {
-    {"add",      1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
-    {"colormap", 1, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
-    {"delete",   1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
-    {"lighting", 1, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"opacity",  1, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"scale",    2, GlyphsScaleOp, 3, 4, "scaleFactor ?dataSetName?"},
-    {"shape",    2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
-    {"visible",  1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
+    {"colormap",  1, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
+    {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
+    {"lighting",  1, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"opacity",   1, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"scale",     2, GlyphsScaleOp, 3, 4, "scaleFactor ?dataSetName?"},
+    {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
+    {"visible",   1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe", 1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nGlyphsOps = NumCmdSpecs(glyphsOps);
 
@@ -1664,6 +1736,64 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setHeightMapOrientation(name, quat);
+    } else {
+        g_renderer->setHeightMapOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setHeightMapPosition(name, pos);
+    } else {
+        g_renderer->setHeightMapPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setHeightMapScale(name, scale);
+    } else {
+        g_renderer->setHeightMapScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 HeightMapVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -1723,7 +1853,10 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"lighting",     3, HeightMapLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",    5, HeightMapLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",    5, HeightMapLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",      1, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",      2, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, HeightMapOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        1, HeightMapScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
     {"visible",      2, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
 };
@@ -2189,6 +2322,64 @@ MoleculeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setMoleculeOrientation(name, quat);
+    } else {
+        g_renderer->setMoleculeOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setMoleculePosition(name, pos);
+    } else {
+        g_renderer->setMoleculePosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setMoleculeScale(name, scale);
+    } else {
+        g_renderer->setMoleculeScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -2232,8 +2423,11 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"lighting",   3, MoleculeLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",  5, MoleculeLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",  5, MoleculeLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",    1, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"scaleatoms", 1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
+    {"opacity",    2, MoleculeOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",     2, MoleculeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",        1, MoleculePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"rscale",     1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
+    {"scale",      1, MoleculeScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
     {"visible",    1, MoleculeVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe",  1, MoleculeWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -2386,6 +2580,65 @@ PolyDataOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolyDataOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setPolyDataOrientation(name, quat);
+    } else {
+        g_renderer->setPolyDataOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPolyDataPosition(name, pos);
+    } else {
+        g_renderer->setPolyDataPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+PolyDataScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPolyDataScale(name, scale);
+    } else {
+        g_renderer->setPolyDataScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+
+static int
 PolyDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -2427,7 +2680,10 @@ static Rappture::CmdSpec polyDataOps[] = {
     {"lighting",  3, PolyDataLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, PolyDataLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, PolyDataLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",   2, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, PolyDataOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, PolyDataPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     1, PolyDataScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
     {"visible",   1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PolyDataWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -2678,9 +2934,18 @@ RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    g_renderer->eventuallyRender();
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec rendererOps[] = {
     {"clipplane", 1, RendererClipPlaneOp, 5, 5, "axis ratio direction"},
-    {"depthpeel", 1, RendererDepthPeelingOp, 3, 3, "bool"}
+    {"depthpeel", 1, RendererDepthPeelingOp, 3, 3, "bool"},
+    {"render",    1, RendererRenderOp, 2, 2, ""}
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
 

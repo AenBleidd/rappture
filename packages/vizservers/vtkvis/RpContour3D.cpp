@@ -25,20 +25,14 @@
 using namespace Rappture::VtkVis;
 
 Contour3D::Contour3D() :
-    _dataSet(NULL),
-    _numContours(0),
-    _edgeWidth(1.0f),
-    _opacity(1.0),
-    _lighting(true)
+    VtkGraphicsObject(),
+    _numContours(0)
 {
     _dataRange[0] = 0;
     _dataRange[1] = 1;
-    _color[0] = 0;
-    _color[1] = 0;
-    _color[2] = 1;
-    _edgeColor[0] = 0;
-    _edgeColor[1] = 0;
-    _edgeColor[2] = 0;
+    _color[0] = 0.0f;
+    _color[1] = 0.0f;
+    _color[2] = 1.0f;
 }
 
 Contour3D::~Contour3D()
@@ -71,36 +65,21 @@ void Contour3D::setDataSet(DataSet *dataSet)
 }
 
 /**
- * \brief Returns the DataSet this Contour3D renders
- */
-DataSet *Contour3D::getDataSet()
-{
-    return _dataSet;
-}
-
-/**
- * \brief Get the VTK Prop for the isosurfaces
- */
-vtkProp *Contour3D::getProp()
-{
-    return _contourActor;
-}
-
-/**
  * \brief Create and initialize a VTK Prop to render isosurfaces
  */
 void Contour3D::initProp()
 {
-    if (_contourActor == NULL) {
-        _contourActor = vtkSmartPointer<vtkActor>::New();
-        _contourActor->GetProperty()->EdgeVisibilityOff();
-        _contourActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
-        _contourActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        _contourActor->GetProperty()->SetLineWidth(_edgeWidth);
-        _contourActor->GetProperty()->SetOpacity(_opacity);
-        _contourActor->GetProperty()->SetAmbient(.2);
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkActor>::New();
+        vtkProperty *property = getActor()->GetProperty();
+        property->EdgeVisibilityOff();
+        property->SetColor(_color[0], _color[1], _color[2]);
+        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+        property->SetLineWidth(_edgeWidth);
+        property->SetOpacity(_opacity);
+        property->SetAmbient(.2);
         if (!_lighting)
-            _contourActor->GetProperty()->LightingOff();
+            property->LightingOff();
     }
 }
 
@@ -215,7 +194,7 @@ void Contour3D::update()
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
-        _contourActor->SetMapper(_contourMapper);
+        getActor()->SetMapper(_contourMapper);
     }
 
     if (ds->GetPointData() == NULL ||
@@ -316,100 +295,6 @@ const std::vector<double>& Contour3D::getContourList() const
 }
 
 /**
- * \brief Turn on/off rendering of this contour set
- */
-void Contour3D::setVisibility(bool state)
-{
-    if (_contourActor != NULL) {
-        _contourActor->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the contour set
- * 
- * \return Is contour set visible?
- */
-bool Contour3D::getVisibility() const
-{
-    if (_contourActor == NULL) {
-        return false;
-    } else {
-        return (_contourActor->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render isosurfaces
- */
-void Contour3D::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_contourActor != NULL)
-        _contourActor->GetProperty()->SetOpacity(opacity);
-}
-
-/**
- * \brief Switch between wireframe and surface representations
- */
-void Contour3D::setWireframe(bool state)
-{
-    if (_contourActor != NULL) {
-        if (state) {
-            _contourActor->GetProperty()->SetRepresentationToWireframe();
-            _contourActor->GetProperty()->LightingOff();
-        } else {
-            _contourActor->GetProperty()->SetRepresentationToSurface();
-            _contourActor->GetProperty()->SetLighting((_lighting ? 1 : 0));
-        }
-    }
-}
-
-/**
- * \brief Set RGB color of isosurfaces
- */
-void Contour3D::setColor(float color[3])
-{
-    _color[0] = color[0];
-    _color[1] = color[1];
-    _color[2] = color[2];
-    if (_contourActor != NULL)
-        _contourActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
-}
-
-/**
- * \brief Turn on/off rendering of mesh edges
- */
-void Contour3D::setEdgeVisibility(bool state)
-{
-    if (_contourActor != NULL) {
-        _contourActor->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Set RGB color of isosurface edges
- */
-void Contour3D::setEdgeColor(float color[3])
-{
-    _edgeColor[0] = color[0];
-    _edgeColor[1] = color[1];
-    _edgeColor[2] = color[2];
-    if (_contourActor != NULL)
-        _contourActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-}
-
-/**
- * \brief Set pixel width of contour lines (may be a no-op)
- */
-void Contour3D::setEdgeWidth(float edgeWidth)
-{
-    _edgeWidth = edgeWidth;
-    if (_contourActor != NULL)
-        _contourActor->GetProperty()->SetLineWidth(_edgeWidth);
-}
-
-/**
  * \brief Set a group of world coordinate planes to clip rendering
  *
  * Passing NULL for planes will remove all cliping planes
@@ -419,14 +304,4 @@ void Contour3D::setClippingPlanes(vtkPlaneCollection *planes)
     if (_contourMapper != NULL) {
         _contourMapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void Contour3D::setLighting(bool state)
-{
-    _lighting = state;
-    if (_contourActor != NULL)
-        _contourActor->GetProperty()->SetLighting((state ? 1 : 0));
 }

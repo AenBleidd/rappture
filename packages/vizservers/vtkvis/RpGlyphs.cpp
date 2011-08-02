@@ -26,9 +26,7 @@
 using namespace Rappture::VtkVis;
 
 Glyphs::Glyphs() :
-    _dataSet(NULL),
-    _opacity(1.0),
-    _lighting(true),
+    VtkGraphicsObject(),
     _glyphShape(ARROW),
     _scaleFactor(1.0)
 {
@@ -36,51 +34,6 @@ Glyphs::Glyphs() :
 
 Glyphs::~Glyphs()
 {
-}
-
-/**
- * \brief Get the VTK Prop for the Glyphs
- */
-vtkProp *Glyphs::getProp()
-{
-    return _prop;
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render Glyphs
- */
-void Glyphs::initProp()
-{
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        _prop->GetProperty()->EdgeVisibilityOff();
-        _prop->GetProperty()->SetOpacity(_opacity);
-        _prop->GetProperty()->SetAmbient(.2);
-        if (!_lighting)
-            _prop->GetProperty()->LightingOff();
-    }
-}
-
-/**
- * \brief Specify input DataSet
- *
- * The DataSet must be a PolyData point set
- * with vectors and/or scalars
- */
-void Glyphs::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
-    }
-}
-
-/**
- * \brief Returns the DataSet this Glyphs renders
- */
-DataSet *Glyphs::getDataSet()
-{
-    return _dataSet;
 }
 
 /**
@@ -221,7 +174,7 @@ void Glyphs::update()
 
     initProp();
 
-    _prop->SetMapper(_pdMapper);
+    getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 }
 
@@ -262,48 +215,6 @@ void Glyphs::setLookupTable(vtkLookupTable *lut)
 }
 
 /**
- * \brief Turn on/off rendering of this Glyphs
- */
-void Glyphs::setVisibility(bool state)
-{
-    if (_prop != NULL) {
-        _prop->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the Glyphs
- * 
- * \return Are the glyphs visible?
- */
-bool Glyphs::getVisibility()
-{
-    if (_prop == NULL) {
-        return false;
-    } else {
-        return (_prop->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render the Glyphs
- */
-void Glyphs::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetOpacity(opacity);
-}
-
-/**
- * \brief Get opacity used to render the Glyphs
- */
-double Glyphs::getOpacity()
-{
-    return _opacity;
-}
-
-/**
  * \brief Set a group of world coordinate planes to clip rendering
  *
  * Passing NULL for planes will remove all cliping planes
@@ -313,14 +224,4 @@ void Glyphs::setClippingPlanes(vtkPlaneCollection *planes)
     if (_pdMapper != NULL) {
         _pdMapper->SetClippingPlanes(planes);
     }
-}
-
-/**
- * \brief Turn on/off lighting of this object
- */
-void Glyphs::setLighting(bool state)
-{
-    _lighting = state;
-    if (_prop != NULL)
-        _prop->GetProperty()->SetLighting((state ? 1 : 0));
 }

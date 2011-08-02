@@ -14,7 +14,7 @@
 #include <vtkAbstractVolumeMapper.h>
 #include <vtkPlaneCollection.h>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 #include "ColorMap.h"
 
 namespace Rappture {
@@ -22,8 +22,11 @@ namespace VtkVis {
 
 /**
  * \brief Volume Rendering
+ *
+ * Currently the DataSet must be image data (3D uniform grid),
+ * or an UnstructuredGrid
  */
-class Volume {
+class Volume : public VtkGraphicsObject {
 public:
     enum BlendMode {
         COMPOSITE = 0,
@@ -34,42 +37,26 @@ public:
     Volume();
     virtual ~Volume();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "Volume";
+    }
 
-    DataSet *getDataSet();
+    virtual void setOpacity(double opacity);
 
-    vtkProp *getProp();
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setColorMap(ColorMap *cmap);
+
     void setColorMap(ColorMap *cmap, double dataRange[2]);
 
     ColorMap *getColorMap();
 
-    void setOpacity(double opacity);
-
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setAmbient(double coeff);
-
-    void setDiffuse(double coeff);
-
-    void setSpecular(double coeff, double power);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
-
-    DataSet *_dataSet;
-    double _opacity;
+    virtual void initProp();
+    virtual void update();
 
     ColorMap *_colorMap;
-    vtkSmartPointer<vtkVolume> _volumeProp;
     vtkSmartPointer<vtkAbstractVolumeMapper> _volumeMapper;
 };
 

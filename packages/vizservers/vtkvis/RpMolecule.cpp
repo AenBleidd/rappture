@@ -25,15 +25,9 @@
 using namespace Rappture::VtkVis;
 
 Molecule::Molecule() :
-    _dataSet(NULL),
-    _edgeWidth(1.0),
-    _opacity(1.0),
-    _lighting(true),
+    VtkGraphicsObject(),
     _atomScaling(NO_ATOM_SCALING)
 {
-    _edgeColor[0] = 0.0;
-    _edgeColor[1] = 0.0;
-    _edgeColor[2] = 0.0;
 }
 
 Molecule::~Molecule()
@@ -44,14 +38,6 @@ Molecule::~Molecule()
     else
         TRACE("Deleting Molecule with NULL DataSet");
 #endif
-}
-
-/**
- * \brief Get the VTK Prop for the Molecule
- */
-vtkProp *Molecule::getProp()
-{
-    return _props;
 }
 
 /**
@@ -79,32 +65,9 @@ void Molecule::initProp()
         if (!_lighting)
             _bondProp->GetProperty()->LightingOff();
     }
-    if (_props == NULL) {
-        _props = vtkSmartPointer<vtkPropAssembly>::New();
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkAssembly>::New();
     }
-}
-
-/**
- * \brief Specify input DataSet (PolyData)
- *
- * The DataSet must be a PolyData object.  Vertices are used for atom
- * positions and Lines are used to draw bonds.  A scalar field and
- * color map may be supplied to color the atoms and bonds.
- */
-void Molecule::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-        update();
-    }
-}
-
-/**
- * \brief Returns the DataSet this Molecule renders
- */
-DataSet *Molecule::getDataSet()
-{
-    return _dataSet;
 }
 
 /**
@@ -193,7 +156,7 @@ void Molecule::update()
             tuber->SetVaryRadiusToVaryRadiusOff();
             _bondMapper->SetInputConnection(tuber->GetOutputPort());
             _bondProp->SetMapper(_bondMapper);
-            _props->AddPart(_bondProp);
+            getAssembly()->AddPart(_bondProp);
         }
         if (pd->GetNumberOfVerts() > 0) {
             // Atoms
@@ -216,7 +179,7 @@ void Molecule::update()
             _glypher->OrientOff();
             _atomMapper->SetInputConnection(_glypher->GetOutputPort());
             _atomProp->SetMapper(_atomMapper);
-            _props->AddPart(_atomProp);
+            getAssembly()->AddPart(_atomProp);
         }
     } else {
         // DataSet is NOT a vtkPolyData
@@ -258,16 +221,6 @@ void Molecule::setLookupTable(vtkLookupTable *lut)
 }
 
 /**
- * \brief Turn on/off rendering of this Molecule
- */
-void Molecule::setVisibility(bool state)
-{
-    if (_props != NULL) {
-        _props->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
  * \brief Turn on/off rendering of the atoms
  */
 void Molecule::setAtomVisibility(bool state)
@@ -288,96 +241,6 @@ void Molecule::setBondVisibility(bool state)
 }
 
 /**
- * \brief Get visibility state of the Molecule
- * 
- * \return Is mesh visible?
- */
-bool Molecule::getVisibility()
-{
-    if (_props == NULL) {
-        return false;
-    } else {
-        return (_props->GetVisibility() != 0);
-    }
-}
-
-/**
- * \brief Set opacity used to render the Molecule
- */
-void Molecule::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_atomProp != NULL)
-        _atomProp->GetProperty()->SetOpacity(opacity);
-    if (_bondProp != NULL)
-        _bondProp->GetProperty()->SetOpacity(opacity);
-}
-
-/**
- * \brief Switch between wireframe and surface representations
- */
-void Molecule::setWireframe(bool state)
-{
-    if (_atomProp != NULL) {
-        if (state) {
-            _atomProp->GetProperty()->SetRepresentationToWireframe();
-            _atomProp->GetProperty()->LightingOff();
-        } else {
-            _atomProp->GetProperty()->SetRepresentationToSurface();
-            _atomProp->GetProperty()->SetLighting((_lighting ? 1 : 0));
-        }
-    }
-    if (_bondProp != NULL) {
-        if (state) {
-            _bondProp->GetProperty()->SetRepresentationToWireframe();
-            _bondProp->GetProperty()->LightingOff();
-        } else {
-            _bondProp->GetProperty()->SetRepresentationToSurface();
-            _bondProp->GetProperty()->SetLighting((_lighting ? 1 : 0));
-        }
-    }
-}
-
-/**
- * \brief Turn on/off rendering of mesh edges
- */
-void Molecule::setEdgeVisibility(bool state)
-{
-    if (_atomProp != NULL) {
-        _atomProp->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-    if (_bondProp != NULL) {
-        _bondProp->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Set RGB color of polygon edges
- */
-void Molecule::setEdgeColor(float color[3])
-{
-    _edgeColor[0] = color[0];
-    _edgeColor[1] = color[1];
-    _edgeColor[2] = color[2];
-    if (_atomProp != NULL)
-        _atomProp->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-    if (_bondProp != NULL)
-        _bondProp->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-}
-
-/**
- * \brief Set pixel width of polygon edges (may be a no-op)
- */
-void Molecule::setEdgeWidth(float edgeWidth)
-{
-    _edgeWidth = edgeWidth;
-    if (_atomProp != NULL)
-        _atomProp->GetProperty()->SetLineWidth(_edgeWidth);
-    if (_bondProp != NULL)
-        _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
-}
-
-/**
  * \brief Set a group of world coordinate planes to clip rendering
  *
  * Passing NULL for planes will remove all cliping planes
@@ -393,17 +256,8 @@ void Molecule::setClippingPlanes(vtkPlaneCollection *planes)
 }
 
 /**
- * \brief Turn on/off lighting of this object
+ * \brief Set the radius type used for scaling atoms
  */
-void Molecule::setLighting(bool state)
-{
-    _lighting = state;
-    if (_atomProp != NULL)
-        _atomProp->GetProperty()->SetLighting((state ? 1 : 0));
-    if (_bondProp != NULL)
-        _bondProp->GetProperty()->SetLighting((state ? 1 : 0));
-}
-
 void Molecule::setAtomScaling(AtomScaling state)
 {
     _atomScaling = state;

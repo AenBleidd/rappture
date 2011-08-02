@@ -12,11 +12,11 @@
 #include <vtkLookupTable.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
-#include <vtkPropAssembly.h>
+#include <vtkAssembly.h>
 #include <vtkGlyph3D.h>
 
 #include "ColorMap.h"
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -32,7 +32,7 @@ namespace VtkVis {
  * and scaling atoms.  If the scalar array is not named 
  * "element," it will be color-mapped as a standard scalar field.
  */
-class Molecule {
+class Molecule : public VtkGraphicsObject {
 public:
     enum AtomScaling {
         NO_ATOM_SCALING,
@@ -44,11 +44,12 @@ public:
     Molecule();
     virtual ~Molecule();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "Molecule";
+    }
 
-    DataSet *getDataSet();
-
-    vtkProp *getProp();
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setLookupTable(vtkLookupTable *lut);
 
@@ -60,42 +61,17 @@ public:
 
     void setBondVisibility(bool state);
 
-    void setVisibility(bool state);
-
-    bool getVisibility();
-
-    void setOpacity(double opacity);
-
-    void setWireframe(bool state);
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
     static ColorMap *createElementColorMap();
 
 private:
-    void initProp();
-    void update();
+    virtual void initProp();
+    virtual void update();
 
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling);
 
-    DataSet *_dataSet;
-
-    float _edgeColor[3];
-    float _edgeWidth;
-    double _opacity;
-    bool _lighting;
     AtomScaling _atomScaling;
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkPropAssembly> _props;
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
     vtkSmartPointer<vtkGlyph3D> _glypher;

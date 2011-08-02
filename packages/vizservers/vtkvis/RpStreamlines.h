@@ -15,17 +15,19 @@
 #include <vtkPolyDataAlgorithm.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkLookupTable.h>
-#include <vtkPropAssembly.h>
+#include <vtkAssembly.h>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
 
 /**
  * \brief Streamline visualization of vector fields
+ *
+ * The DataSet must contain vectors
  */
-class Streamlines {
+class Streamlines : public VtkGraphicsObject {
 public:
     enum LineType {
         LINES,
@@ -36,11 +38,24 @@ public:
     Streamlines();
     virtual ~Streamlines();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const 
+    {
+        return "Streamlines";
+    }
 
-    DataSet *getDataSet();
+    virtual void setLighting(bool state);
+    
+    virtual void setVisibility(bool state);
 
-    vtkProp *getProp();
+    virtual bool getVisibility();
+
+    virtual void setEdgeVisibility(bool state);
+
+    virtual void setEdgeColor(float color[3]);
+
+    virtual void setEdgeWidth(float edgeWidth);
+
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setSeedToRandomPoints(int numPoints);
 
@@ -61,49 +76,24 @@ public:
 
     vtkLookupTable *getLookupTable();
 
-    void setOpacity(double opacity);
-
-    double getOpacity();
-
-    void setVisibility(bool state);
-
     void setSeedVisibility(bool state);
-
-    bool getVisibility();
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
 
     void setSeedColor(float color[3]);
 
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
+    virtual void initProp();
+    virtual void update();
 
     static void getRandomPoint(double pt[3], const double bounds[6]);
     static void getRandomCellPt(vtkDataSet *ds, double pt[3]);
 
-    DataSet *_dataSet;
-
     LineType _lineType;
-    float _edgeColor[3];
-    float _edgeWidth;
     float _seedColor[3];
-    double _opacity;
-    bool _lighting;
     bool _seedVisible;
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkActor> _prop;
+    vtkSmartPointer<vtkActor> _linesActor;
     vtkSmartPointer<vtkActor> _seedActor;
-    vtkSmartPointer<vtkPropAssembly> _props;
     vtkSmartPointer<vtkStreamTracer> _streamTracer;
     vtkSmartPointer<vtkPolyDataAlgorithm> _lineFilter;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;

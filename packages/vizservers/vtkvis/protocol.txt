@@ -20,7 +20,13 @@ axis color <r> <g> <b>
 axis flymode <mode>
      <mode> = static_edges|static_triad|outer_edges|furthest_triad|closest_triad
 axis grid <bool>
+axis labels <axis> <bool>
+     Toggle visibility of axis labels
+     <axis> = x|y|z|all
 axis name <axis> <title>
+axis ticks <axis> <bool>
+     Toggle visibility of axis tick marks
+     <axis> = x|y|z|all
 axis units <axis> <units>
      Currently only supported when camera mode is not image mode
 axis visible <axis> <bool>
@@ -105,6 +111,7 @@ glyphs opacity <val> <?datasetName?>
 glyphs scale <scaleFactor> <?datasetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|octahedron|sphere|tetrahedron> <?datasetName?>
 glyphs visible <bool> <?datasetName?>
+glyphs wireframe <bool> <?datasetName?>
 
 heightmap add numcontours <n> <?dataSetName?>
           Generate evenly spaced contours including range endpoints.  See also
@@ -122,6 +129,9 @@ heightmap lighting <bool> <?dataSetName?>
 heightmap linecolor <r> <g> <b> <?dataSetName?>
 heightmap linewidth <width> <?dataSetName?>
 heightmap opacity <value> <?dataSetName?>
+heightmap orient <qw> <qx> <qy> <qz> <?dataSetName?>
+heightmap pos <x> <y> <z> <?dataSetName?>
+heightmap scale <sx> <sy> <sz> <?dataSetName?>
 heightmap visible <bool> <?dataSetName?>
 heightmap volumeslice axis ratio <?dataSetName?>
           For 3D data, select a slice along a principle axis of the volume. The
@@ -150,8 +160,12 @@ molecule lighting <bool> <?datasetName?>
 molecule linecolor <r> <g> <b> <?datasetName?>
 molecule linewidth <val> <?datasetName?>
 molecule opacity <val> <?datasetName?>
-molecule scaleatoms <val> <?dataSetName?>
+molecule orient <qw> <qx> <qy> <qz> <?dataSetName?>
+molecule pos <x> <y> <z> <?dataSetName?>
+molecule rscale <val> <?dataSetName?>
+         Atom radius scaling
          val = van_der_walls|covalent|atomic|none
+molecule scale <sx> <sy> <sz> <?dataSetName?>
 molecule visible <bool> <?datasetName?>
 molecule wireframe <bool> <?datasetName?>
 
@@ -163,6 +177,9 @@ polydata lighting <bool> <?datasetName?>
 polydata linecolor <r> <g> <b> <?datasetName?>
 polydata linewidth <val> <?datasetName?>
 polydata opacity <val> <?datasetName?>
+polydata orient <qw> <qx> <qy> <qz> <?dataSetName?>
+polydata pos <x> <y> <z> <?dataSetName?>
+polydata scale <sx> <sy> <sz> <?dataSetName?>
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 

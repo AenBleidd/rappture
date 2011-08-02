@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include "RpVtkDataSet.h"
+#include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -25,16 +25,19 @@ namespace VtkVis {
 /**
  * \brief 3D Contour isosurfaces (geometry)
  */
-class Contour3D {
+class Contour3D : public VtkGraphicsObject {
 public:
     Contour3D();
     virtual ~Contour3D();
 
-    void setDataSet(DataSet *dataset);
+    virtual const char *getClassName() const
+    {
+        return "Contour3D";
+    }
 
-    DataSet *getDataSet();
+    virtual void setDataSet(DataSet *dataset);
 
-    vtkProp *getProp();
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setContours(int numContours);
 
@@ -46,50 +49,21 @@ public:
 
     const std::vector<double>& getContourList() const;
 
-    void setVisibility(bool state);
-
-    bool getVisibility() const;
-
-    void setOpacity(double opacity);
-
-    void setWireframe(bool state);
-
     void setLookupTable(vtkLookupTable *lut);
 
     vtkLookupTable *getLookupTable();
 
-    void setColor(float color[3]);
-
-    void setEdgeVisibility(bool state);
-
-    void setEdgeColor(float color[3]);
-
-    void setEdgeWidth(float edgeWidth);
-
-    void setClippingPlanes(vtkPlaneCollection *planes);
-
-    void setLighting(bool state);
-
 private:
-    void initProp();
-    void update();
-
-    DataSet *_dataSet;
+    virtual void initProp();
+    virtual void update();
 
     int _numContours;
     std::vector<double> _contours;
     double _dataRange[2];
 
-    float _color[3];
-    float _edgeColor[3];
-    float _edgeWidth;
-    double _opacity;
-    bool _lighting;
-
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
-    vtkSmartPointer<vtkActor> _contourActor;
 };
 
 }

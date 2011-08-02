@@ -35,23 +35,18 @@ using namespace Rappture::VtkVis;
 #define MESH_POINT_CLOUDS
 
 HeightMap::HeightMap() :
-    _dataSet(NULL),
+    VtkGraphicsObject(),
     _numContours(0),
-    _edgeWidth(1.0),
     _contourEdgeWidth(1.0),
-    _opacity(1.0),
     _warpScale(1.0),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false)
 {
     _dataRange[0] = 0.0;
     _dataRange[1] = 1.0;
-    _edgeColor[0] = 0.0;
-    _edgeColor[1] = 0.0;
-    _edgeColor[2] = 0.0;
-    _contourEdgeColor[0] = 1.0;
-    _contourEdgeColor[1] = 0.0;
-    _contourEdgeColor[2] = 0.0;
+    _contourEdgeColor[0] = 1.0f;
+    _contourEdgeColor[1] = 0.0f;
+    _contourEdgeColor[2] = 0.0f;
 }
 
 HeightMap::~HeightMap()
@@ -106,11 +101,32 @@ void HeightMap::setDataSet(DataSet *dataSet)
 }
 
 /**
- * \brief Returns the DataSet this HeightMap renders
+ * \brief Create and initialize VTK Props to render the colormapped dataset
  */
-DataSet *HeightMap::getDataSet()
+void HeightMap::initProp()
 {
-    return _dataSet;
+    if (_dsActor == NULL) {
+        _dsActor = vtkSmartPointer<vtkActor>::New();
+        _dsActor->GetProperty()->SetOpacity(_opacity);
+        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0],
+                                              _edgeColor[1],
+                                              _edgeColor[2]);
+        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
+        _dsActor->GetProperty()->EdgeVisibilityOff();
+        _dsActor->GetProperty()->SetAmbient(.2);
+        _dsActor->GetProperty()->LightingOn();
+    }
+    if (_contourActor == NULL) {
+        _contourActor = vtkSmartPointer<vtkActor>::New();
+        _contourActor->GetProperty()->SetOpacity(_opacity);
+        _contourActor->GetProperty()->SetEdgeColor(_contourEdgeColor[0],
+                                                   _contourEdgeColor[1],
+                                                   _contourEdgeColor[2]);
+        _contourActor->GetProperty()->SetLineWidth(_contourEdgeWidth);
+        _contourActor->GetProperty()->EdgeVisibilityOn();
+        _contourActor->GetProperty()->SetAmbient(.2);
+        _contourActor->GetProperty()->LightingOff();
+    }
 }
 
 /**
@@ -371,10 +387,10 @@ void HeightMap::update()
 
     _dsActor->SetMapper(_dsMapper);
 
-    if (_props == NULL) {
-        _props = vtkSmartPointer<vtkPropAssembly>::New();
-        _props->AddPart(_dsActor);
-        _props->AddPart(_contourActor);
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkAssembly>::New();
+        getAssembly()->AddPart(_dsActor);
+        getAssembly()->AddPart(_contourActor);
     }
 
     _dsMapper->Update();
@@ -598,43 +614,6 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
 }
 
 /**
- * \brief Get the VTK Prop for the colormapped dataset
- */
-vtkProp *HeightMap::getProp()
-{
-    return _props;
-}
-
-/**
- * \brief Create and initialize VTK Props to render the colormapped dataset
- */
-void HeightMap::initProp()
-{
-    if (_dsActor == NULL) {
-        _dsActor = vtkSmartPointer<vtkActor>::New();
-        _dsActor->GetProperty()->SetOpacity(_opacity);
-        _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0],
-                                              _edgeColor[1],
-                                              _edgeColor[2]);
-        _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
-        _dsActor->GetProperty()->EdgeVisibilityOff();
-        _dsActor->GetProperty()->SetAmbient(.2);
-        _dsActor->GetProperty()->LightingOn();
-    }
-    if (_contourActor == NULL) {
-        _contourActor = vtkSmartPointer<vtkActor>::New();
-        _contourActor->GetProperty()->SetOpacity(_opacity);
-        _contourActor->GetProperty()->SetEdgeColor(_contourEdgeColor[0],
-                                                   _contourEdgeColor[1],
-                                                   _contourEdgeColor[2]);
-        _contourActor->GetProperty()->SetLineWidth(_contourEdgeWidth);
-        _contourActor->GetProperty()->EdgeVisibilityOn();
-        _contourActor->GetProperty()->SetAmbient(.2);
-        _contourActor->GetProperty()->LightingOff();
-    }
-}
-
-/**
  * \brief Get the VTK colormap lookup table in use
  */
 vtkLookupTable *HeightMap::getLookupTable()
@@ -727,47 +706,12 @@ const std::vector<double>&  HeightMap::getContourList() const
 }
 
 /**
- * \brief Turn on/off rendering of this HeightMap
+ * \brief Turn on/off lighting of this object
  */
-void HeightMap::setVisibility(bool state)
+void HeightMap::setLighting(bool state)
 {
-    if (_dsActor != NULL) {
-        _dsActor->SetVisibility((state ? 1 : 0));
-    }
-    if (_contourActor != NULL) {
-        _contourActor->SetVisibility((state ? 1 : 0));
-    }
-}
-
-/**
- * \brief Get visibility state of the HeightMap
- * 
- * \return Is HeightMap visible?
- */
-bool HeightMap::getVisibility()
-{
-    if (_dsActor != NULL &&
-        _dsActor->GetVisibility() != 0) {
-        return true;
-    } else if (_contourActor != NULL &&
-               _contourActor->GetVisibility() != 0) {
-        return true;
-    }
-    return false;
-}
-
-/**
- * \brief Set opacity used to render the HeightMap
- */
-void HeightMap::setOpacity(double opacity)
-{
-    _opacity = opacity;
-    if (_dsActor != NULL) {
-        _dsActor->GetProperty()->SetOpacity(opacity);
-    }
-    if (_contourActor != NULL) {
-        _contourActor->GetProperty()->SetOpacity(opacity);
-    }
+    if (_dsActor != NULL)
+        _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
 }
 
 /**
@@ -851,11 +795,3 @@ void HeightMap::setClippingPlanes(vtkPlaneCollection *planes)
     }
 }
 
-/**
- * \brief Turn on/off lighting of this object
- */
-void HeightMap::setLighting(bool state)
-{
-    if (_dsActor != NULL)
-        _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
-}
