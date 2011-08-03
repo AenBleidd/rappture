@@ -14,6 +14,8 @@ renderer clipplane <axis> <ratio> <direction>
          apply if camera mode is image.
 renderer depthpeel <bool>
          Set use of depth peeling algorithm for transparency
+renderer render
+         Force a new image to be rendered - use for advancing animation
 
 axis color <r> <g> <b>
      Set color of axis lines, labels, titles, ticks
@@ -24,6 +26,9 @@ axis labels <axis> <bool>
      Toggle visibility of axis labels
      <axis> = x|y|z|all
 axis name <axis> <title>
+axis tickpos <position>
+     Set position of ticks on 3D axes (not implemented for 2D axes)
+     <position> = inside|outside|both
 axis ticks <axis> <bool>
      Toggle visibility of axis tick marks
      <axis> = x|y|z|all

@@ -900,6 +900,29 @@ void Renderer::setAxesTickVisibility(bool state)
 }
 
 /**
+ * \brief Control position of ticks on 3D axes
+ */
+void Renderer::setAxesTickPosition(AxesTickPosition pos)
+{
+    if (_cubeAxesActor == NULL)
+        return;
+
+    switch (pos) {
+    case TICKS_BOTH:
+        _cubeAxesActor->SetTickLocationToBoth();
+        break;
+    case TICKS_OUTSIDE:
+        _cubeAxesActor->SetTickLocationToOutside();
+        break;
+    case TICKS_INSIDE:
+    default:
+        _cubeAxesActor->SetTickLocationToInside();
+        break;
+    }
+    _needsRedraw = true;
+}
+
+/**
  * \brief Turn on/off rendering of the specified axis
  */
 void Renderer::setAxisVisibility(Axis axis, bool state)
