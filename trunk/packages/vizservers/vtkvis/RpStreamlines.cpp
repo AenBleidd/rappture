@@ -487,6 +487,8 @@ void Streamlines::setLookupTable(vtkLookupTable *lut)
         _lut = lut;
     }
 
+    _lut->SetVectorModeToMagnitude();
+
     if (_pdMapper != NULL) {
         _pdMapper->SetLookupTable(_lut);
     }
