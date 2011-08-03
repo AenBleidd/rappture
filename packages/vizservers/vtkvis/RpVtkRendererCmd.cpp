@@ -198,6 +198,26 @@ AxisTicksVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+AxisTickPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'i') && (strcmp(string, "inside") == 0)) {
+        g_renderer->setAxesTickPosition(Renderer::TICKS_INSIDE);
+    } else if ((c == 'o') && (strcmp(string, "outside") == 0)) {
+        g_renderer->setAxesTickPosition(Renderer::TICKS_OUTSIDE);
+    } else if ((c == 'b') && (strcmp(string, "both") == 0)) {
+        g_renderer->setAxesTickPosition(Renderer::TICKS_BOTH);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be inside, outside or both", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -250,7 +270,8 @@ static Rappture::CmdSpec axisOps[] = {
     {"grid",    1, AxisGridOp, 4, 4, "axis bool"},
     {"labels",  1, AxisLabelsVisibleOp, 4, 4, "axis bool"},
     {"name",    1, AxisNameOp, 4, 4, "axis title"},
-    {"ticks",   1, AxisTicksVisibleOp, 4, 4, "axis bool"},
+    {"tickpos", 2, AxisTickPositionOp, 3, 3, "position"},
+    {"ticks",   2, AxisTicksVisibleOp, 4, 4, "axis bool"},
     {"units",   1, AxisUnitsOp, 4, 4, "axis units"},
     {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"}
 };

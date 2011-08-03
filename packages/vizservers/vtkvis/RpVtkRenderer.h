@@ -68,6 +68,12 @@ public:
         FLY_STATIC_TRIAD
     };
 
+    enum AxesTickPosition {
+        TICKS_INSIDE,
+        TICKS_OUTSIDE,
+        TICKS_BOTH
+    };
+
     enum CameraMode {
         PERSPECTIVE,
         ORTHO,
@@ -184,6 +190,8 @@ public:
     void setAxesLabelVisibility(bool state);
 
     void setAxesTickVisibility(bool state);
+
+    void setAxesTickPosition(AxesTickPosition pos);
 
     void setAxesColor(double color[3]);
 
