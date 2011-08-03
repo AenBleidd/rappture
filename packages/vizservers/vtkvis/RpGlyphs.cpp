@@ -174,6 +174,8 @@ void Glyphs::update()
 
     initProp();
 
+    getActor()->GetProperty()->BackfaceCullingOn();
+
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 }

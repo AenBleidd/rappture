@@ -47,6 +47,7 @@ void Molecule::initProp()
 {
     if (_atomProp == NULL) {
         _atomProp = vtkSmartPointer<vtkActor>::New();
+        _atomProp->GetProperty()->BackfaceCullingOn();
         _atomProp->GetProperty()->EdgeVisibilityOff();
         _atomProp->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _atomProp->GetProperty()->SetLineWidth(_edgeWidth);
@@ -57,6 +58,7 @@ void Molecule::initProp()
     }
     if (_bondProp == NULL) {
         _bondProp = vtkSmartPointer<vtkActor>::New();
+        _bondProp->GetProperty()->BackfaceCullingOn();
         _bondProp->GetProperty()->EdgeVisibilityOff();
         _bondProp->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
