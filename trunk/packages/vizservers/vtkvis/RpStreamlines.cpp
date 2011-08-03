@@ -55,14 +55,17 @@ void Streamlines::initProp()
             _linesActor->GetProperty()->LightingOff();
         switch (_lineType) {
         case LINES:
+            _linesActor->GetProperty()->BackfaceCullingOff();
             _linesActor->GetProperty()->SetRepresentationToWireframe();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case TUBES:
+            _linesActor->GetProperty()->BackfaceCullingOn();
             _linesActor->GetProperty()->SetRepresentationToSurface();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case RIBBONS:
+            _linesActor->GetProperty()->BackfaceCullingOff();
             _linesActor->GetProperty()->SetRepresentationToSurface();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
@@ -406,6 +409,7 @@ void Streamlines::setLineTypeToLines()
         _streamTracer->SetComputeVorticity(false);
         _pdMapper->SetInputConnection(_streamTracer->GetOutputPort());
         _lineFilter = NULL;
+        _linesActor->GetProperty()->BackfaceCullingOff();
         _linesActor->GetProperty()->SetRepresentationToWireframe();
         _linesActor->GetProperty()->LightingOff();
     }
@@ -432,6 +436,7 @@ void Streamlines::setLineTypeToTubes(int numSides, double radius)
         tubeFilter->SetNumberOfSides(numSides);
         tubeFilter->SetRadius(radius);
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
+        _linesActor->GetProperty()->BackfaceCullingOn();
         _linesActor->GetProperty()->SetRepresentationToSurface();
         _linesActor->GetProperty()->LightingOn();
      }
@@ -457,6 +462,7 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
         ribbonFilter->SetAngle(angle);
         ribbonFilter->UseDefaultNormalOn();
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
+        _linesActor->GetProperty()->BackfaceCullingOff();
         _linesActor->GetProperty()->SetRepresentationToSurface();
         _linesActor->GetProperty()->LightingOn();
     }
