@@ -42,13 +42,23 @@ public:
 
     vtkDataSet *getVtkDataSet();
 
-    const char *getVtkType();
+    const char *getVtkType() const;
 
-    void getDataRange(double minmax[2]);
+    bool setActiveScalar(const char *name);
 
-    void getBounds(double bounds[6]);
+    bool setActiveVector(const char *name);
 
-    double getDataValue(double x, double y, double z);
+    void getDataRange(double minmax[2]) const;
+
+    void getDataRange(double minmax[2], const char *fieldName) const;
+
+    void getVectorMagnitudeRange(double minmax[2]) const;
+
+    void getVectorComponentRange(double minmax[2], int component) const;
+
+    void getBounds(double bounds[6]) const;
+
+    double getDataValue(double x, double y, double z) const;
 
     void setVisibility(bool state);
 
@@ -59,8 +69,6 @@ private:
 
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;
-    double _dataRange[2];
-    double _bounds[6];
     bool _visible;
 };
 

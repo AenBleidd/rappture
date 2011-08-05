@@ -22,7 +22,7 @@ INSTALL_DATA    = ${INSTALL} -m 0644
 INSTALL_SCRIPT  = ${INSTALL} -m 0644
 MKDIR_P		= @MKDIR_P@
 
-GL_LIB_SPEC	= -lGL
+GL_LIB_SPEC	= -lGL -lm
 
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
@@ -50,7 +50,8 @@ USE_CUSTOM_AXES 	= #yes
 USE_GPU_RAYCASTING      = yes
 USE_OFFSCREEN_RENDERING = yes
 
-EXTRA_CFLAGS	= -Wall -Wno-deprecated #vtk uses deprecated strstream header (instead of sstream)
+#vtk uses deprecated strstream header (instead of sstream)
+EXTRA_CFLAGS	= -Wall -Wno-deprecated
 DEFINES		=
 ifdef DEBUG
 DEFINES 	+= -DDEBUG

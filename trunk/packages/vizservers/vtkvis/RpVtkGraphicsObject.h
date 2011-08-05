@@ -25,6 +25,7 @@
 #include <vtkPlaneCollection.h>
 
 #include "RpVtkDataSet.h"
+#include "Trace.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -38,7 +39,8 @@ public:
         _dataSet(NULL),
         _opacity(1.0),
         _edgeWidth(1.0f),
-        _lighting(true)
+        _lighting(true),
+        _backfaceCulling(false)
     {
         _color[0] = 1.0f;
         _color[1] = 1.0f;
@@ -228,6 +230,13 @@ public:
         _opacity = opacity;
         if (getActor() != NULL) {
             getActor()->GetProperty()->SetOpacity(opacity);
+            if (_backfaceCulling && _opacity < 1.0) {
+                getActor()->GetProperty()->BackfaceCullingOff();
+                TRACE("Backface culling off");
+            } else if (_backfaceCulling && _opacity == 1.0) {
+                getActor()->GetProperty()->BackfaceCullingOn();
+                TRACE("Backface culling on");
+            }
         } else if (getAssembly() != NULL) {
             vtkProp3DCollection *props = getAssembly()->GetParts();
             vtkProp3D *prop;
@@ -235,6 +244,13 @@ public:
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetOpacity(opacity);
+                    if (_backfaceCulling && _opacity < 1.0) {
+                        vtkActor::SafeDownCast(prop)->GetProperty()->BackfaceCullingOff();
+                        TRACE("Backface culling off");
+                    } else if (_backfaceCulling && _opacity == 1.0) {
+                        vtkActor::SafeDownCast(prop)->GetProperty()->BackfaceCullingOn();
+                        TRACE("Backface culling on");
+                    }
                 }
             }
         }
@@ -556,6 +572,28 @@ public:
     }
 
     /**
+     * \brief Toggle backface culling of prop
+     */
+    virtual void setBackfaceCulling(bool state)
+    {
+        _backfaceCulling = state;
+        if (state && _opacity < 1.0)
+            return;
+        if (getActor() != NULL) {
+            getActor()->GetProperty()->SetBackfaceCulling((state ? 1 : 0));
+         } else if (getAssembly() != NULL) {
+            vtkProp3DCollection *props = getAssembly()->GetParts();
+            vtkProp3D *prop;
+            props->InitTraversal();
+            while ((prop = props->GetNextProp3D()) != NULL) {
+                if (vtkActor::SafeDownCast(prop) != NULL) {
+                    vtkActor::SafeDownCast(prop)->GetProperty()->SetBackfaceCulling((state ? 1 : 0));
+                }
+            }
+        }
+    }
+
+    /**
      * \brief Subclasses need to implement setting clipping planes in their mappers
      */
     virtual void setClippingPlanes(vtkPlaneCollection *planes) = 0;
@@ -574,6 +612,9 @@ protected:
             property->SetAmbient(.2);
             if (!_lighting)
                 property->LightingOff();
+            if (_backfaceCulling && _opacity == 1.0) {
+                property->BackfaceCullingOn();
+            }
         }
     }
 
@@ -589,6 +630,7 @@ protected:
     float _edgeColor[3];
     float _edgeWidth;
     bool _lighting;
+    bool _backfaceCulling;
 
     vtkSmartPointer<vtkProp> _prop;
 };

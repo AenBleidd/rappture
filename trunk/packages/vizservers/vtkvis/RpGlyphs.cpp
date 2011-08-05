@@ -30,6 +30,7 @@ Glyphs::Glyphs() :
     _glyphShape(ARROW),
     _scaleFactor(1.0)
 {
+    _backfaceCulling = true;
 }
 
 Glyphs::~Glyphs()
@@ -173,8 +174,6 @@ void Glyphs::update()
     _pdMapper->SetLookupTable(_lut);
 
     initProp();
-
-    getActor()->GetProperty()->BackfaceCullingOn();
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();

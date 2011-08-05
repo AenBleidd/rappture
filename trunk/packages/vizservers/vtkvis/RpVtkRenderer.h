@@ -171,6 +171,8 @@ public:
 
     void setClipPlane(Axis axis, double ratio, int direction);
 
+    void setUseTwoSidedLighting(bool state);
+
     void setUseDepthPeeling(bool state);
 
     void eventuallyRender();
@@ -280,6 +282,12 @@ public:
     void deleteGlyphs(const DataSetId& id);
 
     Glyphs *getGlyphs(const DataSetId& id);
+
+    void setGlyphsEdgeVisibility(const DataSetId& id, bool state);
+
+    void setGlyphsEdgeColor(const DataSetId& id, float color[3]);
+
+    void setGlyphsEdgeWidth(const DataSetId& id, float edgeWidth);
 
     void setGlyphsLighting(const DataSetId& id, bool state);
 
