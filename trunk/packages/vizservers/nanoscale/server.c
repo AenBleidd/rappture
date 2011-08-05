@@ -75,6 +75,40 @@ struct child_info child_array[100];
 	    _x > _y ? _x : _y; })
 
 
+#include <syslog.h>
+#include <stdarg.h>
+
+#define ERROR(...)	LogMessage(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
+#ifdef WANT_TRACE
+#define TRACE(...)	LogMessage(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
+#else 
+#define TRACE(...) 
+#endif
+#define WARN(...)	LogMessage(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...)	LogMessage(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
+
+void 
+LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
+{
+#define MSG_LEN	(2047)
+    char message[MSG_LEN+1];
+    const char *s;
+    int length;
+    va_list lst;
+
+    va_start(lst, fmt);
+    s = strrchr(path, '/');
+    if (s == NULL) {
+	s = path;
+    } else {
+	s++;
+    }
+    length = snprintf(message, MSG_LEN, "line %d of \"%s\": ", lineNum, s);
+    length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
+    message[MSG_LEN] = '\0';
+    syslog(priority, message, length);
+}
+
 static void
 close_child(int pipe_fd)
 {
@@ -124,8 +158,7 @@ sigalarm_handler(int signum)
 static void 
 help(const char *argv0)
 {
-    fprintf(stderr,
-	    "Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
+    INFO("Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
 	    argv0);
     exit(1);
 }
@@ -182,7 +215,7 @@ main(int argc, char *argv[])
 	case 'x': /* Number of video cards */
 	    maxCards = strtoul(optarg, 0, 0);
 	    if ((maxCards < 1) || (maxCards > 10)) {
-		fprintf(stderr, "bad number of max videocards specified\n");
+		ERROR("bad number of max videocards specified\n");
 		return 1;
 	    }
 	    break;
@@ -196,7 +229,7 @@ main(int argc, char *argv[])
 	    strncpy(server_command[nservices], optarg, sizeof(server_command[0]));
 
 	    if (listen_port[nservices] == -1) {
-		fprintf(stderr,"Must specify -l port before each -c command.\n");
+		ERROR("Must specify -l port before each -c command.\n");
 		return 1;
 	    }
 
@@ -209,12 +242,12 @@ main(int argc, char *argv[])
 	case 's':
 	    send_addr.sin_addr.s_addr = htonl(inet_network(optarg));
 	    if (send_addr.sin_addr.s_addr == -1) {
-		fprintf(stderr,"Invalid subnet broadcast address");
+		ERROR("Invalid subnet broadcast address");
 		return 1;
 	    }
 	    break;
 	default:
-	    fprintf(stderr,"Don't know what option '%c'.\n", c);
+	    ERROR("Don't know what option '%c'.\n", c);
 	    return 1;
 	}
     }
@@ -223,7 +256,7 @@ main(int argc, char *argv[])
 	server_command[0][0]=='\0') {
 	int i;
 	for (i = 0; i < argc; i++) {
-	    fprintf(stderr, "argv[%d]=(%s)\n", i, argv[i]);
+	    INFO("argv[%d]=(%s)\n", i, argv[i]);
 	}
 	help(argv[0]);
 	return 1;
@@ -394,8 +427,7 @@ main(int argc, char *argv[])
 		continue;
 	    }
 	    if (status != 8) {
-		fprintf(stderr,"Bogus message from %s\n",
-			inet_ntoa(peer_addr.sin_addr));
+		ERROR("Bogus message from %s\n", inet_ntoa(peer_addr.sin_addr));
 		continue;
 	    }
 	    float peer_load = ntohl(buffer[0]);
@@ -452,7 +484,7 @@ main(int argc, char *argv[])
 		int msg;
 		status = read(i, &msg, 4);
 		if (status != 4) {
-		    fprintf(stderr,"Bad status on read (%d).", status);
+		    ERROR("Bad status on read (%d).", status);
 		    FD_CLR(i, &saved_rfds);
 		    clear_service_fd(i);
 		    close(i);
@@ -464,13 +496,13 @@ main(int argc, char *argv[])
 	      
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
-		printf("Accepted new job with memory %d\n", newmemory);
+		INFO("Accepted new job with memory %d\n", newmemory);
 		//printf("My load is now %f\n", load);
 	      
 		// accept the connection.
 		msg = 0;
 		if (write(i, &msg, 4) != 4) {
-		    fprintf(stderr, "short write for hostname\n");
+		    ERROR("short write for hostname\n");
 		}
 	      
 		int pair[2];
@@ -520,7 +552,12 @@ main(int argc, char *argv[])
 				if (maxCards > 1) {
 				    displayVar[11] = dispNum + '0';
 				}
-				execvp(command_argv[n][0], command_argv[n]);
+				if (execvp(command_argv[n][0], command_argv[n]) < 1) {
+				    extern int errno;
+
+				    ERROR("can't execute \"%s\": %s\n", 
+					  command_argv[n][0], strerror(errno));
+				}
 			    }
 			    _exit(errno);
 			}
