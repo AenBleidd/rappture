@@ -1350,6 +1350,23 @@ GlyphsDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsEdgeVisibility(name, state);
+    } else {
+        g_renderer->setGlyphsEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -1362,6 +1379,42 @@ GlyphsLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGlyphsLighting(name, state);
     } else {
         g_renderer->setGlyphsLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGlyphsEdgeColor(name, color);
+    } else {
+        g_renderer->setGlyphsEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsEdgeWidth(name, width);
+    } else {
+        g_renderer->setGlyphsEdgeWidth("all", width);
     }
     return TCL_OK;
 }
@@ -1478,7 +1531,10 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
     {"colormap",  1, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
-    {"lighting",  1, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",  3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth", 5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",   1, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
     {"scale",     2, GlyphsScaleOp, 3, 4, "scaleFactor ?dataSetName?"},
     {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
@@ -2956,6 +3012,18 @@ RendererDepthPeelingOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+RendererTwoSidedLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    g_renderer->setUseTwoSidedLighting(state);
+    return TCL_OK;
+}
+
+static int
 RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -2964,9 +3032,10 @@ RendererRenderOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec rendererOps[] = {
-    {"clipplane", 1, RendererClipPlaneOp, 5, 5, "axis ratio direction"},
-    {"depthpeel", 1, RendererDepthPeelingOp, 3, 3, "bool"},
-    {"render",    1, RendererRenderOp, 2, 2, ""}
+    {"clipplane",  1, RendererClipPlaneOp, 5, 5, "axis ratio direction"},
+    {"depthpeel",  1, RendererDepthPeelingOp, 3, 3, "bool"},
+    {"light2side", 1, RendererTwoSidedLightingOp, 3, 3, "bool"},
+    {"render",     1, RendererRenderOp, 2, 2, ""}
 };
 static int nRendererOps = NumCmdSpecs(rendererOps);
 

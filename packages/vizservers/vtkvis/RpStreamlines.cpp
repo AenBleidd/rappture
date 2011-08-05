@@ -31,6 +31,7 @@ Streamlines::Streamlines() :
     _lineType(LINES),
     _seedVisible(true)
 {
+    _backfaceCulling = true;
     _seedColor[0] = 1.0f;
     _seedColor[1] = 1.0f;
     _seedColor[2] = 1.0f;
@@ -60,7 +61,8 @@ void Streamlines::initProp()
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case TUBES:
-            _linesActor->GetProperty()->BackfaceCullingOn();
+            if (_backfaceCulling && _opacity == 1.0)
+                _linesActor->GetProperty()->BackfaceCullingOn();
             _linesActor->GetProperty()->SetRepresentationToSurface();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
@@ -436,7 +438,8 @@ void Streamlines::setLineTypeToTubes(int numSides, double radius)
         tubeFilter->SetNumberOfSides(numSides);
         tubeFilter->SetRadius(radius);
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
-        _linesActor->GetProperty()->BackfaceCullingOn();
+        if (_backfaceCulling && _opacity == 1.0)
+            _linesActor->GetProperty()->BackfaceCullingOn();
         _linesActor->GetProperty()->SetRepresentationToSurface();
         _linesActor->GetProperty()->LightingOn();
      }
@@ -502,6 +505,24 @@ void Streamlines::setLighting(bool state)
     _lighting = state;
     if (_linesActor != NULL)
         _linesActor->GetProperty()->SetLighting((state ? 1 : 0));
+}
+
+/**
+ * \brief Set opacity of this object
+ */
+void Streamlines::setOpacity(double opacity)
+{
+    _opacity = opacity;
+    if (_linesActor != NULL) {
+        _linesActor->GetProperty()->SetOpacity(_opacity);
+        if (_opacity < 1.0)
+            _linesActor->GetProperty()->BackfaceCullingOff();
+        else if (_backfaceCulling && _lineType == TUBES)
+            _linesActor->GetProperty()->BackfaceCullingOn();
+    }
+    if (_seedActor != NULL) {
+        _seedActor->GetProperty()->SetOpacity(_opacity);
+    }
 }
 
 /**

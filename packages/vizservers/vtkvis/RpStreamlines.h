@@ -44,7 +44,9 @@ public:
     }
 
     virtual void setLighting(bool state);
-    
+
+    virtual void setOpacity(double opacity);
+
     virtual void setVisibility(bool state);
 
     virtual bool getVisibility();

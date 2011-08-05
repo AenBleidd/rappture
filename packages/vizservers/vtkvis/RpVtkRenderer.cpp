@@ -2068,6 +2068,116 @@ void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
 }
 
 /**
+ * \brief Set the visibility of polygon edges for the specified DataSet
+ */
+void Renderer::setGlyphsEdgeVisibility(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB polygon edge color for the specified DataSet
+ */
+void Renderer::setGlyphsEdgeColor(const DataSetId& id, float color[3])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setGlyphsEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn Glyphs lighting on/off for the specified DataSet
+ */
+void Renderer::setGlyphsLighting(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _glyphs.end());
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set opacity of Glyphs for the given DataSet
  */
 void Renderer::setGlyphsOpacity(const DataSetId& id, double opacity)
@@ -2145,32 +2255,6 @@ void Renderer::setGlyphsWireframe(const DataSetId& id, bool state)
         itr->second->setWireframe(state);
     } while (doAll && ++itr != _glyphs.end());
 
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn Glyphs lighting on/off for the specified DataSet
- */
-void Renderer::setGlyphsLighting(const DataSetId& id, bool state)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _glyphs.end());
     _needsRedraw = true;
 }
 
@@ -6364,6 +6448,15 @@ void Renderer::setCameraClippingPlanes()
          itr != _volumes.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
+}
+
+/**
+ * \brief Control the use of two sided lighting
+ */
+void Renderer::setUseTwoSidedLighting(bool state)
+{
+    _renderer->SetTwoSidedLighting(state ? 1 : 0);
+    _needsRedraw = true;
 }
 
 /**

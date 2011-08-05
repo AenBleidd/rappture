@@ -16,6 +16,7 @@
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
 #include <vtkPointData.h>
+#include <vtkCellData.h>
 #include <vtkLookupTable.h>
 
 #include "RpVtkDataSet.h"
@@ -27,11 +28,6 @@ DataSet::DataSet(const std::string& name) :
     _name(name),
     _visible(true)
 {
-    _dataRange[0] = 0;
-    _dataRange[1] = 1;
-    for (int i = 0; i < 6; i++) {
-        _bounds[i] = 0;
-    }
 }
 
 DataSet::~DataSet()
@@ -122,15 +118,18 @@ bool DataSet::setData(vtkDataSetReader *reader)
     _dataSet = reader->GetOutput();
     _dataSet->SetPipelineInformation(NULL);
 
-    _dataSet->GetScalarRange(_dataRange);
-    _dataSet->GetBounds(_bounds);
-
     TRACE("DataSet class: %s", _dataSet->GetClassName());
-    TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+#ifdef WANT_TRACE
+    double dataRange[2];
+    getDataRange(dataRange);
+    double bounds[6];
+    getBounds(bounds);
+#endif
+    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
     TRACE("DataSet bounds: %g %g %g %g %g %g",
-          _bounds[0], _bounds[1],
-          _bounds[2], _bounds[3],
-          _bounds[4], _bounds[5]);
+          bounds[0], bounds[1],
+          bounds[2], bounds[3],
+          bounds[4], bounds[5]);
     return true;
 }
 
@@ -143,15 +142,19 @@ bool DataSet::setData(vtkDataSet *ds)
 {
     _dataSet = ds;
     _dataSet->SetPipelineInformation(NULL);
-    _dataSet->GetScalarRange(_dataRange);
-    _dataSet->GetBounds(_bounds);
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
-    TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+#ifdef WANT_TRACE
+    double dataRange[2];
+    getDataRange(dataRange);
+    double bounds[6];
+    getBounds(bounds);
+#endif
+    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
     TRACE("DataSet bounds: %g %g %g %g %g %g",
-          _bounds[0], _bounds[1],
-          _bounds[2], _bounds[3],
-          _bounds[4], _bounds[5]);
+          bounds[0], bounds[1],
+          bounds[2], bounds[3],
+          bounds[4], bounds[5]);
     return true;
 }
 
@@ -183,11 +186,19 @@ vtkDataSet *DataSet::copyData(vtkDataSet *ds)
         ERROR("Unknown data type");
         return NULL;
     }
-    _dataSet->GetScalarRange(_dataRange);
-    _dataSet->GetBounds(_bounds);
 
     TRACE("DataSet class: %s", _dataSet->GetClassName());
-    TRACE("Scalar Range: %.12e, %.12e", _dataRange[0], _dataRange[1]);
+#ifdef WANT_TRACE
+    double dataRange[2];
+    getDataRange(dataRange);
+    double bounds[6];
+    getBounds(bounds);
+#endif    
+    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
+    TRACE("DataSet bounds: %g %g %g %g %g %g",
+          bounds[0], bounds[1],
+          bounds[2], bounds[3],
+          bounds[4], bounds[5]);
     return _dataSet;
 }
 
@@ -196,7 +207,9 @@ vtkDataSet *DataSet::copyData(vtkDataSet *ds)
  */
 bool DataSet::is2D() const
 {
-    return (_bounds[4] == 0. && _bounds[4] == _bounds[5]);
+    double bounds[6];
+    getBounds(bounds);
+    return (bounds[4] == 0. && bounds[4] == bounds[5]);
 }
 
 /**
@@ -218,25 +231,115 @@ vtkDataSet *DataSet::getVtkDataSet()
 /**
  * \brief Get the underlying VTK DataSet subclass class name
  */
-const char *DataSet::getVtkType()
+const char *DataSet::getVtkType() const
 {
     return _dataSet->GetClassName();
 }
 
 /**
+ * \brief Set the ative scalar array to the named field
+ */
+bool DataSet::setActiveScalar(const char *name)
+{
+    bool found = false;
+    if (_dataSet != NULL) {
+        if (_dataSet->GetPointData() != NULL) {
+            if (_dataSet->GetPointData()->SetActiveScalars(name))
+                found = true;
+        }
+        if (_dataSet->GetCellData() != NULL) {
+            if (_dataSet->GetCellData()->SetActiveScalars(name))
+                found = true;
+        }
+    }
+    return found;
+}
+
+/**
+ * \brief Set the ative vector array to the named field
+ */
+bool DataSet::setActiveVector(const char *name)
+{
+    bool found = false;
+    if (_dataSet != NULL) {
+        if (_dataSet->GetPointData() != NULL) {
+            if (_dataSet->GetPointData()->SetActiveVectors(name))
+                found = true;
+        }
+        if (_dataSet->GetCellData() != NULL) {
+            if (_dataSet->GetCellData()->SetActiveVectors(name))
+                found = true;
+        }
+    }
+    return found;
+}
+
+/**
  * \brief Get the range of scalar values in the DataSet
  */
-void DataSet::getDataRange(double minmax[2])
+void DataSet::getDataRange(double minmax[2]) const
 {
-    memcpy(minmax, _dataRange, sizeof(double)*2);
+    _dataSet->GetScalarRange(minmax);
+}
+
+/**
+ * \brief Get the range of scalar values (or vector magnitudes) for
+ * the named field in the DataSet
+ */
+void DataSet::getDataRange(double minmax[2], const char *fieldName) const
+{
+    if (_dataSet == NULL)
+        return;
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetPointData()->GetArray(fieldName)->GetRange(minmax, -1);
+    } else if (_dataSet->GetCellData() != NULL &&
+        _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetCellData()->GetArray(fieldName)->GetRange(minmax, -1);
+    } else if (_dataSet->GetFieldData() != NULL &&
+        _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetFieldData()->GetArray(fieldName)->GetRange(minmax, -1);
+    }
+}
+
+/**
+ * \brief Get the range of vector magnitudes in the DataSet
+ */
+void DataSet::getVectorMagnitudeRange(double minmax[2]) const
+{
+    if (_dataSet == NULL) 
+        return;
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetVectors() != NULL) {
+        _dataSet->GetPointData()->GetVectors()->GetRange(minmax, -1);
+    } else if (_dataSet->GetCellData() != NULL &&
+               _dataSet->GetCellData()->GetVectors() != NULL) {
+        _dataSet->GetCellData()->GetVectors()->GetRange(minmax, -1);
+    }
+}
+
+/**
+ * \brief Get the range of a vector component in the DataSet
+ */
+void DataSet::getVectorComponentRange(double minmax[2], int component) const
+{
+    if (_dataSet == NULL)
+        return;
+    if (_dataSet->GetPointData() != NULL ||
+        _dataSet->GetPointData()->GetVectors() != NULL) {
+        _dataSet->GetPointData()->GetVectors()->GetRange(minmax, component);
+    } else if (_dataSet->GetCellData() != NULL &&
+               _dataSet->GetCellData()->GetVectors() != NULL) {
+        _dataSet->GetCellData()->GetVectors()->GetRange(minmax, component);
+    }
 }
 
 /**
  * \brief Get the bounds the DataSet
  */
-void DataSet::getBounds(double bounds[6])
+void DataSet::getBounds(double bounds[6]) const
 {
-    memcpy(bounds, _bounds, sizeof(double)*6);
+    _dataSet->GetBounds(bounds);
 }
 
 /**
@@ -246,7 +349,7 @@ void DataSet::getBounds(double bounds[6])
  *
  * \return the value of the nearest point or 0 if no scalar data available
  */
-double DataSet::getDataValue(double x, double y, double z)
+double DataSet::getDataValue(double x, double y, double z) const
 {
     if (_dataSet == NULL)
         return 0;

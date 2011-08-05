@@ -14,6 +14,9 @@ renderer clipplane <axis> <ratio> <direction>
          apply if camera mode is image.
 renderer depthpeel <bool>
          Set use of depth peeling algorithm for transparency
+renderer light2side <bool>
+         Toggle use of two-sided lighting (controls if backfaces are lit with a
+         flipped normal)
 renderer render
          Force a new image to be rendered - use for advancing animation
 
@@ -111,7 +114,10 @@ contour3d wireframe <bool> <?datasetName?>
 glyphs add <?dataSetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
 glyphs delete <?dataSetName?>
+glyphs edges <bool> <?datasetName?>
 glyphs lighting <bool> <?datasetName?>
+glyphs linecolor <r> <g> <b> <?datasetName?>
+glyphs linewidth <val> <?datasetName?>
 glyphs opacity <val> <?datasetName?>
 glyphs scale <scaleFactor> <?datasetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|octahedron|sphere|tetrahedron> <?datasetName?>

@@ -247,7 +247,10 @@ void ColorMap::build()
 /**
  * \brief Perform linear interpolation of two color control points
  */
-void ColorMap::lerp(double *result, const ControlPoint& cp1, const ControlPoint& cp2, double value)
+void ColorMap::lerp(double *result, 
+                    const ControlPoint& cp1,
+                    const ControlPoint& cp2, 
+                    double value)
 {
     double factor = (value - cp1.value) / (cp2.value - cp1.value);
     for (int i = 0; i < 3; i++) {
@@ -258,7 +261,10 @@ void ColorMap::lerp(double *result, const ControlPoint& cp1, const ControlPoint&
 /**
  * \brief Perform linear interpolation of two opacity control points
  */
-void ColorMap::lerp(double *result, const OpacityControlPoint& cp1, const OpacityControlPoint& cp2, double value)
+void ColorMap::lerp(double *result, 
+                    const OpacityControlPoint& cp1,
+                    const OpacityControlPoint& cp2,
+                    double value)
 {
     double factor = (value - cp1.value) / (cp2.value - cp1.value);
     *result = cp1.alpha * (1.0 - factor) + cp2.alpha * factor;
