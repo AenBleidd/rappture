@@ -1292,6 +1292,146 @@ Contour2D *Renderer::getContour2D(const DataSetId& id)
 }
 
 /**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setContour2DTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setContour2DOrientation(const DataSetId& id, double quat[4])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setContour2DOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setContour2DPosition(const DataSetId& id, double pos[3])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setContour2DScale(const DataSetId& id, double scale[3])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
 void Renderer::setContour2DContours(const DataSetId& id, int numContours)
@@ -1554,6 +1694,146 @@ Contour3D *Renderer::getContour3D(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setContour3DTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setContour3DOrientation(const DataSetId& id, double quat[4])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setContour3DOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setContour3DPosition(const DataSetId& id, double pos[3])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setContour3DScale(const DataSetId& id, double scale[3])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**
@@ -1959,6 +2239,146 @@ Glyphs *Renderer::getGlyphs(const DataSetId& id)
 }
 
 /**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setGlyphsTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _glyphs.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setGlyphsOrientation(const DataSetId& id, double quat[4])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _glyphs.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setGlyphsOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _glyphs.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setGlyphsPosition(const DataSetId& id, double pos[3])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _glyphs.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setGlyphsScale(const DataSetId& id, double scale[3])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _glyphs.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Associate an existing named color map with a Glyphs for the given DataSet
  */
 void Renderer::setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId)
@@ -2008,6 +2428,61 @@ void Renderer::setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMap
         itr->second->setLookupTable(lut);
     } while (doAll && ++itr != _glyphs.end());
 
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Controls the array used to color glyphs for the given DataSet
+ */
+void Renderer::setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Controls the array used to scale glyphs for the given DataSet
+ */
+void Renderer::setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScalingMode(mode);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -2941,6 +3416,146 @@ LIC *Renderer::getLIC(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setLICTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _lics.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setLICOrientation(const DataSetId& id, double quat[4])
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _lics.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setLICOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _lics.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setLICPosition(const DataSetId& id, double pos[3])
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _lics.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setLICScale(const DataSetId& id, double scale[3])
+{
+    LICHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _lics.begin();
+        doAll = true;
+    } else {
+        itr = _lics.find(id);
+    }
+    if (itr == _lics.end()) {
+        ERROR("LIC not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _lics.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**
@@ -4194,6 +4809,146 @@ PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
 }
 
 /**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setPseudoColorTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setPseudoColorOrientation(const DataSetId& id, double quat[4])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setPseudoColorOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setPseudoColorPosition(const DataSetId& id, double pos[3])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setPseudoColorScale(const DataSetId& id, double scale[3])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Associate an existing named color map with a PseudoColor for the given DataSet
  */
 void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
@@ -4513,6 +5268,146 @@ Streamlines *Renderer::getStreamlines(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setStreamlinesTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _streamlines.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setStreamlinesOrientation(const DataSetId& id, double quat[4])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _streamlines.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setStreamlinesOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _streamlines.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setStreamlinesPosition(const DataSetId& id, double pos[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _streamlines.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setStreamlinesScale(const DataSetId& id, double scale[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _streamlines.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**
@@ -5042,6 +5937,146 @@ Volume *Renderer::getVolume(const DataSetId& id)
         return NULL;
     } else
         return itr->second;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setVolumeTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _volumes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setVolumeOrientation(const DataSetId& id, double quat[4])
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _volumes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setVolumeOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _volumes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setVolumePosition(const DataSetId& id, double pos[3])
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _volumes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setVolumeScale(const DataSetId& id, double scale[3])
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _volumes.end());
+
+    resetAxes();
+    _needsRedraw = true;
 }
 
 /**

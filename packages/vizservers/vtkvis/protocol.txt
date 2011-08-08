@@ -93,6 +93,9 @@ contour2d lighting <bool> <?datasetName?>
 contour2d linecolor <r> <g> <b> <?datasetName?>
 contour2d linewidth <val> <?datasetName?>
 contour2d opacity <val> <?datasetName?>
+contour2d orient <qw> <qx> <qy> <qz> <?dataSetName?>
+contour2d pos <x> <y> <z> <?dataSetName?>
+contour2d scale <sx> <sy> <sz> <?dataSetName?>
 contour2d visible <bool> <?datasetName?>
 
 contour3d add numcontours <n> <?datasetName?>
@@ -108,19 +111,32 @@ contour3d lighting <bool> <?datasetName?>
 contour3d linecolor <r> <g> <b> <?datasetName?>
 contour3d linewidth <val> <?datasetName?>
 contour3d opacity <val> <?datasetName?>
+contour3d orient <qw> <qx> <qy> <qz> <?dataSetName?>
+contour3d pos <x> <y> <z> <?dataSetName?>
+contour3d scale <sx> <sy> <sz> <?dataSetName?>
 contour3d visible <bool> <?datasetName?>
 contour3d wireframe <bool> <?datasetName?>
 
 glyphs add <?dataSetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
+glyphs colormode <scale|scalar|vector> <?dataSetName?>
+       Set the color mode: color by scale, scalar field or
+       vector magnitude -- uses the current color map
 glyphs delete <?dataSetName?>
 glyphs edges <bool> <?datasetName?>
+glyphs gscale <scaleFactor> <?datasetName?>
+       Set glyph scaling factor
 glyphs lighting <bool> <?datasetName?>
 glyphs linecolor <r> <g> <b> <?datasetName?>
 glyphs linewidth <val> <?datasetName?>
 glyphs opacity <val> <?datasetName?>
-glyphs scale <scaleFactor> <?datasetName?>
+glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
+glyphs pos <x> <y> <z> <?dataSetName?>
+glyphs scale <sx> <sy> <sz> <?dataSetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|octahedron|sphere|tetrahedron> <?datasetName?>
+glyphs smode <scalar|vector|vector_comp|off> <?dataSetName?>
+       Set the scaling mode: use the scalar field, vector magnitude 
+       (uniform scale), vector components, or disable scaling
 glyphs visible <bool> <?datasetName?>
 glyphs wireframe <bool> <?datasetName?>
 
@@ -156,6 +172,9 @@ lic lighting <bool> <?datasetName?>
 lic linecolor <r> <g> <b> <?datasetName?>
 lic linewidth <val> <?datasetName?>
 lic opacity <val> <?datasetName?>
+lic orient <qw> <qx> <qy> <qz> <?dataSetName?>
+lic pos <x> <y> <z> <?dataSetName?>
+lic scale <sx> <sy> <sz> <?dataSetName?>
 lic visible <bool> <?datasetName?>
 lic volumeslice <axis> <ratio> <?datasetName?>
 
@@ -202,6 +221,9 @@ pseudocolor lighting <bool> <?datasetName?>
 pseudocolor linecolor <r> <g> <b> <?datasetName?>
 pseudocolor linewidth <val> <?datasetName?>
 pseudocolor opacity <val> <?datasetName?>
+pseudocolor orient <qw> <qx> <qy> <qz> <?dataSetName?>
+pseudocolor pos <x> <y> <z> <?dataSetName?>
+pseudocolor scale <sx> <sy> <sz> <?dataSetName?>
 pseudocolor visible <bool> <?datasetName?>
 pseudocolor wireframe <bool> <?datasetName?>
 
@@ -220,9 +242,12 @@ streamlines lines <?datasetName?>
             Set rendering type to polylines
 streamlines linewidth <val> <?datasetName?>
 streamlines opacity <val> <?datasetName?>
+streamlines orient <qw> <qx> <qy> <qz> <?dataSetName?>
+streamlines pos <x> <y> <z> <?dataSetName?>
 streamlines ribbons <width> <angle> <?datasetName?>
             Set rendering type to ribbons, width is minimum half-width, angle is
             degrees offset from normal orientation
+streamlines scale <sx> <sy> <sz> <?dataSetName?>
 streamlines seed color <r> <g> <b> <?datasetName?>
 streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <numSides> <?dataSetName?>
 streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
@@ -237,6 +262,9 @@ volume add <?datasetName?>
 volume colormap <colorMapName> <?datasetName?>
 volume delete <?datasetName?>
 volume lighting <bool> <?datasetName?>
+volume orient <qw> <qx> <qy> <qz> <?dataSetName?>
+volume pos <x> <y> <z> <?dataSetName?>
+volume scale <sx> <sy> <sz> <?dataSetName?>
 volume shading ambient <coeff> <?datasetName?>
 volume shading diffuse <coeff> <?datasetName?>
 volume shading specular <coeff> <power> <?datasetName?>

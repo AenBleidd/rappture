@@ -42,6 +42,17 @@ public:
         SPHERE,
         TETRAHEDRON
     };
+    enum ScalingMode {
+        SCALE_BY_SCALAR,
+        SCALE_BY_VECTOR,
+        SCALE_BY_VECTOR_COMPONENTS,
+        SCALING_OFF
+    };
+    enum ColorMode {
+        COLOR_BY_SCALE,
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR
+    };
 
     Glyphs();
     virtual ~Glyphs();
@@ -52,6 +63,10 @@ public:
     }
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setScalingMode(ScalingMode mode);
+
+    void setColorMode(ColorMode mode);
 
     void setGlyphShape(GlyphShape shape);
 
