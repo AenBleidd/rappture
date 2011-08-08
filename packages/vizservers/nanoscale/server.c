@@ -126,8 +126,7 @@ close_child(int pipe_fd)
 	}
     }
   
-    INFO("processes=%d, memory=%d, load=%f\n",
-	   children, memory_in_use, load);
+    INFO("processes=%d, memory=%d, load=%f\n", children, memory_in_use, load);
 
 }
 
@@ -158,7 +157,7 @@ sigalarm_handler(int signum)
 static void 
 help(const char *argv0)
 {
-    INFO("Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
+    printf("Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
 	    argv0);
     exit(1);
 }
@@ -432,16 +431,13 @@ main(int argc, char *argv[])
 	    }
 	    float peer_load = ntohl(buffer[0]);
 	    int peer_procs = ntohl(buffer[1]);
-	    //INFO("Load for %s is %f (%d processes).\n",
-	    //       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 	    int h;
 	    int free_index=-1;
 	    int found = 0;
 	    for(h=0; h<sizeof(host_array)/sizeof(host_array[0]); h++) {
 		if (host_array[h].in_addr.s_addr == peer_addr.sin_addr.s_addr) {
 		    if (host_array[h].children != peer_procs) {
-			INFO("Load for %s is %f (%d processes).\n",
-			       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
+			INFO("Load for %s is %f (%d processes).\n", inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 		    }
 		    host_array[h].load = peer_load;
 		    host_array[h].children = peer_procs;
@@ -497,7 +493,6 @@ main(int argc, char *argv[])
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
 		INFO("Accepted new job with memory %d\n", newmemory);
-		//INFO("My load is now %f\n", load);
 	      
 		// accept the connection.
 		msg = 0;
@@ -559,14 +554,13 @@ main(int argc, char *argv[])
 					  command_argv[n][0], strerror(errno));
 				} else {
 				    INFO("started command \"%s\": %s\n", 
-					  command_argv[n][0], strerror(errno));
-
+					command_argv[n][0], strerror(errno));
+				}
 			    }
 			    _exit(errno);
 			}
 		    }
 		    _exit(EINVAL);
-		  
 		} else {
 		    int c;
 		    // reap initial child which will exit immediately
