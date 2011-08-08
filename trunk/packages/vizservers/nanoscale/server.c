@@ -126,7 +126,7 @@ close_child(int pipe_fd)
 	}
     }
   
-    printf("processes=%d, memory=%d, load=%f\n",
+    INFO("processes=%d, memory=%d, load=%f\n",
 	   children, memory_in_use, load);
 
 }
@@ -138,7 +138,7 @@ void note_request(int fd, float value)
 	if (child_array[c].pipefd == fd) {
 	    child_array[c].requests += value;
 #ifdef DEBUGGING
-	    printf("Updating requests from pipefd %d to %f\n",
+	    INFO("Updating requests from pipefd %d to %f\n",
 		   child_array[c].pipefd,
 		   child_array[c].requests);
 #endif
@@ -405,7 +405,7 @@ main(int argc, char *argv[])
 		    continue;
 		}
 	      
-		printf("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
+		INFO("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
 		FD_SET(newfd, &saved_rfds);
 		maxfd = max(maxfd, newfd);
 		FD_SET(newfd, &service_rfds[n]);
@@ -432,7 +432,7 @@ main(int argc, char *argv[])
 	    }
 	    float peer_load = ntohl(buffer[0]);
 	    int peer_procs = ntohl(buffer[1]);
-	    //printf("Load for %s is %f (%d processes).\n",
+	    //INFO("Load for %s is %f (%d processes).\n",
 	    //       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 	    int h;
 	    int free_index=-1;
@@ -440,7 +440,7 @@ main(int argc, char *argv[])
 	    for(h=0; h<sizeof(host_array)/sizeof(host_array[0]); h++) {
 		if (host_array[h].in_addr.s_addr == peer_addr.sin_addr.s_addr) {
 		    if (host_array[h].children != peer_procs) {
-			printf("Load for %s is %f (%d processes).\n",
+			INFO("Load for %s is %f (%d processes).\n",
 			       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 		    }
 		    host_array[h].load = peer_load;
@@ -497,7 +497,7 @@ main(int argc, char *argv[])
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
 		INFO("Accepted new job with memory %d\n", newmemory);
-		//printf("My load is now %f\n", load);
+		//INFO("My load is now %f\n", load);
 	      
 		// accept the connection.
 		msg = 0;
@@ -557,7 +557,10 @@ main(int argc, char *argv[])
 
 				    ERROR("can't execute \"%s\": %s\n", 
 					  command_argv[n][0], strerror(errno));
-				}
+				} else {
+				    INFO("started command \"%s\": %s\n", 
+					  command_argv[n][0], strerror(errno));
+
 			    }
 			    _exit(errno);
 			}
