@@ -180,6 +180,56 @@ void Glyphs::update()
 }
 
 /**
+ * \brief Control how glyphs are scaled
+ */
+void Glyphs::setScalingMode(ScalingMode mode)
+{
+    if (_glyphGenerator != NULL) {
+        switch (mode) {
+        case SCALE_BY_SCALAR:
+            _glyphGenerator->SetScaleModeToScaleByScalar();
+            _glyphGenerator->ScalingOn();
+            break;
+        case SCALE_BY_VECTOR:
+            _glyphGenerator->SetScaleModeToScaleByVector();
+            _glyphGenerator->ScalingOn();
+            break;
+        case SCALE_BY_VECTOR_COMPONENTS:
+            _glyphGenerator->SetScaleModeToScaleByVectorComponents();
+            _glyphGenerator->ScalingOn();
+            break;
+        case SCALING_OFF:
+        default:
+            _glyphGenerator->SetScaleModeToDataScalingOff();
+            _glyphGenerator->ScalingOff();
+        }
+        _pdMapper->Update();
+    }
+}
+
+/**
+ * \brief Control how glyphs are colored
+ */
+void Glyphs::setColorMode(ColorMode mode)
+{
+    if (_glyphGenerator != NULL) {
+        switch (mode) {
+        case COLOR_BY_SCALE:
+            _glyphGenerator->SetColorModeToColorByScale();
+            break;
+        case COLOR_BY_VECTOR:
+            _glyphGenerator->SetColorModeToColorByVector();
+            break;
+        case COLOR_BY_SCALAR:
+        default:
+            _glyphGenerator->SetColorModeToColorByScalar();
+            break;
+        }
+        _pdMapper->Update();
+    }
+}
+
+/**
  * \brief Controls relative scaling of glyphs
  */
 void Glyphs::setScaleFactor(double scale)

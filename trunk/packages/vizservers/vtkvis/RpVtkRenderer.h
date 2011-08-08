@@ -231,6 +231,16 @@ public:
 
     Contour2D *getContour2D(const DataSetId& id);
 
+    void setContour2DTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setContour2DOrientation(const DataSetId& id, double quat[4]);
+
+    void setContour2DOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setContour2DPosition(const DataSetId& id, double pos[3]);
+
+    void setContour2DScale(const DataSetId& id, double scale[3]);
+
     void setContour2DEdgeColor(const DataSetId& id, float color[3]);
 
     void setContour2DEdgeWidth(const DataSetId& id, float edgeWidth);
@@ -252,6 +262,16 @@ public:
     void deleteContour3D(const DataSetId& id);
 
     Contour3D *getContour3D(const DataSetId& id);
+
+    void setContour3DTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setContour3DOrientation(const DataSetId& id, double quat[4]);
+
+    void setContour3DOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setContour3DPosition(const DataSetId& id, double pos[3]);
+
+    void setContour3DScale(const DataSetId& id, double scale[3]);
 
     void setContour3DColor(const DataSetId& id, float color[3]);
 
@@ -283,6 +303,16 @@ public:
 
     Glyphs *getGlyphs(const DataSetId& id);
 
+    void setGlyphsTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setGlyphsOrientation(const DataSetId& id, double quat[4]);
+
+    void setGlyphsOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setGlyphsPosition(const DataSetId& id, double pos[3]);
+
+    void setGlyphsScale(const DataSetId& id, double scale[3]);
+
     void setGlyphsEdgeVisibility(const DataSetId& id, bool state);
 
     void setGlyphsEdgeColor(const DataSetId& id, float color[3]);
@@ -300,6 +330,10 @@ public:
     void setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     void setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape);
+
+    void setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode);
+
+    void setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode);
 
     void setGlyphsScaleFactor(const DataSetId& id, double scale);
 
@@ -356,6 +390,16 @@ public:
     void deleteLIC(const DataSetId& id);
 
     LIC *getLIC(const DataSetId& id);
+
+    void setLICTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setLICOrientation(const DataSetId& id, double quat[4]);
+
+    void setLICOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setLICPosition(const DataSetId& id, double pos[3]);
+
+    void setLICScale(const DataSetId& id, double scale[3]);
 
     void setLICEdgeVisibility(const DataSetId& id, bool state);
     
@@ -455,7 +499,17 @@ public:
     void deletePseudoColor(const DataSetId& id);
 
     PseudoColor *getPseudoColor(const DataSetId& id);
-    
+
+    void setPseudoColorTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setPseudoColorOrientation(const DataSetId& id, double quat[4]);
+
+    void setPseudoColorOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setPseudoColorPosition(const DataSetId& id, double pos[3]);
+
+    void setPseudoColorScale(const DataSetId& id, double scale[3]);
+
     void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
 
     void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
@@ -479,6 +533,16 @@ public:
     void deleteStreamlines(const DataSetId& id);
 
     Streamlines *getStreamlines(const DataSetId& id);
+
+    void setStreamlinesTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setStreamlinesOrientation(const DataSetId& id, double quat[4]);
+
+    void setStreamlinesOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setStreamlinesPosition(const DataSetId& id, double pos[3]);
+
+    void setStreamlinesScale(const DataSetId& id, double scale[3]);
 
     void setStreamlinesEdgeVisibility(const DataSetId& id, bool state);
 
@@ -520,7 +584,17 @@ public:
     void deleteVolume(const DataSetId& id);
 
     Volume *getVolume(const DataSetId& id);
-    
+
+    void setVolumeTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setVolumeOrientation(const DataSetId& id, double quat[4]);
+
+    void setVolumeOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setVolumePosition(const DataSetId& id, double pos[3]);
+
+    void setVolumeScale(const DataSetId& id, double scale[3]);
+
     void setVolumeAmbient(const DataSetId& id, double coeff);
 
     void setVolumeDiffuse(const DataSetId& id, double coeff);

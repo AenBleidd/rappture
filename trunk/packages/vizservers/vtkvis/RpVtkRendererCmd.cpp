@@ -756,6 +756,64 @@ Contour2DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour2DOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setContour2DOrientation(name, quat);
+    } else {
+        g_renderer->setContour2DOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour2DPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour2DPosition(name, pos);
+    } else {
+        g_renderer->setContour2DPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour2DScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour2DScale(name, scale);
+    } else {
+        g_renderer->setContour2DScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -778,7 +836,10 @@ static Rappture::CmdSpec contour2dOps[] = {
     {"lighting",  3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, Contour2DLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",   2, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, Contour2DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, Contour2DPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     1, Contour2DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nContour2dOps = NumCmdSpecs(contour2dOps);
@@ -1002,6 +1063,64 @@ Contour3DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour3DOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setContour3DOrientation(name, quat);
+    } else {
+        g_renderer->setContour3DOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour3DPosition(name, pos);
+    } else {
+        g_renderer->setContour3DPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setContour3DScale(name, scale);
+    } else {
+        g_renderer->setContour3DScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour3DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -1044,7 +1163,10 @@ static Rappture::CmdSpec contour3dOps[] = {
     {"lighting",  3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, Contour3DLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, Contour3DLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, Contour3DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",   2, Contour3DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, Contour3DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, Contour3DPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     1, Contour3DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, Contour3DVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, Contour3DWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -1337,6 +1459,32 @@ GlyphsColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    Glyphs::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 's' && strcmp(str, "scale") == 0) {
+        mode = Glyphs::COLOR_BY_SCALE;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Glyphs::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vector") == 0) {
+        mode = Glyphs::COLOR_BY_VECTOR;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scale', 'scalar', 'vector'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsColorMode(name, mode);
+    } else {
+        g_renderer->setGlyphsColorMode("all", mode);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -1437,8 +1585,66 @@ GlyphsOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGlyphsOrientation(name, quat);
+    } else {
+        g_renderer->setGlyphsOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGlyphsPosition(name, pos);
+    } else {
+        g_renderer->setGlyphsPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGlyphsScale(name, scale);
+    } else {
+        g_renderer->setGlyphsScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
 {
     double scale;
     if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
@@ -1449,6 +1655,34 @@ GlyphsScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGlyphsScaleFactor(name, scale);
     } else {
         g_renderer->setGlyphsScaleFactor("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+GlyphsScalingModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    Glyphs::ScalingMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Glyphs::SCALE_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vector") == 0) {
+        mode = Glyphs::SCALE_BY_VECTOR;
+    } else if (str[0] == 'v' && strcmp(str, "vector_comp") == 0) {
+        mode = Glyphs::SCALE_BY_VECTOR_COMPONENTS;
+    } else if (str[0] == 'o' && strcmp(str, "off") == 0) {
+        mode = Glyphs::SCALING_OFF;
+    } else {
+        Tcl_AppendResult(interp, "bad scaling mode option \"", str,
+                         "\": should be one of: 'scalar', 'vector', 'vector_comp', 'off'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsScalingMode(name, mode);
+    } else {
+        g_renderer->setGlyphsScalingMode("all", mode);
     }
     return TCL_OK;
 }
@@ -1529,15 +1763,20 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec glyphsOps[] = {
     {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
-    {"colormap",  1, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
+    {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
+    {"colormode", 7, GlyphsColorModeOp, 3, 4, "mode ?dataSetNme?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"gscale",    1, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
     {"lighting",  3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"scale",     2, GlyphsScaleOp, 3, 4, "scaleFactor ?dataSetName?"},
+    {"opacity",   2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
+    {"smode",     2, GlyphsScalingModeOp, 3, 4, "mode ?dataSetNme?"},
     {"visible",   1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -1933,7 +2172,7 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"opacity",      2, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, HeightMapOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          1, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",        1, HeightMapScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
+    {"scale",        1, HeightMapScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",      2, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
 };
@@ -2134,6 +2373,64 @@ LICOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+LICOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setLICOrientation(name, quat);
+    } else {
+        g_renderer->setLICOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+LICPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setLICPosition(name, pos);
+    } else {
+        g_renderer->setLICPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+LICScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setLICScale(name, scale);
+    } else {
+        g_renderer->setLICScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 LICVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -2189,7 +2486,10 @@ static Rappture::CmdSpec licOps[] = {
     {"lighting",    3, LICLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",   5, LICLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",   5, LICLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",     1, LICOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",     2, LICOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",      2, LICOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",         1, LICPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",       1, LICScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",     2, LICVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"volumeslice", 2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
 };
@@ -2504,7 +2804,7 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"orient",     2, MoleculeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",        1, MoleculePositionOp, 5, 6, "x y z ?dataSetName?"},
     {"rscale",     1, MoleculeAtomScalingOp, 3, 4, "scaling ?dataSetName?"},
-    {"scale",      1, MoleculeScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
+    {"scale",      1, MoleculeScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",    1, MoleculeVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe",  1, MoleculeWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -2658,7 +2958,7 @@ PolyDataOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 PolyDataOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                  Tcl_Obj *const *objv)
+                 Tcl_Obj *const *objv)
 {
     double quat[4];
     if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
@@ -2678,7 +2978,7 @@ PolyDataOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                    Tcl_Obj *const *objv)
+                   Tcl_Obj *const *objv)
 {
     double pos[3];
     if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
@@ -2697,7 +2997,7 @@ PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static int
 PolyDataScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                 Tcl_Obj *const *objv)
+                Tcl_Obj *const *objv)
 {
     double scale[3];
     if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
@@ -2713,7 +3013,6 @@ PolyDataScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return TCL_OK;
 }
-
 
 static int
 PolyDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
@@ -2760,7 +3059,7 @@ static Rappture::CmdSpec polyDataOps[] = {
     {"opacity",   2, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",    2, PolyDataOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",       1, PolyDataPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",     1, PolyDataScaleOp, 5, 6, "sx sy sz  ?dataSetName?"},
+    {"scale",     1, PolyDataScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PolyDataWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -2908,6 +3207,64 @@ PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setPseudoColorOrientation(name, quat);
+    } else {
+        g_renderer->setPseudoColorOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPseudoColorPosition(name, pos);
+    } else {
+        g_renderer->setPseudoColorPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPseudoColorScale(name, scale);
+    } else {
+        g_renderer->setPseudoColorScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                      Tcl_Obj *const *objv)
 {
@@ -2949,7 +3306,10 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, PseudoColorLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"opacity",   2, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",    2, PseudoColorOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",     1, PseudoColorScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -3262,6 +3622,64 @@ StreamlinesOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+StreamlinesOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setStreamlinesOrientation(name, quat);
+    } else {
+        g_renderer->setStreamlinesOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setStreamlinesPosition(name, pos);
+    } else {
+        g_renderer->setStreamlinesPosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setStreamlinesScale(name, scale);
+    } else {
+        g_renderer->setStreamlinesScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesRibbonsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                      Tcl_Obj *const *objv)
 {
@@ -3460,9 +3878,12 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"linecolor", 5, StreamlinesLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"lines",     5, StreamlinesLinesOp, 2, 3, "?dataSetName?"},
     {"linewidth", 5, StreamlinesLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   1, StreamlinesOpacityOp, 3, 4, "val ?dataSetName?"},
+    {"opacity",   2, StreamlinesOpacityOp, 3, 4, "val ?dataSetName?"},
+    {"orient",    2, StreamlinesOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, StreamlinesPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"ribbons",   1, StreamlinesRibbonsOp, 4, 5, "width angle ?dataSetName?"},
-    {"seed",      1, StreamlinesSeedOp, 4, 11, "op params... ?dataSetName?"},
+    {"scale",     2, StreamlinesScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"seed",      2, StreamlinesSeedOp, 4, 11, "op params... ?dataSetName?"},
     {"tubes",     1, StreamlinesTubesOp, 4, 5, "numSides radius ?dataSetName?"},
     {"visible",   1, StreamlinesVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -3552,6 +3973,64 @@ VolumeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setVolumeOpacity(name, opacity);
     } else {
         g_renderer->setVolumeOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setVolumeOrientation(name, quat);
+    } else {
+        g_renderer->setVolumeOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setVolumePosition(name, pos);
+    } else {
+        g_renderer->setVolumePosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setVolumeScale(name, scale);
+    } else {
+        g_renderer->setVolumeScale("all", scale);
     }
     return TCL_OK;
 }
@@ -3654,8 +4133,11 @@ static Rappture::CmdSpec volumeOps[] = {
     {"colormap", 1, VolumeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",   1, VolumeDeleteOp, 2, 3, "?dataSetName?"},
     {"lighting", 1, VolumeLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"opacity",  1, VolumeOpacityOp, 3, 4, "val ?dataSetName?"},
-    {"shading",  1, VolumeShadingOp, 4, 6, "oper val ?dataSetName?"},
+    {"opacity",  2, VolumeOpacityOp, 3, 4, "val ?dataSetName?"},
+    {"orient",   2, VolumeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",      1, VolumePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",    2, VolumeScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"shading",  2, VolumeShadingOp, 4, 6, "oper val ?dataSetName?"},
     {"visible",  1, VolumeVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
