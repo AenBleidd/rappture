@@ -95,7 +95,7 @@ typedef struct {
 static Stats stats;
 
 static FILE *flog;
-static int debug = FALSE;
+static int debug = TRUE;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
