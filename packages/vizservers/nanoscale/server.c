@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -533,9 +534,9 @@ main(int argc, char *argv[])
 			    if (status == 0) { 
 				int fd;
 
-				dup2(i, 0);  // stdin
-				dup2(i, 1);  // stdout
-				dup2(i, 2);  // stderr
+				dup2(i, 0); // stdin
+				dup2(i, 1); // stdout
+				dup2(i, 2); // stderr
 				dup2(pair[1],3);
 				// read end of pipe moved, and left open to
 				// prevent SIGPIPE
@@ -547,6 +548,8 @@ main(int argc, char *argv[])
 				if (maxCards > 1) {
 				    displayVar[11] = dispNum + '0';
 				}
+				fprintf(stderr, "command=%s\n", 
+					command_argv[n][0]);
 				if (execvp(command_argv[n][0], command_argv[n]) < 1) {
 				    extern int errno;
 
