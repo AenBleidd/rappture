@@ -1,4 +1,3 @@
-TARGETS         = client mycat nanoscale
 
 CC		= @CC@
 CFLAGS		= @CFLAGS@
@@ -24,10 +23,20 @@ INSTALL_PROGRAM = ${INSTALL} -m 555
 INSTALL_DATA    = ${INSTALL} -m 444
 INSTALL_SCRIPT  = ${INSTALL} -m 444
 
-SERVER_OBJS	= server.o
+SERVER_OBJS	= server2.o
 CLIENT_OBJS	= client.o clientlib.o
 
+TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+TCL_INC_SPEC    = @TCL_INC_SPEC@
+LD_RUN_PATH     = $(libdir)
+
+INCLUDES	= $(TCL_INC_SPEC)
+LIBS		= $(TCL_LIB_SPEC) \
+		-Wl,-rpath,$(LD_RUN_PATH)
+
 .PHONY: all install clean distclean
+
+TARGETS         = nanoscale
 
 all: $(TARGETS)
 
