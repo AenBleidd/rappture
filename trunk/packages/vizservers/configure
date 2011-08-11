@@ -8174,9 +8174,6 @@ do
     break
   fi
 done
-if test "x${DX_INC_DIR}" = "x" ; then
-  as_fn_error $? "cannot find OpenDX include files" "$LINENO" 5
-fi
 
 if test "${DX_INC_DIR}" = "/usr/include" ; then
   DX_INC_SPEC=""
@@ -8247,9 +8244,6 @@ fi
     break
   fi
 done
-if test "x{$DX_LIB_DIR}" = "x" ; then
-  as_fn_error $? "cannot find OpenDX libraries" "$LINENO" 5
-fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libDXcallm library" >&5
 $as_echo_n "checking for libDXcallm library... " >&6; }
@@ -8580,8 +8574,6 @@ if test "x$ac_cv_header_Cg_cgGL_h" = xyes; then :
 #define HAVE_CG_CGGL_H 1
 _ACEOF
 
-else
-  as_fn_error $? "cannot find nVidia Cg headers" "$LINENO" 5
 fi
 
 done
