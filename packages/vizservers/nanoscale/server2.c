@@ -14,7 +14,10 @@
 
 #define TRUE	1
 #define FALSE	0
-#define DEF_SERVERS  "/opt/hubzero/rappture/render/lib/renderservers.tcl"
+
+#ifndef SERVERSFILE
+#define SERVERSFILE  "/opt/hubzero/rappture/render/lib/renderservers.tcl"
+#endif
 
 #define ERROR(...)      LogMessage(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
 #ifdef WANT_TRACE
@@ -259,7 +262,7 @@ main(int argc, char **argv)
 
     dispNum = 0;
     maxCards = 1;
-    fileName = DEF_SERVERS;
+    fileName = SERVERSFILE;
     debug = FALSE;
     strcpy(display, "DISPLAY=:0.0");
     if (putenv(display) < 0) {

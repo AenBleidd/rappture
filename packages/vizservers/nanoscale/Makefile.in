@@ -2,8 +2,7 @@
 CC		= @CC@
 CFLAGS		= @CFLAGS@
 EXTRA_CFLAGS	= -Wall 
-DEFINES		= @DEFINES@
-CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES) $(DEFINES)
 LDFLAGS         = @LDFLAGS@
 
 bindir          = @bindir@
@@ -30,6 +29,7 @@ TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 LD_RUN_PATH     = $(libdir)
 
+DEFINES		= -DSERVERSFILE=\"$(libdir)/renderservers.tcl\"
 INCLUDES	= $(TCL_INC_SPEC)
 LIBS		= $(TCL_LIB_SPEC) \
 		-Wl,-rpath,$(LD_RUN_PATH)
@@ -43,8 +43,9 @@ all: $(TARGETS)
 nanoscale: $(SERVER_OBJS)
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
 
-install: nanoscale
+install: nanoscale renderservers.tcl
 	$(INSTALL_PROGRAM) -D nanoscale $(bindir)/nanoscale
+	$(INSTALL) -m 0444 renderservers.tcl $(libdir)
 
 client: $(CLIENT_OBJS)
 
