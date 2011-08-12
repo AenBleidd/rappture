@@ -240,9 +240,9 @@ VolumeRenderer::render_all()
 
 	ConvexPolygon static_poly;
 	for(int j = 0; j < volPtr->get_cutplane_count(); j++) {
-	    if(!volPtr->cutplane_is_enabled(j))
+	    if(!volPtr->cutplane_is_enabled(j)) {
 		continue;
-	    
+	    }
 	    float offset = volPtr->get_cutplane(j)->offset;
 	    int axis = volPtr->get_cutplane(j)->orient;
 	    
