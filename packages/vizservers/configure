@@ -8174,6 +8174,9 @@ do
     break
   fi
 done
+if test "x${DX_INC_DIR}" = "x" ; then
+  as_fn_error $? "cannot find OpenDX include files" "$LINENO" 5
+fi
 
 if test "${DX_INC_DIR}" = "/usr/include" ; then
   DX_INC_SPEC=""
@@ -8244,6 +8247,9 @@ fi
     break
   fi
 done
+if test "x{$DX_LIB_DIR}" = "x" ; then
+  as_fn_error $? "cannot find OpenDX libraries" "$LINENO" 5
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libDXcallm library" >&5
 $as_echo_n "checking for libDXcallm library... " >&6; }
@@ -8574,6 +8580,8 @@ if test "x$ac_cv_header_Cg_cgGL_h" = xyes; then :
 #define HAVE_CG_CGGL_H 1
 _ACEOF
 
+else
+  as_fn_error $? "cannot find nVidia Cg headers" "$LINENO" 5
 fi
 
 done
@@ -8618,7 +8626,7 @@ SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanoscale/renderservers.tcl nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh start_nanoscale.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9328,6 +9336,7 @@ do
     "nanoscale/config.h") CONFIG_HEADERS="$CONFIG_HEADERS nanoscale/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "nanoscale/Makefile") CONFIG_FILES="$CONFIG_FILES nanoscale/Makefile" ;;
+    "nanoscale/renderservers.tcl") CONFIG_FILES="$CONFIG_FILES nanoscale/renderservers.tcl" ;;
     "nanovis/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/Makefile" ;;
     "nanovis/newmat11/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/newmat11/Makefile" ;;
     "nanovis/R2/src/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/R2/src/Makefile" ;;
@@ -9340,6 +9349,7 @@ do
     "vtkvis/Doxyfile") CONFIG_FILES="$CONFIG_FILES vtkvis/Doxyfile" ;;
     "vtkvis/Makefile") CONFIG_FILES="$CONFIG_FILES vtkvis/Makefile" ;;
     "start_viz.sh") CONFIG_FILES="$CONFIG_FILES start_viz.sh" ;;
+    "start_nanoscale.sh") CONFIG_FILES="$CONFIG_FILES start_nanoscale.sh" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

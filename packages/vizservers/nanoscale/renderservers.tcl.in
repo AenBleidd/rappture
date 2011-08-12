@@ -1,0 +1,31 @@
+
+set exec_prefix "@exec_prefix@"
+set bindir "@bindir@"
+set libdir "@libdir@"
+set vtkdir "@VTK_LIB_DIR@"
+
+# NanoVis server --
+#
+register_server nanovis 2000 {
+    ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
+} {
+  LD_LIBRARY_PATH ${libdir}
+}
+
+# VtkVis server --
+#    3D drawings (scene graphs), Contour and surface graphs.
+#
+register_server vtkvis 2010 {
+    ${bindir}/vtkvis
+} {
+  LD_LIBRARY_PATH ${libdir}:${vtkdir}
+}
+
+# Pymol server --
+#    Molecular layouts from PDB description.  Must set PYMOL_PATH.
+#    
+register_server pymol 2020 {
+    ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
+} {
+   PYMOL_PATH ${libdir}/pymol
+}

@@ -357,6 +357,7 @@ AC_SUBST(VTK_LIB_DIR)
 AC_OUTPUT([
   Makefile \
    nanoscale/Makefile \
+   nanoscale/renderservers.tcl \
    nanovis/Makefile \
    nanovis/newmat11/Makefile \
    nanovis/R2/src/Makefile \

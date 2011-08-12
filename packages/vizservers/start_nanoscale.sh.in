@@ -26,6 +26,6 @@ ulimit -t $(expr ${minutes} \* 60 )
 # Make /tmp the current working dirctory.
 cd /tmp
 
-exec ${bindir}/nanoscale -x ${numVideo} -f ${libdir}/renderservers.tcl
+exec ${bindir}/nanoscale -x ${numVideo} 
 
 
