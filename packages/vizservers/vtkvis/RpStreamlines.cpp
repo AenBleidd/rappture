@@ -8,6 +8,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <cfloat>
+#include <cmath>
+
+#include <vtkMath.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
 #include <vtkPoints.h>
@@ -20,6 +23,8 @@
 #include <vtkPolyData.h>
 #include <vtkTubeFilter.h>
 #include <vtkRibbonFilter.h>
+#include <vtkTransform.h>
+#include <vtkTransformPolyDataFilter.h>
 
 #include "RpStreamlines.h"
 #include "Trace.h"
@@ -35,6 +40,8 @@ Streamlines::Streamlines() :
     _seedColor[0] = 1.0f;
     _seedColor[1] = 1.0f;
     _seedColor[2] = 1.0f;
+    vtkMath::RandomSeed((int)time(NULL));
+    srand((unsigned int)time(NULL));
 }
 
 Streamlines::~Streamlines()
@@ -91,28 +98,91 @@ void Streamlines::initProp()
     }
 }
 
-void Streamlines::getRandomPoint(double pt[3], const double bounds[6])
+/**
+ * \brief Get a pseudo-random number in range [min,max]
+ */
+double Streamlines::getRandomNum(double min, double max)
 {
+#if 1
+    return vtkMath::Random(min, max);
+#else
     int r = rand();
-    pt[0] = bounds[0] + ((double)r / RAND_MAX) * (bounds[1] - bounds[0]);
-    r = rand();
-    pt[1] = bounds[2] + ((double)r / RAND_MAX) * (bounds[3] - bounds[2]);
-    r = rand();
-    pt[2] = bounds[4] + ((double)r / RAND_MAX) * (bounds[5] - bounds[4]);
+    return (min + ((double)r / RAND_MAX) * (max - min));
+#endif
 }
 
-void Streamlines::getRandomCellPt(vtkDataSet *ds, double pt[3])
+/**
+ * \brief Get a random 3D point within an AABB
+ *
+ * \param[out] pt The random point
+ * \param[in] bounds The bounds of the AABB
+ */
+void Streamlines::getRandomPoint(double pt[3], const double bounds[6])
+{
+    pt[0] = getRandomNum(bounds[0], bounds[1]);
+    pt[1] = getRandomNum(bounds[2], bounds[3]);
+    pt[2] = getRandomNum(bounds[4], bounds[5]);
+}
+
+/**
+ * \brief Get a random point within a triangle (including edges)
+ *
+ * \param[out] pt The random point
+ * \param[in] v1 Triangle vertex 1
+ * \param[in] v2 Triangle vertex 2
+ * \param[in] v3 Triangle vertex 3
+ */
+void Streamlines::getRandomPointInTriangle(double pt[3],
+                                           const double v1[3],
+                                           const double v2[3],
+                                           const double v3[3])
+{
+    // Choose random barycentric coordinates
+    double bary[3];
+    bary[0] = getRandomNum(0, 1);
+    bary[1] = getRandomNum(0, 1);
+    if (bary[0] + bary[1] > 1.0) {
+        bary[0] = 1.0 - bary[0];
+        bary[1] = 1.0 - bary[1];
+    }
+    bary[2] = 1.0 - bary[0] - bary[1];
+
+    TRACE("bary %g %g %g", bary[0], bary[1], bary[2]);
+    // Convert to cartesian coords
+    for (int i = 0; i < 3; i++) {
+        pt[i] = v1[i] * bary[0] + v2[i] * bary[1] + v3[i] * bary[2];
+    }
+}
+
+/**
+ * \brief Get a random point on a line segment (including endpoints)
+ */
+void Streamlines::getRandomPointOnLineSegment(double pt[3],
+                                              const double endpt[3],
+                                              const double endpt2[3])
+{
+    double ratio = getRandomNum(0, 1);
+    pt[0] = endpt[0] + ratio * (endpt2[0] - endpt[0]);
+    pt[1] = endpt[1] + ratio * (endpt2[1] - endpt[1]);
+    pt[2] = endpt[2] + ratio * (endpt2[2] - endpt[2]);
+}
+
+/**
+ * \brief Get a random point within a vtkDataSet's mesh
+ *
+ * Note: This currently doesn't give a uniform distribution of
+ * points in space and can generate points outside the mesh
+ */
+void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
 {
     int numCells = (int)ds->GetNumberOfCells();
+    // XXX: Not uniform distribution (shouldn't use mod, and assumes
+    // all cells are equal area/volume)
     int cell = rand() % numCells;
     double bounds[6];
     ds->GetCellBounds(cell, bounds);
-    int r = rand();
-    pt[0] = bounds[0] + ((double)r / RAND_MAX) * (bounds[1] - bounds[0]);
-    r = rand();
-    pt[1] = bounds[2] + ((double)r / RAND_MAX) * (bounds[3] - bounds[2]);
-    r = rand();
-    pt[2] = bounds[4] + ((double)r / RAND_MAX) * (bounds[5] - bounds[4]);
+    // Note: point is inside AABB of cell, but may be outside the cell
+    getRandomPoint(pt, bounds);
 }
 
 /**
@@ -163,42 +233,20 @@ void Streamlines::update()
     }
 
     _streamTracer->SetInput(ds);
-
-    // Set up seed source object
-    vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
-    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
-
-    int numPoints = 200;
-    srand((unsigned int)time(NULL));
-    for (int i = 0; i < numPoints; i++) {
-        double pt[3];
-        getRandomCellPt(ds, pt);
-        TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
-        pts->InsertNextPoint(pt);
-        cells->InsertNextCell(1);
-        cells->InsertCellPoint(i);
-    }
-
-    seed->SetPoints(pts);
-    seed->SetVerts(cells);
-
-    TRACE("Seed points: %d", seed->GetNumberOfPoints());
-
     _streamTracer->SetMaximumPropagation(maxBound);
-    _streamTracer->SetSource(seed);
 
     if (_pdMapper == NULL) {
         _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _pdMapper->ScalarVisibilityOn();
-        // _pdMapper->ScalarVisibilityOff();
     }
     if (_seedMapper == NULL) {
         _seedMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _seedMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _seedMapper->SetInput(seed);
     }
+
+    // Set up seed source object
+    setSeedToRandomPoints(200);
 
     switch (_lineType) {
     case LINES: {
@@ -261,6 +309,10 @@ void Streamlines::update()
 /**
  * \brief Use randomly distributed seed points
  *
+ * Note: The current implementation doesn't give a uniform 
+ * distribution of points, and points outside the mesh bounds
+ * may be generated
+ *
  * \param[in] numPoints Number of random seed points to generate
  */
 void Streamlines::setSeedToRandomPoints(int numPoints)
@@ -271,10 +323,9 @@ void Streamlines::setSeedToRandomPoints(int numPoints)
         vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
         vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
 
-        srand((unsigned int)time(NULL));
         for (int i = 0; i < numPoints; i++) {
             double pt[3];
-            getRandomCellPt(_dataSet->getVtkDataSet(), pt);
+            getRandomCellPt(pt, _dataSet->getVtkDataSet());
             TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
             pts->InsertNextPoint(pt);
             cells->InsertNextCell(1);
@@ -353,15 +404,109 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
 }
 
 /**
+ * \brief Create seed points inside a disk with an optional hole
+ *
+ * \param[in] center Center point of disk
+ * \param[in] normal Normal vector to orient disk
+ * \param[in] radius Radius of disk
+ * \param[in] innerRadius Radius of hole at center of disk
+ * \param[in] numPoints Number of random points to generate
+ */
+void Streamlines::setSeedToDisk(double center[3],
+                                double normal[3],
+                                double radius,
+                                double innerRadius,
+                                int numPoints)
+{
+    if (_streamTracer != NULL) {
+        // Set up seed source object
+        vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
+        vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+
+        // The following code is based on vtkRegularPolygonSource::RequestData
+
+        double px[3];
+        double py[3];
+        double axis[3] = {1., 0., 0.};
+
+        if (vtkMath::Normalize(normal) == 0.0) {
+            normal[0] = 0.0;
+            normal[1] = 0.0;
+            normal[2] = 1.0;
+        }
+
+        // Find axis in plane (orthogonal to normal)
+        bool done = false;
+        vtkMath::Cross(normal, axis, px);
+        if (vtkMath::Normalize(px) > 1.0e-3) {
+            done = true;
+        }
+        if (!done) {
+            axis[0] = 0.0;
+            axis[1] = 1.0;
+            axis[2] = 0.0;
+            vtkMath::Cross(normal, axis, px);
+            if (vtkMath::Normalize(px) > 1.0e-3) {
+                done = true;
+            }
+        }
+        if (!done) {
+            axis[0] = 0.0;
+            axis[1] = 0.0;
+            axis[2] = 1.0;
+            vtkMath::Cross(normal, axis, px);
+            vtkMath::Normalize(px);
+        }
+        // Create third orthogonal basis vector
+        vtkMath::Cross(px, normal, py);
+
+        double minSquared = (innerRadius*innerRadius)/(radius*radius);
+        for (int j = 0; j < numPoints; j++) {
+            // Get random sweep angle and radius
+            double angle = getRandomNum(0, 2.0 * vtkMath::DoublePi());
+            // Need sqrt to get uniform distribution
+            double r = sqrt(getRandomNum(minSquared, 1)) * radius;
+            double pt[3];
+            for (int i = 0; i < 3; i++) {
+                pt[i] = center[i] + r * (px[i] * cos(angle) + py[i] * sin(angle));
+            }
+            TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+            pts->InsertNextPoint(pt);
+            cells->InsertNextCell(1);
+            cells->InsertCellPoint(j);
+        }
+
+        seed->SetPoints(pts);
+        seed->SetVerts(cells);
+
+        TRACE("Seed points: %d", seed->GetNumberOfPoints());
+        vtkSmartPointer<vtkDataSet> oldSeed;
+        if (_streamTracer->GetSource() != NULL) {
+            oldSeed = _streamTracer->GetSource();
+        }
+
+        _streamTracer->SetSource(seed);
+        if (oldSeed != NULL) {
+            oldSeed->SetPipelineInformation(NULL);
+        }
+
+        _seedMapper->SetInput(seed);
+    }
+}
+
+/**
  * \brief Use seed points from an n-sided polygon
  *
  * \param[in] center Center point of polygon
  * \param[in] normal Normal vector to orient polygon
+ * \param[in] angle Angle in degrees to rotate about normal
  * \param[in] radius Radius of circumscribing circle
  * \param[in] numSides Number of polygon sides (and points) to generate
  */
 void Streamlines::setSeedToPolygon(double center[3],
                                    double normal[3],
+                                   double angle,
                                    double radius,
                                    int numSides)
 {
@@ -375,18 +520,154 @@ void Streamlines::setSeedToPolygon(double center[3],
         seed->SetNumberOfSides(numSides);
         seed->GeneratePolygonOn();
 
+        if (angle != 0.0) {
+            vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+            trans->RotateWXYZ(angle, normal);
+            vtkSmartPointer<vtkTransformPolyDataFilter> transFilt =
+                vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+            transFilt->SetInputConnection(seed->GetOutputPort());
+            transFilt->SetTransform(trans);
+        }
+
         TRACE("Seed points: %d", numSides);
         vtkSmartPointer<vtkDataSet> oldSeed;
         if (_streamTracer->GetSource() != NULL) {
             oldSeed = _streamTracer->GetSource();
         }
 
-        _streamTracer->SetSourceConnection(seed->GetOutputPort());
+        if (angle != 0.0) {
+            vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+            trans->Translate(+center[0], +center[1], +center[2]);
+            trans->RotateWXYZ(angle, normal);
+            trans->Translate(-center[0], -center[1], -center[2]);
+            vtkSmartPointer<vtkTransformPolyDataFilter> transFilt =
+                vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+            transFilt->SetInputConnection(seed->GetOutputPort());
+            transFilt->SetTransform(trans);
+            _streamTracer->SetSourceConnection(transFilt->GetOutputPort());
+            _seedMapper->SetInputConnection(transFilt->GetOutputPort());
+        } else {
+            _streamTracer->SetSourceConnection(seed->GetOutputPort());
+            _seedMapper->SetInputConnection(seed->GetOutputPort());
+        }
+
+        if (oldSeed != NULL) {
+            oldSeed->SetPipelineInformation(NULL);
+        }
+    }
+}
+
+/**
+ * \brief Use seed points from an n-sided polygon
+ *
+ * \param[in] center Center point of polygon
+ * \param[in] normal Normal vector to orient polygon
+ * \param[in] angle Angle in degrees to rotate about normal
+ * \param[in] radius Radius of circumscribing circle
+ * \param[in] numSides Number of polygon sides (and points) to generate
+ * \param[in] numPoints Number of random points to generate
+ */
+void Streamlines::setSeedToFilledPolygon(double center[3],
+                                         double normal[3],
+                                         double angle,
+                                         double radius,
+                                         int numSides,
+                                         int numPoints)
+{
+    if (_streamTracer != NULL) {
+         // Set up seed source object
+        vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
+        vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+        vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+
+        // The following code is based on vtkRegularPolygonSource::RequestData
+
+        double px[3];
+        double py[3];
+        double axis[3] = {1., 0., 0.};
+
+        if (vtkMath::Normalize(normal) == 0.0) {
+            normal[0] = 0.0;
+            normal[1] = 0.0;
+            normal[2] = 1.0;
+        }
+
+        // Find axis in plane (orthogonal to normal)
+        bool done = false;
+        vtkMath::Cross(normal, axis, px);
+        if (vtkMath::Normalize(px) > 1.0e-3) {
+            done = true;
+        }
+        if (!done) {
+            axis[0] = 0.0;
+            axis[1] = 1.0;
+            axis[2] = 0.0;
+            vtkMath::Cross(normal, axis, px);
+            if (vtkMath::Normalize(px) > 1.0e-3) {
+                done = true;
+            }
+        }
+        if (!done) {
+            axis[0] = 0.0;
+            axis[1] = 0.0;
+            axis[2] = 1.0;
+            vtkMath::Cross(normal, axis, px);
+            vtkMath::Normalize(px);
+        }
+        // Create third orthogonal basis vector
+        vtkMath::Cross(px, normal, py);
+
+        double verts[numSides][3];
+        double sliceTheta = 2.0 * vtkMath::DoublePi() / (double)numSides;
+        angle = vtkMath::RadiansFromDegrees(angle);
+        for (int j = 0; j < numSides; j++) {
+            for (int i = 0; i < 3; i++) {
+                double theta = sliceTheta * (double)j - angle;
+                verts[j][i] = center[i] + radius * (px[i] * cos(theta) + 
+                                                    py[i] * sin(theta));
+            }
+            TRACE("Vert %d: %g %g %g", j, verts[j][0], verts[j][1], verts[j][2]);
+        }
+
+        // Note: this gives a uniform distribution because the polygon is regular and
+        // the triangular sections have equal area
+        if (numSides == 3) {
+            for (int j = 0; j < numPoints; j++) {
+                double pt[3];
+                getRandomPointInTriangle(pt, verts[0], verts[1], verts[2]);
+                TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+                pts->InsertNextPoint(pt);
+                cells->InsertNextCell(1);
+                cells->InsertCellPoint(j);
+            }
+        } else {
+            for (int j = 0; j < numPoints; j++) {
+                // Get random triangle section
+                int tri = rand() % numSides;
+                double pt[3];
+                getRandomPointInTriangle(pt, center, verts[tri], verts[(tri+1) % numSides]);
+                TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+                pts->InsertNextPoint(pt);
+                cells->InsertNextCell(1);
+                cells->InsertCellPoint(j);
+            }
+        }
+
+        seed->SetPoints(pts);
+        seed->SetVerts(cells);
+
+        TRACE("Seed points: %d", seed->GetNumberOfPoints());
+        vtkSmartPointer<vtkDataSet> oldSeed;
+        if (_streamTracer->GetSource() != NULL) {
+            oldSeed = _streamTracer->GetSource();
+        }
+
+        _streamTracer->SetSource(seed);
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
 
-        _seedMapper->SetInputConnection(seed->GetOutputPort());
+        _seedMapper->SetInput(seed);
     }
 }
 
