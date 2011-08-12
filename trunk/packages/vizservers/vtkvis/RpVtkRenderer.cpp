@@ -5441,7 +5441,9 @@ void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoin
 /**
  * \brief Set the streamlines seed to points along a line
  */
-void Renderer::setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints)
+void Renderer::setStreamlinesSeedToRake(const DataSetId& id,
+                                        double start[3], double end[3],
+                                        int numPoints)
 {
     StreamlinesHashmap::iterator itr;
 
@@ -5466,11 +5468,13 @@ void Renderer::setStreamlinesSeedToRake(const DataSetId& id, double start[3], do
 }
 
 /**
- * \brief Set the streamlines seed to vertices of an n-sided polygon
+ * \brief Set the streamlines seed to points inside a disk, with optional
+ * hole
  */
-void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
-                                           double center[3], double normal[3],
-                                           double radius, int numSides)
+void Renderer::setStreamlinesSeedToDisk(const DataSetId& id,
+                                        double center[3], double normal[3],
+                                        double radius, double innerRadius,
+                                        int numPoints)
 {
     StreamlinesHashmap::iterator itr;
 
@@ -5488,7 +5492,69 @@ void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
     }
 
     do {
-        itr->second->setSeedToPolygon(center, normal, radius, numSides);
+        itr->second->setSeedToDisk(center, normal, radius, innerRadius, numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to vertices of an n-sided polygon
+ */
+void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
+                                           double center[3], double normal[3],
+                                           double angle, double radius,
+                                           int numSides)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToPolygon(center, normal, angle, radius, numSides);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to vertices of an n-sided polygon
+ */
+void Renderer::setStreamlinesSeedToFilledPolygon(const DataSetId& id,
+                                                 double center[3],
+                                                 double normal[3],
+                                                 double angle, double radius,
+                                                 int numSides, int numPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToFilledPolygon(center, normal, angle,
+                                            radius, numSides, numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
     _needsRedraw = true;
@@ -6387,50 +6453,173 @@ Renderer::CameraMode Renderer::getCameraMode() const
 }
 
 /**
+ * \brief Set the VTK camera parameters based on a 4x4 view matrix
+ */
+void Renderer::setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4& mat)
+{
+    double d = camera->GetDistance();
+    double vu[3];
+    vu[0] = mat[1][0];
+    vu[1] = mat[1][1];
+    vu[2] = mat[1][2];
+    double trans[3];
+    trans[0] = mat[0][3];
+    trans[1] = mat[1][3];
+    trans[2] = mat[2][3];
+    mat[0][3] = 0;
+    mat[1][3] = 0;
+    mat[2][3] = 0;
+    double vpn[3] = {mat[2][0], mat[2][1], mat[2][2]};
+    double pos[3];
+    // With translation removed, we have an orthogonal matrix, 
+    // so the inverse is the transpose
+    mat.Transpose();
+    mat.MultiplyPoint(trans, pos);
+    pos[0] = -pos[0];
+    pos[1] = -pos[1];
+    pos[2] = -pos[2];
+    double fp[3];
+    fp[0] = pos[0] - vpn[0] * d;
+    fp[1] = pos[1] - vpn[1] * d;
+    fp[2] = pos[2] - vpn[2] * d;
+    camera->SetPosition(pos);
+    camera->SetFocalPoint(fp);
+    camera->SetViewUp(vu);
+}
+
+inline void quaternionToMatrix4x4(double quat[4], vtkMatrix4x4& mat)
+{
+    double ww = quat[0]*quat[0];
+    double wx = quat[0]*quat[1];
+    double wy = quat[0]*quat[2];
+    double wz = quat[0]*quat[3];
+
+    double xx = quat[1]*quat[1];
+    double yy = quat[2]*quat[2];
+    double zz = quat[3]*quat[3];
+
+    double xy = quat[1]*quat[2];
+    double xz = quat[1]*quat[3];
+    double yz = quat[2]*quat[3];
+
+    double rr = xx + yy + zz;
+    // normalization factor, just in case quaternion was not normalized
+    double f = double(1)/double(sqrt(ww + rr));
+    double s = (ww - rr)*f;
+    f *= 2;
+
+    mat[0][0] = xx*f + s;
+    mat[1][0] = (xy + wz)*f;
+    mat[2][0] = (xz - wy)*f;
+
+    mat[0][1] = (xy - wz)*f;
+    mat[1][1] = yy*f + s;
+    mat[2][1] = (yz + wx)*f;
+
+    mat[0][2] = (xz + wy)*f;
+    mat[1][2] = (yz - wx)*f;
+    mat[2][2] = zz*f + s;
+}
+
+inline void quaternionToTransposeMatrix4x4(double quat[4], vtkMatrix4x4& mat)
+{
+    double ww = quat[0]*quat[0];
+    double wx = quat[0]*quat[1];
+    double wy = quat[0]*quat[2];
+    double wz = quat[0]*quat[3];
+
+    double xx = quat[1]*quat[1];
+    double yy = quat[2]*quat[2];
+    double zz = quat[3]*quat[3];
+
+    double xy = quat[1]*quat[2];
+    double xz = quat[1]*quat[3];
+    double yz = quat[2]*quat[3];
+
+    double rr = xx + yy + zz;
+    // normalization factor, just in case quaternion was not normalized
+    double f = double(1)/double(sqrt(ww + rr));
+    double s = (ww - rr)*f;
+    f *= 2;
+
+    mat[0][0] = xx*f + s;
+    mat[0][1] = (xy + wz)*f;
+    mat[0][2] = (xz - wy)*f;
+
+    mat[1][0] = (xy - wz)*f;
+    mat[1][1] = yy*f + s;
+    mat[1][2] = (yz + wx)*f;
+
+    mat[2][0] = (xz + wy)*f;
+    mat[2][1] = (yz - wx)*f;
+    mat[2][2] = zz*f + s;
+}
+
+/**
  * \brief Set the orientation of the camera from a quaternion
  *
  * \param[in] quat A quaternion with scalar part first: w,x,y,z
+ * \param[in] absolute Is rotation absolute or relative?
  */
-void Renderer::setCameraOrientation(double quat[4])
+void Renderer::setCameraOrientation(double quat[4], bool absolute)
 {
     if (_cameraMode == IMAGE)
         return;
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-    double mat3[3][3];
-    vtkMath::QuaternionToMatrix3x3(quat, mat3);
     vtkSmartPointer<vtkMatrix4x4> mat4 = vtkSmartPointer<vtkMatrix4x4>::New();
-    for (int r = 0; r < 3; r++) {
-        memcpy((*mat4)[r], mat3[r], sizeof(double)*3);
+
+    if (absolute) {
+        quaternionToMatrix4x4(quat, *mat4);
+#ifdef DEBUG
+        TRACE("Arcball camera matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
+              (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
+              (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
+              (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
+#endif
+        camera->SetPosition(0, 0, 1);
+        camera->SetFocalPoint(0, 0, 0);
+        camera->SetViewUp(0, 1, 0);
+        double bounds[6];
+        collectBounds(bounds, false);
+        _renderer->ResetCamera(bounds);
+        camera->GetFocalPoint(_cameraFocalPoint);
+        trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
+        trans->Concatenate(mat4);
+        trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
+        camera->ApplyTransform(trans);
+    } else {
+        quaternionToTransposeMatrix4x4(quat, *mat4);
+#ifdef DEBUG
+        vtkSmartPointer<vtkMatrix4x4> mat2 = vtkSmartPointer<vtkMatrix4x4>::New();
+        mat2->DeepCopy(camera->GetViewTransformMatrix());
+        TRACE("camera matrix:\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g",
+              (*mat2)[0][0], (*mat2)[0][1], (*mat2)[0][2], (*mat2)[0][3],
+              (*mat2)[1][0], (*mat2)[1][1], (*mat2)[1][2], (*mat2)[1][3],
+              (*mat2)[2][0], (*mat2)[2][1], (*mat2)[2][2], (*mat2)[2][3],
+              (*mat2)[3][0], (*mat2)[3][1], (*mat2)[3][2], (*mat2)[3][3]);
+        printCameraInfo(camera);
+#endif
+        trans->Translate(0, 0, -camera->GetDistance());
+        trans->Concatenate(mat4);
+        trans->Translate(0, 0, camera->GetDistance());
+        trans->Concatenate(camera->GetViewTransformMatrix());
+        setCameraFromMatrix(camera, *trans->GetMatrix());
     }
-    TRACE("Arcball camera matrix: %g %g %g %g %g %g %g %g %g",
-          (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
-          (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
-          (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
-    camera->SetPosition(0, 0, 1);
-    camera->SetFocalPoint(0, 0, 0);
-    camera->SetViewUp(0, 1, 0);
-    setViewAngle(_windowHeight);
-    double bounds[6];
-    collectBounds(bounds, false);
-    _renderer->ResetCamera(bounds);
-    camera->GetFocalPoint(_cameraFocalPoint);
-    trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
-    trans->Concatenate(mat4);
-    trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
-    camera->ApplyTransform(trans);
     storeCameraOrientation();
-    if (_cameraZoomRatio != 1.0) {
-        double z = _cameraZoomRatio;
-        _cameraZoomRatio = 1.0;
-        zoomCamera(z, true);
-    }
-    if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
-        double panx = _cameraPan[0];
-        double pany = -_cameraPan[1];
-        _cameraPan[0] = 0;
-        _cameraPan[1] = 0;
-        panCamera(panx, pany, true);
+    if (absolute) {
+        if (_cameraZoomRatio != 1.0) {
+            double z = _cameraZoomRatio;
+            _cameraZoomRatio = 1.0;
+            zoomCamera(z, true);
+        }
+        if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
+            double panx = _cameraPan[0];
+            double pany = -_cameraPan[1];
+            _cameraPan[0] = 0;
+            _cameraPan[1] = 0;
+            panCamera(panx, pany, true);
+        }
     }
     _renderer->ResetCameraClippingRange();
     printCameraInfo(camera);
@@ -6520,7 +6709,7 @@ void Renderer::resetCamera(bool resetOrientation)
         collectBounds(bounds, false);
         _renderer->ResetCamera(bounds);
         _renderer->ResetCameraClippingRange();
-        computeScreenWorldCoords();
+        //computeScreenWorldCoords();
     }
 
     printCameraInfo(camera);
@@ -6549,7 +6738,7 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
     camera->Roll(roll); // Roll about camera view axis
     _renderer->ResetCameraClippingRange();
     storeCameraOrientation();
-    computeScreenWorldCoords();
+    //computeScreenWorldCoords();
     _needsRedraw = true;
 }
 
@@ -7192,13 +7381,13 @@ void Renderer::initCamera()
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes();
         _renderer->ResetCamera(bounds);
-        computeScreenWorldCoords();
+        //computeScreenWorldCoords();
         break;
     case PERSPECTIVE:
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes();
         _renderer->ResetCamera(bounds);
-        computeScreenWorldCoords();
+        //computeScreenWorldCoords();
         break;
     default:
         ERROR("Unknown camera mode");

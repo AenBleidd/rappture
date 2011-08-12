@@ -54,7 +54,7 @@ camera pan <x> <y>
 camera reset <?all?>
        Option all resets orientation/rotation as well as pan/zoom/clip range
 camera rotate <yaw> <pitch> <roll>
-       Specify relative rotation in Euler angles (FIXME)
+       Specify relative rotation in Euler angles
 camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
        Set camera orientation using camera position, focal point and view up 
        vector
@@ -249,7 +249,12 @@ streamlines ribbons <width> <angle> <?datasetName?>
             degrees offset from normal orientation
 streamlines scale <sx> <sy> <sz> <?dataSetName?>
 streamlines seed color <r> <g> <b> <?datasetName?>
-streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <numSides> <?dataSetName?>
+streamlines seed disk <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <innerRadius> <numPoints> <?dataSetName?>
+            Create a disk seed area with optional hole, filled with randomly placed points
+streamlines seed fpoly <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <numPoints> <?dataSetName?>
+            Create a regular n-sided polygonal seed area filled with randomly placed points
+streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <?dataSetName?>
+            Create seed points from vertices of a regular n-sided polygon
 streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
 streamlines seed random <numPoints> <?datasetName?>
 streamlines seed visible <bool> <?datasetName?>

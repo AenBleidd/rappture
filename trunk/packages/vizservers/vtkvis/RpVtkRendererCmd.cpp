@@ -3719,11 +3719,11 @@ StreamlinesSeedColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-StreamlinesSeedPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                         Tcl_Obj *const *objv)
+StreamlinesSeedDiskOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
 {
-    double center[3], normal[3], radius;
-    int numSides;
+    double center[3], normal[3], radius, innerRadius;
+    int numPoints;
     for (int i = 0; i < 3; i++) {
         if (Tcl_GetDoubleFromObj(interp, objv[3+i], &center[i]) != TCL_OK) {
             return TCL_ERROR;
@@ -3735,14 +3735,94 @@ StreamlinesSeedPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetDoubleFromObj(interp, objv[9], &radius) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (Tcl_GetIntFromObj(interp, objv[10], &numSides) != TCL_OK) {
+    if (Tcl_GetDoubleFromObj(interp, objv[10], &innerRadius) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (objc == 12) {
-        const char *name = Tcl_GetString(objv[11]);
-        g_renderer->setStreamlinesSeedToPolygon(name, center, normal, radius, numSides);
+    if (Tcl_GetIntFromObj(interp, objv[11], &numPoints) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 13) {
+        const char *name = Tcl_GetString(objv[12]);
+        g_renderer->setStreamlinesSeedToDisk(name, center, normal, radius, innerRadius, numPoints);
     } else {
-        g_renderer->setStreamlinesSeedToPolygon("all", center, normal, radius, numSides);
+        g_renderer->setStreamlinesSeedToDisk("all", center, normal, radius, innerRadius, numPoints);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    double center[3], normal[3], angle, radius;
+    int numSides;
+    for (int i = 0; i < 3; i++) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3+i], &center[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetDoubleFromObj(interp, objv[6+i], &normal[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[9], &angle) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[10], &radius) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetIntFromObj(interp, objv[11], &numSides) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (numSides < 3) {
+        Tcl_AppendResult(interp, "numSides must be 3 or greater", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 13) {
+        const char *name = Tcl_GetString(objv[12]);
+        g_renderer->setStreamlinesSeedToPolygon(name, center, normal, angle, radius, numSides);
+    } else {
+        g_renderer->setStreamlinesSeedToPolygon("all", center, normal, angle, radius, numSides);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedFilledPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                               Tcl_Obj *const *objv)
+{
+    double center[3], normal[3], angle, radius;
+    int numSides, numPoints;
+    for (int i = 0; i < 3; i++) {
+        if (Tcl_GetDoubleFromObj(interp, objv[3+i], &center[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        if (Tcl_GetDoubleFromObj(interp, objv[6+i], &normal[i]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[9], &angle) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetDoubleFromObj(interp, objv[10], &radius) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (Tcl_GetIntFromObj(interp, objv[11], &numSides) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (numSides < 3) {
+        Tcl_AppendResult(interp, "numSides must be 3 or greater", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (Tcl_GetIntFromObj(interp, objv[12], &numPoints) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 14) {
+        const char *name = Tcl_GetString(objv[13]);
+        g_renderer->setStreamlinesSeedToFilledPolygon(name, center, normal, angle,
+                                                      radius, numSides, numPoints);
+    } else {
+        g_renderer->setStreamlinesSeedToFilledPolygon("all", center, normal, angle,
+                                                      radius, numSides, numPoints);
     }
     return TCL_OK;
 }
@@ -3809,7 +3889,9 @@ StreamlinesSeedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec streamlinesSeedOps[] = {
     {"color",   1, StreamlinesSeedColorOp, 6, 7, "r g b ?dataSetName?"},
-    {"polygon", 1, StreamlinesSeedPolygonOp, 11, 12, "centerX centerY centerZ normalX normalY normalZ radius numSides ?dataSetName?"},
+    {"disk",    1, StreamlinesSeedDiskOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ radius innerRadius numPoints ?dataSetName?"},
+    {"fpoly",   1, StreamlinesSeedFilledPolygonOp, 13, 14, "centerX centerY centerZ normalX normalY normalZ angle radius numSides numPoints ?dataSetName?"},
+    {"polygon", 1, StreamlinesSeedPolygonOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
     {"rake",    3, StreamlinesSeedRakeOp, 10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
     {"random",  3, StreamlinesSeedRandomOp, 4, 5, "numPoints ?dataSetName?"},
     {"visible", 1, StreamlinesSeedVisibleOp, 4, 5, "bool ?dataSetName?"}
@@ -3883,7 +3965,7 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"pos",       1, StreamlinesPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"ribbons",   1, StreamlinesRibbonsOp, 4, 5, "width angle ?dataSetName?"},
     {"scale",     2, StreamlinesScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"seed",      2, StreamlinesSeedOp, 4, 11, "op params... ?dataSetName?"},
+    {"seed",      2, StreamlinesSeedOp, 4, 14, "op params... ?dataSetName?"},
     {"tubes",     1, StreamlinesTubesOp, 4, 5, "numSides radius ?dataSetName?"},
     {"visible",   1, StreamlinesVisibleOp, 3, 4, "bool ?dataSetName?"}
 };

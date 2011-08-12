@@ -63,8 +63,16 @@ public:
 
     void setSeedToRake(double start[3], double end[3], int numPoints);
 
+    void setSeedToDisk(double center[3], double normal[3],
+                       double radius, double innerRadius, int numPoints);
+
     void setSeedToPolygon(double center[3], double normal[3],
-                          double radius, int numSides);
+                          double angle, double radius,
+                          int numSides);
+
+    void setSeedToFilledPolygon(double center[3], double normal[3],
+                                double angle, double radius,
+                                int numSides, int numPoints);
 
     void setMaxPropagation(double length);
 
@@ -86,8 +94,16 @@ private:
     virtual void initProp();
     virtual void update();
 
+    static double getRandomNum(double min, double max);
     static void getRandomPoint(double pt[3], const double bounds[6]);
-    static void getRandomCellPt(vtkDataSet *ds, double pt[3]);
+    static void getRandomPointInTriangle(double pt[3],
+                                         const double v1[3],
+                                         const double v2[3],
+                                         const double v3[3]);
+    static void getRandomPointOnLineSegment(double pt[3],
+                                            const double endpt[3],
+                                            const double endpt2[3]);
+    static void getRandomCellPt(double pt[3], vtkDataSet *ds);
 
     LineType _lineType;
     float _seedColor[3];

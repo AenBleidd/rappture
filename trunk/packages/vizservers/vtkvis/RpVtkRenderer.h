@@ -149,7 +149,11 @@ public:
 
     void rotateCamera(double yaw, double pitch, double roll);
 
-    void setCameraOrientation(double quat[4]);
+    void setCameraOrientation(double quat[4], bool absolute = true);
+
+    void panCamera(double x, double y, bool absolute = true);
+
+    void zoomCamera(double z, bool absolute = true);
 
     void setCameraOrientationAndPosition(double position[3],
                                          double focalPoint[3],
@@ -158,10 +162,6 @@ public:
     void getCameraOrientationAndPosition(double position[3],
                                          double focalPoint[3],
                                          double viewUp[3]);
-
-    void panCamera(double x, double y, bool absolute = true);
-
-    void zoomCamera(double z, bool absolute = true);
 
     // Rendering an image
 
@@ -558,10 +558,24 @@ public:
 
     void setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints);
 
-    void setStreamlinesSeedToRake(const DataSetId& id, double start[3], double end[3], int numPoints);
+    void setStreamlinesSeedToRake(const DataSetId& id,
+                                  double start[3], double end[3],
+                                  int numPoints);
 
-    void setStreamlinesSeedToPolygon(const DataSetId& id, double center[3], double normal[3],
-                                           double radius, int numSides);
+    void setStreamlinesSeedToDisk(const DataSetId& id,
+                                  double center[3], double normal[3],
+                                  double radius, double innerRadius,
+                                  int numPoints);
+
+    void setStreamlinesSeedToPolygon(const DataSetId& id,
+                                     double center[3], double normal[3],
+                                     double angle, double radius,
+                                     int numSides);
+
+    void setStreamlinesSeedToFilledPolygon(const DataSetId& id,
+                                           double center[3], double normal[3],
+                                           double angle, double radius,
+                                           int numSides, int numPoints);
 
     void setStreamlinesLength(const DataSetId& id, double length);
 
@@ -626,6 +640,8 @@ private:
     void collectDataRanges(double *range, bool onlyVisible);
 
     void updateRanges(bool useCumulative);
+
+    void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
 
     void computeDisplayToWorld(double x, double y, double z, double worldPt[4]);
 
