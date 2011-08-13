@@ -649,8 +649,6 @@ private:
 
     void computeScreenWorldCoords();
 
-    void storeCameraOrientation();
-    void restoreCameraOrientation();
     void initCamera();
     void initAxes();
     void resetAxes();
@@ -661,9 +659,7 @@ private:
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
     double _screenWorldCoords[4];
-    double _cameraPos[3];
-    double _cameraFocalPoint[3];
-    double _cameraUp[3];
+    double _cameraOrientation[4];
     double _cameraZoomRatio;
     double _cameraPan[2];
     float _bgColor[3];

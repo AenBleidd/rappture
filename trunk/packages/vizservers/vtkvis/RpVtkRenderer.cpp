@@ -64,6 +64,10 @@ Renderer::Renderer() :
     _bgColor[2] = 0;
     _cameraPan[0] = 0;
     _cameraPan[1] = 0;
+    _cameraOrientation[0] = 1.0;
+    _cameraOrientation[1] = 0.0;
+    _cameraOrientation[2] = 0.0;
+    _cameraOrientation[3] = 0.0;
     _cumulativeDataRange[0] = 0.0;
     _cumulativeDataRange[1] = 1.0;
     // clipping planes to prevent overdrawing axes
@@ -124,7 +128,6 @@ Renderer::Renderer() :
     setViewAngle(_windowHeight);
     initAxes();
     initCamera();
-    storeCameraOrientation();
     addColorMap("default", ColorMap::getDefault());
     addColorMap("volumeDefault", ColorMap::getVolumeDefault());
     addColorMap("elementDefault", ColorMap::getElementDefault());
@@ -6555,6 +6558,55 @@ inline void quaternionToTransposeMatrix4x4(double quat[4], vtkMatrix4x4& mat)
     mat[2][2] = zz*f + s;
 }
 
+inline double *quatMult(double q1[4], double q2[4], double result[4])
+{
+    double q1w = q1[0];
+    double q1x = q1[1];
+    double q1y = q1[2];
+    double q1z = q1[3];
+    double q2w = q2[0];
+    double q2x = q2[1];
+    double q2y = q2[2];
+    double q2z = q2[3];
+    result[0] = (q1w*q2w) - (q1x*q2x) - (q1y*q2y) - (q1z*q2z);
+    result[1] = (q1w*q2x) + (q1x*q2w) + (q1y*q2z) - (q1z*q2y);
+    result[2] = (q1w*q2y) + (q1y*q2w) + (q1z*q2x) - (q1x*q2z);
+    result[3] = (q1w*q2z) + (q1z*q2w) + (q1x*q2y) - (q1y*q2x);
+    return result;
+}
+
+inline double *quatConjugate(double quat[4], double result[4])
+{
+    result[1] = -quat[1];
+    result[2] = -quat[2];
+    result[3] = -quat[3];
+    return result;
+}
+
+inline double *quatReciprocal(double quat[4], double result[4])
+{
+    double denom = 
+        quat[0]*quat[0] + 
+        quat[1]*quat[1] + 
+        quat[2]*quat[2] + 
+        quat[3]*quat[3];
+    quatConjugate(quat, result);
+    for (int i = 0; i < 4; i++) {
+        result[i] /= denom;
+    }
+    return result;
+}
+
+inline double *quatReciprocal(double quat[4])
+{
+    return quatReciprocal(quat, quat);
+}
+
+inline void copyQuat(double quat[4], double result[4])
+{
+    memcpy(result, quat, sizeof(double)*4);
+}
+
 /**
  * \brief Set the orientation of the camera from a quaternion
  *
@@ -6570,57 +6622,39 @@ void Renderer::setCameraOrientation(double quat[4], bool absolute)
     vtkSmartPointer<vtkMatrix4x4> mat4 = vtkSmartPointer<vtkMatrix4x4>::New();
 
     if (absolute) {
-        quaternionToMatrix4x4(quat, *mat4);
-#ifdef DEBUG
-        TRACE("Arcball camera matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
-              (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
-              (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
-              (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
-#endif
-        camera->SetPosition(0, 0, 1);
-        camera->SetFocalPoint(0, 0, 0);
-        camera->SetViewUp(0, 1, 0);
-        double bounds[6];
-        collectBounds(bounds, false);
-        _renderer->ResetCamera(bounds);
-        camera->GetFocalPoint(_cameraFocalPoint);
-        trans->Translate(+_cameraFocalPoint[0], +_cameraFocalPoint[1], +_cameraFocalPoint[2]);
-        trans->Concatenate(mat4);
-        trans->Translate(-_cameraFocalPoint[0], -_cameraFocalPoint[1], -_cameraFocalPoint[2]);
-        camera->ApplyTransform(trans);
+        double abs[4];
+        // Save absolute rotation
+        copyQuat(quat, abs);
+        // Compute relative rotation
+        quatMult(quatReciprocal(_cameraOrientation), quat, quat);
+        // Store absolute rotation
+        copyQuat(abs, _cameraOrientation);
     } else {
-        quaternionToTransposeMatrix4x4(quat, *mat4);
+        // Compute new absolute rotation
+        quatMult(_cameraOrientation, quat, _cameraOrientation);
+    }
+
+    quaternionToTransposeMatrix4x4(quat, *mat4);
 #ifdef DEBUG
-        vtkSmartPointer<vtkMatrix4x4> mat2 = vtkSmartPointer<vtkMatrix4x4>::New();
-        mat2->DeepCopy(camera->GetViewTransformMatrix());
-        TRACE("camera matrix:\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g",
-              (*mat2)[0][0], (*mat2)[0][1], (*mat2)[0][2], (*mat2)[0][3],
-              (*mat2)[1][0], (*mat2)[1][1], (*mat2)[1][2], (*mat2)[1][3],
-              (*mat2)[2][0], (*mat2)[2][1], (*mat2)[2][2], (*mat2)[2][3],
-              (*mat2)[3][0], (*mat2)[3][1], (*mat2)[3][2], (*mat2)[3][3]);
-        printCameraInfo(camera);
+    TRACE("Arcball camera matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
+          (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
+          (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
+          (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
+    vtkSmartPointer<vtkMatrix4x4> mat2 = vtkSmartPointer<vtkMatrix4x4>::New();
+    mat2->DeepCopy(camera->GetViewTransformMatrix());
+    TRACE("camera matrix:\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g",
+          (*mat2)[0][0], (*mat2)[0][1], (*mat2)[0][2], (*mat2)[0][3],
+          (*mat2)[1][0], (*mat2)[1][1], (*mat2)[1][2], (*mat2)[1][3],
+          (*mat2)[2][0], (*mat2)[2][1], (*mat2)[2][2], (*mat2)[2][3],
+          (*mat2)[3][0], (*mat2)[3][1], (*mat2)[3][2], (*mat2)[3][3]);
+    printCameraInfo(camera);
 #endif
-        trans->Translate(0, 0, -camera->GetDistance());
-        trans->Concatenate(mat4);
-        trans->Translate(0, 0, camera->GetDistance());
-        trans->Concatenate(camera->GetViewTransformMatrix());
-        setCameraFromMatrix(camera, *trans->GetMatrix());
-    }
-    storeCameraOrientation();
-    if (absolute) {
-        if (_cameraZoomRatio != 1.0) {
-            double z = _cameraZoomRatio;
-            _cameraZoomRatio = 1.0;
-            zoomCamera(z, true);
-        }
-        if (_cameraPan[0] != 0.0 || _cameraPan[1] != 0.0) {
-            double panx = _cameraPan[0];
-            double pany = -_cameraPan[1];
-            _cameraPan[0] = 0;
-            _cameraPan[1] = 0;
-            panCamera(panx, pany, true);
-        }
-    }
+    trans->Translate(0, 0, -camera->GetDistance());
+    trans->Concatenate(mat4);
+    trans->Translate(0, 0, camera->GetDistance());
+    trans->Concatenate(camera->GetViewTransformMatrix());
+    setCameraFromMatrix(camera, *trans->GetMatrix());
+
     _renderer->ResetCameraClippingRange();
     printCameraInfo(camera);
     _needsRedraw = true;
@@ -6637,11 +6671,11 @@ void Renderer::setCameraOrientationAndPosition(double position[3],
                                                double focalPoint[3],
                                                double viewUp[3])
 {
-    memcpy(_cameraPos, position, sizeof(double)*3);
-    memcpy(_cameraFocalPoint, focalPoint, sizeof(double)*3);
-    memcpy(_cameraUp, viewUp, sizeof(double)*3);
-    // Apply the new parameters to the VTK camera
-    restoreCameraOrientation();
+    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+    camera->SetPosition(position);
+    camera->SetFocalPoint(focalPoint);
+    camera->SetViewUp(viewUp);
+    _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -6656,33 +6690,10 @@ void Renderer::getCameraOrientationAndPosition(double position[3],
                                                double focalPoint[3],
                                                double viewUp[3])
 {
-    memcpy(position, _cameraPos, sizeof(double)*3);
-    memcpy(focalPoint, _cameraFocalPoint, sizeof(double)*3);
-    memcpy(viewUp, _cameraUp, sizeof(double)*3);
-}
-
-/**
- * \brief Saves the current camera orientation and position in order to
- * be able to later restore the saved orientation and position
- */
-void Renderer::storeCameraOrientation()
-{
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    camera->GetPosition(_cameraPos);
-    camera->GetFocalPoint(_cameraFocalPoint);
-    camera->GetViewUp(_cameraUp);
-}
-
-/**
- * \brief Use the stored orientation and position to set the camera's
- * current state
- */
-void Renderer::restoreCameraOrientation()
-{
-    vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-    camera->SetPosition(_cameraPos);
-    camera->SetFocalPoint(_cameraFocalPoint);
-    camera->SetViewUp(_cameraUp);
+    camera->GetPosition(position);
+    camera->GetFocalPoint(focalPoint);
+    camera->GetViewUp(viewUp);
 }
 
 /**
@@ -6700,9 +6711,10 @@ void Renderer::resetCamera(bool resetOrientation)
             camera->SetPosition(0, 0, 1);
             camera->SetFocalPoint(0, 0, 0);
             camera->SetViewUp(0, 1, 0);
-            storeCameraOrientation();
-        } else {
-            restoreCameraOrientation();
+            _cameraOrientation[0] = 1.0;
+            _cameraOrientation[1] = 0.0;
+            _cameraOrientation[2] = 0.0;
+            _cameraOrientation[3] = 0.0;
         }
         setViewAngle(_windowHeight);
         double bounds[6];
@@ -6737,7 +6749,6 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
     //camera->SetPitch(pitch); // Rotate about camera
     camera->Roll(roll); // Roll about camera view axis
     _renderer->ResetCameraClippingRange();
-    storeCameraOrientation();
     //computeScreenWorldCoords();
     _needsRedraw = true;
 }
@@ -6749,8 +6760,10 @@ void Renderer::rotateCamera(double yaw, double pitch, double roll)
  * units -- i.e. 0 is no pan, .5 is half the viewport, 2 is twice the viewport,
  * etc.
  *
- * \param[in] x Viewport coordinate horizontal panning
- * \param[in] y Viewport coordinate vertical panning (with origin at top)
+ * \param[in] x Viewport coordinate horizontal panning (positive number pans
+ * camera left, object right)
+ * \param[in] y Viewport coordinate vertical panning (positive number pans 
+ * camera up, object down)
  * \param[in] absolute Control if pan amount is relative to current or absolute
  */
 void Renderer::panCamera(double x, double y, bool absolute)
@@ -6831,7 +6844,6 @@ void Renderer::panCamera(double x, double y, bool absolute)
                             motionVector[2] + viewPoint[2]);
 
         _renderer->ResetCameraClippingRange();
-        storeCameraOrientation();
         //computeScreenWorldCoords();
     }
 
@@ -6876,11 +6888,9 @@ void Renderer::zoomCamera(double z, bool absolute)
     } else if (_cameraMode == ORTHO) {
         camera->Zoom(z); // Change ortho parallel scale (Dolly has no effect in ortho)
         _renderer->ResetCameraClippingRange();
-        storeCameraOrientation();
     } else {
         camera->Dolly(z); // Move camera forward/back
         _renderer->ResetCameraClippingRange();
-        storeCameraOrientation();
         //computeScreenWorldCoords();
     }
 

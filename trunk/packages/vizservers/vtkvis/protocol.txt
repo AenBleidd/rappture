@@ -41,7 +41,7 @@ axis visible <axis> <bool>
      <axis> = x|y|z|all
 
 camera get
-       Request current camera orientation
+       Request current camera parameters
 camera mode <mode>
        <mode> = persp|ortho|image
 camera orient <quatW> <quatX> <quatY> <quatZ>
@@ -50,16 +50,19 @@ camera ortho <x> <y> <width> <height>
        Supply world coordinate bounds of plot area for image camera mode
        Data is assumed to lie in XY plane (z = 0)
 camera pan <x> <y>
-       <x,y> world coordinates
+       <x,y> viewport coordinates (window center at 0,0).  Positive x pan
+       means pan object to right (camera to left).  Positive y pan means
+       pan object down (camera up).  For example a pan of 0.5, 0.5 would
+       move the object center to the lower right corner of the window
 camera reset <?all?>
        Option all resets orientation/rotation as well as pan/zoom/clip range
 camera rotate <yaw> <pitch> <roll>
        Specify relative rotation in Euler angles
 camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
-       Set camera orientation using camera position, focal point and view up 
-       vector
+       Set camera parameters: camera position, focal point and view up vector
 camera zoom <z>
-       Specify zoom ratio
+       Specify zoom ratio.  z > 1 is a zoom in, z < 1 is zoom out. z = 1
+       resets to default.
 
 colormap add <colorMapName> <colorMap> <opacityMap>
 	 colorMap = Tcl list of {value r g b} control points
@@ -250,9 +253,11 @@ streamlines ribbons <width> <angle> <?datasetName?>
 streamlines scale <sx> <sy> <sz> <?dataSetName?>
 streamlines seed color <r> <g> <b> <?datasetName?>
 streamlines seed disk <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <innerRadius> <numPoints> <?dataSetName?>
-            Create a disk seed area with optional hole, filled with randomly placed points
+            Create a disk seed area with optional hole, filled with randomly 
+            placed points
 streamlines seed fpoly <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <numPoints> <?dataSetName?>
-            Create a regular n-sided polygonal seed area filled with randomly placed points
+            Create a regular n-sided polygonal seed area filled with randomly 
+            placed points
 streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <?dataSetName?>
             Create seed points from vertices of a regular n-sided polygon
 streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
