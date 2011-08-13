@@ -11,6 +11,10 @@ bindir="@bindir@"
 libdir="@libdir@"
 . ${bindir}/rappture.env
 
+# lspci is either in /sbin or /usr/sbin
+PATH=/sbin:/usr/sbin:${PATH}
+export PATH
+
 # Determine the number of video cards we have.  The new render server
 # motherboards have the useless XGI Volari onboard video controllers (no 3D
 # capabilities) so we have to make sure we count only the nVidia cards.

@@ -316,7 +316,7 @@ CPPFLAGS="-I${CG_INC_DIR} $CPPFLAGS"
 AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_ERROR([cannot find nVidia Cg headers]))
 CPPFLAGS=$save_CPPFLAGS
 
- if test "${CG_DIR}" = "/usr" ; then
+if test "${CG_DIR}" = "/usr" ; then
   CG_DIR=""
 else 
   LD_RPATH="$loader_run_path:${CG_LIB_DIR}"
@@ -355,7 +355,7 @@ AC_SUBST(VTK_INC_SPEC)
 AC_SUBST(VTK_LIB_DIR)
 
 AC_OUTPUT([
-  Makefile \
+   Makefile \
    nanoscale/Makefile \
    nanoscale/renderservers.tcl \
    nanovis/Makefile \
@@ -369,6 +369,5 @@ AC_OUTPUT([
    pymolproxy/Makefile \
    vtkvis/Doxyfile \
    vtkvis/Makefile \
-   start_viz.sh
+   start_viz.sh \
    start_nanoscale.sh])
-  
