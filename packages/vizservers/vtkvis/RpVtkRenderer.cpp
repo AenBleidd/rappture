@@ -6609,6 +6609,7 @@ inline void copyQuat(double quat[4], double result[4])
 
 /**
  * \brief Set the orientation of the camera from a quaternion
+ * rotation
  *
  * \param[in] quat A quaternion with scalar part first: w,x,y,z
  * \param[in] absolute Is rotation absolute or relative?
@@ -6619,7 +6620,7 @@ void Renderer::setCameraOrientation(double quat[4], bool absolute)
         return;
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-    vtkSmartPointer<vtkMatrix4x4> mat4 = vtkSmartPointer<vtkMatrix4x4>::New();
+    vtkSmartPointer<vtkMatrix4x4> rotMat = vtkSmartPointer<vtkMatrix4x4>::New();
 
     if (absolute) {
         double abs[4];
@@ -6634,23 +6635,23 @@ void Renderer::setCameraOrientation(double quat[4], bool absolute)
         quatMult(_cameraOrientation, quat, _cameraOrientation);
     }
 
-    quaternionToTransposeMatrix4x4(quat, *mat4);
+    quaternionToTransposeMatrix4x4(quat, *rotMat);
 #ifdef DEBUG
-    TRACE("Arcball camera matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
-          (*mat4)[0][0], (*mat4)[0][1], (*mat4)[0][2],
-          (*mat4)[1][0], (*mat4)[1][1], (*mat4)[1][2],
-          (*mat4)[2][0], (*mat4)[2][1], (*mat4)[2][2]);
-    vtkSmartPointer<vtkMatrix4x4> mat2 = vtkSmartPointer<vtkMatrix4x4>::New();
-    mat2->DeepCopy(camera->GetViewTransformMatrix());
-    TRACE("camera matrix:\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g",
-          (*mat2)[0][0], (*mat2)[0][1], (*mat2)[0][2], (*mat2)[0][3],
-          (*mat2)[1][0], (*mat2)[1][1], (*mat2)[1][2], (*mat2)[1][3],
-          (*mat2)[2][0], (*mat2)[2][1], (*mat2)[2][2], (*mat2)[2][3],
-          (*mat2)[3][0], (*mat2)[3][1], (*mat2)[3][2], (*mat2)[3][3]);
+    TRACE("Rotation matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
+          (*rotMat)[0][0], (*rotMat)[0][1], (*rotMat)[0][2],
+          (*rotMat)[1][0], (*rotMat)[1][1], (*rotMat)[1][2],
+          (*rotMat)[2][0], (*rotMat)[2][1], (*rotMat)[2][2]);
+    vtkSmartPointer<vtkMatrix4x4> camMat = vtkSmartPointer<vtkMatrix4x4>::New();
+    camMat->DeepCopy(camera->GetViewTransformMatrix());
+    TRACE("Camera matrix:\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g\n %g %g %g %g",
+          (*camMat)[0][0], (*camMat)[0][1], (*camMat)[0][2], (*camMat)[0][3],
+          (*camMat)[1][0], (*camMat)[1][1], (*camMat)[1][2], (*camMat)[1][3],
+          (*camMat)[2][0], (*camMat)[2][1], (*camMat)[2][2], (*camMat)[2][3],
+          (*camMat)[3][0], (*camMat)[3][1], (*camMat)[3][2], (*camMat)[3][3]);
     printCameraInfo(camera);
 #endif
     trans->Translate(0, 0, -camera->GetDistance());
-    trans->Concatenate(mat4);
+    trans->Concatenate(rotMat);
     trans->Translate(0, 0, camera->GetDistance());
     trans->Concatenate(camera->GetViewTransformMatrix());
     setCameraFromMatrix(camera, *trans->GetMatrix());
