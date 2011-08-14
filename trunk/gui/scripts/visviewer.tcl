@@ -205,14 +205,14 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     # Shuffle the list of servers so as to pick random 
     set servers [Shuffle $hostlist]
 
-    set memorySize 10000
     # Get the first server
     foreach {hostname port} [split [lindex $servers 0] :] break
     set servers [lrange $servers 1 end]
 
     while {1} {
-        SendEcho <<line "connecting to $hostname:$port..."
+        puts stderr "connecting to $hostname:$port..."
         if { [catch {socket $hostname $port} _sid] != 0 } {
+	    set _sid ""
             if {[llength $servers] == 0} {
                 blt::busy release $itk_component(hull)
                 return 0
@@ -225,35 +225,16 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	set _hostname $hostname:$port
         fconfigure $_sid -translation binary -encoding binary
 
-        # Send memory requirement to the load balancer
-        puts -nonewline $_sid [binary format I $memorySize]
-        flush $_sid
-
-        # Read back a reconnection order
-        set data [read $_sid 4]
-        if {[binary scan $data cccc b1 b2 b3 b4] != 4} {
-            blt::busy release $itk_component(hull)
-            error "couldn't read redirection request"
-        }
-        set addr [format "%u.%u.%u.%u" \
-            [expr {$b1 & 0xff}] \
-            [expr {$b2 & 0xff}] \
-            [expr {$b3 & 0xff}] \
-            [expr {$b4 & 0xff}]]
-
-        if { [string equal $addr "0.0.0.0"] } {
-            # We're connected. Cancel any pending serverDown events and
-            # release the busy window over the hull.
-            $_dispatcher cancel !serverDown
-            if { $_idleTimeout > 0 } {
-                $_dispatcher event -after $_idleTimeout !timeout
-            }
-            blt::busy release $itk_component(hull)
-            fconfigure $_sid -buffering line
-            fileevent $_sid readable [itcl::code $this ReceiveHelper]
-            return 1
-        }
-        set hostname $addr
+	# We're connected. Cancel any pending serverDown events and
+	# release the busy window over the hull.
+	$_dispatcher cancel !serverDown
+	if { $_idleTimeout > 0 } {
+	    $_dispatcher event -after $_idleTimeout !timeout
+	}
+	blt::busy release $itk_component(hull)
+	fconfigure $_sid -buffering line
+	fileevent $_sid readable [itcl::code $this ReceiveHelper]
+	return 1
     }
     #NOTREACHED
     blt::busy release $itk_component(hull)
@@ -294,13 +275,14 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 itcl::body Rappture::VisViewer::CheckConnection {} {
     if { [IsConnected] } {
         if { [eof $_sid] } {
-            error "unexpected eof on socket"
-        }
-        $_dispatcher cancel !timeout
-        if { $_idleTimeout > 0 } {
-            $_dispatcher event -after $_idleTimeout !timeout
-        }
-        return 1
+	    Disconnect
+        } else {
+	    $_dispatcher cancel !timeout
+	    if { $_idleTimeout > 0 } {
+		$_dispatcher event -after $_idleTimeout !timeout
+	    }
+	    return 1
+	}
     }
     # If we aren't connected, assume it's because the connection to the
     # visualization server broke. Try to open a connection and trigger a

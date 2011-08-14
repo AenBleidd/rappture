@@ -204,19 +204,19 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     set _limits(vmax) 1.0
 
     array set _settings [subst {
-        $this-pan-x                $_view(pan-x)
-        $this-pan-y                $_view(pan-y)
-        $this-phi                $_view(phi)
-        $this-psi                $_view(psi)
-        $this-theta                $_view(theta)
-        $this-volume                1
-        $this-xcutplane                0
-        $this-xcutposition        0
-        $this-ycutplane                0
-        $this-ycutposition        0
-        $this-zcutplane                0
-        $this-zcutposition        0
-        $this-zoom                $_view(zoom)
+        $this-pan-x			$_view(pan-x)
+        $this-pan-y			$_view(pan-y)
+        $this-phi			$_view(phi)
+        $this-psi			$_view(psi)
+        $this-theta			$_view(theta)
+        $this-volume			1
+        $this-xcutplane			0
+        $this-xcutposition		0
+        $this-ycutplane			0
+        $this-ycutposition		0
+        $this-zcutplane			0
+        $this-zcutposition		0
+        $this-zoom			$_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -944,7 +944,7 @@ itcl::body Rappture::NanovisViewer::CurrentVolumes {{what -all}} {
                 -cutplanes 1
             }
             array set style [lindex [$_first components -style $comp] 0]
-            if {$what != "-cutplanes" || $style(-cutplanes)} {
+            if { $what != "-cutplanes" || $style(-cutplanes) } {
                 lappend rlist $vol
             }
         }
@@ -1222,6 +1222,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
             set bool $_settings($this-$what)
             if { [isconnected] } {
                 set vols [CurrentVolumes -cutplanes] 
+ puts stderr "cutplanes=$cutplanes"
                 SendCmd "cutplane state $bool $axis $vols"
             }
             if { $bool } {

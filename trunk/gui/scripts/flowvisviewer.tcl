@@ -912,8 +912,6 @@ itcl::body Rappture::FlowvisViewer::SendCmd { string } {
 # between so the interface doesn't lock up.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
-    puts stderr "in SendDataObjs"
-
     blt::busy hold $itk_component(hull)
     foreach dataobj $_sendobjs {
         foreach comp [$dataobj components] {
