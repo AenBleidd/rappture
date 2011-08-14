@@ -146,9 +146,10 @@ itcl::body Rappture::Unirect2d::blob {} {
 itcl::body Rappture::Unirect2d::mesh.old {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
     set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
-    for { set i 0 } { $i < $_xNum } { incr i } {
+    foreach {a b} $_axisOrder break
+    for { set i 0 } { $i < [set _${a}Num] } { incr i } {
         set x [expr {$_xMin + (double($i) * $dx)}]
-        for { set j 0 } { $j < $_yNum } { incr j } {
+        for { set j 0 } { $j < [set _${b}Num] } { incr j } {
             set y [expr {$_yMin + (double($i) * $dy)}]
             lappend data $x $y
         }
