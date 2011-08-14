@@ -351,27 +351,14 @@ main(int argc, char **argv)
 	for (hPtr = Tcl_FirstHashEntry(&serverTable, &iter); hPtr != NULL;
 	     hPtr = Tcl_NextHashEntry(&iter)) {
 	    RenderServer *serverPtr;
-	    int f;
 	    pid_t child;
-	    socklen_t length;
-	    struct sockaddr_in newaddr;
 
 	    serverPtr = Tcl_GetHashValue(hPtr);
 	    if (!FD_ISSET(serverPtr->listenerFd, &readFds)) {
-		continue;
+		continue;		
 	    }
-	    /* Accept the new connection. */
-	    length = sizeof(newaddr);
-	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
-		       &length);
-	    if (f < 0) {
-		ERROR("can't accept server \"%s\": %s", serverPtr->name, 
-		      strerror(errno));
-		continue;
-	    }
-	    INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
-		 inet_ntoa(newaddr.sin_addr));
-	    
+	    /* Rotate the display's screen number.  If we have multiple video
+	     * cards, try to spread the jobs out among them.  */
 	    dispNum++;
 	    if (dispNum >= maxCards) {
 		dispNum = 0;
@@ -384,6 +371,9 @@ main(int argc, char **argv)
 		continue;
 	    } else if (child == 0) {
 		int i;
+		int f;
+		socklen_t length;
+		struct sockaddr_in newaddr;
 		
 		/* Child process. */
 		if (!debug) {
@@ -396,6 +386,21 @@ main(int argc, char **argv)
 			      strerror(errno));
 		    }
 		}			    
+
+		/* Try to accept the connection and start the server.  */
+
+		/* Accept the new connection. */
+		length = sizeof(newaddr);
+		f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+			   &length);
+		if (f < 0) {
+		    ERROR("can't accept server \"%s\": %s", serverPtr->name, 
+			  strerror(errno));
+		    exit(1);
+		}
+		INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
+		     inet_ntoa(newaddr.sin_addr));
+		
 		dup2(f, 0);		/* Stdin */
 		dup2(f, 1);		/* Stdout */
 		
