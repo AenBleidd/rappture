@@ -417,17 +417,18 @@ main(int argc, char **argv)
 		for(i = 3; i <= FD_SETSIZE; i++) {
 		    close(i);		/* Close all the other descriptors. */
 		}
+
+		/* Set the screen number in the DISPLAY variable. */
+		display[11] = dispNum + '0';
+
 		/* Set the enviroment, if necessary. */
-		if (maxCards > 1) {
-		    display[11] = dispNum + '0';
-		}
 		for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
 		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 0);
 		}
-		INFO("%s: client %s, %s on %s", serverPtr->name, 
+		INFO("Executing %s: client %s, %s on %s", serverPtr->name, 
 			inet_ntoa(newaddr.sin_addr), serverPtr->cmdArgs[0], 
 			display);
-		/* Finally replace the current process with the render server */
+		/* Replace the current process with the render server. */
 		execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
 		ERROR("Can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
 		      strerror(errno));
