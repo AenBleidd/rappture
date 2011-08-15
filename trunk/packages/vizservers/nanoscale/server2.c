@@ -59,6 +59,7 @@ static Tcl_HashTable serverTable;	/* Table of render servers
 					 * and executed each time a new
 					 * request is accepted. */
 static int debug = FALSE;
+static pid_t serverPid;
 
 void
 LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
@@ -76,8 +77,8 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
         s++;
     }
-    length = snprintf(message, MSG_LEN, "nanoscale[%d] %s: %s:%d ", 
-		      getpid(), syslogLevels[priority],  s, lineNum);
+    length = snprintf(message, MSG_LEN, "nanoscale (%d %d) %s: %s:%d ", 
+		      serverPid, getpid(), syslogLevels[priority],  s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
     if (debug) {
@@ -260,6 +261,7 @@ main(int argc, char **argv)
     Tcl_HashSearch iter;
     const char *fileName;		/* Path to servers file. */
 
+    serverPid = getpid();
     dispNum = 0;
     maxCards = 1;
     fileName = SERVERSFILE;
