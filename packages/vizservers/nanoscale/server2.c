@@ -387,23 +387,11 @@ main(int argc, char **argv)
 		
 		INFO("after fork child=%d server=\"%s\"\n", 
 		     getpid(), serverPtr->name);
-		/* Child process. */
-		if (!debug) {
-		    /* Detach this child process from the parent nanoscale
-		     * process. The current directory becomes /tmp, but don't
-		     * redirect stdin/stdout/stderr to /dev/null, we'll use
-		     * that to connect to the socket. */
-		    if (daemon(0, 1) < 0) {
-			ERROR("can't daemonize \"%s\": %s", serverPtr->name, 
-			      strerror(errno));
-		    }
-		}			    
-
 		/* Try to accept the connection and start the server.  */
 
 		/* Accept the new connection. */
 		length = sizeof(newaddr);
-		INFO("attempting to accept connection for server=\"%s\"\n", 
+		INFO("Trying to accept connection for server=\"%s\"\n", 
 		     serverPtr->name);
 		f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
 			   &length);
@@ -412,12 +400,23 @@ main(int argc, char **argv)
 			  strerror(errno));
 		    exit(1);
 		}
+		/* Child process. */
+		if (!debug) {
+		    /* Detach this child process from the parent nanoscale
+		     * process. The current directory becomes /tmp, but don't
+		     * redirect stdin/stdout/stderr to /dev/null, we'll use
+		     * that to connect to the socket. */
+		    if (daemon(0, 0) < 0) {
+			ERROR("can't daemonize \"%s\": %s", serverPtr->name, 
+			      strerror(errno));
+		    }
+		}			    
+
 		INFO("child=%d Connecting \"%s\" to %s\n", 
 		     getpid(), serverPtr->name, inet_ntoa(newaddr.sin_addr));
 		
 		dup2(f, 0);		/* Stdin */
 		dup2(f, 1);		/* Stdout */
-		
 		for(i = 3; i <= FD_SETSIZE; i++) {
 		    close(i);	/* Close all the other descriptors. */
 		}
