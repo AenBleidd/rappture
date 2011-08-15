@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/file.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -238,7 +240,7 @@ ParseServersFile(const char *fileName)
     Tcl_CreateObjCommand(interp, "register_server", RegisterServerCmd, NULL, 
 			 NULL);
     if (Tcl_EvalFile(interp, fileName) != TCL_OK) {
-	ERROR("can't add server: %s", Tcl_GetString(Tcl_GetObjResult(interp)));
+	ERROR("Can't add server: %s", Tcl_GetString(Tcl_GetObjResult(interp)));
 	return FALSE;
     }
     Tcl_DeleteInterp(interp);
@@ -269,7 +271,7 @@ main(int argc, char **argv)
 
     strcpy(display, "DISPLAY=:0.0");
     if (putenv(display) < 0) {
-	ERROR("can't set DISPLAY variable: %s", strerror(errno));
+	ERROR("Can't set DISPLAY variable: %s", strerror(errno));
 	exit(1);
     }
     Tcl_InitHashTable(&serverTable, TCL_ONE_WORD_KEYS);
@@ -292,7 +294,7 @@ main(int argc, char **argv)
 	case 'x':			/* Number of video cards */
 	    maxCards = strtoul(optarg, 0, 0);
 	    if ((maxCards < 1) || (maxCards > 10)) {
-		fprintf(stderr, "bad number of max videocards specified\n");
+		fprintf(stderr, "Bad number of max videocards specified\n");
 		return 1;
 	    }
 	    break;
@@ -316,7 +318,7 @@ main(int argc, char **argv)
 	 * current directory becomes /tmp and redirect stdin/stdout/stderr to
 	 * /dev/null. */
 	if (daemon(0,0) < 0) {
-	    ERROR("can't daemonize nanoscale: %s", strerror(errno));
+	    ERROR("Can't daemonize nanoscale: %s", strerror(errno));
 	    exit(1);
 	}
     }
@@ -326,7 +328,7 @@ main(int argc, char **argv)
     }    
 
     if (serverTable.numEntries == 0) {
-	ERROR("no servers designated.");
+	ERROR("No servers designated.");
 	exit(1);
     }
 
@@ -350,75 +352,70 @@ main(int argc, char **argv)
 
 	memcpy(&readFds, &serverFds, sizeof(serverFds));
 	if (select(maxFd+1, &readFds, NULL, NULL, 0) <= 0) {
+	    ERROR("Select failed: %s", strerror(errno));
 	    break;			/* Error on select. */
 	}
-	INFO("select found waiting\n");
 	for (hPtr = Tcl_FirstHashEntry(&serverTable, &iter); hPtr != NULL;
 	     hPtr = Tcl_NextHashEntry(&iter)) {
 	    RenderServer *serverPtr;
 	    pid_t child;
+	    int f;
+	    socklen_t length;
+	    struct sockaddr_in newaddr;
 
 	    serverPtr = Tcl_GetHashValue(hPtr);
-	    INFO("checking server %s\n", serverPtr->name);
 	    if (!FD_ISSET(serverPtr->listenerFd, &readFds)) {
-		INFO("ignore %s (%d)\n", serverPtr->name, 
-		     serverPtr->listenerFd);
 		continue;		
 	    }
-	    INFO("connection requested for  %s on (%d)\n", serverPtr->name, 
-		     serverPtr->listenerFd);
 	    /* Rotate the display's screen number.  If we have multiple video
 	     * cards, try to spread the jobs out among them.  */
 	    dispNum++;
 	    if (dispNum >= maxCards) {
 		dispNum = 0;
 	    }
+	    /* Accept the new connection. */
+	    length = sizeof(newaddr);
+	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+		       &length);
+	    if (f < 0) {
+		ERROR("Can't accept server \"%s\": %s", serverPtr->name, 
+		      strerror(errno));
+		exit(1);
+	    }
+	    INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
+		 inet_ntoa(newaddr.sin_addr));
+
 	    /* Fork the new process.  Connect I/O to the new socket. */
 	    child = fork();
 	    if (child < 0) {
-		ERROR("can't fork \"%s\": %s", serverPtr->name, 
+		ERROR("Can't fork \"%s\": %s", serverPtr->name, 
 		      strerror(errno));
 		continue;
-	    } else if (child == 0) {
+	    } 
+	    if (child == 0) {		/* Child process. */
 		int i;
-		int f;
-		socklen_t length;
-		struct sockaddr_in newaddr;
+		int errFd;
 		
-		INFO("after fork child=%d server=\"%s\"\n", 
-		     getpid(), serverPtr->name);
-		/* Try to accept the connection and start the server.  */
-
-		/* Accept the new connection. */
-		length = sizeof(newaddr);
-		INFO("Trying to accept connection for server=\"%s\"\n", 
-		     serverPtr->name);
-		f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
-			   &length);
-		if (f < 0) {
-		    ERROR("can't accept server \"%s\": %s", serverPtr->name, 
+		umask(0);
+		if ((!debug) && (setsid() < 0)) {
+		    ERROR("Can't setsid \"%s\": %s", serverPtr->name, 
 			  strerror(errno));
 		    exit(1);
 		}
-		/* Child process. */
-		if (!debug) {
-		    /* Detach this child process from the parent nanoscale
-		     * process. The current directory becomes /tmp, but don't
-		     * redirect stdin/stdout/stderr to /dev/null, we'll use
-		     * that to connect to the socket. */
-		    if (daemon(0, 0) < 0) {
-			ERROR("can't daemonize \"%s\": %s", serverPtr->name, 
-			      strerror(errno));
-		    }
-		}			    
+		if ((!debug) && ((chdir("/")) < 0)) {
+		    ERROR("Can't change to root directory for \"%s\": %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
+		}
 
-		INFO("child=%d Connecting \"%s\" to %s\n", 
-		     getpid(), serverPtr->name, inet_ntoa(newaddr.sin_addr));
-		
+		/* Dup the descriptors and start the server.  */
+
 		dup2(f, 0);		/* Stdin */
 		dup2(f, 1);		/* Stdout */
+		errFd = open("/dev/null", O_WRONLY, 0600);
+		dup2(errFd, 2);
 		for(i = 3; i <= FD_SETSIZE; i++) {
-		    close(i);	/* Close all the other descriptors. */
+		    close(i);		/* Close all the other descriptors. */
 		}
 		/* Set the enviroment, if necessary. */
 		if (maxCards > 1) {
@@ -432,18 +429,13 @@ main(int argc, char **argv)
 			display);
 		/* Finally replace the current process with the render server */
 		execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
-		ERROR("can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
+		ERROR("Can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
 		      strerror(errno));
 		exit(1);
 	    } else {
-		if (!debug) {
-		    /* Reap initial child which will exit immediately 
-		     * (grandchild continues) */
-		    waitpid(child, NULL, 0); 
-		}
+		close(f);
 	    }
 	} 
     }
-    ERROR("select failed: %s", strerror(errno));
     exit(1);
 }
