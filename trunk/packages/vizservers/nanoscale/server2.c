@@ -261,7 +261,7 @@ main(int argc, char **argv)
     Tcl_HashSearch iter;
     const char *fileName;		/* Path to servers file. */
  
-    serverPid = getpid();g
+    serverPid = getpid();
     dispNum = 0;
     maxCards = 1;
     fileName = SERVERSFILE;
