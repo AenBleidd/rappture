@@ -94,6 +94,10 @@ typedef struct {
 
 static Stats stats;
 
+#define READTRACE	1
+#define EXPECTTRACE	1
+#define WRITETRACE	0
+
 static FILE *flog;
 static int debug = TRUE;
 static FILE *scriptFile;
@@ -218,7 +222,7 @@ FillBuffer(ReadBuffer *readPtr)
     size_t bytesLeft;
     ssize_t nRead;
 
-#ifdef notdef
+#if READTRACE
     trace("Entering FillBuffer (mark=%d, fill=%d)\n", readPtr->mark, 
 	  readPtr->fill);
 #endif
@@ -241,7 +245,7 @@ FillBuffer(ReadBuffer *readPtr)
     }
     if (nRead <= 0) {
 	if (errno != EAGAIN) {
-#ifdef notdef
+#if READTRACE
 	    trace("in FillBuffer: read failed %d: %s", errno, strerror(errno));
 	    trace("Leaving FillBuffer FAIL(read %d bytes) mark=%d, fill=%d\n", 
 		  nRead, readPtr->mark, readPtr->fill);
@@ -251,7 +255,7 @@ FillBuffer(ReadBuffer *readPtr)
 	return BUFFER_SHORT_READ;
     }
     readPtr->fill += nRead;
-#ifdef notdef
+#if READTRACE
     trace("Leaving FillBuffer (read %d bytes) mark=%d, fill=%d\n", 
 	  nRead, readPtr->mark, readPtr->fill);
 #endif
@@ -264,13 +268,13 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
     int i;
     int status;
 
-#ifndef notdef
+#if READTRACE
     trace("Entering GetLine (mark=%d, fill=%d)\n",readPtr->mark, readPtr->fill);
 #endif
     status = BUFFER_OK;
     for (;;) {
 	/* Look for the next newline (the next full line). */
-#ifndef notdef
+#if READTRACE
 	trace("in GetLine: mark=%d fill=%d\n", readPtr->mark, readPtr->fill);
 #endif
 	for (i = readPtr->mark; i < readPtr->fill; i++) {
@@ -282,7 +286,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 		i++;
 		*nBytesPtr = i - readPtr->mark;
 		readPtr->mark = i;
-#ifndef notdef
+#if READTRACE
 		trace("Leaving GetLine(%.*s)\n", *nBytesPtr, p);
 #endif
 		return p;
@@ -299,7 +303,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 	    return NULL;	/* EOF or error on read. */
 	}
     }
-#ifndef notdef
+#if READTRACE
     trace("Leaving GetLine failed to read line\n");
 #endif
     *nBytesPtr = BUFFER_CONTINUE;
@@ -309,7 +313,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 static int 
 GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 {
-#ifndef notdef
+#if READTRACE
     trace("Entering GetBytes(%d)\n", nBytes);
 #endif
     while (nBytes > 0) {
@@ -328,7 +332,7 @@ GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 	}
 	if (nBytes == 0) {
 	    /* Received requested # bytes. */
-#ifndef notdef
+#if READTRACE
 	    trace("Leaving GetBytes(%d)\n", nBytes);
 #endif
 	    return BUFFER_OK;
@@ -338,11 +342,11 @@ GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 	if (status == BUFFER_ERROR) {
 	    return BUFFER_ERROR;
 	}
-#ifndef notdef
+#if READTRACE
 	trace("in GetBytes: mark=%d fill=%d\n", readPtr->mark, readPtr->fill);
 #endif
     }
-#ifndef notdef
+#if READTRACE
     trace("Leaving GetBytes(%d)\n", nBytes);
 #endif
     return BUFFER_OK;
@@ -388,7 +392,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
     if (proxyPtr->status != TCL_OK) {
         return proxyPtr->status;
     }
-#ifndef notdef
+#if EXPECTTRACE
     trace("Entering Expect(want=\"%s\", maxSize=%d)\n", match, maxSize);
 #endif
     c = match[0];
@@ -399,7 +403,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 
 	line = GetLine(&proxyPtr->server, &nBytes);
 	if (line != NULL) {
-#ifndef notdef
+#if EXPECTTRACE
 	    trace("pymol says (read %d bytes):%.*s", nBytes, nBytes, line);
 #endif
 	    if ((c == line[0]) && (strncmp(line, match, length) == 0)) {
@@ -408,7 +412,7 @@ Expect(PymolProxy *proxyPtr, char *match, char *out, int maxSize)
 		}
 		memcpy(out, line, nBytes);
 		clear_error(proxyPtr);
-#ifndef notdef
+#if EXPECTTRACE
 		trace("Leaving Expect: got (%.*s)\n", nBytes, out);
 #endif
 		return BUFFER_OK;
@@ -612,16 +616,16 @@ WriteImage(PymolProxy *proxyPtr, int fd)
 
 	assert(imgPtr->nextPtr == NULL);
 	prevPtr = imgPtr->prevPtr;
-#ifdef notdef
+#if WRITETRACE
 	trace("WriteImage: want to write %d bytes.", imgPtr->bytesLeft);
 #endif
 	for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
 	    ssize_t nWritten;
-#ifdef notdef
+#if WRITETRACE
 	    trace("WriteImage: try to write %d bytes.", bytesLeft);
 #endif
 	    nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
-#ifdef notdef
+#if WRITETRACE
 	    trace("WriteImage: wrote %d bytes.", nWritten);
 #endif
 	    if (nWritten < 0) {
