@@ -427,7 +427,6 @@ LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile,
         ERROR("can't find program \"%s\"\n", fileName);
     }
     TRACE("cg program compiling: %s\n", path);
-    fflush(stdout);
     CGprogram program;
     program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
 				      entryPoint, NULL);
@@ -755,13 +754,12 @@ void CgErrorCallback(void)
 
     if(lastError) {
         const char *listing = cgGetLastListing(g_context);
-        printf("\n---------------------------------------------------\n");
-        printf("%s\n\n", cgGetErrorString(lastError));
-        printf("%s\n", listing);
-        printf("-----------------------------------------------------\n");
-        printf("Cg error, exiting...\n");
+        TRACE("\n---------------------------------------------------\n");
+        TRACE("%s\n\n", cgGetErrorString(lastError));
+        TRACE("%s\n", listing);
+        TRACE("-----------------------------------------------------\n");
+        TRACE("Cg error, exiting...\n");
         cgDestroyContext(g_context);
-        fflush(stdout);
         DoExit(-1);
     }
 }
@@ -769,11 +767,11 @@ void CgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print system information
-    INFO("-----------------------------------------------------------\n");
-    INFO("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+    TRACE("-----------------------------------------------------------\n");
+    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
 	   glGetString(GL_VERSION));
-    INFO("Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    INFO("-----------------------------------------------------------\n");
+    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    TRACE("-----------------------------------------------------------\n");
     if (path == NULL) {
         ERROR("No path defined for shaders or resources\n");
         DoExit(1);
@@ -784,7 +782,7 @@ void NanoVis::init(const char* path)
         getchar();
         //assert(false);
     }
-    INFO("Using GLEW %s\n", glewGetString(GLEW_VERSION));
+    TRACE("Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     if (!R2FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s\n", path);
@@ -1862,7 +1860,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
     switch (key) {
     case 'a' :
 	{
-	    printf("flowvis active\n");
+	    TRACE("flowvis active\n");
 	    char cmd[] = {
 		"foreach flow [flow names] {\n"
 		"    $flow configure -hide no -slice yes\n"
@@ -1877,7 +1875,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case 'd' :
 	{
-	    printf("flowvis deactived\n");
+	    TRACE("flowvis deactived\n");
 	    char cmd[] = {
 		"foreach flow [flow names] {\n"
 		"    $flow configure -hide yes -slice no\n"
@@ -1891,7 +1889,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '1' :
 	{
-	    printf("add vector field\n");
+	    TRACE("add vector field\n");
 	    char cmd[] = {
 		"flow create flow1\n"
 		"flow1 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx 3\n"
@@ -1914,14 +1912,14 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 		"flow2 particles add plane2 -color { 1 1 0 1 }\n"
 	    };
 	    Tcl_Eval(interp, cmd);
-	    printf("add vector field\n");
+	    TRACE("add vector field\n");
 	    addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
 			   "vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
 	}
 	break;
     case '3':
 	{
-	    printf("activate\n");
+	    TRACE("activate\n");
 	    char cmd[] = {
 		"flow1 particles add plane2 -hide no\n"
 	    };
@@ -1933,7 +1931,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '4' :
 	{
-	    printf("deactivate\n");
+	    TRACE("deactivate\n");
 	    char cmd[] = {
 		"flow1 particles add plane2 -hide yes\n"
 	    };
@@ -1945,7 +1943,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '5' :
 	{
-	    printf("vector field deleted (vf_name2)\n");
+	    TRACE("vector field deleted (vf_name2)\n");
 	    char cmd[] = {
 		"flow delete flow2\n"
 	    };
@@ -1957,7 +1955,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '6' :
 	{
-	    printf("add device shape\n");
+	    TRACE("add device shape\n");
 	    char cmd[] = {
 		"flow1 box add box1 -corner1 {0 0 0} -corner2 {30 3 3} -color { 1 0 0 1 }\n"
 		"flow1 box add box2 -corner1 {0 -1 -1} -corner2 {30 4 4} -color { 0 1 0 1 }\n"
@@ -1984,7 +1982,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '7' :
 	{
-	    printf("hide shape \n");
+	    TRACE("hide shape \n");
 	    char cmd[] = {
 		"flow1 box configure box1 -hide yes\n"
 	    };
@@ -1996,7 +1994,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '8' :
 	{
-	    printf("show shape\n");
+	    TRACE("show shape\n");
 	    char cmd[] = {
 		"flow1 box configure box1 -hide no\n"
 	    };
@@ -2008,7 +2006,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '9' :
 	{
-	    printf("show a shape \n");
+	    TRACE("show a shape \n");
 	    char cmd[] = {
 		"flow1 box configure box3 -hide no\n"
 	    };
@@ -2020,7 +2018,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case '0' :
 	{
-	    printf("delete a shape \n");
+	    TRACE("delete a shape \n");
 	    char cmd[] = {
 		"flow1 box delete box3\n"
 	    };
@@ -2032,7 +2030,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	break;
     case 'r' :
 	{
-	    printf("reset \n");
+	    TRACE("reset \n");
 	    char cmd[] = {
 		"flow reset\n"
 	    };

@@ -37,9 +37,9 @@ NvVectorField::setVectorField(Volume* volPtr, const Vector3& ori,
     _max = max;
     _vectorFieldId = volPtr->id;
     _physicalMin = volPtr->getPhysicalBBoxMin();
-    printf("_pysicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
+    TRACE("_pysicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
     _physicalSize = volPtr->getPhysicalBBoxMax() - _physicalMin;
-    printf("_pysicalSize %f %f %f\n", 
+    TRACE("_pysicalSize %f %f %f\n", 
 	   _physicalSize.x, _physicalSize.y, _physicalSize.z);
 }
 

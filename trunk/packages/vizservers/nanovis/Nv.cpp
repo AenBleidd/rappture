@@ -20,20 +20,19 @@ void NvCgErrorCallback(void)
 
     if(lastError) {
         const char *listing = cgGetLastListing(g_context);
-        printf("\n---------------------------------------------------\n");
-        printf("%s\n\n", cgGetErrorString(lastError));
-        printf("%s\n", listing);
-        printf("-----------------------------------------------------\n");
-        printf("Cg error, exiting...\n");
+        ERROR("\n---------------------------------------------------\n");
+        ERROR("%s\n\n", cgGetErrorString(lastError));
+        ERROR("%s\n", listing);
+        ERROR("-----------------------------------------------------\n");
+        ERROR("Cg error, exiting...\n");
         cgDestroyContext(g_context);
-        fflush(stdout);
         exit(-1);
     }
 }
 
 void NvInit(char* path)
 {
-    printf("Nanovis GL Initialized\n");
+    TRACE("Nanovis GL Initialized\n");
 }
 
 void NvExit()

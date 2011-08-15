@@ -52,8 +52,7 @@ DX::DX(Outcome &result, const char* filename) :
         return;
     }
     // open the file with libdx
-    fprintf(stdout, "Calling DXImportDX(%s)\n", filename);
-    fflush(stdout);
+    TRACE("Calling DXImportDX(%s)\n", filename);
     DXenable_locks(0);
     _dxobj = DXImportDX((char*)filename,NULL,NULL,NULL,NULL);
     if (_dxobj == NULL) {
@@ -73,13 +72,13 @@ DX::DX(Outcome &result, const char* filename) :
     }
     DXGetArrayInfo(dxpos, &_n, &type, &category, &_rank, &_shape);
 
-    fprintf(stdout, "_n = %d\n",_n);
+    TRACE("_n = %d\n",_n);
     if (type != TYPE_FLOAT) {
         result.addError("\"positions\" is not type float (type=%d)\n", type);
         return;
     }
-    fprintf(stdout, "_rank = %d\n",_rank);
-    fprintf(stdout, "_shape = %d\n",_shape);
+    TRACE("_rank = %d\n",_rank);
+    TRACE("_shape = %d\n",_shape);
 
     float* pos = NULL;
     pos = (float*) DXGetArrayData(dxpos);
@@ -139,13 +138,12 @@ DX::DX(Outcome &result, const char* filename) :
     // dxgrid = (Array) DXQueryGridConnections(dxpos, &_numAxis, _axisLen);
     DXQueryGridPositions(dxpos, NULL, _axisLen, _origin, _delta);
 
-    fprintf(stdout, "_max = [%g,%g,%g]\n",_max[0],_max[1],_max[2]);
-    fprintf(stdout, "_delta = [%g,%g,%g]\n",_delta[0],_delta[1],_delta[2]);
-    fprintf(stdout, "         [%g,%g,%g]\n",_delta[3],_delta[4],_delta[5]);
-    fprintf(stdout, "         [%g,%g,%g]\n",_delta[6],_delta[7],_delta[8]);
-    fprintf(stdout, "_origin = [%g,%g,%g]\n",_origin[0],_origin[1],_origin[2]);
-    fprintf(stdout, "_axisLen = [%i,%i,%i]\n",_axisLen[0],_axisLen[1],_axisLen[2]);
-    fflush(stdout);
+    TRACE("_max = [%g,%g,%g]\n",_max[0],_max[1],_max[2]);
+    TRACE("_delta = [%g,%g,%g]\n",_delta[0],_delta[1],_delta[2]);
+    TRACE("         [%g,%g,%g]\n",_delta[3],_delta[4],_delta[5]);
+    TRACE("         [%g,%g,%g]\n",_delta[6],_delta[7],_delta[8]);
+    TRACE("_origin = [%g,%g,%g]\n",_origin[0],_origin[1],_origin[2]);
+    TRACE("_axisLen = [%i,%i,%i]\n",_axisLen[0],_axisLen[1],_axisLen[2]);
 
     // grab the data array from the dx object and store it in _data
     dxdata = (Array) DXGetComponentValue((Field) _dxobj, (char *)"data");
@@ -179,12 +177,10 @@ DX::DX(Outcome &result, const char* filename) :
 
     // print debug info
     for (int lcv = 0, pt = 0; lcv < _n; lcv +=3, pt+=9) {
-        fprintf(stdout,
-            "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
+        TRACE("(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
             _positions[pt],_positions[pt+1],_positions[pt+2], _data[lcv],
             _positions[pt+3],_positions[pt+4],_positions[pt+5],_data[lcv+1],
             _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
-        fflush(stdout);
     }
     __collectDataStats();
 }
@@ -261,8 +257,7 @@ DX::__getInterpPos()
     DXGetArrayInfo(dxpos, &_n, NULL, NULL, &_rank, &_shape);
     pos = (float*) DXGetArrayData(dxpos);
     if (pos == NULL) {
-        fprintf(stdout, "DXGetArrayData failed to return positions array\n");
-        fflush(stdout);
+        TRACE("DXGetArrayData failed to return positions array\n");
     }
 
     if (_positions != NULL) {
@@ -271,8 +266,7 @@ DX::__getInterpPos()
     _positions = new float[_n*_numAxis];
     if (_positions == NULL) {
         // malloc failed, raise error
-        fprintf(stdout, "malloc of _axisLen array failed");
-        fflush(stdout);
+        TRACE("malloc of _axisLen array failed");
     }
     memcpy(_positions,pos,sizeof(float)*_n*_numAxis);
 
@@ -297,32 +291,26 @@ DX::__getInterpData()
     _data = new float[_n];
     if (_data == NULL) {
         // malloc failed, raise error
-        fprintf(stdout, "malloc of _data array failed");
-        fflush(stdout);
+        TRACE("malloc of _data array failed");
     }
     memset(_data,0,_n);
 
     // build the interpolator and interpolate
-    fprintf(stdout, "creating DXNewInterpolator...\n");
-    fflush(stdout);
+    TRACE("creating DXNewInterpolator...\n");
     interpolator = DXNewInterpolator(_dxobj,INTERP_INIT_IMMEDIATE,-1.0);
-    fprintf(stdout,"_rank = %i\n",_rank);
-    fprintf(stdout,"_shape = %i\n",_shape);
-    fprintf(stdout,"_n = %i\n",_n);
-    fprintf(stdout,"start interppts = %i\n",interppts);
-    fflush(stdout);
+    TRACE("_rank = %i\n",_rank);
+    TRACE("_shape = %i\n",_shape);
+    TRACE("_n = %i\n",_n);
+    TRACE("start interppts = %i\n",interppts);
     DXInterpolate(interpolator,&interppts,_positions,_data);
-    fprintf(stdout,"interppts = %i\n",interppts);
-    fflush(stdout);
+    TRACE("interppts = %i\n",interppts);
 
     // print debug info
     for (int lcv = 0, pt = 0; lcv < pts; lcv+=3,pt+=9) {
-        fprintf(stdout,
-            "(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
+        TRACE("(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n(%f,%f,%f)|->% 8e\n",
             _positions[pt],_positions[pt+1],_positions[pt+2], _data[lcv],
             _positions[pt+3],_positions[pt+4],_positions[pt+5],_data[lcv+1],
             _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
-        fflush(stdout);
     }
 
     __collectDataStats();
@@ -339,8 +327,7 @@ DX::__getInterpData()
 DX&
 DX::interpolate(int* newAxisLen)
 {
-    fprintf(stdout, "----begin interpolation----\n");
-    fflush(stdout);
+    TRACE("----begin interpolation----\n");
     if (newAxisLen != NULL) {
         for (int i = 0; i < _numAxis; i++) {
             _axisLen[i] = newAxisLen[i];
@@ -348,8 +335,7 @@ DX::interpolate(int* newAxisLen)
     }
     __getInterpPos();
     __getInterpData();
-    fprintf(stdout, "----end interpolation----\n");
-    fflush(stdout);
+    TRACE("----end interpolation----\n");
     return *this;
 }
 

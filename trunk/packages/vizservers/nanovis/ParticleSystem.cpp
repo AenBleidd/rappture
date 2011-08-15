@@ -1,5 +1,4 @@
-#include "ParticleSystem.h"
-#include "ParticleEmitter.h"
+
 #include <vr3d/vr3d.h>
 #include <time.h>
 #include <stdlib.h>
@@ -17,7 +16,9 @@
 #include <opencv/highgui.h>
 #endif
 #endif
-
+#include "ParticleSystem.h"
+#include "ParticleEmitter.h"
+#include "Trace.h"
 #include <vrutil/vrFilePath.h>
 #include <pthread.h>
 
@@ -94,13 +95,13 @@ void* ParticleSystem::dataLoadMain(void* data)
 				float ti = clock() / (float) CLOCKS_PER_SEC;
 				printf("%f\n",ti - t);
 				queue.push();
-				printf("%d loaded\n", curIndex);
+				TRACE("%d loaded\n", curIndex);
 				++curIndex;
 			}
 		}
 		else
 		{
-			//printf("full\n");
+			//TRACE("full\n");
 		}
 	}
 
@@ -487,11 +488,11 @@ void ParticleSystem::callbackForCgError()
 	CGerror lastError = cgGetError();
     if(lastError) {
         const char *listing = cgGetLastListing(_context);
-        printf("\n---------------------------------------------------\n");
-        printf("%s\n\n", cgGetErrorString(lastError));
-        printf("%s\n", listing);
-        printf("-----------------------------------------------------\n");
-        printf("Cg error, exiting...\n");
+        ERROR("\n---------------------------------------------------\n");
+        ERROR("%s\n\n", cgGetErrorString(lastError));
+        ERROR("%s\n", listing);
+        ERROR("-----------------------------------------------------\n");
+        ERROR("Cg error, exiting...\n");
 
         cgDestroyContext(_context);
         getchar();
@@ -1123,12 +1124,12 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
 					float t = clock() /(float) CLOCKS_PER_SEC;
 					_vectorFields[0]->updatePixels(data);
 					float ti = clock() / (float) CLOCKS_PER_SEC;
-					printf("pixels %f\n",ti - t);
+					TRACE("pixels %f\n",ti - t);
 					_queue.pop();
 					oldTime = time;
 
 					firstLoad = false;
-					printf("%d bound\n", index++);
+					TRACE("%d bound\n", index++);
 				}
 			}		
 		}
@@ -1330,7 +1331,7 @@ void ParticleSystem::initNewParticles()
 	glBegin(GL_POINTS);
 	for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++)
 	{
-		//printf("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
+	    //TRACE("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
 		glMultiTexCoord3f(GL_TEXTURE0, iter->position.x,iter->position.y,iter->position.z);
 		
 		// TBD..
@@ -1339,7 +1340,7 @@ void ParticleSystem::initNewParticles()
 		
 		glVertex2f(	(float)(iter->index % _width),
 			(float)(iter->index / _height) + 1/* + offsetY*/ /* + offsetY shouldn't be */);
-		//printf("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
+		//TRACE("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
 	}
 	glEnd();
 
@@ -1386,7 +1387,7 @@ void ParticleSystem::initNewParticles()
 	glBegin(GL_POINTS);
 	for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++)
 	{
-		//printf("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
+		//TRACE("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
 		glMultiTexCoord3f(GL_TEXTURE0, iter->position.x,iter->position.y,iter->position.z);
 		
 		// TBD..
@@ -1395,7 +1396,7 @@ void ParticleSystem::initNewParticles()
 		
 		glVertex2f(	(float)(iter->index % _width),
 			(float)(iter->index / _height) + 1/* + offsetY*/ /* + offsetY shouldn't be */);
-		//printf("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
+		//TRACE("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
 	}
 	glEnd();
 
@@ -1487,32 +1488,32 @@ void ParticleSystem::sort()
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 	///////////////////////////////
-	// DEBUG
+	// _DEBUG
 	/*
 	{
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[_destSortIndex]);
 	static float debug[256];
 	glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-	printf("[%d]", _currentSortIndex);
+	TRACE("[%d]", _currentSortIndex);
 	for (int i = 0; i < _width * _height * 3; i += 3)
-		printf("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-	printf("\n");
+		TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
+	TRACE("\n");
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	
 	}
 	*/
 	///////////////////////////////
-	// DEBUG
+	// _DEBUG
 	/*
 	{
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_currentPosIndex]);
 		static float debug[256];
 		glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-		printf("\n");
-		printf("currentPos[%d]", _currentPosIndex);
+		TRACE("\n");
+		TRACE("currentPos[%d]", _currentPosIndex);
 		for (int i = 0; i < _width * _height * 3; i += 3)
-			printf("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-		printf("\n");
+			TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
+			TRACE("\n");
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	}
 	*/
@@ -1543,17 +1544,17 @@ void ParticleSystem::sort()
 	mergeSort(this->_particleMaxCount);
 
 	///////////////////////////////
-	// DEBUG
+	// _DEBUG
 	/*
 	{
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[_currentSortIndex]);
 		static float debug[256];
 		glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-		printf("\n");
-		printf("[%d]", _currentSortIndex);
+		TRACE("\n");
+		TRACE("[%d]", _currentSortIndex);
 		for (int i = 0; i < _width * _height * 3; i += 3)
-			printf("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-		printf("\n");
+		TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
+		TRACE("\n");
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	}
 	*/
@@ -1607,17 +1608,17 @@ void ParticleSystem::sort()
 	glDisable(GL_TEXTURE_RECTANGLE_NV);
 
 	///////////////////////////////
-	// DEBUG
+	// _DEBUG
 	/*
 	{
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
 		static float debug[256];
 		glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-		printf("\n");
-		printf("[%d]", _currentSortIndex);
+		TRACE("\n");
+		TRACE("[%d]", _currentSortIndex);
 		for (int i = 0; i < _width * _height * 3; i += 3)
-			printf("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-		printf("\n");
+		TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
+		TRACE("\n");
 		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	}
 	*/
@@ -1808,7 +1809,7 @@ void ParticleSystem::render()
 
 
 			cgSetParameter1f(_mvCurrentTimeParam, _currentTime);
-			//printf("%f %f, %f %d\n", _fov, tan(_fov), tan(_fov / 2.0), _screenHeight);
+			//TRACE("%f %f, %f %d\n", _fov, tan(_fov), tan(_fov / 2.0), _screenHeight);
 			//cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5);
 			//float v = tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5;
 			cgSetParameter1f(_mvTanHalfFOVParam, tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5);

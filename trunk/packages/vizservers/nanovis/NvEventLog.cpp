@@ -38,9 +38,6 @@ void NvInitService()
     close(2);
     dup2(fileno(NanoVis::logfile), 2);
     /* dup2(2,1); */
-    //flush junk
-    fflush(stdout);
-    fflush(stderr);
 
     // clean up malloc'd memory
     if (logName != NULL) {

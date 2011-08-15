@@ -562,7 +562,7 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
     glEnable(GL_TEXTURE_2D);
     if (_vertexBufferObjectID) 
     {
-        printf("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
+        TRACE("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
         glColor3f(1.0f, 1.0f, 1.0f);
         glShadeModel(GL_SMOOTH);
         glEnable(GL_BLEND);

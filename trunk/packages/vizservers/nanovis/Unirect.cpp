@@ -665,7 +665,7 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
     double dmin;
     dmin = pow((dx*dy*dz)/(nSamples*nSamples*nSamples), 0.333);
     
-    printf("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
+    TRACE("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
 
     /* Recompute new number of points for each axis. */
     _xNum = (size_t)ceil(dx/dmin);

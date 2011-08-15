@@ -50,7 +50,7 @@ Volume *
 load_volume_stream2(Rappture::Outcome &result, const char *tag, 
 		    std::iostream& fin)
 {
-    printf("load_volume_stream2 %s\n", tag);
+    TRACE("load_volume_stream2 %s\n", tag);
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
     double x0, y0, z0, dx, dy, dz, ddx, ddy, ddz;
@@ -407,7 +407,7 @@ load_volume_stream2(Rappture::Outcome &result, const char *tag,
     float dz0 = -0.5*dz/dx;
     if (volPtr) {
 	volPtr->location(Vector3(dx0, dy0, dz0));
-	printf("volume moved\n");
+	TRACE("volume moved\n");
     }
     return volPtr;
 }
@@ -416,7 +416,7 @@ Volume *
 load_volume_stream(Rappture::Outcome &result, const char *tag, 
 		   std::iostream& fin)
 {
-    printf("load_volume_stream\n");
+    TRACE("load_volume_stream\n");
 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
@@ -844,7 +844,7 @@ Volume *
 load_volume_stream_insoo(Rappture::Outcome &result, const char *tag, 
 			 std::iostream& fin)
 {
-    printf("load_volume_stream\n");
+    TRACE("load_volume_stream\n");
  
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;

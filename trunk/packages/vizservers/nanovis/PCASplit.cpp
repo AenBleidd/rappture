@@ -127,8 +127,7 @@ PCASplit::createClusterBlock(ClusterListNode* clusterList, int count, int level)
     _clusterHeader->numOfClusters[level - 1] = count;
     _clusterHeader->startPointerCluster[level - 1] = clusterBlock;
 
-    printf("Cluster created %d [in level %d]:total %d\n", count, level, cc);
-    fflush(stdout);
+    TRACE("Cluster created %d [in level %d]:total %d\n", count, level, cc);
         
     int i = 0;
     ClusterListNode* clusterNode = clusterList;
@@ -141,7 +140,7 @@ PCASplit::createClusterBlock(ClusterListNode* clusterList, int count, int level)
 	++i;
     }
     if (count != i) {
-	printf("ERROR\n");
+	TRACE("ERROR\n");
     }
     return clusterBlock;
 }
@@ -265,7 +264,7 @@ PCASplit::split(Point* data, int count, float limit)
     }
     
     if (left == 0 || right == count - 1) {
-	printf("error\n");
+	TRACE("error\n");
 	exit(1);
     } else {
 	split(data, left, limit);

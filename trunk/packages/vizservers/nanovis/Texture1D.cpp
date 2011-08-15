@@ -91,7 +91,7 @@ void Texture1D::check_max_size(){
     GLint max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
         
-    //printf("%d", glGetError());
+    //TRACE("%d", glGetError());
     TRACE("max texture size: %d\n", max);
 }
 
