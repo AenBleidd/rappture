@@ -261,7 +261,7 @@ main(int argc, char **argv)
     Tcl_HashSearch iter;
     const char *fileName;		/* Path to servers file. */
  
-    serverPid = getpid();
+    serverPid = getpid();g
     dispNum = 0;
     maxCards = 1;
     fileName = SERVERSFILE;
@@ -397,6 +397,8 @@ main(int argc, char **argv)
 
 		/* Accept the new connection. */
 		length = sizeof(newaddr);
+		INFO("attempting to accept connection for server=\"%s\"\n", 
+		     serverPtr->name);
 		f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
 			   &length);
 		if (f < 0) {
