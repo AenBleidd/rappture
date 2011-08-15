@@ -1271,7 +1271,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         sprintf(info, "nv>data tag %s min %g max %g vmin %g vmax %g\n", tag, 
 		volPtr->wAxis.min(), volPtr->wAxis.max(),
                 Volume::valueMin, Volume::valueMax);
-        nWritten  = write(0, info, strlen(info));
+        nWritten  = write(1, info, strlen(info));
 	assert(nWritten == (ssize_t)strlen(info));
     }
     return TCL_OK;

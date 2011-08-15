@@ -848,7 +848,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
         length = sprintf(info, "nv>data tag %s min %g max %g\n",
 		flowPtr->name(), dataPtr->magMin(), dataPtr->magMax());
-        nWritten  = write(0, info, length);
+        nWritten  = write(1, info, length);
 	assert(nWritten == (ssize_t)strlen(info));
     }
     NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);

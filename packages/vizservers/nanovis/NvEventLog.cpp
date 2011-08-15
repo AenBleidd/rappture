@@ -37,7 +37,7 @@ void NvInitService()
     NanoVis::logfile = fopen(logName, "w");
     close(2);
     dup2(fileno(NanoVis::logfile), 2);
-    dup2(2,1);
+    /* dup2(2,1); */
     //flush junk
     fflush(stdout);
     fflush(stderr);

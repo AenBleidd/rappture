@@ -240,7 +240,7 @@ debug(char *str)
 {
     ssize_t nWritten;
 
-    nWritten = write(0, str, strlen(str));
+    nWritten = write(2, str, strlen(str));
 }
 
 void
@@ -590,7 +590,7 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
         TRACE("ppm legend image");
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
         ppm_write(prefix);
-        nWritten = write(0, "\n", 1);
+        nWritten = write(1, "\n", 1);
 	assert(nWritten == 1);
     }
     plane_render->remove_plane(index);
@@ -1060,7 +1060,7 @@ NanoVis::bmp_write(const char *prefix)
 
     char string[200];
     sprintf(string, "%s %d\n", prefix, fsize);
-    nWritten = write(0, string, strlen(string));
+    nWritten = write(1, string, strlen(string));
     assert(nWritten == (ssize_t)strlen(string));
     header[pos++] = 'B';
     header[pos++] = 'M';
@@ -1113,9 +1113,9 @@ NanoVis::bmp_write(const char *prefix)
         scr += pad;  // skip over padding already in screen data
     }
 
-    nWritten = write(0, header, SIZEOF_BMP_HEADER);
+    nWritten = write(1, header, SIZEOF_BMP_HEADER);
     assert(nWritten == SIZEOF_BMP_HEADER);
-    nWritten = write(0, screen_buffer, (3*win_width+pad)*win_height);
+    nWritten = write(1, screen_buffer, (3*win_width+pad)*win_height);
     assert(nWritten == (3*win_width+pad)*win_height);
     stats.nFrames++;
     stats.nBytes += (3*win_width+pad)*win_height;
@@ -1179,7 +1179,7 @@ NanoVis::ppm_write(const char *prefix)
         iov[y].iov_len = rowLength;
         srcRowPtr += bytesPerRow;
     }
-    if (writev(0, iov, nRecs) < 0) {
+    if (writev(1, iov, nRecs) < 0) {
 	ERROR("write failed: %s\n", strerror(errno));
     }
     free(iov);
@@ -1221,7 +1221,7 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
     // FIXME: shouldn't have to cast this
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = dlen;
-    if (writev(0, iov, nRecs) < 0) {
+    if (writev(1, iov, nRecs) < 0) {
 	ERROR("write failed: %s\n", strerror(errno));
     }
     delete [] iov;
@@ -2197,7 +2197,7 @@ NanoVis::xinetd_listen(void)
         iov[1].iov_len = nBytes;
         iov[2].iov_len = 1;
         iov[2].iov_base = (char *)'\n';
-        if (writev(0, iov, 3) < 0) {
+        if (writev(1, iov, 3) < 0) {
 	    ERROR("write failed: %s\n", strerror(errno));
 	}
 	TRACE("Leaving xinetd_listen on ERROR\n");
@@ -2224,9 +2224,9 @@ NanoVis::xinetd_listen(void)
     do_rle();
     int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size };
     TRACE("Writing %d,%d\n", sizes[0], sizes[1]); 
-    write(0, &sizes, sizeof(sizes));
-    write(0, offsets, offsets_size*sizeof(offsets[0]));
-    write(0, rle, rle_size);    //unsigned byte
+    write(1, &sizes, sizeof(sizes));
+    write(1, offsets, offsets_size*sizeof(offsets[0]));
+    write(1, rle, rle_size);    //unsigned byte
 #else
     NanoVis::ppm_write("\nnv>image -type image -bytes");
 #endif
@@ -2269,6 +2269,7 @@ main(int argc, char** argv)
     glutReshapeFunc(NanoVis::resize);
     glutDisplayFunc(NanoVis::render);
 #else
+    write(1, "nanovis ", 8);
     glutDisplayFunc(NanoVis::display);
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 #endif
@@ -2432,7 +2433,7 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     //char prefix[200];
     //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
     //ppm_write(prefix);
-    //write(0, "\n", 1);
+    //write(1, "\n", 1);
     //plane_render->remove_plane(index);
 
     // CURRENT
