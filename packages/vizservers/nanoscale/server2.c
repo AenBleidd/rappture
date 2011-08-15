@@ -352,15 +352,21 @@ main(int argc, char **argv)
 	if (select(maxFd+1, &readFds, NULL, NULL, 0) <= 0) {
 	    break;			/* Error on select. */
 	}
+	INFO("select found waiting\n");
 	for (hPtr = Tcl_FirstHashEntry(&serverTable, &iter); hPtr != NULL;
 	     hPtr = Tcl_NextHashEntry(&iter)) {
 	    RenderServer *serverPtr;
 	    pid_t child;
 
 	    serverPtr = Tcl_GetHashValue(hPtr);
+	    INFO("checking server %s\n", serverPtr->name);
 	    if (!FD_ISSET(serverPtr->listenerFd, &readFds)) {
+		INFO("ignore %s (%d)\n", serverPtr->name, 
+		     serverPtr->listenerFd);
 		continue;		
 	    }
+	    INFO("connection requested for  %s on (%d)\n", serverPtr->name, 
+		     serverPtr->listenerFd);
 	    /* Rotate the display's screen number.  If we have multiple video
 	     * cards, try to spread the jobs out among them.  */
 	    dispNum++;
