@@ -260,7 +260,7 @@ main(int argc, char **argv)
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     const char *fileName;		/* Path to servers file. */
-
+ 
     serverPid = getpid();
     dispNum = 0;
     maxCards = 1;
@@ -328,6 +328,7 @@ main(int argc, char **argv)
 	    exit(1);
 	}
     }
+    serverPid = getpid();
 
     /* Build the array of servers listener file descriptors. */
     FD_ZERO(&serverFds);
