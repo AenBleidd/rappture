@@ -1133,7 +1133,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
     TRACE("Data Loading\n");
-    fflush(stdout);
 
     int nbytes;
     if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
@@ -1205,7 +1204,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 #if __TEST_CODE__
     } else if ((nBytes > 5) && (strncmp(bytes, "<FET>", 5) == 0)) {
         TRACE("FET loading...\n");
-        fflush(stdout);
         std::stringstream fdata;
         fdata.write(nBytes - 5, bytes + 5);
 	Rappture::Outcome context;
@@ -1217,7 +1215,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 #endif  /*__TEST_CODE__*/
     } else if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
 	TRACE("Loading DX using OpenDX library...\n");
-        fflush(stdout);
 	Rappture::Outcome context;
         volPtr = load_volume_stream_odx(context, tag, bytes + 5, nBytes -5);
 	if (volPtr == NULL) {
@@ -1226,7 +1223,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else {
         TRACE("OpenDX loading...\n");
-        fflush(stdout);
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
 	if (nBytes <= 0) {

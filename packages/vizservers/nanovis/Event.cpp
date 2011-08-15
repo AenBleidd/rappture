@@ -27,7 +27,7 @@ Event::Event(int _type, float _param[3], float _time){
 }
     
 void Event::write(FILE* fd){
-  fprintf(fd, "%d %f %f %f %g\n", type, parameter[0], parameter[1], parameter[2], msec);
+    fprintf(fd, "%d %f %f %f %g\n", type, parameter[0], parameter[1], parameter[2], msec);
 }
 
 

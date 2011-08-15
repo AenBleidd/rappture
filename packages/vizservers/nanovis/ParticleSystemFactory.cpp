@@ -2,6 +2,7 @@
 #include "ParticleSystem.h"
 #include <vrutil/vrFilePath.h>
 #include <stdio.h>
+#include "Trace.h"
 
 #ifdef _WIN32
 #include <expat/expat.h>
@@ -74,7 +75,7 @@ ParticleSystem* ParticleSystemFactory::create(const std::string& fileName)
 		stat = XML_ParseBuffer(parser, (int) cnt, 0);
 		if (!stat)
 		{
-			//printf("Parse error at line %d\n", XML_GetCurrentLineNumber(parser));
+			//TRACE("Parse error at line %d\n", XML_GetCurrentLineNumber(parser));
 			break;
 		}
 	}
@@ -197,7 +198,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
 			if (index == -1) {
 				index = path.rfind('\\');
 				if (index == -1)
-					printf("file not found\n");
+					TRACE("file not found\n");
 			}
 
 			dir = path.substr(0, index + 1);

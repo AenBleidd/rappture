@@ -126,7 +126,7 @@ VolumeInterpolator::addVolume(Volume* refPtr)
             _volumes[0]->height != refPtr->height ||   
             _volumes[0]->depth != refPtr->depth || 
             _volumes[0]->n_components() != refPtr->n_components()) {
-            printf("The volume should be the same width, height, number of components\n");
+            TRACE("The volume should be the same width, height, number of components\n");
             return;
         }
         

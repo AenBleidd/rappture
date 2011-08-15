@@ -88,10 +88,9 @@ load_volume_stream_odx(Rappture::Outcome &context, const char *tag,
 
     computeSimpleGradient(data, nx, ny, nz);
 
-    fprintf(stdout,"nx = %i ny = %i nz = %i\n",nx,ny,nz);
-    fprintf(stdout,"dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
-    fprintf(stdout,"dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dxObj.dataMin(),dxObj.dataMax(),dxObj.nzero_min());
-    fflush(stdout);
+    TRACE("nx = %i ny = %i nz = %i\n",nx,ny,nz);
+    TRACE("dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
+    TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dxObj.dataMin(),dxObj.dataMax(),dxObj.nzero_min());
 
     Volume *volPtr;
     volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data, 

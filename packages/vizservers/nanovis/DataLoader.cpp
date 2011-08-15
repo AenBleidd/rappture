@@ -3,6 +3,7 @@
 #include <memory.h>
 #include <stdlib.h>
 #include <math.h>
+#include <Trace.h>
 
 inline void endian_swap(unsigned int& x)
 {
@@ -34,15 +35,15 @@ void* LoadDx(const char* fname, int& width, int& height, int&depth, float& min, 
 
 	if (path.size() == 0)
 	{
-		printf("file not found[%s]\n", path.c_str());
-		return NULL;
+	    ERROR("file not found[%s]\n", path.c_str());
+	    return NULL;
 	}
 
 	FILE* fp = fopen(path.c_str(), "rb");
 	if (fp == NULL) 
 	{
-		printf("ERROR :file not found %s\n", path.c_str());
-		return NULL;
+	    ERROR("file not found %s\n", path.c_str());
+	    return NULL;
 	}
 
 	int index;
@@ -172,15 +173,15 @@ void* LoadFlowDx(const char* fname, int& width, int& height, int&depth, float& m
 
 	if (path.size() == 0)
 	{
-		printf("file not found[%s]\n", path.c_str());
-		return NULL;
+	    ERROR("file not found[%s]\n", path.c_str());
+	    return NULL;
 	}
 
 	FILE* fp = fopen(path.c_str(), "rb");
 	if (fp == NULL) 
 	{
-		printf("ERROR :file not found %s\n", path.c_str());
-		return NULL;
+	    ERROR("file not found %s\n", path.c_str());
+	    return NULL;
 	}
 
 	int index;
@@ -242,7 +243,7 @@ void* LoadFlowDx(const char* fname, int& width, int& height, int&depth, float& m
 				if (length != 0.0f && nonzero_min > length) nonzero_min = length;
 				if (length > max) 
 				{
-					//printf("max %lf %lf %fl\n", x, y, z);
+					//TRACE("max %lf %lf %fl\n", x, y, z);
 					max = length;
 				}
 			}
@@ -261,7 +262,7 @@ void* LoadFlowDx(const char* fname, int& width, int& height, int&depth, float& m
 
 	fclose(fp);
 
-	printf("width %d, height %d, depth %d, min %f, max %f, scaleX %f, scaleY %f, scaleZ %f\n", 
+	TRACE("width %d, height %d, depth %d, min %f, max %f, scaleX %f, scaleY %f, scaleZ %f\n", 
 		width, height, depth, min, max, axisScaleX, axisScaleY, axisScaleZ);
 	return data;
 }
@@ -272,15 +273,15 @@ void* LoadProcessedFlowRaw(const char* fname, int width, int height, int depth, 
 
 	if (fname == 0)
 	{
-		printf("file name is null\n");
-		return NULL;
+	    ERROR("file name is null\n");
+	    return NULL;
 	}
 
 	FILE* fp = fopen(fname, "rb");
 	if (fp == NULL) 
 	{
-		printf("ERROR :file not found %s\n", fname);
-		return NULL;
+	    ERROR("file not found %s\n", fname);
+	    return NULL;
 	}
 
 	int size = width * height * depth;
@@ -301,15 +302,15 @@ void LoadProcessedFlowRaw(const char* fname, int width, int height, int depth, f
 
 	if (fname == 0)
 	{
-		printf("file name is null\n");
-		return;
+	    ERROR("file name is null\n");
+	    return;
 	}
 
 	FILE* fp = fopen(fname, "rb");
 	if (fp == NULL) 
 	{
-		printf("ERROR :file not found %s\n", fname);
-		return;
+	    ERROR("file not found %s\n", fname);
+	    return;
 	}
 
 	int size = width * height * depth;
@@ -325,15 +326,15 @@ void* LoadFlowRaw(const char* fname, int width, int height, int depth, float& mi
 
 	if (path.size() == 0)
 	{
-		printf("file not found[%s]\n", path.c_str());
-		return NULL;
+	    ERROR("file not found[%s]\n", path.c_str());
+	    return NULL;
 	}
 
 	FILE* fp = fopen(path.c_str(), "rb");
 	if (fp == NULL) 
 	{
-		printf("ERROR :file not found %s\n", path.c_str());
-		return NULL;
+	    ERROR("file not found %s\n", path.c_str());
+	    return NULL;
 	}
 
 	
@@ -386,7 +387,7 @@ void* LoadFlowRaw(const char* fname, int width, int height, int depth, float& mi
 				if (length != 0.0f && nonzero_min > length) nonzero_min = length;
 				if (length > max) 
 				{
-					printf("max %lf %lf %fl\n", x, y, z);
+					TRACE("max %lf %lf %fl\n", x, y, z);
 					max = length;
 				}
 			}
@@ -405,7 +406,7 @@ void* LoadFlowRaw(const char* fname, int width, int height, int depth, float& mi
 
 	fclose(fp);
 
-	printf("width %d, height %d, depth %d, min %f, max %f, scaleX %f, scaleY %f, scaleZ %f\n", 
+	TRACE("width %d, height %d, depth %d, min %f, max %f, scaleX %f, scaleY %f, scaleZ %f\n", 
 		width, height, depth, min, max, axisScaleX, axisScaleY, axisScaleZ);
 	return data;
 }

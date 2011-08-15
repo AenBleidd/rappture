@@ -103,7 +103,7 @@ AVTranslate::init(Outcome &status, const char *filename)
     _fmtPtr = guess_format(NULL, filename, NULL);
     if (_fmtPtr == NULL) {
         /*
-        printf(  "Could not deduce output format from"
+	  TRACE(  "Could not deduce output format from"
                  "file extension: using MPEG.\n");
         */
         _fmtPtr = guess_format("mpeg", NULL, NULL);

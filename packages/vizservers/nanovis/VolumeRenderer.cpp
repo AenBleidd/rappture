@@ -645,7 +645,7 @@ VolumeRenderer::init_font(const char* filename)
 	ERROR("error reading file.\n");
 	goto error;
     }
-    //printf("Data at Offset: %ld\n", bfOffBits);
+    //TRACE("Data at Offset: %ld\n", bfOffBits);
     
     /* skip size of bitmap info header */
     fseek(f, 4, SEEK_CUR);
@@ -655,14 +655,14 @@ VolumeRenderer::init_font(const char* filename)
 	ERROR("error reading file.\n");
 	goto error;
     }
-    //printf("Width of Bitmap: %d\n", texture->width);
+    //TRACE("Width of Bitmap: %d\n", texture->width);
     
     /* get the height of the bitmap */
     if (fread(&height, sizeof(int), 1, f) != 1) {
 	ERROR("error reading file.\n");
 	goto error;
     }
-    //printf("Height of Bitmap: %d\n", texture->height);
+    //TRACE("Height of Bitmap: %d\n", texture->height);
     
     /* get the number of planes (must be set to 1) */
     if (fread(&biPlanes, sizeof(short int), 1, f) != 1) {
@@ -680,7 +680,7 @@ VolumeRenderer::init_font(const char* filename)
 	goto error;
     }
     
-    //printf("Bits per Pixel: %d\n", biBitCount);
+    //TRACE("Bits per Pixel: %d\n", biBitCount);
     if (biBitCount != 24) {
 	ERROR("Bits per Pixel not 24\n");
 	goto error;

@@ -74,8 +74,8 @@ void idle(void)
   if (cur_event >= sizeof(event)/sizeof(event[0])) {
     float ave = interval_sum / (cur_event-1);
     float fps = 1/ave;
-    printf("Average frame time = %.6f\n", ave);
-    printf("Frames per second  = %f\n", fps);
+    TRACE("Average frame time = %.6f\n", ave);
+    TRACE("Frames per second  = %f\n", fps);
     exit(0);
   }
 
@@ -120,7 +120,7 @@ void idle(void)
   double start_time = clock.tv_sec + clock.tv_usec/1000000.0;
 
   //send msg
-  //printf("Writing message %04d to server: '%s'\n", cur_event, msg.c_str());
+  //TRACE("Writing message %04d to server: '%s'\n", cur_event, msg.c_str());
   int status = write(socket_fd, msg.c_str(), strlen(msg.c_str()));
   if (status <= 0) {
      perror("socket write");
@@ -130,7 +130,7 @@ void idle(void)
 #if DO_RLE
   int sizes[2];
   status = read(socket_fd, &sizes, sizeof(sizes));
-  printf("Reading %d,%d bytes\n", sizes[0], sizes[1]);
+  TRACE("Reading %d,%d bytes\n", sizes[0], sizes[1]);
   int len = sizes[0] + sizes[1];
 #else
   int len = width * height * 3;
@@ -151,7 +151,7 @@ void idle(void)
     }
   }
 
-  //printf("Read message to server.\n");
+  //TRACE("Read message to server.\n");
 
   //end timer
   gettimeofday(&clock, NULL);

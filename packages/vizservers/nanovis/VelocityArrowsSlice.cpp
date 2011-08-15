@@ -96,22 +96,22 @@ VelocityArrowsSlice::VelocityArrowsSlice()
 	//delete pTextureImage;
 #else
     /*
-        printf("test1\n");
+      TRACE("test1\n");
         const char *path = R2FilePath::getInstance()->getPath("arrows_flip2.png");
-        if (path) printf("test2 %s\n", path);
-        else printf("tt\n");
+        if (path) TRACE("test2 %s\n", path);
+        else TRACE("tt\n");
 	IplImage* pTextureImage = cvLoadImage(path);
-        printf("test3\n");
+        TRACE("test3\n");
         if (pTextureImage)
         {
-            printf("file(%s) has been loaded\n", path);
+            TRACE("file(%s) has been loaded\n", path);
             _arrowsTex = new Texture2D(pTextureImage->width, pTextureImage->height, GL_FLOAT, GL_LINEAR, 3, (float*) pTextureImage->imageData);
-            printf("file(%s) has been loaded\n", path);
+            TRACE("file(%s) has been loaded\n", path);
 	    //cvReleaseImage(&pTextureImage);
         }
         else
         {
-            printf("not found\n");
+            TRACE("not found\n");
         }
         if (path) delete [] path;
 */

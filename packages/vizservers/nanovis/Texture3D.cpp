@@ -206,7 +206,7 @@ void Texture3D::check_max_size(){
     GLint max = 0;
     glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max);
         
-    //printf("%d", glGetError());
+    //TRACE("%d", glGetError());
     TRACE("max 3d texture size: %d\n", max);
 }
 
