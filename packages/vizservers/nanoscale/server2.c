@@ -76,8 +76,8 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
         s++;
     }
-    length = snprintf(message, MSG_LEN, "nanoscale %s[%d]: %s:%d ", 
-		      syslogLevels[priority],  getpid(), s, lineNum);
+    length = snprintf(message, MSG_LEN, "nanoscale[%d] %s: %s:%d ", 
+		      getpid(), syslogLevels[priority],  s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
     if (debug) {
