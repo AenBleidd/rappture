@@ -264,13 +264,13 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
     int i;
     int status;
 
-#ifdef notdef
+#ifndef notdef
     trace("Entering GetLine (mark=%d, fill=%d)\n",readPtr->mark, readPtr->fill);
 #endif
     status = BUFFER_OK;
     for (;;) {
 	/* Look for the next newline (the next full line). */
-#ifdef notdef
+#ifndef notdef
 	trace("in GetLine: mark=%d fill=%d\n", readPtr->mark, readPtr->fill);
 #endif
 	for (i = readPtr->mark; i < readPtr->fill; i++) {
@@ -282,7 +282,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 		i++;
 		*nBytesPtr = i - readPtr->mark;
 		readPtr->mark = i;
-#ifdef notdef
+#ifndef notdef
 		trace("Leaving GetLine(%.*s)\n", *nBytesPtr, p);
 #endif
 		return p;
@@ -299,7 +299,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 	    return NULL;	/* EOF or error on read. */
 	}
     }
-#ifdef notdef
+#ifndef notdef
     trace("Leaving GetLine failed to read line\n");
 #endif
     *nBytesPtr = BUFFER_CONTINUE;
@@ -309,7 +309,7 @@ GetLine(ReadBuffer *readPtr, int *nBytesPtr)
 static int 
 GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 {
-#ifdef notdef
+#ifndef notdef
     trace("Entering GetBytes(%d)\n", nBytes);
 #endif
     while (nBytes > 0) {
@@ -328,7 +328,7 @@ GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 	}
 	if (nBytes == 0) {
 	    /* Received requested # bytes. */
-#ifdef notdef
+#ifndef notdef
 	    trace("Leaving GetBytes(%d)\n", nBytes);
 #endif
 	    return BUFFER_OK;
@@ -338,11 +338,11 @@ GetBytes(ReadBuffer *readPtr, char *out, int nBytes)
 	if (status == BUFFER_ERROR) {
 	    return BUFFER_ERROR;
 	}
-#ifdef notdef
+#ifndef notdef
 	trace("in GetBytes: mark=%d fill=%d\n", readPtr->mark, readPtr->fill);
 #endif
     }
-#ifdef notdef
+#ifndef notdef
     trace("Leaving GetBytes(%d)\n", nBytes);
 #endif
     return BUFFER_OK;
@@ -1960,7 +1960,9 @@ ProxyInit(int cin, int cout, char *const *argv)
     close(sout[1]);
     close(serr[1]);
 
+#ifdef notdef
     signal(SIGPIPE, SIG_IGN); /* ignore SIGPIPE (e.g. nanoscale terminates)*/
+#endif
 
     memset(&proxy, 0, sizeof(PymolProxy));
     proxy.sin  = sin[1];
@@ -2048,30 +2050,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     DoExit(result);
     return 0;
 }
-
-#ifdef STANDALONE
-
-int
-main(int argc, char *argv[])
-{
-    flog = stderr;
-    if (debug) {
-	char fileName[200];
-	sprintf(fileName, "/tmp/pymolproxy%d.log", getpid());
-	sprintf(fileName, "/tmp/pymolproxy.log");
-        flog = fopen(fileName, "w");
-    }    
-    scriptFile = NULL;
-    if (savescript) {
-	char fileName[200];
-	sprintf(fileName, "/tmp/pymolproxy.py");
-        scriptFile = fopen(fileName, "w");
-    }    
-    ProxyInit(fileno(stdout), fileno(stdin), argv + 1);
-    return 0;
-}
-
-#endif
 
 
 static void
@@ -2218,5 +2196,25 @@ PollForEvents(PymolProxy *proxyPtr)
  error:
     Tcl_DStringFree(&clientCmds);
     return;
+}
+
+int
+main(int argc, char *argv[])
+{
+    flog = stderr;
+    if (debug) {
+	char fileName[200];
+	sprintf(fileName, "/tmp/pymolproxy%d.log", getpid());
+	sprintf(fileName, "/tmp/pymolproxy.log");
+        flog = fopen(fileName, "w");
+    }    
+    scriptFile = NULL;
+    if (savescript) {
+	char fileName[200];
+	sprintf(fileName, "/tmp/pymolproxy.py");
+        scriptFile = fopen(fileName, "w");
+    }    
+    ProxyInit(fileno(stdout), fileno(stdin), argv + 1);
+    return 0;
 }
 
