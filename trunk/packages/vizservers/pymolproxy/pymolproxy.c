@@ -94,12 +94,13 @@ typedef struct {
 
 static Stats stats;
 
-#define READTRACE	1
-#define EXPECTTRACE	1
+#define READTRACE	0
+#define EXPECTTRACE	0
 #define WRITETRACE	0
 
-static FILE *flog;
 static int debug = TRUE;
+
+static FILE *flog;
 static FILE *scriptFile;
 static int savescript = FALSE;
 
@@ -1958,6 +1959,8 @@ ProxyInit(int cin, int cout, char *const *argv)
 	exit(-1);
     }
     stats.child = child;
+
+    trace("Started %s DISPLAY=%s\n", argv[0], getenv("DISPLAY"));
 
     /* close opposite end of pipe, these now belong to the child process  */
     close(sin[0]);
