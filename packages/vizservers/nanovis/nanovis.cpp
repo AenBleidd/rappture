@@ -2159,6 +2159,8 @@ NanoVis::xinetd_listen(void)
             }
             ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
+	    TRACE("in xinetd_listen: checking buffer=%s\n", 
+		  Tcl_DStringValue(&cmdbuffer));
             if (ch == '\n') {
                 isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
                 if (isComplete) {
