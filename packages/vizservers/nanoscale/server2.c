@@ -376,7 +376,7 @@ main(int argc, char **argv)
 		struct sockaddr_in newaddr;
 		
 		INFO("after fork child=%d server=\"%s\"\n", 
-		     getpid(), serverPtr->name));
+		     getpid(), serverPtr->name);
 		/* Child process. */
 		if (!debug) {
 		    /* Detach this child process from the parent nanoscale
