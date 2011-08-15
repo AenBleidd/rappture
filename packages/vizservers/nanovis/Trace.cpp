@@ -8,6 +8,17 @@
 #include <GL/glut.h>
 #include <syslog.h>
 
+static const char *syslogLevels[] = {
+    "emergency",			/* System is unusable */
+    "alert",				/* Action must be taken immediately */
+    "critical",				/* Critical conditions */
+    "error",				/* Error conditions */
+    "warning",				/* Warning conditions */
+    "notice",				/* Normal but significant condition */
+    "info",				/* Informational */
+    "debug",				/* Debug-level messages */
+};
+
 void 
 LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
 {
@@ -24,7 +35,8 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
 	s++;
     }
-    length = snprintf(message, MSG_LEN, "line %d of \"%s\": ", lineNum, s);
+    length = snprintf(message, MSG_LEN, "nanovis (%d) %s: %s:%d ", 
+		      getpid(), syslogLevels[priority],  s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
     syslog(priority, message, length);

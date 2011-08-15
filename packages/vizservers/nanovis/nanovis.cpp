@@ -132,7 +132,7 @@ FILE *NanoVis::recfile = NULL;
 
 bool NanoVis::axis_on = true;
 bool NanoVis::config_pending = false;
-bool NanoVis::debug_flag = false;
+bool NanoVis::debug_flag = true;
 
 Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
@@ -2269,7 +2269,6 @@ main(int argc, char** argv)
     glutReshapeFunc(NanoVis::resize);
     glutDisplayFunc(NanoVis::render);
 #else
-    write(1, "nanovis ", 8);
     glutDisplayFunc(NanoVis::display);
     glutReshapeFunc(NanoVis::resize_offscreen_buffer);
 #endif
@@ -2374,7 +2373,10 @@ main(int argc, char** argv)
     vrFilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
+#ifdef notdef
     signal(SIGPIPE,SIG_IGN);
+#endif
+    write(1, "nanovis ", 8);
     NvInitService();
 #endif
 
