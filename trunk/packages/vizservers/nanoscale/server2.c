@@ -375,6 +375,8 @@ main(int argc, char **argv)
 		socklen_t length;
 		struct sockaddr_in newaddr;
 		
+		INFO("after fork child=%d server=\"%s\"\n", 
+		     getpid(), serverPtr->name));
 		/* Child process. */
 		if (!debug) {
 		    /* Detach this child process from the parent nanoscale
@@ -398,8 +400,8 @@ main(int argc, char **argv)
 			  strerror(errno));
 		    exit(1);
 		}
-		INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
-		     inet_ntoa(newaddr.sin_addr));
+		INFO("child=%d Connecting \"%s\" to %s\n", 
+		     getpid(), serverPtr->name, inet_ntoa(newaddr.sin_addr));
 		
 		dup2(f, 0);		/* Stdin */
 		dup2(f, 1);		/* Stdout */
@@ -421,7 +423,7 @@ main(int argc, char **argv)
 		execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
 		ERROR("can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
 		      strerror(errno));
-		_exit(1);
+		exit(1);
 	    } else {
 		if (!debug) {
 		    /* Reap initial child which will exit immediately 
