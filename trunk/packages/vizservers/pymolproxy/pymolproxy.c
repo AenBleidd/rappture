@@ -2012,6 +2012,8 @@ ProxyInit(int cin, int cout, char *const *argv)
     gettimeofday(&end, NULL);
     stats.start = end;
 
+    write(cout, "pymol   ", 8);
+    
     // Main Proxy Loop
     //  accept tcl commands from socket
     //  translate them into pyMol commands, and issue them to child proccess
