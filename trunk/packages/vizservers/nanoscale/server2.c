@@ -266,6 +266,7 @@ main(int argc, char **argv)
     maxCards = 1;
     fileName = SERVERSFILE;
     debug = FALSE;
+
     strcpy(display, "DISPLAY=:0.0");
     if (putenv(display) < 0) {
 	ERROR("can't set DISPLAY variable: %s", strerror(errno));
@@ -310,15 +311,6 @@ main(int argc, char **argv)
 	}
     }
 
-    if (!ParseServersFile(fileName)) {
-	exit(1);
-    }    
-
-    if (serverTable.numEntries == 0) {
-	ERROR("no servers designated.");
-	exit(1);
-    }
-
     if (!debug) {
 	/* Detach this process from the controlling terminal process. The
 	 * current directory becomes /tmp and redirect stdin/stdout/stderr to
@@ -329,6 +321,15 @@ main(int argc, char **argv)
 	}
     }
     serverPid = getpid();
+    if (!ParseServersFile(fileName)) {
+	exit(1);
+    }    
+
+    if (serverTable.numEntries == 0) {
+	ERROR("no servers designated.");
+	exit(1);
+    }
+
 
     /* Build the array of servers listener file descriptors. */
     FD_ZERO(&serverFds);
