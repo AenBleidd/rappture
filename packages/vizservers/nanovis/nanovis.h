@@ -67,6 +67,7 @@
 
 #include "config.h"
 
+#define NANOVIS_VERSION		"1.0"
 
 //defines for the image based flow visualization
 #define	NPN 256 	//resolution of background pattern

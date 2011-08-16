@@ -201,14 +201,14 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
     # Can't call update because of all the pending stuff going on
     #update
-
+    
     # Shuffle the list of servers so as to pick random 
     set servers [Shuffle $hostlist]
-
+    
     # Get the first server
     foreach {hostname port} [split [lindex $servers 0] :] break
     set servers [lrange $servers 1 end]
-
+    
     while {1} {
         puts stderr "connecting to $hostname:$port..."
         if { [catch {socket $hostname $port} _sid] != 0 } {
@@ -224,7 +224,13 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
         }
 	set _hostname $hostname:$port
         fconfigure $_sid -translation binary -encoding binary
-
+	
+        # Read back a reconnection order
+	puts stderr "before read of server"
+        if { [gets $_sid data] <= 0 } {
+	    error "reading from server"
+	}
+	puts stderr "render server is $data"
 	# We're connected. Cancel any pending serverDown events and
 	# release the busy window over the hull.
 	$_dispatcher cancel !serverDown
@@ -240,7 +246,6 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy release $itk_component(hull)
     return 0
 }
-
 
 #
 # Disconnect --
@@ -275,7 +280,7 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 itcl::body Rappture::VisViewer::CheckConnection {} {
     if { [IsConnected] } {
         if { [eof $_sid] } {
-	    Disconnect
+	    error "unexpected eof on socket"
         } else {
 	    $_dispatcher cancel !timeout
 	    if { $_idleTimeout > 0 } {

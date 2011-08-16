@@ -171,7 +171,8 @@ main(int argc, char *argv[])
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    write(g_fdOut, "vtkvis  ", 8);
+    fprintf(stdout, "VtkVis 1.0\n");
+    fflush(stdout);
 
     g_renderer = new Renderer();
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
