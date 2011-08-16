@@ -2126,6 +2126,7 @@ NanoVis::xinetd_listen(void)
     NanoVis::flags &= ~REDRAW_PENDING;
 
     TRACE("Enter xinetd_listen\n");
+
     int flags = fcntl(0, F_GETFL, 0);
     fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
 
@@ -2178,7 +2179,7 @@ NanoVis::xinetd_listen(void)
             fcntl(0, F_SETFL, flags | O_NONBLOCK);
             isComplete = false;
 	    nCommands++;
-    CHECK_FRAMEBUFFER_STATUS();
+	    CHECK_FRAMEBUFFER_STATUS();
         }
     }
     fcntl(0, F_SETFL, flags);
@@ -2223,6 +2224,9 @@ NanoVis::xinetd_listen(void)
     glutSwapBuffers();
 #endif
 
+    if (feof(NanoVis::stdin)) {
+	DoExit(90);
+    }
 #if DO_RLE
     do_rle();
     int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size };
@@ -2378,7 +2382,7 @@ main(int argc, char **argv)
 
 #ifdef XINETD
 #ifdef notdef
-    signal(SIGPIPE,SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
 #endif
     NvInitService();
 #endif
