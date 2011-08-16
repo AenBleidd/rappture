@@ -215,11 +215,11 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
         }
         ::Rappture::Drawing {
-            set mode "vtkviewer2"
+            set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
 		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-                set w $itk_interior.vtkviewer2
-		catch { Rappture::VtkViewer2 $w $servers } errs
+                set w $itk_interior.vtkviewer
+		catch { Rappture::VtkViewer $w $servers } errs
 		puts stderr errs=$errs
                 set _mode2widget($mode) $w
             }
@@ -381,7 +381,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             }
         }
         default {
-            error "don't know how to plot <$type> data"
+            error "don't know how to plot <$type> data [$dataobj info class]"
         }
     }
 
@@ -488,14 +488,11 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         drawing3d - drawing {
             return [Rappture::Drawing ::#auto $xmlobj $path]
         }
-        scene {
-            return [Rappture::Scene ::#auto $xmlobj $path]
-        }
         time - status {
             return ""
         }
     }
-    error "don't know how to plot <$type> data"
+    error "don't know how to plot <$type> data path=$path"
 }
 
 # ----------------------------------------------------------------------
