@@ -35,7 +35,6 @@ void NvInitService()
 
     //open log and map stderr to log file
     NanoVis::logfile = fopen(logName, "w");
-    close(2);
     dup2(fileno(NanoVis::logfile), 2);
     /* dup2(2,1); */
 
