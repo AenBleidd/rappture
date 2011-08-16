@@ -2249,11 +2249,10 @@ main(int argc, char **argv)
     path = NULL;
     NanoVis::stdin = stdin;
 
-    if ((n = write(1, "NanoVis ", 8)) != 8) {
-       INFO("short write %d", n);
-    }
+    fprintf(stdout, "NanoVis %s\n", NANOVIS_VERSION);
+    fflush(stdout);
+
     /* openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER); */
-    INFO("writing marker to stdout");
     gettimeofday(&tv, NULL);
     stats.start = tv;
 

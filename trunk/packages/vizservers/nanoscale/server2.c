@@ -22,11 +22,7 @@
 #endif
 
 #define ERROR(...)      LogMessage(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
-#ifdef WANT_TRACE
 #define TRACE(...)      LogMessage(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
-#else
-#define TRACE(...) 
-#endif
 #define WARN(...)       LogMessage(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
 #define INFO(...)       LogMessage(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
 
