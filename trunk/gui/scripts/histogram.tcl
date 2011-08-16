@@ -24,26 +24,32 @@ itcl::class Rappture::Histogram {
     destructor { # defined below }
 
     public method components {{pattern *}}
-    public method locations {}
-    public method heights {}
-    public method widths {}
+    public method mesh { component }
+    public method values { component }
+    public method widths { component }
+    public method xlabels { component }
     public method limits {which}
     public method xmarkers {}
     public method ymarkers {}
     public method hints {{key ""}}
 
-    protected method _build {}
+    protected method Build {}
+    private method Clear { {comp ""} }
+    private method ParseData { comp } 
 
     private variable _xmlobj ""  ;# ref to lib obj with histogram data
     private variable _hist ""    ;# lib obj representing this histogram
-    private variable _widths ""  ;# vector of bin widths (may be empty string).
-    private variable _heights ""  ;# vector of bin heights along y-axis.
-    private variable _locations "" ;# vector of bin locations along x-axis.
-
+    private variable _widths     ;# array of vectors of bin widths 
+    private variable _yvalues    ;# array of vectors of bin heights along 
+				 ;# y-axis.
+    private variable _xvalues    ;# array of vectors of bin locations along 
+				 ;# x-axis.
+    private variable _xlabels    ;# array of labels
     private variable _hints      ;# cache of hints stored in XML
     private variable _xmarkers "";# list of {x,label,options} triplets.
     private variable _ymarkers "";# list of {y,label,options} triplets.
     private common _counter 0    ;# counter for unique vector names
+    private variable _comp2hist  ;# maps component name => x,y,w,l vectors
 }
 
 # ----------------------------------------------------------------------
@@ -57,34 +63,29 @@ itcl::body Rappture::Histogram::constructor {xmlobj path} {
     set _hist [$xmlobj element -as object $path]
 
     # build up vectors for various components of the histogram
-    _build
+    Build
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::destructor {} {
-    itcl::delete object $_hist
     # don't destroy the _xmlobj! we don't own it!
-    if {"" != $_widths} {
-        blt::vector destroy $_widths
-    }
-    if {"" != $_heights} {
-        blt::vector destroy $_heights
-    }
-    if {"" != $_locations} {
-        blt::vector destroy $_locations
-    }
+    itcl::delete object $_hist
+    Clear 
 }
 
 # ----------------------------------------------------------------------
-# USAGE: locations 
+# USAGE: mesh 
 #
 # Returns the vector for the histogram bin locations along the
 # x-axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Histogram::locations {} {
-    return $_locations
+itcl::body Rappture::Histogram::mesh { comp } {
+    if { [info exists _xvalues($comp)] } {
+	return $_xvalues($comp)
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -92,8 +93,11 @@ itcl::body Rappture::Histogram::locations {} {
 #
 # Returns the vector for the histogram bin heights along the y-axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Histogram::heights {} {
-    return $_heights
+itcl::body Rappture::Histogram::values { comp } {
+    if { [info exists _yvalues($comp)] } {
+	return $_yvalues($comp)
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -103,8 +107,25 @@ itcl::body Rappture::Histogram::heights {} {
 # If the name is not specified, then it returns the vectors for the
 # overall histogram (sum of all components).
 # ----------------------------------------------------------------------
-itcl::body Rappture::Histogram::widths {} {
-    return $_widths 
+itcl::body Rappture::Histogram::widths { comp } {
+    if { [info exists _widths($comp)] } {
+	return $_widths($comp)
+    }
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: xlabels 
+#
+# Returns the vector for the specified histogram component <name>.
+# If the name is not specified, then it returns the vectors for the
+# overall histogram (sum of all components).
+# ----------------------------------------------------------------------
+itcl::body Rappture::Histogram::xlabels { comp } {
+    if { [info exists _xlabels($comp)] } {
+	return $_xlabels($comp)
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -115,6 +136,23 @@ itcl::body Rappture::Histogram::widths {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::xmarkers {} {
     return $_xmarkers;
+}
+
+# ----------------------------------------------------------------------
+# USAGE: components ?<pattern>?
+#
+# Returns a list of names for the various components of this curve.
+# If the optional glob-style <pattern> is specified, then it returns
+# only the component names matching the pattern.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Histogram::components {{pattern *}} {
+    set rlist ""
+    foreach name [array names _comp2hist] {
+        if {[string match $pattern $name]} {
+            lappend rlist $name
+        }
+    }
+    return $rlist
 }
 
 # ----------------------------------------------------------------------
@@ -139,56 +177,45 @@ itcl::body Rappture::Histogram::limits {which} {
     set min ""
     set max ""
     switch -- $which {
-        x - xlin { 
-            set vname $_locations; 
-            set log 0; 
-            set axis xaxis 
-        }
-        xlog { 
-            set vname $_locations; 
-            set log 1; 
-            set axis xaxis 
-        }
-        y - ylin { 
-            set vname $_heights; 
-            set log 0; 
-            set axis yaxis 
-        }
-        ylog { 
-            set vname $_heights; 
-            set log 1; 
-            set axis yaxis 
-        }
+        x - xlin { set pos 0; set log 0; set axis xaxis }
+        xlog { set pos 0; set log 1; set axis xaxis }
+        y - ylin - v - vlin { set pos 1; set log 0; set axis yaxis }
+        ylog - vlog { set pos 1; set log 1; set axis yaxis }
         default {
-            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog"
+            error "bad option \"$which\": should be x, xlin, xlog, y, ylin, ylog, v, vlin, vlog"
         }
     }
-    if {"" == $vname} {
-        return {0 1}
-    }
-    $vname dup tmp
-    $vname dup zero
-    if {$log} {
-        # on a log scale, use abs value and ignore 0's
-        zero expr {tmp == 0}            ;# find the 0's
-        tmp expr {abs(tmp)}             ;# get the abs value
-        tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
-        set vmin [blt::vector expr min(tmp)]
-        set vmax [blt::vector expr max(tmp)]
-    } else {
-        set vmin [blt::vector expr min($vname)]
-        set vmax [blt::vector expr max($vname)]
-    }
-    
-    if {"" == $min} {
-        set min $vmin
-    } elseif {$vmin < $min} {
-        set min $vmin
-    }
-    if {"" == $max} {
-        set max $vmax
-    } elseif {$vmax > $max} {
-        set max $vmax
+
+    blt::vector create tmp 
+    blt::vector create zero
+    foreach comp [array names _comphist] {
+        set vname [lindex $_comp2hist($comp) $pos]
+        $vname variable vec
+
+        if {$log} {
+            # on a log scale, use abs value and ignore 0's
+            $vname dup tmp
+            $vname dup zero
+            zero expr {tmp == 0}            ;# find the 0's
+            tmp expr {abs(tmp)}             ;# get the abs value
+            tmp expr {tmp + zero*max(tmp)}  ;# replace 0's with abs max
+            set vmin [blt::vector expr min(tmp)]
+            set vmax [blt::vector expr max(tmp)]
+        } else {
+            set vmin $vec(min)
+            set vmax $vec(max)
+        }
+
+        if {"" == $min} {
+            set min $vmin
+        } elseif {$vmin < $min} {
+            set min $vmin
+        }
+        if {"" == $max} {
+            set max $vmax
+        } elseif {$vmax > $max} {
+            set max $vmax
+        }
     }
     blt::vector destroy tmp zero
 
@@ -207,7 +234,6 @@ itcl::body Rappture::Histogram::limits {which} {
             set max $val
         }
     }
-
     return [list $min $max]
 }
 
@@ -270,57 +296,24 @@ itcl::body Rappture::Histogram::hints {{keyword ""}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _build
+# USAGE: Build
 #
 # Used internally to build up the vector representation for the
 # histogram when the object is first constructed, or whenever the histogram
 # data changes.  Discards any existing vectors and builds everything
 # from scratch.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Histogram::_build {} {
+itcl::body Rappture::Histogram::Build {} {
     # discard any existing data
-    if { $_locations != "" } {
-        blt::vector destroy $_locations
-        set _locations ""
-    }
-    if { $_widths != "" } {
-        blt::vector destroy $_widths
-        set _widths ""
-    }
-    if { $_heights != "" } {
-        blt::vector destroy $_heights
-        set _heights ""
-    }
-
+    Clear
     #
     # Scan through the components of the histogram and create
     # vectors for each part.  Right now there's only one
     # component.  I left in the component tag in case future
     # enhancements require more than one component.
     #
-    set xhwdata [$_hist get component.xhw]
-    if {"" != $xhwdata} {
-        set _widths [blt::vector create \#auto]
-        set _heights [blt::vector create \#auto]
-        set _locations [blt::vector create \#auto]
-
-        foreach line [split $xhwdata \n] {
-            set n [scan $line {%s %s %s} x h w]
-            if { $n == 2 } {
-                $_locations append $x
-                $_heights append $h
-            } elseif { $n == 3 } { 
-                $_locations append $x
-                $_heights append $h
-                $_widths append $w
-            }
-        }
-        # FIXME:  There must be a width specified for each bin location.
-        #	  If this isn't true, we default to uniform widths
-        #	  (zero-length _widths vector == uniform).
-        if { [$_locations length] != [$_widths length] } {
-            $_widths set {}
-        }
+    foreach cname [$_hist children -type component] {
+	ParseData $cname
     }
     # Creates lists of x and y marker data.
     set _xmarkers {}
@@ -340,3 +333,100 @@ itcl::body Rappture::Histogram::_build {} {
         lappend _xmarkers $data
     }
 }
+
+#
+# ParseData --
+#
+#	Parse the components data representations.  The following
+#	elements may be used <xy>, <xhw>, <namevalue>, <xvector>,
+#	<yvector>.  Only one element is used for data.  
+#
+itcl::body Rappture::Histogram::ParseData { comp } {
+    # Create new vectors or discard any existing data
+    set _xvalues($comp) [blt::vector create \#auto]
+    set _yvalues($comp) [blt::vector create \#auto]
+    set _widths($comp) [blt::vector create \#auto]
+    set _xlabels($comp) {}
+
+    set xydata [$_hist get ${comp}.xy]
+    if { $xydata != "" } {
+	set count 0
+        foreach line [split $xydata \n] {
+	    foreach {name value} $line break
+	    $_yvalues($comp) append $value
+	    $_xvalues($comp) append $count
+	    lappend _xlabels($comp) $name
+	    incr count
+	}	    
+	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+	return
+    }
+    set xhwdata [$_hist get ${comp}.xhw]
+    if { $xhwdata != "" } {
+	set count 0
+        foreach line [split $xhwdata \n] {
+            set n [scan $line {%s %s %s} name h w]
+	    lappend _xlabels($comp) $name
+	    $_xvalues($comp) append $count
+	    $_yvalues($comp) append $h
+            if { $n == 3 } {
+                $_widths($comp) append $w
+            }
+	    incr count
+	}	    
+	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+	return
+
+        # FIXME:  There must be a width specified for each bin location.
+        #	  If this isn't true, we default to uniform widths
+        #	  (zero-length _widths vector == uniform).
+        if { [$_xvalues($comp) length] != [$_widths($comp) length] } {
+            $_widths($comp) set {}
+        }
+	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+	return
+    }
+    set xv [$_hist get $comp.xvector]
+    set yv [$_hist get $comp.yvector]
+    if { $xv != "" && $yv != "" } {
+	$_yvalues($comp) set $yv
+	$_xvalues($comp) seq 0 [$yv length]
+	set _xlabels($comp)
+    }
+    set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+}
+
+itcl::body Rappture::Histogram::Clear { {comp ""} } {
+    if { $comp == "" } {
+	foreach name [array names _widths] {
+	    blt::vector destroy $_widths($name)
+	}
+	array unset _widths
+	foreach name [array names _yvalues] {
+	    blt::vector destroy $_yvalues($name)
+	}
+	array unset _yvalues
+	foreach name [array names _xvalues] {
+	    blt::vector destroy $_xvalues($name)
+	}
+	array unset _xvalues
+	array unset _xlabels
+	array unset _comp2hist
+	return
+    }
+    if { [info exists _widths($comp)] } {
+	blt::vector destroy $_widths($comp) 
+    }
+    if { [info exists _yvalues($comp)] } {
+	blt::vector destroy $_yvalues($comp) 
+    }
+    if { [info exists _xvalues($comp)] } {
+	blt::vector destroy $_xvalues($comp) 
+    }
+    array unset _xvalues $comp
+    array unset _yvalues $comp
+    array unset _widths $comp
+    array unset _xlabels $comp
+    array unset _comp2hist $comp
+}
+

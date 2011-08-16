@@ -13,7 +13,7 @@ package require Rappture
 set driver [Rappture::library [lindex $argv 0]]
 
 set npts [$driver get input.(points).current]
-set min 0.01
+set min 1
 set max 10.0
 set dx [expr {($max-$min)/double($npts)}]
 
@@ -43,7 +43,6 @@ foreach factor {1 2} {
     $driver put output.histogram(multi$factor).xaxis.description \
         "Frequency of the input source."
     $driver put output.histogram(multi$factor).xaxis.units "Hz"
-    $driver put output.histogram(multi$factor).xaxis.scale "log"
     $driver put output.histogram(multi$factor).yaxis.label "Current"
     $driver put output.histogram(multi$factor).yaxis.description \
         "Current through the pull-down resistor."
@@ -79,7 +78,7 @@ for {set x $min} {$x < $max} {set x [expr {$x+$dx}]} {
     set y [expr {cos($x)/(1+$x)}]
     set name [lindex $labels $count]
     incr count
-    $driver put -append yes $prefix.component.namevalue "[list $name $y]\n"
+    $driver put -append yes $prefix.component.xy "[list $name $y]\n"
 }
 
 # save the updated XML describing the run...

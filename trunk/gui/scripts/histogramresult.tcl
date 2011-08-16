@@ -17,65 +17,58 @@ package require BLT
 
 option add *HistogramResult*Element.borderWidth 1 widgetDefault
 option add *HistogramResult*Element.relief solid widgetDefault
-option add *HistogramResult*x.loose 1 widgetDefault
+option add *HistogramResult*x.loose 0 widgetDefault
 option add *HistogramResult*y.loose 1 widgetDefault
 option add *HistogramResult*Element.relief solid widgetDefault
 option add *HistogramResult*Element.borderWidth 1 widgetDefault
 # Don't let the step size default to 1.0 (for barcharts)
-option add *HistogramResult*x.stepSize 0.0 widgetDefault
+option add *HistogramResult*x.stepSize 1.0 widgetDefault
+option add *HistogramResult*x.subdivisions 0 widgetDefault
 
 option add *HistogramResult.width 3i widgetDefault
 option add *HistogramResult.height 3i widgetDefault
 option add *HistogramResult.gridColor #d9d9d9 widgetDefault
-option add *HistogramResult.activeColor blue widgetDefault
+option add *HistogramResult.activeColor blue2 widgetDefault
 option add *HistogramResult.dimColor gray widgetDefault
 option add *HistogramResult.controlBackground gray widgetDefault
 option add *HistogramResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
-
-option add *HistogramResult.autoColors {
-    #0000ff #ff0000 #00cc00
-    #cc00cc #ff9900 #cccc00
-    #000080 #800000 #006600
-    #660066 #996600 #666600
-}
-set autocolors {
-#0000cd
-#cd0000
-#00cd00
-#3a5fcd
-#cdcd00
-#cd1076
-#009acd
-#00c5cd
-#a2b5cd
-#7ac5cd
-#66cdaa
-#a2cd5a
-#cd9b9b
-#cdba96
-#cd3333
-#cd6600
-#cd8c95
-#cd00cd
-#9a32cd
-#6ca6cd
-#9ac0cd
-#9bcd9b
-#00cd66
-#cdc673
-#cdad00
-#cd5555
-#cd853f
-#cd7054
-#cd5b45
-#cd6889
-#cd69c9
-#551a8b
-}
-
-option add *HistogramResult.autoColors $autocolors widgetDefault
 option add *HistogramResult*Balloon*Entry.background white widgetDefault
+
+option add *HistogramResult*autoColors {
+    #3a5fcd
+    #cdcd00
+    #cd1076
+    #0000cd
+    #cd0000
+    #00cd00
+    #009acd
+    #00c5cd
+    #a2b5cd
+    #7ac5cd
+    #66cdaa
+    #a2cd5a
+    #cd9b9b
+    #cdba96
+    #cd3333
+    #cd6600
+    #cd8c95
+    #cd00cd
+    #9a32cd
+    #6ca6cd
+    #9ac0cd
+    #9bcd9b
+    #00cd66
+    #cdc673
+    #cdad00
+    #cd5555
+    #cd853f
+    #cd7054
+    #cd5b45
+    #cd6889
+    #cd69c9
+    #551a8b
+} widgetDefault
 
 itcl::class Rappture::HistogramResult {
     inherit itk::Widget
@@ -100,16 +93,17 @@ itcl::class Rappture::HistogramResult {
     }
     public method download {option args}
 
-    protected method _rebuild {}
-    protected method _resetLimits {}
-    protected method _zoom {option args}
-    protected method _hilite {state x y}
-    protected method _axis {option args}
-    protected method _getAxes {dataobj}
-    protected method _getLineMarkerOptions { style } 
-    protected method _getTextMarkerOptions { style } 
-    protected method _enterMarker { g name x y text }
-    protected method _leaveMarker { g name }
+    protected method Rebuild {}
+    protected method ResetLimits {}
+    protected method Zoom {option args}
+    protected method Hilite {state x y}
+    protected method Axis {option args}
+    protected method GetAxes {dataobj}
+    protected method GetLineMarkerOptions { style } 
+    protected method GetTextMarkerOptions { style } 
+    protected method EnterMarker { g name x y text }
+    protected method LeaveMarker { g name }
+    protected method FormatLabels { g value }
 
     private variable _dispatcher "" ;# dispatcher for !events
     private variable _dlist ""     ;# list of dataobj objects
@@ -128,6 +122,7 @@ itcl::class Rappture::HistogramResult {
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
     private variable _markers
+    private variable _xlabels
 }
                                                                                 
 itk::usual HistogramResult {
@@ -140,7 +135,7 @@ itk::usual HistogramResult {
 itcl::body Rappture::HistogramResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
-    $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
 
     array set _downloadPopup {
         format csv
@@ -159,7 +154,7 @@ itcl::body Rappture::HistogramResult::constructor {args} {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
             -highlightthickness 0 \
             -image [Rappture::icon reset-view] \
-            -command [itcl::code $this _zoom reset]
+            -command [itcl::code $this Zoom reset]
     } {
         usual
         ignore -borderwidth -highlightthickness
@@ -182,10 +177,12 @@ itcl::body Rappture::HistogramResult::constructor {args} {
     #
     # Add bindings so you can mouse over points to see values:
     #
-    bind $itk_component(plot) <Motion> \
-        [itcl::code $this _hilite at %x %y]
-    bind $itk_component(plot) <Leave> \
-        [itcl::code $this _hilite off %x %y]
+    $itk_component(plot) element bind all <Enter> \
+        [itcl::code $this Hilite at %x %y]
+    $itk_component(plot) element bind all <Motion> \
+        [itcl::code $this Hilite at %x %y]
+    $itk_component(plot) element bind all <Leave> \
+        [itcl::code $this Hilite off %x %y]
 
     # Add support for editing axes:
     Rappture::Balloon $itk_component(hull).axes -title "Axis Options"
@@ -236,8 +233,8 @@ itcl::body Rappture::HistogramResult::constructor {args} {
     foreach axis {x y} {
         set _axisPopup(format-$axis) "%.6g"
     }
-    _axis scale x linear
-    _axis scale y linear
+    Axis scale x linear
+    Axis scale y linear
 
     $itk_component(plot) legend configure -hide yes
 
@@ -356,17 +353,17 @@ itcl::body Rappture::HistogramResult::add {dataobj {settings ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HistogramResult::get {} {
     # put the dataobj list in order according to -raise options
-    set clist $_dlist
-    foreach obj $clist {
+    set bottom {}
+    set top {}
+    foreach obj $_dlist {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
-            set i [lsearch -exact $clist $obj]
-            if {$i >= 0} {
-                set clist [lreplace $clist $i $i]
-                lappend clist $obj
-            }
-        }
+	    lappend top $obj
+	} else {
+	    lappend bottom $obj 
+	}
     }
-    return $clist
+    set _dlist [concat $bottom $top]
+    return $_dlist
 }
 
 # ----------------------------------------------------------------------
@@ -423,19 +420,19 @@ itcl::body Rappture::HistogramResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
     foreach axis $allx {
-        _axis scale $axis linear
+        Axis scale $axis linear
     }
 
     set ally [$itk_component(plot) y2axis use]
     lappend ally y  ;# fix main y-axis too
     foreach axis $ally {
-        _axis scale $axis linear
+        Axis scale $axis linear
     }
 
     catch {unset _limits}
     foreach dataobj $args {
         # find the axes for this dataobj (e.g., {x y2})
-        foreach {map(x) map(y)} [_getAxes $dataobj] break
+        foreach {map(x) map(y)} [GetAxes $dataobj] break
 
         foreach axis {x y} {
             # get defaults for both linear and log scales
@@ -459,11 +456,11 @@ itcl::body Rappture::HistogramResult::scale {args} {
             }
 
             if {[$dataobj hints ${axis}scale] == "log"} {
-                _axis scale $map($axis) log
+                Axis scale $map($axis) log
             }
         }
     }
-    _resetLimits
+    ResetLimits
 }
 
 # ----------------------------------------------------------------------
@@ -589,13 +586,13 @@ itcl::body Rappture::HistogramResult::download {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _rebuild
+# USAGE: Rebuild
 #
 # Called automatically whenever something changes that affects the
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_rebuild {} {
+itcl::body Rappture::HistogramResult::Rebuild {} {
     set g $itk_component(plot)
 
     # First clear out the widget
@@ -663,107 +660,111 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
 
     foreach axis $all {
         set _axisPopup(format-$axis) "%.6g"
-        
         $g axis bind $axis <Enter> \
-            [itcl::code $this _axis hilite $axis on]
+            [itcl::code $this Axis hilite $axis on]
         $g axis bind $axis <Leave> \
-            [itcl::code $this _axis hilite $axis off]
+            [itcl::code $this Axis hilite $axis off]
         $g axis bind $axis <ButtonPress-1> \
-            [itcl::code $this _axis click $axis %x %y]
+            [itcl::code $this Axis click $axis %x %y]
         $g axis bind $axis <B1-Motion> \
-            [itcl::code $this _axis drag $axis %x %y]
+            [itcl::code $this Axis drag $axis %x %y]
         $g axis bind $axis <ButtonRelease-1> \
-            [itcl::code $this _axis release $axis %x %y]
+            [itcl::code $this Axis release $axis %x %y]
         $g axis bind $axis <KeyPress> \
             [list ::Rappture::Tooltip::tooltip cancel]
     }
-
+    set invert 0
+    array unset _xlabels
     #
     # Plot all of the dataobjs.
     #
     set count 0
     foreach dataobj $_dlist {
         set label [$dataobj hints label]
-        foreach {mapx mapy} [_getAxes $dataobj] break
-        
-        set xv [$dataobj locations]
-        set yv [$dataobj heights]
-        set zv [$dataobj widths]
-        if {$xv eq "" || $yv eq "" || $zv eq ""} {
-            continue
-        }
-        
-        if {[info exists _dataobj2color($dataobj)]} {
-            set color $_dataobj2color($dataobj)
-        } else {
-            set color [$dataobj hints color]
-            if {"" == $color} {
-                set color black
-            }
-        }
-        
-        if {[info exists _dataobj2width($dataobj)]} {
-            set lwidth $_dataobj2width($dataobj)
-        } else {
-            set lwidth 2
-        }
-        
-        if {[info exists _dataobj2dashes($dataobj)]} {
-            set dashes $_dataobj2dashes($dataobj)
-        } else {
-            set dashes ""
-        }
-        if {([$xv length] <= 1) || ($lwidth == 0)} {
-            set sym square
-            set pixels 2
-        } else {
-            set sym ""
-            set pixels 6
-        }
-        # Compute default bar width for histogram elements.
-        if { [$zv length] == [$xv length] } {
-            foreach x [$xv range 0 end] \
-                    y [$yv range 0 end] \
-                    z [$zv range 0 end] {
-                set elem "elem[incr count]"
-                set _elem2dataobj($elem) $dataobj
-                $g element create $elem -x $x -y $y -barwidth $z \
+        foreach {mapx mapy} [GetAxes $dataobj] break
+        foreach comp [$dataobj components] {
+	    set xv [$dataobj mesh $comp]
+	    set yv [$dataobj values $comp]
+	    set zv [$dataobj widths $comp]
+	    if {$xv eq "" || $yv eq "" || $zv eq ""} {
+		continue
+	    }
+	    if {[info exists _dataobj2color($dataobj)]} {
+		set color $_dataobj2color($dataobj)
+	    } else {
+		set color [$dataobj hints color]
+		if {"" == $color} {
+		    set color black
+		}
+	    }
+	    if {[info exists _dataobj2width($dataobj)]} {
+		set lwidth $_dataobj2width($dataobj)
+	    } else {
+		set lwidth 2
+	    }
+	    if {[info exists _dataobj2dashes($dataobj)]} {
+		set dashes $_dataobj2dashes($dataobj)
+	    } else {
+		set dashes ""
+	    }
+	    if {([$xv length] <= 1) || ($lwidth == 0)} {
+		set sym square
+		set pixels 2
+	    } else {
+		set sym ""
+		set pixels 6
+	    }
+	    # Compute default bar width for histogram elements.
+	    if { [$zv length] == [$xv length] } {
+		foreach x [$xv values] y [$yv values] z [$zv values] {
+		    set elem "elem[incr count]"
+		    set _elem2dataobj($elem) $dataobj
+		    $g element create $elem -x $x -y $y -barwidth $z \
+			-label $label -foreground $color \
+			-mapx $mapx -mapy $mapy
+		}
+	    } else {
+		set r [blt::vector expr {max($xv) - min($xv)}]
+		set z [expr {$r / ([$xv length]-1) * 0.8}]
+		set elem "elem[incr count]"
+		set _elem2dataobj($elem) $dataobj
+		$g element create $elem -x $xv -y $yv -barwidth $z \
                     -label $label -foreground $color \
                     -mapx $mapx -mapy $mapy
-            }
-        } else {
-            set r [blt::vector expr {max($xv) - min($xv)}]
-            set z [expr {$r / ([$xv length]-1) * 0.8}]
-            set elem "elem[incr count]"
-            set _elem2dataobj($elem) $dataobj
-            $g element create $elem -x $xv -y $yv -barwidth $z \
-                    -label $label -foreground $color \
-                    -mapx $mapx -mapy $mapy
-        } 
+	    } 
+	    set index 0
+	    foreach label [$dataobj xlabels $comp] {
+		if  { [string length $label] > 3 } {
+		    set invert 1
+		}
+		set _xlabels($index) $label
+		incr index
+	    }
+	}
     }
     foreach dataobj $_dlist {
-        set xmin -Inf
-        set ymin -Inf
-        set xmax Inf
-        set ymax Inf
-        # 
-        # Create text/line markers for each *axis.marker specified. 
+	set xmin -Inf
+	set ymin -Inf
+	set xmax Inf
+	set ymax Inf
+	# 
+	# Create text/line markers for each *axis.marker specified. 
         # 
         foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $at $ymin $at $ymax]]
             $g marker bind $id <Enter> \
-                [itcl::code $this _enterMarker $g x-$label $at $ymin $at]
+                [itcl::code $this EnterMarker $g x-$label $at $ymin $at]
             $g marker bind $id <Leave> \
-                [itcl::code $this _leaveMarker $g x-$label]
-            set options [_getLineMarkerOptions $style]
+                [itcl::code $this LeaveMarker $g x-$label]
+            set options [GetLineMarkerOptions $style]
             if { $options != "" } {
                 eval $g marker configure $id $options
             }
             if { $label != "" } {
                 set id [$g marker create text -anchor nw \
                             -text $label -coords [list $at $ymax]]
-                set options [_getTextMarkerOptions $style]
+                set options [GetTextMarkerOptions $style]
                 if { $options != "" } {
                     eval $g marker configure $id $options
                 }
@@ -773,33 +774,40 @@ itcl::body Rappture::HistogramResult::_rebuild {} {
             foreach {at label style} $m break
             set id [$g marker create line -coords [list $xmin $at $xmax $at]]
             $g marker bind $id <Enter> \
-                [itcl::code $this _enterMarker $g y-$label $at $xmin $at]
+                [itcl::code $this EnterMarker $g y-$label $at $xmin $at]
             $g marker bind $id <Leave> \
-                [itcl::code $this _leaveMarker $g y-$label]
-            set options [_getLineMarkerOptions $style]
+                [itcl::code $this LeaveMarker $g y-$label]
+            set options [GetLineMarkerOptions $style]
             if { $options != "" } {
                 eval $g marker configure $id $options
             }
             if { $label != "" } {
                 set id [$g marker create text -anchor se \
                         -text $label -coords [list $xmax $at]]
-                set options [_getTextMarkerOptions $style]
+                set options [GetTextMarkerOptions $style]
                 if { $options != "" } {
                     eval $g marker configure $id $options
                 }
             }
         }
     }
+    if { [array size _xlabels] > 0 } {
+	set command [itcl::code $this FormatLabels]
+    } else {
+	set command ""
+    }
+    $g axis configure x -command $command
+    $g configure -invertxy $invert
     $itk_component(legend) reset 
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _resetLimits
+# USAGE: ResetLimits
 #
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_resetLimits {} {
+itcl::body Rappture::HistogramResult::ResetLimits {} {
     set g $itk_component(plot)
 
     #
@@ -869,27 +877,27 @@ itcl::body Rappture::HistogramResult::_resetLimits {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _zoom reset
+# USAGE: Zoom reset
 #
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_zoom {option args} {
+itcl::body Rappture::HistogramResult::Zoom {option args} {
     switch -- $option {
         reset {
-            _resetLimits
+            ResetLimits
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _hilite <state> <x> <y>
+# USAGE: Hilite <state> <x> <y>
 #
 # Called automatically when the user brushes one of the elements
 # on the plot.  Causes the element to highlight and a tooltip to
 # pop up with element info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_hilite {state x y} {
+itcl::body Rappture::HistogramResult::Hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
   
@@ -899,8 +907,10 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
         return;
     }
     set tip ""
+    set index ""
     if {$state == "at"} {
-        set bool [$g element closest $x $y info -interpolate yes]
+        set bool [$g element closest $x $y info -along y -halo 1]
+	# Must be in the element.
         if { $bool } {
             # for dealing with xy line plots
             set elem $info(name)
@@ -910,17 +920,19 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
             set mapx [$g element cget $elem -mapx]
             set mapy [$g element cget $elem -mapy]
             if {[info exists _elem2dataobj($elem)]} {
-                foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
+                foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
             }
 
             # search again for an exact point -- this time don't interpolate
             set tip ""
-            array unset info
-            set bool [$g element closest $x $y info -interpolate no]
-            if { $bool && $info(name) == $elem} {
+            if { $info(name) == $elem} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-
+		if { [$g cget -invertxy] } {
+		    set tmp $x
+		    set x $y
+		    set y $tmp
+		}
                  if {[info exists _elem2dataobj($elem)]} {
                     set dataobj $_elem2dataobj($elem)
                     set yunits [$dataobj hints yunits]
@@ -930,15 +942,16 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
                     set yunits ""
                 }
                 set tip [$g element cget $elem -label]
-                set yval [_axis format y dummy $info(y)]
+                set yval [Axis format y dummy $info(y)]
                 append tip "\n$yval$yunits"
-                set xval [_axis format x dummy $info(x)]
+                set xval [Axis format x dummy $info(x)]
                 append tip " @ $xval$xunits"
                 set tip [string trim $tip]
+		set index $info(index)
             }
             set state 1
         } else {
-            set bool [$g element closest $x $y info -interpolate no]
+            set bool [$g element closest $x $y info -interpolate no -along y]
             if { $bool } {
                 # for dealing with xy scatter plot
                 set elem $info(name)
@@ -947,12 +960,16 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
                 set mapx [$g element cget $elem -mapx]
                 set mapy [$g element cget $elem -mapy]
                 if {[info exists _elem2dataobj($elem)]} {
-                    foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
+                    foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
                 }
                 set tip ""
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-                
+		if { [$g cget -invertxy] } {
+		    set tmp $x
+		    set x $y
+		    set y $tmp
+		}
                if {[info exists _elem2dataobj($elem)]} {
                     set dataobj $_elem2dataobj($elem)
                     set yunits [$dataobj hints yunits]
@@ -962,11 +979,12 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
                     set yunits ""
                 }
                 set tip [$g element cget $elem -label]
-                set yval [_axis format y dummy $info(y)]
+                set yval [Axis format y dummy $info(y)]
                 append tip "\n$yval$yunits"
-                set xval [_axis format x dummy $info(x)]
+                set xval [Axis format x dummy $info(x)]
                 append tip " @ $xval$xunits"
                 set tip [string trim $tip]
+		set index $info(index)
                 set state 1
             } else {
                 set state 0
@@ -986,13 +1004,16 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
             $g crosshairs configure -hide yes
             Rappture::Tooltip::tooltip cancel
         }
-        $g element activate $elem
+	if { $index != "" } {
+	    $g element activate $elem $index
+	    set _hilite(index) $index
+	}
         set _hilite(elem) $elem
 
         set mapx [$g element cget $elem -mapx]
         set mapy [$g element cget $elem -mapy]
         if {[info exists _elem2dataobj($elem)]} {
-            foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
+            foreach {mapx mapy} [GetAxes $_elem2dataobj($elem)] break
         }
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {
@@ -1028,26 +1049,26 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
                 if {$x < 4} {
                     set tipx "-0"
                 } else {
-                    set tipx "-[expr {$x-4}]"  ;# move tooltip to the left
+                    set tipx "-[expr {$x-20}]"  ;# move tooltip to the left
                 }
             } else {
                 if {$x < -4} {
                     set tipx "+0"
                 } else {
-                    set tipx "+[expr {$x+4}]"  ;# move tooltip to the right
+                    set tipx "+[expr {$x+20}]"  ;# move tooltip to the right
                 }
             }
             if {$y > 0.5*[winfo height $g]} {
                 if {$y < 4} {
                     set tipy "-0"
                 } else {
-                    set tipy "-[expr {$y-4}]"  ;# move tooltip to the top
+                    set tipy "-[expr {$y-20}]"  ;# move tooltip to the top
                 }
             } else {
                 if {$y < -4} {
                     set tipy "+0"
                 } else {
-                    set tipy "+[expr {$y+4}]"  ;# move tooltip to the bottom
+                    set tipy "+[expr {$y+20}]"  ;# move tooltip to the bottom
                 }
             }
             Rappture::Tooltip::text $g $tip
@@ -1094,29 +1115,29 @@ itcl::body Rappture::HistogramResult::_hilite {state x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _axis hilite <axis> <state>
+# USAGE: Axis hilite <axis> <state>
 #
-# USAGE: _axis click <axis> <x> <y>
-# USAGE: _axis drag <axis> <x> <y>
-# USAGE: _axis release <axis> <x> <y>
+# USAGE: Axis click <axis> <x> <y>
+# USAGE: Axis drag <axis> <x> <y>
+# USAGE: Axis release <axis> <x> <y>
 #
-# USAGE: _axis edit <axis>
-# USAGE: _axis changed <axis> <what>
-# USAGE: _axis format <axis> <widget> <value>
-# USAGE: _axis scale <axis> linear|log
+# USAGE: Axis edit <axis>
+# USAGE: Axis changed <axis> <what>
+# USAGE: Axis format <axis> <widget> <value>
+# USAGE: Axis scale <axis> linear|log
 #
 # Used internally to handle editing of the x/y axes.  The hilite
 # operation causes the axis to light up.  The edit operation pops
 # up a panel with editing options.  The changed operation applies
 # changes from the panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_axis {option args} {
+itcl::body Rappture::HistogramResult::Axis {option args} {
     set inner [$itk_component(hull).axes component inner]
 
     switch -- $option {
         hilite {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis hilite axis state\""
+                error "wrong # args: should be \"Axis hilite axis state\""
             }
             set g $itk_component(plot)
             set axis [lindex $args 0]
@@ -1126,7 +1147,6 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
                 $g axis configure $axis \
                     -color $itk_option(-activecolor) \
                     -titlecolor $itk_option(-activecolor)
-
                 set x [expr {[winfo pointerx $g]+4}]
                 set y [expr {[winfo pointery $g]+4}]
                 Rappture::Tooltip::tooltip pending $g-$axis @$x,$y
@@ -1139,12 +1159,15 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         click {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis click axis x y\""
+                error "wrong # args: should be \"Axis click axis x y\""
             }
-            set axis [lindex $args 0]
-            set x [lindex $args 1]
-            set y [lindex $args 2]
+            foreach { axis x y } $args break
             set g $itk_component(plot)
+	    if { [$g cget -invertxy] } {
+		set tmp $x
+		set x $y
+		set y $tmp
+	    }
 
             set _axis(moved) 0
             set _axis(click-x) $x
@@ -1156,15 +1179,18 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         drag {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis drag axis x y\""
+                error "wrong # args: should be \"Axis drag axis x y\""
             }
             if {![info exists _axis(moved)]} {
                 return  ;# must have skipped click event -- ignore
             }
-            set axis [lindex $args 0]
-            set x [lindex $args 1]
-            set y [lindex $args 2]
+            foreach { axis x y } $args break
             set g $itk_component(plot)
+	    if { [$g cget -invertxy] } {
+		set tmp $x
+		set x $y
+		set y $tmp
+	    }
 
             if {[info exists _axis(click-x)] && [info exists _axis(click-y)]} {
                 foreach {x0 y0 pw ph} [$g extents plotarea] break
@@ -1214,63 +1240,67 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         release {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis release axis x y\""
+                error "wrong # args: should be \"Axis release axis x y\""
             }
             if {![info exists _axis(moved)]} {
                 return  ;# must have skipped click event -- ignore
             }
-            set axis [lindex $args 0]
-            set x [lindex $args 1]
-            set y [lindex $args 2]
+            foreach { axis x y } $args break
+            set g $itk_component(plot)
+	    if { [$g cget -invertxy] } {
+		set tmp $x
+		set x $y
+		set y $tmp
+	    }
 
             if {!$_axis(moved)} {
                 # small movement? then treat as click -- pop up axis editor
                 set dx [expr {abs($x-$_axis(click-x))}]
                 set dy [expr {abs($y-$_axis(click-y))}]
                 if {$dx < 2 && $dy < 2} {
-                    _axis edit $axis
+                    Axis edit $axis
                 }
             } else {
                 # one last movement
-                _axis drag $axis $x $y
+                Axis drag $axis $x $y
             }
             catch {unset _axis}
         }
         edit {
             if {[llength $args] != 1} {
-                error "wrong # args: should be \"_axis edit axis\""
+                error "wrong # args: should be \"Axis edit axis\""
             }
             set axis [lindex $args 0]
             set _axisPopup(current) $axis
 
             # apply last value when deactivating
             $itk_component(hull).axes configure -deactivatecommand \
-                [itcl::code $this _axis changed $axis focus]
+                [itcl::code $this Axis changed $axis focus]
 
             # fix axis label controls...
             set label [$itk_component(plot) axis cget $axis -title]
             $inner.label delete 0 end
             $inner.label insert end $label
             bind $inner.label <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis label]
+                [itcl::code $this Axis changed $axis label]
             bind $inner.label <FocusOut> \
-                [itcl::code $this _axis changed $axis label]
+                [itcl::code $this Axis changed $axis label]
 
             # fix min/max controls...
             foreach {min max} [$itk_component(plot) axis limits $axis] break
             $inner.min delete 0 end
             $inner.min insert end $min
             bind $inner.min <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis min]
+                [itcl::code $this Axis changed $axis min]
             bind $inner.min <FocusOut> \
-                [itcl::code $this _axis changed $axis min]
+                [itcl::code $this Axis changed $axis min]
 
             $inner.max delete 0 end
             $inner.max insert end $max
             bind $inner.max <KeyPress-Return> \
-                [itcl::code $this _axis changed $axis max]
+                [itcl::code $this Axis changed $axis max]
             bind $inner.max <FocusOut> \
-                [itcl::code $this _axis changed $axis max]
+                [itcl::code $this Axis changed $axis max]
 
             # fix format control...
             set fmts [$inner.format choices get -value]
@@ -1279,7 +1309,7 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
             $inner.format value [$inner.format choices get -label $i]
 
             bind $inner.format <<Value>> \
-                [itcl::code $this _axis changed $axis format]
+                [itcl::code $this Axis changed $axis format]
 
             # fix scale control...
             if {[$itk_component(plot) axis cget $axis -logscale]} {
@@ -1290,9 +1320,9 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
                 $inner.format configure -state normal
             }
             $inner.scales.linear configure \
-                -command [itcl::code $this _axis changed $axis scale]
+                -command [itcl::code $this Axis changed $axis scale]
             $inner.scales.log configure \
-                -command [itcl::code $this _axis changed $axis scale]
+                -command [itcl::code $this Axis changed $axis scale]
 
             #
             # Figure out where the window should pop up.
@@ -1335,7 +1365,7 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         changed {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis changed axis what\""
+                error "wrong # args: should be \"Axis changed axis what\""
             }
             set axis [lindex $args 0]
             set what [lindex $args 1]
@@ -1404,7 +1434,7 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
                         [$itk_component(plot) axis cget $axis -min]
                 }
                 scale {
-                    _axis scale $axis $_axisPopup(scale)
+                    Axis scale $axis $_axisPopup(scale)
 
                     if {$_axisPopup(scale) == "log"} {
                         $inner.format configure -state disabled
@@ -1425,11 +1455,13 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         format {
             if {[llength $args] != 3} {
-                error "wrong # args: should be \"_axis format axis widget value\""
+                error "wrong # args: should be \"Axis format axis widget value\""
             }
             set axis [lindex $args 0]
             set value [lindex $args 2]
-
+	    if { $axis == "x" } {
+		return [FormatLabels $itk_component(plot) $value]
+	    }
             if {[$itk_component(plot) axis cget $axis -logscale]} {
                 set fmt "%.6g"
             } else {
@@ -1439,7 +1471,7 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
         }
         scale {
             if {[llength $args] != 2} {
-                error "wrong # args: should be \"_axis scale axis type\""
+                error "wrong # args: should be \"Axis scale axis type\""
             }
             set axis [lindex $args 0]
             set type [lindex $args 1]
@@ -1452,7 +1484,7 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
                 catch {$itk_component(plot) axis configure $axis -logscale 0}
                 # use special formatting for linear mode
                 $itk_component(plot) axis configure $axis -command \
-                    [itcl::code $this _axis format $axis]
+                    [itcl::code $this Axis format $axis]
             }
         }
         default {
@@ -1462,13 +1494,13 @@ itcl::body Rappture::HistogramResult::_axis {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getLineMarkerOptions <style>
+# USAGE: GetLineMarkerOptions <style>
 #
 # Used internally to create a list of configuration options specific to the
 # axis line marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_getLineMarkerOptions {style} {
+itcl::body Rappture::HistogramResult::GetLineMarkerOptions {style} {
     array set lineOptions {
         "-color"  "-outline"
         "-dashes" "-dashes"
@@ -1485,13 +1517,13 @@ itcl::body Rappture::HistogramResult::_getLineMarkerOptions {style} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getTextMarkerOptions <style>
+# USAGE: GetTextMarkerOptions <style>
 #
 # Used internally to create a list of configuration options specific to the
 # axis text marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_getTextMarkerOptions {style} {
+itcl::body Rappture::HistogramResult::GetTextMarkerOptions {style} {
     array set textOptions {
         "-color"  "-outline"
         "-textcolor"  "-outline"
@@ -1511,13 +1543,13 @@ itcl::body Rappture::HistogramResult::_getTextMarkerOptions {style} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _getAxes <dataobj>
+# USAGE: GetAxes <dataobj>
 #
 # Used internally to figure out the axes used to plot the given
 # <dataobj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HistogramResult::_getAxes {dataobj} {
+itcl::body Rappture::HistogramResult::GetAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1569,8 +1601,8 @@ itcl::configbody Rappture::HistogramResult::autocolors {
     }
 }
 
-itcl::body Rappture::HistogramResult::_enterMarker { g name x y text } {
-    _leaveMarker $g $name
+itcl::body Rappture::HistogramResult::EnterMarker { g name x y text } {
+    LeaveMarker $g $name
     set id [$g marker create text \
                 -coords [list $x $y] \
                 -anchor n \
@@ -1578,10 +1610,20 @@ itcl::body Rappture::HistogramResult::_enterMarker { g name x y text } {
     set _markers($name) $id
 }
 
-itcl::body Rappture::HistogramResult::_leaveMarker { g name } {
+itcl::body Rappture::HistogramResult::LeaveMarker { g name } {
     if { [info exists _markers($name)] } { 
         set id $_markers($name)
         $g marker delete $id
         unset _markers($name)
     }
+}
+
+
+itcl::body Rappture::HistogramResult::FormatLabels { w value } {
+    # Determine the element name from the value
+    set index [expr round($value)]
+    if { [info exists _xlabels($index)] } {
+	return $_xlabels($index)
+    } 
+    return " "
 }
