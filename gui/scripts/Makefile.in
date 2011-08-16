@@ -42,7 +42,6 @@ FILES		= \
 		$(srcdir)/diffview.tcl \
 		$(srcdir)/dispatcher.tcl \
 		$(srcdir)/drawing.tcl \
-		$(srcdir)/drawing3d.tcl \
 		$(srcdir)/scene.tcl \
 		$(srcdir)/drawingentry.tcl \
 		$(srcdir)/dropdown.tcl \
@@ -128,7 +127,6 @@ FILES		= \
 		$(srcdir)/videopreview.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \
-		$(srcdir)/vtkviewer2.tcl \
 		$(srcdir)/vtkcontourviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \

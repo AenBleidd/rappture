@@ -214,15 +214,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 set _mode2widget($mode) $w
             }
         }
-        ::Rappture::Drawing3d {
-            set mode "vtkviewer"
-            if {![info exists _mode2widget($mode)]} {
-                set w $itk_interior.vtkviewer1
-                Rappture::VtkViewer $w
-                set _mode2widget($mode) $w
-            }
-        }
-        ::Rappture::Scene {
+        ::Rappture::Drawing {
             set mode "vtkviewer2"
             if {![info exists _mode2widget($mode)]} {
 		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
@@ -493,8 +485,8 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
         number - integer - boolean - choice {
             return [$xmlobj element -as object $path]
         }
-        drawing3d {
-            return [Rappture::Drawing3d ::#auto $xmlobj $path]
+        drawing3d - drawing {
+            return [Rappture::Drawing ::#auto $xmlobj $path]
         }
         scene {
             return [Rappture::Scene ::#auto $xmlobj $path]

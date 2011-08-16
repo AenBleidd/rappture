@@ -1,220 +1,258 @@
+
 # ----------------------------------------------------------------------
-#  COMPONENT: drawing - 2D drawing of data
+#  COMPONENT: drawing - represents a vtk drawing.
+#
+#  This object represents one field in an XML description of a device.
+#  It simplifies the process of extracting data vectors that represent
+#  the field.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2007  Purdue Research Foundation
+#  Copyright (c) 2004-2005  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-package require Itk
+package require Itcl
+package require BLT
+package require vtk
 
-option add *Drawing.width 4i widgetDefault
-option add *Drawing.height 3i widgetDefault
+namespace eval Rappture { 
+    # forward declaration 
+}
 
 itcl::class Rappture::Drawing {
-    inherit itk::Widget
+    constructor {xmlobj path} { 
+        # defined below 
+    }
+    destructor { 
+        # defined below 
+    }
+    public method limits {axis}
+    public method style { elem }
+    public method values { elem }
+    public method data { elem }
+    public method hints {{keyword ""}} 
+    public method components { args } 
 
-#    constructor {owner path args} {
-#        Rappture::ControlOwner::constructor $owner
-#    } { # defined below }
-    constructor {owner path args} { # defined below }
-private variable _xmlobj ""
-private variable _owner ""
-private variable _path ""
-
-    public method value {args}
-    public method hilite {elem state}
-    public method activate {elem x y}
-
-    protected method _buildPopup {elem}
-
-    private variable _elem2popup  ;# maps drawing elem => popup of controls
-}
-
-itk::usual Drawing {
-    keep -cursor -background
+    private variable _drawing
+    private variable _xmlobj 
+    private variable _actors 
+    private variable _styles 
+    private variable _data 
+    private variable _hints
+    private variable _units
+    private variable _limits
 }
 
 # ----------------------------------------------------------------------
-# CONSTRUCTOR
+# Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::constructor {owner path args} {
-    set _owner $owner
-    set _path $path
+itcl::body Rappture::Drawing::constructor {xmlobj path} {
+    if {![Rappture::library isvalid $xmlobj]} {
+        error "bad value \"$xmlobj\": should be Rappture::library"
+    }
+    set _xmlobj $xmlobj
+    set _drawing [$xmlobj element -as object $path]
+    set _units [$_drawing get units]
 
-    itk_component add canvas {
-        canvas $itk_interior.canv
+    set xunits [$xmlobj get units]
+    if {"" == $xunits || "arbitrary" == $xunits} {
+        set xunits "um"
+    }
+    array set _limits {
+        xMin 0 
+        xMax 0 
+        yMin 0 
+        yMax 0 
+        zMin 0 
+        zMax 0 
+    }
+    # determine the overall size of the device
+    foreach elem [$_xmlobj children $path] {
+        switch -glob -- $elem {
+            polygon* {
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
+            }
+        }
+    }
+    foreach {key path} {
+        group   about.group
+        label   about.label
+        color   about.color
+	camera	about.camera
+        type    about.type
+        xlabel  xaxis.label
+        xdesc   xaxis.description
+        xunits  xaxis.units
+        xscale  xaxis.scale
+        xmin    xaxis.min
+        xmax    xaxis.max
+        ylabel  yaxis.label
+        ydesc   yaxis.description
+        yunits  yaxis.units
+        yscale  yaxis.scale
+        ymin    yaxis.min
+        ymax    yaxis.max
+        zlabel  zaxis.label
+        zdesc   zaxis.description
+        zunits  zaxis.units
+        zscale  zaxis.scale
+        zmin    zaxis.min
+        zmax    zaxis.max
     } {
-        usual
-        keep -width -height
-    }
-    pack $itk_component(canvas) -expand yes -fill both
-
-    eval itk_initialize $args
-}
-
-# ----------------------------------------------------------------------
-# USAGE: value ?-check? ?<newval>?
-#
-# Clients use this to query/set the value for this widget.  With
-# no args, it returns the current value for the widget.  If the
-# <newval> is specified, it sets the value of the widget and
-# sends a <<Value>> event.  If the -check flag is included, the
-# new value is not actually applied, but just checked for correctness.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::value {args} {
-    set onlycheck 0
-    set i [lsearch -exact $args -check]
-    if {$i >= 0} {
-        set onlycheck 1
-        set args [lreplace $args $i $i]
-    }
-
-    if {[llength $args] == 0} {
-        return $_xmlobj
-    } elseif {[llength $args] > 1} {
-        error "wrong # args: should be \"value ?-check? ?newval?\""
-    }
-
-    if {$onlycheck} {
-        # someday we may add validation...
-        return
-    }
-
-    set c $itk_component(canvas)
-    $c delete all
-    foreach elem [array names _elem2popup] {
-        destroy $_elem2popup($elem)
-    }
-    catch {unset $elem}
-    set _xmlobj [lindex $args 0]
-
-    if {"" != $_xmlobj} {
-        foreach elem [$_xmlobj children] {
-            switch -glob -- $elem {
-                about* {
-                    continue
-                }
-                rectangle* {
-                    set xy0 [$_xmlobj get $elem.xya]
-                    set xy1 [$_xmlobj get $elem.xyb]
-                    set fill [$_xmlobj get $elem.fill]
-                    set outl [$_xmlobj get $elem.outl]
-                    set wdth [$_xmlobj get $elem.width]
-                    if {"" != $wdth && $wdth > 0 && $outl == ""} {
-                        set outl black
-                    }
-                    if {"" == $fill && "" == $outl} {
-                        _buildPopup $elem
-
-                        # this part gets highlighted
-                        eval $c create rect $xy0 $xy1 [list -outline "" -fill "" -tags $elem]
-                        # this part is the sensor that detects events
-                        set id [eval $c create rect $xy0 $xy1 [list -outline "" -fill ""]]
-                        $c bind $id <Enter> [itcl::code $this hilite $elem on]
-                        $c bind $id <Leave> [itcl::code $this hilite $elem off]
-                        $c bind $id <ButtonPress> [itcl::code $this activate $elem %X %Y]
-                    } else {
-                        if {"" == $fill} { set fill "{}" }
-                        if {"" == $outl} { set outl "{}" }
-                        eval $c create rect $xy0 $xy1 -width $wdth -outline $outl -fill $fill
-                    }
-                }
-                oval* {
-                    set xy0 [$_xmlobj get $elem.xya]
-                    set xy1 [$_xmlobj get $elem.xyb]
-                    set fill [$_xmlobj get $elem.fill]
-                    set outl [$_xmlobj get $elem.outl]
-                    set wdth [$_xmlobj get $elem.width]
-                    if {"" != $wdth && $wdth > 0 && $outl == ""} {
-                        set outl black
-                    }
-                    if {"" == $fill && "" == $outl} {
-                    } else {
-                        if {"" == $fill} { set fill "{}" }
-                        if {"" == $outl} { set outl "{}" }
-                    }
-                    eval $c create oval $xy0 $xy1 -width $wdth -outline $outl -fill $fill
-                }
-                polygon* {
-                    set xy [$_xmlobj get $elem.xy]
-                    regsub -all "\n" $xy " " xy
-                    set smth [$_xmlobj get $elem.smooth]
-                    set fill [$_xmlobj get $elem.fill]
-                    set outl [$_xmlobj get $elem.outl]
-                    set wdth [$_xmlobj get $elem.width]
-                    if {"" != $wdth && $wdth > 0 && $outl == ""} {
-                        set outl black
-                    }
-                    if {"" == $fill && "" == $outl} {
-                    } else {
-                        if {"" == $fill} { set fill "{}" }
-                        if {"" == $outl} { set outl "{}" }
-                    }
-                    eval $c create polygon $xy -width $wdth -outline $outl -fill $fill -smooth $smth
-                }
-                text* {
-                    set xy [$_xmlobj get $elem.xy]
-                    set txt [$_xmlobj get $elem.text]
-                    eval $c create text $xy -text $txt
-                }
-            }
+        set str [$_drawing get $path]
+        if {"" != $str} {
+            set _hints($key) $str
         }
     }
-    return $_xmlobj
-}
-
-# ----------------------------------------------------------------------
-# USAGE: hilite <elem> <state>
-#
-# Used internally to highlight parts of the drawing when the mouse
-# passes over it.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::hilite {elem state} {
-    if {$state} {
-        $itk_component(canvas) itemconfigure $elem -outline red -width 2
-    } else {
-        $itk_component(canvas) itemconfigure $elem -width 0
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: activate <elem> <x> <y>
-#
-# Pops up the controls associated with a drawing element.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::activate {elem x y} {
-    if {[info exists _elem2popup($elem)]} {
-        after 10 [list $_elem2popup($elem) activate @$x,$y above]
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _buildPopup <elem>
-#
-# Pops up the controls associated with a drawing element.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Drawing::_buildPopup {elem} {
-    if {![info exists _elem2popup($elem)]} {
-        set n 0
-        while {1} {
-            set popup $itk_component(canvas).popup[incr n]
-            if {![winfo exists $popup]} {
-                break
-            }
+    foreach {key} { axisorder } {
+        set str [$_drawing get $key]
+        if {"" != $str} {
+            set _hints($key) $str
         }
-        Rappture::Balloon $popup -title [$_xmlobj get $elem.parameters.about.label]
-        set inner [$popup component inner]
-        Rappture::Controls $inner.cntls $_owner
-        pack $inner.cntls -expand yes -fill both
-        foreach child [$_xmlobj children $elem.parameters] {
-            if {[string match about* $child]} {
-                continue
-            }
-            $inner.cntls insert end $_path.$elem.parameters.$child
-        }
-
-        set _elem2popup($elem) $popup
     }
 }
+
+# ----------------------------------------------------------------------
+# Destructor
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::destructor {} {
+    # empty
+}
+
+# ----------------------------------------------------------------------
+# method style 
+#	Returns a base64 encoded, gzipped Tcl list that represents the
+#	Tcl command and data to recreate the uniform rectangular grid 
+#	on the nanovis server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::style { elem } {
+    if { [info exists _styles($elem)] } {
+        return $_styles($elem)
+    } 
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# method data 
+#	Returns a base64 encoded, gzipped Tcl list that represents the
+#	Tcl command and data to recreate the uniform rectangular grid 
+#	on the nanovis server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::data { elem } {
+    if { [info exists _data($elem)] } {
+        return $_data($elem)
+    } 
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# method values 
+#	Returns a base64 encoded, gzipped Tcl list that represents the
+#	Tcl command and data to recreate the uniform rectangular grid 
+#	on the nanovis server.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::values { elem } {
+    if { [info exists _data($elem)] } {
+        return $_data($elem)
+    } 
+    return ""
+}
+
+itcl::body Rappture::Drawing::components { args } {
+    return [array names _data] 
+}
+
+# ----------------------------------------------------------------------
+# method limits <axis>
+#	Returns a list {min max} representing the limits for the 
+#	specified axis.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::limits {which} {
+    set min ""
+    set max ""
+    foreach key [array names _data] {
+        set actor $_actors($key)
+        foreach key { xMin xMax yMin yMax zMin zMax} value [$actor GetBounds] {
+            set _limits($key) $value
+        }
+        break
+    }    
+    
+    foreach key [array names _actors] {
+        set actor $_actors($key)
+        foreach { xMin xMax yMin yMax zMin zMax} [$actor GetBounds] break
+        if { $xMin < $_limits(xMin) } {
+            set _limits(xMin) $xMin
+        } 
+        if { $xMax > $_limits(xMax) } {
+            set _limits(xMax) $xMax
+        } 
+        if { $yMin < $_limits(yMin) } {
+            set _limits(yMin) $yMin
+        } 
+        if { $yMax > $_limits(yMax) } {
+            set _limits(yMax) $yMax
+        } 
+        if { $zMin < $_limits(zMin) } {
+            set _limits(zMin) $zMin
+        } 
+        if { $zMax > $_limits(zMax) } {
+            set _limits(zMax) $zMax
+        } 
+    }
+    switch -- $which {
+        x {
+            set min $_limits(xMin)
+            set max $_limits(xMax)
+            set axis "xaxis"
+        }
+        y {
+            set min $_limits(yMin)
+            set max $_limits(yMax)
+            set axis "yaxis"
+        }
+        v - z {
+            set min $_limits(zMin)
+            set max $_limits(zMax)
+            set axis "zaxis"
+        }
+        default {
+            error "unknown axis description \"$which\""
+        }
+    }
+    return [list $min $max]
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: hints ?<keyword>?
+#
+# Returns a list of key/value pairs for various hints about plotting
+# this curve.  If a particular <keyword> is specified, then it returns
+# the hint for that <keyword>, if it exists.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Drawing::hints { {keyword ""} } {
+    if 0 {
+    if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+        && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+        set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+    }
+    if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+        && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+        set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+    }
+    }
+    if {[info exists _hints(group)] && [info exists _hints(label)]} {
+        # pop-up help for each curve
+        set _hints(tooltip) $_hints(label)
+    }
+    if {$keyword != ""} {
+        if {[info exists _hints($keyword)]} {
+            return $_hints($keyword)
+        }
+        return ""
+    }
+    return [array get _hints]
+}
+
