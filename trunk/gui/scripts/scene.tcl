@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: scene - represents a vtk drawing.
+#  COMPONENT: drawing - represents a vtk drawing.
 #
 #  This object represents one field in an XML description of a device.
 #  It simplifies the process of extracting data vectors that represent
@@ -20,7 +20,7 @@ namespace eval Rappture {
     # forward declaration 
 }
 
-itcl::class Rappture::Scene {
+itcl::class Rappture::Drawing {
     constructor {xmlobj path} { 
         # defined below 
     }
@@ -34,7 +34,7 @@ itcl::class Rappture::Scene {
     public method hints {{keyword ""}} 
     public method components { args } 
 
-    private variable _scene
+    private variable _drawing
     private variable _xmlobj 
     private variable _actors 
     private variable _styles 
@@ -47,13 +47,13 @@ itcl::class Rappture::Scene {
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::constructor {xmlobj path} {
+itcl::body Rappture::Drawing::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
-    set _scene [$xmlobj element -as object $path]
-    set _units [$_scene get units]
+    set _drawing [$xmlobj element -as object $path]
+    set _units [$_drawing get units]
 
     set xunits [$xmlobj get units]
     if {"" == $xunits || "arbitrary" == $xunits} {
@@ -100,13 +100,13 @@ itcl::body Rappture::Scene::constructor {xmlobj path} {
         zmin    zaxis.min
         zmax    zaxis.max
     } {
-        set str [$_scene get $path]
+        set str [$_drawing get $path]
         if {"" != $str} {
             set _hints($key) $str
         }
     }
     foreach {key} { axisorder } {
-        set str [$_scene get $key]
+        set str [$_drawing get $key]
         if {"" != $str} {
             set _hints($key) $str
         }
@@ -116,7 +116,7 @@ itcl::body Rappture::Scene::constructor {xmlobj path} {
 # ----------------------------------------------------------------------
 # Destructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::destructor {} {
+itcl::body Rappture::Drawing::destructor {} {
     # empty
 }
 
@@ -126,7 +126,7 @@ itcl::body Rappture::Scene::destructor {} {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::style { elem } {
+itcl::body Rappture::Drawing::style { elem } {
     if { [info exists _styles($elem)] } {
         return $_styles($elem)
     } 
@@ -139,7 +139,7 @@ itcl::body Rappture::Scene::style { elem } {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::data { elem } {
+itcl::body Rappture::Drawing::data { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)
     } 
@@ -152,14 +152,14 @@ itcl::body Rappture::Scene::data { elem } {
 #	Tcl command and data to recreate the uniform rectangular grid 
 #	on the nanovis server.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::values { elem } {
+itcl::body Rappture::Drawing::values { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)
     } 
     return ""
 }
 
-itcl::body Rappture::Scene::components { args } {
+itcl::body Rappture::Drawing::components { args } {
     return [array names _data] 
 }
 
@@ -168,7 +168,7 @@ itcl::body Rappture::Scene::components { args } {
 #	Returns a list {min max} representing the limits for the 
 #	specified axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::limits {which} {
+itcl::body Rappture::Drawing::limits {which} {
     set min ""
     set max ""
     foreach key [array names _data] {
@@ -232,7 +232,7 @@ itcl::body Rappture::Scene::limits {which} {
 # this curve.  If a particular <keyword> is specified, then it returns
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Scene::hints { {keyword ""} } {
+itcl::body Rappture::Drawing::hints { {keyword ""} } {
     if 0 {
     if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
         && [info exists _hints(xunits)] && "" != $_hints(xunits)} {

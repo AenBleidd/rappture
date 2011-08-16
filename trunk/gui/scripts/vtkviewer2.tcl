@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: vtkviewer2 - Vtk drawing object viewer
+#  COMPONENT: vtkviewer - Vtk drawing object viewer
 #
 #  It connects to the Vtk server running on a rendering farm,
 #  transmits data, and displays the results.
@@ -15,24 +15,24 @@ package require Itk
 package require BLT
 #package require Img
                                         
-option add *VtkViewer2.width 4i widgetDefault
-option add *VtkViewer2*cursor crosshair widgetDefault
-option add *VtkViewer2.height 4i widgetDefault
-option add *VtkViewer2.foreground black widgetDefault
-option add *VtkViewer2.controlBackground gray widgetDefault
-option add *VtkViewer2.controlDarkBackground #999999 widgetDefault
-option add *VtkViewer2.plotBackground black widgetDefault
-option add *VtkViewer2.plotForeground white widgetDefault
-option add *VtkViewer2.font \
+option add *VtkViewer.width 4i widgetDefault
+option add *VtkViewer*cursor crosshair widgetDefault
+option add *VtkViewer.height 4i widgetDefault
+option add *VtkViewer.foreground black widgetDefault
+option add *VtkViewer.controlBackground gray widgetDefault
+option add *VtkViewer.controlDarkBackground #999999 widgetDefault
+option add *VtkViewer.plotBackground black widgetDefault
+option add *VtkViewer.plotForeground white widgetDefault
+option add *VtkViewer.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 # must use this name -- plugs into Rappture::resources::load
-proc VtkViewer2_init_resources {} {
+proc VtkViewer_init_resources {} {
     Rappture::resources::register \
-        vtkvis_server Rappture::VtkViewer2::SetServerList
+        vtkvis_server Rappture::VtkViewer::SetServerList
 }
 
-itcl::class Rappture::VtkViewer2 {
+itcl::class Rappture::VtkViewer {
     inherit Rappture::VisViewer
 
     itk_option define -plotforeground plotForeground Foreground ""
@@ -130,7 +130,7 @@ itcl::class Rappture::VtkViewer2 {
     private variable _outline
 }
 
-itk::usual VtkViewer2 {
+itk::usual VtkViewer {
     keep -background -foreground -cursor -font
     keep -plotbackground -plotforeground
 }
@@ -138,7 +138,7 @@ itk::usual VtkViewer2 {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
+itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     if {[catch {info level -1} caller]} {
         puts stderr "Enter constructor"
     } else {
@@ -341,7 +341,7 @@ itcl::body Rappture::VtkViewer2::constructor {hostlist args} {
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::destructor {} {
+itcl::body Rappture::VtkViewer::destructor {} {
     Disconnect
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !resize
@@ -351,7 +351,7 @@ itcl::body Rappture::VtkViewer2::destructor {} {
     catch { blt::arcball destroy $_arcball}
 }
 
-itcl::body Rappture::VtkViewer2::DoResize {} {
+itcl::body Rappture::VtkViewer::DoResize {} {
     if { $_width < 2 } {
 	set _width 500
     }
@@ -364,7 +364,7 @@ itcl::body Rappture::VtkViewer2::DoResize {} {
     set _resizePending 0
 }
 
-itcl::body Rappture::VtkViewer2::EventuallyResize { w h } {
+itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
     puts stderr "EventuallyResize $w $h"
     set _width $w
     set _height $h
@@ -382,7 +382,7 @@ itcl::body Rappture::VtkViewer2::EventuallyResize { w h } {
 # <settings> are used to configure the plot.  Allowed settings are
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::add {dataobj {settings ""}} {
+itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
     array set params {
         -color auto
         -width 1
@@ -426,7 +426,7 @@ itcl::body Rappture::VtkViewer2::add {dataobj {settings ""}} {
 #       deleted.  They are only removed from the display list.
 #
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::delete {args} {
+itcl::body Rappture::VtkViewer::delete {args} {
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -462,7 +462,7 @@ itcl::body Rappture::VtkViewer2::delete {args} {
 # order from bottom to top of this result.  The optional "-image"
 # flag can also request the internal images being shown.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::get {args} {
+itcl::body Rappture::VtkViewer::get {args} {
     if {[llength $args] == 0} {
         set args "-objects"
     }
@@ -533,7 +533,7 @@ itcl::body Rappture::VtkViewer2::get {args} {
 # Because of this, the limits are appropriate for all objects as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::scale {args} {
+itcl::body Rappture::VtkViewer::scale {args} {
     array unset _limits
     foreach dataobj $args {
         array set bounds [limits $dataobj]
@@ -570,7 +570,7 @@ itcl::body Rappture::VtkViewer2::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::download {option args} {
+itcl::body Rappture::VtkViewer::download {option args} {
     switch $option {
         coming {
             if {[catch {
@@ -623,7 +623,7 @@ itcl::body Rappture::VtkViewer2::download {option args} {
 # server, or to reestablish a connection to the previous server.
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::Connect {} {
+itcl::body Rappture::VtkViewer::Connect {} {
     puts stderr "Enter Connect: [info level -1]"
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
@@ -644,14 +644,14 @@ itcl::body Rappture::VtkViewer2::Connect {} {
 #
 #       Indicates if we are currently connected to the visualization server.
 #
-itcl::body Rappture::VtkViewer2::isconnected {} {
+itcl::body Rappture::VtkViewer::isconnected {} {
     return [VisViewer::IsConnected]
 }
 
 #
 # disconnect --
 #
-itcl::body Rappture::VtkViewer2::disconnect {} {
+itcl::body Rappture::VtkViewer::disconnect {} {
     Disconnect
     set _reset 1
 }
@@ -662,7 +662,7 @@ itcl::body Rappture::VtkViewer2::disconnect {} {
 #       Clients use this method to disconnect from the current rendering
 #       server.
 #
-itcl::body Rappture::VtkViewer2::Disconnect {} {
+itcl::body Rappture::VtkViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
@@ -675,7 +675,7 @@ itcl::body Rappture::VtkViewer2::Disconnect {} {
 #
 # sendto --
 #
-itcl::body Rappture::VtkViewer2::sendto { bytes } {
+itcl::body Rappture::VtkViewer::sendto { bytes } {
     SendBytes "$bytes\n"
 }
 
@@ -686,7 +686,7 @@ itcl::body Rappture::VtkViewer2::sendto { bytes } {
 #       sending data objects to the server, buffer the commands to be 
 #       sent later.
 #
-itcl::body Rappture::VtkViewer2::SendCmd {string} {
+itcl::body Rappture::VtkViewer::SendCmd {string} {
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
@@ -704,7 +704,7 @@ itcl::body Rappture::VtkViewer2::SendCmd {string} {
 # the rendering server.  Indicates that binary image data with the
 # specified <size> will follow.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::ReceiveImage { args } {
+itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     array set info {
         -token "???"
         -bytes 0
@@ -737,7 +737,7 @@ itcl::body Rappture::VtkViewer2::ReceiveImage { args } {
 #
 # ReceiveDataset --
 #
-itcl::body Rappture::VtkViewer2::ReceiveDataset { args } {
+itcl::body Rappture::VtkViewer::ReceiveDataset { args } {
     if { ![isconnected] } {
         return
     }
@@ -767,7 +767,7 @@ itcl::body Rappture::VtkViewer2::ReceiveDataset { args } {
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::Rebuild {} {
+itcl::body Rappture::VtkViewer::Rebuild {} {
 
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
@@ -859,7 +859,7 @@ itcl::body Rappture::VtkViewer2::Rebuild {} {
 # is normally a single ID, but it might be a list of IDs if the current data
 # object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::CurrentDatasets {args} {
+itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
     switch -- $flag { 
 	"-all" {
@@ -905,7 +905,7 @@ itcl::body Rappture::VtkViewer2::CurrentDatasets {args} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::Zoom {option} {
+itcl::body Rappture::VtkViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
@@ -942,7 +942,7 @@ itcl::body Rappture::VtkViewer2::Zoom {option} {
     }
 }
 
-itcl::body Rappture::VtkViewer2::PanCamera {} {
+itcl::body Rappture::VtkViewer::PanCamera {} {
 #    set w [winfo width $itk_component(view)]
 #    set h [winfo height $itk_component(view)]
 #    set x [expr ($_view(pan-x)) / $w]
@@ -963,7 +963,7 @@ itcl::body Rappture::VtkViewer2::PanCamera {} {
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::Rotate {option x y} {
+itcl::body Rappture::VtkViewer::Rotate {option x y} {
     switch -- $option {
         "click" {
             $itk_component(view) configure -cursor fleur
@@ -1016,7 +1016,7 @@ itcl::body Rappture::VtkViewer2::Rotate {option x y} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::Pan {option x y} {
+itcl::body Rappture::VtkViewer::Pan {option x y} {
     switch -- $option {
 	"set" {
 	    set w [winfo width $itk_component(view)]
@@ -1061,7 +1061,7 @@ itcl::body Rappture::VtkViewer2::Pan {option x y} {
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer2::FixSettings {what {value ""}} {
+itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
     switch -- $what {
         "opacity" {
             if {[isconnected]} {
@@ -1144,7 +1144,7 @@ itcl::body Rappture::VtkViewer2::FixSettings {what {value ""}} {
 #
 # SetStyles --
 #
-itcl::body Rappture::VtkViewer2::SetStyles { dataobj comp } {
+itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
     array set style {
         -color rainbow
         -levels 6
@@ -1173,7 +1173,7 @@ itcl::body Rappture::VtkViewer2::SetStyles { dataobj comp } {
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkViewer2::BuildColormap { colormap dataobj comp } {
+itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
     array set style {
         -color rainbow
         -levels 6
@@ -1207,7 +1207,7 @@ itcl::body Rappture::VtkViewer2::BuildColormap { colormap dataobj comp } {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotbackground
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::VtkViewer2::plotbackground {
+itcl::configbody Rappture::VtkViewer::plotbackground {
     if { [isconnected] } {
         foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
         SendCmd "screen bgcolor $r $g $b"
@@ -1217,7 +1217,7 @@ itcl::configbody Rappture::VtkViewer2::plotbackground {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotforeground
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::VtkViewer2::plotforeground {
+itcl::configbody Rappture::VtkViewer::plotforeground {
     if { [isconnected] } {
         foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
         #fix this!
@@ -1225,7 +1225,7 @@ itcl::configbody Rappture::VtkViewer2::plotforeground {
     }
 }
 
-itcl::body Rappture::VtkViewer2::limits { dataobj } {
+itcl::body Rappture::VtkViewer::limits { dataobj } {
 
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
@@ -1271,7 +1271,7 @@ itcl::body Rappture::VtkViewer2::limits { dataobj } {
 }
 
 
-itcl::body Rappture::VtkViewer2::BuildViewTab {} {
+itcl::body Rappture::VtkViewer::BuildViewTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
@@ -1332,7 +1332,7 @@ itcl::body Rappture::VtkViewer2::BuildViewTab {} {
     blt::table configure $inner r7 -resize expand
 }
 
-itcl::body Rappture::VtkViewer2::BuildAxisTab {} {
+itcl::body Rappture::VtkViewer::BuildAxisTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
@@ -1392,7 +1392,7 @@ itcl::body Rappture::VtkViewer2::BuildAxisTab {} {
     blt::table configure $inner r3 -resize expand
 }
 
-itcl::body Rappture::VtkViewer2::BuildCameraTab {} {
+itcl::body Rappture::VtkViewer::BuildCameraTab {} {
     set inner [$itk_component(main) insert end \
         -title "Camera Settings" \
         -icon [Rappture::icon camera]]
@@ -1421,7 +1421,7 @@ itcl::body Rappture::VtkViewer2::BuildCameraTab {} {
 #
 #  camera -- 
 #
-itcl::body Rappture::VtkViewer2::camera {option args} {
+itcl::body Rappture::VtkViewer::camera {option args} {
     switch -- $option { 
         "show" {
             puts [array get _view]
@@ -1451,7 +1451,7 @@ itcl::body Rappture::VtkViewer2::camera {option args} {
     }
 }
 
-itcl::body Rappture::VtkViewer2::ConvertToVtkData { dataobj comp } {
+itcl::body Rappture::VtkViewer::ConvertToVtkData { dataobj comp } {
     foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
     set values [$dataobj values $comp]
     append out "# vtk DataFile Version 2.0 \n"
@@ -1470,7 +1470,7 @@ itcl::body Rappture::VtkViewer2::ConvertToVtkData { dataobj comp } {
 }
 
 
-itcl::body Rappture::VtkViewer2::GetVtkData { args } {
+itcl::body Rappture::VtkViewer::GetVtkData { args } {
     set bytes ""
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
@@ -1482,7 +1482,7 @@ itcl::body Rappture::VtkViewer2::GetVtkData { args } {
     return [list .txt $bytes]
 }
 
-itcl::body Rappture::VtkViewer2::GetImage { args } {
+itcl::body Rappture::VtkViewer::GetImage { args } {
     if { [image width $_image(download)] > 0 && 
 	 [image height $_image(download)] > 0 } {
 	set bytes [$_image(download) data -format "jpeg -quality 100"]
@@ -1492,7 +1492,7 @@ itcl::body Rappture::VtkViewer2::GetImage { args } {
     return ""
 }
 
-itcl::body Rappture::VtkViewer2::BuildDownloadPopup { popup command } {
+itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
     Rappture::Balloon $popup \
         -title "[Rappture::filexfer::label downloadWord] as..."
     set inner [$popup component inner]
@@ -1533,7 +1533,7 @@ itcl::body Rappture::VtkViewer2::BuildDownloadPopup { popup command } {
     return $inner
 }
 
-itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
+itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     array set props {
         -color \#6666FF
         -edgevisibility 1
@@ -1560,7 +1560,7 @@ itcl::body Rappture::VtkViewer2::SetObjectStyle { dataobj comp } {
     set _settings($this-opacity) [expr $props(-opacity) * 100.0]
 }
 
-itcl::body Rappture::VtkViewer2::IsValidObject { dataobj } {
+itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
     if {[catch {$dataobj isa Rappture::Scene} valid] != 0 || !$valid} {
 	return 0
     }

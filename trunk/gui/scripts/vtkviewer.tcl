@@ -1,11 +1,9 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: contourresult - contour plot in a ResultSet
+#  COMPONENT: vtkviewer - Vtk drawing object viewer
 #
-#  This widget is a contour plot for 2D meshes with a scalar value.
-#  It is normally used in the ResultViewer to show results from the
-#  run of a Rappture tool.  Use the "add" and "delete" methods to
-#  control the dataobjs showing on the plot.
+#  It connects to the Vtk server running on a rendering farm,
+#  transmits data, and displays the results.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
 #  Copyright (c) 2004-2005  Purdue Research Foundation
@@ -14,12 +12,11 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
-package require vtk
-package require vtkinteraction
 package require BLT
 #package require Img
-
+                                        
 option add *VtkViewer.width 4i widgetDefault
+option add *VtkViewer*cursor crosshair widgetDefault
 option add *VtkViewer.height 4i widgetDefault
 option add *VtkViewer.foreground black widgetDefault
 option add *VtkViewer.controlBackground gray widgetDefault
@@ -29,67 +26,108 @@ option add *VtkViewer.plotForeground white widgetDefault
 option add *VtkViewer.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
+# must use this name -- plugs into Rappture::resources::load
+proc VtkViewer_init_resources {} {
+    Rappture::resources::register \
+        vtkvis_server Rappture::VtkViewer::SetServerList
+}
+
 itcl::class Rappture::VtkViewer {
-    inherit itk::Widget
+    inherit Rappture::VisViewer
 
     itk_option define -plotforeground plotForeground Foreground ""
     itk_option define -plotbackground plotBackground Background ""
 
-    private variable _dlist ""     ;# list of data objects
-    private variable _dims ""      ;# dimensionality of data objects
-    private variable _obj2color    ;# maps dataobj => plotting color
-    private variable _obj2width    ;# maps dataobj => line width
-    private variable _obj2raise    ;# maps dataobj => raise flag 0/1
-    private variable _dataobj2vtk  ;# maps dataobj => vtk objects
-    private variable _actors       ;# array of actors for each dataobj.
-    private variable _lights       ;# list of lights for each renderer
-    private variable _click        ;# info used for _move operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
-    private variable _download ""  ;# snapshot for download
-
-    private variable _renderer "";
-    private variable _window "";
-    private variable _interactor "";
-    private variable _style "";
-    private variable _light "";
-    private variable _cubeAxesActor ""
-    private variable _axesActor ""
-    private variable _axesWidget "";
-    private variable _settings
-    constructor {args} { 
-        # defined below 
+    constructor { hostlist args } {
+        Rappture::VisViewer::constructor $hostlist
+    } {
+        # defined below
     }
-    destructor { 
-        # defined below 
+    destructor {
+        # defined below
     }
-
+    public proc SetServerList { namelist } {
+        Rappture::VisViewer::SetServerList "vtkvis" $namelist
+    }
     public method add {dataobj {settings ""}}
-    public method get {}
+    public method camera {option args}
     public method delete {args}
-    public method scale {args}
+    public method disconnect {}
+    public method download {option args}
+    public method get {args}
+    public method isconnected {}
+    public method limits { colormap }
+    public method sendto { string }
     public method parameters {title args} { 
         # do nothing 
     }
-    public method download {option args}
+    public method scale {args}
 
-    protected method Rebuild {}
-    protected method Clear {}
-    protected method Zoom {option}
-    protected method Move {option x y}
-    protected method _3dView {theta phi}
-    protected method _fixLimits {}
-    protected method _color2rgb {color}
-    protected method SetActorProperties { actor style } 
-
-    private method ComputeLimits { args }
-    private method GetLimits {}
-    private method BuildCameraTab {}
-    private method UpdateCameraInfo {}
-    private method BuildViewTab {}
-    private method BuildVolumeTab {}
+    protected method Connect {}
+    protected method CurrentDatasets {args}
+    protected method Disconnect {}
+    protected method DoResize {}
     protected method FixSettings {what {value ""}}
+    protected method Pan {option x y}
+    protected method Rebuild {}
+    protected method ReceiveDataset { args }
+    protected method ReceiveImage { args }
+    protected method Rotate {option x y}
+    protected method SendCmd {string}
+    protected method Zoom {option}
 
+    # The following methods are only used by this class.
+    private method BuildCameraTab {}
+    private method BuildViewTab {}
+    private method BuildAxisTab {}
+    private method BuildColormap { colormap dataobj comp }
+    private method EventuallyResize { w h } 
+    private method SetStyles { dataobj comp }
+    private method PanCamera {}
+    private method ConvertToVtkData { dataobj comp } 
+    private method GetImage { args } 
+    private method GetVtkData { args } 
+    private method BuildDownloadPopup { widget command } 
+    private method SetObjectStyle { dataobj comp } 
+    private method IsValidObject { dataobj } 
+
+    private variable _arcball ""
+    private variable _outbuf       ;# buffer for outgoing commands
+
+    private variable _dlist ""     ;# list of data objects
+    private variable _allDataObjs
+    private variable _obj2datasets
+    private variable _obj2ovride   ;# maps dataobj => style override
+    private variable _datasets     ;# contains all the dataobj-component 
+                                   ;# datasets in the server
+    private variable _colormaps    ;# contains all the colormaps
+                                   ;# in the server.
+    private variable _dataset2style    ;# maps dataobj-component to transfunc
+    private variable _style2datasets   ;# maps tf back to list of 
+                                    # dataobj-components using the tf.
+
+    private variable _click        ;# info used for rotate operations
+    private variable _limits       ;# autoscale min/max for all axes
+    private variable _view         ;# view params for 3D view
+    private common   _settings
+    private variable _reset 1	   ;# indicates if camera needs to be reset
+                                    # to starting position.
+
+    # Array of transfer functions in server.  If 0 the transfer has been
+    # defined but not loaded.  If 1 the transfer function has been named
+    # and loaded.
+    private variable _first ""     ;# This is the topmost dataset.
+    private variable _start 0
+    private variable _buffering 0
+    
+    # This indicates which isomarkers and transfer function to use when
+    # changing markers, opacity, or thickness.
+    common _downloadPopup          ;# download options from popup
+    private common _hardcopy
+    private variable _width 0
+    private variable _height 0
+    private variable _resizePending 0
+    private variable _outline
 }
 
 itk::usual VtkViewer {
@@ -100,168 +138,241 @@ itk::usual VtkViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::constructor {args} {
-    option add hull.width hull.height
-    pack propagate $itk_component(hull) no
-    set _view(theta) 0
-    set _view(phi) 0
-    
-    array set _limits {
-        xMin	0 
-        xMax	1
-        yMin	0
-        yMax	1
-        zMin	0
-        zMax	1
-        vMin	0
-        vMax	1
+itcl::body Rappture::VtkViewer::constructor {hostlist args} {
+    if {[catch {info level -1} caller]} {
+        puts stderr "Enter constructor"
+    } else {
+        puts stderr "Enter constructor: $caller"
     }
 
+    # Rebuild event
+    $_dispatcher register !rebuild
+    $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
 
-    foreach { key value } {
-        edges		1
-        axes		1
-        smallaxes	0
-        wireframe	0
-    } {
-        set _settings($this-$key) $value
+    # Resize event
+    $_dispatcher register !resize
+    $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    set _outbuf ""
+
+    #
+    # Populate parser with commands handle incoming requests
+    #
+    $_parser alias image [itcl::code $this ReceiveImage]
+    $_parser alias dataset [itcl::code $this ReceiveDataset]
+
+    array set _outline {
+	id -1
+	afterId -1
+	x1 -1
+	y1 -1
+	x2 -1
+	y2 -1
     }
-    itk_component add main {
-        Rappture::SidebarFrame $itk_interior.main
+    # Initialize the view to some default parameters.
+    array set _view {
+	qx		0
+	qy		0
+	qz		0
+	qw		1
+        zoom		1.0 
+        pan-x		0
+        pan-y		0
+	zoom-x		1.0
+	zoom-y		1.0
     }
-    pack $itk_component(main) -expand yes -fill both
-    set f [$itk_component(main) component frame]
-    
-    itk_component add controls {
-        frame $f.cntls
+    set _arcball [blt::arcball create 100 100]
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+
+    set _limits(vmin) 0.0
+    set _limits(vmax) 1.0
+
+    array set _settings [subst {
+        $this-axes		1
+        $this-edges		1
+        $this-lighting		1
+        $this-opacity		1
+        $this-volume		1
+        $this-wireframe		0
+        $this-grid-x		0
+        $this-grid-y		0
+        $this-grid-z		0
+    }]
+
+    itk_component add view {
+        canvas $itk_component(plotarea).view \
+            -highlightthickness 0 -borderwidth 0
     } {
         usual
-        rename -background -controlbackground controlBackground Background
+        ignore -highlightthickness -borderwidth  -background
     }
-    pack $itk_component(controls) -side right -fill y
 
-    itk_component add zoom {
-        frame $itk_component(controls).zoom
-    } {
-        usual
-        rename -background -controlbackground controlBackground Background
-    }
-    pack $itk_component(zoom) -side top
-    
+    set c $itk_component(view)
+    bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
+    bind $c <4> [itcl::code $this Zoom in 0.25]
+    bind $c <5> [itcl::code $this Zoom out 0.25]
+    bind $c <KeyPress-Left>  [list %W xview scroll 10 units]
+    bind $c <KeyPress-Right> [list %W xview scroll -10 units]
+    bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
+    bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
+    bind $c <Enter> "focus %W"
+
+    # Fix the scrollregion in case we go off screen
+    $c configure -scrollregion [$c bbox all]
+
+    set _map(id) [$c create image 0 0 -anchor nw -image $_image(plot)]
+    set _map(cwidth) -1 
+    set _map(cheight) -1 
+    set _map(zoom) 1.0
+    set _map(original) ""
+
+    set f [$itk_component(main) component controls]
     itk_component add reset {
-        button $itk_component(zoom).reset \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon reset] \
+        button $f.reset -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
+            -image [Rappture::icon reset-view] \
             -command [itcl::code $this Zoom reset]
     } {
         usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground Background
+        ignore -highlightthickness
     }
-    pack $itk_component(reset) -padx 4 -pady 4
-    Rappture::Tooltip::for $itk_component(reset) \
-	"Reset the view to the default zoom level"
+    pack $itk_component(reset) -side top -padx 2 -pady 2
+    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
 
     itk_component add zoomin {
-        button $itk_component(zoom).zin \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomin] \
+        button $f.zin -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
+            -image [Rappture::icon zoom-in] \
             -command [itcl::code $this Zoom in]
     } {
         usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-	    Background
+        ignore -highlightthickness
     }
-    pack $itk_component(zoomin) -padx 4 -pady 4
+    pack $itk_component(zoomin) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
-    
+
     itk_component add zoomout {
-        button $itk_component(zoom).zout \
-            -borderwidth 1 -padx 1 -pady 1 \
-            -bitmap [Rappture::icon zoomout] \
+        button $f.zout -borderwidth 1 -padx 1 -pady 1 \
+            -highlightthickness 0 \
+            -image [Rappture::icon zoom-out] \
             -command [itcl::code $this Zoom out]
     } {
         usual
-        ignore -borderwidth
-        rename -highlightbackground -controlbackground controlBackground \
-	    Background
+        ignore -highlightthickness
     }
-    pack $itk_component(zoomout) -padx 4 -pady 4
+    pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
-    
-    #
-    # RENDERING AREA
-    #
-    itk_component add area {
-        frame $f.area
-    }
-    pack $itk_component(area) -expand yes -fill both
-    
-    set _renderer [vtkRenderer $this-Renderer]
-    set _window [vtkRenderWindow $this-RenderWindow]
-    itk_component add plot {
-        vtkTkRenderWidget $itk_component(area).plot -rw $_window \
-            -width 1 -height 1
-    } {
-	# empty
-    }
-    pack $itk_component(plot) -expand yes -fill both
-    $_window AddRenderer $_renderer
-    $_window LineSmoothingOn
-    $_window PolygonSmoothingOn
-    
-    set _interactor [vtkRenderWindowInteractor $this-Interactor]
-    set _style [vtkInteractorStyleTrackballCamera $this-InteractorStyle]
-    $_interactor SetRenderWindow $_window
-    $_interactor SetInteractorStyle $_style
-    $_interactor Initialize
-    
-    set _cubeAxesActor [vtkCubeAxesActor $this-CubeAxesActor]
-    $_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
-    $_renderer AddActor $_cubeAxesActor
-    
-    # Supply small axes guide.
-    set _axesActor [vtkAxesActor $this-AxesActor]
-    set _axesWidget [vtkOrientationMarkerWidget $this-AxesWidget]
-    $_axesWidget SetOrientationMarker $_axesActor
-    $_axesWidget SetInteractor $_interactor
-    $_axesWidget SetEnabled $_settings($this-smallaxes)
-    $_axesWidget SetInteractive 0
-    $_axesWidget SetViewport .7 0 1.0 0.3
-    
+
     BuildViewTab
+    BuildAxisTab
     BuildCameraTab
-    
-    set v0 0
-    set v1 1
-    set _lookup [vtkLookupTable $this-Lookup]
-    $_lookup SetTableRange $v0 $v1
-    $_lookup SetHueRange 0.66667 0.0
-    $_lookup Build
-    
-    set lightKit [vtkLightKit $this-LightKit]
-    $lightKit AddLightsToRenderer $_renderer
-    
-    #
-    # Create a picture for download snapshots
-    #
-    set _download [image create photo]
-    
+
+    # Hack around the Tk panewindow.  The problem is that the requested 
+    # size of the 3d view isn't set until an image is retrieved from
+    # the server.  So the panewindow uses the tiny size.
+    set w 10000
+    pack forget $itk_component(view)
+    blt::table $itk_component(plotarea) \
+        0,0 $itk_component(view) -fill both -reqwidth $w 
+    blt::table configure $itk_component(plotarea) c1 -resize none
+
+    # Bindings for rotation via mouse
+    bind $itk_component(view) <ButtonPress-1> \
+        [itcl::code $this Rotate click %x %y]
+    bind $itk_component(view) <B1-Motion> \
+        [itcl::code $this Rotate drag %x %y]
+    bind $itk_component(view) <ButtonRelease-1> \
+        [itcl::code $this Rotate release %x %y]
+    bind $itk_component(view) <Configure> \
+        [itcl::code $this EventuallyResize %w %h]
+
+    if 0 {
+    bind $itk_component(view) <Configure> \
+        [itcl::code $this EventuallyResize %w %h]
+    }
+    # Bindings for panning via mouse
+    bind $itk_component(view) <ButtonPress-2> \
+        [itcl::code $this Pan click %x %y]
+    bind $itk_component(view) <B2-Motion> \
+        [itcl::code $this Pan drag %x %y]
+    bind $itk_component(view) <ButtonRelease-2> \
+        [itcl::code $this Pan release %x %y]
+
+    # Bindings for panning via keyboard
+    bind $itk_component(view) <KeyPress-Left> \
+        [itcl::code $this Pan set -10 0]
+    bind $itk_component(view) <KeyPress-Right> \
+        [itcl::code $this Pan set 10 0]
+    bind $itk_component(view) <KeyPress-Up> \
+        [itcl::code $this Pan set 0 -10]
+    bind $itk_component(view) <KeyPress-Down> \
+        [itcl::code $this Pan set 0 10]
+    bind $itk_component(view) <Shift-KeyPress-Left> \
+        [itcl::code $this Pan set -2 0]
+    bind $itk_component(view) <Shift-KeyPress-Right> \
+        [itcl::code $this Pan set 2 0]
+    bind $itk_component(view) <Shift-KeyPress-Up> \
+        [itcl::code $this Pan set 0 -2]
+    bind $itk_component(view) <Shift-KeyPress-Down> \
+        [itcl::code $this Pan set 0 2]
+
+    # Bindings for zoom via keyboard
+    bind $itk_component(view) <KeyPress-Prior> \
+        [itcl::code $this Zoom out]
+    bind $itk_component(view) <KeyPress-Next> \
+        [itcl::code $this Zoom in]
+
+    bind $itk_component(view) <Enter> "focus $itk_component(view)"
+
+    if {[string equal "x11" [tk windowingsystem]]} {
+        # Bindings for zoom via mouse
+        bind $itk_component(view) <4> [itcl::code $this Zoom out]
+        bind $itk_component(view) <5> [itcl::code $this Zoom in]
+    }
+
+    set _image(download) [image create photo]
+
     eval itk_initialize $args
+
+    Connect
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::destructor {} {
-    Clear
-    after cancel [itcl::code $this Rebuild]
-    
-    foreach c [info commands $this-vtk*] {
-        rename $c ""
+    Disconnect
+    $_dispatcher cancel !rebuild
+    $_dispatcher cancel !resize
+    image delete $_image(plot)
+    image delete $_image(download)
+    array unset _settings $this-*
+    catch { blt::arcball destroy $_arcball}
+}
+
+itcl::body Rappture::VtkViewer::DoResize {} {
+    if { $_width < 2 } {
+	set _width 500
     }
-    image delete $_download
+    if { $_height < 2 } {
+	set _height 500
+    }
+    puts stderr "screen size $_width $_height"
+    set _start [clock clicks -milliseconds]
+    SendCmd "screen size $_width $_height"
+    set _resizePending 0
+}
+
+itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
+    puts stderr "EventuallyResize $w $h"
+    set _width $w
+    set _height $h
+    $_arcball resize $w $h
+    if { !$_resizePending } {
+        $_dispatcher event -after 400 !resize
+        set _resizePending 1
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -280,7 +391,11 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
         -raise 0
         -description ""
         -param ""
+	-type ""
     }
+    array set params $settings
+    set params(-description) ""
+    set params(-param) ""
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
@@ -293,70 +408,119 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
     }
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-        lappend _dlist $dataobj
-
-        set _obj2color($dataobj) $params(-color)
-        set _obj2width($dataobj) $params(-width)
-        set _obj2raise($dataobj) $params(-raise)
-	
-        after cancel [itcl::code $this Rebuild]
-        after idle [itcl::code $this Rebuild]
+	lappend _dlist $dataobj
     }
+    set _allDataObjs($dataobj) 1
+    set _obj2ovride($dataobj-color) $params(-color)
+    set _obj2ovride($dataobj-width) $params(-width)
+    set _obj2ovride($dataobj-raise) $params(-raise)
+    $_dispatcher event -idle !rebuild
 }
 
-# ----------------------------------------------------------------------
-# USAGE: get
-#
-# Clients use this to query the list of objects being plotted, in
-# order from bottom to top of this result.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::get {} {
-    # put the dataobj list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
-        if {[info exists _obj2raise($obj)] && $_obj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
-    }
-    return $dlist
-}
 
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a dataobj from the plot.  If no dataobjs
-# are specified, then all dataobjs are deleted.
+#       Clients use this to delete a dataobj from the plot.  If no dataobjs
+#       are specified, then all dataobjs are deleted.  No data objects are
+#       deleted.  They are only removed from the display list.
+#
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::delete {args} {
-    if {[llength $args] == 0} {
+    if { [llength $args] == 0} {
         set args $_dlist
     }
-
-    # delete all specified dataobjs
+    # Delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
-        set i [lsearch -exact $_dlist $dataobj]
-        if {$i >= 0} {
-            set _dlist [lreplace $_dlist $i $i]
-            catch {unset _obj2color($dataobj)}
-            catch {unset _obj2width($dataobj)}
-            catch {unset _obj2raise($dataobj)}
-	    foreach actor $_actors($dataobj) {
-		$_renderer RemoveActor $actor
-	    }
-	    array unset _actors $dataobj
-	    array unset _dataobj2vtk $dataobj-*
-            set changed 1
-        }
+        set pos [lsearch -exact $_dlist $dataobj]
+	if { $pos < 0 } {
+	    continue;			# Don't know anything about it.
+	}
+	# Remove it from the dataobj list.
+	set _dlist [lreplace $_dlist $pos $pos]
+	foreach comp [$dataobj components] {
+	    SendCmd "dataset visible 0 $dataobj-$comp"
+	}
+	array unset _obj2ovride $dataobj-*
+	# Append to the end of the dataobj list.
+	lappend _dlist $dataobj
+	set changed 1
     }
     # If anything changed, then rebuild the plot
-    if {$changed} {
-        after cancel [itcl::code $this Rebuild]
-        after idle [itcl::code $this Rebuild]
+    if { $changed } {
+        $_dispatcher event -idle !rebuild
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get ?-objects?
+# USAGE: get ?-visible?
+# USAGE: get ?-image view?
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.  The optional "-image"
+# flag can also request the internal images being shown.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkViewer::get {args} {
+    if {[llength $args] == 0} {
+        set args "-objects"
+    }
+
+    set op [lindex $args 0]
+    switch -- $op {
+	"-objects" {
+	    # put the dataobj list in order according to -raise options
+	    set dlist {}
+	    foreach dataobj $_dlist {
+		if { ![IsValidObject $dataobj] } {
+		    continue
+		}
+		if {[info exists _obj2ovride($dataobj-raise)] && 
+		    $_obj2ovride($dataobj-raise)} {
+		    set dlist [linsert $dlist 0 $dataobj]
+		} else {
+		    lappend dlist $dataobj
+		}
+	    }
+	    return $dlist
+	}
+	"-visible" {
+	    set dlist {}
+	    foreach dataobj $_dlist {
+		if { ![IsValidObject $dataobj] } {
+		    continue
+		}
+		if { ![info exists _obj2ovride($dataobj-raise)] } {
+		    # No setting indicates that the object isn't invisible.
+		    continue
+		}
+		# Otherwise use the -raise parameter to put the object to
+		# the front of the list.
+		if { $_obj2ovride($dataobj-raise) } {
+		    set dlist [linsert $dlist 0 $dataobj]
+		} else {
+		    lappend dlist $dataobj
+		}
+	    }
+	    return $dlist
+	}	    
+	-image {
+	    if {[llength $args] != 2} {
+		error "wrong # args: should be \"get -image view\""
+	    }
+	    switch -- [lindex $args end] {
+		view {
+		    return $_image(plot)
+		}
+		default {
+		    error "bad image name \"[lindex $args end]\": should be view"
+		}
+	    }
+	}
+	default {
+	    error "bad option \"$op\": should be -objects or -image"
+	}
     }
 }
 
@@ -370,8 +534,30 @@ itcl::body Rappture::VtkViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::scale {args} {
-    eval ComputeLimits $args 
-    _fixLimits
+    array unset _limits
+    foreach dataobj $args {
+        array set bounds [limits $dataobj]
+	if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
+	    set _limits(xmin) $bounds(xmin)
+	}
+	if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
+	    set _limits(xmax) $bounds(xmax)
+	}
+
+	if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
+	    set _limits(ymin) $bounds(ymin)
+	}
+	if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
+	    set _limits(ymax) $bounds(ymax)
+	}
+
+	if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
+	    set _limits(zmin) $bounds(zmin)
+	}
+	if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
+	    set _limits(zmax) $bounds(zmax)
+	}
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -388,35 +574,41 @@ itcl::body Rappture::VtkViewer::download {option args} {
     switch $option {
         coming {
             if {[catch {
-                blt::winop snap $itk_component(plotarea) $_download
+                blt::winop snap $itk_component(plotarea) $_image(download)
             }]} {
-                $_download configure -width 1 -height 1
-                $_download put #000000
+                $_image(download) configure -width 1 -height 1
+                $_image(download) put #000000
             }
         }
         controls {
-            # no controls for this download yet
-            return ""
+            set popup .vtkviewerdownload
+            if { ![winfo exists .vtkviewerdownload] } {
+                set inner [BuildDownloadPopup $popup [lindex $args 0]]
+            } else {
+                set inner [$popup component inner]
+            }
+            set _downloadPopup(image_controls) $inner.image_frame
+            set num [llength [get]]
+            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            set word [Rappture::filexfer::label downloadWord]
+            $inner.summary configure -text "$word $num in the following format:"
+            update idletasks		;# Fix initial sizes
+            return $popup
         }
         now {
-            set writer [vtkJPEGWriter $this-vtkJPEGWriter]
-            set large [vtkRenderLargeImage $this-RenderLargeImage]
-            $_axesWidget SetEnabled 0
-            $large SetInput $_renderer
-            $large SetMagnification 4
-            $writer SetInputConnection [$large GetOutputPort]
-
-            $writer SetFileName junk.jpg
-            $writer Write 
-            rename $writer ""
-            rename $large ""
-            FixSettings smallaxes
-
-	    set img [image create photo -file junk.jpg]
-            set bytes [$img data -format "jpeg -quality 100"]
-            set bytes [Rappture::encoding::decode -as b64 $bytes]
-	    image delete $img
-            return [list .jpg $bytes]
+            set popup .vtkviewerdownload
+            if {[winfo exists .vtkviewerdownload]} {
+                $popup deactivate
+            }
+            switch -- $_downloadPopup(format) {
+                "image" {
+                    return [$this GetImage [lindex $args 0]]
+                }
+                "vtk" {
+                    return [$this GetVtkData [lindex $args 0]]
+                }
+            }
+            return ""
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -425,29 +617,284 @@ itcl::body Rappture::VtkViewer::download {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Clear
+# USAGE: Connect ?<host:port>,<host:port>...?
 #
-# Used internally to clear the drawing area and tear down all vtk
-# objects in the current scene.
+# Clients use this method to establish a connection to a new
+# server, or to reestablish a connection to the previous server.
+# Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::Clear {} {
-    # clear out any old constructs
-    
-    foreach ren [array names _lights] {
-        foreach light $_lights($ren) {
-            $ren RemoveLight $light
-            rename $light ""
-        }
-        set _lights($ren) ""
+itcl::body Rappture::VtkViewer::Connect {} {
+    puts stderr "Enter Connect: [info level -1]"
+    set _hosts [GetServerList "vtkvis"]
+    if { "" == $_hosts } {
+        return 0
     }
-    foreach dataobj $_dlist {
-	foreach actor $_actors($dataobj) {
-	    $_renderer RemoveActor $actor
+    set result [VisViewer::Connect $_hosts]
+    if { $result } {
+	puts stderr "Connected to $_hostname sid=$_sid"
+        set w [winfo width $itk_component(view)]
+        set h [winfo height $itk_component(view)]
+        EventuallyResize $w $h
+    }
+    return $result
+}
+
+#
+# isconnected --
+#
+#       Indicates if we are currently connected to the visualization server.
+#
+itcl::body Rappture::VtkViewer::isconnected {} {
+    return [VisViewer::IsConnected]
+}
+
+#
+# disconnect --
+#
+itcl::body Rappture::VtkViewer::disconnect {} {
+    Disconnect
+    set _reset 1
+}
+
+#
+# Disconnect --
+#
+#       Clients use this method to disconnect from the current rendering
+#       server.
+#
+itcl::body Rappture::VtkViewer::Disconnect {} {
+    VisViewer::Disconnect
+
+    # disconnected -- no more data sitting on server
+    set _outbuf ""
+    array unset _datasets 
+    array unset _data 
+    array unset _colormaps 
+}
+
+#
+# sendto --
+#
+itcl::body Rappture::VtkViewer::sendto { bytes } {
+    SendBytes "$bytes\n"
+}
+
+#
+# SendCmd
+#
+#       Send commands off to the rendering server.  If we're currently
+#       sending data objects to the server, buffer the commands to be 
+#       sent later.
+#
+itcl::body Rappture::VtkViewer::SendCmd {string} {
+    if { $_buffering } {
+        append _outbuf $string "\n"
+    } else {
+        foreach line [split $string \n] {
+            SendEcho >>line $line
+        }
+        SendBytes "$string\n"
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ReceiveImage -bytes <size> -type <type> -token <token>
+#
+# Invoked automatically whenever the "image" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkViewer::ReceiveImage { args } {
+    array set info {
+        -token "???"
+        -bytes 0
+        -type image
+    }
+    array set info $args
+    set bytes [ReceiveBytes $info(-bytes)]
+    ReceiveEcho <<line "<read $info(-bytes) bytes"
+    if { $info(-type) == "image" } {
+	if 1 {
+	    set f [open "last.ppm" "w"] 
+	    puts $f $bytes
+	    close $f
+	}
+        $_image(plot) configure -data $bytes
+	set time [clock seconds]
+	set date [clock format $time]
+        puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+	if { $_start > 0 } {
+	    set finish [clock clicks -milliseconds]
+	    puts stderr "round trip time [expr $finish -$_start] milliseconds"
+	    set _start 0
+	}
+    } elseif { $info(type) == "print" } {
+        set tag $this-print-$info(-token)
+        set _hardcopy($tag) $bytes
+    }
+}
+
+#
+# ReceiveDataset --
+#
+itcl::body Rappture::VtkViewer::ReceiveDataset { args } {
+    if { ![isconnected] } {
+        return
+    }
+    set option [lindex $args 0]
+    switch -- $option {
+	"value" {
+	    set option [lindex $args 1]
+	    switch -- $option {
+		"world" {
+		    foreach { x y z value } [lrange $args 2 end] break
+		}
+		"pixel" {
+		    foreach { x y value } [lrange $args 2 end] break
+		}
+	    }
+	}
+	default {
+	    error "unknown dataset option \"$option\" from server"
 	}
     }
-    array unset _actors
-    set _dlist ""
-    array unset _dataobj2vtk
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rebuild
+#
+# Called automatically whenever something changes that affects the
+# data in the widget.  Clears any existing data and rebuilds the
+# widget to display new data.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkViewer::Rebuild {} {
+
+    set w [winfo width $itk_component(view)]
+    set h [winfo height $itk_component(view)]
+    if { $w < 2 || $h < 2 } {
+	$_dispatcher event -idle !rebuild
+	return
+    }
+
+    # Turn on buffering of commands to the server.  We don't want to
+    # be preempted by a server disconnect/reconnect (which automatically
+    # generates a new call to Rebuild).   
+    set _buffering 1
+
+    set _width $w
+    set _height $h
+    $_arcball resize $w $h
+    DoResize
+    
+    set _limits(vmin) ""
+    set _limits(vmax) ""
+    set _first ""
+    foreach dataobj [get -objects] {
+	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
+	    set _first $dataobj
+	}
+	set _obj2datasets($dataobj) ""
+        foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
+            if { ![info exists _datasets($tag)] } {
+                set bytes [$dataobj data $comp]
+                set length [string length $bytes]
+                append _outbuf "dataset add $tag data follows $length\n"
+                append _outbuf $bytes
+		append _outbuf "polydata add $tag\n"
+                set _datasets($tag) 1
+	    }
+	    lappend _obj2datasets($dataobj) $tag
+	    SetObjectStyle $dataobj $comp
+	    if { [info exists _obj2ovride($dataobj-raise)] } {
+		SendCmd "dataset visible 1 $tag"
+	    } else {
+		SendCmd "dataset visible 0 $tag"
+	    }
+        }
+    }
+    #
+    # Reset the camera and other view parameters
+    #
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
+    PanCamera
+    SendCmd "camera mode persp"
+    if { $_reset || $_first == "" } {
+	Zoom reset
+	set _reset 0
+    }
+    FixSettings opacity
+    FixSettings grid-x
+    FixSettings grid-y
+    FixSettings grid-z
+    FixSettings volume
+    FixSettings lighting
+    FixSettings axes
+    FixSettings edges
+    FixSettings axismode
+
+    if {"" != $_first} {
+        set location [$_first hints camera]
+        if { $location != "" } {
+            array set view $location
+        }
+    }
+
+    set _buffering 0;                        # Turn off buffering.
+
+    # Actually write the commands to the server socket.  If it fails, we don't
+    # care.  We're finished here.
+    blt::busy hold $itk_component(hull)
+    SendBytes $_outbuf;                        
+    blt::busy release $itk_component(hull)
+    set _outbuf "";                        # Clear the buffer.                
+}
+
+# ----------------------------------------------------------------------
+# USAGE: CurrentDatasets ?-all -visible? ?dataobjs?
+#
+# Returns a list of server IDs for the current datasets being displayed.  This
+# is normally a single ID, but it might be a list of IDs if the current data
+# object has multiple components.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
+    set flag [lindex $args 0]
+    switch -- $flag { 
+	"-all" {
+	    if { [llength $args] > 1 } {
+		error "CurrentDatasets: can't specify dataobj after \"-all\""
+	    }
+	    set dlist [get -objects]
+	}
+	"-visible" {
+	    if { [llength $args] > 1 } {
+		set dlist {}
+		set args [lrange $args 1 end]
+		foreach dataobj $args {
+		    if { [info exists _obj2ovride($dataobj-raise)] } {
+			lappend dlist $dataobj
+		    }
+		}
+	    } else {
+		set dlist [get -visible]
+	    }
+	}	    
+	default {
+	    set dlist $args
+	}
+    }
+    set rlist ""
+    foreach dataobj $dlist {
+	foreach comp [$dataobj components] {
+	    set tag $dataobj-$comp
+	    if { [info exists _datasets($tag)] && $_datasets($tag) } {
+		lappend rlist $tag
+	    }
+	}
+    }
+    return $rlist
 }
 
 # ----------------------------------------------------------------------
@@ -459,548 +906,152 @@ itcl::body Rappture::VtkViewer::Clear {} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Zoom {option} {
-    set cam [$_renderer GetActiveCamera]
     switch -- $option {
-        in {
-            $cam Zoom 1.25
-            $_window Render
+        "in" {
+            set _view(zoom) [expr {$_view(zoom)*1.25}]
+	    SendCmd "camera zoom $_view(zoom)"
         }
-        out {
-            $cam Zoom 0.8
-            $_window Render
+        "out" {
+            set _view(zoom) [expr {$_view(zoom)*0.8}]
+	    SendCmd "camera zoom $_view(zoom)"
         }
-        reset {
-            $cam SetViewAngle 30
-            $_renderer ResetCamera
-            _3dView 90 -90
-	    array set camera {
-		xpos 1.73477e-06 ypos 74.7518 zpos -1.73477e-06
-		xviewup 5.38569e-16 yviewup 2.32071e-08 zviewup 1.0
-		xfocal 0.0 yfocal 0.0 zfocal 0.0 
-		angle 30
-	    }
-	    set dataobj [lindex $_dlist end]
-	    if { $dataobj != "" } {
-		array set camera [$dataobj hints camera]
-	    }
-	    if { [info exists camera(clipmin)] } {
-		$cam SetClippingRange $camera(clipmin) $camera(clipmax)
-	    }
-	    if { [info exists camera(parallelscale)] } {
-		$cam SetParallelScale $camera(parallelscale) 
-	    }
-	    $cam SetViewAngle $camera(angle)
-	    $cam SetFocalPoint $camera(xfocal) $camera(yfocal) $camera(zfocal)
-	    $cam SetPosition $camera(xpos) $camera(ypos) $camera(zpos)
-	    $cam SetViewUp $camera(xviewup) $camera(yviewup) $camera(zviewup)
-	    foreach key [array names camera] {
-		set _settings($this-$key) $camera($key)
-	    }
-	    $cam ComputeViewPlaneNormal
-            $_window Render
+        "reset" {
+            array set _view {
+                qx	0
+                qy      0
+                qz      0
+                qw      1
+                zoom    1.0
+                pan-x   0
+                pan-y   0
+		zoom-x  1.0
+		zoom-y  1.0
+            }
+            SendCmd "camera reset all"
+            if { $_first != "" } {
+                set location [$_first hints camera]
+                if { $location != "" } {
+                    array set _view $location
+                }
+            }
+	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+	    $_arcball quaternion $q
+	    SendCmd "camera orient $q" 
+            PanCamera
         }
     }
 }
 
+itcl::body Rappture::VtkViewer::PanCamera {} {
+#    set w [winfo width $itk_component(view)]
+#    set h [winfo height $itk_component(view)]
+#    set x [expr ($_view(pan-x)) / $w]
+#    set y [expr ($_view(pan-y)) / $h]
+#    set x [expr $x * $_limits(xmax) - $_limits(xmin)]
+#    set y [expr $y * $_limits(ymax) - $_limits(ymin)]
+    set x $_view(pan-x)
+    set y $_view(pan-y)
+    SendCmd "camera pan $x $y"
+}
+
+
 # ----------------------------------------------------------------------
-# USAGE: Move click <x> <y>
-# USAGE: Move drag <x> <y>
-# USAGE: Move release <x> <y>
+# USAGE: Rotate click <x> <y>
+# USAGE: Rotate drag <x> <y>
+# USAGE: Rotate release <x> <y>
 #
 # Called automatically when the user clicks/drags/releases in the
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::Move {option x y} {
+itcl::body Rappture::VtkViewer::Rotate {option x y} {
     switch -- $option {
-        click {
-            blt::busy configure $itk_component(area) -cursor fleur
+        "click" {
+            $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
         }
-        drag {
+        "drag" {
             if {[array size _click] == 0} {
-                Move click $x $y
+                Rotate click $x $y
             } else {
-                set w [winfo width $itk_component(plot)]
-                set h [winfo height $itk_component(plot)]
-                set scalex [expr {$_limits(xMax)-$_limits(xMin)}]
-                set scaley [expr {$_limits(yMax)-$_limits(yMin)}]
-                set dx [expr {double($x-$_click(x))/$w*$scalex}]
-                set dy [expr {double($y-$_click(y))/$h*$scaley}]
-
-                if {$_dims == "2D"} {
-                    #
-                    # Shift the contour plot in 2D
-                    #
-		    foreach dataobj $_dlist {
-			foreach actor $_actors($dataobj) {
-			    foreach {ax ay az} [$actor GetPosition] break
-			    $actor SetPosition [expr {$ax+$dx}] \
-				[expr {$ay-$dy}] 0
-			}
-		    }
-                    $_window Render
-                } elseif {$_dims == "3D"} {
-                    #
-                    # Rotate the camera in 3D
-                    #
-                    set theta [expr {$_view(theta) - $dy*180}]
-                    if {$theta < 2} { set theta 2 }
-                    if {$theta > 178} { set theta 178 }
-                    set phi [expr {$_view(phi) - $dx*360}]
-		    
-                    _3dView $theta $phi
-                    $_window Render
+                set w [winfo width $itk_component(view)]
+                set h [winfo height $itk_component(view)]
+                if {$w <= 0 || $h <= 0} {
+                    return
                 }
+
+                if {[catch {
+                    # this fails sometimes for no apparent reason
+                    set dx [expr {double($x-$_click(x))/$w}]
+                    set dy [expr {double($y-$_click(y))/$h}]
+                }]} {
+                    return
+                }
+		if { $dx == 0 && $dy == 0 } {
+		    return
+		}
+		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+		foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                SendCmd "camera orient $q" 
                 set _click(x) $x
                 set _click(y) $y
             }
         }
-        release {
-            Move drag $x $y
-            blt::busy configure $itk_component(area) -cursor left_ptr
+        "release" {
+            Rotate drag $x $y
+            $itk_component(view) configure -cursor ""
             catch {unset _click}
         }
         default {
             error "bad option \"$option\": should be click, drag, release"
         }
     }
-    UpdateCameraInfo
 }
 
-
 # ----------------------------------------------------------------------
-# USAGE: _3dView <theta> <phi>
+# USAGE: $this Pan click x y
+#        $this Pan drag x y
+#        $this Pan release x y
 #
-# Used internally to change the position of the camera for 3D data
-# sets.  Sets the camera according to the angles <theta> (angle from
-# the z-axis) and <phi> (angle from the x-axis in the x-y plane).
-# Both angles are in degrees.
+# Called automatically when the user clicks on one of the zoom
+# controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::_3dView {theta phi} {
-    return
-    set deg2rad 0.0174532927778
-    set xn [expr {sin($theta*$deg2rad)*cos($phi*$deg2rad)}]
-    set yn [expr {sin($theta*$deg2rad)*sin($phi*$deg2rad)}]
-    set zn [expr {cos($theta*$deg2rad)}]
-    
-    set xm [expr {0.5*($_limits(xMax)+$_limits(xMin))}]
-    set ym [expr {0.5*($_limits(yMax)+$_limits(yMin))}]
-    set zm [expr {0.5*($_limits(zMax)+$_limits(zMin))}]
-    
-    set cam [$_renderer GetActiveCamera]
-    set zoom [$cam GetViewAngle]
-    $cam SetViewAngle 30
-    $cam SetFocalPoint $xm $ym $zm
-    $cam SetPosition [expr {$xm-$xn}] [expr {$ym-$yn}] [expr {$zm+$zn}]
-    $cam ComputeViewPlaneNormal
-    $cam SetViewUp 0 0 1  ;# z-dir is up
-    $cam OrthogonalizeViewUp
-    $_renderer ResetCamera
-    $cam SetViewAngle $zoom
-    
-    set _view(theta) $theta
-    set _view(phi) $phi
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixLimits
-#
-# Used internally to apply automatic limits to the axes for the
-# current plot.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::_fixLimits {} {
-    $_renderer ResetCamera
-    set camera [$_renderer GetActiveCamera]
-    $camera Zoom 1.5
-    $_window Render
-    if 0 {
-	$this-vtkRenderWindow2 Render
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _color2rgb <color>
-#
-# Used internally to convert a color name to a set of {r g b} values
-# needed for vtk.  Each r/g/b component is scaled in the range 0-1.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::_color2rgb {color} {
-    foreach {r g b} [winfo rgb $itk_component(hull) $color] break
-    set r [expr {$r/65535.0}]
-    set g [expr {$g/65535.0}]
-    set b [expr {$b/65535.0}]
-    return [list $r $g $b]
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -plotbackground
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::VtkViewer::plotbackground {
-    foreach {r g b} [_color2rgb $itk_option(-plotbackground)] break
-    $_renderer SetBackground $r $g $b
-    $_window Render
-    if 0 {
-	$this-vtkRenderer2 SetBackground $r $g $b
-	$this-vtkRenderWindow2 Render
-    }
-}
-
-# ----------------------------------------------------------------------
-# CONFIGURATION OPTION: -plotforeground
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::VtkViewer::plotforeground {
-    after cancel [itcl::code $this Rebuild]
-    after idle [itcl::code $this Rebuild]
-}
-
-itcl::body Rappture::VtkViewer::SetActorProperties { actor style } {
-    array set props {
-        -color \#6666FF
-        -edgevisibility yes
-        -edgecolor black
-        -linewidth 1.0
-        -opacity 1.0
-    }
-    # Parse style string.
-    array set props $style
-    set prop [$actor GetProperty]
-    eval $prop SetColor [_color2rgb $props(-color)]
-    if { $props(-edgevisibility) } {
-        $prop EdgeVisibilityOn
-    } else {
-        $prop EdgeVisibilityOff
-    }
-    set _settings($this-edges) $props(-edgevisibility)
-    eval $prop SetEdgeColor [_color2rgb $props(-edgecolor)]
-    $prop SetLineWidth $props(-linewidth)
-    $prop SetOpacity $props(-opacity)
-    set _settings($this-opacity) [expr $props(-opacity) * 100.0]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: Rebuild
-#
-# Called automatically whenever something changes that affects the
-# data in the widget.  Clears any existing data and rebuilds the
-# widget to display new data.
-# ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::Rebuild {} {
-    set id 0
-    
-    # determine the dimensionality from the topmost (raised) object
-    set dlist [get]
-    set dataobj [lindex $dlist end]
-    if {$dataobj != ""} {
-        set _dims [lindex [lsort [$dataobj components -dimensions]] end]
-    } else {
-        set _dims "0D"
-    }
-    ComputeLimits
-    $_cubeAxesActor SetCamera [$_renderer GetActiveCamera]
-    eval $_cubeAxesActor SetBounds [GetLimits]
-    
-    if 1 {
-	#
-	# LOOKUP TABLE FOR COLOR CONTOURS
-	#
-	# Use vmin/vmax if possible, otherwise get from data
-	if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
-	    set v0 0
-	    set v1 1
-	    if { [info exists _dataobj2vtk($dataobj)] } {
-		set pd [lindex $_dataobj2vtk($dataobj) 0]
-		if {"" != $pd} {
-		    foreach {v0 v1} [$pd GetScalarRange] break
-		}
-	    }
-	} else {
-	    set v0 $_limits(vMin)
-	    set v1 $_limits(vMax)
+itcl::body Rappture::VtkViewer::Pan {option x y} {
+    switch -- $option {
+	"set" {
+	    set w [winfo width $itk_component(view)]
+	    set h [winfo height $itk_component(view)]
+	    set x [expr $x / double($w)]
+	    set y [expr $y / double($h)]
+	    set _view(pan-x) [expr $_view(pan-x) + $x]
+	    set _view(pan-y) [expr $_view(pan-y) + $y]
+	    PanCamera
+	    return
 	}
-    }	
-    # scan through all data objects and build the contours
-    set firstobj 1
-    foreach dataobj $_dlist {
-	foreach comp [$dataobj components] {
-	    set tag $dataobj-$comp
-	    if { ![info exists _dataobj2vtk($tag)] } {
-		set actor [$dataobj values $comp]
-		set style [$dataobj style $comp]
-		set _dataobj2vtk($tag) $actor
-		lappend _actors($dataobj) $actor
-		$_renderer AddActor $actor
-		SetActorProperties $actor $style
-		incr id
-	    }
+	"click" {
+	    set _click(x) $x
+	    set _click(y) $y
+	    $itk_component(view) configure -cursor hand1
 	}
-	set firstobj 0
-    }
-    set top [lindex [get] end]
-    if { $top != "" } {
-	foreach axis { x y z } {
-	    set title [$top hints ${axis}label]
-	    set units [$top hints ${axis}units]
-	    set method Set[string toupper $axis]Title
-	    set label "$title"
-	    if { $units != "" } {
-		append label " ($units)"
-	    }	    
-	    $_cubeAxesActor $method $label
+	"drag" {
+	    set w [winfo width $itk_component(view)]
+	    set h [winfo height $itk_component(view)]
+	    set dx [expr ($_click(x) - $x)/double($w)]
+	    set dy [expr ($_click(y) - $y)/double($h)]
+	    set _click(x) $x
+	    set _click(y) $y
+	    set _view(pan-x) [expr $_view(pan-x) - $dx]
+	    set _view(pan-y) [expr $_view(pan-y) - $dy]
+	    PanCamera
+	}
+	"release" {
+	    Pan drag $x $y
+	    $itk_component(view) configure -cursor ""
+	}
+	default {
+	    error "unknown option \"$option\": should set, click, drag, or release"
 	}
     }
-    if 1 {
-	_fixLimits
-	Zoom reset
-
-    }
-    $_interactor Start
-    $_window Render
-    return
-
-    #
-    # HACK ALERT!  A single ResetCamera doesn't seem to work for
-    #   some contour data.  You have to do it multiple times to
-    #   get to the right zoom factor on data.  I hope 20 times is
-    #   enough.  I hate Vtk sometimes...
-    #
-    for {set i 0} {$i < 20} {incr i} {
-        $_renderer ResetCamera
-        [$_renderer GetActiveCamera] Zoom 1.5
-    }
-    # prevent interactions -- use our own
-    blt::busy hold $itk_component(area) -cursor left_ptr
-    bind $itk_component(area)_Busy <ButtonPress> \
-        [itcl::code $this Move click %x %y]
-    bind $itk_component(area)_Busy <B1-Motion> \
-        [itcl::code $this Move drag %x %y]
-    bind $itk_component(area)_Busy <ButtonRelease> \
-        [itcl::code $this Move release %x %y]
-}
-
-itcl::body Rappture::VtkViewer::BuildViewTab {} {
-
-    set fg [option get $itk_component(hull) font Font]
-    #set bfg [option get $itk_component(hull) boldFont Font]
-
-    set tab [$itk_component(main) insert end \
-        -title "View Settings" \
-        -icon [Rappture::icon wrench]]
-    set inner $tab
-    if 0 {
-    blt::scrollset $tab.ss \
-        -xscrollbar $tab.ss.xs \
-        -yscrollbar $tab.ss.ys \
-        -window $tab.ss.frame
-    pack $tab.ss -fill both -expand yes 
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
-    set inner [blt::tk::frame $tab.ss.frame]
-    $inner configure -borderwidth 4
-    }
-    set ::Rappture::VtkViewer::_settings($this-isosurface) 0
-    checkbutton $inner.isosurface \
-        -text "Isosurface shading" \
-        -variable [itcl::scope _settings($this-isosurface)] \
-        -command [itcl::code $this FixSettings isosurface] \
-        -font "Arial 9"
-
-    checkbutton $inner.axes \
-        -text "Axes" \
-        -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this FixSettings axes] \
-        -font "Arial 9"
-
-    checkbutton $inner.edges \
-        -text "Edges" \
-        -variable [itcl::scope _settings($this-edges)] \
-        -command [itcl::code $this FixSettings edges] \
-        -font "Arial 9"
-
-    checkbutton $inner.smallaxes \
-        -text "Small Axes" \
-        -variable [itcl::scope _settings($this-smallaxes)] \
-        -command [itcl::code $this FixSettings smallaxes] \
-        -font "Arial 9"
-
-    checkbutton $inner.wireframe \
-        -text "Wireframe" \
-        -variable [itcl::scope _settings($this-wireframe)] \
-        -command [itcl::code $this FixSettings wireframe] \
-        -font "Arial 9"
-
-    blt::table $inner \
-        0,0 $inner.axes  -columnspan 2 -anchor w \
-        1,0 $inner.edges  -columnspan 2 -anchor w \
-        2,0 $inner.wireframe  -columnspan 2 -anchor w \
-        3,0 $inner.smallaxes  -columnspan 2 -anchor w 
-
-    blt::table configure $inner r* -resize none
-    blt::table configure $inner r5 -resize expand
-}
-
-itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
-    foreach { key value } {
-        light		40
-        transp		50
-        opacity		1000
-    } {
-        set _settings($this-$key) $value
-    }
-
-    set tab [$itk_component(main) insert end \
-        -title "Volume Settings" \
-        -icon [Rappture::icon volume-on]]
-    set inner $tab
-    if 0 {
-    blt::scrollset $tab.ss \
-        -xscrollbar $tab.ss.xs \
-        -yscrollbar $tab.ss.ys \
-        -window $tab.ss.frame
-    pack $tab.ss -fill both -expand yes 
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
-    set inner [blt::tk::frame $tab.ss.frame]
-    $inner configure -borderwidth 4
-    }
-    set fg [option get $itk_component(hull) font Font]
-    #set bfg [option get $itk_component(hull) boldFont Font]
-
-    checkbutton $inner.vol -text "Show volume" -font $fg \
-        -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume]
-    label $inner.shading -text "Shading:" -font $fg
-
-    label $inner.dim -text "Dim" -font $fg
-    ::scale $inner.light -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-light)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings light]
-    label $inner.bright -text "Bright" -font $fg
-
-    label $inner.fog -text "Fog" -font $fg
-    ::scale $inner.transp -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-transp)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings transp]
-    label $inner.plastic -text "Plastic" -font $fg
-
-    label $inner.clear -text "Clear" -font $fg
-    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings($this-opacity)] \
-        -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings opacity]
-    label $inner.opaque -text "Opaque" -font $fg
-
-    blt::table $inner \
-        0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
-        1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
-        2,0 $inner.dim -anchor e -pady 2 \
-        2,1 $inner.light -columnspan 2 -pady 2 -fill x \
-        2,3 $inner.bright -anchor w -pady 2 \
-        3,0 $inner.fog -anchor e -pady 2 \
-        3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
-        3,3 $inner.plastic -anchor w -pady 2 \
-        4,0 $inner.clear -anchor e -pady 2 \
-        4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-        4,3 $inner.opaque -anchor w -pady 2 
-
-    blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r6 -resize expand
-}
-
-itcl::body Rappture::VtkViewer::UpdateCameraInfo {} {
-    set cam [$_renderer GetActiveCamera]
-    foreach key { x y z } \
-            pt  [$cam GetFocalPoint] \
-            up  [$cam GetViewUp] \
-  	    pos [$cam GetPosition] {
-	set _settings($this-${key}focal) $pt
-	set _settings($this-${key}up) $up
-	set _settings($this-${key}pos) $pos
-    }
-    foreach {min max} [$cam GetClippingRange] break
-    set _settings($this-clipmin) $min
-    set _settings($this-clipmax) $max
-    set _settings($this-parallelscale) [$cam GetParallelScale]
-    set _settings($this-angle) [$cam GetViewAngle]
-    foreach key { xpos ypos zpos xviewup yviewup zviewup 
-	xfocal yfocal zfocal angle clipmin clipmax parallelscale
-    } {
-	set out($key) $_settings($this-$key)
-    }
-    puts \"[array get out]\"
-}
-
-itcl::body Rappture::VtkViewer::BuildCameraTab {} {
-    set inner [$itk_component(main) insert end \
-        -title "Camera Settings" \
-        -icon [Rappture::icon camera]] 
-    $inner configure -borderwidth 4
-    bind $inner <Map> [itcl::code $this UpdateCameraInfo]
-
-    label $inner.xposl -text "Position"
-    entry $inner.xpos -bg white \
-	-textvariable [itcl::scope _settings($this-xpos)]
-    entry $inner.ypos -bg white \
-	-textvariable [itcl::scope _settings($this-ypos)]
-    entry $inner.zpos -bg white \
-	-textvariable [itcl::scope _settings($this-zpos)]
-    label $inner.xviewupl -text "View Up"
-    entry $inner.xviewup -bg white \
-	-textvariable [itcl::scope _settings($this-xviewup)]
-    entry $inner.yviewup -bg white \
-	-textvariable [itcl::scope _settings($this-yviewup)]
-    entry $inner.zviewup -bg white \
-	-textvariable [itcl::scope _settings($this-zviewup)]
-    label $inner.xfocall -text "Focal Point"
-    entry $inner.xfocal -bg white \
-	-textvariable [itcl::scope _settings($this-xfocal)]
-    entry $inner.yfocal -bg white \
-	-textvariable [itcl::scope _settings($this-yfocal)]
-    entry $inner.zfocal -bg white \
-	-textvariable [itcl::scope _settings($this-zfocal)]
-    label $inner.anglel -text "View Angle"
-    entry $inner.angle -bg white \
-	-textvariable [itcl::scope _settings($this-angle)]
-    label $inner.clipl -text "Clipping Range"
-    entry $inner.clipmin -bg white \
-	-textvariable [itcl::scope _settings($this-clipmin)]
-    entry $inner.clipmax -bg white \
-	-textvariable [itcl::scope _settings($this-clipmax)]
-    label $inner.pscalel -text "Parallel Scale"
-    entry $inner.pscale -bg white \
-	-textvariable [itcl::scope _settings($this-parallelscale)]
-
-    button $inner.refresh -text "Refresh" \
-	-command [itcl::code $this UpdateCameraInfo]
-    blt::table $inner \
-	0,0 $inner.xposl -anchor w -pady 2 \
-	1,0 $inner.xpos -pady 2 -fill x\
-	2,0 $inner.ypos -pady 2 -fill x\
-	3,0 $inner.zpos -pady 2 -fill x\
-	4,0 $inner.xviewupl -anchor w -pady 2 \
-	5,0 $inner.xviewup -pady 2 -fill x \
-	6,0 $inner.yviewup -pady 2 -fill x \
-	7,0 $inner.zviewup -pady 2 -fill x \
-	8,0 $inner.xfocall -anchor w -pady 2 \
-	9,0 $inner.xfocal -pady 2 -fill x \
-	10,0 $inner.yfocal -pady 2 -fill x \
-	11,0 $inner.zfocal -pady 2 -fill x \
-	16,0 $inner.anglel -anchor w -pady 2 \
-	17,0 $inner.angle -pady 2 -fill x \
-	18,0 $inner.clipl -anchor w -pady 2 \
-	19,0 $inner.clipmin -pady 2 -fill x \
-	20,0 $inner.clipmax -pady 2 -fill x \
-	21,0 $inner.pscalel -anchor w -pady 2 \
-	22,0 $inner.pscale -pady 2 -fill x \
-	23,0 $inner.refresh 
-
-    blt::table configure $inner r* c* -resize none
-    blt::table configure $inner c0 -resize expand
-    blt::table configure $inner r24 -resize expand
 }
 
 # ----------------------------------------------------------------------
@@ -1012,63 +1063,77 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
     switch -- $what {
-        light {
-        }
-        transp {
-        }
-        opacity {
-            set new [expr $_settings($this-opacity) * 0.01]
-            foreach dataobj [get] {
-                foreach comp [$dataobj components] {
-                    set actor [$dataobj values $comp]
-                    set prop [$actor GetProperty]
-                    $prop SetOpacity $new
-                }
+        "opacity" {
+            if {[isconnected]} {
+                set val $_settings($this-opacity)
+                set sval [expr { 0.01 * double($val) }]
+		foreach dataset [CurrentDatasets -visible $_first] {
+		    SendCmd "polydata opacity $sval $dataset"
+		}
             }
-            $_window Render
         }
-
         "wireframe" {
-            foreach dataobj [get] {
-                foreach comp [$dataobj components] {
-                    set actor [$dataobj values $comp]
-                    set prop [$actor GetProperty]
-                    if { $_settings($this-wireframe) } {
-                        $prop SetRepresentationToWireframe
-                    } else {
-                        $prop SetRepresentationToSurface
-                    }
-                }
+            if {[isconnected]} {
+		set bool $_settings($this-wireframe)
+		foreach dataset [CurrentDatasets -visible $_first] {
+		    SendCmd "polydata wireframe $bool $dataset"
+		}
             }
-            $_window Render
         }
-        "isosurface" {
+        "volume" {
+            if {[isconnected]} {
+		set bool $_settings($this-volume)
+		foreach dataset [CurrentDatasets -visible $_first] {
+		    SendCmd "polydata visible $bool $dataset"
+		}
+            }
+        }
+        "lighting" {
+            if {[isconnected]} {
+		set bool $_settings($this-lighting)
+		foreach dataset [CurrentDatasets -visible $_first] {
+		    SendCmd "polydata lighting $bool $dataset"
+		}
+            }
+        }
+        "grid-x" {
+            if {[isconnected]} {
+		set bool $_settings($this-grid-x)
+		SendCmd "axis grid x $bool"
+            }
+        }
+        "grid-y" {
+            if {[isconnected]} {
+		set bool $_settings($this-grid-y)
+		SendCmd "axis grid y $bool"
+            }
+        }
+        "grid-z" {
+            if {[isconnected]} {
+		set bool $_settings($this-grid-z)
+		SendCmd "axis grid z $bool"
+            }
         }
         "edges" {
-            foreach dataobj [get] {
-                foreach comp [$dataobj components] {
-                    set actor [$dataobj values $comp]
-                    set prop [$actor GetProperty]
-                    if { $_settings($this-edges) } {
-                        $prop EdgeVisibilityOn
-                    } else {
-                        $prop EdgeVisibilityOff
-                    }
-                }
+            if {[isconnected]} {
+		set bool $_settings($this-edges)
+		foreach dataset [CurrentDatasets -visible $_first] {
+		    SendCmd "polydata edges $bool $dataset"
+		}
             }
-            $_window Render
         }
         "axes" {
-            if { $_settings($this-axes) } {
-                $_cubeAxesActor VisibilityOn
-            } else {
-                $_cubeAxesActor VisibilityOff
+            if { [isconnected] } {
+		set bool $_settings($this-axes)
+                SendCmd "axis visible all $bool"
             }
-            $_window Render
         }
-        "smallaxes" {
-            $_axesWidget SetEnabled $_settings($this-smallaxes)
-            $_window Render
+        "axismode" {
+            if { [isconnected] } {
+		set mode [$itk_component(axismode) value]
+		set mode [$itk_component(axismode) translate $mode]
+                SendCmd "axis flymode $mode"
+            }
         }
         default {
             error "don't know how to fix $what"
@@ -1076,65 +1141,428 @@ itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
     }
 }
 
-itcl::body Rappture::VtkViewer::GetLimits {} {
-    return [list $_limits(xMin) $_limits(xMax) \
-                $_limits(yMin) $_limits(yMax) \
-                $_limits(zMin) $_limits(zMax)]
+#
+# SetStyles --
+#
+itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
+    array set style {
+        -color rainbow
+        -levels 6
+        -opacity 1.0
+    }
+    set tag $dataobj-$comp
+    array set style [lindex [$dataobj components -style $comp] 0]
+    set colormap "$style(-color):$style(-levels):$style(-opacity)"
+    if { [info exists _colormaps($colormap)] } {
+	puts stderr "Colormap $colormap already built"
+    }
+    if { ![info exists _dataset2style($tag)] } {
+	set _dataset2style($tag) $colormap
+	lappend _style2datasets($colormap) $tag
+    }
+    if { ![info exists _colormaps($colormap)] } {
+	# Build the pseudo colormap if it doesn't exist.
+	BuildColormap $colormap $dataobj $comp
+	set _colormaps($colormap) 1
+    }
+    #SendCmd "polydata add $style(-levels) $tag\n"
+    SendCmd "pseudocolor colormap $colormap $tag"
+    return $colormap
 }
 
-itcl::body Rappture::VtkViewer::ComputeLimits { args } {
-    array set _limits {
-        xMin 0 
-        xMax 1
-        yMin 0
-        yMax 1
-        zMin 0
-        zMax 1
-        vMin 0
-        vMax 1
+#
+# BuildColormap --
+#
+itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
+    array set style {
+        -color rainbow
+        -levels 6
+        -opacity 1.0
     }
-    set actors {}
-    if { [llength $args] > 0 } {
-        foreach dataobj $args {
-            foreach comp [$dataobj components] {
-                lappend actors [$dataobj values $comp]
-            } 
+    array set style [lindex [$dataobj components -style $comp] 0]
+
+    if {$style(-color) == "rainbow"} {
+        set style(-color) "white:yellow:green:cyan:blue:magenta"
+    }
+    set clist [split $style(-color) :]
+    set cmap {}
+    for {set i 0} {$i < [llength $clist]} {incr i} {
+        set x [expr {double($i)/([llength $clist]-1)}]
+        set color [lindex $clist $i]
+        append cmap "$x [Color2RGB $color] "
+    }
+    if { [llength $cmap] == 0 } {
+	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
+    }
+    set tag $this-$colormap
+    if { ![info exists _settings($tag-opacity)] } {
+        set _settings($tag-opacity) $style(-opacity)
+    }
+    set max $_settings($tag-opacity)
+
+    set wmap "0.0 1.0 1.0 1.0"
+    SendCmd "colormap add $colormap { $cmap } { $wmap }"
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -plotbackground
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VtkViewer::plotbackground {
+    if { [isconnected] } {
+        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
+        SendCmd "screen bgcolor $r $g $b"
+    }
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -plotforeground
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::VtkViewer::plotforeground {
+    if { [isconnected] } {
+        foreach {r g b} [Color2RGB $itk_option(-plotforeground)] break
+        #fix this!
+        #SendCmd "color background $r $g $b"
+    }
+}
+
+itcl::body Rappture::VtkViewer::limits { dataobj } {
+
+    array unset _limits $dataobj-*
+    foreach comp [$dataobj components] {
+	set tag $dataobj-$comp
+	if { ![info exists _limits($tag)] } {
+	    set data [$dataobj data $comp]
+	    set arr [vtkCharArray $tag-xvtkCharArray]
+	    $arr SetArray $data [string length $data] 1
+	    set reader [vtkPolyDataReader $tag-xvtkPolyDataReader]
+	    $reader SetInputArray $arr
+	    $reader ReadFromInputStringOn
+	    set mapper [vtkPolyDataMapper $tag-xvtkPolyDataMapper]
+	    $mapper SetInput [$reader GetOutput]
+	    set actor [vtkActor $tag-xvthActor]
+	    $actor SetMapper $mapper
+	    set _limits($tag) [$actor GetBounds]
+	    rename $actor ""
+	    rename $reader ""
+	    rename $arr ""
+	    rename $mapper ""
+	}
+        foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
+	if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
+	    set limits(xmin) $xMin
+	}
+	if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
+	    set limits(xmax) $xMax
+	}
+	if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
+	    set limits(ymin) $xMin
+	}
+	if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
+	    set limits(ymax) $yMax
+	}
+	if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
+	    set limits(zmin) $zMin
+	}
+	if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
+	    set limits(zmax) $zMax
+	}
+    }
+    return [array get limits]
+}
+
+
+itcl::body Rappture::VtkViewer::BuildViewTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "View Settings" \
+        -icon [Rappture::icon wrench]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.wireframe \
+        -text "Wireframe" \
+        -variable [itcl::scope _settings($this-wireframe)] \
+        -command [itcl::code $this FixSettings wireframe] \
+        -font "Arial 9"
+
+    checkbutton $inner.axes \
+        -text "Axes" \
+        -variable [itcl::scope _settings($this-axes)] \
+        -command [itcl::code $this FixSettings axes] \
+        -font "Arial 9"
+
+    checkbutton $inner.volume \
+        -text "Volume" \
+        -variable [itcl::scope _settings($this-volume)] \
+        -command [itcl::code $this FixSettings volume] \
+        -font "Arial 9"
+
+    checkbutton $inner.lighting \
+        -text "Lighting" \
+        -variable [itcl::scope _settings($this-lighting)] \
+        -command [itcl::code $this FixSettings lighting] \
+        -font "Arial 9"
+
+    checkbutton $inner.edges \
+        -text "Edges" \
+        -variable [itcl::scope _settings($this-edges)] \
+        -command [itcl::code $this FixSettings edges] \
+        -font "Arial 9"
+
+    label $inner.clear -text "Clear" -font "Arial 9"
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-opacity)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this FixSettings opacity]
+    label $inner.opaque -text "Opaque" -font "Arial 9"
+
+    blt::table $inner \
+        0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.volume -columnspan 4 -anchor w -pady 2 \
+        2,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
+        3,0 $inner.lighting  -columnspan 4 -anchor w \
+        4,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
+        5,0 $inner.clear -anchor e -pady 2 \
+        6,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
+        6,3 $inner.opaque -anchor w -pady 2 
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r7 -resize expand
+}
+
+itcl::body Rappture::VtkViewer::BuildAxisTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Axis Settings" \
+        -icon [Rappture::icon cog]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.axes \
+        -text "Visible" \
+        -variable [itcl::scope _settings($this-axes)] \
+        -command [itcl::code $this FixSettings axes] \
+        -font "Arial 9"
+
+    label $inner.grid -text "Grid" -font "Arial 9"
+    set f [frame $inner.gridf]
+    checkbutton $f.x \
+        -text "X" \
+        -variable [itcl::scope _settings($this-grid-x)] \
+        -command [itcl::code $this FixSettings grid-x] \
+        -font "Arial 9"
+    checkbutton $f.y \
+        -text "Y" \
+        -variable [itcl::scope _settings($this-grid-y)] \
+        -command [itcl::code $this FixSettings grid-y] \
+        -font "Arial 9"
+    checkbutton $f.z \
+        -text "Z" \
+        -variable [itcl::scope _settings($this-grid-z)] \
+        -command [itcl::code $this FixSettings grid-z] \
+        -font "Arial 9"
+    pack $f.x $f.y $f.z -side left 
+
+    label $inner.axismode -text "Mode" \
+        -font "Arial 9" 
+
+    itk_component add axismode {
+	Rappture::Combobox $inner.axismode_combo -width 10 -editable no
+    }
+    $inner.axismode_combo choices insert end \
+        "static_triad"    "static" \
+        "closest_triad"   "closest" \
+        "furthest_triad"  "furthest" \
+        "outer_edges"     "outer"         
+    $itk_component(axismode) value "outer"
+    bind $inner.axismode_combo <<Value>> [itcl::code $this FixSettings axismode]
+
+    blt::table $inner \
+        0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.axismode -anchor w -pady 2 \
+        1,1 $inner.axismode_combo -cspan 3 -anchor w -pady 2 \
+        2,0 $inner.grid -anchor w -pady 2 \
+        2,1 $inner.gridf -anchor w -cspan 3 -fill x 
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r3 -resize expand
+}
+
+itcl::body Rappture::VtkViewer::BuildCameraTab {} {
+    set inner [$itk_component(main) insert end \
+        -title "Camera Settings" \
+        -icon [Rappture::icon camera]]
+    $inner configure -borderwidth 4
+
+    set labels { qx qy qz qw pan-x pan-y zoom }
+    set row 0
+    foreach tag $labels {
+        label $inner.${tag}label -text $tag -font "Arial 9"
+        entry $inner.${tag} -font "Arial 9"  -bg white \
+            -textvariable [itcl::scope _view($tag)]
+        bind $inner.${tag} <KeyPress-Return> \
+            [itcl::code $this camera set ${tag}]
+        blt::table $inner \
+            $row,0 $inner.${tag}label -anchor e -pady 2 \
+            $row,1 $inner.${tag} -anchor w -pady 2
+        blt::table configure $inner r$row -resize none
+        incr row
+    }
+    blt::table configure $inner c0 c1 -resize none
+    blt::table configure $inner c2 -resize expand
+    blt::table configure $inner r$row -resize expand
+}
+
+
+#
+#  camera -- 
+#
+itcl::body Rappture::VtkViewer::camera {option args} {
+    switch -- $option { 
+        "show" {
+            puts [array get _view]
         }
-    } else {
-        foreach dataobj [get] {
-            foreach comp [$dataobj components] {
-                lappend actors [$dataobj values $comp]
-            } 
+        "set" {
+            set who [lindex $args 0]
+            set x $_view($who)
+            set code [catch { string is double $x } result]
+            if { $code != 0 || !$result } {
+                set x _view($who)
+                return
+            }
+            switch -- $who {
+                "pan-x" - "pan-y" {
+                    PanCamera
+                }
+                "qx" - "qy" - "qz" - "qw" {
+                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+		    $_arcball quaternion $q
+                    SendCmd "camera orient $q"
+                }
+                "zoom" {
+                    SendCmd "camera zoom $_view(zoom)"
+                }
+            }
         }
     }
-    if { [llength $actors] == 0 } {
-        return
+}
+
+itcl::body Rappture::VtkViewer::ConvertToVtkData { dataobj comp } {
+    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
+    set values [$dataobj values $comp]
+    append out "# vtk DataFile Version 2.0 \n"
+    append out "Test data \n"
+    append out "ASCII \n"
+    append out "DATASET STRUCTURED_POINTS \n"
+    append out "DIMENSIONS $xN $yN 1 \n"
+    append out "ORIGIN 0 0 0 \n"
+    append out "SPACING 1 1 1 \n"
+    append out "POINT_DATA [expr $xN * $yN] \n"
+    append out "SCALARS field float 1 \n"
+    append out "LOOKUP_TABLE default \n"
+    append out [join $values "\n"]
+    append out "\n"
+    return $out
+}
+
+
+itcl::body Rappture::VtkViewer::GetVtkData { args } {
+    set bytes ""
+    foreach dataobj [get] {
+        foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
+	    set contents [ConvertToVtkData $dataobj $comp]
+	    append bytes "$contents\n\n"
+        }
     }
-    set actor [lindex $actors 0]
-    foreach key { xMin xMax yMin yMax zMin zMax} value [$actor GetBounds] {
-        set _limits($key) $value
+    return [list .txt $bytes]
+}
+
+itcl::body Rappture::VtkViewer::GetImage { args } {
+    if { [image width $_image(download)] > 0 && 
+	 [image height $_image(download)] > 0 } {
+	set bytes [$_image(download) data -format "jpeg -quality 100"]
+	set bytes [Rappture::encoding::decode -as b64 $bytes]
+	return [list .jpg $bytes]
     }
-    foreach actor [lrange $actors 1 end] {
-        foreach { xMin xMax yMin yMax zMin zMax} [$actor GetBounds] break
-        if { $xMin < $_limits(xMin) } {
-            set _limits(xMin) $xMin
-        } 
-        if { $xMax > $_limits(xMax) } {
-            set _limits(xMax) $xMax
-        } 
-        if { $yMin < $_limits(yMin) } {
-            set _limits(yMin) $yMin
-        } 
-        if { $yMax > $_limits(yMax) } {
-            set _limits(yMax) $yMax
-        } 
-        if { $zMin < $_limits(zMin) } {
-            set _limits(zMin) $zMin
-        } 
-        if { $zMax > $_limits(zMax) } {
-            set _limits(zMax) $zMax
-        } 
+    return ""
+}
+
+itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
+    Rappture::Balloon $popup \
+        -title "[Rappture::filexfer::label downloadWord] as..."
+    set inner [$popup component inner]
+    label $inner.summary -text "" -anchor w 
+    radiobutton $inner.vtk_button -text "VTK data file" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -font "Helvetica 9 " \
+        -value vtk  
+    Rappture::Tooltip::for $inner.vtk_button "Save as VTK data file."
+    radiobutton $inner.image_button -text "Image File" \
+        -variable [itcl::scope _downloadPopup(format)] \
+        -value image 
+    Rappture::Tooltip::for $inner.image_button \
+        "Save as digital image."
+
+    button $inner.ok -text "Save" \
+	-highlightthickness 0 -pady 2 -padx 3 \
+        -command $command \
+	-compound left \
+	-image [Rappture::icon download]
+
+    button $inner.cancel -text "Cancel" \
+	-highlightthickness 0 -pady 2 -padx 3 \
+	-command [list $popup deactivate] \
+	-compound left \
+	-image [Rappture::icon cancel]
+
+    blt::table $inner \
+        0,0 $inner.summary -cspan 2  \
+        1,0 $inner.vtk_button -anchor w -cspan 2 -padx { 4 0 } \
+        2,0 $inner.image_button -anchor w -cspan 2 -padx { 4 0 } \
+        4,1 $inner.cancel -width .9i -fill y \
+        4,0 $inner.ok -padx 2 -width .9i -fill y 
+    blt::table configure $inner r3 -height 4
+    blt::table configure $inner r4 -pady 4
+    raise $inner.image_button
+    $inner.vtk_button invoke
+    return $inner
+}
+
+itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
+    array set props {
+        -color \#6666FF
+        -edgevisibility 1
+        -edgecolor black
+        -linewidth 1.0
+        -opacity 1.0
+	-wireframe 0
+	-lighting 1
     }
-    set _limits(vMin) $_limits(zMin)
-    set _limits(vMax) $_limits(zMax)
+    # Parse style string.
+    set style [$dataobj style $comp]
+    set tag $dataobj-$comp
+    array set props $style
+    SendCmd "polydata color [Color2RGB $props(-color)] $tag"
+    SendCmd "polydata edges $props(-edgevisibility) $tag"
+    SendCmd "polydata lighting $props(-lighting) $tag"
+    SendCmd "polydata linecolor [Color2RGB $props(-edgecolor)] $tag"
+    SendCmd "polydata linewidth $props(-linewidth) $tag"
+    SendCmd "polydata opacity $props(-opacity) $tag"
+    if { $dataobj != $_first } {
+	set props(-wireframe) 1
+    }
+    SendCmd "polydata wireframe $props(-wireframe) $tag"
+    set _settings($this-opacity) [expr $props(-opacity) * 100.0]
+}
+
+itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
+    if {[catch {$dataobj isa Rappture::Scene} valid] != 0 || !$valid} {
+	return 0
+    }
+    return 1
 }
