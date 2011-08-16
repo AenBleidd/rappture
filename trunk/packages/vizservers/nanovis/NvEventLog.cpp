@@ -25,12 +25,11 @@ void NvInitService()
         logNameLen = 20+1;
         logName = (char*) calloc(logNameLen,sizeof(char));
         strncpy(logName,"/tmp/nanovis_log.txt",logNameLen);
-    }
-    else {
+    } else {
         logNameLen = 17+1+strlen(user);
         logName = (char*) calloc(logNameLen,sizeof(char));
         strncpy(logName,"/tmp/nanovis_log_",logNameLen);
-        strncat(logName,user,strlen(user));
+        strncat(logName, user, strlen(user));
     }
 
     //open log and map stderr to log file
@@ -72,6 +71,7 @@ void NvExitEventLog()
 double NvGetTimeInterval()
 {
     struct timeval time;
+
     gettimeofday(&time, NULL);
     double new_time = time.tv_sec*1000. + time.tv_usec/1000.;
 
