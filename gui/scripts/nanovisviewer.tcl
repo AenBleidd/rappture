@@ -913,7 +913,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     foreach axis {x y z} {
         SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
         set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-        SendCmd "cutplane position $pos $axis $vols"
+	set vol [lindex $vols 0]
+        SendCmd "cutplane position $pos $axis $vol"
     }
     SendCmd "volume data state $_settings($this-volume) $vols"
     set _buffering 0;                        # Turn off buffering.
@@ -1222,8 +1223,8 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
             set bool $_settings($this-$what)
             if { [isconnected] } {
                 set vols [CurrentVolumes -cutplanes] 
- puts stderr "cutplanes=$cutplanes"
-                SendCmd "cutplane state $bool $axis $vols"
+		set vol [lindex $vols 0]
+                SendCmd "cutplane state $bool $axis $vol"
             }
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
@@ -1883,7 +1884,8 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
 
             set newpos [expr {0.01*$newval}]
             set vols [CurrentVolumes -cutplanes]
-            SendCmd "cutplane position $newpos $axis $vols"
+	    set vol [lindex $vols 0]
+            SendCmd "cutplane position $newpos $axis $vol"
         }
         default {
             error "bad option \"$option\": should be axis, move, or volume"
