@@ -132,7 +132,7 @@ FILE *NanoVis::recfile = NULL;
 
 bool NanoVis::axis_on = true;
 bool NanoVis::config_pending = false;
-bool NanoVis::debug_flag = true;
+bool NanoVis::debug_flag = false;
 
 Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
