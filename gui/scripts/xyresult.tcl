@@ -169,10 +169,14 @@ itcl::body Rappture::XyResult::constructor {args} {
         -symbol square -pixels 3 -linewidth 2 \
         -outline black -fill red -color black
 
+    #
     # Add bindings so you can mouse over points to see values:
-    bind $itk_component(plot) <Motion> \
+    #
+    $itk_component(plot) element bind all <Enter> \
         [itcl::code $this Hilite at %x %y]
-    bind $itk_component(plot) <Leave> \
+    $itk_component(plot) element bind all <Motion> \
+        [itcl::code $this Hilite at %x %y]
+    $itk_component(plot) element bind all <Leave> \
         [itcl::code $this Hilite off %x %y]
 
     # Add support for editing axes:
