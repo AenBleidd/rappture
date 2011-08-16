@@ -424,7 +424,7 @@ main(int argc, char **argv)
 
 		/* Set the screen number in the DISPLAY variable. */
 		display[3] = screenNum + '0';
-		setenv("DISPLAY", display);
+		setenv("DISPLAY", display, 0);
 		/* Set the enviroment, if necessary. */
 		for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
 		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 0);
