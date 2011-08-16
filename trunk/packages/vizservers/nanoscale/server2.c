@@ -257,22 +257,18 @@ main(int argc, char **argv)
     int maxCards;			/* Maximum number of video cards, each
 					 * represented by a different X
 					 * screen.  */
-    int dispNum;			/* Current X display number. */
+    int screenNum;			/* Current X screen number. */
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     const char *fileName;		/* Path to servers file. */
  
     serverPid = getpid();
-    dispNum = 0;
+    screenNum = 0;
     maxCards = 1;
     fileName = SERVERSFILE;
     debug = FALSE;
 
-    strcpy(display, "DISPLAY=:0.0");
-    if (putenv(display) < 0) {
-	ERROR("Can't set DISPLAY variable: %s", strerror(errno));
-	exit(1);
-    }
+    strcpy(display, ":0.0");
     Tcl_InitHashTable(&serverTable, TCL_ONE_WORD_KEYS);
 
     /* Process command line switches. */
@@ -377,9 +373,9 @@ main(int argc, char **argv)
 	    }
 	    /* Rotate the display's screen number.  If we have multiple video
 	     * cards, try to spread the jobs out among them.  */
-	    dispNum++;
-	    if (dispNum >= maxCards) {
-		dispNum = 0;
+	    screenNum++;
+	    if (screenNum >= maxCards) {
+		screenNum = 0;
 	    }
 	    /* Accept the new connection. */
 	    length = sizeof(newaddr);
@@ -427,15 +423,15 @@ main(int argc, char **argv)
 		}
 
 		/* Set the screen number in the DISPLAY variable. */
-		display[11] = dispNum + '0';
-
+		display[3] = screenNum + '0';
+		setenv("DISPLAY", display);
 		/* Set the enviroment, if necessary. */
 		for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
 		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 0);
 		}
-		INFO("Executing %s: client %s, %s on %s", serverPtr->name, 
-			inet_ntoa(newaddr.sin_addr), serverPtr->cmdArgs[0], 
-			display);
+		INFO("Executing %s: client %s, %s on DISPLAY=%s", 
+			serverPtr->name, inet_ntoa(newaddr.sin_addr), 
+			serverPtr->cmdArgs[0], display);
 		/* Replace the current process with the render server. */
 		execvp(serverPtr->cmdArgs[0], serverPtr->cmdArgs);
 		ERROR("Can't execute \"%s\": %s", serverPtr->cmdArgs[0], 
