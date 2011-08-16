@@ -2249,10 +2249,8 @@ main(int argc, char **argv)
     path = NULL;
     NanoVis::stdin = stdin;
 
-    for (i = 0; i < 10; i++) {
     if ((n = write(1, "NanoVis ", 8)) != 8) {
        INFO("short write %d", n);
-}
     }
     /* openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER); */
     INFO("writing marker to stdout");
