@@ -250,6 +250,9 @@ ParseServersFile(const char *fileName)
 int 
 main(int argc, char **argv)
 {
+#ifdef SA_NOCLDWAIT
+    struct sigaction action;
+#endif
     fd_set serverFds;
     int maxFd;				/* Highest file descriptor in use. */
     char display[200];			/* String used to manage the X 
@@ -331,7 +334,16 @@ main(int argc, char **argv)
 	ERROR("No servers designated.");
 	exit(1);
     }
-
+#ifdef SA_NOCLDWAIT
+    memset(&action, 0, sizeof(action));
+    action.sa_flags = SA_NOCLDWAIT;
+#endif
+     signal(SIGPIPE, SIG_IGN);
+#ifdef SA_NOCLDWAIT
+    sigaction(SIGCHLD, &action, 0);
+#else
+    signal(SIGCHLD, SIG_IGN);
+#endif
 
     /* Build the array of servers listener file descriptors. */
     FD_ZERO(&serverFds);

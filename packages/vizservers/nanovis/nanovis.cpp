@@ -2244,12 +2244,16 @@ main(int argc, char** argv)
     const char *path;
     char *newPath;
     struct timeval tv;
-
+	int n;
     newPath = NULL;
     path = NULL;
     NanoVis::stdin = stdin;
 
     openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER);
+    INFO("writing marker to stdout");
+    if ((n = write(1, "NanoVis ", 8)) != 8) {
+       INFO("short write %d", n);
+    }
     gettimeofday(&tv, NULL);
     stats.start = tv;
 
@@ -2369,6 +2373,7 @@ main(int argc, char** argv)
         path = newPath;
 #endif
     }
+
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
     vrFilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
@@ -2376,7 +2381,6 @@ main(int argc, char** argv)
 #ifdef notdef
     signal(SIGPIPE,SIG_IGN);
 #endif
-    write(1, "nanovis ", 8);
     NvInitService();
 #endif
 
