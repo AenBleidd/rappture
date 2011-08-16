@@ -945,7 +945,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                 set yval [Axis format y dummy $info(y)]
                 append tip "\n$yval$yunits"
                 set xval [Axis format x dummy $info(x)]
-                append tip " @ $xval$xunits"
+                append tip " @ $xval"
                 set tip [string trim $tip]
 		set index $info(index)
             }
@@ -982,7 +982,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                 set yval [Axis format y dummy $info(y)]
                 append tip "\n$yval$yunits"
                 set xval [Axis format x dummy $info(x)]
-                append tip " @ $xval$xunits"
+                append tip " @ $xval"
                 set tip [string trim $tip]
 		set index $info(index)
                 set state 1
