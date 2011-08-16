@@ -326,12 +326,10 @@ main(int argc, char **argv)
 	ERROR("No servers designated.");
 	exit(1);
     }
+    signal(SIGPIPE, SIG_IGN);
 #ifdef SA_NOCLDWAIT
     memset(&action, 0, sizeof(action));
     action.sa_flags = SA_NOCLDWAIT;
-#endif
-     signal(SIGPIPE, SIG_IGN);
-#ifdef SA_NOCLDWAIT
     sigaction(SIGCHLD, &action, 0);
 #else
     signal(SIGCHLD, SIG_IGN);
@@ -417,7 +415,7 @@ main(int argc, char **argv)
 		dup2(f, 0);		/* Stdin */
 		dup2(f, 1);		/* Stdout */
 		errFd = open("/dev/null", O_WRONLY, 0600);
-		dup2(errFd, 2);
+		dup2(errFd, 2);		/* Stderr */
 		for(i = 3; i <= FD_SETSIZE; i++) {
 		    close(i);		/* Close all the other descriptors. */
 		}
