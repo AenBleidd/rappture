@@ -12,6 +12,14 @@ register_server nanovis 2000 {
   LD_LIBRARY_PATH ${libdir}
 }
 
+# NanoVis server --
+#
+register_server nanovis-test 2015 {
+    ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
+} {
+  LD_LIBRARY_PATH ${libdir}
+}
+
 # VtkVis server --
 #    3D drawings (scene graphs), Contour and surface graphs.
 #
