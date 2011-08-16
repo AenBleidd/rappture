@@ -130,6 +130,7 @@ bool DataSet::setData(vtkDataSetReader *reader)
           bounds[0], bounds[1],
           bounds[2], bounds[3],
           bounds[4], bounds[5]);
+    TRACE("Points: %d Cells: %d", _dataSet->GetNumberOfPoints(), _dataSet->GetNumberOfCells());
     return true;
 }
 
@@ -155,6 +156,7 @@ bool DataSet::setData(vtkDataSet *ds)
           bounds[0], bounds[1],
           bounds[2], bounds[3],
           bounds[4], bounds[5]);
+    TRACE("Points: %d Cells: %d", _dataSet->GetNumberOfPoints(), _dataSet->GetNumberOfCells());
     return true;
 }
 
@@ -244,11 +246,11 @@ bool DataSet::setActiveScalar(const char *name)
     bool found = false;
     if (_dataSet != NULL) {
         if (_dataSet->GetPointData() != NULL) {
-            if (_dataSet->GetPointData()->SetActiveScalars(name))
+            if (_dataSet->GetPointData()->SetActiveScalars(name) >= 0)
                 found = true;
         }
         if (_dataSet->GetCellData() != NULL) {
-            if (_dataSet->GetCellData()->SetActiveScalars(name))
+            if (_dataSet->GetCellData()->SetActiveScalars(name) >= 0)
                 found = true;
         }
     }
@@ -263,11 +265,11 @@ bool DataSet::setActiveVector(const char *name)
     bool found = false;
     if (_dataSet != NULL) {
         if (_dataSet->GetPointData() != NULL) {
-            if (_dataSet->GetPointData()->SetActiveVectors(name))
+            if (_dataSet->GetPointData()->SetActiveVectors(name) >= 0)
                 found = true;
         }
         if (_dataSet->GetCellData() != NULL) {
-            if (_dataSet->GetCellData()->SetActiveVectors(name))
+            if (_dataSet->GetCellData()->SetActiveVectors(name) >= 0)
                 found = true;
         }
     }
@@ -325,7 +327,7 @@ void DataSet::getVectorComponentRange(double minmax[2], int component) const
 {
     if (_dataSet == NULL)
         return;
-    if (_dataSet->GetPointData() != NULL ||
+    if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetVectors() != NULL) {
         _dataSet->GetPointData()->GetVectors()->GetRange(minmax, component);
     } else if (_dataSet->GetCellData() != NULL &&
