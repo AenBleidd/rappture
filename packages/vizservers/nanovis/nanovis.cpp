@@ -2203,6 +2203,9 @@ NanoVis::xinetd_listen(void)
 	TRACE("Leaving xinetd_listen on ERROR\n");
         return;
     }
+    if (feof(NanoVis::stdin)) {
+        DoExit(90);
+    }
 
     NanoVis::update();
 
@@ -2230,30 +2233,29 @@ NanoVis::xinetd_listen(void)
 #else
     NanoVis::ppm_write("\nnv>image -type image -bytes");
 #endif
-    if (feof(NanoVis::stdin)) {
-        DoExit(90);
-    }
     TRACE("Leaving xinetd_listen OK\n");
 }
 
 
 /*----------------------------------------------------*/
 int 
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
     const char *path;
     char *newPath;
     struct timeval tv;
-	int n;
+	int n, i;
     newPath = NULL;
     path = NULL;
     NanoVis::stdin = stdin;
 
-    openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER);
-    INFO("writing marker to stdout");
+    for (i = 0; i < 10; i++) {
     if ((n = write(1, "NanoVis ", 8)) != 8) {
        INFO("short write %d", n);
+}
     }
+    /* openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER); */
+    INFO("writing marker to stdout");
     gettimeofday(&tv, NULL);
     stats.start = tv;
 
