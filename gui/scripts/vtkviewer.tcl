@@ -358,14 +358,14 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     if { $_height < 2 } {
 	set _height 500
     }
-    puts stderr "screen size $_width $_height"
+    #puts stderr "screen size $_width $_height"
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
     set _resizePending 0
 }
 
 itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
-    puts stderr "EventuallyResize $w $h"
+    #puts stderr "EventuallyResize $w $h"
     set _width $w
     set _height $h
     $_arcball resize $w $h
@@ -624,14 +624,14 @@ itcl::body Rappture::VtkViewer::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Connect {} {
-    puts stderr "Enter Connect: [info level -1]"
+    #puts stderr "Enter Connect: [info level -1]"
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
     }
     set result [VisViewer::Connect $_hosts]
     if { $result } {
-	puts stderr "Connected to $_hostname sid=$_sid"
+	#puts stderr "Connected to $_hostname sid=$_sid"
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -722,7 +722,7 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
 	set time [clock seconds]
 	set date [clock format $time]
-        puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
+        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
 	if { $_start > 0 } {
 	    set finish [clock clicks -milliseconds]
 	    puts stderr "round trip time [expr $finish -$_start] milliseconds"
