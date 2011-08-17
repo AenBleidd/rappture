@@ -1156,8 +1156,8 @@ Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec contour3dOps[] = {
     {"add",       1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"color",     6, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  6, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"ccolor",    2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  2, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",    1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -1184,6 +1184,50 @@ Contour3DCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+DataSetActiveScalarsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    const char *scalarName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        if (!g_renderer->setDataSetActiveScalars(name, scalarName)) {
+            Tcl_AppendResult(interp, "scalar \"", scalarName,
+                         "\" not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->setDataSetActiveScalars("all", scalarName)) {
+            Tcl_AppendResult(interp, "scalar \"", scalarName,
+                         "\" not found in one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetActiveVectorsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    const char *vectorName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        if (!g_renderer->setDataSetActiveVectors(name, vectorName)) {
+            Tcl_AppendResult(interp, "vector \"", vectorName,
+                         "\" not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->setDataSetActiveVectors("all", vectorName)) {
+            Tcl_AppendResult(interp, "vector \"", vectorName,
+                         "\" not found in one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
 }
 
 static int
@@ -1384,7 +1428,9 @@ static Rappture::CmdSpec dataSetOps[] = {
     {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
     {"maprange", 1, DataSetMapRangeOp, 3, 3, "value"},
     {"opacity",  1, DataSetOpacityOp, 3, 4, "value ?name?"},
-    {"visible",  1, DataSetVisibleOp, 3, 4, "bool ?name?"}
+    {"scalar",   1, DataSetActiveScalarsOp, 3, 4, "scalarName ?name?"},
+    {"vector",   2, DataSetActiveVectorsOp, 3, 4, "vectorName ?name?"},
+    {"visible",  2, DataSetVisibleOp, 3, 4, "bool ?name?"}
 };
 static int nDataSetOps = NumCmdSpecs(dataSetOps);
 
@@ -1445,6 +1491,25 @@ GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGlyphsColor(name, color);
+    } else {
+        g_renderer->setGlyphsColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -1464,7 +1529,9 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Glyphs::ColorMode mode;
     const char *str = Tcl_GetString(objv[2]);
-    if (str[0] == 's' && strcmp(str, "scale") == 0) {
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Glyphs::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scale") == 0) {
         mode = Glyphs::COLOR_BY_SCALE;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Glyphs::COLOR_BY_SCALAR;
@@ -1472,7 +1539,7 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Glyphs::COLOR_BY_VECTOR;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scale', 'scalar', 'vector'", (char*)NULL);
+                         "\": should be one of: 'scale', 'scalar', 'vector', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {
@@ -1763,6 +1830,7 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec glyphsOps[] = {
     {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
+    {"ccolor",    2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
     {"colormode", 7, GlyphsColorModeOp, 3, 4, "mode ?dataSetNme?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
@@ -3478,6 +3546,25 @@ StreamlinesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+StreamlinesColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setStreamlinesColor(name, color);
+    } else {
+        g_renderer->setStreamlinesColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -3487,6 +3574,38 @@ StreamlinesColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setStreamlinesColorMap(dataSetName, colorMapName);
     } else {
         g_renderer->setStreamlinesColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+StreamlinesColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    Streamlines::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Streamlines::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Streamlines::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Streamlines::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Streamlines::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Streamlines::COLOR_BY_VECTOR_Z;
+    } else if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Streamlines::COLOR_CONSTANT;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesColorMode(dataSetName, mode);
+    } else {
+        g_renderer->setStreamlinesColorMode("all", mode);
     }
     return TCL_OK;
 }
@@ -3952,7 +4071,9 @@ StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec streamlinesOps[] = {
     {"add",       1, StreamlinesAddOp, 2, 3, "?dataSetName?"},
-    {"colormap",  1, StreamlinesColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"ccolor",    1, StreamlinesColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  7, StreamlinesColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, StreamlinesColorModeOp, 3, 4, "mode ?dataSetNme?"},
     {"delete",    1, StreamlinesDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"length",    2, StreamlinesLengthOp, 3, 4, "length ?dataSetName?"},

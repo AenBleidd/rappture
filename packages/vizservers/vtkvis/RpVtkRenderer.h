@@ -107,6 +107,10 @@ public:
 
     bool setDataFile(const DataSetId& id, const char *filename);
 
+    bool setDataSetActiveScalars(const DataSetId& id, const char *scalarName);
+
+    bool setDataSetActiveVectors(const DataSetId& id, const char *vectorName);
+
     double getDataValueAtPixel(const DataSetId& id, int x, int y);
 
     double getDataValue(const DataSetId& id, double x, double y, double z);
@@ -141,6 +145,8 @@ public:
 
     void resetCamera(bool resetOrientation = true);
 
+    void resetCameraClippingRange();
+
     void setCameraZoomRegion(double x, double y, double width, double height);
 
     void getCameraZoomRegion(double xywh[4]) const;
@@ -149,15 +155,15 @@ public:
 
     void rotateCamera(double yaw, double pitch, double roll);
 
-    void setCameraOrientation(double quat[4], bool absolute = true);
+    void setCameraOrientation(const double quat[4], bool absolute = true);
 
     void panCamera(double x, double y, bool absolute = true);
 
     void zoomCamera(double z, bool absolute = true);
 
-    void setCameraOrientationAndPosition(double position[3],
-                                         double focalPoint[3],
-                                         double viewUp[3]);
+    void setCameraOrientationAndPosition(const double position[3],
+                                         const double focalPoint[3],
+                                         const double viewUp[3]);
 
     void getCameraOrientationAndPosition(double position[3],
                                          double focalPoint[3],
@@ -312,6 +318,8 @@ public:
     void setGlyphsPosition(const DataSetId& id, double pos[3]);
 
     void setGlyphsScale(const DataSetId& id, double scale[3]);
+
+    void setGlyphsColor(const DataSetId& id, float color[3]);
 
     void setGlyphsEdgeVisibility(const DataSetId& id, bool state);
 
@@ -544,6 +552,8 @@ public:
 
     void setStreamlinesScale(const DataSetId& id, double scale[3]);
 
+    void setStreamlinesColor(const DataSetId& id, float color[3]);
+
     void setStreamlinesEdgeVisibility(const DataSetId& id, bool state);
 
     void setStreamlinesEdgeColor(const DataSetId& id, float color[3]);
@@ -586,6 +596,8 @@ public:
     void setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle);
 
     void setStreamlinesSeedVisibility(const DataSetId& id, bool state);
+
+    void setStreamlinesColorMode(const DataSetId& id, Streamlines::ColorMode mode);
 
     void setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
