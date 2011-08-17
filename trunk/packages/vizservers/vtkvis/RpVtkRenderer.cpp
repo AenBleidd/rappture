@@ -686,6 +686,72 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
         return false;
 }
 
+bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarName)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("DataSet not found: %s", id.c_str());
+        return false;
+    }
+
+    bool ret = true;
+    do {
+        if (!itr->second->setActiveScalars(scalarName)) {
+            ret = false;
+        }
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (ret) {
+        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+        updateRanges(_useCumulativeRange);
+        _needsRedraw = true;
+    } 
+
+    return ret;
+}
+
+bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorName)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("DataSet not found: %s", id.c_str());
+        return false;
+    }
+
+    bool ret = true;
+    do {
+        if (!itr->second->setActiveVectors(vectorName)) {
+            ret = false;
+        }
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (ret) {
+        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
+        updateRanges(_useCumulativeRange);
+        _needsRedraw = true;
+    } 
+
+    return ret;
+}
+
 /**
  * \brief Control whether the cumulative data range of datasets is used for 
  * colormapping and contours
@@ -2378,6 +2444,33 @@ void Renderer::setGlyphsScale(const DataSetId& id, double scale[3])
     } while (doAll && ++itr != _glyphs.end());
 
     resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB polygon color for the specified DataSet
+ */
+void Renderer::setGlyphsColor(const DataSetId& id, float color[3])
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColor(color);
+    } while (doAll && ++itr != _glyphs.end());
+
     _needsRedraw = true;
 }
 
@@ -5239,9 +5332,7 @@ void Renderer::addStreamlines(const DataSetId& id)
         vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
         ColorMap *cmap = getColorMap("default");
         lut->DeepCopy(cmap->getLookupTable());
-#if 0
-        // Currently lookup table/scalar data range not used, colormap is used to
-        // color streamlines by vector magnitude
+
         if (_useCumulativeRange) {
             lut->SetRange(_cumulativeDataRange);
         } else {
@@ -5249,7 +5340,6 @@ void Renderer::addStreamlines(const DataSetId& id)
             ds->getDataRange(range);
             lut->SetRange(range);
         }
-#endif
         streamlines->setLookupTable(lut);
 
         _renderer->AddViewProp(streamlines->getProp());
@@ -5753,6 +5843,33 @@ void Renderer::setStreamlinesSeedVisibility(const DataSetId& id, bool state)
 }
 
 /**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setStreamlinesColorMode(const DataSetId& id, Streamlines::ColorMode mode)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Associate an existing named color map with a Streamlines for the given DataSet
  */
 void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId)
@@ -5789,7 +5906,6 @@ void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& col
         vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
         lut->DeepCopy(cmap->getLookupTable());
 
-#if 0
         if (_useCumulativeRange) {
             lut->SetRange(_cumulativeDataRange);
         } else {
@@ -5799,7 +5915,6 @@ void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& col
                 lut->SetRange(range);
             }
         }
-#endif
 
         itr->second->setLookupTable(lut);
     } while (doAll && ++itr != _streamlines.end());
@@ -5862,6 +5977,32 @@ void Renderer::setStreamlinesEdgeVisibility(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set the RGB color for the specified DataSet
+ */
+void Renderer::setStreamlinesColor(const DataSetId& id, float color[3])
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColor(color);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
 
 /**
  * \brief Set the RGB line/edge color for the specified DataSet
@@ -6490,7 +6631,7 @@ void Renderer::setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4& mat)
     camera->SetViewUp(vu);
 }
 
-inline void quaternionToMatrix4x4(double quat[4], vtkMatrix4x4& mat)
+inline void quaternionToMatrix4x4(const double quat[4], vtkMatrix4x4& mat)
 {
     double ww = quat[0]*quat[0];
     double wx = quat[0]*quat[1];
@@ -6524,7 +6665,7 @@ inline void quaternionToMatrix4x4(double quat[4], vtkMatrix4x4& mat)
     mat[2][2] = zz*f + s;
 }
 
-inline void quaternionToTransposeMatrix4x4(double quat[4], vtkMatrix4x4& mat)
+inline void quaternionToTransposeMatrix4x4(const double quat[4], vtkMatrix4x4& mat)
 {
     double ww = quat[0]*quat[0];
     double wx = quat[0]*quat[1];
@@ -6558,7 +6699,7 @@ inline void quaternionToTransposeMatrix4x4(double quat[4], vtkMatrix4x4& mat)
     mat[2][2] = zz*f + s;
 }
 
-inline double *quatMult(double q1[4], double q2[4], double result[4])
+inline double *quatMult(const double q1[4], const double q2[4], double result[4])
 {
     double q1w = q1[0];
     double q1x = q1[1];
@@ -6575,7 +6716,7 @@ inline double *quatMult(double q1[4], double q2[4], double result[4])
     return result;
 }
 
-inline double *quatConjugate(double quat[4], double result[4])
+inline double *quatConjugate(const double quat[4], double result[4])
 {
     result[1] = -quat[1];
     result[2] = -quat[2];
@@ -6583,7 +6724,7 @@ inline double *quatConjugate(double quat[4], double result[4])
     return result;
 }
 
-inline double *quatReciprocal(double quat[4], double result[4])
+inline double *quatReciprocal(const double quat[4], double result[4])
 {
     double denom = 
         quat[0]*quat[0] + 
@@ -6602,7 +6743,7 @@ inline double *quatReciprocal(double quat[4])
     return quatReciprocal(quat, quat);
 }
 
-inline void copyQuat(double quat[4], double result[4])
+inline void copyQuat(const double quat[4], double result[4])
 {
     memcpy(result, quat, sizeof(double)*4);
 }
@@ -6614,7 +6755,7 @@ inline void copyQuat(double quat[4], double result[4])
  * \param[in] quat A quaternion with scalar part first: w,x,y,z
  * \param[in] absolute Is rotation absolute or relative?
  */
-void Renderer::setCameraOrientation(double quat[4], bool absolute)
+void Renderer::setCameraOrientation(const double quat[4], bool absolute)
 {
     if (_cameraMode == IMAGE)
         return;
@@ -6622,20 +6763,23 @@ void Renderer::setCameraOrientation(double quat[4], bool absolute)
     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
     vtkSmartPointer<vtkMatrix4x4> rotMat = vtkSmartPointer<vtkMatrix4x4>::New();
 
+    double q[4];
+    copyQuat(quat, q);
+
     if (absolute) {
         double abs[4];
         // Save absolute rotation
-        copyQuat(quat, abs);
+        copyQuat(q, abs);
         // Compute relative rotation
-        quatMult(quatReciprocal(_cameraOrientation), quat, quat);
+        quatMult(quatReciprocal(_cameraOrientation), q, q);
         // Store absolute rotation
         copyQuat(abs, _cameraOrientation);
     } else {
         // Compute new absolute rotation
-        quatMult(_cameraOrientation, quat, _cameraOrientation);
+        quatMult(_cameraOrientation, q, _cameraOrientation);
     }
 
-    quaternionToTransposeMatrix4x4(quat, *rotMat);
+    quaternionToTransposeMatrix4x4(q, *rotMat);
 #ifdef DEBUG
     TRACE("Rotation matrix:\n %g %g %g\n %g %g %g\n %g %g %g",
           (*rotMat)[0][0], (*rotMat)[0][1], (*rotMat)[0][2],
@@ -6668,9 +6812,9 @@ void Renderer::setCameraOrientation(double quat[4], bool absolute)
  * \param[in] focalPoint x,y,z look-at point in world coordinates
  * \param[in] viewUp x,y,z up vector of camera
  */
-void Renderer::setCameraOrientationAndPosition(double position[3],
-                                               double focalPoint[3],
-                                               double viewUp[3])
+void Renderer::setCameraOrientationAndPosition(const double position[3],
+                                               const double focalPoint[3],
+                                               const double viewUp[3])
 {
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     camera->SetPosition(position);
@@ -6732,6 +6876,11 @@ void Renderer::resetCamera(bool resetOrientation)
     _cameraPan[1] = 0;
 
     _needsRedraw = true;
+}
+
+void Renderer::resetCameraClippingRange()
+{
+    _renderer->ResetCameraClippingRange();
 }
 
 /**
@@ -6810,42 +6959,44 @@ void Renderer::panCamera(double x, double y, bool absolute)
             _cameraPan[1] += y;
         }
 
-        vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
-        double viewFocus[4], focalDepth, viewPoint[3];
-        double newPickPoint[4], oldPickPoint[4], motionVector[3];
+        if (x != 0.0 || y != 0.0) {
+            vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
+            double viewFocus[4], focalDepth, viewPoint[3];
+            double newPickPoint[4], oldPickPoint[4], motionVector[3];
 
-        camera->GetFocalPoint(viewFocus);
-        computeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2], 
-                              viewFocus);
-        focalDepth = viewFocus[2];
+            camera->GetFocalPoint(viewFocus);
+            computeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2], 
+                                  viewFocus);
+            focalDepth = viewFocus[2];
 
-        computeDisplayToWorld(( x * 2. + 1.) * _windowWidth / 2.0,
-                              ( y * 2. + 1.) * _windowHeight / 2.0,
-                              focalDepth, 
-                              newPickPoint);
+            computeDisplayToWorld(( x * 2. + 1.) * _windowWidth / 2.0,
+                                  ( y * 2. + 1.) * _windowHeight / 2.0,
+                                  focalDepth, 
+                                  newPickPoint);
 
-        computeDisplayToWorld(_windowWidth / 2.0,
-                              _windowHeight / 2.0,
-                              focalDepth, 
-                              oldPickPoint);
+            computeDisplayToWorld(_windowWidth / 2.0,
+                                  _windowHeight / 2.0,
+                                  focalDepth, 
+                                  oldPickPoint);
 
-        // Camera motion is reversed
-        motionVector[0] = oldPickPoint[0] - newPickPoint[0];
-        motionVector[1] = oldPickPoint[1] - newPickPoint[1];
-        motionVector[2] = oldPickPoint[2] - newPickPoint[2];
+            // Camera motion is reversed
+            motionVector[0] = oldPickPoint[0] - newPickPoint[0];
+            motionVector[1] = oldPickPoint[1] - newPickPoint[1];
+            motionVector[2] = oldPickPoint[2] - newPickPoint[2];
 
-        camera->GetFocalPoint(viewFocus);
-        camera->GetPosition(viewPoint);
-        camera->SetFocalPoint(motionVector[0] + viewFocus[0],
-                              motionVector[1] + viewFocus[1],
-                              motionVector[2] + viewFocus[2]);
+            camera->GetFocalPoint(viewFocus);
+            camera->GetPosition(viewPoint);
+            camera->SetFocalPoint(motionVector[0] + viewFocus[0],
+                                  motionVector[1] + viewFocus[1],
+                                  motionVector[2] + viewFocus[2]);
 
-        camera->SetPosition(motionVector[0] + viewPoint[0],
-                            motionVector[1] + viewPoint[1],
-                            motionVector[2] + viewPoint[2]);
+            camera->SetPosition(motionVector[0] + viewPoint[0],
+                                motionVector[1] + viewPoint[1],
+                                motionVector[2] + viewPoint[2]);
 
-        _renderer->ResetCameraClippingRange();
-        //computeScreenWorldCoords();
+            _renderer->ResetCameraClippingRange();
+            //computeScreenWorldCoords();
+        }
     }
 
     TRACE("Leave panCamera: %g %g, current abs: %g %g",
@@ -7293,9 +7444,6 @@ void Renderer::updateRanges(bool useCumulative)
             }
         }
     }
-#if 0
-    // Currently lookup table/scalar data range not used, colormap is used to
-    // color streamlines by vector magnitude
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
          itr != _streamlines.end(); ++itr) {
         vtkLookupTable *lut = itr->second->getLookupTable();
@@ -7311,7 +7459,6 @@ void Renderer::updateRanges(bool useCumulative)
             }
         }
     }
-#endif
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
         ColorMap *cmap = itr->second->getColorMap();

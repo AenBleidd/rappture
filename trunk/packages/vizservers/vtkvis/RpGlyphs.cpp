@@ -28,9 +28,10 @@ using namespace Rappture::VtkVis;
 Glyphs::Glyphs() :
     VtkGraphicsObject(),
     _glyphShape(ARROW),
-    _scaleFactor(1.0)
+    _scaleFactor(1.0),
+    _colorMode(COLOR_BY_SCALAR)
 {
-    _backfaceCulling = true;
+    _faceCulling = true;
 }
 
 Glyphs::~Glyphs()
@@ -80,6 +81,15 @@ void Glyphs::setGlyphShape(GlyphShape shape)
 	ERROR("Unknown glyph shape: %d", _glyphShape);
 	return;
     }
+
+    if (_glyphShape == ICOSAHEDRON ||
+        _glyphShape == TETRAHEDRON) {
+        // These shapes are created with front faces pointing inside
+        setCullFace(CULL_FRONT);
+    } else {
+        setCullFace(CULL_BACK);
+    }
+
     if (_glyphGenerator != NULL) {
 	_glyphGenerator->SetSourceConnection(_glyphSource->GetOutputPort());
     }
@@ -95,12 +105,12 @@ void Glyphs::update()
     }
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
-    double dataRange[2];
-    _dataSet->getDataRange(dataRange);
 
     if (_glyphGenerator == NULL) {
 	_glyphGenerator = vtkSmartPointer<vtkGlyph3D>::New();
     }
+
+    initProp();
 
     setGlyphShape(_glyphShape);
 
@@ -133,10 +143,14 @@ void Glyphs::update()
     _glyphGenerator->ScalingOn();
 
     if (ds->GetPointData()->GetScalars() == NULL) {
+        TRACE("Setting color mode to vector magnitude");
         _glyphGenerator->SetColorModeToColorByVector();
+        _colorMode = COLOR_BY_VECTOR;
     } else {
+        TRACE("Setting color mode to scalar");
         _glyphGenerator->SetColorModeToColorByScalar();
-     }
+        _colorMode = COLOR_BY_SCALAR;
+    }
     if (_glyphShape == SPHERE) {
 	_glyphGenerator->OrientOff();
     }
@@ -165,15 +179,21 @@ void Glyphs::update()
     }
 
     if (ds->GetPointData()->GetScalars() == NULL) {
-        _pdMapper->UseLookupTableScalarRangeOff();
-    } else {
+        double dataRange[2];
+        _dataSet->getVectorMagnitudeRange(dataRange);
         _lut->SetRange(dataRange);
-        _pdMapper->UseLookupTableScalarRangeOn();
+        //_pdMapper->SetScalarModeToUsePointFieldData();
+        //_pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+    } else {
+        double dataRange[2];
+        _dataSet->getDataRange(dataRange);
+        _lut->SetRange(dataRange);
+        //_pdMapper->SetScalarModeToDefault();
     }
 
+    //_lut->SetVectorModeToMagnitude();
     _pdMapper->SetLookupTable(_lut);
-
-    initProp();
+    _pdMapper->UseLookupTableScalarRangeOn();
 
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
@@ -212,18 +232,32 @@ void Glyphs::setScalingMode(ScalingMode mode)
  */
 void Glyphs::setColorMode(ColorMode mode)
 {
+    _colorMode = mode;
     if (_glyphGenerator != NULL) {
         switch (mode) {
         case COLOR_BY_SCALE:
             _glyphGenerator->SetColorModeToColorByScale();
+            _pdMapper->ScalarVisibilityOn();
             break;
-        case COLOR_BY_VECTOR:
+        case COLOR_BY_VECTOR: {
             _glyphGenerator->SetColorModeToColorByVector();
+           _pdMapper->ScalarVisibilityOn();
+            double dataRange[2];
+            _dataSet->getVectorMagnitudeRange(dataRange);
+            _lut->SetRange(dataRange);
+        }
             break;
-        case COLOR_BY_SCALAR:
-        default:
+        case COLOR_BY_SCALAR: {
             _glyphGenerator->SetColorModeToColorByScalar();
+           _pdMapper->ScalarVisibilityOn();
+            double dataRange[2];
+            _dataSet->getDataRange(dataRange);
+            _lut->SetRange(dataRange);
+        }
             break;
+        case COLOR_CONSTANT:
+        default:
+            _pdMapper->ScalarVisibilityOff();
         }
         _pdMapper->Update();
     }
@@ -258,6 +292,22 @@ void Glyphs::setLookupTable(vtkLookupTable *lut)
         _lut = vtkSmartPointer<vtkLookupTable>::New();
     } else {
         _lut = lut;
+    }
+
+    switch (_colorMode) {
+    case COLOR_BY_VECTOR: {
+        double dataRange[2];
+        _dataSet->getVectorMagnitudeRange(dataRange);
+        _lut->SetRange(dataRange);
+    }
+        break;
+    case COLOR_BY_SCALAR:
+    default: {
+        double dataRange[2];
+        _dataSet->getDataRange(dataRange);
+        _lut->SetRange(dataRange);
+    }
+        break;
     }
 
     if (_pdMapper != NULL) {

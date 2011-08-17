@@ -35,12 +35,19 @@ namespace VtkVis {
  */
 class VtkGraphicsObject {
 public:
+    enum CullFace {
+        CULL_FRONT,
+        CULL_BACK,
+        CULL_FRONT_AND_BACK
+    };
+
     VtkGraphicsObject() :
         _dataSet(NULL),
         _opacity(1.0),
         _edgeWidth(1.0f),
         _lighting(true),
-        _backfaceCulling(false)
+        _cullFace(CULL_BACK),
+        _faceCulling(false)
     {
         _color[0] = 1.0f;
         _color[1] = 1.0f;
@@ -142,6 +149,18 @@ public:
     }
 
     /**
+     * \brief Set the prop center of rotation
+     *
+     * \param[in] origin The point about which the object rotates
+     */
+    virtual void setOrigin(double origin[3])
+    {
+        if (getProp3D() != NULL) {
+            getProp3D()->SetOrigin(origin);
+        }
+    }
+
+    /**
      * \brief Set the prop orientation with a quaternion
      *
      * \param[in] quat Quaternion with scalar part first
@@ -155,8 +174,7 @@ public:
             axis[0] = quat[1] / denom;
             axis[1] = quat[2] / denom;
             axis[2] = quat[3] / denom;
-            getProp3D()->SetOrientation(0, 0, 0);
-            getProp3D()->RotateWXYZ(angle, axis[0], axis[1], axis[2]);
+            setOrientation(angle, axis);
         }
     }
 
@@ -230,12 +248,12 @@ public:
         _opacity = opacity;
         if (getActor() != NULL) {
             getActor()->GetProperty()->SetOpacity(opacity);
-            if (_backfaceCulling && _opacity < 1.0) {
-                getActor()->GetProperty()->BackfaceCullingOff();
-                TRACE("Backface culling off");
-            } else if (_backfaceCulling && _opacity == 1.0) {
-                getActor()->GetProperty()->BackfaceCullingOn();
-                TRACE("Backface culling on");
+            if (_faceCulling && _opacity < 1.0) {
+                setCulling(getActor()->GetProperty(), false);
+                TRACE("Culling off");
+            } else if (_faceCulling && _opacity == 1.0) {
+                setCulling(getActor()->GetProperty(), true);
+                TRACE("Culling on");
             }
         } else if (getAssembly() != NULL) {
             vtkProp3DCollection *props = getAssembly()->GetParts();
@@ -244,12 +262,12 @@ public:
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetOpacity(opacity);
-                    if (_backfaceCulling && _opacity < 1.0) {
-                        vtkActor::SafeDownCast(prop)->GetProperty()->BackfaceCullingOff();
-                        TRACE("Backface culling off");
-                    } else if (_backfaceCulling && _opacity == 1.0) {
-                        vtkActor::SafeDownCast(prop)->GetProperty()->BackfaceCullingOn();
-                        TRACE("Backface culling on");
+                    if (_faceCulling && _opacity < 1.0) {
+                        setCulling(vtkActor::SafeDownCast(prop)->GetProperty(), false);
+                        TRACE("Culling off");
+                    } else if (_faceCulling && _opacity == 1.0) {
+                        setCulling(vtkActor::SafeDownCast(prop)->GetProperty(), true);
+                        TRACE("Culling on");
                     }
                 }
             }
@@ -572,25 +590,54 @@ public:
     }
 
     /**
-     * \brief Toggle backface culling of prop
+     * \brief Convenience method to set culling state on a vtkProperty
+     *
+     * Note: Does not change the culling state flag of this VtkGraphicsObject
      */
-    virtual void setBackfaceCulling(bool state)
+    virtual void setCulling(vtkProperty *property, bool state)
     {
-        _backfaceCulling = state;
+        switch (_cullFace) {
+        case CULL_FRONT:
+            property->SetFrontfaceCulling((state ? 1 : 0));
+            property->BackfaceCullingOff();
+            break;
+        case CULL_BACK:
+            property->SetBackfaceCulling((state ? 1 : 0));
+            property->FrontfaceCullingOff();
+            break;
+        case CULL_FRONT_AND_BACK:
+            property->SetBackfaceCulling((state ? 1 : 0));
+            property->SetFrontfaceCulling((state ? 1 : 0));
+            break;
+        }
+    }
+
+    /**
+     * \brief Toggle culling of selected CullFace
+     */
+    virtual void setCulling(bool state)
+    {
+        _faceCulling = state;
         if (state && _opacity < 1.0)
             return;
         if (getActor() != NULL) {
-            getActor()->GetProperty()->SetBackfaceCulling((state ? 1 : 0));
+            setCulling(getActor()->GetProperty(), state);
          } else if (getAssembly() != NULL) {
             vtkProp3DCollection *props = getAssembly()->GetParts();
             vtkProp3D *prop;
             props->InitTraversal();
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
-                    vtkActor::SafeDownCast(prop)->GetProperty()->SetBackfaceCulling((state ? 1 : 0));
+                    setCulling(vtkActor::SafeDownCast(prop)->GetProperty(), state);
                 }
             }
         }
+    }
+
+    virtual void setCullFace(CullFace cull)
+    {
+        _cullFace = cull;
+        setCulling(_faceCulling);
     }
 
     /**
@@ -612,8 +659,8 @@ protected:
             property->SetAmbient(.2);
             if (!_lighting)
                 property->LightingOff();
-            if (_backfaceCulling && _opacity == 1.0) {
-                property->BackfaceCullingOn();
+            if (_faceCulling && _opacity == 1.0) {
+                setCulling(property, true);
             }
         }
     }
@@ -630,7 +677,8 @@ protected:
     float _edgeColor[3];
     float _edgeWidth;
     bool _lighting;
-    bool _backfaceCulling;
+    CullFace _cullFace;
+    bool _faceCulling;
 
     vtkSmartPointer<vtkProp> _prop;
 };

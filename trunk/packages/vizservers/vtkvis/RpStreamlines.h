@@ -34,6 +34,14 @@ public:
         TUBES,
         RIBBONS
     };
+    enum ColorMode {
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
+        COLOR_CONSTANT
+    };
 
     Streamlines();
     virtual ~Streamlines();
@@ -50,6 +58,8 @@ public:
     virtual void setVisibility(bool state);
 
     virtual bool getVisibility();
+
+    virtual void setColor(float color[3]);
 
     virtual void setEdgeVisibility(bool state);
 
@@ -82,6 +92,8 @@ public:
 
     void setLineTypeToRibbons(double width, double angle);
 
+    void setColorMode(ColorMode mode);
+
     void setLookupTable(vtkLookupTable *lut);
 
     vtkLookupTable *getLookupTable();
@@ -106,6 +118,8 @@ private:
     static void getRandomCellPt(double pt[3], vtkDataSet *ds);
 
     LineType _lineType;
+    ColorMode _colorMode;
+    float _color[3];
     float _seedColor[3];
     bool _seedVisible;
 

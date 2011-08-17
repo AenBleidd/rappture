@@ -34,9 +34,13 @@ using namespace Rappture::VtkVis;
 Streamlines::Streamlines() :
     VtkGraphicsObject(),
     _lineType(LINES),
+    _colorMode(COLOR_BY_VECTOR_MAGNITUDE),
     _seedVisible(true)
 {
-    _backfaceCulling = true;
+    _faceCulling = true;
+    _color[0] = 1.0f;
+    _color[1] = 1.0f;
+    _color[2] = 1.0f;
     _seedColor[0] = 1.0f;
     _seedColor[1] = 1.0f;
     _seedColor[2] = 1.0f;
@@ -55,6 +59,7 @@ void Streamlines::initProp()
 {
     if (_linesActor == NULL) {
         _linesActor = vtkSmartPointer<vtkActor>::New();
+        _linesActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
         _linesActor->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _linesActor->GetProperty()->SetLineWidth(_edgeWidth);
         _linesActor->GetProperty()->SetOpacity(_opacity);
@@ -63,18 +68,18 @@ void Streamlines::initProp()
             _linesActor->GetProperty()->LightingOff();
         switch (_lineType) {
         case LINES:
-            _linesActor->GetProperty()->BackfaceCullingOff();
+            setCulling(_linesActor->GetProperty(), false);
             _linesActor->GetProperty()->SetRepresentationToWireframe();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case TUBES:
-            if (_backfaceCulling && _opacity == 1.0)
-                _linesActor->GetProperty()->BackfaceCullingOn();
+            if (_faceCulling && _opacity == 1.0)
+                setCulling(_linesActor->GetProperty(), true);
             _linesActor->GetProperty()->SetRepresentationToSurface();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
         case RIBBONS:
-            _linesActor->GetProperty()->BackfaceCullingOff();
+            setCulling(_linesActor->GetProperty(), false);
             _linesActor->GetProperty()->SetRepresentationToSurface();
             _linesActor->GetProperty()->EdgeVisibilityOff();
             break;
@@ -196,7 +201,7 @@ void Streamlines::update()
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
     double dataRange[2];
-    _dataSet->getDataRange(dataRange);
+    _dataSet->getVectorMagnitudeRange(dataRange);
     double bounds[6];
     _dataSet->getBounds(bounds);
     double maxBound = 0.0;
@@ -214,7 +219,7 @@ void Streamlines::update()
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetVectors() == NULL) {
-        WARN("No vector point data found in DataSet %s", _dataSet->getName().c_str());
+        TRACE("No vector point data found in DataSet %s", _dataSet->getName().c_str());
         if (ds->GetCellData() == NULL ||
             ds->GetCellData()->GetVectors() == NULL) {
             ERROR("No vectors found in DataSet %s", _dataSet->getName().c_str());
@@ -289,6 +294,7 @@ void Streamlines::update()
     _seedActor->SetMapper(_seedMapper);
 
     _lut = vtkSmartPointer<vtkLookupTable>::New();
+    _lut->SetRange(dataRange);
     _lut->SetVectorModeToMagnitude();
 
     _pdMapper->SetScalarModeToUsePointFieldData();
@@ -298,7 +304,7 @@ void Streamlines::update()
         _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
     }
     _pdMapper->SetColorModeToMapScalars();
-    _pdMapper->UseLookupTableScalarRangeOff();
+    _pdMapper->UseLookupTableScalarRangeOn();
     _pdMapper->SetLookupTable(_lut);
 
     _linesActor->SetMapper(_pdMapper);
@@ -692,7 +698,7 @@ void Streamlines::setLineTypeToLines()
         _streamTracer->SetComputeVorticity(false);
         _pdMapper->SetInputConnection(_streamTracer->GetOutputPort());
         _lineFilter = NULL;
-        _linesActor->GetProperty()->BackfaceCullingOff();
+        setCulling(_linesActor->GetProperty(), false);
         _linesActor->GetProperty()->SetRepresentationToWireframe();
         _linesActor->GetProperty()->LightingOff();
     }
@@ -719,8 +725,8 @@ void Streamlines::setLineTypeToTubes(int numSides, double radius)
         tubeFilter->SetNumberOfSides(numSides);
         tubeFilter->SetRadius(radius);
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
-        if (_backfaceCulling && _opacity == 1.0)
-            _linesActor->GetProperty()->BackfaceCullingOn();
+        if (_faceCulling && _opacity == 1.0)
+            setCulling(_linesActor->GetProperty(), true);
         _linesActor->GetProperty()->SetRepresentationToSurface();
         _linesActor->GetProperty()->LightingOn();
      }
@@ -746,9 +752,97 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
         ribbonFilter->SetAngle(angle);
         ribbonFilter->UseDefaultNormalOn();
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
-        _linesActor->GetProperty()->BackfaceCullingOff();
+        setCulling(_linesActor->GetProperty(), false);
         _linesActor->GetProperty()->SetRepresentationToSurface();
         _linesActor->GetProperty()->LightingOn();
+    }
+}
+
+void Streamlines::setColorMode(ColorMode mode)
+{
+    _colorMode = mode;
+    if (_dataSet == NULL || _pdMapper == NULL)
+        return;
+
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+
+    switch (mode) {
+    case COLOR_BY_SCALAR: {
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetScalarModeToDefault();
+        if (_lut != NULL) {
+            double dataRange[2];
+            _dataSet->getDataRange(dataRange);
+            _lut->SetRange(dataRange);
+        }
+    }
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE: {
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetScalarModeToUsePointFieldData();
+        if (ds->GetPointData() != NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        }
+        if (_lut != NULL) {
+            double dataRange[2];
+            _dataSet->getVectorMagnitudeRange(dataRange);
+            TRACE("vmag range: %g %g", dataRange[0], dataRange[1]);
+            _lut->SetRange(dataRange);
+            _lut->SetVectorModeToMagnitude();
+        }
+    }
+        break;
+    case COLOR_BY_VECTOR_X:
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetScalarModeToUsePointFieldData();
+        if (ds->GetPointData() != NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        }
+        if (_lut != NULL) {
+            double dataRange[2];
+            _dataSet->getVectorComponentRange(dataRange, 0);
+            _lut->SetRange(dataRange);
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(0);
+        }
+        break;
+    case COLOR_BY_VECTOR_Y:
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetScalarModeToUsePointFieldData();
+        if (ds->GetPointData() != NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        }
+        if (_lut != NULL) {
+            double dataRange[2];
+            _dataSet->getVectorComponentRange(dataRange, 1);
+            _lut->SetRange(dataRange);
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(1);
+        }
+        break;
+    case COLOR_BY_VECTOR_Z:
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetScalarModeToUsePointFieldData();
+        if (ds->GetPointData() != NULL &&
+            ds->GetPointData()->GetVectors() != NULL) {
+            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        }
+        if (_lut != NULL) {
+            double dataRange[2];
+            _dataSet->getVectorComponentRange(dataRange, 2);
+            TRACE("vz range: %g %g", dataRange[0], dataRange[1]);
+            _lut->SetRange(dataRange);
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(2);
+        }
+        break;
+    case COLOR_CONSTANT:
+    default:
+        _pdMapper->ScalarVisibilityOff();
+        break;
     }
 }
 
@@ -771,7 +865,41 @@ void Streamlines::setLookupTable(vtkLookupTable *lut)
         _lut = lut;
     }
 
-    _lut->SetVectorModeToMagnitude();
+    switch (_colorMode) {
+    case COLOR_BY_VECTOR_MAGNITUDE: {
+        double dataRange[2];
+        _dataSet->getVectorMagnitudeRange(dataRange);
+        _lut->SetVectorModeToMagnitude();
+        _lut->SetRange(dataRange);
+    }
+        break;
+    case COLOR_BY_VECTOR_X: {
+        double dataRange[2];
+        _dataSet->getVectorComponentRange(dataRange, 0);
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(0);
+        _lut->SetRange(dataRange);
+    }
+        break;
+    case COLOR_BY_VECTOR_Y: {
+        double dataRange[2];
+        _dataSet->getVectorComponentRange(dataRange, 1);
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(1);
+        _lut->SetRange(dataRange);
+    }
+        break;
+    case COLOR_BY_VECTOR_Z: {
+        double dataRange[2];
+        _dataSet->getVectorComponentRange(dataRange, 2);
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(2);
+        _lut->SetRange(dataRange);
+    }
+        break;
+    default:
+         break;
+    }
 
     if (_pdMapper != NULL) {
         _pdMapper->SetLookupTable(_lut);
@@ -797,9 +925,9 @@ void Streamlines::setOpacity(double opacity)
     if (_linesActor != NULL) {
         _linesActor->GetProperty()->SetOpacity(_opacity);
         if (_opacity < 1.0)
-            _linesActor->GetProperty()->BackfaceCullingOff();
-        else if (_backfaceCulling && _lineType == TUBES)
-            _linesActor->GetProperty()->BackfaceCullingOn();
+            setCulling(_linesActor->GetProperty(), false);
+        else if (_faceCulling && _lineType == TUBES)
+            setCulling(_linesActor->GetProperty(), true);
     }
     if (_seedActor != NULL) {
         _seedActor->GetProperty()->SetOpacity(_opacity);
@@ -859,6 +987,18 @@ void Streamlines::setEdgeVisibility(bool state)
 
 /**
  * \brief Set RGB color of stream lines
+ */
+void Streamlines::setColor(float color[3])
+{
+    _color[0] = color[0];
+    _color[1] = color[1];
+    _color[2] = color[2];
+    if (_linesActor != NULL)
+        _linesActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
+}
+
+/**
+ * \brief Set RGB color of stream line edges
  */
 void Streamlines::setEdgeColor(float color[3])
 {

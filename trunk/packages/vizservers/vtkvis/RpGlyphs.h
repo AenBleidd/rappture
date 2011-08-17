@@ -51,7 +51,8 @@ public:
     enum ColorMode {
         COLOR_BY_SCALE,
         COLOR_BY_SCALAR,
-        COLOR_BY_VECTOR
+        COLOR_BY_VECTOR,
+        COLOR_CONSTANT
     };
 
     Glyphs();
@@ -81,6 +82,7 @@ private:
 
     GlyphShape _glyphShape;
     double _scaleFactor;
+    ColorMode _colorMode;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkGlyph3D> _glyphGenerator;

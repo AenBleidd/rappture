@@ -241,7 +241,7 @@ const char *DataSet::getVtkType() const
 /**
  * \brief Set the ative scalar array to the named field
  */
-bool DataSet::setActiveScalar(const char *name)
+bool DataSet::setActiveScalars(const char *name)
 {
     bool found = false;
     if (_dataSet != NULL) {
@@ -260,7 +260,7 @@ bool DataSet::setActiveScalar(const char *name)
 /**
  * \brief Set the ative vector array to the named field
  */
-bool DataSet::setActiveVector(const char *name)
+bool DataSet::setActiveVectors(const char *name)
 {
     bool found = false;
     if (_dataSet != NULL) {

@@ -84,6 +84,10 @@ dataset maprange <val>
         ("visible") or each individual dataset ("separate").  Defaults to
         "all"
 dataset opacity <val> <?datasetName?>
+dataset scalar <scalarName> <?datasetName?>
+        Set the active scalar field to plot
+dataset vector <vectorName> <?datasetName?>
+        Set the active vector field to plot
 dataset visible <bool> <?datasetName?>
 
 contour2d add numcontours <n> <?datasetName?>
@@ -106,7 +110,7 @@ contour3d add numcontours <n> <?datasetName?>
           'dataset maprange' command.
 contour3d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
-contour3d color r g b <?datasetName?>
+contour3d ccolor r g b <?datasetName?>
 contour3d colormap <colorMapName> <?dataSetName?>
 contour3d delete <?datasetName?>
 contour3d edges <bool> <?datasetName?>
@@ -121,8 +125,9 @@ contour3d visible <bool> <?datasetName?>
 contour3d wireframe <bool> <?datasetName?>
 
 glyphs add <?dataSetName?>
+glyphs ccolor r g b <?datasetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
-glyphs colormode <scale|scalar|vector> <?dataSetName?>
+glyphs colormode <scale|scalar|vector|ccolor> <?dataSetName?>
        Set the color mode: color by scale, scalar field or
        vector magnitude -- uses the current color map
 glyphs delete <?dataSetName?>
@@ -231,8 +236,16 @@ pseudocolor visible <bool> <?datasetName?>
 pseudocolor wireframe <bool> <?datasetName?>
 
 streamlines add <?datasetName?>
+streamlines ccolor <r> <g> <b> <?datasetName?>
+            Set the constant color of streamlines used for color mode 'ccolor'
 streamlines colormap <colormapName> <?datasetName?>
             Colormap used to color streamlines/tubes/ribbons by vector magnitude
+streamlines colormode <scalar|vmag|vx|vy|vz|ccolor> <?datasetName?>
+            Set the field used to color the streamlines.  'ccolor' means to use
+            the constant color defined by the ccolor subcommand.  'scalar' uses
+            the active scalar field.  'vmag' uses the magnitude of the current
+            vector field, and 'vx','vy','vz' use the corresponding component of
+            the active vector field.
 streamlines delete <?datasetName?>
 streamlines edges <bool> <?datasetName?>
             Turn on/off edges for tubes, ribbons

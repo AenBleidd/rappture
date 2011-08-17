@@ -44,9 +44,9 @@ public:
 
     const char *getVtkType() const;
 
-    bool setActiveScalar(const char *name);
+    bool setActiveScalars(const char *name);
 
-    bool setActiveVector(const char *name);
+    bool setActiveVectors(const char *name);
 
     void getDataRange(double minmax[2]) const;
 
