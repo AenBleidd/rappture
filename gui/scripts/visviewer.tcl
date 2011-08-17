@@ -226,7 +226,6 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
         fconfigure $_sid -translation binary -encoding binary
 	
         # Read back a reconnection order
-	puts stderr "before read of server"
         if { [gets $_sid data] <= 0 } {
 	    error "reading from server"
 	}
