@@ -31,10 +31,10 @@ rappture_repo = https://repo.nanohub.org/svn/rappture/trunk
 
 ENABLE_GUI	= @ENABLE_GUI@
 
-TARGETS		= src lang
+TARGETS		= src lang lib
 
 ifneq ($(ENABLE_GUI),)
-  TARGETS += gui lib builder tester examples 
+  TARGETS += gui builder tester examples 
 endif
 
 .PHONY: $(TARGETS)
@@ -43,8 +43,8 @@ all: $(TARGETS)
 	for i in $(TARGETS) ; do \
 	  $(MAKE) -C $$i all || exit 1 ;\
 	done
-test: 
-	#$(MAKE) -C test all
+test:
+	$(MAKE) -C test all
 
 install: 
 	for i in $(TARGETS) ; do \
