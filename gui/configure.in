@@ -154,7 +154,7 @@ AC_SUBST(TCL_LIB_SPEC)
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
   . ${exec_prefix}/lib/tclConfig.sh
 fi
-if test -f "${exec_prefix}/lib/tclConfig.sh" ; then 
+if test -f "${exec_prefix}/lib/tkConfig.sh" ; then 
   . ${exec_prefix}/lib/tkConfig.sh	
 fi
 AC_SUBST(TCL_VERSION)

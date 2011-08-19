@@ -57,5 +57,4 @@ distclean:
 	  $(MAKE) -C $$i distclean ;\
 	done
 	$(RM) Makefile pkgIndex.tcl 
-	$(RM) config.cache config.log config.status
-
+	$(RM) -r config.cache config.log config.status autom4te.cache
