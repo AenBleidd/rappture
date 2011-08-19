@@ -73,7 +73,7 @@ itcl::class visData {
     inherit Rappture::Drawing
 
     constructor {args} {
-        Rappture::Scene::constructor [Rappture::library standard] ""
+        Rappture::Drawing::constructor [Rappture::library standard] ""
     } {
         set _data [lindex $args 0]
     }
