@@ -1,6 +1,6 @@
 #!/bin/sh
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for VtkViewer2
+#  TEST PROGRAM for VtkViewer
 #
 #  This program is a test harness for the VtkVis visualization
 #  engine.  It allows you to monitor the commands being sent back
@@ -70,7 +70,7 @@ Rappture::resources::load
 # Fake data object for sending VTK data file...
 # ----------------------------------------------------------------------
 itcl::class visData {
-    inherit Rappture::Scene
+    inherit Rappture::Drawing
 
     constructor {args} {
         Rappture::Scene::constructor [Rappture::library standard] ""
@@ -114,7 +114,7 @@ proc send_file {} {
             close $fid
           }] == 0} {
         set obj [visData #auto $info]
-        $widgets(vtkviewer2) add $obj
+        $widgets(vtkviewer) add $obj
     }
 }
 
@@ -158,7 +158,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::VtkViewer2 [list $widgets(vtkviewer2) SendCmd $cmd]
+    namespace eval Rappture::VtkViewer [list $widgets(vtkviewer) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
@@ -170,8 +170,8 @@ proc send_command {} {
 # ----------------------------------------------------------------------
 proc reset {} {
     global widgets
-    $widgets(vtkviewer2) delete
-    $widgets(vtkviewer2) disconnect
+    $widgets(vtkviewer) delete
+    $widgets(vtkviewer) disconnect
     $widgets(comm) configure -state normal
     $widgets(comm) delete 1.0 end
     $widgets(comm) configure -state disabled
@@ -241,7 +241,7 @@ proc activate_flow {} {
 proc images_save {} {
     global widgets images
 
-    set imh [$widgets(vtkviewer2) get -image $images(which)]
+    set imh [$widgets(vtkviewer) get -image $images(which)]
 
     set file [tk_getSaveFile -title "Save Image File" \
         -defaultextension .jpg -filetypes {{{JPEG files} .jpg} {{All Files} *}}]
@@ -270,7 +270,7 @@ proc images_refresh {} {
     set w [winfo width $c]
     set h [winfo height $c]
 
-    set imh [$widgets(vtkviewer2) get -image $images(which)]
+    set imh [$widgets(vtkviewer) get -image $images(which)]
     set iw [image width $imh]
     set ih [image height $imh]
 
@@ -281,7 +281,7 @@ proc images_refresh {} {
 }
 
 toplevel .images
-wm title .images "Vtkviewer2: Images"
+wm title .images "Vtkviewer: Images"
 wm withdraw .images
 wm protocol .images WM_DELETE_WINDOW {wm withdraw .images}
 
@@ -334,11 +334,11 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkViewer2 $f.viewer $servers
+Rappture::VtkViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
-set widgets(vtkviewer2) $f.viewer
+set widgets(vtkviewer) $f.viewer
 
-puts stderr [winfo class $widgets(vtkviewer2)]
+puts stderr [winfo class $widgets(vtkviewer)]
 
 $f.viewer configure \
     -sendcommand show_comm \
