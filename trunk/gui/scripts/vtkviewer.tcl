@@ -14,7 +14,7 @@
 package require Itk
 package require BLT
 #package require Img
-                                        
+
 option add *VtkViewer.width 4i widgetDefault
 option add *VtkViewer*cursor crosshair widgetDefault
 option add *VtkViewer.height 4i widgetDefault
@@ -714,7 +714,7 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-	if 1 {
+	if 0 {
 	    set f [open "last.ppm" "w"] 
 	    puts $f $bytes
 	    close $f
