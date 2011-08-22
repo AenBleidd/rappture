@@ -624,11 +624,9 @@ Contour2DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour2D(name);
-        g_renderer->setContour2DContourList(name, contourList);
+        g_renderer->addContour2D(name, contourList);
     } else {
-        g_renderer->addContour2D("all");
-        g_renderer->setContour2DContourList("all", contourList);
+        g_renderer->addContour2D("all", contourList);
     }
     return TCL_OK;
 }
@@ -643,11 +641,9 @@ Contour2DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour2D(name);
-        g_renderer->setContour2DContours(name, numContours);
+        g_renderer->addContour2D(name, numContours);
     } else {
-        g_renderer->addContour2D("all");
-        g_renderer->setContour2DContours("all", numContours);
+        g_renderer->addContour2D("all", numContours);
     }
     return TCL_OK;
 }
@@ -881,11 +877,9 @@ Contour3DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour3D(name);
-        g_renderer->setContour3DContourList(name, contourList);
+        g_renderer->addContour3D(name, contourList);
     } else {
-        g_renderer->addContour3D("all");
-        g_renderer->setContour3DContourList("all", contourList);
+        g_renderer->addContour3D("all", contourList);
     }
     return TCL_OK;
 }
@@ -900,11 +894,9 @@ Contour3DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour3D(name);
-        g_renderer->setContour3DContours(name, numContours);
+        g_renderer->addContour3D(name, numContours);
     } else {
-        g_renderer->addContour3D("all");
-        g_renderer->setContour3DContours("all", numContours);
+        g_renderer->addContour3D("all", numContours);
     }
     return TCL_OK;
 }
@@ -1270,7 +1262,7 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 #else
     size_t bytesRead = fread(data, 1, nbytes, g_fIn);
-    TRACE("bytesRead: %d '%c'", bytesRead, data[0]);
+    TRACE("bytesRead: %d", bytesRead);
     if (bytesRead < (size_t)nbytes) {
         free(data);
         return TCL_ERROR;
@@ -1467,6 +1459,8 @@ GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         shape = Glyphs::DODECAHEDRON;
     } else if (shapeOpt[0] == 'i' && strcmp(shapeOpt, "icosahedron") == 0) {
         shape = Glyphs::ICOSAHEDRON;
+    } else if (shapeOpt[0] == 'l' && strcmp(shapeOpt, "line") == 0) {
+        shape = Glyphs::LINE;
     } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
         shape = Glyphs::OCTAHEDRON;
     } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
@@ -1481,11 +1475,9 @@ GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->addGlyphs(name);
-        g_renderer->setGlyphsShape(name, shape);
+        g_renderer->addGlyphs(name, shape);
     } else {
-        g_renderer->addGlyphs("all");
-        g_renderer->setGlyphsShape("all", shape);
+        g_renderer->addGlyphs("all", shape);
     }
     return TCL_OK;
 }
@@ -1535,11 +1527,11 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Glyphs::COLOR_BY_SCALE;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Glyphs::COLOR_BY_SCALAR;
-    } else if (str[0] == 'v' && strcmp(str, "vector") == 0) {
-        mode = Glyphs::COLOR_BY_VECTOR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Glyphs::COLOR_BY_VECTOR_MAGNITUDE;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scale', 'scalar', 'vector', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scale', 'scalar', 'vmag', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {
@@ -1734,15 +1726,15 @@ GlyphsScalingModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *str = Tcl_GetString(objv[2]);
     if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Glyphs::SCALE_BY_SCALAR;
-    } else if (str[0] == 'v' && strcmp(str, "vector") == 0) {
-        mode = Glyphs::SCALE_BY_VECTOR;
-    } else if (str[0] == 'v' && strcmp(str, "vector_comp") == 0) {
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Glyphs::SCALE_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vcomp") == 0) {
         mode = Glyphs::SCALE_BY_VECTOR_COMPONENTS;
     } else if (str[0] == 'o' && strcmp(str, "off") == 0) {
         mode = Glyphs::SCALING_OFF;
     } else {
         Tcl_AppendResult(interp, "bad scaling mode option \"", str,
-                         "\": should be one of: 'scalar', 'vector', 'vector_comp', 'off'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vcomp', 'off'", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {
@@ -1773,6 +1765,8 @@ GlyphsShapeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         shape = Glyphs::DODECAHEDRON;
     } else if (shapeOpt[0] == 'i' && strcmp(shapeOpt, "icosahedron") == 0) {
         shape = Glyphs::ICOSAHEDRON;
+    } else if (shapeOpt[0] == 'l' && strcmp(shapeOpt, "line") == 0) {
+        shape = Glyphs::LINE;
     } else if (shapeOpt[0] == 'o' && strcmp(shapeOpt, "octahedron") == 0) {
         shape = Glyphs::OCTAHEDRON;
     } else if (shapeOpt[0] == 's' && strcmp(shapeOpt, "sphere") == 0) {
@@ -1781,7 +1775,7 @@ GlyphsShapeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         shape = Glyphs::TETRAHEDRON;
     } else {
         Tcl_AppendResult(interp, "bad shape option \"", shapeOpt,
-                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
+                         "\": should be one of: 'arrow', 'cone', 'cube', 'cylinder', 'dodecahedron', 'icosahedron', 'line', 'octahedron', 'sphere', 'tetrahedron'", (char*)NULL);
         return TCL_ERROR;
     }
 
@@ -1887,11 +1881,9 @@ HeightMapAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addHeightMap(name);
-        g_renderer->setHeightMapContourList(name, contourList);
+        g_renderer->addHeightMap(name, contourList);
     } else {
-        g_renderer->addHeightMap("all");
-        g_renderer->setHeightMapContourList("all", contourList);
+        g_renderer->addHeightMap("all", contourList);
     }
     return TCL_OK;
 }
@@ -1906,11 +1898,9 @@ HeightMapAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addHeightMap(name);
-        g_renderer->setHeightMapContours(name, numContours);
+        g_renderer->addHeightMap(name, numContours);
     } else {
-        g_renderer->addHeightMap("all");
-        g_renderer->setHeightMapContours("all", numContours);
+        g_renderer->addHeightMap("all", numContours);
     }
     return TCL_OK;
 }
@@ -4428,7 +4418,7 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout)
         iov[1].iov_base = (char *)string;
         iov[1].iov_len = nBytes;
         iov[2].iov_base = (char *)"\n";
-        iov[2].iov_len = 1;
+        iov[2].iov_len = strlen((char *)iov[2].iov_base);
         if (writev(fdOut, iov, 3) < 0) {
 	    ERROR("write failed: %s", strerror(errno));
 	}

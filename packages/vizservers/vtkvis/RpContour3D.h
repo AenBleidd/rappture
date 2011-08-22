@@ -17,6 +17,7 @@
 
 #include <vector>
 
+#include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -27,7 +28,10 @@ namespace VtkVis {
  */
 class Contour3D : public VtkGraphicsObject {
 public:
-    Contour3D();
+    Contour3D(int numContours);
+
+    Contour3D(const std::vector<double>& contours);
+
     virtual ~Contour3D();
 
     virtual const char *getClassName() const
@@ -35,13 +39,9 @@ public:
         return "Contour3D";
     }
 
-    virtual void setDataSet(DataSet *dataset);
-
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setContours(int numContours);
-
-    void setContours(int numContours, double range[2]);
 
     void setContourList(const std::vector<double>& contours);
 
@@ -49,17 +49,32 @@ public:
 
     const std::vector<double>& getContourList() const;
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
 private:
+    Contour3D();
+
     virtual void initProp();
     virtual void update();
 
     int _numContours;
     std::vector<double> _contours;
-    double _dataRange[2];
+    ColorMap *_colorMap;
 
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkLookupTable> _lut;

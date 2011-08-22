@@ -24,12 +24,17 @@
 
 using namespace Rappture::VtkVis;
 
-Contour2D::Contour2D() :
+Contour2D::Contour2D(int numContours) :
     VtkGraphicsObject(),
-    _numContours(0)
+    _numContours(numContours)
 {
-    _dataRange[0] = 0;
-    _dataRange[1] = 1;
+}
+
+Contour2D::Contour2D(const std::vector<double>& contours) :
+    VtkGraphicsObject(),
+    _numContours(contours.size()),
+    _contours(contours)
+{
 }
 
 Contour2D::~Contour2D()
@@ -40,25 +45,6 @@ Contour2D::~Contour2D()
     else
         TRACE("Deleting Contour2D with NULL DataSet");
 #endif
-}
-
-/**
- * \brief Specify input DataSet used to extract contours
- */
-void Contour2D::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-
-        if (_dataSet != NULL) {
-            double dataRange[2];
-            _dataSet->getDataRange(dataRange);
-            _dataRange[0] = dataRange[0];
-            _dataRange[1] = dataRange[1];
-        }
-
-        update();
-    }
 }
 
 /**
@@ -174,6 +160,26 @@ void Contour2D::update()
     _contourMapper->Update();
 }
 
+void Contour2D::updateRanges(bool useCumulative,
+                             double scalarRange[2],
+                             double vectorMagnitudeRange[2],
+                             double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    } else {
+        WARN("updateRanges called before setDataSet");
+    }
+
+    if (_contours.empty() && _numContours > 0) {
+        // Contour isovalues need to be recomputed
+        update();
+    }
+}
+
 /**
  * \brief Specify number of evenly spaced contour lines to render
  *
@@ -183,30 +189,6 @@ void Contour2D::setContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;
-
-    if (_dataSet != NULL) {
-        double dataRange[2];
-        _dataSet->getDataRange(dataRange);
-        _dataRange[0] = dataRange[0];
-        _dataRange[1] = dataRange[1];
-    }
-
-    update();
-}
-
-/**
- * \brief Specify number of evenly spaced contour lines to render
- * between the given range (including range endpoints)
- *
- * Will override any existing contours
- */
-void Contour2D::setContours(int numContours, double range[2])
-{
-    _contours.clear();
-    _numContours = numContours;
-
-    _dataRange[0] = range[0];
-    _dataRange[1] = range[1];
 
     update();
 }

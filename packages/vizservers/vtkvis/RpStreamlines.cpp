@@ -35,6 +35,7 @@ Streamlines::Streamlines() :
     VtkGraphicsObject(),
     _lineType(LINES),
     _colorMode(COLOR_BY_VECTOR_MAGNITUDE),
+    _colorMap(NULL),
     _seedVisible(true)
 {
     _faceCulling = true;
@@ -50,6 +51,36 @@ Streamlines::Streamlines() :
 
 Streamlines::~Streamlines()
 {
+}
+
+void Streamlines::setDataSet(DataSet *dataSet,
+                             bool useCumulative,
+                             double scalarRange[2],
+                             double vectorMagnitudeRange[2],
+                             double vectorComponentRange[3][2])
+{
+    if (_dataSet != dataSet) {
+        _dataSet = dataSet;
+
+        if (useCumulative) {
+            _dataRange[0] = scalarRange[0];
+            _dataRange[1] = scalarRange[1];
+            _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
+            _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+            for (int i = 0; i < 3; i++) {
+                _vectorComponentRange[i][0] = vectorComponentRange[i][0];
+                _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+            }
+        } else {
+            _dataSet->getScalarRange(_dataRange);
+            _dataSet->getVectorRange(_vectorMagnitudeRange);
+            for (int i = 0; i < 3; i++) {
+                _dataSet->getVectorRange(_vectorComponentRange[i], i);
+            }
+        }
+
+        update();
+    }
 }
 
 /**
@@ -200,8 +231,7 @@ void Streamlines::update()
     }
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
-    double dataRange[2];
-    _dataSet->getVectorMagnitudeRange(dataRange);
+
     double bounds[6];
     _dataSet->getBounds(bounds);
     double maxBound = 0.0;
@@ -293,19 +323,11 @@ void Streamlines::update()
 
     _seedActor->SetMapper(_seedMapper);
 
-    _lut = vtkSmartPointer<vtkLookupTable>::New();
-    _lut->SetRange(dataRange);
-    _lut->SetVectorModeToMagnitude();
-
-    _pdMapper->SetScalarModeToUsePointFieldData();
-    if (ds->GetPointData() != NULL &&
-        ds->GetPointData()->GetVectors() != NULL) {
-        TRACE("Vector name: '%s'", ds->GetPointData()->GetVectors()->GetName());
-        _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
     }
-    _pdMapper->SetColorModeToMapScalars();
-    _pdMapper->UseLookupTableScalarRangeOn();
-    _pdMapper->SetLookupTable(_lut);
+
+    setColorMode(_colorMode);
 
     _linesActor->SetMapper(_pdMapper);
     _pdMapper->Update();
@@ -758,6 +780,32 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
     }
 }
 
+void Streamlines::updateRanges(bool useCumulative,
+                               double scalarRange[2],
+                               double vectorMagnitudeRange[2],
+                               double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+        _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
+        _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+        for (int i = 0; i < 3; i++) {
+            _vectorComponentRange[i][0] = vectorComponentRange[i][0];
+            _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+        }
+    } else {
+        _dataSet->getScalarRange(_dataRange);
+        _dataSet->getVectorRange(_vectorMagnitudeRange);
+        for (int i = 0; i < 3; i++) {
+            _dataSet->getVectorRange(_vectorComponentRange[i], i);
+        }
+    }
+
+    // Need to update color map ranges and/or active vector field
+    setColorMode(_colorMode);
+}
+
 void Streamlines::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
@@ -771,9 +819,7 @@ void Streamlines::setColorMode(ColorMode mode)
         _pdMapper->ScalarVisibilityOn();
         _pdMapper->SetScalarModeToDefault();
         if (_lut != NULL) {
-            double dataRange[2];
-            _dataSet->getDataRange(dataRange);
-            _lut->SetRange(dataRange);
+            _lut->SetRange(_dataRange);
         }
     }
         break;
@@ -785,10 +831,7 @@ void Streamlines::setColorMode(ColorMode mode)
             _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
-            double dataRange[2];
-            _dataSet->getVectorMagnitudeRange(dataRange);
-            TRACE("vmag range: %g %g", dataRange[0], dataRange[1]);
-            _lut->SetRange(dataRange);
+            _lut->SetRange(_vectorMagnitudeRange);
             _lut->SetVectorModeToMagnitude();
         }
     }
@@ -801,9 +844,7 @@ void Streamlines::setColorMode(ColorMode mode)
             _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
-            double dataRange[2];
-            _dataSet->getVectorComponentRange(dataRange, 0);
-            _lut->SetRange(dataRange);
+            _lut->SetRange(_vectorComponentRange[0]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
@@ -816,9 +857,7 @@ void Streamlines::setColorMode(ColorMode mode)
             _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
-            double dataRange[2];
-            _dataSet->getVectorComponentRange(dataRange, 1);
-            _lut->SetRange(dataRange);
+            _lut->SetRange(_vectorComponentRange[1]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
@@ -831,10 +870,7 @@ void Streamlines::setColorMode(ColorMode mode)
             _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
-            double dataRange[2];
-            _dataSet->getVectorComponentRange(dataRange, 2);
-            TRACE("vz range: %g %g", dataRange[0], dataRange[1]);
-            _lut->SetRange(dataRange);
+            _lut->SetRange(_vectorComponentRange[2]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
         }
@@ -847,62 +883,59 @@ void Streamlines::setColorMode(ColorMode mode)
 }
 
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *Streamlines::getLookupTable()
-{ 
-    return _lut;
+void Streamlines::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void Streamlines::setLookupTable(vtkLookupTable *lut)
+void Streamlines::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_pdMapper != NULL) {
+            _pdMapper->UseLookupTableScalarRangeOn();
+            _pdMapper->SetLookupTable(_lut);
+        }
     }
 
+    _lut->DeepCopy(cmap->getLookupTable());
+
     switch (_colorMode) {
-    case COLOR_BY_VECTOR_MAGNITUDE: {
-        double dataRange[2];
-        _dataSet->getVectorMagnitudeRange(dataRange);
-        _lut->SetVectorModeToMagnitude();
-        _lut->SetRange(dataRange);
-    }
+    case COLOR_CONSTANT:
+    case COLOR_BY_SCALAR:
+        _lut->SetRange(_dataRange);
         break;
-    case COLOR_BY_VECTOR_X: {
-        double dataRange[2];
-        _dataSet->getVectorComponentRange(dataRange, 0);
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        _lut->SetVectorModeToMagnitude();
+        _lut->SetRange(_vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(0);
-        _lut->SetRange(dataRange);
-    }
+        _lut->SetRange(_vectorComponentRange[0]);
         break;
-    case COLOR_BY_VECTOR_Y: {
-        double dataRange[2];
-        _dataSet->getVectorComponentRange(dataRange, 1);
+    case COLOR_BY_VECTOR_Y:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(1);
-        _lut->SetRange(dataRange);
-    }
+        _lut->SetRange(_vectorComponentRange[1]);
         break;
-    case COLOR_BY_VECTOR_Z: {
-        double dataRange[2];
-        _dataSet->getVectorComponentRange(dataRange, 2);
+    case COLOR_BY_VECTOR_Z:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(2);
-        _lut->SetRange(dataRange);
-    }
+        _lut->SetRange(_vectorComponentRange[2]);
         break;
     default:
          break;
-    }
-
-    if (_pdMapper != NULL) {
-        _pdMapper->SetLookupTable(_lut);
     }
 }
 

@@ -38,30 +38,37 @@ public:
         CYLINDER,
         DODECAHEDRON,
         ICOSAHEDRON,
+        LINE,
         OCTAHEDRON,
         SPHERE,
         TETRAHEDRON
     };
     enum ScalingMode {
         SCALE_BY_SCALAR,
-        SCALE_BY_VECTOR,
+        SCALE_BY_VECTOR_MAGNITUDE,
         SCALE_BY_VECTOR_COMPONENTS,
         SCALING_OFF
     };
     enum ColorMode {
         COLOR_BY_SCALE,
         COLOR_BY_SCALAR,
-        COLOR_BY_VECTOR,
+        COLOR_BY_VECTOR_MAGNITUDE,
         COLOR_CONSTANT
     };
 
-    Glyphs();
+    Glyphs(GlyphShape shape);
     virtual ~Glyphs();
 
     virtual const char *getClassName() const
     {
         return "Glyphs";
     }
+
+    virtual void setDataSet(DataSet *dataSet,
+                            bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2]);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
@@ -73,16 +80,43 @@ public:
 
     void setScaleFactor(double scale);
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
 private:
+    Glyphs();
     virtual void update();
+    static inline double min2(double a, double b)
+    {
+        return ((a < b) ? a : b);
+    }
+    static inline double max2(double a, double b)
+    {
+        return ((a > b) ? a : b);
+    }
 
     GlyphShape _glyphShape;
+    ScalingMode _scalingMode;
+    double _dataScale;
     double _scaleFactor;
     ColorMode _colorMode;
+    ColorMap *_colorMap;
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkGlyph3D> _glyphGenerator;

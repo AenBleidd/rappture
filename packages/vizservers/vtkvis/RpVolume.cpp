@@ -62,12 +62,6 @@ void Volume::update()
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-    double dataRange[2];
-    _dataSet->getDataRange(dataRange);
-
-    TRACE("DataSet type: %s, range: %g - %g", _dataSet->getVtkType(),
-          dataRange[0], dataRange[1]);
-
     if (vtkImageData::SafeDownCast(ds) != NULL) {
         // Image data required for these mappers
 #ifdef USE_GPU_RAYCAST_MAPPER
@@ -112,16 +106,35 @@ void Volume::update()
         ds->GetPointData()->GetScalars() == NULL) {
         WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
     }
-    if (_colorMap == NULL) {
-        _colorMap = ColorMap::getVolumeDefault();
-    }
 
-    vtkVolumeProperty *volProperty = getVolume()->GetProperty();
-    volProperty->SetColor(_colorMap->getColorTransferFunction(dataRange));
-    volProperty->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
+    if (_colorMap == NULL) {
+        setColorMap(ColorMap::getVolumeDefault());
+    }
 
     getVolume()->SetMapper(_volumeMapper);
     _volumeMapper->Update();
+}
+
+void Volume::updateRanges(bool useCumulative,
+                          double scalarRange[2],
+                          double vectorMagnitudeRange[2],
+                          double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (getVolume() != NULL) {
+        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange));
+    }
+}
+void Volume::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
@@ -130,24 +143,10 @@ void Volume::update()
 void Volume::setColorMap(ColorMap *cmap)
 {
     _colorMap = cmap;
-    if (getVolume() != NULL) {
-        double dataRange[2];
-        _dataSet->getDataRange(dataRange);
-        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
-        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
-    }
-}
 
-/**
- * \brief Assign a color map (transfer function) to use in rendering the Volume and
- * specify a scalar range for the map
- */
-void Volume::setColorMap(ColorMap *cmap, double dataRange[2])
-{
-    _colorMap = cmap;
     if (getVolume() != NULL) {
-        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(dataRange));
-        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(dataRange));
+        getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));
+        getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange));
     }
 }
 

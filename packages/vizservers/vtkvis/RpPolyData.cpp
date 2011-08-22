@@ -108,6 +108,7 @@ void PolyData::update()
                 // Delaunay3D returns an UnstructuredGrid, so feed it through a surface filter
                 // to get the grid boundary as a PolyData
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                gf->UseStripsOn();
                 gf->SetInputConnection(mesher->GetOutputPort());
                 gf->ReleaseDataFlagOn();
                 _pdMapper->SetInputConnection(gf->GetOutputPort());
@@ -120,6 +121,7 @@ void PolyData::update()
         // DataSet is NOT a vtkPolyData
         TRACE("DataSet is not a PolyData");
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+        gf->UseStripsOn();
         gf->SetInput(ds);
         gf->ReleaseDataFlagOn();
         _pdMapper->SetInputConnection(gf->GetOutputPort());

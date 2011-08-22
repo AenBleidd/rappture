@@ -14,8 +14,8 @@
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
 
+#include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
-#include "RpVtkDataSet.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -37,13 +37,28 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
 private:
     virtual void initProp();
     virtual void update();
+
+    ColorMap *_colorMap;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;

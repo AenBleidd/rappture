@@ -17,6 +17,7 @@
 #include <vtkLookupTable.h>
 #include <vtkAssembly.h>
 
+#include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -50,6 +51,12 @@ public:
     {
         return "Streamlines";
     }
+
+    virtual void setDataSet(DataSet *dataSet,
+                            bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2]);
 
     virtual void setLighting(bool state);
 
@@ -94,9 +101,22 @@ public:
 
     void setColorMode(ColorMode mode);
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
     void setSeedVisibility(bool state);
 
@@ -119,9 +139,11 @@ private:
 
     LineType _lineType;
     ColorMode _colorMode;
-    float _color[3];
+    ColorMap *_colorMap;
     float _seedColor[3];
     bool _seedVisible;
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _linesActor;

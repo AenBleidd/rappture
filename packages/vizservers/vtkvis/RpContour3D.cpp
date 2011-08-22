@@ -24,12 +24,22 @@
 
 using namespace Rappture::VtkVis;
 
-Contour3D::Contour3D() :
+Contour3D::Contour3D(int numContours) :
     VtkGraphicsObject(),
-    _numContours(0)
+    _numContours(numContours),
+    _colorMap(NULL)
 {
-    _dataRange[0] = 0;
-    _dataRange[1] = 1;
+    _color[0] = 0.0f;
+    _color[1] = 0.0f;
+    _color[2] = 1.0f;
+}
+
+Contour3D::Contour3D(const std::vector<double>& contours) :
+    VtkGraphicsObject(),
+    _numContours(contours.size()),
+    _contours(contours),
+    _colorMap(NULL)
+{
     _color[0] = 0.0f;
     _color[1] = 0.0f;
     _color[2] = 1.0f;
@@ -43,25 +53,6 @@ Contour3D::~Contour3D()
     else
         TRACE("Deleting Contour3D with NULL DataSet");
 #endif
-}
-
-/**
- * \brief Specify input DataSet used to extract contours
- */
-void Contour3D::setDataSet(DataSet *dataSet)
-{
-    if (_dataSet != dataSet) {
-        _dataSet = dataSet;
-
-        if (_dataSet != NULL) {
-            double dataRange[2];
-            _dataSet->getDataRange(dataRange);
-            _dataRange[0] = dataRange[0];
-            _dataRange[1] = dataRange[1];
-        }
-
-        update();
-    }
 }
 
 /**
@@ -84,28 +75,33 @@ void Contour3D::initProp()
 }
 
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *Contour3D::getLookupTable()
-{ 
-    return _lut;
+void Contour3D::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void Contour3D::setLookupTable(vtkLookupTable *lut)
+void Contour3D::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_contourMapper != NULL) {
+            _contourMapper->UseLookupTableScalarRangeOn();
+            _contourMapper->SetLookupTable(_lut);
+        }
     }
 
-    if (_contourMapper != NULL) {
-        _contourMapper->UseLookupTableScalarRangeOn();
-        _contourMapper->SetLookupTable(_lut);
-    }
+    _lut->DeepCopy(cmap->getLookupTable());
+    _lut->SetRange(_dataRange);
 }
 
 /**
@@ -197,34 +193,36 @@ void Contour3D::update()
         getActor()->SetMapper(_contourMapper);
     }
 
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        if (_lut == NULL) {
-            _lut = vtkSmartPointer<vtkLookupTable>::New();
-        }
-    } else {
-        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
-        TRACE("Data set scalars lookup table: %p\n", lut);
-        if (_lut == NULL) {
-            if (lut)
-                _lut = lut;
-            else
-                _lut = vtkSmartPointer<vtkLookupTable>::New();
-        }
-    }
-
-    if (_lut != NULL) {
-        _lut->SetRange(_dataRange);
-
-        _contourMapper->SetColorModeToMapScalars();
-        _contourMapper->UseLookupTableScalarRangeOn();
-        _contourMapper->SetLookupTable(_lut);
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
     }
 
     _contourMapper->Update();
     TRACE("Contour output %d polys, %d strips",
           _contourFilter->GetOutput()->GetNumberOfPolys(),
           _contourFilter->GetOutput()->GetNumberOfStrips());
+}
+
+void Contour3D::updateRanges(bool useCumulative,
+                             double scalarRange[2],
+                             double vectorMagnitudeRange[2],
+                             double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        _lut->SetRange(_dataRange);
+    }
+
+    if (_contours.empty() && _numContours > 0) {
+        // Need to recompute isovalues
+        update();
+    }
 }
 
 /**
@@ -236,30 +234,6 @@ void Contour3D::setContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;
-
-    if (_dataSet != NULL) {
-        double dataRange[2];
-        _dataSet->getDataRange(dataRange);
-        _dataRange[0] = dataRange[0];
-        _dataRange[1] = dataRange[1];
-    }
-
-    update();
-}
-
-/**
- * \brief Specify number of evenly spaced isosurfaces to render
- * between the given range (including range endpoints)
- *
- * Will override any existing contours
- */
-void Contour3D::setContours(int numContours, double range[2])
-{
-    _contours.clear();
-    _numContours = numContours;
-
-    _dataRange[0] = range[0];
-    _dataRange[1] = range[1];
 
     update();
 }

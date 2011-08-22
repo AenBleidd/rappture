@@ -26,7 +26,10 @@ namespace VtkVis {
  */
 class Contour2D : public VtkGraphicsObject {
 public:
-    Contour2D();
+    Contour2D(int numContours);
+
+    Contour2D(const std::vector<double>& contours);
+
     virtual ~Contour2D();
 
     virtual const char *getClassName() const
@@ -34,13 +37,9 @@ public:
         return "Contour2D";
     }
 
-    virtual void setDataSet(DataSet *dataset);
-
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setContours(int numContours);
-
-    void setContours(int numContours, double range[2]);
 
     void setContourList(const std::vector<double>& contours);
 
@@ -48,13 +47,19 @@ public:
 
     const std::vector<double>& getContourList() const;
 
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
+
 private:
+    Contour2D();
+
     virtual void initProp();
     virtual void update();
 
     int _numContours;
     std::vector<double> _contours;
-    double _dataRange[2];
 
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;

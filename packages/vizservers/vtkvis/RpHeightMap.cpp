@@ -34,16 +34,30 @@ using namespace Rappture::VtkVis;
 
 #define MESH_POINT_CLOUDS
 
-HeightMap::HeightMap() :
+HeightMap::HeightMap(int numContours) :
     VtkGraphicsObject(),
-    _numContours(0),
+    _numContours(numContours),
+    _colorMap(NULL),
     _contourEdgeWidth(1.0),
     _warpScale(1.0),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false)
 {
-    _dataRange[0] = 0.0;
-    _dataRange[1] = 1.0;
+    _contourEdgeColor[0] = 1.0f;
+    _contourEdgeColor[1] = 0.0f;
+    _contourEdgeColor[2] = 0.0f;
+}
+
+HeightMap::HeightMap(const std::vector<double>& contours) :
+    VtkGraphicsObject(),
+    _numContours(contours.size()),
+    _contours(contours),
+    _colorMap(NULL),
+    _contourEdgeWidth(1.0),
+    _warpScale(1.0),
+    _sliceAxis(Z_AXIS),
+    _pipelineInitialized(false)
+{
     _contourEdgeColor[0] = 1.0f;
     _contourEdgeColor[1] = 0.0f;
     _contourEdgeColor[2] = 0.0f;
@@ -59,21 +73,22 @@ HeightMap::~HeightMap()
 #endif
 }
 
-/**
- * \brief Specify input DataSet with scalars to colormap
- *
- * Currently the DataSet must be image data (2D uniform grid)
- */
-void HeightMap::setDataSet(DataSet *dataSet)
+void HeightMap::setDataSet(DataSet *dataSet,
+                           bool useCumulative,
+                           double scalarRange[2],
+                           double vectorMagnitudeRange[2],
+                           double vectorComponentRange[3][2])
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
         if (_dataSet != NULL) {
-            double dataRange[2];
-            _dataSet->getDataRange(dataRange);
-            _dataRange[0] = dataRange[0];
-            _dataRange[1] = dataRange[1];
+            if (useCumulative) {
+                _dataRange[0] = scalarRange[0];
+                _dataRange[1] = scalarRange[1];
+            } else {
+                dataSet->getScalarRange(_dataRange);
+            }
 
             // Compute a data scaling factor to make maximum
             // height (at default _warpScale) equivalent to 
@@ -330,32 +345,12 @@ void HeightMap::update()
 
     _pipelineInitialized = true;
 
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        ERROR("No scalar point data in dataset %s", _dataSet->getName().c_str());
-        if (_lut == NULL) {
-            _lut = vtkSmartPointer<vtkLookupTable>::New();
-        }
-    } else {
-        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
-        TRACE("Data set scalars lookup table: %p\n", lut);
-        if (_lut == NULL) {
-            if (lut)
-                _lut = lut;
-            else {
-                _lut = vtkSmartPointer<vtkLookupTable>::New();
-            }
-        }
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
     }
-
-    _lut->SetRange(_dataRange);
+    //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
     initProp();
-
-    _dsMapper->SetColorModeToMapScalars();
-    _dsMapper->UseLookupTableScalarRangeOn();
-    _dsMapper->SetLookupTable(_lut);
-    //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
@@ -614,27 +609,54 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
 }
 
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *HeightMap::getLookupTable()
-{ 
-    return _lut;
+void HeightMap::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void HeightMap::setLookupTable(vtkLookupTable *lut)
+void HeightMap::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_dsMapper != NULL) {
+            _dsMapper->UseLookupTableScalarRangeOn();
+            _dsMapper->SetLookupTable(_lut);
+        }
     }
 
-    if (_dsMapper != NULL) {
-        _dsMapper->UseLookupTableScalarRangeOn();
-        _dsMapper->SetLookupTable(_lut);
+    _lut->DeepCopy(cmap->getLookupTable());
+    _lut->SetRange(_dataRange);
+}
+
+void HeightMap::updateRanges(bool useCumulative,
+                             double scalarRange[2],
+                             double vectorMagnitudeRange[2],
+                             double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        _lut->SetRange(_dataRange);
+    }
+
+    if (_contours.empty() && _numContours > 0) {
+        // Need to recompute isovalues
+        update();
     }
 }
 
@@ -643,34 +665,10 @@ void HeightMap::setLookupTable(vtkLookupTable *lut)
  *
  * Will override any existing contours
  */
-void  HeightMap::setContours(int numContours)
+void HeightMap::setContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;
-
-    if (_dataSet != NULL) {
-        double dataRange[2];
-        _dataSet->getDataRange(dataRange);
-        _dataRange[0] = dataRange[0];
-        _dataRange[1] = dataRange[1];
-    }
-
-    update();
-}
-
-/**
- * \brief Specify number of evenly spaced contour lines to render
- * between the given range (including range endpoints)
- *
- * Will override any existing contours
- */
-void  HeightMap::setContours(int numContours, double range[2])
-{
-    _contours.clear();
-    _numContours = numContours;
-
-    _dataRange[0] = range[0];
-    _dataRange[1] = range[1];
 
     update();
 }
@@ -680,7 +678,7 @@ void  HeightMap::setContours(int numContours, double range[2])
  *
  * Will override any existing contours
  */
-void  HeightMap::setContourList(const std::vector<double>& contours)
+void HeightMap::setContourList(const std::vector<double>& contours)
 {
     _contours = contours;
     _numContours = (int)_contours.size();
@@ -691,7 +689,7 @@ void  HeightMap::setContourList(const std::vector<double>& contours)
 /**
  * \brief Get the number of contours
  */
-int  HeightMap::getNumContours() const
+int HeightMap::getNumContours() const
 {
     return _numContours;
 }
@@ -700,7 +698,7 @@ int  HeightMap::getNumContours() const
  * \brief Get the contour list (may be empty if number of contours
  * was specified in place of a list)
  */
-const std::vector<double>&  HeightMap::getContourList() const
+const std::vector<double>& HeightMap::getContourList() const
 {
     return _contours;
 }

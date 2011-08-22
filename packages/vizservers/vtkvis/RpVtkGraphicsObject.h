@@ -49,6 +49,8 @@ public:
         _cullFace(CULL_BACK),
         _faceCulling(false)
     {
+        _dataRange[0] = 0;
+        _dataRange[1] = 1;
         _color[0] = 1.0f;
         _color[1] = 1.0f;
         _color[2] = 1.0f;
@@ -69,13 +71,66 @@ public:
      * \brief Specify input DataSet
      *
      * Default implementation calls update()
+     *
+     * \param[in] dataSet DataSet to use in rendering
      */
     virtual void setDataSet(DataSet *dataSet)
     {
         if (_dataSet != dataSet) {
             _dataSet = dataSet;
+
             update();
         }
+    }
+
+    /**
+     * \brief Specify input DataSet and information on cumulative data ranges
+     *
+     * Default implementation calls update() and stores scalarRange to
+     * _dataRange based on cumulative range settings
+     *
+     * \param[in] dataSet DataSet to use in rendering
+     * \param[in] useCumulative Whether the cumulative data ranges should be 
+     * used in place of the dataSet's ranges
+     * \param[in] scalarRange Current cumulative scalar data range
+     * \param[in] vectorMagnitudeRange Current cumulative vector magnitude data range
+     * \param[in] vectorComponentRange Current cumulative vector component data ranges
+     */
+    virtual void setDataSet(DataSet *dataSet,
+                            bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2])
+    {
+        if (_dataSet != dataSet) {
+            _dataSet = dataSet;
+
+            if (useCumulative) {
+                _dataRange[0] = scalarRange[0];
+                _dataRange[1] = scalarRange[1];
+            } else {
+                dataSet->getScalarRange(_dataRange);
+            }
+
+            update();
+        }
+    }
+
+    /**
+     * \brief Called when scalar or vector field changes (e.g. active field) or 
+     * cumulative ranges or settings change
+     *
+     * \param[in] useCumulative Whether the cumulative data ranges should be 
+     * used in place of the dataSet's ranges
+     * \param[in] scalarRange Current cumulative scalar data range
+     * \param[in] vectorMagnitudeRange Current cumulative vector magnitude data range
+     * \param[in] vectorComponentRange Current cumulative vector component data ranges
+     */
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2])
+    {
     }
 
     /**
@@ -170,10 +225,16 @@ public:
         if (getProp3D() != NULL) {
             double angle = vtkMath::DegreesFromRadians(2.0 * acos(quat[0]));
             double axis[3];
-            double denom = sqrt(1. - quat[0] * quat[0]);
-            axis[0] = quat[1] / denom;
-            axis[1] = quat[2] / denom;
-            axis[2] = quat[3] / denom;
+            if (angle < 1.0e-6) {
+                axis[0] = 1;
+                axis[1] = 0;
+                axis[2] = 0;
+            } else {
+                double denom = sqrt(1. - quat[0] * quat[0]);
+                axis[0] = quat[1] / denom;
+                axis[1] = quat[2] / denom;
+                axis[2] = quat[3] / denom;
+             }
             setOrientation(angle, axis);
         }
     }
@@ -590,29 +651,6 @@ public:
     }
 
     /**
-     * \brief Convenience method to set culling state on a vtkProperty
-     *
-     * Note: Does not change the culling state flag of this VtkGraphicsObject
-     */
-    virtual void setCulling(vtkProperty *property, bool state)
-    {
-        switch (_cullFace) {
-        case CULL_FRONT:
-            property->SetFrontfaceCulling((state ? 1 : 0));
-            property->BackfaceCullingOff();
-            break;
-        case CULL_BACK:
-            property->SetBackfaceCulling((state ? 1 : 0));
-            property->FrontfaceCullingOff();
-            break;
-        case CULL_FRONT_AND_BACK:
-            property->SetBackfaceCulling((state ? 1 : 0));
-            property->SetFrontfaceCulling((state ? 1 : 0));
-            break;
-        }
-    }
-
-    /**
      * \brief Toggle culling of selected CullFace
      */
     virtual void setCulling(bool state)
@@ -634,6 +672,9 @@ public:
         }
     }
 
+    /**
+     * \brief Specify which face(s) to cull when culling is enabled
+     */
     virtual void setCullFace(CullFace cull)
     {
         _cullFace = cull;
@@ -671,7 +712,31 @@ protected:
      */
     virtual void update() = 0;
 
+    /**
+     * \brief Convenience method to set culling state on a vtkProperty
+     *
+     * Note: Does not change the culling state flag of this VtkGraphicsObject
+     */
+    virtual void setCulling(vtkProperty *property, bool state)
+    {
+        switch (_cullFace) {
+        case CULL_FRONT:
+            property->SetFrontfaceCulling((state ? 1 : 0));
+            property->BackfaceCullingOff();
+            break;
+        case CULL_BACK:
+            property->SetBackfaceCulling((state ? 1 : 0));
+            property->FrontfaceCullingOff();
+            break;
+        case CULL_FRONT_AND_BACK:
+            property->SetBackfaceCulling((state ? 1 : 0));
+            property->SetFrontfaceCulling((state ? 1 : 0));
+            break;
+        }
+    }
+
     DataSet *_dataSet;
+    double _dataRange[2];
     double _opacity;
     float _color[3];
     float _edgeColor[3];

@@ -26,7 +26,8 @@ using namespace Rappture::VtkVis;
 
 Molecule::Molecule() :
     VtkGraphicsObject(),
-    _atomScaling(NO_ATOM_SCALING)
+    _atomScaling(NO_ATOM_SCALING),
+    _colorMap(NULL)
 {
     _faceCulling = true;
 }
@@ -85,58 +86,27 @@ void Molecule::update()
     }
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-    double dataRange[2];
-    _dataSet->getDataRange(dataRange);
-
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
-        if (_lut == NULL) {
-            _lut = vtkSmartPointer<vtkLookupTable>::New();
-            _lut->DeepCopy(ColorMap::getDefault()->getLookupTable());
-            _lut->SetRange(dataRange);
-        }
-    } else {
-        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
-        TRACE("Data set scalars lookup table: %p\n", lut);
-        if (_lut == NULL) {
-            if (lut) {
-                _lut = lut;
-                if (strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") == 0) {
-                    double range[2];
-                    range[0] = 0;
-                    range[1] = NUM_ELEMENTS+1;
-                    _lut->SetRange(range);
-                } else {
-                    _lut->SetRange(dataRange);
-                }
-            } else {
-                if (strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") == 0) {
-                    _lut = ColorMap::getElementDefault()->getLookupTable();
-                } else {
-                    _lut = vtkSmartPointer<vtkLookupTable>::New();
-                    _lut->DeepCopy(ColorMap::getDefault()->getLookupTable());
-                    _lut->SetRange(dataRange);
-                }
-            }
-        }
-    }
-
     if (_atomMapper == NULL) {
         _atomMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _atomMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _atomMapper->ScalarVisibilityOn();
-        _atomMapper->SetColorModeToMapScalars();
-        _atomMapper->UseLookupTableScalarRangeOn();
-        _atomMapper->SetLookupTable(_lut);
     }
     if (_bondMapper == NULL) {
         _bondMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _bondMapper->ScalarVisibilityOn();
-        _bondMapper->SetColorModeToMapScalars();
-        _bondMapper->UseLookupTableScalarRangeOn();
-        _bondMapper->SetLookupTable(_lut);
+    }
+
+    if (_lut == NULL) {
+        if (ds->GetPointData() == NULL ||
+            ds->GetPointData()->GetScalars() == NULL ||
+            strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
+            WARN("No element array in dataset %s", _dataSet->getName().c_str());
+            setColorMap(ColorMap::getDefault());
+        } else {
+            TRACE("Using element default colormap");
+            setColorMap(ColorMap::getElementDefault());
+        }
     }
 
     initProp();
@@ -196,32 +166,72 @@ void Molecule::update()
     _bondMapper->Update();
 }
 
+void Molecule::updateRanges(bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        vtkDataSet *ds = _dataSet->getVtkDataSet();
+        if (ds == NULL)
+            return;
+        if (ds->GetPointData() == NULL ||
+            ds->GetPointData()->GetScalars() == NULL ||
+            strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
+            _lut->SetRange(_dataRange);
+        }
+    }
+}
+
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *Molecule::getLookupTable()
-{ 
-    return _lut;
+void Molecule::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void Molecule::setLookupTable(vtkLookupTable *lut)
+void Molecule::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_atomMapper != NULL) {
+            _atomMapper->UseLookupTableScalarRangeOn();
+            _atomMapper->SetLookupTable(_lut);
+        }
+        if (_bondMapper != NULL) {
+            _bondMapper->UseLookupTableScalarRangeOn();
+            _bondMapper->SetLookupTable(_lut);
+        }
     }
 
-    if (_atomMapper != NULL) {
-        _atomMapper->UseLookupTableScalarRangeOn();
-        _atomMapper->SetLookupTable(_lut);
-    }
-    if (_bondMapper != NULL) {
-        _bondMapper->UseLookupTableScalarRangeOn();
-        _bondMapper->SetLookupTable(_lut);
+    _lut->DeepCopy(cmap->getLookupTable());
+    _lut->Modified();
+
+    // Element color maps need to retain their range
+    // Only set LUT range if we are not coloring by element
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    if (ds == NULL)
+        return;
+    if (ds->GetPointData() == NULL ||
+        ds->GetPointData()->GetScalars() == NULL ||
+        strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
+        _lut->SetRange(_dataRange);
     }
 }
 
@@ -283,6 +293,10 @@ void Molecule::setAtomScaling(AtomScaling state)
     }
 }
 
+/**
+ * \brief Add a scalar array to dataSet with sizes for the elements
+ * specified in the "element" scalar array
+ */
 void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling)
 {
     if (dataSet->GetPointData() == NULL ||
@@ -322,31 +336,34 @@ void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling)
     dataSet->GetPointData()->SetVectors(radii);
 }
 
+/**
+ * \brief Create a color map to map atomic numbers to element colors
+ */
 ColorMap *Molecule::createElementColorMap()
 {
-    ColorMap *elementLUT = new ColorMap("elementDefault");
+    ColorMap *elementCmap = new ColorMap("elementDefault");
     ColorMap::ControlPoint cp[NUM_ELEMENTS+1];
 
-    elementLUT->setNumberOfTableEntries(NUM_ELEMENTS+1);
+    elementCmap->setNumberOfTableEntries(NUM_ELEMENTS+1);
     for (int i = 0; i <= NUM_ELEMENTS; i++) {
         cp[i].value = i/((double)(NUM_ELEMENTS+1));
         for (int c = 0; c < 3; c++) {
             cp[i].color[c] = ((double)g_elementColors[i][c])/255.;
         }
-        elementLUT->addControlPoint(cp[i]);
+        elementCmap->addControlPoint(cp[i]);
     }
     ColorMap::OpacityControlPoint ocp[2];
     ocp[0].value = 0;
     ocp[0].alpha = 1.0;
     ocp[1].value = 1.0;
     ocp[1].alpha = 1.0;
-    elementLUT->addOpacityControlPoint(ocp[0]);
-    elementLUT->addOpacityControlPoint(ocp[1]);
-    elementLUT->build();
+    elementCmap->addOpacityControlPoint(ocp[0]);
+    elementCmap->addOpacityControlPoint(ocp[1]);
+    elementCmap->build();
     double range[2];
     range[0] = 0;
     range[1] = NUM_ELEMENTS+1;
-    elementLUT->getLookupTable()->SetRange(range);
+    elementCmap->getLookupTable()->SetRange(range);
 
-    return elementLUT;
+    return elementCmap;
 }

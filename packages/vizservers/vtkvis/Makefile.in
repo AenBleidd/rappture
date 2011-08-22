@@ -130,14 +130,14 @@ CmdProc.o: CmdProc.h
 ColorMap.o: ColorMap.h RpMolecule.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
-RpContour3D.o: RpContour3D.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
+RpContour3D.o: RpContour3D.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpGlyphs.o: RpGlyphs.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
-RpHeightMap.o: RpHeightMap.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
-RpLIC.o: RpLIC.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h RpVtkRenderServer.h
+RpHeightMap.o: RpHeightMap.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
+RpLIC.o: RpLIC.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h RpVtkRenderServer.h
 RpMolecule.o: RpMolecule.h RpMoleculeData.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpPolyData.o: RpPolyData.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
-RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
-RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
+RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
+RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
 RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
