@@ -20,6 +20,7 @@
 using namespace Rappture::VtkVis;
 
 ColorMap *ColorMap::_default = NULL;
+ColorMap *ColorMap::_grayDefault = NULL;
 ColorMap *ColorMap::_volumeDefault = NULL;
 ColorMap *ColorMap::_elementDefault = NULL;
 
@@ -333,6 +334,38 @@ ColorMap *ColorMap::getDefault()
     _default->addOpacityControlPoint(ocp[1]);
     _default->build();
     return _default;
+}
+
+/**
+ * \brief Create a default ColorMap with a black-white grayscale ramp
+ */
+ColorMap *ColorMap::getGrayDefault()
+{
+    if (_grayDefault != NULL) {
+        return _grayDefault;
+    }
+
+    _grayDefault = new ColorMap("grayDefault");
+    ControlPoint cp[2];
+    cp[0].value = 0.0;
+    cp[0].color[0] = 0.0;
+    cp[0].color[1] = 0.0;
+    cp[0].color[2] = 0.0;
+    _grayDefault->addControlPoint(cp[0]);
+    cp[1].value = 1.0;
+    cp[1].color[0] = 1.0;
+    cp[1].color[1] = 1.0;
+    cp[1].color[2] = 1.0;
+    _grayDefault->addControlPoint(cp[1]);
+    OpacityControlPoint ocp[2];
+    ocp[0].value = 0.0;
+    ocp[0].alpha = 1.0;
+    ocp[1].value = 1.0;
+    ocp[1].alpha = 1.0;
+    _grayDefault->addOpacityControlPoint(ocp[0]);
+    _grayDefault->addOpacityControlPoint(ocp[1]);
+    _grayDefault->build();
+    return _grayDefault;
 }
 
 /**

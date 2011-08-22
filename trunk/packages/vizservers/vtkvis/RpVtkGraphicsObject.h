@@ -109,7 +109,7 @@ public:
                 _dataRange[0] = scalarRange[0];
                 _dataRange[1] = scalarRange[1];
             } else {
-                dataSet->getScalarRange(_dataRange);
+                _dataSet->getScalarRange(_dataRange);
             }
 
             update();
@@ -131,6 +131,12 @@ public:
                               double vectorMagnitudeRange[2],
                               double vectorComponentRange[3][2])
     {
+        if (useCumulative) {
+            _dataRange[0] = scalarRange[0];
+            _dataRange[1] = scalarRange[1];
+        } else {
+            _dataSet->getScalarRange(_dataRange);
+        }
     }
 
     /**

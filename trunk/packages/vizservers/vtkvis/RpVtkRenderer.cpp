@@ -135,6 +135,7 @@ Renderer::Renderer() :
     initAxes();
     initCamera();
     addColorMap("default", ColorMap::getDefault());
+    addColorMap("grayDefault", ColorMap::getGrayDefault());
     addColorMap("volumeDefault", ColorMap::getVolumeDefault());
     addColorMap("elementDefault", ColorMap::getElementDefault());
 }
@@ -1324,6 +1325,7 @@ void Renderer::deleteColorMap(const ColorMapId& id)
 
     do {
         if (itr->second->getName().compare("default") == 0 ||
+            itr->second->getName().compare("grayDefault") == 0 ||
             itr->second->getName().compare("volumeDefault") == 0 ||
             itr->second->getName().compare("elementDefault") == 0) {
             if (id.compare("all") != 0) {

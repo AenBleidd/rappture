@@ -50,8 +50,6 @@ public:
 
     void getScalarRange(double minmax[2]) const;
 
-    //void getDataRange(double minmax[2]) const;
-
     void getDataRange(double minmax[2], const char *fieldName, int component = -1) const;
 
     void getVectorRange(double minmax[2], int component = -1) const;
