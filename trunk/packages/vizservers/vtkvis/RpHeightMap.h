@@ -24,6 +24,7 @@
 
 #include <vector>
 
+#include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -40,7 +41,10 @@ public:
         Z_AXIS
     };
 
-    HeightMap();
+    HeightMap(int numContours);
+
+    HeightMap(const std::vector<double>& contours);
+
     virtual ~HeightMap();
 
     virtual const char *getClassName() const
@@ -48,7 +52,11 @@ public:
         return "HeightMap";
     }
 
-    virtual void setDataSet(DataSet *dataset);
+    virtual void setDataSet(DataSet *dataset,
+                            bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2]);
 
     virtual void setLighting(bool state);
 
@@ -74,9 +82,22 @@ public:
 
     const std::vector<double>& getContourList() const;
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
     void setContourVisibility(bool state);
 
@@ -85,6 +106,8 @@ public:
     void setContourEdgeWidth(float edgeWidth);
 
 private:
+    HeightMap();
+
     virtual void initProp();
     virtual void update();
 
@@ -93,11 +116,9 @@ private:
 
     int _numContours;
     std::vector<double> _contours;
-    double _dataRange[2];
+    ColorMap *_colorMap;
 
-    float _edgeColor[3];
     float _contourEdgeColor[3];
-    float _edgeWidth;
     float _contourEdgeWidth;
     double _warpScale;
     double _dataScale;

@@ -28,7 +28,8 @@
 using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
-    VtkGraphicsObject()
+    VtkGraphicsObject(),
+    _colorMap(NULL)
 {
 }
 
@@ -69,9 +70,6 @@ void PseudoColor::update()
         return;
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
-
-    double dataRange[2];
-    _dataSet->getDataRange(dataRange);
 
     // Mapper, actor to render color-mapped data set
     if (_dsMapper == NULL) {
@@ -135,28 +133,9 @@ void PseudoColor::update()
         _dsMapper->SetInputConnection(gf->GetOutputPort());
     }
 
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
-        if (_lut == NULL) {
-            _lut = vtkSmartPointer<vtkLookupTable>::New();
-        }
-    } else {
-        vtkLookupTable *lut = ds->GetPointData()->GetScalars()->GetLookupTable();
-        TRACE("Data set scalars lookup table: %p\n", lut);
-        if (_lut == NULL) {
-            if (lut)
-                _lut = lut;
-            else
-                _lut = vtkSmartPointer<vtkLookupTable>::New();
-        }
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
     }
-
-    _lut->SetRange(dataRange);
-
-    _dsMapper->SetColorModeToMapScalars();
-    _dsMapper->UseLookupTableScalarRangeOn();
-    _dsMapper->SetLookupTable(_lut);
     //_dsMapper->InterpolateScalarsBeforeMappingOn();
 
     initProp();
@@ -164,29 +143,51 @@ void PseudoColor::update()
     _dsMapper->Update();
 }
 
+void PseudoColor::updateRanges(bool useCumulative,
+                               double scalarRange[2],
+                               double vectorMagnitudeRange[2],
+                               double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        _lut->SetRange(_dataRange);
+    }
+}
+
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *PseudoColor::getLookupTable()
-{ 
-    return _lut;
+void PseudoColor::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void PseudoColor::setLookupTable(vtkLookupTable *lut)
+void PseudoColor::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_dsMapper != NULL) {
+            _dsMapper->UseLookupTableScalarRangeOn();
+            _dsMapper->SetLookupTable(_lut);
+        }
     }
 
-    if (_dsMapper != NULL) {
-        _dsMapper->UseLookupTableScalarRangeOn();
-        _dsMapper->SetLookupTable(_lut);
-    }
+    _lut->DeepCopy(cmap->getLookupTable());
+    _lut->SetRange(_dataRange);
 }
 
 /**

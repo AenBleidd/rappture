@@ -48,15 +48,17 @@ public:
 
     bool setActiveVectors(const char *name);
 
-    void getDataRange(double minmax[2]) const;
+    void getScalarRange(double minmax[2]) const;
 
-    void getDataRange(double minmax[2], const char *fieldName) const;
+    //void getDataRange(double minmax[2]) const;
 
-    void getVectorMagnitudeRange(double minmax[2]) const;
+    void getDataRange(double minmax[2], const char *fieldName, int component = -1) const;
 
-    void getVectorComponentRange(double minmax[2], int component) const;
+    void getVectorRange(double minmax[2], int component = -1) const;
 
     void getBounds(double bounds[6]) const;
+
+    void getCellSizeRange(double minmax[6], double *average) const;
 
     double getDataValue(double x, double y, double z) const;
 
@@ -66,6 +68,7 @@ public:
 
 private:
     DataSet();
+    void print() const;
 
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;

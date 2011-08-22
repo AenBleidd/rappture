@@ -18,6 +18,7 @@
 #include <vtkMapper.h>
 #include <vtkLookupTable.h>
 
+#include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -48,15 +49,29 @@ public:
 
     void selectVolumeSlice(Axis axis, double ratio);
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
 private:
     virtual void initProp();
     virtual void update();
 
     Axis _sliceAxis;
+    ColorMap *_colorMap;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;

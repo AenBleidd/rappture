@@ -51,9 +51,22 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
-    void setLookupTable(vtkLookupTable *lut);
+    void setColorMap(ColorMap *colorMap);
 
-    vtkLookupTable *getLookupTable();
+    /**
+     * \brief Return the ColorMap in use
+     */
+    ColorMap *getColorMap()
+    {
+        return _colorMap;
+    }
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
     void setAtomScaling(AtomScaling state);
 
@@ -70,6 +83,7 @@ private:
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling);
 
     AtomScaling _atomScaling;
+    ColorMap *_colorMap;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _atomProp;

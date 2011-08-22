@@ -231,7 +231,9 @@ public:
 
     // 2D Contour plots
 
-    void addContour2D(const DataSetId& id);
+    void addContour2D(const DataSetId& id, int numContours);
+
+    void addContour2D(const DataSetId& id, const std::vector<double>& contours);
 
     void deleteContour2D(const DataSetId& id);
 
@@ -263,7 +265,9 @@ public:
 
     // 3D Contour (isosurface) plots
 
-    void addContour3D(const DataSetId& id);
+    void addContour3D(const DataSetId& id, int numContours);
+
+    void addContour3D(const DataSetId& id, const std::vector<double>& contours);
 
     void deleteContour3D(const DataSetId& id);
 
@@ -303,7 +307,7 @@ public:
 
     // Glyphs
 
-    void addGlyphs(const DataSetId& id);
+    void addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape);
 
     void deleteGlyphs(const DataSetId& id);
 
@@ -347,7 +351,9 @@ public:
 
     // Height maps
 
-    void addHeightMap(const DataSetId& id);
+    void addHeightMap(const DataSetId& id, int numContours);
+
+    void addHeightMap(const DataSetId& id, const std::vector<double>& contours);
 
     void deleteHeightMap(const DataSetId& id);
 
@@ -649,9 +655,19 @@ private:
 
     void collectBounds(double *bounds, bool onlyVisible);
 
-    void collectDataRanges(double *range, bool onlyVisible);
+    void collectDataRanges();
 
-    void updateRanges(bool useCumulative);
+    void collectScalarRanges(double *range, bool onlyVisible);
+
+    void collectVectorMagnitudeRanges(double *range, bool onlyVisible);
+
+    void collectVectorComponentRanges(double *range, int component, bool onlyVisible);
+
+    void updateRanges();
+
+    void updateColorMap(ColorMap *cmap);
+
+    bool colorMapUsed(ColorMap *cmap);
 
     void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
 
@@ -663,7 +679,7 @@ private:
 
     void initCamera();
     void initAxes();
-    void resetAxes();
+    void resetAxes(double bounds[6] = NULL);
     void setCameraClippingPlanes();
 
     bool _needsRedraw;
@@ -677,7 +693,9 @@ private:
     float _bgColor[3];
     bool _useCumulativeRange;
     bool _cumulativeRangeOnlyVisible;
-    double _cumulativeDataRange[2];
+    double _cumulativeScalarRange[2];
+    double _cumulativeVectorMagnitudeRange[2];
+    double _cumulativeVectorComponentRange[3][2];
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;

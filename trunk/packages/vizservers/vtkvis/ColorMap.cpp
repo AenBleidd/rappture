@@ -218,26 +218,34 @@ void ColorMap::build()
 	    oitr2++;
 	}
 	if (itr2 == _controlPoints.end()) {
+#ifdef DEBUG
 	    TRACE("val: %g Range: %g - 1 Color: %g %g %g", value, itr->value,
 		  itr->color[0], itr->color[1], itr->color[2]);
+#endif
             memcpy(color, itr->color, sizeof(double)*3);
 	} else {
 	    assert(itr->value < itr2->value);
 	    assert(value >= itr->value && value <= itr2->value);
 	    lerp(color, *itr, *itr2, value);
+#ifdef DEBUG
 	    TRACE("val: %g Range: %g - %g Color: %g %g %g", value, itr->value, itr2->value,
 		  color[0], color[1], color[2]);
+#endif
 	}
 	if (oitr2 == _opacityControlPoints.end()) {
+#ifdef DEBUG
 	    TRACE("val: %g Range: %g - 1 Alpha %g", value, oitr->value,
 		  oitr->alpha);
+#endif
             color[3] = oitr->alpha;
 	} else {
 	    assert(oitr->value < oitr2->value);
 	    assert(value >= oitr->value && value <= oitr2->value);
 	    lerp(&color[3], *oitr, *oitr2, value);
+#ifdef DEBUG
 	    TRACE("val: %g Range: %g - %g Alpha: %g", value, oitr->value, oitr2->value,
 		  color[3]);
+#endif
 	}
         _lookupTable->SetTableValue(i, color);
     }

@@ -6,6 +6,8 @@
  */
 
 #include <cstring>
+#include <cfloat>
+#include <cmath>
 
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
@@ -17,6 +19,7 @@
 #include <vtkProperty.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
+#include <vtkCell.h>
 #include <vtkLookupTable.h>
 
 #include "RpVtkDataSet.h"
@@ -68,8 +71,12 @@ bool DataSet::setDataFile(const char *filename)
 #endif
 
     reader->SetFileName(filename);
+    reader->ReadAllNormalsOn();
+    //reader->ReadAllTCoordsOn();
     reader->ReadAllScalarsOn();
+    //reader->ReadAllColorScalarsOn();
     reader->ReadAllVectorsOn();
+    //reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
     return setData(reader);
 }
@@ -92,14 +99,66 @@ bool DataSet::setData(char *data, int nbytes)
     dataSetString->SetArray(data, nbytes, 1);
     reader->SetInputArray(dataSetString);
     reader->ReadFromInputStringOn();
+    reader->ReadAllNormalsOn();
+    //reader->ReadAllTCoordsOn();
     reader->ReadAllScalarsOn();
+    //reader->ReadAllColorScalarsOn();
     reader->ReadAllVectorsOn();
+    //reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
 
     bool status = setData(reader);
 
     TRACE("Leaving");
     return status;
+}
+
+void DataSet::print() const
+{
+    TRACE("DataSet class: %s", _dataSet->GetClassName());
+
+    double bounds[6];
+    getBounds(bounds);
+
+    // Topology
+    TRACE("DataSet bounds: %g %g %g %g %g %g",
+          bounds[0], bounds[1],
+          bounds[2], bounds[3],
+          bounds[4], bounds[5]);
+    TRACE("Points: %d Cells: %d", _dataSet->GetNumberOfPoints(), _dataSet->GetNumberOfCells());
+
+    double dataRange[2];
+    if (_dataSet->GetPointData() != NULL) {
+        TRACE("PointData arrays: %d", _dataSet->GetPointData()->GetNumberOfArrays());
+        for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
+            _dataSet->GetPointData()->GetArray(i)->GetRange(dataRange, -1);
+            TRACE("PointData[%d]: '%s' comp:%d, (%g,%g)", i,
+                  _dataSet->GetPointData()->GetArrayName(i),
+                  _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents(),
+                  dataRange[0], dataRange[1]);
+        }
+    }
+    if (_dataSet->GetCellData() != NULL) {
+        TRACE("CellData arrays: %d", _dataSet->GetCellData()->GetNumberOfArrays());
+        for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
+            _dataSet->GetCellData()->GetArray(i)->GetRange(dataRange, -1);
+            TRACE("CellData[%d]: '%s' comp:%d, (%g,%g)", i,
+                  _dataSet->GetCellData()->GetArrayName(i),
+                  _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents(),
+                  dataRange[0], dataRange[1]);
+        }
+    }
+    if (_dataSet->GetFieldData() != NULL) {
+        TRACE("FieldData arrays: %d", _dataSet->GetFieldData()->GetNumberOfArrays());
+        for (int i = 0; i < _dataSet->GetFieldData()->GetNumberOfArrays(); i++) {
+            _dataSet->GetFieldData()->GetArray(i)->GetRange(dataRange, -1);
+            TRACE("FieldData[%d]: '%s' comp:%d, tuples:%d (%g,%g)", i,
+                  _dataSet->GetFieldData()->GetArrayName(i),
+                  _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents(),
+                  _dataSet->GetFieldData()->GetArray(i)->GetNumberOfTuples(),
+                  dataRange[0], dataRange[1]);
+        }
+    }
 }
 
 /**
@@ -118,19 +177,15 @@ bool DataSet::setData(vtkDataSetReader *reader)
     _dataSet = reader->GetOutput();
     _dataSet->SetPipelineInformation(NULL);
 
-    TRACE("DataSet class: %s", _dataSet->GetClassName());
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetScalars() != NULL &&
+        _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
+        ERROR("No lookup table should be specified in DataSets");
+    }
+
 #ifdef WANT_TRACE
-    double dataRange[2];
-    getDataRange(dataRange);
-    double bounds[6];
-    getBounds(bounds);
+    print();
 #endif
-    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
-    TRACE("DataSet bounds: %g %g %g %g %g %g",
-          bounds[0], bounds[1],
-          bounds[2], bounds[3],
-          bounds[4], bounds[5]);
-    TRACE("Points: %d Cells: %d", _dataSet->GetNumberOfPoints(), _dataSet->GetNumberOfCells());
     return true;
 }
 
@@ -144,19 +199,15 @@ bool DataSet::setData(vtkDataSet *ds)
     _dataSet = ds;
     _dataSet->SetPipelineInformation(NULL);
 
-    TRACE("DataSet class: %s", _dataSet->GetClassName());
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetScalars() != NULL &&
+        _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
+        ERROR("No lookup table should be specified in DataSets");
+    }
+
 #ifdef WANT_TRACE
-    double dataRange[2];
-    getDataRange(dataRange);
-    double bounds[6];
-    getBounds(bounds);
+    print();
 #endif
-    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
-    TRACE("DataSet bounds: %g %g %g %g %g %g",
-          bounds[0], bounds[1],
-          bounds[2], bounds[3],
-          bounds[4], bounds[5]);
-    TRACE("Points: %d Cells: %d", _dataSet->GetNumberOfPoints(), _dataSet->GetNumberOfCells());
     return true;
 }
 
@@ -189,18 +240,9 @@ vtkDataSet *DataSet::copyData(vtkDataSet *ds)
         return NULL;
     }
 
-    TRACE("DataSet class: %s", _dataSet->GetClassName());
 #ifdef WANT_TRACE
-    double dataRange[2];
-    getDataRange(dataRange);
-    double bounds[6];
-    getBounds(bounds);
+    print();
 #endif    
-    TRACE("Scalar Range: %.12e, %.12e", dataRange[0], dataRange[1]);
-    TRACE("DataSet bounds: %g %g %g %g %g %g",
-          bounds[0], bounds[1],
-          bounds[2], bounds[3],
-          bounds[4], bounds[5]);
     return _dataSet;
 }
 
@@ -279,51 +321,28 @@ bool DataSet::setActiveVectors(const char *name)
 /**
  * \brief Get the range of scalar values in the DataSet
  */
-void DataSet::getDataRange(double minmax[2]) const
+void DataSet::getScalarRange(double minmax[2]) const
 {
     _dataSet->GetScalarRange(minmax);
 }
 
+#if 0
 /**
- * \brief Get the range of scalar values (or vector magnitudes) for
- * the named field in the DataSet
+ * \brief Get the range of scalar values in the DataSet
  */
-void DataSet::getDataRange(double minmax[2], const char *fieldName) const
+void DataSet::getDataRange(double minmax[2]) const
 {
-    if (_dataSet == NULL)
-        return;
-    if (_dataSet->GetPointData() != NULL &&
-        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetPointData()->GetArray(fieldName)->GetRange(minmax, -1);
-    } else if (_dataSet->GetCellData() != NULL &&
-        _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetCellData()->GetArray(fieldName)->GetRange(minmax, -1);
-    } else if (_dataSet->GetFieldData() != NULL &&
-        _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetFieldData()->GetArray(fieldName)->GetRange(minmax, -1);
-    }
+    _dataSet->GetScalarRange(minmax);
 }
-
-/**
- * \brief Get the range of vector magnitudes in the DataSet
- */
-void DataSet::getVectorMagnitudeRange(double minmax[2]) const
-{
-    if (_dataSet == NULL) 
-        return;
-    if (_dataSet->GetPointData() != NULL &&
-        _dataSet->GetPointData()->GetVectors() != NULL) {
-        _dataSet->GetPointData()->GetVectors()->GetRange(minmax, -1);
-    } else if (_dataSet->GetCellData() != NULL &&
-               _dataSet->GetCellData()->GetVectors() != NULL) {
-        _dataSet->GetCellData()->GetVectors()->GetRange(minmax, -1);
-    }
-}
+#endif
 
 /**
  * \brief Get the range of a vector component in the DataSet
+ *
+ * \param[out] minmax The data range
+ * \param[in] component The field component, -1 means magnitude
  */
-void DataSet::getVectorComponentRange(double minmax[2], int component) const
+void DataSet::getVectorRange(double minmax[2], int component) const
 {
     if (_dataSet == NULL)
         return;
@@ -337,11 +356,69 @@ void DataSet::getVectorComponentRange(double minmax[2], int component) const
 }
 
 /**
+ * \brief Get the range of values for the named field in the DataSet
+ *
+ * \param[out] minmax The data range
+ * \param[in] fieldName The array name
+ * \param[in] component The field component, -1 means magnitude
+ */
+void DataSet::getDataRange(double minmax[2], const char *fieldName, int component) const
+{
+    if (_dataSet == NULL)
+        return;
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetPointData()->GetArray(fieldName)->GetRange(minmax, component);
+    } else if (_dataSet->GetCellData() != NULL &&
+        _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetCellData()->GetArray(fieldName)->GetRange(minmax, component);
+    } else if (_dataSet->GetFieldData() != NULL &&
+        _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetFieldData()->GetArray(fieldName)->GetRange(minmax, component);
+    }
+}
+
+/**
  * \brief Get the bounds the DataSet
  */
 void DataSet::getBounds(double bounds[6]) const
 {
     _dataSet->GetBounds(bounds);
+}
+
+/**
+ * \brief Get the range of cell AABB diagonal lengths the DataSet
+ */
+void DataSet::getCellSizeRange(double minmax[6], double *average) const
+{
+    if (_dataSet == NULL ||
+        _dataSet->GetNumberOfCells() < 1) {
+        minmax[0] = 1;
+        minmax[1] = 1;
+        *average = 1;
+        return;
+    }
+
+    minmax[0] = DBL_MAX;
+    minmax[1] = -DBL_MAX;
+
+    *average = 0;
+    for (int i = 0; i < _dataSet->GetNumberOfCells(); i++) {
+        double length2 = _dataSet->GetCell(i)->GetLength2();
+        if (length2 < minmax[0])
+            minmax[0] = length2;
+        if (length2 > minmax[1])
+            minmax[1] = length2;
+        *average += length2;
+    }
+    if (minmax[0] == DBL_MAX)
+        minmax[0] = 1;
+    if (minmax[1] == -DBL_MAX)
+        minmax[1] = 1;
+
+    minmax[0] = sqrt(minmax[0]);
+    minmax[1] = sqrt(minmax[1]);
+    *average = sqrt(*average/((double)_dataSet->GetNumberOfCells()));
 }
 
 /**

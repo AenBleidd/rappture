@@ -26,7 +26,8 @@ using namespace Rappture::VtkVis;
 
 LIC::LIC() :
     VtkGraphicsObject(),
-    _sliceAxis(Z_AXIS)
+    _sliceAxis(Z_AXIS),
+    _colorMap(NULL)
 {
 }
 
@@ -55,12 +56,6 @@ void LIC::update()
         return;
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
-
-    double dataRange[2];
-    _dataSet->getDataRange(dataRange);
-
-    TRACE("DataSet type: %s, range: %g - %g", _dataSet->getVtkType(),
-          dataRange[0], dataRange[1]);
 
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
     if (ds->GetPointData() == NULL ||
@@ -188,6 +183,10 @@ void LIC::update()
         ppdmapper->SetInput(pd);
     }
 
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
+    }
+
     initProp();
     getActor()->SetMapper(_mapper);
 
@@ -310,26 +309,49 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
 }
 
 /**
- * \brief Get the VTK colormap lookup table in use
+ * \brief Called when the color map has been edited
  */
-vtkLookupTable *LIC::getLookupTable()
-{ 
-    return _lut;
+void LIC::updateColorMap()
+{
+    setColorMap(_colorMap);
 }
 
 /**
  * \brief Associate a colormap lookup table with the DataSet
  */
-void LIC::setLookupTable(vtkLookupTable *lut)
+void LIC::setColorMap(ColorMap *cmap)
 {
-    if (lut == NULL) {
+    if (cmap == NULL)
+        return;
+
+    _colorMap = cmap;
+ 
+    if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
-    } else {
-        _lut = lut;
+        if (_mapper != NULL) {
+            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->SetLookupTable(_lut);
+        }
     }
 
-    if (_mapper != NULL) {
-        _mapper->SetLookupTable(_lut);
+    _lut->DeepCopy(cmap->getLookupTable());
+    _lut->SetRange(_dataRange);
+}
+
+void LIC::updateRanges(bool useCumulative,
+                       double scalarRange[2],
+                       double vectorMagnitudeRange[2],
+                       double vectorComponentRange[3][2])
+{
+    if (useCumulative) {
+        _dataRange[0] = scalarRange[0];
+        _dataRange[1] = scalarRange[1];
+    } else if (_dataSet != NULL) {
+        _dataSet->getScalarRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        _lut->SetRange(_dataRange);
     }
 }
 

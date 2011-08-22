@@ -48,9 +48,14 @@ public:
 
     void setColorMap(ColorMap *cmap);
 
-    void setColorMap(ColorMap *cmap, double dataRange[2]);
-
     ColorMap *getColorMap();
+
+    void updateColorMap();
+
+    virtual void updateRanges(bool useCumulative,
+                              double scalarRange[2],
+                              double vectorMagnitudeRange[2],
+                              double vectorComponentRange[3][2]);
 
 private:
     virtual void initProp();

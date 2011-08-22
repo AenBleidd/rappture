@@ -68,8 +68,14 @@ Renderer::Renderer() :
     _cameraOrientation[1] = 0.0;
     _cameraOrientation[2] = 0.0;
     _cameraOrientation[3] = 0.0;
-    _cumulativeDataRange[0] = 0.0;
-    _cumulativeDataRange[1] = 1.0;
+    _cumulativeScalarRange[0] = 0.0;
+    _cumulativeScalarRange[1] = 1.0;
+    _cumulativeVectorMagnitudeRange[0] = 0.0;
+    _cumulativeVectorMagnitudeRange[1] = 1.0;
+    for (int i = 0; i < 3; i++) {
+        _cumulativeVectorComponentRange[i][0] = 0.0;
+        _cumulativeVectorComponentRange[i][1] = 1.0;
+    }
     // clipping planes to prevent overdrawing axes
     _activeClipPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
@@ -262,6 +268,7 @@ void Renderer::deleteContour2D(const DataSetId& id)
         itr = _contour2Ds.erase(itr);
     } while (doAll && itr != _contour2Ds.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -298,6 +305,7 @@ void Renderer::deleteContour3D(const DataSetId& id)
         itr = _contour3Ds.erase(itr);
     } while (doAll && itr != _contour3Ds.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -334,6 +342,7 @@ void Renderer::deleteGlyphs(const DataSetId& id)
         itr = _glyphs.erase(itr);
     } while (doAll && itr != _glyphs.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -370,6 +379,7 @@ void Renderer::deleteHeightMap(const DataSetId& id)
         itr = _heightMaps.erase(itr);
     } while (doAll && itr != _heightMaps.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -406,6 +416,7 @@ void Renderer::deleteLIC(const DataSetId& id)
         itr = _lics.erase(itr);
     } while (doAll && itr != _lics.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -442,6 +453,7 @@ void Renderer::deleteMolecule(const DataSetId& id)
         itr = _molecules.erase(itr);
     } while (doAll && itr != _molecules.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -478,6 +490,7 @@ void Renderer::deletePolyData(const DataSetId& id)
         itr = _polyDatas.erase(itr);
     } while (doAll && itr != _polyDatas.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -514,6 +527,7 @@ void Renderer::deletePseudoColor(const DataSetId& id)
         itr = _pseudoColors.erase(itr);
     } while (doAll && itr != _pseudoColors.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -550,6 +564,7 @@ void Renderer::deleteStreamlines(const DataSetId& id)
         itr = _streamlines.erase(itr);
     } while (doAll && itr != _streamlines.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -586,6 +601,7 @@ void Renderer::deleteVolume(const DataSetId& id)
         itr = _volumes.erase(itr);
     } while (doAll && itr != _volumes.end());
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -633,9 +649,9 @@ void Renderer::deleteDataSet(const DataSetId& id)
     } while (doAll && itr != _dataSets.end());
 
     // Update cumulative data range
-    collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-    updateRanges(_useCumulativeRange);
+    updateRanges();
 
+    initCamera();
     _needsRedraw = true;
 }
 
@@ -648,7 +664,9 @@ DataSet *Renderer::getDataSet(const DataSetId& id)
 {
     DataSetHashmap::iterator itr = _dataSets.find(id);
     if (itr == _dataSets.end()) {
+#ifdef DEBUG
         TRACE("DataSet not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -662,8 +680,7 @@ bool Renderer::setDataFile(const DataSetId& id, const char *filename)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setDataFile(filename);
-        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-        updateRanges(_useCumulativeRange);
+        updateRanges();
         _needsRedraw = true;
         return ret;
     } else
@@ -678,8 +695,7 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setData(data, nbytes);
-        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-        updateRanges(_useCumulativeRange);
+        updateRanges();
         _needsRedraw = true;
         return ret;
     } else
@@ -711,8 +727,7 @@ bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarNa
     } while (doAll && ++itr != _dataSets.end());
 
     if (ret) {
-        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-        updateRanges(_useCumulativeRange);
+         updateRanges();
         _needsRedraw = true;
     } 
 
@@ -744,8 +759,7 @@ bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorNa
     } while (doAll && ++itr != _dataSets.end());
 
     if (ret) {
-        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-        updateRanges(_useCumulativeRange);
+        updateRanges();
         _needsRedraw = true;
     } 
 
@@ -761,13 +775,12 @@ void Renderer::setUseCumulativeDataRange(bool state, bool onlyVisible)
     if (state != _useCumulativeRange) {
         _useCumulativeRange = state;
         _cumulativeRangeOnlyVisible = onlyVisible;
-        collectDataRanges(_cumulativeDataRange, _cumulativeRangeOnlyVisible);
-        updateRanges(_useCumulativeRange);
+        updateRanges();
         _needsRedraw = true;
     }
 }
 
-void Renderer::resetAxes()
+void Renderer::resetAxes(double bounds[6])
 {
     TRACE("Resetting axes");
     if (_cubeAxesActor == NULL ||
@@ -792,9 +805,13 @@ void Renderer::resetAxes()
             TRACE("Adding 3D axes");
             _renderer->AddViewProp(_cubeAxesActor);
         }
-        double bounds[6];
-        collectBounds(bounds, false);
-        _cubeAxesActor->SetBounds(bounds);
+        if (bounds == NULL) {
+            double newBounds[6];
+            collectBounds(newBounds, false);
+            _cubeAxesActor->SetBounds(newBounds);
+        } else {
+            _cubeAxesActor->SetBounds(bounds);
+        }
     }
 }
 
@@ -1136,17 +1153,133 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
 }
 
 /**
- * \brief Add a color map for use in the Renderer
+ * \brief Notify graphics objects that color map has changed
+ */
+void Renderer::updateColorMap(ColorMap *cmap)
+{
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+         itr != _contour3Ds.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+         itr != _glyphs.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+         itr != _heightMaps.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (LICHashmap::iterator itr = _lics.begin();
+         itr != _lics.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+         itr != _molecules.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+         itr != _pseudoColors.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+         itr != _streamlines.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+         itr != _volumes.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+}
+
+/**
+ * \brief Check if a ColorMap is in use by graphics objects
+ */
+bool Renderer::colorMapUsed(ColorMap *cmap)
+{
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+         itr != _contour3Ds.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+         itr != _glyphs.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+         itr != _heightMaps.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (LICHashmap::iterator itr = _lics.begin();
+         itr != _lics.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+         itr != _molecules.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+         itr != _pseudoColors.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+         itr != _streamlines.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+         itr != _volumes.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Add/replace a ColorMap for use in the Renderer
  */
 void Renderer::addColorMap(const ColorMapId& id, ColorMap *colorMap)
 {
     if (colorMap != NULL) {
         colorMap->build();
         if (getColorMap(id) != NULL) {
-            WARN("Replacing existing ColorMap %s", id.c_str());
-            deleteColorMap(id);
-        }
-        _colorMaps[id] = colorMap;
+            TRACE("Replacing existing ColorMap %s", id.c_str());
+            // Copy to current colormap to avoid invalidating 
+            // pointers in graphics objects using the color map
+            *_colorMaps[id] = *colorMap;
+            delete colorMap;
+            // Notify graphics objects of change
+            updateColorMap(_colorMaps[id]);
+        } else
+            _colorMaps[id] = colorMap;
     } else {
         ERROR("NULL ColorMap");
     }
@@ -1190,9 +1323,20 @@ void Renderer::deleteColorMap(const ColorMapId& id)
     }
 
     do {
+        if (itr->second->getName().compare("default") == 0 ||
+            itr->second->getName().compare("volumeDefault") == 0 ||
+            itr->second->getName().compare("elementDefault") == 0) {
+            if (id.compare("all") != 0) {
+                WARN("Cannot delete a default color map");
+            }
+            continue;
+        } else if (colorMapUsed(itr->second)) {
+            WARN("Cannot delete color map '%s', it is in use", itr->second->getName().c_str());
+            continue;
+        }
+
         TRACE("Deleting ColorMap %s", itr->second->getName().c_str());
 
-        // TODO: Check if color map is used in PseudoColors?
         delete itr->second;
         itr = _colorMaps.erase(itr);
     } while (doAll && itr != _colorMaps.end());
@@ -1219,6 +1363,9 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 #ifdef USE_OFFSCREEN_RENDERING
         _legendRenderWindow->DoubleBufferOff();
         _legendRenderWindow->OffScreenRenderingOn();
+#else
+        _legendRenderWindow->DoubleBufferOn();
+        _legendRenderWindow->SwapBuffersOff();
 #endif
     }
 
@@ -1238,14 +1385,14 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
     if (dataSetID.compare("all") == 0) {
-        lut->SetRange(_cumulativeDataRange);
+        lut->SetRange(_cumulativeScalarRange);
     } else {
         DataSet *dataSet = getDataSet(dataSetID);
         if (dataSet == NULL) {
-            lut->SetRange(_cumulativeDataRange);
+            lut->SetRange(_cumulativeScalarRange);
         } else {
             double range[2];
-            dataSet->getDataRange(range);
+            dataSet->getScalarRange(range);
             lut->SetRange(range);
         }
     }
@@ -1309,7 +1456,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 /**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
-void Renderer::addContour2D(const DataSetId& id)
+void Renderer::addContour2D(const DataSetId& id, int numContours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1334,10 +1481,58 @@ void Renderer::addContour2D(const DataSetId& id)
             deleteContour2D(dsID);
         }
 
-        Contour2D *contour = new Contour2D();
+        Contour2D *contour = new Contour2D(numContours);
         _contour2Ds[dsID] = contour;
 
-        contour->setDataSet(ds);
+        contour->setDataSet(ds,
+                            _useCumulativeRange, 
+                            _cumulativeScalarRange,
+                            _cumulativeVectorMagnitudeRange,
+                            _cumulativeVectorComponentRange);
+
+        _renderer->AddViewProp(contour->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Contour2D and associate it with the named DataSet
+ */
+void Renderer::addContour2D(const DataSetId& id, const std::vector<double>& contours)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getContour2D(dsID)) {
+            WARN("Replacing existing Contour2D %s", dsID.c_str());
+            deleteContour2D(dsID);
+        }
+
+        Contour2D *contour = new Contour2D(contours);
+        _contour2Ds[dsID] = contour;
+
+        contour->setDataSet(ds,
+                            _useCumulativeRange, 
+                            _cumulativeScalarRange,
+                            _cumulativeVectorMagnitudeRange,
+                            _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(contour->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -1354,7 +1549,9 @@ Contour2D *Renderer::getContour2D(const DataSetId& id)
     Contour2DHashmap::iterator itr = _contour2Ds.find(id);
 
     if (itr == _contour2Ds.end()) {
+#ifdef DEBUG
         TRACE("Contour2D not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -1521,11 +1718,7 @@ void Renderer::setContour2DContours(const DataSetId& id, int numContours)
     }
 
     do {
-        if (_useCumulativeRange) {
-            itr->second->setContours(numContours, _cumulativeDataRange);
-        } else {
-            itr->second->setContours(numContours);
-        }
+        itr->second->setContours(numContours);
     } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
@@ -1698,7 +1891,7 @@ void Renderer::setContour2DLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Contour3D and associate it with the named DataSet
  */
-void Renderer::addContour3D(const DataSetId& id)
+void Renderer::addContour3D(const DataSetId& id, int numContours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1723,24 +1916,60 @@ void Renderer::addContour3D(const DataSetId& id)
             deleteContour3D(dsID);
         }
 
-        Contour3D *contour = new Contour3D();
+        Contour3D *contour = new Contour3D(numContours);
         _contour3Ds[dsID] = contour;
 
-        contour->setDataSet(ds);
+        contour->setDataSet(ds,
+                            _useCumulativeRange,
+                            _cumulativeScalarRange,
+                            _cumulativeVectorMagnitudeRange,
+                            _cumulativeVectorComponentRange);
 
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
+        _renderer->AddViewProp(contour->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Contour3D and associate it with the named DataSet
+ */
+void Renderer::addContour3D(const DataSetId& id,const std::vector<double>& contours)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getContour3D(dsID)) {
+            WARN("Replacing existing Contour3D %s", dsID.c_str());
+            deleteContour3D(dsID);
         }
 
-        contour->setLookupTable(lut);
+        Contour3D *contour = new Contour3D(contours);
+        _contour3Ds[dsID] = contour;
+
+        contour->setDataSet(ds,
+                            _useCumulativeRange, 
+                            _cumulativeScalarRange,
+                            _cumulativeVectorMagnitudeRange,
+                            _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(contour->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -1759,7 +1988,9 @@ Contour3D *Renderer::getContour3D(const DataSetId& id)
     Contour3DHashmap::iterator itr = _contour3Ds.find(id);
 
     if (itr == _contour3Ds.end()) {
+#ifdef DEBUG
         TRACE("Contour3D not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -1926,12 +2157,8 @@ void Renderer::setContour3DContours(const DataSetId& id, int numContours)
     }
 
     do {
-        if (_useCumulativeRange) {
-            itr->second->setContours(numContours, _cumulativeDataRange);
-        } else {
-            itr->second->setContours(numContours);
-        }
-    } while (doAll && ++itr != _contour3Ds.end());
+        itr->second->setContours(numContours);
+     } while (doAll && ++itr != _contour3Ds.end());
 
     initCamera();
     _needsRedraw = true;
@@ -2051,23 +2278,7 @@ void Renderer::setContour3DColorMap(const DataSetId& id, const ColorMapId& color
         TRACE("Set Contour3D color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _contour3Ds.end());
 
     _needsRedraw = true;
@@ -2239,7 +2450,7 @@ void Renderer::setContour3DLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Glyphs and associate it with the named DataSet
  */
-void Renderer::addGlyphs(const DataSetId& id)
+void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
 {
     DataSetHashmap::iterator itr;
 
@@ -2264,24 +2475,14 @@ void Renderer::addGlyphs(const DataSetId& id)
             deleteGlyphs(dsID);
         }
 
-        Glyphs *glyphs = new Glyphs();
+        Glyphs *glyphs = new Glyphs(shape);
         _glyphs[dsID] = glyphs;
 
-        glyphs->setDataSet(ds);
-
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
-        }
-
-        glyphs->setLookupTable(lut);
+        glyphs->setDataSet(ds,
+                           _useCumulativeRange, 
+                           _cumulativeScalarRange,
+                           _cumulativeVectorMagnitudeRange,
+                           _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(glyphs->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -2301,7 +2502,9 @@ Glyphs *Renderer::getGlyphs(const DataSetId& id)
     GlyphsHashmap::iterator itr = _glyphs.find(id);
 
     if (itr == _glyphs.end()) {
+#ifdef DEBUG
         TRACE("Glyphs not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -2505,23 +2708,7 @@ void Renderer::setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMap
         TRACE("Set Glyphs color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _glyphs.end());
 
     _needsRedraw = true;
@@ -2832,7 +3019,7 @@ void Renderer::setGlyphsWireframe(const DataSetId& id, bool state)
 /**
  * \brief Create a new HeightMap and associate it with the named DataSet
  */
-void Renderer::addHeightMap(const DataSetId& id)
+void Renderer::addHeightMap(const DataSetId& id, int numContours)
 {
     DataSetHashmap::iterator itr;
 
@@ -2857,24 +3044,61 @@ void Renderer::addHeightMap(const DataSetId& id)
             deleteHeightMap(dsID);
         }
 
-        HeightMap *hmap = new HeightMap();
+        HeightMap *hmap = new HeightMap(numContours);
         _heightMaps[dsID] = hmap;
 
-        hmap->setDataSet(ds);
+        hmap->setDataSet(ds,
+                         _useCumulativeRange, 
+                         _cumulativeScalarRange,
+                         _cumulativeVectorMagnitudeRange,
+                         _cumulativeVectorComponentRange);
 
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
+        _renderer->AddViewProp(hmap->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    if (_cameraMode == IMAGE)
+        setCameraMode(PERSPECTIVE);
+    initCamera();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new HeightMap and associate it with the named DataSet
+ */
+void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& contours)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getHeightMap(dsID)) {
+            WARN("Replacing existing HeightMap %s", dsID.c_str());
+            deleteHeightMap(dsID);
         }
 
-        hmap->setLookupTable(lut);
+        HeightMap *hmap = new HeightMap(contours);
+        _heightMaps[dsID] = hmap;
+
+        hmap->setDataSet(ds,
+                         _useCumulativeRange, 
+                         _cumulativeScalarRange,
+                         _cumulativeVectorMagnitudeRange,
+                         _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(hmap->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -2894,7 +3118,9 @@ HeightMap *Renderer::getHeightMap(const DataSetId& id)
     HeightMapHashmap::iterator itr = _heightMaps.find(id);
 
     if (itr == _heightMaps.end()) {
+#ifdef DEBUG
         TRACE("HeightMap not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -3130,23 +3356,7 @@ void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& color
         TRACE("Set HeightMap color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -3173,11 +3383,7 @@ void Renderer::setHeightMapContours(const DataSetId& id, int numContours)
     }
 
     do {
-        if (_useCumulativeRange) {
-            itr->second->setContours(numContours, _cumulativeDataRange);
-        } else {
-            itr->second->setContours(numContours);
-        }
+        itr->second->setContours(numContours);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -3489,7 +3695,11 @@ void Renderer::addLIC(const DataSetId& id)
         LIC *lic = new LIC();
         _lics[dsID] = lic;
 
-        lic->setDataSet(ds);
+        lic->setDataSet(ds,
+                        _useCumulativeRange, 
+                        _cumulativeScalarRange,
+                        _cumulativeVectorMagnitudeRange,
+                        _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(lic->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -3508,7 +3718,9 @@ LIC *Renderer::getLIC(const DataSetId& id)
     LICHashmap::iterator itr = _lics.find(id);
 
     if (itr == _lics.end()) {
+#ifdef DEBUG
         TRACE("LIC not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -3714,23 +3926,7 @@ void Renderer::setLICColorMap(const DataSetId& id, const ColorMapId& colorMapId)
         TRACE("Set LIC color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _lics.end());
 
     _needsRedraw = true;
@@ -3951,7 +4147,9 @@ Molecule *Renderer::getMolecule(const DataSetId& id)
     MoleculeHashmap::iterator itr = _molecules.find(id);
 
     if (itr == _molecules.end()) {
+#ifdef DEBUG
         TRACE("Molecule not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -4128,23 +4326,7 @@ void Renderer::setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorM
         TRACE("Set Molecule color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _molecules.end());
 
     _needsRedraw = true;
@@ -4473,7 +4655,9 @@ PolyData *Renderer::getPolyData(const DataSetId& id)
     PolyDataHashmap::iterator itr = _polyDatas.find(id);
 
     if (itr == _polyDatas.end()) {
+#ifdef DEBUG
         TRACE("PolyData not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -4867,21 +5051,11 @@ void Renderer::addPseudoColor(const DataSetId& id)
         PseudoColor *pc = new PseudoColor();
         _pseudoColors[dsID] = pc;
 
-        pc->setDataSet(ds);
-
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
-        }
-
-        pc->setLookupTable(lut);
+        pc->setDataSet(ds,
+                       _useCumulativeRange, 
+                       _cumulativeScalarRange,
+                       _cumulativeVectorMagnitudeRange,
+                       _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(pc->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -4898,7 +5072,9 @@ PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
     PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
 
     if (itr == _pseudoColors.end()) {
+#ifdef DEBUG
         TRACE("PseudoColor not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -5075,23 +5251,7 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
         TRACE("Set PseudoColor color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;
@@ -5326,21 +5486,11 @@ void Renderer::addStreamlines(const DataSetId& id)
         Streamlines *streamlines = new Streamlines();
         _streamlines[dsID] = streamlines;
 
-        streamlines->setDataSet(ds);
-
-        // Use the default color map
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        ColorMap *cmap = getColorMap("default");
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            double range[2];
-            ds->getDataRange(range);
-            lut->SetRange(range);
-        }
-        streamlines->setLookupTable(lut);
+        streamlines->setDataSet(ds,
+                                _useCumulativeRange, 
+                                _cumulativeScalarRange,
+                                _cumulativeVectorMagnitudeRange,
+                                _cumulativeVectorComponentRange);
 
         _renderer->AddViewProp(streamlines->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -5357,7 +5507,9 @@ Streamlines *Renderer::getStreamlines(const DataSetId& id)
     StreamlinesHashmap::iterator itr = _streamlines.find(id);
 
     if (itr == _streamlines.end()) {
+#ifdef DEBUG
         TRACE("Streamlines not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -5900,23 +6052,7 @@ void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& col
         TRACE("Set Streamlines color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        // Make a copy of the generic colormap lookup table, so 
-        // data range can be set in the copy table to match the 
-        // dataset being plotted
-        vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-        lut->DeepCopy(cmap->getLookupTable());
-
-        if (_useCumulativeRange) {
-            lut->SetRange(_cumulativeDataRange);
-        } else {
-            if (itr->second->getDataSet() != NULL) {
-                double range[2];
-                itr->second->getDataSet()->getDataRange(range);
-                lut->SetRange(range);
-            }
-        }
-
-        itr->second->setLookupTable(lut);
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _streamlines.end());
 
     _needsRedraw = true;
@@ -6119,12 +6255,11 @@ void Renderer::addVolume(const DataSetId& id)
         Volume *volume = new Volume();
         _volumes[dsID] = volume;
 
-        volume->setDataSet(ds);
-
-        if (_useCumulativeRange) {
-            ColorMap *cmap = volume->getColorMap();
-            volume->setColorMap(cmap, _cumulativeDataRange);
-        }
+        volume->setDataSet(ds,
+                           _useCumulativeRange, 
+                           _cumulativeScalarRange,
+                           _cumulativeVectorMagnitudeRange,
+                           _cumulativeVectorComponentRange );
 
         _renderer->AddViewProp(volume->getProp());
     } while (doAll && ++itr != _dataSets.end());
@@ -6143,7 +6278,9 @@ Volume *Renderer::getVolume(const DataSetId& id)
     VolumeHashmap::iterator itr = _volumes.find(id);
 
     if (itr == _volumes.end()) {
+#ifdef DEBUG
         TRACE("Volume not found: %s", id.c_str());
+#endif
         return NULL;
     } else
         return itr->second;
@@ -6320,11 +6457,7 @@ void Renderer::setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMap
         TRACE("Set Volume color map: %s for dataset %s", colorMapId.c_str(),
               itr->second->getDataSet()->getName().c_str());
 
-        if (_useCumulativeRange) {
-            itr->second->setColorMap(cmap, _cumulativeDataRange);
-        } else {
-            itr->second->setColorMap(cmap);
-        }
+        itr->second->setColorMap(cmap);
     } while (doAll && ++itr != _volumes.end());
 
     _needsRedraw = true;
@@ -7349,126 +7482,85 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
 
 /**
  * \brief Update data ranges for color-mapping and contours
- *
- * \param[in] useCumulative Use cumulative range of all DataSets
  */
-void Renderer::updateRanges(bool useCumulative)
+void Renderer::updateRanges()
 {
+    collectDataRanges();
+
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
          itr != _contour2Ds.end(); ++itr) {
-        // Only need to update range if using evenly spaced contours
-        if (itr->second->getContourList().empty()) {
-            if (useCumulative) {
-                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
-            } else {
-                itr->second->setContours(itr->second->getNumContours());
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
-        // Only need to update range if using evenly spaced contours
-        if (itr->second->getContourList().empty()) {
-            if (useCumulative) {
-                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
-            } else {
-                itr->second->setContours(itr->second->getNumContours());
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
          itr != _glyphs.end(); ++itr) {
-        vtkLookupTable *lut = itr->second->getLookupTable();
-        if (lut) {
-            if (useCumulative) {
-                lut->SetRange(_cumulativeDataRange);
-            } else {
-                double range[2];
-                if (itr->second->getDataSet()) {
-                    itr->second->getDataSet()->getDataRange(range);
-                    lut->SetRange(range);
-                }
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
          itr != _heightMaps.end(); ++itr) {
-        vtkLookupTable *lut = itr->second->getLookupTable();
-        if (lut) {
-            if (useCumulative) {
-                lut->SetRange(_cumulativeDataRange);
-            } else {
-                double range[2];
-                if (itr->second->getDataSet()) {
-                    itr->second->getDataSet()->getDataRange(range);
-                    lut->SetRange(range);
-                }
-            }
-        }
-        // Only need to update contour range if using evenly spaced contours
-        if (itr->second->getContourList().empty()) {
-            if (useCumulative) {
-                itr->second->setContours(itr->second->getNumContours(), _cumulativeDataRange);
-            } else {
-                itr->second->setContours(itr->second->getNumContours());
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (LICHashmap::iterator itr = _lics.begin();
          itr != _lics.end(); ++itr) {
-        vtkLookupTable *lut = itr->second->getLookupTable();
-        if (lut) {
-            if (useCumulative) {
-                lut->SetRange(_cumulativeDataRange);
-            } else {
-                double range[2];
-                if (itr->second->getDataSet()) {
-                    itr->second->getDataSet()->getDataRange(range);
-                    lut->SetRange(range);
-                }
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+         itr != _molecules.end(); ++itr) {
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
          itr != _pseudoColors.end(); ++itr) {
-        vtkLookupTable *lut = itr->second->getLookupTable();
-        if (lut) {
-            if (useCumulative) {
-                lut->SetRange(_cumulativeDataRange);
-            } else {
-                double range[2];
-                if (itr->second->getDataSet()) {
-                    itr->second->getDataSet()->getDataRange(range);
-                    lut->SetRange(range);
-                }
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
          itr != _streamlines.end(); ++itr) {
-        vtkLookupTable *lut = itr->second->getLookupTable();
-        if (lut) {
-            if (useCumulative) {
-                lut->SetRange(_cumulativeDataRange);
-            } else {
-                double range[2];
-                if (itr->second->getDataSet()) {
-                    itr->second->getDataSet()->getDataRange(range);
-                    lut->SetRange(range);
-                }
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
-        ColorMap *cmap = itr->second->getColorMap();
-        if (cmap) {
-            if (useCumulative) {
-                itr->second->setColorMap(cmap, _cumulativeDataRange);
-            } else {
-                itr->second->setColorMap(cmap);
-            }
-        }
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
+    }
+}
+
+void Renderer::collectDataRanges()
+{
+    collectScalarRanges(_cumulativeScalarRange,
+                        _cumulativeRangeOnlyVisible);
+    collectVectorMagnitudeRanges(_cumulativeVectorMagnitudeRange,
+                                 _cumulativeRangeOnlyVisible);
+    for (int i = 0; i < 3; i++) {
+        collectVectorComponentRanges(_cumulativeVectorComponentRange[i], i,
+                                     _cumulativeRangeOnlyVisible);
     }
 }
 
@@ -7478,7 +7570,7 @@ void Renderer::updateRanges(bool useCumulative)
  * \param[inout] range Data range of all DataSets
  * \param[in] onlyVisible Only collect range of visible DataSets
  */
-void Renderer::collectDataRanges(double *range, bool onlyVisible)
+void Renderer::collectScalarRanges(double *range, bool onlyVisible)
 {
     range[0] = DBL_MAX;
     range[1] = -DBL_MAX;
@@ -7487,7 +7579,7 @@ void Renderer::collectDataRanges(double *range, bool onlyVisible)
          itr != _dataSets.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility()) {
             double r[2];
-            itr->second->getDataRange(r);
+            itr->second->getScalarRange(r);
             range[0] = min2(range[0], r[0]);
             range[1] = max2(range[1], r[1]);
         }
@@ -7497,6 +7589,58 @@ void Renderer::collectDataRanges(double *range, bool onlyVisible)
     if (range[1] == -DBL_MAX)
         range[1] = 1;
 }
+
+/**
+ * \brief Collect cumulative data range of all DataSets
+ *
+ * \param[inout] range Data range of all DataSets
+ * \param[in] onlyVisible Only collect range of visible DataSets
+ */
+void Renderer::collectVectorMagnitudeRanges(double *range, bool onlyVisible)
+{
+    range[0] = DBL_MAX;
+    range[1] = -DBL_MAX;
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility()) {
+            double r[2];
+            itr->second->getVectorRange(r);
+            range[0] = min2(range[0], r[0]);
+            range[1] = max2(range[1], r[1]);
+        }
+    }
+    if (range[0] == DBL_MAX)
+        range[0] = 0;
+    if (range[1] == -DBL_MAX)
+        range[1] = 1;
+}
+
+/**
+ * \brief Collect cumulative data range of all DataSets
+ *
+ * \param[inout] range Data range of all DataSets
+ * \param[in] onlyVisible Only collect range of visible DataSets
+ */
+void Renderer::collectVectorComponentRanges(double *range, int component, bool onlyVisible)
+{
+    range[0] = DBL_MAX;
+    range[1] = -DBL_MAX;
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility()) {
+            double r[2];
+            itr->second->getVectorRange(r, component);
+            range[0] = min2(range[0], r[0]);
+            range[1] = max2(range[1], r[1]);
+        }
+    }
+    if (range[0] == DBL_MAX)
+        range[0] = 0;
+    if (range[1] == -DBL_MAX)
+        range[1] = 1;
+ }
 
 /**
  * \brief Initialize the camera zoom region to include the bounding volume given
@@ -7537,13 +7681,13 @@ void Renderer::initCamera()
         break;
     case ORTHO:
         _renderer->GetActiveCamera()->ParallelProjectionOn();
-        resetAxes();
+        resetAxes(bounds);
         _renderer->ResetCamera(bounds);
         //computeScreenWorldCoords();
         break;
     case PERSPECTIVE:
         _renderer->GetActiveCamera()->ParallelProjectionOff();
-        resetAxes();
+        resetAxes(bounds);
         _renderer->ResetCamera(bounds);
         //computeScreenWorldCoords();
         break;
