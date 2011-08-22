@@ -326,16 +326,6 @@ void DataSet::getScalarRange(double minmax[2]) const
     _dataSet->GetScalarRange(minmax);
 }
 
-#if 0
-/**
- * \brief Get the range of scalar values in the DataSet
- */
-void DataSet::getDataRange(double minmax[2]) const
-{
-    _dataSet->GetScalarRange(minmax);
-}
-#endif
-
 /**
  * \brief Get the range of a vector component in the DataSet
  *
@@ -387,7 +377,7 @@ void DataSet::getBounds(double bounds[6]) const
 }
 
 /**
- * \brief Get the range of cell AABB diagonal lengths the DataSet
+ * \brief Get the range of cell AABB diagonal lengths in the DataSet
  */
 void DataSet::getCellSizeRange(double minmax[6], double *average) const
 {

@@ -184,7 +184,7 @@ void LIC::update()
     }
 
     if (_lut == NULL) {
-        setColorMap(ColorMap::getDefault());
+        setColorMap(ColorMap::getGrayDefault());
     }
 
     initProp();

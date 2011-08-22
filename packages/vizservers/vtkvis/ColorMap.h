@@ -103,11 +103,13 @@ public:
     void clear();
 
     static ColorMap *getDefault();
+    static ColorMap *getGrayDefault();
     static ColorMap *getVolumeDefault();
     static ColorMap *getElementDefault();
 
 private:
     static ColorMap *_default;
+    static ColorMap *_grayDefault;
     static ColorMap *_volumeDefault;
     static ColorMap *_elementDefault;
 
