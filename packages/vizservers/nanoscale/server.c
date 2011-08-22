@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -76,40 +75,6 @@ struct child_info child_array[100];
 	    _x > _y ? _x : _y; })
 
 
-#include <syslog.h>
-#include <stdarg.h>
-
-#define ERROR(...)	LogMessage(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
-#ifdef WANT_TRACE
-#define TRACE(...)	LogMessage(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
-#else 
-#define TRACE(...) 
-#endif
-#define WARN(...)	LogMessage(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
-#define INFO(...)	LogMessage(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
-
-void 
-LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
-{
-#define MSG_LEN	(2047)
-    char message[MSG_LEN+1];
-    const char *s;
-    int length;
-    va_list lst;
-
-    va_start(lst, fmt);
-    s = strrchr(path, '/');
-    if (s == NULL) {
-	s = path;
-    } else {
-	s++;
-    }
-    length = snprintf(message, MSG_LEN, "line %d of \"%s\": ", lineNum, s);
-    length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
-    message[MSG_LEN] = '\0';
-    syslog(priority, message, length);
-}
-
 static void
 close_child(int pipe_fd)
 {
@@ -127,7 +92,8 @@ close_child(int pipe_fd)
 	}
     }
   
-    INFO("processes=%d, memory=%d, load=%f\n", children, memory_in_use, load);
+    printf("processes=%d, memory=%d, load=%f\n",
+	   children, memory_in_use, load);
 
 }
 
@@ -138,7 +104,7 @@ void note_request(int fd, float value)
 	if (child_array[c].pipefd == fd) {
 	    child_array[c].requests += value;
 #ifdef DEBUGGING
-	    INFO("Updating requests from pipefd %d to %f\n",
+	    printf("Updating requests from pipefd %d to %f\n",
 		   child_array[c].pipefd,
 		   child_array[c].requests);
 #endif
@@ -158,7 +124,8 @@ sigalarm_handler(int signum)
 static void 
 help(const char *argv0)
 {
-    printf("Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
+    fprintf(stderr,
+	    "Syntax: %s [-d] -b <broadcast port> -l <listen port> -s <subnet> -c 'command'\n",
 	    argv0);
     exit(1);
 }
@@ -215,7 +182,7 @@ main(int argc, char *argv[])
 	case 'x': /* Number of video cards */
 	    maxCards = strtoul(optarg, 0, 0);
 	    if ((maxCards < 1) || (maxCards > 10)) {
-		ERROR("bad number of max videocards specified\n");
+		fprintf(stderr, "bad number of max videocards specified\n");
 		return 1;
 	    }
 	    break;
@@ -229,7 +196,7 @@ main(int argc, char *argv[])
 	    strncpy(server_command[nservices], optarg, sizeof(server_command[0]));
 
 	    if (listen_port[nservices] == -1) {
-		ERROR("Must specify -l port before each -c command.\n");
+		fprintf(stderr,"Must specify -l port before each -c command.\n");
 		return 1;
 	    }
 
@@ -242,12 +209,12 @@ main(int argc, char *argv[])
 	case 's':
 	    send_addr.sin_addr.s_addr = htonl(inet_network(optarg));
 	    if (send_addr.sin_addr.s_addr == -1) {
-		ERROR("Invalid subnet broadcast address");
+		fprintf(stderr,"Invalid subnet broadcast address");
 		return 1;
 	    }
 	    break;
 	default:
-	    ERROR("Don't know what option '%c'.\n", c);
+	    fprintf(stderr,"Don't know what option '%c'.\n", c);
 	    return 1;
 	}
     }
@@ -256,7 +223,7 @@ main(int argc, char *argv[])
 	server_command[0][0]=='\0') {
 	int i;
 	for (i = 0; i < argc; i++) {
-	    INFO("argv[%d]=(%s)\n", i, argv[i]);
+	    fprintf(stderr, "argv[%d]=(%s)\n", i, argv[i]);
 	}
 	help(argv[0]);
 	return 1;
@@ -405,7 +372,7 @@ main(int argc, char *argv[])
 		    continue;
 		}
 	      
-		INFO("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
+		printf("New connection from %s\n", inet_ntoa(newaddr.sin_addr));
 		FD_SET(newfd, &saved_rfds);
 		maxfd = max(maxfd, newfd);
 		FD_SET(newfd, &service_rfds[n]);
@@ -427,18 +394,22 @@ main(int argc, char *argv[])
 		continue;
 	    }
 	    if (status != 8) {
-		ERROR("Bogus message from %s\n", inet_ntoa(peer_addr.sin_addr));
+		fprintf(stderr,"Bogus message from %s\n",
+			inet_ntoa(peer_addr.sin_addr));
 		continue;
 	    }
 	    float peer_load = ntohl(buffer[0]);
 	    int peer_procs = ntohl(buffer[1]);
+	    //printf("Load for %s is %f (%d processes).\n",
+	    //       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 	    int h;
 	    int free_index=-1;
 	    int found = 0;
 	    for(h=0; h<sizeof(host_array)/sizeof(host_array[0]); h++) {
 		if (host_array[h].in_addr.s_addr == peer_addr.sin_addr.s_addr) {
 		    if (host_array[h].children != peer_procs) {
-			INFO("Load for %s is %f (%d processes).\n", inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
+			printf("Load for %s is %f (%d processes).\n",
+			       inet_ntoa(peer_addr.sin_addr), peer_load, peer_procs);
 		    }
 		    host_array[h].load = peer_load;
 		    host_array[h].children = peer_procs;
@@ -481,7 +452,7 @@ main(int argc, char *argv[])
 		int msg;
 		status = read(i, &msg, 4);
 		if (status != 4) {
-		    ERROR("Bad status on read (%d).", status);
+		    fprintf(stderr,"Bad status on read (%d).", status);
 		    FD_CLR(i, &saved_rfds);
 		    clear_service_fd(i);
 		    close(i);
@@ -493,12 +464,13 @@ main(int argc, char *argv[])
 	      
 		memory_in_use += newmemory;
 		load += 2*INITIAL_LOAD;
-		INFO("Accepted new job with memory %d\n", newmemory);
+		printf("Accepted new job with memory %d\n", newmemory);
+		//printf("My load is now %f\n", load);
 	      
 		// accept the connection.
 		msg = 0;
 		if (write(i, &msg, 4) != 4) {
-		    ERROR("short write for hostname\n");
+		    fprintf(stderr, "short write for hostname\n");
 		}
 	      
 		int pair[2];
@@ -534,9 +506,9 @@ main(int argc, char *argv[])
 			    if (status == 0) { 
 				int fd;
 
-				dup2(i, 0); // stdin
-				dup2(i, 1); // stdout
-				dup2(i, 2); // stderr
+				dup2(i, 0);  // stdin
+				dup2(i, 1);  // stdout
+				dup2(i, 2);  // stderr
 				dup2(pair[1],3);
 				// read end of pipe moved, and left open to
 				// prevent SIGPIPE
@@ -548,22 +520,13 @@ main(int argc, char *argv[])
 				if (maxCards > 1) {
 				    displayVar[11] = dispNum + '0';
 				}
-				fprintf(stderr, "command=%s\n", 
-					command_argv[n][0]);
-				if (execvp(command_argv[n][0], command_argv[n]) < 1) {
-				    extern int errno;
-
-				    ERROR("can't execute \"%s\": %s\n", 
-					  command_argv[n][0], strerror(errno));
-				} else {
-				    INFO("started command \"%s\": %s\n", 
-					command_argv[n][0], strerror(errno));
-				}
+				execvp(command_argv[n][0], command_argv[n]);
 			    }
 			    _exit(errno);
 			}
 		    }
 		    _exit(EINVAL);
+		  
 		} else {
 		    int c;
 		    // reap initial child which will exit immediately

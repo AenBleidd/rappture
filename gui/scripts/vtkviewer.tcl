@@ -139,12 +139,6 @@ itk::usual VtkViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::constructor {hostlist args} {
-    if {[catch {info level -1} caller]} {
-        puts stderr "Enter constructor"
-    } else {
-        puts stderr "Enter constructor: $caller"
-    }
-
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -358,9 +352,16 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     if { $_height < 2 } {
 	set _height 500
     }
-    #puts stderr "screen size $_width $_height"
+    #puts stderr "DoResize screen size $_width $_height"
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
+
+    # Must reset camera to have object scaling to take effect.
+    SendCmd "camera reset all"
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
+    SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
 }
 
@@ -370,8 +371,8 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
     set _height $h
     $_arcball resize $w $h
     if { !$_resizePending } {
-        $_dispatcher event -after 400 !resize
         set _resizePending 1
+        $_dispatcher event -after 100 !resize
     }
 }
 
@@ -725,7 +726,7 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
         #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
 	if { $_start > 0 } {
 	    set finish [clock clicks -milliseconds]
-	    puts stderr "round trip time [expr $finish -$_start] milliseconds"
+	    #puts stderr "round trip time [expr $finish -$_start] milliseconds"
 	    set _start 0
 	}
     } elseif { $info(type) == "print" } {
@@ -1324,7 +1325,7 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
         2,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
         3,0 $inner.lighting  -columnspan 4 -anchor w \
         4,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
-        5,0 $inner.clear -anchor e -pady 2 \
+        6,0 $inner.clear -anchor e -pady 2 \
         6,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
         6,3 $inner.opaque -anchor w -pady 2 
 
