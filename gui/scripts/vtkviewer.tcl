@@ -691,9 +691,6 @@ itcl::body Rappture::VtkViewer::SendCmd {string} {
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
-        foreach line [split $string \n] {
-            SendEcho >>line $line
-        }
         SendBytes "$string\n"
     }
 }
@@ -713,7 +710,6 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
 	if 0 {
 	    set f [open "last.ppm" "w"] 
@@ -1235,18 +1231,12 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    set data [$dataobj data $comp]
 	    set arr [vtkCharArray $tag-xvtkCharArray]
 	    $arr SetArray $data [string length $data] 1
-	    set reader [vtkPolyDataReader $tag-xvtkPolyDataReader]
+	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
 	    $reader SetInputArray $arr
 	    $reader ReadFromInputStringOn
-	    set mapper [vtkPolyDataMapper $tag-xvtkPolyDataMapper]
-	    $mapper SetInput [$reader GetOutput]
-	    set actor [vtkActor $tag-xvthActor]
-	    $actor SetMapper $mapper
-	    set _limits($tag) [$actor GetBounds]
-	    rename $actor ""
+	    set _limits($tag) [[$reader GetOutput] GetBounds]
 	    rename $reader ""
 	    rename $arr ""
-	    rename $mapper ""
 	}
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
 	if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {

@@ -14,7 +14,7 @@
 package require Itk
 package require BLT
 package require Img
-                                        
+
 option add *VtkContourViewer.width 4i widgetDefault
 option add *VtkContourViewer*cursor crosshair widgetDefault
 option add *VtkContourViewer.height 4i widgetDefault
@@ -672,9 +672,6 @@ itcl::body Rappture::VtkContourViewer::SendCmd {string} {
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
-        foreach line [split $string \n] {
-            SendEcho >>line $line
-        }
         SendBytes "$string\n"
     }
 }
@@ -694,7 +691,6 @@ itcl::body Rappture::VtkContourViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
         $_image(plot) configure -data $bytes
         #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
