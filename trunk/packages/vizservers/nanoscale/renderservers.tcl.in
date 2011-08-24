@@ -9,7 +9,7 @@ set vtkdir "@VTK_LIB_DIR@"
 register_server nanovis 2000 {
     ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
 } {
-  LD_LIBRARY_PATH ${libdir}
+    LD_LIBRARY_PATH ${libdir}
 }
 
 # NanoVis server --
@@ -17,7 +17,7 @@ register_server nanovis 2000 {
 register_server nanovis-test 2015 {
     ${bindir}/nanovis -p ${libdir}/shaders:${libdir}/resources
 } {
-  LD_LIBRARY_PATH ${libdir}
+    LD_LIBRARY_PATH ${libdir}
 }
 
 # VtkVis server --
@@ -26,7 +26,7 @@ register_server nanovis-test 2015 {
 register_server vtkvis 2010 {
     ${bindir}/vtkvis
 } {
-  LD_LIBRARY_PATH ${libdir}:${vtkdir}
+    LD_LIBRARY_PATH ${libdir}:${vtkdir}
 }
 
 # Pymol server --
@@ -35,5 +35,6 @@ register_server vtkvis 2010 {
 register_server pymol 2020 {
     ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
-   PYMOL_PATH ${libdir}/pymol
+    LD_LIBRARY_PATH ${libdir}
+    PYMOL_PATH ${libdir}/pymol
 }

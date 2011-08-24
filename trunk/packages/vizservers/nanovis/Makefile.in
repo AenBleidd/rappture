@@ -72,7 +72,7 @@ RP_LIB_SPEC     = -L$(RP_DIR)/lib -lrappture2 -lrappture -lexpat -lz
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
-LD_RUN_PATH     = @LD_RPATH@
+LD_RUN_PATH     = $(libdir):@LD_RPATH@
 
 LIBS		= \
 		$(RP_LIB_SPEC) \
