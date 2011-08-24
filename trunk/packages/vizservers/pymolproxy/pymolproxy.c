@@ -2066,7 +2066,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     //  accept tcl commands from socket
     //  translate them into pyMol commands, and issue them to child proccess
     //  send images back
-    sleep(2);
     PollForEvents(&proxy);
 
     close(proxy.cout);
