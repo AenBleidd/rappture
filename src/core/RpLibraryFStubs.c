@@ -339,6 +339,33 @@ RP_LIB_GET_BOOLEAN (    int* handle,
     return rp_lib_get_boolean(handle,path,path_len);
 }
 
+int rp_lib_get_file_ (  int* handle,
+                        char* path,
+                        char* fileName,
+                        int path_len,
+                        int fileName_len) {
+
+    return rp_lib_get_file(handle,path,fileName,path_len,fileName_len);
+}
+
+int rp_lib_get_file__ ( int* handle,
+                        char* path,
+                        char* fileName,
+                        int path_len,
+                        int fileName_len) {
+
+    return rp_lib_get_file(handle,path,fileName,path_len,fileName_len);
+}
+
+int RP_LIB_GET_FILE (   int* handle,
+                        char* path,
+                        char* fileName,
+                        int path_len,
+                        int fileName_len) {
+
+    return rp_lib_get_file(handle,path,fileName,path_len,fileName_len);
+}
+
 void
 rp_lib_put_str_ (       int* handle,
                         char* path,
@@ -352,7 +379,7 @@ rp_lib_put_str_ (       int* handle,
 }
 
 void
-rp_lib_put_str__ (       int* handle,
+rp_lib_put_str__ (      int* handle,
                         char* path,
                         char* value,
                         int* append,

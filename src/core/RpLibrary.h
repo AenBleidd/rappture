@@ -80,6 +80,8 @@ class RpLibrary
         int         getInt    ( std::string path = "") const;
         bool        getBool   ( std::string path = "") const;
         Rappture::Buffer getData ( std::string path = "") const;
+        size_t      getFile   ( std::string path,
+                                std::string fileName) const;
 
         /*
          * Should return some kind of RpError object

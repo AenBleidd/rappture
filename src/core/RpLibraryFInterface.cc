@@ -604,6 +604,47 @@ int rp_lib_get_boolean( int* handle,   /* integer handle of library */
 
 
 /**********************************************************************/
+// FUNCTION: rp_lib_get_file()
+/// Get data located at 'path' and write it to the file 'fileName'.
+/**
+ * Returns if any bytes were written to the file
+ */
+int rp_lib_get_file (   int* handle,     /* integer handle of library */
+                        char* path,      /* null terminated path */
+                        char* fileName,  /* name of file to write data to */
+                        int path_len,    /* length of the path variable */
+                        int fileName_len /* length of the fileName variable */
+                     )
+{
+    size_t nbytes = 0;
+    int ret = 0;
+
+    RpLibrary* lib = NULL;
+
+    std::string inPath = "";
+    std::string filePath = "";
+
+    inPath = null_terminate_str(path,path_len);
+    filePath = null_terminate_str(fileName,fileName_len);
+
+    if ((handle) && (*handle != 0)) {
+        lib = (RpLibrary*) getObject_Void(*handle);
+
+        if (lib) {
+            nbytes = lib->getFile(inPath, filePath);
+        }
+    }
+
+    if (nbytes > 0) {
+        ret = 1;
+    }
+
+    return ret;
+}
+
+
+
+/**********************************************************************/
 // FUNCTION: rp_lib_put_str()
 /// Put string into Rappture Library Object at location 'path'.
 /**

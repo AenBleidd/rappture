@@ -1734,6 +1734,34 @@ RpLibrary::getData (std::string path) const
 
 
 /**********************************************************************/
+// METHOD: getFile()
+/// Get the value at path and write it to the file at fileName
+/**
+ * Return the number of bytes written
+ */
+
+size_t
+RpLibrary::getFile (std::string path, std::string fileName) const
+{
+    Rappture::Buffer buf;
+
+    buf = getData(path);
+
+    if (buf.bad()) {
+        status.addContext("RpLibrary::getFile()");
+        return 0;
+    }
+
+    if (!buf.dump(status, fileName.c_str())) {
+        status.addContext("RpLibrary::getFile()");
+        return 0;
+    }
+
+    return buf.size();
+}
+
+
+/**********************************************************************/
 // METHOD: put()
 /// Put a string value into the xml.
 /**
@@ -1812,14 +1840,13 @@ RpLibrary::put (std::string path, double value, std::string id,
     if (this->root == NULL) {
         // library doesn't exist, do nothing;
         status.error("invalid library object");
-        status.addContext("RpLibrary::put()");
+        status.addContext("RpLibrary::put() - putDouble");
         return *this;
     }
 
     valStr << value;
 
     put(path,valStr.str(),id,append);
-    status.addContext("RpLibrary::put() - putDouble");
     return *this;
 }
 
@@ -2006,15 +2033,15 @@ RpLibrary::putFile(std::string path, std::string fileName,
 {
     Rappture::Buffer buf;
     Rappture::Buffer fileBuf;
-    Rappture::Outcome err;
 
     if (!this->root) {
         // library doesn't exist, do nothing;
         return *this;
     }
 
-    if (!fileBuf.load(err, fileName.c_str())) {
-        fprintf(stderr, "error loading file: %s\n", err.remark());
+    if (!fileBuf.load(status, fileName.c_str())) {
+        fprintf(stderr, "error loading file: %s\n", status.remark());
+        status.addContext("RpLibrary::putFile()");
         return *this;
     }
     if (compress == RPLIB_COMPRESS) {
@@ -2024,7 +2051,6 @@ RpLibrary::putFile(std::string path, std::string fileName,
         fileBuf.append("\0", 1);
         put(path, fileBuf.bytes(), "", append, RPLIB_TRANSLATE);
     }
-    status.addContext("RpLibrary::putFile()");
     return *this;
 }
 

@@ -171,7 +171,7 @@ Buffer::dump (Outcome &status, const char* filePath)
 
     FILE *f;
     f = fopen(filePath, "wb");
-    if (f != NULL) {
+    if (f == NULL) {
         status.addError("can't open \"%s\": %s\n", filePath, strerror(errno));
         return false;
     }
