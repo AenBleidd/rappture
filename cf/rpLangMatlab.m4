@@ -1,5 +1,4 @@
 AC_DEFUN([RP_LANG_MATLAB],[
-with_matlab="yes"
 AC_ARG_WITH(
     [matlab],
     [AS_HELP_STRING([--with-matlab[=DIR]],
