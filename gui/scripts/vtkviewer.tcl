@@ -172,8 +172,6 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         zoom		1.0 
         pan-x		0
         pan-y		0
-	zoom-x		1.0
-	zoom-y		1.0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -918,8 +916,6 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
                 zoom    1.0
                 pan-x   0
                 pan-y   0
-		zoom-x  1.0
-		zoom-y  1.0
             }
             SendCmd "camera reset all"
             if { $_first != "" } {
@@ -930,8 +926,6 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
             }
 	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	    $_arcball quaternion $q
-	    SendCmd "camera orient $q" 
-            PanCamera
         }
     }
 }
