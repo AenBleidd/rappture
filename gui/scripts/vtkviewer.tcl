@@ -186,7 +186,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         $this-axes		1
         $this-edges		1
         $this-lighting		1
-        $this-opacity		1
+        $this-opacity		100
         $this-volume		1
         $this-wireframe		0
         $this-grid-x		0

@@ -191,7 +191,7 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
         $this-phi		$_view(phi)
         $this-psi		$_view(psi)
         $this-theta		$_view(theta)
-        $this-opacity		1
+        $this-opacity		100
         $this-axes		1
         $this-legend		1
         $this-colormap		1
