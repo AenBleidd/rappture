@@ -45,7 +45,7 @@ $driver put output.cloud(m3d).about.label "3D Mesh"
 $driver put output.cloud(m3d).units "um"
 $driver put output.cloud(m3d).hide "yes"
 
-$driver put output.field(f3d).about.label "2D Field"
+$driver put output.field(f3d).about.label "3D Field"
 $driver put output.field(f3d).component.mesh "output.cloud(m3d)"
 for {set n 0} {$n < $npts} {incr n} {
     set x [expr {rand()}]
