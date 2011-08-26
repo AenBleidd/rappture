@@ -106,20 +106,21 @@ static FILE *scriptFile;
 static int savescript = FALSE;
 
 typedef struct Image {
-    struct Image *nextPtr;	/* Next image in chain of images. The list is
-				 * ordered by the most recently received image
-				 * from the pymol server to the least. */
-    struct Image *prevPtr;	/* Previous image in chain of images. The list
-				 * is ordered by the most recently received
-				 * image from the pymol server to the
-				 * least. */
-    ssize_t nWritten;		/* Number of bytes of image data already
-				 * delivered.*/
-    size_t bytesLeft;		/* Number of bytes of image data left to
-				 * delivered to the client. */
-    char data[1];		/* Start of image data. We allocate the size
-				 * of the Image structure plus the size of the
-				 * image data. */
+    struct Image *nextPtr;		/* Next image in chain of images. The
+					 * list is ordered by the most
+					 * recently received image from the
+					 * pymol server to the least. */
+    struct Image *prevPtr;		/* Previous image in chain of
+					 * images. The list is ordered by the
+					 * most recently received image from
+					 * the pymol server to the least. */
+    ssize_t nWritten;			/* Number of bytes of image data
+					 * already delivered.*/
+    size_t bytesLeft;			/* Number of bytes of image data left
+					 * to delivered to the client. */
+    char data[1];			/* Start of image data. We allocate
+					 * the size of the Image structure
+					 * plus the size of the image data. */
 } Image;
 
 #define BUFFER_SIZE		4096
@@ -2074,28 +2075,28 @@ ProxyInit(int cin, int cout, char *const *argv)
     close(proxy.cin);
     close(proxy.sin);
 
-    status = waitpid(child, &result, WNOHANG);
-    if (status == -1) {
+    if (waitpid(child, &result, 0) < 0) {
         ERROR("error waiting on pymol server to exit: %s", strerror(errno));
-    } else if (status == 0) {
-        ERROR("attempting to signal (SIGTERM) pymol server.");
-        kill(-child, SIGTERM);		// Kill process group
-        alarm(5);
-        status = waitpid(child, &result, 0);
-        alarm(0);
-	
-        while ((status == -1) && (errno == EINTR)) {
-	    ERROR("Attempting to signal (SIGKILL) pymol server.");
-	    kill(-child, SIGKILL);	// Kill process group
-	    alarm(10);
-	    status = waitpid(child, &result, 0);
-	    alarm(0); 
-	}
     }
+    INFO("attempting to signal (SIGTERM) pymol server.");
+    kill(-child, SIGTERM);		// Kill process group
+    alarm(5);
     
-    ERROR("pymol server process ended (result=%d)", result);
-    DestroyTmpDir();
+    if (waitpid(child, &result, 0) < 0) {
+        ERROR("error waiting on pymol server to exit after SIGTERM: %s", 
+	      strerror(errno));
+    }
+    status = -1;
+    while ((status == -1) && (errno == EINTR)) {
+	ERROR("Attempting to signal (SIGKILL) pymol server.");
+	kill(-child, SIGKILL);	// Kill process group
+	alarm(10);
+	status = waitpid(child, &result, 0);
+	alarm(0); 
+    }
+    INFO("pymol server process ended (result=%d)", result);
 
+    DestroyTmpDir();
     Tcl_DeleteInterp(interp);
     
     if (WIFEXITED(result)) {
@@ -2116,13 +2117,15 @@ PollForEvents(PymolProxy *proxyPtr)
     flags = fcntl(proxyPtr->cin, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
 
-    pollResults[0].fd = proxyPtr->cout;
-    pollResults[1].fd = proxyPtr->sout;
-    pollResults[2].fd = proxyPtr->serr;
+    /* Read file descriptors. */
+    pollResults[0].fd = proxyPtr->cout;	/* Client standard output  */
+    pollResults[1].fd = proxyPtr->sout;	/* Server standard error.  */
+    pollResults[2].fd = proxyPtr->serr;	/* Server standard error.  */
     pollResults[0].events = pollResults[1].events = 
 	pollResults[2].events = POLLIN;
 
-    pollResults[3].fd = proxyPtr->cin;
+    /* Write file descriptors. */
+    pollResults[3].fd = proxyPtr->cin;	/* Client standard input. */
     pollResults[3].events = POLLOUT;
 
     InitBuffer(&proxyPtr->client, proxyPtr->cout);
@@ -2162,7 +2165,7 @@ PollForEvents(PymolProxy *proxyPtr)
 		Debug("Done with pymol stdout\n");
 	    } else {
 		ERROR("Failed reading pymol stdout (nBytes=%d)\n", nBytes);
-		goto error;	/* Get out on EOF or error. */
+		goto error;		/* Get out on EOF or error. */
 	    }
 	}
 
@@ -2179,7 +2182,7 @@ PollForEvents(PymolProxy *proxyPtr)
 		      strerror(errno));
 		if (errno != EINTR) { 
 		    ERROR("lost connection (stderr) to pymol server.");
-		    return;
+		    goto error;
 		}
 	    }
 	    buf[nRead] = '\0';
