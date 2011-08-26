@@ -1,4 +1,4 @@
-
+# -*- mode: Tcl -*-
 package require Rappture
 package require RapptureGUI
 
