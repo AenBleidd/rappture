@@ -895,9 +895,6 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
 
     FixLegend 
 
-    # If the first dataset already exists on the server, then make sure we
-    # display the proper transfer function in the legend.
-    set comp [lindex [$_first components] 0]
     set _buffering 0;                        # Turn off buffering.
 
     # Actually write the commands to the server socket.  If it fails, we don't
