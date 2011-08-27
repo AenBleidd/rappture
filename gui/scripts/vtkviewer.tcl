@@ -69,6 +69,7 @@ itcl::class Rappture::VtkViewer {
     protected method DoResize {}
     protected method FixSettings {what {value ""}}
     protected method Pan {option x y}
+    protected method Pick {x y}
     protected method Rebuild {}
     protected method ReceiveDataset { args }
     protected method ReceiveImage { args }
@@ -172,6 +173,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         zoom		1.0 
         pan-x		0
         pan-y		0
+        ortho		0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -291,6 +293,9 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this Pan release %x %y]
 
+    bind $itk_component(view) <ButtonRelease-3> \
+        [itcl::code $this Pick %x %y]
+
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
         [itcl::code $this Pan set -10 0]
@@ -355,8 +360,8 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     SendCmd "screen size $_width $_height"
 
     # Must reset camera to have object scaling to take effect.
-    SendCmd "camera reset"
-    SendCmd "camera zoom $_view(zoom)"
+    #SendCmd "camera reset"
+    #SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
 }
 
@@ -735,16 +740,32 @@ itcl::body Rappture::VtkViewer::ReceiveDataset { args } {
     }
     set option [lindex $args 0]
     switch -- $option {
-	"value" {
+	"scalar" {
 	    set option [lindex $args 1]
 	    switch -- $option {
 		"world" {
-		    foreach { x y z value } [lrange $args 2 end] break
+		    foreach { x y z value tag } [lrange $args 2 end] break
 		}
 		"pixel" {
-		    foreach { x y value } [lrange $args 2 end] break
+		    foreach { x y value tag } [lrange $args 2 end] break
 		}
 	    }
+	}
+	"vector" {
+	    set option [lindex $args 1]
+	    switch -- $option {
+		"world" {
+		    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
+		}
+		"pixel" {
+		    foreach { x y vx vy vz tag } [lrange $args 2 end] break
+		}
+	    }
+	}
+	"names" {
+            foreach { name } [lindex $args 1] {
+                #puts stderr "Dataset: $name"
+            }
 	}
 	default {
 	    error "unknown dataset option \"$option\" from server"
@@ -810,9 +831,13 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     #
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
+    if {$_view(ortho)} {
+        SendCmd "camera mode ortho"
+    } else {
+        SendCmd "camera mode persp"
+    }
     SendCmd "camera orient $q" 
     PanCamera
-    SendCmd "camera mode persp"
     if { $_reset || $_first == "" } {
 	Zoom reset
 	set _reset 0
@@ -823,6 +848,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     FixSettings grid-z
     FixSettings volume
     FixSettings lighting
+    FixSettings wireframe
     FixSettings axes
     FixSettings edges
     FixSettings axismode
@@ -931,12 +957,6 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
 }
 
 itcl::body Rappture::VtkViewer::PanCamera {} {
-#    set w [winfo width $itk_component(view)]
-#    set h [winfo height $itk_component(view)]
-#    set x [expr ($_view(pan-x)) / $w]
-#    set y [expr ($_view(pan-y)) / $h]
-#    set x [expr $x * $_limits(xmax) - $_limits(xmin)]
-#    set y [expr $y * $_limits(ymax) - $_limits(ymin)]
     set x $_view(pan-x)
     set y $_view(pan-y)
     SendCmd "camera pan $x $y"
@@ -994,6 +1014,12 @@ itcl::body Rappture::VtkViewer::Rotate {option x y} {
             error "bad option \"$option\": should be click, drag, release"
         }
     }
+}
+
+itcl::body Rappture::VtkViewer::Pick {x y} {
+    foreach tag [CurrentDatasets -visible] {
+        SendCmd "dataset getscalar pixel $x $y $tag"
+    } 
 }
 
 # ----------------------------------------------------------------------
@@ -1394,6 +1420,16 @@ itcl::body Rappture::VtkViewer::BuildCameraTab {} {
         blt::table configure $inner r$row -resize none
         incr row
     }
+    checkbutton $inner.ortho \
+        -text "Orthogrpahic" \
+        -variable [itcl::scope _view(ortho)] \
+        -command [itcl::code $this camera set ortho] \
+        -font "Arial 9"
+    blt::table $inner \
+            $row,0 $inner.ortho -columnspan 2 -anchor w -pady 2
+    blt::table configure $inner r$row -resize none
+    incr row
+
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
@@ -1413,10 +1449,16 @@ itcl::body Rappture::VtkViewer::camera {option args} {
             set x $_view($who)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
-                set x _view($who)
                 return
             }
             switch -- $who {
+                "ortho" {
+                    if {$_view(ortho)} {
+                        SendCmd "camera mode ortho"
+                    } else {
+                        SendCmd "camera mode persp"
+                    }
+                }
                 "pan-x" - "pan-y" {
                     PanCamera
                 }
