@@ -17,6 +17,7 @@
 #include <vtkProperty.h>
 #include <vtkImageData.h>
 #include <vtkLookupTable.h>
+#include <vtkTransform.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
 #include <vtkProbeFilter.h>
@@ -24,6 +25,7 @@
 #include <vtkExtractVOI.h>
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkContourFilter.h>
+#include <vtkStripper.h>
 #include <vtkWarpScalar.h>
 #include <vtkPropAssembly.h>
 
@@ -34,12 +36,12 @@ using namespace Rappture::VtkVis;
 
 #define MESH_POINT_CLOUDS
 
-HeightMap::HeightMap(int numContours) :
+HeightMap::HeightMap(int numContours, double heightScale) :
     VtkGraphicsObject(),
     _numContours(numContours),
     _colorMap(NULL),
     _contourEdgeWidth(1.0),
-    _warpScale(1.0),
+    _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false)
 {
@@ -48,13 +50,13 @@ HeightMap::HeightMap(int numContours) :
     _contourEdgeColor[2] = 0.0f;
 }
 
-HeightMap::HeightMap(const std::vector<double>& contours) :
+HeightMap::HeightMap(const std::vector<double>& contours, double heightScale) :
     VtkGraphicsObject(),
     _numContours(contours.size()),
     _contours(contours),
     _colorMap(NULL),
     _contourEdgeWidth(1.0),
-    _warpScale(1.0),
+    _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
     _pipelineInitialized(false)
 {
@@ -193,10 +195,34 @@ void HeightMap::update()
                 pd->GetNumberOfPolys() == 0 &&
                 pd->GetNumberOfStrips() == 0) {
                 // DataSet is a point cloud
-                if (_dataSet->is2D()) {
+                DataSet::PrincipalPlane plane;
+                double offset;
+                if (_dataSet->is2D(&plane, &offset)) {
 #ifdef MESH_POINT_CLOUDS
                     // Result of Delaunay2D is a PolyData
                     vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                    if (plane == DataSet::PLANE_ZY) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(90, 0, 1, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(-offset, 0, 0);
+                        }
+                        mesher->SetTransform(trans);
+                        _sliceAxis = X_AXIS;
+                    } else if (plane == DataSet::PLANE_XZ) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(-90, 1, 0, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(0, -offset, 0);
+                        }
+                        mesher->SetTransform(trans);
+                        _sliceAxis = Y_AXIS;
+                    } else if (offset != 0.0) {
+                        // XY with Z offset
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->Translate(0, 0, -offset);
+                        mesher->SetTransform(trans);
+                    }
                     mesher->SetInput(pd);
                     vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
                     _dsMapper->SetInputConnection(warpOutput);
@@ -204,11 +230,24 @@ void HeightMap::update()
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                    if (_volumeSlicer == NULL)
+                        _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
                     _pointSplatter->SetInput(pd);
                     int dims[3];
                     _pointSplatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                    dims[2] = 3;
+                    if (plane == DataSet::PLANE_ZY) {
+                        dims[0] = 3;
+                        _volumeSlicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
+                        _sliceAxis = X_AXIS;
+                    } else if (plane == DataSet::PLANE_XZ) {
+                        dims[1] = 3;
+                        _volumeSlicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
+                        _sliceAxis = Y_AXIS;
+                    } else {
+                        dims[2] = 3;
+                        _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
+                    }
                     _pointSplatter->SetSampleDimensions(dims);
                     double bounds[6];
                     _pointSplatter->Update();
@@ -217,10 +256,7 @@ void HeightMap::update()
                           bounds[0], bounds[1],
                           bounds[2], bounds[3],
                           bounds[4], bounds[5]);
-                    if (_volumeSlicer == NULL)
-                        _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
                     _volumeSlicer->SetInputConnection(_pointSplatter->GetOutputPort());
-                    _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                     _volumeSlicer->SetSampleRate(1, 1, 1);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                     gf->UseStripsOn();
@@ -323,14 +359,39 @@ void HeightMap::update()
                     _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
                 _probeFilter->SetSource(ds);
                 vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
+                DataSet::PrincipalPlane plane;
+                double offset;
                 int xdim = 256;
                 int ydim = 256;
                 int zdim = 1;
+                double origin[3];
+                double spacing[3];
+                origin[0] = bounds[0];
+                origin[1] = bounds[2];
+                origin[2] = bounds[4] + (bounds[5]-bounds[4])/2.;
+                spacing[0] = (bounds[1]-bounds[0])/((double)(xdim-1));
+                spacing[1] = (bounds[3]-bounds[2])/((double)(ydim-1));
+                spacing[2] = 0;
+                if (_dataSet->is2D(&plane, &offset)) {
+                    if (plane == DataSet::PLANE_ZY) {
+                        xdim = 1;
+                        zdim = 256;
+                        origin[2] = bounds[4];
+                        spacing[0] = 0;
+                        spacing[2] = (bounds[5]-bounds[4])/((double)(zdim-1));
+                        _sliceAxis = X_AXIS;
+                    } else if (plane == DataSet::PLANE_XZ) {
+                        ydim = 1;
+                        zdim = 256;
+                        origin[2] = bounds[4];
+                        spacing[1] = 0;
+                        spacing[2] = (bounds[5]-bounds[4])/((double)(zdim-1));
+                        _sliceAxis = Y_AXIS;
+                    }
+                }
                 imageData->SetDimensions(xdim, ydim, zdim);
-                imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])/2.);
-                imageData->SetSpacing((bounds[1]-bounds[0])/((double)(xdim-1)), 
-                                      (bounds[3]-bounds[2])/((double)(ydim-1)),
-                                      0);
+                imageData->SetOrigin(origin);
+                imageData->SetSpacing(spacing);
                 _probeFilter->SetInput(imageData);
                 gf->SetInputConnection(_probeFilter->GetOutputPort());
             } else {
@@ -376,7 +437,9 @@ void HeightMap::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
+        vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+        stripper->SetInputConnection(_contourFilter->GetOutputPort());
+        _contourMapper->SetInputConnection(stripper->GetOutputPort());
         _contourActor->SetMapper(_contourMapper);
     }
 
@@ -581,18 +644,18 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
             voi[5] = dims[2]-1;
             break;
         case Y_AXIS:
-            voi[2] = voi[3] = (int)((dims[1]-1) * ratio);
             voi[0] = 0;
             voi[1] = dims[0]-1;
+            voi[2] = voi[3] = (int)((dims[1]-1) * ratio);
             voi[4] = 0;
             voi[5] = dims[2]-1;
             break;
         case Z_AXIS:
-            voi[4] = voi[5] = (int)((dims[2]-1) * ratio);
             voi[0] = 0;
             voi[1] = dims[0]-1;
             voi[2] = 0;
             voi[3] = dims[1]-1;
+            voi[4] = voi[5] = (int)((dims[2]-1) * ratio);
             break;
         default:
             ERROR("Invalid Axis");
@@ -665,7 +728,7 @@ void HeightMap::updateRanges(bool useCumulative,
  *
  * Will override any existing contours
  */
-void HeightMap::setContours(int numContours)
+void HeightMap::setNumContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;
@@ -723,9 +786,19 @@ void HeightMap::setEdgeVisibility(bool state)
 }
 
 /**
+ * \brief Turn on/off rendering of colormaped surface
+ */
+void HeightMap::setContourSurfaceVisibility(bool state)
+{
+    if (_dsActor != NULL) {
+        _dsActor->SetVisibility((state ? 1 : 0));
+    }
+}
+
+/**
  * \brief Turn on/off rendering of contour isolines
  */
-void HeightMap::setContourVisibility(bool state)
+void HeightMap::setContourLineVisibility(bool state)
 {
     if (_contourActor != NULL) {
         _contourActor->SetVisibility((state ? 1 : 0));

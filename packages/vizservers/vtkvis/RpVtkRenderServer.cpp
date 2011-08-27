@@ -69,16 +69,16 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 #else
     if (g_renderer->getCameraMode() == Renderer::IMAGE) {
         double xywh[4];
-        g_renderer->getScreenWorldCoords(xywh);
+        g_renderer->getCameraZoomRegion(xywh);
         std::ostringstream oss;
         oss.precision(12);
         // Send upper left and lower right corners as bbox
         oss << "nv>image -type image -bbox {"
             << std::scientific
             << xywh[0] << " "
-            << (xywh[1] + xywh[3]) << " "
-            << (xywh[0] + xywh[2]) << " "
-            << xywh[1] << "} -bytes";
+            << xywh[1] << " "
+            << xywh[2] << " "
+            << xywh[3] << "} -bytes";
 
 #ifdef RENDER_TARGA
         writeTGA(fd, oss.str().c_str(),

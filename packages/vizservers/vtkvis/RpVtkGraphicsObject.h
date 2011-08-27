@@ -45,6 +45,7 @@ public:
         _dataSet(NULL),
         _opacity(1.0),
         _edgeWidth(1.0f),
+        _pointSize(1.0f),
         _lighting(true),
         _cullFace(CULL_BACK),
         _faceCulling(false)
@@ -606,7 +607,7 @@ public:
     /**
      * \brief Set pixel width of edges
      *
-     * NOTE: May be a no-op if OpenGL implementation doesn't support fat lines
+     * NOTE: May be a no-op if OpenGL implementation doesn't support wide lines
      */
     virtual void setEdgeWidth(float width)
     {
@@ -620,6 +621,28 @@ public:
             while ((prop = props->GetNextProp3D()) != NULL) {
                 if (vtkActor::SafeDownCast(prop) != NULL) {
                     vtkActor::SafeDownCast(prop)->GetProperty()->SetLineWidth(width);
+                }
+            }
+        }
+    }
+
+    /**
+     * \brief Set point size
+     *
+     * NOTE: May be a no-op if OpenGL implementation doesn't support wide points
+     */
+    virtual void setPointSize(float size)
+    {
+        _pointSize = size;
+        if (getActor() != NULL) {
+            getActor()->GetProperty()->SetPointSize(size);
+        } else if (getAssembly() != NULL) {
+            vtkProp3DCollection *props = getAssembly()->GetParts();
+            vtkProp3D *prop;
+            props->InitTraversal();
+            while ((prop = props->GetNextProp3D()) != NULL) {
+                if (vtkActor::SafeDownCast(prop) != NULL) {
+                    vtkActor::SafeDownCast(prop)->GetProperty()->SetPointSize(size);
                 }
             }
         }
@@ -747,6 +770,7 @@ protected:
     float _color[3];
     float _edgeColor[3];
     float _edgeWidth;
+    float _pointSize;
     bool _lighting;
     CullFace _cullFace;
     bool _faceCulling;

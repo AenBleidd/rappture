@@ -5,6 +5,7 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cassert>
 #include <cstring>
 #include <cfloat>
 #include <cmath>
@@ -161,6 +162,54 @@ void DataSet::print() const
     }
 }
 
+void DataSet::setDefaultArrays()
+{
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetScalars() == NULL &&
+        _dataSet->GetPointData()->GetNumberOfArrays() > 0) {
+        for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
+            if (_dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 1) {
+                TRACE("Setting point scalars to '%s'", _dataSet->GetPointData()->GetArrayName(i));
+                _dataSet->GetPointData()->SetActiveScalars(_dataSet->GetPointData()->GetArrayName(i));
+                break;
+            }
+        }
+    }
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetVectors() == NULL &&
+        _dataSet->GetPointData()->GetNumberOfArrays() > 0) {
+        for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
+            if (_dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 3) {
+                TRACE("Setting point vectors to '%s'", _dataSet->GetPointData()->GetArrayName(i));
+                _dataSet->GetPointData()->SetActiveVectors(_dataSet->GetPointData()->GetArrayName(i));
+                break;
+            }
+        }
+    }
+    if (_dataSet->GetCellData() != NULL &&
+        _dataSet->GetCellData()->GetScalars() == NULL &&
+        _dataSet->GetCellData()->GetNumberOfArrays() > 0) {
+        for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
+            if (_dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 1) {
+                TRACE("Setting cell scalars to '%s'", _dataSet->GetCellData()->GetArrayName(i));
+                _dataSet->GetCellData()->SetActiveScalars(_dataSet->GetCellData()->GetArrayName(i));
+                break;
+            }
+        }
+    }
+    if (_dataSet->GetCellData() != NULL &&
+        _dataSet->GetCellData()->GetVectors() == NULL &&
+        _dataSet->GetCellData()->GetNumberOfArrays() > 0) {
+        for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
+            if (_dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 3) {
+                TRACE("Setting cell vectors to '%s'", _dataSet->GetCellData()->GetArrayName(i));
+                _dataSet->GetCellData()->SetActiveVectors(_dataSet->GetCellData()->GetArrayName(i));
+                break;
+            }
+        }
+    }
+}
+
 /**
  * \brief Read dataset using supplied reader
  *
@@ -183,6 +232,8 @@ bool DataSet::setData(vtkDataSetReader *reader)
         ERROR("No lookup table should be specified in DataSets");
     }
 
+    setDefaultArrays();
+
 #ifdef WANT_TRACE
     print();
 #endif
@@ -204,6 +255,8 @@ bool DataSet::setData(vtkDataSet *ds)
         _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
         ERROR("No lookup table should be specified in DataSets");
     }
+
+    setDefaultArrays();
 
 #ifdef WANT_TRACE
     print();
@@ -249,11 +302,85 @@ vtkDataSet *DataSet::copyData(vtkDataSet *ds)
 /**
  * \brief Does DataSet lie in the XY plane (z = 0)
  */
-bool DataSet::is2D() const
+bool DataSet::isXY() const
 {
     double bounds[6];
     getBounds(bounds);
     return (bounds[4] == 0. && bounds[4] == bounds[5]);
+}
+
+/**
+ * \brief Returns the dimensionality of the AABB
+ */
+int DataSet::numDimensions() const
+{
+    double bounds[6];
+    getBounds(bounds);
+    int numDims = 0;
+    if (bounds[0] != bounds[1])
+        numDims++;
+    if (bounds[2] != bounds[3])
+        numDims++;
+    if (bounds[4] != bounds[5])
+        numDims++;
+
+    return numDims;
+}
+
+/**
+ * \brief Determines if DataSet lies in a principal axis plane
+ * and if so, returns the plane normal and offset from origin
+ */
+bool DataSet::is2D(DataSet::PrincipalPlane *plane, double *offset) const
+{
+    double bounds[6];
+    getBounds(bounds);
+    if (bounds[4] == bounds[5]) {
+        // Z = 0, XY plane
+        if (plane != NULL) {
+            *plane = PLANE_XY;
+        }
+        if (offset != NULL)
+            *offset = bounds[4];
+        return true;
+    } else if (bounds[0] == bounds[1]) {
+        // X = 0, ZY plane
+        if (plane != NULL) {
+            *plane = PLANE_ZY;
+        }
+        if (offset != NULL)
+            *offset = bounds[0];
+        return true;
+    } else if (bounds[2] == bounds[3]) {
+        // Y = 0, XZ plane
+        if (plane != NULL) {
+            *plane = PLANE_XZ;
+         }
+        if (offset != NULL)
+            *offset = bounds[2];
+        return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Determines a principal plane with the
+ * largest two dimensions of the AABB
+ */
+DataSet::PrincipalPlane DataSet::principalPlane() const
+{
+    double bounds[6];
+    getBounds(bounds);
+    double xlen = bounds[1] - bounds[0];
+    double ylen = bounds[3] - bounds[2];
+    double zlen = bounds[5] - bounds[4];
+    if (zlen <= xlen && zlen <= ylen) {
+        return PLANE_XY;
+    } else if (xlen <= ylen && xlen <= zlen) {
+        return PLANE_ZY;
+    } else {
+        return PLANE_XZ;
+    }
 }
 
 /**
@@ -323,7 +450,15 @@ bool DataSet::setActiveVectors(const char *name)
  */
 void DataSet::getScalarRange(double minmax[2]) const
 {
-    _dataSet->GetScalarRange(minmax);
+    if (_dataSet == NULL)
+        return;
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetScalars() != NULL) {
+        _dataSet->GetPointData()->GetScalars()->GetRange(minmax, -1);
+    } else if (_dataSet->GetCellData() != NULL &&
+               _dataSet->GetCellData()->GetScalars() != NULL) {
+        _dataSet->GetCellData()->GetScalars()->GetRange(minmax, -1);
+    }
 }
 
 /**
@@ -418,14 +553,44 @@ void DataSet::getCellSizeRange(double minmax[6], double *average) const
  *
  * \return the value of the nearest point or 0 if no scalar data available
  */
-double DataSet::getDataValue(double x, double y, double z) const
+bool DataSet::getScalarValue(double x, double y, double z, double *value) const
 {
     if (_dataSet == NULL)
-        return 0;
+        return false;
     if (_dataSet->GetPointData() == NULL ||
         _dataSet->GetPointData()->GetScalars() == NULL) {
-        return 0.0;
+        return false;
     }
     vtkIdType pt = _dataSet->FindPoint(x, y, z);
-    return _dataSet->GetPointData()->GetScalars()->GetComponent(pt, 0);
+    if (pt < 0)
+        return false;
+    *value = _dataSet->GetPointData()->GetScalars()->GetComponent(pt, 0);
+    return true;
+}
+
+/**
+ * \brief Get nearest vector data value given world coordinates x,y,z
+ *
+ * Note: no interpolation is performed on data
+ *
+ * \param[in] x World x coordinate to probe
+ * \param[in] y World y coordinate to probe
+ * \param[in] z World z coordinate to probe
+ * \param[out] vector On success, contains the data values
+ * \return boolean indicating success or failure
+ */
+bool DataSet::getVectorValue(double x, double y, double z, double vector[3]) const
+{
+    if (_dataSet == NULL)
+        return false;
+    if (_dataSet->GetPointData() == NULL ||
+        _dataSet->GetPointData()->GetVectors() == NULL) {
+        return false;
+    }
+    vtkIdType pt = _dataSet->FindPoint(x, y, z);
+    if (pt < 0)
+        return false;
+    assert(_dataSet->GetPointData()->GetVectors()->GetNumberOfComponents() == 3);
+    _dataSet->GetPointData()->GetVectors()->GetTuple(pt, vector);
+    return true;
 }

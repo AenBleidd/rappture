@@ -41,9 +41,9 @@ public:
         Z_AXIS
     };
 
-    HeightMap(int numContours);
+    HeightMap(int numContours, double heightScale = 1.0);
 
-    HeightMap(const std::vector<double>& contours);
+    HeightMap(const std::vector<double>& contours, double heightScale = 1.0);
 
     virtual ~HeightMap();
 
@@ -72,9 +72,7 @@ public:
 
     void setHeightScale(double scale);
 
-    void setContours(int numContours);
-
-    void setContours(int numContours, double range[2]);
+    void setNumContours(int numContours);
 
     void setContourList(const std::vector<double>& contours);
 
@@ -99,7 +97,9 @@ public:
                               double vectorMagnitudeRange[2],
                               double vectorComponentRange[3][2]);
 
-    void setContourVisibility(bool state);
+    void setContourLineVisibility(bool state);
+
+    void setContourSurfaceVisibility(bool state);
 
     void setContourEdgeColor(float color[3]);
 

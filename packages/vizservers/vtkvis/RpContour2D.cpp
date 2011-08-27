@@ -12,9 +12,11 @@
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
 #include <vtkContourFilter.h>
+#include <vtkStripper.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
+#include <vtkTransform.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
@@ -106,8 +108,30 @@ void Contour2D::update()
             pd->GetNumberOfPolys() == 0 &&
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
-            if (_dataSet->is2D()) {
+            DataSet::PrincipalPlane plane;
+            double offset;
+            if (_dataSet->is2D(&plane, &offset)) {
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                if (plane == DataSet::PLANE_ZY) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(90, 0, 1, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(-offset, 0, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (plane == DataSet::PLANE_XZ) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(-90, 1, 0, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(0, -offset, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->Translate(0, 0, -offset);
+                    mesher->SetTransform(trans);
+                }
                 mesher->SetInput(pd);
                 _contourFilter->SetInputConnection(mesher->GetOutputPort());
             } else {
@@ -153,7 +177,9 @@ void Contour2D::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
+        vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+        stripper->SetInputConnection(_contourFilter->GetOutputPort());
+        _contourMapper->SetInputConnection(stripper->GetOutputPort());
         getActor()->SetMapper(_contourMapper);
     }
 

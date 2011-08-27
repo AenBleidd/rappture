@@ -11,7 +11,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
-#include <vtkRpCubeAxesActor2D.h>
+#include "vtkRpCubeAxesActor2D.h"
 #else
 #include <vtkCubeAxesActor2D.h>
 #endif
@@ -60,6 +60,12 @@ public:
         Z_AXIS
     };
 
+    enum PrincipalPlane {
+        PLANE_XY,
+        PLANE_ZY,
+        PLANE_XZ
+    };
+
     enum AxesFlyMode {
         FLY_OUTER_EDGES = 0,
         FLY_CLOSEST_TRIAD,
@@ -103,6 +109,8 @@ public:
 
     DataSet *getDataSet(const DataSetId& id);
 
+    void getDataSetNames(std::vector<std::string>& names);
+
     bool setData(const DataSetId& id, char *data, int nbytes);
 
     bool setDataFile(const DataSetId& id, const char *filename);
@@ -111,9 +119,13 @@ public:
 
     bool setDataSetActiveVectors(const DataSetId& id, const char *vectorName);
 
-    double getDataValueAtPixel(const DataSetId& id, int x, int y);
+    bool getScalarValueAtPixel(const DataSetId& id, int x, int y, double *value);
 
-    double getDataValue(const DataSetId& id, double x, double y, double z);
+    bool getScalarValue(const DataSetId& id, double x, double y, double z, double *value);
+
+    bool getVectorValueAtPixel(const DataSetId& id, int x, int y, double vector[3]);
+
+    bool getVectorValue(const DataSetId& id, double x, double y, double z, double vector[3]);
 
     void setOpacity(const DataSetId& id, double opacity);
 
@@ -146,6 +158,8 @@ public:
     void resetCamera(bool resetOrientation = true);
 
     void resetCameraClippingRange();
+
+    void setCameraZoomRegionPixels(int x, int y, int width, int height);
 
     void setCameraZoomRegion(double x, double y, double width, double height);
 
@@ -231,9 +245,9 @@ public:
 
     // 2D Contour plots
 
-    void addContour2D(const DataSetId& id, int numContours);
+    bool addContour2D(const DataSetId& id, int numContours);
 
-    void addContour2D(const DataSetId& id, const std::vector<double>& contours);
+    bool addContour2D(const DataSetId& id, const std::vector<double>& contours);
 
     void deleteContour2D(const DataSetId& id);
 
@@ -265,9 +279,9 @@ public:
 
     // 3D Contour (isosurface) plots
 
-    void addContour3D(const DataSetId& id, int numContours);
+    bool addContour3D(const DataSetId& id, int numContours);
 
-    void addContour3D(const DataSetId& id, const std::vector<double>& contours);
+    bool addContour3D(const DataSetId& id, const std::vector<double>& contours);
 
     void deleteContour3D(const DataSetId& id);
 
@@ -307,7 +321,7 @@ public:
 
     // Glyphs
 
-    void addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape);
+    bool addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape);
 
     void deleteGlyphs(const DataSetId& id);
 
@@ -351,9 +365,9 @@ public:
 
     // Height maps
 
-    void addHeightMap(const DataSetId& id, int numContours);
+    bool addHeightMap(const DataSetId& id, int numContours, double heightScale);
 
-    void addHeightMap(const DataSetId& id, const std::vector<double>& contours);
+    bool addHeightMap(const DataSetId& id, const std::vector<double>& contours, double heightScale);
 
     void deleteHeightMap(const DataSetId& id);
 
@@ -381,17 +395,21 @@ public:
 
     void setHeightMapVisibility(const DataSetId& id, bool state);
 
+    void setHeightMapWireframe(const DataSetId& id, bool state);
+
     void setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis, double ratio);
 
     void setHeightMapHeightScale(const DataSetId& id, double scale);
 
     void setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
-    void setHeightMapContours(const DataSetId& id, int numContours);
+    void setHeightMapNumContours(const DataSetId& id, int numContours);
 
     void setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours);
 
-    void setHeightMapContourVisibility(const DataSetId& id, bool state);
+    void setHeightMapContourSurfaceVisibility(const DataSetId& id, bool state);
+
+    void setHeightMapContourLineVisibility(const DataSetId& id, bool state);
 
     void setHeightMapContourEdgeColor(const DataSetId& id, float color[3]);
 
@@ -399,7 +417,7 @@ public:
 
     // LIC plots
 
-    void addLIC(const DataSetId& id);
+    bool addLIC(const DataSetId& id);
     
     void deleteLIC(const DataSetId& id);
 
@@ -433,7 +451,7 @@ public:
 
     // Molecules
 
-    void addMolecule(const DataSetId& id);
+    bool addMolecule(const DataSetId& id);
     
     void deleteMolecule(const DataSetId& id);
 
@@ -473,7 +491,7 @@ public:
 
     // PolyData Meshes
 
-    void addPolyData(const DataSetId& id);
+    bool addPolyData(const DataSetId& id);
     
     void deletePolyData(const DataSetId& id);
 
@@ -497,6 +515,8 @@ public:
 
     void setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth);
 
+    void setPolyDataPointSize(const DataSetId& id, float size);
+
     void setPolyDataLighting(const DataSetId& id, bool state);
 
     void setPolyDataOpacity(const DataSetId& id, double opacity);
@@ -508,7 +528,7 @@ public:
 
     // Color-mapped surfaces
 
-    void addPseudoColor(const DataSetId& id);
+    bool addPseudoColor(const DataSetId& id);
 
     void deletePseudoColor(const DataSetId& id);
 
@@ -542,7 +562,7 @@ public:
 
     // Streamlines
 
-    void addStreamlines(const DataSetId& id);
+    bool addStreamlines(const DataSetId& id);
 
     void deleteStreamlines(const DataSetId& id);
 
@@ -611,7 +631,7 @@ public:
 
     // Volumes
 
-    void addVolume(const DataSetId& id);
+    bool addVolume(const DataSetId& id);
 
     void deleteVolume(const DataSetId& id);
 
@@ -677,6 +697,9 @@ private:
 
     void computeScreenWorldCoords();
 
+    bool is2D(const double bounds[6],
+              PrincipalPlane *plane,
+              double *offset) const;
     void initCamera();
     void initAxes();
     void resetAxes(double bounds[6] = NULL);
@@ -686,6 +709,8 @@ private:
     int _windowWidth, _windowHeight;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
+    PrincipalPlane _imgCameraPlane;
+    double _imgCameraOffset;
     double _screenWorldCoords[4];
     double _cameraOrientation[4];
     double _cameraZoomRatio;

@@ -46,7 +46,7 @@ INCLUDES	= \
 
 DEBUG			= #yes
 TRACE			= #yes
-USE_CUSTOM_AXES 	= #yes
+USE_CUSTOM_AXES 	= yes
 USE_GPU_RAYCASTING      = yes
 USE_OFFSCREEN_RENDERING = yes
 

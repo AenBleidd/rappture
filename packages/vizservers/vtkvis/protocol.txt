@@ -46,9 +46,9 @@ camera mode <mode>
        <mode> = persp|ortho|image
 camera orient <quatW> <quatX> <quatY> <quatZ>
        Set scene orientation using a quaternion
-camera ortho <x> <y> <width> <height>
-       Supply world coordinate bounds of plot area for image camera mode
-       Data is assumed to lie in XY plane (z = 0)
+camera ortho <coordMode> <x> <y> <width> <height>
+       <coordMode> = pixel|world
+       Supply bounds of plot area for image camera mode
 camera pan <x> <y>
        <x,y> viewport coordinates (window center at 0,0).  Positive x pan
        means pan object to right (camera to left).  Positive y pan means
@@ -74,8 +74,10 @@ legend <colormapName> <legendTitle> <width> <height> <?datasetName?>
 
 dataset add <datasetName> data follows <nbytes>
 dataset delete <?datasetName?>
-dataset getvalue world <x> <y> <z> <datasetName>
-dataset getvalue pixel <x> <y> <datasetName>
+dataset getscalar world <x> <y> <z> <datasetName>
+dataset getscalar pixel <x> <y> <datasetName>
+dataset getvector world <x> <y> <z> <datasetName>
+dataset getvector pixel <x> <y> <datasetName>
         Use pixel for image camera mode
 dataset maprange <val>
         <val> = all|visible|separate
@@ -148,12 +150,13 @@ glyphs smode <scalar|vmag|vcomp|off> <?dataSetName?>
 glyphs visible <bool> <?datasetName?>
 glyphs wireframe <bool> <?datasetName?>
 
-heightmap add numcontours <n> <?dataSetName?>
+heightmap add numcontours <n> <heightScale> <?dataSetName?>
           Generate evenly spaced contours including range endpoints.  See also
           'dataset maprange' command.
-heightmap add contourlist <list> <?dataSetName?>
+heightmap add contourlist <list> <heightScale> <?dataSetName?>
 	  list = {isoval1 isoval2 isoval3...}
 heightmap colormap <colorMapName> <?dataSetName?>
+heightmap contourlist <list> <?dataSetName?>
 heightmap delete <?dataSetName?>
 heightmap edges <bool> <?dataSetName?>
 heightmap heightscale <value> <?dataSetName?>
@@ -163,14 +166,18 @@ heightmap isolinewidth <width> <?dataSetName?>
 heightmap lighting <bool> <?dataSetName?>
 heightmap linecolor <r> <g> <b> <?dataSetName?>
 heightmap linewidth <width> <?dataSetName?>
+heightmap numcontours <n> <?dataSetName?>
 heightmap opacity <value> <?dataSetName?>
 heightmap orient <qw> <qx> <qy> <qz> <?dataSetName?>
 heightmap pos <x> <y> <z> <?dataSetName?>
 heightmap scale <sx> <sy> <sz> <?dataSetName?>
+heightmap surface <bool> <?dataSetName?>
+          Toggle rendering of colormapped surface (mountain plot or cutplane)
 heightmap visible <bool> <?dataSetName?>
 heightmap volumeslice axis ratio <?dataSetName?>
           For 3D data, select a slice along a principle axis of the volume. The
           ratio is [0,1]
+heightmap wireframe <bool> <?datasetName?>
 
 lic add <?datasetName?>
 lic colormap <colormapName> <?datasetName?>
@@ -217,6 +224,7 @@ polydata linewidth <val> <?datasetName?>
 polydata opacity <val> <?datasetName?>
 polydata orient <qw> <qx> <qy> <qz> <?dataSetName?>
 polydata pos <x> <y> <z> <?dataSetName?>
+polydata ptsize <size> <?dataSetName?>
 polydata scale <sx> <sy> <sz> <?dataSetName?>
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
@@ -300,15 +308,18 @@ nv>camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <v
    Reply to "camera get"
 nv>image -type image -bytes <nbytes>
   <binary RGB data>
-nv>image -type image -bbox {x1 y1 x2 y2} -bytes <nbytes>
+nv>image -type image -bbox {x y w h} -bytes <nbytes>
   <binary RGB data>
-  Note: in this form, the bbox is the upper left and lower right screen corners
-  in world coordinates.  This form is currently used only if the camera mode is
-  set to 'image'.
+  The bounding box of the 2D image camera zoom region is supplied
+  Note: The bbox coordinates are in the form used by 'camera ortho world ...':
+  x,y - world coordinate of lower left corner, w,h - width height in world coords
+  This form is currently used only if the camera mode is set to 'image'.
 nv>legend <colormapName> <nbytes>
   <binary RGB data>
-nv>dataset value world <x> <y> <z> <value>
-nv>dataset value pixel <x> <y> <value>
+nv>dataset scalar world <x> <y> <z> <value> <dataSetName>
+nv>dataset scalar pixel <x> <y> <value> <dataSetName>
+nv>dataset vector world <x> <y> <z> <valueX> <valueY> <valueZ> <dataSetName>
+nv>dataset vector pixel <x> <y> <valueX> <valueY> <valueZ> <dataSetName>
 
 ================================================================================
 Errors:

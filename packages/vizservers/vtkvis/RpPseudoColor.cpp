@@ -14,6 +14,7 @@
 #include <vtkProperty.h>
 #include <vtkImageData.h>
 #include <vtkLookupTable.h>
+#include <vtkTransform.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
 #include <vtkGaussianSplatter.h>
@@ -83,20 +84,50 @@ void PseudoColor::update()
             pd->GetNumberOfPolys() == 0 &&
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
-            if (_dataSet->is2D()) {
+            DataSet::PrincipalPlane plane;
+            double offset;
+            if (_dataSet->is2D(&plane, &offset)) {
 #ifdef MESH_POINT_CLOUDS
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                if (plane == DataSet::PLANE_ZY) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(90, 0, 1, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(-offset, 0, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (plane == DataSet::PLANE_XZ) {
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->RotateWXYZ(-90, 1, 0, 0);
+                    if (offset != 0.0) {
+                        trans->Translate(0, -offset, 0);
+                    }
+                    mesher->SetTransform(trans);
+                } else if (offset != 0.0) {
+                    // XY with Z offset
+                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                    trans->Translate(0, 0, -offset);
+                    mesher->SetTransform(trans);
+                }
                 mesher->SetInput(pd);
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInputConnection(mesher->GetOutputPort());
-                _dsMapper->SetInputConnection(gf->GetOutputPort());
+                _dsMapper->SetInputConnection(mesher->GetOutputPort());
 #else
                 vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+                vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
                 splatter->SetInput(pd);
                 int dims[3];
                 splatter->GetSampleDimensions(dims);
                 TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                dims[2] = 3;
+                if (plane == DataSet::PLANE_ZY) {
+                    dims[0] = 3;
+                    slicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
+                } else if (plane == DataSet::PLANE_XZ) {
+                    dims[1] = 3;
+                    slicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
+                } else {
+                    dims[2] = 3;
+                    slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
+                }
                 splatter->SetSampleDimensions(dims);
                 double bounds[6];
                 splatter->Update();
@@ -105,9 +136,7 @@ void PseudoColor::update()
                       bounds[0], bounds[1],
                       bounds[2], bounds[3],
                       bounds[4], bounds[5]);
-                vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
                 slicer->SetInputConnection(splatter->GetOutputPort());
-                slicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, 1, 1);
                 slicer->SetSampleRate(1, 1, 1);
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
