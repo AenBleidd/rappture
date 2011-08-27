@@ -14,6 +14,7 @@
 package require Itk
 package require BLT
 package require Img
+package require vtk
 
 option add *VtkContourViewer.width 4i widgetDefault
 option add *VtkContourViewer*cursor crosshair widgetDefault
@@ -98,6 +99,7 @@ itcl::class Rappture::VtkContourViewer {
     private method GetVtkData { args } 
     private method BuildDownloadPopup { widget command } 
 
+    private variable _arcball ""
     private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
@@ -173,31 +175,35 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        theta		45
-        phi		45
-        psi		0 
+	qx		0
+	qy		0
+	qz		0
+	qw		1
         zoom		1.0 
         pan-x		0
         pan-y		0
-	zoom-x		1.0
-	zoom-y		1.0
+        ortho-x         0.0
+        ortho-y         0.0
+	ortho-w		-1.0
+	ortho-h		-1.0
     }
+    set _arcball [blt::arcball create 100 100]
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
     array set _settings [subst {
-        $this-pan-x		$_view(pan-x)
-        $this-pan-y		$_view(pan-y)
-        $this-phi		$_view(phi)
-        $this-psi		$_view(psi)
-        $this-theta		$_view(theta)
-        $this-opacity		100
         $this-axes		1
+        $this-edges		0
+        $this-lighting		1
+        $this-opacity		100
+        $this-volume		1
+        $this-isolines		1
+        $this-wireframe		0
         $this-legend		1
         $this-colormap		1
-        $this-edges		0
-        $this-isolines		1
-        $this-zoom		$_view(zoom)
     }]
 
     itk_component add view {
@@ -345,9 +351,6 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
     eval itk_initialize $args
 
     Connect
-    puts stderr waiting
-    #after 30000
-    puts stderr continuing
 }
 
 # ----------------------------------------------------------------------
@@ -360,6 +363,7 @@ itcl::body Rappture::VtkContourViewer::destructor {} {
     image delete $_image(legend)
     image delete $_image(download)
     array unset _settings $this-*
+    catch { blt::arcball destroy $_arcball}
 }
 
 itcl::body Rappture::VtkContourViewer::DoResize {} {
@@ -379,6 +383,7 @@ itcl::body Rappture::VtkContourViewer::DoResize {} {
 itcl::body Rappture::VtkContourViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
+    $_arcball resize $w $h
     if { !$_resizePending } {
         $_dispatcher event -after 100 !resize
         set _resizePending 1
@@ -688,9 +693,12 @@ itcl::body Rappture::VtkContourViewer::ReceiveImage { args } {
         -token "???"
         -bytes 0
         -type image
+        -bbox {0 0 -1 -1}
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
+    foreach { _view(ortho-x) _view(ortho-y) _view(ortho-w) _view(ortho-h) } $info(-bbox) break
+    puts stderr "bbox: $_view(ortho-x) $_view(ortho-y) $_view(ortho-w) $_view(ortho-h)"
     if { $info(-type) == "image" } {
         $_image(plot) configure -data $bytes
         #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
@@ -831,6 +839,8 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
     set h [winfo height $itk_component(view)]
     EventuallyResize $w $h
     
+    $_arcball resize $w $h
+
     set _limits(vmin) ""
     set _limits(vmax) ""
     foreach dataobj [get] {
@@ -839,13 +849,14 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
             if { ![info exists _datasets($tag)] } {
                 set bytes [ConvertToVtkData $dataobj $comp]
                 set length [string length $bytes]
+                array set style {-levels 6}
+                array set style [lindex [$dataobj components -style $comp] 0]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-		append _outbuf "pseudocolor add $tag\n"
-		append _outbuf "pseudocolor colormap default $tag\n"
+		append _outbuf "heightmap add numcontours [expr {$style(-levels)+1}] 0 $tag\n"
 		SetStyles $dataobj $comp
                 set _datasets($tag) 1
-		foreach {min max} [$dataobj limits z] break
+		foreach {min max} [$dataobj limits v] break
 		if { ($_limits(vmin) == "") || ($min < $_limits(vmin)) } {
 		    set _limits(vmin) $min
 		}
@@ -858,22 +869,23 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
     #
     # Reset the camera and other view parameters
     #
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    #SendCmd "camera mode persp"
+    #SendCmd "camera orient $q" 
 
-    set _settings($this-theta) $_view(theta)
-    set _settings($this-phi)   $_view(phi)
-    set _settings($this-psi)   $_view(psi)
-    set _settings($this-pan-x) $_view(pan-x)
-    set _settings($this-pan-y) $_view(pan-y)
-    set _settings($this-zoom)  $_view(zoom)
-
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    #SendCmd "camera rotate $xyz"
-    PanCamera
     SendCmd "camera mode image"
-    SendCmd "camera zoom $_view(zoom)"
+    if {$_view(ortho-w) > 0} {
+        SendCmd "camera ortho world $_view(ortho-x) $_view(ortho-y) $_view(ortho-w) $_view(ortho-h)"
+    } else {
+        PanCamera
+        SendCmd "camera zoom $_view(zoom)"
+    }
     FixSettings opacity
     FixSettings isolines
     FixSettings colormap
+    FixSettings lighting
+    FixSettings wireframe
     FixSettings axes
     FixSettings edges
 
@@ -889,7 +901,7 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
         }
         foreach tag [array names _datasets $_first-*]  {
             SendCmd "dataset visible 1 $tag"
-            SendCmd "pseudocolor opacity 1.0 $tag"
+            SendCmd "heightmap opacity 1.0 $tag"
         }
     }
 
@@ -938,48 +950,36 @@ itcl::body Rappture::VtkContourViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-            set _settings($this-zoom) $_view(zoom)
 	    SendCmd "camera zoom $_view(zoom)"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-            set _settings($this-zoom) $_view(zoom)
 	    SendCmd "camera zoom $_view(zoom)"
         }
         "reset" {
             array set _view {
-                theta   45
-                phi     45
-                psi     0
+                qx	0
+                qy      0
+                qz      0
+                qw      1
                 zoom    1.0
                 pan-x   0
                 pan-y   0
-		zoom-x  1.0
-		zoom-y  1.0
             }
+            SendCmd "camera reset all"
             if { $_first != "" } {
                 set location [$_first hints camera]
                 if { $location != "" } {
                     array set _view $location
                 }
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            #SendCmd "camera rotate $xyz"
-            PanCamera
-            set _settings($this-theta) $_view(theta)
-            set _settings($this-phi)   $_view(phi)
-            set _settings($this-psi)   $_view(psi)
-            set _settings($this-pan-x) $_view(pan-x)
-            set _settings($this-pan-y) $_view(pan-y)
-            set _settings($this-zoom)  $_view(zoom)
-            SendCmd "camera reset all"
+            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+	    $_arcball quaternion $q
         }
     }
 }
 
 itcl::body Rappture::VtkContourViewer::PanCamera {} {
-    #set x [expr ($_view(pan-x)) / $_limits(xrange)]
-    #set y [expr ($_view(pan-y)) / $_limits(yrange)]
     set x $_view(pan-x)
     set y $_view(pan-y)
     SendCmd "camera pan $x $y"
@@ -1000,8 +1000,6 @@ itcl::body Rappture::VtkContourViewer::Rotate {option x y} {
             $itk_component(view) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -1020,38 +1018,9 @@ itcl::body Rappture::VtkContourViewer::Rotate {option x y} {
                 }]} {
                     return
                 }
-
-                #
-                # Rotate the camera in 3D
-                #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$_view(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
-
-                if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
-                } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
-                }
-
-                set _view(theta)        $theta
-                set _view(phi)          $phi
-                set _view(psi)          $psi
-                set xyz [Euler2XYZ $theta $phi $psi]
-                set _settings($this-theta) $_view(theta)
-                set _settings($this-phi)   $_view(phi)
-                set _settings($this-psi)   $_view(psi)
-                #SendCmd "camera rotate $xyz"
+                set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+		foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                SendCmd "camera orient $q" 
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1076,37 +1045,40 @@ itcl::body Rappture::VtkContourViewer::Rotate {option x y} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkContourViewer::Pan {option x y} {
-    # Experimental stuff
-    set w [winfo width $itk_component(view)]
-    set h [winfo height $itk_component(view)]
-    if { $option == "set" } {
-        set x [expr $x / double($w)]
-        set y [expr $y / double($h)]
-        set _view(pan-x) [expr $_view(pan-x) + $x]
-        set _view(pan-y) [expr $_view(pan-y) + $y]
-        PanCamera
-        set _settings($this-pan-x) $_view(pan-x)
-        set _settings($this-pan-y) $_view(pan-y)
-        return
-    }
-    if { $option == "click" } {
-        set _click(x) $x
-        set _click(y) $y
-        $itk_component(view) configure -cursor hand1
-    }
-    if { $option == "drag" || $option == "release" } {
-        set dx [expr ($_click(x) - $x)/double($w)]
-        set dy [expr ($_click(y) - $y)/double($h)]
-        set _click(x) $x
-        set _click(y) $y
-        set _view(pan-x) [expr $_view(pan-x) - $dx]
-        set _view(pan-y) [expr $_view(pan-y) - $dy]
-        PanCamera
-        set _settings($this-pan-x) $_view(pan-x)
-        set _settings($this-pan-y) $_view(pan-y)
-    }
-    if { $option == "release" } {
-        $itk_component(view) configure -cursor ""
+    switch -- $option {
+	"set" {
+	    set w [winfo width $itk_component(view)]
+	    set h [winfo height $itk_component(view)]
+	    set x [expr $x / double($w)]
+	    set y [expr $y / double($h)]
+	    set _view(pan-x) [expr $_view(pan-x) + $x]
+	    set _view(pan-y) [expr $_view(pan-y) + $y]
+	    PanCamera
+	    return
+	}
+	"click" {
+	    set _click(x) $x
+	    set _click(y) $y
+	    $itk_component(view) configure -cursor hand1
+	}
+	"drag" {
+	    set w [winfo width $itk_component(view)]
+	    set h [winfo height $itk_component(view)]
+	    set dx [expr ($_click(x) - $x)/double($w)]
+	    set dy [expr ($_click(y) - $y)/double($h)]
+	    set _click(x) $x
+	    set _click(y) $y
+	    set _view(pan-x) [expr $_view(pan-x) - $dx]
+	    set _view(pan-y) [expr $_view(pan-y) - $dy]
+	    PanCamera
+	}
+	"release" {
+	    Pan drag $x $y
+	    $itk_component(view) configure -cursor ""
+	}
+	default {
+	    error "unknown option \"$option\": should set, click, drag, or release"
+	}
     }
 }
 
@@ -1124,7 +1096,23 @@ itcl::body Rappture::VtkContourViewer::FixSettings {what {value ""}} {
                 set val $_settings($this-opacity)
                 set sval [expr { 0.01 * double($val) }]
 		foreach dataset [CurrentDatasets] {
-		    SendCmd "pseudocolor opacity $sval $dataset"
+		    SendCmd "heightmap opacity $sval $dataset"
+		}
+            }
+        }
+        "wireframe" {
+            if {[isconnected]} {
+		set bool $_settings($this-wireframe)
+		foreach dataset [CurrentDatasets] {
+		    SendCmd "heightmap wireframe $bool $dataset"
+		}
+            }
+        }
+        "colormap" {
+            if {[isconnected]} {
+		set bool $_settings($this-colormap)
+		foreach dataset [CurrentDatasets] {
+		    SendCmd "heightmap surface $bool $dataset"
 		}
             }
         }
@@ -1132,7 +1120,7 @@ itcl::body Rappture::VtkContourViewer::FixSettings {what {value ""}} {
             if {[isconnected]} {
 		set bool $_settings($this-isolines)
 		foreach dataset [CurrentDatasets] {
-		    SendCmd "contour2d visible $bool $dataset"
+		    SendCmd "heightmap isolines $bool $dataset"
 		}
             }
         }
@@ -1140,24 +1128,15 @@ itcl::body Rappture::VtkContourViewer::FixSettings {what {value ""}} {
             if {[isconnected]} {
 		set bool $_settings($this-edges)
 		foreach dataset [CurrentDatasets] {
-		    SendCmd "pseudocolor edges $bool $dataset"
+		    SendCmd "heightmap edges $bool $dataset"
 		}
             }
         }
-        "colormap" {
+        "lighting" {
             if {[isconnected]} {
-		set bool $_settings($this-colormap)
-		if { $bool } {
-		    set linecolor "0.0 0.0 0.0"
-		    set opacity 0.0
-		} else {
-		    set linecolor "1.0 1.0 1.0"
-		    set opacity 1.0
-		}
+		set bool $_settings($this-lighting)
 		foreach dataset [CurrentDatasets] {
-		    SendCmd "pseudocolor visible $bool $dataset"
-		    SendCmd "contour2d linecolor $linecolor $dataset"
-		    SendCmd "pseudocolor linecolor $linecolor $dataset"
+		    SendCmd "heightmap lighting $bool $dataset"
 		}
             }
         }
@@ -1208,8 +1187,8 @@ itcl::body Rappture::VtkContourViewer::SetStyles { dataobj comp } {
 	BuildColormap $colormap $dataobj $comp
 	set _colormaps($colormap) 1
     }
-    SendCmd "contour2d add numcontours $style(-levels) $tag\n"
-    SendCmd "pseudocolor colormap $colormap $tag"
+    #SendCmd "heightmap numcontours $style(-levels) $tag\n"
+    SendCmd "heightmap colormap $colormap $tag"
     return $colormap
 }
 
@@ -1310,12 +1289,6 @@ itcl::body Rappture::VtkContourViewer::BuildViewTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.isolines \
-        -text "Isolines" \
-        -variable [itcl::scope _settings($this-isolines)] \
-        -command [itcl::code $this FixSettings isolines] \
-        -font "Arial 9"
-
     checkbutton $inner.axes \
         -text "Axes" \
         -variable [itcl::scope _settings($this-axes)] \
@@ -1326,6 +1299,24 @@ itcl::body Rappture::VtkContourViewer::BuildViewTab {} {
         -text "Colormap" \
         -variable [itcl::scope _settings($this-colormap)] \
         -command [itcl::code $this FixSettings colormap] \
+        -font "Arial 9"
+
+    checkbutton $inner.isolines \
+        -text "Isolines" \
+        -variable [itcl::scope _settings($this-isolines)] \
+        -command [itcl::code $this FixSettings isolines] \
+        -font "Arial 9"
+
+    checkbutton $inner.wireframe \
+        -text "Wireframe" \
+        -variable [itcl::scope _settings($this-wireframe)] \
+        -command [itcl::code $this FixSettings wireframe] \
+        -font "Arial 9"
+
+    checkbutton $inner.lighting \
+        -text "Lighting" \
+        -variable [itcl::scope _settings($this-lighting)] \
+        -command [itcl::code $this FixSettings lighting] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
@@ -1350,8 +1341,10 @@ itcl::body Rappture::VtkContourViewer::BuildViewTab {} {
     blt::table $inner \
         0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
         1,0 $inner.colormap -columnspan 4 -anchor w -pady 2 \
-        3,0 $inner.isolines -columnspan 4 -anchor w -pady 2 \
-        4,0 $inner.legend  -columnspan 4 -anchor w \
+        2,0 $inner.isolines -columnspan 4 -anchor w -pady 2 \
+        3,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
+        4,0 $inner.lighting  -columnspan 4 -anchor w \
+        5,0 $inner.legend  -columnspan 4 -anchor w \
         6,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
         7,0 $inner.clear -anchor e -pady 2 \
         7,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
@@ -1367,12 +1360,12 @@ itcl::body Rappture::VtkContourViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set labels { phi theta psi pan-x pan-y zoom }
+    set labels { qx qy qz qw pan-x pan-y zoom }
     set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
-            -textvariable [itcl::scope _settings($this-$tag)]
+            -textvariable [itcl::scope _view($tag)]
         bind $inner.${tag} <KeyPress-Return> \
             [itcl::code $this camera set ${tag}]
         blt::table $inner \
@@ -1397,25 +1390,22 @@ itcl::body Rappture::VtkContourViewer::camera {option args} {
         }
         "set" {
             set who [lindex $args 0]
-            set x $_settings($this-$who)
+            set x $_view($who)
             set code [catch { string is double $x } result]
             if { $code != 0 || !$result } {
-                set _settings($this-$who) $_view($who)
                 return
             }
             switch -- $who {
                 "pan-x" - "pan-y" {
-                    set _view($who) $_settings($this-$who)
                     PanCamera
                 }
-                "phi" - "theta" - "psi" {
-                    set _view($who) $_settings($this-$who)
-                    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-                    #SendCmd "camera rotate $xyz"
+                "qx" - "qy" - "qz" - "qw" {
+                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+		    $_arcball quaternion $q
+                    #SendCmd "camera orient $q"
                 }
                 "zoom" {
-                    set _view($who) $_settings($this-$who)
-                    #SendCmd "camera zoom $_view(zoom)"
+                    SendCmd "camera zoom $_view(zoom)"
                 }
             }
         }
@@ -1423,19 +1413,82 @@ itcl::body Rappture::VtkContourViewer::camera {option args} {
 }
 
 itcl::body Rappture::VtkContourViewer::ConvertToVtkData { dataobj comp } {
-    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
-    set values [$dataobj values $comp]
-    append out "# vtk DataFile Version 2.0 \n"
-    append out "Test data \n"
-    append out "ASCII \n"
-    append out "DATASET STRUCTURED_POINTS \n"
-    append out "DIMENSIONS $xN $yN 1 \n"
-    append out "ORIGIN 0 0 0 \n"
-    append out "SPACING 1 1 1 \n"
-    append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field float 1 \n"
-    append out "LOOKUP_TABLE default \n"
-    append out [join $values "\n"]
+    set ds ""
+    if {[$dataobj isunirect2d]} {
+        foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
+        set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+        set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+
+        set ds [vtkImageData $this-grdataTemp]
+        $ds SetDimensions $xN $yN 1
+        $ds SetOrigin $x1 $y1 0
+        $ds SetSpacing $spacingX $spacingY 0
+        set arr [vtkDoubleArray $this-arrTemp]
+        foreach {val} [$dataobj values $comp] {
+            $arr InsertNextValue $val
+        }
+        [$ds GetPointData] SetScalars $arr
+    } elseif {[$dataobj isunirect3d]} {
+        foreach { x1 x2 xN y1 y2 yN z1 z2 zN } [$dataobj mesh $comp] break
+        set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+        set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+        set spacingZ [expr {double($z2 - $z1)/double($zN - 1)}]
+
+        set ds [vtkImageData $this-grdataTemp]
+        $ds SetDimensions $xN $yN $zN
+        $ds SetOrigin $x1 $y1 $z1
+        $ds SetSpacing $spacingX $spacingY $spacingZ
+        set arr [vtkDoubleArray $this-arrTemp]
+        foreach {val} [$dataobj values $comp] {
+            $arr InsertNextValue $val
+        }
+        [$ds GetPointData] SetScalars $val
+    } else {
+        set mesh [$dataobj mesh $comp]
+        switch -- [$mesh GetClassName] {
+            vtkPoints {
+                # handle cloud of points
+                set ds [vtkPolyData $this-polydataTemp]
+                $ds SetPoints $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkPolyData {
+                set ds [vtkPolyData $this-polydataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkUnstructuredGrid {
+                # handle 3D grid with connectivity
+                set ds [vtkUnstructuredGrid $this-grdataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkRectilinearGrid {
+                # handle 3D grid with connectivity
+                set ds [vtkRectilinearGrid $this-grdataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            default {
+                error "don't know how to handle [$mesh GetClassName] data"
+            }
+        }
+    }
+
+    if {"" != $ds} {
+        set writer [vtkDataSetWriter $this-dsWriterTmp]
+        $writer SetInput $ds
+        $writer SetFileTypeToASCII
+        $writer WriteToOutputStringOn
+        $writer Write
+        set out [$writer GetOutputString]
+        $ds Delete
+        $writer Delete
+    } else {
+        set out ""
+        error "No DataSet to write"
+    }
+
     append out "\n"
     return $out
 }
@@ -1533,14 +1586,22 @@ itcl::body Rappture::VtkContourViewer::EndSelectionRectangle { x y } {
     if { abs($_outline(x1) - $cx) < 10 && abs($_outline(y1) - $cy) < 10 }  {
 	KillSelectionRectangle
     } else {
-	set w [expr $_outline(x2) - $_outline(x1)]
-	set h [expr $_outline(y2) - $_outline(y1)]
-	# Convert the zoom 
-	set _view(zoom-x) [expr $cw / $w * $_view(zoom-x)]
-	set _view(zoom-y) [expr $ch / $h * $_view(zoom-y)]
-	set w [expr $w * $_view(zoom-x)]
-	set h [expr $h * $_view(zoom-y)]
-	SendCmd "camera ortho $_outline(x1) $_outline(y1) $w $h"
+        # Need x,y coordinates to be in the bottom left for camera ortho
+        if {$_outline(x2) > $_outline(x1)} {
+            set ox [expr int($_outline(x1))]
+            set w [expr int($_outline(x2) - $_outline(x1))]
+        } else {
+            set ox [expr int($_outline(x2))]
+            set w [expr int($_outline(x1) - $_outline(x2))]
+        }
+        if {$_outline(y2) > $_outline(y1)} {
+            set oy [expr int($_outline(y2))]
+            set h [expr int($_outline(y2) - $_outline(y1))]
+        } else {
+            set oy [expr int($_outline(y1))]
+            set h [expr int($_outline(y1) - $_outline(y2))]
+        }
+	SendCmd "camera ortho pixel $ox $oy $w $h"
 	KillSelectionRectangle
     }
 }
