@@ -30,6 +30,7 @@ lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
 package require Itcl
 package require Rappture
 package require RapptureGUI
+package require vtk
 
 option add *comm.font -*-courier-medium-r-normal-*-*-120-*
 option add *Menu.tearOff off
@@ -72,26 +73,146 @@ Rappture::resources::load
 # ----------------------------------------------------------------------
 itcl::class visData {
     constructor {args} {
-        set _data [lindex $args 0]
+        set _reader [vtkDataSetReader $this-xvtkDataSetReader]
+        $_reader SetFileName [lindex $args 0]
+        $_reader Update
+        set _data [$_reader GetOutput]
     }
-
+    destructor {
+        rename _data ""
+        rename _reader ""
+    }
     public method components {args} {
         if {[llength $args] == 0} {
             return "one"
         }
         return ""
     }
+    public method mesh {args} {
+        switch -- [$_data GetClassName] {
+            vtkPolyData {
+                if {[$_data GetNumberOfCells] > 0} {
+                    return $_data
+                } else {
+                    return [$_data GetPoints]
+                }
+            }
+            vtkStructuredPoints -
+            vtkUniformGrid -
+            vtkImageData {
+                foreach { x1 y1 z1 } [$_data GetOrigin] break
+                foreach { xN yN zN } [$_data GetDimensions] break
+                foreach { xS yS zS } [$_data GetSpacing] break
+                set x2 [expr {$x1 + $xN * $xS}]
+                set y2 [expr {$x1 + $yN * $yS}]
+                set z2 [expr {$x1 + $zN * $zS}]
+                if {$zN == 1} {
+                    lappend out $x1 $x2 $xN $y1 $y2 $yN
+                } else {
+                    lappend out $x1 $x2 $xN $y1 $y2 $yN $z1 $z2 $zN
+                }
+                return $out
+            }
+            default {
+                return $_data
+            }
+        }
+    }
+    public method isunirect2d {args} {
+        if {[$_data GetClassName] != "vtkImageData" &&
+            [$_data GetClassName] != "vtkStructuredPoints" &&
+            [$_data GetClassName] != "vtkUniformGrid"} {
+            return 0
+        }
+        foreach { xN yN zN } [$_data GetDimensions] break
+        if {$zN == 1} {
+            return 1
+        } else {
+            return 0
+        }
+    }
+    public method isunirect3d {args} {
+        if {[$_data GetClassName] != "vtkImageData" &&
+            [$_data GetClassName] != "vtkStructuredPoints" &&
+            [$_data GetClassName] != "vtkUniformGrid"} {
+            return 0
+        }
+        foreach { xN yN zN } [$_data GetDimensions] break
+        if {$zN > 1} {
+            return 1
+        } else {
+            return 0
+        }
+    }
     public method data {args} {
-        return $_data
+        return [values $args]
     }
     public method values {args} {
-        return $_data
+        set dataAttrs [$_data GetPointData]
+        if {"" == $dataAttrs} {
+            puts stderr "No point data"
+            return ""
+        }
+        set scalarArr [$dataAttrs GetScalars]
+        if {"" == $scalarArr} {
+            for {set i 0} {$i < [$dataAttrs GetNumberOfArrays]} {incr i} {
+                if {[[$dataAttrs GetArray $i] GetNumberOfComponents] == 1} {
+                    $dataAttrs SetActiveScalars [$dataAttrs GetArrayName $i]
+                    puts stderr "Set scalars to '[$dataAttrs GetArrayName $i]'"
+                    break
+                }
+            }
+            set scalarArr [$dataAttrs GetScalars]
+            if {"" == $scalarArr} {
+                puts stderr "No scalar point data"
+                return ""
+            }
+        }
+        if {[isunirect2d] || [isunirect3d]} {
+            for {set i 0} {$i < [$scalarArr GetNumberOfTuples]} {incr i} {
+                lappend out [$scalarArr GetComponent $i 0]
+            }
+            return $out
+        } 
+        return $scalarArr
+    }
+    public method limits {which} {
+        foreach { xMin xMax yMin yMax zMin zMax} [$_data GetBounds] break
+        set min ""
+        set max ""
+
+        switch -- $which {
+            x - xlin - xlog {
+                set min $xMin
+                set max $xMax
+                set axis "xaxis"
+            }
+            y - ylin - ylog {
+                set min $yMin
+                set max $yMax
+                set axis "yaxis"
+            }
+            z - zlin - zlog {
+                set min $zMin
+                set max $zMax
+                set axis "zaxis"
+            }
+            v - vlin - vlog {
+                foreach { min max } [$_data GetScalarRange] break
+                set axis "vaxis"
+            }
+            default {
+                error "unknown axis description \"$which\""
+            }
+        }
+        return [list $min $max]
     }
     public method hints {args} {
         return ""
     }
 
     private variable _data ""
+    private variable _reader ""
 }
 
 # ----------------------------------------------------------------------
@@ -104,13 +225,8 @@ proc send_file {} {
     global widgets
 
     set file [tk_getOpenFile -title "Open VTK File"]
-    if {"" != $file && [catch {
-            set fid [open $file r]
-            fconfigure $fid -translation binary
-            set info [read $fid]
-            close $fid
-          }] == 0} {
-        set obj [visData #auto $info]
+    if {"" != $file} {
+        set obj [visData #auto $file]
         $widgets(vtkcontourviewer) add $obj
     }
 }
@@ -334,8 +450,6 @@ set servers [Rappture::VisViewer::GetServerList "vtkvis"]
 Rappture::VtkContourViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(vtkcontourviewer) $f.viewer
-
-puts stderr [winfo class $widgets(vtkcontourviewer)]
 
 $f.viewer configure \
     -sendcommand show_comm \
