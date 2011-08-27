@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <cstring>
 #include <cerrno>
+#include <string>
+#include <sstream>
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
@@ -23,6 +25,22 @@
 
 using namespace Rappture::VtkVis;
 
+static ssize_t
+SocketWrite(const void *bytes, size_t len)
+{
+    size_t ofs = 0;
+    ssize_t bytesWritten;
+    while ((bytesWritten = write(g_fdOut, (const char *)bytes + ofs, len - ofs)) > 0) {
+        ofs += bytesWritten;
+        if (ofs == len)
+            break;
+    }
+    if (bytesWritten < 0) {
+        ERROR("write: %s", strerror(errno));
+    }
+    return bytesWritten;
+}
+
 static int
 ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
 {
@@ -34,7 +52,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     return result;
 }
 
-static bool
+static int
 GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
 {
     int value;
@@ -46,7 +64,7 @@ GetBooleanFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, bool *boolPtr)
     return TCL_OK;
 }
 
-int
+static int
 GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 {
     double value;
@@ -323,16 +341,11 @@ CameraGetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     g_renderer->getCameraOrientationAndPosition(pos, focalPt, viewUp);
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>camera set %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e", 
+    snprintf(buf, sizeof(buf), "nv>camera set %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e\n", 
              pos[0], pos[1], pos[2], focalPt[0], focalPt[1], focalPt[2], viewUp[0], viewUp[1], viewUp[2]);
-    ssize_t bytesWritten;
-    size_t len = strlen(buf);
-    size_t ofs = 0;
-    while ((bytesWritten = write(g_fdOut, buf + ofs, len - ofs)) > 0) {
-        ofs += bytesWritten;
-        if (ofs == len)
-            break;
-    }
+
+    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
@@ -360,16 +373,32 @@ static int
 CameraOrthoOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
-    double x, y, width, height;
+    const char *string = Tcl_GetString(objv[2]);
 
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[4], &width) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[5], &height) != TCL_OK) {
+    if (string[0] == 'p' && strcmp(string, "pixel") == 0) {
+        int x, y, width, height;
+        if (Tcl_GetIntFromObj(interp, objv[3], &x) != TCL_OK ||
+            Tcl_GetIntFromObj(interp, objv[4], &y) != TCL_OK ||
+            Tcl_GetIntFromObj(interp, objv[5], &width) != TCL_OK ||
+            Tcl_GetIntFromObj(interp, objv[6], &height) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setCameraZoomRegionPixels(x, y, width, height);
+    } else if (string[0] == 'w' && strcmp(string, "world") == 0) {
+        double x, y, width, height;
+        if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+            Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK ||
+            Tcl_GetDoubleFromObj(interp, objv[5], &width) != TCL_OK ||
+            Tcl_GetDoubleFromObj(interp, objv[6], &height) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setCameraZoomRegion(x, y, width, height);
+    } else {
+        Tcl_AppendResult(interp, "bad camera ortho option \"", string,
+                         "\": should be pixel or world", (char*)NULL);
         return TCL_ERROR;
     }
 
-    g_renderer->setCameraZoomRegion(x, y, width, height);
     return TCL_OK;
 }
 
@@ -465,7 +494,7 @@ static Rappture::CmdSpec cameraOps[] = {
     {"get", 1, CameraGetOp, 2, 2, ""},
     {"mode", 1, CameraModeOp, 3, 3, "mode"},
     {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
-    {"ortho", 1, CameraOrthoOp, 6, 6, "x y width height"},
+    {"ortho", 1, CameraOrthoOp, 7, 7, "coordMode x y width height"},
     {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
     {"reset", 2, CameraResetOp, 2, 3, "?all?"},
     {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
@@ -624,9 +653,15 @@ Contour2DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour2D(name, contourList);
+        if (!g_renderer->addContour2D(name, contourList)) {
+            Tcl_AppendResult(interp, "Failed to create contour2d", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addContour2D("all", contourList);
+        if (!g_renderer->addContour2D("all", contourList)) {
+            Tcl_AppendResult(interp, "Failed to create contour2d for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -641,9 +676,15 @@ Contour2DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour2D(name, numContours);
+        if (!g_renderer->addContour2D(name, numContours)) {
+            Tcl_AppendResult(interp, "Failed to create contour2d", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addContour2D("all", numContours);
+       if (!g_renderer->addContour2D("all", numContours)) {
+            Tcl_AppendResult(interp, "Failed to create contour2d for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+       }
     }
     return TCL_OK;
 }
@@ -877,9 +918,15 @@ Contour3DAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour3D(name, contourList);
+        if (!g_renderer->addContour3D(name, contourList)) {
+            Tcl_AppendResult(interp, "Failed to create contour3d", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addContour3D("all", contourList);
+        if (!g_renderer->addContour3D("all", contourList)) {
+            Tcl_AppendResult(interp, "Failed to create contour3d for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -894,9 +941,15 @@ Contour3DAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addContour3D(name, numContours);
+        if (!g_renderer->addContour3D(name, numContours)) {
+            Tcl_AppendResult(interp, "Failed to create contour3d", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addContour3D("all", numContours);
+        if (!g_renderer->addContour3D("all", numContours)) {
+            Tcl_AppendResult(interp, "Failed to create contour3d for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -1289,8 +1342,8 @@ DataSetDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-DataSetGetValuePixelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+DataSetGetScalarPixelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
 {
     const char *name = Tcl_GetString(objv[5]);
     int x, y;
@@ -1298,17 +1351,17 @@ DataSetGetValuePixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_GetIntFromObj(interp, objv[4], &y) != TCL_OK) {
         return TCL_ERROR;
     }
-    double value = g_renderer->getDataValueAtPixel(name, x, y);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "nv>dataset value pixel %d %d %.12e", x, y, value);
-    ssize_t bytesWritten;
-    size_t len = strlen(buf);
-    size_t ofs = 0;
-    while ((bytesWritten = write(g_fdOut, buf + ofs, len - ofs)) > 0) {
-        ofs += bytesWritten;
-        if (ofs == len)
-            break;
+    double value;
+    if (!g_renderer->getScalarValueAtPixel(name, x, y, &value)) {
+        Tcl_AppendResult(interp, "Pixel out of dataset bounds or no scalar data available", (char*)NULL);
+        return TCL_ERROR;
     }
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "nv>dataset scalar pixel %d %d %g %s\n", x, y, value, name);
+
+    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
@@ -1316,8 +1369,8 @@ DataSetGetValuePixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-DataSetGetValueWorldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                       Tcl_Obj *const *objv)
+DataSetGetScalarWorldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
 {
     const char *name = Tcl_GetString(objv[6]);
     double x, y, z;
@@ -1326,36 +1379,113 @@ DataSetGetValueWorldOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_GetDoubleFromObj(interp, objv[5], &z) != TCL_OK) {
         return TCL_ERROR;
     }
-    double value = g_renderer->getDataValue(name, x, y, z);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "nv>dataset value world %.12e %.12e %.12e %.12e", x, y, z, value);
-    ssize_t bytesWritten;
-    size_t len = strlen(buf);
-    size_t ofs = 0;
-    while ((bytesWritten = write(g_fdOut, buf + ofs, len - ofs)) > 0) {
-        ofs += bytesWritten;
-        if (ofs == len)
-            break;
+    double value;
+    if (!g_renderer->getScalarValue(name, x, y, z, &value)) {
+        Tcl_AppendResult(interp, "Coordinate out of dataset bounds or no scalar data available", (char*)NULL);
+        return TCL_ERROR;
     }
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "nv>dataset scalar world %g %g %g %g %s\n", x, y, z, value, name);
+
+    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
     return TCL_OK;
 }
 
-static Rappture::CmdSpec dataSetGetValueOps[] = {
-    {"pixel", 1, DataSetGetValuePixelOp, 6, 6, "x y dataSetName"},
-    {"world", 1, DataSetGetValueWorldOp, 7, 7, "x y z dataSetName"}
+static Rappture::CmdSpec dataSetGetScalarOps[] = {
+    {"pixel", 1, DataSetGetScalarPixelOp, 6, 6, "x y dataSetName"},
+    {"world", 1, DataSetGetScalarWorldOp, 7, 7, "x y z dataSetName"}
 };
-static int nDataSetGetValueOps = NumCmdSpecs(dataSetGetValueOps);
+static int nDataSetGetScalarOps = NumCmdSpecs(dataSetGetScalarOps);
 
 static int
-DataSetGetValueOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                  Tcl_Obj *const *objv)
+DataSetGetScalarOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
 {
     Tcl_ObjCmdProc *proc;
 
-    proc = Rappture::GetOpFromObj(interp, nDataSetGetValueOps, dataSetGetValueOps,
+    proc = Rappture::GetOpFromObj(interp, nDataSetGetScalarOps, dataSetGetScalarOps,
+                                  Rappture::CMDSPEC_ARG2, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+DataSetGetVectorPixelOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[5]);
+    int x, y;
+    if (Tcl_GetIntFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[4], &y) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double value[3];
+    if (!g_renderer->getVectorValueAtPixel(name, x, y, value)) {
+        Tcl_AppendResult(interp, "Pixel out of dataset bounds or no vector data available", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "nv>dataset vector pixel %d %d %g %g %g %s\n", x, y,
+             value[0], value[1], value[2], name);
+
+    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetGetVectorWorldOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    const char *name = Tcl_GetString(objv[6]);
+    double x, y, z;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &y) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &z) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double value[3];
+    if (!g_renderer->getVectorValue(name, x, y, z, value)) {
+        Tcl_AppendResult(interp, "Coordinate out of dataset bounds or no vector data available", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "nv>dataset vector world %g %g %g %g %g %g %s\n", x, y, z,
+             value[0], value[1], value[2], name);
+
+    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+
+    if (bytesWritten < 0) {
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec dataSetGetVectorOps[] = {
+    {"pixel", 1, DataSetGetVectorPixelOp, 6, 6, "x y dataSetName"},
+    {"world", 1, DataSetGetVectorWorldOp, 7, 7, "x y z dataSetName"}
+};
+static int nDataSetGetVectorOps = NumCmdSpecs(dataSetGetVectorOps);
+
+static int
+DataSetGetVectorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nDataSetGetVectorOps, dataSetGetVectorOps,
                                   Rappture::CMDSPEC_ARG2, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -1392,6 +1522,37 @@ DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else if (strcmp(value, "separate") == 0) {
         g_renderer->setUseCumulativeDataRange(false);
     } else {
+        Tcl_AppendResult(interp, "bad maprange option \"", value,
+                         "\": should be all, visible, or separate", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetNamesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    std::vector<std::string> dataSets;
+    g_renderer->getDataSetNames(dataSets);
+    std::ostringstream oss;
+    size_t len = 0;
+    oss << "nv>dataset names {";
+    len += 18;
+    for (size_t i = 0; i < dataSets.size(); i++) {
+        oss << "\"" << dataSets[i] << "\"";
+        len += 2 + dataSets[i].length();
+        if (i < dataSets.size() - 1) {
+            oss << " ";
+            len++;
+        }
+    }
+    oss << "}\n";
+    len += 2;
+
+    size_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+
+    if (bytesWritten < 0) {
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -1415,14 +1576,16 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec dataSetOps[] = {
-    {"add",      1, DataSetAddOp, 6, 6, "name data follows nBytes"},
-    {"delete",   1, DataSetDeleteOp, 2, 3, "?name?"},
-    {"getvalue", 1, DataSetGetValueOp, 6, 7, "oper x y ?z? name"},
-    {"maprange", 1, DataSetMapRangeOp, 3, 3, "value"},
-    {"opacity",  1, DataSetOpacityOp, 3, 4, "value ?name?"},
-    {"scalar",   1, DataSetActiveScalarsOp, 3, 4, "scalarName ?name?"},
-    {"vector",   2, DataSetActiveVectorsOp, 3, 4, "vectorName ?name?"},
-    {"visible",  2, DataSetVisibleOp, 3, 4, "bool ?name?"}
+    {"add",       1, DataSetAddOp, 6, 6, "name data follows nBytes"},
+    {"delete",    1, DataSetDeleteOp, 2, 3, "?name?"},
+    {"getscalar", 4, DataSetGetScalarOp, 6, 7, "oper x y ?z? name"},
+    {"getvector", 4, DataSetGetVectorOp, 6, 7, "oper x y ?z? name"},
+    {"maprange",  1, DataSetMapRangeOp, 3, 3, "value"},
+    {"names",     1, DataSetNamesOp, 2, 2, ""},
+    {"opacity",   1, DataSetOpacityOp, 3, 4, "value ?name?"},
+    {"scalar",    1, DataSetActiveScalarsOp, 3, 4, "scalarName ?name?"},
+    {"vector",    2, DataSetActiveVectorsOp, 3, 4, "vectorName ?name?"},
+    {"visible",   2, DataSetVisibleOp, 3, 4, "bool ?name?"}
 };
 static int nDataSetOps = NumCmdSpecs(dataSetOps);
 
@@ -1475,9 +1638,15 @@ GlyphsAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->addGlyphs(name, shape);
+        if (!g_renderer->addGlyphs(name, shape)) {
+            Tcl_AppendResult(interp, "Failed to create glyphs", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addGlyphs("all", shape);
+        if (!g_renderer->addGlyphs("all", shape)) {
+            Tcl_AppendResult(interp, "Failed to create glyphs for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -1863,6 +2032,7 @@ HeightMapAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
                           Tcl_Obj *const *objv)
 {
     std::vector<double> contourList;
+    double heightScale;
 
     int clistc;
     Tcl_Obj **clistv;
@@ -1879,11 +2049,21 @@ HeightMapAddContourListOp(ClientData clientData, Tcl_Interp *interp, int objc,
         contourList.push_back(val);
     }
 
-    if (objc == 5) {
-        const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addHeightMap(name, contourList);
+    if (Tcl_GetDoubleFromObj(interp, objv[4], &heightScale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        if (!g_renderer->addHeightMap(name, contourList, heightScale)) {
+            Tcl_AppendResult(interp, "Failed to create heightmap", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addHeightMap("all", contourList);
+        if (!g_renderer->addHeightMap("all", contourList, heightScale)) {
+            Tcl_AppendResult(interp, "Failed to create heightmap for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -1893,21 +2073,31 @@ HeightMapAddNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
                           Tcl_Obj *const *objv)
 {
     int numContours;
+    double heightScale;
     if (Tcl_GetIntFromObj(interp, objv[3], &numContours) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (objc == 5) {
-        const char *name = Tcl_GetString(objv[4]);
-        g_renderer->addHeightMap(name, numContours);
+    if (Tcl_GetDoubleFromObj(interp, objv[4], &heightScale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        if (!g_renderer->addHeightMap(name, numContours, heightScale)) {
+            Tcl_AppendResult(interp, "Failed to create heightmap", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addHeightMap("all", numContours);
+        if (!g_renderer->addHeightMap("all", numContours, heightScale)) {
+            Tcl_AppendResult(interp, "Failed to create heightmap for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec heightmapAddOps[] = {
-    {"contourlist", 1, HeightMapAddContourListOp, 4, 5, "contourList ?dataSetName?"},
-    {"numcontours", 1, HeightMapAddNumContoursOp, 4, 5, "numContours ?dataSetName?"}
+    {"contourlist", 1, HeightMapAddContourListOp, 5, 6, "contourList heightscale ?dataSetName?"},
+    {"numcontours", 1, HeightMapAddNumContoursOp, 5, 6, "numContours heightscale ?dataSetName?"}
 };
 static int nHeightmapAddOps = NumCmdSpecs(heightmapAddOps);
 
@@ -1976,8 +2166,38 @@ HeightMapContourLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-HeightMapContourVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                          Tcl_Obj *const *objv)
+HeightMapContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    std::vector<double> contourList;
+
+    int clistc;
+    Tcl_Obj **clistv;
+
+    if (Tcl_ListObjGetElements(interp, objv[2], &clistc, &clistv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    for (int i = 0; i < clistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, clistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        contourList.push_back(val);
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapContourList(name, contourList);
+    } else {
+        g_renderer->setHeightMapContourList("all", contourList);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourLineVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                              Tcl_Obj *const *objv)
 {
     bool state;
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
@@ -1985,9 +2205,26 @@ HeightMapContourVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapContourVisibility(name, state);
+        g_renderer->setHeightMapContourLineVisibility(name, state);
     } else {
-        g_renderer->setHeightMapContourVisibility("all", state);
+        g_renderer->setHeightMapContourLineVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourSurfaceVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapContourSurfaceVisibility(name, state);
+    } else {
+        g_renderer->setHeightMapContourSurfaceVisibility("all", state);
     }
     return TCL_OK;
 }
@@ -2088,6 +2325,24 @@ HeightMapLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setHeightMapEdgeWidth(name, width);
     } else {
         g_renderer->setHeightMapEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    int numContours;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &numContours) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapNumContours(name, numContours);
+    } else {
+        g_renderer->setHeightMapNumContours("all", numContours);
     }
     return TCL_OK;
 }
@@ -2215,24 +2470,45 @@ HeightMapVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+HeightMapWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapWireframe(name, state);
+    } else {
+        g_renderer->setHeightMapWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec heightmapOps[] = {
-    {"add",          1, HeightMapAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"colormap",     1, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"add",          1, HeightMapAddOp, 5, 6, "oper value ?dataSetName?"},
+    {"colormap",     2, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"contourlist",  2, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, HeightMapEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"heightscale",  1, HeightMapHeightScaleOp, 3, 4, "value ?dataSetName?"},
     {"isolinecolor", 8, HeightMapContourLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"isolines",     8, HeightMapContourVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"isolines",     8, HeightMapContourLineVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"isolinewidth", 8, HeightMapContourLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"lighting",     3, HeightMapLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor",    5, HeightMapLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth",    5, HeightMapLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"numcontours",  1, HeightMapNumContoursOp, 3, 4, "numContours ?dataSetName?"},
     {"opacity",      2, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, HeightMapOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          1, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"scale",        1, HeightMapScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"surface",      2, HeightMapContourSurfaceVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"visible",      2, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
+    {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"wireframe",    1, HeightMapWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nHeightmapOps = NumCmdSpecs(heightmapOps);
 
@@ -2309,9 +2585,15 @@ LICAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addLIC(name);
+        if (!g_renderer->addLIC(name)) {
+            Tcl_AppendResult(interp, "Failed to create lic", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addLIC("all");
+        if (!g_renderer->addLIC("all")) {
+            Tcl_AppendResult(interp, "Failed to create lic for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -2573,9 +2855,15 @@ MoleculeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addMolecule(name);
+        if (!g_renderer->addMolecule(name)) {
+            Tcl_AppendResult(interp, "Failed to create molecule", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addMolecule("all");
+        if (!g_renderer->addMolecule("all")) {
+            Tcl_AppendResult(interp, "Failed to create molecule for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -2888,9 +3176,15 @@ PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addPolyData(name);
+        if (!g_renderer->addPolyData(name)) {
+            Tcl_AppendResult(interp, "Failed to create polydata", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addPolyData("all");
+        if (!g_renderer->addPolyData("all")) {
+            Tcl_AppendResult(interp, "Failed to create polydata for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -3035,6 +3329,23 @@ PolyDataOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolyDataPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float size;
+    if (GetFloatFromObj(interp, objv[2], &size) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPolyDataPointSize(name, size);
+    } else {
+        g_renderer->setPolyDataPointSize("all", size);
+    }
+    return TCL_OK;
+}
+
+static int
 PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -3116,7 +3427,8 @@ static Rappture::CmdSpec polyDataOps[] = {
     {"linewidth", 5, PolyDataLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",   2, PolyDataOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",    2, PolyDataOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, PolyDataPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",       2, PolyDataPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"ptsize",    2, PolyDataPointSizeOp, 3, 4, "size ?dataSetName?"},
     {"scale",     1, PolyDataScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, PolyDataVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PolyDataWireframeOp, 3, 4, "bool ?dataSetName?"}
@@ -3143,9 +3455,15 @@ PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addPseudoColor(name);
+        if (!g_renderer->addPseudoColor(name)) {
+            Tcl_AppendResult(interp, "Failed to create pseudocolor", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addPseudoColor("all");
+        if (!g_renderer->addPseudoColor("all")) {
+            Tcl_AppendResult(interp, "Failed to create pseudocolor for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -3528,9 +3846,15 @@ StreamlinesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addStreamlines(name);
+        if (!g_renderer->addStreamlines(name)) {
+            Tcl_AppendResult(interp, "Failed to create streamlines", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addStreamlines("all");
+        if (!g_renderer->addStreamlines("all")) {
+            Tcl_AppendResult(interp, "Failed to create streamlines for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }
@@ -4102,9 +4426,15 @@ VolumeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->addVolume(name);
+        if (!g_renderer->addVolume(name)) {
+            Tcl_AppendResult(interp, "Failed to create volume", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
-        g_renderer->addVolume("all");
+        if (!g_renderer->addVolume("all")) {
+            Tcl_AppendResult(interp, "Failed to create volume for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
     }
     return TCL_OK;
 }

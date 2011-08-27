@@ -23,10 +23,10 @@
 #include <vtkTransform.h>
 #include <vtkCharArray.h>
 #include <vtkAxisActor2D.h>
-#ifdef USE_CUSTOM_AXES
-#include <vtkRpCubeAxesActor2D.h>
-#else
 #include <vtkCubeAxesActor.h>
+#ifdef USE_CUSTOM_AXES
+#include "vtkRpCubeAxesActor2D.h"
+#else
 #include <vtkCubeAxesActor2D.h>
 #endif
 #include <vtkDataSetReader.h>
@@ -52,8 +52,10 @@ using namespace Rappture::VtkVis;
 
 Renderer::Renderer() :
     _needsRedraw(true),
-    _windowWidth(320),
-    _windowHeight(320),
+    _windowWidth(500),
+    _windowHeight(500),
+    _imgCameraPlane(PLANE_XY),
+    _imgCameraOffset(0),
     _cameraZoomRatio(1),
     _useCumulativeRange(true),
     _cumulativeRangeOnlyVisible(false),
@@ -656,6 +658,15 @@ void Renderer::deleteDataSet(const DataSetId& id)
     _needsRedraw = true;
 }
 
+void Renderer::getDataSetNames(std::vector<std::string>& names)
+{
+    names.clear();
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        names.push_back(itr->second->getName());
+    }
+}
+
 /**
  * \brief Find the DataSet for the given DataSetId key
  *
@@ -849,6 +860,7 @@ void Renderer::initAxes()
     // Use "nice" range and number of ticks/labels
     _cubeAxesActor2D->GetXAxisActor2D()->AdjustLabelsOn();
     _cubeAxesActor2D->GetYAxisActor2D()->AdjustLabelsOn();
+    _cubeAxesActor2D->GetZAxisActor2D()->AdjustLabelsOn();
 
 #ifdef USE_CUSTOM_AXES
     _cubeAxesActor2D->SetAxisTitleTextProperty(NULL);
@@ -868,6 +880,14 @@ void Renderer::initAxes()
     _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->BoldOff();
     _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->ItalicOff();
     _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->ShadowOff();
+
+    //_cubeAxesActor2D->GetZAxisActor2D()->SizeFontRelativeToAxisOn();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->BoldOn();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->ItalicOff();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->ShadowOn();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->BoldOff();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->ItalicOff();
+    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->ShadowOff();
 #else
     _cubeAxesActor2D->GetAxisTitleTextProperty()->BoldOn();
     _cubeAxesActor2D->GetAxisTitleTextProperty()->ItalicOff();
@@ -1458,7 +1478,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 /**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
-void Renderer::addContour2D(const DataSetId& id, int numContours)
+bool Renderer::addContour2D(const DataSetId& id, int numContours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1471,7 +1491,7 @@ void Renderer::addContour2D(const DataSetId& id, int numContours)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -1484,25 +1504,32 @@ void Renderer::addContour2D(const DataSetId& id, int numContours)
         }
 
         Contour2D *contour = new Contour2D(numContours);
-        _contour2Ds[dsID] = contour;
-
+ 
         contour->setDataSet(ds,
                             _useCumulativeRange, 
                             _cumulativeScalarRange,
                             _cumulativeVectorMagnitudeRange,
                             _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(contour->getProp());
+        if (contour->getProp() == NULL) {
+            delete contour;
+            return false;
+        } else {
+            _renderer->AddViewProp(contour->getProp());
+        }
+
+        _contour2Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
-void Renderer::addContour2D(const DataSetId& id, const std::vector<double>& contours)
+bool Renderer::addContour2D(const DataSetId& id, const std::vector<double>& contours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1515,7 +1542,7 @@ void Renderer::addContour2D(const DataSetId& id, const std::vector<double>& cont
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -1528,7 +1555,6 @@ void Renderer::addContour2D(const DataSetId& id, const std::vector<double>& cont
         }
 
         Contour2D *contour = new Contour2D(contours);
-        _contour2Ds[dsID] = contour;
 
         contour->setDataSet(ds,
                             _useCumulativeRange, 
@@ -1536,11 +1562,19 @@ void Renderer::addContour2D(const DataSetId& id, const std::vector<double>& cont
                             _cumulativeVectorMagnitudeRange,
                             _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(contour->getProp());
+        if (contour->getProp() == NULL) {
+            delete contour;
+            return false;
+        } else {
+            _renderer->AddViewProp(contour->getProp());
+        }
+
+        _contour2Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -1893,7 +1927,7 @@ void Renderer::setContour2DLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Contour3D and associate it with the named DataSet
  */
-void Renderer::addContour3D(const DataSetId& id, int numContours)
+bool Renderer::addContour3D(const DataSetId& id, int numContours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1906,7 +1940,7 @@ void Renderer::addContour3D(const DataSetId& id, int numContours)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -1919,7 +1953,6 @@ void Renderer::addContour3D(const DataSetId& id, int numContours)
         }
 
         Contour3D *contour = new Contour3D(numContours);
-        _contour3Ds[dsID] = contour;
 
         contour->setDataSet(ds,
                             _useCumulativeRange,
@@ -1927,19 +1960,27 @@ void Renderer::addContour3D(const DataSetId& id, int numContours)
                             _cumulativeVectorMagnitudeRange,
                             _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(contour->getProp());
+        if (contour->getProp() == NULL) {
+            delete contour;
+            return false;
+        } else {
+            _renderer->AddViewProp(contour->getProp());
+        }
+
+        _contour3Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
  * \brief Create a new Contour3D and associate it with the named DataSet
  */
-void Renderer::addContour3D(const DataSetId& id,const std::vector<double>& contours)
+bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& contours)
 {
     DataSetHashmap::iterator itr;
 
@@ -1952,7 +1993,7 @@ void Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -1965,7 +2006,6 @@ void Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
         }
 
         Contour3D *contour = new Contour3D(contours);
-        _contour3Ds[dsID] = contour;
 
         contour->setDataSet(ds,
                             _useCumulativeRange, 
@@ -1973,13 +2013,21 @@ void Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
                             _cumulativeVectorMagnitudeRange,
                             _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(contour->getProp());
+        if (contour->getProp() == NULL) {
+            delete contour;
+            return false;
+        } else {
+            _renderer->AddViewProp(contour->getProp());
+        }
+
+        _contour3Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -2452,7 +2500,7 @@ void Renderer::setContour3DLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Glyphs and associate it with the named DataSet
  */
-void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
+bool Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
 {
     DataSetHashmap::iterator itr;
 
@@ -2465,7 +2513,7 @@ void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -2478,7 +2526,6 @@ void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
         }
 
         Glyphs *glyphs = new Glyphs(shape);
-        _glyphs[dsID] = glyphs;
 
         glyphs->setDataSet(ds,
                            _useCumulativeRange, 
@@ -2486,7 +2533,14 @@ void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
                            _cumulativeVectorMagnitudeRange,
                            _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(glyphs->getProp());
+        if (glyphs->getProp() == NULL) {
+            delete glyphs;
+            return false;
+        } else {
+            _renderer->AddViewProp(glyphs->getProp());
+        }
+
+        _glyphs[dsID] = glyphs;
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
@@ -2494,6 +2548,7 @@ void Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
     initCamera();
 
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -3021,7 +3076,7 @@ void Renderer::setGlyphsWireframe(const DataSetId& id, bool state)
 /**
  * \brief Create a new HeightMap and associate it with the named DataSet
  */
-void Renderer::addHeightMap(const DataSetId& id, int numContours)
+bool Renderer::addHeightMap(const DataSetId& id, int numContours, double heightScale)
 {
     DataSetHashmap::iterator itr;
 
@@ -3034,7 +3089,7 @@ void Renderer::addHeightMap(const DataSetId& id, int numContours)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -3046,8 +3101,7 @@ void Renderer::addHeightMap(const DataSetId& id, int numContours)
             deleteHeightMap(dsID);
         }
 
-        HeightMap *hmap = new HeightMap(numContours);
-        _heightMaps[dsID] = hmap;
+        HeightMap *hmap = new HeightMap(numContours, heightScale);
 
         hmap->setDataSet(ds,
                          _useCumulativeRange, 
@@ -3055,7 +3109,14 @@ void Renderer::addHeightMap(const DataSetId& id, int numContours)
                          _cumulativeVectorMagnitudeRange,
                          _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(hmap->getProp());
+        if (hmap->getProp() == NULL) {
+            delete hmap;
+            return false;
+        } else {
+            _renderer->AddViewProp(hmap->getProp());
+        }
+
+        _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
@@ -3063,12 +3124,13 @@ void Renderer::addHeightMap(const DataSetId& id, int numContours)
     initCamera();
 
     _needsRedraw = true;
+    return true;
 }
 
 /**
  * \brief Create a new HeightMap and associate it with the named DataSet
  */
-void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& contours)
+bool Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& contours, double heightScale)
 {
     DataSetHashmap::iterator itr;
 
@@ -3081,7 +3143,7 @@ void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -3093,8 +3155,7 @@ void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
             deleteHeightMap(dsID);
         }
 
-        HeightMap *hmap = new HeightMap(contours);
-        _heightMaps[dsID] = hmap;
+        HeightMap *hmap = new HeightMap(contours, heightScale);
 
         hmap->setDataSet(ds,
                          _useCumulativeRange, 
@@ -3102,7 +3163,14 @@ void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
                          _cumulativeVectorMagnitudeRange,
                          _cumulativeVectorComponentRange);
 
-        _renderer->AddViewProp(hmap->getProp());
+        if (hmap->getProp() == NULL) {
+            delete hmap;
+            return false;
+        } else {
+            _renderer->AddViewProp(hmap->getProp());
+        }
+
+        _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
     if (_cameraMode == IMAGE)
@@ -3110,6 +3178,7 @@ void Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
     initCamera();
 
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -3367,7 +3436,7 @@ void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& color
 /**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
-void Renderer::setHeightMapContours(const DataSetId& id, int numContours)
+void Renderer::setHeightMapNumContours(const DataSetId& id, int numContours)
 {
     HeightMapHashmap::iterator itr;
 
@@ -3385,7 +3454,7 @@ void Renderer::setHeightMapContours(const DataSetId& id, int numContours)
     }
 
     do {
-        itr->second->setContours(numContours);
+        itr->second->setNumContours(numContours);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -3467,6 +3536,33 @@ void Renderer::setHeightMapVisibility(const DataSetId& id, bool state)
 
     do {
         itr->second->setVisibility(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setHeightMapWireframe(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -3559,7 +3655,7 @@ void Renderer::setHeightMapEdgeWidth(const DataSetId& id, float edgeWidth)
 /**
  * \brief Turn on/off rendering height map contour lines for the given DataSet
  */
-void Renderer::setHeightMapContourVisibility(const DataSetId& id, bool state)
+void Renderer::setHeightMapContourLineVisibility(const DataSetId& id, bool state)
 {
     HeightMapHashmap::iterator itr;
 
@@ -3577,7 +3673,34 @@ void Renderer::setHeightMapContourVisibility(const DataSetId& id, bool state)
     }
 
     do {
-        itr->second->setContourVisibility(state);
+        itr->second->setContourLineVisibility(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map colormap surface for the given DataSet
+ */
+void Renderer::setHeightMapContourSurfaceVisibility(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourSurfaceVisibility(state);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -3669,7 +3792,7 @@ void Renderer::setHeightMapLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new LIC and associate it with the named DataSet
  */
-void Renderer::addLIC(const DataSetId& id)
+bool Renderer::addLIC(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -3682,7 +3805,7 @@ void Renderer::addLIC(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -3710,6 +3833,7 @@ void Renderer::addLIC(const DataSetId& id)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -4102,7 +4226,7 @@ void Renderer::setLICLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Molecule and associate it with the named DataSet
  */
-void Renderer::addMolecule(const DataSetId& id)
+bool Renderer::addMolecule(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -4115,7 +4239,7 @@ void Renderer::addMolecule(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -4139,6 +4263,7 @@ void Renderer::addMolecule(const DataSetId& id)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -4610,7 +4735,7 @@ void Renderer::setMoleculeLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new PolyData and associate it with the named DataSet
  */
-void Renderer::addPolyData(const DataSetId& id)
+bool Renderer::addPolyData(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -4623,7 +4748,7 @@ void Renderer::addPolyData(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -4647,6 +4772,7 @@ void Renderer::addPolyData(const DataSetId& id)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -4970,6 +5096,36 @@ void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
 }
 
 /**
+ * \brief Set the point size for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide points, 
+ * this function may not have an effect.
+ */
+void Renderer::setPolyDataPointSize(const DataSetId& id, float size)
+{
+    PolyDataHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _polyDatas.begin();
+        doAll = true;
+    } else {
+        itr = _polyDatas.find(id);
+    }
+    if (itr == _polyDatas.end()) {
+        ERROR("PolyData not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPointSize(size);
+    } while (doAll && ++itr != _polyDatas.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set wireframe rendering for the specified DataSet
  */
 void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
@@ -5026,7 +5182,7 @@ void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new PseudoColor rendering for the specified DataSet
  */
-void Renderer::addPseudoColor(const DataSetId& id)
+bool Renderer::addPseudoColor(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -5039,7 +5195,7 @@ void Renderer::addPseudoColor(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -5064,6 +5220,7 @@ void Renderer::addPseudoColor(const DataSetId& id)
 
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -5460,7 +5617,7 @@ void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Streamlines and associate it with the named DataSet
  */
-void Renderer::addStreamlines(const DataSetId& id)
+bool Renderer::addStreamlines(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -5473,7 +5630,7 @@ void Renderer::addStreamlines(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -5499,6 +5656,7 @@ void Renderer::addStreamlines(const DataSetId& id)
 
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -6229,7 +6387,7 @@ void Renderer::setStreamlinesLighting(const DataSetId& id, bool state)
 /**
  * \brief Create a new Volume and associate it with the named DataSet
  */
-void Renderer::addVolume(const DataSetId& id)
+bool Renderer::addVolume(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
 
@@ -6242,7 +6400,7 @@ void Renderer::addVolume(const DataSetId& id)
     }
     if (itr == _dataSets.end()) {
         ERROR("Unknown dataset %s", id.c_str());
-        return;
+        return false;
     }
 
     do {
@@ -6270,6 +6428,7 @@ void Renderer::addVolume(const DataSetId& id)
         setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
+    return true;
 }
 
 /**
@@ -6651,7 +6810,11 @@ void Renderer::setViewAngle(int height)
  */
 void Renderer::setWindowSize(int width, int height)
 {
-    setViewAngle(height);
+    if (_windowWidth == width &&
+        _windowHeight == height)
+        return;
+
+    //setViewAngle(height);
 
     // FIXME: Fix up panning on aspect change
 #ifdef notdef
@@ -6690,6 +6853,8 @@ void Renderer::setCameraMode(CameraMode mode)
 
     CameraMode origMode = _cameraMode;
     _cameraMode = mode;
+    resetAxes();
+
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     switch (mode) {
     case ORTHO: {
@@ -6718,8 +6883,6 @@ void Renderer::setCameraMode(CameraMode mode)
     default:
         ERROR("Unkown camera mode: %d", mode);
     }
-    resetAxes();
-
     _needsRedraw = true;
 }
 
@@ -7172,11 +7335,12 @@ void Renderer::zoomCamera(double z, bool absolute)
         _imgWorldOrigin[1] += dy/2.0;
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
-    } else if (_cameraMode == ORTHO) {
-        camera->Zoom(z); // Change ortho parallel scale (Dolly has no effect in ortho)
-        _renderer->ResetCameraClippingRange();
     } else {
-        camera->Dolly(z); // Move camera forward/back
+        // Keep ortho and perspective modes in sync
+        // Move camera forward/back for perspective camera
+        camera->Dolly(z);
+        // Change ortho parallel scale
+        camera->SetParallelScale(camera->GetParallelScale()/z);
         _renderer->ResetCameraClippingRange();
         //computeScreenWorldCoords();
     }
@@ -7185,6 +7349,33 @@ void Renderer::zoomCamera(double z, bool absolute)
           z, _cameraZoomRatio, camera->GetViewAngle());
 
     _needsRedraw = true;
+}
+
+/**
+ * \brief Set the pan/zoom using a corner and dimensions in pixel coordinates
+ * 
+ * \param[in] x left pixel coordinate
+ * \param[in] y bottom  pixel coordinate (with y=0 at top of window)
+ * \param[in] width Width of zoom region in pixel coordinates
+ * \param[in] height Height of zoom region in pixel coordinates
+ */
+void Renderer::setCameraZoomRegionPixels(int x, int y, int width, int height)
+{
+    double wx, wy, ww, wh;
+
+    y = _windowHeight - y;
+    double pxToWorldX = _screenWorldCoords[2] / (double)_windowWidth;
+    double pxToWorldY = _screenWorldCoords[3] / (double)_windowHeight;
+
+    wx = _screenWorldCoords[0] + x * pxToWorldX;
+    wy = _screenWorldCoords[1] + y * pxToWorldY;
+    ww = abs(width) *  pxToWorldX;
+    wh = abs(height) * pxToWorldY;
+    setCameraZoomRegion(wx, wy, ww, wh);
+
+    TRACE("\npx: %d %d %d %d\nworld: %g %g %g %g",
+          x, y, width, height,
+          wx, wy, ww, wh);
 }
 
 /**
@@ -7199,9 +7390,12 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 {
     double camPos[2];
 
-    int pxOffsetX = 85;
-    int pxOffsetY = 75;
-    int outerGutter = 15;
+    int pxOffsetX = (int)(0.17 * (double)_windowWidth);
+    pxOffsetX = (pxOffsetX > 100 ? 100 : pxOffsetX);
+    int pxOffsetY = (int)(0.15 * (double)_windowHeight);
+    pxOffsetY = (pxOffsetY > 75 ? 75 : pxOffsetY);
+    int outerGutter = (int)(0.03 * (double)_windowWidth);
+    outerGutter = (outerGutter > 15 ? 15 : outerGutter);
 
     int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
     int imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
@@ -7237,24 +7431,80 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     camera->ParallelProjectionOn();
-    camera->SetPosition(camPos[0], camPos[1], 1);
-    camera->SetFocalPoint(camPos[0], camPos[1], 0);
-    camera->SetViewUp(0, 1, 0);
     camera->SetClippingRange(1, 2);
     // Half of world coordinate height of viewport (Documentation is wrong)
     camera->SetParallelScale(_windowHeight * pxToWorld / 2.0);
 
-    // bottom
-    _cameraClipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
-    // left
-    _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
-    // top
-    _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
-    // right
-    _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
-
-    _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
-                                _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1], 0, 0);
+    if (_imgCameraPlane == PLANE_XY) {
+        // XY plane
+        camera->SetPosition(camPos[0], camPos[1], _imgCameraOffset + 1.);
+        camera->SetFocalPoint(camPos[0], camPos[1], _imgCameraOffset);
+        camera->SetViewUp(0, 1, 0);
+        // bottom
+        _cameraClipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
+        _cameraClipPlanes[0]->SetNormal(0, 1, 0);
+        // left
+        _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
+        _cameraClipPlanes[1]->SetNormal(1, 0, 0);
+        // top
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetNormal(0, -1, 0);
+        // right
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
+        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+                                    _imgCameraOffset, _imgCameraOffset);
+        _cubeAxesActor2D->XAxisVisibilityOn();
+        _cubeAxesActor2D->YAxisVisibilityOn();
+        _cubeAxesActor2D->ZAxisVisibilityOff();
+    } else if (_imgCameraPlane == PLANE_ZY) {
+        // ZY plane
+        camera->SetPosition(_imgCameraOffset - 1., camPos[1], camPos[0]);
+        camera->SetFocalPoint(_imgCameraOffset, camPos[1], camPos[0]);
+        camera->SetViewUp(0, 1, 0);
+        // bottom
+        _cameraClipPlanes[0]->SetOrigin(0, _imgWorldOrigin[1], 0);
+        _cameraClipPlanes[0]->SetNormal(0, 1, 0);
+        // left
+        _cameraClipPlanes[1]->SetOrigin(0, 0, _imgWorldOrigin[0]);
+        _cameraClipPlanes[1]->SetNormal(0, 0, 1);
+        // top
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetNormal(0, -1, 0);
+        // right
+        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + _imgWorldDims[0]);
+        _cameraClipPlanes[3]->SetNormal(0, 0, -1);
+        _cubeAxesActor2D->SetBounds(_imgCameraOffset, _imgCameraOffset, 
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+                                    _imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0]);
+        _cubeAxesActor2D->XAxisVisibilityOff();
+        _cubeAxesActor2D->YAxisVisibilityOn();
+        _cubeAxesActor2D->ZAxisVisibilityOn();
+    } else {
+        // XZ plane
+        camera->SetPosition(camPos[0], _imgCameraOffset - 1., camPos[1]);
+        camera->SetFocalPoint(camPos[0], _imgCameraOffset, camPos[1]);
+        camera->SetViewUp(0, 0, 1);
+        // bottom
+        _cameraClipPlanes[0]->SetOrigin(0, 0, _imgWorldOrigin[1]);
+        _cameraClipPlanes[0]->SetNormal(0, 0, 1);
+        // left
+        _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
+        _cameraClipPlanes[1]->SetNormal(1, 0, 0);
+        // top
+        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + _imgWorldDims[1]);
+        _cameraClipPlanes[2]->SetNormal(0, 0, -1);
+        // right
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
+        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
+                                    _imgCameraOffset, _imgCameraOffset,
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1]);
+        _cubeAxesActor2D->XAxisVisibilityOn();
+        _cubeAxesActor2D->YAxisVisibilityOff();
+        _cubeAxesActor2D->ZAxisVisibilityOn();
+    }
 
     // Compute screen world coordinates
     computeScreenWorldCoords();
@@ -7346,10 +7596,23 @@ void Renderer::computeScreenWorldCoords()
 
     mat->Delete();
 
-    _screenWorldCoords[0] = x0;
-    _screenWorldCoords[1] = y0;
-    _screenWorldCoords[2] = x1 - x0;
-    _screenWorldCoords[3] = y1 - y0;
+    if (_imgCameraPlane == PLANE_XZ) {
+        _screenWorldCoords[0] = x0;
+        _screenWorldCoords[1] = z0;
+        _screenWorldCoords[2] = x1 - x0;
+        _screenWorldCoords[3] = z1 - z0;
+    } else if (_imgCameraPlane == PLANE_ZY) {
+        _screenWorldCoords[0] = z0;
+        _screenWorldCoords[1] = y0;
+        _screenWorldCoords[2] = z1 - z0;
+        _screenWorldCoords[3] = y1 - y0;
+    } else {
+        // XY
+        _screenWorldCoords[0] = x0;
+        _screenWorldCoords[1] = y0;
+        _screenWorldCoords[2] = x1 - x0;
+        _screenWorldCoords[3] = y1 - y0;
+    }
 }
 
 /**
@@ -7464,15 +7727,29 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
         if (!onlyVisible || itr->second->getVisibility())
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
-    for (int i = 0; i < 6; i++) {
-        if (i % 2 == 0) {
-            if (bounds[i] == DBL_MAX)
-                bounds[i] = 0;
-        } else {
-            if (bounds[i] == -DBL_MAX)
-                bounds[i] = 1;
+
+    for (int i = 0; i < 6; i += 2) {
+        if (bounds[i+1] < bounds[i]) {
+            bounds[i] = -0.5;
+            bounds[i+1] = 0.5;
         }
     }
+
+    int numDims = 0;
+    if (bounds[0] != bounds[1])
+        numDims++;
+    if (bounds[2] != bounds[3])
+        numDims++;
+    if (bounds[4] != bounds[5])
+        numDims++;
+
+    if (numDims == 0) {
+        bounds[0] -= .5;
+        bounds[1] += .5;
+        bounds[2] -= .5;
+        bounds[3] += .5;
+    }
+
     TRACE("Bounds: %g %g %g %g %g %g",
           bounds[0],
           bounds[1],
@@ -7564,6 +7841,18 @@ void Renderer::collectDataRanges()
         collectVectorComponentRanges(_cumulativeVectorComponentRange[i], i,
                                      _cumulativeRangeOnlyVisible);
     }
+
+    TRACE("Cumulative scalar range: %g, %g",
+          _cumulativeScalarRange[0],
+          _cumulativeScalarRange[1]);
+    TRACE("Cumulative vmag range: %g, %g",
+          _cumulativeVectorMagnitudeRange[0],
+          _cumulativeVectorMagnitudeRange[1]);
+    for (int i = 0; i < 3; i++) {
+        TRACE("Cumulative v[%d] range: %g, %g", i,
+              _cumulativeVectorComponentRange[i][0],
+              _cumulativeVectorComponentRange[i][1]);
+    }
 }
 
 /**
@@ -7645,6 +7934,41 @@ void Renderer::collectVectorComponentRanges(double *range, int component, bool o
  }
 
 /**
+ * \brief Determines if AABB lies in a principal axis plane
+ * and if so, returns the plane normal
+ */
+bool Renderer::is2D(const double bounds[6],
+                    Renderer::PrincipalPlane *plane,
+                    double *offset) const
+{
+    if (bounds[4] == bounds[5]) {
+        // Z = 0, XY plane
+        if (plane)
+            *plane = PLANE_XY;
+        if (offset)
+            *offset = bounds[4];
+        return true;
+    } else if (bounds[0] == bounds[1]) {
+        // X = 0, ZY plane
+        if (plane)
+            *plane = PLANE_ZY;
+        if (offset)
+            *offset = bounds[0];
+        return true;
+    } else if (bounds[2] == bounds[3]) {
+        // Y = 0, XZ plane
+        if (plane)
+            *plane = PLANE_XZ;
+        if (offset)
+            *offset = bounds[2];
+        return true;
+    }
+    *plane = PLANE_XY;
+    *offset = 0;
+    return false;
+}
+
+/**
  * \brief Initialize the camera zoom region to include the bounding volume given
  */
 void Renderer::initCamera()
@@ -7666,10 +7990,32 @@ void Renderer::initCamera()
 #endif
     double bounds[6];
     collectBounds(bounds, false);
-    _imgWorldOrigin[0] = bounds[0];
-    _imgWorldOrigin[1] = bounds[2];
-    _imgWorldDims[0] = bounds[1] - bounds[0];
-    _imgWorldDims[1] = bounds[3] - bounds[2];
+    bool twod = is2D(bounds, &_imgCameraPlane, &_imgCameraOffset);
+    if (twod) {
+        _cameraMode = IMAGE;
+        if (_imgCameraPlane == PLANE_ZY) {
+            _imgWorldOrigin[0] = bounds[4];
+            _imgWorldOrigin[1] = bounds[2];
+            _imgWorldDims[0] = bounds[5] - bounds[4];
+            _imgWorldDims[1] = bounds[3] - bounds[2];
+        } else if (_imgCameraPlane == PLANE_XZ) {
+            _imgWorldOrigin[0] = bounds[0];
+            _imgWorldOrigin[1] = bounds[4];
+            _imgWorldDims[0] = bounds[1] - bounds[0];
+            _imgWorldDims[1] = bounds[5] - bounds[4];
+        } else {
+            _imgWorldOrigin[0] = bounds[0];
+            _imgWorldOrigin[1] = bounds[2];
+            _imgWorldDims[0] = bounds[1] - bounds[0];
+            _imgWorldDims[1] = bounds[3] - bounds[2];
+        }
+    } else {
+        _imgWorldOrigin[0] = bounds[0];
+        _imgWorldOrigin[1] = bounds[2];
+        _imgWorldDims[0] = bounds[1] - bounds[0];
+        _imgWorldDims[1] = bounds[3] - bounds[2];
+    }
+
     _cameraPan[0] = 0;
     _cameraPan[1] = 0;
     _cameraZoomRatio = 1;
@@ -7696,6 +8042,7 @@ void Renderer::initCamera()
     default:
         ERROR("Unknown camera mode");
     }
+
 #ifdef WANT_TRACE
     printCameraInfo(_renderer->GetActiveCamera());
 #endif
@@ -7706,9 +8053,10 @@ void Renderer::initCamera()
  */
 void Renderer::printCameraInfo(vtkCamera *camera)
 {
-    TRACE("Parallel Scale: %g, View angle: %g, Cam pos: %g %g %g, focal pt: %g %g %g, view up: %g %g %g, Clipping range: %g %g",
+    TRACE("pscale: %g, angle: %g, d: %g pos: %g %g %g, fpt: %g %g %g, vup: %g %g %g, clip: %g %g",
           camera->GetParallelScale(),
           camera->GetViewAngle(),
+          camera->GetDistance(),
           camera->GetPosition()[0],
           camera->GetPosition()[1],
           camera->GetPosition()[2], 
@@ -8095,19 +8443,19 @@ void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
  *
  * Note: no interpolation is performed on data
  */
-double Renderer::getDataValueAtPixel(const DataSetId& id, int x, int y)
+bool Renderer::getScalarValueAtPixel(const DataSetId& id, int x, int y, double *value)
 {
     vtkSmartPointer<vtkCoordinate> coord = vtkSmartPointer<vtkCoordinate>::New();
     coord->SetCoordinateSystemToDisplay();
-    coord->SetValue(x, y, 0);
+    coord->SetValue(x, _windowHeight - y, 0);
     double *worldCoords = coord->GetComputedWorldValue(_renderer);
 
-    TRACE("Pixel coords: %d, %d\nWorld coords: %.12e, %.12e, %12e", x, y,
+    TRACE("Pixel coords: %d, %d\nWorld coords: %g, %g, %g", x, y,
           worldCoords[0], 
           worldCoords[1], 
           worldCoords[2]);
 
-    return getDataValue(id, worldCoords[0], worldCoords[1], worldCoords[2]);
+    return getScalarValue(id, worldCoords[0], worldCoords[1], worldCoords[2], value);
 }
 
 /**
@@ -8115,12 +8463,45 @@ double Renderer::getDataValueAtPixel(const DataSetId& id, int x, int y)
  *
  * Note: no interpolation is performed on data
  */
-double Renderer::getDataValue(const DataSetId& id, double x, double y, double z)
+bool Renderer::getScalarValue(const DataSetId& id, double x, double y, double z, double *value)
 {
     DataSet *ds = getDataSet(id);
     if (ds == NULL)
-        return 0;
-    vtkDataSet *vtkds = ds->getVtkDataSet(); 
-    vtkIdType pt = vtkds->FindPoint(x, y, z);
-    return vtkds->GetPointData()->GetScalars()->GetComponent(pt, 0);
+        return false;
+
+    return ds->getScalarValue(x, y, z, value);
+}
+
+/**
+ * \brief Get nearest data value given display coordinates x,y
+ *
+ * Note: no interpolation is performed on data
+ */
+bool Renderer::getVectorValueAtPixel(const DataSetId& id, int x, int y, double vector[3])
+{
+    vtkSmartPointer<vtkCoordinate> coord = vtkSmartPointer<vtkCoordinate>::New();
+    coord->SetCoordinateSystemToDisplay();
+    coord->SetValue(x, _windowHeight - y, 0);
+    double *worldCoords = coord->GetComputedWorldValue(_renderer);
+
+    TRACE("Pixel coords: %d, %d\nWorld coords: %g, %g, %g", x, y,
+          worldCoords[0], 
+          worldCoords[1], 
+          worldCoords[2]);
+
+    return getVectorValue(id, worldCoords[0], worldCoords[1], worldCoords[2], vector);
+}
+
+/**
+ * \brief Get nearest data value given world coordinates x,y,z
+ *
+ * Note: no interpolation is performed on data
+ */
+bool Renderer::getVectorValue(const DataSetId& id, double x, double y, double z, double vector[3])
+{
+    DataSet *ds = getDataSet(id);
+    if (ds == NULL)
+        return false;
+
+    return ds->getVectorValue(x, y, z, vector);
 }

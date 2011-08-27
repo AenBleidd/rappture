@@ -418,10 +418,15 @@ int vtkRpCubeAxesActor2D::RenderOpaqueGeometry(vtkViewport *viewport)
   this->YAxis->SetLabelFormat(this->LabelFormat);
   this->YAxis->SetFontFactor(AxisFontFactor);
   this->YAxis->SetProperty(this->GetProperty());
-
-  this->ZAxis->GetPositionCoordinate()->SetValue(zCoords[0], zCoords[1]);
-  this->ZAxis->GetPosition2Coordinate()->SetValue(zCoords[2], zCoords[3]);
-  this->ZAxis->SetRange(zRange[0], zRange[1]);
+  if ( this->YAxisVisibility ) {
+      this->ZAxis->GetPositionCoordinate()->SetValue(zCoords[0], zCoords[1]);
+      this->ZAxis->GetPosition2Coordinate()->SetValue(zCoords[2], zCoords[3]);
+      this->ZAxis->SetRange(zRange[0], zRange[1]);
+  } else {
+      this->ZAxis->GetPositionCoordinate()->SetValue(zCoords[2], zCoords[3]);
+      this->ZAxis->GetPosition2Coordinate()->SetValue(zCoords[0], zCoords[1]);
+      this->ZAxis->SetRange(zRange[1], zRange[0]);
+  }
   this->ZAxis->SetTitle(this->Labels[zAxes]);
   this->ZAxis->SetNumberOfLabels(this->NumberOfLabels);
   this->ZAxis->SetLabelFormat(this->LabelFormat);

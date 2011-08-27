@@ -23,6 +23,11 @@ namespace VtkVis {
  */
 class DataSet {
 public:
+    enum PrincipalPlane {
+        PLANE_XY,
+        PLANE_ZY,
+        PLANE_XZ
+    };
     DataSet(const std::string& name);
     virtual ~DataSet();
 
@@ -36,7 +41,13 @@ public:
 
     vtkDataSet *copyData(vtkDataSet *ds);
 
-    bool is2D() const;
+    bool isXY() const;
+
+    int numDimensions() const;
+
+    bool is2D(PrincipalPlane *plane = NULL, double *offset = NULL) const;
+
+    PrincipalPlane principalPlane() const;
 
     const std::string& getName() const;
 
@@ -58,7 +69,9 @@ public:
 
     void getCellSizeRange(double minmax[6], double *average) const;
 
-    double getDataValue(double x, double y, double z) const;
+    bool getScalarValue(double x, double y, double z, double *value) const;
+
+    bool getVectorValue(double x, double y, double z, double vector[3]) const;
 
     void setVisibility(bool state);
 
@@ -66,6 +79,8 @@ public:
 
 private:
     DataSet();
+
+    void setDefaultArrays();
     void print() const;
 
     std::string _name;

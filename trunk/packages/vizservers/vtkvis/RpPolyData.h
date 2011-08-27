@@ -21,7 +21,7 @@ namespace VtkVis {
 /**
  * \brief VTK Mesh (Polygon data)
  *
- * The DataSet must be a PolyData object
+ * This class creates a boundary mesh of a DataSet
  */
 class PolyData : public VtkGraphicsObject {
 public:

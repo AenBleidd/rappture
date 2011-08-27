@@ -22,8 +22,6 @@ namespace VtkVis {
 
 /**
  * \brief Color-mapped plot of data set
- * 
- * Currently the DataSet must be image data (2D uniform grid)
  */
 class PseudoColor : public VtkGraphicsObject {
 public:

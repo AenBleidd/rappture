@@ -26,8 +26,7 @@ namespace VtkVis {
 /**
  * \brief Oriented and scaled 3D glyph shapes
  *
- * The DataSet must be a PolyData point set
- * with vectors and/or scalars
+ * The DataSet must have vectors and/or scalars
  */
 class Glyphs : public VtkGraphicsObject {
 public:
