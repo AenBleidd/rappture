@@ -339,8 +339,6 @@ Rappture::VtkViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(vtkviewer) $f.viewer
 
-puts stderr [winfo class $widgets(vtkviewer)]
-
 $f.viewer configure \
     -sendcommand show_comm \
     -receivecommand show_comm
