@@ -2134,8 +2134,8 @@ PollForEvents(PymolProxy *proxyPtr)
     InitBuffer(&proxyPtr->client, proxyPtr->cout);
     InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
-    initPoll.fd = proxyPtr->sin;
-    initPoll.events = POLLOUT;
+    initPoll.fd = proxyPtr->sout;
+    initPoll.events = POLLIN;
     if (poll(&initPoll, 1, -1) < 0) {
 	ERROR("Initial poll failed: %s", strerror(errno));
 	exit(1);
