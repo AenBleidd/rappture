@@ -950,6 +950,8 @@ void Renderer::setAxesColor(double color[3])
         _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->SetColor(color);
         _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->SetColor(color);
         _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->SetColor(color);
+        _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->SetColor(color);
 #else
         _cubeAxesActor2D->GetAxisTitleTextProperty()->SetColor(color);
         _cubeAxesActor2D->GetAxisLabelTextProperty()->SetColor(color);
@@ -959,7 +961,7 @@ void Renderer::setAxesColor(double color[3])
 }
 
 /**
- * \brief Turn on/off rendering of all axes
+ * \brief Turn on/off rendering of all enabled axes
  */
 void Renderer::setAxesVisibility(bool state)
 {
@@ -971,9 +973,6 @@ void Renderer::setAxesVisibility(bool state)
         _cubeAxesActor2D->SetVisibility((state ? 1 : 0));
         _needsRedraw = true;
     }
-    setAxisVisibility(X_AXIS, state);
-    setAxisVisibility(Y_AXIS, state);
-    setAxisVisibility(Z_AXIS, state);
 }
 
 /**
@@ -1049,6 +1048,8 @@ void Renderer::setAxisVisibility(Axis axis, bool state)
             _cubeAxesActor2D->SetXAxisVisibility((state ? 1 : 0));
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->SetYAxisVisibility((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor2D->SetZAxisVisibility((state ? 1 : 0));
         }
         _needsRedraw = true;
     }
@@ -1091,6 +1092,8 @@ void Renderer::setAxisLabelVisibility(Axis axis, bool state)
             _cubeAxesActor2D->GetXAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->GetYAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor2D->GetZAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
         }
         _needsRedraw = true;
     }
@@ -1116,6 +1119,8 @@ void Renderer::setAxisTickVisibility(Axis axis, bool state)
             _cubeAxesActor2D->GetXAxisActor2D()->SetTickVisibility((state ? 1 : 0));
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->GetYAxisActor2D()->SetTickVisibility((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor2D->GetZAxisActor2D()->SetTickVisibility((state ? 1 : 0));
         }
         _needsRedraw = true;
     }
@@ -1141,6 +1146,8 @@ void Renderer::setAxisTitle(Axis axis, const char *title)
             _cubeAxesActor2D->SetXLabel(title);
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->SetYLabel(title);
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor2D->SetZLabel(title);
         }
         _needsRedraw = true;
     }
@@ -1167,6 +1174,8 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
             _cubeAxesActor2D->SetXUnits(units);
         } else if (axis == Y_AXIS) {
             _cubeAxesActor2D->SetYUnits(units);
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor2D->SetZUnits(units);
         }
         _needsRedraw = true;
     }
