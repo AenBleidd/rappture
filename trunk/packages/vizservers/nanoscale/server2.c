@@ -377,8 +377,8 @@ main(int argc, char **argv)
 	    }
 	    /* Accept the new connection. */
 	    length = sizeof(newaddr);
-	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
-		       &length);
+	    f = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+			&length, SOCK_CLOEXEC);
 	    if (f < 0) {
 		ERROR("Can't accept server \"%s\": %s", serverPtr->name, 
 		      strerror(errno));
@@ -412,10 +412,27 @@ main(int argc, char **argv)
 
 		/* Dup the descriptors and start the server.  */
 
-		dup2(f, 0);		/* Stdin */
-		dup2(f, 1);		/* Stdout */
+		if (dup2(f, 0) < 0)  {	/* Stdin */
+		    ERROR("%s: can't dup stdin: %s", serverPtr->name, 
+			strerror(errno));
+		    exit(1);
+		}
+		if (dup2(f, 1) < 0) {	/* Stdout */
+		    ERROR("%s: can't dup stdout: %s", serverPtr->name, 
+			  strerror(errno));
+		    exit(1);
+		}
 		errFd = open("/dev/null", O_WRONLY, 0600);
-		dup2(errFd, 2);		/* Stderr */
+		if (errFd < 0) {
+		    ERROR("%s: can't open /dev/null for read/write: %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
+		}
+		if (dup2(errFd, 2) < 0) { /* Stderr */
+		    ERROR("%s: can't change to root directory for \"%s\": %s", 
+			  serverPtr->name, strerror(errno));
+		    exit(1);
+		}
 		for(i = 3; i <= FD_SETSIZE; i++) {
 		    close(i);		/* Close all the other descriptors. */
 		}
