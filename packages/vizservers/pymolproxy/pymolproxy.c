@@ -2061,14 +2061,15 @@ ProxyInit(int cin, int cout, char *const *argv)
     gettimeofday(&end, NULL);
     stats.start = end;
 
-    if (write(cout, "PyMol 1.0\n", 10) != 10) {
-	ERROR("short write of signature");
-    }
-    
     // Main Proxy Loop
     //  accept tcl commands from socket
     //  translate them into pyMol commands, and issue them to child proccess
     //  send images back
+
+    if (write(cout, "PyMol 1.0\n", 10) != 10) {
+	ERROR("short write of signature");
+    }
+    
     PollForEvents(&proxy);
 
     close(proxy.cout);
@@ -2113,7 +2114,7 @@ static void
 PollForEvents(PymolProxy *proxyPtr)
 {
     Tcl_DString clientCmds;
-    struct pollfd pollResults[4];
+    struct pollfd pollResults[4], initPoll;
     int flags;
 
     flags = fcntl(proxyPtr->cin, F_GETFL);
@@ -2133,6 +2134,12 @@ PollForEvents(PymolProxy *proxyPtr)
     InitBuffer(&proxyPtr->client, proxyPtr->cout);
     InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
+    initPoll.fd = proxyPtr->sin;
+    initPoll.events = POLLOUT;
+    if (poll(&initPoll, 1, -1) < 0) {
+	ERROR("Initial poll failed: %s", strerror(errno));
+	exit(1);
+    }
     Tcl_DStringInit(&clientCmds);
     for (;;) {
 	int timeout, nChannels;
