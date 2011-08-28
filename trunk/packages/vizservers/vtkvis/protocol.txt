@@ -39,6 +39,9 @@ axis units <axis> <units>
      Currently only supported when camera mode is not image mode
 axis visible <axis> <bool>
      <axis> = x|y|z|all
+     Note: 'all' means all enabled axes.  To force all axes on, set each axis on
+     individually -- however, it is best to let the server determine which of 
+     the individual axes are enabled based on the dataset bounds.
 
 camera get
        Request current camera parameters
