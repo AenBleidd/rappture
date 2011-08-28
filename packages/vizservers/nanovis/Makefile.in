@@ -1,11 +1,6 @@
 
 SHELL = /bin/sh
 
-#.SUFFIX:
-#SUFFIX: .c .o .cpp
-
-.PHONY: all install clean distclean
-
 bindir          = @bindir@
 datadir         = @datadir@
 datarootdir     = @datarootdir@
@@ -22,9 +17,9 @@ INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
 
 #Why are these files installed owner writable?
-INSTALL_PROGRAM = ${INSTALL} -m 555
-INSTALL_DATA    = ${INSTALL} -m 444
-INSTALL_SCRIPT  = ${INSTALL} -m 444
+INSTALL_PROGRAM = ${INSTALL} -m 0555
+INSTALL_DATA    = ${INSTALL} -m 0444
+INSTALL_SCRIPT  = ${INSTALL} -m 0444
 RM              = rm -f
 
 AUXSRC          = config.h define.h global.h
@@ -32,8 +27,8 @@ AUXSRC          = config.h define.h global.h
 CG_DIR          = @CG_DIR@
 CG_INC_SPEC     = -I$(CG_DIR)/include
 CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
-DX_INC_SPEC      = @DX_INC_SPEC@
-DX_LIB_SPEC      = @DX_LIB_SPEC@ -lDXcallm
+DX_INC_SPEC     = @DX_INC_SPEC@
+DX_LIB_SPEC     = @DX_LIB_SPEC@ -lDXcallm
 FF_LIB_SPEC     = @LIBS@
 FF_INC_SPEC     = @FF_INC_SPEC@
 
@@ -103,14 +98,14 @@ INCLUDES	= \
 		$(FF_INC_SPEC) \
 		$(CG_INC_SPEC) \
 		$(GL_INC_SPEC) \
-		$(RP_INC_SPEC) \
+		$(RP_INC_SPEC)
 
 CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
 DEFINES         = 
-CXX_SWITCHES     = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 OBJS		= \
 		Axis.o \
@@ -123,9 +118,7 @@ OBJS		= \
 		ConvexPolygon.o \
 		DataLoader.o \
 		Event.o \
-		Unirect.o \
 		FlowCmd.o \
-		Switch.o \
 		GradientFilter.o \
 		Grid.o \
 		HeightMap.o \
@@ -136,20 +129,20 @@ OBJS		= \
 		NvColorTableShader.o \
 		NvDefaultTFData.o \
 		NvEventLog.o \
+		NvFlowVisRenderer.o \
 		NvLIC.o \
 		NvLoadFile.o \
 		NvParticleAdvectionShader.o \
 		NvParticleRenderer.o \
-		NvFlowVisRenderer.o \
-		NvVectorField.o \
 		NvRegularVolumeShader.o \
 		NvShader.o \
 		NvStdVertexShader.o \
+		NvVectorField.o \
 		NvVolumeShader.o \
 		NvZincBlendeReconstructor.o \
 		NvZincBlendeVolumeShader.o \
-		ParticleSystem.o \
 		ParticleEmitter.o \
+		ParticleSystem.o \
 		ParticleSystemFactory.o \
 		PCASplit.o \
 		PerfQuery.o \
@@ -158,20 +151,22 @@ OBJS		= \
 		PointSet.o \
 		PointSetRenderer.o \
 		PointShader.o \
+		Renderable.o \
 		RenderContext.o \
 		RenderVertexArray.o \
-		Renderable.o \
 		RpAVTranslate.o \
 		RpDX.o \
 		ScreenSnapper.o \
 		Sphere.o \
+		Switch.o \
 		Texture1D.o \
 		Texture2D.o \
 		Texture3D.o \
 		Trace.o \
 		TransferFunction.o \
+		Unirect.o \
 		Util.o \
-                VelocityArrowsSlice.o \
+		VelocityArrowsSlice.o \
 		Volume.o \
 		VolumeInterpolator.o \
 		VolumeRenderer.o \
@@ -219,7 +214,7 @@ shaders		= \
 		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/velocity.cg
 
-.PHONY: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
+.PHONY: all install clean distclean newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
 
 all: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis 
 
@@ -277,18 +272,18 @@ install-resources:
 	$(MKDIR_P) $(libdir)/resources
 	@for i in $(resources) ; do \
 	    echo "installing $$i..." ; \
-	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/resources ; \
+	    $(INSTALL_DATA) $$i $(libdir)/resources ; \
 	done
 
 install-shaders:
 	$(MKDIR_P) $(libdir)/shaders
 	@for i in $(shaders) ; do \
 	    echo "installing $$i..." ; \
-	    $(INSTALL_DATA) -m 0444 $$i $(libdir)/shaders ; \
+	    $(INSTALL_DATA) $$i $(libdir)/shaders ; \
 	done
 
 install-nanovis: nanovis
-	$(INSTALL) -m 0555 nanovis $(bindir)
+	$(INSTALL_PROGRAM) nanovis $(bindir)
 
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
@@ -300,61 +295,78 @@ clean:
 	$(RM) nanovis client $(OBJS)
 
 distclean: clean
-	$(RM) Makefile *~
+	$(MAKE) -C $(MAT_DIR) distclean
+	$(MAKE) -C $(VRMATH_DIR) distclean
+	$(MAKE) -C $(VRUTIL_DIR) distclean
+	$(MAKE) -C $(VR3D_DIR) distclean
+	$(MAKE) -C $(R2_DIR)/src distclean
+	$(MAKE) -C $(IMG_DIR) distclean
+	$(RM) Makefile nvconf.h *~
 
-NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
+Axis.o: Axis.cpp Axis.h Chain.h
+BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.h
+Chain.o: Chain.cpp Chain.h
+CmdProc.o: CmdProc.cpp CmdProc.h
+Color.o: Color.cpp Color.h
+Command.o: Command.cpp Command.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
+ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
 DataLoader.o: DataLoader.cpp 
-HeightMap.o: HeightMap.cpp HeightMap.h
+Event.o: Event.cpp Event.h
+FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h Command.h CmdProc.h Nv.h NvLIC.h Unirect.h
+GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h
+HeightMap.o: HeightMap.cpp HeightMap.h
+Mat4x4.o: Mat4x4.cpp Mat4x4.h
+Nv.o: Nv.cpp Nv.h NvShader.h NvParticleRenderer.h NvColorTableRenderer.h NvEventLog.h VolumeRenderer.h PointSetRenderer.h
+NvCamera.o: NvCamera.cpp NvCamera.h
+NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
+NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
+NvDefaultTFData.o: NvDefaultTFData.cpp
+NvEventLog.o: NvEventLog.cpp NvEventLog.h
+NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
+NvLIC.o: NvLIC.cpp NvLIC.h
 NvLoadFile.o: NvLoadFile.cpp NvLoadFile.h
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
-NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
-NvVectorField.o: NvVectorField.cpp NvVectorField.h
 NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
-NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
-NvLIC.o: NvLIC.cpp NvLIC.h
-NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
-NvEventLog.o: NvEventLog.cpp NvEventLog.h
-NvShader.o: NvShader.cpp NvShader.h
-NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
-NvDefaultTFData.o: NvDefaultTFData.cpp
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
+NvShader.o: NvShader.cpp NvShader.h
+NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
+NvVectorField.o: NvVectorField.cpp NvVectorField.h
+NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
+NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h Vector3.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
+ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
 ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
-ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
+PCASplit.o: PCASplit.cpp PCASplit.h
+PerfQuery.o: PerfQuery.cpp PerfQuery.h
+Plane.o: Plane.cpp Plane.h
+PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
+PointSet.o: PointSet.cpp PointSet.h
+PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
+PointShader.o: PointShader.cpp PointShader.h
+Renderable.o: Renderable.cpp Renderable.h
+RenderContext.o: RenderContext.cpp RenderContext.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
-Color.o: Color.cpp Color.h
-Event.o: Event.cpp Event.h
+RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
+RpDX.o: RpDX.cpp RpDX.h Trace.h
+ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
 Sphere.o: Sphere.cpp Sphere.h
-TransferFunction.o: TransferFunction.cpp
+Switch.o: Switch.cpp Switch.h
 Texture1D.o: Texture1D.cpp Texture1D.h
 Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
 Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
-Renderable.o: Renderable.cpp Renderable.h
-NvCamera.o: NvCamera.cpp NvCamera.h
-ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
-Volume.o: Volume.cpp Volume.h $(AUXSRC)
-ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
-VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
-PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
-Mat4x4.o: Mat4x4.cpp Mat4x4.h
-Plane.o: Plane.cpp Plane.h
-ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
-PerfQuery.o: PerfQuery.cpp PerfQuery.h
-PointShader.o: PointShader.cpp PointShader.h
-PCASplit.o: PCASplit.cpp PCASplit.h
-BucketSort.o: BucketSort.cpp BucketSort.h
-PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
-PointSet.o: PointSet.cpp PointSet.h
-RenderContext.o: RenderContext.cpp RenderContext.h
-VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
-GradientFilter.o: GradientFilter.cpp GradientFilter.h
-VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
-
-Util.o: Util.cpp Util.h
-Command.o: Command.cpp Command.h
 Trace.o: Trace.cpp Trace.h
-
+TransferFunction.o: TransferFunction.cpp
+Unirect.o: Unirect.cpp Unirect.h Trace.h
+Util.o: Util.cpp Util.h
+VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
+Volume.o: Volume.cpp Volume.h $(AUXSRC)
+VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
+VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
+ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
+dxReader.o: dxReader.cpp dxReaderCommon.h Nv.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
+dxReader2.o: dxReader2.cpp dxReaderCommon.h RpDX.h Nv.h nanovis.h
+dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
