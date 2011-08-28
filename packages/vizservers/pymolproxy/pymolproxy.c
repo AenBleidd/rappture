@@ -674,8 +674,7 @@ WriteImage(PymolProxy *proxyPtr, int fd)
 	    Debug("WriteImage: wrote %d bytes.", nWritten);
 #endif
 	    if (nWritten < 0) {
-	        ERROR("Error writing fd(%d), %d/%s.", fd, errno, 
-		      strerror(errno));
+	        ERROR("Error writing fd=%d, %s", fd, strerror(errno));
 		return;
 	    }
 	    bytesLeft -= nWritten;
@@ -724,8 +723,8 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     length = strlen(buffer);
     nWritten = write(proxyPtr->sin, buffer, length);
     if (nWritten != length) {
-	ERROR("short write to pymol (wrote=%d, should have been %d)",
-	      nWritten, length);
+	ERROR("short write to pymol (wrote=%d, should have been %d): %s",
+	      nWritten, length, strerror(errno));
     }
     for (p = buffer; *p != '\0'; p++) {
 	if (*p == '\n') {
@@ -737,7 +736,7 @@ Pymol(PymolProxy *proxyPtr, const char *format, ...)
     /* Now wait for the "PyMOL>" prompt. */
     result = Expect(proxyPtr, expect, buffer, BUFSIZ);
     if (result == BUFFER_ERROR) {
-	ERROR("timeout reading data (buffer=%s)", buffer);
+	ERROR("timeout reading data (buffer=%s): %s", buffer, strerror(errno));
 	proxyPtr->error = 1;
 	proxyPtr->status = TCL_ERROR;
 	return proxyPtr->status;
@@ -863,7 +862,8 @@ BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
     if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
-        ERROR("can't read %d bytes for \"image follows\" buffer", nBytes);
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
+	      strerror(errno));
 	return  TCL_ERROR;
     }
     stats.nFrames++;
@@ -1343,7 +1343,8 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
     if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
-        ERROR("can't read %d bytes for \"image follows\" buffer", nBytes);
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
+	      strerror(errno));
 	return  TCL_ERROR;
     }
     Expect(proxyPtr, " ScenePNG", buffer, 800);
@@ -1407,7 +1408,8 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     imgPtr = NewImage(proxyPtr, nBytes + length);
     strcpy(imgPtr->data, buffer);
     if (GetBytes(&proxyPtr->server, imgPtr->data + length, nBytes)!=BUFFER_OK){
-        ERROR("can't read %d bytes for \"image follows\" buffer", nBytes);
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes,
+	      strerror(errno));
 	return  TCL_ERROR;
     }
     Expect(proxyPtr, " ScenePNG", buffer, 800);
@@ -1999,7 +2001,7 @@ ProxyInit(int cin, int cout, char *const *argv)
 	}
         
         execvp(argv[0], argv);
-        ERROR("Failed to start pymol `%s'", argv[0]);
+        ERROR("can't exec `%s': %s", argv[0], strerror(errno));
 	exit(-1);
     }
     stats.child = child;
@@ -2164,7 +2166,8 @@ PollForEvents(PymolProxy *proxyPtr)
 	    } else if (nBytes == BUFFER_CONTINUE) {
 		Debug("Done with pymol stdout\n");
 	    } else {
-		ERROR("Failed reading pymol stdout (nBytes=%d)\n", nBytes);
+		ERROR("can't read pymol stdout (nBytes=%d): %s\n", nBytes,
+		      strerror(errno));
 		goto error;		/* Get out on EOF or error. */
 	    }
 	}
@@ -2181,7 +2184,8 @@ PollForEvents(PymolProxy *proxyPtr)
 		ERROR("unexpected read error from server (stderr): %s",
 		      strerror(errno));
 		if (errno != EINTR) { 
-		    ERROR("lost connection (stderr) to pymol server.");
+		    ERROR("lost connection (stderr) to pymol server: %s",
+			  strerror(errno));
 		    goto error;
 		}
 	    }
@@ -2213,7 +2217,8 @@ PollForEvents(PymolProxy *proxyPtr)
 		if (nBytes == BUFFER_CONTINUE) {
 		    break;
 		}
-		ERROR("Failed reading client stdout (nBytes=%d)\n", nBytes);
+		ERROR("can't read client stdout (nBytes=%d): %s\n", nBytes,
+		      strerror(errno));
 		goto error;		/* Get out on EOF or error. */
 	    }
 	    Debug("done with client stdout\n");

@@ -607,6 +607,7 @@ VTK_LIB_DIR
 VTK_INC_SPEC
 VERSION
 TCL_VERSION
+TCL_LD_SEARCH_FLAGS
 TCL_LIB_SPEC
 TCL_INC_SPEC
 SUBDIRS
@@ -8588,13 +8589,14 @@ done
 
 CPPFLAGS=$save_CPPFLAGS
 
- if test "${CG_DIR}" = "/usr" ; then
+if test "${CG_DIR}" = "/usr" ; then
   CG_DIR=""
 else
   LD_RPATH="$loader_run_path:${CG_LIB_DIR}"
 fi
 
 SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
+
 
 
 
@@ -9941,5 +9943,4 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
 
