@@ -3,6 +3,7 @@ TARGETS		= pymolproxy
 
 TCL_INC_SPEC	= @TCL_INC_SPEC@
 TCL_LIB_SPEC	= @TCL_LIB_SPEC@
+TCL_LD_SEARCH_FLAGS = @TCL_LD_SEARCH_FLAGS@
 CC		= @CC@
 INCLUDES	= $(TCL_INC_SPEC)
 CFLAGS		= @CFLAGS@ 
@@ -28,7 +29,8 @@ VPATH		= $(srcdir)
 .PHONY: all install clean distclean
 
 OBJS		= pymolproxy.o
-LIBS		= $(TCL_LIB_SPEC)
+LIBS		= $(TCL_LIB_SPEC) \
+		  $(TCL_LD_SEARCH_FLAGS)
 
 SCRIPTS		= $(srcdir)/scripts/box.py
 
