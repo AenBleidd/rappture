@@ -2109,11 +2109,13 @@ PollForEvents(PymolProxy *proxyPtr)
     flags = fcntl(proxyPtr->cin, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
 
+#ifdef notdef
     flags = fcntl(proxyPtr->sout, F_GETFL);
     fcntl(proxyPtr->sout, F_SETFL, flags|O_NONBLOCK);
 
     flags = fcntl(proxyPtr->cout, F_GETFL);
     fcntl(proxyPtr->cout, F_SETFL, flags|O_NONBLOCK);
+#endif
 
     /* Read file descriptors. */
     pollFd[0].fd = proxyPtr->cout;	/* Client standard output  */
@@ -2128,7 +2130,7 @@ PollForEvents(PymolProxy *proxyPtr)
     InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
     Tcl_Eval(proxyPtr->interp, "reset\n");
-    if (write(cout, "PyMol 1.0\n", 10) != 10) {
+    if (write(proxyPtr->cout, "PyMol 1.0\n", 10) != 10) {
 	ERROR("short write of signature");
     }
 
