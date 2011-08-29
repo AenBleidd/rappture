@@ -2117,7 +2117,13 @@ PollForEvents(PymolProxy *proxyPtr)
     struct pollfd pollResults[4], initPoll;
     int flags;
 
-    flags = fcntl(proxyPtr->cin, F_GETFL);
+    flags = fcntl(proxyPtr->serr, F_GETFL);
+    fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
+
+    flags = fcntl(proxyPtr->sout, F_GETFL);
+    fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
+
+    flags = fcntl(proxyPtr->cout, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
 
     /* Read file descriptors. */
@@ -2134,12 +2140,14 @@ PollForEvents(PymolProxy *proxyPtr)
     InitBuffer(&proxyPtr->client, proxyPtr->cout);
     InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
+#ifdef notdef
     initPoll.fd = proxyPtr->sout;
     initPoll.events = POLLIN;
     if (poll(&initPoll, 1, -1) < 0) {
 	ERROR("Initial poll failed: %s", strerror(errno));
 	exit(1);
     }
+#endif
     Tcl_DStringInit(&clientCmds);
     for (;;) {
 	int timeout, nChannels;
