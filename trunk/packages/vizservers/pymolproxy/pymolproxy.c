@@ -1970,9 +1970,13 @@ ProxyInit(int cin, int cout, char *const *argv)
         ERROR("can't fork process: %s\n", strerror(errno));
         return -3;
     }
+
+    interp = Tcl_CreateInterp();
+    Tcl_MakeSafe(interp);
     if (CreateTmpDir(interp) != TCL_OK) {
 	ERROR(Tcl_GetStringResult(interp));
     }
+
     if (child == 0) {
         int f;
 	char path[200];
@@ -2027,8 +2031,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     proxy.cout = cout;
     proxy.flags = CAN_UPDATE;
     proxy.frame = 1;
-    interp = Tcl_CreateInterp();
-    Tcl_MakeSafe(interp);
     proxy.interp = interp;
 
     Tcl_CreateCommand(interp, "bmp",           BmpCmd,           &proxy, NULL);
