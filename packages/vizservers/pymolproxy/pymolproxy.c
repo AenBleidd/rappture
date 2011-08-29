@@ -1972,10 +1972,10 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
 
     interp = Tcl_CreateInterp();
-    Tcl_MakeSafe(interp);
     if (CreateTmpDir(interp) != TCL_OK) {
 	ERROR(Tcl_GetStringResult(interp));
     }
+    Tcl_MakeSafe(interp);
 
     if (child == 0) {
         int f;
