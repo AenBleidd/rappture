@@ -2117,14 +2117,17 @@ PollForEvents(PymolProxy *proxyPtr)
     struct pollfd pollResults[4], initPoll;
     int flags;
 
-    flags = fcntl(proxyPtr->serr, F_GETFL);
+    flags = fcntl(proxyPtr->cin, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
+
+    flags = fcntl(proxyPtr->serr, F_GETFL);
+    fcntl(proxyPtr->serr, F_SETFL, flags|O_NONBLOCK);
 
     flags = fcntl(proxyPtr->sout, F_GETFL);
-    fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
+    fcntl(proxyPtr->sout, F_SETFL, flags|O_NONBLOCK);
 
     flags = fcntl(proxyPtr->cout, F_GETFL);
-    fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
+    fcntl(proxyPtr->cout, F_SETFL, flags|O_NONBLOCK);
 
     /* Read file descriptors. */
     pollResults[0].fd = proxyPtr->cout;	/* Client standard output  */
