@@ -214,7 +214,7 @@ shaders		= \
 		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/velocity.cg
 
-.PHONY: all install clean distclean newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
+.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
 
 all: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis 
 
@@ -252,11 +252,11 @@ nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(VR3D_LIB)
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 dxReader2.o: $(srcdir)/dxReader2.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $<
 RpDX.o: $(srcdir)/RpDX.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $<
 RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $?
+	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $<
 
 client: Socket.o ClientSocket.o RenderClient.o Event.o
 	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
