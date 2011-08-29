@@ -155,7 +155,7 @@ typedef struct {
 					 * the client.  The most recent images
 					 * are in the front of the list. */
 
-    int sin, sout, serr;		/* Server file descriptors. */
+    int sin, sout;			/* Server file descriptors. */
     int cin, cout;			/* Client file descriptors. */
     ReadBuffer client;			/* Read buffer for client input. */
     ReadBuffer server;			/* Read buffer for server output. */
@@ -1944,9 +1944,8 @@ ProxyInit(int cin, int cout, char *const *argv)
     int status, result = 0;
     int sin[2];
     int sout[2];
-    int serr[2];
     Tcl_Interp *interp;
-    int child;
+    pid_t child, parent;
     PymolProxy proxy;
     struct timeval end;
 
@@ -1962,15 +1961,9 @@ ProxyInit(int cin, int cout, char *const *argv)
         return -1;
     }
 
-    if (pipe(serr) == -1) {
-        close(sin[0]);
-        close(sin[1]);
-        close(sout[0]);
-        close(sout[1]);
-        return -1;
-    }
+    parent = getpid();
 
-    /* Fork the new process.  Connect i/o to the new socket.  */
+    /* Fork the new process.  Connect I/O to the new socket.  */
 
     child = fork();
     if (child < 0) {
@@ -1979,6 +1972,7 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
     if (child == 0) {
         int f;
+	char path[200];
 
         /* Child process */
         
@@ -1991,9 +1985,11 @@ ProxyInit(int cin, int cout, char *const *argv)
         
         /* Redirect stdin, stdout, and stderr to pipes before execing */ 
 
-        dup2(sin[0], 0);  // stdin
-        dup2(sout[1],1);  // stdout
-        dup2(serr[1],2);  // stderr
+        dup2(sin[0],  0);		// stdin
+        dup2(sout[1], 1);		// stdout
+	sprintf(path, "/tmp/pymol%d/stderr", parent);
+	f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+        dup2(f, 2);			/* Redirect stderr to a file */
         
 	/* Close all other descriptors  */        
 	for (f = 3; f < FD_SETSIZE; f++) {
@@ -2011,7 +2007,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     /* close opposite end of pipe, these now belong to the child process  */
     close(sin[0]);
     close(sout[1]);
-    close(serr[1]);
 
 #ifdef notdef
     signal(SIGPIPE, SIG_IGN); /* ignore SIGPIPE (e.g. nanoscale terminates)*/
@@ -2020,7 +2015,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     memset(&proxy, 0, sizeof(PymolProxy));
     proxy.sin  = sin[1];
     proxy.sout = sout[0];
-    proxy.serr = serr[0];
     proxy.cin  = cin;
     proxy.cout = cout;
     proxy.flags = CAN_UPDATE;
@@ -2066,15 +2060,10 @@ ProxyInit(int cin, int cout, char *const *argv)
     //  translate them into pyMol commands, and issue them to child proccess
     //  send images back
 
-    if (write(cout, "PyMol 1.0\n", 10) != 10) {
-	ERROR("short write of signature");
-    }
-    
     PollForEvents(&proxy);
 
     close(proxy.cout);
     close(proxy.sout);
-    close(proxy.serr);
     close(proxy.cin);
     close(proxy.sin);
 
@@ -2114,14 +2103,11 @@ static void
 PollForEvents(PymolProxy *proxyPtr)
 {
     Tcl_DString clientCmds;
-    struct pollfd pollResults[4], initPoll;
+    struct pollfd pollFd[3];
     int flags;
 
     flags = fcntl(proxyPtr->cin, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
-
-    flags = fcntl(proxyPtr->serr, F_GETFL);
-    fcntl(proxyPtr->serr, F_SETFL, flags|O_NONBLOCK);
 
     flags = fcntl(proxyPtr->sout, F_GETFL);
     fcntl(proxyPtr->sout, F_SETFL, flags|O_NONBLOCK);
@@ -2130,36 +2116,31 @@ PollForEvents(PymolProxy *proxyPtr)
     fcntl(proxyPtr->cout, F_SETFL, flags|O_NONBLOCK);
 
     /* Read file descriptors. */
-    pollResults[0].fd = proxyPtr->cout;	/* Client standard output  */
-    pollResults[1].fd = proxyPtr->sout;	/* Server standard error.  */
-    pollResults[2].fd = proxyPtr->serr;	/* Server standard error.  */
-    pollResults[0].events = pollResults[1].events = 
-	pollResults[2].events = POLLIN;
+    pollFd[0].fd = proxyPtr->cout;	/* Client standard output  */
+    pollFd[1].fd = proxyPtr->sout;	/* Server standard error.  */
+    pollFd[0].events = pollFd[1].events = POLLIN;
 
     /* Write file descriptors. */
-    pollResults[3].fd = proxyPtr->cin;	/* Client standard input. */
-    pollResults[3].events = POLLOUT;
+    pollFd[2].fd = proxyPtr->cin;	/* Client standard input. */
+    pollFd[2].events = POLLOUT;
 
     InitBuffer(&proxyPtr->client, proxyPtr->cout);
     InitBuffer(&proxyPtr->server, proxyPtr->sout);
 
-#ifdef notdef
-    initPoll.fd = proxyPtr->sout;
-    initPoll.events = POLLIN;
-    if (poll(&initPoll, 1, -1) < 0) {
-	ERROR("Initial poll failed: %s", strerror(errno));
-	exit(1);
+    Tcl_Eval(proxyPtr->interp, "reset\n");
+    if (write(cout, "PyMol 1.0\n", 10) != 10) {
+	ERROR("short write of signature");
     }
-#endif
+
     Tcl_DStringInit(&clientCmds);
     for (;;) {
 	int timeout, nChannels;
 
-	nChannels =  (proxyPtr->headPtr != NULL) ? 4 : 3;
+	nChannels =  (proxyPtr->headPtr != NULL) ? 3 : 2;
 
 #define PENDING_TIMEOUT		10  /* milliseconds. */
 	timeout = (proxyPtr->flags & UPDATE_PENDING) ? PENDING_TIMEOUT : -1;
-	nChannels = poll(pollResults, nChannels, timeout);
+	nChannels = poll(pollFd, nChannels, timeout);
 	if (nChannels < 0) {
 	    ERROR("POLL ERROR: %s", strerror(errno));
 	    continue;		/* or exit? */
@@ -2170,7 +2151,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	 * the pymol server process' stdout or stderr.  We don't want the
 	 * the pymol server to block writing to stderr or stdout.
 	 */
-	if (pollResults[1].revents & POLLIN) { 
+	if (pollFd[1].revents & POLLIN) { /* Server stdout */
 	    int nBytes;
 	    char *line;
 	    
@@ -2190,30 +2171,8 @@ PollForEvents(PymolProxy *proxyPtr)
 	    }
 	}
 
-	if (pollResults[2].revents & POLLIN) { 
-	    ssize_t nRead;
-	    char buf[BUFSIZ];
-	    
-	    Debug("Reading pymol stderr\n");
-	    /* pyMol Stderr Connection: pymol standard error output */
-	    
-	    nRead = read(pollResults[2].fd, buf, BUFSIZ-1);
-	    if (nRead <= 0) {
-		ERROR("unexpected read error from server (stderr): %s",
-		      strerror(errno));
-		if (errno != EINTR) { 
-		    ERROR("lost connection (stderr) to pymol server: %s",
-			  strerror(errno));
-		    goto error;
-		}
-	    }
-	    buf[nRead] = '\0';
-	    Debug("stderr>%s", buf);
-	    Debug("Done reading pymol stderr\n");
-	}
-
 	/* We have some descriptors ready. */
-	if (pollResults[0].revents & POLLIN) { 
+	if (pollFd[0].revents & POLLIN) { /* Client stdout */
 	    Debug("Reading client stdout\n");
 	    for (;;) {
 		int nBytes;
@@ -2268,9 +2227,8 @@ PollForEvents(PymolProxy *proxyPtr)
 		continue;
 	    }
 	}
-	if ((proxyPtr->headPtr != NULL) && 
-	    (pollResults[3].revents & POLLOUT)) { 
-	    WriteImage(proxyPtr, pollResults[3].fd);
+	if ((proxyPtr->headPtr != NULL) && (pollFd[2].revents & POLLOUT)) { 
+	    WriteImage(proxyPtr, pollFd[2].fd);
 	}
     }
  error:
