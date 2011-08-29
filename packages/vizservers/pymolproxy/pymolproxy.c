@@ -1989,6 +1989,11 @@ ProxyInit(int cin, int cout, char *const *argv)
         dup2(sout[1], 1);		// stdout
 	sprintf(path, "/tmp/pymol%d/stderr", parent);
 	f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+	if (f < 0) {
+	    ERROR("can't open server error file `%s': %s", path, 
+		  strerror(errno));
+	    exit(1);
+	}
         dup2(f, 2);			/* Redirect stderr to a file */
         
 	/* Close all other descriptors  */        
