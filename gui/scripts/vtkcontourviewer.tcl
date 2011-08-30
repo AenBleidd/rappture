@@ -71,6 +71,7 @@ itcl::class Rappture::VtkContourViewer {
     protected method FixLegend {}
     protected method FixSettings {what {value ""}}
     protected method Pan {option x y}
+    protected method Pick {x y}
     protected method Rebuild {}
     protected method ReceiveDataset { args }
     protected method ReceiveImage { args }
@@ -313,6 +314,9 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
         [itcl::code $this Pan drag %x %y]
     bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this Pan release %x %y]
+
+    bind $itk_component(view) <ButtonRelease-3> \
+        [itcl::code $this Pick %x %y]
 
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
@@ -802,18 +806,36 @@ itcl::body Rappture::VtkContourViewer::ReceiveDataset { args } {
     }
     set option [lindex $args 0]
     switch -- $option {
-	"value" {
+	"scalar" {
 	    set option [lindex $args 1]
 	    switch -- $option {
 		"world" {
-		    foreach { x y z value } [lrange $args 2 end] break
-		    puts stderr "world x=$x y=$y z=$z value=$value"
+		    foreach { x y z value tag } [lrange $args 2 end] break
+		    puts stderr "world x=$x y=$y z=$z value=$value tag=$tag"
 		}
 		"pixel" {
-		    foreach { x y value } [lrange $args 2 end] break
-		    puts stderr "pixel x=$x y=$y value=$value"
+		    foreach { x y value tag } [lrange $args 2 end] break
+		    puts stderr "pixel x=$x y=$y value=$value tag=$tag"
 		}
 	    }
+	}
+	"vector" {
+	    set option [lindex $args 1]
+	    switch -- $option {
+		"world" {
+		    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
+                    puts stderr "world x=$x y=$y z=$z value=$vx $xy $vz tag=$tag"
+		}
+		"pixel" {
+		    foreach { x y vx vy vz tag } [lrange $args 2 end] break
+                    puts stderr "pixel x=$x y=$y value=$vx $xy $vz tag=$tag"
+		}
+	    }
+	}
+	"names" {
+            foreach { name } [lindex $args 1] {
+                puts stderr "Dataset: $name"
+            }
 	}
 	default {
 	    error "unknown dataset option \"$option\" from server"
@@ -1034,6 +1056,12 @@ itcl::body Rappture::VtkContourViewer::Rotate {option x y} {
             error "bad option \"$option\": should be click, drag, release"
         }
     }
+}
+
+itcl::body Rappture::VtkContourViewer::Pick {x y} {
+    foreach tag [CurrentDatasets -visible] {
+        SendCmd "dataset getscalar pixel $x $y $tag"
+    } 
 }
 
 # ----------------------------------------------------------------------
