@@ -281,6 +281,7 @@ AC_CHECK_LIB([avcodec], [avcodec_alloc_frame])
 AC_CHECK_LIB([avformat], [avformat_alloc_context], [],
     AC_CHECK_LIB([avformat], [av_alloc_format_context], [], 
         [AC_MSG_WARN([libavformat not usable])]))
+AC_CHECK_FUNCS([avformat_alloc_context])
 AC_CHECK_LIB([avutil], [av_free])
 AC_CHECK_FUNCS([img_convert])
 
