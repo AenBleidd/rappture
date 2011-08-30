@@ -14,8 +14,11 @@
 #include <sys/file.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <tcl.h>
+
+#include "config.h"
 
 #define TRUE	1
 #define FALSE	0
@@ -380,13 +383,27 @@ main(int argc, char **argv)
 	    }
 	    /* Accept the new connection. */
 	    length = sizeof(newaddr);
+#ifdef HAVE_ACCEPT4
 	    f = accept4(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
 			&length, SOCK_CLOEXEC);
+#else
+	    f = accept(serverPtr->listenerFd, (struct sockaddr *)&newaddr, 
+		       &length);
+#endif
 	    if (f < 0) {
 		ERROR("Can't accept server \"%s\": %s", serverPtr->name, 
 		      strerror(errno));
 		exit(1);
 	    }
+#ifndef HAVE_ACCEPT4
+	    int flags = fcntl(f, F_GETFD);
+	    flags |= FD_CLOEXEC;
+	    if (fcntl(f, F_SETFD, flags) < 0) {
+		ERROR("Can't set FD_CLOEXEC on socket \"%s\": %s", serverPtr->name, 
+		      strerror(errno));
+		exit(1);
+	    }
+#endif
 	    INFO("Connecting \"%s\" to %s\n", serverPtr->name, 
 		 inet_ntoa(newaddr.sin_addr));
 
