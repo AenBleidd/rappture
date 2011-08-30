@@ -95,11 +95,11 @@ typedef struct {
 
 static Stats stats;
 
-#define READTRACE	1
-#define EXPECTTRACE	1
+#define READTRACE	0
+#define EXPECTTRACE	0
 #define WRITETRACE	0
 
-static int debug = TRUE;
+static int debug = FALSE;
 
 static FILE *flog;
 static FILE *scriptFile;
