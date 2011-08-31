@@ -36,7 +36,8 @@ Streamlines::Streamlines() :
     _lineType(LINES),
     _colorMode(COLOR_BY_VECTOR_MAGNITUDE),
     _colorMap(NULL),
-    _seedVisible(true)
+    _seedVisible(true),
+    _dataScale(1)
 {
     _faceCulling = true;
     _color[0] = 1.0f;
@@ -244,6 +245,11 @@ void Streamlines::update()
     if (bounds[5] - bounds[4] > maxBound) {
         maxBound = bounds[5] - bounds[4];
     }
+
+    double cellSizeRange[2];
+    double avgSize;
+    _dataSet->getCellSizeRange(cellSizeRange, &avgSize);
+    _dataScale = avgSize / 8.;
 
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
 
@@ -745,7 +751,7 @@ void Streamlines::setLineTypeToTubes(int numSides, double radius)
         if (numSides < 3)
             numSides = 3;
         tubeFilter->SetNumberOfSides(numSides);
-        tubeFilter->SetRadius(radius);
+        tubeFilter->SetRadius(_dataScale * radius);
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());
         if (_faceCulling && _opacity == 1.0)
             setCulling(_linesActor->GetProperty(), true);
@@ -770,7 +776,7 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
             _lineFilter->SetInputConnection(_streamTracer->GetOutputPort());
         }
         vtkRibbonFilter *ribbonFilter = vtkRibbonFilter::SafeDownCast(_lineFilter);
-        ribbonFilter->SetWidth(width);
+        ribbonFilter->SetWidth(_dataScale * width);
         ribbonFilter->SetAngle(angle);
         ribbonFilter->UseDefaultNormalOn();
         _pdMapper->SetInputConnection(_lineFilter->GetOutputPort());

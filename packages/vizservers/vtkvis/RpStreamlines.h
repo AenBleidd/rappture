@@ -144,6 +144,7 @@ private:
     bool _seedVisible;
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
+    double _dataScale;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _linesActor;

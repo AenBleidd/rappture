@@ -67,7 +67,7 @@ public:
 
     void getBounds(double bounds[6]) const;
 
-    void getCellSizeRange(double minmax[6], double *average) const;
+    void getCellSizeRange(double minmax[2], double *average);
 
     bool getScalarValue(double x, double y, double z, double *value) const;
 
@@ -86,6 +86,8 @@ private:
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;
     bool _visible;
+    double _cellSizeRange[2];
+    double _cellSizeAverage;
 };
 
 }
