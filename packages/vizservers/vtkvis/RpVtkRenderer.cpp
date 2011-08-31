@@ -1381,6 +1381,7 @@ void Renderer::deleteColorMap(const ColorMapId& id)
  */
 bool Renderer::renderColorMap(const ColorMapId& id, 
                               const DataSetId& dataSetID,
+                              Renderer::LegendType legendType,
                               const char *title,
                               int width, int height,
                               vtkUnsignedCharArray *imgData)
@@ -1415,18 +1416,66 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     }
 
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
+    DataSet *dataSet = NULL;
+    bool cumulative = _useCumulativeRange;
     if (dataSetID.compare("all") == 0) {
-        lut->SetRange(_cumulativeScalarRange);
+        cumulative = true;
     } else {
-        DataSet *dataSet = getDataSet(dataSetID);
+        dataSet = getDataSet(dataSetID);
         if (dataSet == NULL) {
+            cumulative = true;
+        }
+    }
+
+    switch (legendType) {
+    case ACTIVE_VECTOR_MAGNITUDE:
+        if (cumulative) {
+            lut->SetRange(_cumulativeVectorMagnitudeRange);
+        } else {
+            double range[2];
+            dataSet->getVectorRange(range);
+            lut->SetRange(range);
+        }
+        break;
+    case ACTIVE_VECTOR_X:
+        if (cumulative) {
+            lut->SetRange(_cumulativeVectorComponentRange[0]);
+        } else {
+            double range[2];
+            dataSet->getVectorRange(range, 0);
+            lut->SetRange(range);
+        }
+        break;
+    case ACTIVE_VECTOR_Y:
+        if (cumulative) {
+            lut->SetRange(_cumulativeVectorComponentRange[1]);
+        } else {
+            double range[2];
+            dataSet->getVectorRange(range, 1);
+            lut->SetRange(range);
+        }
+        break;
+    case ACTIVE_VECTOR_Z:
+        if (cumulative) {
+            lut->SetRange(_cumulativeVectorComponentRange[2]);
+        } else {
+            double range[2];
+            dataSet->getVectorRange(range, 1);
+            lut->SetRange(range);
+        }
+        break;
+    case ACTIVE_SCALAR:
+    default:
+        if (cumulative) {
             lut->SetRange(_cumulativeScalarRange);
         } else {
             double range[2];
             dataSet->getScalarRange(range);
             lut->SetRange(range);
         }
+        break;
     }
+
     _scalarBarActor->SetLookupTable(lut);
 
     // Set viewport-relative width/height/pos
