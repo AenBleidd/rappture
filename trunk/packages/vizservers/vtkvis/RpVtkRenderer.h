@@ -86,6 +86,14 @@ public:
         IMAGE
     };
 
+    enum LegendType {
+        ACTIVE_SCALAR,
+        ACTIVE_VECTOR_MAGNITUDE,
+        ACTIVE_VECTOR_X,
+        ACTIVE_VECTOR_Y,
+        ACTIVE_VECTOR_Z
+    };
+
     typedef std::string DataSetId;
     typedef std::string ColorMapId;
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
@@ -239,6 +247,7 @@ public:
 
     bool renderColorMap(const ColorMapId& id, 
                         const DataSetId& dataSetID,
+                        LegendType legendType,
                         const char *title,
                         int width, int height,
                         vtkUnsignedCharArray *imgData);

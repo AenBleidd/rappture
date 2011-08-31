@@ -2530,32 +2530,50 @@ static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
-    if (objc < 4) {
+    if (objc < 6) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " colormapName title width height ?dataSetName?\"", (char*)NULL);
+                Tcl_GetString(objv[0]), " colormapName legendType title width height ?dataSetName?\"", (char*)NULL);
         return TCL_ERROR;
     }
     const char *name = Tcl_GetString(objv[1]);
-    const char *title = Tcl_GetString(objv[2]);
+    const char *typeStr = Tcl_GetString(objv[2]);
+    Renderer::LegendType type;
+    if (typeStr[0] == 's' && strcmp(typeStr, "scalar") == 0) {
+        type = Renderer::ACTIVE_SCALAR;
+    } else if (typeStr[0] == 'v' && strcmp(typeStr, "vmag") == 0) {
+        type = Renderer::ACTIVE_VECTOR_MAGNITUDE;
+    } else if (typeStr[0] == 'v' && strcmp(typeStr, "vx") == 0) {
+        type = Renderer::ACTIVE_VECTOR_X;
+    } else if (typeStr[0] == 'v' && strcmp(typeStr, "vy") == 0) {
+        type = Renderer::ACTIVE_VECTOR_Y;
+    } else if (typeStr[0] == 'v' && strcmp(typeStr, "vz") == 0) {
+        type = Renderer::ACTIVE_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "Bad legendType option \"",
+                         typeStr, "\", should be one of 'scalar', 'vmag', 'vx', 'vy', 'vz'", (char*)NULL);
+        return TCL_ERROR;
+    }
+
+    const char *title = Tcl_GetString(objv[3]);
     int width, height;
 
-    if (Tcl_GetIntFromObj(interp, objv[3], &width) != TCL_OK ||
-        Tcl_GetIntFromObj(interp, objv[4], &height) != TCL_OK) {
+    if (Tcl_GetIntFromObj(interp, objv[4], &width) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[5], &height) != TCL_OK) {
         return TCL_ERROR;
     }
 
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
-    if (objc == 6) {
-        const char *dataSetName = Tcl_GetString(objv[5]);
-        if (!g_renderer->renderColorMap(name, dataSetName, title, width, height, imgData)) {
+    if (objc == 7) {
+        const char *dataSetName = Tcl_GetString(objv[6]);
+        if (!g_renderer->renderColorMap(name, dataSetName, type, title, width, height, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              name, "\" was not found", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->renderColorMap(name, "all", title, width, height, imgData)) {
+        if (!g_renderer->renderColorMap(name, "all", type, title, width, height, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              name, "\" was not found", (char*)NULL);
             return TCL_ERROR;
