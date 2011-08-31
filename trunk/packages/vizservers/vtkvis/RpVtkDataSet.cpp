@@ -30,8 +30,11 @@ using namespace Rappture::VtkVis;
 
 DataSet::DataSet(const std::string& name) :
     _name(name),
-    _visible(true)
+    _visible(true),
+    _cellSizeAverage(0)
 {
+    _cellSizeRange[0] = -1;
+    _cellSizeRange[1] = -1;
 }
 
 DataSet::~DataSet()
@@ -79,6 +82,7 @@ bool DataSet::setDataFile(const char *filename)
     reader->ReadAllVectorsOn();
     //reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
+
     return setData(reader);
 }
 
@@ -87,8 +91,6 @@ bool DataSet::setDataFile(const char *filename)
  */
 bool DataSet::setData(char *data, int nbytes)
 {
-    TRACE("Entering");
-
     vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
     vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
 
@@ -108,10 +110,7 @@ bool DataSet::setData(char *data, int nbytes)
     //reader->ReadAllTensorsOn();
     reader->ReadAllFieldsOn();
 
-    bool status = setData(reader);
-
-    TRACE("Leaving");
-    return status;
+    return setData(reader);
 }
 
 void DataSet::print() const
@@ -219,6 +218,7 @@ void DataSet::setDefaultArrays()
  */
 bool DataSet::setData(vtkDataSetReader *reader)
 {
+    TRACE("Enter");
     // Force reading data set
     reader->SetLookupTableName("");
     reader->Update();
@@ -237,6 +237,7 @@ bool DataSet::setData(vtkDataSetReader *reader)
 #ifdef WANT_TRACE
     print();
 #endif
+    TRACE("Leave");
     return true;
 }
 
@@ -514,13 +515,20 @@ void DataSet::getBounds(double bounds[6]) const
 /**
  * \brief Get the range of cell AABB diagonal lengths in the DataSet
  */
-void DataSet::getCellSizeRange(double minmax[6], double *average) const
+void DataSet::getCellSizeRange(double minmax[2], double *average)
 {
     if (_dataSet == NULL ||
         _dataSet->GetNumberOfCells() < 1) {
         minmax[0] = 1;
         minmax[1] = 1;
         *average = 1;
+        return;
+    }
+
+    if (_cellSizeRange[0] >= 0.0) {
+        minmax[0] = _cellSizeRange[0];
+        minmax[1] = _cellSizeRange[1];
+        *average = _cellSizeAverage;
         return;
     }
 
@@ -544,6 +552,9 @@ void DataSet::getCellSizeRange(double minmax[6], double *average) const
     minmax[0] = sqrt(minmax[0]);
     minmax[1] = sqrt(minmax[1]);
     *average = sqrt(*average/((double)_dataSet->GetNumberOfCells()));
+    _cellSizeRange[0] = minmax[0];
+    _cellSizeRange[1] = minmax[1];
+    _cellSizeAverage = *average;
 }
 
 /**
