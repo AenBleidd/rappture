@@ -31,6 +31,7 @@ using namespace Rappture::VtkVis;
 DataSet::DataSet(const std::string& name) :
     _name(name),
     _visible(true),
+    _opacity(1),
     _cellSizeAverage(0)
 {
     _cellSizeRange[0] = -1;
@@ -42,14 +43,78 @@ DataSet::~DataSet()
 }
 
 /**
+ * \brief Create and initialize a VTK Prop to render the outline
+ */
+void DataSet::initProp()
+{
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkActor>::New();
+        vtkProperty *property = _prop->GetProperty();
+        property->EdgeVisibilityOff();
+        property->SetOpacity(_opacity);
+        property->SetAmbient(.2);
+        property->LightingOff();
+        _prop->SetVisibility((_visible ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Create and initialize a wireframe outline
+ */
+void DataSet::showOutline(bool state)
+{
+    if (state) {
+        if (_outlineFilter == NULL) {
+            _outlineFilter = vtkSmartPointer<vtkOutlineFilter>::New();
+            _outlineFilter->SetInput(_dataSet);
+        }
+        if (_outlineMapper == NULL) {
+            _outlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+            _outlineMapper->SetInputConnection(_outlineFilter->GetOutputPort());
+        }
+        initProp();
+        _prop->SetMapper(_outlineMapper);
+    } else {
+        if (_prop != NULL) {
+            _prop->SetMapper(NULL);
+        }
+        if (_outlineMapper != NULL) {
+            _outlineMapper = NULL;
+        }
+        if (_outlineFilter != NULL) {
+            _outlineFilter = NULL;
+        }
+    }
+}
+
+/**
+ * \brief Set opacity of DataSet outline
+ *
+ * This method is used for record-keeping and opacity of the
+ * DataSet bounds outline.  The renderer controls opacity 
+ * of other related graphics objects.
+ */
+void DataSet::setOpacity(double opacity)
+{
+    _opacity = opacity;
+    if (_prop != NULL) {
+        _prop->GetProperty()->SetOpacity(opacity);
+    }
+}
+
+/**
  * \brief Set visibility flag in DataSet
  *
- * This method is used for record-keeping.  The renderer controls
- * the visibility of related graphics objects.
+ * This method is used for record-keeping and visibility of the
+ * DataSet bounds outline.  The renderer controls visibility 
+ * of other related graphics objects.
  */
 void DataSet::setVisibility(bool state)
 {
     _visible = state;
+    if (_prop != NULL) {
+        _prop->SetVisibility((state ? 1 : 0));
+    }
 }
 
 /**

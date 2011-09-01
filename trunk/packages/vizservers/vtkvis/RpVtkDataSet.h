@@ -11,6 +11,10 @@
 #include <vtkSmartPointer.h>
 #include <vtkDataSet.h>
 #include <vtkDataSetReader.h>
+#include <vtkProp.h>
+#include <vtkActor.h>
+#include <vtkOutlineFilter.h>
+#include <vtkPolyDataMapper.h>
 
 #include <string>
 #include <vector>
@@ -73,9 +77,32 @@ public:
 
     bool getVectorValue(double x, double y, double z, double vector[3]) const;
 
+    void setOpacity(double opacity);
+
+    /**
+     * \brief Get the opacity setting for the DataSet
+     *
+     * This method is used for record-keeping.  The renderer controls
+     * the visibility of related graphics objects.
+     */
+    inline double getOpacity()
+    {
+        return _opacity;
+    }
+
     void setVisibility(bool state);
 
     bool getVisibility() const;
+
+    void showOutline(bool state);
+
+    /**
+     * \brief Return the VTK prop object for the outline
+     */
+    inline vtkProp *getProp()
+    {
+        return _prop;
+    }
 
 private:
     DataSet();
@@ -83,11 +110,17 @@ private:
     void setDefaultArrays();
     void print() const;
 
+    void initProp();
+
     std::string _name;
     vtkSmartPointer<vtkDataSet> _dataSet;
     bool _visible;
+    double _opacity;
     double _cellSizeRange[2];
     double _cellSizeAverage;
+    vtkSmartPointer<vtkOutlineFilter> _outlineFilter;
+    vtkSmartPointer<vtkActor> _prop;
+    vtkSmartPointer<vtkPolyDataMapper> _outlineMapper;
 };
 
 }
