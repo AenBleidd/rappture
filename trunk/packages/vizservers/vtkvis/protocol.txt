@@ -95,6 +95,8 @@ dataset maprange <val>
         ("visible") or each individual dataset ("separate").  Defaults to
         "all"
 dataset opacity <val> <?datasetName?>
+dataset outline <bool> <?datasetName?>
+        Toggle wireframe outline of dataset's bounding box
 dataset scalar <scalarName> <?datasetName?>
         Set the active scalar field to plot
 dataset vector <vectorName> <?datasetName?>
