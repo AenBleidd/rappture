@@ -20,7 +20,6 @@
 #include <vtkTransform.h>
 #include <vtkDelaunay2D.h>
 #include <vtkDelaunay3D.h>
-#include <vtkProbeFilter.h>
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkDataSetSurfaceFilter.h>
@@ -28,6 +27,8 @@
 #include <vtkStripper.h>
 #include <vtkWarpScalar.h>
 #include <vtkPropAssembly.h>
+#include <vtkCutter.h>
+#include <vtkPlane.h>
 
 #include "RpHeightMap.h"
 #include "Trace.h"
@@ -277,22 +278,19 @@ void HeightMap::update()
                     double bounds[6];
                     mesher->GetOutput()->GetBounds(bounds);
                     // Sample a plane within the grid bounding box
-                    if (_probeFilter == NULL)
-                        _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
-                    _probeFilter->SetSourceConnection(mesher->GetOutputPort());
-                    vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
-                    int xdim = 256;
-                    int ydim = 256;
-                    int zdim = 1;
-                    imageData->SetDimensions(xdim, ydim, zdim);
-                    imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])/2.);
-                    imageData->SetSpacing((bounds[1]-bounds[0])/((double)(xdim-1)), 
-                                          (bounds[3]-bounds[2])/((double)(ydim-1)),
-                                          0);
-                    _probeFilter->SetInput(imageData);
+                    vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+                    cutter->SetInputConnection(mesher->GetOutputPort());
+                    if (_cutPlane == NULL) {
+                        _cutPlane = vtkSmartPointer<vtkPlane>::New();
+                    }
+                    _cutPlane->SetNormal(0, 0, 1);
+                    _cutPlane->SetOrigin(0,
+                                         0,
+                                         bounds[4] + (bounds[5]-bounds[4])/2.);
+                    cutter->SetCutFunction(_cutPlane);
                     vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                     gf->UseStripsOn();
-                    gf->SetInputConnection(_probeFilter->GetOutputPort());
+                    gf->SetInputConnection(cutter->GetOutputPort());
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
@@ -350,52 +348,24 @@ void HeightMap::update()
                 _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
                 _volumeSlicer->SetSampleRate(1, 1, 1);
                 gf->SetInputConnection(_volumeSlicer->GetOutputPort());
-            } else if (imageData == NULL) {
-                // structured grid, unstructured grid, or rectilinear grid
+            } else if (!_dataSet->is2D() && imageData == NULL) {
+                // 3D structured grid, unstructured grid, or rectilinear grid
                 double bounds[6];
                 ds->GetBounds(bounds);
                 // Sample a plane within the grid bounding box
-                if (_probeFilter == NULL)
-                    _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
-                _probeFilter->SetSource(ds);
-                vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
-                DataSet::PrincipalPlane plane;
-                double offset;
-                int xdim = 256;
-                int ydim = 256;
-                int zdim = 1;
-                double origin[3];
-                double spacing[3];
-                origin[0] = bounds[0];
-                origin[1] = bounds[2];
-                origin[2] = bounds[4] + (bounds[5]-bounds[4])/2.;
-                spacing[0] = (bounds[1]-bounds[0])/((double)(xdim-1));
-                spacing[1] = (bounds[3]-bounds[2])/((double)(ydim-1));
-                spacing[2] = 0;
-                if (_dataSet->is2D(&plane, &offset)) {
-                    if (plane == DataSet::PLANE_ZY) {
-                        xdim = 1;
-                        zdim = 256;
-                        origin[2] = bounds[4];
-                        spacing[0] = 0;
-                        spacing[2] = (bounds[5]-bounds[4])/((double)(zdim-1));
-                        _sliceAxis = X_AXIS;
-                    } else if (plane == DataSet::PLANE_XZ) {
-                        ydim = 1;
-                        zdim = 256;
-                        origin[2] = bounds[4];
-                        spacing[1] = 0;
-                        spacing[2] = (bounds[5]-bounds[4])/((double)(zdim-1));
-                        _sliceAxis = Y_AXIS;
-                    }
+                vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+                cutter->SetInput(ds);
+                if (_cutPlane == NULL) {
+                    _cutPlane = vtkSmartPointer<vtkPlane>::New();
                 }
-                imageData->SetDimensions(xdim, ydim, zdim);
-                imageData->SetOrigin(origin);
-                imageData->SetSpacing(spacing);
-                _probeFilter->SetInput(imageData);
-                gf->SetInputConnection(_probeFilter->GetOutputPort());
+                _cutPlane->SetNormal(0, 0, 1);
+                _cutPlane->SetOrigin(0,
+                                     0,
+                                     bounds[4] + (bounds[5]-bounds[4])/2.);
+                cutter->SetCutFunction(_cutPlane);
+                gf->SetInputConnection(cutter->GetOutputPort());
             } else {
-                // 2D image data
+                // 2D data
                 gf->SetInput(ds);
             }
             vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
@@ -555,30 +525,9 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
     }
 
     if (_volumeSlicer == NULL &&
-        _probeFilter == NULL) {
+        _cutPlane == NULL) {
         WARN("Called before update() or DataSet is not a volume");
         return;
-    }
-
-    int dims[3];
-
-    if (_pointSplatter != NULL) {
-        _pointSplatter->GetSampleDimensions(dims);
-    } else {
-        vtkImageData *imageData = vtkImageData::SafeDownCast(_dataSet->getVtkDataSet());
-        if (imageData == NULL) {
-            if (_probeFilter != NULL) {
-                imageData = vtkImageData::SafeDownCast(_probeFilter->GetInput());
-                if (imageData == NULL) {
-                    ERROR("Couldn't get probe filter input image");
-                    return;
-                }
-            } else {
-                ERROR("Not a volume data set");
-                return;
-            }
-        }
-        imageData->GetDimensions(dims);
     }
 
     _sliceAxis = axis;
@@ -599,40 +548,44 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
         }
     }
 
-    if (_probeFilter != NULL) {
-        vtkImageData *imageData = vtkImageData::SafeDownCast(_probeFilter->GetInput());
+    if (_cutPlane != NULL) {
         double bounds[6];
-        assert(vtkDataSet::SafeDownCast(_probeFilter->GetSource()) != NULL);
-        vtkDataSet::SafeDownCast(_probeFilter->GetSource())->GetBounds(bounds);
-        int dim = 256;
-
+        _dataSet->getBounds(bounds);
         switch (axis) {
         case X_AXIS:
-            imageData->SetDimensions(1, dim, dim);
-            imageData->SetOrigin(bounds[0] + (bounds[1]-bounds[0])*ratio, bounds[2], bounds[4]);
-            imageData->SetSpacing(0,
-                                  (bounds[3]-bounds[2])/((double)(dim-1)), 
-                                  (bounds[5]-bounds[4])/((double)(dim-1)));
+            _cutPlane->SetNormal(1, 0, 0);
+            _cutPlane->SetOrigin(bounds[0] + (bounds[1]-bounds[0]) * ratio,
+                                 0,
+                                 0);
             break;
         case Y_AXIS:
-            imageData->SetDimensions(dim, 1, dim);
-            imageData->SetOrigin(bounds[0], bounds[2] + (bounds[3]-bounds[2])*ratio, bounds[4]);
-            imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
-                                  0,
-                                  (bounds[5]-bounds[4])/((double)(dim-1)));
+            _cutPlane->SetNormal(0, 1, 0);
+            _cutPlane->SetOrigin(0,
+                                 bounds[2] + (bounds[3]-bounds[2]) * ratio,
+                                 0);
             break;
         case Z_AXIS:
-            imageData->SetDimensions(dim, dim, 1);
-            imageData->SetOrigin(bounds[0], bounds[2], bounds[4] + (bounds[5]-bounds[4])*ratio);
-            imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
-                                  (bounds[3]-bounds[2])/((double)(dim-1)),
-                                  0);
+            _cutPlane->SetNormal(0, 0, 1);
+            _cutPlane->SetOrigin(0,
+                                 0,
+                                 bounds[4] + (bounds[5]-bounds[4]) * ratio);
             break;
         default:
             ERROR("Invalid Axis");
             return;
         }
     } else {
+        int dims[3];
+        if (_pointSplatter != NULL) {
+            _pointSplatter->GetSampleDimensions(dims);
+        } else {
+            vtkImageData *imageData = vtkImageData::SafeDownCast(_dataSet->getVtkDataSet());
+            if (imageData == NULL) {
+                ERROR("Not a volume data set");
+                return;
+            }
+            imageData->GetDimensions(dims);
+        }
         int voi[6];
 
         switch (axis) {

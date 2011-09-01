@@ -11,7 +11,6 @@
 #include <vtkSmartPointer.h>
 #include <vtkAlgorithmOutput.h>
 #include <vtkContourFilter.h>
-#include <vtkProbeFilter.h>
 #include <vtkLookupTable.h>
 #include <vtkDataSetMapper.h>
 #include <vtkActor.h>
@@ -21,6 +20,7 @@
 #include <vtkWarpScalar.h>
 #include <vtkAssembly.h>
 #include <vtkPolyData.h>
+#include <vtkPlane.h>
 
 #include <vector>
 
@@ -130,8 +130,8 @@ private:
     vtkSmartPointer<vtkContourFilter> _contourFilter;
     vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
     vtkSmartPointer<vtkGaussianSplatter> _pointSplatter;
-    vtkSmartPointer<vtkProbeFilter> _probeFilter;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
+    vtkSmartPointer<vtkPlane> _cutPlane;
     vtkSmartPointer<vtkWarpScalar> _warp;
     vtkSmartPointer<vtkActor> _dsActor;
     vtkSmartPointer<vtkActor> _contourActor;
