@@ -182,6 +182,8 @@ void DataSet::print() const
 {
     TRACE("DataSet class: %s", _dataSet->GetClassName());
 
+    TRACE("DataSet memory: %g MiB", _dataSet->GetActualMemorySize()/1024.);
+
     double bounds[6];
     getBounds(bounds);
 
@@ -481,14 +483,34 @@ bool DataSet::setActiveScalars(const char *name)
     bool found = false;
     if (_dataSet != NULL) {
         if (_dataSet->GetPointData() != NULL) {
-            if (_dataSet->GetPointData()->SetActiveScalars(name) >= 0)
+            if (_dataSet->GetPointData()->SetActiveScalars(name) >= 0) {
+                TRACE("Set active point data scalars to %s", name);
                 found = true;
+            }
         }
         if (_dataSet->GetCellData() != NULL) {
-            if (_dataSet->GetCellData()->SetActiveScalars(name) >= 0)
+            if (_dataSet->GetCellData()->SetActiveScalars(name) >= 0) {
+                TRACE("Set active cell data scalars to %s", name);
                 found = true;
+            }
         }
     }
+#ifdef WANT_TRACE
+    if (_dataSet->GetPointData() != NULL) {
+        if (_dataSet->GetPointData()->GetScalars() != NULL) {
+            TRACE("Point data scalars: %s", _dataSet->GetPointData()->GetScalars()->GetName());
+        } else {
+            TRACE("NULL point data scalars");
+        }
+    }
+    if (_dataSet->GetCellData() != NULL) {
+        if (_dataSet->GetCellData()->GetScalars() != NULL) {
+            TRACE("Cell data scalars: %s", _dataSet->GetCellData()->GetScalars()->GetName());
+        } else {
+            TRACE("NULL cell data scalars");
+        }
+    }
+#endif
     return found;
 }
 
@@ -500,14 +522,19 @@ bool DataSet::setActiveVectors(const char *name)
     bool found = false;
     if (_dataSet != NULL) {
         if (_dataSet->GetPointData() != NULL) {
-            if (_dataSet->GetPointData()->SetActiveVectors(name) >= 0)
+            if (_dataSet->GetPointData()->SetActiveVectors(name) >= 0) {
+                TRACE("Set active point data vectors to %s", name);
                 found = true;
+            }
         }
         if (_dataSet->GetCellData() != NULL) {
-            if (_dataSet->GetCellData()->SetActiveVectors(name) >= 0)
+            if (_dataSet->GetCellData()->SetActiveVectors(name) >= 0) {
+                TRACE("Set active cell data vectors to %s", name);
                 found = true;
+            }
         }
     }
+
     return found;
 }
 
