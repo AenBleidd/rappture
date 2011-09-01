@@ -1503,9 +1503,26 @@ DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setOpacity(name, opacity);
+        g_renderer->setDataSetOpacity(name, opacity);
     } else {
-        g_renderer->setOpacity("all", opacity);
+        g_renderer->setDataSetOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setDataSetShowBounds(name, state);
+    } else {
+        g_renderer->setDataSetShowBounds("all", state);
     }
     return TCL_OK;
 }
@@ -1568,9 +1585,9 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setVisibility(name, state);
+        g_renderer->setDataSetVisibility(name, state);
     } else {
-        g_renderer->setVisibility("all", state);
+        g_renderer->setDataSetVisibility("all", state);
     }
     return TCL_OK;
 }
@@ -1582,7 +1599,8 @@ static Rappture::CmdSpec dataSetOps[] = {
     {"getvector", 4, DataSetGetVectorOp, 6, 7, "oper x y ?z? name"},
     {"maprange",  1, DataSetMapRangeOp, 3, 3, "value"},
     {"names",     1, DataSetNamesOp, 2, 2, ""},
-    {"opacity",   1, DataSetOpacityOp, 3, 4, "value ?name?"},
+    {"opacity",   2, DataSetOpacityOp, 3, 4, "value ?name?"},
+    {"outline",   2, DataSetOutlineOp, 3, 4, "bool ?name?"},
     {"scalar",    1, DataSetActiveScalarsOp, 3, 4, "scalarName ?name?"},
     {"vector",    2, DataSetActiveVectorsOp, 3, 4, "vectorName ?name?"},
     {"visible",   2, DataSetVisibleOp, 3, 4, "bool ?name?"}

@@ -135,9 +135,11 @@ public:
 
     bool getVectorValue(const DataSetId& id, double x, double y, double z, double vector[3]);
 
-    void setOpacity(const DataSetId& id, double opacity);
+    void setDataSetShowBounds(const DataSetId& id, bool state);
 
-    void setVisibility(const DataSetId& id, bool state);
+    void setDataSetOpacity(const DataSetId& id, double opacity);
+
+    void setDataSetVisibility(const DataSetId& id, bool state);
 
     void setUseCumulativeDataRange(bool state, bool onlyVisible = false);
 
@@ -194,8 +196,6 @@ public:
     // Rendering an image
 
     void setBackgroundColor(float color[3]);
-
-    void showBounds(bool state);
 
     void setClipPlane(Axis axis, double ratio, int direction);
 

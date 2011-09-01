@@ -645,6 +645,10 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteStreamlines(itr->second->getName());
         deleteVolume(itr->second->getName());
  
+        if (itr->second->getProp() != NULL) {
+            _renderer->RemoveViewProp(itr->second->getProp());
+        }
+
         TRACE("After deleting graphics objects");
 
         delete itr->second;
@@ -7735,54 +7739,70 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     bounds[4] = DBL_MAX;
     bounds[5] = -DBL_MAX;
 
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+             itr != _dataSets.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
              itr != _contour2Ds.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
              itr != _contour3Ds.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
              itr != _heightMaps.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (LICHashmap::iterator itr = _lics.begin();
              itr != _lics.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (MoleculeHashmap::iterator itr = _molecules.begin();
              itr != _molecules.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
              itr != _streamlines.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility())
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
 
@@ -8143,8 +8163,27 @@ void Renderer::setBackgroundColor(float color[3])
 /**
  * \brief Set the opacity of the specified DataSet's associated graphics objects
  */
-void Renderer::setOpacity(const DataSetId& id, double opacity)
+void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
 {
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _dataSets.end());
+
     if (id.compare("all") == 0 || getContour2D(id) != NULL)
         setContour2DOpacity(id, opacity);
     if (id.compare("all") == 0 || getContour3D(id) != NULL)
@@ -8165,12 +8204,14 @@ void Renderer::setOpacity(const DataSetId& id, double opacity)
         setStreamlinesOpacity(id, opacity);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeOpacity(id, opacity);
+
+    _needsRedraw = true;
 }
 
 /**
  * \brief Turn on/off rendering of the specified DataSet's associated graphics objects
  */
-void Renderer::setVisibility(const DataSetId& id, bool state)
+void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
 {
     DataSetHashmap::iterator itr;
 
@@ -8211,18 +8252,44 @@ void Renderer::setVisibility(const DataSetId& id, bool state)
         setStreamlinesVisibility(id, state);
     if (id.compare("all") == 0 || getVolume(id) != NULL)
         setVolumeVisibility(id, state);
+
+    _needsRedraw = true;
 }
 
 /**
  * \brief Toggle rendering of actors' bounding box
  */
-void Renderer::showBounds(bool state)
+void Renderer::setDataSetShowBounds(const DataSetId& id, bool state)
 {
-    if (state) {
-        ; // TODO: Add bounding box actor/mapper
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
     } else {
-        ; // TODO: Remove bounding box actor/mapper
+        itr = _dataSets.find(id);
     }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        if (!state && itr->second->getProp()) {
+            _renderer->RemoveViewProp(itr->second->getProp());
+        }
+
+        itr->second->showOutline(state);
+
+        if (state) {
+            _renderer->AddViewProp(itr->second->getProp());
+        }
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
 }
 
 /**
