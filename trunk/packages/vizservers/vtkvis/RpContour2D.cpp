@@ -30,6 +30,10 @@ Contour2D::Contour2D(int numContours) :
     VtkGraphicsObject(),
     _numContours(numContours)
 {
+    _edgeColor[0] = _color[0];
+    _edgeColor[1] = _color[0];
+    _edgeColor[2] = _color[0];
+    _lighting = false;
 }
 
 Contour2D::Contour2D(const std::vector<double>& contours) :
@@ -37,6 +41,10 @@ Contour2D::Contour2D(const std::vector<double>& contours) :
     _numContours(contours.size()),
     _contours(contours)
 {
+    _edgeColor[0] = _color[0];
+    _edgeColor[1] = _color[0];
+    _edgeColor[2] = _color[0];
+    _lighting = false;
 }
 
 Contour2D::~Contour2D()
@@ -47,23 +55,6 @@ Contour2D::~Contour2D()
     else
         TRACE("Deleting Contour2D with NULL DataSet");
 #endif
-}
-
-/**
- * \brief Create and initialize a VTK Prop to render isolines
- */
-void Contour2D::initProp()
-{
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        vtkProperty *property = getActor()->GetProperty();
-        property->EdgeVisibilityOn();
-        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        property->SetLineWidth(_edgeWidth);
-        property->SetOpacity(_opacity);
-        property->SetAmbient(.2);
-        property->LightingOff();
-    }
 }
 
 /**
@@ -177,6 +168,7 @@ void Contour2D::update()
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _contourMapper->ScalarVisibilityOff();
         vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
         stripper->SetInputConnection(_contourFilter->GetOutputPort());
         _contourMapper->SetInputConnection(stripper->GetOutputPort());

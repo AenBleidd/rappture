@@ -17,6 +17,7 @@
 #include <vtkSurfaceLICPainter.h>
 #include <vtkMapper.h>
 #include <vtkLookupTable.h>
+#include <vtkPlane.h>
 
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
@@ -76,6 +77,7 @@ private:
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
     vtkSmartPointer<vtkProbeFilter> _probeFilter;
+    vtkSmartPointer<vtkPlane> _cutPlane;
     vtkSmartPointer<vtkImageDataLIC2D> _lic;
     vtkSmartPointer<vtkSurfaceLICPainter> _painter;
     vtkSmartPointer<vtkMapper> _mapper;

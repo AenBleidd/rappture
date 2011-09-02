@@ -108,9 +108,12 @@ contour2d add numcontours <n> <?datasetName?>
           'dataset maprange' command.
 contour2d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
+contour2d color <r> <g> <b> <?datasetName?>
+          synonym for linecolor
 contour2d delete <?datasetName?>
 contour2d lighting <bool> <?datasetName?>
 contour2d linecolor <r> <g> <b> <?datasetName?>
+          synonym for color
 contour2d linewidth <val> <?datasetName?>
 contour2d opacity <val> <?datasetName?>
 contour2d orient <qw> <qx> <qy> <qz> <?dataSetName?>

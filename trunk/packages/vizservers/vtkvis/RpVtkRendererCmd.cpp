@@ -751,9 +751,9 @@ Contour2DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour2DEdgeColor(name, color);
+        g_renderer->setContour2DColor(name, color);
     } else {
-        g_renderer->setContour2DEdgeColor("all", color);
+        g_renderer->setContour2DColor("all", color);
     }
     return TCL_OK;
 }
@@ -869,6 +869,7 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec contour2dOps[] = {
     {"add",       1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"color",     1, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"delete",    1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
     {"lighting",  3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},

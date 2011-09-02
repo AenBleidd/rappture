@@ -53,7 +53,6 @@ public:
                               double vectorComponentRange[3][2]);
 
 private:
-    virtual void initProp();
     virtual void update();
 
     ColorMap *_colorMap;
