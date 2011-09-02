@@ -2176,6 +2176,10 @@ PollForEvents(PymolProxy *proxyPtr)
     struct pollfd pollFd[3];
     int flags;
 
+    if (write(proxyPtr->cout, "PyMol 1.0\n", 10) != 10) {
+	ERROR("short write of signature");
+    }
+
     flags = fcntl(proxyPtr->cin, F_GETFL);
     fcntl(proxyPtr->cin, F_SETFL, flags|O_NONBLOCK);
 
@@ -2198,11 +2202,6 @@ PollForEvents(PymolProxy *proxyPtr)
 
     InitBuffer(&proxyPtr->client, "client", proxyPtr->cout);
     InitBuffer(&proxyPtr->server, "server", proxyPtr->sout);
-
-    Tcl_Eval(proxyPtr->interp, "reset\n");
-    if (write(proxyPtr->cout, "PyMol 1.0\n", 10) != 10) {
-	ERROR("short write of signature");
-    }
 
     Tcl_DStringInit(&clientCmds);
     for (;;) {

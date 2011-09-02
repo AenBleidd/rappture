@@ -213,7 +213,7 @@ private:
     bool _fileState;
     
     /// Minimum number of members is set to the number you can fit in 256 bytes
-    const static int _minNumElems=(256/sizeof(T));
+    const static size_t _minNumElems = (256/sizeof(T));
     
     size_t __guesslen(const T* bytes);
     
@@ -354,50 +354,39 @@ SimpleBuffer<T>::__guesslen(const T* bytes)
  */
 template<class T>
 int
-SimpleBuffer<T>::append(const T* bytes, int nmemb)
+SimpleBuffer<T>::append(const T* bytes, int numElems)
 {
-    size_t newMembCnt = 0;
-
-    void* dest = NULL;
-    void const* src  = NULL;
-    size_t size = 0;
 
     // User specified NULL buffer to append
-    if ( (bytes == NULL) && (nmemb < 1) ) {
-        return 0;
+    if (bytes == NULL) {
+        return 0;			// Should not give append a NULL
+					// buffer pointer.
     }
-
-#ifdef notdef
-
-    /* This is dead code.  The test above catches the condition. */
 
     // FIXME: i think this needs to be division,
     // need to create test case with array of ints
     // i'm not sure we can even guess the number
     // bytes in *bytes.
 
-    size_t nbytes = 0;
-    if (nmemb == -1) {
-        // user signaled null terminated string
-        // or that we should make an educated guess
-        // at the length of the object.
-        nbytes = __guesslen(bytes);
-        nmemb = nbytes/sizeof(T);
+    size_t numBytes = 0;
+    if (numElems == -1) {
+	/* This should be moved into the SimpleCharBuffer.  It doesn't make
+	 * sense to look for a NUL byte unless it's a string buffer. We
+	 * can then change numElems to be size_t. */
+        numBytes = __guesslen(bytes);
+        numElems = numBytes / sizeof(T);
+    }
+    if (numElems <= 0) {
+        return numElems;
     }
 
-    if (nmemb <= 0) {
-        // no data written, invalid option
-        return nmemb;
-    }
-#endif
-
-    newMembCnt = (size_t)(_numElemsUsed + nmemb);
-
-    if (newMembCnt > _numElemsAllocated) {
+    size_t newSize;
+    newSize = _numElemsUsed + numElems;
+    if (newSize > _numElemsAllocated) {
 
         // buffer sizes less than min_size are set to min_size
-        if (newMembCnt < (size_t) _minNumElems) {
-            newMembCnt = (size_t) _minNumElems;
+        if (newSize < _minNumElems) {
+            newSize = _minNumElems;
         }
 
         /*
@@ -405,28 +394,22 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
          * large enough. Allocate extra space in the new buffer so that there
          * will be room to grow before we have to allocate again.
          */
-        size_t membAvl;
-        membAvl = (_numElemsAllocated > 0) ? _numElemsAllocated : _minNumElems;
-        while (newMembCnt > membAvl) {
-            membAvl += membAvl;
+        size_t size;
+        size = (_numElemsAllocated > 0) ? _numElemsAllocated : _minNumElems;
+        while (newSize > size) {
+            size += size;
         }
 
         /*
          * reallocate to a larger buffer
          */
-        if (set(membAvl) != membAvl) {
+        if (set(size) != size) {
             return 0;
         }
     }
-
-    dest = (void*) (_buf + _numElemsUsed);
-    src  = (void const*) bytes;
-    size = (size_t) (nmemb*sizeof(T));
-    memcpy(dest,src,size);
-
-    _numElemsUsed += nmemb;
-
-    return nmemb;
+    memcpy(_buf + _numElemsUsed, bytes, numElems * sizeof(T));
+    _numElemsUsed += numElems;
+    return numElems;
 }
 
 /**
