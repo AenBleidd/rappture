@@ -111,68 +111,59 @@ Buffer::~Buffer()
 
 
 bool
-Buffer::load (Outcome &status, const char* filePath)
+Buffer::load (Outcome &status, const char *path)
 {
     status.addContext("Rappture::Buffer::load()");
 
     FILE *f;
-    f = fopen(filePath, "rb");
+    f = fopen(path, "rb");
     if (f == NULL) {
-        status.addError("can't open \"%s\": %s", filePath, strerror(errno));
+        status.addError("can't open \"%s\": %s", path, strerror(errno));
         return false;
     }
+
     struct stat stat;
     if (fstat(fileno(f), &stat) < 0) {
-        status.addError("can't stat \"%s\": %s", filePath, strerror(errno));
+        status.addError("can't stat \"%s\": %s", path, strerror(errno));
         return false;
     }
-    off_t size;
-    size = stat.st_size;
-    char* memblock;
-    memblock = new char [size];
-    if (memblock == NULL) {
+
+    size_t oldSize, numBytesRead;
+
+    // Save the # of elements in the current buffer.
+    oldSize = count();
+
+    // Extend the buffer to accomodate the file contents.
+    if (extend(stat.st_size) == 0) {
         status.addError("can't allocate %d bytes for file \"%s\": %s",
-                        size, filePath, strerror(errno));
+		stat.st_size, path, strerror(errno));
         fclose(f);
         return false;
+    }	
+    // Read the file contents directly onto the end of the old buffer.
+    numBytesRead = fread((char *)bytes() + oldSize, sizeof(char), 
+	stat.st_size, f);
+    fclose(f);
+    if (numBytesRead != (size_t)stat.st_size) {
+	status.addError("can't read %ld bytes from \"%s\": %s", stat.st_size, 
+			path, strerror(errno));
+	return false;
     }
-
-    // FIXME: better yet, create an "extend" method in the buffer and returns
-    //             the address of the char buffer so I can read the data directly
-    //             into the buffer.  This eliminates memory new/copy/delete ops.
-
-    size_t nRead;
-    nRead = fread(memblock, sizeof(char), size, f);
-    fclose(f);                        // Close the file.
-
-    if (nRead != (size_t)size) {
-        status.addError("can't read %d bytes from \"%s\": %s", size, filePath, 
-                        strerror(errno));
-        return false;
-    }
-
-    int nBytes;
-    nBytes = append(memblock, size);
-    delete [] memblock;
-
-    if (nBytes != size) {
-        status.addError("can't append %d bytes from \"%s\" to buffer: %s", 
-                size, filePath, strerror(errno));
-        return false;
-    }
+    // Reset the # of elements in the buffer to the new count.
+    count(stat.st_size + oldSize);
     return true;
 }
 
 
 bool
-Buffer::dump (Outcome &status, const char* filePath)
+Buffer::dump (Outcome &status, const char* path)
 {
     status.addContext("Rappture::Buffer::dump()");
 
     FILE *f;
-    f = fopen(filePath, "wb");
+    f = fopen(path, "wb");
     if (f == NULL) {
-        status.addError("can't open \"%s\": %s\n", filePath, strerror(errno));
+        status.addError("can't open \"%s\": %s\n", path, strerror(errno));
         return false;
     }
     ssize_t nWritten;
@@ -181,7 +172,7 @@ Buffer::dump (Outcome &status, const char* filePath)
 
     if (nWritten != (ssize_t)size()) {
         status.addError("can't write %d bytes to \"%s\": %s\n", size(), 
-                        filePath, strerror(errno));
+                        path, strerror(errno));
         return false;
     }
     return true;
@@ -287,13 +278,10 @@ Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin,
                     SimpleCharBuffer& bout)
 {
     int ret=0, flush=0;
-    unsigned have=0;
     z_stream strm;
 
     char in[CHUNK];
     char out[CHUNK];
-
-    int bytesWritten = 0;
 
     /* allocate deflate state */
     strm.zalloc = Z_NULL;
@@ -329,10 +317,12 @@ Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin,
             strm.next_out = (Bytef*) out;
             ret = deflate(&strm, flush);    /* no bad return value */
             assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+
+	    int have;
             have = CHUNK - strm.avail_out;
+
             /* write to file and check for error */
-            bytesWritten = bout.append(out, have);
-            if ( ( (unsigned) bytesWritten != have ) ) {
+            if (bout.append(out, have)) {
                 (void)deflateEnd(&strm);
                 bout.clear();
                 // return Z_ERRNO;
