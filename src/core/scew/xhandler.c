@@ -192,7 +192,7 @@ char_handler(void* data, XML_Char const* s, int len)
 	    bytes = realloc(elemPtr->contents, size + 1);
 	}
 	if (bytes == NULL) {
-	    fprintf(stderr, "can't allocated %d bytes for character data\n",
+	    fprintf(stderr, "can't allocated %lu bytes for character data\n",
 		    size);
 	    return;
 	}

@@ -1,3 +1,4 @@
+
 /*
  * ======================================================================
  *  Rappture::SimpleBuffer
@@ -68,26 +69,111 @@
 #include <cstdlib>
 #include <cstdarg>
 
+/* 
+ * Note: I think I would redo this class to deal only with unsigned byte 
+ *	 arrays, instead of arrays of <T>.  I would create other classes
+ *	 that arrays of <T> that used the lower level byte array.
+ *
+ *	 It would make it cleaner if the class only dealt with bytes
+ *	 instead of elements (of various sizes).  
+ *
+ *	 Specific implementations of <T> could perform data alignment on
+ *	 word/double word/quad word boundaries.  This is an optimization
+ *	 that should could done for double arrays.
+ *
+ * Note: The signed int argument on append() should be replaced with a 
+ *	 size_t.  This limits the length of strings to appended.  It 
+ *	 silently truncates bigger sizes to the lower 32-bits.  
+ */
 namespace Rappture {
 
 template <class T>
 class SimpleBuffer {
 public:
-    SimpleBuffer();
+    /**
+     * Construct an empty SimpleBuffer.
+     */
+    SimpleBuffer() {
+	Initialize();
+    }
+    /**
+     * Construct a SimpleBuffer loaded with initial data.
+     *
+     * @param bytes pointer to bytes being stored.
+     * @param nbytes number of bytes being stored.
+     */
+    SimpleBuffer(const T* bytes, int numElems=-1) {
+	Initialize();
+	append(bytes, numElems);
+    }
     SimpleBuffer(size_t nmemb);
-    SimpleBuffer(const T* bytes, int nmemb=-1);
+    
+    /**
+     * Copy constructor
+     * @param SimpleBuffer object to copy
+     */
     SimpleBuffer(const SimpleBuffer& b);
+    
     SimpleBuffer<T>& operator=(const SimpleBuffer<T>& b);
     SimpleBuffer     operator+(const SimpleBuffer& b) const;
     SimpleBuffer<T>& operator+=(const SimpleBuffer<T>& b);
     T operator[](size_t offset);
-    virtual ~SimpleBuffer();
-
-    const T* bytes() const;
-    size_t size() const;
-    size_t nmemb() const;
-
-    SimpleBuffer<T>& clear();
+    
+    /**
+     * Destructor
+     */
+    virtual ~SimpleBuffer() {
+	Release();
+    }
+    
+    /**
+     * Get the bytes currently stored in the buffer.  These bytes can
+     * be stored, and used later to construct another Buffer to
+     * decode the information.
+     *
+     * @return Pointer to the bytes in the buffer.
+     */
+    const T* bytes() const {
+	return _buf;
+    }
+    /**
+     * Get the number of bytes currently stored in the buffer.
+     * @return Number of the bytes used in the buffer.
+     */
+    size_t size() const {
+	return _numElemsUsed * sizeof(T);
+    }
+    /**
+     * Get the number of members currently stored in the buffer.
+     * @return Number of the members used in the buffer.
+     */
+    size_t nmemb() const {
+	return _numElemsUsed;
+    }
+    /**
+     * Get the number of members currently stored in the buffer.
+     * @return Number of the members used in the buffer.
+     */
+    size_t count() const {
+	return _numElemsUsed;
+    }
+    /**
+     * Set the number of members currently stored in the buffer.
+     * @return Number of the members used in the buffer.
+     */
+    size_t count(size_t newCount) {
+	_numElemsUsed = newCount;
+	return _numElemsUsed;
+    }
+    /**
+     * Clear the buffer, making it empty.
+     * @return Reference to this buffer.
+     */
+    SimpleBuffer<T>& clear() {
+	Release();
+	return *this;
+    }
+    size_t extend(size_t extraElems);
     int append(const T* bytes, int nmemb=-1);
     int appendf(const char *format, ...);
     int remove(int nmemb);
@@ -97,92 +183,68 @@ public:
     size_t set(size_t nmemb);
     SimpleBuffer<T>& rewind();
     SimpleBuffer<T>& show();
-
+    
     bool good() const;
     bool bad() const;
     bool eof() const;
-
+    
     SimpleBuffer<T>& move(SimpleBuffer<T>& b);
-
+    
 protected:
-
-    void bufferInit();
-    void bufferFree();
-
+    
+    void Initialize();
+    void Release();
+    
 private:
-
+    
     /// Pointer to the memory that holds our buffer's data
     T* _buf;
-
+    
     /// Position offset within the buffer's memory
     size_t _pos;
-
+    
     /// Number of members stored in the buffer
-    size_t _nMembStored;
-
+    size_t _numElemsUsed;
+    
     /// Total number of members available in the buffer
-    size_t _nMembAvl;
-
+    size_t _numElemsAllocated;
+    
     /// State of the last file like operation.
     bool _fileState;
-
+    
     /// Minimum number of members is set to the number you can fit in 256 bytes
-    const static int _minMembCnt=(256/sizeof(T));
-
+    const static int _minNumElems=(256/sizeof(T));
+    
     size_t __guesslen(const T* bytes);
-
+    
 };
-
+    
 typedef SimpleBuffer<char>   SimpleCharBuffer;
 typedef SimpleBuffer<float>  SimpleFloatBuffer;
 typedef SimpleBuffer<double> SimpleDoubleBuffer;
 
 /**
- * Construct an empty SimpleBuffer.
- */
-template<class T>
-SimpleBuffer<T>::SimpleBuffer()
-{
-    bufferInit();
-}
-
-
-/**
  * Construct an empty SimpleBuffer of specified size.
  */
 template<class T>
-SimpleBuffer<T>::SimpleBuffer(size_t nmemb)
+SimpleBuffer<T>::SimpleBuffer(size_t numElems)
 {
-    bufferInit();
+    Initialize();
 
-    if (nmemb == 0) {
+    if (numElems == 0) {
         // ignore requests for sizes equal to zero
         return;
     }
 
     // buffer sizes less than min_size are set to min_size
-    if (nmemb < (size_t) _minMembCnt) {
-        nmemb = _minMembCnt;
+    if (numElems < (size_t) _minNumElems) {
+        numElems = _minNumElems;
     }
 
-    if (set(nmemb) != nmemb) {
+    if (set(numElems) != numElems) {
         return;
     }
-    _nMembStored = nmemb;
-}
-
-
-/**
- * Construct a SimpleBuffer loaded with initial data.
- *
- * @param bytes pointer to bytes being stored.
- * @param nbytes number of bytes being stored.
- */
-template<class T>
-SimpleBuffer<T>::SimpleBuffer(const T* bytes, int nmemb)
-{
-    bufferInit();
-    append(bytes,nmemb);
+    _numElemsUsed = numElems;
 }
 
 
@@ -193,8 +255,8 @@ SimpleBuffer<T>::SimpleBuffer(const T* bytes, int nmemb)
 template<class T>
 SimpleBuffer<T>::SimpleBuffer(const SimpleBuffer<T>& b)
 {
-    bufferInit();
-    append(b.bytes(),b.nmemb());
+    Initialize();
+    append(b.bytes(), b.nmemb());
 }
 
 
@@ -206,8 +268,7 @@ template<class T>
 SimpleBuffer<T>&
 SimpleBuffer<T>::operator=(const SimpleBuffer<T>& b)
 {
-    bufferFree();
-    bufferInit();
+    Release();
     append(b.bytes(),b.nmemb());
     return *this;
 }
@@ -246,74 +307,12 @@ SimpleBuffer<T>::operator+=(const SimpleBuffer<T>& b)
  */
 template<class T>
 T
-SimpleBuffer<T>::operator[](size_t idx)
+SimpleBuffer<T>::operator[](size_t index)
 {
-    return (_buf+idx);
+    return (_buf + index);		// Rely on pointer arithmetic
 }
 
 
-/**
- * Destructor
- */
-template<class T>
-SimpleBuffer<T>::~SimpleBuffer()
-{
-    bufferFree();
-}
-
-
-/**
- * Get the bytes currently stored in the buffer.  These bytes can
- * be stored, and used later to construct another Buffer to
- * decode the information.
- *
- * @return Pointer to the bytes in the buffer.
- */
-template<class T>
-const T*
-SimpleBuffer<T>::bytes() const
-{
-    return _buf;
-}
-
-
-/**
- * Get the number of bytes currently stored in the buffer.
- * @return Number of the bytes used in the buffer.
- */
-template<class T>
-size_t
-SimpleBuffer<T>::size() const
-{
-    return _nMembStored*sizeof(T);
-}
-
-
-/**
- * Get the number of members currently stored in the buffer.
- * @return Number of the members used in the buffer.
- */
-template<class T>
-size_t
-SimpleBuffer<T>::nmemb() const
-{
-    return _nMembStored;
-}
-
-
-/**
- * Clear the buffer, making it empty.
- * @return Reference to this buffer.
- */
-template<class T>
-SimpleBuffer<T>&
-SimpleBuffer<T>::clear()
-{
-    bufferFree();
-    bufferInit();
-
-    return *this;
-}
 
 /**
  * guess the length of a null terminated character buffer
@@ -326,6 +325,14 @@ SimpleBuffer<char>::__guesslen(const char* bytes)
 {
     return strlen(bytes);
 }
+
+/* FIXME:	Change the signed int to size_t.  Move the -1 copy string
+ *		up to the SimpleCharBuffer class.   There needs to be both
+ *		a heavy duty class that can take a string bigger than 
+ *		2^31-1 in length, and a convenient class that doesn't make
+ *		you add call strlen(s).
+ *		
+ */
 
 /**
  * guess the length of a non-null terminated character buffer
@@ -350,7 +357,6 @@ int
 SimpleBuffer<T>::append(const T* bytes, int nmemb)
 {
     size_t newMembCnt = 0;
-    size_t nbytes = 0;
 
     void* dest = NULL;
     void const* src  = NULL;
@@ -361,11 +367,16 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
         return 0;
     }
 
+#ifdef notdef
+
+    /* This is dead code.  The test above catches the condition. */
+
     // FIXME: i think this needs to be division,
     // need to create test case with array of ints
     // i'm not sure we can even guess the number
     // bytes in *bytes.
 
+    size_t nbytes = 0;
     if (nmemb == -1) {
         // user signaled null terminated string
         // or that we should make an educated guess
@@ -378,14 +389,15 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
         // no data written, invalid option
         return nmemb;
     }
+#endif
 
-    newMembCnt = (size_t)(_nMembStored + nmemb);
+    newMembCnt = (size_t)(_numElemsUsed + nmemb);
 
-    if (newMembCnt > _nMembAvl) {
+    if (newMembCnt > _numElemsAllocated) {
 
         // buffer sizes less than min_size are set to min_size
-        if (newMembCnt < (size_t) _minMembCnt) {
-            newMembCnt = (size_t) _minMembCnt;
+        if (newMembCnt < (size_t) _minNumElems) {
+            newMembCnt = (size_t) _minNumElems;
         }
 
         /*
@@ -394,7 +406,7 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
          * will be room to grow before we have to allocate again.
          */
         size_t membAvl;
-        membAvl = (_nMembAvl > 0) ? _nMembAvl : _minMembCnt;
+        membAvl = (_numElemsAllocated > 0) ? _numElemsAllocated : _minNumElems;
         while (newMembCnt > membAvl) {
             membAvl += membAvl;
         }
@@ -407,14 +419,50 @@ SimpleBuffer<T>::append(const T* bytes, int nmemb)
         }
     }
 
-    dest = (void*) (_buf + _nMembStored);
+    dest = (void*) (_buf + _numElemsUsed);
     src  = (void const*) bytes;
     size = (size_t) (nmemb*sizeof(T));
     memcpy(dest,src,size);
 
-    _nMembStored += nmemb;
+    _numElemsUsed += nmemb;
 
     return nmemb;
+}
+
+/**
+ * Append bytes to the end of this buffer
+ * @param pointer to bytes to be added
+ * @param number of bytes to be added
+ * @return number of bytes appended.
+ */
+template<class T>
+size_t
+SimpleBuffer<T>::extend(size_t numExtraElems)
+{
+    size_t newSize;
+
+    newSize = _numElemsUsed + numExtraElems;
+    if (newSize > _numElemsAllocated) {
+
+        /* Enforce a minimum buffer size. */
+        if (newSize < (size_t) _minNumElems) {
+            newSize = (size_t) _minNumElems;
+        }
+
+        size_t size;
+        size = (_numElemsAllocated > 0) ? _numElemsAllocated : _minNumElems;
+
+	/* Keep doubling the size of the buffer until we have enough space to
+	 * hold the extra elements. */
+        while (newSize > size) {
+            size += size;
+        }
+        /* Reallocate to a larger buffer. */
+        if (set(size) != size) {
+            return 0;
+        }
+    }
+    return _numElemsAllocated;
 }
 
 /**
@@ -462,13 +510,13 @@ SimpleBuffer<T>::appendf(const char *format, ...)
         nmemb++;
     }
 
-    newMembCnt = (size_t)(_nMembStored + nmemb);
+    newMembCnt = (size_t)(_numElemsUsed + nmemb);
 
-    if (newMembCnt > _nMembAvl) {
+    if (newMembCnt > _numElemsAllocated) {
 
         // buffer sizes less than min_size are set to min_size
-        if (newMembCnt < (size_t) _minMembCnt) {
-            newMembCnt = (size_t) _minMembCnt;
+        if (newMembCnt < (size_t) _minNumElems) {
+            newMembCnt = (size_t) _minNumElems;
         }
 
         /*
@@ -477,7 +525,7 @@ SimpleBuffer<T>::appendf(const char *format, ...)
          * will be room to grow before we have to allocate again.
          */
         size_t membAvl;
-        membAvl = (_nMembAvl > 0) ? _nMembAvl : _minMembCnt;
+        membAvl = (_numElemsAllocated > 0) ? _numElemsAllocated : _minNumElems;
         while (newMembCnt > membAvl) {
             membAvl += membAvl;
         }
@@ -490,8 +538,8 @@ SimpleBuffer<T>::appendf(const char *format, ...)
         }
     }
 
-    dest = (char*) (_buf + _nMembStored);
-    size = (_nMembAvl-_nMembStored)*sizeof(T);
+    dest = (char*) (_buf + _numElemsUsed);
+    size = (_numElemsAllocated-_numElemsUsed)*sizeof(T);
 
     va_start(arg,format);
     bytesAdded = vsnprintf(dest,size,format,arg);
@@ -510,10 +558,10 @@ SimpleBuffer<T>::appendf(const char *format, ...)
         // resize and try again.
 
         // FIXME: round the new size up to the nearest multiple of 256?
-        set(_nMembStored+nmemb);
+        set(_numElemsUsed+nmemb);
 
         // reset dest because it may have moved during reallocation
-        dest = (char*) (_buf + _nMembStored);
+        dest = (char*) (_buf + _numElemsUsed);
         size = bytesAdded;
 
         va_start(arg,format);
@@ -527,7 +575,7 @@ SimpleBuffer<T>::appendf(const char *format, ...)
         }
     }
 
-    _nMembStored += nmemb;
+    _numElemsUsed += nmemb;
 
     // remove the null character added by vsnprintf()
     // we do this because if we are appending strings,
@@ -548,21 +596,20 @@ template<class T>
 int
 SimpleBuffer<T>::remove(int nmemb)
 {
-    if ((_nMembStored - nmemb) < 0){
-        _nMembStored = 0;
+    if ((_numElemsUsed - nmemb) < 0){
+        _numElemsUsed = 0;
         _pos = 0;
     } else {
-        _nMembStored -= nmemb;
-        if (_pos >= _nMembStored) {
+        _numElemsUsed -= nmemb;
+        if (_pos >= _numElemsUsed) {
             // move _pos back to the new end of the buffer.
-            _pos = _nMembStored-1;
+            _pos = _numElemsUsed-1;
         }
     }
 
 
     return nmemb;
 }
-
 
 template<class T>
 size_t
@@ -584,10 +631,9 @@ SimpleBuffer<T>::set(size_t nmemb)
         return 0;
     }
     _buf = buf;
-    _nMembAvl = nmemb;
-    return _nMembAvl;
+    _numElemsAllocated = nmemb;
+    return _numElemsAllocated;
 }
-
 
 template<> inline
 SimpleBuffer<char>&
@@ -595,12 +641,13 @@ SimpleBuffer<char>::show()
 {
     size_t curMemb = 0;
 
-    while (curMemb != _nMembStored) {
+    while (curMemb != _numElemsUsed) {
         fprintf(stdout,"_buf[%lu] = :%c:\n", (long unsigned int)curMemb,
                 _buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
+    fprintf(stdout,"_numElemsAllocated = :%lu:\n", 
+	    (long unsigned int)_numElemsAllocated);
 
     return *this;
 }
@@ -612,12 +659,12 @@ SimpleBuffer<T>::show()
 {
     size_t curMemb = 0;
 
-    while (curMemb != _nMembStored) {
+    while (curMemb != _numElemsUsed) {
         fprintf(stdout,"_buf[%lu] = :%#x:\n", (long unsigned int)curMemb,
                 (unsigned long)_buf[curMemb]);
         curMemb += 1;
     }
-    fprintf(stdout,"_nMembAvl = :%lu:\n", (long unsigned int)_nMembAvl);
+    fprintf(stdout,"_numElemsAllocated = :%lu:\n", (long unsigned int)_numElemsAllocated);
 
     return *this;
 }
@@ -650,8 +697,8 @@ SimpleBuffer<T>::read(const T* bytes, size_t nmemb)
     }
 
     // make sure we don't read off the end of our buffer
-    if ( (_pos + nmemb) > _nMembStored ) {
-        nMembRead = _nMembStored - _pos;
+    if ( (_pos + nmemb) > _numElemsUsed ) {
+        nMembRead = _numElemsUsed - _pos;
     }
     else {
         nMembRead = nmemb;
@@ -693,9 +740,9 @@ SimpleBuffer<T>::seek(long offset, int whence)
             /* dont go off the beginning of data */
             _pos = 0;
         }
-        else if (offset >= (long)_nMembStored) {
+        else if (offset >= (long)_numElemsUsed) {
             /* dont go off the end of data */
-            _pos = _nMembStored - 1;
+            _pos = _numElemsUsed - 1;
         }
         else {
             _pos = (size_t)(offset);
@@ -706,25 +753,25 @@ SimpleBuffer<T>::seek(long offset, int whence)
             /* dont go off the beginning of data */
             _pos = 0;
         }
-        else if ((_pos + offset) >= _nMembStored) {
+        else if ((_pos + offset) >= _numElemsUsed) {
             /* dont go off the end of data */
-            _pos = _nMembStored - 1;
+            _pos = _numElemsUsed - 1;
         }
         else {
             _pos = (size_t)(_pos + offset);
         }
     }
     else if (whence == SEEK_END) {
-        if (offset <= (long)(-1*_nMembStored)) {
+        if (offset <= (long)(-1*_numElemsUsed)) {
             /* dont go off the beginning of data */
             _pos = 0;
         }
         else if (offset >= 0) {
             /* dont go off the end of data */
-            _pos = _nMembStored - 1;
+            _pos = _numElemsUsed - 1;
         }
         else {
-            _pos = (size_t)((_nMembStored - 1) + offset);
+            _pos = (size_t)((_numElemsUsed - 1) + offset);
         }
     }
     else {
@@ -793,14 +840,14 @@ template<class T>
 bool
 SimpleBuffer<T>::eof() const
 {
-    return (_pos >= _nMembStored);
+    return (_pos >= _numElemsUsed);
 }
 
 
 /**
  * Move the data from this SimpleBuffer to the SimpleBuffer provided by
  * the caller. All data except the _pos is moved and this SimpleBuffer is
- * re-initialized with bufferInit().
+ * re-initialized with Initialize().
  * @param SimpleBuffer to move the information to
  * @return reference to this SimpleBuffer object.
  */
@@ -808,15 +855,15 @@ template<class T>
 SimpleBuffer<T>&
 SimpleBuffer<T>::move(SimpleBuffer<T>& b)
 {
-    bufferFree();
+    Release();
 
     _buf = b._buf;
     _pos = b._pos;
     _fileState = b._fileState;
-    _nMembStored = b._nMembStored;
-    _nMembAvl = b._nMembAvl;
+    _numElemsUsed = b._numElemsUsed;
+    _numElemsAllocated = b._numElemsAllocated;
 
-    b.bufferInit();
+    b.Initialize();
 
     return *this;
 }
@@ -824,18 +871,18 @@ SimpleBuffer<T>::move(SimpleBuffer<T>& b)
 
  /**
   *  Initializes a dynamic buffer, discarding any previous contents
-  *  of the buffer. bufferFree() should have been called already
+  *  of the buffer. Release() should have been called already
   *  if the dynamic buffer was previously in use.
   */
 template<class T>
 void
-SimpleBuffer<T>::bufferInit()
+SimpleBuffer<T>::Initialize()
 {
     _buf = NULL;
     _pos = 0;
     _fileState = true;
-    _nMembStored = 0;
-    _nMembAvl = 0;
+    _numElemsUsed = 0;
+    _numElemsAllocated = 0;
 }
 
 
@@ -845,13 +892,13 @@ SimpleBuffer<T>::bufferInit()
  */
 template<class T>
 void
-SimpleBuffer<T>::bufferFree()
+SimpleBuffer<T>::Release()
 {
     if (_buf != NULL) {
         free(_buf);
         _buf = NULL;
     }
-    bufferInit();
+    Initialize();
 }
 
 } // namespace Rappture
