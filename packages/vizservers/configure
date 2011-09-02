@@ -1900,7 +1900,7 @@ fi
 if test "${with_vtk_includes+set}" = set; then
   withval=$with_vtk_includes; with_vtk_includes=$withval
 else
-  with_vtk_includes=/usr/include/vtk-5.6
+  with_vtk_includes=""
 fi
 
 
@@ -1909,7 +1909,7 @@ fi
 if test "${with_vtk_libs+set}" = set; then
   withval=$with_vtk_libs; with_vtk_libs=$withval
 else
-  with_vtk_libs=/usr/lib/vtk-5.6
+  with_vtk_libs=""
 fi
 
 
