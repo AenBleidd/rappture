@@ -1529,6 +1529,7 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
         height  0
     }
     SendCmd "reset"
+    DoResize
     SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
     debug "ResetView: rotate $_view(mx) $_view(my) $_view(mz)"
     SendCmd "pan $_view(x) $_view(y)"
