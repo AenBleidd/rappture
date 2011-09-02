@@ -17,6 +17,9 @@
 #include <vtkDataSetMapper.h>
 #include <vtkPainterPolyDataMapper.h>
 #include <vtkDataSetSurfaceFilter.h>
+#include <vtkCutter.h>
+#include <vtkImageMask.h>
+#include <vtkImageCast.h>
 
 #include "RpLIC.h"
 #include "Trace.h"
@@ -105,6 +108,7 @@ void LIC::update()
             _lic = vtkSmartPointer<vtkImageDataLIC2D>::New();
         }
 
+        // Need to convert to vtkImageData
         double bounds[6];
         ds->GetBounds(bounds);
         double xSize = bounds[1] - bounds[0];
@@ -115,10 +119,38 @@ void LIC::update()
             minDir = 0;
         if (ySize < xSize && ySize < zSize)
             minDir = 1;
-        // Sample a plane within the grid bounding box
         if (_probeFilter == NULL)
             _probeFilter = vtkSmartPointer<vtkProbeFilter>::New();
-        _probeFilter->SetSource(ds);
+
+        if (!_dataSet->is2D()) {
+            // Sample a plane within the grid bounding box
+            vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+            if (_cutPlane == NULL) {
+                _cutPlane = vtkSmartPointer<vtkPlane>::New();
+            }
+            if (minDir == 0) {
+                _cutPlane->SetNormal(1, 0, 0);
+                _cutPlane->SetOrigin(bounds[0] + (bounds[1]-bounds[0])/2.,
+                                     0,
+                                     0);
+            } else if (minDir == 1) {
+                _cutPlane->SetNormal(0, 1, 0);
+                _cutPlane->SetOrigin(0,
+                                     bounds[2] + (bounds[3]-bounds[2])/2.,
+                                     0);
+            } else {
+                _cutPlane->SetNormal(0, 0, 1);
+                _cutPlane->SetOrigin(0,
+                                     0,
+                                     bounds[4] + (bounds[5]-bounds[4])/2.);
+            }
+            cutter->SetInput(ds);
+            cutter->SetCutFunction(_cutPlane);
+            _probeFilter->SetSourceConnection(cutter->GetOutputPort());
+        } else {
+            _probeFilter->SetSource(ds);
+        }
+
         vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
         int xdim, ydim, zdim;
         double origin[3], spacing[3];
@@ -164,8 +196,18 @@ void LIC::update()
 
         if (_mapper == NULL) {
             _mapper = vtkSmartPointer<vtkDataSetMapper>::New();
+            _mapper->SetColorModeToMapScalars();
         }
-        _mapper->SetInputConnection(_lic->GetOutputPort());
+        _lic->Update();
+        vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+        cast->SetInputConnection(_probeFilter->GetOutputPort());
+        cast->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS,
+                                     _probeFilter->GetValidPointMaskArrayName());
+        cast->SetOutputScalarTypeToUnsignedChar();
+        vtkSmartPointer<vtkImageMask> mask = vtkSmartPointer<vtkImageMask>::New();
+        mask->SetInputConnection(0, _lic->GetOutputPort());
+        mask->SetInputConnection(1, cast->GetOutputPort());
+        _mapper->SetInputConnection(mask->GetOutputPort());
     } else {
         // DataSet is a PolyData
         vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
@@ -242,7 +284,7 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
         vtkImageData *imageData = vtkImageData::SafeDownCast(_probeFilter->GetInput());
         double bounds[6];
         assert(vtkDataSet::SafeDownCast(_probeFilter->GetSource()) != NULL);
-        vtkDataSet::SafeDownCast(_probeFilter->GetSource())->GetBounds(bounds);
+        _dataSet->getBounds(bounds);
         int dim = 128;
 
         switch (axis) {
@@ -252,6 +294,10 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
             imageData->SetSpacing(0,
                                   (bounds[3]-bounds[2])/((double)(dim-1)), 
                                   (bounds[5]-bounds[4])/((double)(dim-1)));
+            if (_cutPlane != NULL) {
+                _cutPlane->SetNormal(1, 0, 0);
+                _cutPlane->SetOrigin(bounds[0] + (bounds[1]-bounds[0])*ratio, 0, 0);
+            }
             break;
         case Y_AXIS:
             imageData->SetDimensions(dim, 1, dim);
@@ -259,6 +305,10 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
             imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
                                   0,
                                   (bounds[5]-bounds[4])/((double)(dim-1)));
+            if (_cutPlane != NULL) {
+                _cutPlane->SetNormal(0, 1, 0);
+                _cutPlane->SetOrigin(0, bounds[2] + (bounds[3]-bounds[2])*ratio, 0);
+            }
             break;
         case Z_AXIS:
             imageData->SetDimensions(dim, dim, 1);
@@ -266,6 +316,10 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
             imageData->SetSpacing((bounds[1]-bounds[0])/((double)(dim-1)), 
                                   (bounds[3]-bounds[2])/((double)(dim-1)),
                                   0);
+            if (_cutPlane != NULL) {
+                _cutPlane->SetNormal(0, 0, 1);
+                _cutPlane->SetOrigin(0, 0, bounds[4] + (bounds[5]-bounds[4])*ratio);
+            }
             break;
         default:
             ERROR("Invalid Axis");
@@ -304,6 +358,9 @@ void LIC::selectVolumeSlice(Axis axis, double ratio)
         _volumeSlicer->SetVOI(voi);
     }
 
+    if (_lic != NULL)
+        _lic->Update();
+
     if (_mapper != NULL)
         _mapper->Update();
 }
@@ -329,7 +386,7 @@ void LIC::setColorMap(ColorMap *cmap)
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
         if (_mapper != NULL) {
-            _mapper->UseLookupTableScalarRangeOn();
+            _mapper->UseLookupTableScalarRangeOff();
             _mapper->SetLookupTable(_lut);
         }
     }

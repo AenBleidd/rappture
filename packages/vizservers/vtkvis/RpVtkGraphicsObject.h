@@ -589,7 +589,7 @@ public:
     virtual void setEdgeColor(float color[3])
     {
         for (int i = 0; i < 3; i++)
-            _color[i] = color[i];
+            _edgeColor[i] = color[i];
         if (getActor() != NULL) {
             getActor()->GetProperty()->SetEdgeColor(color[0], color[1], color[2]);
         } else if (getAssembly() != NULL) {
@@ -724,6 +724,10 @@ protected:
         if (_prop == NULL) {
             _prop = vtkSmartPointer<vtkActor>::New();
             vtkProperty *property = getActor()->GetProperty();
+            property->SetColor(_color[0], _color[1], _color[2]);
+            property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+            property->SetLineWidth(_edgeWidth);
+            property->SetPointSize(_pointSize);
             property->EdgeVisibilityOff();
             property->SetOpacity(_opacity);
             property->SetAmbient(.2);

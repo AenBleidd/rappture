@@ -272,7 +272,7 @@ public:
 
     void setContour2DScale(const DataSetId& id, double scale[3]);
 
-    void setContour2DEdgeColor(const DataSetId& id, float color[3]);
+    void setContour2DColor(const DataSetId& id, float color[3]);
 
     void setContour2DEdgeWidth(const DataSetId& id, float edgeWidth);
 

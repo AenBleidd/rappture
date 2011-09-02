@@ -52,10 +52,20 @@ public:
                               double vectorMagnitudeRange[2],
                               double vectorComponentRange[3][2]);
 
+    virtual void setColor(float color[3])
+    {
+        VtkGraphicsObject::setColor(color);
+        VtkGraphicsObject::setEdgeColor(color);
+    }
+
+    virtual void setEdgeColor(float color[3])
+    {
+        setColor(color);
+    }
+
 private:
     Contour2D();
 
-    virtual void initProp();
     virtual void update();
 
     int _numContours;

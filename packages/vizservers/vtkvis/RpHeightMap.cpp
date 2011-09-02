@@ -137,13 +137,21 @@ void HeightMap::initProp()
     if (_contourActor == NULL) {
         _contourActor = vtkSmartPointer<vtkActor>::New();
         _contourActor->GetProperty()->SetOpacity(_opacity);
+        _contourActor->GetProperty()->SetColor(_contourEdgeColor[0],
+                                               _contourEdgeColor[1],
+                                               _contourEdgeColor[2]);
         _contourActor->GetProperty()->SetEdgeColor(_contourEdgeColor[0],
                                                    _contourEdgeColor[1],
                                                    _contourEdgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_contourEdgeWidth);
-        _contourActor->GetProperty()->EdgeVisibilityOn();
+        _contourActor->GetProperty()->EdgeVisibilityOff();
         _contourActor->GetProperty()->SetAmbient(.2);
         _contourActor->GetProperty()->LightingOff();
+    }
+    if (_prop == NULL) {
+        _prop = vtkSmartPointer<vtkAssembly>::New();
+        getAssembly()->AddPart(_dsActor);
+        getAssembly()->AddPart(_contourActor);
     }
 }
 
@@ -167,6 +175,8 @@ void HeightMap::update()
     // Mapper, actor to render color-mapped data set
     if (_dsMapper == NULL) {
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+        // Map scalars through lookup table regardless of type
+        _dsMapper->SetColorModeToMapScalars();
     }
 
     if (!_pipelineInitialized) {
@@ -406,6 +416,7 @@ void HeightMap::update()
     }
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _contourMapper->ScalarVisibilityOff();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
         vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
         stripper->SetInputConnection(_contourFilter->GetOutputPort());
@@ -414,12 +425,6 @@ void HeightMap::update()
     }
 
     _dsActor->SetMapper(_dsMapper);
-
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkAssembly>::New();
-        getAssembly()->AddPart(_dsActor);
-        getAssembly()->AddPart(_contourActor);
-    }
 
     _dsMapper->Update();
     _contourMapper->Update();
@@ -788,10 +793,14 @@ void HeightMap::setContourEdgeColor(float color[3])
     _contourEdgeColor[0] = color[0];
     _contourEdgeColor[1] = color[1];
     _contourEdgeColor[2] = color[2];
-    if (_contourActor != NULL)
+    if (_contourActor != NULL) {
+        _contourActor->GetProperty()->SetColor(_contourEdgeColor[0],
+                                               _contourEdgeColor[1],
+                                               _contourEdgeColor[2]);
         _contourActor->GetProperty()->SetEdgeColor(_contourEdgeColor[0],
                                                    _contourEdgeColor[1],
                                                    _contourEdgeColor[2]);
+    }
 }
 
 /**

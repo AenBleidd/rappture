@@ -69,7 +69,6 @@ public:
 private:
     Contour3D();
 
-    virtual void initProp();
     virtual void update();
 
     int _numContours;

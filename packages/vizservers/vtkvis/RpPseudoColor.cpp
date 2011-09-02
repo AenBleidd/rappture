@@ -45,24 +45,6 @@ PseudoColor::~PseudoColor()
 }
 
 /**
- * \brief Create and initialize a VTK Prop to render the colormapped dataset
- */
-void PseudoColor::initProp()
-{
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        vtkProperty *property = getActor()->GetProperty();
-        property->SetOpacity(_opacity);
-        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        property->SetLineWidth(_edgeWidth);
-        property->EdgeVisibilityOff();
-        property->SetAmbient(.2);
-        if (!_lighting)
-            property->LightingOff();
-    }
-}
-
-/**
  * \brief Internal method to set up pipeline after a state change
  */
 void PseudoColor::update()
@@ -75,6 +57,8 @@ void PseudoColor::update()
     // Mapper, actor to render color-mapped data set
     if (_dsMapper == NULL) {
         _dsMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+        // Map scalars through lookup table regardless of type
+        _dsMapper->SetColorModeToMapScalars();
     }
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);

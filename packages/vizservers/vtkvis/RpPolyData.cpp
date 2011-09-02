@@ -46,18 +46,8 @@ PolyData::~PolyData()
  */
 void PolyData::initProp()
 {
-    if (_prop == NULL) {
-        _prop = vtkSmartPointer<vtkActor>::New();
-        vtkProperty *property = getActor()->GetProperty();
-        property->EdgeVisibilityOn();
-        property->SetColor(_color[0], _color[1], _color[2]);
-        property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
-        property->SetLineWidth(_edgeWidth);
-        property->SetOpacity(_opacity);
-        property->SetAmbient(.2);
-        if (!_lighting)
-            property->LightingOff();
-    }
+    VtkGraphicsObject::initProp();
+    getActor()->GetProperty()->EdgeVisibilityOn();
 }
 
 /**

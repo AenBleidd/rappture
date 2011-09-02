@@ -1906,7 +1906,7 @@ void Renderer::setContour2DVisibility(const DataSetId& id, bool state)
 /**
  * \brief Set the RGB isoline color for the specified DataSet
  */
-void Renderer::setContour2DEdgeColor(const DataSetId& id, float color[3])
+void Renderer::setContour2DColor(const DataSetId& id, float color[3])
 {
     Contour2DHashmap::iterator itr;
 
@@ -1924,7 +1924,7 @@ void Renderer::setContour2DEdgeColor(const DataSetId& id, float color[3])
     }
 
     do {
-        itr->second->setEdgeColor(color);
+        itr->second->setColor(color);
     } while (doAll && ++itr != _contour2Ds.end());
 
     _needsRedraw = true;
