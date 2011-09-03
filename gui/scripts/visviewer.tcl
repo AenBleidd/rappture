@@ -33,7 +33,7 @@ itcl::class ::Rappture::VisViewer {
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
     private variable _idleTimeout 43200000; # 12 hours
-    #private variable _idleTimeout 5000;    # 5 seconds
+    #private variable _idleTimeout 10000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events
@@ -265,7 +265,14 @@ itcl::body Rappture::VisViewer::Disconnect {} {
 #    Indicates if we are currently connected to a server.
 #
 itcl::body Rappture::VisViewer::IsConnected {} {
-    return [expr {"" != $_sid}]
+    if { $_sid == "" } {
+	return 0
+    }
+    if { [eof $_sid] } {
+	set _sid ""
+	return 0
+    }
+    return 1
 }
 
 #
@@ -277,16 +284,15 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #   visualization server.
 #
 itcl::body Rappture::VisViewer::CheckConnection {} {
+    $_dispatcher cancel !timeout
+    if { $_idleTimeout > 0 } {
+	$_dispatcher event -after $_idleTimeout !timeout
+    }
     if { [IsConnected] } {
-        if { [eof $_sid] } {
-	    error "unexpected eof on socket"
-        } else {
-	    $_dispatcher cancel !timeout
-	    if { $_idleTimeout > 0 } {
-		$_dispatcher event -after $_idleTimeout !timeout
-	    }
-	    return 1
-	}
+	return 1
+    }
+    if { $_sid != "" } {
+	fileevent $_sid writable ""
     }
     # If we aren't connected, assume it's because the connection to the
     # visualization server broke. Try to open a connection and trigger a
@@ -331,7 +337,7 @@ itcl::body Rappture::VisViewer::SendHelper {} {
     }
     puts -nonewline $_sid $_buffer(out)
     flush $_sid 
-    set _done($this) 1;     # Success
+    set _done($this) 1;			# Success
 }
 
 #
