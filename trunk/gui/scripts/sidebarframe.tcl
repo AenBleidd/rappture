@@ -43,10 +43,13 @@ itcl::class Rappture::SidebarFrame {
     public method panel {which}
     public method select {which}
     public method pop {what}
+    public method enable { which }
+    public method disable { which }
 
     protected method _toggleTab {which}
     protected method _sash {op x}
     protected method _fixLayout {args}
+    protected method TabIndex { which }
 
     private variable _dispatcher ""  ;# dispatcher for !events
     private variable _state "closed" ;# sidebar open/closed
@@ -399,6 +402,64 @@ itcl::body Rappture::SidebarFrame::pop {how} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: disable <which>
+#
+# Pops open the sidebar and selects the specified panel.  The <which>
+# argument can be a panel index, name, or title.
+# ----------------------------------------------------------------------
+itcl::body Rappture::SidebarFrame::disable {which} {
+    set index [TabIndex $which]
+    set tab [$itk_component(tabs) get $index]
+    $itk_component(tabs) tab configure $tab -state disabled
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: enable <which>
+#
+# Pops open the sidebar and selects the specified panel.  The <which>
+# argument can be a panel index, name, or title.
+# ----------------------------------------------------------------------
+itcl::body Rappture::SidebarFrame::enable {which} {
+    set index [TabIndex $which]
+    set tab [$itk_component(tabs) get $index]
+    $itk_component(tabs) tab configure $tab -state normal
+}
+
+# ----------------------------------------------------------------------
+# USAGE: TabIndex <which>
+#
+# Pops open the sidebar and selects the specified panel.  The <which>
+# argument can be a panel index, name, or title.
+# ----------------------------------------------------------------------
+itcl::body Rappture::SidebarFrame::TabIndex {which} {
+    set pname ""
+    switch -glob -- $which {
+        [0-9]* {
+            set pname [lindex $_panels(all) $which]
+        }
+        panel[0-9]* {
+            if {[info exists itk_component($which)]} {
+                set pname $which
+            }
+        }
+        default {
+            foreach p $_panels(all) {
+                if {[string equal $_panels($p-title) $which]} {
+                    set pname $p
+                    break
+                }
+            }
+        }
+    }
+    if {$pname == ""} {
+        error "bad panel name \"$which\": should be panel id, title, or index"
+    }
+    set n [$itk_component(tabs) index -name $pname]
+    return $n
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _toggleTab <which>
 #
 # Invoked automatically when the user clicks on a tab for the sidebar.
@@ -526,3 +587,4 @@ itcl::configbody Rappture::SidebarFrame::sashcolor {
         $itk_component(sash) configure -background $itk_option(-background)
     }
 }
+

@@ -28,6 +28,8 @@ itcl::class Rappture::Drawing {
         # defined below 
     }
     public method limits {axis}
+    public method label { elem }
+    public method type { elem }
     public method style { elem }
     public method values { elem }
     public method data { elem }
@@ -38,6 +40,8 @@ itcl::class Rappture::Drawing {
     private variable _xmlobj 
     private variable _actors 
     private variable _styles 
+    private variable _labels 
+    private variable _types 
     private variable _data 
     private variable _hints
     private variable _units
@@ -72,6 +76,15 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
         switch -glob -- $elem {
             polygon* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
+                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
+                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
+		set _types($elem) polydata
+	    }
+            streamlines* {
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
+                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
+                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
+		set _types($elem) streamlines
             }
         }
     }
@@ -120,12 +133,35 @@ itcl::body Rappture::Drawing::destructor {} {
     # empty
 }
 
-# ----------------------------------------------------------------------
-# method style 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
-# ----------------------------------------------------------------------
+# 
+# label -- 
+# 
+#	Returns the label of the named drawing element.
+#
+itcl::body Rappture::Drawing::label { elem } {
+    if { [info exists _labels($elem)] } {
+        return $_labels($elem)
+    } 
+    return ""
+}
+
+# 
+# type -- 
+# 
+#	Returns the type of the named drawing element.
+#
+itcl::body Rappture::Drawing::type { elem } {
+    if { [info exists _types($elem)] } {
+        return $_types($elem)
+    } 
+    return ""
+}
+
+# 
+# style -- 
+# 
+#	Returns the style string of the named drawing element.
+#
 itcl::body Rappture::Drawing::style { elem } {
     if { [info exists _styles($elem)] } {
         return $_styles($elem)
@@ -133,12 +169,11 @@ itcl::body Rappture::Drawing::style { elem } {
     return ""
 }
 
-# ----------------------------------------------------------------------
-# method data 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
-# ----------------------------------------------------------------------
+# 
+# data -- 
+# 
+#	Returns the data of the named drawing element.
+#
 itcl::body Rappture::Drawing::data { elem } {
     if { [info exists _data($elem)] } {
         return $_data($elem)

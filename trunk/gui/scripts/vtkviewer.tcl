@@ -79,7 +79,8 @@ itcl::class Rappture::VtkViewer {
 
     # The following methods are only used by this class.
     private method BuildCameraTab {}
-    private method BuildViewTab {}
+    private method BuildVolumeTab {}
+    private method BuildStreamsTab {}
     private method BuildAxisTab {}
     private method BuildColormap { colormap dataobj comp }
     private method EventuallyResize { w h } 
@@ -113,7 +114,7 @@ itcl::class Rappture::VtkViewer {
     private common   _settings
     private variable _reset 1	   ;# indicates if camera needs to be reset
                                     # to starting position.
-
+    private variable _haveStreams 0
     # Array of transfer functions in server.  If 0 the transfer has been
     # defined but not loaded.  If 1 the transfer function has been named
     # and loaded.
@@ -184,6 +185,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
 
     array set _settings [subst {
         $this-axes		1
+        $this-seeds		1
+        $this-streamlines	1
         $this-edges		1
         $this-lighting		1
         $this-opacity		100
@@ -258,9 +261,14 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    BuildViewTab
-    BuildAxisTab
-    BuildCameraTab
+    if { [catch { 
+	BuildVolumeTab
+	BuildAxisTab
+	BuildStreamsTab
+	BuildCameraTab
+    } errs] != 0 } {
+	puts stderr err=$errs
+    }
 
     # Hack around the Tk panewindow.  The problem is that the requested 
     # size of the 3d view isn't set until an image is retrieved from
@@ -538,6 +546,7 @@ itcl::body Rappture::VtkViewer::scale {args} {
     array unset _limits
     foreach dataobj $args {
         array set bounds [limits $dataobj]
+ puts stderr bounds=[array get bounds]
 	if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
 	    set _limits(xmin) $bounds(xmin)
 	}
@@ -802,6 +811,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set _limits(vmin) ""
     set _limits(vmax) ""
     set _first ""
+    set _haveStreams 0
     foreach dataobj [get -objects] {
 	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
 	    set _first $dataobj
@@ -851,8 +861,13 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     FixSettings wireframe
     FixSettings axes
     FixSettings edges
+    FixSettings seeds
+    FixSettings streamlines
     FixSettings axismode
 
+    if { !$_haveStreams } {
+	$itk_component(main) disable "Streams Settings" 
+    }
     if {"" != $_first} {
         set location [$_first hints camera]
         if { $location != "" } {
@@ -1048,6 +1063,12 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
 	    $itk_component(view) configure -cursor hand1
 	}
 	"drag" {
+	    if { ![info exists _click(x)] } {
+		set _click(x) $x
+	    }
+	    if { ![info exists _click(y)] } {
+		set _click(y) $y
+	    }
 	    set w [winfo width $itk_component(view)]
 	    set h [winfo height $itk_component(view)]
 	    set dx [expr ($_click(x) - $x)/double($w)]
@@ -1076,77 +1097,104 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
 # to the back end.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
+    if { ![isconnected] } {
+	return
+    }
     switch -- $what {
         "opacity" {
-            if {[isconnected]} {
-                set val $_settings($this-opacity)
-                set sval [expr { 0.01 * double($val) }]
-		foreach dataset [CurrentDatasets -visible $_first] {
-		    SendCmd "polydata opacity $sval $dataset"
-		}
-            }
+	    set val $_settings($this-opacity)
+	    set sval [expr { 0.01 * double($val) }]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "polydata opacity $sval $dataset"
+	    }
         }
         "wireframe" {
-            if {[isconnected]} {
-		set bool $_settings($this-wireframe)
-		foreach dataset [CurrentDatasets -visible $_first] {
-		    SendCmd "polydata wireframe $bool $dataset"
-		}
+	    set bool $_settings($this-wireframe)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "polydata wireframe $bool $dataset"
             }
         }
         "volume" {
-            if {[isconnected]} {
-		set bool $_settings($this-volume)
-		foreach dataset [CurrentDatasets -visible $_first] {
-		    SendCmd "polydata visible $bool $dataset"
-		}
+	    set bool $_settings($this-volume)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "polydata visible $bool $dataset"
             }
         }
         "lighting" {
-            if {[isconnected]} {
-		set bool $_settings($this-lighting)
-		foreach dataset [CurrentDatasets -visible $_first] {
-		    SendCmd "polydata lighting $bool $dataset"
-		}
+	    set bool $_settings($this-lighting)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "polydata lighting $bool $dataset"
             }
         }
         "grid-x" {
-            if {[isconnected]} {
-		set bool $_settings($this-grid-x)
-		SendCmd "axis grid x $bool"
-            }
+	    set bool $_settings($this-grid-x)
+	    SendCmd "axis grid x $bool"
         }
         "grid-y" {
-            if {[isconnected]} {
-		set bool $_settings($this-grid-y)
-		SendCmd "axis grid y $bool"
-            }
+	    set bool $_settings($this-grid-y)
+	    SendCmd "axis grid y $bool"
         }
         "grid-z" {
-            if {[isconnected]} {
-		set bool $_settings($this-grid-z)
-		SendCmd "axis grid z $bool"
-            }
+	    set bool $_settings($this-grid-z)
+	    SendCmd "axis grid z $bool"
+        }
+        "axes" {
+	    set bool $_settings($this-axes)
+	    SendCmd "axis visible all $bool"
+        }
+        "axismode" {
+	    set mode [$itk_component(axismode) value]
+	    set mode [$itk_component(axismode) translate $mode]
+	    SendCmd "axis flymode $mode"
         }
         "edges" {
-            if {[isconnected]} {
-		set bool $_settings($this-edges)
-		foreach dataset [CurrentDatasets -visible $_first] {
+	    set bool $_settings($this-edges)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		if { [$dataobj type $comp] != "streamlines" } {
 		    SendCmd "polydata edges $bool $dataset"
 		}
             }
         }
-        "axes" {
-            if { [isconnected] } {
-		set bool $_settings($this-axes)
-                SendCmd "axis visible all $bool"
+        "seeds" {
+	    set bool $_settings($this-seeds)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		if { [$dataobj type $comp] == "streamlines" } {
+		    SendCmd "streamlines seed visible $bool $dataset"
+		}
+	    }
+        }
+        "streamlines" {
+	    set bool $_settings($this-streamlines)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		if { [$dataobj type $comp] == "streamlines" } {
+		    if { $bool } {
+			SendCmd "streamlines add $dataset"
+		    } else {
+			SendCmd "streamlines delete $dataset"
+		    }
+		}
             }
         }
-        "axismode" {
-            if { [isconnected] } {
-		set mode [$itk_component(axismode) value]
-		set mode [$itk_component(axismode) translate $mode]
-                SendCmd "axis flymode $mode"
+        "streammode" {
+	    set mode [$itk_component(streammode) value]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		if { [$dataobj type $comp] == "streamlines" } {
+		    switch -- $mode {
+			"lines" {
+			    SendCmd "streamlines lines $dataset"
+			}
+			"ribbons" {
+			    SendCmd "streamlines ribbons 3.0 20 $dataset"
+			}
+			"tubes" {
+			    SendCmd "streamlines tubes 20 10 $dataset"
+			}
+		    }
+		}
             }
         }
         default {
@@ -1278,33 +1326,26 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
     return [array get limits]
 }
 
-
-itcl::body Rappture::VtkViewer::BuildViewTab {} {
+itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
-        -title "View Settings" \
-        -icon [Rappture::icon wrench]]
+        -title "Volume Settings" \
+        -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
+
+    checkbutton $inner.volume \
+        -text "Visible" \
+        -variable [itcl::scope _settings($this-volume)] \
+        -command [itcl::code $this FixSettings volume] \
+        -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Wireframe" \
         -variable [itcl::scope _settings($this-wireframe)] \
         -command [itcl::code $this FixSettings wireframe] \
-        -font "Arial 9"
-
-    checkbutton $inner.axes \
-        -text "Axes" \
-        -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this FixSettings axes] \
-        -font "Arial 9"
-
-    checkbutton $inner.volume \
-        -text "Volume" \
-        -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
@@ -1319,25 +1360,77 @@ itcl::body Rappture::VtkViewer::BuildViewTab {} {
         -command [itcl::code $this FixSettings edges] \
         -font "Arial 9"
 
-    label $inner.clear -text "Clear" -font "Arial 9"
+    label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
         -showvalue off -command [itcl::code $this FixSettings opacity]
-    label $inner.opaque -text "Opaque" -font "Arial 9"
 
     blt::table $inner \
-        0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
-        1,0 $inner.volume -columnspan 4 -anchor w -pady 2 \
-        2,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
-        3,0 $inner.lighting  -columnspan 4 -anchor w \
-        4,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
-        6,0 $inner.clear -anchor e -pady 2 \
-        6,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-        6,3 $inner.opaque -anchor w -pady 2 
+        0,0 $inner.volume -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.wireframe -columnspan 4 -anchor w -pady 2 \
+        2,0 $inner.lighting  -columnspan 4 -anchor w \
+        3,0 $inner.edges -columnspan 4 -anchor w -pady 2 \
+        4,0 $inner.opacity_l -anchor w -pady 2 \
+        5,0 $inner.opacity -columnspan 2 -pady 2 -fill x 
 
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r7 -resize expand
+    blt::table configure $inner r6 -resize expand
+}
+
+
+itcl::body Rappture::VtkViewer::BuildStreamsTab {} {
+
+    set fg [option get $itk_component(hull) font Font]
+    #set bfg [option get $itk_component(hull) boldFont Font]
+
+    set inner [$itk_component(main) insert end \
+        -title "Streams Settings" \
+        -icon [Rappture::icon stream]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.streamlines \
+        -text "Visible" \
+        -variable [itcl::scope _settings($this-streamlines)] \
+        -command [itcl::code $this FixSettings streamlines] \
+        -font "Arial 9"
+
+    checkbutton $inner.seeds \
+        -text "Show seeds" \
+        -variable [itcl::scope _settings($this-seeds)] \
+        -command [itcl::code $this FixSettings seeds] \
+        -font "Arial 9"
+
+    label $inner.streammode -text "Mode" \
+        -font "Arial 9" 
+
+    itk_component add streammode {
+	Rappture::Combobox $inner.streammode_combo -width 10 -editable no
+    }
+    $inner.streammode_combo choices insert end \
+        "lines"    "lines" \
+        "ribbons"   "ribbons" \
+        "tubes"     "tubes" 
+    $itk_component(streammode) value "lines"
+    bind $inner.streammode_combo <<Value>> \
+	[itcl::code $this FixSettings streammode]
+
+    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings($this-opacity)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this FixSettings opacity]
+
+    blt::table $inner \
+        0,0 $inner.streamlines -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.seeds -columnspan 4 -anchor w -pady 2 \
+        2,0 $inner.streammode -anchor w -pady 2 \
+        2,1 $inner.streammode_combo -cspan 3 -anchor w -pady 2 \
+        3,0 $inner.opacity_l -pady 2 -fill x\
+        4,0 $inner.opacity -columnspan 2 -pady 2 -fill x
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r5 -resize expand
 }
 
 itcl::body Rappture::VtkViewer::BuildAxisTab {} {
@@ -1347,7 +1440,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Axis Settings" \
-        -icon [Rappture::icon cog]]
+        -icon [Rappture::icon axis1]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.axes \
@@ -1558,21 +1651,40 @@ itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
 }
 
 itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
-    array set props {
-        -color \#6666FF
-        -edgevisibility 1
-        -edgecolor black
-        -linewidth 1.0
-        -opacity 1.0
-	-wireframe 0
-	-lighting 1
-    }
     # Parse style string.
-    set style [$dataobj style $comp]
     set tag $dataobj-$comp
+    set type [$dataobj type $comp]
+    if { $type == "streamlines" } {
+	array set props {
+	    -color \#808080
+	    -edgevisibility 0
+	    -edgecolor black
+	    -linewidth 1.0
+	    -opacity 0.4
+	    -wireframe 0
+	    -lighting 1
+	    -seeds 1
+	    -seedcolor white
+	}
+	SendCmd "streamlines add $tag"
+	SendCmd "streamlines seed visible off"
+	set _haveStreams 1
+    } else {
+	array set props {
+	    -color \#6666FF
+	    -edgevisibility 1
+	    -edgecolor black
+	    -linewidth 1.0
+	    -opacity 1.0
+	    -wireframe 0
+	    -lighting 1
+	}
+    } 
+    set style [$dataobj style $comp]
     array set props $style
-    SendCmd "polydata color [Color2RGB $props(-color)] $tag"
+
     SendCmd "polydata edges $props(-edgevisibility) $tag"
+    SendCmd "polydata color [Color2RGB $props(-color)] $tag"
     SendCmd "polydata lighting $props(-lighting) $tag"
     SendCmd "polydata linecolor [Color2RGB $props(-edgecolor)] $tag"
     SendCmd "polydata linewidth $props(-linewidth) $tag"
