@@ -94,6 +94,9 @@ itcl::class visData {
     public method hints {args} {
         return ""
     }
+    public method type {args} {
+        return ""
+    }
 
     private variable _data ""
 }
