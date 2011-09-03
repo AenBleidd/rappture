@@ -320,13 +320,12 @@ Buffer::do_compress(Outcome& status, SimpleCharBuffer& bin,
 
 	    int have;
             have = CHUNK - strm.avail_out;
-
             /* write to file and check for error */
-            if (bout.append(out, have)) {
+            if ((have > 0) && (bout.append(out, have) == 0)) {
                 (void)deflateEnd(&strm);
                 bout.clear();
                 // return Z_ERRNO;
-                status.addError("error writing compressed data to temp buffer");
+                status.addError("error writing compressed data to temp buffer numBytes=%d", have);
                 return false;
             }
 

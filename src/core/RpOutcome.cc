@@ -82,6 +82,7 @@ Outcome::addError(const char* format, ...)
         _remark.append("\n");
         _remark.append(bufPtr);
     }
+    /* fprintf(stderr, "Outcome: %s\n", _remark.c_str()); */
     _status = 1;                /* Set to error */
     if (bufPtr != stackSpace) {
         free(bufPtr);
