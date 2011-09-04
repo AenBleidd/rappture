@@ -330,7 +330,7 @@ nv>image -type image -bbox {x y w h} -bytes <nbytes>
   Note: The bbox coordinates are in the form used by 'camera ortho world ...':
   x,y - world coordinate of lower left corner, w,h - width height in world coords
   This form is currently used only if the camera mode is set to 'image'.
-nv>legend <colormapName> <nbytes>
+nv>legend <colormapName> <title> <rmin> <rmax> <nbytes>
   <binary RGB data>
 nv>dataset scalar world <x> <y> <z> <value> <dataSetName>
 nv>dataset scalar pixel <x> <y> <value> <dataSetName>

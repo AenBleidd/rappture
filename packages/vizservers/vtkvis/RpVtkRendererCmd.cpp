@@ -2552,7 +2552,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_GetString(objv[0]), " colormapName legendType title width height numLabels ?dataSetName?\"", (char*)NULL);
         return TCL_ERROR;
     }
-    const char *name = Tcl_GetString(objv[1]);
+    const char *colorMapName = Tcl_GetString(objv[1]);
     const char *typeStr = Tcl_GetString(objv[2]);
     Renderer::LegendType type;
     if (typeStr[0] == 's' && strcmp(typeStr, "scalar") == 0) {
@@ -2571,7 +2571,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    const char *title = Tcl_GetString(objv[3]);
+    std::string title(Tcl_GetString(objv[3]));
     int width, height, numLabels;
 
     if (Tcl_GetIntFromObj(interp, objv[4], &width) != TCL_OK ||
@@ -2583,17 +2583,22 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
+    double range[2];
+
     if (objc == 8) {
         const char *dataSetName = Tcl_GetString(objv[7]);
-        if (!g_renderer->renderColorMap(name, dataSetName, type, title, width, height, numLabels, imgData)) {
+        if (!g_renderer->renderColorMap(colorMapName, dataSetName, type, title,
+                                        range, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
-                             name, "\" was not found", (char*)NULL);
+                             colorMapName, "\" or dataset \"",
+                             dataSetName, "\" was not found", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->renderColorMap(name, "all", type, title, width, height, numLabels, imgData)) {
+        if (!g_renderer->renderColorMap(colorMapName, "all", type, title,
+                                        range, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
-                             name, "\" was not found", (char*)NULL);
+                             colorMapName, "\" was not found", (char*)NULL);
             return TCL_ERROR;
         }
     }
@@ -2603,7 +2608,8 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                  TARGA_BYTES_PER_PIXEL);
 #else
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "nv>legend %s", name);
+    snprintf(cmd, sizeof(cmd), "nv>legend {%s} {%s} %g %g",
+             colorMapName, title.c_str(), range[0], range[1]);
 #ifdef RENDER_TARGA
     writeTGA(g_fdOut, cmd, imgData->GetPointer(0), width, height,
                  TARGA_BYTES_PER_PIXEL);
