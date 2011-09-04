@@ -127,6 +127,7 @@ void Streamlines::initProp()
         _seedActor->GetProperty()->SetOpacity(_opacity);
         _seedActor->GetProperty()->SetRepresentationToWireframe();
         _seedActor->GetProperty()->LightingOff();
+        setSeedVisibility(_seedVisible);
     }
     if (_prop == NULL) {
         _prop = vtkSmartPointer<vtkAssembly>::New();

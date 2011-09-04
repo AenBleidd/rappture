@@ -13,7 +13,11 @@
 #include <vtkSmartPointer.h>
 #include <vtkProp.h>
 #include <vtkActor.h>
+#ifdef HAVE_GLYPH3D_MAPPER
+#include <vtkGlyph3DMapper.h>
+#else
 #include <vtkGlyph3D.h>
+#endif
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
@@ -49,7 +53,6 @@ public:
         SCALING_OFF
     };
     enum ColorMode {
-        COLOR_BY_SCALE,
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
         COLOR_CONSTANT
@@ -118,9 +121,13 @@ private:
     double _vectorComponentRange[3][2];
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkGlyph3D> _glyphGenerator;
     vtkSmartPointer<vtkPolyDataAlgorithm> _glyphSource;
+#ifdef HAVE_GLYPH3D_MAPPER
+    vtkSmartPointer<vtkGlyph3DMapper> _glyphMapper;
+#else
+    vtkSmartPointer<vtkGlyph3D> _glyphGenerator;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
+#endif
 };
 
 }

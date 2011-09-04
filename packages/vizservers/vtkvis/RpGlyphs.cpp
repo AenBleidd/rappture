@@ -142,9 +142,15 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         setCullFace(CULL_BACK);
     }
 
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+        _glyphMapper->SetSourceConnection(_glyphSource->GetOutputPort());
+    }
+#else
     if (_glyphGenerator != NULL) {
         _glyphGenerator->SetSourceConnection(_glyphSource->GetOutputPort());
     }
+#endif
 }
 
 /**
@@ -158,9 +164,23 @@ void Glyphs::update()
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-    if (_glyphGenerator == NULL) {
-	_glyphGenerator = vtkSmartPointer<vtkGlyph3D>::New();
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper == NULL) {
+        _glyphMapper = vtkSmartPointer<vtkGlyph3DMapper>::New();
+        _glyphMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _glyphMapper->ScalarVisibilityOn();
     }
+#else
+    if (_glyphGenerator == NULL) {
+        _glyphGenerator = vtkSmartPointer<vtkGlyph3D>::New();
+    }
+    if (_pdMapper == NULL) {
+        _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _pdMapper->ScalarVisibilityOn();
+        _pdMapper->SetInputConnection(_glyphGenerator->GetOutputPort());
+    }
+#endif
 
     initProp();
 
@@ -184,22 +204,19 @@ void Glyphs::update()
         }
     }
 
+#ifdef HAVE_GLYPH3D_MAPPER
+    _glyphMapper->SetInputConnection(ds->GetProducerPort());
+#else
     _glyphGenerator->SetInput(ds);
+#endif
 
     if (ds->GetPointData()->GetVectors() != NULL) {
         TRACE("Setting scale mode to vector magnitude");
-        _scalingMode = SCALE_BY_VECTOR_MAGNITUDE;
-        _glyphGenerator->SetScaleModeToScaleByVector();
-        _glyphGenerator->SetRange(_vectorMagnitudeRange);
+        setScalingMode(SCALE_BY_VECTOR_MAGNITUDE);
     } else {
         TRACE("Setting scale mode to scalar");
-        _scalingMode = SCALE_BY_SCALAR;
-        _glyphGenerator->SetScaleModeToScaleByScalar();
-        _glyphGenerator->SetRange(_dataRange);
+        setScalingMode(SCALE_BY_SCALAR);
     }
-
-    // Normalize sizes to [0,1] * ScaleFactor
-    _glyphGenerator->ClampingOn();
 
     double cellSizeRange[2];
     double avgSize;
@@ -210,33 +227,36 @@ void Glyphs::update()
     TRACE("Cell size range: %g,%g, Data scale factor: %g",
           cellSizeRange[0], cellSizeRange[1], _dataScale);
 
+    // Normalize sizes to [0,1] * ScaleFactor
+#ifdef HAVE_GLYPH3D_MAPPER
+    _glyphMapper->ClampingOn();
+    _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+    _glyphMapper->ScalingOn();
+#else
+    _glyphGenerator->ClampingOn();
     _glyphGenerator->SetScaleFactor(_scaleFactor * _dataScale);
     _glyphGenerator->ScalingOn();
+#endif
 
     if (ds->GetPointData()->GetScalars() == NULL) {
         TRACE("Setting color mode to vector magnitude");
-        _glyphGenerator->SetColorModeToColorByVector();
-        _colorMode = COLOR_BY_VECTOR_MAGNITUDE;
+        setColorMode(COLOR_BY_VECTOR_MAGNITUDE);
     } else {
         TRACE("Setting color mode to scalar");
-        _glyphGenerator->SetColorModeToColorByScalar();
-        _colorMode = COLOR_BY_SCALAR;
+        setColorMode(COLOR_BY_SCALAR);
     }
-
-    if (_pdMapper == NULL) {
-        _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _pdMapper->ScalarVisibilityOn();
-    }
-
-    _pdMapper->SetInputConnection(_glyphGenerator->GetOutputPort());
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
     }
 
+#ifdef HAVE_GLYPH3D_MAPPER
+    getActor()->SetMapper(_glyphMapper);
+    _glyphMapper->Update();
+#else
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
+#endif
 }
 
 /**
@@ -245,16 +265,32 @@ void Glyphs::update()
 void Glyphs::setScalingMode(ScalingMode mode)
 {
     _scalingMode = mode;
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+#else
     if (_glyphGenerator != NULL) {
+#endif
         switch (mode) {
         case SCALE_BY_SCALAR: {
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->SetRange(_dataRange);
+            _glyphMapper->SetScaleModeToScaleByMagnitude();
+            _glyphMapper->SetScaleArray(vtkDataSetAttributes::SCALARS);
+#else
             _glyphGenerator->SetRange(_dataRange);
             _glyphGenerator->SetScaleModeToScaleByScalar();
+#endif
         }
             break;
         case SCALE_BY_VECTOR_MAGNITUDE: {
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->SetRange(_dataRange);
+            _glyphMapper->SetScaleModeToScaleByMagnitude();
+            _glyphMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+#else
             _glyphGenerator->SetRange(_vectorMagnitudeRange);
             _glyphGenerator->SetScaleModeToScaleByVector();
+#endif
         }
             break;
         case SCALE_BY_VECTOR_COMPONENTS: {
@@ -265,13 +301,23 @@ void Glyphs::setScalingMode(ScalingMode mode)
             sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[1][1]);
             sizeRange[0] = min2(sizeRange[0], _vectorComponentRange[2][0]);
             sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[2][1]);
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->SetRange(sizeRange);
+            _glyphMapper->SetScaleModeToScaleByVectorComponents();
+            _glyphMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+#else
             _glyphGenerator->SetRange(sizeRange);
             _glyphGenerator->SetScaleModeToScaleByVectorComponents();
+#endif
         }
             break;
         case SCALING_OFF:
         default:
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->SetScaleModeToNoDataScaling();
+#else
             _glyphGenerator->SetScaleModeToDataScalingOff();
+#endif
         }
     }
 }
@@ -282,31 +328,51 @@ void Glyphs::setScalingMode(ScalingMode mode)
 void Glyphs::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+#else
     if (_glyphGenerator != NULL) {
+#endif
         switch (mode) {
-        case COLOR_BY_SCALE:
-            _glyphGenerator->SetColorModeToColorByScale();
-            _pdMapper->ScalarVisibilityOn();
-            double dataRange[2];
-            dataRange[0] = 0;
-            dataRange[1] = 1;
-            _lut->SetRange(dataRange);
-            break;
         case COLOR_BY_VECTOR_MAGNITUDE: {
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->ScalarVisibilityOn();
+            _glyphMapper->SetScalarModeToUsePointFieldData();
+            vtkDataSet *ds = _dataSet->getVtkDataSet();
+            if (ds->GetPointData() != NULL &&
+                ds->GetPointData()->GetVectors() != NULL) {
+                _glyphMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+            }
+#else
             _glyphGenerator->SetColorModeToColorByVector();
             _pdMapper->ScalarVisibilityOn();
-            _lut->SetRange(_vectorMagnitudeRange);
+#endif
+            if (_lut != NULL) {
+                _lut->SetVectorModeToMagnitude();
+                _lut->SetRange(_vectorMagnitudeRange);
+            }
         }
             break;
         case COLOR_BY_SCALAR: {
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->ScalarVisibilityOn();
+            _glyphMapper->SetScalarModeToDefault();
+#else
             _glyphGenerator->SetColorModeToColorByScalar();
             _pdMapper->ScalarVisibilityOn();
-            _lut->SetRange(_dataRange);
+#endif
+            if (_lut != NULL) {
+                _lut->SetRange(_dataRange);
+            }
         }
             break;
         case COLOR_CONSTANT:
         default:
+#ifdef HAVE_GLYPH3D_MAPPER
+            _glyphMapper->ScalarVisibilityOff();
+#else
             _pdMapper->ScalarVisibilityOff();
+#endif
         }
      }
 }
@@ -317,9 +383,15 @@ void Glyphs::setColorMode(ColorMode mode)
 void Glyphs::setScaleFactor(double scale)
 {
     _scaleFactor = scale;
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+        _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
+    }
+#else
     if (_glyphGenerator != NULL) {
         _glyphGenerator->SetScaleFactor(_scaleFactor * _dataScale);
     }
+#endif
 }
 
 void Glyphs::updateRanges(bool useCumulative,
@@ -369,24 +441,25 @@ void Glyphs::setColorMap(ColorMap *cmap)
  
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
+#ifdef HAVE_GLYPH3D_MAPPER
+        if (_glyphMapper != NULL) {
+            _glyphMapper->UseLookupTableScalarRangeOn();
+            _glyphMapper->SetLookupTable(_lut);
+        }
+#else
         if (_pdMapper != NULL) {
             _pdMapper->UseLookupTableScalarRangeOn();
             _pdMapper->SetLookupTable(_lut);
         }
+#endif
     }
 
     _lut->DeepCopy(cmap->getLookupTable());
 
     switch (_colorMode) {
-    case COLOR_BY_SCALE: {
-        double dataRange[2];
-        dataRange[0] = 0;
-        dataRange[1] = 1;
-        _lut->SetRange(dataRange);
-    }
-        break;
     case COLOR_BY_VECTOR_MAGNITUDE:
         _lut->SetRange(_vectorMagnitudeRange);
+        _lut->SetVectorModeToMagnitude();
         break;
     case COLOR_BY_SCALAR:
     default:
@@ -402,7 +475,13 @@ void Glyphs::setColorMap(ColorMap *cmap)
  */
 void Glyphs::setClippingPlanes(vtkPlaneCollection *planes)
 {
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+        _glyphMapper->SetClippingPlanes(planes);
+    }
+#else
     if (_pdMapper != NULL) {
         _pdMapper->SetClippingPlanes(planes);
     }
+#endif
 }

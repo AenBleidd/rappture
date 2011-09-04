@@ -1711,15 +1711,13 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *str = Tcl_GetString(objv[2]);
     if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
         mode = Glyphs::COLOR_CONSTANT;
-    } else if (str[0] == 's' && strcmp(str, "scale") == 0) {
-        mode = Glyphs::COLOR_BY_SCALE;
     } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
         mode = Glyphs::COLOR_BY_SCALAR;
     } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
         mode = Glyphs::COLOR_BY_VECTOR_MAGNITUDE;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scale', 'scalar', 'vmag', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {
@@ -2549,9 +2547,9 @@ static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
-    if (objc < 6) {
+    if (objc < 7) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " colormapName legendType title width height ?dataSetName?\"", (char*)NULL);
+                Tcl_GetString(objv[0]), " colormapName legendType title width height numLabels ?dataSetName?\"", (char*)NULL);
         return TCL_ERROR;
     }
     const char *name = Tcl_GetString(objv[1]);
@@ -2574,25 +2572,26 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     const char *title = Tcl_GetString(objv[3]);
-    int width, height;
+    int width, height, numLabels;
 
     if (Tcl_GetIntFromObj(interp, objv[4], &width) != TCL_OK ||
-        Tcl_GetIntFromObj(interp, objv[5], &height) != TCL_OK) {
+        Tcl_GetIntFromObj(interp, objv[5], &height) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[6], &numLabels) != TCL_OK) {
         return TCL_ERROR;
     }
 
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
-    if (objc == 7) {
-        const char *dataSetName = Tcl_GetString(objv[6]);
-        if (!g_renderer->renderColorMap(name, dataSetName, type, title, width, height, imgData)) {
+    if (objc == 8) {
+        const char *dataSetName = Tcl_GetString(objv[7]);
+        if (!g_renderer->renderColorMap(name, dataSetName, type, title, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              name, "\" was not found", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->renderColorMap(name, "all", type, title, width, height, imgData)) {
+        if (!g_renderer->renderColorMap(name, "all", type, title, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              name, "\" was not found", (char*)NULL);
             return TCL_ERROR;
