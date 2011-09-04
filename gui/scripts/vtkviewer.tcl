@@ -1240,7 +1240,7 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [$dataobj type $comp] == "streamlines" && 
 	     [info exists _dataset2style($dataset)] } {
-            SendCmd "legend $_dataset2style($dataset) scalar {} $w $h 0"
+            SendCmd "legend $_dataset2style($dataset) vmag {} $w $h 0"
 	    break;
         }
     }
