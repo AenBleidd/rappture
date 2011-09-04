@@ -1394,17 +1394,32 @@ void Renderer::deleteColorMap(const ColorMapId& id)
 /**
  * \brief Render a labelled legend image for the given colormap
  *
+ * \param[in] id ColorMap name
+ * \param[in] dataSetID DataSet name
+ * \param[in] legendType scalar or vector field legend
+ * \param[in,out] title If supplied, draw title ("#auto" means to
+ * fill in field name and draw).  If blank, do not draw title.  
+ * If title was blank or "#auto", will be filled with field name on
+ * return
+ * \param[out] range Filled with min and max values
+ * \param[in] width Pixel width of legend (aspect controls orientation)
+ * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] numLabels Number of labels to render (includes min/max)
+ * \param[in,out] imgData Pointer to array to fill with image bytes. Array
+ * will be resized if needed.
  * \return The image is rendered into the supplied array, false is 
  * returned if the color map is not found
  */
 bool Renderer::renderColorMap(const ColorMapId& id, 
                               const DataSetId& dataSetID,
                               Renderer::LegendType legendType,
-                              const char *title,
+                              std::string& title,
+                              double range[2],
                               int width, int height,
                               int numLabels,
                               vtkUnsignedCharArray *imgData)
 {
+    TRACE("Enter");
     ColorMap *colorMap = getColorMap(id);
     if (colorMap == NULL)
         return false;
@@ -1434,65 +1449,118 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         _legendRenderer->AddViewProp(_scalarBarActor);
     }
 
-    _scalarBarActor->SetNumberOfLabels(numLabels);
-
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
     DataSet *dataSet = NULL;
     bool cumulative = _useCumulativeRange;
     if (dataSetID.compare("all") == 0) {
+        if (_dataSets.empty()) {
+            WARN("No DataSets exist, can't fill title or range");
+        } else {
+            dataSet = _dataSets.begin()->second;
+        }
         cumulative = true;
     } else {
         dataSet = getDataSet(dataSetID);
         if (dataSet == NULL) {
-            cumulative = true;
+            ERROR("DataSet '%s' not found", dataSetID.c_str());
+            return false;
         }
     }
+
+    bool drawTitle = false;
+    if (!title.empty()) {
+        drawTitle = true;
+        if (title.compare("#auto") == 0) {
+            title.clear();
+        }
+    }
+
+    range[0] = 0.0;
+    range[1] = 1.0;
 
     switch (legendType) {
     case ACTIVE_VECTOR_MAGNITUDE:
         if (cumulative) {
             lut->SetRange(_cumulativeVectorMagnitudeRange);
-        } else {
-            double range[2];
+            range[0] = _cumulativeVectorMagnitudeRange[0];
+            range[1] = _cumulativeVectorMagnitudeRange[1];
+        } else if (dataSet != NULL) {
             dataSet->getVectorRange(range);
             lut->SetRange(range);
+        }
+        if (title.empty() && dataSet != NULL) {
+            const char *name = dataSet->getActiveVectorsName();
+            if (name != NULL) {
+                title = name;
+                title.append("(mag)");
+            }
         }
         break;
     case ACTIVE_VECTOR_X:
         if (cumulative) {
             lut->SetRange(_cumulativeVectorComponentRange[0]);
-        } else {
-            double range[2];
+            range[0] = _cumulativeVectorComponentRange[0][0];
+            range[1] = _cumulativeVectorComponentRange[0][1];
+        } else if (dataSet != NULL) {
             dataSet->getVectorRange(range, 0);
             lut->SetRange(range);
+        }
+        if (title.empty() && dataSet != NULL) {
+            const char *name = dataSet->getActiveVectorsName();
+            if (name != NULL) {
+                title = name;
+                title.append("(x)");
+            }
         }
         break;
     case ACTIVE_VECTOR_Y:
         if (cumulative) {
             lut->SetRange(_cumulativeVectorComponentRange[1]);
-        } else {
-            double range[2];
+            range[0] = _cumulativeVectorComponentRange[1][0];
+            range[1] = _cumulativeVectorComponentRange[1][1];
+        } else if (dataSet != NULL) {
             dataSet->getVectorRange(range, 1);
             lut->SetRange(range);
+        }
+        if (title.empty() && dataSet != NULL) {
+            const char *name = dataSet->getActiveVectorsName();
+            if (name != NULL) {
+                title = name;
+                title.append("(y)");
+            }
         }
         break;
     case ACTIVE_VECTOR_Z:
         if (cumulative) {
             lut->SetRange(_cumulativeVectorComponentRange[2]);
-        } else {
-            double range[2];
+            range[0] = _cumulativeVectorComponentRange[2][0];
+            range[1] = _cumulativeVectorComponentRange[2][1];
+        } else if (dataSet != NULL) {
             dataSet->getVectorRange(range, 1);
             lut->SetRange(range);
+        }
+        if (title.empty() && dataSet != NULL) {
+            const char *name = dataSet->getActiveVectorsName();
+            if (name != NULL) {
+                title = name;
+                title.append("(z)");
+            }
         }
         break;
     case ACTIVE_SCALAR:
     default:
         if (cumulative) {
             lut->SetRange(_cumulativeScalarRange);
-        } else {
-            double range[2];
+            range[0] = _cumulativeScalarRange[0];
+            range[1] = _cumulativeScalarRange[1];
+        } else if (dataSet != NULL) {
             dataSet->getScalarRange(range);
             lut->SetRange(range);
+        }
+        if (title.empty() && dataSet != NULL) {
+            const char *name = dataSet->getActiveScalarsName();
+            if (name != NULL)
+                title = name;
         }
         break;
     }
@@ -1511,8 +1579,13 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         _scalarBarActor->SetWidth(0.8);
         _scalarBarActor->SetPosition(.1, .05);
     }
-    _scalarBarActor->SetTitle(title);
+    if (drawTitle) {
+        _scalarBarActor->SetTitle(title.c_str());
+    } else {
+        _scalarBarActor->SetTitle("");
+    }
     _scalarBarActor->GetTitleTextProperty()->ItalicOff();
+    _scalarBarActor->SetNumberOfLabels(numLabels);
     _scalarBarActor->GetLabelTextProperty()->BoldOff();
     _scalarBarActor->GetLabelTextProperty()->ItalicOff();
     _scalarBarActor->GetLabelTextProperty()->ShadowOff();
@@ -1551,6 +1624,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                                       !_legendRenderWindow->GetDoubleBuffer(),
                                       imgData);
 #endif
+    TRACE("Leave");
     return true;
 }
 
@@ -7953,7 +8027,7 @@ void Renderer::collectDataRanges()
 /**
  * \brief Collect cumulative data range of all DataSets
  *
- * \param[inout] range Data range of all DataSets
+ * \param[in,out] range Data range of all DataSets
  * \param[in] onlyVisible Only collect range of visible DataSets
  */
 void Renderer::collectScalarRanges(double *range, bool onlyVisible)
@@ -7979,7 +8053,7 @@ void Renderer::collectScalarRanges(double *range, bool onlyVisible)
 /**
  * \brief Collect cumulative data range of all DataSets
  *
- * \param[inout] range Data range of all DataSets
+ * \param[in,out] range Data range of all DataSets
  * \param[in] onlyVisible Only collect range of visible DataSets
  */
 void Renderer::collectVectorMagnitudeRanges(double *range, bool onlyVisible)
@@ -8005,7 +8079,7 @@ void Renderer::collectVectorMagnitudeRanges(double *range, bool onlyVisible)
 /**
  * \brief Collect cumulative data range of all DataSets
  *
- * \param[inout] range Data range of all DataSets
+ * \param[in,out] range Data range of all DataSets
  * \param[in] onlyVisible Only collect range of visible DataSets
  */
 void Renderer::collectVectorComponentRanges(double *range, int component, bool onlyVisible)

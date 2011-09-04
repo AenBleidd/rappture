@@ -61,7 +61,11 @@ public:
 
     bool setActiveScalars(const char *name);
 
+    const char *getActiveScalarsName();
+
     bool setActiveVectors(const char *name);
+
+    const char *getActiveVectorsName();
 
     void getScalarRange(double minmax[2]) const;
 

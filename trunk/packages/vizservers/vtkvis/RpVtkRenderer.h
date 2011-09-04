@@ -248,7 +248,8 @@ public:
     bool renderColorMap(const ColorMapId& id, 
                         const DataSetId& dataSetID,
                         LegendType legendType,
-                        const char *title,
+                        std::string& title,
+                        double range[2],
                         int width, int height,
                         int numLabels,
                         vtkUnsignedCharArray *imgData);

@@ -515,6 +515,26 @@ bool DataSet::setActiveScalars(const char *name)
 }
 
 /**
+ * \brief Get the active scalar array field name
+ */
+const char *DataSet::getActiveScalarsName()
+{
+    if (_dataSet != NULL) {
+         if (_dataSet->GetPointData() != NULL &&
+             _dataSet->GetPointData()->GetScalars() != NULL) {
+            return _dataSet->GetPointData()->GetScalars()->GetName();
+        }
+        TRACE("No point scalars");
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetScalars() != NULL) {
+            return _dataSet->GetCellData()->GetScalars()->GetName();
+        }
+        TRACE("No cell scalars");
+    }
+    return NULL;
+}
+
+/**
  * \brief Set the ative vector array to the named field
  */
 bool DataSet::setActiveVectors(const char *name)
@@ -536,6 +556,26 @@ bool DataSet::setActiveVectors(const char *name)
     }
 
     return found;
+}
+
+/**
+ * \brief Get the active vector array field name
+ */
+const char *DataSet::getActiveVectorsName()
+{
+    if (_dataSet != NULL) {
+        if (_dataSet->GetPointData() != NULL &&
+            _dataSet->GetPointData()->GetVectors() != NULL) {
+            return _dataSet->GetPointData()->GetVectors()->GetName();
+        }
+        TRACE("No point vectors");
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetVectors() != NULL) {
+            return _dataSet->GetCellData()->GetVectors()->GetName();
+        }
+        TRACE("No cell vectors");
+    }
+    return NULL;
 }
 
 /**
