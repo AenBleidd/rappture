@@ -67,31 +67,35 @@ itcl::class Rappture::VtkViewer {
     protected method CurrentDatasets {args}
     protected method Disconnect {}
     protected method DoResize {}
-    protected method FixSettings {what {value ""}}
+    protected method AdjustSetting {what {value ""}}
+    protected method FixSettings { args  }
     protected method Pan {option x y}
     protected method Pick {x y}
     protected method Rebuild {}
     protected method ReceiveDataset { args }
     protected method ReceiveImage { args }
+    protected method ReceiveLegend { args }
     protected method Rotate {option x y}
     protected method SendCmd {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
-    private method BuildCameraTab {}
-    private method BuildVolumeTab {}
-    private method BuildStreamsTab {}
     private method BuildAxisTab {}
+    private method BuildCameraTab {}
     private method BuildColormap { colormap dataobj comp }
-    private method EventuallyResize { w h } 
-    private method SetStyles { dataobj comp }
-    private method PanCamera {}
+    private method BuildDownloadPopup { widget command } 
+    private method BuildStreamsTab {}
+    private method BuildVolumeTab {}
     private method ConvertToVtkData { dataobj comp } 
+    private method DrawLegend {}
+    private method EventuallyResize { w h } 
     private method GetImage { args } 
     private method GetVtkData { args } 
-    private method BuildDownloadPopup { widget command } 
-    private method SetObjectStyle { dataobj comp } 
     private method IsValidObject { dataobj } 
+    private method PanCamera {}
+    private method SetObjectStyle { dataobj comp } 
+    private method SetStyles { dataobj comp }
+    private method RequestLegend {}
 
     private variable _arcball ""
     private variable _outbuf       ;# buffer for outgoing commands
@@ -115,15 +119,11 @@ itcl::class Rappture::VtkViewer {
     private variable _reset 1	   ;# indicates if camera needs to be reset
                                     # to starting position.
     private variable _haveStreams 0
-    # Array of transfer functions in server.  If 0 the transfer has been
-    # defined but not loaded.  If 1 the transfer function has been named
-    # and loaded.
+
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
     private variable _buffering 0
     
-    # This indicates which isomarkers and transfer function to use when
-    # changing markers, opacity, or thickness.
     common _downloadPopup          ;# download options from popup
     private common _hardcopy
     private variable _width 0
@@ -156,6 +156,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     #
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias dataset [itcl::code $this ReceiveDataset]
+    $_parser alias legend [itcl::code $this ReceiveLegend]
 
     array set _outline {
 	id -1
@@ -180,11 +181,12 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    set _limits(vmin) 0.0
-    set _limits(vmax) 1.0
+    set _limits(zmin) 0.0
+    set _limits(zmax) 1.0
 
     array set _settings [subst {
         $this-axes		1
+        $this-legend		1
         $this-seeds		1
         $this-streamlines	1
         $this-edges		1
@@ -261,13 +263,20 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    if { [catch { 
-	BuildVolumeTab
-	BuildAxisTab
-	BuildStreamsTab
-	BuildCameraTab
-    } errs] != 0 } {
-	puts stderr err=$errs
+    BuildVolumeTab
+    BuildAxisTab
+    BuildStreamsTab
+    BuildCameraTab
+
+    # Legend
+
+    set _image(legend) [image create photo]
+    itk_component add legend {
+        canvas $itk_component(plotarea).legend -width 50 -highlightthickness 0
+    } {
+        usual
+        ignore -highlightthickness
+        rename -background -plotbackground plotBackground Background
     }
 
     # Hack around the Tk panewindow.  The problem is that the requested 
@@ -353,7 +362,7 @@ itcl::body Rappture::VtkViewer::destructor {} {
     image delete $_image(plot)
     image delete $_image(download)
     array unset _settings $this-*
-    catch { blt::arcball destroy $_arcball}
+    catch { blt::arcball destroy $_arcball }
 }
 
 itcl::body Rappture::VtkViewer::DoResize {} {
@@ -366,7 +375,9 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     #puts stderr "DoResize screen size $_width $_height"
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
-
+    if { $_haveStreams } {
+	RequestLegend
+    }
     # Must reset camera to have object scaling to take effect.
     #SendCmd "camera reset"
     #SendCmd "camera zoom $_view(zoom)"
@@ -546,7 +557,6 @@ itcl::body Rappture::VtkViewer::scale {args} {
     array unset _limits
     foreach dataobj $args {
         array set bounds [limits $dataobj]
- puts stderr bounds=[array get bounds]
 	if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
 	    set _limits(xmin) $bounds(xmin)
 	}
@@ -808,8 +818,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     $_arcball resize $w $h
     DoResize
     
-    set _limits(vmin) ""
-    set _limits(vmax) ""
+    set _limits(zmin) ""
+    set _limits(zmax) ""
     set _first ""
     set _haveStreams 0
     foreach dataobj [get -objects] {
@@ -827,6 +837,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 		append _outbuf "polydata add $tag\n"
                 set _datasets($tag) 1
 	    }
+	    SetStyles $dataobj $comp
 	    lappend _obj2datasets($dataobj) $tag
 	    SetObjectStyle $dataobj $comp
 	    if { [info exists _obj2ovride($dataobj-raise)] } {
@@ -852,18 +863,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	Zoom reset
 	set _reset 0
     }
-    FixSettings opacity
-    FixSettings grid-x
-    FixSettings grid-y
-    FixSettings grid-z
-    FixSettings volume
-    FixSettings lighting
-    FixSettings wireframe
-    FixSettings axes
-    FixSettings edges
-    FixSettings seeds
-    FixSettings streamlines
-    FixSettings axismode
+
+    FixSettings opacity grid-x grid-y grid-z volume lighting \
+	wireframe axes edges seeds streamlines axismode
 
     if { !$_haveStreams } {
 	$itk_component(main) disable "Streams Settings" 
@@ -1096,7 +1098,20 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
+itcl::body Rappture::VtkViewer::FixSettings { args } {
+    foreach setting $args {
+	AdjustSetting $setting
+    }
+}
+
+#
+# AdjustSetting --
+#
+#	Changes/updates a specific setting in the widget.  There are
+#	usually user-setable option.  Commands are sent to the render
+#	server.
+#
+itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
 	return
     }
@@ -1204,6 +1219,34 @@ itcl::body Rappture::VtkViewer::FixSettings {what {value ""}} {
 }
 
 #
+# RequestLegend --
+#
+#	Request a new legend from the server.  The size of the legend
+#	is determined from the height of the canvas.  It will be rotated
+#	to be vertical when drawn.
+#
+itcl::body Rappture::VtkViewer::RequestLegend {} {
+    #puts stderr "RequestLegend _first=$_first"
+    set lineht [font metrics $itk_option(-font) -linespace]
+    set c $itk_component(legend)
+    set w [expr {$_height-20}]
+    set h 45;				# Hard coding height of legend
+
+    if { $w == 0} {
+	return
+    }
+    # Set the legend on the first streamlines dataset.
+    foreach dataset [CurrentDatasets -visible] {
+	foreach {dataobj comp} [split $dataset -] break
+	if { [$dataobj type $comp] == "streamlines" && 
+	     [info exists _dataset2style($dataset)] } {
+            SendCmd "legend $_dataset2style($dataset) scalar {} $w $h"
+	    break;
+        }
+    }
+}
+
+#
 # SetStyles --
 #
 itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
@@ -1213,7 +1256,7 @@ itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
         -opacity 1.0
     }
     set tag $dataobj-$comp
-    array set style [lindex [$dataobj components -style $comp] 0]
+    array set style [$dataobj style $comp]
     set colormap "$style(-color):$style(-levels):$style(-opacity)"
     if { [info exists _colormaps($colormap)] } {
 	puts stderr "Colormap $colormap already built"
@@ -1227,8 +1270,8 @@ itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
 	BuildColormap $colormap $dataobj $comp
 	set _colormaps($colormap) 1
     }
-    #SendCmd "polydata add $style(-levels) $tag\n"
-    SendCmd "pseudocolor colormap $colormap $tag"
+    #SendCmd "pseudocolor colormap $colormap $tag"
+    SendCmd "streamlines colormap $colormap $tag"
     return $colormap
 }
 
@@ -1241,8 +1284,7 @@ itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
         -levels 6
         -opacity 1.0
     }
-    array set style [lindex [$dataobj components -style $comp] 0]
-
+    array set style [$dataobj style $comp]
     if {$style(-color) == "rainbow"} {
         set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
@@ -1339,32 +1381,32 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
     checkbutton $inner.volume \
         -text "Visible" \
         -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
+        -command [itcl::code $this AdjustSetting volume] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Wireframe" \
         -variable [itcl::scope _settings($this-wireframe)] \
-        -command [itcl::code $this FixSettings wireframe] \
+        -command [itcl::code $this AdjustSetting wireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Lighting" \
         -variable [itcl::scope _settings($this-lighting)] \
-        -command [itcl::code $this FixSettings lighting] \
+        -command [itcl::code $this AdjustSetting lighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Edges" \
         -variable [itcl::scope _settings($this-edges)] \
-        -command [itcl::code $this FixSettings edges] \
+        -command [itcl::code $this AdjustSetting edges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings opacity]
+        -showvalue off -command [itcl::code $this AdjustSetting opacity]
 
     blt::table $inner \
         0,0 $inner.volume -columnspan 4 -anchor w -pady 2 \
@@ -1392,13 +1434,13 @@ itcl::body Rappture::VtkViewer::BuildStreamsTab {} {
     checkbutton $inner.streamlines \
         -text "Visible" \
         -variable [itcl::scope _settings($this-streamlines)] \
-        -command [itcl::code $this FixSettings streamlines] \
+        -command [itcl::code $this AdjustSetting streamlines] \
         -font "Arial 9"
 
     checkbutton $inner.seeds \
         -text "Show seeds" \
         -variable [itcl::scope _settings($this-seeds)] \
-        -command [itcl::code $this FixSettings seeds] \
+        -command [itcl::code $this AdjustSetting seeds] \
         -font "Arial 9"
 
     label $inner.streammode -text "Mode" \
@@ -1413,13 +1455,13 @@ itcl::body Rappture::VtkViewer::BuildStreamsTab {} {
         "tubes"     "tubes" 
     $itk_component(streammode) value "lines"
     bind $inner.streammode_combo <<Value>> \
-	[itcl::code $this FixSettings streammode]
+	[itcl::code $this AdjustSetting streammode]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings opacity]
+        -showvalue off -command [itcl::code $this AdjustSetting opacity]
 
     blt::table $inner \
         0,0 $inner.streamlines -columnspan 4 -anchor w -pady 2 \
@@ -1446,7 +1488,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     checkbutton $inner.axes \
         -text "Visible" \
         -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this FixSettings axes] \
+        -command [itcl::code $this AdjustSetting axes] \
         -font "Arial 9"
 
     label $inner.grid -text "Grid" -font "Arial 9"
@@ -1454,17 +1496,17 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     checkbutton $f.x \
         -text "X" \
         -variable [itcl::scope _settings($this-grid-x)] \
-        -command [itcl::code $this FixSettings grid-x] \
+        -command [itcl::code $this AdjustSetting grid-x] \
         -font "Arial 9"
     checkbutton $f.y \
         -text "Y" \
         -variable [itcl::scope _settings($this-grid-y)] \
-        -command [itcl::code $this FixSettings grid-y] \
+        -command [itcl::code $this AdjustSetting grid-y] \
         -font "Arial 9"
     checkbutton $f.z \
         -text "Z" \
         -variable [itcl::scope _settings($this-grid-z)] \
-        -command [itcl::code $this FixSettings grid-z] \
+        -command [itcl::code $this AdjustSetting grid-z] \
         -font "Arial 9"
     pack $f.x $f.y $f.z -side left 
 
@@ -1480,7 +1522,8 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         "furthest_triad"  "furthest" \
         "outer_edges"     "outer"         
     $itk_component(axismode) value "outer"
-    bind $inner.axismode_combo <<Value>> [itcl::code $this FixSettings axismode]
+    bind $inner.axismode_combo <<Value>> \
+	[itcl::code $this AdjustSetting axismode]
 
     blt::table $inner \
         0,0 $inner.axes -columnspan 4 -anchor w -pady 2 \
@@ -1701,4 +1744,63 @@ itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
 	return 0
     }
     return 1
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ReceiveLegend <colormap> <size>>
+#
+# Invoked automatically whenever the "legend" command comes in from
+# the rendering server.  Indicates that binary image data with the
+# specified <size> will follow.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkViewer::ReceiveLegend { colormap size } {
+    #puts stderr "ReceiveLegend colormap=$colormap size=$size"
+    if { [IsConnected] } {
+        set bytes [ReceiveBytes $size]
+        if { ![info exists _image(legend)] } {
+            set _image(legend) [image create photo]
+        }
+        #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
+        set src [image create photo -data $bytes]
+        blt::winop image rotate $src $_image(legend) 90
+        set dst $_image(legend)
+	DrawLegend
+    }
+}
+
+#
+# DrawLegend --
+#
+#	Draws the legend in it's own canvas which resides to the right
+#	of the contour plot area.
+#
+itcl::body Rappture::VtkViewer::DrawLegend {} {
+    set c $itk_component(view)
+    set w [winfo width $c]
+    set h [winfo height $c]
+    set lineht [font metrics $itk_option(-font) -linespace]
+    
+    if { $_settings($this-legend) } {
+	set x 2
+	if { [$c find withtag "legend"] == "" } {
+	    $c create image $x [expr {$lineht+2}] -anchor nw \
+		-image $_image(legend) -tags "transfunc legend"
+	    $c create text $x 2 -anchor nw \
+		-fill $itk_option(-plotforeground) -tags "zmax legend" \
+		-font "Arial 6"
+	    $c create text $x [expr {$h-2}] -anchor sw \
+		-fill $itk_option(-plotforeground) -tags "zmin legend" \
+		-font "Arial 6"
+	}
+	# Reset the item coordinates according the current size of the plot.
+	$c coords transfunc $x [expr {$lineht+2}]
+	if { $_limits(zmin) != "" } {
+	    $c itemconfigure zmin -text [format %g $_limits(zmin)]
+	}
+	if { $_limits(zmax) != "" } {
+	    $c itemconfigure zmax -text [format %g $_limits(zmax)]
+	}
+	$c coords zmin $x [expr {$h-2}]
+	$c coords zmax $x 2
+    }
 }
