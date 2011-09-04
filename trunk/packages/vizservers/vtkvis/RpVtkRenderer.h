@@ -250,6 +250,7 @@ public:
                         LegendType legendType,
                         const char *title,
                         int width, int height,
+                        int numLabels,
                         vtkUnsignedCharArray *imgData);
 
     // 2D Contour plots
@@ -533,7 +534,6 @@ public:
     void setPolyDataVisibility(const DataSetId& id, bool state);
 
     void setPolyDataWireframe(const DataSetId& id, bool state);
-
 
     // Color-mapped surfaces
 

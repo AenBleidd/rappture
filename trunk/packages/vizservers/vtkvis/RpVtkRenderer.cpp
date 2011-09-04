@@ -825,8 +825,22 @@ void Renderer::resetAxes(double bounds[6])
             double newBounds[6];
             collectBounds(newBounds, false);
             _cubeAxesActor->SetBounds(newBounds);
+            TRACE("Bounds (computed): %g %g %g %g %g %g",
+                  newBounds[0],
+                  newBounds[1],
+                  newBounds[2],
+                  newBounds[3],
+                  newBounds[4],
+                  newBounds[5]);
         } else {
             _cubeAxesActor->SetBounds(bounds);
+            TRACE("Bounds (supplied): %g %g %g %g %g %g",
+                  bounds[0],
+                  bounds[1],
+                  bounds[2],
+                  bounds[3],
+                  bounds[4],
+                  bounds[5]);
         }
     }
 }
@@ -1388,6 +1402,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                               Renderer::LegendType legendType,
                               const char *title,
                               int width, int height,
+                              int numLabels,
                               vtkUnsignedCharArray *imgData)
 {
     ColorMap *colorMap = getColorMap(id);
@@ -1418,6 +1433,8 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         _scalarBarActor->UseOpacityOn();
         _legendRenderer->AddViewProp(_scalarBarActor);
     }
+
+    _scalarBarActor->SetNumberOfLabels(numLabels);
 
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
     DataSet *dataSet = NULL;
