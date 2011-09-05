@@ -1821,8 +1821,8 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
 	if { $_limits(vmax) != "" } {
 	    $c itemconfigure vmax -text [format %g $_limits(vmax)]
 	}
-	$c coords zmin $x [expr {$h-2}]
-	$c coords zmax $x 2
+	$c coords vmin $x [expr {$h-2}]
+	$c coords vmax $x 2
     }
 }
 
