@@ -99,7 +99,7 @@ itcl::class Rappture::VtkViewer {
     private method EnterLegend { x y } 
     private method MotionLegend { x y } 
     private method LeaveLegend {}
-    private method SetLegendMark { x y }
+    private method SetLegendTip { x y }
 
     private variable _arcball ""
     private variable _outbuf       ;# buffer for outgoing commands
@@ -1830,7 +1830,7 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
 # EnterLegend --
 #
 itcl::body Rappture::VtkViewer::EnterLegend { x y } {
-    SetLegendMark $x $y
+    SetLegendTip $x $y
 }
 
 #
@@ -1839,8 +1839,7 @@ itcl::body Rappture::VtkViewer::EnterLegend { x y } {
 itcl::body Rappture::VtkViewer::MotionLegend { x y } {
     Rappture::Tooltip::tooltip cancel
     set c $itk_component(view)
-    $c delete mark
-    SetLegendMark $x $y
+    SetLegendTip $x $y
 }
 
 #
@@ -1848,14 +1847,13 @@ itcl::body Rappture::VtkViewer::MotionLegend { x y } {
 #
 itcl::body Rappture::VtkViewer::LeaveLegend { } {
     Rappture::Tooltip::tooltip cancel
-    #set c $itk_component(view)
-    #$c delete mark
+    .rappturetooltip configure -icon ""
 }
 
 #
-# SetLegendMark --
+# SetLegendTip --
 #
-itcl::body Rappture::VtkViewer::SetLegendMark { x y } {
+itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -1865,15 +1863,17 @@ itcl::body Rappture::VtkViewer::SetLegendMark { x y } {
     set imgX [expr $w - [image width $_image(legend)] - 2]
     set imgY [expr $y - 2]
 
-    if 0 {
     # Make a swatch of the selected color
-    set pixel [image get 0 $imgY]
-    set swatch [image create photo -width 20 -height 20]
-    $swatch puts $pixel -to 0 0 19 19 
+    if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
+	return
     }
-    # Create a line over the spot
-    $c create line [expr $w - 27] $y [expr $w - 2] $y -fill black \
-	-tags "legend mark"
+    if { ![info exists _image(swatch)] } {
+	set _image(swatch) [image create photo -width 24 -height 24]
+    }
+    set color [eval format "\#%02x%02x%02x" $pixel]
+    $_image(swatch) put black  -to 0 0 23 23 
+    $_image(swatch) put $color -to 1 1 22 22 
+    .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
     set t [expr 1.0 - (double($imgY) / double($imgHeight))]
