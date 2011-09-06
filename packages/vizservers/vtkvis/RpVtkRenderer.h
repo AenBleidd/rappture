@@ -137,6 +137,8 @@ public:
 
     void setDataSetShowBounds(const DataSetId& id, bool state);
 
+    void setDataSetOutlineColor(const DataSetId& id, float color[3]);
+
     void setDataSetOpacity(const DataSetId& id, double opacity);
 
     void setDataSetVisibility(const DataSetId& id, bool state);

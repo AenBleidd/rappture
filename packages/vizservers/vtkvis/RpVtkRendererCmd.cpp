@@ -1495,40 +1495,6 @@ DataSetGetVectorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                 Tcl_Obj *const *objv)
-{
-    double opacity;
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setDataSetOpacity(name, opacity);
-    } else {
-        g_renderer->setDataSetOpacity("all", opacity);
-    }
-    return TCL_OK;
-}
-
-static int
-DataSetOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-                 Tcl_Obj *const *objv)
-{
-    bool state;
-    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
-        return TCL_ERROR;
-    }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setDataSetShowBounds(name, state);
-    } else {
-        g_renderer->setDataSetShowBounds("all", state);
-    }
-    return TCL_OK;
-}
-
-static int
 DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -1577,6 +1543,59 @@ DataSetNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+DataSetOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setDataSetOpacity(name, opacity);
+    } else {
+        g_renderer->setDataSetOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setDataSetShowBounds(name, state);
+    } else {
+        g_renderer->setDataSetShowBounds("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+DataSetOutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setDataSetOutlineColor(name, color);
+    } else {
+        g_renderer->setDataSetOutlineColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -1595,6 +1614,7 @@ DataSetVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec dataSetOps[] = {
     {"add",       1, DataSetAddOp, 6, 6, "name data follows nBytes"},
+    {"color",     1, DataSetOutlineColorOp, 5, 6, "r g b ?name?"},
     {"delete",    1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getscalar", 4, DataSetGetScalarOp, 6, 7, "oper x y ?z? name"},
     {"getvector", 4, DataSetGetVectorOp, 6, 7, "oper x y ?z? name"},
