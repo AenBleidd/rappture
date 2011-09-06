@@ -1282,10 +1282,11 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 itcl::body Rappture::VtkViewer::RequestLegend {} {
     #puts stderr "RequestLegend _first=$_first"
     puts stderr "RequestLegend width=$_width height=$_height"
-    set lineht [font metrics $itk_option(-font) -linespace]
+    set font "Arial 8"
+    set lineht [font metrics $font -linespace]
     set c $itk_component(legend)
     set w 15
-    set h [expr {$_height - 2 * $lineht}]
+    set h [expr {$_height - 2 * ($lineht + 2)}]
     if { $h < 1} {
 	return
     }
@@ -1914,7 +1915,7 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    set t [expr 1.0 - (double($imgY) / double($imgHeight))]
+    set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
     #puts stderr "t=$t x=$x y=$y"
     set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
     set tipx [expr $x + 15] 
