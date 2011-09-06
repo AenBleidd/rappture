@@ -1449,6 +1449,38 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         _legendRenderer->AddViewProp(_scalarBarActor);
     }
 
+    if (width > height) {
+        _scalarBarActor->SetOrientationToHorizontal();
+    } else {
+        _scalarBarActor->SetOrientationToVertical();
+    }
+
+    // Set viewport-relative width/height/pos
+    if (title.empty() && numLabels == 0) {
+        _scalarBarActor->SetPosition(0, 0);
+        if (width > height) {
+            // horizontal
+            _scalarBarActor->SetHeight(2.5); // VTK: floor(actorHeight * .4)
+            _scalarBarActor->SetWidth(1);
+        } else {
+            // vertical
+            _scalarBarActor->SetHeight((double)height/.86); // VTK: floor(actorHeight * .86)
+            _scalarBarActor->SetWidth(((double)(width+5))/((double)width)); // VTK: actorWidth - 4 pixels
+        }
+    } else {
+        if (width > height) {
+            // horizontal
+            _scalarBarActor->SetPosition(.075, .1);
+            _scalarBarActor->SetHeight(0.8);
+            _scalarBarActor->SetWidth(0.85);
+        } else {
+            // vertical
+            _scalarBarActor->SetPosition(.1, .05);
+            _scalarBarActor->SetHeight(0.9);
+            _scalarBarActor->SetWidth(0.8);
+        }
+    }
+
     vtkSmartPointer<vtkLookupTable> lut = colorMap->getLookupTable();
     DataSet *dataSet = NULL;
     bool cumulative = _useCumulativeRange;
@@ -1567,18 +1599,6 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     _scalarBarActor->SetLookupTable(lut);
 
-    // Set viewport-relative width/height/pos
-    if (width > height) {
-        _scalarBarActor->SetOrientationToHorizontal();
-        _scalarBarActor->SetHeight(0.8);
-        _scalarBarActor->SetWidth(0.85);
-        _scalarBarActor->SetPosition(.075, .1);
-    } else {
-        _scalarBarActor->SetOrientationToVertical();
-        _scalarBarActor->SetHeight(0.9);
-        _scalarBarActor->SetWidth(0.8);
-        _scalarBarActor->SetPosition(.1, .05);
-    }
     if (drawTitle) {
         _scalarBarActor->SetTitle(title.c_str());
     } else {
@@ -8374,9 +8394,37 @@ void Renderer::setDataSetShowBounds(const DataSetId& id, bool state)
 
         itr->second->showOutline(state);
 
-        if (state) {
+        if (state && !_renderer->HasViewProp(itr->second->getProp())) {
             _renderer->AddViewProp(itr->second->getProp());
         }
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set color of outline bounding box
+ */
+void Renderer::setDataSetOutlineColor(const DataSetId& id, float color[3])
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+        doAll = true;
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOutlineColor(color);
     } while (doAll && ++itr != _dataSets.end());
 
     initCamera();

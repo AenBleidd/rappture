@@ -83,6 +83,8 @@ legend <colormapName> <legendType> <legendTitle> <width> <height> <numLabels> <?
        range or cumulative range will be used.
 
 dataset add <datasetName> data follows <nbytes>
+dataset color <r> <g> <b> <?datasetName?>
+        Set color of outline bounding box
 dataset delete <?datasetName?>
 dataset getscalar world <x> <y> <z> <datasetName>
 dataset getscalar pixel <x> <y> <datasetName>

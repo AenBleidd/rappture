@@ -88,6 +88,17 @@ void DataSet::showOutline(bool state)
 }
 
 /**
+ * \brief Set color of outline bounding box
+ */
+void DataSet::setOutlineColor(float color[3])
+{
+    if (_prop == NULL) {
+        initProp();
+    }
+    _prop->GetProperty()->SetColor(color[0], color[1], color[2]);
+}
+
+/**
  * \brief Set opacity of DataSet outline
  *
  * This method is used for record-keeping and opacity of the

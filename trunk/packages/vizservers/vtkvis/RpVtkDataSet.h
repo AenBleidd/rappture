@@ -100,6 +100,8 @@ public:
 
     void showOutline(bool state);
 
+    void setOutlineColor(float color[3]);
+
     /**
      * \brief Return the VTK prop object for the outline
      */
