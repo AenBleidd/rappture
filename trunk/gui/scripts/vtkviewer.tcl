@@ -407,7 +407,7 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
     $_arcball resize $w $h
     if { !$_resizePending } {
         set _resizePending 1
-        $_dispatcher event -after 100 !resize
+        $_dispatcher event -after 400 !resize
     }
 }
 
