@@ -1464,7 +1464,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
             _scalarBarActor->SetWidth(1);
         } else {
             // vertical
-            _scalarBarActor->SetHeight((double)height/.86); // VTK: floor(actorHeight * .86)
+            _scalarBarActor->SetHeight((double)height/(.86*height)); // VTK: floor(actorHeight * .86)
             _scalarBarActor->SetWidth(((double)(width+5))/((double)width)); // VTK: actorWidth - 4 pixels
         }
     } else {
