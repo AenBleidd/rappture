@@ -67,6 +67,7 @@ itcl::class Rappture::VtkViewer {
     protected method CurrentDatasets {args}
     protected method Disconnect {}
     protected method DoResize {}
+    protected method DoRotate {}
     protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
     protected method Pan {option x y}
@@ -89,6 +90,7 @@ itcl::class Rappture::VtkViewer {
     private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method EventuallyResize { w h } 
+    private method EventuallyRotate { q } 
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method IsValidObject { dataobj } 
@@ -137,6 +139,7 @@ itcl::class Rappture::VtkViewer {
     private variable _width 0
     private variable _height 0
     private variable _resizePending 0
+    private variable _rotatePending 0
     private variable _outline
 }
 
@@ -156,6 +159,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     set _outbuf ""
 
@@ -376,6 +383,7 @@ itcl::body Rappture::VtkViewer::destructor {} {
     Disconnect
     $_dispatcher cancel !rebuild
     $_dispatcher cancel !resize
+    $_dispatcher cancel !rotate
     image delete $_image(plot)
     image delete $_image(download)
     catch { blt::arcball destroy $_arcball }
@@ -390,14 +398,27 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     }
     #puts stderr "DoResize screen size $_width $_height"
     set _start [clock clicks -milliseconds]
+    puts stderr "screen size request width=$_width height=$_height"
     SendCmd "screen size $_width $_height"
     if { $_haveStreams } {
 	RequestLegend
     }
+
+    #SendCmd "ppmflush"
+
     # Must reset camera to have object scaling to take effect.
     #SendCmd "camera reset"
     #SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
+}
+
+itcl::body Rappture::VtkViewer::DoRotate {} {
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    SendCmd "camera orient $q" 
+
+    #SendCmd "ppmflush"
+
+    set _rotatePending 0
 }
 
 itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
@@ -407,7 +428,19 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
     $_arcball resize $w $h
     if { !$_resizePending } {
         set _resizePending 1
-        $_dispatcher event -after 400 !resize
+        $_dispatcher event -after 200 !resize
+    }
+}
+
+set rotate_delay 150
+
+itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
+    #puts stderr "EventuallyRotate $w $h"
+    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+    if { !$_rotatePending } {
+        set _rotatePending 1
+	global rotate_delay 
+        $_dispatcher event -after $rotate_delay !rotate
     }
 }
 
@@ -833,7 +866,29 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set _height $h
     $_arcball resize $w $h
     DoResize
-    
+    #
+    # Reset the camera and other view parameters
+    #
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    if {$_view(ortho)} {
+        SendCmd "camera mode ortho"
+    } else {
+        SendCmd "camera mode persp"
+    }
+    SendCmd "camera orient $q" 
+    PanCamera
+    if { $_reset || $_first == "" } {
+	Zoom reset
+	set _reset 0
+    }
+    FixSettings axis-grid-x axis-grid-y axis-grid-z axis-mode axis-visible \
+	streamlines-seeds streamlines-visible streamlines-opacity \
+	volume-edges volume-lighting volume-opacity volume-visible \
+	volume-wireframe 
+
+    #SendCmd "ppmflush"
+
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
@@ -863,27 +918,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	    }
         }
     }
-    #
-    # Reset the camera and other view parameters
-    #
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-    if {$_view(ortho)} {
-        SendCmd "camera mode ortho"
-    } else {
-        SendCmd "camera mode persp"
-    }
-    SendCmd "camera orient $q" 
-    PanCamera
-    if { $_reset || $_first == "" } {
-	Zoom reset
-	set _reset 0
-    }
-
-    FixSettings axis-grid-x axis-grid-y axis-grid-z axis-mode axis-visible \
-	streamlines-seeds streamlines-visible streamlines-opacity \
-	volume-edges volume-lighting volume-opacity volume-visible \
-	volume-wireframe 
 
     if { !$_haveStreams } {
 	$itk_component(main) disable "Streams Settings" 
@@ -1034,8 +1068,7 @@ itcl::body Rappture::VtkViewer::Rotate {option x y} {
 		    return
 		}
 		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-		foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
-                SendCmd "camera orient $q" 
+		EventuallyRotate $q
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1248,9 +1281,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 #
 itcl::body Rappture::VtkViewer::RequestLegend {} {
     #puts stderr "RequestLegend _first=$_first"
+    puts stderr "RequestLegend width=$_width height=$_height"
     set lineht [font metrics $itk_option(-font) -linespace]
     set c $itk_component(legend)
-    set w 20
+    set w 15
     set h [expr {$_height - 2 * $lineht}]
     if { $h < 1} {
 	return
@@ -1260,6 +1294,7 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [$dataobj type $comp] == "streamlines" && 
 	     [info exists _dataset2style($dataset)] } {
+	    puts stderr "RequestLegend w=$w h=$h"
             SendCmd "legend $_dataset2style($dataset) vmag {} $w $h 0"
 	    break;
         }
@@ -1615,7 +1650,7 @@ itcl::body Rappture::VtkViewer::camera {option args} {
                 "qx" - "qy" - "qz" - "qw" {
                     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 		    $_arcball quaternion $q
-                    SendCmd "camera orient $q"
+		    EventuallyRotate $q
                 }
                 "zoom" {
                     SendCmd "camera zoom $_view(zoom)"
@@ -1777,8 +1812,8 @@ itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } 
         if { ![info exists _image(legend)] } {
             set _image(legend) [image create photo]
         }
-        #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        set _image(legend) [image create photo -data $bytes]
+        $_image(legend) configure -data $bytes
+        puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
 	DrawLegend
     }
 }
@@ -1793,7 +1828,8 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
-    set lineht [font metrics $itk_option(-font) -linespace]
+    set font "Arial 8"
+    set lineht [font metrics $font -linespace]
     
     if { $_settings(legend) } {
 	set x [expr $w - 2]
@@ -1804,11 +1840,11 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
 	    $c create text $x 2 \
 		-anchor ne \
 		-fill $itk_option(-plotforeground) -tags "vmax legend" \
-		-font "Arial 6" 
+		-font $font
 	    $c create text $x [expr {$h-2}] \
 		-anchor se \
 		-fill $itk_option(-plotforeground) -tags "vmin legend" \
-		-font "Arial 6"
+		-font $font
 	    #$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
 	    $c bind colormap <Leave> [itcl::code $this LeaveLegend]
 	    $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
@@ -1857,11 +1893,13 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
+    set font "Arial 8"
+    set lineht [font metrics $font -linespace]
     
     set imgHeight [image height $_image(legend)]
     set coords [$c coords colormap]
     set imgX [expr $w - [image width $_image(legend)] - 2]
-    set imgY [expr $y - 2]
+    set imgY [expr $y - $lineht - 2]
 
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
