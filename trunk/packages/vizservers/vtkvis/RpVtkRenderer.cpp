@@ -8427,7 +8427,6 @@ void Renderer::setDataSetOutlineColor(const DataSetId& id, float color[3])
         itr->second->setOutlineColor(color);
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
     _needsRedraw = true;
 }
 
