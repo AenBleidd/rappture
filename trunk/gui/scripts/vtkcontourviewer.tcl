@@ -702,7 +702,7 @@ itcl::body Rappture::VtkContourViewer::ReceiveImage { args } {
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
     foreach { _view(ortho-x) _view(ortho-y) _view(ortho-w) _view(ortho-h) } $info(-bbox) break
-    puts stderr "bbox: $_view(ortho-x) $_view(ortho-y) $_view(ortho-w) $_view(ortho-h)"
+    #puts stderr "bbox: $_view(ortho-x) $_view(ortho-y) $_view(ortho-w) $_view(ortho-h)"
     if { $info(-type) == "image" } {
         $_image(plot) configure -data $bytes
         #puts stderr "received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
@@ -724,8 +724,8 @@ itcl::body Rappture::VtkContourViewer::FixLegend {} {
     set _resizeLegendPending 0
     set lineht [font metrics $itk_option(-font) -linespace]
     set c $itk_component(legend)
-    set w [expr {[winfo height $itk_component(view)]-20}]
-    set h 45
+    set w 20
+    set h [expr {[winfo height $itk_component(view)] - 2 * ($lineht+2)}]
     puts stderr "in fixlegend w=$w h=$h"
     if {$w > 0 && $h > 0 && $_first != "" } {
         set tag [lindex [CurrentDatasets] 0]
@@ -789,10 +789,8 @@ itcl::body Rappture::VtkContourViewer::ReceiveLegend { colormap title vmin vmax 
         if { ![info exists _image(legend)] } {
             set _image(legend) [image create photo]
         }
+        $_image(legend) configure -data $bytes
         puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        set src [image create photo -data $bytes]
-        blt::winop image rotate $src $_image(legend) 90
-        set dst $_image(legend)
 	DrawLegend
     }
 }
