@@ -157,6 +157,9 @@ glyphs gscale <scaleFactor> <?datasetName?>
 glyphs lighting <bool> <?datasetName?>
 glyphs linecolor <r> <g> <b> <?datasetName?>
 glyphs linewidth <val> <?datasetName?>
+glyphs normscale <bool> <?datasetName?>
+       Control if data values are normalized to [0,1] range before applying
+       glyph scaling factor (gscale)
 glyphs opacity <val> <?datasetName?>
 glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
 glyphs pos <x> <y> <z> <?dataSetName?>
@@ -248,7 +251,14 @@ polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 
 pseudocolor add <?datasetName?>
+pseudocolor ccolor r g b <?datasetName?>
 pseudocolor colormap <colormapName> <?datasetName?>
+pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <?datasetName?>
+            Set the field used to color the object.  'ccolor' means to use
+            the constant color defined by the ccolor subcommand.  'scalar' uses
+            the active scalar field.  'vmag' uses the magnitude of the current
+            vector field, and 'vx','vy','vz' use the corresponding component of
+            the active vector field.
 pseudocolor delete <?datasetName?>
 pseudocolor edges <bool> <?datasetName?>
 pseudocolor lighting <bool> <?datasetName?>
