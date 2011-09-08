@@ -1833,6 +1833,23 @@ GlyphsLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+GlyphsNormalizeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool normalize;
+    if (GetBooleanFromObj(interp, objv[2], &normalize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGlyphsNormalizeScale(name, normalize);
+    } else {
+        g_renderer->setGlyphsNormalizeScale("all", normalize);
+    }
+    return TCL_OK;
+}
+
+static int
 GlyphsOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
@@ -2039,6 +2056,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"lighting",  3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"linewidth", 5, GlyphsLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"normscale", 1, GlyphsNormalizeScaleOp, 3, 4, "bool ?dataSetName?"},
     {"opacity",   2, GlyphsOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",    2, GlyphsOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",       1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
@@ -3531,6 +3549,25 @@ PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setPseudoColorColor(name, color);
+    } else {
+        g_renderer->setPseudoColorColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -3540,6 +3577,38 @@ PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
     } else {
         g_renderer->setPseudoColorColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+PseudoColorColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    PseudoColor::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = PseudoColor::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = PseudoColor::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = PseudoColor::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = PseudoColor::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = PseudoColor::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = PseudoColor::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorColorMode(name, mode);
+    } else {
+        g_renderer->setPseudoColorColorMode("all", mode);
     }
     return TCL_OK;
 }
@@ -3738,7 +3807,9 @@ PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
-    {"colormap",  1, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"ccolor",    2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
+    {"colormode", 7, PseudoColorColorModeOp, 3, 4, "mode ?dataSetNme?"},
     {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},

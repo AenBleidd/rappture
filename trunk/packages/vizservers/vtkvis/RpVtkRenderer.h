@@ -374,6 +374,8 @@ public:
 
     void setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode);
 
+    void setGlyphsNormalizeScale(const DataSetId& id, bool normalize);
+
     void setGlyphsScaleFactor(const DataSetId& id, double scale);
 
     // Height maps
@@ -556,6 +558,8 @@ public:
 
     void setPseudoColorScale(const DataSetId& id, double scale[3]);
 
+    void setPseudoColorColor(const DataSetId& id, float color[3]);
+
     void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
 
     void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
@@ -571,6 +575,8 @@ public:
     void setPseudoColorWireframe(const DataSetId& id, bool state);
 
     void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setPseudoColorColorMode(const DataSetId& id, PseudoColor::ColorMode mode);
 
     // Streamlines
 

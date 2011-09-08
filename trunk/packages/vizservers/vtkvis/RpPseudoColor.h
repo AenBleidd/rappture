@@ -25,6 +25,15 @@ namespace VtkVis {
  */
 class PseudoColor : public VtkGraphicsObject {
 public:
+    enum ColorMode {
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
+        COLOR_CONSTANT
+    };
+
     PseudoColor();
     virtual ~PseudoColor();
 
@@ -33,7 +42,15 @@ public:
         return "PseudoColor";
     }
 
+    virtual void setDataSet(DataSet *dataSet,
+                            bool useCumulative,
+                            double scalarRange[2],
+                            double vectorMagnitudeRange[2],
+                            double vectorComponentRange[3][2]);
+
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
 
@@ -55,7 +72,10 @@ public:
 private:
     virtual void update();
 
+    ColorMode _colorMode;
     ColorMap *_colorMap;
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
