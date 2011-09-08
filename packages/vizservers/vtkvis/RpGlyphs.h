@@ -76,6 +76,8 @@ public:
 
     void setScalingMode(ScalingMode mode);
 
+    void setNormalizeScale(bool normalize);
+
     void setColorMode(ColorMode mode);
 
     void setGlyphShape(GlyphShape shape);
@@ -115,6 +117,7 @@ private:
     ScalingMode _scalingMode;
     double _dataScale;
     double _scaleFactor;
+    bool _normalizeScale;
     ColorMode _colorMode;
     ColorMap *_colorMap;
     double _vectorMagnitudeRange[2];

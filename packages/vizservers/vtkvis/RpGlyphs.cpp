@@ -34,6 +34,7 @@ Glyphs::Glyphs(GlyphShape shape) :
     _scalingMode(SCALE_BY_VECTOR_MAGNITUDE),
     _dataScale(1.0),
     _scaleFactor(1.0),
+    _normalizeScale(true),
     _colorMode(COLOR_BY_SCALAR),
     _colorMap(NULL)
 {
@@ -229,11 +230,11 @@ void Glyphs::update()
 
     // Normalize sizes to [0,1] * ScaleFactor
 #ifdef HAVE_GLYPH3D_MAPPER
-    _glyphMapper->ClampingOn();
+    _glyphMapper->SetClamping(_normalizeScale ? 1 : 0);
     _glyphMapper->SetScaleFactor(_scaleFactor * _dataScale);
     _glyphMapper->ScalingOn();
 #else
-    _glyphGenerator->ClampingOn();
+    _glyphGenerator->SetClamping(_normalizeScale ? 1 : 0);
     _glyphGenerator->SetScaleFactor(_scaleFactor * _dataScale);
     _glyphGenerator->ScalingOn();
 #endif
@@ -257,6 +258,26 @@ void Glyphs::update()
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 #endif
+}
+
+/** 
+ * \brief Control if field data range is normalized to [0,1] before
+ * applying scale factor
+ */
+void Glyphs::setNormalizeScale(bool normalize)
+{
+    if (_normalizeScale != normalize) {
+        _normalizeScale = normalize;
+#ifdef HAVE_GLYPH3D_MAPPER
+        if (_glyphMapper != NULL) {
+            _glyphMapper->SetClamping(_normalizeScale ? 1 : 0);
+        }
+#else
+        if (_glyphGenerator != NULL) {
+            _glyphGenerator->SetClamping(_normalizeScale ? 1 : 0);
+        }
+#endif
+    }
 }
 
 /**

@@ -3000,6 +3000,35 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mod
 }
 
 /**
+ * \brief Controls if field data range is normalized to [0,1] before
+ * applying scale factor for the given DataSet
+ */
+void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setNormalizeScale(normalize);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _renderer->ResetCameraClippingRange();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the shape of Glyphs for the given DataSet
  */
 void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
@@ -5553,6 +5582,33 @@ void Renderer::setPseudoColorScale(const DataSetId& id, double scale[3])
 }
 
 /**
+ * \brief Set the RGB color for the specified DataSet
+ */
+void Renderer::setPseudoColorColor(const DataSetId& id, float color[3])
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColor(color);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Associate an existing named color map with a PseudoColor for the given DataSet
  */
 void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
@@ -5584,6 +5640,33 @@ void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& col
               itr->second->getDataSet()->getName().c_str());
 
         itr->second->setColorMap(cmap);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setPseudoColorColorMode(const DataSetId& id, PseudoColor::ColorMode mode)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode);
     } while (doAll && ++itr != _pseudoColors.end());
 
     _needsRedraw = true;

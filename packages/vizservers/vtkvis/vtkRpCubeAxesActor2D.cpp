@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkCubeAxesActor2D.cxx
+  Module:    vtkCubeAxesActor2D.cpp
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
