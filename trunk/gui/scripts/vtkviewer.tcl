@@ -96,7 +96,7 @@ itcl::class Rappture::VtkViewer {
     private method IsValidObject { dataobj } 
     private method PanCamera {}
     private method SetObjectStyle { dataobj comp } 
-    private method SetStyles { dataobj comp }
+    private method SetColormap { dataobj comp }
     private method RequestLegend {}
     private method EnterLegend { x y } 
     private method MotionLegend { x y } 
@@ -128,6 +128,7 @@ itcl::class Rappture::VtkViewer {
     private variable _reset 1	   ;# indicates if camera needs to be reset
                                     # to starting position.
     private variable _haveStreams 0
+    private variable _haveSpheres 0
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -905,12 +906,13 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-		append _outbuf "polydata add $tag\n"
+		if { [$dataobj type $comp] != "spheres" } {
+		}
                 set _datasets($tag) 1
 	    }
-	    SetStyles $dataobj $comp
 	    lappend _obj2datasets($dataobj) $tag
 	    SetObjectStyle $dataobj $comp
+	    # Must create streamlines before setting colormap.
 	    if { [info exists _obj2ovride($dataobj-raise)] } {
 		SendCmd "dataset visible 1 $tag"
 	    } else {
@@ -1285,7 +1287,7 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(legend)
-    set w 15
+    set w 12
     set h [expr {$_height - 2 * ($lineht + 2)}]
     if { $h < 1} {
 	return
@@ -1303,9 +1305,9 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
 }
 
 #
-# SetStyles --
+# SetColormap --
 #
-itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
+itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style {
         -color rainbow
         -levels 6
@@ -1326,8 +1328,17 @@ itcl::body Rappture::VtkViewer::SetStyles { dataobj comp } {
 	BuildColormap $colormap $dataobj $comp
 	set _colormaps($colormap) 1
     }
-    #SendCmd "pseudocolor colormap $colormap $tag"
-    SendCmd "streamlines colormap $colormap $tag"
+    switch -- [$dataobj type $comp] {
+	"polygon" {
+	    SendCmd "pseudocolor colormap $colormap $tag"
+	}
+	"streamlines" {
+	    SendCmd "streamlines colormap $colormap $tag"
+	}
+	"spheres" {
+	    SendCmd "glyphs colormap $colormap $tag"
+	}
+    }
     return $colormap
 }
 
@@ -1396,7 +1407,31 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
 	    $reader SetInputArray $arr
 	    $reader ReadFromInputStringOn
-	    set _limits($tag) [[$reader GetOutput] GetBounds]
+	    $reader ReadAllNormalsOn
+	    $reader ReadAllScalarsOn
+	    $reader ReadAllVectorsOn
+	    $reader ReadAllFieldsOn
+	    $reader Update
+	    set output [$reader GetOutput]
+	    set _limits($tag) [$output GetBounds]
+	    set pointData [$output GetPointData]
+	    puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
+	    puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
+	    puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
+	    puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
+	    puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
+	    puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
+	    set fieldData [$output GetFieldData]
+	    set pointData [$output GetPointData]
+	    puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
+	    puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
+	    puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
+	    puts stderr "point \#components=[$pointData GetNumberOfComponents]"
+	    puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
+	    puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
+	    puts stderr "point \#scalars=[$pointData GetScalars]"
+	    puts stderr vectors=[$pointData GetVectors]
+	    rename $output ""
 	    rename $reader ""
 	    rename $arr ""
 	}
@@ -1747,6 +1782,11 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     set type [$dataobj type $comp]
+    set style [$dataobj style $comp]
+    array set props $style
+    if { $dataobj != $_first } {
+	set props(-wireframe) 1
+    }
     if { $type == "streamlines" } {
 	array set props {
 	    -color \#808080
@@ -1761,7 +1801,27 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	}
 	SendCmd "streamlines add $tag"
 	SendCmd "streamlines seed visible off"
+	SendCmd "polydata add $tag"
 	set _haveStreams 1
+    } elseif { $type == "spheres" } {
+	array set props {
+	    -color \#808080
+	    -edgevisibility 0
+	    -edgecolor black
+	    -linewidth 1.0
+	    -opacity 0.4
+	    -wireframe 0
+	    -lighting 1
+	}
+	SendCmd "glyphs add $tag"
+	SendCmd "glyphs shape sphere $tag"
+	SendCmd "glyphs gscale 0.5 $tag"
+	SendCmd "glyphs visible 1 $tag"
+	SendCmd "glyphs wireframe $props(-wireframe) $tag"
+	SendCmd "glyphs ccolor 0.9 0.2 0.1 $tag"
+	SendCmd "glyphs colormode ccolor $tag"
+	SendCmd "glyphs opacity 1.0 $tag"
+	set _haveSpheres 1
     } else {
 	array set props {
 	    -color \#6666FF
@@ -1772,21 +1832,19 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	    -wireframe 0
 	    -lighting 1
 	}
+	SendCmd "polydata add $tag"
     } 
-    set style [$dataobj style $comp]
-    array set props $style
-
+    if { $type != "spheres" } {
     SendCmd "polydata edges $props(-edgevisibility) $tag"
     SendCmd "polydata color [Color2RGB $props(-color)] $tag"
     SendCmd "polydata lighting $props(-lighting) $tag"
     SendCmd "polydata linecolor [Color2RGB $props(-edgecolor)] $tag"
     SendCmd "polydata linewidth $props(-linewidth) $tag"
     SendCmd "polydata opacity $props(-opacity) $tag"
-    if { $dataobj != $_first } {
-	set props(-wireframe) 1
-    }
     SendCmd "polydata wireframe $props(-wireframe) $tag"
+    }
     set _volume(opacity) [expr $props(-opacity) * 100.0]
+    SetColormap $dataobj $comp
 }
 
 itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
