@@ -911,13 +911,12 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set _datasets($tag) 1
 	    }
 	    lappend _obj2datasets($dataobj) $tag
-	    SetObjectStyle $dataobj $comp
-	    # Must create streamlines before setting colormap.
 	    if { [info exists _obj2ovride($dataobj-raise)] } {
 		SendCmd "dataset visible 1 $tag"
 	    } else {
 		SendCmd "dataset visible 0 $tag"
 	    }
+	    SetObjectStyle $dataobj $comp
         }
     }
 
@@ -1318,6 +1317,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     set colormap "$style(-color):$style(-levels):$style(-opacity)"
     if { [info exists _colormaps($colormap)] } {
 	puts stderr "Colormap $colormap already built"
+	return $colormap
     }
     if { ![info exists _dataset2style($tag)] } {
 	set _dataset2style($tag) $colormap
@@ -1336,7 +1336,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
 	    SendCmd "streamlines colormap $colormap $tag"
 	}
 	"spheres" {
-	    SendCmd "glyphs colormap $colormap $tag"
+	    #SendCmd "glyphs colormap $colormap $tag"
 	}
     }
     return $colormap
@@ -1783,14 +1783,14 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     set tag $dataobj-$comp
     set type [$dataobj type $comp]
     set style [$dataobj style $comp]
-    array set props $style
+    puts stderr "style $dataobj-$comp \"$style\""
     if { $dataobj != $_first } {
-	set props(-wireframe) 1
+	set settings(-wireframe) 1
     }
     if { $type == "streamlines" } {
-	array set props {
+	array set settings {
 	    -color \#808080
-	    -edgevisibility 0
+	    -edges 0
 	    -edgecolor black
 	    -linewidth 1.0
 	    -opacity 0.4
@@ -1798,52 +1798,67 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	    -lighting 1
 	    -seeds 1
 	    -seedcolor white
+	    -visible 1
 	}
+	array set settings $style
 	SendCmd "streamlines add $tag"
 	SendCmd "streamlines seed visible off"
 	SendCmd "polydata add $tag"
 	set _haveStreams 1
     } elseif { $type == "spheres" } {
-	array set props {
+	array set settings {
 	    -color \#808080
-	    -edgevisibility 0
-	    -edgecolor black
-	    -linewidth 1.0
-	    -opacity 0.4
-	    -wireframe 0
-	    -lighting 1
-	}
-	SendCmd "glyphs add $tag"
-	SendCmd "glyphs shape sphere $tag"
-	SendCmd "glyphs gscale 0.5 $tag"
-	SendCmd "glyphs visible 1 $tag"
-	SendCmd "glyphs wireframe $props(-wireframe) $tag"
-	SendCmd "glyphs ccolor 0.9 0.2 0.1 $tag"
-	SendCmd "glyphs colormode ccolor $tag"
-	SendCmd "glyphs opacity 1.0 $tag"
-	set _haveSpheres 1
-    } else {
-	array set props {
-	    -color \#6666FF
-	    -edgevisibility 1
+	    -gscale 1
+	    -edges 0
 	    -edgecolor black
 	    -linewidth 1.0
 	    -opacity 1.0
 	    -wireframe 0
 	    -lighting 1
+	    -visible 1
 	}
+	array set settings $style
+	SendCmd "glyphs add $tag"
+	SendCmd "glyphs shape sphere $tag"
+	SendCmd "glyphs gscale $settings(-gscale) $tag"
+	#SendCmd "glyphs wireframe $settings(-wireframe) $tag"
+	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
+	#SendCmd "glyphs colormode ccolor $tag"
+	SendCmd "glyphs smode vcomp $tag"
+	#SendCmd "glyphs opacity $settings(-opacity) $tag"
+	SendCmd "glyphs visible $settings(-visible) $tag"
+	set _haveSpheres 1
+    } else {
+	array set settings {
+	    -color \#6666FF
+	    -edges 1
+	    -edgecolor black
+	    -linewidth 1.0
+	    -opacity 1.0
+	    -wireframe 0
+	    -lighting 1
+	    -visible 1
+	}
+	array set settings $style
+	parray settings
 	SendCmd "polydata add $tag"
+	SendCmd "polydata visible $settings(-visible) $tag"
+	set _volume(visible) $settings(-visible)
     } 
     if { $type != "spheres" } {
-    SendCmd "polydata edges $props(-edgevisibility) $tag"
-    SendCmd "polydata color [Color2RGB $props(-color)] $tag"
-    SendCmd "polydata lighting $props(-lighting) $tag"
-    SendCmd "polydata linecolor [Color2RGB $props(-edgecolor)] $tag"
-    SendCmd "polydata linewidth $props(-linewidth) $tag"
-    SendCmd "polydata opacity $props(-opacity) $tag"
-    SendCmd "polydata wireframe $props(-wireframe) $tag"
+	SendCmd "polydata edges $settings(-edges) $tag"
+	set _volume(edges) $settings(-edges)
+	SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+	SendCmd "polydata lighting $settings(-lighting) $tag"
+	set _volume(lighting) $settings(-lighting)
+	SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
+	SendCmd "polydata linewidth $settings(-linewidth) $tag"
+	SendCmd "polydata opacity $settings(-opacity) $tag"
+	set _volume(opacity) $settings(-opacity)
+	SendCmd "polydata wireframe $settings(-wireframe) $tag"
+	set _volume(wireframe) $settings(-wireframe)
     }
-    set _volume(opacity) [expr $props(-opacity) * 100.0]
+    set _volume(opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
 }
 
