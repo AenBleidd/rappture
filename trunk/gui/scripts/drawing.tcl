@@ -85,6 +85,12 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
 		set _types($elem) streamlines
+	    }
+            spheres* {
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
+                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
+                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
+		set _types($elem) spheres
             }
         }
     }
