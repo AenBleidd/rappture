@@ -406,7 +406,7 @@ itcl::body Rappture::VtkViewer::DoResize {} {
 	RequestLegend
     }
 
-    #SendCmd "ppmflush"
+    #SendCmd "imgflush"
 
     # Must reset camera to have object scaling to take effect.
     #SendCmd "camera reset"
@@ -889,7 +889,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	volume-edges volume-lighting volume-opacity volume-visible \
 	volume-wireframe 
 
-    #SendCmd "ppmflush"
+    #SendCmd "imgflush"
 
     set _limits(zmin) ""
     set _limits(zmax) ""
@@ -1841,7 +1841,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	}
 	array set settings $style
 	SendCmd "glyphs add sphere $tag"
-	SendCmd "glyphs shape sphere $tag"
 	SendCmd "glyphs gscale $settings(-gscale) $tag"
 	SendCmd "glyphs wireframe $settings(-wireframe) $tag"
 	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
@@ -1998,6 +1997,7 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
 
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
+	#puts stderr "out of range: $imgY"
 	return
     }
     if { ![info exists _image(swatch)] } {
@@ -2010,7 +2010,7 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
 
     # Compute the value of the point
     set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
-    #puts stderr "t=$t x=$x y=$y"
+    #puts stderr "t=$t x=$x y=$y imgY=$imgY"
     set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
