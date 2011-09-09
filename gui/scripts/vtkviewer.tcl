@@ -1818,8 +1818,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	    -visible 1
 	}
 	array set settings $style
-	SendCmd "glyphs add $tag"
-	SendCmd "glyphs shape sphere $tag"
+	SendCmd "glyphs add sphere $tag"
 	SendCmd "glyphs gscale $settings(-gscale) $tag"
 	#SendCmd "glyphs wireframe $settings(-wireframe) $tag"
 	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
