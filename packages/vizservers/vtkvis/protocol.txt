@@ -143,7 +143,8 @@ contour3d scale <sx> <sy> <sz> <?dataSetName?>
 contour3d visible <bool> <?datasetName?>
 contour3d wireframe <bool> <?datasetName?>
 
-glyphs add <?dataSetName?>
+glyphs add <shape> <?dataSetName?>
+       See 'glyphs shape' for list of shapes
 glyphs ccolor r g b <?datasetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
 glyphs colormode <scalar|vmag|ccolor> <?dataSetName?>
