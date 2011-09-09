@@ -696,6 +696,9 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
         set _imagecache($tag) $data
         #debug "CACHED: $tag,$cacheid"
         $_image(plot) configure -data $data
+	$_image(plot) write dummy.jpg -format jpeg
+        puts stderr "image width=[image width $_image(plot)] height=[image height $_image(plot)]"
+        puts stderr "screen width=$_width height=$_height"
         set _image(id) $tag
     }
 }
