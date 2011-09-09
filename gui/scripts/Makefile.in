@@ -127,6 +127,7 @@ FILES		= \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \
 		$(srcdir)/vtkcontourviewer.tcl \
+		$(srcdir)/vtkstreamlinesviewer.tcl \
 		$(srcdir)/xylegend.tcl \
 		$(srcdir)/xyprint.tcl \
 		$(srcdir)/xyresult.tcl

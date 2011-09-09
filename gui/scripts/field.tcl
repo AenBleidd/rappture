@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: field - extracts data from an XML description of a field
 #
@@ -27,10 +28,13 @@ itcl::class Rappture::Field {
     public method limits {axis}
     public method controls {option args}
     public method hints {{key ""}}
+    public method style { cname }
     public method isunirect2d {}
     public method isunirect3d {}
     public method extents {{what -overall}}
     public method flowhints { cname }
+    public method type {}
+
     protected method _build {}
     protected method _getValue {expr}
 
@@ -44,12 +48,14 @@ itcl::class Rappture::Field {
     private variable _comp2dims  ;# maps component name => dimensionality
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
+    private variable _comp2vtkstreamlines   ;# maps component name => vtkFloatArray
     private variable _comp2dx    ;# maps component name => OpenDX data
     private variable _comp2unirect2d ;# maps component name => unirect2d obj
     private variable _comp2unirect3d ;# maps component name => unirect3d obj
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
     private variable _comp2extents 
+    private variable _type "" 
     private variable _comp2flowhints 
     private common _counter 0    ;# counter for unique vector names
 }
@@ -182,6 +188,10 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
     if {[info exists _comp2xy($what)]} {
         return [lindex $_comp2xy($what) 0]  ;# return xv
     }
+    if { [info exists _comp2vtkstreamlines($what)] } {
+        error "mesh: not implemented for streamlines"
+        return [$mobj mesh]
+    }
     if { [info exists _comp2vtk($what)] } {
         set mobj [lindex $_comp2vtk($what) 0]
         return [$mobj mesh]
@@ -214,6 +224,12 @@ itcl::body Rappture::Field::values {{what -overall}} {
     if {[info exists _comp2xy($what)]} {
         return [lindex $_comp2xy($what) 1]  ;# return yv
     }
+    if { [info exists _comp2vtkstreamlines($what)] } {
+	# FIXME: Need to process the vtk file data to pull out the field's
+	# values.
+	error "vtkstreamlines: values not implements"
+        return [lindex $_comp2vtkstreamlines($what) 1] 
+    }
     if { [info exists _comp2vtk($what)] } {
         return [lindex $_comp2vtk($what) 1]  ;# return vtkFloatArray
     }
@@ -243,6 +259,10 @@ itcl::body Rappture::Field::blob {{what -overall}} {
     }
     if { [info exists _comp2vtk($what)] } {
         return ""
+    }
+    if { [info exists _comp2vtkstreamlines($what)] } {
+	# Return the contents of the vtk file.
+        return $_comp2vtkstreamlines($what)
     }
     if {[info exists _comp2dx($what)]} {
         return $_comp2dx($what)  ;# return gzipped, base64-encoded DX data
@@ -546,9 +566,11 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2dx}
     catch {unset _comp2dims}
     catch {unset _comp2style}
+    array unset _comp2vtkstreamlines
     array unset _comp2unirect2d
     array unset _comp2unirect3d
     array unset _comp2extents
+    array unset _dataobj2type
     #
     # Scan through the components of the field and create
     # vectors for each part.
@@ -563,7 +585,11 @@ itcl::body Rappture::Field::_build {} {
             [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
-            set type "vtk"
+	    if { [$_field get "about.viewer"] == "streamlines" } {
+		set type "vtkstreamlines"
+	    } else {
+		set type "vtk"
+	    }
         } elseif {[$_field element $cname.opendx] != ""} {
             set type "opendx"
         } elseif {[$_field element $cname.dx] != ""} {
@@ -578,7 +604,7 @@ itcl::body Rappture::Field::_build {} {
             set extents 1 
         }
         set _comp2extents($cname) $extents
-
+	set _type $type
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -738,6 +764,11 @@ itcl::body Rappture::Field::_build {} {
             set _comp2vtk($cname) [list $mobj $farray]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
+        } elseif {$type == "vtkstreamlines"} {
+            set _comp2dims($cname) "3D"
+            set _comp2vtkstreamlines($cname) [$_field get $cname.vtk]
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
         } elseif {$type == "dx"} {
             #
             # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
@@ -844,6 +875,27 @@ itcl::body Rappture::Field::flowhints { cname } {
         return $_comp2flowhints($cname)
     }
     return ""
+}
+
+#
+# style  --
+#
+# Returns the style associated with a component of the field.  
+#
+itcl::body Rappture::Field::style { cname } {
+    if { [info exists _comp2style($cname)] } {
+        return $_comp2style($cname)
+    }
+    return ""
+}
+
+#
+# type  --
+#
+# Returns the style associated with a component of the field.  
+#
+itcl::body Rappture::Field::type {} {
+    return $_type
 }
 
 #

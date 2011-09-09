@@ -286,12 +286,21 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 3D {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
-                        set mesh [$dataobj mesh]
-                        set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
-                        set extents [$dataobj extents]
-                        if { $extents > 1 } {
-                            set fmt "flowvis"
-                        }
+                        switch -- [$dataobj type] {
+			    "vtk" {
+				set fmt "vtk"
+			    }
+			    "opendx" - "dx" - "points-on-mesh" {
+				set fmt "nanovis"
+				set extents [$dataobj extents]
+				if { $extents > 1 } {
+				    set fmt "flowvis"
+				}
+			    }
+			    "vtkstreamlines" {
+				set fmt "vtkstreamlines"
+			    }
+			}
                         set w $itk_interior.field3D
                         Rappture::Field3DResult $w -mode $fmt
                         set _mode2widget($mode) $w
