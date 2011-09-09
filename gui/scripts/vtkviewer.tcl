@@ -184,10 +184,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }
     # Initialize the view to some default parameters.
     array set _view {
+	qw		1
 	qx		0
 	qy		0
 	qz		0
-	qw		1
         zoom		1.0 
         pan-x		0
         pan-y		0
@@ -205,6 +205,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         grid-y		0
         grid-z		0
         visible		1
+	labels		1
     }]
     array set _volume [subst {
         edges		1
@@ -416,9 +417,7 @@ itcl::body Rappture::VtkViewer::DoResize {} {
 itcl::body Rappture::VtkViewer::DoRotate {} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     SendCmd "camera orient $q" 
-
-    #SendCmd "ppmflush"
-
+    puts stderr "q=$q"
     set _rotatePending 0
 }
 
@@ -877,13 +876,15 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     } else {
         SendCmd "camera mode persp"
     }
-    SendCmd "camera orient $q" 
+    DoRotate
     PanCamera
+    set _first [lindex [get -objects] 0] 
     if { $_reset || $_first == "" } {
 	Zoom reset
 	set _reset 0
     }
-    FixSettings axis-grid-x axis-grid-y axis-grid-z axis-mode axis-visible \
+    FixSettings axis-grid-x axis-grid-y axis-grid-z axis-mode \
+	axis-visible axis-labels \
 	streamlines-seeds streamlines-visible streamlines-opacity \
 	volume-edges volume-lighting volume-opacity volume-visible \
 	volume-wireframe 
@@ -919,7 +920,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	    SetObjectStyle $dataobj $comp
         }
     }
-
     if { !$_haveStreams } {
 	$itk_component(main) disable "Streams Settings" 
     }
@@ -929,7 +929,17 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             array set view $location
         }
     }
-
+    foreach axis { x y z } {
+	set label [$_first hints ${axis}label]
+	if { $label != "" } {
+	    SendCmd "axis name $axis $label"
+	}
+	set units [$_first hints ${axis}units]
+	if { $units != "" } {
+	    SendCmd "axis units $axis $units"
+	}
+    }
+	
     set _buffering 0;                        # Turn off buffering.
 
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1005,10 +1015,10 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qx	0
-                qy      0
-                qz      0
-                qw      1
+		qw	1
+		qx	0
+		qy	0
+		qz	0
                 zoom    1.0
                 pan-x   0
                 pan-y   0
@@ -1022,6 +1032,7 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
             }
 	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	    $_arcball quaternion $q
+	    DoRotate
         }
     }
 }
@@ -1205,6 +1216,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "axis-visible" {
 	    set bool $_axis(visible)
 	    SendCmd "axis visible all $bool"
+        }
+        "axis-labels" {
+	    set bool $_axis(labels)
+	    #SendCmd "axis labels all $bool"
         }
         "axis-grid-x" {
 	    set bool $_axis(grid-x)
@@ -1580,6 +1595,12 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         -command [itcl::code $this AdjustSetting axis-visible] \
         -font "Arial 9"
 
+    checkbutton $inner.labels \
+        -text "Show Axis Labels" \
+        -variable [itcl::scope _axis(labels)] \
+        -command [itcl::code $this AdjustSetting axis-labels] \
+        -font "Arial 9"
+
     checkbutton $inner.gridx \
         -text "Show X Grid" \
         -variable [itcl::scope _axis(grid-x)] \
@@ -1606,19 +1627,20 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
         "closest_triad"   "closest" \
         "furthest_triad"  "furthest" \
         "outer_edges"     "outer"         
-    $itk_component(axismode) value "outer"
+    $itk_component(axismode) value "static"
     bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -pady 2 -cspan 2 \
-        1,0 $inner.gridx   -anchor w -pady 2 -cspan 2 \
-        2,0 $inner.gridy   -anchor w -pady 2 -cspan 2 \
-        3,0 $inner.gridz   -anchor w -pady 2 -cspan 2 \
-        4,0 $inner.mode_l  -anchor w -pady 2 \
-        4,1 $inner.mode    -fill x   -pady 2
+        1,0 $inner.labels  -anchor w -pady 2 -cspan 2 \
+        2,0 $inner.gridx   -anchor w -pady 2 -cspan 2 \
+        3,0 $inner.gridy   -anchor w -pady 2 -cspan 2 \
+        4,0 $inner.gridz   -anchor w -pady 2 -cspan 2 \
+        5,0 $inner.mode_l  -anchor w -pady 2 \
+        5,1 $inner.mode    -fill x   -pady 2
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r5 c2 -resize expand
+    blt::table configure $inner r6 c1 -resize expand
 }
 
 itcl::body Rappture::VtkViewer::BuildCameraTab {} {
@@ -1819,12 +1841,13 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	}
 	array set settings $style
 	SendCmd "glyphs add sphere $tag"
+	SendCmd "glyphs shape sphere $tag"
 	SendCmd "glyphs gscale $settings(-gscale) $tag"
-	#SendCmd "glyphs wireframe $settings(-wireframe) $tag"
+	SendCmd "glyphs wireframe $settings(-wireframe) $tag"
 	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
 	#SendCmd "glyphs colormode ccolor $tag"
 	SendCmd "glyphs smode vcomp $tag"
-	#SendCmd "glyphs opacity $settings(-opacity) $tag"
+	SendCmd "glyphs opacity $settings(-opacity) $tag"
 	SendCmd "glyphs visible $settings(-visible) $tag"
 	set _haveSpheres 1
     } else {
@@ -1839,7 +1862,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	    -visible 1
 	}
 	array set settings $style
-	parray settings
 	SendCmd "polydata add $tag"
 	SendCmd "polydata visible $settings(-visible) $tag"
 	set _volume(visible) $settings(-visible)
