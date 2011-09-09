@@ -585,7 +585,7 @@ itcl::body Rappture::Field::_build {} {
             [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
-	    if { [$_field get "about.viewer"] == "streamlines" } {
+	    if { [$_field get "about.view"] == "streamlines" } {
 		set type "vtkstreamlines"
 	    } else {
 		set type "vtk"
