@@ -76,7 +76,13 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
-    void setSeedToRandomPoints(int numPoints);
+    void setSeedToMeshPoints();
+
+    void setSeedToFilledMesh(int numPoints);
+
+    void setSeedToMeshPoints(vtkDataSet *ds);
+
+    void setSeedToFilledMesh(vtkDataSet *ds, int numPoints);
 
     void setSeedToRake(double start[3], double end[3], int numPoints);
 

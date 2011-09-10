@@ -2,7 +2,7 @@
 /*
  * Copyright (C) 2011, Purdue Research Foundation
  *
- * Author: ?
+ * Author: George A. Howlett <gah@purdue.edu>
  */
 
 #include <cstdio>

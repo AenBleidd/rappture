@@ -610,7 +610,16 @@ public:
 
     void setStreamlinesVisibility(const DataSetId& id, bool state);
 
-    void setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints);
+    void setStreamlinesSeedToMeshPoints(const DataSetId& id);
+
+    void setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints);
+
+    bool setStreamlinesSeedToMeshPoints(const DataSetId& id,
+                                        char *data, size_t nbytes);
+
+    bool setStreamlinesSeedToFilledMesh(const DataSetId& id,
+                                        char *data, size_t nbytes,
+                                        int numPoints);
 
     void setStreamlinesSeedToRake(const DataSetId& id,
                                   double start[3], double end[3],

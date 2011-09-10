@@ -41,6 +41,26 @@ SocketWrite(const void *bytes, size_t len)
     return bytesWritten;
 }
 
+static size_t
+SocketRead(void *bytes, size_t len)
+{
+#ifdef notdef
+    size_t ofs = 0;
+    ssize_t bytesRead = 0;
+    while ((bytesRead = read(g_fdIn, bytes + ofs, len - ofs)) > 0) {
+        ofs += bytesRead;
+        if (ofs == len)
+            break;
+    }
+    TRACE("bytesRead: %lu", ofs);
+    return ofs;
+#else
+    size_t bytesRead = fread(bytes, 1, len, g_fIn);
+    TRACE("bytesRead: %lu", bytesRead);
+    return bytesRead;
+#endif
+}
+
 static int
 ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
 {
@@ -1301,27 +1321,11 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     char *data = (char *)malloc(nbytes);
-#ifdef notdef
-    size_t ofs = 0;
-    ssize_t bytesRead = 0;
-    while ((bytesRead = read(g_fdIn, data + ofs, nbytes - ofs)) > 0) {
-        ofs += bytesRead;
-        if (ofs == nbytes)
-            break;
-    }
-    TRACE("bytesRead: %d", ofs);
+    size_t bytesRead = SocketRead(data, nbytes);
     if (bytesRead < 0) {
         free(data);
         return TCL_ERROR;
     }
-#else
-    size_t bytesRead = fread(data, 1, nbytes, g_fIn);
-    TRACE("bytesRead: %d", bytesRead);
-    if (bytesRead < (size_t)nbytes) {
-        free(data);
-        return TCL_ERROR;
-    }
-#endif
     g_renderer->addDataSet(name);
     g_renderer->setData(name, data, nbytes);
     free(data);
@@ -4317,6 +4321,120 @@ StreamlinesSeedDiskOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+StreamlinesSeedFilledMeshOp(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *const *objv)
+{
+    int numPoints = 0;
+    if (Tcl_GetIntFromObj(interp, objv[3], &numPoints) != TCL_OK ||
+        numPoints < 1) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[4]);
+    char c = string[0];
+    if ((c != 'd') || (strcmp(string, "data") != 0)) {
+        Tcl_AppendResult(interp, "bad streamlines seed fmesh option \"",
+                         string, "\": should be data", (char*)NULL);
+        return TCL_ERROR;
+    }
+    string = Tcl_GetString(objv[5]);
+    c = string[0];
+    if ((c != 'f') || (strcmp(string, "follows") != 0)) {
+        Tcl_AppendResult(interp, "bad streamlines seed fmesh option \"",
+                         string, "\": should be follows", (char*)NULL);
+        return TCL_ERROR;
+    }
+    int nbytes = 0;
+    if (Tcl_GetIntFromObj(interp, objv[6], &nbytes) != TCL_OK ||
+        nbytes < 0) {
+        return TCL_ERROR;
+    }
+    char *data = (char *)malloc(nbytes);
+    size_t bytesRead = SocketRead(data, nbytes);
+    if (bytesRead < 0) {
+        free(data);
+        return TCL_ERROR;
+    }
+    if (objc == 8) {
+        const char *name = Tcl_GetString(objv[7]);
+        if (!g_renderer->setStreamlinesSeedToFilledMesh(name, data, nbytes,
+                                                        numPoints)) {
+            free(data);
+            Tcl_AppendResult(interp, "Couldn't read mesh data or streamlines not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->setStreamlinesSeedToFilledMesh("all", data, nbytes,
+                                                        numPoints)) {
+            free(data);
+            Tcl_AppendResult(interp, "Couldn't read mesh data or streamlines not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    free(data);
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedMeshPointsOp(ClientData clientData, Tcl_Interp *interp,
+                            int objc, Tcl_Obj *const *objv)
+{
+    const char *string = Tcl_GetString(objv[3]);
+    char c = string[0];
+    if ((c != 'd') || (strcmp(string, "data") != 0)) {
+        Tcl_AppendResult(interp, "bad streamlines seed fmesh option \"",
+                         string, "\": should be data", (char*)NULL);
+        return TCL_ERROR;
+    }
+    string = Tcl_GetString(objv[4]);
+    c = string[0];
+    if ((c != 'f') || (strcmp(string, "follows") != 0)) {
+        Tcl_AppendResult(interp, "bad streamlines seed fmesh option \"",
+                         string, "\": should be follows", (char*)NULL);
+        return TCL_ERROR;
+    }
+    int nbytes = 0;
+    if (Tcl_GetIntFromObj(interp, objv[5], &nbytes) != TCL_OK ||
+        nbytes < 0) {
+        return TCL_ERROR;
+    }
+    char *data = (char *)malloc(nbytes);
+    size_t bytesRead = SocketRead(data, nbytes);
+    if (bytesRead < 0) {
+        free(data);
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        if (!g_renderer->setStreamlinesSeedToMeshPoints(name, data, nbytes)) {
+            free(data);
+            Tcl_AppendResult(interp, "Couldn't read mesh data or streamlines not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->setStreamlinesSeedToMeshPoints("all", data, nbytes)) {
+            free(data);
+            Tcl_AppendResult(interp, "Couldn't read mesh data or streamlines not found", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    free(data);
+    return TCL_OK;
+}
+
+static int
+StreamlinesSeedPointsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setStreamlinesSeedToMeshPoints(name);
+    } else {
+        g_renderer->setStreamlinesSeedToMeshPoints("all");
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesSeedPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                          Tcl_Obj *const *objv)
 {
@@ -4429,9 +4547,9 @@ StreamlinesSeedRandomOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setStreamlinesSeedToRandomPoints(name, numPoints);
+        g_renderer->setStreamlinesSeedToFilledMesh(name, numPoints);
     } else {
-        g_renderer->setStreamlinesSeedToRandomPoints("all", numPoints);
+        g_renderer->setStreamlinesSeedToFilledMesh("all", numPoints);
     }
     return TCL_OK;
 }
@@ -4456,8 +4574,11 @@ StreamlinesSeedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec streamlinesSeedOps[] = {
     {"color",   1, StreamlinesSeedColorOp, 6, 7, "r g b ?dataSetName?"},
     {"disk",    1, StreamlinesSeedDiskOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ radius innerRadius numPoints ?dataSetName?"},
-    {"fpoly",   1, StreamlinesSeedFilledPolygonOp, 13, 14, "centerX centerY centerZ normalX normalY normalZ angle radius numSides numPoints ?dataSetName?"},
-    {"polygon", 1, StreamlinesSeedPolygonOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
+    {"fmesh",   2, StreamlinesSeedFilledMeshOp, 7, 8, "numPoints data follows nbytes ?dataSetName?"},
+    {"fpoly",   2, StreamlinesSeedFilledPolygonOp, 13, 14, "centerX centerY centerZ normalX normalY normalZ angle radius numSides numPoints ?dataSetName?"},
+    {"mesh",    1, StreamlinesSeedMeshPointsOp, 6, 7, "data follows nbytes ?dataSetName?"},
+    {"points",  3, StreamlinesSeedPointsOp, 3, 4, "?dataSetName?"},
+    {"polygon", 3, StreamlinesSeedPolygonOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
     {"rake",    3, StreamlinesSeedRakeOp, 10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
     {"random",  3, StreamlinesSeedRandomOp, 4, 5, "numPoints ?dataSetName?"},
     {"visible", 1, StreamlinesSeedVisibleOp, 4, 5, "bool ?dataSetName?"}
@@ -4533,7 +4654,7 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"pos",       1, StreamlinesPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"ribbons",   1, StreamlinesRibbonsOp, 4, 5, "width angle ?dataSetName?"},
     {"scale",     2, StreamlinesScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"seed",      2, StreamlinesSeedOp, 4, 14, "op params... ?dataSetName?"},
+    {"seed",      2, StreamlinesSeedOp, 3, 14, "op params... ?dataSetName?"},
     {"tubes",     1, StreamlinesTubesOp, 4, 5, "numSides radius ?dataSetName?"},
     {"visible",   1, StreamlinesVisibleOp, 3, 4, "bool ?dataSetName?"}
 };

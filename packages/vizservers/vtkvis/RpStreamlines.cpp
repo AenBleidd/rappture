@@ -25,6 +25,7 @@
 #include <vtkRibbonFilter.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkVertexGlyphFilter.h>
 
 #include "RpStreamlines.h"
 #include "Trace.h"
@@ -122,6 +123,7 @@ void Streamlines::initProp()
     if (_seedActor == NULL) {
         _seedActor = vtkSmartPointer<vtkActor>::New();
         _seedActor->GetProperty()->SetColor(_seedColor[0], _seedColor[1], _seedColor[2]);
+        _seedActor->GetProperty()->SetEdgeColor(_seedColor[0], _seedColor[1], _seedColor[2]);
         _seedActor->GetProperty()->SetLineWidth(1);
         _seedActor->GetProperty()->SetPointSize(2);
         _seedActor->GetProperty()->SetOpacity(_opacity);
@@ -217,10 +219,50 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
     // XXX: Not uniform distribution (shouldn't use mod, and assumes
     // all cells are equal area/volume)
     int cell = rand() % numCells;
-    double bounds[6];
-    ds->GetCellBounds(cell, bounds);
-    // Note: point is inside AABB of cell, but may be outside the cell
-    getRandomPoint(pt, bounds);
+    int type = ds->GetCellType(cell);
+    if (type == VTK_VERTEX) {
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 1);
+        ds->GetPoint(ptIds->GetId(0), pt);
+    } else if (type == VTK_LINE) {
+        double v[2][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 2);
+        for (int i = 0; i < 2; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        getRandomPointOnLineSegment(pt, v[0], v[1]);
+    } else if (type == VTK_TRIANGLE) {
+        double v[3][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 3);
+        for (int i = 0; i < 3; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        getRandomPointInTriangle(pt, v[0], v[1], v[2]);
+    } else if (type == VTK_QUAD) {
+        double v[4][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 4);
+        for (int i = 0; i < 4; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        int tri = rand() & 0x1;
+        if (tri) {
+            getRandomPointInTriangle(pt, v[0], v[1], v[2]);
+        } else {
+            getRandomPointInTriangle(pt, v[0], v[2], v[3]);
+        }
+    } else {
+        double bounds[6];
+        ds->GetCellBounds(cell, bounds);
+        // Note: point is inside AABB of cell, but may be outside the cell
+        getRandomPoint(pt, bounds);
+    }
 }
 
 /**
@@ -285,10 +327,11 @@ void Streamlines::update()
     if (_seedMapper == NULL) {
         _seedMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _seedMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _seedMapper->ScalarVisibilityOff();
     }
 
     // Set up seed source object
-    setSeedToRandomPoints(200);
+    setSeedToFilledMesh(200);
 
     switch (_lineType) {
     case LINES: {
@@ -342,7 +385,17 @@ void Streamlines::update()
 }
 
 /**
- * \brief Use randomly distributed seed points
+ * \brief Use points of the DataSet associated with this 
+ * Streamlines as seeds
+ */
+void Streamlines::setSeedToMeshPoints()
+{
+    setSeedToMeshPoints(_dataSet->getVtkDataSet());
+}
+
+/**
+ * \brief Use seed points randomly distributed within the cells 
+ * of the DataSet associated with this Streamlines
  *
  * Note: The current implementation doesn't give a uniform 
  * distribution of points, and points outside the mesh bounds
@@ -350,7 +403,52 @@ void Streamlines::update()
  *
  * \param[in] numPoints Number of random seed points to generate
  */
-void Streamlines::setSeedToRandomPoints(int numPoints)
+void Streamlines::setSeedToFilledMesh(int numPoints)
+{
+    setSeedToFilledMesh(_dataSet->getVtkDataSet(), numPoints);
+}
+
+/**
+ * \brief Use points of a supplied vtkDataSet as seeds
+ *
+ * \param[in] seed vtkDataSet with points to use as seeds
+ */
+void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
+{
+    if (_streamTracer != NULL) {
+        TRACE("Seed points: %d", seed->GetNumberOfPoints());
+        vtkSmartPointer<vtkDataSet> oldSeed;
+        if (_streamTracer->GetSource() != NULL) {
+            oldSeed = _streamTracer->GetSource();
+        }
+
+        _streamTracer->SetSource(seed);
+        if (oldSeed != NULL) {
+            oldSeed->SetPipelineInformation(NULL);
+        }
+
+        if (vtkPolyData::SafeDownCast(seed) != NULL) {
+            _seedMapper->SetInput(vtkPolyData::SafeDownCast(seed));
+        } else {
+            vtkSmartPointer<vtkVertexGlyphFilter> vertFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+            vertFilter->SetInput(seed);
+            _seedMapper->SetInputConnection(vertFilter->GetOutputPort());
+        }
+    }
+}
+
+/**
+ * \brief Use seed points randomly distributed within the cells 
+ * of a supplied vtkDataSet
+ *
+ * Note: The current implementation doesn't give a uniform 
+ * distribution of points, and points outside the mesh bounds
+ * may be generated
+ *
+ * \param[in] ds vtkDataSet containing cells
+ * \param[in] numPoints Number of random seed points to generate
+ */
+void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
 {
     if (_streamTracer != NULL) {
         // Set up seed source object
@@ -358,9 +456,13 @@ void Streamlines::setSeedToRandomPoints(int numPoints)
         vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
         vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
 
+        if (ds->GetNumberOfCells() < 1) {
+            ERROR("No cells in mesh");
+        }
+
         for (int i = 0; i < numPoints; i++) {
             double pt[3];
-            getRandomCellPt(pt, _dataSet->getVtkDataSet());
+            getRandomCellPt(pt, ds);
             TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
             pts->InsertNextPoint(pt);
             cells->InsertNextCell(1);
@@ -1057,8 +1159,10 @@ void Streamlines::setSeedColor(float color[3])
     _seedColor[0] = color[0];
     _seedColor[1] = color[1];
     _seedColor[2] = color[2];
-    if (_seedActor != NULL)
+    if (_seedActor != NULL) {
         _seedActor->GetProperty()->SetColor(_seedColor[0], _seedColor[1], _seedColor[2]);
+        _seedActor->GetProperty()->SetEdgeColor(_seedColor[0], _seedColor[1], _seedColor[2]);
+    }
 }
 
 /**

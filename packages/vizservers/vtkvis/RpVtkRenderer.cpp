@@ -6072,10 +6072,9 @@ void Renderer::setStreamlinesScale(const DataSetId& id, double scale[3])
 }
 
 /**
- * \brief Set the streamlines seed to points distributed randomly inside
- * cells of DataSet
+ * \brief Set the streamlines seed to points of the streamlines DataSet
  */
-void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoints)
+void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
 {
     StreamlinesHashmap::iterator itr;
 
@@ -6093,10 +6092,139 @@ void Renderer::setStreamlinesSeedToRandomPoints(const DataSetId& id, int numPoin
     }
 
     do {
-        itr->second->setSeedToRandomPoints(numPoints);
+        itr->second->setSeedToMeshPoints();
     } while (doAll && ++itr != _streamlines.end());
 
     _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to points distributed randomly inside
+ * cells of the streamlines DataSet
+ */
+void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setSeedToFilledMesh(numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to points of a DataSet
+ *
+ * \param[in] id DataSet identifier
+ * \param[in] data Bytes of VTK DataSet file
+ * \param[in] nbytes Length of data array
+ *
+ * \return boolean indicating success or failure
+ */
+bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
+                                              char *data, size_t nbytes)
+{
+    vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
+    vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
+
+    dataSetString->SetArray(data, nbytes, 1);
+    reader->SetInputArray(dataSetString);
+    reader->ReadFromInputStringOn();
+    reader->Update();
+
+    vtkSmartPointer<vtkDataSet> dataSet = reader->GetOutput();
+    if (dataSet == NULL) {
+        return false;
+    }
+    dataSet->SetPipelineInformation(NULL);
+
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return false;
+    }
+
+    do {
+        itr->second->setSeedToMeshPoints(dataSet);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set the streamlines seed to points distributed randomly inside
+ * cells of DataSet
+ *
+ * \param[in] id DataSet identifier
+ * \param[in] data Bytes of VTK DataSet file
+ * \param[in] nbytes Length of data array
+ * \param[in] numPoints Number of random seed points to generate
+ *
+ * \return boolean indicating success or failure
+ */
+bool Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id,
+                                              char *data, size_t nbytes,
+                                              int numPoints)
+{
+    vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
+    vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
+
+    dataSetString->SetArray(data, nbytes, 1);
+    reader->SetInputArray(dataSetString);
+    reader->ReadFromInputStringOn();
+    reader->Update();
+
+    vtkSmartPointer<vtkDataSet> dataSet = reader->GetOutput();
+    if (dataSet == NULL) {
+        return false;
+    }
+    dataSet->SetPipelineInformation(NULL);
+
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return false;
+    }
+
+    do {
+        itr->second->setSeedToFilledMesh(dataSet, numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+    return true;
 }
 
 /**

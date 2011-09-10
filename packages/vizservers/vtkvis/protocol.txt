@@ -305,13 +305,20 @@ streamlines seed color <r> <g> <b> <?datasetName?>
 streamlines seed disk <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <radius> <innerRadius> <numPoints> <?dataSetName?>
             Create a disk seed area with optional hole, filled with randomly 
             placed points
+streamlines seed fmesh <numPoints> data follows <nbytes> <?datasetName?>
+            Fill a mesh supplied as a VTK data file with randomly placed points
 streamlines seed fpoly <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <numPoints> <?dataSetName?>
             Create a regular n-sided polygonal seed area filled with randomly 
             placed points
+streamlines seed mesh data follows <nbytes> <?datasetName?>
+            Use points of a mesh supplied as a VTK data file
+streamlines seed points <?datasetName?>
+            Use points of the streamlines' dataset mesh
 streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <?dataSetName?>
             Create seed points from vertices of a regular n-sided polygon
 streamlines seed rake <startX> <startY> <startZ> <endX> <endY> <endZ> <numPoints> <?datasetName?>
 streamlines seed random <numPoints> <?datasetName?>
+            Fill the streamlines' dataset mesh with randomly placed points
 streamlines seed visible <bool> <?datasetName?>
 streamlines tubes <numSides> <radius> <?datasetName?>
             Set rendering type to tubes, numSides is number of sides of tubes,
