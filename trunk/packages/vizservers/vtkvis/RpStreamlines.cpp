@@ -20,6 +20,7 @@
 #include <vtkPointData.h>
 #include <vtkCellData.h>
 #include <vtkCellDataToPointData.h>
+#include <vtkPolygon.h>
 #include <vtkPolyData.h>
 #include <vtkTubeFilter.h>
 #include <vtkRibbonFilter.h>
@@ -173,9 +174,9 @@ void Streamlines::getRandomPoint(double pt[3], const double bounds[6])
  * \param[in] v3 Triangle vertex 3
  */
 void Streamlines::getRandomPointInTriangle(double pt[3],
+                                           const double v0[3],
                                            const double v1[3],
-                                           const double v2[3],
-                                           const double v3[3])
+                                           const double v2[3])
 {
     // Choose random barycentric coordinates
     double bary[3];
@@ -190,7 +191,46 @@ void Streamlines::getRandomPointInTriangle(double pt[3],
     TRACE("bary %g %g %g", bary[0], bary[1], bary[2]);
     // Convert to cartesian coords
     for (int i = 0; i < 3; i++) {
-        pt[i] = v1[i] * bary[0] + v2[i] * bary[1] + v3[i] * bary[2];
+        pt[i] = v0[i] * bary[0] + v1[i] * bary[1] + v2[i] * bary[2];
+    }
+}
+
+void Streamlines::getRandomPointInTetrahedron(double pt[3],
+                                              const double v0[3],
+                                              const double v1[3],
+                                              const double v2[3],
+                                              const double v3[3])
+{
+    // Choose random barycentric coordinates
+    double bary[4];
+    bary[0] = getRandomNum(0, 1);
+    bary[1] = getRandomNum(0, 1);
+    bary[2] = getRandomNum(0, 1);
+    if (bary[0] + bary[1] > 1.0) {
+        bary[0] = 1.0 - bary[0];
+        bary[1] = 1.0 - bary[1];
+    }
+    if (bary[1] + bary[2] > 1.0) {
+        double tmp = bary[2];
+        bary[2] = 1.0 - bary[0] - bary[1];
+        bary[1] = 1.0 - tmp;
+    } else if (bary[0] + bary[1] + bary[2] > 1.0) {
+        double tmp = bary[2];
+        bary[2] = bary[0] + bary[1] + bary[2] - 1.0;
+        bary[0] = 1.0 - bary[1] - tmp;
+    }
+    bary[3] = 1.0 - bary[0] - bary[1] - bary[2];
+    TRACE("bary %g %g %g %g", bary[0], bary[1], bary[2], bary[3]);
+    // Convert to cartesian coords
+    for (int i = 0; i < 3; i++) {
+#if 0
+        pt[i] = (v0[i] - v3[i]) * bary[0] +
+                (v1[i] - v3[i]) * bary[1] + 
+                (v2[i] - v3[i]) * bary[2] + v3[i];
+#else
+        pt[i] = v0[i] * bary[0] + v1[i] * bary[1] +
+                v2[i] * bary[2] + v3[i] * bary[3];
+#endif
     }
 }
 
@@ -210,8 +250,9 @@ void Streamlines::getRandomPointOnLineSegment(double pt[3],
 /**
  * \brief Get a random point within a vtkDataSet's mesh
  *
- * Note: This currently doesn't give a uniform distribution of
- * points in space and can generate points outside the mesh
+ * Note: This currently doesn't always give a uniform distribution 
+ * of points in space and can generate points outside the mesh for
+ * unusual cell types
  */
 void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
 {
@@ -225,6 +266,12 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         ds->GetCellPoints(cell, ptIds);
         assert(ptIds->GetNumberOfIds() == 1);
         ds->GetPoint(ptIds->GetId(0), pt);
+    } else if (type == VTK_POLY_VERTEX) {
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() >= 1);
+        int id = rand() % ptIds->GetNumberOfIds();
+        ds->GetPoint(ptIds->GetId(id), pt);
     } else if (type == VTK_LINE) {
         double v[2][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
@@ -234,6 +281,16 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(i), v[i]);
         }
         getRandomPointOnLineSegment(pt, v[0], v[1]);
+    } else if (type == VTK_POLY_LINE) {
+        double v[2][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() >= 2);
+        int id = rand() % (ptIds->GetNumberOfIds()-1);
+        for (int i = 0; i < 2; i++) {
+            ds->GetPoint(ptIds->GetId(id+i), v[i]);
+        }
+        getRandomPointOnLineSegment(pt, v[0], v[1]);
     } else if (type == VTK_TRIANGLE) {
         double v[3][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
@@ -241,6 +298,28 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         assert(ptIds->GetNumberOfIds() == 3);
         for (int i = 0; i < 3; i++) {
             ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        getRandomPointInTriangle(pt, v[0], v[1], v[2]);
+    } else if (type == VTK_TRIANGLE_STRIP) {
+        double v[3][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() >= 3);
+        int id = rand() % (ptIds->GetNumberOfIds()-2);
+        for (int i = 0; i < 3; i++) {
+            ds->GetPoint(ptIds->GetId(id+i), v[i]);
+        }
+        getRandomPointInTriangle(pt, v[0], v[1], v[2]);
+    } else if (type == VTK_POLYGON) {
+        vtkPolygon *poly = vtkPolygon::SafeDownCast(ds->GetCell(cell));
+        assert (poly != NULL);
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        poly->Triangulate(ptIds);
+        assert(ptIds->GetNumberOfIds() >= 3 && ptIds->GetNumberOfIds() % 3 == 0);
+        int tri = rand() % (ptIds->GetNumberOfIds()/3);
+        double v[3][3];
+        for (int i = 0; i < 3; i++) {
+            ds->GetPoint(ptIds->GetId(i + tri * 3), v[i]);
         }
         getRandomPointInTriangle(pt, v[0], v[1], v[2]);
     } else if (type == VTK_QUAD) {
@@ -257,10 +336,74 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         } else {
             getRandomPointInTriangle(pt, v[0], v[2], v[3]);
         }
+    } else if (type == VTK_TETRA) {
+        double v[4][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 4);
+        for (int i = 0; i < 4; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[3]);
+    } else if (type == VTK_HEXAHEDRON) {
+        double v[8][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 8);
+        for (int i = 0; i < 8; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        int tetra = rand() % 5;
+        switch (tetra) {
+        case 0:
+            getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[5]);
+            break;
+        case 1:
+            getRandomPointInTetrahedron(pt, v[0], v[2], v[7], v[3]);
+            break;
+        case 2:
+            getRandomPointInTetrahedron(pt, v[0], v[5], v[7], v[4]);
+            break;
+        case 3:
+            getRandomPointInTetrahedron(pt, v[5], v[2], v[7], v[6]);
+            break;
+        case 4:
+        default:
+            getRandomPointInTetrahedron(pt, v[0], v[2], v[7], v[5]);
+            break;
+        }
+    } else if (type == VTK_WEDGE) {
+        double v[6][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 6);
+        for (int i = 0; i < 6; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        double vv[3][3];
+        getRandomPointOnLineSegment(vv[0], v[0], v[3]);
+        getRandomPointOnLineSegment(vv[1], v[1], v[4]);
+        getRandomPointOnLineSegment(vv[2], v[2], v[5]);
+        getRandomPointInTriangle(pt, vv[0], vv[1], vv[2]);
+    } else if (type == VTK_PYRAMID) {
+        double v[5][3];
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        ds->GetCellPoints(cell, ptIds);
+        assert(ptIds->GetNumberOfIds() == 5);
+        for (int i = 0; i < 5; i++) {
+            ds->GetPoint(ptIds->GetId(i), v[i]);
+        }
+        int tetra = rand() & 0x1;
+        if (tetra) {
+            getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[4]);
+        } else {
+            getRandomPointInTetrahedron(pt, v[0], v[2], v[3], v[4]);
+        }
     } else {
         double bounds[6];
         ds->GetCellBounds(cell, bounds);
-        // Note: point is inside AABB of cell, but may be outside the cell
+        // Note: For pixel/voxel cells, this is exact.  However, if the cell is
+        // not an axis aligned box, the point may be outside the cell
         getRandomPoint(pt, bounds);
     }
 }
@@ -463,7 +606,7 @@ void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
         for (int i = 0; i < numPoints; i++) {
             double pt[3];
             getRandomCellPt(pt, ds);
-            TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+            //TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
             pts->InsertNextPoint(pt);
             cells->InsertNextCell(1);
             cells->InsertCellPoint(i);
@@ -516,7 +659,7 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
             for (int ii = 0; ii < 3; ii++) {
                 pt[ii] = start[ii] + dir[ii] * ((double)i / (numPoints-1));
             }
-            TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+            //TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
             pts->InsertNextPoint(pt);
             polyline->GetPointIds()->SetId(i, i);
         }
@@ -608,7 +751,7 @@ void Streamlines::setSeedToDisk(double center[3],
             for (int i = 0; i < 3; i++) {
                 pt[i] = center[i] + r * (px[i] * cos(angle) + py[i] * sin(angle));
             }
-            TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+            //TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
             pts->InsertNextPoint(pt);
             cells->InsertNextCell(1);
             cells->InsertCellPoint(j);
@@ -763,7 +906,7 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
                 verts[j][i] = center[i] + radius * (px[i] * cos(theta) + 
                                                     py[i] * sin(theta));
             }
-            TRACE("Vert %d: %g %g %g", j, verts[j][0], verts[j][1], verts[j][2]);
+            //TRACE("Vert %d: %g %g %g", j, verts[j][0], verts[j][1], verts[j][2]);
         }
 
         // Note: this gives a uniform distribution because the polygon is regular and
@@ -772,7 +915,7 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
             for (int j = 0; j < numPoints; j++) {
                 double pt[3];
                 getRandomPointInTriangle(pt, verts[0], verts[1], verts[2]);
-                TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+                //TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
                 pts->InsertNextPoint(pt);
                 cells->InsertNextCell(1);
                 cells->InsertCellPoint(j);
@@ -783,7 +926,7 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
                 int tri = rand() % numSides;
                 double pt[3];
                 getRandomPointInTriangle(pt, center, verts[tri], verts[(tri+1) % numSides]);
-                TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
+                //TRACE("Seed pt: %g %g %g", pt[0], pt[1], pt[2]);
                 pts->InsertNextPoint(pt);
                 cells->InsertNextCell(1);
                 cells->InsertCellPoint(j);
