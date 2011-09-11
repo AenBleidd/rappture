@@ -135,12 +135,17 @@ private:
     static double getRandomNum(double min, double max);
     static void getRandomPoint(double pt[3], const double bounds[6]);
     static void getRandomPointInTriangle(double pt[3],
+                                         const double v0[3],
                                          const double v1[3],
-                                         const double v2[3],
-                                         const double v3[3]);
+                                         const double v2[3]);
     static void getRandomPointOnLineSegment(double pt[3],
                                             const double endpt[3],
                                             const double endpt2[3]);
+    static void getRandomPointInTetrahedron(double pt[3],
+                                            const double v0[3],
+                                            const double v1[3],
+                                            const double v2[3],
+                                            const double v3[3]);
     static void getRandomCellPt(double pt[3], vtkDataSet *ds);
 
     LineType _lineType;
