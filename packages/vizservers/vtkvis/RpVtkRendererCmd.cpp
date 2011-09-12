@@ -20,6 +20,7 @@
 #include "CmdProc.h"
 #include "RpVtkRendererCmd.h"
 #include "RpVtkRenderServer.h"
+#include "RpVtkRenderer.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
 
@@ -193,6 +194,11 @@ AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc,
            Tcl_Obj *const *objv)
 {
     const char *title = Tcl_GetString(objv[3]);
+    if (strlen(title) > 30) {
+        Tcl_AppendResult(interp, "axis name \"", title,
+                         "\" is too long", (char*)NULL);
+        return TCL_ERROR;
+    }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
@@ -260,6 +266,11 @@ AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
     const char *units = Tcl_GetString(objv[3]);
+    if (strlen(units) > 10) {
+        Tcl_AppendResult(interp, "axis units name \"", units,
+                         "\" is too long", (char*)NULL);
+        return TCL_ERROR;
+    }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
