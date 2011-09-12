@@ -279,6 +279,10 @@ AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxisUnits(Renderer::Y_AXIS, units);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
         g_renderer->setAxisUnits(Renderer::Z_AXIS, units);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxisUnits(Renderer::X_AXIS, units);
+        g_renderer->setAxisUnits(Renderer::Y_AXIS, units);
+        g_renderer->setAxisUnits(Renderer::Z_AXIS, units);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName units", (char*)NULL);
