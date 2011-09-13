@@ -43,6 +43,20 @@ public:
         COLOR_BY_VECTOR_Z,
         COLOR_CONSTANT
     };
+    enum StepUnit {
+        LENGTH_UNIT,
+        CELL_LENGTH_UNIT
+    };
+    enum IntegratorType {
+        RUNGE_KUTTA2,
+        RUNGE_KUTTA4,
+        RUNGE_KUTTA45
+    };
+    enum IntegrationDirection {
+        FORWARD,
+        BACKWARD,
+        BOTH
+    };
 
     Streamlines();
     virtual ~Streamlines();
@@ -97,7 +111,25 @@ public:
                                 double angle, double radius,
                                 int numSides, int numPoints);
 
+    void setIntegrator(IntegratorType integrator);
+
+    void setIntegrationDirection(IntegrationDirection dir);
+
+    void setIntegrationStepUnit(StepUnit unit);
+
+    void setInitialIntegrationStep(double step);
+
+    void setMinimumIntegrationStep(double step);
+
+    void setMaximumIntegrationStep(double step);
+
+    void setMaximumError(double error);
+
     void setMaxPropagation(double length);
+
+    void setMaxNumberOfSteps(int steps);
+
+    void setTerminalSpeed(double speed);
 
     void setLineTypeToLines();
 
