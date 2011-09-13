@@ -1,7 +1,7 @@
 #!/bin/sh
 # -*- mode: Tcl -*-
 # ----------------------------------------------------------------------
-#  TEST PROGRAM for VtkViewer
+#  TEST PROGRAM for VtkStreamlinesViewer
 #
 #  This program is a test harness for the VtkVis visualization
 #  engine.  It allows you to monitor the commands being sent back
@@ -71,10 +71,10 @@ Rappture::resources::load
 # Fake data object for sending VTK data file...
 # ----------------------------------------------------------------------
 itcl::class visData {
-    inherit Rappture::Drawing
+    inherit Rappture::Field
 
     constructor {args} {
-        Rappture::Drawing::constructor [Rappture::library standard] ""
+        Rappture::Field::constructor [Rappture::library standard] ""
     } {
         set _data [lindex $args 0]
         set _type [lindex $args 1]
@@ -86,6 +86,9 @@ itcl::class visData {
         }
         return ""
     }
+    public method blob {args} {
+        return $_data
+    }
     public method data {args} {
         return $_data
     }
@@ -93,6 +96,9 @@ itcl::class visData {
         return $_data
     }
     public method hints {args} {
+        return ""
+    }
+    public method style {args} {
         return ""
     }
     public method type {args} {
@@ -119,7 +125,7 @@ proc send_file {} {
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info ""]
+        set obj [visData #auto $info "vtk"]
         $widgets(vtkviewer) add $obj
     }
 }
@@ -140,28 +146,7 @@ proc send_streamlines_file {} {
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info "streamlines"]
-        $widgets(vtkviewer) add $obj
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: send_spheres_file
-#
-# Prompts the user for a text file, and then sends the text within
-# that file along to the rendering widget.
-# ----------------------------------------------------------------------
-proc send_spheres_file {} {
-    global widgets
-
-    set file [tk_getOpenFile -title "Open VTK File as Spheres"]
-    if {"" != $file && [catch {
-            set fid [open $file r]
-            fconfigure $fid -translation binary
-            set info [read $fid]
-            close $fid
-          }] == 0} {
-        set obj [visData #auto $info "spheres"]
+        set obj [visData #auto $info "vtkstreamlines"]
         $widgets(vtkviewer) add $obj
     }
 }
@@ -206,7 +191,7 @@ proc send_command {} {
     } else {
         set cmd $last_command
     }
-    namespace eval Rappture::VtkViewer [list $widgets(vtkviewer) SendCmd $cmd]
+    namespace eval Rappture::VtkStreamlinesViewer [list $widgets(vtkviewer) SendCmd $cmd]
     $widgets(command) delete 0 end
 }
 
@@ -363,7 +348,6 @@ menu .mbar
 menu .mbar.file
 .mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
 .mbar.file add command -label "Send VTK File as Streamlines..." -underline 0 -command send_streamlines_file
-.mbar.file add command -label "Send VTK File as Spheres..." -underline 0 -command send_spheres_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
@@ -384,7 +368,7 @@ pack .main -expand yes -fill both
 
 set f [.main pane 0]
 set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-Rappture::VtkViewer $f.viewer $servers
+Rappture::VtkStreamlinesViewer $f.viewer $servers
 pack $f.viewer -expand yes -fill both
 set widgets(vtkviewer) $f.viewer
 
