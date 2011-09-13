@@ -460,7 +460,8 @@ void Streamlines::update()
     }
 
     _streamTracer->SetInput(ds);
-    _streamTracer->SetMaximumPropagation(maxBound);
+    _streamTracer->SetMaximumPropagation(2.0 * maxBound / avgSize);
+    _streamTracer->SetIntegratorTypeToRungeKutta45();
 
     if (_pdMapper == NULL) {
         _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -952,12 +953,142 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
 }
 
 /**
- * \brief Set maximum length of stream lines in world coordinates
+ * \brief Set the integration method used
+ */
+void Streamlines::setIntegrator(IntegratorType integrator)
+{
+    if (_streamTracer != NULL) {
+        switch (integrator) {
+        case RUNGE_KUTTA2:
+            _streamTracer->SetIntegratorTypeToRungeKutta2();
+            break;
+        case RUNGE_KUTTA4:
+            _streamTracer->SetIntegratorTypeToRungeKutta4();
+            break;
+        case RUNGE_KUTTA45:
+            _streamTracer->SetIntegratorTypeToRungeKutta45();
+            break;
+        default:
+            ;
+        }
+    }
+}
+
+/**
+ * \brief Set the direction of integration
+ */
+void Streamlines::setIntegrationDirection(IntegrationDirection dir)
+{
+    if (_streamTracer != NULL) {
+        switch (dir) {
+        case FORWARD:
+            _streamTracer->SetIntegrationDirectionToForward();
+            break;
+        case BACKWARD:
+            _streamTracer->SetIntegrationDirectionToBackward();
+            break;
+        case BOTH:
+            _streamTracer->SetIntegrationDirectionToBoth();
+            break;
+        default:
+            ;
+        }
+    }
+}
+
+/**
+ * \brief Set the step size units.  Length units are world 
+ * coordinates, and cell units means steps are from cell to 
+ * cell.  Default is cell units
+ */
+void Streamlines::setIntegrationStepUnit(StepUnit unit)
+{
+    if (_streamTracer != NULL) {
+        switch (unit) {
+        case LENGTH_UNIT:
+            _streamTracer->SetIntegrationStepUnit(vtkStreamTracer::LENGTH_UNIT);
+            break;
+        case CELL_LENGTH_UNIT:
+            _streamTracer->SetIntegrationStepUnit(vtkStreamTracer::CELL_LENGTH_UNIT);
+            break;
+        default:
+            ;
+        }
+    }
+}
+
+/**
+ * \brief Set initial step size for adaptive step integrator in 
+ * step units (see setIntegrationStepUnit).  For non-adaptive
+ * integrators, this is the fixed step size.
+ */
+void Streamlines::setInitialIntegrationStep(double step)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetInitialIntegrationStep(step);
+    }
+}
+
+/**
+ * \brief Set minimum step for adaptive step integrator in 
+ * step units (see setIntegrationStepUnit)
+ */
+void Streamlines::setMinimumIntegrationStep(double step)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetMinimumIntegrationStep(step);
+    }
+}
+
+/**
+ * \brief Set maximum step for adaptive step integrator in 
+ * step units (see setIntegrationStepUnit)
+ */
+void Streamlines::setMaximumIntegrationStep(double step)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetMaximumIntegrationStep(step);
+    }
+}
+
+/**
+ * \brief Set maximum error tolerance
+ */
+void Streamlines::setMaximumError(double error)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetMaximumError(error);
+    }
+}
+
+/**
+ * \brief Set maximum length of stream lines in integration
+ * step units (see setIntegrationStepUnit)
  */
 void Streamlines::setMaxPropagation(double length)
 {
     if (_streamTracer != NULL) {
         _streamTracer->SetMaximumPropagation(length);
+    }
+}
+
+/**
+ * \brief Set maximum number of integration steps
+ */
+void Streamlines::setMaxNumberOfSteps(int steps)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetMaximumNumberOfSteps(steps);
+    }
+}
+
+/**
+ * \brief Set the minimum speed before integration stops
+ */
+void Streamlines::setTerminalSpeed(double speed)
+{
+    if (_streamTracer != NULL) {
+        _streamTracer->SetTerminalSpeed(speed);
     }
 }
 
