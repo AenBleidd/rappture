@@ -7543,7 +7543,7 @@ void Renderer::resetCamera(bool resetOrientation)
             _cameraOrientation[2] = 0.0;
             _cameraOrientation[3] = 0.0;
         }
-        setViewAngle(_windowHeight);
+        //setViewAngle(_windowHeight);
         double bounds[6];
         collectBounds(bounds, false);
         _renderer->ResetCamera(bounds);
@@ -8664,7 +8664,7 @@ void Renderer::setClipPlane(Axis axis, double ratio, int direction)
                 _userClipPlanes[0] = NULL;
             }
         } else {
-            if (ratio > 0.0) {
+            if (ratio < 1.0) {
                 if (_userClipPlanes[1] == NULL) {
                     _userClipPlanes[1] = vtkSmartPointer<vtkPlane>::New();
                     _userClipPlanes[1]->SetNormal(-1, 0, 0);
@@ -8687,7 +8687,7 @@ void Renderer::setClipPlane(Axis axis, double ratio, int direction)
                 _userClipPlanes[2] = NULL;
             }
         } else {
-            if (ratio > 0.0) {
+            if (ratio < 1.0) {
                 if (_userClipPlanes[3] == NULL) {
                     _userClipPlanes[3] = vtkSmartPointer<vtkPlane>::New();
                     _userClipPlanes[3]->SetNormal(0, -1, 0);
@@ -8710,7 +8710,7 @@ void Renderer::setClipPlane(Axis axis, double ratio, int direction)
                 _userClipPlanes[4] = NULL;
             }
         } else {
-            if (ratio > 0.0) {
+            if (ratio < 1.0) {
                 if (_userClipPlanes[5] == NULL) {
                     _userClipPlanes[5] = vtkSmartPointer<vtkPlane>::New();
                     _userClipPlanes[5]->SetNormal(0, 0, -1);
