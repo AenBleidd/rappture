@@ -2949,7 +2949,6 @@ void Renderer::setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, 
         itr->second->selectVolumeSlice(axis, ratio);
      } while (doAll && ++itr != _cutplanes.end());
 
-    initCamera();
     _needsRedraw = true;
 }
 
