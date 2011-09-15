@@ -2252,8 +2252,6 @@ bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
         _contour3Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
     return true;
@@ -2766,7 +2764,6 @@ bool Renderer::addCutplane(const DataSetId& id)
         _renderer->AddViewProp(cutplane->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
     _needsRedraw = true;
     return true;
 }
@@ -3257,8 +3254,6 @@ bool Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
         _glyphs[dsID] = glyphs;
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
 
     _needsRedraw = true;
@@ -3862,8 +3857,6 @@ bool Renderer::addHeightMap(const DataSetId& id, int numContours, double heightS
         _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
 
     _needsRedraw = true;
@@ -3916,8 +3909,6 @@ bool Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
         _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
 
     _needsRedraw = true;
@@ -4572,8 +4563,6 @@ bool Renderer::addLIC(const DataSetId& id)
         _renderer->AddViewProp(lic->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
     return true;
@@ -5002,8 +4991,6 @@ bool Renderer::addMolecule(const DataSetId& id)
         _renderer->AddViewProp(molecule->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
     return true;
@@ -5511,8 +5498,6 @@ bool Renderer::addPolyData(const DataSetId& id)
         _renderer->AddViewProp(polyData->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
     return true;
@@ -7349,8 +7334,6 @@ bool Renderer::addVolume(const DataSetId& id)
         _renderer->AddViewProp(volume->getProp());
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
     initCamera();
     _needsRedraw = true;
     return true;
