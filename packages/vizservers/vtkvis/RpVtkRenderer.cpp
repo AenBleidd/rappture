@@ -157,6 +157,12 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _contour3Ds.clear();
+    TRACE("Deleting Cutplanes");
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+             itr != _cutplanes.end(); ++itr) {
+        delete itr->second;
+    }
+    _cutplanes.clear();
     TRACE("Deleting Glyphs");
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
@@ -307,6 +313,43 @@ void Renderer::deleteContour3D(const DataSetId& id)
 
         itr = _contour3Ds.erase(itr);
     } while (doAll && itr != _contour3Ds.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Remove the Cutplane for the specified DataSet
+ *
+ * The underlying Cutplane is deleted, freeing its memory
+ */
+void Renderer::deleteCutplane(const DataSetId& id)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    TRACE("Deleting Cutplanes for %s", id.c_str());
+
+    do {
+        Cutplane *cutplane = itr->second;
+        if (cutplane->getProp())
+            _renderer->RemoveViewProp(cutplane->getProp());
+        delete cutplane;
+
+        itr = _cutplanes.erase(itr);
+    } while (doAll && itr != _cutplanes.end());
 
     initCamera();
     _needsRedraw = true;
@@ -636,6 +679,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
 
         deleteContour2D(itr->second->getName());
         deleteContour3D(itr->second->getName());
+        deleteCutplane(itr->second->getName());
         deleteGlyphs(itr->second->getName());
         deleteHeightMap(itr->second->getName());
         deleteLIC(itr->second->getName());
@@ -1212,6 +1256,13 @@ void Renderer::updateColorMap(ColorMap *cmap)
             _needsRedraw = true;
         }
     }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+         itr != _cutplanes.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
          itr != _glyphs.end(); ++itr) {
         if (itr->second->getColorMap() == cmap) {
@@ -1270,6 +1321,11 @@ bool Renderer::colorMapUsed(ColorMap *cmap)
 {
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+         itr != _cutplanes.end(); ++itr) {
         if (itr->second->getColorMap() == cmap)
             return true;
     }
@@ -2667,6 +2723,491 @@ void Renderer::setContour3DLighting(const DataSetId& id, bool state)
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != _contour3Ds.end());
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Cutplane and associate it with the named DataSet
+ */
+bool Renderer::addCutplane(const DataSetId& id)
+{
+    DataSetHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _dataSets.begin();
+    } else {
+        itr = _dataSets.find(id);
+    }
+    if (itr == _dataSets.end()) {
+        ERROR("Unknown dataset %s", id.c_str());
+        return false;
+    }
+
+    do {
+        DataSet *ds = itr->second;
+        const DataSetId& dsID = ds->getName();
+
+        if (getCutplane(dsID)) {
+            WARN("Replacing existing Cutplane %s", dsID.c_str());
+            deleteCutplane(dsID);
+        }
+
+        Cutplane *cutplane = new Cutplane();
+        _cutplanes[dsID] = cutplane;
+
+        cutplane->setDataSet(ds,
+                             _useCumulativeRange, 
+                             _cumulativeScalarRange,
+                             _cumulativeVectorMagnitudeRange,
+                             _cumulativeVectorComponentRange);
+
+        _renderer->AddViewProp(cutplane->getProp());
+    } while (doAll && ++itr != _dataSets.end());
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Get the Cutplane associated with a named DataSet
+ */
+Cutplane *Renderer::getCutplane(const DataSetId& id)
+{
+    CutplaneHashmap::iterator itr = _cutplanes.find(id);
+
+    if (itr == _cutplanes.end()) {
+#ifdef DEBUG
+        TRACE("Cutplane not found: %s", id.c_str());
+#endif
+        return NULL;
+    } else
+        return itr->second;
+}
+
+/**
+ * \brief Set an additional transform on the prop
+ */
+void Renderer::setCutplaneTransform(const DataSetId& id, vtkMatrix4x4 *trans)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setTransform(trans);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a quaternion
+ */
+void Renderer::setCutplaneOrientation(const DataSetId& id, double quat[4])
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(quat);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop orientation with a rotation about an axis
+ */
+void Renderer::setCutplaneOrientation(const DataSetId& id, double angle, double axis[3])
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrientation(angle, axis);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop position in world coords
+ */
+void Renderer::setCutplanePosition(const DataSetId& id, double pos[3])
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setPosition(pos);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling
+ */
+void Renderer::setCutplaneScale(const DataSetId& id, double scale[3])
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setScale(scale);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the volume slice used for mapping volumetric data
+ */
+void Renderer::setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, double ratio)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->selectVolumeSlice(axis, ratio);
+     } while (doAll && ++itr != _cutplanes.end());
+
+    initCamera();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Associate an existing named color map with a Cutplane for the given DataSet
+ */
+void Renderer::setCutplaneColorMap(const DataSetId& id, const ColorMapId& colorMapId)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    ColorMap *cmap = getColorMap(colorMapId);
+    if (cmap == NULL) {
+        ERROR("Unknown colormap: %s", colorMapId.c_str());
+        return;
+    }
+
+    do {
+        TRACE("Set Cutplane color map: %s for dataset %s", colorMapId.c_str(),
+              itr->second->getDataSet()->getName().c_str());
+
+        itr->second->setColorMap(cmap);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setCutplaneColorMode(const DataSetId& id, Cutplane::ColorMode mode)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set opacity of height map for the given DataSet
+ */
+void Renderer::setCutplaneOpacity(const DataSetId& id, double opacity)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOpacity(opacity);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map for the given DataSet
+ */
+void Renderer::setCutplaneVisibility(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setVisibility(state);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set wireframe rendering for the specified DataSet
+ */
+void Renderer::setCutplaneWireframe(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWireframe(state);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn on/off rendering height map mesh edges for the given DataSet
+ */
+void Renderer::setCutplaneEdgeVisibility(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeVisibility(state);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the RGB height map mesh edge color for the specified DataSet
+ */
+void Renderer::setCutplaneEdgeColor(const DataSetId& id, float color[3])
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeColor(color);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the height map mesh edge width for the specified DataSet (may be a no-op)
+ *
+ * If the OpenGL implementation/hardware does not support wide lines, 
+ * this function may not have an effect.
+ */
+void Renderer::setCutplaneEdgeWidth(const DataSetId& id, float edgeWidth)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Turn height map lighting on/off for the specified DataSet
+ */
+void Renderer::setCutplaneLighting(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setLighting(state);
+    } while (doAll && ++itr != _cutplanes.end());
     _needsRedraw = true;
 }
 
@@ -8079,6 +8620,12 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+             itr != _cutplanes.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
@@ -8175,6 +8722,13 @@ void Renderer::updateRanges()
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
+        itr->second->updateRanges(_useCumulativeRange, 
+                                  _cumulativeScalarRange,
+                                  _cumulativeVectorMagnitudeRange,
+                                  _cumulativeVectorComponentRange);
+    }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+         itr != _cutplanes.end(); ++itr) {
         itr->second->updateRanges(_useCumulativeRange, 
                                   _cumulativeScalarRange,
                                   _cumulativeVectorMagnitudeRange,
@@ -8510,6 +9064,8 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         setContour2DOpacity(id, opacity);
     if (id.compare("all") == 0 || getContour3D(id) != NULL)
         setContour3DOpacity(id, opacity);
+    if (id.compare("all") == 0 || getCutplane(id) != NULL)
+        setCutplaneOpacity(id, opacity);
     if (id.compare("all") == 0 || getGlyphs(id) != NULL)
         setGlyphsOpacity(id, opacity);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
@@ -8558,6 +9114,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         setContour2DVisibility(id, state);
     if (id.compare("all") == 0 || getContour3D(id) != NULL)
         setContour3DVisibility(id, state);
+   if (id.compare("all") == 0 || getCutplane(id) != NULL)
+        setCutplaneVisibility(id, state);
     if (id.compare("all") == 0 || getGlyphs(id) != NULL)
         setGlyphsVisibility(id, state);
     if (id.compare("all") == 0 || getHeightMap(id) != NULL)
@@ -8764,6 +9322,10 @@ void Renderer::setCameraClippingPlanes()
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+         itr != _cutplanes.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();

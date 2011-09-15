@@ -28,6 +28,7 @@
 #include "RpVtkDataSet.h"
 #include "RpContour2D.h"
 #include "RpContour3D.h"
+#include "RpCutplane.h"
 #include "RpGlyphs.h"
 #include "RpHeightMap.h"
 #include "RpLIC.h"
@@ -100,6 +101,7 @@ public:
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Cutplane *> CutplaneHashmap;
     typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
@@ -162,6 +164,14 @@ public:
     // Camera controls
 
     void setViewAngle(int height);
+
+    vtkCamera *getVtkCamera()
+    {
+        if (_renderer != NULL)
+            return _renderer->GetActiveCamera();
+        else
+            return NULL;
+    }
 
     void setCameraMode(CameraMode mode);
 
@@ -331,6 +341,44 @@ public:
     void setContour3DContourList(const DataSetId& id, const std::vector<double>& contours);
 
     void setContour3DColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    // Cutplanes
+
+    bool addCutplane(const DataSetId& id);
+    
+    void deleteCutplane(const DataSetId& id);
+
+    Cutplane *getCutplane(const DataSetId& id);
+
+    void setCutplaneTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    void setCutplaneOrientation(const DataSetId& id, double quat[4]);
+
+    void setCutplaneOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    void setCutplanePosition(const DataSetId& id, double pos[3]);
+
+    void setCutplaneScale(const DataSetId& id, double scale[3]);
+
+    void setCutplaneEdgeVisibility(const DataSetId& id, bool state);
+
+    void setCutplaneEdgeColor(const DataSetId& id, float color[3]);
+
+    void setCutplaneEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setCutplaneLighting(const DataSetId& id, bool state);
+
+    void setCutplaneOpacity(const DataSetId& id, double opacity);
+
+    void setCutplaneVisibility(const DataSetId& id, bool state);
+
+    void setCutplaneWireframe(const DataSetId& id, bool state);
+
+    void setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, double ratio);
+
+    void setCutplaneColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    void setCutplaneColorMode(const DataSetId& id, Cutplane::ColorMode mode);
 
     // Glyphs
 
@@ -753,6 +801,7 @@ private:
     DataSetHashmap _dataSets;
     Contour2DHashmap _contour2Ds;
     Contour3DHashmap _contour3Ds;
+    CutplaneHashmap _cutplanes;
     GlyphsHashmap _glyphs;
     HeightMapHashmap _heightMaps;
     LICHashmap _lics;

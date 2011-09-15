@@ -90,7 +90,7 @@ void HeightMap::setDataSet(DataSet *dataSet,
                 _dataRange[0] = scalarRange[0];
                 _dataRange[1] = scalarRange[1];
             } else {
-                dataSet->getScalarRange(_dataRange);
+                _dataSet->getScalarRange(_dataRange);
             }
 
             // Compute a data scaling factor to make maximum
