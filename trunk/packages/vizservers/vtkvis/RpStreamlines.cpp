@@ -421,15 +421,18 @@ void Streamlines::update()
 
     double bounds[6];
     _dataSet->getBounds(bounds);
+    double xLen = bounds[1] - bounds[0];
+    double yLen = bounds[3] - bounds[2];
+    double zLen = bounds[5] - bounds[4];
     double maxBound = 0.0;
-    if (bounds[1] - bounds[0] > maxBound) {
-        maxBound = bounds[1] - bounds[0];
+    if (xLen > maxBound) {
+        maxBound = xLen;
     }
-    if (bounds[3] - bounds[2] > maxBound) {
-        maxBound = bounds[3] - bounds[2];
+    if (yLen > maxBound) {
+        maxBound = yLen;
     }
-    if (bounds[5] - bounds[4] > maxBound) {
-        maxBound = bounds[5] - bounds[4];
+    if (zLen > maxBound) {
+        maxBound = zLen;
     }
 
     double cellSizeRange[2];
@@ -460,8 +463,11 @@ void Streamlines::update()
     }
 
     _streamTracer->SetInput(ds);
-    _streamTracer->SetMaximumPropagation(2.0 * maxBound / avgSize);
+    _streamTracer->SetMaximumPropagation(xLen + yLen + zLen);
     _streamTracer->SetIntegratorTypeToRungeKutta45();
+
+    TRACE("Setting streamlines max length to %g", 
+          _streamTracer->GetMaximumPropagation());
 
     if (_pdMapper == NULL) {
         _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -999,7 +1005,12 @@ void Streamlines::setIntegrationDirection(IntegrationDirection dir)
 /**
  * \brief Set the step size units.  Length units are world 
  * coordinates, and cell units means steps are from cell to 
- * cell.  Default is cell units
+ * cell.  Default is cell units.
+ *
+ * Note: calling this function will not convert existing
+ * initial, minimum or maximum step value settings to the
+ * new units, so this function should be called before 
+ * setting step values.
  */
 void Streamlines::setIntegrationStepUnit(StepUnit unit)
 {
@@ -1062,8 +1073,8 @@ void Streamlines::setMaximumError(double error)
 }
 
 /**
- * \brief Set maximum length of stream lines in integration
- * step units (see setIntegrationStepUnit)
+ * \brief Set maximum length of stream lines in world
+ * coordinates
  */
 void Streamlines::setMaxPropagation(double length)
 {
@@ -1195,8 +1206,6 @@ void Streamlines::setColorMode(ColorMode mode)
     if (_dataSet == NULL || _pdMapper == NULL)
         return;
 
-    vtkDataSet *ds = _dataSet->getVtkDataSet();
-
     switch (mode) {
     case COLOR_BY_SCALAR: {
         _pdMapper->ScalarVisibilityOn();
@@ -1209,10 +1218,7 @@ void Streamlines::setColorMode(ColorMode mode)
     case COLOR_BY_VECTOR_MAGNITUDE: {
         _pdMapper->ScalarVisibilityOn();
         _pdMapper->SetScalarModeToUsePointFieldData();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        }
+        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
             _lut->SetRange(_vectorMagnitudeRange);
             _lut->SetVectorModeToMagnitude();
@@ -1222,10 +1228,7 @@ void Streamlines::setColorMode(ColorMode mode)
     case COLOR_BY_VECTOR_X:
         _pdMapper->ScalarVisibilityOn();
         _pdMapper->SetScalarModeToUsePointFieldData();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        }
+        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[0]);
             _lut->SetVectorModeToComponent();
@@ -1235,10 +1238,7 @@ void Streamlines::setColorMode(ColorMode mode)
     case COLOR_BY_VECTOR_Y:
         _pdMapper->ScalarVisibilityOn();
         _pdMapper->SetScalarModeToUsePointFieldData();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        }
+        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[1]);
             _lut->SetVectorModeToComponent();
@@ -1248,10 +1248,7 @@ void Streamlines::setColorMode(ColorMode mode)
     case COLOR_BY_VECTOR_Z:
         _pdMapper->ScalarVisibilityOn();
         _pdMapper->SetScalarModeToUsePointFieldData();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _pdMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        }
+        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[2]);
             _lut->SetVectorModeToComponent();
