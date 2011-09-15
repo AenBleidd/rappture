@@ -46,9 +46,10 @@ INCLUDES	= \
 
 DEBUG			= #yes
 TRACE			= #yes
-USE_CUSTOM_AXES 	= yes
-USE_GPU_RAYCASTING      = yes
-USE_OFFSCREEN_RENDERING = yes
+HAVE_GLYPH3D_MAPPER	= #yes
+USE_CUSTOM_AXES		= yes
+USE_GPU_RAYCASTING	= yes
+USE_OFFSCREEN_RENDERING	= yes
 
 #vtk uses deprecated strstream header (instead of sstream)
 EXTRA_CFLAGS	= -Wall -Wno-deprecated
@@ -59,6 +60,9 @@ CXXFLAGS	= -O0 -g
 endif
 ifdef TRACE
 DEFINES		+= -DWANT_TRACE
+endif
+ifdef HAVE_GLYPH3D_MAPPER
+DEFINES         += -DHAVE_GLYPH3D_MAPPER
 endif
 ifdef USE_CUSTOM_AXES
 DEFINES 	+= -DUSE_CUSTOM_AXES
@@ -77,6 +81,7 @@ SERVER_SRCS	= \
 		PPMWriter.cpp \
 		RpContour2D.cpp \
 		RpContour3D.cpp \
+		RpCutplane.cpp \
 		RpGlyphs.cpp \
 		RpHeightMap.cpp \
 		RpLIC.cpp \
@@ -131,6 +136,7 @@ ColorMap.o: ColorMap.h RpMolecule.h Trace.h
 PPMWriter.o: PPMWriter.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkGraphicsObject.h RpVtkDataSet.h Trace.h
 RpContour3D.o: RpContour3D.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
+RpCutplane.o: RpCutplane.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpGlyphs.o: RpGlyphs.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpHeightMap.o: RpHeightMap.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpLIC.o: RpLIC.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h RpVtkRenderServer.h
@@ -140,9 +146,9 @@ RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h
 RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h Trace.h PPMWriter.h TGAWriter.h
+RpVtkRenderer.o: RpVtkRenderer.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpCubeAxesActor2D.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h Trace.h
 vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h

@@ -171,6 +171,7 @@ void Contour3D::update()
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _contourMapper->SetInputConnection(_contourFilter->GetOutputPort());
+        _contourMapper->SetColorModeToMapScalars();
         getActor()->SetMapper(_contourMapper);
     }
 

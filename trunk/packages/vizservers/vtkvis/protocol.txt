@@ -143,6 +143,28 @@ contour3d scale <sx> <sy> <sz> <?dataSetName?>
 contour3d visible <bool> <?datasetName?>
 contour3d wireframe <bool> <?datasetName?>
 
+cutplane add <?dataSetName?>
+cutplane colormap <colorMapName> <?dataSetName?>
+cutplane colormode <scalar|vmag|vx|vy|vz> <?datasetName?>
+         Set the field used to color the object.  'scalar' uses
+         the active scalar field.  'vmag' uses the magnitude of the current
+         vector field, and 'vx','vy','vz' use the corresponding component of
+         the active vector field.
+cutplane delete <?dataSetName?>
+cutplane edges <bool> <?dataSetName?>
+cutplane lighting <bool> <?dataSetName?>
+cutplane linecolor <r> <g> <b> <?dataSetName?>
+cutplane linewidth <width> <?dataSetName?>
+cutplane opacity <value> <?dataSetName?>
+cutplane orient <qw> <qx> <qy> <qz> <?dataSetName?>
+cutplane pos <x> <y> <z> <?dataSetName?>
+cutplane scale <sx> <sy> <sz> <?dataSetName?>
+cutplane slice axis ratio <?dataSetName?>
+         For 3D data, select a slice along a principle axis of the volume. The
+         ratio is [0,1]
+cutplane visible <bool> <?dataSetName?>
+cutplane wireframe <bool> <?datasetName?>
+
 glyphs add <shape> <?dataSetName?>
        See 'glyphs shape' for list of shapes
 glyphs ccolor r g b <?datasetName?>
@@ -193,12 +215,12 @@ heightmap opacity <value> <?dataSetName?>
 heightmap orient <qw> <qx> <qy> <qz> <?dataSetName?>
 heightmap pos <x> <y> <z> <?dataSetName?>
 heightmap scale <sx> <sy> <sz> <?dataSetName?>
+heightmap slice axis ratio <?dataSetName?>
+          For 3D data, select a slice along a principle axis of the volume. The
+          ratio is [0,1]
 heightmap surface <bool> <?dataSetName?>
           Toggle rendering of colormapped surface (mountain plot or cutplane)
 heightmap visible <bool> <?dataSetName?>
-heightmap volumeslice axis ratio <?dataSetName?>
-          For 3D data, select a slice along a principle axis of the volume. The
-          ratio is [0,1]
 heightmap wireframe <bool> <?datasetName?>
 
 lic add <?datasetName?>
@@ -212,8 +234,10 @@ lic opacity <val> <?datasetName?>
 lic orient <qw> <qx> <qy> <qz> <?dataSetName?>
 lic pos <x> <y> <z> <?dataSetName?>
 lic scale <sx> <sy> <sz> <?dataSetName?>
+lic slice <axis> <ratio> <?datasetName?>
+    For 3D data, select a slice along a principle axis of the volume. The
+    ratio is [0,1]
 lic visible <bool> <?datasetName?>
-lic volumeslice <axis> <ratio> <?datasetName?>
 
 molecule add <?datasetName?>
 molecule atoms <bool> <?datasetName?>

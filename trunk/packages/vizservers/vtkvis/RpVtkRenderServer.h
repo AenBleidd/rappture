@@ -8,10 +8,10 @@
 #ifndef __RAPPTURE_VTKVIS_RENDERSERVER_H__
 #define __RAPPTURE_VTKVIS_RENDERSERVER_H__
 
-#include "RpVtkRenderer.h"
-
 namespace Rappture {
 namespace VtkVis {
+
+class Renderer;
 
 extern int g_fdIn;
 extern int g_fdOut;

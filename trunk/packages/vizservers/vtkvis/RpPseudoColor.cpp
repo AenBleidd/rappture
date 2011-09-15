@@ -9,6 +9,7 @@
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
+#include <vtkCellData.h>
 #include <vtkDataSetMapper.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkProperty.h>
@@ -234,10 +235,14 @@ void PseudoColor::setColorMode(ColorMode mode)
         break;
     case COLOR_BY_VECTOR_MAGNITUDE: {
         _dsMapper->ScalarVisibilityOn();
-        _dsMapper->SetScalarModeToUsePointFieldData();
         if (ds->GetPointData() != NULL &&
             ds->GetPointData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUsePointFieldData();
             _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        } else if (ds->GetCellData() != NULL &&
+                   ds->GetCellData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUseCellFieldData();
+            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
             _lut->SetRange(_vectorMagnitudeRange);
@@ -247,10 +252,14 @@ void PseudoColor::setColorMode(ColorMode mode)
         break;
     case COLOR_BY_VECTOR_X:
         _dsMapper->ScalarVisibilityOn();
-        _dsMapper->SetScalarModeToUsePointFieldData();
         if (ds->GetPointData() != NULL &&
             ds->GetPointData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUsePointFieldData();
             _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        } else if (ds->GetCellData() != NULL &&
+                   ds->GetCellData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUseCellFieldData();
+            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[0]);
@@ -260,10 +269,14 @@ void PseudoColor::setColorMode(ColorMode mode)
         break;
     case COLOR_BY_VECTOR_Y:
         _dsMapper->ScalarVisibilityOn();
-        _dsMapper->SetScalarModeToUsePointFieldData();
         if (ds->GetPointData() != NULL &&
             ds->GetPointData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUsePointFieldData();
             _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        } else if (ds->GetCellData() != NULL &&
+                   ds->GetCellData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUseCellFieldData();
+            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[1]);
@@ -273,10 +286,14 @@ void PseudoColor::setColorMode(ColorMode mode)
         break;
     case COLOR_BY_VECTOR_Z:
         _dsMapper->ScalarVisibilityOn();
-        _dsMapper->SetScalarModeToUsePointFieldData();
         if (ds->GetPointData() != NULL &&
             ds->GetPointData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUsePointFieldData();
             _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
+        } else if (ds->GetCellData() != NULL &&
+                   ds->GetCellData()->GetVectors() != NULL) {
+            _dsMapper->SetScalarModeToUseCellFieldData();
+            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
         }
         if (_lut != NULL) {
             _lut->SetRange(_vectorComponentRange[2]);

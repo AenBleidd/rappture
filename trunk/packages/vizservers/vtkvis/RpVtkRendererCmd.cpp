@@ -1268,6 +1268,325 @@ Contour3DCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        if (!g_renderer->addCutplane(name)) {
+            Tcl_AppendResult(interp, "Failed to create cutplane", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->addCutplane("all")) {
+            Tcl_AppendResult(interp, "Failed to create cutplane for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneColorMap(dataSetName, colorMapName);
+    } else {
+        g_renderer->setCutplaneColorMap("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    Cutplane::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Cutplane::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Cutplane::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Cutplane::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Cutplane::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Cutplane::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneColorMode(name, mode);
+    } else {
+        g_renderer->setCutplaneColorMode("all", mode);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteCutplane(name);
+    } else {
+        g_renderer->deleteCutplane("all");
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneEdgeVisibility(name, state);
+    } else {
+        g_renderer->setCutplaneEdgeVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneLighting(name, state);
+    } else {
+        g_renderer->setCutplaneLighting("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setCutplaneEdgeColor(name, color);
+    } else {
+        g_renderer->setCutplaneEdgeColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneEdgeWidth(name, width);
+    } else {
+        g_renderer->setCutplaneEdgeWidth("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneOpacity(name, opacity);
+    } else {
+        g_renderer->setCutplaneOpacity("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setCutplaneOrientation(name, quat);
+    } else {
+        g_renderer->setCutplaneOrientation("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setCutplanePosition(name, pos);
+    } else {
+        g_renderer->setCutplanePosition("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setCutplaneScale(name, scale);
+    } else {
+        g_renderer->setCutplaneScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneVisibility(name, state);
+    } else {
+        g_renderer->setCutplaneVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    double ratio;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &ratio) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Cutplane::Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = Cutplane::X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = Cutplane::Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = Cutplane::Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName ratio", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setCutplaneVolumeSlice(name, axis, ratio);
+    } else {
+        g_renderer->setCutplaneVolumeSlice("all", axis, ratio);
+    }
+    return TCL_OK;
+}
+
+static int
+CutplaneWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneWireframe(name, state);
+    } else {
+        g_renderer->setCutplaneWireframe("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec cutplaneOps[] = {
+    {"add",          1, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
+    {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, CutplaneColorModeOp, 3, 4, "mode ?dataSetNme?"},
+    {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, CutplaneEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, CutplaneLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, CutplaneLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, CutplaneLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      2, CutplaneOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, CutplaneOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, CutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        2, CutplaneScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",        2, CutplaneVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"visible",      1, CutplaneVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",    1, CutplaneWireframeOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nCutplaneOps = NumCmdSpecs(cutplaneOps);
+
+static int
+CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nCutplaneOps, cutplaneOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 DataSetActiveScalarsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                        Tcl_Obj *const *objv)
 {
@@ -2563,8 +2882,8 @@ HeightMapWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec heightmapOps[] = {
     {"add",          1, HeightMapAddOp, 5, 6, "oper value ?dataSetName?"},
-    {"colormap",     2, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"contourlist",  2, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
+    {"colormap",     3, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"contourlist",  3, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, HeightMapEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"heightscale",  1, HeightMapHeightScaleOp, 3, 4, "value ?dataSetName?"},
@@ -2578,10 +2897,10 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"opacity",      2, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, HeightMapOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",          1, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",        1, HeightMapScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"scale",        2, HeightMapScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",        2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
     {"surface",      2, HeightMapContourSurfaceVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"visible",      2, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"volumeslice",  2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"visible",      1, HeightMapVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe",    1, HeightMapWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nHeightmapOps = NumCmdSpecs(heightmapOps);
@@ -2928,9 +3247,9 @@ static Rappture::CmdSpec licOps[] = {
     {"opacity",     2, LICOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",      2, LICOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",         1, LICPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",       1, LICScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"visible",     2, LICVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"volumeslice", 2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"}
+    {"scale",       2, LICScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"slice",       2, LICVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
+    {"visible",     1, LICVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nLICOps = NumCmdSpecs(licOps);
 
@@ -5045,6 +5364,7 @@ Rappture::VtkVis::initTcl()
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   NULL, NULL);
+    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
@@ -5072,6 +5392,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "colormap");
     Tcl_DeleteCommand(interp, "contour2d");
     Tcl_DeleteCommand(interp, "contour3d");
+    Tcl_DeleteCommand(interp, "cutplane");
     Tcl_DeleteCommand(interp, "dataset");
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "heightmap");

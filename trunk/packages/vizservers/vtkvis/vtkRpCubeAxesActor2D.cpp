@@ -438,7 +438,7 @@ int vtkRpCubeAxesActor2D::RenderOpaqueGeometry(vtkViewport *viewport)
   // accessed through the class API (i.e. each individual axis text prop
   // can be changed). Therefore, we can not just assign pointers otherwise
   // each individual axis text prop would point to the same text prop.
-#ifdef notdef
+#if 1
   if (this->AxisLabelTextProperty &&
       this->AxisLabelTextProperty->GetMTime() > this->BuildTime)
     {
@@ -1077,55 +1077,3 @@ static int IsInBounds(double x[3], double bounds[6])
     }
 }
 
-//----------------------------------------------------------------------------
-
-// Disable warnings about qualifiers on return types.
-#if defined(_COMPILER_VERSION)
-# pragma set woff 3303
-#endif
-#if defined(__INTEL_COMPILER)
-# pragma warning (disable:858)
-#endif
-
-#ifndef VTK_LEGACY_REMOVE
-# ifdef VTK_WORKAROUND_WINDOWS_MANGLE
-#  undef SetProp
-#  undef GetProp
-void vtkRpCubeAxesActor2D::SetPropA(vtkProp* prop)
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::SetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::SetViewProp);
-  this->SetViewProp(prop);
-}
-void vtkRpCubeAxesActor2D::SetPropW(vtkProp* prop)
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::SetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::SetViewProp);
-  this->SetViewProp(prop);
-}
-vtkProp* vtkRpCubeAxesActor2D::GetPropA()
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::GetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::GetViewProp);
-  return this->GetViewProp();
-}
-vtkProp* vtkRpCubeAxesActor2D::GetPropW()
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::GetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::GetViewProp);
-  return this->GetViewProp();
-}
-# endif
-void vtkRpCubeAxesActor2D::SetProp(vtkProp* prop)
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::SetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::SetViewProp);
-  this->SetViewProp(prop);
-}
-vtkProp* vtkRpCubeAxesActor2D::GetProp()
-{
-  VTK_LEGACY_REPLACED_BODY(vtkRpCubeAxesActor2D::GetProp, "VTK 5.0",
-                           vtkRpCubeAxesActor2D::GetViewProp);
-  return this->GetViewProp();
-}
-#endif

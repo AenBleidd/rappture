@@ -23,7 +23,6 @@
 
 #include "RpLIC.h"
 #include "Trace.h"
-#include "RpVtkRenderServer.h"
 
 using namespace Rappture::VtkVis;
 
