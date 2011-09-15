@@ -351,7 +351,7 @@ void Renderer::deleteCutplane(const DataSetId& id)
         itr = _cutplanes.erase(itr);
     } while (doAll && itr != _cutplanes.end());
 
-    initCamera();
+    _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -2949,6 +2949,7 @@ void Renderer::setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, 
         itr->second->selectVolumeSlice(axis, ratio);
      } while (doAll && ++itr != _cutplanes.end());
 
+    _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -4091,11 +4092,17 @@ void Renderer::setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis
         return;
     }
 
+    bool initCam = false;
     do {
         itr->second->selectVolumeSlice(axis, ratio);
+        if (itr->second->getHeightScale() > 0.0)
+            initCam = true;
      } while (doAll && ++itr != _heightMaps.end());
 
-    initCamera();
+    if (initCam)
+        initCamera();
+    else
+        _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 
@@ -4748,7 +4755,7 @@ void Renderer::setLICVolumeSlice(const DataSetId& id, LIC::Axis axis, double rat
         itr->second->selectVolumeSlice(axis, ratio);
      } while (doAll && ++itr != _lics.end());
 
-    initCamera();
+    _renderer->ResetCameraClippingRange();
     _needsRedraw = true;
 }
 

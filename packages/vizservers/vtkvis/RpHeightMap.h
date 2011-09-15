@@ -72,6 +72,11 @@ public:
 
     void setHeightScale(double scale);
 
+    double getHeightScale()
+    {
+        return _warpScale;
+    }
+
     void setNumContours(int numContours);
 
     void setContourList(const std::vector<double>& contours);
