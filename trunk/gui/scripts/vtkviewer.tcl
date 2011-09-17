@@ -1210,7 +1210,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         }
         "axis-labels" {
 	    set bool $_axis(labels)
-	    #SendCmd "axis labels all $bool"
+	    SendCmd "axis labels all $bool"
         }
         "axis-xgrid" {
 	    set bool $_axis(xgrid)
