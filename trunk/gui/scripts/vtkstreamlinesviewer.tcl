@@ -14,6 +14,7 @@
 package require Itk
 package require BLT
 #package require Img
+package require vtk
 
 option add *VtkStreamlinesViewer.width 4i widgetDefault
 option add *VtkStreamlinesViewer*cursor crosshair widgetDefault
@@ -1217,7 +1218,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         }
         "axis-labels" {
 	    set bool $_axis(labels)
-	    #SendCmd "axis labels all $bool"
+	    SendCmd "axis labels all $bool"
         }
         "axis-xgrid" {
 	    set bool $_axis(xgrid)

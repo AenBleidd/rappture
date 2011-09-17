@@ -14,6 +14,7 @@
 package require Itk
 package require BLT
 #package require Img
+package require vtk
 
 option add *VtkViewer.width 4i widgetDefault
 option add *VtkViewer*cursor crosshair widgetDefault
