@@ -901,7 +901,7 @@ void Renderer::initAxes()
     _cubeAxesActor->GetProperty()->LightingOff();
     // Don't offset labels at origin
     _cubeAxesActor->SetCornerOffset(0);
-    _cubeAxesActor->SetFlyModeToClosestTriad();
+    _cubeAxesActor->SetFlyModeToStaticTriad();
 
 #ifdef USE_CUSTOM_AXES
     if (_cubeAxesActor2D == NULL)
