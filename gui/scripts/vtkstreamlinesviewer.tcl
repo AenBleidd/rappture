@@ -218,7 +218,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 	labels		1
     }]
     array set _volume [subst {
-        edges		1
+        edges		0
         lighting	1
         opacity		40
         visible		1
@@ -1209,7 +1209,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "volume-edges" {
 	    set bool $_volume(edges)
 	    foreach dataset [CurrentDatasets -visible $_first] {
-		#SendCmd "polydata edges $bool $dataset"
+		SendCmd "polydata edges $bool $dataset"
             }
         }
         "axis-visible" {
