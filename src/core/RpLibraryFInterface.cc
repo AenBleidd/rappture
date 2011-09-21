@@ -617,7 +617,6 @@ int rp_lib_get_file (   int* handle,     /* integer handle of library */
                      )
 {
     size_t nbytes = 0;
-    int ret = 0;
 
     RpLibrary* lib = NULL;
 
@@ -635,11 +634,7 @@ int rp_lib_get_file (   int* handle,     /* integer handle of library */
         }
     }
 
-    if (nbytes > 0) {
-        ret = 1;
-    }
-
-    return ret;
+    return nbytes;
 }
 
 
