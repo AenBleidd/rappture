@@ -189,7 +189,7 @@ fi
 
 save_CPPFLAGS=$CPPFLAGS
 CPPFLAGS=$VTK_INC_SPEC
-AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_WARN([cannot find vtkSmartPointer.h])])
+AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_ERROR([cannot find VTK includes])])
 CPPFLAGS=$save_CPPFLAGS
 
 AC_CHECK_HEADER([GL/glui.h])
@@ -199,8 +199,6 @@ AC_CHECK_HEADER([GL/glew.h])
 
 AC_CHECK_HEADERS([stdio.h unistd.h stdlib.h string.h sys/types.h])
 AC_CHECK_HEADERS([sys/socket.h sys/time.h netinet/in.h arpa/inet.h netdb.h])
-
-AC_CHECK_FUNCS([accept4])
 
 AC_MSG_CHECKING([for OpenDX headers])
 DX_INC_DIR=""
@@ -215,9 +213,10 @@ do
   fi
 done
 if test "x${DX_INC_DIR}" = "x" ; then
-  AC_MSG_WARN([cannot find OpenDX include files])
-  DX_INC_SPEC=""
-elif test "${DX_INC_DIR}" = "/usr/include" ; then
+  AC_MSG_ERROR([cannot find OpenDX include files])
+fi
+
+if test "${DX_INC_DIR}" = "/usr/include" ; then
   DX_INC_SPEC=""
 else 
   DX_INC_SPEC="-I{DX_INC_DIR}"
@@ -225,6 +224,7 @@ fi
 AC_MSG_RESULT([${DX_INC_DIR}])
 
 DX_LIB_DIR=""
+found=no
 for dir in \
  /usr/lib \
  /usr/lib64 \
@@ -243,12 +243,12 @@ do
     break
   fi
 done
-if test "x${DX_LIB_DIR}" = "x" ; then
-  AC_MSG_WARN([cannot find OpenDX libraries])
+if test "x{$DX_LIB_DIR}" = "x" ; then
+  AC_MSG_ERROR([cannot find OpenDX libraries])
 fi
 
 AC_MSG_CHECKING([for libDXcallm library])
-if test "x${DX_LIB_DIR}" = "x" -o "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
+if test "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
   DX_LIB_SPEC=""
 else
   DX_LIB_SPEC="-L${DX_LIB_DIR}"
@@ -256,7 +256,7 @@ fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
 
 AC_CHECK_HEADERS([opencv/cv.h opencv/highgui.h])
-AC_CHECK_LIB([highgui], [cvLoadImage])
+AC_CHECK_LIB([cv], [cvLoadImage])
 
 save_CPPFLAGS=$CPPFLAGS
 # Test for redhat-specific location of ffmpeg headers. 
@@ -306,7 +306,7 @@ CG_LIB_DIR="$dir/lib"
 
 save_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="-I${CG_INC_DIR} $CPPFLAGS"
-AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_WARN([cannot find nVidia Cg headers]))
+AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_ERROR([cannot find nVidia Cg headers]))
 CPPFLAGS=$save_CPPFLAGS
 
 if test "${CG_DIR}" = "/usr" ; then
