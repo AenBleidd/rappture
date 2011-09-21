@@ -210,246 +210,18 @@ int rp_lib_children (   int* handle, /* integer handle of library */
 
 }
 
-
-//int rp_lib_child_comp (   int* handle,    /* integer handle of library */
-//                            char* path,     /* DOM path of requested object */
-//                            char* type,     /* specific name of element */
-//                            int* childNum,  /* child number for iteration */
-//                            char* retText,  /* buffer to store return text */
-//                            int path_len,   /* length of path */
-//                            int type_len,   /* length of type */
-//                            int retText_len /* length of return text buffer */
-//                       )
-/*
-{
-    int retVal = 0;
-
-    char* inPath = NULL;
-    char* inType = NULL;
-
-    inPath = null_terminate(path,path_len);
-    inType = null_terminate(type,type_len);
-
-    if (inPath) {
-        path_len = strlen(inPath) + 1;
-    }
-    else {
-        path_len = 0;
-    }
-
-    if (inType) {
-        type_len = strlen(inType) + 1;
-    }
-    else {
-        type_len = 0;
-    }
-
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "component",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 10,
-                                 type_len,
-                                 retText_len
-                               );
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    if (inType) {
-        free(inType);
-        inType = NULL;
-    }
-
-    return retVal;
-}
-*/
-
-//int rp_lib_child_id(   int* handle,    /* integer handle of library */
-//                          char* path,     /* DOM path of requested object */
-//                          char* type,     /* specific name of element */
-//                          int* childNum,  /* child number for iteration */
-//                          char* retText,  /* buffer to store return text */
-//                          int path_len,   /* length of path */
-//                          int type_len,   /* length of type */
-//                          int retText_len /* length of return text buffer */
-//                       )
-/*
-{
-    int retVal = 0;
-    char* inPath = NULL;
-    char* inType = NULL;
-
-    inPath = null_terminate(path,path_len);
-    inType = null_terminate(type,type_len);
-
-    if (inPath) {
-        path_len = strlen(inPath) + 1;
-    }
-    else {
-        path_len = 0;
-    }
-
-    if (inType) {
-        type_len = strlen(inType) + 1;
-    }
-    else {
-        type_len = 0;
-    }
-
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "id",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 3,
-                                 type_len,
-                                 retText_len
-                               );
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    if (inType) {
-        free(inType);
-        inType = NULL;
-    }
-
-    return retVal;
-}
-*/
-
-//int rp_lib_child_type (   int* handle,    /* integer handle of library */
-//                            char* path,     /* DOM path of requested object */
-//                            char* type,     /* specific name of element */
-//                            int* childNum,  /* child number for iteration */
-//                            char* retText,  /* buffer to store return text */
-//                            int path_len,   /* length of path */
-//                            int type_len,   /* length of type */
-//                            int retText_len /* length of return text buffer */
-//                       )
-/*
-{
-    int retVal = 0;
-    char* inPath = NULL;
-    char* inType = NULL;
-
-    inPath = null_terminate(path,path_len);
-    inType = null_terminate(type,type_len);
-
-    if (inPath) {
-        path_len = strlen(inPath) + 1;
-    }
-    else {
-        path_len = 0;
-    }
-
-    if (inType) {
-        type_len = strlen(inType) + 1;
-    }
-    else {
-        type_len = 0;
-    }
-
-    retVal = rp_lib_child_str( handle,
-                                 inPath,
-                                 "type",
-                                 inType,
-                                 childNum,
-                                 retText,
-                                 path_len,
-                                 5,
-                                 type_len,
-                                 retText_len
-                               );
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    if (inType) {
-        free(inType);
-        inType = NULL;
-    }
-
-    return retVal;
-}
-*/
-
-/*
-int rp_lib_child_obj ( int* handle, 
-                            char* path, 
-                            char* type, 
-                            int path_len,
-                            int type_len
-                          )
-{
-    int newObjHandle = -1;
-
-    PyObject* lib = NULL;
-    PyObject* list = NULL;
-
-    char* inPath = NULL;
-    char* inType = NULL;
-
-    inPath = null_terminate(path,path_len);
-    inType = null_terminate(type,type_len);
-
-    if (rapptureStarted) {
-        if ((handle) && (*handle != 0)) {
-            lib = (RpLibrary*) getObject_Void(*handle);
-
-            if (lib) {
-                list = rpChildren_f(lib, inPath, "object");
-                if (list) {
-                    // store the whole list,
-                    // need to make a way to read the nodes
-                    newObjHandle = storeObject_Void((void*)list);
-                    // Py_DECREF(list);
-                }
-                else {
-
-                }
-            }
-        }
-    }
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    if (inType) {
-        free(inType);
-        inType = NULL;
-    }
-
-    return newObjHandle;
-
-}
-*/
-
 /**********************************************************************/
 // FUNCTION: rp_lib_get()
 /// Get data located at 'path' and return it as a string value.
 /**
  */
-void rp_lib_get( int* handle, /* integer handle of library */
-                   char* path,      /* null terminated path */
-                   char* retText,   /* return text buffer for fortran*/
-                   int path_len,
-                   int retText_len /* length of return text buffer */
-                 )
+void 
+rp_lib_get( 
+    int* handle,			/* integer handle of library */
+    char* path,				/* null terminated path */
+    char* retText,			/* return text buffer for fortran*/
+
+    int retText_len)			/* length of return text buffer */
 {
     std::string xmlText = "";
 
@@ -477,12 +249,13 @@ void rp_lib_get( int* handle, /* integer handle of library */
 /// Get data located at 'path' and return it as a string value.
 /**
  */
-void rp_lib_get_str( int* handle, /* integer handle of library */
-                   char* path,      /* null terminated path */
-                   char* retText,   /* return text buffer for fortran*/
-                   int path_len,
-                   int retText_len /* length of return text buffer */
-                 )
+void 
+rp_lib_get_str(
+    int* handle,			/* integer handle of library */
+    char* path,				/* null terminated path */
+    char* retText,			/* return text buffer for fortran*/
+    int path_len,
+    int retText_len)			/* length of return text buffer */
 {
     std::string xmlText = "";
 
@@ -511,10 +284,11 @@ void rp_lib_get_str( int* handle, /* integer handle of library */
 /// Get data located at 'path' and return it as a double precision value.
 /**
  */
-double rp_lib_get_double( int* handle,   /* integer handle of library */
-                            char* path,    /* null terminated path */
-                            int path_len
-                          )
+double 
+rp_lib_get_double( 
+    int* handle,			/* integer handle of library */
+    char* path,				/* null terminated path */
+    int path_len)
 {
     double retVal = 0.0;
 
@@ -713,14 +487,15 @@ void rp_lib_put_id_str ( int* handle,
 /// Put string into Rappture Library Object at location 'path'.
 /**
  */
-void rp_lib_put_data( int* handle,
-                        char* path,
-                        char* bytes,
-                        int* nbytes,
-                        int* append,
-                        int path_len,
-                        int bytes_len
-                      )
+void 
+rp_lib_put_data( 
+    int* handle,
+    char* path,
+    char* bytes,
+    int* nbytes,
+    int* append,
+    int path_len,
+    int bytes_len)
 {
     std::string inPath = "";
     RpLibrary* lib = NULL;
@@ -753,14 +528,15 @@ void rp_lib_put_data( int* handle,
 /// Put string into Rappture Library Object at location 'path'.
 /**
  */
-void rp_lib_put_file( int* handle,
-                        char* path,
-                        char* fileName,
-                        int* compress,
-                        int* append,
-                        int path_len,
-                        int fileName_len
-                      )
+void 
+rp_lib_put_file( 
+    int* handle,
+    char* path,
+    char* fileName,
+    int* compress,
+    int* append,
+    int path_len,
+    int fileName_len)
 {
     std::string inPath = "";
     std::string inFileName = "";
@@ -782,12 +558,13 @@ void rp_lib_put_file( int* handle,
 }
 
 
-void rp_lib_put_obj( int* handle,
-                        char* path,
-                        int* valHandle,
-                        int* append,
-                        int path_len
-                      )
+void 
+rp_lib_put_obj( 
+    int* handle,
+    char* path,
+    int* valHandle,
+    int* append,
+    int path_len)
 {
     std::string inPath = "";
     RpLibrary* lib = NULL;
@@ -816,117 +593,6 @@ void rp_lib_put_obj( int* handle,
         free(objStr);
     }
 }
-
-
-/*
-void rp_lib_put_id_obj ( int* handle, 
-                        char* path, 
-                        int* valHandle, 
-                        char* id, 
-                        int* append,
-                        int path_len,
-                        int id_len
-                      ) 
-{
-    PyObject* lib = NULL;
-    PyObject* value = NULL;
-
-    char* inPath = NULL;
-    char* inId = NULL;
-
-    inPath = null_terminate(path,path_len);
-    inId = null_terminate(id,id_len);
-
-    if (rapptureStarted) {
-        if ((handle) && (*handle != 0)) {
-            lib = (RpLibrary*) getObject_Void(*handle);
-            value = (RpLibrary*) getObject_Void(*valHandle);
-
-            if (lib && value) {
-                // retObj is a borrowed object 
-                // whose contents must not be modified
-                rpPutObj(lib, inPath, value, inId, *append);
-            }
-        }
-    }
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    if (inId) {
-        free(inId);
-        inId = NULL;
-    }
-
-}
-*/
-
-/*
-int rp_lib_remove (int* handle, char* path, int path_len) 
-{
-    int newObjHandle = -1;
-
-    PyObject* lib = NULL;
-    PyObject* removedObj = NULL;
-
-    char* inPath = NULL;
-
-    inPath = null_terminate(path,path_len);
-
-    if (rapptureStarted) {
-        if ((handle) && (*handle != 0)) {
-            lib = (RpLibrary*) getObject_Void(*handle);
-
-            if (lib) {
-                removedObj = rpRemove(lib, inPath);
-
-                if (removedObj) {
-                    newObjHandle = storeObject_Void((void*)removedObj);
-                    // Py_DECREF(removedObj);
-                }
-
-            }
-        }
-    }
-
-    if (inPath) {
-        free(inPath);
-        inPath = NULL;
-    }
-
-    return newObjHandle;
-}
-*/
-
-/*
-int rp_lib_xml_len (int* handle)
-{
-    int length = -1;
-    char* xmlText = NULL;
-
-    PyObject* lib = NULL;
-
-    if (rapptureStarted) {
-        if ((handle) && (*handle != 0)) {
-            lib = (RpLibrary*) getObject_Void(*handle);
-
-            if (lib) {
-                // dont modify xmlText, borrowed pointer
-                xmlText = rpXml(lib);
-
-                if (xmlText) {
-                    length = strlen(xmlText) + 1;
-                    free(xmlText);
-                    // printf("len = :%d:\n",length);
-                }
-            }
-        }
-    }
-    return length;
-}
-*/
 
 /**********************************************************************/
 // FUNCTION: rp_lib_write_xml()

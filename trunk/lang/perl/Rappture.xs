@@ -36,6 +36,8 @@ void *
 RpLibrary::DESTROY()
     CODE:
         RETVAL = 0;
+    OUTPUT:
+	RETVAL
 
 SV *
 RpLibrary::get( path )

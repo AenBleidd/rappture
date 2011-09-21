@@ -23,4 +23,36 @@ When you click the Simulate button, the inputs will be used to generate output h
     <default>10</default>
   </integer>
 </input>
+<output>
+<histogram id="example">
+    <about>
+      <label>Single dataset</label>
+      <description>This is an example of a single histogram.</description>
+    </about>
+    <xaxis>
+      <label>Time</label>
+      <description>Time during the experiment.</description>
+      <units>s</units>
+      <marker>
+        <at>5</at>
+        <label>Look here</label>
+        <style>-foreground red -linewidth 2</style>
+       </marker>
+    </xaxis>
+    <yaxis>
+      <label>Voltage v(11)</label>
+      <description>Output from the amplifier.</description>
+      <units>V</units>
+    </yaxis>
+    <component>
+      <xy>
+       1 0.99
+       2 0.34
+       4 0.57 
+       6 0.22
+       7 0.11
+       </xy>
+     </component>
+   </histogram>
+</output>
 </run>

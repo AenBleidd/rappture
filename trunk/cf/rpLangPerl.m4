@@ -16,12 +16,15 @@ PERL_PRIVLIB=
 PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
+XSUBPP=
 PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
   if test "$with_perl" != "yes" ; then 
     AC_PATH_PROG(PERL, perl, [], [$with_perl/bin:$with_perl])
+    AC_PATH_PROG(XSUBPP, xsubpp, [], [$with_perl/bin:$with_perl])
   else
     AC_PATH_PROG(PERL, perl)
+    AC_PATH_PROG(XSUBPP, xsubpp)
   fi
   if test "x${PERL}" != "x" ; then 
     PERL_ARCHLIB=`${PERL} -MConfig -e 'print $Config{archlib}'`

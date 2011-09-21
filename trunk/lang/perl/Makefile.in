@@ -45,6 +45,7 @@ vendorlib	= @PERL_VENDORLIB@
 privlib		= @PERL_PRIVLIB@
 archlib		= @PERL_ARCHLIB@
 archlibexp	= @PERL_ARCHLIBEXP@
+XSUBPP		= @XSUBPP@
 
 name 		= Rappture
 lib		= $(name)$(SHLIB_SUFFIX)
@@ -69,8 +70,7 @@ LIBS		= \
 all: $(lib) $(bootstrap) $(man) $(pod) 
 
 Rappture.cc: $(srcdir)/Rappture.xs
-	$(PERL) $(privlib)/ExtUtils/xsubpp -C++ \
-		-typemap $(privlib)/ExtUtils/typemap -typemap typemap \
+	$(XSUBPP) -C++ -typemap $(privlib)/ExtUtils/typemap -typemap typemap \
 		$? > $@
 
 Rappture.o: Rappture.cc
