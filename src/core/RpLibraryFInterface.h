@@ -78,11 +78,8 @@ int rp_lib_get_boolean (    int* handle,
                             char* path,
                             int path_len);
 
-int rp_lib_get_file (       int* handle,
-                            char* path,
-                            char* fileName,
-                            int path_len,
-                            int fileName_len);
+extern int rp_lib_get_file(int* handle, char* path, char* fileName, 
+	int path_len, int fileName_len);
 
 void rp_lib_put_str (       int* handle,
                             char* path,

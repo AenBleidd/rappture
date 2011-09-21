@@ -13,15 +13,18 @@ destdir         = $(prefix)/examples/app-fermi/octave
 
 INSTALL         = @INSTALL@
 MKDIR_P         = @MKDIR_P@
-MKOCTFILE3	= @MKOCTFILE3@
-MKOCTFILE2	= @MKOCTFILE2@
 
+MKOCTFILE2	= @MKOCTFILE2@
+MKOCTFILE3	= @MKOCTFILE3@
 SUBDIRS		= 
-ifneq ($(MKOCTFILE3),)
-  SUBDIRS += octave3
-endif
+
+.PHONY: octave2 octave3
+
 ifneq ($(MKOCTFILE2),)
-  SUBDIRS += octave2
+    SUBDIRS += octave2
+endif
+ifneq ($(MKOCTFILE3),)
+    SUBDIRS += octave3
 endif
 
 all: 

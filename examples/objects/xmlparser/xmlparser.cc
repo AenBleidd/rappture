@@ -116,12 +116,12 @@ int xmlparser_1_0 ()
         Rp_ParserXmlDestroy(&p);
     }
 
-    if (xmltext) {
-        delete[] xmltext;
+    if (xmltext != NULL) {
+        delete [] xmltext;
         xmltext = NULL;
     }
-    if (expected) {
-        delete[] expected;
+    if (expected != NULL) {
+        delete [] expected;
         expected = NULL;
     }
 
