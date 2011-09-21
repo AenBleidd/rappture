@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>@tool/showdata @driver</command>
+    </tool>
+    <input>
+        <string id="data">
+            <about>
+                <label>Data File</label>
+                <description>This is a data file.</description>
+            </about>
+            <size>40x10</size>
+            <default>data data data</default>
+        </string>
+    </input>
+</run>
+

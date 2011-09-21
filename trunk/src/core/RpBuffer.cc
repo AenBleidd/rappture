@@ -167,11 +167,11 @@ Buffer::dump (Outcome &status, const char* path)
         return false;
     }
     ssize_t nWritten;
-    nWritten = fwrite(bytes(), size(), sizeof(char), f);
+    nWritten = fwrite(bytes(), sizeof(char), size(), f);
     fclose(f);                        // Close the file.
 
     if (nWritten != (ssize_t)size()) {
-        status.addError("can't write %d bytes to \"%s\": %s\n", size(), 
+        status.addError("can't write %d bytes to \"%s\": %s\n", size(),
                         path, strerror(errno));
         return false;
     }
