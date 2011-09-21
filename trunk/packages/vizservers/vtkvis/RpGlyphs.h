@@ -13,7 +13,9 @@
 #include <vtkSmartPointer.h>
 #include <vtkProp.h>
 #include <vtkActor.h>
-#ifdef HAVE_GLYPH3D_MAPPER
+#include <vtkVersion.h>
+#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
+#define HAVE_GLYPH3D_MAPPER
 #include <vtkGlyph3DMapper.h>
 #else
 #include <vtkGlyph3D.h>
