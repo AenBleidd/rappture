@@ -43,6 +43,9 @@ itcl::class Rappture::SidebarFrame {
     public method panel {which}
     public method select {which}
     public method pop {what}
+    public method width { size } {
+	set _width $size
+    }
     public method enable { which }
     public method disable { which }
 

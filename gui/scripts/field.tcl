@@ -286,7 +286,7 @@ itcl::body Rappture::Field::limits {which} {
     set min ""
     set max ""
 
-    blt::vector create tmp zero
+    blt::vector tmp zero
     foreach comp [array names _comp2dims] {
         switch -- $_comp2dims($comp) {
             1D {
@@ -506,6 +506,7 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         color   about.color
         style   about.style
         scale   about.scale
+        seeds   about.seeds
         units   units
         updir   updir
         camera  camera.position

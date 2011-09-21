@@ -1382,10 +1382,12 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	set tag $dataobj-$comp
 	if { ![info exists _limits($tag)] } {
 	    set data [$dataobj data $comp]
-	    set arr [vtkCharArray $tag-xvtkCharArray]
-	    $arr SetArray $data [string length $data] 1
+	    set tmpfile file[pid].vtk
+	    set f [open "$tmpfile" "w"]
+	    puts $f $data 
+	    close $f
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-	    $reader SetInputArray $arr
+	    $reader SetFileName $tmpfile
 	    $reader ReadFromInputStringOn
 	    $reader ReadAllNormalsOn
 	    $reader ReadAllScalarsOn
@@ -1414,6 +1416,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    rename $output ""
 	    rename $reader ""
 	    rename $arr ""
+	    file delete $tmpfile
 	}
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
 	if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {

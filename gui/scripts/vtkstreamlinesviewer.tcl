@@ -135,6 +135,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _start 0
     private variable _buffering 0
     private variable _title ""
+    private variable _seeds
 
     common _downloadPopup          ;# download options from popup
     private common _hardcopy
@@ -613,7 +614,11 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
 itcl::body Rappture::VtkStreamlinesViewer::scale {args} {
     array unset _limits
     foreach dataobj $args {
-        array set bounds [limits $dataobj]
+	set string [limits $dataobj]
+	if { $string == "" } {
+	    continue
+	}
+	array set bounds $string
 	if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
 	    set _limits(xmin) $bounds(xmin)
 	}
@@ -1418,11 +1423,12 @@ itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
 	set tag $dataobj-$comp
 	if { ![info exists _limits($tag)] } {
 	    set data [$dataobj blob $comp]
-	    set arr [vtkCharArray $tag-xvtkCharArray]
-	    $arr SetArray $data [string length $data] 1
+	    set tmpfile file[pid].vtk
+	    set f [open "$tmpfile" "w"]
+	    puts $f $data 
+	    close $f
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-	    $reader SetInputArray $arr
-	    $reader ReadFromInputStringOn
+	    $reader SetFileName $tmpfile
 	    $reader ReadAllNormalsOn
 	    $reader ReadAllScalarsOn
 	    $reader ReadAllVectorsOn
@@ -1449,7 +1455,7 @@ itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
 	    puts stderr vectors=[$pointData GetVectors]
 	    rename $output ""
 	    rename $reader ""
-	    rename $arr ""
+	    file delete $tmpfile
 	}
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
 	if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
@@ -1969,6 +1975,16 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     array set settings $style
     SendCmd "streamlines add $tag"
     SendCmd "streamlines seed visible off"
+    set seeds [$dataobj hints seeds]
+    if { $seeds != "" && ![info exists _seeds($dataobj)] } {
+	set length [string length $seeds]
+	set stag $dataobj-seeds
+	SendCmd "dataset add $stag data follows $length"
+	SendCmd "$seeds"
+	SendCmd "dataset visible 0 $stag"
+	SendCmd "streamlines seed random 1000 $stag"
+	set _seeds($dataobj) 1
+    }
     SendCmd "polydata add $tag"
     SendCmd "polydata edges $settings(-edges) $tag"
     set _volume(edges) $settings(-edges)

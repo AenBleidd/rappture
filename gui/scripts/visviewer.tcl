@@ -33,7 +33,7 @@ itcl::class ::Rappture::VisViewer {
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
     private variable _idleTimeout 43200000; # 12 hours
-    #private variable _idleTimeout 10000;    # 5 seconds
+    #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
     protected variable _dispatcher ""   ;# dispatcher for !events

@@ -58,6 +58,7 @@ itcl::class Rappture::TextEntry {
     private variable _layout ""     ;# entry or full text size
     private variable _value ""      ;# value inside the widget
     private variable _size ""       ;# size hint from XML
+    private variable _icon ""       ;# size hint from XML
 }
                                                                                 
 itk::usual TextEntry {
@@ -81,6 +82,10 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     set _size [$_owner xml get $path.size]
 
     set hints [$_owner xml get $path.about.hints]
+    set icon [$_owner xml get $path.about.icon]
+    if {[string length $icon] > 0} {
+	set _icon [image create photo -data $icon] 
+    } 
     if {[string length $hints] > 0} {
         itk_component add hints {
             ::label $itk_interior.hints -anchor w -text $hints
@@ -350,10 +355,13 @@ itcl::body Rappture::TextEntry::_layout {} {
                 itk_component add binary {
                     frame $itk_interior.bin
                 }
-
+		set icon $_icon
+		if { $icon == "" } {
+		    set icon [Rappture::icon binary]
+		}
                 itk_component add binicon {
                     ::label $itk_component(binary).binicon \
-                        -image [Rappture::icon binary] -borderwidth 0
+                        -image $icon -borderwidth 0
                 }
                 pack $itk_component(binicon) -side left
 
@@ -587,3 +595,5 @@ itcl::configbody Rappture::TextEntry::height {
     winfo pixels $itk_component(hull) $itk_option(-height)
     $_dispatcher event -idle !layout
 }
+
+
