@@ -166,7 +166,7 @@ itcl::body Rappture::HistogramResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::barchart $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 4 
+            -highlightthickness 0 -plotpadx 0 -plotpady 0 
     } {
         keep -foreground -cursor -font
     }
@@ -809,70 +809,8 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::HistogramResult::ResetLimits {} {
     set g $itk_component(plot)
-
-    #
-    # HACK ALERT!
-    # Use this code to fix up the y-axis limits for the BLT barchart.
-    # The auto-limits don't always work well.  We want them to be
-    # set to a "nice" number slightly above or below the min/max
-    # limits.
-    #
     foreach axis [$g axis names] {
-        if {[info exists _limits(${axis}lin-min)]} {
-            set log [$g axis cget $axis -logscale]
-            if {$log} {
-                set min $_limits(${axis}log-min)
-                if {$min == 0} { set min 1 }
-                set max $_limits(${axis}log-max)
-                if {$max == 0} { set max 1 }
-
-                if {$min == $max} {
-                    set logmin [expr {floor(log10(abs(0.9*$min)))}]
-                    set logmax [expr {ceil(log10(abs(1.1*$max)))}]
-                } else {
-                    set logmin [expr {floor(log10(abs($min)))}]
-                    set logmax [expr {ceil(log10(abs($max)))}]
-                    if {[string match y* $axis]} {
-                        # add a little padding
-                        set delta [expr {$logmax-$logmin}]
-                        if {$delta == 0} { set delta 1 }
-                        set logmin [expr {$logmin-0.05*$delta}]
-                        set logmax [expr {$logmax+0.05*$delta}]
-                    }
-                }
-                if {$logmin < -300} {
-                    set min 1e-300
-                } elseif {$logmin > 300} {
-                    set min 1e+300
-                } else {
-                    set min [expr {pow(10.0,$logmin)}]
-                }
-
-                if {$logmax < -300} {
-                    set max 1e-300
-                } elseif {$logmax > 300} {
-                    set max 1e+300
-                } else {
-                    set max [expr {pow(10.0,$logmax)}]
-                }
-            } else {
-                set min $_limits(${axis}lin-min)
-                set max $_limits(${axis}lin-max)
-                if {[string match y* $axis]} {
-                    # add a little padding
-                    set delta [expr {$max-$min}]
-                    set min [expr {$min-0.05*$delta}]
-                    set max [expr {$max+0.05*$delta}]
-                }
-            }
-            if {$min < $max} {
-                $g axis configure $axis -min $min -max $max
-            } else {
-                $g axis configure $axis -min "" -max ""
-            }
-        } else {
-            $g axis configure $axis -min "" -max ""
-        }
+	$g axis configure $axis -min "" -max ""
     }
 }
 
