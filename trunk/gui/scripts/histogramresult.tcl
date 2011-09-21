@@ -544,7 +544,7 @@ itcl::body Rappture::HistogramResult::download {option args} {
                             }
                             set xv [$dataobj mesh $comp]
                             set yv [$dataobj values $comp]
-                            foreach x [$xv values] y [$yv values] {
+                            foreach x [$xv range 0 end] y [$yv range 0 end] {
                                 append csvdata \
                                     [format "%20.15g, %20.15g\n" $x $y]
                             }
@@ -716,7 +716,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
 	    }
 	    # Compute default bar width for histogram elements.
 	    if { [$zv length] == [$xv length] } {
-		foreach x [$xv values] y [$yv values] z [$zv values] {
+		foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 		    set elem "elem[incr count]"
 		    set _elem2dataobj($elem) $dataobj
 		    $g element create $elem -x $x -y $y -barwidth $z \
