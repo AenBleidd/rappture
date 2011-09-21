@@ -261,18 +261,23 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
     // all cells are equal area/volume)
     int cell = rand() % numCells;
     int type = ds->GetCellType(cell);
-    if (type == VTK_VERTEX) {
+    switch (type) {
+    case VTK_VERTEX: {
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
         assert(ptIds->GetNumberOfIds() == 1);
         ds->GetPoint(ptIds->GetId(0), pt);
-    } else if (type == VTK_POLY_VERTEX) {
+    }
+        break;
+    case VTK_POLY_VERTEX: {
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
         assert(ptIds->GetNumberOfIds() >= 1);
         int id = rand() % ptIds->GetNumberOfIds();
         ds->GetPoint(ptIds->GetId(id), pt);
-    } else if (type == VTK_LINE) {
+    }
+        break;
+    case VTK_LINE: {
         double v[2][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -281,7 +286,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(i), v[i]);
         }
         getRandomPointOnLineSegment(pt, v[0], v[1]);
-    } else if (type == VTK_POLY_LINE) {
+    }
+        break;
+    case VTK_POLY_LINE: {
         double v[2][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -291,7 +298,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(id+i), v[i]);
         }
         getRandomPointOnLineSegment(pt, v[0], v[1]);
-    } else if (type == VTK_TRIANGLE) {
+    }
+        break;
+    case VTK_TRIANGLE: {
         double v[3][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -300,7 +309,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(i), v[i]);
         }
         getRandomPointInTriangle(pt, v[0], v[1], v[2]);
-    } else if (type == VTK_TRIANGLE_STRIP) {
+    }
+        break;
+    case VTK_TRIANGLE_STRIP: {
         double v[3][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -310,7 +321,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(id+i), v[i]);
         }
         getRandomPointInTriangle(pt, v[0], v[1], v[2]);
-    } else if (type == VTK_POLYGON) {
+    }
+        break;
+    case VTK_POLYGON: {
         vtkPolygon *poly = vtkPolygon::SafeDownCast(ds->GetCell(cell));
         assert (poly != NULL);
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
@@ -322,7 +335,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(i + tri * 3), v[i]);
         }
         getRandomPointInTriangle(pt, v[0], v[1], v[2]);
-    } else if (type == VTK_QUAD) {
+    }
+        break;
+    case VTK_QUAD: {
         double v[4][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -336,7 +351,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         } else {
             getRandomPointInTriangle(pt, v[0], v[2], v[3]);
         }
-    } else if (type == VTK_TETRA) {
+    }
+        break;
+    case VTK_TETRA: {
         double v[4][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -345,34 +362,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
             ds->GetPoint(ptIds->GetId(i), v[i]);
         }
         getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[3]);
-    } else if (type == VTK_HEXAHEDRON) {
-        double v[8][3];
-        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
-        ds->GetCellPoints(cell, ptIds);
-        assert(ptIds->GetNumberOfIds() == 8);
-        for (int i = 0; i < 8; i++) {
-            ds->GetPoint(ptIds->GetId(i), v[i]);
-        }
-        int tetra = rand() % 5;
-        switch (tetra) {
-        case 0:
-            getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[5]);
-            break;
-        case 1:
-            getRandomPointInTetrahedron(pt, v[0], v[2], v[7], v[3]);
-            break;
-        case 2:
-            getRandomPointInTetrahedron(pt, v[0], v[5], v[7], v[4]);
-            break;
-        case 3:
-            getRandomPointInTetrahedron(pt, v[5], v[2], v[7], v[6]);
-            break;
-        case 4:
-        default:
-            getRandomPointInTetrahedron(pt, v[0], v[2], v[7], v[5]);
-            break;
-        }
-    } else if (type == VTK_WEDGE) {
+    }
+        break;
+    case VTK_WEDGE: {
         double v[6][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -385,7 +377,9 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         getRandomPointOnLineSegment(vv[1], v[1], v[4]);
         getRandomPointOnLineSegment(vv[2], v[2], v[5]);
         getRandomPointInTriangle(pt, vv[0], vv[1], vv[2]);
-    } else if (type == VTK_PYRAMID) {
+    }
+        break;
+    case VTK_PYRAMID: {
         double v[5][3];
         vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
         ds->GetCellPoints(cell, ptIds);
@@ -399,12 +393,36 @@ void Streamlines::getRandomCellPt(double pt[3], vtkDataSet *ds)
         } else {
             getRandomPointInTetrahedron(pt, v[0], v[2], v[3], v[4]);
         }
-    } else {
+    }
+        break;
+    case VTK_PIXEL:
+    case VTK_VOXEL: {
         double bounds[6];
         ds->GetCellBounds(cell, bounds);
-        // Note: For pixel/voxel cells, this is exact.  However, if the cell is
-        // not an axis aligned box, the point may be outside the cell
         getRandomPoint(pt, bounds);
+    }
+        break;
+    default: {
+        vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+        vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+        ds->GetCell(cell)->Triangulate(0, ptIds, pts);
+        if (ptIds->GetNumberOfIds() % 4 == 0) {
+            int tetra = rand() % (ptIds->GetNumberOfIds()/4);
+            double v[4][3];
+            for (int i = 0; i < 4; i++) {
+                ds->GetPoint(ptIds->GetId(i + tetra * 4), v[i]);
+            }
+            getRandomPointInTetrahedron(pt, v[0], v[1], v[2], v[4]);
+        } else {
+            assert(ptIds->GetNumberOfIds() % 3 == 0);
+            int tri = rand() % (ptIds->GetNumberOfIds()/3);
+            double v[3][3];
+            for (int i = 0; i < 3; i++) {
+                ds->GetPoint(ptIds->GetId(i + tri * 3), v[i]);
+            }
+            getRandomPointInTriangle(pt, v[0], v[1], v[2]);
+        }
+    }
     }
 }
 

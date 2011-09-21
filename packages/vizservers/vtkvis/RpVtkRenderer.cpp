@@ -39,6 +39,7 @@
 #include <vtkLookupTable.h>
 #include <vtkTextProperty.h>
 #include <vtkOpenGLRenderWindow.h>
+#include <vtkVersion.h>
 
 #include "RpVtkRenderer.h"
 #include "ColorMap.h"
@@ -868,6 +869,11 @@ void Renderer::resetAxes(double bounds[6])
         if (bounds == NULL) {
             double newBounds[6];
             collectBounds(newBounds, false);
+#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
+            _cubeAxesActor->SetXAxisRange(newBounds[0], newBounds[1]);
+            _cubeAxesActor->SetYAxisRange(newBounds[2], newBounds[3]);
+            _cubeAxesActor->SetZAxisRange(newBounds[4], newBounds[5]);
+#endif
             _cubeAxesActor->SetBounds(newBounds);
             TRACE("Bounds (computed): %g %g %g %g %g %g",
                   newBounds[0],
@@ -877,6 +883,11 @@ void Renderer::resetAxes(double bounds[6])
                   newBounds[4],
                   newBounds[5]);
         } else {
+#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
+            _cubeAxesActor->SetXAxisRange(bounds[0], bounds[1]);
+            _cubeAxesActor->SetYAxisRange(bounds[2], bounds[3]);
+            _cubeAxesActor->SetZAxisRange(bounds[4], bounds[5]);
+#endif
             _cubeAxesActor->SetBounds(bounds);
             TRACE("Bounds (supplied): %g %g %g %g %g %g",
                   bounds[0],
