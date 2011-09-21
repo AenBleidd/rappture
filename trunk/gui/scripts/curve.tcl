@@ -138,7 +138,7 @@ itcl::body Rappture::Curve::limits {which} {
         }
     }
 
-    blt::vector create tmp zero
+    blt::vector tmp zero
     foreach comp [array names _comp2xy] {
         set vname [lindex $_comp2xy($comp) $pos]
         $vname variable vec

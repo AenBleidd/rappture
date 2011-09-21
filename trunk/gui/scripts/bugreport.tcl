@@ -85,6 +85,8 @@ proc Rappture::bugreport::activate {err} {
         update idletasks
         set w [winfo reqwidth .bugreport]
         set h [winfo reqheight .bugreport]
+	#gah@purdue: temporary hack to force view of dismiss button
+	incr h 300
         set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
         if {$x < 0} {set x "+0"} else {set x "+$x"}
         set y [expr {([winfo screenheight .bugreport]-$h)/2}]

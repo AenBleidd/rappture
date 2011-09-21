@@ -135,7 +135,7 @@ itcl::class Rappture::FlowvisViewer {
     private variable _obj2style    ;# maps dataobj-component to transfunc
     private variable _style2objs   ;# maps tf back to list of 
                                     # dataobj-components using the tf.
-    private variable _obj2flow;                # Maps dataobj-component to a flow.
+    private variable _obj2flow;		# Maps dataobj-component to a flow.
 
     private variable _click        ;# info used for rotate operations
     private variable _limits       ;# autoscale min/max for all axes
@@ -224,34 +224,34 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         phi     45
         psi     0
         zoom    1.0
-        pan-x        0
-        pan-y        0
+        pan-x	0
+        pan-y	0
     }
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
     array set _settings [subst {
-        $this-arrows                0
-        $this-currenttime        0
-        $this-duration                1:00
-        $this-loop                0
-        $this-pan-x                $_view(pan-x)
-        $this-pan-y                $_view(pan-y)
-        $this-phi                $_view(phi)
-        $this-play                0
-        $this-psi                $_view(psi)
-        $this-speed                500
-        $this-step                0
-        $this-streams                0
-        $this-theta                $_view(theta)
-        $this-volume                1
-        $this-xcutplane                0
-        $this-xcutposition        0
-        $this-ycutplane                0
-        $this-ycutposition        0
-        $this-zcutplane                0
-        $this-zcutposition        0
-        $this-zoom                $_view(zoom)
+        $this-arrows		0
+        $this-currenttime	0
+        $this-duration		1:00
+        $this-loop		0
+        $this-pan-x		$_view(pan-x)
+        $this-pan-y		$_view(pan-y)
+        $this-phi		$_view(phi)
+        $this-play		0
+        $this-psi		$_view(psi)
+        $this-speed		500
+        $this-step		0
+        $this-streams		0
+        $this-theta		$_view(theta)
+        $this-volume		1
+        $this-xcutplane		0
+        $this-xcutposition	0
+        $this-ycutplane		0
+        $this-ycutposition	0
+        $this-zcutplane		0
+        $this-zcutposition	0
+        $this-zoom		$_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -985,9 +985,9 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
-    SendBytes $_outbuf;                        
-    set _buffering 0;                        # Turn off buffering.
-    set _outbuf "";                        # Clear the buffer.                
+    SendBytes $_outbuf;			
+    set _buffering 0;			# Turn off buffering.
+    set _outbuf "";			# Clear the buffer.		
 }
 
 # ----------------------------------------------------------------------
@@ -1118,14 +1118,14 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
 #
 # ReceiveData --
 #
-#        The procedure is the response from the render server to each "data
-#        follows" command.  The server sends back a "data" command invoked our
-#        the slave interpreter.  The purpose is to collect the min/max of the
-#        volume sent to the render server.  Since the client (flowvisviewer)
-#        doesn't parse 3D data formats, we rely on the server (flowvis) to
-#        tell us what the limits are.  Once we've received the limits to all
-#        the data we've sent (tracked by _recvObjs) we can then determine
-#        what the transfer functions are for these # volumes.
+#	The procedure is the response from the render server to each "data
+#	follows" command.  The server sends back a "data" command invoked our
+#	the slave interpreter.  The purpose is to collect the min/max of the
+#	volume sent to the render server.  Since the client (flowvisviewer)
+#	doesn't parse 3D data formats, we rely on the server (flowvis) to
+#	tell us what the limits are.  Once we've received the limits to all
+#	the data we've sent (tracked by _recvObjs) we can then determine
+#	what the transfer functions are for these # volumes.
 #
 #       Note: There is a considerable tradeoff in having the server report
 #             back what the data limits are.  It means that much of the code
@@ -1277,8 +1277,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     blt::busy hold $itk_component(hull)
     SendBytes $_outbuf
     blt::busy release $itk_component(hull)
-    set _buffering 0;                        # Turn off buffering.
-    set _outbuf "";                        # Clear the buffer.                
+    set _buffering 0;			# Turn off buffering.
+    set _outbuf "";			# Clear the buffer.		
 }
 
 # ----------------------------------------------------------------------
@@ -1331,9 +1331,9 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
                 theta   45
                 phi     45
                 psi     0
-                zoom        1.0
-                pan-x        0
-                pan-y        0
+                zoom	1.0
+                pan-x	0
+                pan-y	0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -2075,13 +2075,13 @@ itcl::body Rappture::FlowvisViewer::limits { tf } {
 
 itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
     foreach { key value } {
-        grid                0
-        axes                0
-        outline                1
-        volume                1
-        legend                1
-        particles        1
-        lic                1
+        grid		0
+        axes		0
+        outline		1
+        volume		1
+        legend		1
+        particles	1
+        lic		1
     } {
         set _settings($this-$key) $value
     }
@@ -2160,10 +2160,10 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
 
 itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     foreach { key value } {
-        light                40
-        transp                50
-        opacity                100
-        thickness        350
+        light		40
+        transp		50
+        opacity		100
+        thickness	350
     } {
         set _settings($this-$key) $value
     }
@@ -2641,7 +2641,7 @@ itcl::body Rappture::FlowvisViewer::FlowCmd { dataobj comp nbytes extents } {
         append cmd " -hide $info(hide)"
         append cmd " -linewidth $info(linewidth) "
         append cmd " -corner1 {$info(corner1)} "
-          append cmd " -corner2 {$info(corner2)}\n"
+        append cmd " -corner2 {$info(corner2)}\n"
     }    
     append cmd "$tag data follows $nbytes $extents\n"
     return $cmd

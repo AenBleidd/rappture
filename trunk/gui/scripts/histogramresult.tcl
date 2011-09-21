@@ -166,7 +166,7 @@ itcl::body Rappture::HistogramResult::constructor {args} {
     set f [$itk_component(main) component frame]
     itk_component add plot {
         blt::barchart $f.plot \
-            -highlightthickness 0 -plotpadx 0 -plotpady 0 
+            -highlightthickness 0 -plotpadx 0 -plotpady 4 
     } {
         keep -foreground -cursor -font
     }
