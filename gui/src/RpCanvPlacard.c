@@ -1118,11 +1118,10 @@ PlacardToPostscript(interp, canvas, itemPtr, prepass)
 		Tk_CanvasPsY(canvas, plPtr->y+delta+2));
 	Tcl_AppendResult(interp, buffer, " translate\n", (char *) NULL);
       }
-/****
+
       Tk_PostscriptImage(plPtr->imageLeft, interp, canvasWin,
 			 ((TkCanvas*)canvas)->psInfo, 0, 0,
                          plPtr->imageLeftW, plPtr->imageLeftH, prepass);
-****/
 
       if ( !prepass ) {
 	/*
