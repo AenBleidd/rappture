@@ -671,6 +671,7 @@ JAVAH
 JAVAC
 JAVA
 PYTHON
+XSUBPP
 PERL
 mkoctfile2
 mkoctfile3
@@ -7375,7 +7376,6 @@ fi
 $as_echo "$VTKDIR" >&6; }
 
 
-with_matlab="yes"
 
 # Check whether --with-matlab was given.
 if test "${with_matlab+set}" = set; then :
@@ -7893,6 +7893,7 @@ PERL_PRIVLIB=
 PERL_CPPFLAGS=
 PERL_CCFlAGS=
 PERL_VERSION_RV=
+XSUBPP=
 PERL_LIBSPEC=
 if test "$with_perl" != "no" ; then
   if test "$with_perl" != "yes" ; then
@@ -7937,6 +7938,47 @@ $as_echo "no" >&6; }
 fi
 
 
+    # Extract the first word of "xsubpp", so it can be a program name with args.
+set dummy xsubpp; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_XSUBPP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $XSUBPP in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_XSUBPP="$XSUBPP" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$with_perl/bin:$with_perl"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_XSUBPP="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+XSUBPP=$ac_cv_path_XSUBPP
+if test -n "$XSUBPP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $XSUBPP" >&5
+$as_echo "$XSUBPP" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
   else
     # Extract the first word of "perl", so it can be a program name with args.
 set dummy perl; ac_word=$2
@@ -7972,6 +8014,46 @@ PERL=$ac_cv_path_PERL
 if test -n "$PERL"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PERL" >&5
 $as_echo "$PERL" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    # Extract the first word of "xsubpp", so it can be a program name with args.
+set dummy xsubpp; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_XSUBPP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $XSUBPP in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_XSUBPP="$XSUBPP" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_XSUBPP="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+XSUBPP=$ac_cv_path_XSUBPP
+if test -n "$XSUBPP"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $XSUBPP" >&5
+$as_echo "$XSUBPP" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
@@ -9557,6 +9639,7 @@ done
 
 
 MAKE=${make_command}
+
 
 
 

@@ -220,7 +220,7 @@ rp_lib_get(
     int* handle,			/* integer handle of library */
     char* path,				/* null terminated path */
     char* retText,			/* return text buffer for fortran*/
-
+    int path_len,
     int retText_len)			/* length of return text buffer */
 {
     std::string xmlText = "";
@@ -229,7 +229,7 @@ rp_lib_get(
 
     std::string inPath = "";
 
-    inPath = null_terminate_str(path,path_len);
+    inPath = null_terminate_str(path, path_len);
 
     if ((handle) && (*handle != 0)) {
         lib = (RpLibrary*) getObject_Void(*handle);
