@@ -31,7 +31,7 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 LD_RUN_PATH     = $(libdir)
 
 DEFINES		= -DSERVERSFILE=\"$(libdir)/renderservers.tcl\"
-INCLUDES	= $(TCL_INC_SPEC)
+INCLUDES	= -I. $(TCL_INC_SPEC)
 LIBS		= $(TCL_LIB_SPEC) \
 		-Wl,-rpath,$(LD_RUN_PATH)
 
