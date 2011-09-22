@@ -20,6 +20,10 @@ option add *BarchartResult.height 3i widgetDefault
 option add *BarchartResult.gridColor #d9d9d9 widgetDefault
 option add *BarchartResult.activeColor blue widgetDefault
 option add *BarchartResult.dimColor gray widgetDefault
+# Don't let the step size default to 1.0 (for barcharts)
+option add *BarchartResult*x.loose 0 widgetDefault
+option add *BarchartResult*y.loose 1 widgetDefault
+option add *BarchartResult*x.stepSize 0.0 widgetDefault
 option add *BarchartResult.controlBackground gray widgetDefault
 option add *BarchartResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
@@ -597,7 +601,7 @@ itcl::body Rappture::BarchartResult::_rebuild {} {
     eval $g element delete [$g element names]
     eval $g marker delete [$g marker names]
     foreach axis [$g axis names] {
-        $g axis configure $axis -hide yes -checklimits no -loose yes
+        $g axis configure $axis -hide yes -checklimits no 
     }
     # Presumably you want at least an X-axis and Y-axis displayed.
     $g xaxis configure -hide no
