@@ -238,7 +238,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             if { $type == "bars" } {
                 if {![info exists _mode2widget($mode)]} {
                     set w $itk_interior.xy
-                    Rappture::BarResult $w
+                    Rappture::BarchartResult $w
                     set _mode2widget($mode) $w
                 }
             } else {
