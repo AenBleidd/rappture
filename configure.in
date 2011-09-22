@@ -428,6 +428,7 @@ AC_SUBST(TK_LIB_SPEC)
 AC_SUBST(TK_XLIBSW)
 AC_SUBST(TK_VERSION)
 AC_SUBST(VTKDIR)
+AC_SUBST(XSUBPP)
 
 ac_configure_args="--disable-threads --enable-shared"
 AC_CONFIG_SUBDIRS( [packages/optimizer/src] )
