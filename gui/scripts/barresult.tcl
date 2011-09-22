@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  COMPONENT: barresult - X/Y plot in a ResultSet
+#  COMPONENT: barchartresult - X/Y plot in a ResultSet
 #
 #  This widget is an X/Y plot, meant to view line graphs produced
 #  as output from the run of a Rappture tool.  Use the "add" and
@@ -15,13 +15,13 @@
 package require Itk
 package require BLT
 
-option add *BarResult.width 3i widgetDefault
-option add *BarResult.height 3i widgetDefault
-option add *BarResult.gridColor #d9d9d9 widgetDefault
-option add *BarResult.activeColor blue widgetDefault
-option add *BarResult.dimColor gray widgetDefault
-option add *BarResult.controlBackground gray widgetDefault
-option add *BarResult.font \
+option add *BarchartResult.width 3i widgetDefault
+option add *BarchartResult.height 3i widgetDefault
+option add *BarchartResult.gridColor #d9d9d9 widgetDefault
+option add *BarchartResult.activeColor blue widgetDefault
+option add *BarchartResult.dimColor gray widgetDefault
+option add *BarchartResult.controlBackground gray widgetDefault
+option add *BarchartResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
 set autocolors {
@@ -65,10 +65,10 @@ set autocolors {
 #551a8b
 }
 
-option add *BarResult.autoColors $autocolors widgetDefault
-option add *BarResult*Balloon*Entry.background white widgetDefault
+option add *BarchartResult.autoColors $autocolors widgetDefault
+option add *BarchartResult*Balloon*Entry.background white widgetDefault
 
-itcl::class Rappture::BarResult {
+itcl::class Rappture::BarchartResult {
     inherit itk::Widget
 
     itk_option define -gridcolor gridColor GridColor ""
@@ -123,7 +123,7 @@ itcl::class Rappture::BarResult {
     private variable _tickLabels
 }
                                                                                 
-itk::usual BarResult {
+itk::usual BarchartResult {
     keep -background -foreground -cursor -font
 }
 
@@ -134,7 +134,7 @@ itk::usual Panedwindow {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::constructor {args} {
+itcl::body Rappture::BarchartResult::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this _rebuild]; list"
@@ -265,7 +265,7 @@ itcl::body Rappture::BarResult::constructor {args} {
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::destructor {} {
+itcl::body Rappture::BarchartResult::destructor {} {
 }
 
 # ----------------------------------------------------------------------
@@ -275,7 +275,7 @@ itcl::body Rappture::BarResult::destructor {} {
 # are used to configure the plot.  Allowed settings are -color,
 # -brightness, -width, -linestyle and -raise.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::add {dataobj {settings ""}} {
+itcl::body Rappture::BarchartResult::add {dataobj {settings ""}} {
     array set params {
         -color auto
         -brightness 0
@@ -350,7 +350,7 @@ itcl::body Rappture::BarResult::add {dataobj {settings ""}} {
 # Clients use this to query the list of objects being plotted, in
 # order from bottom to top of this result.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::get {} {
+itcl::body Rappture::BarchartResult::get {} {
     # put the dataobj list in order according to -raise options
     set dlist $_dlist
     foreach obj $dlist {
@@ -371,7 +371,7 @@ itcl::body Rappture::BarResult::get {} {
 # Clients use this to delete a dataobj from the plot.  If no dataobjs
 # are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::delete {args} {
+itcl::body Rappture::BarchartResult::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
     }
@@ -415,7 +415,7 @@ itcl::body Rappture::BarResult::delete {args} {
 # Because of this, the limits are appropriate for all dataobjs as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::scale {args} {
+itcl::body Rappture::BarchartResult::scale {args} {
     set allx [$itk_component(plot) x2axis use]
     lappend allx x  ;# fix main x-axis too
     foreach axis $allx {
@@ -472,14 +472,14 @@ itcl::body Rappture::BarResult::scale {args} {
 # "ext" is the file extension (indicating the type of data) and
 # "string" is the data itself.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::download {option args} {
+itcl::body Rappture::BarchartResult::download {option args} {
     switch $option {
         coming {
             # nothing to do
         }
         controls {
-            set popup .barresultdownload
-            if {![winfo exists .barresultdownload]} {
+            set popup .barchartresultdownload
+            if {![winfo exists .barchartresultdownload]} {
                 # if we haven't created the popup yet, do it now
                 Rappture::Balloon $popup \
                     -title "[Rappture::filexfer::label downloadWord] as..."
@@ -487,11 +487,11 @@ itcl::body Rappture::BarResult::download {option args} {
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
                 radiobutton $inner.csv -text "Data as Comma-Separated Values" \
-                    -variable Rappture::BarResult::_downloadPopup(format) \
+                    -variable Rappture::BarchartResult::_downloadPopup(format) \
                     -value csv
                 pack $inner.csv -anchor w
                 radiobutton $inner.image -text "Image (PS/PDF/PNG/JPEG)" \
-                    -variable Rappture::BarResult::_downloadPopup(format) \
+                    -variable Rappture::BarchartResult::_downloadPopup(format) \
                     -value image
                 pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
@@ -507,8 +507,8 @@ itcl::body Rappture::BarResult::download {option args} {
             return $popup
         }
         now {
-            set popup .barresultdownload
-            if {[winfo exists .barresultdownload]} {
+            set popup .barchartresultdownload
+            if {[winfo exists .barchartresultdownload]} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
@@ -590,7 +590,7 @@ itcl::body Rappture::BarResult::download {option args} {
 # data in the widget.  Clears any existing data and rebuilds the
 # widget to display new data.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_rebuild {} {
+itcl::body Rappture::BarchartResult::_rebuild {} {
     set g $itk_component(plot)
 
     # First clear out the widget
@@ -801,7 +801,7 @@ itcl::body Rappture::BarResult::_rebuild {} {
 # Used internally to apply automatic limits to the axes for the
 # current plot.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_resetLimits {} {
+itcl::body Rappture::BarchartResult::_resetLimits {} {
     set g $itk_component(plot)
     foreach axis [$g axis names] {
         $g axis configure $axis -min "" -max ""
@@ -881,7 +881,7 @@ itcl::body Rappture::BarResult::_resetLimits {} {
 # Called automatically when the user clicks on one of the zoom
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_zoom {option args} {
+itcl::body Rappture::BarchartResult::_zoom {option args} {
     switch -- $option {
         reset {
             _resetLimits
@@ -896,7 +896,7 @@ itcl::body Rappture::BarResult::_zoom {option args} {
 # on the plot.  Causes the element to highlight and a tooltip to
 # pop up with element info.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_hilite {state x y} {
+itcl::body Rappture::BarchartResult::_hilite {state x y} {
     set g $itk_component(plot)
     set elem ""
     
@@ -1125,7 +1125,7 @@ itcl::body Rappture::BarResult::_hilite {state x y} {
 # up a panel with editing options.  The changed operation applies
 # changes from the panel.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_axis {option args} {
+itcl::body Rappture::BarchartResult::_axis {option args} {
     set inner [$itk_component(hull).axes component inner]
     switch -- $option {
         hilite {
@@ -1483,7 +1483,7 @@ itcl::body Rappture::BarResult::_axis {option args} {
 # axis line marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_getLineMarkerOptions {style} {
+itcl::body Rappture::BarchartResult::_getLineMarkerOptions {style} {
     array set lineOptions {
         "-color"  "-color"
         "-dashes" "-dashes"
@@ -1506,7 +1506,7 @@ itcl::body Rappture::BarResult::_getLineMarkerOptions {style} {
 # axis text marker.  The input is a list of name value pairs.  Options that
 # are not recognized are ignored.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_getTextMarkerOptions {style} {
+itcl::body Rappture::BarchartResult::_getTextMarkerOptions {style} {
     array set textOptions {
         "-color"  "-outline"
         "-textcolor"  "-outline"
@@ -1532,7 +1532,7 @@ itcl::body Rappture::BarResult::_getTextMarkerOptions {style} {
 # <dataobj>.  Returns a list of the form {x y}, where x is the
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
-itcl::body Rappture::BarResult::_getAxes {dataobj} {
+itcl::body Rappture::BarchartResult::_getAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if {[$_dispatcher ispending !rebuild]} {
         $_dispatcher cancel !rebuild
@@ -1561,7 +1561,7 @@ itcl::body Rappture::BarResult::_getAxes {dataobj} {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -gridcolor
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::BarResult::gridcolor {
+itcl::configbody Rappture::BarchartResult::gridcolor {
     if {"" == $itk_option(-gridcolor)} {
         $itk_component(plot) grid off
     } else {
@@ -1573,7 +1573,7 @@ itcl::configbody Rappture::BarResult::gridcolor {
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -autocolors
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::BarResult::autocolors {
+itcl::configbody Rappture::BarchartResult::autocolors {
     foreach c $itk_option(-autocolors) {
         if {[catch {winfo rgb $itk_component(hull) $c}]} {
             error "bad color \"$c\""
@@ -1584,7 +1584,7 @@ itcl::configbody Rappture::BarResult::autocolors {
     }
 }
 
-itcl::body Rappture::BarResult::_enterMarker { g name x y text } {
+itcl::body Rappture::BarchartResult::_enterMarker { g name x y text } {
     _leaveMarker $g $name
     set id [$g marker create text \
                 -coords [list $x $y] \
@@ -1594,7 +1594,7 @@ itcl::body Rappture::BarResult::_enterMarker { g name x y text } {
     set _markers($name) $id
 }
 
-itcl::body Rappture::BarResult::_leaveMarker { g name } {
+itcl::body Rappture::BarchartResult::_leaveMarker { g name } {
     if { [info exists _markers($name)] } { 
         set id $_markers($name)
         $g marker delete $id
@@ -1602,7 +1602,7 @@ itcl::body Rappture::BarResult::_leaveMarker { g name } {
     }
 }
 
-itcl::body Rappture::BarResult::_formatTickLabel { w value } {
+itcl::body Rappture::BarchartResult::_formatTickLabel { w value } {
     # Determine the element name from the value
 
     set index [expr round($value)]

@@ -22,7 +22,7 @@ FILES		= \
 		$(srcdir)/animicon.tcl \
 		$(srcdir)/animover.tcl \
 		$(srcdir)/balloon.tcl \
-		$(srcdir)/barresult.tcl \
+		$(srcdir)/barchartresult.tcl \
 		$(srcdir)/booleanentry.tcl \
 		$(srcdir)/bugreport.tcl \
 		$(srcdir)/choiceentry.tcl \
