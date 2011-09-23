@@ -1974,15 +1974,12 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     }
     array set settings $style
     SendCmd "streamlines add $tag"
-    SendCmd "streamlines seed visible off"
+    SendCmd "streamlines seed visible off $tag"
     set seeds [$dataobj hints seeds]
     if { $seeds != "" && ![info exists _seeds($dataobj)] } {
 	set length [string length $seeds]
-	set stag $dataobj-seeds
-	SendCmd "dataset add $stag data follows $length"
+	SendCmd "streamlines seed fmesh 200 data follows $length $tag"
 	SendCmd "$seeds"
-	SendCmd "dataset visible 0 $stag"
-	SendCmd "streamlines seed random 1000 $stag"
 	set _seeds($dataobj) 1
     }
     SendCmd "polydata add $tag"
