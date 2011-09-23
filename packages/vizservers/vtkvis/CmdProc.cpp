@@ -10,6 +10,8 @@
 
 #include "CmdProc.h"
 
+using namespace Rappture;
+
 /**
  * Performs a binary search on the array of command operation
  * specifications to find a partial, anchored match for the given
@@ -21,7 +23,7 @@
  * but ambiguously -2 is returned.
  */
 static int
-BinaryOpSearch(Rappture::CmdSpec *specs, 
+BinaryOpSearch(CmdSpec *specs, 
                int nSpecs, 
                char *string)       /* Name of minor operation to search for */
 {
@@ -34,7 +36,7 @@ BinaryOpSearch(Rappture::CmdSpec *specs,
     c = string[0];
     length = strlen(string);
     while (low <= high) {
-        Rappture::CmdSpec *specPtr;
+        CmdSpec *specPtr;
         int compare;
         int median;
     
@@ -75,11 +77,11 @@ BinaryOpSearch(Rappture::CmdSpec *specs,
  * but ambiguously -2 is returned.
  */
 static int
-LinearOpSearch(Rappture::CmdSpec *specs,
+LinearOpSearch(CmdSpec *specs,
                int nSpecs,
                char *string)       /* Name of minor operation to search for */
 {
-    Rappture::CmdSpec *specPtr;
+    CmdSpec *specPtr;
     char c;
     size_t length;
     int nMatches, last;
@@ -119,15 +121,15 @@ LinearOpSearch(Rappture::CmdSpec *specs,
  * the possible commands is returned in interp->result.
  */
 Tcl_ObjCmdProc *
-Rappture::GetOpFromObj(Tcl_Interp *interp,		/* Interpreter to report errors to */
-                       int nSpecs,			/* Number of specifications in array */
-                       Rappture::CmdSpec *specs,	/* Op specification array */
-                       int operPos,			/* Position of operation in argument
-                                                         * list. */
-                       int objc,			/* Number of arguments in the argument
-                                                         * vector.  This includes any prefixed
-                                                         * arguments */ 
-                       Tcl_Obj *const *objv,		/* Argument vector */
+Rappture::GetOpFromObj(Tcl_Interp *interp,	/* Interpreter to report errors to */
+                       int nSpecs,		/* Number of specifications in array */
+                       CmdSpec *specs,		/* Op specification array */
+                       int operPos,		/* Position of operation in argument
+                                                 * list. */
+                       int objc,		/* Number of arguments in the argument
+                                                 * vector.  This includes any prefixed
+                                                 * arguments */ 
+                       Tcl_Obj *const *objv,	/* Argument vector */
                        int flags)
 {
     CmdSpec *specPtr;

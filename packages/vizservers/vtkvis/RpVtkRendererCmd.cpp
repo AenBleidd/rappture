@@ -18,13 +18,34 @@
 
 #include "Trace.h"
 #include "CmdProc.h"
+#include "ReadBuffer.h"
 #include "RpVtkRendererCmd.h"
 #include "RpVtkRenderServer.h"
 #include "RpVtkRenderer.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
 
 using namespace Rappture::VtkVis;
+
+static int lastCmdStatus;
+
+#ifdef USE_THREADS
+static void
+QueueResponse(ClientData clientData, const void *bytes, size_t len, 
+              Response::AllocationType allocType)
+{
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+
+    Response *response;
+
+    response = new Response(Response::DATA);
+    response->setMessage((unsigned char *)bytes, len, allocType);
+    queue->enqueue(response);
+}
+#else
 
 static ssize_t
 SocketWrite(const void *bytes, size_t len)
@@ -42,24 +63,15 @@ SocketWrite(const void *bytes, size_t len)
     return bytesWritten;
 }
 
-static size_t
-SocketRead(void *bytes, size_t len)
+#endif  /*USE_THREADS*/
+
+static bool
+SocketRead(char *bytes, size_t len)
 {
-#ifdef notdef
-    size_t ofs = 0;
-    ssize_t bytesRead = 0;
-    while ((bytesRead = read(g_fdIn, bytes + ofs, len - ofs)) > 0) {
-        ofs += bytesRead;
-        if (ofs == len)
-            break;
-    }
-    TRACE("bytesRead: %lu", ofs);
-    return ofs;
-#else
-    size_t bytesRead = fread(bytes, 1, len, g_fIn);
-    TRACE("bytesRead: %lu", bytesRead);
-    return bytesRead;
-#endif
+    ReadBuffer::BufferStatus status;
+    status = g_inBufPtr->followingData((unsigned char *)bytes, len);
+    TRACE("followingData status: %d", status);
+    return (status == ReadBuffer::OK);
 }
 
 static int
@@ -67,9 +79,16 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 {
     int result;
 
-    result = Tcl_Eval(interp, Tcl_DStringValue(dsPtr));
+    TRACE("command: '%s'", Tcl_DStringValue(dsPtr));
+    lastCmdStatus = TCL_OK;
+    result = Tcl_EvalEx(interp, Tcl_DStringValue(dsPtr), 
+                        Tcl_DStringLength(dsPtr), 
+                        TCL_EVAL_DIRECT | TCL_EVAL_GLOBAL);
     Tcl_DStringSetLength(dsPtr, 0);
-
+    if (lastCmdStatus == TCL_BREAK) {
+        return TCL_BREAK;
+    }
+    lastCmdStatus = result;
     return result;
 }
 
@@ -379,11 +398,14 @@ CameraGetOp(ClientData clientData, Tcl_Interp *interp, int objc,
     snprintf(buf, sizeof(buf), "nv>camera set %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e %.12e\n", 
              pos[0], pos[1], pos[2], focalPt[0], focalPt[1], focalPt[2], viewUp[0], viewUp[1], viewUp[2]);
 
+#ifdef USE_THREADS
+    QueueResponse(clientData, buf, strlen(buf), Response::VOLATILE);
+#else 
     ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
-
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif
     return TCL_OK;
 }
 
@@ -1655,8 +1677,7 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     char *data = (char *)malloc(nbytes);
-    size_t bytesRead = SocketRead(data, nbytes);
-    if (bytesRead < 0) {
+    if (!SocketRead(data, nbytes)) {
         free(data);
         return TCL_ERROR;
     }
@@ -1697,13 +1718,20 @@ DataSetGetScalarPixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>dataset scalar pixel %d %d %g %s\n", x, y, value, name);
+    int length;
 
-    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+    length = snprintf(buf, sizeof(buf), "nv>dataset scalar pixel %d %d %g %s\n",
+                      x, y, value, name);
+
+#ifdef USE_THREADS
+    QueueResponse(clientData, buf, length, Response::VOLATILE);
+#else
+    ssize_t bytesWritten = SocketWrite(buf, length);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif
     return TCL_OK;
 }
 
@@ -1725,13 +1753,20 @@ DataSetGetScalarWorldOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>dataset scalar world %g %g %g %g %s\n", x, y, z, value, name);
+    int length;
 
-    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+    length = snprintf(buf, sizeof(buf), 
+                      "nv>dataset scalar world %g %g %g %g %s\n",
+                      x, y, z, value, name);
 
+#ifdef USE_THREADS
+    QueueResponse(clientData, buf, length, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(buf, length);
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif
     return TCL_OK;
 }
 
@@ -1772,14 +1807,21 @@ DataSetGetVectorPixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>dataset vector pixel %d %d %g %g %g %s\n", x, y,
-             value[0], value[1], value[2], name);
+    int length; 
+    length = snprintf(buf, sizeof(buf), 
+                      "nv>dataset vector pixel %d %d %g %g %g %s\n",
+                      x, y,
+                      value[0], value[1], value[2], name);
 
-    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+#ifdef USE_THREADS
+    QueueResponse(clientData, buf, length, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(buf, length);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif /*USE_THREADS*/
     return TCL_OK;
 }
 
@@ -1801,14 +1843,20 @@ DataSetGetVectorWorldOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "nv>dataset vector world %g %g %g %g %g %g %s\n", x, y, z,
-             value[0], value[1], value[2], name);
-
-    ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
+    int length;
+    length = snprintf(buf, sizeof(buf), 
+                      "nv>dataset vector world %g %g %g %g %g %g %s\n",
+                      x, y, z,
+                      value[0], value[1], value[2], name);
+#ifdef USE_THREADS
+    QueueResponse(clientData, buf, length, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(buf, length);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif /*USE_THREADS*/
     return TCL_OK;
 }
 
@@ -1871,12 +1919,15 @@ DataSetNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     oss << "}\n";
     len += 2;
-
-    size_t bytesWritten = SocketWrite(oss.str().c_str(), len);
+#ifdef USE_THREADS
+    QueueResponse(clientData, oss.str().c_str(), len, Response::VOLATILE);
+#else 
+    ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
 
     if (bytesWritten < 0) {
         return TCL_ERROR;
     }
+#endif /*USE_THREADS*/
     return TCL_OK;
 }
 
@@ -2920,6 +2971,14 @@ HeightMapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ImageFlushCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    lastCmdStatus = TCL_BREAK;
+    return TCL_OK;
+}
+
+static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
@@ -2980,20 +3039,36 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
 
 #ifdef DEBUG
+# ifdef RENDER_TARGA
     writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height,
                  TARGA_BYTES_PER_PIXEL);
+# else
+    writeTGAFile("/tmp/legend.tga", imgData->GetPointer(0), width, height,
+                 TARGA_BYTES_PER_PIXEL, true);
+# endif
 #else
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "nv>legend {%s} {%s} %g %g",
              colorMapName, title.c_str(), range[0], range[1]);
-#ifdef RENDER_TARGA
-    writeTGA(g_fdOut, cmd, imgData->GetPointer(0), width, height,
-                 TARGA_BYTES_PER_PIXEL);
-#else
-    writePPM(g_fdOut, cmd, imgData->GetPointer(0), width, height);
-#endif
-#endif
 
+# ifdef USE_THREADS
+#  ifdef RENDER_TARGA
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+    queueTGA(queue, cmd, imgData->GetPointer(0), width, height,
+             TARGA_BYTES_PER_PIXEL);
+#  else
+    ResponseQueue *queue = (ResponseQueue *)clientData;
+    queuePPM(queue, cmd, imgData->GetPointer(0), width, height);
+#  endif
+# else
+#  ifdef RENDER_TARGA
+    writeTGA(g_fdOut, cmd, imgData->GetPointer(0), width, height,
+             TARGA_BYTES_PER_PIXEL);
+#  else
+    writePPM(g_fdOut, cmd, imgData->GetPointer(0), width, height);
+#  endif
+# endif // USE_THREADS
+#endif // DEBUG
     return TCL_OK;
 }
 
@@ -4683,8 +4758,7 @@ StreamlinesSeedFilledMeshOp(ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     char *data = (char *)malloc(nbytes);
-    size_t bytesRead = SocketRead(data, nbytes);
-    if (bytesRead < 0) {
+    if (!SocketRead(data, nbytes)) {
         free(data);
         return TCL_ERROR;
     }
@@ -4732,8 +4806,7 @@ StreamlinesSeedMeshPointsOp(ClientData clientData, Tcl_Interp *interp,
         return TCL_ERROR;
     }
     char *data = (char *)malloc(nbytes);
-    size_t bytesRead = SocketRead(data, nbytes);
-    if (bytesRead < 0) {
+    if (!SocketRead(data, nbytes)) {
         free(data);
         return TCL_ERROR;
     }
@@ -4972,25 +5045,25 @@ StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec streamlinesOps[] = {
-    {"add",       1, StreamlinesAddOp, 2, 3, "?dataSetName?"},
-    {"ccolor",    1, StreamlinesColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, StreamlinesColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, StreamlinesColorModeOp, 3, 4, "mode ?dataSetNme?"},
-    {"delete",    1, StreamlinesDeleteOp, 2, 3, "?dataSetName?"},
+    {"add",       1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
+    {"ccolor",    1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
+    {"colormap",  7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, StreamlinesColorModeOp,      3, 4, "mode ?dataSetNme?"},
+    {"delete",    1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
     {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"length",    2, StreamlinesLengthOp, 3, 4, "length ?dataSetName?"},
-    {"lighting",  3, StreamlinesLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, StreamlinesLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"lines",     5, StreamlinesLinesOp, 2, 3, "?dataSetName?"},
-    {"linewidth", 5, StreamlinesLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   2, StreamlinesOpacityOp, 3, 4, "val ?dataSetName?"},
-    {"orient",    2, StreamlinesOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, StreamlinesPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"ribbons",   1, StreamlinesRibbonsOp, 4, 5, "width angle ?dataSetName?"},
-    {"scale",     2, StreamlinesScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"seed",      2, StreamlinesSeedOp, 3, 14, "op params... ?dataSetName?"},
-    {"tubes",     1, StreamlinesTubesOp, 4, 5, "numSides radius ?dataSetName?"},
-    {"visible",   1, StreamlinesVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"length",    2, StreamlinesLengthOp,         3, 4, "length ?dataSetName?"},
+    {"lighting",  3, StreamlinesLightingOp,       3, 4, "bool ?dataSetName?"},
+    {"linecolor", 5, StreamlinesLineColorOp,      5, 6, "r g b ?dataSetName?"},
+    {"lines",     5, StreamlinesLinesOp,          2, 3, "?dataSetName?"},
+    {"linewidth", 5, StreamlinesLineWidthOp,      3, 4, "width ?dataSetName?"},
+    {"opacity",   2, StreamlinesOpacityOp,        3, 4, "val ?dataSetName?"},
+    {"orient",    2, StreamlinesOrientOp,         6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",       1, StreamlinesPositionOp,       5, 6, "x y z ?dataSetName?"},
+    {"ribbons",   1, StreamlinesRibbonsOp,        4, 5, "width angle ?dataSetName?"},
+    {"scale",     2, StreamlinesScaleOp,          5, 6, "sx sy sz ?dataSetName?"},
+    {"seed",      2, StreamlinesSeedOp,           3, 14, "op params... ?dataSetName?"},
+    {"tubes",     1, StreamlinesTubesOp,          4, 5, "numSides radius ?dataSetName?"},
+    {"visible",   1, StreamlinesVisibleOp,        3, 4, "bool ?dataSetName?"}
 };
 static int nStreamlinesOps = NumCmdSpecs(streamlinesOps);
 
@@ -5202,8 +5275,8 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeShadingOps[] = {
-    {"ambient",  1, VolumeShadingAmbientOp, 4, 5, "coeff ?dataSetName?"},
-    {"diffuse",  1, VolumeShadingDiffuseOp, 4, 5, "coeff ?dataSetName?"},
+    {"ambient",  1, VolumeShadingAmbientOp,  4, 5, "coeff ?dataSetName?"},
+    {"diffuse",  1, VolumeShadingDiffuseOp,  4, 5, "coeff ?dataSetName?"},
     {"specular", 1, VolumeShadingSpecularOp, 5, 6, "coeff power ?dataSetName?"}
 };
 static int nVolumeShadingOps = NumCmdSpecs(volumeShadingOps);
@@ -5240,16 +5313,16 @@ VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeOps[] = {
-    {"add",      1, VolumeAddOp, 2, 3, "?dataSetName?"},
+    {"add",      1, VolumeAddOp,      2, 3, "?dataSetName?"},
     {"colormap", 1, VolumeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"delete",   1, VolumeDeleteOp, 2, 3, "?dataSetName?"},
+    {"delete",   1, VolumeDeleteOp,   2, 3, "?dataSetName?"},
     {"lighting", 1, VolumeLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"opacity",  2, VolumeOpacityOp, 3, 4, "val ?dataSetName?"},
-    {"orient",   2, VolumeOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"opacity",  2, VolumeOpacityOp,  3, 4, "val ?dataSetName?"},
+    {"orient",   2, VolumeOrientOp,   6, 7, "qw qx qy qz ?dataSetName?"},
     {"pos",      1, VolumePositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",    2, VolumeScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"shading",  2, VolumeShadingOp, 4, 6, "oper val ?dataSetName?"},
-    {"visible",  1, VolumeVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"scale",    2, VolumeScaleOp,    5, 6, "sx sy sz ?dataSetName?"},
+    {"shading",  2, VolumeShadingOp,  4, 6, "oper val ?dataSetName?"},
+    {"visible",  1, VolumeVisibleOp,  3, 4, "bool ?dataSetName?"}
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
@@ -5269,66 +5342,74 @@ VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 /**
  * \brief Execute commands from client in Tcl interpreter
+ * 
+ * In this threaded model, the select call is for event compression.  We
+ * want to execute render server commands as long as they keep coming.  
+ * This lets us execute a stream of many commands but render once.  This 
+ * benefits camera movements, screen resizing, and opacity changes 
+ * (using a slider on the client).  The down side is you don't render
+ * until there's a lull in the command stream.  If the client needs an
+ * image, it can issue an "imgflush" command.  That breaks us out of the
+ * read loop.
  */
 int
-Rappture::VtkVis::processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout)
+Rappture::VtkVis::processCommands(Tcl_Interp *interp, ReadBuffer *inBufPtr, 
+                                  int fdOut)
 {
-    Tcl_DString cmdbuffer;
-    Tcl_DStringInit(&cmdbuffer);
-
-    int fdIn = fileno(fin);
-    int fdOut = fileno(fout);
-    int flags = fcntl(fdIn, F_GETFL, 0);
-    fcntl(fdIn, F_SETFL, flags & ~O_NONBLOCK);
-
     int status = TCL_OK;
-    int nCommands = 0;
-    bool isComplete = false;
-    while ((!feof(fin)) && (status == TCL_OK)) {
-        while (!feof(fin)) {
-            int c = fgetc(fin);
-            if (c <= 0) {
-                if (errno == EWOULDBLOCK) {
-                    break;
-                }
-                if (feof(fin))
-                    return 1;
-                else
-                    return c;
+
+    Tcl_DString command;
+    Tcl_DStringInit(&command);
+    fd_set readFds;
+    struct timeval tv, *tvPtr;
+
+    FD_ZERO(&readFds);
+    FD_SET(inBufPtr->file(), &readFds);
+    tvPtr = NULL;                       /* Wait for the first read. This is so
+                                         * that we don't spin when no data is
+                                         * available. */
+    while (inBufPtr->isLineAvailable() || 
+           (select(1, &readFds, NULL, NULL, tvPtr) > 0)) {
+        size_t numBytes;
+        unsigned char *buffer;
+
+        /* A short read is treated as an error here because we assume that we
+         * will always get commands line by line. */
+        if (inBufPtr->getLine(&numBytes, &buffer) != ReadBuffer::OK) {
+            /* Terminate the server if we can't communicate with the client
+             * anymore. */
+            if (inBufPtr->status() == ReadBuffer::ENDFILE) {
+                TRACE("Exiting server on EOF from client");
+                return -1;
+            } else {
+                ERROR("Exiting server, failed to read from client: %s",
+                      strerror(errno));
+                return -1;
             }
-            char ch = (char)c;
-            Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-            if (ch == '\n') {
-                isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
-                if (isComplete) {
-                    break;
-                }
+        }
+        Tcl_DStringAppend(&command, (char *)buffer, numBytes);
+        if (Tcl_CommandComplete(Tcl_DStringValue(&command))) {
+            status = ExecuteCommand(interp, &command);
+            if (status == TCL_BREAK) {
+                return 1;               /* This was caused by a "imgflush"
+                                         * command. Break out of the read loop
+                                         * and allow a new image to be
+                                         * rendered. */
             }
         }
-        // no command? then we're done for now
-        if (Tcl_DStringLength(&cmdbuffer) == 0) {
-            break;
-        }
-        if (isComplete) {
-            // back to original flags during command evaluation...
-            fcntl(fdIn, F_SETFL, flags & ~O_NONBLOCK);
-            TRACE("command: '%s'", Tcl_DStringValue(&cmdbuffer));
-            status = ExecuteCommand(interp, &cmdbuffer);
-            // non-blocking for next read -- we might not get anything
-            fcntl(fdIn, F_SETFL, flags | O_NONBLOCK);
-            isComplete = false;
-	    nCommands++;
-        }
+        tv.tv_sec = tv.tv_usec = 0L;    /* On successive reads, we break out
+                                         * if no data is available. */
+        FD_SET(inBufPtr->file(), &readFds);
+        tvPtr = &tv;
     }
-    fcntl(fdIn, F_SETFL, flags);
 
     if (status != TCL_OK) {
         const char *string;
         int nBytes;
 
         string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
-        TRACE("ERROR errorInfo=(%s)", string);
-
+        TRACE("%s: status=%d ERROR errorInfo=(%s)", Tcl_DStringValue(&command),
+              status, string);
         nBytes = strlen(string);
         struct iovec iov[3];
         iov[0].iov_base = (char *)"VtkVis Server Error: ";
@@ -5338,7 +5419,8 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout)
         iov[2].iov_base = (char *)"\n";
         iov[2].iov_len = strlen((char *)iov[2].iov_base);
         if (writev(fdOut, iov, 3) < 0) {
-	    ERROR("write failed: %s", strerror(errno));
+            ERROR("write failed: %s", strerror(errno));
+            return -1;
 	}
         return 0;
     }
@@ -5351,38 +5433,33 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp, FILE *fin, FILE *fout)
  *
  * \return The initialized Tcl interpreter
  */
-Tcl_Interp *
-Rappture::VtkVis::initTcl()
+void
+Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
-    Tcl_Interp *interp;
-    interp = Tcl_CreateInterp();
-
     Tcl_MakeSafe(interp);
-
-    Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
-    Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     NULL, NULL);
-    Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
-    Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "lic",         LICCmd,         NULL, NULL);
-    Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    NULL, NULL);
-    Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
-    Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
-    return interp;
+    Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
+    Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   clientData, NULL);
+    Tcl_CreateObjCommand(interp, "imgflush",    ImageFlushCmd,  clientData, NULL);
+    Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "lic",         LICCmd,         clientData, NULL);
+    Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, clientData, NULL);
+    Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, clientData, NULL);
+    Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      clientData, NULL);
 }
 
 /**
  * \brief Delete Tcl commands and interpreter
- *
  */
 void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
 {
@@ -5396,6 +5473,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "dataset");
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "heightmap");
+    Tcl_DeleteCommand(interp, "imgflush");
     Tcl_DeleteCommand(interp, "legend");
     Tcl_DeleteCommand(interp, "lic");
     Tcl_DeleteCommand(interp, "molecule");

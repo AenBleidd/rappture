@@ -18,22 +18,22 @@ namespace Rappture {
  * This is passed to the GetOpFromObj procedure to look
  * for a function pointer associated with the operation name.
  */
-typedef struct {
+struct CmdSpec {
     const char *name;		/**< Name of operation */
     int minChars;		/**< Minimum # characters to disambiguate */
     Tcl_ObjCmdProc *proc;
     int minArgs;		/**< Minimum # args required */
     int maxArgs;		/**< Maximum # args required */
     const char *usage;		/**< Usage message */
-} CmdSpec;
+};
 
-typedef enum {
+enum CmdSpecIndex {
     CMDSPEC_ARG0,		/**< Op is the first argument. */
     CMDSPEC_ARG1,		/**< Op is the second argument. */
     CMDSPEC_ARG2,		/**< Op is the third argument. */
     CMDSPEC_ARG3,		/**< Op is the fourth argument. */
     CMDSPEC_ARG4		/**< Op is the fifth argument. */
-} CmdSpecIndex;
+};
 
 #define CMDSPEC_LINEAR_SEARCH	1
 #define CMDSPEC_BINARY_SEARCH	0

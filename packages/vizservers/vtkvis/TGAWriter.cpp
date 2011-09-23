@@ -16,6 +16,76 @@
 
 #include "TGAWriter.h"
 #include "Trace.h"
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
+
+#ifdef USE_THREADS
+
+/**
+ * \brief Writes image command + data to supplied file descriptor.
+ *
+ * The image data must be supplied in BGR(A) order with bottom to 
+ * top scanline ordering.
+ *
+ * \param[in] queue Pointer to ResponseQueue to write to
+ * \param[in] cmdName Command name to send (byte length will be appended)
+ * \param[in] data Image data
+ * \param[in] width Width of image in pixels
+ * \param[in] height Height of image in pixels
+ * \param[in] bytesPerPixel Should be 3 or 4, depending on alpha
+ */
+void
+Rappture::VtkVis::queueTGA(ResponseQueue *queue, const char *cmdName, 
+                           const unsigned char *data,
+                           int width, int height,
+                           int bytesPerPixel)
+{
+    TRACE("(%dx%d)\n", width, height);
+
+    size_t headerLength = 18;
+
+    char header[headerLength];
+    memset(header, 0, headerLength);
+    header[2] = (char)2;  // image type (2 = uncompressed true-color)
+    header[12] = (char)width;
+    header[13] = (char)(width >> 8);
+    header[14] = (char)height;
+    header[15] = (char)(height >> 8);
+    header[16] = (char)(bytesPerPixel*8); // bits per pixel
+
+    size_t dataLength = width * height * bytesPerPixel;
+    size_t cmdLength;
+
+    char command[200];
+    cmdLength = snprintf(command, sizeof(command), "%s %lu\n", cmdName, 
+                         (unsigned long)headerLength + dataLength);
+
+    size_t length;
+    unsigned char *mesg = NULL;
+
+    length = headerLength + dataLength + cmdLength;
+    mesg = (unsigned char *)malloc(length);
+    if (mesg == NULL) {
+        ERROR("can't allocate %ld bytes for the image message", length);
+        return;
+    }
+    memcpy(mesg, command, cmdLength);
+    memcpy(mesg + cmdLength, header, headerLength);
+    memcpy(mesg + cmdLength + headerLength, 
+           const_cast<unsigned char *>(data), dataLength);
+
+    Response *response = NULL;
+    if (strncmp(cmdName, "nv>legend", 9) == 0) {
+        response = new Response(Response::LEGEND);
+    } else {
+        response = new Response(Response::IMAGE);
+    }
+    response->setMessage(mesg, length, Response::DYNAMIC);
+    queue->enqueue(response);
+    TRACE("Leaving (%dx%d)\n", width, height);
+}
+#else
 
 /**
  * \brief Writes image command + data to supplied file descriptor.
@@ -78,6 +148,7 @@ Rappture::VtkVis::writeTGA(int fd, const char *cmdName,
 
     TRACE("Leaving (%dx%d)\n", width, height);
 }
+#endif  /*USE_THREADS*/
 
 /**
  * \brief Writes image data to supplied file name

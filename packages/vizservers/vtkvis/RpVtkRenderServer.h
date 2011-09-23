@@ -15,10 +15,10 @@ class Renderer;
 
 extern int g_fdIn;
 extern int g_fdOut;
-extern FILE *g_fIn;
 extern FILE *g_fOut;
 extern FILE *g_fLog;
 extern Renderer *g_renderer;
+extern ReadBuffer *g_inBufPtr;
 
 }
 }
