@@ -54,6 +54,12 @@ Streamlines::Streamlines() :
 
 Streamlines::~Streamlines()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting Streamlines for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting Streamlines with NULL DataSet");
+#endif
 }
 
 void Streamlines::setDataSet(DataSet *dataSet,
@@ -188,7 +194,7 @@ void Streamlines::getRandomPointInTriangle(double pt[3],
     }
     bary[2] = 1.0 - bary[0] - bary[1];
 
-    TRACE("bary %g %g %g", bary[0], bary[1], bary[2]);
+    //TRACE("bary %g %g %g", bary[0], bary[1], bary[2]);
     // Convert to cartesian coords
     for (int i = 0; i < 3; i++) {
         pt[i] = v0[i] * bary[0] + v1[i] * bary[1] + v2[i] * bary[2];
@@ -220,7 +226,7 @@ void Streamlines::getRandomPointInTetrahedron(double pt[3],
         bary[0] = 1.0 - bary[1] - tmp;
     }
     bary[3] = 1.0 - bary[0] - bary[1] - bary[2];
-    TRACE("bary %g %g %g %g", bary[0], bary[1], bary[2], bary[3]);
+    //TRACE("bary %g %g %g %g", bary[0], bary[1], bary[2], bary[3]);
     // Convert to cartesian coords
     for (int i = 0; i < 3; i++) {
 #if 0

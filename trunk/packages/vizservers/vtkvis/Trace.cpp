@@ -20,7 +20,7 @@ using namespace Rappture::VtkVis;
  * \brief Open syslog for writing
  */
 void
-Rappture::VtkVis::InitLog()
+Rappture::VtkVis::initLog()
 {
     openlog("vtkvis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER);
 }
@@ -29,7 +29,7 @@ Rappture::VtkVis::InitLog()
  * \brief Close syslog
  */
 void
-Rappture::VtkVis::CloseLog()
+Rappture::VtkVis::closeLog()
 {
     closelog();
 }
@@ -38,7 +38,7 @@ Rappture::VtkVis::CloseLog()
  * \brief Write a message to syslog
  */
 void 
-Rappture::VtkVis::LogMessage(int priority, const char *funcname,
+Rappture::VtkVis::logMessage(int priority, const char *funcname,
                              const char *path, int lineNum, const char* fmt, ...)
 {
     char message[MSG_LEN + 1];
@@ -63,5 +63,3 @@ Rappture::VtkVis::LogMessage(int priority, const char *funcname,
 
     syslog(priority, message, length);
 }
-
-

@@ -43,6 +43,12 @@ Glyphs::Glyphs(GlyphShape shape) :
 
 Glyphs::~Glyphs()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting Glyphs for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting Glyphs with NULL DataSet");
+#endif
 }
 
 void Glyphs::setDataSet(DataSet *dataSet,

@@ -105,9 +105,10 @@ void ColorMap::addControlPoint(ControlPoint& cp)
     if (cp.value > 1.0)
 	cp.value = 1.0;
 
+#ifdef DEBUG
     TRACE("New control point: %g  = %g %g %g",
 	  cp.value, cp.color[0], cp.color[1], cp.color[2]);
-
+#endif
     for (std::list<ControlPoint>::iterator itr = _controlPoints.begin();
 	 itr != _controlPoints.end(); ++itr) {
 	if (itr->value == cp.value) {
@@ -135,9 +136,10 @@ void ColorMap::addOpacityControlPoint(OpacityControlPoint& cp)
     if (cp.value > 1.0)
 	cp.value = 1.0;
 
+#ifdef DEBUG
     TRACE("New opacity control point: %g  = %g",
 	  cp.value, cp.alpha);
-
+#endif
     for (std::list<OpacityControlPoint>::iterator itr = _opacityControlPoints.begin();
 	 itr != _opacityControlPoints.end(); ++itr) {
 	if (itr->value == cp.value) {

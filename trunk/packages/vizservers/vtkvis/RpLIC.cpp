@@ -35,6 +35,12 @@ LIC::LIC() :
 
 LIC::~LIC()
 {
+#ifdef WANT_TRACE
+    if (_dataSet != NULL)
+        TRACE("Deleting LIC for %s", _dataSet->getName().c_str());
+    else
+        TRACE("Deleting LIC with NULL DataSet");
+#endif
 }
 
 void LIC::initProp()

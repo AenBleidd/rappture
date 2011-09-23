@@ -8,18 +8,27 @@
 #ifndef __RAPPTURE_VTKVIS_TGAWRITER_H__
 #define __RAPPTURE_VTKVIS_TGAWRITER_H__
 
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
+
 namespace Rappture {
 namespace VtkVis {
-
+#ifdef USE_THREADS
 extern
-void writeTGA(int fd, const char *cmdName, const unsigned char *data,
-              int width, int height, int bytesPerPixel);
-
+void queueTGA(ResponseQueue *queue, const char *cmdName, 
+              const unsigned char *data, int width, int height, 
+              int bytesPerPixel);
+#else
 extern
-void writeTGAFile(const char *filename, const unsigned char *data,
-                  int width, int height, int bytesPerPixel,
-                  bool srcIsRGB = false);
-
+void writeTGA(int fd, const char *cmdName, 
+              const unsigned char *data, int width, int height, 
+              int bytesPerPixel);
+#endif
+extern
+void writeTGAFile(const char *filename, 
+                  const unsigned char *data, int width, int height, 
+                  int bytesPerPixel, bool srcIsRGB = false);
 }
 }
 

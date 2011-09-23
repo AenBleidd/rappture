@@ -8,13 +8,21 @@
 #ifndef __RAPPTURE_VTKVIS_PPMWRITER_H__
 #define __RAPPTURE_VTKVIS_PPMWRITER_H__
 
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
+
 namespace Rappture {
 namespace VtkVis {
-
+#ifdef USE_THREADS
 extern
-void writePPM(int fd, const char *cmdName, const unsigned char *data, int width, int height);
-
+void queuePPM(ResponseQueue *queue, const char *cmdName, 
+              const unsigned char *data, int width, int height);
+#else
+extern
+void writePPM(int fd, const char *cmdName, 
+              const unsigned char *data, int width, int height);
+#endif
 }
 }
-
 #endif

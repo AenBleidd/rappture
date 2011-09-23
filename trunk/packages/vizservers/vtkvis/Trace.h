@@ -13,21 +13,21 @@
 namespace Rappture {
 namespace VtkVis {
 
-extern void InitLog();
+extern void initLog();
 
-extern void CloseLog();
+extern void closeLog();
 
-extern void LogMessage(int priority, const char *funcname, const char *fileName, int lineNum,
-                       const char* format, ...);
+extern void logMessage(int priority, const char *funcname, const char *fileName,
+                       int lineNum, const char* format, ...);
 
-#define ERROR(...)	LogMessage(LOG_ERR, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define ERROR(...)	Rappture::VtkVis::logMessage(LOG_ERR, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #ifdef WANT_TRACE
-#define TRACE(...)	LogMessage(LOG_DEBUG, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define TRACE(...)	Rappture::VtkVis::logMessage(LOG_DEBUG, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #else 
 #define TRACE(...) 
-#endif
-#define WARN(...)	LogMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
-#define INFO(...)	LogMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#endif  /*WANT_TRACE*/
+#define WARN(...)	Rappture::VtkVis::logMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...)	Rappture::VtkVis::logMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 
 }
 }
