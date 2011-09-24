@@ -13,6 +13,9 @@
 namespace Rappture {
 namespace VtkVis {
 
+/**
+ * \brief Buffered input for reading socket
+ */
 class ReadBuffer
 {
 public:
@@ -23,7 +26,7 @@ public:
         CONTINUE,
     };
 
-    ReadBuffer(int f, size_t bufferSize);
+    ReadBuffer(int fd, size_t bufferSize);
 
     virtual ~ReadBuffer();
 
@@ -31,16 +34,27 @@ public:
 
     BufferStatus followingData(unsigned char *out, size_t numBytes);
 
+    /**
+     * \brief Check if buffer contains data ending in a newline
+     * 
+     * \return bool indicating if getLine can be called without blocking 
+     */
     bool isLineAvailable()
     {
         return (nextNewLine() > 0);
     }
 
+    /**
+     * \brief Get the file descriptor this object reads from
+     */
     int file()
     {
         return _fd;
     }
 
+    /**
+     * \brief Get the status of the last read
+     */
     BufferStatus status()
     {
         return _lastStatus;

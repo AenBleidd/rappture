@@ -144,6 +144,8 @@ contour3d visible <bool> <?datasetName?>
 contour3d wireframe <bool> <?datasetName?>
 
 cutplane add <?dataSetName?>
+cutplane axis <axis> <bool> <?dataSetName?>
+         Toggle visibility of the 3 principal axis cutplanes
 cutplane colormap <colorMapName> <?dataSetName?>
 cutplane colormode <scalar|vmag|vx|vy|vz> <?datasetName?>
          Set the field used to color the object.  'scalar' uses

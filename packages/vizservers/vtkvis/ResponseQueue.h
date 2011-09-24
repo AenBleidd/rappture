@@ -16,6 +16,9 @@
 namespace Rappture {
 namespace VtkVis {
 
+/**
+ * \brief Holds data for a response to be sent to client
+ */
 class Response
 {
 public:
@@ -46,21 +49,34 @@ public:
 	}
     }
 
+    /// Get the ResponseType
     ResponseType type()
     {
 	return _type;
     }
 
+    /// Get the Response data
     unsigned char *message()
     {
 	return _mesg;
     }
 
+    /// Get the number of bytes in the Response data
     size_t length()
     {
 	return _length;
     }
 
+    /// Set the message/data making up the Response
+    /**
+     * If the AllocationType is DYNAMIC, the message data will be free()d
+     * by the destructor.  If the AllocationType is VOLATILE, a copy of 
+     * the message data will be made.
+     *
+     * \param[in] mesg The Response data, can be a command and/or binary data
+     * \param[in] length The number of bytes in mesg
+     * \param[in] type Specify how the memory was allocated for mesg
+     */ 
     void setMessage(unsigned char *mesg, size_t length, AllocationType type)
     {
 	if (type == VOLATILE) {
@@ -85,6 +101,12 @@ private:
     AllocationType _allocType;
 };
 
+/**
+ * \brief Queue to hold pending Responses to be sent to the client
+ *
+ * A semaphore and mutex are used to control access to the 
+ * queue by a reader and writer thread
+ */
 class ResponseQueue
 {
 public:
@@ -92,13 +114,17 @@ public:
 
     virtual ~ResponseQueue();
 
+    /// A place to store a data pointer.  Not used internally.
+    /* XXX: This probably doesn't belong here */
     void *clientData()
     {
 	return _clientData;
     }
 
+    /// Add a response to the end of the queue
     void enqueue(Response *response);
 
+    /// Remove a response from the front of the queue
     Response *dequeue();
 
 private:

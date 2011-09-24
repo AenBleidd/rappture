@@ -1511,6 +1511,37 @@ CutplaneScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplaneSliceVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    Cutplane::Axis axis;
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        axis = Cutplane::X_AXIS;
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        axis = Cutplane::Y_AXIS;
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        axis = Cutplane::Z_AXIS;
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName bool", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setCutplaneSliceVisibility(name, axis, state);
+    } else {
+        g_renderer->setCutplaneSliceVisibility("all", axis, state);
+    }
+    return TCL_OK;
+}
+
+static int
 CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -1576,7 +1607,8 @@ CutplaneWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cutplaneOps[] = {
-    {"add",          1, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
+    {"add",          2, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
+    {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, CutplaneColorModeOp, 3, 4, "mode ?dataSetNme?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},

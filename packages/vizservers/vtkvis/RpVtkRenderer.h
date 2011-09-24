@@ -376,6 +376,8 @@ public:
 
     void setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, double ratio);
 
+    void setCutplaneSliceVisibility(const DataSetId& id, Cutplane::Axis axis, bool state);
+
     void setCutplaneColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     void setCutplaneColorMode(const DataSetId& id, Cutplane::ColorMode mode);
