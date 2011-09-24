@@ -16,9 +16,13 @@
 
 using namespace Rappture::VtkVis;
 
-ReadBuffer::ReadBuffer(int f, size_t bufferSize) :
+/**
+ * \param[in] fd File descriptor to read
+ * \param[in] bufferSize Block size to use in internal buffer
+ */
+ReadBuffer::ReadBuffer(int fd, size_t bufferSize) :
     _bufferSize(bufferSize),
-    _fd(f),
+    _fd(fd),
     _lastStatus(OK)
 {
     _bytes = new unsigned char [_bufferSize];
@@ -32,8 +36,9 @@ ReadBuffer::~ReadBuffer()
 }
 
 /**
- * Checks if a new line is currently in the buffer.  It returns
- * the index of the character past the new line.
+ * \brief Checks if a new line is currently in the buffer.
+ *
+ * \return the index of the character past the new line.
  */
 size_t
 ReadBuffer::nextNewLine()
@@ -48,9 +53,10 @@ ReadBuffer::nextNewLine()
 }
 
 /**  
- * Fills the buffer with available data.  Any existing data in the buffer
- * is moved to the front of the buffer, then the channel is read to fill
- * the rest of the buffer.
+ * \brief Fills the buffer with available data.
+ * 
+ * Any existing data in the buffer is moved to the front of the buffer, 
+ * then the channel is read to fill the rest of the buffer.
  *
  * \return If an error occur when reading the channel, then ERROR is
  * returned. ENDFILE is returned on EOF.  If the buffer can't be filled, 
@@ -97,9 +103,10 @@ ReadBuffer::doFill()
 }
 
 /**
- * Read the requested number of bytes from the buffer.  Fails if
- * the requested number of bytes are not immediately available.
- * Never should be short. 
+ * \brief Read the requested number of bytes from the buffer.
+
+ * Fails if the requested number of bytes are not immediately 
+ * available. Never should be short. 
  */
 ReadBuffer::BufferStatus
 ReadBuffer::followingData(unsigned char *out, size_t numBytes)
@@ -134,11 +141,11 @@ ReadBuffer::followingData(unsigned char *out, size_t numBytes)
 }
 
 /** 
- * Returns the next available line (terminated by a newline).
+ * \brief Returns the next available line (terminated by a newline)
+ * 
  * If insufficient data is in the buffer, then the channel is
  * read for more data.  If reading the channel results in a
- * short read, CONTINUE is returned and *numBytesPtr is set to
- * 0.
+ * short read, CONTINUE is returned and *numBytesPtr is set to 0.
  */
 ReadBuffer::BufferStatus
 ReadBuffer::getLine(size_t *numBytesPtr, unsigned char **bytesPtr)

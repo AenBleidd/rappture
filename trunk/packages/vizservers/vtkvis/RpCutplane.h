@@ -13,8 +13,7 @@
 #include <vtkDataSetMapper.h>
 #include <vtkActor.h>
 #include <vtkPlaneCollection.h>
-#include <vtkGaussianSplatter.h>
-#include <vtkExtractVOI.h>
+#include <vtkCutter.h>
 #include <vtkPlane.h>
 
 #include "ColorMap.h"
@@ -61,6 +60,8 @@ public:
 
     void selectVolumeSlice(Axis axis, double ratio);
 
+    void setSliceVisibility(Axis axis, bool state);
+
     void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
@@ -81,19 +82,19 @@ public:
                               double vectorComponentRange[3][2]);
 
 private:
+    virtual void initProp();
     virtual void update();
 
     ColorMode _colorMode;
     ColorMap *_colorMap;
-    Axis _sliceAxis;
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
 
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkDataSetMapper> _mapper;
-    vtkSmartPointer<vtkGaussianSplatter> _pointSplatter;
-    vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
-    vtkSmartPointer<vtkPlane> _cutPlane;
+    vtkSmartPointer<vtkActor> _actor[3];
+    vtkSmartPointer<vtkDataSetMapper> _mapper[3];
+    vtkSmartPointer<vtkCutter> _cutter[3];
+    vtkSmartPointer<vtkPlane> _cutPlane[3];
 };
 
 }
