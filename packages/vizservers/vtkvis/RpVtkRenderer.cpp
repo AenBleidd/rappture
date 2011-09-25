@@ -42,6 +42,7 @@
 #include <vtkVersion.h>
 
 #include "RpVtkRenderer.h"
+#include "RpMath.h"
 #include "ColorMap.h"
 #include "Trace.h"
 
@@ -7882,123 +7883,6 @@ void Renderer::setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4& mat)
     camera->SetPosition(pos);
     camera->SetFocalPoint(fp);
     camera->SetViewUp(vu);
-}
-
-inline void quaternionToMatrix4x4(const double quat[4], vtkMatrix4x4& mat)
-{
-    double ww = quat[0]*quat[0];
-    double wx = quat[0]*quat[1];
-    double wy = quat[0]*quat[2];
-    double wz = quat[0]*quat[3];
-
-    double xx = quat[1]*quat[1];
-    double yy = quat[2]*quat[2];
-    double zz = quat[3]*quat[3];
-
-    double xy = quat[1]*quat[2];
-    double xz = quat[1]*quat[3];
-    double yz = quat[2]*quat[3];
-
-    double rr = xx + yy + zz;
-    // normalization factor, just in case quaternion was not normalized
-    double f = double(1)/double(sqrt(ww + rr));
-    double s = (ww - rr)*f;
-    f *= 2;
-
-    mat[0][0] = xx*f + s;
-    mat[1][0] = (xy + wz)*f;
-    mat[2][0] = (xz - wy)*f;
-
-    mat[0][1] = (xy - wz)*f;
-    mat[1][1] = yy*f + s;
-    mat[2][1] = (yz + wx)*f;
-
-    mat[0][2] = (xz + wy)*f;
-    mat[1][2] = (yz - wx)*f;
-    mat[2][2] = zz*f + s;
-}
-
-inline void quaternionToTransposeMatrix4x4(const double quat[4], vtkMatrix4x4& mat)
-{
-    double ww = quat[0]*quat[0];
-    double wx = quat[0]*quat[1];
-    double wy = quat[0]*quat[2];
-    double wz = quat[0]*quat[3];
-
-    double xx = quat[1]*quat[1];
-    double yy = quat[2]*quat[2];
-    double zz = quat[3]*quat[3];
-
-    double xy = quat[1]*quat[2];
-    double xz = quat[1]*quat[3];
-    double yz = quat[2]*quat[3];
-
-    double rr = xx + yy + zz;
-    // normalization factor, just in case quaternion was not normalized
-    double f = double(1)/double(sqrt(ww + rr));
-    double s = (ww - rr)*f;
-    f *= 2;
-
-    mat[0][0] = xx*f + s;
-    mat[0][1] = (xy + wz)*f;
-    mat[0][2] = (xz - wy)*f;
-
-    mat[1][0] = (xy - wz)*f;
-    mat[1][1] = yy*f + s;
-    mat[1][2] = (yz + wx)*f;
-
-    mat[2][0] = (xz + wy)*f;
-    mat[2][1] = (yz - wx)*f;
-    mat[2][2] = zz*f + s;
-}
-
-inline double *quatMult(const double q1[4], const double q2[4], double result[4])
-{
-    double q1w = q1[0];
-    double q1x = q1[1];
-    double q1y = q1[2];
-    double q1z = q1[3];
-    double q2w = q2[0];
-    double q2x = q2[1];
-    double q2y = q2[2];
-    double q2z = q2[3];
-    result[0] = (q1w*q2w) - (q1x*q2x) - (q1y*q2y) - (q1z*q2z);
-    result[1] = (q1w*q2x) + (q1x*q2w) + (q1y*q2z) - (q1z*q2y);
-    result[2] = (q1w*q2y) + (q1y*q2w) + (q1z*q2x) - (q1x*q2z);
-    result[3] = (q1w*q2z) + (q1z*q2w) + (q1x*q2y) - (q1y*q2x);
-    return result;
-}
-
-inline double *quatConjugate(const double quat[4], double result[4])
-{
-    result[1] = -quat[1];
-    result[2] = -quat[2];
-    result[3] = -quat[3];
-    return result;
-}
-
-inline double *quatReciprocal(const double quat[4], double result[4])
-{
-    double denom = 
-        quat[0]*quat[0] + 
-        quat[1]*quat[1] + 
-        quat[2]*quat[2] + 
-        quat[3]*quat[3];
-    quatConjugate(quat, result);
-    for (int i = 0; i < 4; i++) {
-        result[i] /= denom;
-    }
-    return result;
-}
-
-inline double *quatReciprocal(double quat[4])
-{
-    return quatReciprocal(quat, quat);
-}
-
-inline void copyQuat(const double quat[4], double result[4])
-{
-    memcpy(result, quat, sizeof(double)*4);
 }
 
 /**
