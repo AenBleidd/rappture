@@ -154,7 +154,7 @@ RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h
 RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
+RpVtkRenderer.o: RpVtkRenderer.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
 RpVtkRendererCmd.o: RpVtkRenderer.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h
