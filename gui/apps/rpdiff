@@ -1,0 +1,577 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+#  RPDIFF
+#
+#  Compares two Rappture run files and looks for differences in the
+#  output results.  This is useful for the BOINC integration and other
+#  job execution infrastructures, so we can compare the results from
+#  multiple runs.
+#
+#    USAGE:
+#    % rpdiff <runFile1> <runFile2>
+#
+#  Exits with status 0 if the files are the same, and non-zero status
+#  if the files are different.  Prints differences on stdout.  Prints
+#  any errors on stderr.
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+# \
+exec tclsh "$0" ${1+"$@"}
+# tclsh executes the rest...
+
+package require Rappture
+
+# ----------------------------------------------------------------------
+# USAGE: diff <path> <lib1> <lib2>
+#
+# Used to compare two Rappture library objects at the specified <path>
+# in <lib1> and <lib2>.  Returns "" if they are the same, and a list
+# of differences if they are not.
+# ----------------------------------------------------------------------
+proc diff {path lib1 lib2} {
+    set knowntypes {boolean choice cloud curve field group histogram image integer loader log mesh note number periodicelement phase sequence string structure table unirect2d}
+
+    set type1 [$lib1 element -as type $path]
+    set type2 [$lib2 element -as type $path]
+    if {($type1 eq "" && $type2 ne "") || ($type1 ne "" && $type2 eq "")} {
+        return "missing component at $path"
+    } elseif {$type1 ne $type2} {
+        return "component mismatch at $path"
+    }
+
+    set diffs ""
+    switch -- $type1 {
+        input - output - group - phase {
+            set cpath1 [$lib1 children -as path $path]
+            set cpath2 [$lib2 children -as path $path]
+
+            # scan through all components in lib1 and diff against lib2
+            foreach cp $cpath1 {
+                set ct [$lib1 element -as type $cp]
+                if {[lsearch $knowntypes $ct] < 0} {
+                    # this isn't a real rappture object -- skip it
+                    set i [lsearch -exact $cpath2 $cp]
+                    if {$i >= 0} {
+                        set cpath2 [lreplace $cpath2 $i $i]
+                    }
+                    continue
+                }
+
+                set i [lsearch -exact $cpath2 $cp]
+                if {$i < 0} {
+                    lappend diffs "missing missing component at $cp"
+                } else {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                    eval lappend diffs [diff $cp $lib1 $lib2]
+                }
+            }
+
+            # components left over that are in lib2 but not in lib1?
+            foreach cp $cpath2 {
+                lappend diffs "missing component at $cp"
+            }
+        }
+
+        boolean {
+            eval lappend diffs [diffattrs {
+                about.label about.description default
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            if {$v1 ne "" && [catch {expr $v1} newval] == 0} { set v1 $newval }
+
+            set v2 [$lib2 get $path.current]
+            if {$v2 ne "" && [catch {expr $v2} newval] == 0} { set v2 $newval }
+
+            if {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        choice {
+            eval lappend diffs [diffattrs {
+                about.label about.description default
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            set v2 [$lib2 get $path.current]
+            if {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        cloud {
+            eval lappend diffs [diffattrs {
+                about.label about.description units hide
+            } $path $lib1 $lib2]
+
+            eval lappend diffs [diffdatalines $path.points $lib1 $lib2]
+        }
+        curve {
+            eval lappend diffs [diffattrs {
+                about.label about.description
+                xaxis.label xaxis.description xaxis.units
+                yaxis.label yaxis.description yaxis.units
+            } $path $lib1 $lib2]
+
+            set cpath2 [$lib2 children -as path $path.component]
+            foreach elem [$lib1 children -as path $path.component] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                set data1 [$lib1 get $elem]
+                set data2 [$lib2 get $elem]
+                if {[llength $data1] != [llength $data2]} {
+                    lappend diffs "value mismatch at $elem"
+                    break
+                }
+
+                foreach d1 $data1 d2 $data2 {
+                    if {[Rappture::objects::ObjVal::cmpdbl $d1 $d2] != 0} {
+                        lappend diffs "value mismatch at $elem"
+                        break
+                    }
+                }
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        field {
+            eval lappend diffs [diffattrs {
+                about.label about.description
+            } $path $lib1 $lib2]
+
+            set cpath2 [$lib2 children -as path -type component $path]
+            foreach elem [$lib1 children -as path -type component $path] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                # the flow attributes may or may not exist
+                eval lappend diffs [diffattrs {
+                    flow.label flow.description
+                } $elem $lib1 $lib2]
+
+                # must have the same dx (if defined)
+                set v1 [$lib1 get $elem.dx]
+                set v2 [$lib2 get $elem.dx]
+                if {$v1 ne $v2} {
+                    lappend diffs "value mismatch at $elem.dx"
+                    continue
+                }
+
+                # must have the same mesh
+                set v1 [$lib1 get $elem.mesh]
+                set v2 [$lib2 get $elem.mesh]
+                if {$v1 ne $v2} {
+                    lappend diffs "value mismatch at $elem.mesh"
+                    continue
+                }
+
+                # must have the same values
+                eval lappend diffs [diffdatalines $elem.values $lib1 $lib2]
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        histogram {
+            eval lappend diffs [diffattrs {
+                about.label about.description
+                xaxis.label xaxis.description xaxis.units
+                yaxis.label yaxis.description yaxis.units
+            } $path $lib1 $lib2]
+
+            set cpath2 [$lib2 children -as path $path.component]
+            foreach elem [$lib1 children -as path $path.component] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                eval lappend diffs [diffdatalines $elem $lib1 $lib2]
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        image {
+            eval lappend diffs [diffattrs {
+                about.label about.description resize convert
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            set v2 [$lib2 get $path.current]
+            if {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        integer {
+            eval lappend diffs [diffattrs {
+                about.label about.description min max default
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            set v2 [$lib2 get $path.current]
+            if {[string is integer -strict $v1]
+                  && [string is integer -strict $v2]} {
+                if {$v1 != $v2} {
+                    lappend diffs "value mismatch at $path.current"
+                }
+            } elseif {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        log {
+            set v1 [$lib1 get $path]
+            set v2 [$lib2 get $path]
+            if {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path"
+            }
+        }
+        mesh {
+            eval lappend diffs [diffattrs {
+                about.label about.description units hide
+            } $path $lib1 $lib2]
+
+            # look for differences in nodes
+            set cpath2 [$lib2 children -as path -type node $path]
+            foreach elem [$lib1 children -as path -type node $path] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                eval lappend diffs [diffdatalines $elem $lib1 $lib2]
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+
+            # look for differences in elements
+            set cpath2 [$lib2 children -as path -type element $path]
+            foreach elem [$lib1 children -as path -type element $path] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                set v1 [$lib1 get $elem.node]
+                set v2 [$lib2 get $elem.node]
+                if {$v1 ne $v2} {
+                    lappend diffs "value mismatch at $path.node"
+                }
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        note {
+            eval lappend diffs [diffattrs {contents} $path $lib1 $lib2]
+        }
+        number {
+            eval lappend diffs [diffattrs {
+                about.label about.description about.icon
+                min max units color default
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            set v2 [$lib2 get $path.current]
+            if {[string is double -strict $v1]
+                  && [string is double -strict $v2]} {
+                if {[Rappture::objects::ObjVal::cmpdbl $v1 $v2] != 0} {
+                    lappend diffs "value mismatch at $path.current"
+                }
+            } elseif {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        sequence {
+            eval lappend diffs [diffattrs {
+                about.label about.description index.label
+            } $path $lib1 $lib2]
+
+            set cpath2 [$lib2 children -as path -type element $path]
+            foreach elem [$lib1 children -as path -type element $path] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                # must have the same index
+                set v1 [$lib1 get $elem.index]
+                set v2 [$lib2 get $elem.index]
+                if {$v1 ne $v2} {
+                    lappend diffs "value mismatch at $elem.index"
+                    continue
+                }
+
+                # must have the same values
+                set parts1 [lsort [$lib1 children -as path $elem]]
+                set parts2 [lsort [$lib2 children -as path $elem]]
+                if {$parts1 ne $parts2} {
+                    lappend diffs "value mismatch at $elem"
+                    continue
+                }
+
+                foreach p $parts1 {
+                    set ptype [$lib1 element -as type $p]
+                    if {[lsearch $knowntypes $ptype] >= 0} {
+                        eval lappend diffs [diff $p $lib1 $lib2]
+                    }
+                }
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        string {
+            eval lappend diffs [diffattrs {
+                about.label about.description default size hints
+            } $path $lib1 $lib2]
+
+            set v1 [$lib1 get $path.current]
+            set v2 [$lib2 get $path.current]
+            if {$v1 ne $v2} {
+                lappend diffs "value mismatch at $path.current"
+            }
+        }
+        structure {
+            eval lappend diffs [diffattrs {
+                about.label about.description
+            } $path $lib1 $lib2]
+
+            # check all parameters associated with the structure
+            set cpath2 [$lib2 children -as path $path.current.parameters]
+            foreach elem [$lib1 children -as path $path.current.parameters] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+                eval lappend diffs [diff $elem $lib1 $lib2]
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+
+            # check all components in the structure
+            set cpath2 [$lib2 children -as path $path.current.components]
+            foreach elem [$lib1 children -as path $path.current.components] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                switch -- [$lib1 element -as type $elem] {
+                    box {
+                        eval lappend diffs [diffattrs {
+                            about.label about.color about.icon material
+                        } $elem $lib1 $lib2]
+
+                        set c2 [$lib2 children -as path -type corner $elem]
+                        foreach c [$lib1 children -as path -type corner $elem] {
+                            set i [lsearch -exact $c2 $c]
+                            if {$i >= 0} {
+                                set c2 [lreplace $c2 $i $i]
+                            }
+
+                            set v1 [$lib1 get $c]
+                            set v2 [$lib2 get $c]
+                            if {$v1 ne $v2} {
+                                lappend diffs "value mismatch at $c"
+                            }
+                        }
+                        foreach c $c2 {
+                            # anything left in lib2 that's not in lib1?
+                            lappend diffs "missing component at $c"
+                        }
+                    }
+                    molecule {
+                        eval lappend diffs [diffattrs {
+                            about.emblems formula
+                        } $elem $lib1 $lib2]
+
+                        # check for PDB data
+                        set v1 [$lib1 get $elem.pdb]
+                        set v2 [$lib2 get $elem.pdb]
+                        if {$v1 ne $v2} {
+                            lappend diffs "value mismatch at $elem.pdb"
+                        }
+
+                        # check for the old-style atom data
+                        set c2 [$lib2 children -as path -type atom $elem]
+                        foreach c [$lib1 children -as path -type atom $elem] {
+                            set i [lsearch -exact $c2 $c]
+                            if {$i >= 0} {
+                                set c2 [lreplace $c2 $i $i]
+                            }
+
+                            set v1 [$lib1 get $c.symbol]
+                            set v2 [$lib2 get $c.symbol]
+                            if {$v1 ne $v2} {
+                                lappend diffs "value mismatch at $c"
+                            }
+
+                            set df [diffdatalines $c.xyz $lib1 $lib2]
+                            if {$df ne ""} {
+                                eval lappend diffs $df
+                            }
+                        }
+                        foreach c $c2 {
+                            # anything left in lib2 that's not in lib1?
+                            lappend diffs "missing component at $c"
+                        }
+                    }
+                    default {
+                        error "don't know how to diff $elem"
+                    }
+                }
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+        }
+        table {
+            eval lappend diffs [diffattrs {
+                about.label about.description
+            } $path $lib1 $lib2]
+
+            set cpath2 [$lib2 children -as path -type column $path]
+            foreach elem [$lib1 children -as path -type column $path] {
+                set i [lsearch -exact $cpath2 $elem]
+                if {$i >= 0} {
+                    set cpath2 [lreplace $cpath2 $i $i]
+                }
+
+                eval lappend diffs [diffattrs {label units} $elem $lib1 $lib2]
+            }
+            foreach elem $cpath2 {
+                # anything left in lib2 that's not in lib1?
+                lappend diffs "missing component at $elem"
+            }
+
+            # make sure the table data matches
+            eval lappend diffs [diffdatalines $path.data $lib1 $lib2]
+        }
+        unirect2D {
+            eval lappend diffs [diffattrs {
+                about.label about.description hide
+                xaxis.label xaxis.units xaxis.numpoints
+                yaxis.label yaxis.units yaxis.numpoints
+            } $path $lib1 $lib2]
+
+            foreach elem {xaxis.min xaxis.max yaxis.min yaxis.max} {
+                set v1 [$lib1 get $path.$elem]
+                set v2 [$lib2 get $path.$elem]
+
+                if {[string is double -strict $v1]
+                      && [string is double -strict $v2]} {
+                    if {[Rappture::objects::ObjVal::cmpdbl $v1 $v2] != 0} {
+                        lappend diffs "value mismatch at $path.$elem"
+                    }
+                } elseif {$v1 ne $v2} {
+                    lappend diffs "value mismatch at $path.$elem"
+                }
+            }
+        }
+        default {
+            error "don't know how to compare type \"$type\""
+        }
+    }
+    return $diffs
+}
+
+# ----------------------------------------------------------------------
+# USAGE: diffattrs <attrList> <path> <lib1> <lib2>
+#
+# Used internally by the "diff" proc to look for a list of attributes
+# at the given <path> and see if there are any differences.  It is
+# considered a difference if the attribute is defined on one object
+# but not another, or if the string values are different.  Returns ""
+# if they are the same, and a list of differences if they are not.
+# ----------------------------------------------------------------------
+proc diffattrs {attrlist path lib1 lib2} {
+    set diffs ""
+    foreach name $attrlist {
+        set t1 [$lib1 element -as type $path.$name]
+        set t2 [$lib2 element -as type $path.$name]
+        if {$t1 ne "" || $t2 ne ""} {
+            if {[$lib1 get $path.$name] ne [$lib2 get $path.$name]} {
+                lappend diffs "attribute mismatch at $path.$name"
+            }
+        }
+    }
+    return $diffs
+}
+
+# ----------------------------------------------------------------------
+# USAGE: diffdatalines <path> <lib1> <lib2>
+#
+# Used internally by the "diff" proc to look for a list of attributes
+# at the given <path> and see if there are any differences.  It is
+# considered a difference if the attribute is defined on one object
+# but not another, or if the string values are different.  Returns ""
+# if they are the same, and a list of differences if they are not.
+# ----------------------------------------------------------------------
+proc diffdatalines {path lib1 lib2} {
+    set diffs ""
+
+    set data1 [split [string trim [$lib1 get $path]] \n]
+    set data2 [split [string trim [$lib2 get $path]] \n]
+    if {[llength $data1] != [llength $data2]} {
+        return [list "value mismatch at $path"]
+    }
+
+    foreach line1 $data1 line2 $data2 {
+        if {[llength $line1] != [llength $line2]} {
+            return [list "value mismatch at $path"]
+        }
+        foreach d1 $line1 d2 $line2 {
+            if {[string is double -strict $d1]
+                  && [string is double -strict $d2]} {
+                if {[Rappture::objects::ObjVal::cmpdbl $d1 $d2] != 0} {
+                    return [list "value mismatch at $path"]
+                }
+            } elseif {$d1 ne $d2} {
+                return [list "value mismatch at $path"]
+            }
+        }
+    }
+    return ""
+}
+
+# ======================================================================
+if {$argc != 2} {
+    puts stderr "USAGE: rpdiff file1.xml file2.xml"
+    exit 9
+}
+set lib1 [Rappture::library [lindex $argv 0]]
+set lib2 [Rappture::library [lindex $argv 1]]
+
+# compute the differences
+set diffs [diff output $lib1 $lib2]
+
+if {[llength $diffs] == 0} {
+    exit 0
+}
+
+# print a list of differences and exit
+foreach mesg $diffs {
+    puts $mesg
+}
+exit 1
