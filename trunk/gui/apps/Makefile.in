@@ -33,6 +33,7 @@ SCRIPTS	= \
 		rappture-csh.env \
 		rappture.use \
 		rerun \
+		rpdiff \
 		simsim  \
 		xmldiff \
 		about
@@ -54,6 +55,6 @@ install:
 clean:
 
 distclean: clean
-	$(RM) encodedata rappture.env rappture rappture.use rerun simsim xmldiff
+	$(RM) encodedata rappture.env rappture rappture.use rerun rpdiff simsim xmldiff
 	$(RM) Makefile *~
 
