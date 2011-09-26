@@ -69,16 +69,20 @@ ResponseQueue::enqueue(Response *response)
 Response *
 ResponseQueue::dequeue()
 {
-    Response *response;
+    Response *response = NULL;
 
     if (sem_wait(&_ready) < 0) {
         ERROR("can't wait on semaphore: %s", strerror(errno));
     }
     if (pthread_mutex_lock(&_idle) != 0) {
         ERROR("can't lock mutex: %s", strerror(errno));
-    }	
-    response = _list.front();
-    _list.pop_front();
+    }
+    if (_list.empty()) {
+        ERROR("Empty queue");
+    } else {
+        response = _list.front();
+        _list.pop_front();
+    }
     if (pthread_mutex_unlock(&_idle) != 0) {
         ERROR("can't unlock mutex: %s", strerror(errno));
     }	
