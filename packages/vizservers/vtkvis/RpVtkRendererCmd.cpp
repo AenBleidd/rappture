@@ -12,8 +12,8 @@
 #include <string>
 #include <sstream>
 #include <unistd.h>
+#include <sys/select.h>
 #include <sys/uio.h>
-#include <fcntl.h>
 #include <tcl.h>
 
 #include "Trace.h"
