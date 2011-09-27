@@ -29,6 +29,8 @@ itcl::class ::Rappture::VisViewer {
     private variable _buffer        ;# buffer for incoming/outgoing commands
     private variable _initialized 
     private variable _isOpen 0
+    private variable _afterId -1
+
     # Number of milliseconds to wait before idle timeout.
     # If greater than 0, automatically disconnect from the visualization
     # server when idle timeout is reached.
@@ -55,6 +57,7 @@ itcl::class ::Rappture::VisViewer {
     private method SendHelper {}
     private method SendHelper.old {}
     private method CheckConnection {}
+    private method SplashScreen { state } 
 
     protected method SendEcho { channel {data ""} }
     protected method ReceiveEcho { channel {data ""} }
@@ -117,7 +120,6 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     foreach cmd [$_parser eval {info commands}] {
         $_parser hide $cmd
     }
-
     #
     # Set up the widgets in the main body
     #
@@ -399,6 +401,8 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         fileevent $_sid writable ""
         flush $_sid
     }
+    after cancel $_afterId 
+    set _afterId [after 500 [itcl::code $this SplashScreen on]]
     if 0 {
     if { ![CheckConnection] } {
         puts stderr "connection is now down"
@@ -414,6 +418,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #    Read some number of bytes from the visualization server. 
 #
 itcl::body Rappture::VisViewer::ReceiveBytes { size } {
+    SplashScreen off
     if { ![CheckConnection] } {
         return 0
     }
@@ -538,3 +543,21 @@ itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
         uplevel #0 $itk_option(-receivecommand) [list $channel $data]
     }
 }
+
+itcl::body Rappture::VisViewer::SplashScreen { state } {
+    after cancel $_afterId
+    set _afterId -1
+    if { $state } {
+	if { [winfo exists $itk_component(plotarea).view.splash] } {
+	    return
+	}
+	label $itk_component(plotarea).view.splash -text "Please wait"
+	pack $itk_component(plotarea).view.splash -expand yes -anchor c
+    } else {
+	if { ![winfo exists $itk_component(plotarea).view.splash] } {
+	    return
+	}
+	destroy $itk_component(plotarea).view.splash
+    }
+}
+
