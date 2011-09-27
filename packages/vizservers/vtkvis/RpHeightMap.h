@@ -52,7 +52,7 @@ public:
         return "HeightMap";
     }
 
-    virtual void setDataSet(DataSet *dataset,
+    virtual void setDataSet(DataSet *dataSet,
                             bool useCumulative,
                             double scalarRange[2],
                             double vectorMagnitudeRange[2],
