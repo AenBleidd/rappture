@@ -229,6 +229,9 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         seeds		0
         visible		1
         opacity		100
+        seeddensity	20
+        lighting	1
+        scale		1
     }]
     array set _settings [subst {
         legend		1
@@ -902,7 +905,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	volume-edges volume-lighting volume-opacity volume-visible \
 	volume-wireframe 
 
-    #SendCmd "imgflush"
+    SendCmd "imgflush"
 
     set _limits(zmin) ""
     set _limits(zmax) ""
@@ -1270,6 +1273,20 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		SendCmd "streamlines seed visible $bool $dataset"
 	    }
         }
+        "streamlines-seeddensity" {
+	    set density [expr int($_streamlines(seeddensity) * 5.0)]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		if { [info exists _seeds($dataobj)] } {
+		    set seeds [$dataobj hints seeds]
+		    set length [string length $seeds]
+		    puts stderr "dataobj=$dataobj length=$length"
+		    puts stderr "streamlines seed fmesh $density data follows $length $dataset"
+		    SendCmd "streamlines seed fmesh $density data follows $length $dataset"
+		    SendCmd "$seeds"
+		}
+	    }
+        }
         "streamlines-visible" {
 	    set bool $_streamlines(visible)
 	    foreach dataset [CurrentDatasets -visible $_first] {
@@ -1298,6 +1315,19 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		SendCmd "streamlines opacity $sval $dataset"
 	    }
+        }
+        "streamlines-scale" {
+	    set val $_streamlines(scale)
+	    set sval [expr { 0.01 * double($val) }]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "streamlines scale $sval $sval $sval $dataset"
+	    }
+        }
+        "streamlines-lighting" {
+	    set bool $_streamlines(lighting)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "streamlines lighting $bool $dataset"
+            }
         }
         default {
             error "don't know how to fix $what"
@@ -1550,6 +1580,12 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -command [itcl::code $this AdjustSetting streamlines-visible] \
         -font "Arial 9"
 
+    checkbutton $inner.lighting \
+        -text "Enable Lighting" \
+        -variable [itcl::scope _streamlines(lighting)] \
+        -command [itcl::code $this AdjustSetting streamlines-lighting] \
+        -font "Arial 9"
+
     checkbutton $inner.seeds \
         -text "Show Seeds" \
         -variable [itcl::scope _streamlines(seeds)] \
@@ -1574,16 +1610,33 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -showvalue off \
 	-command [itcl::code $this AdjustSetting streamlines-opacity]
 
+    label $inner.density_l -text "Seed Density" -font "Arial 9"
+    ::scale $inner.density -from 1 -to 100 -orient horizontal \
+        -variable [itcl::scope _streamlines(seeddensity)] \
+        -width 10 \
+        -showvalue off \
+	-command [itcl::code $this AdjustSetting streamlines-seeddensity]
+
+    label $inner.scale_l -text "Scale" -font "Arial 9"
+    ::scale $inner.scale -from 1 -to 100 -orient horizontal \
+        -variable [itcl::scope _streamlines(scale)] \
+        -width 10 \
+        -showvalue off \
+	-command [itcl::code $this AdjustSetting streamlines-scale]
+
     blt::table $inner \
         0,0 $inner.streamlines -anchor w -pady 2 -cspan 2 \
-        1,0 $inner.seeds       -anchor w -pady 2 -cspan 2 \
-        2,0 $inner.mode_l      -anchor w -pady 2  \
-        2,1 $inner.mode        -anchor w -pady 2  \
-        3,0 $inner.opacity_l   -anchor w -pady 2  \
-        4,0 $inner.opacity     -fill x   -pady 2 -cspan 2
+        1,0 $inner.lighting    -anchor w -pady 2 -cspan 2 \
+        2,0 $inner.seeds       -anchor w -pady 2 -cspan 2 \
+        3,0 $inner.density_l   -anchor w -pady 2  \
+        4,0 $inner.density     -fill x   -pady 2 -cspan 2 \
+        5,0 $inner.mode_l      -anchor w -pady 2  \
+        5,1 $inner.mode        -anchor w -pady 2  \
+        6,0 $inner.opacity_l   -anchor w -pady 2  \
+        7,0 $inner.opacity     -fill x   -pady 2 -cspan 2 
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r5 c1 c2 -resize expand
+    blt::table configure $inner r8 c1 c2 -resize expand
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
