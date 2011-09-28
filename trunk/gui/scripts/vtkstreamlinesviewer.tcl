@@ -938,15 +938,16 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         if { $location != "" } {
             array set view $location
         }
-    }
-    foreach axis { x y z } {
-	set label [$_first hints ${axis}label]
-	if { $label != "" } {
-	    SendCmd "axis name $axis $label"
-	}
-	set units [$_first hints ${axis}units]
-	if { $units != "" } {
-	    SendCmd "axis units $axis $units"
+
+	foreach axis { x y z } {
+	    set label [$_first hints ${axis}label]
+	    if { $label != "" } {
+		SendCmd "axis name $axis $label"
+	    }
+	    set units [$_first hints ${axis}units]
+	    if { $units != "" } {
+		SendCmd "axis units $axis $units"
+	    }
 	}
     }
 	
