@@ -220,7 +220,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     }]
 
     itk_component add 3dview {
-        label $itk_component(plotarea).vol -image $_image(plot) \
+        label $itk_component(plotarea).view -image $_image(plot) \
             -highlightthickness 0 -borderwidth 0
     } {
         usual

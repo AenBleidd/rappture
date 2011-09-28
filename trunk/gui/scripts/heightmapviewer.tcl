@@ -163,7 +163,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     }]
 
     itk_component add 3dview {
-        canvas $itk_component(plotarea).vol \
+        canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0 
     } {
         usual
