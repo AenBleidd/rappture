@@ -229,7 +229,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         seeds		0
         visible		1
         opacity		100
-        seeddensity	20
+        seeddensity	40
         lighting	1
         scale		1
     }]
@@ -1276,15 +1276,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "streamlines-seeddensity" {
 	    set density [expr int($_streamlines(seeddensity) * 5.0)]
 	    foreach dataset [CurrentDatasets -visible $_first] {
-		foreach {dataobj comp} [split $dataset -] break
-		if { [info exists _seeds($dataobj)] } {
-		    set seeds [$dataobj hints seeds]
-		    set length [string length $seeds]
-		    puts stderr "dataobj=$dataobj length=$length"
-		    puts stderr "streamlines seed fmesh $density data follows $length $dataset"
-		    SendCmd "streamlines seed fmesh $density data follows $length $dataset"
-		    SendCmd "$seeds"
-		}
+                # This command works for either random or fmesh seeds
+                SendCmd "streamlines seed numpts $density $dataset"
 	    }
         }
         "streamlines-visible" {
