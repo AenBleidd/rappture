@@ -4861,6 +4861,23 @@ StreamlinesSeedMeshPointsOp(ClientData clientData, Tcl_Interp *interp,
 }
 
 static int
+StreamlinesSeedNumPointsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                           Tcl_Obj *const *objv)
+{
+    int numPoints;
+    if (Tcl_GetIntFromObj(interp, objv[3], &numPoints) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesNumberOfSeedPoints(name, numPoints);
+    } else {
+        g_renderer->setStreamlinesNumberOfSeedPoints("all", numPoints);
+    }
+    return TCL_OK;
+}
+
+static int
 StreamlinesSeedPointsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                         Tcl_Obj *const *objv)
 {
@@ -5011,16 +5028,17 @@ StreamlinesSeedVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec streamlinesSeedOps[] = {
-    {"color",   1, StreamlinesSeedColorOp, 6, 7, "r g b ?dataSetName?"},
-    {"disk",    1, StreamlinesSeedDiskOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ radius innerRadius numPoints ?dataSetName?"},
-    {"fmesh",   2, StreamlinesSeedFilledMeshOp, 7, 8, "numPoints data follows nbytes ?dataSetName?"},
+    {"color",   1, StreamlinesSeedColorOp,         6, 7, "r g b ?dataSetName?"},
+    {"disk",    1, StreamlinesSeedDiskOp,          12, 13, "centerX centerY centerZ normalX normalY normalZ radius innerRadius numPoints ?dataSetName?"},
+    {"fmesh",   2, StreamlinesSeedFilledMeshOp,    7, 8, "numPoints data follows nbytes ?dataSetName?"},
     {"fpoly",   2, StreamlinesSeedFilledPolygonOp, 13, 14, "centerX centerY centerZ normalX normalY normalZ angle radius numSides numPoints ?dataSetName?"},
-    {"mesh",    1, StreamlinesSeedMeshPointsOp, 6, 7, "data follows nbytes ?dataSetName?"},
-    {"points",  3, StreamlinesSeedPointsOp, 3, 4, "?dataSetName?"},
-    {"polygon", 3, StreamlinesSeedPolygonOp, 12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
-    {"rake",    3, StreamlinesSeedRakeOp, 10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
-    {"random",  3, StreamlinesSeedRandomOp, 4, 5, "numPoints ?dataSetName?"},
-    {"visible", 1, StreamlinesSeedVisibleOp, 4, 5, "bool ?dataSetName?"}
+    {"mesh",    1, StreamlinesSeedMeshPointsOp,    6, 7, "data follows nbytes ?dataSetName?"},
+    {"numpts",  1, StreamlinesSeedNumPointsOp,     4, 5, "numPoints ?dataSetName?"},
+    {"points",  3, StreamlinesSeedPointsOp,        3, 4, "?dataSetName?"},
+    {"polygon", 3, StreamlinesSeedPolygonOp,       12, 13, "centerX centerY centerZ normalX normalY normalZ angle radius numSides ?dataSetName?"},
+    {"rake",    3, StreamlinesSeedRakeOp,          10, 11, "startX startY startZ endX endY endZ numPoints ?dataSetName?"},
+    {"random",  3, StreamlinesSeedRandomOp,        4, 5, "numPoints ?dataSetName?"},
+    {"visible", 1, StreamlinesSeedVisibleOp,       4, 5, "bool ?dataSetName?"}
 };
 static int nStreamlinesSeedOps = NumCmdSpecs(streamlinesSeedOps);
 

@@ -57,6 +57,16 @@ public:
         BACKWARD,
         BOTH
     };
+    enum SeedType {
+        DATASET_MESH_POINTS,
+        DATASET_FILLED_MESH,
+        MESH_POINTS,
+        FILLED_MESH,
+        RAKE,
+        DISK,
+        POLYGON,
+        FILLED_POLYGON
+    };
 
     Streamlines();
     virtual ~Streamlines();
@@ -89,6 +99,8 @@ public:
     virtual void setEdgeWidth(float edgeWidth);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setNumberOfSeedPoints(int numPoints);
 
     void setSeedToMeshPoints();
 
@@ -183,6 +195,7 @@ private:
     LineType _lineType;
     ColorMode _colorMode;
     ColorMap *_colorMap;
+    SeedType _seedType;
     float _seedColor[3];
     bool _seedVisible;
     double _vectorMagnitudeRange[2];
@@ -192,6 +205,7 @@ private:
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _linesActor;
     vtkSmartPointer<vtkActor> _seedActor;
+    vtkSmartPointer<vtkDataSet> _seedMesh;
     vtkSmartPointer<vtkStreamTracer> _streamTracer;
     vtkSmartPointer<vtkPolyDataAlgorithm> _lineFilter;
     vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
