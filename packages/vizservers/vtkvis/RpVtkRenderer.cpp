@@ -6648,6 +6648,33 @@ void Renderer::setStreamlinesScale(const DataSetId& id, double scale[3])
 /**
  * \brief Set the streamlines seed to points of the streamlines DataSet
  */
+void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints)
+{
+    StreamlinesHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _streamlines.begin();
+        doAll = true;
+    } else {
+        itr = _streamlines.find(id);
+    }
+    if (itr == _streamlines.end()) {
+        ERROR("Streamlines not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setNumberOfSeedPoints(numPoints);
+    } while (doAll && ++itr != _streamlines.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the streamlines seed to points of the streamlines DataSet
+ */
 void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
 {
     StreamlinesHashmap::iterator itr;

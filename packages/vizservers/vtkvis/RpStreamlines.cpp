@@ -558,12 +558,32 @@ void Streamlines::update()
     _seedMapper->Update();
 }
 
+void Streamlines::setNumberOfSeedPoints(int numPoints)
+{
+    switch(_seedType) {
+    case DATASET_FILLED_MESH:
+        setSeedToFilledMesh(numPoints);
+        break;
+    case FILLED_MESH:
+        if (_seedMesh != NULL) {
+            setSeedToFilledMesh(_seedMesh, numPoints);
+        } else {
+            ERROR("NULL _seedMesh");
+        }
+        break;
+    default:
+        ERROR("Can't set number of points for seed type %d", _seedType);
+        break;
+    }
+}
+
 /**
  * \brief Use points of the DataSet associated with this 
  * Streamlines as seeds
  */
 void Streamlines::setSeedToMeshPoints()
 {
+    _seedType = DATASET_MESH_POINTS;
     setSeedToMeshPoints(_dataSet->getVtkDataSet());
 }
 
@@ -579,6 +599,7 @@ void Streamlines::setSeedToMeshPoints()
  */
 void Streamlines::setSeedToFilledMesh(int numPoints)
 {
+    _seedType = DATASET_FILLED_MESH;
     setSeedToFilledMesh(_dataSet->getVtkDataSet(), numPoints);
 }
 
@@ -589,6 +610,7 @@ void Streamlines::setSeedToFilledMesh(int numPoints)
  */
 void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
 {
+    _seedMesh = NULL;
     if (_streamTracer != NULL) {
         TRACE("Seed points: %d", seed->GetNumberOfPoints());
         vtkSmartPointer<vtkDataSet> oldSeed;
@@ -624,6 +646,11 @@ void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
  */
 void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
 {
+    if (ds != _dataSet->getVtkDataSet()) {
+        _seedMesh = ds;
+    } else {
+        _seedMesh = NULL;
+    }
     if (_streamTracer != NULL) {
         // Set up seed source object
         vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
@@ -672,6 +699,8 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
 {
     if (numPoints < 2)
         return;
+    _seedType = RAKE;
+    _seedMesh = NULL;
     if (_streamTracer != NULL) {
         // Set up seed source object
         vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
@@ -729,6 +758,8 @@ void Streamlines::setSeedToDisk(double center[3],
                                 double innerRadius,
                                 int numPoints)
 {
+    _seedType = DISK;
+    _seedMesh = NULL;
     if (_streamTracer != NULL) {
         // Set up seed source object
         vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();
@@ -821,6 +852,8 @@ void Streamlines::setSeedToPolygon(double center[3],
                                    double radius,
                                    int numSides)
 {
+    _seedType = POLYGON;
+    _seedMesh = NULL;
     if (_streamTracer != NULL) {
         // Set up seed source object
         vtkSmartPointer<vtkRegularPolygonSource> seed = vtkSmartPointer<vtkRegularPolygonSource>::New();
@@ -885,6 +918,8 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
                                          int numSides,
                                          int numPoints)
 {
+    _seedType = FILLED_POLYGON;
+    _seedMesh = NULL;
     if (_streamTracer != NULL) {
          // Set up seed source object
         vtkSmartPointer<vtkPolyData> seed = vtkSmartPointer<vtkPolyData>::New();

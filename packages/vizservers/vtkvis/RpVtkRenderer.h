@@ -660,6 +660,8 @@ public:
 
     void setStreamlinesVisibility(const DataSetId& id, bool state);
 
+    void setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints);
+
     void setStreamlinesSeedToMeshPoints(const DataSetId& id);
 
     void setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints);

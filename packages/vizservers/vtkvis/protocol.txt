@@ -338,6 +338,10 @@ streamlines seed fpoly <centerX> <centerY> <centerZ> <normalX> <normalY> <normal
             placed points
 streamlines seed mesh data follows <nbytes> <?datasetName?>
             Use points of a mesh supplied as a VTK data file
+streamlines seed numpts <?datasetName?>
+            If seeds have been created using 'seed random' or 'seed fmesh', 
+            this command can be used to change the number of randomly 
+            distributed seeds
 streamlines seed points <?datasetName?>
             Use points of the streamlines' dataset mesh
 streamlines seed polygon <centerX> <centerY> <centerZ> <normalX> <normalY> <normalZ> <angle> <radius> <numSides> <?dataSetName?>
