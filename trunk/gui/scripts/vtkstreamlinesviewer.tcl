@@ -101,7 +101,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method LeaveLegend {}
     private method MotionLegend { x y } 
     private method PanCamera {}
-    private method RequestLegend { {mode "vmag"} }
+    private method RequestLegend {}
     private method SetColormap { dataobj comp }
     private method ChangeColormap { dataobj comp color }
     private method ColorsToColormap { color }
@@ -150,6 +150,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _cutplanePending 0
     private variable _outline
     private variable _fields 
+    private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
 }
 
 itk::usual VtkStreamlinesViewer {
@@ -235,6 +236,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 	labels		1
     }]
     array set _cutplane [subst {
+        edges		0
         xvisible	0
         yvisible	0
         zvisible	0
@@ -242,6 +244,8 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         yposition	0
         zposition	0
         visible		1
+        wireframe	0
+	opacity		1
     }]
     array set _volume [subst {
         edges		0
@@ -254,7 +258,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         seeds		0
         visible		1
         opacity		100
-        seeddensity	40
+        seeddensity	200
         lighting	1
         scale		1
     }]
@@ -440,6 +444,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 
     eval itk_initialize $args
     Connect
+    update
 }
 
 # ----------------------------------------------------------------------
@@ -925,7 +930,6 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveDataset { args } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     update
-
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
@@ -1313,6 +1317,37 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    set mode [$itk_component(axismode) translate $mode]
 	    SendCmd "axis flymode $mode"
         }
+        "cutplane-edges" {
+	    set bool $_cutplane(edges)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "cutplane edges $bool $dataset"
+            }
+        }
+        "cutplane-visible" {
+	    set bool $_cutplane(visible)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "cutplane visible $bool $dataset"
+            }
+        }
+        "cutplane-wireframe" {
+	    set bool $_cutplane(wireframe)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "cutplane wireframe $bool $dataset"
+            }
+        }
+        "cutplane-lighting" {
+	    set bool $_cutplane(lighting)
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "cutplane lighting $bool $dataset"
+            }
+        }
+        "cutplane-opacity" {
+	    set val $_cutplane(opacity)
+	    set sval [expr { 0.01 * double($val) }]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		SendCmd "cutplane opacity $sval $dataset"
+	    }
+        }
 	"xcutplane-visible" - "ycutplane-visible" - "zcutplane-visible" {
 	    set axis [string range $what 0 0]
 	    set bool $_cutplane(${axis}visible)
@@ -1324,7 +1359,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                     -troughcolor grey82
             }
 	    SendCmd "cutplane axis $axis $bool"
-	    SendCmd "cutplane colormode vmag"
+	    SendCmd "cutplane colormode $_colorMode"
 	}
 	"xcutplane-position" - "ycutplane-position" - "zcutplane-position" {
 	    set axis [string range $what 0 0]
@@ -1339,10 +1374,18 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "streamlines-seeddensity" {
-	    set density [expr int($_streamlines(seeddensity) * 5.0)]
+	    set density $_streamlines(seeddensity)
 	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
                 # This command works for either random or fmesh seeds
-                SendCmd "streamlines seed numpts $density $dataset"
+                #SendCmd "streamlines seed numpts $density $dataset"
+		set seeds [$dataobj hints seeds]
+		if { $seeds != "" } {
+		    set length [string length $seeds]
+		    SendCmd "streamlines seed fmesh $density data follows $length $dataset"
+		    SendCmd "$seeds"
+		    set _seeds($dataobj) 1
+		}
 	    }
         }
         "streamlines-visible" {
@@ -1366,10 +1409,10 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 			SendCmd "streamlines lines $dataset"
 		    }
 		    "ribbons" {
-			SendCmd "streamlines ribbons 1 0 $dataset"
+			SendCmd "streamlines ribbons 3 0 $dataset"
 		    }
 		    "tubes" {
-			SendCmd "streamlines tubes 5 1 $dataset"
+			SendCmd "streamlines tubes 5 3 $dataset"
 		    }
 		}
             }
@@ -1380,6 +1423,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		foreach {dataobj comp} [split $dataset -] break
 		ChangeColormap $dataobj $comp $palette
             }
+	    RequestLegend
         }
         "streamlines-opacity" {
 	    set val $_streamlines(opacity)
@@ -1403,17 +1447,16 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         }
         "streamlines-field" {
 	    set field [$itk_component(field) value]
-	    set mode scalar
+	    set _colorMode scalar
 	    if { $field == "U" } {
-		set mode vmag
+		set _colorMode vmag
 	    }
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		SendCmd "dataset scalar ${field} $dataset"
-		SendCmd "streamlines colormode ${mode} $dataset"
-		SendCmd "streamlines colormode ${mode} $dataset"
-		#SendCmd "dataset vector ${field} $dataset"
+		SendCmd "streamlines colormode $_colorMode $dataset"
+		SendCmd "streamlines colormode $_colorMode $dataset"
             }
-	    RequestLegend $mode
+	    RequestLegend
         }
         default {
             error "don't know how to fix $what"
@@ -1428,8 +1471,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #	is determined from the height of the canvas.  It will be rotated
 #	to be vertical when drawn.
 #
-itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
-    #puts stderr "RequestLegend _first=$_first"
+itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
+    puts stderr "RequestLegend _first=$_first"
     #puts stderr "RequestLegend width=$_width height=$_height"
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
@@ -1443,8 +1486,8 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
     foreach dataset [CurrentDatasets -visible] {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [info exists _dataset2style($dataset)] } {
-	    #puts stderr "RequestLegend w=$w h=$h"
-            SendCmd "legend $_dataset2style($dataset) $mode {} $w $h 0"
+	    puts stderr "RequestLegend w=$w h=$h"
+            SendCmd "legend $_dataset2style($dataset) $_colorMode {} $w $h 0"
 	    break;
         }
     }
@@ -1455,10 +1498,12 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
 #
 itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
     set tag $dataobj-$comp
-    if { ![info exist _styles($tag)] } {
+    if { ![info exist _style($tag)] } {
 	error "no initial colormap"
     }
-    set _style(-color) $color 
+    array set style $_style($tag)
+    set style(-color) $color
+    set _style($tag) [array get style]
     SetColormap $dataobj $comp
 }
 
@@ -1467,7 +1512,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
 #
 itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     array set style {
-        -color rainbow
+        -color BGYOR
         -levels 6
         -opacity 1.0
     }
@@ -1493,40 +1538,68 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     }
     if { ![info exists _dataset2style($tag)] ||
 	 $_dataset2style($tag) != $name } {
+	puts stderr "streamlines colormap $name $tag"
+	puts stderr "cutplane colormap $name $tag"
 	SendCmd "streamlines colormap $name $tag"
 	SendCmd "cutplane colormap $name $tag"
+	set _dataset2style($tag) $name
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
     switch -- $colors {
-	"blue-to-gray" {
+	"grey-to-blue" {
 	    return {
-		0.0 0.000 0.600 0.800 
-		0.14285714285714285 0.400 0.900 1.000 
-		0.2857142857142857 0.600 1.000 1.000 
-		0.42857142857142855 0.800 1.000 1.000 
-		0.5714285714285714 0.900 0.900 0.900 
-		0.7142857142857143 0.600 0.600 0.600 
-		0.8571428571428571 0.400 0.400 0.400 
-		1.0 0.200 0.200 0.200
+		0.0			 0.200 0.200 0.200
+		0.14285714285714285	 0.400 0.400 0.400
+		0.2857142857142857	 0.600 0.600 0.600
+		0.42857142857142855	 0.900 0.900 0.900
+		0.5714285714285714	 0.800 1.000 1.000
+		0.7142857142857143	 0.600 1.000 1.000
+		0.8571428571428571	 0.400 0.900 1.000
+		1.0			 0.000 0.600 0.800
+	    }
+	}
+	"blue-to-grey" {
+	    return {
+		0.0			0.000 0.600 0.800 
+		0.14285714285714285	0.400 0.900 1.000 
+		0.2857142857142857	0.600 1.000 1.000 
+		0.42857142857142855	0.800 1.000 1.000 
+		0.5714285714285714	0.900 0.900 0.900 
+		0.7142857142857143	0.600 0.600 0.600 
+		0.8571428571428571	0.400 0.400 0.400 
+		1.0			0.200 0.200 0.200
 	    }
 	}
 	"blue" {
 	    return { 
-		0.0 0.900 1.000 1.000 
-		0.1111111111111111 0.800 0.983 1.000 
-		0.2222222222222222 0.700 0.950 1.000 
-		0.3333333333333333 0.600 0.900 1.000 
-		0.4444444444444444 0.500 0.833 1.000 
-		0.5555555555555556 0.400 0.750 1.000 
-		0.6666666666666666 0.300 0.650 1.000 
-		0.7777777777777778 0.200 0.533 1.000 
-		0.8888888888888888 0.100 0.400 1.000 
-		1.0 0.000 0.250 1.000
+		0.0			0.900 1.000 1.000 
+		0.1111111111111111	0.800 0.983 1.000 
+		0.2222222222222222	0.700 0.950 1.000 
+		0.3333333333333333	0.600 0.900 1.000 
+		0.4444444444444444	0.500 0.833 1.000 
+		0.5555555555555556	0.400 0.750 1.000 
+		0.6666666666666666	0.300 0.650 1.000 
+		0.7777777777777778	0.200 0.533 1.000 
+		0.8888888888888888	0.100 0.400 1.000 
+		1.0			0.000 0.250 1.000
 	    }
 	}
-	"blue-to-brown" {
+	"brown-to-blue" {
 	    return {
 		0.0 		    		0.200   0.100   0.000 
 		0.09090909090909091 		0.400   0.187   0.000 
@@ -1540,6 +1613,22 @@ itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
 		0.8181818181818182  		0.200   0.893   1.000 
 		0.9090909090909091  		0.000   0.667   0.800 
 		1.0                 		0.000   0.480   0.600 
+	    }
+	}
+	"blue-to-brown" {
+	    return {
+		0.0 		    		0.000   0.480   0.600 
+		0.09090909090909091 		0.000   0.667   0.800 
+		0.18181818181818182 		0.200   0.893   1.000 
+		0.2727272727272727  		0.400   0.940   1.000 
+		0.36363636363636365 		0.600   0.973   1.000 
+		0.45454545454545453 		0.800   0.993   1.000 
+		0.5454545454545454  		0.950   0.855   0.808 
+		0.6363636363636364  		0.850   0.688   0.595 
+		0.7272727272727273  		0.800   0.608   0.480 
+		0.8181818181818182  		0.600   0.379   0.210 
+		0.9090909090909091  		0.400   0.187   0.000 
+		1.0                 		0.200   0.100   0.000 
 	    }
 	}
 	"blue-to-orange" {
@@ -1558,14 +1647,84 @@ itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
 		1.0                 		1.000   0.167   0.000
 	    }
 	}
-	"rainbow" {
-	    set clist {
-		"red" "#FFA500" "yellow" "#008000" "blue" "#4B0082" "#EE82EE"
+	"orange-to-blue" {
+	    return {
+		0.0 		    		1.000   0.167   0.000
+		0.09090909090909091 		1.000   0.400   0.100
+		0.18181818181818182 		1.000   0.600   0.200
+		0.2727272727272727  		1.000   0.800   0.400
+		0.36363636363636365 		1.000   0.933   0.600
+		0.45454545454545453 		1.000   1.000   0.800
+		0.5454545454545454  		0.800   1.000   1.000
+		0.6363636363636364  		0.600   0.933   1.000
+		0.7272727272727273  		0.400   0.800   1.000
+		0.8181818181818182  		0.200   0.600   1.000
+		0.9090909090909091  		0.100   0.400   1.000
+		1.0                 		0.000   0.167   1.000
 	    }
 	}
-	"typical" {
+	"rainbow" {
 	    set clist {
-		"red" "#FFA500" "yellow" "#008000" "blue" 
+		"#EE82EE"
+		"#4B0082" 
+		"blue" 
+		"#008000" 
+		"yellow" 
+		"#FFA500" 
+		"red" 
+	    }
+	}
+	"BGYOR" {
+	    set clist {
+		"blue" 
+		"#008000" 
+		"yellow" 
+		"#FFA500" 
+		"red" 
+	    }
+	}
+	"ROYGB" {
+	    set clist {
+		"red" 
+		"#FFA500" 
+		"yellow" 
+		"#008000" 
+		"blue" 
+	    }
+	}
+	"spectral" {
+	    return {
+		0.0 0.650 0.000 0.130 
+		0.1 0.850 0.150 0.196 
+		0.2 0.970 0.430 0.370 
+		0.3 1.000 0.680 0.450 
+		0.4 1.000 0.880 0.600 
+		0.5 1.000 1.000 0.750 
+		0.6 0.880 1.000 1.000 
+		0.7 0.670 0.970 1.000 
+		0.8 0.450 0.850 1.000 
+		0.9 0.250 0.630 1.000 
+		1.0 0.150 0.300 1.000
+	    }
+	}
+	"green-to-magenta" {
+	    return {
+		0.0 0.000 0.316 0.000 
+		0.06666666666666667 0.000 0.526 0.000 
+		0.13333333333333333 0.000 0.737 0.000 
+		0.2 0.000 0.947 0.000 
+		0.26666666666666666 0.316 1.000 0.316 
+		0.3333333333333333 0.526 1.000 0.526 
+		0.4 0.737 1.000 0.737 
+		0.4666666666666667 1.000 1.000 1.000 
+		0.5333333333333333 1.000 0.947 1.000 
+		0.6 1.000 0.737 1.000 
+		0.6666666666666666 1.000 0.526 1.000 
+		0.7333333333333333 1.000 0.316 1.000 
+		0.8 0.947 0.000 0.947 
+		0.8666666666666667 0.737 0.000 0.737 
+		0.9333333333333333 0.526 0.000 0.526 
+		1.0 0.316 0.000 0.316
 	    }
 	}
 	"greyscale" {
@@ -1797,11 +1956,11 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -showvalue off \
 	-command [itcl::code $this AdjustSetting streamlines-opacity]
 
-    label $inner.density_l -text "Seed Density" -font "Arial 9"
-    ::scale $inner.density -from 1 -to 100 -orient horizontal \
+    label $inner.density_l -text "Number of Seeds" -font "Arial 9"
+    ::scale $inner.density -from 1 -to 1000 -orient horizontal \
         -variable [itcl::scope _streamlines(seeddensity)] \
         -width 10 \
-        -showvalue off \
+        -showvalue on \
 	-command [itcl::code $this AdjustSetting streamlines-seeddensity]
 
     label $inner.scale_l -text "Scale" -font "Arial 9"
@@ -1818,20 +1977,27 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
     bind $inner.field <<Value>> \
 	[itcl::code $this AdjustSetting streamlines-field]
 
-    label $inner.palette_l -text "Color Palette" -font "Arial 9" 
+    label $inner.palette_l -text "Palette" -font "Arial 9" 
     itk_component add palette {
 	Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
-	"blue-to-gray" 	     "blue-to-gray" 	\
+	"BGYOR" 	     "BGYOR"		\
 	"blue" 		     "blue" 		\
 	"blue-to-brown"      "blue-to-brown"    \
 	"blue-to-orange"     "blue-to-orange"   \
-	"rainbow" 	     "rainbow"		\
-	"typical" 	     "typical"		\
+	"blue-to-grey" 	     "blue-to-grey" 	\
+	"green-to-magenta"   "green-to-magenta"	\
 	"greyscale" 	     "greyscale" 	\
-	"nanohub"            "nanohub"          
-    $itk_component(palette) value "typical"
+	"nanohub"            "nanohub"          \
+	"rainbow" 	     "rainbow"		\
+	"spectral"	     "spectral"		\
+	"ROYGB" 	     "ROYGB"		\
+	"brown-to-blue"      "brown-to-blue"    \
+	"grey-to-blue" 	     "grey-to-blue" 	\
+	"orange-to-blue"     "orange-to-blue"   
+
+    $itk_component(palette) value "BGYOR"
     bind $inner.palette <<Value>> \
 	[itcl::code $this AdjustSetting streamlines-palette]
 
@@ -1960,10 +2126,42 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
     set fg [option get $itk_component(hull) font Font]
     
     set inner [$itk_component(main) insert end \
-        -title "Cutplane Along Axis" \
+        -title "Cutplane Settings" \
 	-icon [Rappture::icon cutbutton]] 
 
     $inner configure -borderwidth 4
+
+    checkbutton $inner.visible \
+        -text "Show Cutplanes" \
+        -variable [itcl::scope _cutplane(visible)] \
+        -command [itcl::code $this AdjustSetting cutplane-visible] \
+        -font "Arial 9"
+
+    checkbutton $inner.wireframe \
+        -text "Show Wireframe" \
+        -variable [itcl::scope _cutplane(wireframe)] \
+        -command [itcl::code $this AdjustSetting cutplane-wireframe] \
+        -font "Arial 9"
+
+    checkbutton $inner.lighting \
+        -text "Enable Lighting" \
+        -variable [itcl::scope _cutplane(lighting)] \
+        -command [itcl::code $this AdjustSetting cutplane-lighting] \
+        -font "Arial 9"
+
+    checkbutton $inner.edges \
+        -text "Show Edges" \
+        -variable [itcl::scope _cutplane(edges)] \
+        -command [itcl::code $this AdjustSetting cutplane-edges] \
+        -font "Arial 9"
+
+    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _cutplane(opacity)] \
+        -width 10 \
+        -showvalue off \
+	-command [itcl::code $this AdjustSetting cutplane-opacity]
+    $inner.opacity set $_cutplane(opacity)
 
     # X-value slicer...
     itk_component add xCutButton {
@@ -2047,15 +2245,21 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         "@[itcl::code $this Slice tooltip z]"
 
     blt::table $inner \
-        0,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
-        1,0 $itk_component(xCutScale)   -fill y \
-        0,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
-        1,1 $itk_component(yCutScale)   -fill y \
-        0,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
-        1,2 $itk_component(zCutScale)   -fill y \
+        0,0 $inner.visible		-anchor w -pady 2 -cspan 3 \
+        1,0 $inner.lighting		-anchor w -pady 2 -cspan 3 \
+        2,0 $inner.wireframe		-anchor w -pady 2 -cspan 3 \
+        3,0 $inner.edges		-anchor w -pady 2 -cspan 3 \
+        4,0 $inner.opacity_l		-anchor w -pady 2 -cspan 3 \
+        5,0 $inner.opacity		-fill x   -pady 2 -cspan 3 \
+        6,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
+        7,0 $itk_component(xCutScale)   -fill y \
+        6,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
+        7,1 $itk_component(yCutScale)   -fill y \
+        6,2 $itk_component(zCutButton)  -anchor e -padx 2 -pady 2 \
+        7,2 $itk_component(zCutScale)   -fill y \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r1 c3 -resize expand
+    blt::table configure $inner r7 c3 -resize expand
 }
 
 
@@ -2213,7 +2417,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
 	set _seeds($dataobj) 1
     }
     SendCmd "cutplane add $tag"
-    SendCmd "cutplane colormode vmag $tag"
+    SendCmd "cutplane colormode $_colorMode $tag"
     SendCmd "cutplane edges 0 $tag"
     SendCmd "cutplane wireframe 0 $tag"
     SendCmd "cutplane lighting 1 $tag"
@@ -2221,7 +2425,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
     #SendCmd "cutplane linecolor 1 1 1 $tag"
     #puts stderr "cutplane axis $axis $bool"
     #SendCmd "cutplane visible $tag"
-    SendCmd "cutplane colormode vmag $tag"
     foreach axis { x y z } {
 	SendCmd "cutplane slice $axis 1.0 $tag"
 	SendCmd "cutplane axis $axis 0 $tag"
