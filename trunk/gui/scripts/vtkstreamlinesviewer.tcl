@@ -245,7 +245,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         zposition	0
         visible		1
         wireframe	0
-	opacity		1
+	opacity		100
     }]
     array set _volume [subst {
         edges		0
