@@ -103,43 +103,45 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method PanCamera {}
     private method RequestLegend { {mode "vmag"} }
     private method SetColormap { dataobj comp }
+    private method ChangeColormap { dataobj comp color }
+    private method ColorsToColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
 
     private variable _arcball ""
-    private variable _outbuf       ;# buffer for outgoing commands
+    private variable _outbuf       ;	# buffer for outgoing commands
 
-    private variable _dlist ""     ;# list of data objects
+    private variable _dlist ""     ;	# list of data objects
     private variable _allDataObjs
     private variable _obj2datasets
-    private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _datasets     ;# contains all the dataobj-component 
-                                   ;# datasets in the server
-    private variable _colormaps    ;# contains all the colormaps
-                                   ;# in the server.
+    private variable _obj2ovride   ;	# maps dataobj => style override
+    private variable _datasets     ;	# contains all the dataobj-component 
+                                   ;	# datasets in the server
+    private variable _colormaps    ;	# contains all the colormaps
+                                   ;	# in the server.
     private variable _dataset2style    ;# maps dataobj-component to transfunc
-    private variable _style2datasets   ;# maps tf back to list of 
-                                    # dataobj-components using the tf.
 
-    private variable _click        ;# info used for rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
+    private variable _click        ;	# info used for rotate operations
+    private variable _limits       ;	# autoscale min/max for all axes
+    private variable _view         ;	# view params for 3D view
     private variable _settings
     private variable _volume
     private variable _axis
     private variable _cutplane
     private variable _streamlines
-    private variable _reset 1	   ;# indicates if camera needs to be reset
-                                    # to starting position.
+    private variable _style;		# Array of current component styles.
+    private variable _initialStyle;	# Array of initial component styles.
+    private variable _reset 1;		# indicates if camera needs to be reset
+					# to starting position.
 
-    private variable _first ""     ;# This is the topmost dataset.
+    private variable _first ""     ;	# This is the topmost dataset.
     private variable _start 0
     private variable _buffering 0
     private variable _title ""
     private variable _seeds
 
-    common _downloadPopup          ;# download options from popup
+    common _downloadPopup;		# download options from popup
     private common _hardcopy
     private variable _width 0
     private variable _height 0
@@ -1372,6 +1374,13 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
+        "streamlines-palette" {
+	    set palette [$itk_component(palette) value]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		ChangeColormap $dataobj $comp $palette
+            }
+        }
         "streamlines-opacity" {
 	    set val $_streamlines(opacity)
 	    set sval [expr { 0.01 * double($val) }]
@@ -1442,6 +1451,18 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
 }
 
 #
+# ChangeColormap --
+#
+itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
+    set tag $dataobj-$comp
+    if { ![info exist _styles($tag)] } {
+	error "no initial colormap"
+    }
+    set _style(-color) $color 
+    SetColormap $dataobj $comp
+}
+
+#
 # SetColormap --
 #
 itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
@@ -1451,38 +1472,58 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
         -opacity 1.0
     }
     set tag $dataobj-$comp
-    array set style [$dataobj style $comp]
-    set colormap "$style(-color):$style(-levels):$style(-opacity)"
-    if { [info exists _colormaps($colormap)] } {
-	puts stderr "Colormap $colormap already built"
-	return $colormap
+    if { ![info exists _initialStyle($tag)] } {
+	# Save the initial component style.
+	set _initialStyle($tag) [$dataobj style $comp]
     }
-    if { ![info exists _dataset2style($tag)] } {
-	set _dataset2style($tag) $colormap
-	lappend _style2datasets($colormap) $tag
+
+    # Override defaults with initial style defined in xml.
+    array set style $_initialStyle($tag)
+
+    if { ![info exists _style($tag)] } {
+	set _style($tag) [array get style]
     }
-    if { ![info exists _colormaps($colormap)] } {
-	# Build the pseudo colormap if it doesn't exist.
-	BuildColormap $colormap $style(-color)
-	set _colormaps($colormap) 1
+    # Override initial style with current style.
+    array set style $_style($tag)
+
+    set name "$style(-color):$style(-levels):$style(-opacity)"
+    if { ![info exists _colormaps($name)] } {
+	BuildColormap $name [array get style]
+	set _colormaps($name) 1
     }
-    SendCmd "streamlines colormap $colormap $tag"
-    SendCmd "cutplane colormap $colormap $tag"
-    return $colormap
+    if { ![info exists _dataset2style($tag)] ||
+	 $_dataset2style($tag) != $name } {
+	SendCmd "streamlines colormap $name $tag"
+	SendCmd "cutplane colormap $name $tag"
+    }
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
     switch -- $colors {
 	"blue-to-gray" {
-	    set clist {
-		\#0099cc \#66e5ff \#99ffff \#ccffff \#e5e5e5 \#999999 
-		\#666666 \#333333
+	    return {
+		0.0 0.000 0.600 0.800 
+		0.14285714285714285 0.400 0.900 1.000 
+		0.2857142857142857 0.600 1.000 1.000 
+		0.42857142857142855 0.800 1.000 1.000 
+		0.5714285714285714 0.900 0.900 0.900 
+		0.7142857142857143 0.600 0.600 0.600 
+		0.8571428571428571 0.400 0.400 0.400 
+		1.0 0.200 0.200 0.200
 	    }
 	}
 	"blue" {
-	    set clist {
-		\#e5ffff \#ccfaff \#b2f2ff \#99e5ff \#7fd4ff \#66bfff 
-		\#4ca5ff \#3387ff \#1966ff \#003fff
+	    return { 
+		0.0 0.900 1.000 1.000 
+		0.1111111111111111 0.800 0.983 1.000 
+		0.2222222222222222 0.700 0.950 1.000 
+		0.3333333333333333 0.600 0.900 1.000 
+		0.4444444444444444 0.500 0.833 1.000 
+		0.5555555555555556 0.400 0.750 1.000 
+		0.6666666666666666 0.300 0.650 1.000 
+		0.7777777777777778 0.200 0.533 1.000 
+		0.8888888888888888 0.100 0.400 1.000 
+		1.0 0.000 0.250 1.000
 	    }
 	}
 	"blue-to-brown" {
@@ -1536,7 +1577,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
 	    set clist "white yellow green cyan blue magenta"
 	}
 	default {
-	    set clist $color
+	    set clist $colors
 	}
     }
     set cmap {}
@@ -1551,8 +1592,9 @@ itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name colors } {
-    set cmap [ColorsToColormap $colors]
+itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name styles } {
+    array set style $styles
+    set cmap [ColorsToColormap $style(-color)]
     if { [llength $cmap] == 0 } {
 	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
@@ -1776,6 +1818,23 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
     bind $inner.field <<Value>> \
 	[itcl::code $this AdjustSetting streamlines-field]
 
+    label $inner.palette_l -text "Color Palette" -font "Arial 9" 
+    itk_component add palette {
+	Rappture::Combobox $inner.palette -width 10 -editable no
+    }
+    $inner.palette choices insert end \
+	"blue-to-gray" 	     "blue-to-gray" 	\
+	"blue" 		     "blue" 		\
+	"blue-to-brown"      "blue-to-brown"    \
+	"blue-to-orange"     "blue-to-orange"   \
+	"rainbow" 	     "rainbow"		\
+	"typical" 	     "typical"		\
+	"greyscale" 	     "greyscale" 	\
+	"nanohub"            "nanohub"          
+    $itk_component(palette) value "typical"
+    bind $inner.palette <<Value>> \
+	[itcl::code $this AdjustSetting streamlines-palette]
+
     blt::table $inner \
         0,0 $inner.streamlines -anchor w -pady 2 -cspan 2 \
         1,0 $inner.lighting    -anchor w -pady 2 -cspan 2 \
@@ -1788,10 +1847,12 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         7,0 $inner.opacity     -fill x   -pady 2 -cspan 2 \
         8,0 $inner.field_l     -anchor w -pady 2  \
         8,1 $inner.field       -anchor w -pady 2  \
+        9,0 $inner.palette_l   -anchor w -pady 2  \
+        9,1 $inner.palette     -anchor w -pady 2  \
 	
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r9 c1 c2 -resize expand
+    blt::table configure $inner r10 c1 c2 -resize expand
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::BuildAxisTab {} {
