@@ -1472,7 +1472,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #	to be vertical when drawn.
 #
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
-    puts stderr "RequestLegend _first=$_first"
+    #puts stderr "RequestLegend _first=$_first"
     #puts stderr "RequestLegend width=$_width height=$_height"
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
@@ -1486,7 +1486,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible] {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [info exists _dataset2style($dataset)] } {
-	    puts stderr "RequestLegend w=$w h=$h"
+            puts stderr "legend $_dataset2style($dataset) $_colorMode {} $w $h 0"
             SendCmd "legend $_dataset2style($dataset) $_colorMode {} $w $h 0"
 	    break;
         }
