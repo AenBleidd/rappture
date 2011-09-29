@@ -84,7 +84,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     # The following methods are only used by this class.
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { colormap dataobj comp }
+    private method BuildColormap { name colors }
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildStreamsTab {}
@@ -333,13 +333,13 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
-        "Toggle the volume on/off"
+        "Don't display the volume"
     pack $itk_component(volume) -padx 2 -pady 2
 
     itk_component add streamlines {
         Rappture::PushButton $f.streamlines \
-            -onimage [Rappture::icon stream] \
-            -offimage [Rappture::icon stream] \
+            -onimage [Rappture::icon streamlines-on] \
+            -offimage [Rappture::icon streamlines-off] \
 	    -variable [itcl::scope _streamlines(visible)] \
 	    -command [itcl::code $this AdjustSetting streamlines-visible] \
     }
@@ -521,7 +521,6 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallySetCutplane { axis args } {
 # -color, -brightness, -width, -linestyle, and -raise.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::add {dataobj {settings ""}} {
-    puts stderr "add dataobj=$dataobj settings=$settings"
     array set params {
         -color auto
         -width 1
@@ -566,7 +565,6 @@ itcl::body Rappture::VtkStreamlinesViewer::add {dataobj {settings ""}} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::delete {args} {
-    puts stderr "[info level -1]: delete args=$args"
     if { [llength $args] == 0} {
         set args $_dlist
     }
@@ -603,7 +601,6 @@ itcl::body Rappture::VtkStreamlinesViewer::delete {args} {
 # flag can also request the internal images being shown.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::get {args} {
-    puts stderr "get args=$args"
     if {[llength $args] == 0} {
         set args "-objects"
     }
@@ -675,7 +672,6 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::scale {args} {
-    puts stderr "scale args=$args"
     array unset _limits
     foreach dataobj $args {
 	set string [limits $dataobj]
@@ -717,7 +713,6 @@ itcl::body Rappture::VtkStreamlinesViewer::scale {args} {
 # "string" is the data itself.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::download {option args} {
-    puts stderr "download option=$option args=$args"
     switch $option {
         coming {
             if {[catch {
@@ -927,7 +922,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveDataset { args } {
 # widget to display new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
-    puts stderr "Rebuild"
+    update
 
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
@@ -1078,7 +1073,6 @@ itcl::body Rappture::VtkStreamlinesViewer::CurrentDatasets {args} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Zoom {option} {
-    puts stderr "Zoom option=$option"
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
@@ -1113,7 +1107,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Zoom {option} {
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::PanCamera {} {
-    puts stderr "PanCamera"
     set x $_view(xpan)
     set y $_view(ypan)
     SendCmd "camera pan $x $y"
@@ -1129,7 +1122,6 @@ itcl::body Rappture::VtkStreamlinesViewer::PanCamera {} {
 # plot area.  Moves the plot according to the user's actions.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Rotate {option x y} {
-    puts stderr "Rotate option=$option x=$x y=$y"
     switch -- $option {
         "click" {
             $itk_component(view) configure -cursor fleur
@@ -1188,7 +1180,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Pick {x y} {
 # controls for this widget.  Changes the zoom for the current view.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::Pan {option x y} {
-    puts stderr "Pan option=$option x=$x y=$y"
     switch -- $option {
 	"set" {
 	    set w [winfo width $itk_component(view)]
@@ -1253,7 +1244,6 @@ itcl::body Rappture::VtkStreamlinesViewer::FixSettings { args } {
 #	server.
 #
 itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
-    puts stderr "AdjustSetting what=$what value=$value"
     if { ![isconnected] } {
 	return
     }
@@ -1276,6 +1266,13 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		SendCmd "polydata visible $bool $dataset"
             }
+	    if { $bool } {
+		Rappture::Tooltip::for $itk_component(volume) \
+		    "Hide the volume"
+	    } else {
+		Rappture::Tooltip::for $itk_component(volume) \
+		    "Show the volume"
+	    }
         }
         "volume-lighting" {
 	    set bool $_volume(lighting)
@@ -1317,7 +1314,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	"xcutplane-visible" - "ycutplane-visible" - "zcutplane-visible" {
 	    set axis [string range $what 0 0]
 	    set bool $_cutplane(${axis}visible)
-	    puts stderr "axis=$axis, bool=$bool"
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
@@ -1325,14 +1321,12 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 $itk_component(${axis}CutScale) configure -state disabled \
                     -troughcolor grey82
             }
-	    puts stderr "cutplane axis $axis $bool"
 	    SendCmd "cutplane axis $axis $bool"
 	    SendCmd "cutplane colormode vmag"
 	}
 	"xcutplane-position" - "ycutplane-position" - "zcutplane-position" {
 	    set axis [string range $what 0 0]
 	    set pos [expr $_cutplane(${axis}position) * 0.01]
-	    puts stderr "cutplane slice ${axis} ${pos}"
 	    SendCmd "cutplane slice ${axis} ${pos}"
 	    set _cutplanePending 0
 	}
@@ -1354,6 +1348,13 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		SendCmd "streamlines visible $bool $dataset"
             }
+	    if { $bool } {
+		Rappture::Tooltip::for $itk_component(streamlines) \
+		    "Hide the streamlines"
+	    } else {
+		Rappture::Tooltip::for $itk_component(streamlines) \
+		    "Show the streamlines"
+	    }
         }
         "streamlines-mode" {
 	    set mode [$itk_component(streammode) value]
@@ -1398,7 +1399,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		set mode vmag
 	    }
 	    foreach dataset [CurrentDatasets -visible $_first] {
-		puts stderr "streamlines colormode ${mode} $dataset"
 		SendCmd "dataset scalar ${field} $dataset"
 		SendCmd "streamlines colormode ${mode} $dataset"
 		SendCmd "streamlines colormode ${mode} $dataset"
@@ -1420,7 +1420,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #	to be vertical when drawn.
 #
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
-    puts stderr "RequestLegend mode=$mode"
     #puts stderr "RequestLegend _first=$_first"
     #puts stderr "RequestLegend width=$_width height=$_height"
     set font "Arial 8"
@@ -1446,7 +1445,6 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend { {mode vmag} } {
 # SetColormap --
 #
 itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
-    puts stderr "SetColormap dataobj=$dataobj comp=$comp"
     array set style {
         -color rainbow
         -levels 6
@@ -1465,7 +1463,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     }
     if { ![info exists _colormaps($colormap)] } {
 	# Build the pseudo colormap if it doesn't exist.
-	BuildColormap $colormap $dataobj $comp
+	BuildColormap $colormap $style(-color)
 	set _colormaps($colormap) 1
     }
     SendCmd "streamlines colormap $colormap $tag"
@@ -1473,27 +1471,88 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     return $colormap
 }
 
-#
-# BuildColormap --
-#
-itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { colormap dataobj comp } {
-    puts stderr "BuildColormap colormap=$colormap dataobj=$dataobj comp=$comp"
-    array set style {
-        -color rainbow
-        -levels 6
-        -opacity 1.0
+itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
+    switch -- $colors {
+	"blue-to-gray" {
+	    set clist {
+		\#0099cc \#66e5ff \#99ffff \#ccffff \#e5e5e5 \#999999 
+		\#666666 \#333333
+	    }
+	}
+	"blue" {
+	    set clist {
+		\#e5ffff \#ccfaff \#b2f2ff \#99e5ff \#7fd4ff \#66bfff 
+		\#4ca5ff \#3387ff \#1966ff \#003fff
+	    }
+	}
+	"blue-to-brown" {
+	    return {
+		0.0 		    		0.200   0.100   0.000 
+		0.09090909090909091 		0.400   0.187   0.000 
+		0.18181818181818182 		0.600   0.379   0.210 
+		0.2727272727272727  		0.800   0.608   0.480 
+		0.36363636363636365 		0.850   0.688   0.595 
+		0.45454545454545453 		0.950   0.855   0.808 
+		0.5454545454545454  		0.800   0.993   1.000 
+		0.6363636363636364  		0.600   0.973   1.000 
+		0.7272727272727273  		0.400   0.940   1.000 
+		0.8181818181818182  		0.200   0.893   1.000 
+		0.9090909090909091  		0.000   0.667   0.800 
+		1.0                 		0.000   0.480   0.600 
+	    }
+	}
+	"blue-to-orange" {
+	    return {
+		0.0 		    		0.000   0.167   1.000
+		0.09090909090909091 		0.100   0.400   1.000
+		0.18181818181818182 		0.200   0.600   1.000
+		0.2727272727272727  		0.400   0.800   1.000
+		0.36363636363636365 		0.600   0.933   1.000
+		0.45454545454545453 		0.800   1.000   1.000
+		0.5454545454545454  		1.000   1.000   0.800
+		0.6363636363636364  		1.000   0.933   0.600
+		0.7272727272727273  		1.000   0.800   0.400
+		0.8181818181818182  		1.000   0.600   0.200
+		0.9090909090909091  		1.000   0.400   0.100
+		1.0                 		1.000   0.167   0.000
+	    }
+	}
+	"rainbow" {
+	    set clist {
+		"red" "#FFA500" "yellow" "#008000" "blue" "#4B0082" "#EE82EE"
+	    }
+	}
+	"typical" {
+	    set clist {
+		"red" "#FFA500" "yellow" "#008000" "blue" 
+	    }
+	}
+	"greyscale" {
+	    return { 
+		0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
+	    }
+	}
+	"nanohub" {
+	    set clist "white yellow green cyan blue magenta"
+	}
+	default {
+	    set clist $color
+	}
     }
-    array set style [$dataobj style $comp]
-    if {$style(-color) == "rainbow"} {
-        set style(-color) "white:yellow:green:cyan:blue:magenta"
-    }
-    set clist [split $style(-color) :]
     set cmap {}
     for {set i 0} {$i < [llength $clist]} {incr i} {
         set x [expr {double($i)/([llength $clist]-1)}]
         set color [lindex $clist $i]
         append cmap "$x [Color2RGB $color] "
     }
+    return $cmap
+}
+
+#
+# BuildColormap --
+#
+itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { name colors } {
+    set cmap [ColorsToColormap $colors]
     if { [llength $cmap] == 0 } {
 	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
@@ -1503,7 +1562,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildColormap { colormap dataobj comp
     set max $_volume(opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
-    SendCmd "colormap add $colormap { $cmap } { $wmap }"
+    SendCmd "colormap add $name { $cmap } { $wmap }"
 }
 
 # ----------------------------------------------------------------------
@@ -1528,7 +1587,6 @@ itcl::configbody Rappture::VtkStreamlinesViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
-    puts stderr "[info level -1]: limits dataobj=$dataobj"
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
 	set tag $dataobj-$comp
@@ -1658,7 +1716,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 
     set inner [$itk_component(main) insert end \
         -title "Streams Settings" \
-        -icon [Rappture::icon stream]]
+        -icon [Rappture::icon streamlines-on]]
     $inner configure -borderwidth 4
 
     checkbutton $inner.streamlines \
@@ -1666,7 +1724,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         -variable [itcl::scope _streamlines(visible)] \
         -command [itcl::code $this AdjustSetting streamlines-visible] \
         -font "Arial 9"
-
+    
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _streamlines(lighting)] \
@@ -1945,7 +2003,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
 #  camera -- 
 #
 itcl::body Rappture::VtkStreamlinesViewer::camera {option args} {
-    puts stderr "camera option=$option args=$args"
     switch -- $option { 
         "show" {
             puts [array get _view]
@@ -2065,7 +2122,6 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildDownloadPopup { popup command } 
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
-    puts stderr "SetObjectStyle dataobj=$dataobj comp=$comp"
     # Parse style string.
     set tag $dataobj-$comp
     set style [$dataobj style $comp]
@@ -2141,7 +2197,7 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
-    puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
+    #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
     set _title $title
@@ -2169,6 +2225,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { title } {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
+    regsub {\(mag\)} $title "" title 
     if { $_settings(legend) } {
 	set x [expr $w - 2]
 	if { [$c find withtag "legend"] == "" } {
@@ -2203,14 +2260,11 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { title } {
 	    $c itemconfigure vmax -text [format %g $_limits(vmax)]
 	}
 	set y 2
-	puts stderr "$c coords title $x $y"
 	$c coords title $x $y
 	incr y $lineht
 	$c coords vmax $x $y
-	puts stderr "$c coords vmin $x $y"
 	incr y $lineht
 	$c coords colormap $x $y
-	puts stderr "$c coords vmin $x [expr {$h - 2}]"
 	$c coords vmin $x [expr {$h - 2}]
     }
 }
