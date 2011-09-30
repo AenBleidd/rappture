@@ -958,16 +958,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     }
     DoRotate
     PanCamera
-    set _first [lindex [get -objects] 0] 
-    if { $_reset || $_first == "" } {
-	Zoom reset
-	set _reset 0
-    }
+    set _first ""
     FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-	axis-visible axis-labels \
-	streamlines-seeds streamlines-visible streamlines-opacity \
-	volume-edges volume-lighting volume-opacity volume-visible \
-	volume-wireframe 
+	axis-visible axis-labels 
 
     SendCmd "imgflush"
 
@@ -1013,6 +1006,15 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 		SendCmd "axis units $axis $units"
 	    }
 	}
+    }
+    FixSettings streamlines-seeds streamlines-visible streamlines-opacity \
+	volume-edges volume-lighting volume-opacity volume-visible \
+	volume-wireframe streamlines-palette
+
+    set _first [lindex [get -objects] 0] 
+    if { $_reset || $_first == "" } {
+	Zoom reset
+	set _reset 0
     }
 	
     set _buffering 0;                        # Turn off buffering.
@@ -1454,7 +1456,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		SendCmd "dataset scalar ${field} $dataset"
 		SendCmd "streamlines colormode $_colorMode $dataset"
-		SendCmd "streamlines colormode $_colorMode $dataset"
+		SendCmd "cutplane colormode $_colorMode $dataset"
             }
 	    RequestLegend
         }
@@ -1690,6 +1692,24 @@ itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
 		"yellow" 
 		"#008000" 
 		"blue" 
+	    }
+	}
+	"RYGCB" {
+	    set clist {
+		"red" 
+		"yellow" 
+		"green"
+		"cyan"
+		"blue"
+	    }
+	}
+	"BCGYR" {
+	    set clist {
+		"blue" 
+		"cyan"
+		"green"
+		"yellow" 
+		"red" 
 	    }
 	}
 	"spectral" {
@@ -1982,6 +2002,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 	Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
+	"BCGYR"		     "BCGYR"		\
 	"BGYOR" 	     "BGYOR"		\
 	"blue" 		     "blue" 		\
 	"blue-to-brown"      "blue-to-brown"    \
@@ -1993,11 +2014,12 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
 	"rainbow" 	     "rainbow"		\
 	"spectral"	     "spectral"		\
 	"ROYGB" 	     "ROYGB"		\
+	"RYGCB"		     "RYGCB"		\
 	"brown-to-blue"      "brown-to-blue"    \
 	"grey-to-blue" 	     "grey-to-blue" 	\
 	"orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(palette) value "BGYOR"
+    $itk_component(palette) value "BCGYR"
     bind $inner.palette <<Value>> \
 	[itcl::code $this AdjustSetting streamlines-palette]
 

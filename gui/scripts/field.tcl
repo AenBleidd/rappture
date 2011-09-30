@@ -767,6 +767,27 @@ itcl::body Rappture::Field::_build {} {
             incr _counter
         } elseif {$type == "vtkstreamlines"} {
             set _comp2dims($cname) "3D"
+	    # Allow redirects to another element.
+            set vtkdata [$_field get $cname.vtk]
+	    if { ![string match "!*" $vtkdata] } {
+		set _comp2vtkstreamlines($cname) $vtkdata
+	    } else {
+		set path [string range $vtkdata 1 end]
+		if { [$_xmlobj element $path] == "" } {
+		    error "bad redirection path \"$path\""
+		}
+		puts stderr path=$path
+		set element [$_xmlobj element -as type $path]
+		if { $element != "vtk" } {
+		    error "bad path \"$path\": must redirect to a vtk element"
+		}
+		set _comp2vtkstreamlines($cname) [$_xmlobj get $path]
+		puts stderr "found [string length $_comp2vtkstreamlines($cname)] bytes in $path"
+	    }
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
+        } elseif {$type == "vtkstreamlines2"} {
+            set _comp2dims($cname) "3D"
             set _comp2vtkstreamlines($cname) [$_field get $cname.vtk]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
