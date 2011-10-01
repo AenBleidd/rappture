@@ -1379,15 +1379,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    set density $_streamlines(seeddensity)
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		foreach {dataobj comp} [split $dataset -] break
-                # This command works for either random or fmesh seeds
-                #SendCmd "streamlines seed numpts $density $dataset"
-		set seeds [$dataobj hints seeds]
-		if { $seeds != "" } {
-		    set length [string length $seeds]
-		    SendCmd "streamlines seed fmesh $density data follows $length $dataset"
-		    SendCmd "$seeds"
-		    set _seeds($dataobj) 1
-		}
+		# This command works for either random or fmesh seeds
+		SendCmd "streamlines seed numpts $density $dataset"
 	    }
         }
         "streamlines-visible" {
@@ -1450,11 +1443,13 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "streamlines-field" {
 	    set field [$itk_component(field) value]
 	    set _colorMode scalar
+	    set fieldType scalar
 	    if { $field == "U" } {
 		set _colorMode vmag
+		set fieldType vector
 	    }
 	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "dataset scalar ${field} $dataset"
+		SendCmd "dataset ${fieldType} ${field} $dataset"
 		SendCmd "streamlines colormode $_colorMode $dataset"
 		SendCmd "cutplane colormode $_colorMode $dataset"
             }
@@ -1547,19 +1542,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
 	set _dataset2style($tag) $name
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 itcl::body Rappture::VtkStreamlinesViewer::ColorsToColormap { colors } {
     switch -- $colors {
@@ -2267,12 +2249,12 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         "@[itcl::code $this Slice tooltip z]"
 
     blt::table $inner \
-        0,0 $inner.visible		-anchor w -pady 2 -cspan 3 \
-        1,0 $inner.lighting		-anchor w -pady 2 -cspan 3 \
-        2,0 $inner.wireframe		-anchor w -pady 2 -cspan 3 \
-        3,0 $inner.edges		-anchor w -pady 2 -cspan 3 \
-        4,0 $inner.opacity_l		-anchor w -pady 2 -cspan 3 \
-        5,0 $inner.opacity		-fill x   -pady 2 -cspan 3 \
+        0,0 $inner.visible		-anchor w -pady 2 -cspan 4 \
+        1,0 $inner.lighting		-anchor w -pady 2 -cspan 4 \
+        2,0 $inner.wireframe		-anchor w -pady 2 -cspan 4 \
+        3,0 $inner.edges		-anchor w -pady 2 -cspan 4 \
+        4,0 $inner.opacity_l		-anchor w -pady 2 -cspan 4 \
+        5,0 $inner.opacity		-fill x   -pady 2 -cspan 4 \
         6,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
         7,0 $itk_component(xCutScale)   -fill y \
         6,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
