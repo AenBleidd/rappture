@@ -2253,8 +2253,8 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildCutplaneTab {} {
         1,0 $inner.lighting		-anchor w -pady 2 -cspan 4 \
         2,0 $inner.wireframe		-anchor w -pady 2 -cspan 4 \
         3,0 $inner.edges		-anchor w -pady 2 -cspan 4 \
-        4,0 $inner.opacity_l		-anchor w -pady 2 -cspan 4 \
-        5,0 $inner.opacity		-fill x   -pady 2 -cspan 4 \
+        4,0 $inner.opacity_l		-anchor w -pady 2 -cspan 3 \
+        5,0 $inner.opacity		-fill x   -pady 2 -cspan 3 \
         6,0 $itk_component(xCutButton)  -anchor e -padx 2 -pady 2 \
         7,0 $itk_component(xCutScale)   -fill y \
         6,1 $itk_component(yCutButton)  -anchor e -padx 2 -pady 2 \
