@@ -610,6 +610,9 @@ void Streamlines::setSeedToFilledMesh(int numPoints)
  */
 void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
 {
+    if (seed != _dataSet->getVtkDataSet()) {
+        _seedType = MESH_POINTS;
+    }
     _seedMesh = NULL;
     if (_streamTracer != NULL) {
         TRACE("Seed points: %d", seed->GetNumberOfPoints());
@@ -648,6 +651,7 @@ void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
 {
     if (ds != _dataSet->getVtkDataSet()) {
         _seedMesh = ds;
+        _seedType = FILLED_MESH;
     } else {
         _seedMesh = NULL;
     }
