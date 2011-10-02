@@ -1494,6 +1494,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     if (_legendRenderWindow == NULL) {
         _legendRenderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+        _legendRenderWindow->SetMultiSamples(0);
 #ifdef USE_OFFSCREEN_RENDERING
         _legendRenderWindow->DoubleBufferOff();
         _legendRenderWindow->OffScreenRenderingOn();
@@ -1695,7 +1696,11 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         imgData->SetNumberOfValues(size);
     }
     glDisable(GL_TEXTURE_2D);
-    glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_renderWindow)->GetFrontLeftBuffer()));
+    if (_legendRenderWindow->GetDoubleBuffer()) {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_legendRenderWindow)->GetBackLeftBuffer()));
+    } else {
+        glReadBuffer(static_cast<GLenum>(vtkOpenGLRenderWindow::SafeDownCast(_legendRenderWindow)->GetFrontLeftBuffer()));
+    }
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     if (bytesPerPixel == 4) {
         glReadPixels(0, 0, width, height, GL_BGRA,
