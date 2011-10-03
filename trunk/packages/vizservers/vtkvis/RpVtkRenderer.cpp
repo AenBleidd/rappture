@@ -782,13 +782,18 @@ bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarNa
     }
 
     bool ret = true;
+    bool needRangeUpdate = false;
     do {
-        if (!itr->second->setActiveScalars(scalarName)) {
-            ret = false;
+        if (strcmp(itr->second->getActiveScalarsName(), scalarName) != 0) {
+            if (!itr->second->setActiveScalars(scalarName)) {
+                ret = false;
+            } else {
+                needRangeUpdate = true;
+            }
         }
     } while (doAll && ++itr != _dataSets.end());
 
-    if (ret) {
+    if (needRangeUpdate) {
          updateRanges();
         _needsRedraw = true;
     } 
@@ -814,13 +819,18 @@ bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorNa
     }
 
     bool ret = true;
+    bool needRangeUpdate = false;
     do {
-        if (!itr->second->setActiveVectors(vectorName)) {
-            ret = false;
+        if (strcmp(itr->second->getActiveVectorsName(), vectorName) != 0) {
+            if (!itr->second->setActiveVectors(vectorName)) {
+                ret = false;
+            } else {
+                needRangeUpdate = true;
+            }
         }
     } while (doAll && ++itr != _dataSets.end());
 
-    if (ret) {
+    if (needRangeUpdate) {
         updateRanges();
         _needsRedraw = true;
     } 
