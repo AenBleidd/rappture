@@ -265,6 +265,24 @@ proc Rappture::bugreport::remark {args} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: sanitize <string> ?<replacement>?
+#
+# Removes any sensitive information in the bug report.  This is useful
+# for things such as passwords that should be scrubbed out before any
+# ticket is filed.  Replaces the <string> with an optional <replacement>
+# string (or ******** by default).  This is usually called in some sort
+# of "catch" before forwarding the error on to the usual bgerror routine.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::sanitize {str {repl ********}} {
+    global errorInfo
+    variable extraInfo
+
+    set map [list $str $repl]
+    set errorInfo [string map $map $errorInfo]
+    set extraInfo [string map $map $extraInfo]
+}
+
+# ----------------------------------------------------------------------
 # USAGE: submit
 #
 # Takes details currently stored in the panel and registers them
