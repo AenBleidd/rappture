@@ -1698,7 +1698,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     
     $_dispatcher event -after 60000 !pngtimeout
     WaitIcon start $inner.icon
-    grab set -local $inner
+    grab set $inner
     focus $inner.cancel
     
     SendCmd "print $token $width $height $bgcolor"

@@ -979,6 +979,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
+    puts stderr "objects=[get -objects]"
     foreach dataobj [get -objects] {
 	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
 	    set _first $dataobj
@@ -1018,25 +1019,23 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 		SendCmd "axis units $axis $units"
 	    }
 	}
+	array unset _scalarFields
+	array unset _vectorFields
+	set _currentField [$_first hints default]
+	$itk_component(field) choices delete 0 end
+	array unset _fields
+	foreach { name title units } [$_first hints vectors] {
+	    set _vectorFields($title) $name
+	    $itk_component(field) choices insert end "$name" "$title"
+	    set _fields($name) [list $title $units]
+	}
+	foreach { name title units } [$_first hints scalars] {
+	    set _scalarFields($title) $name
+	    $itk_component(field) choices insert end "$name" "$title"
+	    set _fields($name) [list $title $units]
+	}
+	$itk_component(field) value $_currentField
     }
-    array unset _scalarFields
-    array set _scalarFields [$_first hints scalars]
-    array unset _vectorFields
-    array set _vectorFields [$_first hints vectors]
-    set _currentField [$_first hints default]
-    $itk_component(field) choices delete 0 end
-    array unset _fields
-    foreach name [array names _vectorFields] {
-	set value $_vectorFields($name)
-	$itk_component(field) choices insert end "$value" "$name"
-	set _fields($value) $name
-    }
-    foreach name [array names _scalarFields] {
-	set value $_scalarFields($name)
-	$itk_component(field) choices insert end "$value" "$name"
-	set _fields($value) $name
-    }
-    $itk_component(field) value $_currentField
 
     InitSettings streamlines-visible streamlines-palette volume-visible 
 
@@ -2504,6 +2503,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
     set _title $title
+    regsub {\(mag\)} $title "" _title 
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2511,7 +2511,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	DrawLegend $_currentField
+	DrawLegend $_title
     }
 }
 
@@ -2521,16 +2521,20 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
 #	Draws the legend in it's own canvas which resides to the right
 #	of the contour plot area.
 #
-itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { title } {
+itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { name } {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    regsub {\(mag\)} $title "" title 
-    if { [info exists _fields($title)] } {
-	set title $_fields($title)
+    if { [info exists _fields($name)] } {
+	foreach { title units } $_fields($name) break
+	if { $units != "" } {
+	    set title [format "%s (%s)" $title $units]
+	}
+    } else {
+	set title $name
     }
     if { $_settings(legend-visible) } {
 	set x [expr $w - 2]
@@ -2614,6 +2618,14 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     set imgX [expr $w - [image width $_image(legend)] - 2]
     set imgY [expr $y - 2 * ($lineht + 2)]
 
+    if { [info exists _fields($_title)] } {
+	foreach { title units } $_fields($_title) break
+	if { $units != "" } {
+	    set title [format "%s (%s)" $title $units]
+	}
+    } else {
+	set title $_title
+    }
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
 	#puts stderr "out of range: $imgY"
@@ -2632,7 +2644,7 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
-    Rappture::Tooltip::text $c "$_title $value"
+    Rappture::Tooltip::text $c "$title $value"
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
 
