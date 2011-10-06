@@ -509,7 +509,7 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         seeds   about.seeds
         scalars about.scalars
         vectors about.vectors
-        field   about.default
+        default about.default
         units   units
         updir   updir
         camera  camera.position
