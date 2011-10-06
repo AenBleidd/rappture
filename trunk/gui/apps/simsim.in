@@ -687,6 +687,11 @@ proc parseOptions {listVar returnVar} {
     }
 }
 
+proc storeoutput {data} {
+    global _d
+    append _d $data
+}
+
 proc main {argv} {
     # set default values
     array set presets []
@@ -758,19 +763,17 @@ proc main {argv} {
 
     set result ""
     # execute the job
-    foreach {status result} [eval $tool run] break
-
-    if {[string compare "" $params(--runfile)] != 0} {
-        set runfilename [$tool getRunFile]
-        set err [catch {file rename $runfilename $params(--runfile)} out]
-        if {$err} {
-            puts stderr $out
-        }
-    }
+    foreach {status result} [eval $tool run -output storeoutput] break
 
     # if run was successful, check to see if we should compare
     if {$status == 0 && $result != "ABORT"} {
-        if {[Rappture::library isvalid $result]} {
+        global _d
+        if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $_d match result]} {
+            if {[string compare "" $params(--runfile)] != 0} {
+                if {[catch {file rename $result $params(--runfile)} out]} {
+                    puts stderr "while moving $result to $params(--runfile): $out"
+                }
+            }
             # do comparison if user chose to compare with other results
             if {"" != $params(--compare)} {
                 compare $params(--compare) $result
