@@ -1018,6 +1018,20 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	    }
 	}
     }
+    array set _scalarFields [$_first hints scalars]
+    array set _vectorFields [$_first hints vectors]
+    set _currentField [$_first hints default]
+    $itk_component(field) choices delete 0 end
+    foreach name [array names _vectorFields] {
+	set value $_vectorFields($name)
+	$itk_component(field) choices insert end "$name" "$value"
+    }
+    foreach name [array names _scalarFields] {
+	set value $_scalarFields($name)
+	$itk_component(field) choices insert end "$name" "$value"
+    }
+    $itk_component(field) value $_currentField
+
     InitSettings streamlines-seeds streamlines-visible streamlines-opacity \
 	streamlines-numpoints streamlines-lighting streamlines-palette \
 	streamlines-field \
@@ -1802,18 +1816,6 @@ itcl::configbody Rappture::VtkStreamlinesViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
-    array set _scalarFields [$dataobj hints scalars]
-    array set _vectorFields [$dataobj hints vectors]
-    set _currentField [$dataobj hints default]
-    foreach name [array names _vectorFields] {
-	set value $_vectorFields($name)
-	$itk_component(field) choices insert end "$name" "$value"
-    }
-    foreach name [array names _scalarFields] {
-	set value $_scalarFields($name)
-	$itk_component(field) choices insert end "$name" "$value"
-    }
-    $itk_component(field) value $_currentField
     return
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
