@@ -154,7 +154,7 @@ proc Rappture::bugreport::activate {err} {
     wm deiconify .bugreport
     raise .bugreport
 
-    catch {grab set .bugreport}
+    catch {grab set -local .bugreport}
     update
 }
 

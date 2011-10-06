@@ -150,6 +150,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _outline
     private variable _vectorFields 
     private variable _scalarFields 
+    private variable _fields 
     private variable _currentField
     private variable _numSeeds 200
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
@@ -1018,23 +1019,27 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	    }
 	}
     }
+    array unset _scalarFields
     array set _scalarFields [$_first hints scalars]
+    array unset _vectorFields
     array set _vectorFields [$_first hints vectors]
     set _currentField [$_first hints default]
     $itk_component(field) choices delete 0 end
+    array unset _fields
     foreach name [array names _vectorFields] {
 	set value $_vectorFields($name)
 	$itk_component(field) choices insert end "$value" "$name"
+	set _fields($value) $name
     }
     foreach name [array names _scalarFields] {
 	set value $_scalarFields($name)
 	$itk_component(field) choices insert end "$value" "$name"
+	set _fields($value) $name
     }
     $itk_component(field) value $_currentField
 
     InitSettings streamlines-seeds streamlines-visible streamlines-opacity \
 	streamlines-numpoints streamlines-lighting streamlines-palette \
-	streamlines-field \
 	volume-edges volume-lighting volume-opacity volume-visible \
 	volume-wireframe \
 	cutplane-xvisible cutplane-yvisible cutplane-zvisible \
@@ -1465,21 +1470,28 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             }
         }
         "streamlines-field" {
-	    set field [$itk_component(field) value]
-	    set value [$itk_component(axismode) translate $field]
+	    set new [$itk_component(field) value]
+	    set value [$itk_component(axismode) translate $new]
+	    puts stderr "streamlines-field old field=$_currentField new field = $new value=$value"
 	    set _settings(streamlines-field) $value
-	    if { [info exists _scalarFields($field)] } {
-		set name $_scalarFields($field)
-		set colorMode scalar
+	    if { [info exists _scalarFields($new)] } {
+		set name $_scalarFields($new)
+		set _colorMode scalar
 		set fieldType scalar
-	    } elseif { [info exists _vectorFields($field)] } {
-		set name $_vectorFields($field)
+		set _currentField $new
+	    } elseif { [info exists _vectorFields($new)] } {
+		set name $_vectorFields($new)
 		set _colorMode vmag
 		set fieldType vector
+		set _currentField $new
 	    } else {
-		error "unknown field \"$field\""
+		puts stderr "unknown field \"$new\""
+		return
 	    }
 	    foreach dataset [CurrentDatasets -visible] {
+		puts stderr "dataset ${fieldType} ${name} $dataset"
+		puts stderr "streamlines colormode $_colorMode $dataset"
+		puts stderr "cutplane colormode $_colorMode $dataset"
 		SendCmd "dataset ${fieldType} ${name} $dataset"
 		SendCmd "streamlines colormode $_colorMode $dataset"
 		SendCmd "cutplane colormode $_colorMode $dataset"
@@ -2502,7 +2514,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	DrawLegend $title
+	DrawLegend $_currentField
     }
 }
 
@@ -2520,6 +2532,9 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { title } {
     set lineht [font metrics $font -linespace]
     
     regsub {\(mag\)} $title "" title 
+    if { [info exists _fields($title)] } {
+	set title $_fields($title)
+    }
     if { $_settings(legend-visible) } {
 	set x [expr $w - 2]
 	if { [$c find withtag "legend"] == "" } {
