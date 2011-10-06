@@ -785,7 +785,6 @@ itcl::body Rappture::Field::_build {} {
 		    error "bad path \"$path\": must redirect to a vtk element"
 		}
 		set _comp2vtkstreamlines($cname) [$_xmlobj get $path]
-		puts stderr "found [string length $_comp2vtkstreamlines($cname)] bytes in $path"
 	    }
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
