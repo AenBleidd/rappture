@@ -507,6 +507,9 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
         style   about.style
         scale   about.scale
         seeds   about.seeds
+        scalars about.scalars
+        vectors about.vectors
+        field   about.default
         units   units
         updir   updir
         camera  camera.position
