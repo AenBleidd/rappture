@@ -1024,11 +1024,11 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     $itk_component(field) choices delete 0 end
     foreach name [array names _vectorFields] {
 	set value $_vectorFields($name)
-	$itk_component(field) choices insert end "$name" "$value"
+	$itk_component(field) choices insert end "$value" "$name"
     }
     foreach name [array names _scalarFields] {
 	set value $_scalarFields($name)
-	$itk_component(field) choices insert end "$name" "$value"
+	$itk_component(field) choices insert end "$value" "$name"
     }
     $itk_component(field) value $_currentField
 
