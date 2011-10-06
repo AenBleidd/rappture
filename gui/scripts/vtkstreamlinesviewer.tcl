@@ -1038,14 +1038,15 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     }
     $itk_component(field) value $_currentField
 
-    InitSettings streamlines-seeds streamlines-visible streamlines-opacity \
-	streamlines-numpoints streamlines-lighting streamlines-palette \
-	volume-edges volume-lighting volume-opacity volume-visible \
-	volume-wireframe \
-	cutplane-xvisible cutplane-yvisible cutplane-zvisible \
-	cutplane-xposition cutplane-yposition cutplane-zposition 
+    InitSettings streamlines-visible streamlines-palette volume-visible 
 
-    if { $_reset || $_first == "" } {
+    if { $_reset } {
+	InitSettings streamlines-seeds streamlines-opacity \
+	    streamlines-numpoints streamlines-lighting \
+	    streamlines-palette streamlines-field \
+	    volume-edges volume-lighting volume-opacity volume-wireframe \
+	    cutplane-xvisible cutplane-yvisible cutplane-zvisible \
+	    cutplane-xposition cutplane-yposition cutplane-zposition 
 	Zoom reset
 	set _reset 0
     }
@@ -1472,7 +1473,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "streamlines-field" {
 	    set new [$itk_component(field) value]
 	    set value [$itk_component(axismode) translate $new]
-	    puts stderr "streamlines-field old field=$_currentField new field = $new value=$value"
 	    set _settings(streamlines-field) $value
 	    if { [info exists _scalarFields($new)] } {
 		set name $_scalarFields($new)
@@ -1489,9 +1489,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		return
 	    }
 	    foreach dataset [CurrentDatasets -visible] {
-		puts stderr "dataset ${fieldType} ${name} $dataset"
-		puts stderr "streamlines colormode $_colorMode $dataset"
-		puts stderr "cutplane colormode $_colorMode $dataset"
 		SendCmd "dataset ${fieldType} ${name} $dataset"
 		SendCmd "streamlines colormode $_colorMode $dataset"
 		SendCmd "cutplane colormode $_colorMode $dataset"
