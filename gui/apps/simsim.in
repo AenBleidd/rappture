@@ -770,7 +770,7 @@ proc main {argv} {
         global _d
         if {[regexp {=RAPPTURE-RUN=>([^\n]+)} $_d match result]} {
             if {[string compare "" $params(--runfile)] != 0} {
-                if {[catch {file rename $result $params(--runfile)} out]} {
+                if {[catch {file rename -force -- $result $params(--runfile)} out]} {
                     puts stderr "while moving $result to $params(--runfile): $out"
                 }
             }
