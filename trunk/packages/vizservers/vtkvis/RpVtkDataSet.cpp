@@ -528,7 +528,7 @@ bool DataSet::setActiveScalars(const char *name)
 /**
  * \brief Get the active scalar array field name
  */
-const char *DataSet::getActiveScalarsName()
+const char *DataSet::getActiveScalarsName() const
 {
     if (_dataSet != NULL) {
          if (_dataSet->GetPointData() != NULL &&
@@ -572,7 +572,7 @@ bool DataSet::setActiveVectors(const char *name)
 /**
  * \brief Get the active vector array field name
  */
-const char *DataSet::getActiveVectorsName()
+const char *DataSet::getActiveVectorsName() const
 {
     if (_dataSet != NULL) {
         if (_dataSet->GetPointData() != NULL &&
@@ -587,6 +587,55 @@ const char *DataSet::getActiveVectorsName()
         TRACE("No cell vectors");
     }
     return NULL;
+}
+
+/**
+ * \brief Get the list of field names in the DataSet
+ * 
+ * \param[in,out] names The field names will be appended to this list
+ * \param[in] type The DataAttributeType: e.g. POINT_DATA, CELL_DATA
+ * \param[in] numComponents Filter list by number of components, -1 means to
+ * return all fields regardless of dimension
+ */
+void DataSet::getFieldNames(std::vector<std::string>& names,
+                            DataAttributeType type, int numComponents) const
+{
+    if (_dataSet == NULL)
+        return;
+    switch (type) {
+    case POINT_DATA:
+        if (_dataSet->GetPointData() != NULL) {
+            for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
+                if (numComponents == -1 ||
+                    _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    names.push_back(_dataSet->GetPointData()->GetArrayName(i));
+                }
+            }
+        }
+        break;
+    case CELL_DATA:
+        if (_dataSet->GetCellData() != NULL) {
+            for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
+                if (numComponents == -1 ||
+                    _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    names.push_back(_dataSet->GetCellData()->GetArrayName(i));
+                }
+            }
+        }
+        break;
+    case FIELD_DATA:
+        if (_dataSet->GetFieldData() != NULL) {
+            for (int i = 0; i < _dataSet->GetFieldData()->GetNumberOfArrays(); i++) {
+                if (numComponents == -1 ||
+                    _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    names.push_back(_dataSet->GetFieldData()->GetArrayName(i));
+                }
+            }
+        }
+        break;
+    default:
+        ERROR("Unknown DataAttributeType %d", type);
+    }
 }
 
 /**
@@ -629,22 +678,48 @@ void DataSet::getVectorRange(double minmax[2], int component) const
  *
  * \param[out] minmax The data range
  * \param[in] fieldName The array name
+ * \param[in] type The DataAttributeType
  * \param[in] component The field component, -1 means magnitude
+ * \return boolean indicating if field was found
  */
-void DataSet::getDataRange(double minmax[2], const char *fieldName, int component) const
+bool DataSet::getDataRange(double minmax[2], const char *fieldName,
+                           DataAttributeType type, int component) const
 {
     if (_dataSet == NULL)
-        return;
-    if (_dataSet->GetPointData() != NULL &&
-        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetPointData()->GetArray(fieldName)->GetRange(minmax, component);
-    } else if (_dataSet->GetCellData() != NULL &&
-        _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetCellData()->GetArray(fieldName)->GetRange(minmax, component);
-    } else if (_dataSet->GetFieldData() != NULL &&
-        _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
-        _dataSet->GetFieldData()->GetArray(fieldName)->GetRange(minmax, component);
+        return false;
+    switch (type) {
+    case POINT_DATA:
+        if (_dataSet->GetPointData() != NULL &&
+            _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetPointData()->GetArray(fieldName)->GetRange(minmax, component);
+            return true;
+        } else {
+            return false;
+        }
+        break;
+    case CELL_DATA:
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetCellData()->GetArray(fieldName)->GetRange(minmax, component);
+            return true;
+        } else {
+            return false;
+        }
+        break;
+    case FIELD_DATA:
+        if (_dataSet->GetFieldData() != NULL &&
+            _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetFieldData()->GetArray(fieldName)->GetRange(minmax, component);
+            return true;
+        } else {
+            return false;
+        }
+        break;
+    default:
+        ERROR("Unknown DataAttributeType %d", type);
+        break;
     }
+    return false;
 }
 
 /**
@@ -705,7 +780,11 @@ void DataSet::getCellSizeRange(double minmax[2], double *average)
  *
  * Note: no interpolation is performed on data
  *
- * \return the value of the nearest point or 0 if no scalar data available
+ * \param[in] x World x coordinate to probe
+ * \param[in] y World y coordinate to probe
+ * \param[in] z World z coordinate to probe
+ * \param[out] value On success, contains the data value
+ * \return boolean indicating success or failure
  */
 bool DataSet::getScalarValue(double x, double y, double z, double *value) const
 {
