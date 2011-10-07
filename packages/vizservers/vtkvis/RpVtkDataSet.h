@@ -32,6 +32,11 @@ public:
         PLANE_ZY,
         PLANE_XZ
     };
+    enum DataAttributeType {
+        POINT_DATA,
+        CELL_DATA,
+        FIELD_DATA
+    };
     DataSet(const std::string& name);
     virtual ~DataSet();
 
@@ -61,15 +66,19 @@ public:
 
     bool setActiveScalars(const char *name);
 
-    const char *getActiveScalarsName();
+    const char *getActiveScalarsName() const;
 
     bool setActiveVectors(const char *name);
 
-    const char *getActiveVectorsName();
+    const char *getActiveVectorsName() const;
+
+    void getFieldNames(std::vector<std::string>& names,
+                       DataAttributeType type, int numComponents = -1) const;
+
+    bool getDataRange(double minmax[2], const char *fieldName,
+                      DataAttributeType type, int component = -1) const;
 
     void getScalarRange(double minmax[2]) const;
-
-    void getDataRange(double minmax[2], const char *fieldName, int component = -1) const;
 
     void getVectorRange(double minmax[2], int component = -1) const;
 
