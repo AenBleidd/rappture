@@ -1466,7 +1466,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         "streamlines-lighting" {
 	    set bool $_settings(streamlines-lighting)
 	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "streamlines lighting $bool"
+		SendCmd "streamlines lighting $bool $dataset"
             }
         }
         "streamlines-field" {
@@ -2679,10 +2679,3 @@ itcl::body Rappture::VtkStreamlinesViewer::Slice {option args} {
         }
     }
 }
-
-proc name { mesg } {
-    SendBytes $mesg
-}
-
-
- 
