@@ -115,7 +115,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _outbuf       ;	# buffer for outgoing commands
 
     private variable _dlist ""     ;	# list of data objects
-    private variable _allDataObjs
     private variable _obj2datasets
     private variable _obj2ovride   ;	# maps dataobj => style override
     private variable _datasets     ;	# contains all the dataobj-component 
@@ -568,7 +567,6 @@ itcl::body Rappture::VtkStreamlinesViewer::add {dataobj {settings ""}} {
     if {$pos < 0} {
 	lappend _dlist $dataobj
     }
-    set _allDataObjs($dataobj) 1
     set _obj2ovride($dataobj-color) $params(-color)
     set _obj2ovride($dataobj-width) $params(-width)
     set _obj2ovride($dataobj-raise) $params(-raise)
@@ -831,6 +829,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
+    array unset _seeds 
+    array unset _dataset2style 
+    array unset _obj2datasets 
 }
 
 #
@@ -979,7 +980,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
-    puts stderr "objects=[get -objects]"
     foreach dataobj [get -objects] {
 	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
 	    set _first $dataobj
