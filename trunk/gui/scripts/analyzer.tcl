@@ -435,7 +435,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
         # Try to create a support ticket for this error.
         # It may be a real problem.
         if {[Rappture::bugreport::shouldReport for jobs]} {
-            set ::errorInfo "== RAPPTURE INPUT ==\n[$_tool xml xml]"
+            set ::errorInfo "\n\n== RAPPTURE INPUT ==\n[$_tool xml xml]"
             Rappture::bugreport::register "Problem launching job:\n$result"
             Rappture::bugreport::send
         }
