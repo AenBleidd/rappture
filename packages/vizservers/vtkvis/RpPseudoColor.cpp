@@ -6,6 +6,7 @@
  */
 
 #include <cassert>
+#include <cfloat>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
@@ -23,6 +24,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "RpPseudoColor.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 #define MESH_POINT_CLOUDS
@@ -31,9 +33,13 @@ using namespace Rappture::VtkVis;
 
 PseudoColor::PseudoColor() :
     VtkGraphicsObject(),
+    _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
-    _colorMap(NULL)
+    _colorFieldType(DataSet::POINT_DATA),
+    _renderer(NULL)
 {
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
 }
 
 PseudoColor::~PseudoColor()
@@ -47,22 +53,24 @@ PseudoColor::~PseudoColor()
 }
 
 void PseudoColor::setDataSet(DataSet *dataSet,
-                             bool useCumulative,
-                             double scalarRange[2],
-                             double vectorMagnitudeRange[2],
-                             double vectorComponentRange[3][2])
+                             Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
-        if (useCumulative) {
-            _dataRange[0] = scalarRange[0];
-            _dataRange[1] = scalarRange[1];
-            _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-            _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+        _renderer = renderer;
+
+        if (renderer->getUseCumulativeRange()) {
+            renderer->getCumulativeDataRange(_dataRange,
+                                             _dataSet->getActiveScalarsName(),
+                                             1);
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             _dataSet->getActiveVectorsName(),
+                                             3);
             for (int i = 0; i < 3; i++) {
-                _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-                _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -101,19 +109,19 @@ void PseudoColor::update()
             pd->GetNumberOfPolys() == 0 &&
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
-            DataSet::PrincipalPlane plane;
+            PrincipalPlane plane;
             double offset;
             if (_dataSet->is2D(&plane, &offset)) {
 #ifdef MESH_POINT_CLOUDS
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == DataSet::PLANE_ZY) {
+                if (plane == PLANE_ZY) {
                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                     trans->RotateWXYZ(90, 0, 1, 0);
                     if (offset != 0.0) {
                         trans->Translate(-offset, 0, 0);
                     }
                     mesher->SetTransform(trans);
-                } else if (plane == DataSet::PLANE_XZ) {
+                } else if (plane == PLANE_XZ) {
                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                     trans->RotateWXYZ(-90, 1, 0, 0);
                     if (offset != 0.0) {
@@ -135,10 +143,10 @@ void PseudoColor::update()
                 int dims[3];
                 splatter->GetSampleDimensions(dims);
                 TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                if (plane == DataSet::PLANE_ZY) {
+                if (plane == PLANE_ZY) {
                     dims[0] = 3;
                     slicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
-                } else if (plane == DataSet::PLANE_XZ) {
+                } else if (plane == PLANE_XZ) {
                     dims[1] = 3;
                     slicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
                 } else {
@@ -190,19 +198,19 @@ void PseudoColor::update()
     _dsMapper->Update();
 }
 
-void PseudoColor::updateRanges(bool useCumulative,
-                               double scalarRange[2],
-                               double vectorMagnitudeRange[2],
-                               double vectorComponentRange[3][2])
+void PseudoColor::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-        _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-        _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                         _dataSet->getActiveVectorsName(),
+                                         3);
         for (int i = 0; i < 3; i++) {
-            _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-            _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                             _dataSet->getActiveVectorsName(),
+                                             3, i);
         }
     } else if (_dataSet != NULL) {
         _dataSet->getScalarRange(_dataRange);
@@ -212,91 +220,166 @@ void PseudoColor::updateRanges(bool useCumulative,
         }
     }
 
-    // Need to update color map ranges and/or active vector field
-    setColorMode(_colorMode);
+    // Need to update color map ranges
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
 }
 
 void PseudoColor::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
+    if (_dataSet == NULL)
+        return;
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsType(),
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    case COLOR_CONSTANT:
+    default:
+        setColorMode(mode, DataSet::POINT_DATA, NULL, NULL);
+        break;
+    }
+}
+
+void PseudoColor::setColorMode(ColorMode mode,
+                               const char *name, double range[2])
+{
+    if (_dataSet == NULL)
+        return;
+    DataSet::DataAttributeType type;
+    int numComponents;
+    if (!_dataSet->getFieldInfo(name, &type, &numComponents)) {
+        ERROR("Field not found: %s", name);
+        return;
+    }
+    setColorMode(mode, type, name, range);
+}
+
+void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                               const char *name, double range[2])
+{
+    _colorMode = mode;
+    _colorFieldType = type;
+    _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
     if (_dataSet == NULL || _dsMapper == NULL)
         return;
 
-    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    switch (type) {
+    case DataSet::POINT_DATA:
+        _dsMapper->SetScalarModeToUsePointFieldData();
+        break;
+    case DataSet::CELL_DATA:
+        _dsMapper->SetScalarModeToUseCellFieldData();
+        break;
+    default:
+        ERROR("Unsupported DataAttributeType: %d", type);
+        return;
+    }
 
-    switch (mode) {
-    case COLOR_BY_SCALAR: {
-        _dsMapper->ScalarVisibilityOn();
+    if (name != NULL) {
+        _dsMapper->SelectColorArray(name);
+    } else {
         _dsMapper->SetScalarModeToDefault();
-        if (_lut != NULL) {
-            _lut->SetRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (name != NULL) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            _lut->SetRange(r);
         }
     }
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        _dsMapper->ScalarVisibilityOn();
+        _dsMapper->SetScalarModeToDefault();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE: {
         _dsMapper->ScalarVisibilityOn();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUsePointFieldData();
-            _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUseCellFieldData();
-            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorMagnitudeRange);
             _lut->SetVectorModeToMagnitude();
         }
     }
         break;
     case COLOR_BY_VECTOR_X:
         _dsMapper->ScalarVisibilityOn();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUsePointFieldData();
-            _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUseCellFieldData();
-            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[0]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
         _dsMapper->ScalarVisibilityOn();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUsePointFieldData();
-            _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUseCellFieldData();
-            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[1]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
         _dsMapper->ScalarVisibilityOn();
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUsePointFieldData();
-            _dsMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            _dsMapper->SetScalarModeToUseCellFieldData();
-            _dsMapper->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[2]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
         }
@@ -332,33 +415,49 @@ void PseudoColor::setColorMap(ColorMap *cmap)
             _dsMapper->UseLookupTableScalarRangeOn();
             _dsMapper->SetLookupTable(_lut);
         }
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_CONSTANT:
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
     }
 
-    _lut->DeepCopy(cmap->getLookupTable());
-
     switch (_colorMode) {
-    case COLOR_CONSTANT:
-    case COLOR_BY_SCALAR:
-        _lut->SetRange(_dataRange);
-        break;
     case COLOR_BY_VECTOR_MAGNITUDE:
         _lut->SetVectorModeToMagnitude();
-        _lut->SetRange(_vectorMagnitudeRange);
         break;
     case COLOR_BY_VECTOR_X:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(0);
-        _lut->SetRange(_vectorComponentRange[0]);
         break;
     case COLOR_BY_VECTOR_Y:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(1);
-        _lut->SetRange(_vectorComponentRange[1]);
         break;
     case COLOR_BY_VECTOR_Z:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(2);
-        _lut->SetRange(_vectorComponentRange[2]);
         break;
     default:
          break;

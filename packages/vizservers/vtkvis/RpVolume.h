@@ -52,10 +52,7 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
 private:
     virtual void initProp();

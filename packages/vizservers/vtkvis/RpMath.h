@@ -207,6 +207,16 @@ inline void copyQuat(const double quat[4], double result[4])
     memcpy(result, quat, sizeof(double)*4);
 }
 
+inline double min2(double a, double b)
+{
+    return ((a < b) ? a : b);
+}
+
+inline double max2(double a, double b)
+{
+    return ((a > b) ? a : b);
+}
+
 }
 }
 

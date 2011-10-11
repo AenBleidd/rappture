@@ -17,6 +17,7 @@
 #include <vtkPlane.h>
 
 #include "ColorMap.h"
+#include "RpTypes.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -29,11 +30,6 @@ namespace VtkVis {
  */
 class Cutplane : public VtkGraphicsObject {
 public:
-    enum Axis {
-        X_AXIS,
-        Y_AXIS,
-        Z_AXIS
-    };
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
@@ -51,16 +47,19 @@ public:
     }
 
     virtual void setDataSet(DataSet *dataSet,
-                            bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2]);
+                            Renderer *renderer);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void selectVolumeSlice(Axis axis, double ratio);
 
     void setSliceVisibility(Axis axis, bool state);
+
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
 
     void setColorMode(ColorMode mode);
 
@@ -76,19 +75,20 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
 private:
     virtual void initProp();
     virtual void update();
 
-    ColorMode _colorMode;
     ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
+    Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _actor[3];
