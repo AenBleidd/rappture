@@ -400,17 +400,9 @@ void LIC::setColorMap(ColorMap *cmap)
     _lut->SetRange(_dataRange);
 }
 
-void LIC::updateRanges(bool useCumulative,
-                       double scalarRange[2],
-                       double vectorMagnitudeRange[2],
-                       double vectorComponentRange[3][2])
+void LIC::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-    } else if (_dataSet != NULL) {
-        _dataSet->getScalarRange(_dataRange);
-    }
+    VtkGraphicsObject::updateRanges(renderer);
 
     if (_lut != NULL) {
         _lut->SetRange(_dataRange);

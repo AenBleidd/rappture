@@ -8,6 +8,11 @@
 #ifndef __RAPPTURE_VTKVIS_RENDERER_H__
 #define __RAPPTURE_VTKVIS_RENDERER_H__
 
+#include <string>
+#include <vector>
+#include <tr1/unordered_map>
+#include <typeinfo>
+
 #include <vtkSmartPointer.h>
 #include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
@@ -20,11 +25,8 @@
 #include <vtkRenderWindow.h>
 #include <vtkUnsignedCharArray.h>
 
-#include <string>
-#include <vector>
-#include <tr1/unordered_map>
-
 #include "ColorMap.h"
+#include "RpTypes.h"
 #include "RpVtkDataSet.h"
 #include "RpContour2D.h"
 #include "RpContour3D.h"
@@ -55,18 +57,6 @@ public:
     Renderer();
     virtual ~Renderer();
 
-    enum Axis {
-        X_AXIS,
-        Y_AXIS,
-        Z_AXIS
-    };
-
-    enum PrincipalPlane {
-        PLANE_XY,
-        PLANE_ZY,
-        PLANE_XZ
-    };
-
     enum AxesFlyMode {
         FLY_OUTER_EDGES = 0,
         FLY_CLOSEST_TRIAD,
@@ -88,16 +78,18 @@ public:
     };
 
     enum LegendType {
-        ACTIVE_SCALAR,
-        ACTIVE_VECTOR_MAGNITUDE,
-        ACTIVE_VECTOR_X,
-        ACTIVE_VECTOR_Y,
-        ACTIVE_VECTOR_Z
+        LEGEND_SCALAR,
+        LEGEND_VECTOR_MAGNITUDE,
+        LEGEND_VECTOR_X,
+        LEGEND_VECTOR_Y,
+        LEGEND_VECTOR_Z
     };
 
     typedef std::string DataSetId;
     typedef std::string ColorMapId;
+    typedef std::string FieldId;
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
+    typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
@@ -146,6 +138,17 @@ public:
     void setDataSetVisibility(const DataSetId& id, bool state);
 
     void setUseCumulativeDataRange(bool state, bool onlyVisible = false);
+
+    bool getUseCumulativeRange();
+
+    bool getCumulativeDataRange(double *range, const char *name,
+                                int numComponents,
+                                int component = -1);
+
+    bool getCumulativeDataRange(double *range, const char *name,
+                                DataSet::DataAttributeType type,
+                                int numComponents,
+                                int component = -1);
 
     // Render window
 
@@ -260,41 +263,110 @@ public:
     bool renderColorMap(const ColorMapId& id, 
                         const DataSetId& dataSetID,
                         LegendType legendType,
+                        const char *fieldName,
+                        DataSet::DataAttributeType type,
                         std::string& title,
                         double range[2],
                         int width, int height,
                         int numLabels,
                         vtkUnsignedCharArray *imgData);
 
+    bool renderColorMap(const ColorMapId& id, 
+                        const DataSetId& dataSetID,
+                        LegendType legendType,
+                        const char *fieldName,
+                        std::string& title,
+                        double range[2],
+                        int width, int height,
+                        int numLabels,
+                        vtkUnsignedCharArray *imgData);
+
+    bool renderColorMap(const ColorMapId& id, 
+                        const DataSetId& dataSetID,
+                        LegendType legendType,
+                        std::string& title,
+                        double range[2],
+                        int width, int height,
+                        int numLabels,
+                        vtkUnsignedCharArray *imgData);
+
+    // Generic VtkGraphicsObject methods
+
+    template<class GraphicsObject>
+    GraphicsObject *getGraphicsObject(const DataSetId& id);
+
+    template<class GraphicsObject>
+    bool addGraphicsObject(const DataSetId& id);
+
+    template<class GraphicsObject>
+    void deleteGraphicsObject(const DataSetId& id);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, double ratio);
+
+    //   Prop/Prop3D properties
+
+    template<class GraphicsObject>
+    void setGraphicsObjectOrientation(const DataSetId& id, double quat[4]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectOrientation(const DataSetId& id, double angle, double axis[3]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectPosition(const DataSetId& id, double pos[3]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectScale(const DataSetId& id, double scale[3]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *trans);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectVisibility(const DataSetId& id, bool state);
+
+    //   Actor properties
+
+    template<class GraphicsObject>
+    void setGraphicsObjectColor(const DataSetId& id, float color[3]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectEdgeColor(const DataSetId& id, float color[3]);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectAmbient(const DataSetId& id, double coeff);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectDiffuse(const DataSetId& id, double coeff);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectSpecular(const DataSetId& id, double coeff, double power);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectLighting(const DataSetId& id, bool state);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectOpacity(const DataSetId& id, double opacity);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectPointSize(const DataSetId& id, float size);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectWireframe(const DataSetId& id, bool state);
+
     // 2D Contour plots
 
     bool addContour2D(const DataSetId& id, int numContours);
 
     bool addContour2D(const DataSetId& id, const std::vector<double>& contours);
-
-    void deleteContour2D(const DataSetId& id);
-
-    Contour2D *getContour2D(const DataSetId& id);
-
-    void setContour2DTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setContour2DOrientation(const DataSetId& id, double quat[4]);
-
-    void setContour2DOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setContour2DPosition(const DataSetId& id, double pos[3]);
-
-    void setContour2DScale(const DataSetId& id, double scale[3]);
-
-    void setContour2DColor(const DataSetId& id, float color[3]);
-
-    void setContour2DEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setContour2DLighting(const DataSetId& id, bool state);
-    
-    void setContour2DOpacity(const DataSetId& id, double opacity);
-
-    void setContour2DVisibility(const DataSetId& id, bool state);
 
     void setContour2DContours(const DataSetId& id, int numContours);
 
@@ -306,117 +378,26 @@ public:
 
     bool addContour3D(const DataSetId& id, const std::vector<double>& contours);
 
-    void deleteContour3D(const DataSetId& id);
-
-    Contour3D *getContour3D(const DataSetId& id);
-
-    void setContour3DTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setContour3DOrientation(const DataSetId& id, double quat[4]);
-
-    void setContour3DOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setContour3DPosition(const DataSetId& id, double pos[3]);
-
-    void setContour3DScale(const DataSetId& id, double scale[3]);
-
-    void setContour3DColor(const DataSetId& id, float color[3]);
-
-    void setContour3DEdgeVisibility(const DataSetId& id, bool state);
-
-    void setContour3DEdgeColor(const DataSetId& id, float color[3]);
-
-    void setContour3DEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setContour3DLighting(const DataSetId& id, bool state);
-
-    void setContour3DOpacity(const DataSetId& id, double opacity);
-
-    void setContour3DVisibility(const DataSetId& id, bool state);
-
-    void setContour3DWireframe(const DataSetId& id, bool state);
-
     void setContour3DContours(const DataSetId& id, int numContours);
 
     void setContour3DContourList(const DataSetId& id, const std::vector<double>& contours);
 
-    void setContour3DColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
     // Cutplanes
 
-    bool addCutplane(const DataSetId& id);
-    
-    void deleteCutplane(const DataSetId& id);
+    void setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state);
 
-    Cutplane *getCutplane(const DataSetId& id);
+    void setCutplaneColorMode(const DataSetId& id,
+                              Cutplane::ColorMode mode,
+                              const char *name, double range[2] = NULL);
 
-    void setCutplaneTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setCutplaneOrientation(const DataSetId& id, double quat[4]);
-
-    void setCutplaneOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setCutplanePosition(const DataSetId& id, double pos[3]);
-
-    void setCutplaneScale(const DataSetId& id, double scale[3]);
-
-    void setCutplaneEdgeVisibility(const DataSetId& id, bool state);
-
-    void setCutplaneEdgeColor(const DataSetId& id, float color[3]);
-
-    void setCutplaneEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setCutplaneLighting(const DataSetId& id, bool state);
-
-    void setCutplaneOpacity(const DataSetId& id, double opacity);
-
-    void setCutplaneVisibility(const DataSetId& id, bool state);
-
-    void setCutplaneWireframe(const DataSetId& id, bool state);
-
-    void setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, double ratio);
-
-    void setCutplaneSliceVisibility(const DataSetId& id, Cutplane::Axis axis, bool state);
-
-    void setCutplaneColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
-    void setCutplaneColorMode(const DataSetId& id, Cutplane::ColorMode mode);
+    void setCutplaneColorMode(const DataSetId& id,
+                              Cutplane::ColorMode mode,
+                              DataSet::DataAttributeType type,
+                              const char *name, double range[2] = NULL);
 
     // Glyphs
 
     bool addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape);
-
-    void deleteGlyphs(const DataSetId& id);
-
-    Glyphs *getGlyphs(const DataSetId& id);
-
-    void setGlyphsTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setGlyphsOrientation(const DataSetId& id, double quat[4]);
-
-    void setGlyphsOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setGlyphsPosition(const DataSetId& id, double pos[3]);
-
-    void setGlyphsScale(const DataSetId& id, double scale[3]);
-
-    void setGlyphsColor(const DataSetId& id, float color[3]);
-
-    void setGlyphsEdgeVisibility(const DataSetId& id, bool state);
-
-    void setGlyphsEdgeColor(const DataSetId& id, float color[3]);
-
-    void setGlyphsEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setGlyphsLighting(const DataSetId& id, bool state);
-
-    void setGlyphsOpacity(const DataSetId& id, double opacity);
-
-    void setGlyphsVisibility(const DataSetId& id, bool state);
-
-    void setGlyphsWireframe(const DataSetId& id, bool state);
-
-    void setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     void setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape);
 
@@ -434,39 +415,7 @@ public:
 
     bool addHeightMap(const DataSetId& id, const std::vector<double>& contours, double heightScale);
 
-    void deleteHeightMap(const DataSetId& id);
-
-    HeightMap *getHeightMap(const DataSetId& id);
-
-    void setHeightMapTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setHeightMapOrientation(const DataSetId& id, double quat[4]);
-
-    void setHeightMapOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setHeightMapPosition(const DataSetId& id, double pos[3]);
-
-    void setHeightMapScale(const DataSetId& id, double scale[3]);
-    
-    void setHeightMapEdgeVisibility(const DataSetId& id, bool state);
-
-    void setHeightMapEdgeColor(const DataSetId& id, float color[3]);
-
-    void setHeightMapEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setHeightMapLighting(const DataSetId& id, bool state);
-
-    void setHeightMapOpacity(const DataSetId& id, double opacity);
-
-    void setHeightMapVisibility(const DataSetId& id, bool state);
-
-    void setHeightMapWireframe(const DataSetId& id, bool state);
-
-    void setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis, double ratio);
-
     void setHeightMapHeightScale(const DataSetId& id, double scale);
-
-    void setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     void setHeightMapNumContours(const DataSetId& id, int numContours);
 
@@ -480,73 +429,7 @@ public:
 
     void setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth);
 
-    // LIC plots
-
-    bool addLIC(const DataSetId& id);
-    
-    void deleteLIC(const DataSetId& id);
-
-    LIC *getLIC(const DataSetId& id);
-
-    void setLICTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setLICOrientation(const DataSetId& id, double quat[4]);
-
-    void setLICOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setLICPosition(const DataSetId& id, double pos[3]);
-
-    void setLICScale(const DataSetId& id, double scale[3]);
-
-    void setLICEdgeVisibility(const DataSetId& id, bool state);
-    
-    void setLICEdgeColor(const DataSetId& id, float color[3]);
-
-    void setLICEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setLICLighting(const DataSetId& id, bool state);
-
-    void setLICOpacity(const DataSetId& id, double opacity);
-
-    void setLICVisibility(const DataSetId& id, bool state);
-
-    void setLICVolumeSlice(const DataSetId& id, LIC::Axis axis, double ratio);
-
-    void setLICColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
     // Molecules
-
-    bool addMolecule(const DataSetId& id);
-    
-    void deleteMolecule(const DataSetId& id);
-
-    Molecule *getMolecule(const DataSetId& id);
-
-    void setMoleculeTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setMoleculeOrientation(const DataSetId& id, double quat[4]);
-
-    void setMoleculeOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setMoleculePosition(const DataSetId& id, double pos[3]);
-
-    void setMoleculeScale(const DataSetId& id, double scale[3]);
-    
-    void setMoleculeEdgeVisibility(const DataSetId& id, bool state);
-
-    void setMoleculeEdgeColor(const DataSetId& id, float color[3]);
-
-    void setMoleculeEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setMoleculeLighting(const DataSetId& id, bool state);
-
-    void setMoleculeOpacity(const DataSetId& id, double opacity);
-
-    void setMoleculeVisibility(const DataSetId& id, bool state);
-
-    void setMoleculeWireframe(const DataSetId& id, bool state);
-
-    void setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorMapId);
 
     void setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling);
 
@@ -554,111 +437,18 @@ public:
 
     void setMoleculeBondVisibility(const DataSetId& id, bool state);
 
-    // PolyData Meshes
-
-    bool addPolyData(const DataSetId& id);
-    
-    void deletePolyData(const DataSetId& id);
-
-    PolyData *getPolyData(const DataSetId& id);
-
-    void setPolyDataTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setPolyDataOrientation(const DataSetId& id, double quat[4]);
-
-    void setPolyDataOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setPolyDataPosition(const DataSetId& id, double pos[3]);
-
-    void setPolyDataScale(const DataSetId& id, double scale[3]);
-
-    void setPolyDataColor(const DataSetId& id, float color[3]);
-
-    void setPolyDataEdgeVisibility(const DataSetId& id, bool state);
-
-    void setPolyDataEdgeColor(const DataSetId& id, float color[3]);
-
-    void setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setPolyDataPointSize(const DataSetId& id, float size);
-
-    void setPolyDataLighting(const DataSetId& id, bool state);
-
-    void setPolyDataOpacity(const DataSetId& id, double opacity);
-
-    void setPolyDataVisibility(const DataSetId& id, bool state);
-
-    void setPolyDataWireframe(const DataSetId& id, bool state);
-
     // Color-mapped surfaces
 
-    bool addPseudoColor(const DataSetId& id);
+    void setPseudoColorColorMode(const DataSetId& id,
+                                 PseudoColor::ColorMode mode,
+                                 const char *name, double range[2] = NULL);
 
-    void deletePseudoColor(const DataSetId& id);
-
-    PseudoColor *getPseudoColor(const DataSetId& id);
-
-    void setPseudoColorTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setPseudoColorOrientation(const DataSetId& id, double quat[4]);
-
-    void setPseudoColorOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setPseudoColorPosition(const DataSetId& id, double pos[3]);
-
-    void setPseudoColorScale(const DataSetId& id, double scale[3]);
-
-    void setPseudoColorColor(const DataSetId& id, float color[3]);
-
-    void setPseudoColorEdgeVisibility(const DataSetId& id, bool state);
-
-    void setPseudoColorEdgeColor(const DataSetId& id, float color[3]);
-
-    void setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setPseudoColorLighting(const DataSetId& id, bool state);
-    
-    void setPseudoColorOpacity(const DataSetId& id, double opacity);
-
-    void setPseudoColorVisibility(const DataSetId& id, bool state);
-
-    void setPseudoColorWireframe(const DataSetId& id, bool state);
-
-    void setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
-    void setPseudoColorColorMode(const DataSetId& id, PseudoColor::ColorMode mode);
+    void setPseudoColorColorMode(const DataSetId& id,
+                                 PseudoColor::ColorMode mode,
+                                 DataSet::DataAttributeType type,
+                                 const char *name, double range[2] = NULL);
 
     // Streamlines
-
-    bool addStreamlines(const DataSetId& id);
-
-    void deleteStreamlines(const DataSetId& id);
-
-    Streamlines *getStreamlines(const DataSetId& id);
-
-    void setStreamlinesTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setStreamlinesOrientation(const DataSetId& id, double quat[4]);
-
-    void setStreamlinesOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setStreamlinesPosition(const DataSetId& id, double pos[3]);
-
-    void setStreamlinesScale(const DataSetId& id, double scale[3]);
-
-    void setStreamlinesColor(const DataSetId& id, float color[3]);
-
-    void setStreamlinesEdgeVisibility(const DataSetId& id, bool state);
-
-    void setStreamlinesEdgeColor(const DataSetId& id, float color[3]);
-
-    void setStreamlinesEdgeWidth(const DataSetId& id, float edgeWidth);
-
-    void setStreamlinesLighting(const DataSetId& id, bool state);
-
-    void setStreamlinesOpacity(const DataSetId& id, double opacity);
-
-    void setStreamlinesVisibility(const DataSetId& id, bool state);
 
     void setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints);
 
@@ -702,73 +492,44 @@ public:
 
     void setStreamlinesSeedVisibility(const DataSetId& id, bool state);
 
-    void setStreamlinesColorMode(const DataSetId& id, Streamlines::ColorMode mode);
+    void setStreamlinesColorMode(const DataSetId& id,
+                                 Streamlines::ColorMode mode,
+                                 const char *name, double range[2] = NULL);
 
-    void setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+    void setStreamlinesColorMode(const DataSetId& id,
+                                 Streamlines::ColorMode mode,
+                                 DataSet::DataAttributeType type,
+                                 const char *name, double range[2] = NULL);
 
     void setStreamlinesSeedColor(const DataSetId& id, float color[3]);
 
-    // Volumes
-
-    bool addVolume(const DataSetId& id);
-
-    void deleteVolume(const DataSetId& id);
-
-    Volume *getVolume(const DataSetId& id);
-
-    void setVolumeTransform(const DataSetId& id, vtkMatrix4x4 *trans);
-
-    void setVolumeOrientation(const DataSetId& id, double quat[4]);
-
-    void setVolumeOrientation(const DataSetId& id, double angle, double axis[3]);
-
-    void setVolumePosition(const DataSetId& id, double pos[3]);
-
-    void setVolumeScale(const DataSetId& id, double scale[3]);
-
-    void setVolumeAmbient(const DataSetId& id, double coeff);
-
-    void setVolumeDiffuse(const DataSetId& id, double coeff);
-
-    void setVolumeSpecular(const DataSetId& id, double coeff, double power);
-
-    void setVolumeLighting(const DataSetId& id, bool state);
-    
-    void setVolumeOpacity(const DataSetId& id, double opacity);
-
-    void setVolumeVisibility(const DataSetId& id, bool state);
-
-    void setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMapId);
-
 private:
     static void printCameraInfo(vtkCamera *camera);
-    static inline double min2(double a, double b)
-    {
-        return ((a < b) ? a : b);
-    }
-    static inline double max2(double a, double b)
-    {
-        return ((a > b) ? a : b);
-    }
+
+    static void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
+
     static void mergeBounds(double *boundsDest, const double *bounds1, const double *bounds2);
+
+    template<class GraphicsObject>
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>&getGraphicsObjectHashmap();
 
     void collectBounds(double *bounds, bool onlyVisible);
 
     void collectDataRanges();
 
-    void collectScalarRanges(double *range, bool onlyVisible);
+    void collectDataRanges(double *range, const char *name,
+                           DataSet::DataAttributeType type,
+                           int component, bool onlyVisible);
 
-    void collectVectorMagnitudeRanges(double *range, bool onlyVisible);
+    void clearFieldRanges();
 
-    void collectVectorComponentRanges(double *range, int component, bool onlyVisible);
+    void initFieldRanges();
 
-    void updateRanges();
+    void updateFieldRanges();
 
     void updateColorMap(ColorMap *cmap);
 
     bool colorMapUsed(ColorMap *cmap);
-
-    void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
 
     void computeDisplayToWorld(double x, double y, double z, double worldPt[4]);
 
@@ -797,9 +558,13 @@ private:
     float _bgColor[3];
     bool _useCumulativeRange;
     bool _cumulativeRangeOnlyVisible;
-    double _cumulativeScalarRange[2];
-    double _cumulativeVectorMagnitudeRange[2];
-    double _cumulativeVectorComponentRange[3][2];
+
+    FieldRangeHashmap _scalarPointDataRange;
+    FieldRangeHashmap _vectorPointDataRange;
+    FieldRangeHashmap _vectorCompPointDataRange[3];
+    FieldRangeHashmap _scalarCellDataRange;
+    FieldRangeHashmap _vectorCellDataRange;
+    FieldRangeHashmap _vectorCompCellDataRange[3];
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;

@@ -115,23 +115,16 @@ void Volume::update()
     _volumeMapper->Update();
 }
 
-void Volume::updateRanges(bool useCumulative,
-                          double scalarRange[2],
-                          double vectorMagnitudeRange[2],
-                          double vectorComponentRange[3][2])
+void Volume::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-    } else if (_dataSet != NULL) {
-        _dataSet->getScalarRange(_dataRange);
-    }
+    VtkGraphicsObject::updateRanges(renderer);
 
     if (getVolume() != NULL) {
         getVolume()->GetProperty()->SetColor(_colorMap->getColorTransferFunction(_dataRange));
         getVolume()->GetProperty()->SetScalarOpacity(_colorMap->getOpacityTransferFunction(_dataRange));
     }
 }
+
 void Volume::updateColorMap()
 {
     setColorMap(_colorMap);

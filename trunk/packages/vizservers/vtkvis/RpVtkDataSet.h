@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "RpTypes.h"
+
 namespace Rappture {
 namespace VtkVis {
 
@@ -27,11 +29,6 @@ namespace VtkVis {
  */
 class DataSet {
 public:
-    enum PrincipalPlane {
-        PLANE_XY,
-        PLANE_ZY,
-        PLANE_XZ
-    };
     enum DataAttributeType {
         POINT_DATA,
         CELL_DATA,
@@ -68,9 +65,17 @@ public:
 
     const char *getActiveScalarsName() const;
 
+    DataAttributeType getActiveScalarsType() const;
+
     bool setActiveVectors(const char *name);
 
     const char *getActiveVectorsName() const;
+
+    DataAttributeType getActiveVectorsType() const;
+
+    bool getFieldInfo(const char *fieldName, DataAttributeType *type, int *numComponents) const;
+
+    bool getFieldInfo(const char *fieldName, DataAttributeType type, int *numComponents) const;
 
     void getFieldNames(std::vector<std::string>& names,
                        DataAttributeType type, int numComponents = -1) const;

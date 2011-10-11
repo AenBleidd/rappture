@@ -99,18 +99,18 @@ void Contour2D::update()
             pd->GetNumberOfPolys() == 0 &&
             pd->GetNumberOfStrips() == 0) {
             // DataSet is a point cloud
-            DataSet::PrincipalPlane plane;
+            PrincipalPlane plane;
             double offset;
             if (_dataSet->is2D(&plane, &offset)) {
                 vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == DataSet::PLANE_ZY) {
+                if (plane == PLANE_ZY) {
                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                     trans->RotateWXYZ(90, 0, 1, 0);
                     if (offset != 0.0) {
                         trans->Translate(-offset, 0, 0);
                     }
                     mesher->SetTransform(trans);
-                } else if (plane == DataSet::PLANE_XZ) {
+                } else if (plane == PLANE_XZ) {
                     vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                     trans->RotateWXYZ(-90, 1, 0, 0);
                     if (offset != 0.0) {
@@ -178,20 +178,10 @@ void Contour2D::update()
     _contourMapper->Update();
 }
 
-void Contour2D::updateRanges(bool useCumulative,
-                             double scalarRange[2],
-                             double vectorMagnitudeRange[2],
-                             double vectorComponentRange[3][2])
+void Contour2D::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-    } else if (_dataSet != NULL) {
-        _dataSet->getScalarRange(_dataRange);
-    } else {
-        WARN("updateRanges called before setDataSet");
-    }
-
+    VtkGraphicsObject::updateRanges(renderer);
+ 
     if (_contours.empty() && _numContours > 0) {
         // Contour isovalues need to be recomputed
         update();

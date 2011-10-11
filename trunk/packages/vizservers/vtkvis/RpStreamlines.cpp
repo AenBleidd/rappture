@@ -29,6 +29,7 @@
 #include <vtkVertexGlyphFilter.h>
 
 #include "RpStreamlines.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
@@ -36,9 +37,11 @@ using namespace Rappture::VtkVis;
 Streamlines::Streamlines() :
     VtkGraphicsObject(),
     _lineType(LINES),
-    _colorMode(COLOR_BY_VECTOR_MAGNITUDE),
     _colorMap(NULL),
+    _colorMode(COLOR_BY_VECTOR_MAGNITUDE),
+    _colorFieldType(DataSet::POINT_DATA),
     _seedVisible(true),
+    _renderer(NULL),
     _dataScale(1)
 {
     _faceCulling = true;
@@ -48,6 +51,8 @@ Streamlines::Streamlines() :
     _seedColor[0] = 1.0f;
     _seedColor[1] = 1.0f;
     _seedColor[2] = 1.0f;
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
     vtkMath::RandomSeed((int)time(NULL));
     srand((unsigned int)time(NULL));
 }
@@ -63,22 +68,24 @@ Streamlines::~Streamlines()
 }
 
 void Streamlines::setDataSet(DataSet *dataSet,
-                             bool useCumulative,
-                             double scalarRange[2],
-                             double vectorMagnitudeRange[2],
-                             double vectorComponentRange[3][2])
+                             Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
-        if (useCumulative) {
-            _dataRange[0] = scalarRange[0];
-            _dataRange[1] = scalarRange[1];
-            _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-            _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+        _renderer = renderer;
+
+        if (renderer->getUseCumulativeRange()) {
+            renderer->getCumulativeDataRange(_dataRange,
+                                             _dataSet->getActiveScalarsName(),
+                                             1);
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             _dataSet->getActiveVectorsName(),
+                                             3);
             for (int i = 0; i < 3; i++) {
-                _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-                _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -1237,21 +1244,21 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
     }
 }
 
-void Streamlines::updateRanges(bool useCumulative,
-                               double scalarRange[2],
-                               double vectorMagnitudeRange[2],
-                               double vectorComponentRange[3][2])
+void Streamlines::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-        _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-        _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                         _dataSet->getActiveVectorsName(),
+                                         3);
         for (int i = 0; i < 3; i++) {
-            _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-            _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                             _dataSet->getActiveVectorsName(),
+                                             3, i);
         }
-    } else {
+    } else if (_dataSet != NULL) {
         _dataSet->getScalarRange(_dataRange);
         _dataSet->getVectorRange(_vectorMagnitudeRange);
         for (int i = 0; i < 3; i++) {
@@ -1260,60 +1267,163 @@ void Streamlines::updateRanges(bool useCumulative,
     }
 
     // Need to update color map ranges and/or active vector field
-    setColorMode(_colorMode);
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
 }
 
 void Streamlines::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
-    if (_dataSet == NULL || _pdMapper == NULL)
+    if (_dataSet == NULL)
         return;
 
     switch (mode) {
-    case COLOR_BY_SCALAR: {
-        _pdMapper->ScalarVisibilityOn();
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsType(),
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    case COLOR_CONSTANT:
+    default:
+        setColorMode(mode, DataSet::POINT_DATA, NULL, NULL);
+        break;
+    }
+}
+
+void Streamlines::setColorMode(ColorMode mode,
+                               const char *name, double range[2])
+{
+    if (_dataSet == NULL)
+        return;
+    DataSet::DataAttributeType type;
+    int numComponents;
+    if (!_dataSet->getFieldInfo(name, &type, &numComponents)) {
+        ERROR("Field not found: %s", name);
+        return;
+    }
+    setColorMode(mode, type, name, range);
+}
+
+void Streamlines::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                               const char *name, double range[2])
+{
+    _colorMode = mode;
+    _colorFieldType = type;
+    _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
+    if (_dataSet == NULL || _pdMapper == NULL)
+        return;
+
+    switch (type) {
+    case DataSet::POINT_DATA:
+        _pdMapper->SetScalarModeToUsePointFieldData();
+        break;
+    case DataSet::CELL_DATA:
+        _pdMapper->SetScalarModeToUseCellFieldData();
+        break;
+    default:
+        ERROR("Unsupported DataAttributeType: %d", type);
+        return;
+    }
+
+    if (name != NULL) {
+        _pdMapper->SelectColorArray(name);
+    } else {
         _pdMapper->SetScalarModeToDefault();
-        if (_lut != NULL) {
-            _lut->SetRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (name != NULL) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            _lut->SetRange(r);
         }
     }
-        break;
-    case COLOR_BY_VECTOR_MAGNITUDE: {
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
         _pdMapper->ScalarVisibilityOn();
-        _pdMapper->SetScalarModeToUsePointFieldData();
-        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        _pdMapper->ScalarVisibilityOn();
         if (_lut != NULL) {
-            _lut->SetRange(_vectorMagnitudeRange);
             _lut->SetVectorModeToMagnitude();
         }
-    }
         break;
     case COLOR_BY_VECTOR_X:
         _pdMapper->ScalarVisibilityOn();
-        _pdMapper->SetScalarModeToUsePointFieldData();
-        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[0]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
         break;
     case COLOR_BY_VECTOR_Y:
         _pdMapper->ScalarVisibilityOn();
-        _pdMapper->SetScalarModeToUsePointFieldData();
-        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[1]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
         break;
     case COLOR_BY_VECTOR_Z:
         _pdMapper->ScalarVisibilityOn();
-        _pdMapper->SetScalarModeToUsePointFieldData();
-        _pdMapper->SelectColorArray(_dataSet->getActiveVectorsName());
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[2]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
         }
@@ -1349,33 +1459,49 @@ void Streamlines::setColorMap(ColorMap *cmap)
             _pdMapper->UseLookupTableScalarRangeOn();
             _pdMapper->SetLookupTable(_lut);
         }
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_CONSTANT:
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
     }
 
-    _lut->DeepCopy(cmap->getLookupTable());
-
     switch (_colorMode) {
-    case COLOR_CONSTANT:
-    case COLOR_BY_SCALAR:
-        _lut->SetRange(_dataRange);
-        break;
     case COLOR_BY_VECTOR_MAGNITUDE:
         _lut->SetVectorModeToMagnitude();
-        _lut->SetRange(_vectorMagnitudeRange);
         break;
     case COLOR_BY_VECTOR_X:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(0);
-        _lut->SetRange(_vectorComponentRange[0]);
         break;
     case COLOR_BY_VECTOR_Y:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(1);
-        _lut->SetRange(_vectorComponentRange[1]);
         break;
     case COLOR_BY_VECTOR_Z:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(2);
-        _lut->SetRange(_vectorComponentRange[2]);
         break;
     default:
          break;

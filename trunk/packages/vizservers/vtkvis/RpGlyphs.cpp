@@ -24,6 +24,7 @@
 #include <vtkTransformPolyDataFilter.h>
 
 #include "RpGlyphs.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
@@ -52,22 +53,22 @@ Glyphs::~Glyphs()
 }
 
 void Glyphs::setDataSet(DataSet *dataSet,
-                        bool useCumulative,
-                        double scalarRange[2],
-                        double vectorMagnitudeRange[2],
-                        double vectorComponentRange[3][2])
+                        Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
-        if (useCumulative) {
-            _dataRange[0] = scalarRange[0];
-            _dataRange[1] = scalarRange[1];
-            _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-            _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+        if (renderer->getUseCumulativeRange()) {
+            renderer->getCumulativeDataRange(_dataRange,
+                                             _dataSet->getActiveScalarsName(),
+                                             1);
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             _dataSet->getActiveVectorsName(),
+                                             3);
             for (int i = 0; i < 3; i++) {
-                _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-                _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -421,19 +422,19 @@ void Glyphs::setScaleFactor(double scale)
 #endif
 }
 
-void Glyphs::updateRanges(bool useCumulative,
-                          double scalarRange[2],
-                          double vectorMagnitudeRange[2],
-                          double vectorComponentRange[3][2])
+void Glyphs::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-        _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-        _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                         _dataSet->getActiveVectorsName(),
+                                         3);
         for (int i = 0; i < 3; i++) {
-            _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-            _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                             _dataSet->getActiveVectorsName(),
+                                             3, i);
         }
     } else {
         _dataSet->getScalarRange(_dataRange);

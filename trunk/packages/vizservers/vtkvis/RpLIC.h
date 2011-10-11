@@ -20,6 +20,7 @@
 #include <vtkPlane.h>
 
 #include "ColorMap.h"
+#include "RpTypes.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -32,12 +33,6 @@ namespace VtkVis {
  */
 class LIC : public VtkGraphicsObject {
 public:
-    enum Axis {
-        X_AXIS,
-        Y_AXIS,
-        Z_AXIS
-    };
-
     LIC();
     virtual ~LIC();
 
@@ -62,10 +57,7 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
 private:
     virtual void initProp();

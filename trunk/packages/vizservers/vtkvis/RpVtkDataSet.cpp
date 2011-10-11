@@ -410,7 +410,7 @@ int DataSet::numDimensions() const
  * \brief Determines if DataSet lies in a principal axis plane
  * and if so, returns the plane normal and offset from origin
  */
-bool DataSet::is2D(DataSet::PrincipalPlane *plane, double *offset) const
+bool DataSet::is2D(PrincipalPlane *plane, double *offset) const
 {
     double bounds[6];
     getBounds(bounds);
@@ -446,7 +446,7 @@ bool DataSet::is2D(DataSet::PrincipalPlane *plane, double *offset) const
  * \brief Determines a principal plane with the
  * largest two dimensions of the AABB
  */
-DataSet::PrincipalPlane DataSet::principalPlane() const
+PrincipalPlane DataSet::principalPlane() const
 {
     double bounds[6];
     getBounds(bounds);
@@ -546,6 +546,26 @@ const char *DataSet::getActiveScalarsName() const
 }
 
 /**
+ * \brief Get the active scalar array default attribute type
+ */
+DataSet::DataAttributeType DataSet::getActiveScalarsType() const
+{
+    if (_dataSet != NULL) {
+         if (_dataSet->GetPointData() != NULL &&
+             _dataSet->GetPointData()->GetScalars() != NULL) {
+            return POINT_DATA;
+        }
+        TRACE("No point scalars");
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetScalars() != NULL) {
+            return CELL_DATA;
+        }
+        TRACE("No cell scalars");
+    }
+    return POINT_DATA;
+}
+
+/**
  * \brief Set the ative vector array to the named field
  */
 bool DataSet::setActiveVectors(const char *name)
@@ -570,6 +590,26 @@ bool DataSet::setActiveVectors(const char *name)
 }
 
 /**
+ * \brief Get the active vector array default attribute type
+ */
+DataSet::DataAttributeType DataSet::getActiveVectorsType() const
+{
+    if (_dataSet != NULL) {
+         if (_dataSet->GetPointData() != NULL &&
+             _dataSet->GetPointData()->GetVectors() != NULL) {
+            return POINT_DATA;
+        }
+        TRACE("No point vectors");
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetVectors() != NULL) {
+            return CELL_DATA;
+        }
+        TRACE("No cell vectors");
+    }
+    return POINT_DATA;
+}
+
+/**
  * \brief Get the active vector array field name
  */
 const char *DataSet::getActiveVectorsName() const
@@ -587,6 +627,63 @@ const char *DataSet::getActiveVectorsName() const
         TRACE("No cell vectors");
     }
     return NULL;
+}
+
+bool DataSet::getFieldInfo(const char *fieldName,
+                           DataAttributeType *type,
+                           int *numComponents) const
+{
+    if (_dataSet->GetPointData() != NULL &&
+        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+        *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
+        *type = POINT_DATA;
+        return true;
+    } else if (_dataSet->GetCellData() != NULL &&
+               _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+        *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
+        *type = CELL_DATA;
+        return true;
+    } else if (_dataSet->GetFieldData() != NULL &&
+               _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+        *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+        *type = FIELD_DATA;
+    }
+    return false;
+}
+
+bool DataSet::getFieldInfo(const char *fieldName,
+                           DataAttributeType type,
+                           int *numComponents) const
+{
+    switch (type) {
+    case POINT_DATA:
+        if (_dataSet->GetPointData() != NULL &&
+            _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+            *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
+            return true;
+        } else
+            return false;
+        break;
+    case CELL_DATA:
+        if (_dataSet->GetCellData() != NULL &&
+            _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+            *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
+            return true;
+        } else
+            return false;
+        break;
+    case FIELD_DATA:
+        if (_dataSet->GetFieldData() != NULL &&
+            _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+            *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+            return true;
+        } else
+            return false;
+        break;
+    default:
+        ;
+    }
+    return false;
 }
 
 /**

@@ -72,7 +72,7 @@ colormap add <colorMapName> <colorMap> <opacityMap>
          opacityMap = Tcl list of {value alpha} control points
 colormap delete <?colorMapName?>
 
-legend <colormapName> <legendType> <legendTitle> <width> <height> <numLabels> <?datasetName?>
+legend <colormapName> <legendType> <fieldName> <legendTitle> <width> <height> <numLabels> <?datasetName?>
        Causes legend to be rendered and written back with labels and title
        (title may be left blank)
        <legendType> = scalar|vmag|vx|vy|vz
@@ -147,7 +147,7 @@ cutplane add <?dataSetName?>
 cutplane axis <axis> <bool> <?dataSetName?>
          Toggle visibility of the 3 principal axis cutplanes
 cutplane colormap <colorMapName> <?dataSetName?>
-cutplane colormode <scalar|vmag|vx|vy|vz> <?datasetName?>
+cutplane colormode <scalar|vmag|vx|vy|vz> <fieldName> <?datasetName?>
          Set the field used to color the object.  'scalar' uses
          the active scalar field.  'vmag' uses the magnitude of the current
          vector field, and 'vx','vy','vz' use the corresponding component of
@@ -280,7 +280,7 @@ polydata wireframe <bool> <?datasetName?>
 pseudocolor add <?datasetName?>
 pseudocolor ccolor r g b <?datasetName?>
 pseudocolor colormap <colormapName> <?datasetName?>
-pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <?datasetName?>
+pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
             Set the field used to color the object.  'ccolor' means to use
             the constant color defined by the ccolor subcommand.  'scalar' uses
             the active scalar field.  'vmag' uses the magnitude of the current
@@ -303,7 +303,7 @@ streamlines ccolor <r> <g> <b> <?datasetName?>
             Set the constant color of streamlines used for color mode 'ccolor'
 streamlines colormap <colormapName> <?datasetName?>
             Colormap used to color streamlines/tubes/ribbons by vector magnitude
-streamlines colormode <scalar|vmag|vx|vy|vz|ccolor> <?datasetName?>
+streamlines colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
             Set the field used to color the streamlines.  'ccolor' means to use
             the constant color defined by the ccolor subcommand.  'scalar' uses
             the active scalar field.  'vmag' uses the magnitude of the current

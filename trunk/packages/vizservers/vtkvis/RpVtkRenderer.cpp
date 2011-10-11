@@ -42,6 +42,7 @@
 #include <vtkVersion.h>
 
 #include "RpVtkRenderer.h"
+#include "RpVtkRendererGraphicsObjs.h"
 #include "RpMath.h"
 #include "ColorMap.h"
 #include "Trace.h"
@@ -72,14 +73,6 @@ Renderer::Renderer() :
     _cameraOrientation[1] = 0.0;
     _cameraOrientation[2] = 0.0;
     _cameraOrientation[3] = 0.0;
-    _cumulativeScalarRange[0] = 0.0;
-    _cumulativeScalarRange[1] = 1.0;
-    _cumulativeVectorMagnitudeRange[0] = 0.0;
-    _cumulativeVectorMagnitudeRange[1] = 1.0;
-    for (int i = 0; i < 3; i++) {
-        _cumulativeVectorComponentRange[i][0] = 0.0;
-        _cumulativeVectorComponentRange[i][1] = 1.0;
-    }
     // clipping planes to prevent overdrawing axes
     _activeClipPlanes = vtkSmartPointer<vtkPlaneCollection>::New();
     // bottom
@@ -149,67 +142,67 @@ Renderer::~Renderer()
     TRACE("Enter");
     TRACE("Deleting Contour2Ds");
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-             itr != _contour2Ds.end(); ++itr) {
+         itr != _contour2Ds.end(); ++itr) {
         delete itr->second;
     }
     _contour2Ds.clear();
     TRACE("Deleting Contour3Ds");
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-             itr != _contour3Ds.end(); ++itr) {
+         itr != _contour3Ds.end(); ++itr) {
         delete itr->second;
     }
     _contour3Ds.clear();
     TRACE("Deleting Cutplanes");
     for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-             itr != _cutplanes.end(); ++itr) {
+         itr != _cutplanes.end(); ++itr) {
         delete itr->second;
     }
     _cutplanes.clear();
     TRACE("Deleting Glyphs");
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
-             itr != _glyphs.end(); ++itr) {
+         itr != _glyphs.end(); ++itr) {
         delete itr->second;
     }
     _glyphs.clear();
     TRACE("Deleting HeightMaps");
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-             itr != _heightMaps.end(); ++itr) {
+         itr != _heightMaps.end(); ++itr) {
         delete itr->second;
     }
     _heightMaps.clear();
     TRACE("Deleting LICs");
     for (LICHashmap::iterator itr = _lics.begin();
-             itr != _lics.end(); ++itr) {
+         itr != _lics.end(); ++itr) {
         delete itr->second;
     }
     _lics.clear();
     TRACE("Deleting Molecules");
     for (MoleculeHashmap::iterator itr = _molecules.begin();
-             itr != _molecules.end(); ++itr) {
+         itr != _molecules.end(); ++itr) {
         delete itr->second;
     }
     _molecules.clear();
     TRACE("Deleting PolyDatas");
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-             itr != _polyDatas.end(); ++itr) {
+         itr != _polyDatas.end(); ++itr) {
         delete itr->second;
     }
     _polyDatas.clear();
     TRACE("Deleting PseudoColors");
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-             itr != _pseudoColors.end(); ++itr) {
+         itr != _pseudoColors.end(); ++itr) {
         delete itr->second;
     }
     _pseudoColors.clear();
     TRACE("Deleting Streamlines");
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-             itr != _streamlines.end(); ++itr) {
+         itr != _streamlines.end(); ++itr) {
         delete itr->second;
     }
     _streamlines.clear();
     TRACE("Deleting Volumes");
     for (VolumeHashmap::iterator itr = _volumes.begin();
-             itr != _volumes.end(); ++itr) {
+         itr != _volumes.end(); ++itr) {
         delete itr->second;
     }
     _volumes.clear();
@@ -217,16 +210,19 @@ Renderer::~Renderer()
     // Delete color maps and data sets last in case references still
     // exist
     for (ColorMapHashmap::iterator itr = _colorMaps.begin();
-             itr != _colorMaps.end(); ++itr) {
+         itr != _colorMaps.end(); ++itr) {
         delete itr->second;
     }
     _colorMaps.clear();
     TRACE("Deleting DataSets");
     for (DataSetHashmap::iterator itr = _dataSets.begin();
-             itr != _dataSets.end(); ++itr) {
+         itr != _dataSets.end(); ++itr) {
         delete itr->second;
     }
     _dataSets.clear();
+
+    clearFieldRanges();
+
     TRACE("Leave");
 }
 
@@ -244,413 +240,6 @@ void Renderer::addDataSet(const DataSetId& id)
         deleteDataSet(id);
     }
     _dataSets[id] = new DataSet(id);
-}
-
-/**
- * \brief Remove the Contour2D isolines for the specified DataSet
- *
- * The underlying Contour2D is deleted, freeing its memory
- */
-void Renderer::deleteContour2D(const DataSetId& id)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Contour2Ds for %s", id.c_str());
-
-    do {
-        Contour2D *contour = itr->second;
-        if (contour->getProp())
-            _renderer->RemoveViewProp(contour->getProp());
-        delete contour;
-
-        itr = _contour2Ds.erase(itr);
-    } while (doAll && itr != _contour2Ds.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Contour3D isosurfaces for the specified DataSet
- *
- * The underlying Contour3D is deleted, freeing its memory
- */
-void Renderer::deleteContour3D(const DataSetId& id)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Contour3Ds for %s", id.c_str());
-
-    do {
-        Contour3D *contour = itr->second;
-        if (contour->getProp())
-            _renderer->RemoveViewProp(contour->getProp());
-        delete contour;
-
-        itr = _contour3Ds.erase(itr);
-    } while (doAll && itr != _contour3Ds.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Cutplane for the specified DataSet
- *
- * The underlying Cutplane is deleted, freeing its memory
- */
-void Renderer::deleteCutplane(const DataSetId& id)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Cutplanes for %s", id.c_str());
-
-    do {
-        Cutplane *cutplane = itr->second;
-        if (cutplane->getProp())
-            _renderer->RemoveViewProp(cutplane->getProp());
-        delete cutplane;
-
-        itr = _cutplanes.erase(itr);
-    } while (doAll && itr != _cutplanes.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Glyphs for the specified DataSet
- *
- * The underlying Glyphs is deleted, freeing its memory
- */
-void Renderer::deleteGlyphs(const DataSetId& id)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Glyphs for %s", id.c_str());
-
-    do {
-        Glyphs *glyphs = itr->second;
-        if (glyphs->getProp())
-            _renderer->RemoveViewProp(glyphs->getProp());
-        delete glyphs;
-
-        itr = _glyphs.erase(itr);
-    } while (doAll && itr != _glyphs.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the HeightMap for the specified DataSet
- *
- * The underlying HeightMap is deleted, freeing its memory
- */
-void Renderer::deleteHeightMap(const DataSetId& id)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting HeightMaps for %s", id.c_str());
-
-    do {
-        HeightMap *hmap = itr->second;
-        if (hmap->getProp())
-            _renderer->RemoveViewProp(hmap->getProp());
-        delete hmap;
-
-        itr = _heightMaps.erase(itr);
-    } while (doAll && itr != _heightMaps.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the LIC for the specified DataSet
- *
- * The underlying LIC is deleted, freeing its memory
- */
-void Renderer::deleteLIC(const DataSetId& id)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting LICs for %s", id.c_str());
-
-    do {
-        LIC *lic = itr->second;
-        if (lic->getProp())
-            _renderer->RemoveViewProp(lic->getProp());
-        delete lic;
-
-        itr = _lics.erase(itr);
-    } while (doAll && itr != _lics.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Molecule for the specified DataSet
- *
- * The underlying Molecule is deleted, freeing its memory
- */
-void Renderer::deleteMolecule(const DataSetId& id)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Molecules for %s", id.c_str());
-
-    do {
-        Molecule *molecule = itr->second;
-        if (molecule->getProp())
-            _renderer->RemoveViewProp(molecule->getProp());
-        delete molecule;
-
-        itr = _molecules.erase(itr);
-    } while (doAll && itr != _molecules.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the PolyData mesh for the specified DataSet
- *
- * The underlying PolyData is deleted, freeing its memory
- */
-void Renderer::deletePolyData(const DataSetId& id)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting PolyDatas for %s", id.c_str());
-
-    do {
-        PolyData *polyData = itr->second;
-        if (polyData->getProp())
-            _renderer->RemoveViewProp(polyData->getProp());
-        delete polyData;
-
-        itr = _polyDatas.erase(itr);
-    } while (doAll && itr != _polyDatas.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the PseudoColor mapping for the specified DataSet
- *
- * The underlying PseudoColor object is deleted, freeing its memory
- */
-void Renderer::deletePseudoColor(const DataSetId& id)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting PseudoColors for %s", id.c_str());
-
-    do  {
-        PseudoColor *ps = itr->second;
-        if (ps->getProp())
-            _renderer->RemoveViewProp(ps->getProp());
-        delete ps;
-
-        itr = _pseudoColors.erase(itr);
-    } while (doAll && itr != _pseudoColors.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Streamlines mapping for the specified DataSet
- *
- * The underlying Streamlines object is deleted, freeing its memory
- */
-void Renderer::deleteStreamlines(const DataSetId& id)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Streamlines for %s", id.c_str());
-
-    do  {
-        Streamlines *sl = itr->second;
-        if (sl->getProp())
-            _renderer->RemoveViewProp(sl->getProp());
-        delete sl;
-
-        itr = _streamlines.erase(itr);
-    } while (doAll && itr != _streamlines.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Remove the Volume for the specified DataSet
- *
- * The underlying Volume is deleted, freeing its memory
- */
-void Renderer::deleteVolume(const DataSetId& id)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    TRACE("Deleting Volumes for %s", id.c_str());
-
-    do {
-        Volume *volume = itr->second;
-        if (volume->getProp())
-            _renderer->RemoveViewProp(volume->getProp());
-        delete volume;
-
-        itr = _volumes.erase(itr);
-    } while (doAll && itr != _volumes.end());
-
-    initCamera();
-    _needsRedraw = true;
 }
 
 /**
@@ -679,17 +268,17 @@ void Renderer::deleteDataSet(const DataSetId& id)
     do {
         TRACE("Deleting dataset %s", itr->second->getName().c_str());
 
-        deleteContour2D(itr->second->getName());
-        deleteContour3D(itr->second->getName());
-        deleteCutplane(itr->second->getName());
-        deleteGlyphs(itr->second->getName());
-        deleteHeightMap(itr->second->getName());
-        deleteLIC(itr->second->getName());
-        deleteMolecule(itr->second->getName());
-        deletePolyData(itr->second->getName());
-        deletePseudoColor(itr->second->getName());
-        deleteStreamlines(itr->second->getName());
-        deleteVolume(itr->second->getName());
+        deleteGraphicsObject<Contour2D>(itr->second->getName());
+        deleteGraphicsObject<Contour3D>(itr->second->getName());
+        deleteGraphicsObject<Cutplane>(itr->second->getName());
+        deleteGraphicsObject<Glyphs>(itr->second->getName());
+        deleteGraphicsObject<HeightMap>(itr->second->getName());
+        deleteGraphicsObject<LIC>(itr->second->getName());
+        deleteGraphicsObject<Molecule>(itr->second->getName());
+        deleteGraphicsObject<PolyData>(itr->second->getName());
+        deleteGraphicsObject<PseudoColor>(itr->second->getName());
+        deleteGraphicsObject<Streamlines>(itr->second->getName());
+        deleteGraphicsObject<Volume>(itr->second->getName());
  
         if (itr->second->getProp() != NULL) {
             _renderer->RemoveViewProp(itr->second->getProp());
@@ -702,7 +291,8 @@ void Renderer::deleteDataSet(const DataSetId& id)
     } while (doAll && itr != _dataSets.end());
 
     // Update cumulative data range
-    updateRanges();
+    initFieldRanges();
+    updateFieldRanges();
 
     initCamera();
     _needsRedraw = true;
@@ -742,7 +332,8 @@ bool Renderer::setDataFile(const DataSetId& id, const char *filename)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setDataFile(filename);
-        updateRanges();
+        initFieldRanges();
+        updateFieldRanges();
         _needsRedraw = true;
         return ret;
     } else
@@ -757,7 +348,8 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
     DataSet *ds = getDataSet(id);
     if (ds) {
         bool ret = ds->setData(data, nbytes);
-        updateRanges();
+        initFieldRanges();
+        updateFieldRanges();
         _needsRedraw = true;
         return ret;
     } else
@@ -794,7 +386,7 @@ bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarNa
     } while (doAll && ++itr != _dataSets.end());
 
     if (needRangeUpdate) {
-         updateRanges();
+         updateFieldRanges();
         _needsRedraw = true;
     } 
 
@@ -831,7 +423,7 @@ bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorNa
     } while (doAll && ++itr != _dataSets.end());
 
     if (needRangeUpdate) {
-        updateRanges();
+        updateFieldRanges();
         _needsRedraw = true;
     } 
 
@@ -847,7 +439,7 @@ void Renderer::setUseCumulativeDataRange(bool state, bool onlyVisible)
     if (state != _useCumulativeRange) {
         _useCumulativeRange = state;
         _cumulativeRangeOnlyVisible = onlyVisible;
-        updateRanges();
+        updateFieldRanges();
         _needsRedraw = true;
     }
 }
@@ -1469,6 +1061,88 @@ void Renderer::deleteColorMap(const ColorMapId& id)
     } while (doAll && itr != _colorMaps.end());
 }
 
+bool Renderer::renderColorMap(const ColorMapId& id, 
+                              const DataSetId& dataSetID,
+                              Renderer::LegendType legendType,
+                              std::string& title,
+                              double range[2],
+                              int width, int height,
+                              int numLabels,
+                              vtkUnsignedCharArray *imgData)
+{
+    DataSet *dataSet = NULL;
+    if (dataSetID.compare("all") == 0) {
+        if (_dataSets.empty()) {
+            WARN("No DataSets exist, can't fill title or range");
+            return renderColorMap(id, dataSetID, legendType,
+                                  NULL,
+                                  DataSet::POINT_DATA,
+                                  title, range, width, height, numLabels, imgData);
+        } else {
+            dataSet = _dataSets.begin()->second;
+        }
+    } else {
+        dataSet = getDataSet(dataSetID);
+        if (dataSet == NULL) {
+            ERROR("DataSet '%s' not found", dataSetID.c_str());
+            return false;
+        }
+    }
+
+    if (legendType == LEGEND_SCALAR) {
+        return renderColorMap(id, dataSetID, legendType,
+                              dataSet->getActiveScalarsName(),
+                              dataSet->getActiveScalarsType(),
+                              title, range, width, height, numLabels, imgData);
+    } else {
+        return renderColorMap(id, dataSetID, legendType,
+                              dataSet->getActiveVectorsName(),
+                              dataSet->getActiveVectorsType(),
+                              title, range, width, height, numLabels, imgData);
+    }
+}
+
+
+bool Renderer::renderColorMap(const ColorMapId& id, 
+                              const DataSetId& dataSetID,
+                              Renderer::LegendType legendType,
+                              const char *fieldName,
+                              std::string& title,
+                              double range[2],
+                              int width, int height,
+                              int numLabels,
+                              vtkUnsignedCharArray *imgData)
+{
+    DataSet *dataSet = NULL;
+    if (dataSetID.compare("all") == 0) {
+        if (_dataSets.empty()) {
+            WARN("No DataSets exist, can't fill title or range");
+            return renderColorMap(id, dataSetID, legendType,
+                                  NULL,
+                                  DataSet::POINT_DATA,
+                                  title, range, width, height, numLabels, imgData);
+        } else {
+            dataSet = _dataSets.begin()->second;
+        }
+    } else {
+        dataSet = getDataSet(dataSetID);
+        if (dataSet == NULL) {
+            ERROR("DataSet '%s' not found", dataSetID.c_str());
+            return false;
+        }
+    }
+
+    DataSet::DataAttributeType attrType;
+    int numComponents;
+
+    dataSet->getFieldInfo(fieldName, &attrType, &numComponents);
+
+    return renderColorMap(id, dataSetID, legendType,
+                          fieldName,
+                          attrType,
+                          title, range, width, height, numLabels, imgData);
+}
+
 /**
  * \brief Render a labelled legend image for the given colormap
  *
@@ -1491,6 +1165,8 @@ void Renderer::deleteColorMap(const ColorMapId& id)
 bool Renderer::renderColorMap(const ColorMapId& id, 
                               const DataSetId& dataSetID,
                               Renderer::LegendType legendType,
+                              const char *fieldName,
+                              DataSet::DataAttributeType type,
                               std::string& title,
                               double range[2],
                               int width, int height,
@@ -1590,88 +1266,83 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     range[1] = 1.0;
 
     switch (legendType) {
-    case ACTIVE_VECTOR_MAGNITUDE:
+    case LEGEND_VECTOR_MAGNITUDE:
         if (cumulative) {
-            lut->SetRange(_cumulativeVectorMagnitudeRange);
-            range[0] = _cumulativeVectorMagnitudeRange[0];
-            range[1] = _cumulativeVectorMagnitudeRange[1];
+            getCumulativeDataRange(range, fieldName, type, 3);
         } else if (dataSet != NULL) {
-            dataSet->getVectorRange(range);
-            lut->SetRange(range);
+            dataSet->getDataRange(range, fieldName, type);
         }
+
+        lut->SetRange(range);
+
         if (title.empty() && dataSet != NULL) {
-            const char *name = dataSet->getActiveVectorsName();
-            if (name != NULL) {
-                title = name;
+            if (fieldName != NULL) {
+                title = fieldName;
                 title.append("(mag)");
             }
         }
         break;
-    case ACTIVE_VECTOR_X:
+    case LEGEND_VECTOR_X:
         if (cumulative) {
-            lut->SetRange(_cumulativeVectorComponentRange[0]);
-            range[0] = _cumulativeVectorComponentRange[0][0];
-            range[1] = _cumulativeVectorComponentRange[0][1];
+            getCumulativeDataRange(range, fieldName, type, 3, 0);
         } else if (dataSet != NULL) {
-            dataSet->getVectorRange(range, 0);
-            lut->SetRange(range);
+            dataSet->getDataRange(range, fieldName, type, 0);
         }
+
+        lut->SetRange(range);
+
         if (title.empty() && dataSet != NULL) {
-            const char *name = dataSet->getActiveVectorsName();
-            if (name != NULL) {
-                title = name;
+            if (fieldName != NULL) {
+                title = fieldName;
                 title.append("(x)");
             }
         }
         break;
-    case ACTIVE_VECTOR_Y:
+    case LEGEND_VECTOR_Y:
         if (cumulative) {
-            lut->SetRange(_cumulativeVectorComponentRange[1]);
-            range[0] = _cumulativeVectorComponentRange[1][0];
-            range[1] = _cumulativeVectorComponentRange[1][1];
+            getCumulativeDataRange(range, fieldName, type, 3, 1);
         } else if (dataSet != NULL) {
-            dataSet->getVectorRange(range, 1);
-            lut->SetRange(range);
+            dataSet->getDataRange(range, fieldName, type, 1);
         }
+
+        lut->SetRange(range);
+
         if (title.empty() && dataSet != NULL) {
-            const char *name = dataSet->getActiveVectorsName();
-            if (name != NULL) {
-                title = name;
+            if (fieldName != NULL) {
+                title = fieldName;
                 title.append("(y)");
             }
         }
         break;
-    case ACTIVE_VECTOR_Z:
+    case LEGEND_VECTOR_Z:
         if (cumulative) {
-            lut->SetRange(_cumulativeVectorComponentRange[2]);
-            range[0] = _cumulativeVectorComponentRange[2][0];
-            range[1] = _cumulativeVectorComponentRange[2][1];
+            getCumulativeDataRange(range, fieldName, type, 3, 2);
         } else if (dataSet != NULL) {
-            dataSet->getVectorRange(range, 1);
-            lut->SetRange(range);
+            dataSet->getDataRange(range, fieldName, type, 1);
         }
+
+        lut->SetRange(range);
+
         if (title.empty() && dataSet != NULL) {
-            const char *name = dataSet->getActiveVectorsName();
-            if (name != NULL) {
-                title = name;
+            if (fieldName != NULL) {
+                title = fieldName;
                 title.append("(z)");
             }
         }
         break;
-    case ACTIVE_SCALAR:
+    case LEGEND_SCALAR:
     default:
         if (cumulative) {
-            lut->SetRange(_cumulativeScalarRange);
-            range[0] = _cumulativeScalarRange[0];
-            range[1] = _cumulativeScalarRange[1];
+            getCumulativeDataRange(range, fieldName, type, 1);
         } else if (dataSet != NULL) {
-            dataSet->getScalarRange(range);
-            lut->SetRange(range);
-        }
+            dataSet->getDataRange(range, fieldName, type);
+         }
+
+        lut->SetRange(range);
+
         if (title.empty() && dataSet != NULL) {
-            const char *name = dataSet->getActiveScalarsName();
-            if (name != NULL)
-                title = name;
+            if (fieldName != NULL)
+                title = fieldName;
         }
         break;
     }
@@ -1729,6059 +1400,6 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 #endif
     TRACE("Leave");
     return true;
-}
-
-/**
- * \brief Create a new Contour2D and associate it with the named DataSet
- */
-bool Renderer::addContour2D(const DataSetId& id, int numContours)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getContour2D(dsID)) {
-            WARN("Replacing existing Contour2D %s", dsID.c_str());
-            deleteContour2D(dsID);
-        }
-
-        Contour2D *contour = new Contour2D(numContours);
- 
-        contour->setDataSet(ds,
-                            _useCumulativeRange, 
-                            _cumulativeScalarRange,
-                            _cumulativeVectorMagnitudeRange,
-                            _cumulativeVectorComponentRange);
-
-        if (contour->getProp() == NULL) {
-            delete contour;
-            return false;
-        } else {
-            _renderer->AddViewProp(contour->getProp());
-        }
-
-        _contour2Ds[dsID] = contour;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Create a new Contour2D and associate it with the named DataSet
- */
-bool Renderer::addContour2D(const DataSetId& id, const std::vector<double>& contours)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getContour2D(dsID)) {
-            WARN("Replacing existing Contour2D %s", dsID.c_str());
-            deleteContour2D(dsID);
-        }
-
-        Contour2D *contour = new Contour2D(contours);
-
-        contour->setDataSet(ds,
-                            _useCumulativeRange, 
-                            _cumulativeScalarRange,
-                            _cumulativeVectorMagnitudeRange,
-                            _cumulativeVectorComponentRange);
-
-        if (contour->getProp() == NULL) {
-            delete contour;
-            return false;
-        } else {
-            _renderer->AddViewProp(contour->getProp());
-        }
-
-        _contour2Ds[dsID] = contour;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Contour2D associated with a named DataSet
- */
-Contour2D *Renderer::getContour2D(const DataSetId& id)
-{
-    Contour2DHashmap::iterator itr = _contour2Ds.find(id);
-
-    if (itr == _contour2Ds.end()) {
-#ifdef DEBUG
-        TRACE("Contour2D not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setContour2DTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setContour2DOrientation(const DataSetId& id, double quat[4])
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setContour2DOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setContour2DPosition(const DataSetId& id, double pos[3])
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setContour2DScale(const DataSetId& id, double scale[3])
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the number of equally spaced contour isolines for the given DataSet
- */
-void Renderer::setContour2DContours(const DataSetId& id, int numContours)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContours(numContours);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set a list of isovalues for the given DataSet
- */
-void Renderer::setContour2DContourList(const DataSetId& id, const std::vector<double>& contours)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourList(contours);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-     _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of contour lines for the given DataSet
- */
-void Renderer::setContour2DOpacity(const DataSetId& id, double opacity)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering contour lines for the given DataSet
- */
-void Renderer::setContour2DVisibility(const DataSetId& id, bool state)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB isoline color for the specified DataSet
- */
-void Renderer::setContour2DColor(const DataSetId& id, float color[3])
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the isoline width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setContour2DEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _contour2Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn contour lighting on/off for the specified DataSet
- */
-void Renderer::setContour2DLighting(const DataSetId& id, bool state)
-{
-    Contour2DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour2Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour2Ds.find(id);
-    }
-    if (itr == _contour2Ds.end()) {
-        ERROR("Contour2D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _contour2Ds.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Contour3D and associate it with the named DataSet
- */
-bool Renderer::addContour3D(const DataSetId& id, int numContours)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getContour3D(dsID)) {
-            WARN("Replacing existing Contour3D %s", dsID.c_str());
-            deleteContour3D(dsID);
-        }
-
-        Contour3D *contour = new Contour3D(numContours);
-
-        contour->setDataSet(ds,
-                            _useCumulativeRange,
-                            _cumulativeScalarRange,
-                            _cumulativeVectorMagnitudeRange,
-                            _cumulativeVectorComponentRange);
-
-        if (contour->getProp() == NULL) {
-            delete contour;
-            return false;
-        } else {
-            _renderer->AddViewProp(contour->getProp());
-        }
-
-        _contour3Ds[dsID] = contour;
-    } while (doAll && ++itr != _dataSets.end());
-
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Create a new Contour3D and associate it with the named DataSet
- */
-bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& contours)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getContour3D(dsID)) {
-            WARN("Replacing existing Contour3D %s", dsID.c_str());
-            deleteContour3D(dsID);
-        }
-
-        Contour3D *contour = new Contour3D(contours);
-
-        contour->setDataSet(ds,
-                            _useCumulativeRange, 
-                            _cumulativeScalarRange,
-                            _cumulativeVectorMagnitudeRange,
-                            _cumulativeVectorComponentRange);
-
-        if (contour->getProp() == NULL) {
-            delete contour;
-            return false;
-        } else {
-            _renderer->AddViewProp(contour->getProp());
-        }
-
-        _contour3Ds[dsID] = contour;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Contour3D associated with a named DataSet
- */
-Contour3D *Renderer::getContour3D(const DataSetId& id)
-{
-    Contour3DHashmap::iterator itr = _contour3Ds.find(id);
-
-    if (itr == _contour3Ds.end()) {
-#ifdef DEBUG
-        TRACE("Contour3D not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setContour3DTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setContour3DOrientation(const DataSetId& id, double quat[4])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setContour3DOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setContour3DPosition(const DataSetId& id, double pos[3])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setContour3DScale(const DataSetId& id, double scale[3])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the number of equally spaced isosurfaces for the given DataSet
- */
-void Renderer::setContour3DContours(const DataSetId& id, int numContours)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContours(numContours);
-     } while (doAll && ++itr != _contour3Ds.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set a list of isovalues for the given DataSet
- */
-void Renderer::setContour3DContourList(const DataSetId& id, const std::vector<double>& contours)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourList(contours);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    initCamera();
-     _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of isosurfaces for the given DataSet
- */
-void Renderer::setContour3DOpacity(const DataSetId& id, double opacity)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering isosurfaces for the given DataSet
- */
-void Renderer::setContour3DVisibility(const DataSetId& id, bool state)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Contour3D for the given 
- * DataSet
- */
-void Renderer::setContour3DColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Contour3D color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB isosurface color for the specified DataSet
- */
-void Renderer::setContour3DColor(const DataSetId& id, float color[3])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _contour3Ds.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering isosurface edges for the given DataSet
- */
-void Renderer::setContour3DEdgeVisibility(const DataSetId& id, bool state)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB isosurface edge color for the specified DataSet
- */
-void Renderer::setContour3DEdgeColor(const DataSetId& id, float color[3])
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the isosurface edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setContour3DEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setContour3DWireframe(const DataSetId& id, bool state)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _contour3Ds.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn contour lighting on/off for the specified DataSet
- */
-void Renderer::setContour3DLighting(const DataSetId& id, bool state)
-{
-    Contour3DHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _contour3Ds.begin();
-        doAll = true;
-    } else {
-        itr = _contour3Ds.find(id);
-    }
-    if (itr == _contour3Ds.end()) {
-        ERROR("Contour3D not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _contour3Ds.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Cutplane and associate it with the named DataSet
- */
-bool Renderer::addCutplane(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getCutplane(dsID)) {
-            WARN("Replacing existing Cutplane %s", dsID.c_str());
-            deleteCutplane(dsID);
-        }
-
-        Cutplane *cutplane = new Cutplane();
-        _cutplanes[dsID] = cutplane;
-
-        cutplane->setDataSet(ds,
-                             _useCumulativeRange, 
-                             _cumulativeScalarRange,
-                             _cumulativeVectorMagnitudeRange,
-                             _cumulativeVectorComponentRange);
-
-        _renderer->AddViewProp(cutplane->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Cutplane associated with a named DataSet
- */
-Cutplane *Renderer::getCutplane(const DataSetId& id)
-{
-    CutplaneHashmap::iterator itr = _cutplanes.find(id);
-
-    if (itr == _cutplanes.end()) {
-#ifdef DEBUG
-        TRACE("Cutplane not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set an additional transform on the prop
- */
-void Renderer::setCutplaneTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setCutplaneOrientation(const DataSetId& id, double quat[4])
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setCutplaneOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setCutplanePosition(const DataSetId& id, double pos[3])
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setCutplaneScale(const DataSetId& id, double scale[3])
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the volume slice used for mapping volumetric data
- */
-void Renderer::setCutplaneVolumeSlice(const DataSetId& id, Cutplane::Axis axis, double ratio)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->selectVolumeSlice(axis, ratio);
-     } while (doAll && ++itr != _cutplanes.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of slices in one of the three axes
- */
-void Renderer::setCutplaneSliceVisibility(const DataSetId& id, Cutplane::Axis axis, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSliceVisibility(axis, state);
-     } while (doAll && ++itr != _cutplanes.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Cutplane for the given DataSet
- */
-void Renderer::setCutplaneColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Cutplane color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the color mode for the specified DataSet
- */
-void Renderer::setCutplaneColorMode(const DataSetId& id, Cutplane::ColorMode mode)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColorMode(mode);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of height map for the given DataSet
- */
-void Renderer::setCutplaneOpacity(const DataSetId& id, double opacity)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map for the given DataSet
- */
-void Renderer::setCutplaneVisibility(const DataSetId& id, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setCutplaneWireframe(const DataSetId& id, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map mesh edges for the given DataSet
- */
-void Renderer::setCutplaneEdgeVisibility(const DataSetId& id, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB height map mesh edge color for the specified DataSet
- */
-void Renderer::setCutplaneEdgeColor(const DataSetId& id, float color[3])
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the height map mesh edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setCutplaneEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _cutplanes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn height map lighting on/off for the specified DataSet
- */
-void Renderer::setCutplaneLighting(const DataSetId& id, bool state)
-{
-    CutplaneHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _cutplanes.begin();
-        doAll = true;
-    } else {
-        itr = _cutplanes.find(id);
-    }
-    if (itr == _cutplanes.end()) {
-        ERROR("Cutplane not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _cutplanes.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Glyphs and associate it with the named DataSet
- */
-bool Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getGlyphs(dsID)) {
-            WARN("Replacing existing Glyphs %s", dsID.c_str());
-            deleteGlyphs(dsID);
-        }
-
-        Glyphs *glyphs = new Glyphs(shape);
-
-        glyphs->setDataSet(ds,
-                           _useCumulativeRange, 
-                           _cumulativeScalarRange,
-                           _cumulativeVectorMagnitudeRange,
-                           _cumulativeVectorComponentRange);
-
-        if (glyphs->getProp() == NULL) {
-            delete glyphs;
-            return false;
-        } else {
-            _renderer->AddViewProp(glyphs->getProp());
-        }
-
-        _glyphs[dsID] = glyphs;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Glyphs associated with a named DataSet
- */
-Glyphs *Renderer::getGlyphs(const DataSetId& id)
-{
-    GlyphsHashmap::iterator itr = _glyphs.find(id);
-
-    if (itr == _glyphs.end()) {
-#ifdef DEBUG
-        TRACE("Glyphs not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setGlyphsTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _glyphs.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setGlyphsOrientation(const DataSetId& id, double quat[4])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _glyphs.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setGlyphsOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _glyphs.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setGlyphsPosition(const DataSetId& id, double pos[3])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _glyphs.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setGlyphsScale(const DataSetId& id, double scale[3])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _glyphs.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon color for the specified DataSet
- */
-void Renderer::setGlyphsColor(const DataSetId& id, float color[3])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Glyphs for the given DataSet
- */
-void Renderer::setGlyphsColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Glyphs color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Controls the array used to color glyphs for the given DataSet
- */
-void Renderer::setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColorMode(mode);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Controls the array used to scale glyphs for the given DataSet
- */
-void Renderer::setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScalingMode(mode);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Controls if field data range is normalized to [0,1] before
- * applying scale factor for the given DataSet
- */
-void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setNormalizeScale(normalize);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the shape of Glyphs for the given DataSet
- */
-void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setGlyphShape(shape);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the glyph scaling factor for the given DataSet
- */
-void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScaleFactor(scale);
-    } while (doAll && ++itr != _glyphs.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setGlyphsEdgeVisibility(const DataSetId& id, bool state)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setGlyphsEdgeColor(const DataSetId& id, float color[3])
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setGlyphsEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn Glyphs lighting on/off for the specified DataSet
- */
-void Renderer::setGlyphsLighting(const DataSetId& id, bool state)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _glyphs.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of Glyphs for the given DataSet
- */
-void Renderer::setGlyphsOpacity(const DataSetId& id, double opacity)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering Glyphs for the given DataSet
- */
-void Renderer::setGlyphsVisibility(const DataSetId& id, bool state)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off wireframe rendering of Glyphs for the given DataSet
- */
-void Renderer::setGlyphsWireframe(const DataSetId& id, bool state)
-{
-    GlyphsHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _glyphs.begin();
-        doAll = true;
-    } else {
-        itr = _glyphs.find(id);
-    }
-    if (itr == _glyphs.end()) {
-        ERROR("Glyphs not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _glyphs.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new HeightMap and associate it with the named DataSet
- */
-bool Renderer::addHeightMap(const DataSetId& id, int numContours, double heightScale)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getHeightMap(dsID)) {
-            WARN("Replacing existing HeightMap %s", dsID.c_str());
-            deleteHeightMap(dsID);
-        }
-
-        HeightMap *hmap = new HeightMap(numContours, heightScale);
-
-        hmap->setDataSet(ds,
-                         _useCumulativeRange, 
-                         _cumulativeScalarRange,
-                         _cumulativeVectorMagnitudeRange,
-                         _cumulativeVectorComponentRange);
-
-        if (hmap->getProp() == NULL) {
-            delete hmap;
-            return false;
-        } else {
-            _renderer->AddViewProp(hmap->getProp());
-        }
-
-        _heightMaps[dsID] = hmap;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Create a new HeightMap and associate it with the named DataSet
- */
-bool Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& contours, double heightScale)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getHeightMap(dsID)) {
-            WARN("Replacing existing HeightMap %s", dsID.c_str());
-            deleteHeightMap(dsID);
-        }
-
-        HeightMap *hmap = new HeightMap(contours, heightScale);
-
-        hmap->setDataSet(ds,
-                         _useCumulativeRange, 
-                         _cumulativeScalarRange,
-                         _cumulativeVectorMagnitudeRange,
-                         _cumulativeVectorComponentRange);
-
-        if (hmap->getProp() == NULL) {
-            delete hmap;
-            return false;
-        } else {
-            _renderer->AddViewProp(hmap->getProp());
-        }
-
-        _heightMaps[dsID] = hmap;
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the HeightMap associated with a named DataSet
- */
-HeightMap *Renderer::getHeightMap(const DataSetId& id)
-{
-    HeightMapHashmap::iterator itr = _heightMaps.find(id);
-
-    if (itr == _heightMaps.end()) {
-#ifdef DEBUG
-        TRACE("HeightMap not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set an additional transform on the prop
- */
-void Renderer::setHeightMapTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setHeightMapOrientation(const DataSetId& id, double quat[4])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setHeightMapOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setHeightMapPosition(const DataSetId& id, double pos[3])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setHeightMapScale(const DataSetId& id, double scale[3])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the volume slice used for mapping volumetric data
- */
-void Renderer::setHeightMapVolumeSlice(const DataSetId& id, HeightMap::Axis axis, double ratio)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    bool initCam = false;
-    do {
-        itr->second->selectVolumeSlice(axis, ratio);
-        if (itr->second->getHeightScale() > 0.0)
-            initCam = true;
-     } while (doAll && ++itr != _heightMaps.end());
-
-    if (initCam)
-        initCamera();
-    else
-        _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set amount to scale scalar values when creating elevations
- * in the height map
- */
-void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setHeightScale(scale);
-     } while (doAll && ++itr != _heightMaps.end());
-
-    initCamera();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a HeightMap for the given DataSet
- */
-void Renderer::setHeightMapColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set HeightMap color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the number of equally spaced contour isolines for the given DataSet
- */
-void Renderer::setHeightMapNumContours(const DataSetId& id, int numContours)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setNumContours(numContours);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set a list of height map contour isovalues for the given DataSet
- */
-void Renderer::setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourList(contours);
-    } while (doAll && ++itr != _heightMaps.end());
-
-     _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of height map for the given DataSet
- */
-void Renderer::setHeightMapOpacity(const DataSetId& id, double opacity)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map for the given DataSet
- */
-void Renderer::setHeightMapVisibility(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setHeightMapWireframe(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map mesh edges for the given DataSet
- */
-void Renderer::setHeightMapEdgeVisibility(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB height map mesh edge color for the specified DataSet
- */
-void Renderer::setHeightMapEdgeColor(const DataSetId& id, float color[3])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the height map mesh edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setHeightMapEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map contour lines for the given DataSet
- */
-void Renderer::setHeightMapContourLineVisibility(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourLineVisibility(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering height map colormap surface for the given DataSet
- */
-void Renderer::setHeightMapContourSurfaceVisibility(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourSurfaceVisibility(state);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB height map isoline color for the specified DataSet
- */
-void Renderer::setHeightMapContourEdgeColor(const DataSetId& id, float color[3])
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourEdgeColor(color);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the height map isoline width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setContourEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _heightMaps.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn height map lighting on/off for the specified DataSet
- */
-void Renderer::setHeightMapLighting(const DataSetId& id, bool state)
-{
-    HeightMapHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _heightMaps.begin();
-        doAll = true;
-    } else {
-        itr = _heightMaps.find(id);
-    }
-    if (itr == _heightMaps.end()) {
-        ERROR("HeightMap not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _heightMaps.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new LIC and associate it with the named DataSet
- */
-bool Renderer::addLIC(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getLIC(dsID)) {
-            WARN("Replacing existing LIC %s", dsID.c_str());
-            deleteLIC(dsID);
-        }
-
-        LIC *lic = new LIC();
-        _lics[dsID] = lic;
-
-        lic->setDataSet(ds,
-                        _useCumulativeRange, 
-                        _cumulativeScalarRange,
-                        _cumulativeVectorMagnitudeRange,
-                        _cumulativeVectorComponentRange);
-
-        _renderer->AddViewProp(lic->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the LIC associated with a named DataSet
- */
-LIC *Renderer::getLIC(const DataSetId& id)
-{
-    LICHashmap::iterator itr = _lics.find(id);
-
-    if (itr == _lics.end()) {
-#ifdef DEBUG
-        TRACE("LIC not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setLICTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _lics.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setLICOrientation(const DataSetId& id, double quat[4])
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _lics.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setLICOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _lics.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setLICPosition(const DataSetId& id, double pos[3])
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _lics.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setLICScale(const DataSetId& id, double scale[3])
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _lics.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the volume slice used for mapping volumetric data
- */
-void Renderer::setLICVolumeSlice(const DataSetId& id, LIC::Axis axis, double ratio)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->selectVolumeSlice(axis, ratio);
-     } while (doAll && ++itr != _lics.end());
-
-    _renderer->ResetCameraClippingRange();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with an LIC for the given DataSet
- */
-void Renderer::setLICColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set LIC color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of the LIC for the given DataSet
- */
-void Renderer::setLICOpacity(const DataSetId& id, double opacity)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the LIC for the given DataSet
- */
-void Renderer::setLICVisibility(const DataSetId& id, bool state)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setLICEdgeVisibility(const DataSetId& id, bool state)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setLICEdgeColor(const DataSetId& id, float color[3])
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setLICEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn LIC lighting on/off for the specified DataSet
- */
-void Renderer::setLICLighting(const DataSetId& id, bool state)
-{
-    LICHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _lics.begin();
-        doAll = true;
-    } else {
-        itr = _lics.find(id);
-    }
-    if (itr == _lics.end()) {
-        ERROR("LIC not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _lics.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Molecule and associate it with the named DataSet
- */
-bool Renderer::addMolecule(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getMolecule(dsID)) {
-            WARN("Replacing existing Molecule %s", dsID.c_str());
-            deleteMolecule(dsID);
-        }
-
-        Molecule *molecule = new Molecule();
-        _molecules[dsID] = molecule;
-
-        molecule->setDataSet(ds);
-
-        _renderer->AddViewProp(molecule->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Molecule associated with a named DataSet
- */
-Molecule *Renderer::getMolecule(const DataSetId& id)
-{
-    MoleculeHashmap::iterator itr = _molecules.find(id);
-
-    if (itr == _molecules.end()) {
-#ifdef DEBUG
-        TRACE("Molecule not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setMoleculeTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _molecules.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setMoleculeOrientation(const DataSetId& id, double quat[4])
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _molecules.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setMoleculeOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _molecules.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setMoleculePosition(const DataSetId& id, double pos[3])
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _molecules.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setMoleculeScale(const DataSetId& id, double scale[3])
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _molecules.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Molecule for the given DataSet
- */
-void Renderer::setMoleculeColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Molecule color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of the Molecule for the given DataSet
- */
-void Renderer::setMoleculeOpacity(const DataSetId& id, double opacity)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set radius standard for scaling atoms
- */
-void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setAtomScaling(scaling);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Molecule atoms for the given DataSet
- */
-void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setAtomVisibility(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Molecule bonds for the given DataSet
- */
-void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setBondVisibility(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Molecule for the given DataSet
- */
-void Renderer::setMoleculeVisibility(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setMoleculeEdgeVisibility(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setMoleculeEdgeColor(const DataSetId& id, float color[3])
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setMoleculeEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setMoleculeWireframe(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn Molecule lighting on/off for the specified DataSet
- */
-void Renderer::setMoleculeLighting(const DataSetId& id, bool state)
-{
-    MoleculeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _molecules.begin();
-        doAll = true;
-    } else {
-        itr = _molecules.find(id);
-    }
-    if (itr == _molecules.end()) {
-        ERROR("Molecule not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _molecules.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new PolyData and associate it with the named DataSet
- */
-bool Renderer::addPolyData(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getPolyData(dsID)) {
-            WARN("Replacing existing PolyData %s", dsID.c_str());
-            deletePolyData(dsID);
-        }
-
-        PolyData *polyData = new PolyData();
-        _polyDatas[dsID] = polyData;
-
-        polyData->setDataSet(ds);
-
-        _renderer->AddViewProp(polyData->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the PolyData associated with a named DataSet
- */
-PolyData *Renderer::getPolyData(const DataSetId& id)
-{
-    PolyDataHashmap::iterator itr = _polyDatas.find(id);
-
-    if (itr == _polyDatas.end()) {
-#ifdef DEBUG
-        TRACE("PolyData not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set an additional transform on the prop
- */
-void Renderer::setPolyDataTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setPolyDataOrientation(const DataSetId& id, double quat[4])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setPolyDataOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setPolyDataPosition(const DataSetId& id, double pos[3])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setPolyDataScale(const DataSetId& id, double scale[3])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of the PolyData for the given DataSet
- */
-void Renderer::setPolyDataOpacity(const DataSetId& id, double opacity)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the PolyData mapper for the given DataSet
- */
-void Renderer::setPolyDataVisibility(const DataSetId& id, bool state)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon face color for the specified DataSet
- */
-void Renderer::setPolyDataColor(const DataSetId& id, float color[3])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _polyDatas.end());
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setPolyDataEdgeVisibility(const DataSetId& id, bool state)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setPolyDataEdgeColor(const DataSetId& id, float color[3])
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setPolyDataEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the point size for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide points, 
- * this function may not have an effect.
- */
-void Renderer::setPolyDataPointSize(const DataSetId& id, float size)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPointSize(size);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setPolyDataWireframe(const DataSetId& id, bool state)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn mesh lighting on/off for the specified DataSet
- */
-void Renderer::setPolyDataLighting(const DataSetId& id, bool state)
-{
-    PolyDataHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _polyDatas.begin();
-        doAll = true;
-    } else {
-        itr = _polyDatas.find(id);
-    }
-    if (itr == _polyDatas.end()) {
-        ERROR("PolyData not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _polyDatas.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new PseudoColor rendering for the specified DataSet
- */
-bool Renderer::addPseudoColor(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getPseudoColor(dsID)) {
-            WARN("Replacing existing PseudoColor %s", dsID.c_str());
-            deletePseudoColor(dsID);
-        }
-        PseudoColor *pc = new PseudoColor();
-        _pseudoColors[dsID] = pc;
-
-        pc->setDataSet(ds,
-                       _useCumulativeRange, 
-                       _cumulativeScalarRange,
-                       _cumulativeVectorMagnitudeRange,
-                       _cumulativeVectorComponentRange);
-
-        _renderer->AddViewProp(pc->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the PseudoColor associated with the specified DataSet
- */
-PseudoColor *Renderer::getPseudoColor(const DataSetId& id)
-{
-    PseudoColorHashmap::iterator itr = _pseudoColors.find(id);
-
-    if (itr == _pseudoColors.end()) {
-#ifdef DEBUG
-        TRACE("PseudoColor not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setPseudoColorTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setPseudoColorOrientation(const DataSetId& id, double quat[4])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setPseudoColorOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setPseudoColorPosition(const DataSetId& id, double pos[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setPseudoColorScale(const DataSetId& id, double scale[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB color for the specified DataSet
- */
-void Renderer::setPseudoColorColor(const DataSetId& id, float color[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a PseudoColor for the given DataSet
- */
-void Renderer::setPseudoColorColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set PseudoColor color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the color mode for the specified DataSet
- */
-void Renderer::setPseudoColorColorMode(const DataSetId& id, PseudoColor::ColorMode mode)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColorMode(mode);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set opacity of the PseudoColor for the given DataSet
- */
-void Renderer::setPseudoColorOpacity(const DataSetId& id, double opacity)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the PseudoColor mapper for the given DataSet
- */
-void Renderer::setPseudoColorVisibility(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setPseudoColorEdgeVisibility(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB polygon edge color for the specified DataSet
- */
-void Renderer::setPseudoColorEdgeColor(const DataSetId& id, float color[3])
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the polygon edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setPseudoColorEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set wireframe rendering for the specified DataSet
- */
-void Renderer::setPseudoColorWireframe(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setWireframe(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn mesh lighting on/off for the specified DataSet
- */
-void Renderer::setPseudoColorLighting(const DataSetId& id, bool state)
-{
-    PseudoColorHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _pseudoColors.begin();
-        doAll = true;
-    } else {
-        itr = _pseudoColors.find(id);
-    }
-
-    if (itr == _pseudoColors.end()) {
-        ERROR("PseudoColor not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _pseudoColors.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Streamlines and associate it with the named DataSet
- */
-bool Renderer::addStreamlines(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getStreamlines(dsID)) {
-            WARN("Replacing existing Streamlines %s", dsID.c_str());
-            deleteStreamlines(dsID);
-        }
-
-        Streamlines *streamlines = new Streamlines();
-        _streamlines[dsID] = streamlines;
-
-        streamlines->setDataSet(ds,
-                                _useCumulativeRange, 
-                                _cumulativeScalarRange,
-                                _cumulativeVectorMagnitudeRange,
-                                _cumulativeVectorComponentRange);
-
-        _renderer->AddViewProp(streamlines->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Streamlines associated with a named DataSet
- */
-Streamlines *Renderer::getStreamlines(const DataSetId& id)
-{
-    StreamlinesHashmap::iterator itr = _streamlines.find(id);
-
-    if (itr == _streamlines.end()) {
-#ifdef DEBUG
-        TRACE("Streamlines not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setStreamlinesTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _streamlines.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setStreamlinesOrientation(const DataSetId& id, double quat[4])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _streamlines.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setStreamlinesOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _streamlines.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setStreamlinesPosition(const DataSetId& id, double pos[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _streamlines.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setStreamlinesScale(const DataSetId& id, double scale[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _streamlines.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to points of the streamlines DataSet
- */
-void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setNumberOfSeedPoints(numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to points of the streamlines DataSet
- */
-void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToMeshPoints();
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to points distributed randomly inside
- * cells of the streamlines DataSet
- */
-void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToFilledMesh(numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to points of a DataSet
- *
- * \param[in] id DataSet identifier
- * \param[in] data Bytes of VTK DataSet file
- * \param[in] nbytes Length of data array
- *
- * \return boolean indicating success or failure
- */
-bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
-                                              char *data, size_t nbytes)
-{
-    vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
-    vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
-
-    dataSetString->SetArray(data, nbytes, 1);
-    reader->SetInputArray(dataSetString);
-    reader->ReadFromInputStringOn();
-    reader->Update();
-
-    vtkSmartPointer<vtkDataSet> dataSet = reader->GetOutput();
-    if (dataSet == NULL) {
-        return false;
-    }
-    dataSet->SetPipelineInformation(NULL);
-
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return false;
-    }
-
-    do {
-        itr->second->setSeedToMeshPoints(dataSet);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Set the streamlines seed to points distributed randomly inside
- * cells of DataSet
- *
- * \param[in] id DataSet identifier
- * \param[in] data Bytes of VTK DataSet file
- * \param[in] nbytes Length of data array
- * \param[in] numPoints Number of random seed points to generate
- *
- * \return boolean indicating success or failure
- */
-bool Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id,
-                                              char *data, size_t nbytes,
-                                              int numPoints)
-{
-    vtkSmartPointer<vtkDataSetReader> reader = vtkSmartPointer<vtkDataSetReader>::New();
-    vtkSmartPointer<vtkCharArray> dataSetString = vtkSmartPointer<vtkCharArray>::New();
-
-    dataSetString->SetArray(data, nbytes, 1);
-    reader->SetInputArray(dataSetString);
-    reader->ReadFromInputStringOn();
-    reader->Update();
-
-    vtkSmartPointer<vtkDataSet> dataSet = reader->GetOutput();
-    if (dataSet == NULL) {
-        return false;
-    }
-    dataSet->SetPipelineInformation(NULL);
-
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return false;
-    }
-
-    do {
-        itr->second->setSeedToFilledMesh(dataSet, numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Set the streamlines seed to points along a line
- */
-void Renderer::setStreamlinesSeedToRake(const DataSetId& id,
-                                        double start[3], double end[3],
-                                        int numPoints)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToRake(start, end, numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to points inside a disk, with optional
- * hole
- */
-void Renderer::setStreamlinesSeedToDisk(const DataSetId& id,
-                                        double center[3], double normal[3],
-                                        double radius, double innerRadius,
-                                        int numPoints)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToDisk(center, normal, radius, innerRadius, numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to vertices of an n-sided polygon
- */
-void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
-                                           double center[3], double normal[3],
-                                           double angle, double radius,
-                                           int numSides)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToPolygon(center, normal, angle, radius, numSides);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the streamlines seed to vertices of an n-sided polygon
- */
-void Renderer::setStreamlinesSeedToFilledPolygon(const DataSetId& id,
-                                                 double center[3],
-                                                 double normal[3],
-                                                 double angle, double radius,
-                                                 int numSides, int numPoints)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedToFilledPolygon(center, normal, angle,
-                                            radius, numSides, numPoints);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Streamlines rendering to polylines for the specified DataSet
- */
-void Renderer::setStreamlinesTypeToLines(const DataSetId& id)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLineTypeToLines();
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Streamlines rendering to tubes for the specified DataSet
- */
-void Renderer::setStreamlinesTypeToTubes(const DataSetId& id, int numSides, double radius)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLineTypeToTubes(numSides, radius);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Streamlines rendering to ribbons for the specified DataSet
- */
-void Renderer::setStreamlinesTypeToRibbons(const DataSetId& id, double width, double angle)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLineTypeToRibbons(width, angle);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Streamlines maximum length for the specified DataSet
- */
-void Renderer::setStreamlinesLength(const DataSetId& id, double length)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setMaxPropagation(length);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Streamlines opacity scaling for the specified DataSet
- */
-void Renderer::setStreamlinesOpacity(const DataSetId& id, double opacity)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Streamlines mapper for the given DataSet
- */
-void Renderer::setStreamlinesVisibility(const DataSetId& id, bool state)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Streamlines seed geometry for the given DataSet
- */
-void Renderer::setStreamlinesSeedVisibility(const DataSetId& id, bool state)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedVisibility(state);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the color mode for the specified DataSet
- */
-void Renderer::setStreamlinesColorMode(const DataSetId& id, Streamlines::ColorMode mode)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColorMode(mode);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Streamlines for the given DataSet
- */
-void Renderer::setStreamlinesColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Streamlines color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB line/edge color for the specified DataSet
- */
-void Renderer::setStreamlinesSeedColor(const DataSetId& id, float color[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSeedColor(color);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the visibility of polygon edges for the specified DataSet
- */
-void Renderer::setStreamlinesEdgeVisibility(const DataSetId& id, bool state)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeVisibility(state);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB color for the specified DataSet
- */
-void Renderer::setStreamlinesColor(const DataSetId& id, float color[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setColor(color);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the RGB line/edge color for the specified DataSet
- */
-void Renderer::setStreamlinesEdgeColor(const DataSetId& id, float color[3])
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeColor(color);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the line/edge width for the specified DataSet (may be a no-op)
- *
- * If the OpenGL implementation/hardware does not support wide lines, 
- * this function may not have an effect.
- */
-void Renderer::setStreamlinesEdgeWidth(const DataSetId& id, float edgeWidth)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setEdgeWidth(edgeWidth);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn Streamlines lighting on/off for the specified DataSet
- */
-void Renderer::setStreamlinesLighting(const DataSetId& id, bool state)
-{
-    StreamlinesHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _streamlines.begin();
-        doAll = true;
-    } else {
-        itr = _streamlines.find(id);
-    }
-    if (itr == _streamlines.end()) {
-        ERROR("Streamlines not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _streamlines.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Create a new Volume and associate it with the named DataSet
- */
-bool Renderer::addVolume(const DataSetId& id)
-{
-    DataSetHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _dataSets.begin();
-    } else {
-        itr = _dataSets.find(id);
-    }
-    if (itr == _dataSets.end()) {
-        ERROR("Unknown dataset %s", id.c_str());
-        return false;
-    }
-
-    do {
-        DataSet *ds = itr->second;
-        const DataSetId& dsID = ds->getName();
-
-        if (getVolume(dsID)) {
-            WARN("Replacing existing Volume %s", dsID.c_str());
-            deleteVolume(dsID);
-        }
-
-        Volume *volume = new Volume();
-        _volumes[dsID] = volume;
-
-        volume->setDataSet(ds,
-                           _useCumulativeRange, 
-                           _cumulativeScalarRange,
-                           _cumulativeVectorMagnitudeRange,
-                           _cumulativeVectorComponentRange );
-
-        _renderer->AddViewProp(volume->getProp());
-    } while (doAll && ++itr != _dataSets.end());
-
-    initCamera();
-    _needsRedraw = true;
-    return true;
-}
-
-/**
- * \brief Get the Volume associated with a named DataSet
- */
-Volume *Renderer::getVolume(const DataSetId& id)
-{
-    VolumeHashmap::iterator itr = _volumes.find(id);
-
-    if (itr == _volumes.end()) {
-#ifdef DEBUG
-        TRACE("Volume not found: %s", id.c_str());
-#endif
-        return NULL;
-    } else
-        return itr->second;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setVolumeTransform(const DataSetId& id, vtkMatrix4x4 *trans)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setTransform(trans);
-    } while (doAll && ++itr != _volumes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a quaternion
- */
-void Renderer::setVolumeOrientation(const DataSetId& id, double quat[4])
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(quat);
-    } while (doAll && ++itr != _volumes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop orientation with a rotation about an axis
- */
-void Renderer::setVolumeOrientation(const DataSetId& id, double angle, double axis[3])
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOrientation(angle, axis);
-    } while (doAll && ++itr != _volumes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop position in world coords
- */
-void Renderer::setVolumePosition(const DataSetId& id, double pos[3])
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setPosition(pos);
-    } while (doAll && ++itr != _volumes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set the prop scaling
- */
-void Renderer::setVolumeScale(const DataSetId& id, double scale[3])
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setScale(scale);
-    } while (doAll && ++itr != _volumes.end());
-
-    resetAxes();
-    _needsRedraw = true;
-}
-
-/**
- * \brief Associate an existing named color map with a Volume for the given DataSet
- */
-void Renderer::setVolumeColorMap(const DataSetId& id, const ColorMapId& colorMapId)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    ColorMap *cmap = getColorMap(colorMapId);
-    if (cmap == NULL) {
-        ERROR("Unknown colormap: %s", colorMapId.c_str());
-        return;
-    }
-
-    do {
-        TRACE("Set Volume color map: %s for dataset %s", colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
-
-        itr->second->setColorMap(cmap);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set Volume opacity scaling for the specified DataSet
- */
-void Renderer::setVolumeOpacity(const DataSetId& id, double opacity)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setOpacity(opacity);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn on/off rendering of the Volume mapper for the given DataSet
- */
-void Renderer::setVolumeVisibility(const DataSetId& id, bool state)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setVisibility(state);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set volume ambient lighting/shading coefficient for the specified DataSet
- */
-void Renderer::setVolumeAmbient(const DataSetId& id, double coeff)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setAmbient(coeff);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set volume diffuse lighting/shading coefficient for the specified DataSet
- */
-void Renderer::setVolumeDiffuse(const DataSetId& id, double coeff)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setDiffuse(coeff);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Set volume specular lighting/shading coefficient and power for the specified DataSet
- */
-void Renderer::setVolumeSpecular(const DataSetId& id, double coeff, double power)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setSpecular(coeff, power);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
-}
-
-/**
- * \brief Turn volume lighting/shading on/off for the specified DataSet
- */
-void Renderer::setVolumeLighting(const DataSetId& id, bool state)
-{
-    VolumeHashmap::iterator itr;
-
-    bool doAll = false;
-
-    if (id.compare("all") == 0) {
-        itr = _volumes.begin();
-        doAll = true;
-    } else {
-        itr = _volumes.find(id);
-    }
-    if (itr == _volumes.end()) {
-        ERROR("Volume not found: %s", id.c_str());
-        return;
-    }
-
-    do {
-        itr->second->setLighting(state);
-    } while (doAll && ++itr != _volumes.end());
-
-    _needsRedraw = true;
 }
 
 /**
@@ -8665,190 +2283,367 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
 /**
  * \brief Update data ranges for color-mapping and contours
  */
-void Renderer::updateRanges()
+void Renderer::updateFieldRanges()
 {
     collectDataRanges();
 
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
          itr != _contour2Ds.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (CutplaneHashmap::iterator itr = _cutplanes.begin();
          itr != _cutplanes.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
          itr != _glyphs.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
          itr != _heightMaps.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (LICHashmap::iterator itr = _lics.begin();
          itr != _lics.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (MoleculeHashmap::iterator itr = _molecules.begin();
          itr != _molecules.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
          itr != _pseudoColors.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
          itr != _streamlines.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
-        itr->second->updateRanges(_useCumulativeRange, 
-                                  _cumulativeScalarRange,
-                                  _cumulativeVectorMagnitudeRange,
-                                  _cumulativeVectorComponentRange);
+        itr->second->updateRanges(this);
     }
+}
+
+/**
+ * \brief Collect cumulative data range of all DataSets
+ *
+ * \param[out] range Data range of all DataSets
+ * \param[in] name Field name
+ * \param[in] type Attribute type: e.g. POINT_DATA, CELL_DATA
+ * \param[in] component Array component or -1 for magnitude
+ * \param[in] onlyVisible Only collect range of visible DataSets
+ */
+void Renderer::collectDataRanges(double *range, const char *name,
+                                 DataSet::DataAttributeType type,
+                                 int component, bool onlyVisible)
+{
+    range[0] = DBL_MAX;
+    range[1] = -DBL_MAX;
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        if (!onlyVisible || itr->second->getVisibility()) {
+            double r[2];
+            itr->second->getDataRange(r, name, type, component);
+            range[0] = min2(range[0], r[0]);
+            range[1] = max2(range[1], r[1]);
+        }
+    }
+    if (range[0] == DBL_MAX)
+        range[0] = 0;
+    if (range[1] == -DBL_MAX)
+        range[1] = 1;
+    
+    TRACE("n:'%s' t:%d c:%d [%g,%g]", name, type, component,
+          range[0], range[1]);
+}
+
+/**
+ * \brief Clear field range hashtables and free memory
+ */
+void Renderer::clearFieldRanges()
+{
+    TRACE("Deleting Field Ranges");
+    for (FieldRangeHashmap::iterator itr = _scalarPointDataRange.begin();
+         itr != _scalarPointDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _scalarPointDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _scalarCellDataRange.begin();
+         itr != _scalarCellDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _scalarCellDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _vectorPointDataRange.begin();
+         itr != _vectorPointDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _vectorPointDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _vectorCompPointDataRange[i].begin();
+             itr != _vectorCompPointDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _vectorCompPointDataRange[i].clear();
+    }
+    for (FieldRangeHashmap::iterator itr = _vectorCellDataRange.begin();
+         itr != _vectorCellDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _vectorCellDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _vectorCompCellDataRange[i].begin();
+             itr != _vectorCompCellDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _vectorCompCellDataRange[i].clear();
+    }
+}
+
+void Renderer::initFieldRanges()
+{
+    clearFieldRanges();
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        DataSet *ds = itr->second;
+        std::vector<std::string> names;
+        ds->getFieldNames(names, DataSet::POINT_DATA, 1);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _scalarPointDataRange.find(*itr);
+            if (fritr == _scalarPointDataRange.end()) {
+                _scalarPointDataRange[*itr] = new double[2];
+                _scalarPointDataRange[*itr][0] = 0;
+                _scalarPointDataRange[*itr][1] = 1;
+            }
+        }
+        names.clear();
+        ds->getFieldNames(names, DataSet::CELL_DATA, 1);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _scalarCellDataRange.find(*itr);
+            if (fritr == _scalarCellDataRange.end()) {
+                _scalarCellDataRange[*itr] = new double[2];
+                _scalarCellDataRange[*itr][0] = 0;
+                _scalarCellDataRange[*itr][1] = 1;
+            }
+        }
+        names.clear();
+        ds->getFieldNames(names, DataSet::POINT_DATA, 3);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _vectorPointDataRange.find(*itr);
+            if (fritr == _vectorPointDataRange.end()) {
+                _vectorPointDataRange[*itr] = new double[2];
+                _vectorPointDataRange[*itr][0] = 0;
+                _vectorPointDataRange[*itr][1] = 1;
+            }
+            for (int i = 0; i < 3; i++) {
+                fritr = _vectorCompPointDataRange[i].find(*itr);
+                if (fritr == _vectorCompPointDataRange[i].end()) {
+                    _vectorCompPointDataRange[i][*itr] = new double[2];
+                    _vectorCompPointDataRange[i][*itr][0] = 0;
+                    _vectorCompPointDataRange[i][*itr][1] = 1;
+                }
+            }
+        }
+        names.clear();
+        ds->getFieldNames(names, DataSet::CELL_DATA, 3);
+        for (std::vector<std::string>::iterator itr = names.begin();
+             itr != names.end(); ++itr) {
+            FieldRangeHashmap::iterator fritr = 
+                _vectorCellDataRange.find(*itr);
+            if (fritr == _vectorCellDataRange.end()) {
+                _vectorCellDataRange[*itr] = new double[2];
+                _vectorCellDataRange[*itr][0] = 0;
+                _vectorCellDataRange[*itr][1] = 1;
+            }
+            for (int i = 0; i < 3; i++) {
+                fritr = _vectorCompCellDataRange[i].find(*itr);
+                if (fritr == _vectorCompCellDataRange[i].end()) {
+                    _vectorCompCellDataRange[i][*itr] = new double[2];
+                    _vectorCompCellDataRange[i][*itr][0] = 0;
+                    _vectorCompCellDataRange[i][*itr][1] = 1;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * \brief Returns boolean flag indicating if cumulative data ranges 
+ * should be used
+ */
+bool Renderer::getUseCumulativeRange()
+{
+    return _useCumulativeRange;
+}
+
+/**
+ * \brief Get the cumulative range across all DataSets for a point
+ * data field if it exists, otherwise a cell data field if it exists
+ *
+ * \param[out] range Pointer to an array of 2 doubles
+ * \param[in] name Field name
+ * \param[in] numComponents Number of components in field
+ * \param[in] component Index of component or -1 for magnitude/scalar
+ * \return boolean indicating if field was found
+ */
+bool Renderer::getCumulativeDataRange(double *range, const char *name,
+                                      int numComponents,
+                                      int component)
+{
+    bool ret;
+    if (!(ret = getCumulativeDataRange(range, name, DataSet::POINT_DATA,
+                                       numComponents, component)))
+        ret = getCumulativeDataRange(range, name, DataSet::CELL_DATA,
+                                     numComponents, component);
+    return ret;
+}
+
+/**
+ * \brief Get the cumulative range across all DataSets for a field
+ *
+ * \param[out] range Pointer to an array of 2 doubles
+ * \param[in] name Field name
+ * \param[in] type DataAttributeType of field
+ * \param[in] numComponents Number of components in field
+ * \param[in] component Index of component or -1 for magnitude/scalar
+ * \return boolean indicating if field was found
+ */
+bool Renderer::getCumulativeDataRange(double *range, const char *name,
+                                      DataSet::DataAttributeType type,
+                                      int numComponents,
+                                      int component)
+{
+    switch (type) {
+    case DataSet::POINT_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _scalarPointDataRange.find(name);
+            if (itr == _scalarPointDataRange.end()) {
+                return false;
+            } else {
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
+            }
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _vectorPointDataRange.find(name);
+                if (itr == _vectorPointDataRange.end()) {
+                    return false;
+                } else {
+                    memcpy(range, itr->second, sizeof(double)*2);
+                    return true;
+                }
+            } else if (component >= 0 && component <= 3) {
+                itr = _vectorCompPointDataRange[component].find(name);
+                if (itr == _vectorCompPointDataRange[component].end()) {
+                    return false;
+                } else {
+                    memcpy(range, itr->second, sizeof(double)*2);
+                    return true;
+                }
+            }
+        }
+    }
+        break;
+    case DataSet::CELL_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _scalarCellDataRange.find(name);
+            if (itr == _scalarCellDataRange.end()) {
+                return false;
+            } else {
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
+            }
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _vectorCellDataRange.find(name);
+                if (itr == _vectorCellDataRange.end()) {
+                    return false;
+                } else {
+                    memcpy(range, itr->second, sizeof(double)*2);
+                    return true;
+                }
+            } else if (component >= 0 && component <= 3) {
+                itr = _vectorCompCellDataRange[component].find(name);
+                if (itr == _vectorCompCellDataRange[component].end()) {
+                    return false;
+                } else {
+                    memcpy(range, itr->second, sizeof(double)*2);
+                    return true;
+                }
+            }
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return false;
 }
 
 void Renderer::collectDataRanges()
 {
-    collectScalarRanges(_cumulativeScalarRange,
-                        _cumulativeRangeOnlyVisible);
-    collectVectorMagnitudeRanges(_cumulativeVectorMagnitudeRange,
-                                 _cumulativeRangeOnlyVisible);
+    for (FieldRangeHashmap::iterator itr = _scalarPointDataRange.begin();
+         itr != _scalarPointDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::POINT_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
+    for (FieldRangeHashmap::iterator itr = _scalarCellDataRange.begin();
+         itr != _scalarCellDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::CELL_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
+    for (FieldRangeHashmap::iterator itr = _vectorPointDataRange.begin();
+         itr != _vectorPointDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::POINT_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
     for (int i = 0; i < 3; i++) {
-        collectVectorComponentRanges(_cumulativeVectorComponentRange[i], i,
-                                     _cumulativeRangeOnlyVisible);
+        for (FieldRangeHashmap::iterator itr = _vectorCompPointDataRange[i].begin();
+             itr != _vectorCompPointDataRange[i].end(); ++itr) {
+            collectDataRanges(itr->second, itr->first.c_str(),
+                              DataSet::POINT_DATA, i,
+                              _cumulativeRangeOnlyVisible);
+        }
     }
-
-    TRACE("Cumulative scalar range: %g, %g",
-          _cumulativeScalarRange[0],
-          _cumulativeScalarRange[1]);
-    TRACE("Cumulative vmag range: %g, %g",
-          _cumulativeVectorMagnitudeRange[0],
-          _cumulativeVectorMagnitudeRange[1]);
+    for (FieldRangeHashmap::iterator itr = _vectorCellDataRange.begin();
+         itr != _vectorCellDataRange.end(); ++itr) {
+        collectDataRanges(itr->second, itr->first.c_str(),
+                          DataSet::CELL_DATA, -1,
+                          _cumulativeRangeOnlyVisible);
+    }
     for (int i = 0; i < 3; i++) {
-        TRACE("Cumulative v[%d] range: %g, %g", i,
-              _cumulativeVectorComponentRange[i][0],
-              _cumulativeVectorComponentRange[i][1]);
-    }
-}
-
-/**
- * \brief Collect cumulative data range of all DataSets
- *
- * \param[in,out] range Data range of all DataSets
- * \param[in] onlyVisible Only collect range of visible DataSets
- */
-void Renderer::collectScalarRanges(double *range, bool onlyVisible)
-{
-    range[0] = DBL_MAX;
-    range[1] = -DBL_MAX;
-
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-         itr != _dataSets.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility()) {
-            double r[2];
-            itr->second->getScalarRange(r);
-            range[0] = min2(range[0], r[0]);
-            range[1] = max2(range[1], r[1]);
+        for (FieldRangeHashmap::iterator itr = _vectorCompCellDataRange[i].begin();
+             itr != _vectorCompCellDataRange[i].end(); ++itr) {
+            collectDataRanges(itr->second, itr->first.c_str(),
+                              DataSet::CELL_DATA, i,
+                              _cumulativeRangeOnlyVisible);
         }
     }
-    if (range[0] == DBL_MAX)
-        range[0] = 0;
-    if (range[1] == -DBL_MAX)
-        range[1] = 1;
 }
-
-/**
- * \brief Collect cumulative data range of all DataSets
- *
- * \param[in,out] range Data range of all DataSets
- * \param[in] onlyVisible Only collect range of visible DataSets
- */
-void Renderer::collectVectorMagnitudeRanges(double *range, bool onlyVisible)
-{
-    range[0] = DBL_MAX;
-    range[1] = -DBL_MAX;
-
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-         itr != _dataSets.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility()) {
-            double r[2];
-            itr->second->getVectorRange(r);
-            range[0] = min2(range[0], r[0]);
-            range[1] = max2(range[1], r[1]);
-        }
-    }
-    if (range[0] == DBL_MAX)
-        range[0] = 0;
-    if (range[1] == -DBL_MAX)
-        range[1] = 1;
-}
-
-/**
- * \brief Collect cumulative data range of all DataSets
- *
- * \param[in,out] range Data range of all DataSets
- * \param[in] onlyVisible Only collect range of visible DataSets
- */
-void Renderer::collectVectorComponentRanges(double *range, int component, bool onlyVisible)
-{
-    range[0] = DBL_MAX;
-    range[1] = -DBL_MAX;
-
-    for (DataSetHashmap::iterator itr = _dataSets.begin();
-         itr != _dataSets.end(); ++itr) {
-        if (!onlyVisible || itr->second->getVisibility()) {
-            double r[2];
-            itr->second->getVectorRange(r, component);
-            range[0] = min2(range[0], r[0]);
-            range[1] = max2(range[1], r[1]);
-        }
-    }
-    if (range[0] == DBL_MAX)
-        range[0] = 0;
-    if (range[1] == -DBL_MAX)
-        range[1] = 1;
- }
 
 /**
  * \brief Determines if AABB lies in a principal axis plane
  * and if so, returns the plane normal
  */
 bool Renderer::is2D(const double bounds[6],
-                    Renderer::PrincipalPlane *plane,
+                    PrincipalPlane *plane,
                     double *offset) const
 {
     if (bounds[4] == bounds[5]) {
@@ -9016,28 +2811,28 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         itr->second->setOpacity(opacity);
     } while (doAll && ++itr != _dataSets.end());
 
-    if (id.compare("all") == 0 || getContour2D(id) != NULL)
-        setContour2DOpacity(id, opacity);
-    if (id.compare("all") == 0 || getContour3D(id) != NULL)
-        setContour3DOpacity(id, opacity);
-    if (id.compare("all") == 0 || getCutplane(id) != NULL)
-        setCutplaneOpacity(id, opacity);
-    if (id.compare("all") == 0 || getGlyphs(id) != NULL)
-        setGlyphsOpacity(id, opacity);
-    if (id.compare("all") == 0 || getHeightMap(id) != NULL)
-        setHeightMapOpacity(id, opacity);
-    if (id.compare("all") == 0 || getLIC(id) != NULL)
-        setLICOpacity(id, opacity);
-    if (id.compare("all") == 0 || getMolecule(id) != NULL)
-        setMoleculeOpacity(id, opacity);
-    if (id.compare("all") == 0 || getPolyData(id) != NULL)
-        setPolyDataOpacity(id, opacity);
-    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
-        setPseudoColorOpacity(id, opacity);
-    if (id.compare("all") == 0 || getStreamlines(id) != NULL)
-        setStreamlinesOpacity(id, opacity);
-    if (id.compare("all") == 0 || getVolume(id) != NULL)
-        setVolumeOpacity(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Contour2D>(id) != NULL)
+        setGraphicsObjectOpacity<Contour2D>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Contour3D>(id) != NULL)
+        setGraphicsObjectOpacity<Contour3D>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Cutplane>(id) != NULL)
+        setGraphicsObjectOpacity<Cutplane>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Glyphs>(id) != NULL)
+        setGraphicsObjectOpacity<Glyphs>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<HeightMap>(id) != NULL)
+        setGraphicsObjectOpacity<HeightMap>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
+        setGraphicsObjectOpacity<LIC>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
+        setGraphicsObjectOpacity<Molecule>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<PolyData>(id) != NULL)
+        setGraphicsObjectOpacity<PolyData>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<PseudoColor>(id) != NULL)
+        setGraphicsObjectOpacity<PseudoColor>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Streamlines>(id) != NULL)
+        setGraphicsObjectOpacity<Streamlines>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Volume>(id) != NULL)
+        setGraphicsObjectOpacity<Volume>(id, opacity);
 
     _needsRedraw = true;
 }
@@ -9066,28 +2861,28 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         itr->second->setVisibility(state);
     } while (doAll && ++itr != _dataSets.end());
 
-    if (id.compare("all") == 0 || getContour2D(id) != NULL)
-        setContour2DVisibility(id, state);
-    if (id.compare("all") == 0 || getContour3D(id) != NULL)
-        setContour3DVisibility(id, state);
-   if (id.compare("all") == 0 || getCutplane(id) != NULL)
-        setCutplaneVisibility(id, state);
-    if (id.compare("all") == 0 || getGlyphs(id) != NULL)
-        setGlyphsVisibility(id, state);
-    if (id.compare("all") == 0 || getHeightMap(id) != NULL)
-        setHeightMapVisibility(id, state);
-    if (id.compare("all") == 0 || getLIC(id) != NULL)
-        setLICVisibility(id, state);
-    if (id.compare("all") == 0 || getMolecule(id) != NULL)
-        setMoleculeVisibility(id, state);
-    if (id.compare("all") == 0 || getPolyData(id) != NULL)
-        setPolyDataVisibility(id, state);
-    if (id.compare("all") == 0 || getPseudoColor(id) != NULL)
-        setPseudoColorVisibility(id, state);
-    if (id.compare("all") == 0 || getStreamlines(id) != NULL)
-        setStreamlinesVisibility(id, state);
-    if (id.compare("all") == 0 || getVolume(id) != NULL)
-        setVolumeVisibility(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Contour2D>(id) != NULL)
+        setGraphicsObjectVisibility<Contour2D>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Contour3D>(id) != NULL)
+        setGraphicsObjectVisibility<Contour3D>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Cutplane>(id) != NULL)
+        setGraphicsObjectVisibility<Cutplane>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Glyphs>(id) != NULL)
+        setGraphicsObjectVisibility<Glyphs>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<HeightMap>(id) != NULL)
+        setGraphicsObjectVisibility<HeightMap>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<LIC>(id) != NULL)
+        setGraphicsObjectVisibility<LIC>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Molecule>(id) != NULL)
+        setGraphicsObjectVisibility<Molecule>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<PolyData>(id) != NULL)
+        setGraphicsObjectVisibility<PolyData>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<PseudoColor>(id) != NULL)
+        setGraphicsObjectVisibility<PseudoColor>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Streamlines>(id) != NULL)
+        setGraphicsObjectVisibility<Streamlines>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Volume>(id) != NULL)
+        setGraphicsObjectVisibility<Volume>(id, state);
 
     _needsRedraw = true;
 }

@@ -43,12 +43,15 @@ public:
     }
 
     virtual void setDataSet(DataSet *dataSet,
-                            bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2]);
+                            Renderer *renderer);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
 
     void setColorMode(ColorMode mode);
 
@@ -64,18 +67,19 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
 private:
     virtual void update();
 
-    ColorMode _colorMode;
     ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
+    Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;

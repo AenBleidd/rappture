@@ -19,9 +19,11 @@
 #include "Trace.h"
 #include "CmdProc.h"
 #include "ReadBuffer.h"
+#include "RpTypes.h"
 #include "RpVtkRendererCmd.h"
 #include "RpVtkRenderServer.h"
 #include "RpVtkRenderer.h"
+#include "RpVtkRendererGraphicsObjs.h"
 #include "PPMWriter.h"
 #include "TGAWriter.h"
 #ifdef USE_THREADS
@@ -167,11 +169,11 @@ AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisGridVisibility(Renderer::X_AXIS, visible);
+        g_renderer->setAxisGridVisibility(X_AXIS, visible);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisGridVisibility(Renderer::Y_AXIS, visible);
+        g_renderer->setAxisGridVisibility(Y_AXIS, visible);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisGridVisibility(Renderer::Z_AXIS, visible);
+        g_renderer->setAxisGridVisibility(Z_AXIS, visible);
     } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
         g_renderer->setAxesGridVisibility(visible);
     } else {
@@ -193,11 +195,11 @@ AxisLabelsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisLabelVisibility(Renderer::X_AXIS, visible);
+        g_renderer->setAxisLabelVisibility(X_AXIS, visible);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisLabelVisibility(Renderer::Y_AXIS, visible);
+        g_renderer->setAxisLabelVisibility(Y_AXIS, visible);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisLabelVisibility(Renderer::Z_AXIS, visible);
+        g_renderer->setAxisLabelVisibility(Z_AXIS, visible);
     } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
         g_renderer->setAxesLabelVisibility(visible);
     } else {
@@ -221,11 +223,11 @@ AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisTitle(Renderer::X_AXIS, title);
+        g_renderer->setAxisTitle(X_AXIS, title);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisTitle(Renderer::Y_AXIS, title);
+        g_renderer->setAxisTitle(Y_AXIS, title);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisTitle(Renderer::Z_AXIS, title);
+        g_renderer->setAxisTitle(Z_AXIS, title);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName title", (char*)NULL);
@@ -245,11 +247,11 @@ AxisTicksVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisTickVisibility(Renderer::X_AXIS, visible);
+        g_renderer->setAxisTickVisibility(X_AXIS, visible);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisTickVisibility(Renderer::Y_AXIS, visible);
+        g_renderer->setAxisTickVisibility(Y_AXIS, visible);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisTickVisibility(Renderer::Z_AXIS, visible);
+        g_renderer->setAxisTickVisibility(Z_AXIS, visible);
     } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
         g_renderer->setAxesTickVisibility(visible);
     } else {
@@ -293,15 +295,15 @@ AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisUnits(Renderer::X_AXIS, units);
+        g_renderer->setAxisUnits(X_AXIS, units);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisUnits(Renderer::Y_AXIS, units);
+        g_renderer->setAxisUnits(Y_AXIS, units);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisUnits(Renderer::Z_AXIS, units);
+        g_renderer->setAxisUnits(Z_AXIS, units);
     } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
-        g_renderer->setAxisUnits(Renderer::X_AXIS, units);
-        g_renderer->setAxisUnits(Renderer::Y_AXIS, units);
-        g_renderer->setAxisUnits(Renderer::Z_AXIS, units);
+        g_renderer->setAxisUnits(X_AXIS, units);
+        g_renderer->setAxisUnits(Y_AXIS, units);
+        g_renderer->setAxisUnits(Z_AXIS, units);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName units", (char*)NULL);
@@ -321,11 +323,11 @@ AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        g_renderer->setAxisVisibility(Renderer::X_AXIS, visible);
+        g_renderer->setAxisVisibility(X_AXIS, visible);
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        g_renderer->setAxisVisibility(Renderer::Y_AXIS, visible);
+        g_renderer->setAxisVisibility(Y_AXIS, visible);
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        g_renderer->setAxisVisibility(Renderer::Z_AXIS, visible);
+        g_renderer->setAxisVisibility(Z_AXIS, visible);
     } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
         g_renderer->setAxesVisibility(visible);
     } else {
@@ -772,9 +774,9 @@ Contour2DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteContour2D(name);
+        g_renderer->deleteGraphicsObject<Contour2D>(name);
     } else {
-        g_renderer->deleteContour2D("all");
+        g_renderer->deleteGraphicsObject<Contour2D>("all");
     }
     return TCL_OK;
 }
@@ -789,9 +791,9 @@ Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour2DLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Contour2D>(name, state);
     } else {
-        g_renderer->setContour2DLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Contour2D>("all", state);
     }
     return TCL_OK;
 }
@@ -808,9 +810,9 @@ Contour2DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour2DColor(name, color);
+        g_renderer->setGraphicsObjectColor<Contour2D>(name, color);
     } else {
-        g_renderer->setContour2DColor("all", color);
+        g_renderer->setGraphicsObjectColor<Contour2D>("all", color);
     }
     return TCL_OK;
 }
@@ -825,9 +827,9 @@ Contour2DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour2DEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Contour2D>(name, width);
     } else {
-        g_renderer->setContour2DEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Contour2D>("all", width);
     }
     return TCL_OK;
 }
@@ -842,9 +844,9 @@ Contour2DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour2DOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Contour2D>(name, opacity);
     } else {
-        g_renderer->setContour2DOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Contour2D>("all", opacity);
     }
     return TCL_OK;
 }
@@ -862,9 +864,9 @@ Contour2DOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setContour2DOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Contour2D>(name, quat);
     } else {
-        g_renderer->setContour2DOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Contour2D>("all", quat);
     }
     return TCL_OK;
 }
@@ -881,9 +883,9 @@ Contour2DPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour2DPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Contour2D>(name, pos);
     } else {
-        g_renderer->setContour2DPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Contour2D>("all", pos);
     }
     return TCL_OK;
 }
@@ -900,9 +902,9 @@ Contour2DScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour2DScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Contour2D>(name, scale);
     } else {
-        g_renderer->setContour2DScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Contour2D>("all", scale);
     }
     return TCL_OK;
 }
@@ -917,9 +919,9 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour2DVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Contour2D>(name, state);
     } else {
-        g_renderer->setContour2DVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Contour2D>("all", state);
     }
     return TCL_OK;
 }
@@ -1044,9 +1046,9 @@ Contour3DColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour3DColor(name, color);
+        g_renderer->setGraphicsObjectColor<Contour3D>(name, color);
     } else {
-        g_renderer->setContour3DColor("all", color);
+        g_renderer->setGraphicsObjectColor<Contour3D>("all", color);
     }
     return TCL_OK;
 }
@@ -1058,9 +1060,9 @@ Contour3DColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Contour3D>(dataSetName, colorMapName);
     } else {
-        g_renderer->setContour3DColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Contour3D>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -1071,9 +1073,9 @@ Contour3DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteContour3D(name);
+        g_renderer->deleteGraphicsObject<Contour3D>(name);
     } else {
-        g_renderer->deleteContour3D("all");
+        g_renderer->deleteGraphicsObject<Contour3D>("all");
     }
     return TCL_OK;
 }
@@ -1088,9 +1090,9 @@ Contour3DEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Contour3D>(name, state);
     } else {
-        g_renderer->setContour3DEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Contour3D>("all", state);
     }
     return TCL_OK;
 }
@@ -1105,9 +1107,9 @@ Contour3DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Contour3D>(name, state);
     } else {
-        g_renderer->setContour3DLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Contour3D>("all", state);
     }
     return TCL_OK;
 }
@@ -1124,9 +1126,9 @@ Contour3DLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour3DEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<Contour3D>(name, color);
     } else {
-        g_renderer->setContour3DEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<Contour3D>("all", color);
     }
     return TCL_OK;
 }
@@ -1141,9 +1143,9 @@ Contour3DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Contour3D>(name, width);
     } else {
-        g_renderer->setContour3DEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Contour3D>("all", width);
     }
     return TCL_OK;
 }
@@ -1158,9 +1160,9 @@ Contour3DOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Contour3D>(name, opacity);
     } else {
-        g_renderer->setContour3DOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Contour3D>("all", opacity);
     }
     return TCL_OK;
 }
@@ -1178,9 +1180,9 @@ Contour3DOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setContour3DOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Contour3D>(name, quat);
     } else {
-        g_renderer->setContour3DOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Contour3D>("all", quat);
     }
     return TCL_OK;
 }
@@ -1197,9 +1199,9 @@ Contour3DPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour3DPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Contour3D>(name, pos);
     } else {
-        g_renderer->setContour3DPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Contour3D>("all", pos);
     }
     return TCL_OK;
 }
@@ -1216,9 +1218,9 @@ Contour3DScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setContour3DScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Contour3D>(name, scale);
     } else {
-        g_renderer->setContour3DScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Contour3D>("all", scale);
     }
     return TCL_OK;
 }
@@ -1233,9 +1235,9 @@ Contour3DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Contour3D>(name, state);
     } else {
-        g_renderer->setContour3DVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Contour3D>("all", state);
     }
     return TCL_OK;
 }
@@ -1250,9 +1252,9 @@ Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<Contour3D>(name, state);
     } else {
-        g_renderer->setContour3DWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<Contour3D>("all", state);
     }
     return TCL_OK;
 }
@@ -1295,12 +1297,12 @@ CutplaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addCutplane(name)) {
+        if (!g_renderer->addGraphicsObject<Cutplane>(name)) {
             Tcl_AppendResult(interp, "Failed to create cutplane", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addCutplane("all")) {
+        if (!g_renderer->addGraphicsObject<Cutplane>("all")) {
             Tcl_AppendResult(interp, "Failed to create cutplane for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -1315,9 +1317,9 @@ CutplaneColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Cutplane>(dataSetName, colorMapName);
     } else {
-        g_renderer->setCutplaneColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Cutplane>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -1343,11 +1345,12 @@ CutplaneColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz'", (char*)NULL);
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneColorMode(name, mode);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setCutplaneColorMode(name, mode, fieldName);
     } else {
-        g_renderer->setCutplaneColorMode("all", mode);
+        g_renderer->setCutplaneColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -1358,9 +1361,9 @@ CutplaneDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteCutplane(name);
+        g_renderer->deleteGraphicsObject<Cutplane>(name);
     } else {
-        g_renderer->deleteCutplane("all");
+        g_renderer->deleteGraphicsObject<Cutplane>("all");
     }
     return TCL_OK;
 }
@@ -1375,9 +1378,9 @@ CutplaneEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Cutplane>(name, state);
     } else {
-        g_renderer->setCutplaneEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Cutplane>("all", state);
     }
     return TCL_OK;
 }
@@ -1392,9 +1395,9 @@ CutplaneLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Cutplane>(name, state);
     } else {
-        g_renderer->setCutplaneLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Cutplane>("all", state);
     }
     return TCL_OK;
 }
@@ -1411,9 +1414,9 @@ CutplaneLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setCutplaneEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<Cutplane>(name, color);
     } else {
-        g_renderer->setCutplaneEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<Cutplane>("all", color);
     }
     return TCL_OK;
 }
@@ -1428,9 +1431,9 @@ CutplaneLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Cutplane>(name, width);
     } else {
-        g_renderer->setCutplaneEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Cutplane>("all", width);
     }
     return TCL_OK;
 }
@@ -1445,9 +1448,9 @@ CutplaneOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Cutplane>(name, opacity);
     } else {
-        g_renderer->setCutplaneOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Cutplane>("all", opacity);
     }
     return TCL_OK;
 }
@@ -1465,9 +1468,9 @@ CutplaneOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setCutplaneOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Cutplane>(name, quat);
     } else {
-        g_renderer->setCutplaneOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Cutplane>("all", quat);
     }
     return TCL_OK;
 }
@@ -1484,9 +1487,9 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setCutplanePosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Cutplane>(name, pos);
     } else {
-        g_renderer->setCutplanePosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Cutplane>("all", pos);
     }
     return TCL_OK;
 }
@@ -1503,9 +1506,9 @@ CutplaneScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setCutplaneScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Cutplane>(name, scale);
     } else {
-        g_renderer->setCutplaneScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Cutplane>("all", scale);
     }
     return TCL_OK;
 }
@@ -1520,13 +1523,13 @@ CutplaneSliceVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    Cutplane::Axis axis;
+    Axis axis;
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        axis = Cutplane::X_AXIS;
+        axis = X_AXIS;
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        axis = Cutplane::Y_AXIS;
+        axis = Y_AXIS;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        axis = Cutplane::Z_AXIS;
+        axis = Z_AXIS;
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName bool", (char*)NULL);
@@ -1551,9 +1554,9 @@ CutplaneVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Cutplane>(name, state);
     } else {
-        g_renderer->setCutplaneVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Cutplane>("all", state);
     }
     return TCL_OK;
 }
@@ -1568,13 +1571,13 @@ CutplaneVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    Cutplane::Axis axis;
+    Axis axis;
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        axis = Cutplane::X_AXIS;
+        axis = X_AXIS;
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        axis = Cutplane::Y_AXIS;
+        axis = Y_AXIS;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        axis = Cutplane::Z_AXIS;
+        axis = Z_AXIS;
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName ratio", (char*)NULL);
@@ -1582,9 +1585,9 @@ CutplaneVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setCutplaneVolumeSlice(name, axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<Cutplane>(name, axis, ratio);
     } else {
-        g_renderer->setCutplaneVolumeSlice("all", axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<Cutplane>("all", axis, ratio);
     }
     return TCL_OK;
 }
@@ -1599,9 +1602,9 @@ CutplaneWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setCutplaneWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<Cutplane>(name, state);
     } else {
-        g_renderer->setCutplaneWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<Cutplane>("all", state);
     }
     return TCL_OK;
 }
@@ -1610,7 +1613,7 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"add",          2, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode",    7, CutplaneColorModeOp, 3, 4, "mode ?dataSetNme?"},
+    {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, CutplaneEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",     3, CutplaneLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -2123,9 +2126,9 @@ GlyphsColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setGlyphsColor(name, color);
+        g_renderer->setGraphicsObjectColor<Glyphs>(name, color);
     } else {
-        g_renderer->setGlyphsColor("all", color);
+        g_renderer->setGraphicsObjectColor<Glyphs>("all", color);
     }
     return TCL_OK;
 }
@@ -2137,9 +2140,9 @@ GlyphsColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Glyphs>(dataSetName, colorMapName);
     } else {
-        g_renderer->setGlyphsColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Glyphs>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -2176,9 +2179,9 @@ GlyphsDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteGlyphs(name);
+        g_renderer->deleteGraphicsObject<Glyphs>(name);
     } else {
-        g_renderer->deleteGlyphs("all");
+        g_renderer->deleteGraphicsObject<Glyphs>("all");
     }
     return TCL_OK;
 }
@@ -2193,9 +2196,9 @@ GlyphsEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Glyphs>(name, state);
     } else {
-        g_renderer->setGlyphsEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Glyphs>("all", state);
     }
     return TCL_OK;
 }
@@ -2210,9 +2213,9 @@ GlyphsLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Glyphs>(name, state);
     } else {
-        g_renderer->setGlyphsLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Glyphs>("all", state);
     }
     return TCL_OK;
 }
@@ -2229,9 +2232,9 @@ GlyphsLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setGlyphsEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<Glyphs>(name, color);
     } else {
-        g_renderer->setGlyphsEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<Glyphs>("all", color);
     }
     return TCL_OK;
 }
@@ -2246,9 +2249,9 @@ GlyphsLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Glyphs>(name, width);
     } else {
-        g_renderer->setGlyphsEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Glyphs>("all", width);
     }
     return TCL_OK;
 }
@@ -2280,9 +2283,9 @@ GlyphsOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Glyphs>(name, opacity);
     } else {
-        g_renderer->setGlyphsOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Glyphs>("all", opacity);
     }
     return TCL_OK;
 }
@@ -2300,9 +2303,9 @@ GlyphsOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setGlyphsOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Glyphs>(name, quat);
     } else {
-        g_renderer->setGlyphsOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Glyphs>("all", quat);
     }
     return TCL_OK;
 }
@@ -2319,9 +2322,9 @@ GlyphsPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setGlyphsPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Glyphs>(name, pos);
     } else {
-        g_renderer->setGlyphsPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Glyphs>("all", pos);
     }
     return TCL_OK;
 }
@@ -2338,9 +2341,9 @@ GlyphsScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setGlyphsScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Glyphs>(name, scale);
     } else {
-        g_renderer->setGlyphsScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Glyphs>("all", scale);
     }
     return TCL_OK;
 }
@@ -2442,9 +2445,9 @@ GlyphsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Glyphs>(name, state);
     } else {
-        g_renderer->setGlyphsVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Glyphs>("all", state);
     }
     return TCL_OK;
 }
@@ -2459,9 +2462,9 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<Glyphs>(name, state);
     } else {
-        g_renderer->setGlyphsWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<Glyphs>("all", state);
     }
     return TCL_OK;
 }
@@ -2598,9 +2601,9 @@ HeightMapColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<HeightMap>(dataSetName, colorMapName);
     } else {
-        g_renderer->setHeightMapColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<HeightMap>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -2711,9 +2714,9 @@ HeightMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteHeightMap(name);
+        g_renderer->deleteGraphicsObject<HeightMap>(name);
     } else {
-        g_renderer->deleteHeightMap("all");
+        g_renderer->deleteGraphicsObject<HeightMap>("all");
     }
     return TCL_OK;
 }
@@ -2728,9 +2731,9 @@ HeightMapEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<HeightMap>(name, state);
     } else {
-        g_renderer->setHeightMapEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<HeightMap>("all", state);
     }
     return TCL_OK;
 }
@@ -2762,9 +2765,9 @@ HeightMapLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<HeightMap>(name, state);
     } else {
-        g_renderer->setHeightMapLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<HeightMap>("all", state);
     }
     return TCL_OK;
 }
@@ -2781,9 +2784,9 @@ HeightMapLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setHeightMapEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<HeightMap>(name, color);
     } else {
-        g_renderer->setHeightMapEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<HeightMap>("all", color);
     }
     return TCL_OK;
 }
@@ -2798,9 +2801,9 @@ HeightMapLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<HeightMap>(name, width);
     } else {
-        g_renderer->setHeightMapEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<HeightMap>("all", width);
     }
     return TCL_OK;
 }
@@ -2833,9 +2836,9 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<HeightMap>(name, opacity);
     } else {
-        g_renderer->setHeightMapOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<HeightMap>("all", opacity);
     }
     return TCL_OK;
 }
@@ -2853,9 +2856,9 @@ HeightMapOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setHeightMapOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<HeightMap>(name, quat);
     } else {
-        g_renderer->setHeightMapOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<HeightMap>("all", quat);
     }
     return TCL_OK;
 }
@@ -2872,9 +2875,9 @@ HeightMapPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setHeightMapPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<HeightMap>(name, pos);
     } else {
-        g_renderer->setHeightMapPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<HeightMap>("all", pos);
     }
     return TCL_OK;
 }
@@ -2891,9 +2894,9 @@ HeightMapScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setHeightMapScale(name, scale);
+        g_renderer->setGraphicsObjectScale<HeightMap>(name, scale);
     } else {
-        g_renderer->setHeightMapScale("all", scale);
+        g_renderer->setGraphicsObjectScale<HeightMap>("all", scale);
     }
     return TCL_OK;
 }
@@ -2908,9 +2911,9 @@ HeightMapVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<HeightMap>(name, state);
     } else {
-        g_renderer->setHeightMapVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<HeightMap>("all", state);
     }
     return TCL_OK;
 }
@@ -2925,13 +2928,13 @@ HeightMapVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    HeightMap::Axis axis;
+    Axis axis;
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        axis = HeightMap::X_AXIS;
+        axis = X_AXIS;
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        axis = HeightMap::Y_AXIS;
+        axis = Y_AXIS;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        axis = HeightMap::Z_AXIS;
+        axis = Z_AXIS;
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName ratio", (char*)NULL);
@@ -2939,9 +2942,9 @@ HeightMapVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setHeightMapVolumeSlice(name, axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<HeightMap>(name, axis, ratio);
     } else {
-        g_renderer->setHeightMapVolumeSlice("all", axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<HeightMap>("all", axis, ratio);
     }
     return TCL_OK;
 }
@@ -2956,9 +2959,9 @@ HeightMapWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setHeightMapWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<HeightMap>(name, state);
     } else {
-        g_renderer->setHeightMapWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<HeightMap>("all", state);
     }
     return TCL_OK;
 }
@@ -3014,36 +3017,38 @@ static int
 LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
           Tcl_Obj *const *objv)
 {
-    if (objc < 7) {
+    if (objc < 8) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-                Tcl_GetString(objv[0]), " colormapName legendType title width height numLabels ?dataSetName?\"", (char*)NULL);
+                Tcl_GetString(objv[0]), " colormapName legendType fieldName title width height numLabels ?dataSetName?\"", (char*)NULL);
         return TCL_ERROR;
     }
     const char *colorMapName = Tcl_GetString(objv[1]);
     const char *typeStr = Tcl_GetString(objv[2]);
-    Renderer::LegendType type;
+    Renderer::LegendType legendType;
     if (typeStr[0] == 's' && strcmp(typeStr, "scalar") == 0) {
-        type = Renderer::ACTIVE_SCALAR;
+        legendType = Renderer::LEGEND_SCALAR;
     } else if (typeStr[0] == 'v' && strcmp(typeStr, "vmag") == 0) {
-        type = Renderer::ACTIVE_VECTOR_MAGNITUDE;
+        legendType = Renderer::LEGEND_VECTOR_MAGNITUDE;
     } else if (typeStr[0] == 'v' && strcmp(typeStr, "vx") == 0) {
-        type = Renderer::ACTIVE_VECTOR_X;
+        legendType = Renderer::LEGEND_VECTOR_X;
     } else if (typeStr[0] == 'v' && strcmp(typeStr, "vy") == 0) {
-        type = Renderer::ACTIVE_VECTOR_Y;
+        legendType = Renderer::LEGEND_VECTOR_Y;
     } else if (typeStr[0] == 'v' && strcmp(typeStr, "vz") == 0) {
-        type = Renderer::ACTIVE_VECTOR_Z;
+        legendType = Renderer::LEGEND_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "Bad legendType option \"",
                          typeStr, "\", should be one of 'scalar', 'vmag', 'vx', 'vy', 'vz'", (char*)NULL);
         return TCL_ERROR;
     }
 
-    std::string title(Tcl_GetString(objv[3]));
+    const char *fieldName = Tcl_GetString(objv[3]);
+
+    std::string title(Tcl_GetString(objv[4]));
     int width, height, numLabels;
 
-    if (Tcl_GetIntFromObj(interp, objv[4], &width) != TCL_OK ||
-        Tcl_GetIntFromObj(interp, objv[5], &height) != TCL_OK ||
-        Tcl_GetIntFromObj(interp, objv[6], &numLabels) != TCL_OK) {
+    if (Tcl_GetIntFromObj(interp, objv[5], &width) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[6], &height) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[7], &numLabels) != TCL_OK) {
         return TCL_ERROR;
     }
 
@@ -3052,9 +3057,9 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     double range[2];
 
-    if (objc == 8) {
-        const char *dataSetName = Tcl_GetString(objv[7]);
-        if (!g_renderer->renderColorMap(colorMapName, dataSetName, type, title,
+    if (objc == 9) {
+        const char *dataSetName = Tcl_GetString(objv[8]);
+        if (!g_renderer->renderColorMap(colorMapName, dataSetName, legendType, fieldName, title,
                                         range, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" or dataset \"",
@@ -3062,7 +3067,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->renderColorMap(colorMapName, "all", type, title,
+        if (!g_renderer->renderColorMap(colorMapName, "all", legendType, fieldName, title,
                                         range, width, height, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" was not found", (char*)NULL);
@@ -3110,12 +3115,12 @@ LICAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addLIC(name)) {
+        if (!g_renderer->addGraphicsObject<LIC>(name)) {
             Tcl_AppendResult(interp, "Failed to create lic", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addLIC("all")) {
+        if (!g_renderer->addGraphicsObject<LIC>("all")) {
             Tcl_AppendResult(interp, "Failed to create lic for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -3130,9 +3135,9 @@ LICColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setLICColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<LIC>(dataSetName, colorMapName);
     } else {
-        g_renderer->setLICColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<LIC>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -3143,9 +3148,9 @@ LICDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteLIC(name);
+        g_renderer->deleteGraphicsObject<LIC>(name);
     } else {
-        g_renderer->deleteLIC("all");
+        g_renderer->deleteGraphicsObject<LIC>("all");
     }
     return TCL_OK;
 }
@@ -3160,9 +3165,9 @@ LICEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setLICEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<LIC>(name, state);
     } else {
-        g_renderer->setLICEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<LIC>("all", state);
     }
     return TCL_OK;
 }
@@ -3177,9 +3182,9 @@ LICLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setLICLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<LIC>(name, state);
     } else {
-        g_renderer->setLICLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<LIC>("all", state);
     }
     return TCL_OK;
 }
@@ -3196,9 +3201,9 @@ LICLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setLICEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<LIC>(name, color);
     } else {
-        g_renderer->setLICEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<LIC>("all", color);
     }
     return TCL_OK;
 }
@@ -3213,9 +3218,9 @@ LICLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setLICEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<LIC>(name, width);
     } else {
-        g_renderer->setLICEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<LIC>("all", width);
     }
     return TCL_OK;
 }
@@ -3230,9 +3235,9 @@ LICOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setLICOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<LIC>(name, opacity);
     } else {
-        g_renderer->setLICOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<LIC>("all", opacity);
     }
     return TCL_OK;
 }
@@ -3250,9 +3255,9 @@ LICOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setLICOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<LIC>(name, quat);
     } else {
-        g_renderer->setLICOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<LIC>("all", quat);
     }
     return TCL_OK;
 }
@@ -3269,9 +3274,9 @@ LICPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setLICPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<LIC>(name, pos);
     } else {
-        g_renderer->setLICPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<LIC>("all", pos);
     }
     return TCL_OK;
 }
@@ -3288,9 +3293,9 @@ LICScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setLICScale(name, scale);
+        g_renderer->setGraphicsObjectScale<LIC>(name, scale);
     } else {
-        g_renderer->setLICScale("all", scale);
+        g_renderer->setGraphicsObjectScale<LIC>("all", scale);
     }
     return TCL_OK;
 }
@@ -3305,9 +3310,9 @@ LICVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setLICVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<LIC>(name, state);
     } else {
-        g_renderer->setLICVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<LIC>("all", state);
     }
     return TCL_OK;
 }
@@ -3322,13 +3327,13 @@ LICVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    LIC::Axis axis;
+    Axis axis;
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        axis = LIC::X_AXIS;
+        axis = X_AXIS;
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        axis = LIC::Y_AXIS;
+        axis = Y_AXIS;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        axis = LIC::Z_AXIS;
+        axis = Z_AXIS;
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be axisName ratio", (char*)NULL);
@@ -3336,9 +3341,9 @@ LICVolumeSliceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setLICVolumeSlice(name, axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<LIC>(name, axis, ratio);
     } else {
-        g_renderer->setLICVolumeSlice("all", axis, ratio);
+        g_renderer->setGraphicsObjectVolumeSlice<LIC>("all", axis, ratio);
     }
     return TCL_OK;
 }
@@ -3380,12 +3385,12 @@ MoleculeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addMolecule(name)) {
+        if (!g_renderer->addGraphicsObject<Molecule>(name)) {
             Tcl_AppendResult(interp, "Failed to create molecule", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addMolecule("all")) {
+        if (!g_renderer->addGraphicsObject<Molecule>("all")) {
             Tcl_AppendResult(interp, "Failed to create molecule for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -3462,9 +3467,9 @@ MoleculeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Molecule>(dataSetName, colorMapName);
     } else {
-        g_renderer->setMoleculeColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Molecule>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -3475,9 +3480,9 @@ MoleculeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteMolecule(name);
+        g_renderer->deleteGraphicsObject<Molecule>(name);
     } else {
-        g_renderer->deleteMolecule("all");
+        g_renderer->deleteGraphicsObject<Molecule>("all");
     }
     return TCL_OK;
 }
@@ -3492,9 +3497,9 @@ MoleculeEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Molecule>(name, state);
     } else {
-        g_renderer->setMoleculeEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Molecule>("all", state);
     }
     return TCL_OK;
 }
@@ -3509,9 +3514,9 @@ MoleculeLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Molecule>(name, state);
     } else {
-        g_renderer->setMoleculeLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Molecule>("all", state);
     }
     return TCL_OK;
 }
@@ -3528,9 +3533,9 @@ MoleculeLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setMoleculeEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<Molecule>(name, color);
     } else {
-        g_renderer->setMoleculeEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<Molecule>("all", color);
     }
     return TCL_OK;
 }
@@ -3545,9 +3550,9 @@ MoleculeLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Molecule>(name, width);
     } else {
-        g_renderer->setMoleculeEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Molecule>("all", width);
     }
     return TCL_OK;
 }
@@ -3562,9 +3567,9 @@ MoleculeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Molecule>(name, opacity);
     } else {
-        g_renderer->setMoleculeOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Molecule>("all", opacity);
     }
     return TCL_OK;
 }
@@ -3582,9 +3587,9 @@ MoleculeOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setMoleculeOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Molecule>(name, quat);
     } else {
-        g_renderer->setMoleculeOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Molecule>("all", quat);
     }
     return TCL_OK;
 }
@@ -3601,9 +3606,9 @@ MoleculePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setMoleculePosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Molecule>(name, pos);
     } else {
-        g_renderer->setMoleculePosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Molecule>("all", pos);
     }
     return TCL_OK;
 }
@@ -3620,9 +3625,9 @@ MoleculeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setMoleculeScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Molecule>(name, scale);
     } else {
-        g_renderer->setMoleculeScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Molecule>("all", scale);
     }
     return TCL_OK;
 }
@@ -3637,9 +3642,9 @@ MoleculeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Molecule>(name, state);
     } else {
-        g_renderer->setMoleculeVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Molecule>("all", state);
     }
     return TCL_OK;
 }
@@ -3654,9 +3659,9 @@ MoleculeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setMoleculeWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<Molecule>(name, state);
     } else {
-        g_renderer->setMoleculeWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<Molecule>("all", state);
     }
     return TCL_OK;
 }
@@ -3701,12 +3706,12 @@ PolyDataAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addPolyData(name)) {
+        if (!g_renderer->addGraphicsObject<PolyData>(name)) {
             Tcl_AppendResult(interp, "Failed to create polydata", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addPolyData("all")) {
+        if (!g_renderer->addGraphicsObject<PolyData>("all")) {
             Tcl_AppendResult(interp, "Failed to create polydata for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -3720,9 +3725,9 @@ PolyDataDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deletePolyData(name);
+        g_renderer->deleteGraphicsObject<PolyData>(name);
     } else {
-        g_renderer->deletePolyData("all");
+        g_renderer->deleteGraphicsObject<PolyData>("all");
     }
     return TCL_OK;
 }
@@ -3739,9 +3744,9 @@ PolyDataColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPolyDataColor(name, color);
+        g_renderer->setGraphicsObjectColor<PolyData>(name, color);
     } else {
-        g_renderer->setPolyDataColor("all", color);
+        g_renderer->setGraphicsObjectColor<PolyData>("all", color);
     }
     return TCL_OK;
 }
@@ -3756,9 +3761,9 @@ PolyDataEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<PolyData>(name, state);
     } else {
-        g_renderer->setPolyDataEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<PolyData>("all", state);
     }
     return TCL_OK;
 }
@@ -3773,9 +3778,9 @@ PolyDataLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<PolyData>(name, state);
     } else {
-        g_renderer->setPolyDataLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<PolyData>("all", state);
     }
     return TCL_OK;
 }
@@ -3792,9 +3797,9 @@ PolyDataLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPolyDataEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<PolyData>(name, color);
     } else {
-        g_renderer->setPolyDataEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<PolyData>("all", color);
     }
     return TCL_OK;
 }
@@ -3809,9 +3814,9 @@ PolyDataLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<PolyData>(name, width);
     } else {
-        g_renderer->setPolyDataEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<PolyData>("all", width);
     }
     return TCL_OK;
 }
@@ -3826,9 +3831,9 @@ PolyDataOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<PolyData>(name, opacity);
     } else {
-        g_renderer->setPolyDataOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<PolyData>("all", opacity);
     }
     return TCL_OK;
 }
@@ -3846,9 +3851,9 @@ PolyDataOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setPolyDataOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<PolyData>(name, quat);
     } else {
-        g_renderer->setPolyDataOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<PolyData>("all", quat);
     }
     return TCL_OK;
 }
@@ -3863,9 +3868,9 @@ PolyDataPointSizeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataPointSize(name, size);
+        g_renderer->setGraphicsObjectPointSize<PolyData>(name, size);
     } else {
-        g_renderer->setPolyDataPointSize("all", size);
+        g_renderer->setGraphicsObjectPointSize<PolyData>("all", size);
     }
     return TCL_OK;
 }
@@ -3882,9 +3887,9 @@ PolyDataPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPolyDataPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<PolyData>(name, pos);
     } else {
-        g_renderer->setPolyDataPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<PolyData>("all", pos);
     }
     return TCL_OK;
 }
@@ -3901,9 +3906,9 @@ PolyDataScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPolyDataScale(name, scale);
+        g_renderer->setGraphicsObjectScale<PolyData>(name, scale);
     } else {
-        g_renderer->setPolyDataScale("all", scale);
+        g_renderer->setGraphicsObjectScale<PolyData>("all", scale);
     }
     return TCL_OK;
 }
@@ -3918,9 +3923,9 @@ PolyDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<PolyData>(name, state);
     } else {
-        g_renderer->setPolyDataVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<PolyData>("all", state);
     }
     return TCL_OK;
 }
@@ -3935,9 +3940,9 @@ PolyDataWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPolyDataWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<PolyData>(name, state);
     } else {
-        g_renderer->setPolyDataWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<PolyData>("all", state);
     }
     return TCL_OK;
 }
@@ -3980,12 +3985,12 @@ PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addPseudoColor(name)) {
+        if (!g_renderer->addGraphicsObject<PseudoColor>(name)) {
             Tcl_AppendResult(interp, "Failed to create pseudocolor", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addPseudoColor("all")) {
+        if (!g_renderer->addGraphicsObject<PseudoColor>("all")) {
             Tcl_AppendResult(interp, "Failed to create pseudocolor for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -4005,9 +4010,9 @@ PseudoColorColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPseudoColorColor(name, color);
+        g_renderer->setGraphicsObjectColor<PseudoColor>(name, color);
     } else {
-        g_renderer->setPseudoColorColor("all", color);
+        g_renderer->setGraphicsObjectColor<PseudoColor>("all", color);
     }
     return TCL_OK;
 }
@@ -4019,9 +4024,9 @@ PseudoColorColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<PseudoColor>(dataSetName, colorMapName);
     } else {
-        g_renderer->setPseudoColorColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<PseudoColor>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -4049,11 +4054,12 @@ PseudoColorColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorColorMode(name, mode);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setPseudoColorColorMode(name, mode, fieldName);
     } else {
-        g_renderer->setPseudoColorColorMode("all", mode);
+        g_renderer->setPseudoColorColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -4064,9 +4070,9 @@ PseudoColorDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deletePseudoColor(name);
+        g_renderer->deleteGraphicsObject<PseudoColor>(name);
     } else {
-        g_renderer->deletePseudoColor("all");
+        g_renderer->deleteGraphicsObject<PseudoColor>("all");
     }
     return TCL_OK;
 }
@@ -4081,9 +4087,9 @@ PseudoColorEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<PseudoColor>(name, state);
     } else {
-        g_renderer->setPseudoColorEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<PseudoColor>("all", state);
     }
     return TCL_OK;
 }
@@ -4098,9 +4104,9 @@ PseudoColorLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<PseudoColor>(name, state);
     } else {
-        g_renderer->setPseudoColorLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<PseudoColor>("all", state);
     }
     return TCL_OK;
 }
@@ -4117,9 +4123,9 @@ PseudoColorLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPseudoColorEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<PseudoColor>(name, color);
     } else {
-        g_renderer->setPseudoColorEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<PseudoColor>("all", color);
     }
     return TCL_OK;
 }
@@ -4134,9 +4140,9 @@ PseudoColorLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<PseudoColor>(name, width);
     } else {
-        g_renderer->setPseudoColorEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<PseudoColor>("all", width);
     }
     return TCL_OK;
 }
@@ -4151,9 +4157,9 @@ PseudoColorOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<PseudoColor>(name, opacity);
     } else {
-        g_renderer->setPseudoColorOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<PseudoColor>("all", opacity);
     }
     return TCL_OK;
 }
@@ -4171,9 +4177,9 @@ PseudoColorOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setPseudoColorOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<PseudoColor>(name, quat);
     } else {
-        g_renderer->setPseudoColorOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<PseudoColor>("all", quat);
     }
     return TCL_OK;
 }
@@ -4190,9 +4196,9 @@ PseudoColorPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPseudoColorPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<PseudoColor>(name, pos);
     } else {
-        g_renderer->setPseudoColorPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<PseudoColor>("all", pos);
     }
     return TCL_OK;
 }
@@ -4209,9 +4215,9 @@ PseudoColorScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setPseudoColorScale(name, scale);
+        g_renderer->setGraphicsObjectScale<PseudoColor>(name, scale);
     } else {
-        g_renderer->setPseudoColorScale("all", scale);
+        g_renderer->setGraphicsObjectScale<PseudoColor>("all", scale);
     }
     return TCL_OK;
 }
@@ -4226,9 +4232,9 @@ PseudoColorVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<PseudoColor>(name, state);
     } else {
-        g_renderer->setPseudoColorVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<PseudoColor>("all", state);
     }
     return TCL_OK;
 }
@@ -4243,9 +4249,9 @@ PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setPseudoColorWireframe(name, state);
+        g_renderer->setGraphicsObjectWireframe<PseudoColor>(name, state);
     } else {
-        g_renderer->setPseudoColorWireframe("all", state);
+        g_renderer->setGraphicsObjectWireframe<PseudoColor>("all", state);
     }
     return TCL_OK;
 }
@@ -4254,7 +4260,7 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",    2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",  7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
-    {"colormode", 7, PseudoColorColorModeOp, 3, 4, "mode ?dataSetNme?"},
+    {"colormode", 7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
     {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -4289,13 +4295,13 @@ RendererClipPlaneOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     const char *string = Tcl_GetString(objv[2]);
     char c = string[0];
-    Renderer::Axis axis;
+    Axis axis;
     if ((c == 'x') && (strcmp(string, "x") == 0)) {
-        axis = Renderer::X_AXIS;
+        axis = X_AXIS;
     } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
-        axis = Renderer::Y_AXIS;
+        axis = Y_AXIS;
     } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
-        axis = Renderer::Z_AXIS;
+        axis = Z_AXIS;
     } else {
         Tcl_AppendResult(interp, "bad clipplane option \"", string,
                          "\": should be axisName ratio direction", (char*)NULL);
@@ -4424,12 +4430,12 @@ StreamlinesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addStreamlines(name)) {
+        if (!g_renderer->addGraphicsObject<Streamlines>(name)) {
             Tcl_AppendResult(interp, "Failed to create streamlines", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addStreamlines("all")) {
+        if (!g_renderer->addGraphicsObject<Streamlines>("all")) {
             Tcl_AppendResult(interp, "Failed to create streamlines for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -4449,9 +4455,9 @@ StreamlinesColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setStreamlinesColor(name, color);
+        g_renderer->setGraphicsObjectColor<Streamlines>(name, color);
     } else {
-        g_renderer->setStreamlinesColor("all", color);
+        g_renderer->setGraphicsObjectColor<Streamlines>("all", color);
     }
     return TCL_OK;
 }
@@ -4463,9 +4469,9 @@ StreamlinesColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Streamlines>(dataSetName, colorMapName);
     } else {
-        g_renderer->setStreamlinesColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Streamlines>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -4493,11 +4499,12 @@ StreamlinesColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesColorMode(dataSetName, mode);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (objc == 5) {
+        const char *dataSetName = Tcl_GetString(objv[4]);
+        g_renderer->setStreamlinesColorMode(dataSetName, mode, fieldName);
     } else {
-        g_renderer->setStreamlinesColorMode("all", mode);
+        g_renderer->setStreamlinesColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -4508,9 +4515,9 @@ StreamlinesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteStreamlines(name);
+        g_renderer->deleteGraphicsObject<Streamlines>(name);
     } else {
-        g_renderer->deleteStreamlines("all");
+        g_renderer->deleteGraphicsObject<Streamlines>("all");
     }
     return TCL_OK;
 }
@@ -4525,9 +4532,9 @@ StreamlinesEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesEdgeVisibility(name, state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Streamlines>(name, state);
     } else {
-        g_renderer->setStreamlinesEdgeVisibility("all", state);
+        g_renderer->setGraphicsObjectEdgeVisibility<Streamlines>("all", state);
     }
     return TCL_OK;
 }
@@ -4559,9 +4566,9 @@ StreamlinesLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Streamlines>(name, state);
     } else {
-        g_renderer->setStreamlinesLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Streamlines>("all", state);
     }
     return TCL_OK;
 }
@@ -4578,9 +4585,9 @@ StreamlinesLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setStreamlinesEdgeColor(name, color);
+        g_renderer->setGraphicsObjectEdgeColor<Streamlines>(name, color);
     } else {
-        g_renderer->setStreamlinesEdgeColor("all", color);
+        g_renderer->setGraphicsObjectEdgeColor<Streamlines>("all", color);
     }
     return TCL_OK;
 }
@@ -4608,9 +4615,9 @@ StreamlinesLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesEdgeWidth(name, width);
+        g_renderer->setGraphicsObjectEdgeWidth<Streamlines>(name, width);
     } else {
-        g_renderer->setStreamlinesEdgeWidth("all", width);
+        g_renderer->setGraphicsObjectEdgeWidth<Streamlines>("all", width);
     }
     return TCL_OK;
 }
@@ -4625,9 +4632,9 @@ StreamlinesOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Streamlines>(name, opacity);
     } else {
-        g_renderer->setStreamlinesOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Streamlines>("all", opacity);
     }
     return TCL_OK;
 }
@@ -4645,9 +4652,9 @@ StreamlinesOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setStreamlinesOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Streamlines>(name, quat);
     } else {
-        g_renderer->setStreamlinesOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Streamlines>("all", quat);
     }
     return TCL_OK;
 }
@@ -4664,9 +4671,9 @@ StreamlinesPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setStreamlinesPosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Streamlines>(name, pos);
     } else {
-        g_renderer->setStreamlinesPosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Streamlines>("all", pos);
     }
     return TCL_OK;
 }
@@ -4683,9 +4690,9 @@ StreamlinesScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setStreamlinesScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Streamlines>(name, scale);
     } else {
-        g_renderer->setStreamlinesScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Streamlines>("all", scale);
     }
     return TCL_OK;
 }
@@ -5087,9 +5094,9 @@ StreamlinesVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setStreamlinesVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Streamlines>(name, state);
     } else {
-        g_renderer->setStreamlinesVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Streamlines>("all", state);
     }
     return TCL_OK;
 }
@@ -5098,7 +5105,7 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"add",       1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
     {"ccolor",    1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
     {"colormap",  7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, StreamlinesColorModeOp,      3, 4, "mode ?dataSetNme?"},
+    {"colormode", 7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetNme?"},
     {"delete",    1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
     {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"length",    2, StreamlinesLengthOp,         3, 4, "length ?dataSetName?"},
@@ -5137,12 +5144,12 @@ VolumeAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        if (!g_renderer->addVolume(name)) {
+        if (!g_renderer->addGraphicsObject<Volume>(name)) {
             Tcl_AppendResult(interp, "Failed to create volume", (char*)NULL);
             return TCL_ERROR;
         }
     } else {
-        if (!g_renderer->addVolume("all")) {
+        if (!g_renderer->addGraphicsObject<Volume>("all")) {
             Tcl_AppendResult(interp, "Failed to create volume for one or more data sets", (char*)NULL);
             return TCL_ERROR;
         }
@@ -5157,9 +5164,9 @@ VolumeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *colorMapName = Tcl_GetString(objv[2]);
     if (objc == 4) {
         const char *dataSetName = Tcl_GetString(objv[3]);
-        g_renderer->setVolumeColorMap(dataSetName, colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Volume>(dataSetName, colorMapName);
     } else {
-        g_renderer->setVolumeColorMap("all", colorMapName);
+        g_renderer->setGraphicsObjectColorMap<Volume>("all", colorMapName);
     }
     return TCL_OK;
 }
@@ -5170,9 +5177,9 @@ VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     if (objc == 3) {
         const char *name = Tcl_GetString(objv[2]);
-        g_renderer->deleteVolume(name);
+        g_renderer->deleteGraphicsObject<Volume>(name);
     } else {
-        g_renderer->deleteVolume("all");
+        g_renderer->deleteGraphicsObject<Volume>("all");
     }
     return TCL_OK;
 }
@@ -5187,9 +5194,9 @@ VolumeLightingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setVolumeLighting(name, state);
+        g_renderer->setGraphicsObjectLighting<Volume>(name, state);
     } else {
-        g_renderer->setVolumeLighting("all", state);
+        g_renderer->setGraphicsObjectLighting<Volume>("all", state);
     }
     return TCL_OK;
 }
@@ -5204,9 +5211,9 @@ VolumeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setVolumeOpacity(name, opacity);
+        g_renderer->setGraphicsObjectOpacity<Volume>(name, opacity);
     } else {
-        g_renderer->setVolumeOpacity("all", opacity);
+        g_renderer->setGraphicsObjectOpacity<Volume>("all", opacity);
     }
     return TCL_OK;
 }
@@ -5224,9 +5231,9 @@ VolumeOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 7) {
         const char *name = Tcl_GetString(objv[6]);
-        g_renderer->setVolumeOrientation(name, quat);
+        g_renderer->setGraphicsObjectOrientation<Volume>(name, quat);
     } else {
-        g_renderer->setVolumeOrientation("all", quat);
+        g_renderer->setGraphicsObjectOrientation<Volume>("all", quat);
     }
     return TCL_OK;
 }
@@ -5243,9 +5250,9 @@ VolumePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setVolumePosition(name, pos);
+        g_renderer->setGraphicsObjectPosition<Volume>(name, pos);
     } else {
-        g_renderer->setVolumePosition("all", pos);
+        g_renderer->setGraphicsObjectPosition<Volume>("all", pos);
     }
     return TCL_OK;
 }
@@ -5262,9 +5269,9 @@ VolumeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setVolumeScale(name, scale);
+        g_renderer->setGraphicsObjectScale<Volume>(name, scale);
     } else {
-        g_renderer->setVolumeScale("all", scale);
+        g_renderer->setGraphicsObjectScale<Volume>("all", scale);
     }
     return TCL_OK;
 }
@@ -5280,9 +5287,9 @@ VolumeShadingAmbientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setVolumeAmbient(name, coeff);
+        g_renderer->setGraphicsObjectAmbient<Volume>(name, coeff);
     } else {
-        g_renderer->setVolumeAmbient("all", coeff);
+        g_renderer->setGraphicsObjectAmbient<Volume>("all", coeff);
     }
     return TCL_OK;
 }
@@ -5298,9 +5305,9 @@ VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
-        g_renderer->setVolumeDiffuse(name, coeff);
+        g_renderer->setGraphicsObjectDiffuse<Volume>(name, coeff);
     } else {
-        g_renderer->setVolumeDiffuse("all", coeff);
+        g_renderer->setGraphicsObjectDiffuse<Volume>("all", coeff);
     }
     return TCL_OK;
 }
@@ -5317,9 +5324,9 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     if (objc == 6) {
         const char *name = Tcl_GetString(objv[5]);
-        g_renderer->setVolumeSpecular(name, coeff, power);
+        g_renderer->setGraphicsObjectSpecular<Volume>(name, coeff, power);
     } else {
-        g_renderer->setVolumeSpecular("all", coeff, power);
+        g_renderer->setGraphicsObjectSpecular<Volume>("all", coeff, power);
     }
     return TCL_OK;
 }
@@ -5355,9 +5362,9 @@ VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setVolumeVisibility(name, state);
+        g_renderer->setGraphicsObjectVisibility<Volume>(name, state);
     } else {
-        g_renderer->setVolumeVisibility("all", state);
+        g_renderer->setGraphicsObjectVisibility<Volume>("all", state);
     }
     return TCL_OK;
 }

@@ -30,6 +30,8 @@
 namespace Rappture {
 namespace VtkVis {
 
+class Renderer;
+
 /**
  * \brief Base class for graphics objects
  */
@@ -91,54 +93,20 @@ public:
      * _dataRange based on cumulative range settings
      *
      * \param[in] dataSet DataSet to use in rendering
-     * \param[in] useCumulative Whether the cumulative data ranges should be 
-     * used in place of the dataSet's ranges
-     * \param[in] scalarRange Current cumulative scalar data range
-     * \param[in] vectorMagnitudeRange Current cumulative vector magnitude data range
-     * \param[in] vectorComponentRange Current cumulative vector component data ranges
+     * \param[in] renderer Pointer to Renderer -- may be used to get 
+     * cumulative data ranges
      */
     virtual void setDataSet(DataSet *dataSet,
-                            bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2])
-    {
-        if (_dataSet != dataSet) {
-            _dataSet = dataSet;
-
-            if (useCumulative) {
-                _dataRange[0] = scalarRange[0];
-                _dataRange[1] = scalarRange[1];
-            } else {
-                _dataSet->getScalarRange(_dataRange);
-            }
-
-            update();
-        }
-    }
+                            Renderer *renderer);
 
     /**
      * \brief Called when scalar or vector field changes (e.g. active field) or 
      * cumulative ranges or settings change
      *
-     * \param[in] useCumulative Whether the cumulative data ranges should be 
-     * used in place of the dataSet's ranges
-     * \param[in] scalarRange Current cumulative scalar data range
-     * \param[in] vectorMagnitudeRange Current cumulative vector magnitude data range
-     * \param[in] vectorComponentRange Current cumulative vector component data ranges
+     * \param[in] renderer Pointer to Renderer -- may be used to get 
+     * cumulative data ranges
      */
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2])
-    {
-        if (useCumulative) {
-            _dataRange[0] = scalarRange[0];
-            _dataRange[1] = scalarRange[1];
-        } else {
-            _dataSet->getScalarRange(_dataRange);
-        }
-    }
+    virtual void updateRanges(Renderer *renderer);
 
     /**
      * \brief Return the DataSet this object renders

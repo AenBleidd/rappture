@@ -6,6 +6,7 @@
  */
 
 #include <cassert>
+#include <cfloat>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
@@ -24,6 +25,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 
 #include "RpCutplane.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 #define MESH_POINT_CLOUDS
@@ -32,9 +34,13 @@ using namespace Rappture::VtkVis;
 
 Cutplane::Cutplane() :
     VtkGraphicsObject(),
+    _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
-    _colorMap(NULL)
+    _colorFieldType(DataSet::POINT_DATA),
+    _renderer(NULL)
 {
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
 }
 
 Cutplane::~Cutplane()
@@ -48,22 +54,24 @@ Cutplane::~Cutplane()
 }
 
 void Cutplane::setDataSet(DataSet *dataSet,
-                          bool useCumulative,
-                          double scalarRange[2],
-                          double vectorMagnitudeRange[2],
-                          double vectorComponentRange[3][2])
+                          Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
-        if (useCumulative) {
-            _dataRange[0] = scalarRange[0];
-            _dataRange[1] = scalarRange[1];
-            _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-            _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+        _renderer = renderer;
+
+        if (renderer->getUseCumulativeRange()) {
+            renderer->getCumulativeDataRange(_dataRange,
+                                             _dataSet->getActiveScalarsName(),
+                                             1);
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             _dataSet->getActiveVectorsName(),
+                                             3);
             for (int i = 0; i < 3; i++) {
-                _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-                _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -157,13 +165,13 @@ void Cutplane::update()
         pd->GetNumberOfPolys() == 0 &&
         pd->GetNumberOfStrips() == 0) {
         // DataSet is a point cloud
-        DataSet::PrincipalPlane plane;
+        PrincipalPlane plane;
         double offset;
         if (_dataSet->is2D(&plane, &offset)) {
             // DataSet is a 2D point cloud
 #ifdef MESH_POINT_CLOUDS
             vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-            if (plane == DataSet::PLANE_ZY) {
+            if (plane == PLANE_ZY) {
                 vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                 trans->RotateWXYZ(90, 0, 1, 0);
                 if (offset != 0.0) {
@@ -172,7 +180,7 @@ void Cutplane::update()
                 mesher->SetTransform(trans);
                 _actor[1]->VisibilityOff();
                 _actor[2]->VisibilityOff();
-            } else if (plane == DataSet::PLANE_XZ) {
+            } else if (plane == PLANE_XZ) {
                 vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                 trans->RotateWXYZ(-90, 1, 0, 0);
                 if (offset != 0.0) {
@@ -247,7 +255,7 @@ void Cutplane::update()
     } else {
         // DataSet can be: image/volume/uniform grid, structured grid, unstructured grid, rectilinear grid, or
         // PolyData with cells other than points
-        DataSet::PrincipalPlane plane;
+        PrincipalPlane plane;
         double offset;
         if (!_dataSet->is2D(&plane, &offset)) {
             // Sample a plane within the grid bounding box
@@ -260,10 +268,10 @@ void Cutplane::update()
             }
         } else {
             // 2D data
-            if (plane == DataSet::PLANE_ZY) {
+            if (plane == PLANE_ZY) {
                 _actor[1]->VisibilityOff();
                 _actor[2]->VisibilityOff();
-            } else if (plane == DataSet::PLANE_XZ) {
+            } else if (plane == PLANE_XZ) {
                 _actor[0]->VisibilityOff();
                 _actor[2]->VisibilityOff();
             } else if (offset != 0.0) {
@@ -284,6 +292,8 @@ void Cutplane::update()
         setColorMap(ColorMap::getDefault());
     }
 
+    setColorMode(_colorMode);
+
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL) {
             _actor[i]->SetMapper(_mapper[i]);
@@ -291,7 +301,6 @@ void Cutplane::update()
         }
     }
 }
-
 
 /**
  * \brief Select a 2D slice plane from a 3D DataSet
@@ -343,19 +352,19 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
     }
 }
 
-void Cutplane::updateRanges(bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2])
+void Cutplane::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-        _vectorMagnitudeRange[0] = vectorMagnitudeRange[0];
-        _vectorMagnitudeRange[1] = vectorMagnitudeRange[1];
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                         _dataSet->getActiveVectorsName(),
+                                         3);
         for (int i = 0; i < 3; i++) {
-            _vectorComponentRange[i][0] = vectorComponentRange[i][0];
-            _vectorComponentRange[i][1] = vectorComponentRange[i][1];
+            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                             _dataSet->getActiveVectorsName(),
+                                             3, i);
         }
     } else if (_dataSet != NULL) {
         _dataSet->getScalarRange(_dataRange);
@@ -365,74 +374,167 @@ void Cutplane::updateRanges(bool useCumulative,
         }
     }
 
-    // Need to update color map ranges and/or active vector field
-    setColorMode(_colorMode);
+    // Need to update color map ranges
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
 }
 
 void Cutplane::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
+    if (_dataSet == NULL)
+        return;
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsType(),
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    default:
+        ;
+    }
+}
+
+void Cutplane::setColorMode(ColorMode mode,
+                            const char *name, double range[2])
+{
+    if (_dataSet == NULL)
+        return;
+    DataSet::DataAttributeType type;
+    int numComponents;
+    if (!_dataSet->getFieldInfo(name, &type, &numComponents)) {
+        ERROR("Field not found: %s", name);
+        return;
+    }
+    setColorMode(mode, type, name, range);
+}
+
+void Cutplane::setColorMode(ColorMode mode,
+                            DataSet::DataAttributeType type,
+                            const char *name, double range[2])
+{
+    _colorMode = mode;
+    _colorFieldType = type;
+    _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
     if (_dataSet == NULL ||
         _mapper[0] == NULL ||
         _mapper[1] == NULL ||
         _mapper[2] == NULL)
         return;
 
-    vtkDataSet *ds = _dataSet->getVtkDataSet();
-
-    switch (mode) {
-    case COLOR_BY_SCALAR: {
+    switch (type) {
+    case DataSet::POINT_DATA:
         for (int i = 0; i < 3; i++) {
-            _mapper[i]->ScalarVisibilityOn();
+            _mapper[i]->SetScalarModeToUsePointFieldData();
+        }
+        break;
+    case DataSet::CELL_DATA:
+        for (int i = 0; i < 3; i++) {
+            _mapper[i]->SetScalarModeToUseCellFieldData();
+        }
+        break;
+    default:
+        ERROR("Unsupported DataAttributeType: %d", type);
+        return;
+    }
+
+    if (name != NULL) {
+        for (int i = 0; i < 3; i++) {
+            _mapper[i]->SelectColorArray(name);
+        }
+    } else {
+        for (int i = 0; i < 3; i++) {
             _mapper[i]->SetScalarModeToDefault();
         }
-        if (_lut != NULL) {
-            _lut->SetRange(_dataRange);
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (name != NULL) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            _lut->SetRange(r);
         }
     }
-        break;
-    case COLOR_BY_VECTOR_MAGNITUDE: {
+
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
         for (int i = 0; i < 3; i++) {
             _mapper[i]->ScalarVisibilityOn();
         }
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUsePointFieldData();
-                _mapper[i]->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-            }
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUseCellFieldData();
-                _mapper[i]->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-            }
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        for (int i = 0; i < 3; i++) {
+            _mapper[i]->ScalarVisibilityOn();
         }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorMagnitudeRange);
             _lut->SetVectorModeToMagnitude();
         }
-    }
         break;
     case COLOR_BY_VECTOR_X:
         for (int i = 0; i < 3; i++) {
             _mapper[i]->ScalarVisibilityOn();
         }
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUsePointFieldData();
-                _mapper[i]->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-            }
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUseCellFieldData();
-                _mapper[i]->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-            }
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[0]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(0);
         }
@@ -441,21 +543,7 @@ void Cutplane::setColorMode(ColorMode mode)
         for (int i = 0; i < 3; i++) {
             _mapper[i]->ScalarVisibilityOn();
         }
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUsePointFieldData();
-                _mapper[i]->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-            }
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUseCellFieldData();
-                _mapper[i]->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-            }
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[1]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(1);
         }
@@ -464,21 +552,7 @@ void Cutplane::setColorMode(ColorMode mode)
         for (int i = 0; i < 3; i++) {
             _mapper[i]->ScalarVisibilityOn();
         }
-        if (ds->GetPointData() != NULL &&
-            ds->GetPointData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUsePointFieldData();
-                _mapper[i]->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-            }
-        } else if (ds->GetCellData() != NULL &&
-                   ds->GetCellData()->GetVectors() != NULL) {
-            for (int i = 0; i < 3; i++) {
-                _mapper[i]->SetScalarModeToUseCellFieldData();
-                _mapper[i]->SelectColorArray(ds->GetCellData()->GetVectors()->GetName());
-            }
-        }
         if (_lut != NULL) {
-            _lut->SetRange(_vectorComponentRange[2]);
             _lut->SetVectorModeToComponent();
             _lut->SetVectorComponent(2);
         }
@@ -517,32 +591,48 @@ void Cutplane::setColorMap(ColorMap *cmap)
                 _mapper[i]->SetLookupTable(_lut);
             }
         }
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
     }
 
-    _lut->DeepCopy(cmap->getLookupTable());
-
     switch (_colorMode) {
-    case COLOR_BY_SCALAR:
-        _lut->SetRange(_dataRange);
-        break;
     case COLOR_BY_VECTOR_MAGNITUDE:
         _lut->SetVectorModeToMagnitude();
-        _lut->SetRange(_vectorMagnitudeRange);
         break;
     case COLOR_BY_VECTOR_X:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(0);
-        _lut->SetRange(_vectorComponentRange[0]);
         break;
     case COLOR_BY_VECTOR_Y:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(1);
-        _lut->SetRange(_vectorComponentRange[1]);
         break;
     case COLOR_BY_VECTOR_Z:
         _lut->SetVectorModeToComponent();
         _lut->SetVectorComponent(2);
-        _lut->SetRange(_vectorComponentRange[2]);
         break;
     default:
          break;

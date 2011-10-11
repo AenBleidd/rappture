@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "ColorMap.h"
+#include "RpTypes.h"
 #include "RpVtkGraphicsObject.h"
 
 namespace Rappture {
@@ -35,12 +36,6 @@ namespace VtkVis {
  */
 class HeightMap : public VtkGraphicsObject {
 public:
-    enum Axis {
-        X_AXIS,
-        Y_AXIS,
-        Z_AXIS
-    };
-
     HeightMap(int numContours, double heightScale = 1.0);
 
     HeightMap(const std::vector<double>& contours, double heightScale = 1.0);
@@ -53,10 +48,7 @@ public:
     }
 
     virtual void setDataSet(DataSet *dataSet,
-                            bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2]);
+                            Renderer *renderer);
 
     virtual void setLighting(bool state);
 
@@ -97,10 +89,7 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
     void setContourLineVisibility(bool state);
 

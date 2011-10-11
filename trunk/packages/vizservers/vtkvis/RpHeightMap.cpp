@@ -31,6 +31,7 @@
 #include <vtkPlane.h>
 
 #include "RpHeightMap.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
@@ -77,18 +78,16 @@ HeightMap::~HeightMap()
 }
 
 void HeightMap::setDataSet(DataSet *dataSet,
-                           bool useCumulative,
-                           double scalarRange[2],
-                           double vectorMagnitudeRange[2],
-                           double vectorComponentRange[3][2])
+                           Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
 
         if (_dataSet != NULL) {
-            if (useCumulative) {
-                _dataRange[0] = scalarRange[0];
-                _dataRange[1] = scalarRange[1];
+            if (renderer->getUseCumulativeRange()) {
+                renderer->getCumulativeDataRange(_dataRange,
+                                                 _dataSet->getActiveScalarsName(),
+                                                 1);
             } else {
                 _dataSet->getScalarRange(_dataRange);
             }
@@ -206,13 +205,13 @@ void HeightMap::update()
                 pd->GetNumberOfPolys() == 0 &&
                 pd->GetNumberOfStrips() == 0) {
                 // DataSet is a point cloud
-                DataSet::PrincipalPlane plane;
+                PrincipalPlane plane;
                 double offset;
                 if (_dataSet->is2D(&plane, &offset)) {
 #ifdef MESH_POINT_CLOUDS
                     // Result of Delaunay2D is a PolyData
                     vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                    if (plane == DataSet::PLANE_ZY) {
+                    if (plane == PLANE_ZY) {
                         vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                         trans->RotateWXYZ(90, 0, 1, 0);
                         if (offset != 0.0) {
@@ -220,7 +219,7 @@ void HeightMap::update()
                         }
                         mesher->SetTransform(trans);
                         _sliceAxis = X_AXIS;
-                    } else if (plane == DataSet::PLANE_XZ) {
+                    } else if (plane == PLANE_XZ) {
                         vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
                         trans->RotateWXYZ(-90, 1, 0, 0);
                         if (offset != 0.0) {
@@ -247,11 +246,11 @@ void HeightMap::update()
                     int dims[3];
                     _pointSplatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-                    if (plane == DataSet::PLANE_ZY) {
+                    if (plane == PLANE_ZY) {
                         dims[0] = 3;
                         _volumeSlicer->SetVOI(1, 1, 0, dims[1]-1, 0, dims[1]-1);
                         _sliceAxis = X_AXIS;
-                    } else if (plane == DataSet::PLANE_XZ) {
+                    } else if (plane == PLANE_XZ) {
                         dims[1] = 3;
                         _volumeSlicer->SetVOI(0, dims[0]-1, 1, 1, 0, dims[2]-1);
                         _sliceAxis = Y_AXIS;
@@ -659,17 +658,9 @@ void HeightMap::setColorMap(ColorMap *cmap)
     _lut->SetRange(_dataRange);
 }
 
-void HeightMap::updateRanges(bool useCumulative,
-                             double scalarRange[2],
-                             double vectorMagnitudeRange[2],
-                             double vectorComponentRange[3][2])
+void HeightMap::updateRanges(Renderer *renderer)
 {
-    if (useCumulative) {
-        _dataRange[0] = scalarRange[0];
-        _dataRange[1] = scalarRange[1];
-    } else if (_dataSet != NULL) {
-        _dataSet->getScalarRange(_dataRange);
-    }
+    VtkGraphicsObject::updateRanges(renderer);
 
     if (_lut != NULL) {
         _lut->SetRange(_dataRange);

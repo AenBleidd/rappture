@@ -19,6 +19,7 @@
 
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
+#include "RpVtkDataSet.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -77,10 +78,7 @@ public:
     }
 
     virtual void setDataSet(DataSet *dataSet,
-                            bool useCumulative,
-                            double scalarRange[2],
-                            double vectorMagnitudeRange[2],
-                            double vectorComponentRange[3][2]);
+                            Renderer *renderer);
 
     virtual void setLighting(bool state);
 
@@ -149,6 +147,12 @@ public:
 
     void setLineTypeToRibbons(double width, double angle);
 
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
+
     void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
@@ -163,10 +167,7 @@ public:
 
     void updateColorMap();
 
-    virtual void updateRanges(bool useCumulative,
-                              double scalarRange[2],
-                              double vectorMagnitudeRange[2],
-                              double vectorComponentRange[3][2]);
+    virtual void updateRanges(Renderer *renderer);
 
     void setSeedVisibility(bool state);
 
@@ -193,13 +194,17 @@ private:
     static void getRandomCellPt(double pt[3], vtkDataSet *ds);
 
     LineType _lineType;
-    ColorMode _colorMode;
     ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
     SeedType _seedType;
     float _seedColor[3];
     bool _seedVisible;
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
+    Renderer *_renderer;
     double _dataScale;
 
     vtkSmartPointer<vtkLookupTable> _lut;
