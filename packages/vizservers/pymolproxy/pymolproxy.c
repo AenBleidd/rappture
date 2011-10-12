@@ -95,11 +95,11 @@ typedef struct {
 
 static Stats stats;
 
-#define READTRACE	0
+#define READTRACE	1
 #define EXPECTTRACE	0
 #define WRITETRACE	0
 
-static int debug = FALSE;
+static int debug = TRUE;
 
 static FILE *flog;
 static FILE *scriptFile;
@@ -445,30 +445,6 @@ clear_error(PymolProxy *proxyPtr)
 {
     proxyPtr->error = 0;
     proxyPtr->status = TCL_OK;
-}
-
-static int
-CreateTmpDir(Tcl_Interp *interp)
-{
-    const char script[] = {
-	"set path \"/tmp/pymol[pid]\"\n"
-	"if { [file exists $path] } {\n"
-	"    file delete -force $path\n"
-	"}\n"
-	"file mkdir $path\n"
-    }; 
-    return Tcl_GlobalEval(interp, script);
-}
-
-static void
-DestroyTmpDir()
-{
-    char cmd[BUFSIZ];
-
-    sprintf(cmd, "/bin/rm -rf /tmp/pymol%d", getpid());
-    if (system(cmd) < 0) {
-	ERROR("can't delete tmp directory: %s\n", strerror(errno));
-    }
 }
 
 static int
@@ -871,7 +847,6 @@ UpdateSettings(PymolProxy *proxyPtr)
     }
 }
 
-
 static int
 BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 {
@@ -1244,31 +1219,28 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	nBytes = strlen(data);
     }
     {
-	char fileName[200];
-	FILE *f;
+	int f;
 	ssize_t nWritten;
-	static unsigned long count = 0;
+	char fileName[200];
 
+	strcpy(fileName, "/tmp/pdb.XXXXXX");
 	proxyPtr->status = TCL_ERROR;
-	sprintf(fileName, "/tmp/pymol%d/%ld.pdb", getpid(), count);
-	count++;
-	f = fopen(fileName, "w");
-	if (f == NULL) {
-	    Tcl_AppendResult(interp, "can't create temporary file \"",
-			     fileName, "\": ", Tcl_PosixError(interp),
-			     (char *)NULL);
+	f = mkstemp(fileName);
+	if (f < 0) {
+	    Tcl_AppendResult(interp, "can't create temporary file \"", 
+		fileName, "\":", Tcl_PosixError(interp), (char *)NULL);
 	    goto error;
 	} 
-	nWritten = fwrite(data, sizeof(char), nBytes, f);
+	nWritten = write(f, data, nBytes);
 	if (nBytes != nWritten) {
 	    Tcl_AppendResult(interp, "can't write PDB data to \"",
 			     fileName, "\": ", Tcl_PosixError(interp),
 			     (char *)NULL);
-	    fclose(f);
+	    close(f);
 	    goto error;
 	}
-	fclose(f);
-	Pymol(proxyPtr, "load %s,%s,%d\n", fileName, name, state);
+	close(f);
+	Pymol(proxyPtr, "loadandremovepdbfile %s,%s,%d\n", fileName, name, state);
 	proxyPtr->status = TCL_OK;
     }
  error:
@@ -1399,6 +1371,51 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     if (Expect(proxyPtr, " ScenePNG", buffer, BUFSIZ-1) != TCL_OK) {
 	return TCL_ERROR;
     }
+    stats.nFrames++;
+    stats.nBytes += nBytes;
+    return proxyPtr->status;
+}
+
+
+static int
+PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
+{
+    char buffer[BUFSIZ];
+    int nBytes=0;
+    PymolProxy *proxyPtr = clientData;
+    size_t length;
+    Image *imgPtr;
+
+    clear_error(proxyPtr);
+
+    /* Force pymol to update the current scene. */
+    Pymol(proxyPtr, "refresh\n");
+    Pymol(proxyPtr, "png -,format=1\n");
+
+    if (Expect(proxyPtr, "ppm image follows: ", buffer, BUFSIZ-1) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    if (sscanf(buffer, "ppm image follows: %d\n", &nBytes) != 1) {
+	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
+			 (char *)NULL);
+	return TCL_ERROR;
+    } 
+    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
+	    proxyPtr->frame, proxyPtr->rockOffset);
+    length = strlen(buffer);
+    imgPtr = NewImage(proxyPtr, nBytes + length);
+    strcpy(imgPtr->data, buffer);
+    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, nBytes)
+	!= BUFFER_OK) {
+        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
+	      strerror(errno));
+	return  TCL_ERROR;
+    }
+#ifdef notdef
+    if (Expect(proxyPtr, " ScenePNG", buffer, BUFSIZ-1) != TCL_OK) {
+	return TCL_ERROR;
+    }
+#endif
     stats.nFrames++;
     stats.nBytes += nBytes;
     return proxyPtr->status;
@@ -2005,6 +2022,7 @@ ChildHandler(int sigNum)
 static int 
 ProxyInit(int cin, int cout, char *const *argv)
 {
+    char stderrFile[200];
     int status, result = 0;
     int sin[2];
     int sout[2];
@@ -2026,6 +2044,7 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
 
     parent = getpid();
+    sprintf(stderrFile, "/tmp/pymol%d.stderr", parent);
 
     /* Fork the new process.  Connect I/O to the new socket.  */
 
@@ -2036,9 +2055,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
 
     interp = Tcl_CreateInterp();
-    if (CreateTmpDir(interp) != TCL_OK) {
-	ERROR(Tcl_GetStringResult(interp));
-    }
     Tcl_MakeSafe(interp);
 
     if (child == 0) {
@@ -2058,8 +2074,7 @@ ProxyInit(int cin, int cout, char *const *argv)
 
         dup2(sin[0],  0);		// stdin
         dup2(sout[1], 1);		// stdout
-	sprintf(path, "/tmp/pymol%d/stderr", parent);
-	f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+	f = open(stderrFile, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 	if (f < 0) {
 	    ERROR("can't open server error file `%s': %s", path, 
 		  strerror(errno));
@@ -2107,6 +2122,7 @@ ProxyInit(int cin, int cout, char *const *argv)
     Tcl_CreateCommand(interp, "orthoscopic",   OrthoscopicCmd,   &proxy, NULL);
     Tcl_CreateCommand(interp, "pan",           PanCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "png",           PngCmd,           &proxy, NULL);
+    Tcl_CreateCommand(interp, "ppm",           PpmCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "print",         PrintCmd,         &proxy, NULL);
     Tcl_CreateCommand(interp, "raw",           RawCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "representation",RepresentationCmd,&proxy, NULL);
@@ -2132,6 +2148,7 @@ ProxyInit(int cin, int cout, char *const *argv)
 
     PollForEvents(&proxy);
 
+    unlink(stderrFile);
     close(proxy.cout);
     close(proxy.sout);
     close(proxy.cin);
@@ -2158,7 +2175,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     }
     INFO("pymol server process ended (result=%d)", result);
 
-    DestroyTmpDir();
     Tcl_DeleteInterp(interp);
     
     if (WIFEXITED(result)) {
@@ -2300,7 +2316,7 @@ PollForEvents(PymolProxy *proxyPtr)
 	     * refreshed after the image has been completely transmitted. */
 	    if ((nChannels == 0) || (proxyPtr->flags & FORCE_UPDATE)) {
 		if (proxyPtr->flags & UPDATE_PENDING) {
-		    Tcl_Eval(proxyPtr->interp, "bmp");
+		    Tcl_Eval(proxyPtr->interp, "ppm");
 		    proxyPtr->flags &= ~UPDATE_PENDING;
 		}
 		proxyPtr->flags &= ~FORCE_UPDATE;
