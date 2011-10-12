@@ -9,7 +9,7 @@
  *      widget is the Tcl language.  Commands are then relayed to the pymol
  *      server.  Responses from the pymol server are translated into Tcl
  *      commands and send to the molvisviewer widget. For example, resulting
- *      image rendered offscreen is returned as BMP-formatted image data.
+ *      image rendered offscreen is returned as ppm-formatted image data.
  *
  *  Copyright (c) 2004-2006  Purdue Research Foundation
  *
@@ -845,51 +845,6 @@ UpdateSettings(PymolProxy *proxyPtr)
     if (proxyPtr->flags & STICK_RADIUS_PENDING) {
 	SetStickRadius(proxyPtr);
     }
-}
-
-static int
-BmpCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
-{
-    char buffer[BUFSIZ];
-    unsigned int nBytes=0;
-    PymolProxy *proxyPtr = clientData;
-    Image *imgPtr; 
-    size_t length;
-    clear_error(proxyPtr);
-
-    if (proxyPtr->flags & INVALIDATE_CACHE)
-        proxyPtr->cacheId++;
-
-    proxyPtr->flags &= ~(UPDATE_PENDING|FORCE_UPDATE|INVALIDATE_CACHE);
-
-    /* Force pymol to update the current scene. */
-    UpdateSettings(proxyPtr);
-
-    Pymol(proxyPtr, "refresh\n");
-    Pymol(proxyPtr, "bmp -\n");
-    if (Expect(proxyPtr, "bmp image follows: ", buffer, BUFSIZ) != TCL_OK) {
-	return TCL_ERROR;
-    }
-    if (sscanf(buffer, "bmp image follows: %d\n", &nBytes) != 1) {
-	Tcl_AppendResult(interp, "can't get # bytes from \"", buffer, "\"",
-			 (char *)NULL);
-	return TCL_ERROR;
-    } 
-    sprintf(buffer, "nv>image %d %d %d %d\n", nBytes, proxyPtr->cacheId, 
-	    proxyPtr->frame, proxyPtr->rockOffset);
-
-    length = strlen(buffer);
-    imgPtr = NewImage(proxyPtr, nBytes + length);
-    strcpy(imgPtr->data, buffer);
-    if (ReadFollowingData(&proxyPtr->server, imgPtr->data + length, nBytes)
-	!= BUFFER_OK) {
-        ERROR("can't read %d bytes for \"image follows\" buffer: %s", nBytes, 
-	      strerror(errno));
-	return  TCL_ERROR;
-    }
-    stats.nFrames++;
-    stats.nBytes += nBytes;
-    return proxyPtr->status;
 }
 
 static int
@@ -2111,7 +2066,6 @@ ProxyInit(int cin, int cout, char *const *argv)
     proxy.frame = 1;
     proxy.interp = interp;
 
-    Tcl_CreateCommand(interp, "bmp",           BmpCmd,           &proxy, NULL);
     Tcl_CreateCommand(interp, "cartoon",       CartoonCmd,       &proxy, NULL);
     Tcl_CreateCommand(interp, "cartoontrace",  CartoonTraceCmd,  &proxy, NULL);
     Tcl_CreateCommand(interp, "disable",       DisableCmd,       &proxy, NULL);
