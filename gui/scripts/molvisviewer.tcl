@@ -696,9 +696,11 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
         set _imagecache($tag) $data
         #debug "CACHED: $tag,$cacheid"
         $_image(plot) configure -data $data
+	if 0 {
 	$_image(plot) write dummy.jpg -format jpeg
         puts stderr "image width=[image width $_image(plot)] height=[image height $_image(plot)]"
         puts stderr "screen width=$_width height=$_height"
+	}
         set _image(id) $tag
     }
 }
@@ -968,7 +970,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         global readyForNextFrame
         set readyForNextFrame 0;	# Don't advance to the next frame
                                         # until we get an image.
-        SendCmd "bmp";			# Flush the results.
+        SendCmd "ppm";			# Flush the results.
     }
     set _buffering 0;			# Turn off buffering.
 

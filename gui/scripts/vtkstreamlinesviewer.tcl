@@ -973,7 +973,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     PanCamera
     set _first ""
     InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-	axis-visible axis-labels 
+	axis-visible axis-labels cutplane-visible \
+	cutplane-xposition cutplane-yposition cutplane-zposition \
+	cutplane-xvisible cutplane-yvisible cutplane-zvisible
 
     SendCmd "imgflush"
 
@@ -1043,9 +1045,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	InitSettings streamlines-seeds streamlines-opacity \
 	    streamlines-numpoints streamlines-lighting \
 	    streamlines-palette streamlines-field \
-	    volume-edges volume-lighting volume-opacity volume-wireframe \
-	    cutplane-xvisible cutplane-yvisible cutplane-zvisible \
-	    cutplane-xposition cutplane-yposition cutplane-zposition 
+	    volume-edges volume-lighting volume-opacity volume-wireframe 
 	Zoom reset
 	set _reset 0
     }
@@ -1471,7 +1471,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
         }
         "streamlines-field" {
 	    set new [$itk_component(field) value]
-	    set value [$itk_component(axismode) translate $new]
+	    set value [$itk_component(field) translate $new]
 	    set _settings(streamlines-field) $value
 	    if { [info exists _scalarFields($new)] } {
 		set name $_scalarFields($new)
@@ -1488,9 +1488,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		return
 	    }
 	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "dataset ${fieldType} ${name} $dataset"
-		SendCmd "streamlines colormode $_colorMode $dataset"
-		SendCmd "cutplane colormode $_colorMode $dataset"
+		SendCmd "streamlines colormode $_colorMode ${name} $dataset"
+		SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
 	    RequestLegend
         }
@@ -1516,11 +1515,18 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     if { $h < 1} {
 	return
     }
+    if { [info exists _scalarFields($_currentField)] } {
+	set name $_scalarFields($_currentField)
+    } elseif { [info exists _vectorFields($_currentField)] } {
+	set name $_vectorFields($_currentField)
+    } else {
+	return
+    }
     # Set the legend on the first streamlines dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [info exists _dataset2style($dataset)] } {
-            SendCmd "legend $_dataset2style($dataset) $_colorMode {} $w $h 0"
+            SendCmd "legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
 	    break;
         }
     }
