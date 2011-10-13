@@ -227,7 +227,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	set _hostname $hostname:$port
         fconfigure $_sid -translation binary -encoding binary
 	
-        # Read back a reconnection order
+        # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
 	    error "reading from server"
 	}
