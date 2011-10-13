@@ -2525,6 +2525,8 @@ bool Renderer::getCumulativeDataRange(double *range, const char *name,
                                       int numComponents,
                                       int component)
 {
+    if (name == NULL)
+        return false;
     switch (type) {
     case DataSet::POINT_DATA: {
         FieldRangeHashmap::iterator itr;
