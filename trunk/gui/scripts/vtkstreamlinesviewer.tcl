@@ -608,9 +608,7 @@ itcl::body Rappture::VtkStreamlinesViewer::delete {args} {
 	}
 	# Remove it from the dataobj list.
 	set _dlist [lreplace $_dlist $pos $pos]
-	foreach comp [$dataobj components] {
-	    SendCmd "dataset visible 0 $dataobj-$comp"
-	}
+	SendCmd "dataset visible 0"
 	array unset _obj2ovride $dataobj-*
 	array unset _settings $dataobj-*
 	# Append to the end of the dataobj list.
