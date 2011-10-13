@@ -255,6 +255,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 #    server.  Cancel any pending idle timeout events.
 #
 itcl::body Rappture::VisViewer::Disconnect {} {
+    after cancel $_afterId
     $_dispatcher cancel !timeout
     catch {close $_sid} 
     set _sid ""
