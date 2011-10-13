@@ -1392,7 +1392,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                     -troughcolor grey82
             }
 	    SendCmd "cutplane axis $axis $bool"
-	    SendCmd "cutplane colormode $_colorMode"
 	}
 	"cutplane-xposition" - "cutplane-yposition" - "cutplane-zposition" {
 	    set axis [string range $what 9 9]
@@ -2462,7 +2461,6 @@ itcl::body Rappture::VtkStreamlinesViewer::SetObjectStyle { dataobj comp } {
 	set _seeds($dataobj) 1
     }
     SendCmd "cutplane add $tag"
-    SendCmd "cutplane colormode $_colorMode $tag"
     SendCmd "cutplane edges 0 $tag"
     SendCmd "cutplane wireframe 0 $tag"
     SendCmd "cutplane lighting 1 $tag"

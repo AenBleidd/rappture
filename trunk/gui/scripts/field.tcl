@@ -38,9 +38,9 @@ itcl::class Rappture::Field {
     protected method _build {}
     protected method _getValue {expr}
 
-    private variable _xmlobj ""  ;# ref to XML obj with device data
-
-    private variable _units ""   ;# system of units for this field
+    private variable _xmlobj ""  ;	# ref to XML obj with device data
+    private variable _path "";		# Path of this object in the XML 
+    private variable _units ""   ;	# system of units for this field
     private variable _limits     ;# maps box name => {z0 z1} limits
     private variable _zmax 0     ;# length of the device
 
@@ -68,6 +68,7 @@ itcl::body Rappture::Field::constructor {xmlobj path} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set _xmlobj $xmlobj
+    set _path $path
     set _field [$xmlobj element -as object $path]
     set _units [$_field get units]
 
@@ -520,10 +521,13 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
             set hints($key) $str
         }
     }
-
-    # to be compatible with curve objects
-    set hints(xlabel) "Position"
-
+    # Set tool and path hints
+    set hints(tool) [$_xmlobj get tool.name]
+    set hints(path) $_path
+    if 0 {
+	# to be compatible with curve objects
+	set hints(xlabel) "Position"
+    }
     if {[info exists hints(group)] && [info exists hints(label)]} {
         # pop-up help for each curve
         set hints(tooltip) $hints(label)

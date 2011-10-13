@@ -1388,7 +1388,6 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    close $f
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
 	    $reader SetFileName $tmpfile
-	    $reader ReadFromInputStringOn
 	    $reader ReadAllNormalsOn
 	    $reader ReadAllScalarsOn
 	    $reader ReadAllVectorsOn
@@ -1415,7 +1414,6 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    puts stderr vectors=[$pointData GetVectors]
 	    rename $output ""
 	    rename $reader ""
-	    rename $arr ""
 	    file delete $tmpfile
 	}
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
