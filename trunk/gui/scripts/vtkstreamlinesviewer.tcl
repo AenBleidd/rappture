@@ -150,7 +150,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _vectorFields 
     private variable _scalarFields 
     private variable _fields 
-    private variable _currentField
+    private variable _currentField ""
     private variable _numSeeds 200
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
 }
