@@ -1,5 +1,6 @@
 AC_PREREQ([2.60])
 AC_INIT(vizservers, 0.1, rappture@nanohub.org)
+AC_CONFIG_AUX_DIR(cf)
 AC_CONFIG_HEADERS([nanovis/nvconf.h nanoscale/config.h])
 
 AC_ARG_WITH(
@@ -36,6 +37,8 @@ AC_ARG_WITH(
         [Version of VTK required])],
     [with_vtk=$withval],
     [with_vtk=yes])
+
+RP_LANG_PYTHON
 
 VERSION=0.0.1
 
@@ -340,6 +343,7 @@ AC_SUBST(SIZEOF_LONG_LONG)
 AC_SUBST(SIZEOF_VOID_P)
 AC_SUBST(STLIB_LD)
 AC_SUBST(SUBDIRS)
+AC_SUBST(PYTHON)
 AC_SUBST(TCL_INC_SPEC)
 AC_SUBST(TCL_LIB_SPEC)
 AC_SUBST(TCL_VERSION)
@@ -360,6 +364,7 @@ AC_OUTPUT([
    nanovis/imgLoaders/Makefile \
    nanovis/transfer-function/Makefile \
    pymolproxy/Makefile \
+   pymolproxy/pymol \
    vtkvis/Doxyfile \
    vtkvis/Makefile \
    start_viz.sh \

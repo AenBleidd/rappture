@@ -47,7 +47,7 @@ install: install-pymolproxy install-scripts
 install-pymolproxy: pymolproxy 
 	$(MKDIR_P) -m 0755 $(bindir)
 	$(INSTALL) -m 0555 pymolproxy $(bindir)/pymolproxy
-	$(INSTALL) -m 0555 $(srcdir)/pymol $(bindir)/pymol
+	$(INSTALL) -m 0555 pymol $(bindir)/pymol
 
 install-scripts:
 	$(MKDIR_P) -m 0755 $(libdir)/pymol/rappture
@@ -59,4 +59,4 @@ clean:
 	$(RM) a.out *.o *~ core* $(TARGETS) *.log *.tmp logfile* .deps/*.d
 
 distclean: clean
-	$(RM) Makefile
+	$(RM) Makefile pymol
