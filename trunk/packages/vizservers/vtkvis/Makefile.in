@@ -51,7 +51,7 @@ TRACE			= #yes
 USE_CUSTOM_AXES		= yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= yes
-USE_THREADS		= #yes
+USE_THREADS		= yes
 
 #vtk uses deprecated strstream header (instead of sstream)
 EXTRA_CFLAGS	= -Wall -Wno-deprecated
