@@ -352,6 +352,19 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         "Toggle the streamlines on/off"
     pack $itk_component(streamlines) -padx 2 -pady 2
 
+    itk_component add cutplane {
+        Rappture::PushButton $f.cutplane \
+            -onimage [Rappture::icon cutbutton] \
+            -offimage [Rappture::icon cutbutton] \
+	    -variable [itcl::scope _settings(cutplane-visible)] \
+	    -command [itcl::code $this AdjustSetting cutplane-visible] 
+    }
+    $itk_component(cutplane) select
+    Rappture::Tooltip::for $itk_component(cutplane) \
+        "Show/Hide cutplanes"
+    pack $itk_component(cutplane) -padx 2 -pady 2
+
+
     if { [catch {
 	BuildVolumeTab
 	BuildStreamsTab
@@ -2644,8 +2657,12 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
-    set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
+    if { [info exists _limits(vmax)] && [info exists _limits(vmin)] } {
+	set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
+	set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
+    } else {
+	set value 0.0
+    }
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
     Rappture::Tooltip::text $c "$title $value"
