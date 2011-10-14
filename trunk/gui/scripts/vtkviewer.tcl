@@ -1384,6 +1384,7 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 	    set data [$dataobj data $comp]
 	    set tmpfile file[pid].vtk
 	    set f [open "$tmpfile" "w"]
+	    fconfigure $f -translation binary -encoding binary
 	    puts $f $data 
 	    close $f
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
