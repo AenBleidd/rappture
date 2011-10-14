@@ -65,9 +65,6 @@ itcl::class Rappture::MolvisViewer {
     private variable _cacheid ""
     private variable _cacheimage ""
 
-    private variable _delta1 10
-    private variable _delta2 2
-
     private common _settings  ;		# Array of settings for all known 
                                         # widgets
     private variable _initialized
@@ -81,8 +78,9 @@ itcl::class Rappture::MolvisViewer {
     private variable _resizePending 0;
     private variable _width
     private variable _height
-    private variable _restore 1;	# Restore camera settings
+    private variable _reset 1;	# Restore camera settings
     private variable _cell 0;		# Restore camera settings
+    private variable _flush 1
 
     constructor { hostlist args } {
         Rappture::VisViewer::constructor $hostlist
@@ -182,7 +180,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _state(server) 1
     set _state(client) 1
     set _hostlist $hostlist
-    set _restore 1
+    set _reset 1
 
     array set _view {
         theta   45
@@ -400,6 +398,307 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     Connect
 }
 
+# ----------------------------------------------------------------------
+# DESTRUCTOR
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::destructor {} {
+    VisViewer::Disconnect
+
+    image delete $_image(plot)
+    array unset _settings $this-*
+}
+
+
+# ----------------------------------------------------------------------
+# USAGE: add <dataobj> ?<settings>?
+#
+# Clients use this to add a data object to the plot.  The optional
+# <settings> are used to configure the plot.  Allowed settings are
+# -color, -brightness, -width, -linestyle, and -raise. Only
+# -brightness and -raise do anything.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
+    array set params {
+        -color          auto
+        -brightness     0
+        -width          1
+        -raise          0
+        -linestyle      solid
+        -description    ""
+        -param          ""
+    }
+
+    foreach {opt val} $options {
+        if {![info exists params($opt)]} {
+            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
+        }
+        set params($opt) $val
+    }
+
+    set pos [lsearch -exact $dataobj $_dlist]
+
+    if {$pos < 0} {
+        if {![Rappture::library isvalid $dataobj]} {
+            error "bad value \"$dataobj\": should be Rappture::library object"
+        }
+
+        if { !$_settings($this-showlabels-initialized) } {
+            set showlabels [$dataobj get components.molecule.about.emblems]
+            if { $showlabels != "" && [string is boolean $showlabels] } {
+                set _settings($this-showlabels) $showlabels
+            } 
+        }
+
+        lappend _dlist $dataobj
+        if { $params(-brightness) >= 0.5 } {
+            set _dobj2transparency($dataobj) "ghost"
+        } else {
+            set _dobj2transparency($dataobj) "normal"
+        }
+        set _dobj2raise($dataobj) $params(-raise)
+        debug "setting parameters for $dataobj\n"
+
+        if { [isconnected] } {
+            $_dispatcher event -idle !rebuild
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: delete ?<dataobj> <dataobj> ...?
+#
+# Clients use this to delete a dataobj from the plot. If no dataobjs
+# are specified, then all dataobjs are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::delete { args } {
+    if {[llength $args] == 0} {
+        set args $_dlist
+    }
+
+    # delete all specified dataobjs
+    set changed 0
+    set _flush 1
+    foreach dataobj $args {
+        set pos [lsearch -exact $_dlist $dataobj]
+        if {$pos >= 0} {
+            set _dlist [lreplace $_dlist $pos $pos]
+            if { [info exists _obj2models($dataobj)] } {
+                foreach model $_obj2models($dataobj) {
+                    array unset _active $model
+                }
+            }
+            array unset _obj2models $dataobj
+            array unset _dobj2transparency $dataobj
+            array unset _dobj2color $dataobj
+            array unset _dobj2width $dataobj
+            array unset _dobj2dashes $dataobj
+            array unset _dobj2raise $dataobj
+            set changed 1
+        }
+    }
+
+    # if anything changed, then rebuild the plot
+    if {$changed} {
+        if { [isconnected] } {
+            $_dispatcher event -idle !rebuild
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: get
+#
+# Clients use this to query the list of objects being plotted, in
+# order from bottom to top of this result.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::get {} {
+    # put the dataobj list in order according to -raise options
+    set dlist $_dlist
+    foreach obj $dlist {
+        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
+            set i [lsearch -exact $dlist $obj]
+            if {$i >= 0} {
+                set dlist [lreplace $dlist $i $i]
+                lappend dlist $obj
+            }
+        }
+    }
+    return $dlist
+}
+
+# ----------------------------------------------------------------------
+# USAGE: download coming
+# USAGE: download controls <downloadCommand>
+# USAGE: download now
+#
+# Clients use this method to create a downloadable representation
+# of the plot.  Returns a list of the form {ext string}, where
+# "ext" is the file extension (indicating the type of data) and
+# "string" is the data itself.
+# ----------------------------------------------------------------------
+itcl::body Rappture::MolvisViewer::download {option args} {
+    switch $option {
+        coming {}
+        controls {
+            set popup .molvisviewerdownload
+            if { ![winfo exists .molvisviewerdownload] } {
+                set inner [DownloadPopup $popup [lindex $args 0]]
+            } else {
+                set inner [$popup component inner]
+            }
+            set _downloadPopup(image_controls) $inner.image_frame
+            set num [llength [get]]
+            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            set word [Rappture::filexfer::label downloadWord]
+            $inner.summary configure -text "$word $num in the following format:"
+            update idletasks ;		# Fix initial sizes
+            return $popup
+        }
+        now {
+
+            set popup .molvisviewerdownload
+            if {[winfo exists .molvisviewerdownload]} {
+                $popup deactivate
+            }
+            switch -- $_downloadPopup(format) {
+                "image" {
+                    return [$this GetImage [lindex $args 0]]
+                }
+                "pdb" {
+                    return [list .pdb $_pdbdata]
+                }
+            }
+        }
+        default {
+            error "bad option \"$option\": should be coming, controls, now"
+        }
+    }
+}
+
+#
+# isconnected --
+#
+#       Indicates if we are currently connected to the visualization server.
+#
+itcl::body Rappture::MolvisViewer::isconnected {} {
+    return [VisViewer::IsConnected]
+}
+
+
+#
+# Connect --
+#
+#       Establishes a connection to a new visualization server.
+#
+itcl::body Rappture::MolvisViewer::Connect {} {
+    global readyForNextFrame
+    set readyForNextFrame 1
+    if { [isconnected] } {
+        return 1
+    }
+    set hosts [GetServerList "pymol"]
+    if { "" == $hosts } {
+        return 0
+    }
+    set _reset 1 
+    set result [VisViewer::Connect $hosts]
+    if { $result } {
+        $_dispatcher event -idle !rebuild
+    }
+    return $result
+}
+
+#
+# Disconnect --
+#
+#       Clients use this method to disconnect from the current rendering
+#       server.
+#
+itcl::body Rappture::MolvisViewer::Disconnect {} {
+    VisViewer::Disconnect
+
+    # disconnected -- no more data sitting on server
+    catch { after cancel $_rocker(afterid) }
+    catch { after cancel $_mevent(afterid) }
+    array unset _dataobjs
+    array unset _model
+    array unset _mlist
+    array unset _imagecache
+
+    set _state(server) 1
+    set _state(client) 1
+    set _outbuf ""
+    global readyForNextFrame
+    set readyForNextFrame 1
+}
+
+itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
+    debug "in SendCmd ($cmd)\n"
+
+    if { $_buffering } {
+        # Just buffer the commands. Don't send them yet.
+        if { $_state(server) != $_state(client) } {
+            append _outbuf "frame -defer $_state(client)\n"
+            set _state(server) $_state(client)
+        }
+        if { $_rocker(server) != $_rocker(client) } {
+            append _outbuf "rock -defer $_rocker(client)\n"
+            set _rocker(server) $_rocker(client)
+        }
+        append _outbuf "$cmd\n"
+    } else {
+        if { $_state(server) != $_state(client) } {
+            if { ![SendBytes "frame -defer $_state(client)\n"] } {
+                set _state(server) $_state(client)
+            }
+        }
+        if { $_rocker(server) != $_rocker(client) } {
+            if { ![SendBytes "rock -defer $_rocker(client)\n"] } {
+                set _rocker(server) $_rocker(client)
+            }
+        }
+        SendBytes "$cmd\n"
+    }
+}
+
+#
+# ReceiveImage -bytes <size>
+#
+#     Invoked automatically whenever the "image" command comes in from
+#     the rendering server.  Indicates that binary image data with the
+#     specified <size> will follow.
+#
+set count 0
+itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
+    global readyForNextFrame
+    set readyForNextFrame 1
+    set tag "$frame,$rock"
+    global count
+    incr count
+    if { $cacheid != $_cacheid } {
+        array unset _imagecache 
+        set _cacheid $cacheid
+    }
+    #debug "reading $size bytes from proxy\n"
+    set data [ReceiveBytes $size]
+    #debug "success: reading $size bytes from proxy\n"
+    if { $cacheid == "print" } {
+        # $frame is the token that we sent to the proxy.
+        set _hardcopy($this-$frame) $data
+    } else {
+        set _imagecache($tag) $data
+        #debug "CACHED: $tag,$cacheid"
+        $_image(plot) configure -data $data
+	if 0 {
+	$_image(plot) write dummy.jpg -format jpeg
+        puts stderr "image width=[image width $_image(plot)] height=[image height $_image(plot)]"
+        puts stderr "screen width=$_width height=$_height"
+	}
+        set _image(id) $tag
+    }
+}
+
+
 itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     set fg [option get $itk_component(hull) font Font]
 
@@ -524,189 +823,6 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
 }
 
 # ----------------------------------------------------------------------
-# DESTRUCTOR
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::destructor {} {
-    VisViewer::Disconnect
-
-    image delete $_image(plot)
-    array unset _settings $this-*
-}
-
-# ----------------------------------------------------------------------
-# USAGE: download coming
-# USAGE: download controls <downloadCommand>
-# USAGE: download now
-#
-# Clients use this method to create a downloadable representation
-# of the plot.  Returns a list of the form {ext string}, where
-# "ext" is the file extension (indicating the type of data) and
-# "string" is the data itself.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::download {option args} {
-    switch $option {
-        coming {}
-        controls {
-            set popup .molvisviewerdownload
-            if { ![winfo exists .molvisviewerdownload] } {
-                set inner [DownloadPopup $popup [lindex $args 0]]
-            } else {
-                set inner [$popup component inner]
-            }
-            set _downloadPopup(image_controls) $inner.image_frame
-            set num [llength [get]]
-            set num [expr {($num == 1) ? "1 result" : "$num results"}]
-            set word [Rappture::filexfer::label downloadWord]
-            $inner.summary configure -text "$word $num in the following format:"
-            update idletasks ;		# Fix initial sizes
-            return $popup
-        }
-        now {
-
-            set popup .molvisviewerdownload
-            if {[winfo exists .molvisviewerdownload]} {
-                $popup deactivate
-            }
-            switch -- $_downloadPopup(format) {
-                "image" {
-                    return [$this GetImage [lindex $args 0]]
-                }
-                "pdb" {
-                    return [list .pdb $_pdbdata]
-                }
-            }
-        }
-        default {
-            error "bad option \"$option\": should be coming, controls, now"
-        }
-    }
-}
-
-#
-# isconnected --
-#
-#       Indicates if we are currently connected to the visualization server.
-#
-itcl::body Rappture::MolvisViewer::isconnected {} {
-    return [VisViewer::IsConnected]
-}
-
-
-#
-# Connect --
-#
-#       Establishes a connection to a new visualization server.
-#
-itcl::body Rappture::MolvisViewer::Connect {} {
-    global readyForNextFrame
-    set readyForNextFrame 1
-    if { [isconnected] } {
-        return 1
-    }
-    set hosts [GetServerList "pymol"]
-    if { "" == $hosts } {
-        return 0
-    }
-    set _restore 1 
-    set result [VisViewer::Connect $hosts]
-    if { $result } {
-        $_dispatcher event -idle !rebuild
-    }
-    return $result
-}
-
-#
-# Disconnect --
-#
-#       Clients use this method to disconnect from the current rendering
-#       server.
-#
-itcl::body Rappture::MolvisViewer::Disconnect {} {
-    VisViewer::Disconnect
-
-    # disconnected -- no more data sitting on server
-    catch { after cancel $_rocker(afterid) }
-    catch { after cancel $_mevent(afterid) }
-    array unset _dataobjs
-    array unset _model
-    array unset _mlist
-    array unset _imagecache
-
-    set _state(server) 1
-    set _state(client) 1
-    set _outbuf ""
-    global readyForNextFrame
-    set readyForNextFrame 1
-}
-
-itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
-    debug "in SendCmd ($cmd)\n"
-
-    if { $_buffering } {
-        # Just buffer the commands. Don't send them yet.
-        if { $_state(server) != $_state(client) } {
-            append _outbuf "frame -defer $_state(client)\n"
-            set _state(server) $_state(client)
-        }
-        if { $_rocker(server) != $_rocker(client) } {
-            append _outbuf "rock -defer $_rocker(client)\n"
-            set _rocker(server) $_rocker(client)
-        }
-        append _outbuf "$cmd\n"
-    } else {
-        if { $_state(server) != $_state(client) } {
-            if { ![SendBytes "frame -defer $_state(client)\n"] } {
-                set _state(server) $_state(client)
-            }
-        }
-        if { $_rocker(server) != $_rocker(client) } {
-            if { ![SendBytes "rock -defer $_rocker(client)\n"] } {
-                set _rocker(server) $_rocker(client)
-            }
-        }
-        SendBytes "$cmd\n"
-    }
-}
-
-#
-# ReceiveImage -bytes <size>
-#
-#     Invoked automatically whenever the "image" command comes in from
-#     the rendering server.  Indicates that binary image data with the
-#     specified <size> will follow.
-#
-set count 0
-itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
-    global readyForNextFrame
-    set readyForNextFrame 1
-    set tag "$frame,$rock"
-    global count
-    incr count
-    if { $cacheid != $_cacheid } {
-        array unset _imagecache 
-        set _cacheid $cacheid
-    }
-    #debug "reading $size bytes from proxy\n"
-    set data [ReceiveBytes $size]
-    #debug "success: reading $size bytes from proxy\n"
-    if { $cacheid == "print" } {
-        # $frame is the token that we sent to the proxy.
-        set _hardcopy($this-$frame) $data
-    } else {
-        set _imagecache($tag) $data
-        #debug "CACHED: $tag,$cacheid"
-        $_image(plot) configure -data $data
-	if 0 {
-	$_image(plot) write dummy.jpg -format jpeg
-        puts stderr "image width=[image width $_image(plot)] height=[image height $_image(plot)]"
-        puts stderr "screen width=$_width height=$_height"
-	}
-        set _image(id) $tag
-    }
-}
-
-
-# ----------------------------------------------------------------------
 # USAGE: Rebuild
 #
 # Called automatically whenever something changes that affects the
@@ -724,7 +840,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     set _buffering 1
     set _cell 0
 
-    if { $_restore } {
+    if { $_reset } {
         set _rocker(server) 0
         set _cacheid 0
         SendCmd "raw -defer {set auto_color,0}"
@@ -932,7 +1048,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         Update
         set flush 0
     }
-    if { $_restore } {
+    if { $_reset } {
         # Set or restore viewing parameters.  We do this for the first
         # model and assume this works for everything else.
         set w  [winfo width $itk_component(3dview)] 
@@ -947,7 +1063,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
         SendCmd "raw -defer {zoom complete=1}"
-        set _restore 0
+        set _reset 0
     }
     if { $changed } {
         # Default settings for all models.
@@ -966,11 +1082,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     } else {
 	$inner.cell configure -state disabled
     }
-    if { $flush } {
+    if { $_flush || $flush } {
         global readyForNextFrame
         set readyForNextFrame 0;	# Don't advance to the next frame
                                         # until we get an image.
         SendCmd "ppm";			# Flush the results.
+	set _flush 0
     }
     set _buffering 0;			# Turn off buffering.
 
@@ -1460,61 +1577,6 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
 }
 
 
-# ----------------------------------------------------------------------
-# USAGE: add <dataobj> ?<settings>?
-#
-# Clients use this to add a data object to the plot.  The optional
-# <settings> are used to configure the plot.  Allowed settings are
-# -color, -brightness, -width, -linestyle, and -raise. Only
-# -brightness and -raise do anything.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::add { dataobj {options ""}} {
-    array set params {
-        -color          auto
-        -brightness     0
-        -width          1
-        -raise          0
-        -linestyle      solid
-        -description    ""
-        -param          ""
-    }
-
-    foreach {opt val} $options {
-        if {![info exists params($opt)]} {
-            error "bad settings \"$opt\": should be [join [lsort [array names params]] {, }]"
-        }
-        set params($opt) $val
-    }
-
-    set pos [lsearch -exact $dataobj $_dlist]
-
-    if {$pos < 0} {
-        if {![Rappture::library isvalid $dataobj]} {
-            error "bad value \"$dataobj\": should be Rappture::library object"
-        }
-
-        if { !$_settings($this-showlabels-initialized) } {
-            set showlabels [$dataobj get components.molecule.about.emblems]
-            if { $showlabels != "" && [string is boolean $showlabels] } {
-                set _settings($this-showlabels) $showlabels
-            } 
-        }
-
-        lappend _dlist $dataobj
-        if { $params(-brightness) >= 0.5 } {
-            set _dobj2transparency($dataobj) "ghost"
-        } else {
-            set _dobj2transparency($dataobj) "normal"
-        }
-        set _dobj2raise($dataobj) $params(-raise)
-        debug "setting parameters for $dataobj\n"
-
-        if { [isconnected] } {
-            $_dispatcher event -idle !rebuild
-        }
-    }
-}
-
 #
 # ResetView
 #
@@ -1540,88 +1602,6 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
     SendCmd "pan $_view(x) $_view(y)"
     SendCmd "zoom $_view(zoom)"
 }
-
-# ----------------------------------------------------------------------
-# USAGE: get
-#
-# Clients use this to query the list of objects being plotted, in
-# order from bottom to top of this result.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::get {} {
-    # put the dataobj list in order according to -raise options
-    set dlist $_dlist
-    foreach obj $dlist {
-        if {[info exists _dobj2raise($obj)] && $_dobj2raise($obj)} {
-            set i [lsearch -exact $dlist $obj]
-            if {$i >= 0} {
-                set dlist [lreplace $dlist $i $i]
-                lappend dlist $obj
-            }
-        }
-    }
-    return $dlist
-}
-
-# ----------------------------------------------------------------------
-# USAGE: delete ?<dataobj> <dataobj> ...?
-#
-# Clients use this to delete a dataobj from the plot. If no dataobjs
-# are specified, then all dataobjs are deleted.
-# ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::delete { args } {
-    if {[llength $args] == 0} {
-        set args $_dlist
-    }
-
-    # delete all specified dataobjs
-    set changed 0
-    foreach dataobj $args {
-        set pos [lsearch -exact $_dlist $dataobj]
-        if {$pos >= 0} {
-            set _dlist [lreplace $_dlist $pos $pos]
-            if { [info exists _obj2models($dataobj)] } {
-                foreach model $_obj2models($dataobj) {
-                    array unset _active $model
-                }
-            }
-            array unset _obj2models $dataobj
-            array unset _dobj2transparency $dataobj
-            array unset _dobj2color $dataobj
-            array unset _dobj2width $dataobj
-            array unset _dobj2dashes $dataobj
-            array unset _dobj2raise $dataobj
-            set changed 1
-        }
-    }
-
-    # if anything changed, then rebuild the plot
-    if {$changed} {
-        if { [isconnected] } {
-            $_dispatcher event -idle !rebuild
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# OPTION: -device
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::MolvisViewer::device {
-    if {$itk_option(-device) != "" } {
-
-        if {![Rappture::library isvalid $itk_option(-device)]} {
-            error "bad value \"$itk_option(-device)\": should be Rappture::library object"
-        }
-        $this delete
-        $this add $itk_option(-device)
-    } else {
-        $this delete
-    }
-
-    if { [isconnected] } {
-        $_dispatcher event -idle !rebuild
-    }
-}
-
 
 
 itcl::body Rappture::MolvisViewer::WaitIcon  { option widget } {
@@ -2095,3 +2075,25 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
 	point7 origin scale
     return $vertices
 }
+
+
+# ----------------------------------------------------------------------
+# OPTION: -device
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::MolvisViewer::device {
+    if {$itk_option(-device) != "" } {
+
+        if {![Rappture::library isvalid $itk_option(-device)]} {
+            error "bad value \"$itk_option(-device)\": should be Rappture::library object"
+        }
+        $this delete
+        $this add $itk_option(-device)
+    } else {
+        $this delete
+    }
+
+    if { [isconnected] } {
+        $_dispatcher event -idle !rebuild
+    }
+}
+
