@@ -280,7 +280,7 @@ void PseudoColor::setColorMode(ColorMode mode,
         return;
     DataSet::DataAttributeType type;
     int numComponents;
-    if (!_dataSet->getFieldInfo(name, &type, &numComponents)) {
+    if (name != NULL && !_dataSet->getFieldInfo(name, &type, &numComponents)) {
         ERROR("Field not found: %s", name);
         return;
     }

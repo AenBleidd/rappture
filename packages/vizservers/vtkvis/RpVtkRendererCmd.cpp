@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cfloat>
 #include <cerrno>
 #include <string>
 #include <sstream>
@@ -3056,6 +3057,8 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         vtkSmartPointer<vtkUnsignedCharArray>::New();
 
     double range[2];
+    range[0] = DBL_MAX;
+    range[1] = -DBL_MAX;
 
     if (objc == 9) {
         const char *dataSetName = Tcl_GetString(objv[8]);
@@ -4055,6 +4058,9 @@ PseudoColorColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == PseudoColor::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
     if (objc == 5) {
         const char *name = Tcl_GetString(objv[4]);
         g_renderer->setPseudoColorColorMode(name, mode, fieldName);
@@ -4500,6 +4506,9 @@ StreamlinesColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Streamlines::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
     if (objc == 5) {
         const char *dataSetName = Tcl_GetString(objv[4]);
         g_renderer->setStreamlinesColorMode(dataSetName, mode, fieldName);
