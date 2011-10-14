@@ -2201,12 +2201,9 @@ PollForEvents(PymolProxy *proxyPtr)
 	    line = NextLine(&proxyPtr->server, &nBytes);
 	    if (line != NULL) {
 		Debug("STDOUT>%.*s", nBytes, line);
-		Debug("Done with pymol stdout\n");
-		INFO("EOF on pymol server");
-		goto error;		/* Pymol server died unexpectedly. */
+		INFO("Garbage found from pymol server: %.%s", nBytes, line);
 	    } else if (nBytes == BUFFER_CONTINUE) {
-		Debug("Done with pymol stdout\n");
-		INFO("Need to read more from Pymol server, repolling.");
+		Debug("No data found on pymol stdout\n");
 		continue;
 	    } else {
 		ERROR("can't read pymol stdout (nBytes=%d): %s\n", nBytes,
