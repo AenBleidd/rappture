@@ -312,7 +312,7 @@ void Glyphs::setScalingMode(ScalingMode mode)
             break;
         case SCALE_BY_VECTOR_MAGNITUDE: {
 #ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->SetRange(_dataRange);
+            _glyphMapper->SetRange(_vectorMagnitudeRange);
             _glyphMapper->SetScaleModeToScaleByMagnitude();
             _glyphMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
 #else
