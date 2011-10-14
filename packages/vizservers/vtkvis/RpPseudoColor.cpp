@@ -358,7 +358,6 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     switch (mode) {
     case COLOR_BY_SCALAR:
         _dsMapper->ScalarVisibilityOn();
-        _dsMapper->SetScalarModeToDefault();
         break;
     case COLOR_BY_VECTOR_MAGNITUDE: {
         _dsMapper->ScalarVisibilityOn();
