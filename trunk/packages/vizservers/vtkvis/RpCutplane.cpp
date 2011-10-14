@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cfloat>
+#include <cstring>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
