@@ -1486,12 +1486,10 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 	    if { [info exists _scalarFields($new)] } {
 		set name $_scalarFields($new)
 		set _colorMode scalar
-		set fieldType scalar
 		set _currentField $new
 	    } elseif { [info exists _vectorFields($new)] } {
 		set name $_vectorFields($new)
 		set _colorMode vmag
-		set fieldType vector
 		set _currentField $new
 	    } else {
 		puts stderr "unknown field \"$new\""
@@ -1848,7 +1846,7 @@ itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
 	    set data [$dataobj blob $comp]
 	    set tmpfile file[pid].vtk
 	    set f [open "$tmpfile" "w"]
-	    fconfigure $f -translation binary
+	    fconfigure $f -translation binary -encoding binary
 	    puts $f $data 
 	    close $f
 	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
