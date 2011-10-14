@@ -298,6 +298,9 @@ void Renderer::deleteDataSet(const DataSetId& id)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Get a list of DataSets this Renderer knows about
+ */
 void Renderer::getDataSetNames(std::vector<std::string>& names)
 {
     names.clear();
@@ -356,6 +359,9 @@ bool Renderer::setData(const DataSetId& id, char *data, int nbytes)
         return false;
 }
 
+/**
+ * \brief Set the active scalar field array by name for a DataSet
+ */
 bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarName)
 {
     DataSetHashmap::iterator itr;
@@ -393,6 +399,9 @@ bool Renderer::setDataSetActiveScalars(const DataSetId& id, const char *scalarNa
     return ret;
 }
 
+/**
+ * \brief Set the active vector field array by name for a DataSet
+ */
 bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorName)
 {
     DataSetHashmap::iterator itr;
@@ -1061,6 +1070,29 @@ void Renderer::deleteColorMap(const ColorMapId& id)
     } while (doAll && itr != _colorMaps.end());
 }
 
+/**
+ * \brief Render a labelled legend image for the given colormap
+ *
+ * The field is assumed to be the active scalar or vector field
+ * based on the legendType.
+ *
+ * \param[in] id ColorMap name
+ * \param[in] dataSetID DataSet name
+ * \param[in] legendType scalar or vector field legend
+ * \param[in,out] title If supplied, draw title ("#auto" means to
+ * fill in field name and draw).  If blank, do not draw title.  
+ * If title was blank or "#auto", will be filled with field name on
+ * return
+ * \param[in,out] range Data range to use in legend.  Set min > max to have
+ * range computed, will be filled with valid min and max values
+ * \param[in] width Pixel width of legend (aspect controls orientation)
+ * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] numLabels Number of labels to render (includes min/max)
+ * \param[in,out] imgData Pointer to array to fill with image bytes. Array
+ * will be resized if needed.
+ * \return The image is rendered into the supplied array, false is 
+ * returned if the color map is not found
+ */
 bool Renderer::renderColorMap(const ColorMapId& id, 
                               const DataSetId& dataSetID,
                               Renderer::LegendType legendType,
@@ -1102,7 +1134,30 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     }
 }
 
-
+/**
+ * \brief Render a labelled legend image for the given colormap
+ *
+ * The field is assumed to be point data, if the field is not found
+ * as point data, cell data is used.
+ *
+ * \param[in] id ColorMap name
+ * \param[in] dataSetID DataSet name
+ * \param[in] legendType scalar or vector field legend
+ * \param[in] fieldName Name of the field array this legend is for
+ * \param[in,out] title If supplied, draw title ("#auto" means to
+ * fill in field name and draw).  If blank, do not draw title.  
+ * If title was blank or "#auto", will be filled with field name on
+ * return
+ * \param[in,out] range Data range to use in legend.  Set min > max to have
+ * range computed, will be filled with valid min and max values
+ * \param[in] width Pixel width of legend (aspect controls orientation)
+ * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] numLabels Number of labels to render (includes min/max)
+ * \param[in,out] imgData Pointer to array to fill with image bytes. Array
+ * will be resized if needed.
+ * \return The image is rendered into the supplied array, false is 
+ * returned if the color map is not found
+ */
 bool Renderer::renderColorMap(const ColorMapId& id, 
                               const DataSetId& dataSetID,
                               Renderer::LegendType legendType,
@@ -1149,11 +1204,14 @@ bool Renderer::renderColorMap(const ColorMapId& id,
  * \param[in] id ColorMap name
  * \param[in] dataSetID DataSet name
  * \param[in] legendType scalar or vector field legend
+ * \param[in] fieldName Name of the field array this legend is for
+ * \param[in] type DataAttributeType of the field
  * \param[in,out] title If supplied, draw title ("#auto" means to
  * fill in field name and draw).  If blank, do not draw title.  
  * If title was blank or "#auto", will be filled with field name on
  * return
- * \param[out] range Filled with min and max values
+ * \param[in,out] range Data range to use in legend.  Set min > max to have
+ * range computed, will be filled with valid min and max values
  * \param[in] width Pixel width of legend (aspect controls orientation)
  * \param[in] height Pixel height of legend (aspect controls orientation)
  * \param[in] numLabels Number of labels to render (includes min/max)
@@ -1262,15 +1320,21 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         }
     }
 
-    range[0] = 0.0;
-    range[1] = 1.0;
+    bool needRange = false;
+    if (range[0] > range[1]) {
+        range[0] = 0.0;
+        range[1] = 1.0;
+        needRange = true;
+    } 
 
     switch (legendType) {
     case LEGEND_VECTOR_MAGNITUDE:
-        if (cumulative) {
-            getCumulativeDataRange(range, fieldName, type, 3);
-        } else if (dataSet != NULL) {
-            dataSet->getDataRange(range, fieldName, type);
+        if (needRange) {
+            if (cumulative) {
+                getCumulativeDataRange(range, fieldName, type, 3);
+            } else if (dataSet != NULL) {
+                dataSet->getDataRange(range, fieldName, type);
+            }
         }
 
         lut->SetRange(range);
@@ -1283,10 +1347,12 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         }
         break;
     case LEGEND_VECTOR_X:
-        if (cumulative) {
-            getCumulativeDataRange(range, fieldName, type, 3, 0);
-        } else if (dataSet != NULL) {
-            dataSet->getDataRange(range, fieldName, type, 0);
+        if (needRange) {
+            if (cumulative) {
+                getCumulativeDataRange(range, fieldName, type, 3, 0);
+            } else if (dataSet != NULL) {
+                dataSet->getDataRange(range, fieldName, type, 0);
+            }
         }
 
         lut->SetRange(range);
@@ -1299,10 +1365,12 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         }
         break;
     case LEGEND_VECTOR_Y:
-        if (cumulative) {
-            getCumulativeDataRange(range, fieldName, type, 3, 1);
-        } else if (dataSet != NULL) {
-            dataSet->getDataRange(range, fieldName, type, 1);
+        if (needRange) {
+            if (cumulative) {
+                getCumulativeDataRange(range, fieldName, type, 3, 1);
+            } else if (dataSet != NULL) {
+                dataSet->getDataRange(range, fieldName, type, 1);
+            }
         }
 
         lut->SetRange(range);
@@ -1315,10 +1383,12 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         }
         break;
     case LEGEND_VECTOR_Z:
-        if (cumulative) {
-            getCumulativeDataRange(range, fieldName, type, 3, 2);
-        } else if (dataSet != NULL) {
-            dataSet->getDataRange(range, fieldName, type, 1);
+        if (needRange) {
+            if (cumulative) {
+                getCumulativeDataRange(range, fieldName, type, 3, 2);
+            } else if (dataSet != NULL) {
+                dataSet->getDataRange(range, fieldName, type, 1);
+            }
         }
 
         lut->SetRange(range);
@@ -1332,11 +1402,13 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         break;
     case LEGEND_SCALAR:
     default:
-        if (cumulative) {
-            getCumulativeDataRange(range, fieldName, type, 1);
-        } else if (dataSet != NULL) {
-            dataSet->getDataRange(range, fieldName, type);
-         }
+        if (needRange) {
+            if (cumulative) {
+                getCumulativeDataRange(range, fieldName, type, 1);
+            } else if (dataSet != NULL) {
+                dataSet->getDataRange(range, fieldName, type);
+            }
+        }
 
         lut->SetRange(range);
 
