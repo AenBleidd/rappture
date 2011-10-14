@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cfloat>
+#include <cstring>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
@@ -291,7 +292,10 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 {
     _colorMode = mode;
     _colorFieldType = type;
-    _colorFieldName = name;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
     if (range == NULL) {
         _colorFieldRange[0] = DBL_MAX;
         _colorFieldRange[1] = -DBL_MAX;

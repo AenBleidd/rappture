@@ -9,6 +9,7 @@
 #include <ctime>
 #include <cfloat>
 #include <cmath>
+#include <cstring>
 
 #include <vtkMath.h>
 #include <vtkActor.h>
@@ -1337,7 +1338,10 @@ void Streamlines::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 {
     _colorMode = mode;
     _colorFieldType = type;
-    _colorFieldName = name;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
     if (range == NULL) {
         _colorFieldRange[0] = DBL_MAX;
         _colorFieldRange[1] = -DBL_MAX;
