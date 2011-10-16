@@ -1,53 +1,56 @@
 
-TARGETS		= pymolproxy
+TARGETS =	pymolproxy pymolproxy2
 
-CC		= @CC@
-CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
-CFLAGS		= @CFLAGS@ 
-DEFINES		= -DSTANDALONE
-EXTRA_CFLAGS	= -Wall 
-INCLUDES	= $(TCL_INC_SPEC)
-TCL_INC_SPEC	= @TCL_INC_SPEC@
-TCL_LIB_SPEC	= @TCL_LIB_SPEC@
-RP_LIB_DIR	= @RP_LIB_DIR@
+CC =		@CC@
+CC_SWITCHES =	$(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+CFLAGS =	@CFLAGS@ 
+DEFINES =	-DSTANDALONE
+EXTRA_CFLAGS =	-Wall 
+INCLUDES =	$(TCL_INC_SPEC)
+TCL_INC_SPEC =	@TCL_INC_SPEC@
+TCL_LIB_SPEC =	@TCL_LIB_SPEC@
+RP_LIB_DIR =	@RP_LIB_DIR@
 
-bindir          = @bindir@
-datadir		= @datadir@
-datarootdir	= @datarootdir@
-exec_prefix     = @exec_prefix@
-includedir      = @includedir@
-libdir          = @libdir@
-mandir          = @mandir@
-prefix          = @prefix@
-srcdir		= @srcdir@
+bindir =	@bindir@
+datadir =	@datadir@
+datarootdir =	@datarootdir@
+exec_prefix =	@exec_prefix@
+includedir =	@includedir@
+libdir =	@libdir@
+mandir =	@mandir@
+prefix =	@prefix@
+srcdir =	@srcdir@
 
-RP_DIR		= @RP_DIR@
-INSTALL         = @INSTALL@
-MKDIR_P		= @MKDIR_P@
-VPATH		= $(srcdir)
+RP_DIR =	@RP_DIR@
+INSTALL =	@INSTALL@
+MKDIR_P =	@MKDIR_P@
+VPATH =		$(srcdir)
 
 .PHONY: all install clean distclean
 
-OBJS		= pymolproxy.o
-LIBS		= $(TCL_LIB_SPEC) \
-		  -Wl,-rpath,$(RP_LIB_DIR)
+PROXY_OBJS =	pymolproxy.o
+PROXY2_OBJS =	pymolproxy2.o
+LIBS =		$(TCL_LIB_SPEC) \
+		-Wl,-rpath,$(RP_LIB_DIR) 
 
 SCRIPTS		= $(srcdir)/scripts/box.py
 
 all: $(TARGETS)
 
-pymolproxy: $(OBJS) 
+pymolproxy: $(PROXY_OBJS) 
 	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS)
+
+pymolproxy2: $(PROXY2_OBJS) 
+	$(CC) $(CC_SWITCHES) -o $@ $^ $(LIBS) -lpthread
 
 .c.o:
 	$(CC) $(CC_SWITCHES) -o $@ -c $<
 
 install: install-pymolproxy install-scripts
 
-install-pymolproxy: pymolproxy 
+install-pymolproxy: pymolproxy pymolproxy2
 	$(MKDIR_P) -m 0755 $(bindir)
-	$(INSTALL) -m 0555 pymolproxy $(bindir)/pymolproxy
-	$(INSTALL) -m 0555 pymol $(bindir)/pymol
+	$(INSTALL) -m 0555 pymolproxy pymolproxy2 pymol $(bindir)
 
 install-scripts:
 	$(MKDIR_P) -m 0755 $(libdir)/pymol/rappture
