@@ -1887,16 +1887,6 @@ WriteStats(const char *who, int code)
 #endif
 
 static void
-DoExit(int code)
-{
-#if KEEPSTATS
-    WriteStats("pymolproxy", code);
-#endif
-    
-    exit(code);
-}
-
-static void
 ChildHandler(int sigNum) 
 {
     ERROR("pymol (%d) died unexpectedly", stats.pid);
@@ -2053,6 +2043,9 @@ FreeProxy(PymolProxy *p)
     close(p->sin);
 
     Tcl_DeleteInterp(p->interp);
+#if KEEPSTATS
+    WriteStats("pymolproxy", 0);
+#endif
 
 #if DEBUG
     DEBUG("Waiting for pymol server to exit");
