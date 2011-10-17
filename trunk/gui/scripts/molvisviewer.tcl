@@ -136,7 +136,7 @@ itcl::class Rappture::MolvisViewer {
     private method SphereScale {option {models "all"} }
     private method StickRadius {option {models "all"} }
     private method OrthoProjection {option}
-    private method Representation {option {model "all"} }
+    private method Representation { {option ""} }
     private method CartoonTrace {option {model "all"}}
     private method ComputeParallelepipedVertices { dataobj }
     private method Cell {option}
@@ -721,45 +721,23 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         -icon [Rappture::icon wrench]]
     $inner configure -borderwidth 4
 
-    label $inner.drawinglabel -text "Molecule Representation" \
-        -font "Arial 9"
-
     label $inner.pict -image $_settings($this-modelimg)
 
-    radiobutton $inner.bstick -text "balls and sticks" \
-        -command [itcl::code $this Representation ballnstick all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value ballnstick -font "Arial 9" -pady 0 
-    Rappture::Tooltip::for $inner.bstick \
-        "Display atoms (balls) and connections (sticks) "
+    label $inner.rep_l -text "Molecule Representation" \
+        -font "Arial 9"
 
-    radiobutton $inner.spheres -text "spheres" \
-        -command [itcl::code $this Representation spheres all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value spheres -font "Arial 9" -pady 0
-    Rappture::Tooltip::for $inner.spheres \
-        "Display atoms as spheres. Do not display bonds."
+    itk_component add representation {
+	Rappture::Combobox $inner.rep -width 20 -editable no
+    }
+    $inner.rep choices insert end \
+        "ballnstick"  "ball and stick" \
+        "spheres"     "spheres"         \
+        "sticks"      "sticks"		\
+        "lines"       "lines"		\
+        "cartoon"     "cartoon"		
 
-    radiobutton $inner.sticks -text "sticks" \
-        -command [itcl::code $this Representation sticks all] \
-        -variable Rappture::MolvisViewer::_settings($this-model) \
-        -value sticks -font "Arial 9" -pady 0
-    Rappture::Tooltip::for $inner.sticks \
-        "Display bonds as sticks. Do not display atoms."
-
-    radiobutton $inner.lines -text "lines" \
-        -command [itcl::code $this Representation lines all] \
-        -variable [itcl::scope _settings($this-model)] \
-        -value lines -font "Arial 9" -pady 0
-    Rappture::Tooltip::for $inner.lines \
-        "Display bonds as lines. Do not display atoms."
-
-    radiobutton $inner.cartoon -text "cartoon" \
-        -command [itcl::code $this Representation cartoon all] \
-        -variable [itcl::scope _settings($this-model)] \
-        -value cartoon -font "Arial 9" -pady 0
-    Rappture::Tooltip::for $inner.cartoon \
-        "Display cartoon representation of bonds (sticks)."
+    bind $inner.rep <<Value>> [itcl::code $this Representation]
+    $inner.rep value "ball and stick"
 
     scale $inner.spherescale -width 10 -font "Arial 9" \
         -from 0.1 -to 2.0 -resolution 0.05 -label "Sphere Scale" \
@@ -814,26 +792,18 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
 
     label $inner.spacer
     blt::table $inner \
-        0,0 $inner.drawinglabel -anchor w -columnspan 4 \
-        1,1 $inner.pict -anchor w -rowspan 5 \
-        1,2 $inner.bstick -anchor w -columnspan 2 \
-        2,2 $inner.spheres -anchor w -columnspan 2 \
-        3,2 $inner.sticks -anchor w -columnspan 2 \
-        4,2 $inner.lines -anchor w -columnspan 2 \
-        5,2 $inner.cartoon -anchor w -columnspan 2 \
-        6,0 $inner.labels -anchor w -columnspan 4 -pady {1 0} \
-        7,0 $inner.rock -anchor w -columnspan 4 -pady {1 0} \
-        8,0 $inner.ortho -anchor w -columnspan 4 -pady {1 0} \
-        9,0 $inner.cartoontrace -anchor w -columnspan 4 -pady {1 0} \
-	10,0 $inner.cell -anchor w -columnspan 4 -pady {1 0} \
-        11,1 $inner.spherescale -fill x -columnspan 4 -pady {1 0} \
-        12,1 $inner.stickradius -fill x -columnspan 4 -pady {1 0} \
+        0,0 $inner.labels -anchor w -pady {1 0} \
+        1,0 $inner.rock -anchor w -pady {1 0} \
+        2,0 $inner.ortho -anchor w -pady {1 0} \
+        3,0 $inner.cartoontrace -anchor w -pady {1 0} \
+	4,0 $inner.cell -anchor w  -pady {1 0} \
+        5,0 $inner.rep_l -anchor w -pady { 2 0 } \
+        6,0 $inner.rep -anchor w  \
+        7,0 $inner.spherescale -fill x -pady {3 0} \
+        8,0 $inner.stickradius -fill x -pady {1 0} \
 
-    blt::table configure $inner c0 -resize expand -width 2
-    blt::table configure $inner c1 c2 -resize none
-    blt::table configure $inner c3 -resize expand
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r13 -resize expand
+    blt::table configure $inner r10 -resize expand
 }
 
 # ----------------------------------------------------------------------
@@ -1088,7 +1058,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         CartoonTrace update 
         Cell update
         OrthoProjection update 
-        Representation update 
+        Representation update
     }
     set inner [$itk_component(main) panel "Settings"]
     if { $_cell } {
@@ -1507,7 +1477,11 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
 # Used internally to change the molecular representation used to render
 # our scene.
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::Representation {option {model "all"} } {
+itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
+    if { $option == "" } {
+	set value [$itk_component(representation) value]
+	set option [$itk_component(representation) translate $value]
+    }
     if { $option == $_mrep } {
         return 
     }
@@ -1527,13 +1501,8 @@ itcl::body Rappture::MolvisViewer::Representation {option {model "all"} } {
     set _settings($this-model) $option
     set _mrep $option
 
-    if { $model == "all" } {
-        set models [array names _mlist]
-    } else {
-        set models $model
-    }
 
-    foreach model $models {
+    foreach model [array names _mlist] {
         if { [info exists _model($model-rep)] } {
             if { $_model($model-rep) != $option } {
                 set _model($model-newrep) $option
