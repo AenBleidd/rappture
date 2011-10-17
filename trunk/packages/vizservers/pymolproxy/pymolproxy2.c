@@ -88,7 +88,7 @@
 #define FALSE 0
 #define TRUE  1
 
-static int debug = TRUE;
+static int debug = FALSE;
 static char stderrFile[200];
 static FILE *fdebug;
 static FILE *frecord;
@@ -245,7 +245,7 @@ SysLog(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
         s++;
     }
-    length = snprintf(message, MSG_LEN, "pymolproxy (%d) %s: %s:%d ", 
+    length = snprintf(message, MSG_LEN, "pymolproxy2 (%d) %s: %s:%d ", 
 	getpid(), syslogLevels[priority],  s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
@@ -2281,6 +2281,8 @@ main(int argc, char **argv)
     }    
     fprintf(stdout, "PyMol 1.0\n");
     fflush(stdout);
+
+    INFO("Starting pymolproxy (threaded version)");
 
     InitProxy(&proxy, stderrFile, argv + 1);
     if (pthread_create(&thread1, NULL, &ClientToServer, &proxy) < 0) {

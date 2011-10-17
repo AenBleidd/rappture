@@ -38,3 +38,14 @@ register_server pymol 2020 {
     LD_LIBRARY_PATH ${libdir}
     PYMOL_PATH ${libdir}/pymol
 }
+
+#
+# Pymol server (threaded version of proxy) --
+#    Molecular layouts from PDB description.  Must set PYMOL_PATH.
+#    
+register_server pymol-threaded 2019 {
+    ${bindir}/pymolproxy2 ${bindir}/pymol -p -q -i -x -X 0 -Y 0
+} {
+    LD_LIBRARY_PATH ${libdir}
+    PYMOL_PATH ${libdir}/pymol
+}

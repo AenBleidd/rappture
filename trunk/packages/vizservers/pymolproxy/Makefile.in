@@ -28,6 +28,7 @@ VPATH =		$(srcdir)
 
 .PHONY: all install clean distclean
 
+FILES =		pymolproxy pymolproxy2 pymol
 PROXY_OBJS =	pymolproxy.o
 PROXY2_OBJS =	pymolproxy2.o
 LIBS =		$(TCL_LIB_SPEC) \
@@ -50,7 +51,9 @@ install: install-pymolproxy install-scripts
 
 install-pymolproxy: pymolproxy pymolproxy2
 	$(MKDIR_P) -m 0755 $(bindir)
-	$(INSTALL) -m 0555 pymolproxy pymolproxy2 pymol $(bindir)
+	for i in $(FILES) ; do \
+	    $(INSTALL) -m 0555 $$i $(bindir) ; \
+	done
 
 install-scripts:
 	$(MKDIR_P) -m 0755 $(libdir)/pymol/rappture
