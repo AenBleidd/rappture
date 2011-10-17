@@ -76,6 +76,8 @@ itcl::class Rappture::MolvisViewer {
     private variable _outbuf "";
     private variable _buffering 0;
     private variable _resizePending 0;
+    private variable _updatePending 0;
+    private variable _rotatePending 0;
     private variable _width
     private variable _height
     private variable _reset 1;	# Restore camera settings
@@ -95,7 +97,11 @@ itcl::class Rappture::MolvisViewer {
     }
     private method BuildSettingsTab {}
     private method DoResize {} 
+    private method DoRotate {} 
+    private method DoUpdate {} 
     private method EventuallyResize { w h } 
+    private method EventuallyRotate { a b c } 
+    private method EventuallyChangeSettings { args } 
     private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
@@ -155,6 +161,14 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    # Update event
+    $_dispatcher register !update
+    $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
+
+    # Rotate event
+    $_dispatcher register !rotate
+    $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
 
     # Rocker
     $_dispatcher register !rocker
@@ -708,7 +722,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     $inner configure -borderwidth 4
 
     label $inner.drawinglabel -text "Molecule Representation" \
-        -font "Arial 9 bold"
+        -font "Arial 9"
 
     label $inner.pict -image $_settings($this-modelimg)
 
@@ -747,19 +761,19 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     Rappture::Tooltip::for $inner.cartoon \
         "Display cartoon representation of bonds (sticks)."
 
-    scale $inner.spherescale -width 10 -font "Arial 9 bold" \
+    scale $inner.spherescale -width 10 -font "Arial 9" \
         -from 0.1 -to 2.0 -resolution 0.05 -label "Sphere Scale" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this SphereScale] \
+        -command [itcl::code $this EventuallyChangeSettings] \
         -variable Rappture::MolvisViewer::_settings($this-spherescale)
     $inner.spherescale set $_settings($this-spherescale)
     Rappture::Tooltip::for $inner.spherescale \
         "Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
 
-    scale $inner.stickradius -width 10 -font "Arial 9 bold" \
+    scale $inner.stickradius -width 10 -font "Arial 9" \
         -from 0.1 -to 1.0 -resolution 0.025 -label "Stick Radius" \
         -showvalue true -orient horizontal \
-        -command [itcl::code $this StickRadius] \
+        -command [itcl::code $this EventuallyChangeSettings] \
         -variable Rappture::MolvisViewer::_settings($this-stickradius)
     Rappture::Tooltip::for $inner.stickradius \
         "Adjust scale of bonds (sticks)."
@@ -768,34 +782,34 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     checkbutton $inner.labels -text "Show labels on atoms" \
         -command [itcl::code $this labels update] \
         -variable [itcl::scope _settings($this-showlabels)] \
-        -font "Arial 9 bold"
+        -font "Arial 9"
     Rappture::Tooltip::for $inner.labels \
         "Display atom symbol and serial number."
 
     checkbutton $inner.rock -text "Rock model back and forth" \
         -command [itcl::code $this Rock toggle] \
         -variable Rappture::MolvisViewer::_settings($this-rock) \
-        -font "Arial 9 bold"
+        -font "Arial 9"
     Rappture::Tooltip::for $inner.rock \
         "Rotate the object back and forth around the y-axis."
 
     checkbutton $inner.ortho -text "Orthoscopic projection" \
         -command [itcl::code $this OrthoProjection update] \
         -variable Rappture::MolvisViewer::_settings($this-ortho) \
-         -font "Arial 9 bold"
+         -font "Arial 9"
     Rappture::Tooltip::for $inner.ortho \
         "Toggle between orthoscopic/perspective projection modes."
 
     checkbutton $inner.cartoontrace -text "Cartoon Trace" \
         -command [itcl::code $this CartoonTrace update] \
         -variable [itcl::scope _settings($this-cartoontrace)] \
-        -font "Arial 9 bold"
+        -font "Arial 9"
     Rappture::Tooltip::for $inner.cartoontrace \
         "Set cartoon representation of bonds (sticks)."
 
     checkbutton $inner.cell -text "Parallelepiped" \
 	-command [itcl::code $this Cell toggle] \
-        -font "Arial 9 bold"
+        -font "Arial 9"
     $inner.cell select
 
     label $inner.spacer
@@ -1082,11 +1096,11 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     } else {
 	$inner.cell configure -state disabled
     }
-    if { $_flush || $flush } {
+    if { $flush } {
         global readyForNextFrame
         set readyForNextFrame 0;	# Don't advance to the next frame
                                         # until we get an image.
-        SendCmd "ppm";			# Flush the results.
+        #SendCmd "ppm";			# Flush the results.
 	set _flush 0
     }
     set _buffering 0;			# Turn off buffering.
@@ -1136,8 +1150,47 @@ itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
     if { !$_resizePending } {
-        $_dispatcher event -idle !resize
+        $_dispatcher event -after 400 !resize
         set _resizePending 1
+    }
+}
+
+itcl::body Rappture::MolvisViewer::DoRotate {} {
+    SendCmd "rotate $_view(a) $_view(b) $_view(c)"
+    set _rotatePending 0
+}
+    
+itcl::body Rappture::MolvisViewer::EventuallyRotate { a b c } {
+    set _view(a) $a 
+    set _view(b) $b
+    set _view(c) $c 
+    if { !$_rotatePending } {
+        $_dispatcher event -after 100 !rotate
+        set _rotatePending 1
+    }
+}
+
+itcl::body Rappture::MolvisViewer::DoUpdate { } {
+    set scale  $_settings($this-spherescale)
+    set radius $_settings($this-stickradius) 
+    set overridescale [expr $scale * 0.8]
+    set overrideradius [expr $radius * 0.8]
+    SendCmd "spherescale -model all $overridescale"
+    SendCmd "stickradius -model all $overrideradius"
+    set models [array names _mlist]
+    foreach model $models {
+        if { [info exists _active($model)] } {
+            SendCmd "spherescale -model $model $scale"
+            SendCmd "stickradius -model $model $radius"
+        }
+    }
+    set _updatePending 0
+}
+
+itcl::body Rappture::MolvisViewer::EventuallyChangeSettings { args } {
+    if { !$_updatePending } {
+        $_dispatcher event -after 400 !update
+        set _updatePending 1
     }
 }
 
@@ -1332,7 +1385,8 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
         set _view(mx) [expr {$_view(mx) + $mx}]
         set _view(my) [expr {$_view(my) + $my}]
         set _view(mz) [expr {$_view(mz) + $mz}]
-        SendCmd "rotate $mx $my $mz"
+        #SendCmd "rotate $mx $my $mz"
+	EventuallyRotate $mx $my $mz
         debug "_vmmouse: rotate $_view(mx) $_view(my) $_view(mz)"
     }
     set _mevent(x) $x
@@ -1428,7 +1482,8 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
                     vy $vy
                     vz $vz
                 }]
-                SendCmd "rotate $a $b $c"
+		EventuallyRotate $a $b $c
+                #SendCmd "rotate $a $b $c"
                 debug "Rotate $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
                 set _click(x) $x
                 set _click(y) $y
