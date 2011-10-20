@@ -1884,8 +1884,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 	SendCmd "glyphs gscale $settings(-gscale) $tag"
 	SendCmd "glyphs wireframe $settings(-wireframe) $tag"
 	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
-	#SendCmd "glyphs colormode ccolor $tag"
-	SendCmd "glyphs smode vcomp $tag"
+	#SendCmd "glyphs colormode ccolor {} $tag"
+	SendCmd "glyphs smode vcomp {} $tag"
 	SendCmd "glyphs opacity $settings(-opacity) $tag"
 	SendCmd "glyphs visible $settings(-visible) $tag"
 	set _haveSpheres 1
