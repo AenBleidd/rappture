@@ -73,6 +73,16 @@ public:
 
     DataAttributeType getActiveVectorsType() const;
 
+    bool hasField(const char *fieldName) const
+    {
+        return getFieldInfo(fieldName, NULL, NULL);
+    }
+
+    bool hasField(const char *fieldName, DataAttributeType type) const
+    {
+        return getFieldInfo(fieldName, type, NULL);
+    }
+
     bool getFieldInfo(const char *fieldName, DataAttributeType *type, int *numComponents) const;
 
     bool getFieldInfo(const char *fieldName, DataAttributeType type, int *numComponents) const;
