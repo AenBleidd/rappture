@@ -1,0 +1,79 @@
+# ----------------------------------------------------------------------
+#  RAPPTURE OBJECT: periodicelement
+#
+#  A set of mutually-exclusive choices, as in Model A or Model B.
+#  Usually used as an input to a simulation.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2011  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+
+object periodicelement -extends base {
+    palettes "Inputs"
+
+    help http://rappture.org/wiki/rp_xml_ele_periodicelement
+
+    attr active -title "Active Elements" \
+	-type string -path default -only input \
+	-tooltip "Specifies the set of elements that can be selected.\n\nCan be a list of element symbols or groups: actinoid, alkali-metal, alkaline-earth-metal, halogen, lanthanoid, metalloid, noble-gas, other-non-metal, post-transition-metal, transition-metal, or unknown."
+    attr inactive -title "Inactive Elements" \
+	-type string -path default -only input \
+	-tooltip "Specifies the set of elements that can't be selected.\n\nCan be a list of element symbols or groups: actinoid, alkali-metal, alkaline-earth-metal, halogen, lanthanoid, metalloid, noble-gas, other-non-metal, post-transition-metal, transition-metal, or unknown."
+
+    attr returnvalue -title "Return value" -type string -path default -only input -tooltip "Specifies the return value: name, symbol, number, or weight."
+
+    attr default -title "Default Value" -type string -path default -only input -tooltip "Sets the value that this input has when the program first starts.  This value is used by default unless the user explicitly changes it."
+
+    check default {
+        if {[llength $attr(options)] > 0} {
+            if {[string length [string trim $attr(default)]] == 0} {
+                return [list error "Must have a default value for this periodicelement."]
+            }
+
+            # make sure that the default is really a choice
+            set defval [string trim $attr(default)]
+            set found 0
+            foreach rec $attr(options) {
+                set label [string trim [lindex $rec 0]]
+                set value [string trim [lindex $rec 1]]
+                if {$defval eq $label || $defval eq $value} {
+                    set found 1
+                    break
+                }
+            }
+            if {!$found} {
+                return [list error "Default value must be a label or value for one of the current periodicelements."]
+            }
+        }
+    }
+
+    storage {
+        private variable _val   ;# current periodicelement
+    }
+
+    import xml {xmlobj path} {
+        attr import $xmlobj $path
+        import_string [$xmlobj get $path.current]
+    }
+
+    export xml {xmlobj path} {
+        $xmlobj put $path $_val
+    }
+
+    import string {val} {
+        set _val $val
+    }
+
+    export string {var} {
+        upvar $var v
+        set v $_val
+    }
+
+    compare {
+        return [string compare $_val $_val2]
+    }
+}
