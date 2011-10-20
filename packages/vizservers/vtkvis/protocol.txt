@@ -171,7 +171,7 @@ glyphs add <shape> <?dataSetName?>
        See 'glyphs shape' for list of shapes
 glyphs ccolor r g b <?datasetName?>
 glyphs colormap <colorMapName> <?dataSetName?>
-glyphs colormode <scalar|vmag|ccolor> <?dataSetName?>
+glyphs colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?dataSetName?>
        Set the color mode: color by scalar field or
        vector magnitude -- uses the current color map,
        or ccolor for constant color
@@ -190,7 +190,7 @@ glyphs orient <qw> <qx> <qy> <qz> <?dataSetName?>
 glyphs pos <x> <y> <z> <?dataSetName?>
 glyphs scale <sx> <sy> <sz> <?dataSetName?>
 glyphs shape <arrow|cone|cube|cylinder|dodecahedron|icosahedron|line|octahedron|sphere|tetrahedron> <?datasetName?>
-glyphs smode <scalar|vmag|vcomp|off> <?dataSetName?>
+glyphs smode <scalar|vmag|vcomp|off> <fieldName> <?dataSetName?>
        Set the scaling mode: use the scalar field, vector magnitude 
        (uniform scale), vector components, or disable scaling
 glyphs visible <bool> <?datasetName?>

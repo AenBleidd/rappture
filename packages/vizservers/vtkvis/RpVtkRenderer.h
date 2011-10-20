@@ -401,9 +401,15 @@ public:
 
     void setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape);
 
-    void setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode);
+    void setGlyphsColorMode(const DataSetId& id,
+                            Glyphs::ColorMode mode,
+                            const char *name,
+                            double range[2] = NULL);
 
-    void setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode);
+    void setGlyphsScalingMode(const DataSetId& id,
+                              Glyphs::ScalingMode mode,
+                              const char *name,
+                              double range[2] = NULL);
 
     void setGlyphsNormalizeScale(const DataSetId& id, bool normalize);
 

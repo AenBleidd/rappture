@@ -47,7 +47,6 @@ PolyData::~PolyData()
 void PolyData::initProp()
 {
     VtkGraphicsObject::initProp();
-    getActor()->GetProperty()->EdgeVisibilityOn();
 }
 
 /**
@@ -158,6 +157,7 @@ void PolyData::update()
     }
 
     initProp();
+    setVisibility(_dataSet->getVisibility());
     getActor()->SetMapper(_pdMapper);
     _pdMapper->Update();
 }

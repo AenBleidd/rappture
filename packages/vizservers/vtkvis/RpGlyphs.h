@@ -57,6 +57,9 @@ public:
     enum ColorMode {
         COLOR_BY_SCALAR,
         COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
         COLOR_CONSTANT
     };
 
@@ -72,6 +75,12 @@ public:
                             Renderer *renderer);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+#ifdef HAVE_GLYPH3D_MAPPER
+    void setScalingMode(ScalingMode mode, const char *name, double range[2]);
+
+    void setColorMode(ColorMode mode, const char *name, double range[2]);
+#endif
 
     void setScalingMode(ScalingMode mode);
 
@@ -111,13 +120,18 @@ private:
 
     GlyphShape _glyphShape;
     ScalingMode _scalingMode;
+    std::string _scalingFieldName;
+    double _scalingFieldRange[2];
     double _dataScale;
     double _scaleFactor;
     bool _normalizeScale;
-    ColorMode _colorMode;
     ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    double _colorFieldRange[2];
     double _vectorMagnitudeRange[2];
     double _vectorComponentRange[3][2];
+    Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkPolyDataAlgorithm> _glyphSource;

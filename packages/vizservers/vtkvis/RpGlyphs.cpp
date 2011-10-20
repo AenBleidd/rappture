@@ -5,6 +5,9 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cstring>
+#include <cfloat>
+
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -36,10 +39,14 @@ Glyphs::Glyphs(GlyphShape shape) :
     _dataScale(1.0),
     _scaleFactor(1.0),
     _normalizeScale(true),
-    _colorMode(COLOR_BY_SCALAR),
-    _colorMap(NULL)
+    _colorMap(NULL),
+    _colorMode(COLOR_BY_SCALAR)
 {
     _faceCulling = true;
+    _scalingFieldRange[0] = DBL_MAX;
+    _scalingFieldRange[1] = -DBL_MAX;
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
 }
 
 Glyphs::~Glyphs()
@@ -57,6 +64,8 @@ void Glyphs::setDataSet(DataSet *dataSet,
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
+
+        _renderer = renderer;
 
         if (renderer->getUseCumulativeRange()) {
             renderer->getCumulativeDataRange(_dataRange,
@@ -246,16 +255,16 @@ void Glyphs::update()
     _glyphGenerator->ScalingOn();
 #endif
 
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
+    }
+
     if (ds->GetPointData()->GetScalars() == NULL) {
         TRACE("Setting color mode to vector magnitude");
         setColorMode(COLOR_BY_VECTOR_MAGNITUDE);
     } else {
         TRACE("Setting color mode to scalar");
         setColorMode(COLOR_BY_SCALAR);
-    }
-
-    if (_lut == NULL) {
-        setColorMap(ColorMap::getDefault());
     }
 
 #ifdef HAVE_GLYPH3D_MAPPER
@@ -287,39 +296,101 @@ void Glyphs::setNormalizeScale(bool normalize)
     }
 }
 
+#ifdef HAVE_GLYPH3D_MAPPER
 /**
  * \brief Control how glyphs are scaled
  */
-void Glyphs::setScalingMode(ScalingMode mode)
+void Glyphs::setScalingMode(ScalingMode mode, const char *name, double range[2])
 {
     _scalingMode = mode;
-#ifdef HAVE_GLYPH3D_MAPPER
-    if (_glyphMapper != NULL) {
-#else
-    if (_glyphGenerator != NULL) {
-#endif
-        switch (mode) {
-        case SCALE_BY_SCALAR: {
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->SetRange(_dataRange);
-            _glyphMapper->SetScaleModeToScaleByMagnitude();
+
+    if (_dataSet == NULL || _glyphMapper == NULL)
+        return;
+
+    if (name != NULL && strlen(name) > 0) {
+        if (!_dataSet->hasField(name, DataSet::POINT_DATA)) {
+            ERROR("Field not found: %s", name);
+            return;
+        }
+        _scalingFieldName = name;
+    } else
+        _scalingFieldName.clear();
+    if (range == NULL) {
+        _scalingFieldRange[0] = DBL_MAX;
+        _scalingFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_scalingFieldRange, range, sizeof(double)*2);
+    }
+
+    if (name != NULL && strlen(name) > 0) {
+        _glyphMapper->SetScaleArray(name);
+    } else {
+        if (mode == SCALE_BY_SCALAR) {
             _glyphMapper->SetScaleArray(vtkDataSetAttributes::SCALARS);
-#else
-            _glyphGenerator->SetRange(_dataRange);
-            _glyphGenerator->SetScaleModeToScaleByScalar();
-#endif
-        }
-            break;
-        case SCALE_BY_VECTOR_MAGNITUDE: {
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->SetRange(_vectorMagnitudeRange);
-            _glyphMapper->SetScaleModeToScaleByMagnitude();
+        } else {
             _glyphMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
-#else
-            _glyphGenerator->SetRange(_vectorMagnitudeRange);
-            _glyphGenerator->SetScaleModeToScaleByVector();
-#endif
         }
+    }
+
+    if (range != NULL) {
+        TRACE("Setting size range to: %g,%g", range[0], range[1]);
+        _glyphMapper->SetRange(range);
+    } else if (name != NULL && strlen(name) > 0) {
+        double r[2];
+        DataSet::DataAttributeType type = DataSet::POINT_DATA;
+        int comp = -1;
+
+        if (_renderer->getUseCumulativeRange()) {
+            int numComponents;
+            if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                ERROR("Field not found: %s, type: %d", name, type);
+                return;
+            } else if (mode == SCALE_BY_VECTOR_COMPONENTS && numComponents < 3) {
+                ERROR("Field %s needs 3 components but has only %d components",
+                      name, numComponents);
+                return;
+            }
+            if (mode == SCALE_BY_VECTOR_COMPONENTS) {
+                double tmpR[2];
+                _renderer->getCumulativeDataRange(tmpR, name, type, numComponents, 0);
+                r[0] = tmpR[0];
+                r[1] = tmpR[1];
+                _renderer->getCumulativeDataRange(tmpR, name, type, numComponents, 1);
+                r[0] = min2(r[0], tmpR[0]);
+                r[1] = max2(r[1], tmpR[1]);
+                _renderer->getCumulativeDataRange(tmpR, name, type, numComponents, 2);
+                r[0] = min2(r[0], tmpR[0]);
+                r[1] = max2(r[1], tmpR[1]);
+            } else {
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            }
+        } else {
+            if (mode == SCALE_BY_VECTOR_COMPONENTS) {
+                double tmpR[2];
+                _dataSet->getDataRange(tmpR, name, type, 0);
+                r[0] = tmpR[0];
+                r[1] = tmpR[1];
+                _dataSet->getDataRange(tmpR, name, type, 1);
+                r[0] = min2(r[0], tmpR[0]);
+                r[1] = max2(r[1], tmpR[1]);
+                _dataSet->getDataRange(tmpR, name, type, 2);
+                r[0] = min2(r[0], tmpR[0]);
+                r[1] = max2(r[1], tmpR[1]);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+        }
+        TRACE("Setting size range to: %g,%g", r[0], r[1]);
+        _glyphMapper->SetRange(r);
+    } else {
+        switch (mode) {
+        case SCALE_BY_SCALAR:
+            TRACE("Setting size range to: %g,%g", _dataRange[0], _dataRange[1]);
+            _glyphMapper->SetRange(_dataRange);
+            break;
+        case SCALE_BY_VECTOR_MAGNITUDE:
+            TRACE("Setting size range to: %g,%g", _vectorMagnitudeRange[0], _vectorMagnitudeRange[1]);
+            _glyphMapper->SetRange(_vectorMagnitudeRange);
             break;
         case SCALE_BY_VECTOR_COMPONENTS: {
             double sizeRange[2];
@@ -329,23 +400,204 @@ void Glyphs::setScalingMode(ScalingMode mode)
             sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[1][1]);
             sizeRange[0] = min2(sizeRange[0], _vectorComponentRange[2][0]);
             sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[2][1]);
-#ifdef HAVE_GLYPH3D_MAPPER
+            TRACE("Setting size range to: %g,%g", sizeRange[0], sizeRange[1]);
             _glyphMapper->SetRange(sizeRange);
-            _glyphMapper->SetScaleModeToScaleByVectorComponents();
-            _glyphMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
-#else
-            _glyphGenerator->SetRange(sizeRange);
-            _glyphGenerator->SetScaleModeToScaleByVectorComponents();
-#endif
         }
             break;
         case SCALING_OFF:
         default:
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->SetScaleModeToNoDataScaling();
+            ;
+        }
+    }
+
+    switch (mode) {
+    case SCALE_BY_SCALAR:
+    case SCALE_BY_VECTOR_MAGNITUDE:
+        _glyphMapper->SetScaleModeToScaleByMagnitude();
+        break;
+    case SCALE_BY_VECTOR_COMPONENTS:
+        _glyphMapper->SetScaleModeToScaleByVectorComponents();
+        break;
+    case SCALING_OFF:
+    default:
+        _glyphMapper->SetScaleModeToNoDataScaling();
+    }
+}
+
+void Glyphs::setScalingMode(ScalingMode mode)
+{
+    setScalingMode(mode, NULL, NULL);
+}
+
+void Glyphs::setColorMode(ColorMode mode,
+                          const char *name, double range[2])
+{
+    _colorMode = mode;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
+    if (_dataSet == NULL || _glyphMapper == NULL)
+        return;
+
+    if (name != NULL && strlen(name) > 0) {
+        _glyphMapper->SetScalarModeToUsePointFieldData();
+        _glyphMapper->SelectColorArray(name);
+    } else {
+        _glyphMapper->SetScalarModeToDefault();
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (name != NULL && strlen(name) > 0) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            DataSet::DataAttributeType type = DataSet::POINT_DATA;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            TRACE("Setting lut range to: %g,%g", r[0], r[1]);
+            _lut->SetRange(r);
+        }
+    }
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        _glyphMapper->ScalarVisibilityOn();
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        _glyphMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToMagnitude();
+        }
+        break;
+    case COLOR_BY_VECTOR_X:
+        _glyphMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(0);
+        }
+        break;
+    case COLOR_BY_VECTOR_Y:
+        _glyphMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(1);
+        }
+        break;
+    case COLOR_BY_VECTOR_Z:
+        _glyphMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(2);
+        }
+        break;
+    case COLOR_CONSTANT:
+    default:
+        _glyphMapper->ScalarVisibilityOff();
+        break;
+    }
+}
+
+void Glyphs::setColorMode(ColorMode mode)
+{
+    _colorMode = mode;
+    if (_dataSet == NULL)
+        return;
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    case COLOR_CONSTANT:
+    default:
+        setColorMode(mode, NULL, NULL);
+        break;
+    }
+}
+
 #else
+
+/**
+ * \brief Control how glyphs are scaled
+ */
+void Glyphs::setScalingMode(ScalingMode mode)
+{
+    _scalingMode = mode;
+    if (_glyphGenerator != NULL) {
+        switch (mode) {
+        case SCALE_BY_SCALAR:
+            _glyphGenerator->SetRange(_dataRange);
+            _glyphGenerator->SetScaleModeToScaleByScalar();
+            break;
+        case SCALE_BY_VECTOR_MAGNITUDE:
+            _glyphGenerator->SetRange(_vectorMagnitudeRange);
+            _glyphGenerator->SetScaleModeToScaleByVector();
+            break;
+        case SCALE_BY_VECTOR_COMPONENTS: {
+            double sizeRange[2];
+            sizeRange[0] = _vectorComponentRange[0][0];
+            sizeRange[1] = _vectorComponentRange[0][1];
+            sizeRange[0] = min2(sizeRange[0], _vectorComponentRange[1][0]);
+            sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[1][1]);
+            sizeRange[0] = min2(sizeRange[0], _vectorComponentRange[2][0]);
+            sizeRange[1] = max2(sizeRange[1], _vectorComponentRange[2][1]);
+            _glyphGenerator->SetRange(sizeRange);
+            _glyphGenerator->SetScaleModeToScaleByVectorComponents();
+        }
+            break;
+        case SCALING_OFF:
+        default:
             _glyphGenerator->SetScaleModeToDataScalingOff();
-#endif
         }
     }
 }
@@ -356,54 +608,33 @@ void Glyphs::setScalingMode(ScalingMode mode)
 void Glyphs::setColorMode(ColorMode mode)
 {
     _colorMode = mode;
-#ifdef HAVE_GLYPH3D_MAPPER
-    if (_glyphMapper != NULL) {
-#else
     if (_glyphGenerator != NULL) {
-#endif
         switch (mode) {
-        case COLOR_BY_VECTOR_MAGNITUDE: {
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->ScalarVisibilityOn();
-            _glyphMapper->SetScalarModeToUsePointFieldData();
-            vtkDataSet *ds = _dataSet->getVtkDataSet();
-            if (ds->GetPointData() != NULL &&
-                ds->GetPointData()->GetVectors() != NULL) {
-                _glyphMapper->SelectColorArray(ds->GetPointData()->GetVectors()->GetName());
-            }
-#else
+        case COLOR_BY_VECTOR_MAGNITUDE:
             _glyphGenerator->SetColorModeToColorByVector();
             _pdMapper->ScalarVisibilityOn();
-#endif
             if (_lut != NULL) {
                 _lut->SetVectorModeToMagnitude();
                 _lut->SetRange(_vectorMagnitudeRange);
             }
-        }
             break;
-        case COLOR_BY_SCALAR: {
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->ScalarVisibilityOn();
-            _glyphMapper->SetScalarModeToDefault();
-#else
+        case COLOR_BY_SCALAR:
             _glyphGenerator->SetColorModeToColorByScalar();
             _pdMapper->ScalarVisibilityOn();
-#endif
             if (_lut != NULL) {
                 _lut->SetRange(_dataRange);
             }
-        }
             break;
         case COLOR_CONSTANT:
-        default:
-#ifdef HAVE_GLYPH3D_MAPPER
-            _glyphMapper->ScalarVisibilityOff();
-#else
             _pdMapper->ScalarVisibilityOff();
-#endif
+            break;
+        default:
+            ERROR("Unsupported ColorMode: %d", mode);
         }
-     }
+    }
 }
+
+#endif
 
 /**
  * \brief Controls relative scaling of glyphs
@@ -424,6 +655,11 @@ void Glyphs::setScaleFactor(double scale)
 
 void Glyphs::updateRanges(Renderer *renderer)
 {
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
     if (renderer->getUseCumulativeRange()) {
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
@@ -445,8 +681,22 @@ void Glyphs::updateRanges(Renderer *renderer)
     }
 
     // Need to update color map ranges and/or active vector field
+#ifdef HAVE_GLYPH3D_MAPPER
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldName.c_str(), rangePtr);
+
+    rangePtr = _scalingFieldRange;
+    if (_scalingFieldRange[0] > _scalingFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setScalingMode(_scalingMode, _scalingFieldName.c_str(), rangePtr);
+#else
     setColorMode(_colorMode);
     setScalingMode(_scalingMode);
+#endif
 }
 
 /**
@@ -480,18 +730,51 @@ void Glyphs::setColorMap(ColorMap *cmap)
             _pdMapper->SetLookupTable(_lut);
         }
 #endif
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_CONSTANT:
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
     }
-
-    _lut->DeepCopy(cmap->getLookupTable());
 
     switch (_colorMode) {
     case COLOR_BY_VECTOR_MAGNITUDE:
-        _lut->SetRange(_vectorMagnitudeRange);
         _lut->SetVectorModeToMagnitude();
         break;
-    case COLOR_BY_SCALAR:
+    case COLOR_BY_VECTOR_X:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(0);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(1);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(2);
+        break;
     default:
-        _lut->SetRange(_dataRange);
         break;
     }
 }

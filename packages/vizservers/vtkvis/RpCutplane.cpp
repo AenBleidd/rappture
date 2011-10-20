@@ -355,6 +355,11 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
 
 void Cutplane::updateRanges(Renderer *renderer)
 {
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
     if (renderer->getUseCumulativeRange()) {
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
@@ -367,7 +372,7 @@ void Cutplane::updateRanges(Renderer *renderer)
                                              _dataSet->getActiveVectorsName(),
                                              3, i);
         }
-    } else if (_dataSet != NULL) {
+    } else {
         _dataSet->getScalarRange(_dataRange);
         _dataSet->getVectorRange(_vectorMagnitudeRange);
         for (int i = 0; i < 3; i++) {
@@ -445,7 +450,10 @@ void Cutplane::setColorMode(ColorMode mode,
 {
     _colorMode = mode;
     _colorFieldType = type;
-    _colorFieldName = name;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
     if (range == NULL) {
         _colorFieldRange[0] = DBL_MAX;
         _colorFieldRange[1] = -DBL_MAX;
@@ -475,7 +483,7 @@ void Cutplane::setColorMode(ColorMode mode,
         return;
     }
 
-    if (name != NULL) {
+    if (name != NULL && strlen(name) > 0) {
         for (int i = 0; i < 3; i++) {
             _mapper[i]->SelectColorArray(name);
         }
@@ -488,7 +496,7 @@ void Cutplane::setColorMode(ColorMode mode,
     if (_lut != NULL) {
         if (range != NULL) {
             _lut->SetRange(range);
-        } else if (name != NULL) {
+        } else if (name != NULL && strlen(name) > 0) {
             double r[2];
             int comp = -1;
             if (mode == COLOR_BY_VECTOR_X)

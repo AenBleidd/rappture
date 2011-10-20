@@ -170,7 +170,7 @@ void Molecule::updateRanges(Renderer *renderer)
 {
     VtkGraphicsObject::updateRanges(renderer);
 
-    if (_lut != NULL) {
+    if (_lut != NULL && _dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
         if (ds == NULL)
             return;

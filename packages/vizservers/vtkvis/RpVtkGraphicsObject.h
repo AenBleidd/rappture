@@ -697,6 +697,8 @@ protected:
             property->SetLineWidth(_edgeWidth);
             property->SetPointSize(_pointSize);
             property->EdgeVisibilityOff();
+            if (_dataSet != NULL)
+                _opacity = _dataSet->getOpacity();
             property->SetOpacity(_opacity);
             property->SetAmbient(.2);
             if (!_lighting)
@@ -704,6 +706,8 @@ protected:
             if (_faceCulling && _opacity == 1.0) {
                 setCulling(property, true);
             }
+            if (_dataSet != NULL)
+                setVisibility(_dataSet->getVisibility());
         }
     }
 
