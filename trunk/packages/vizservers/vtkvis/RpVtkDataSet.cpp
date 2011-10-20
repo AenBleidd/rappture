@@ -635,18 +635,25 @@ bool DataSet::getFieldInfo(const char *fieldName,
 {
     if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
-        *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
-        *type = POINT_DATA;
+        if (type != NULL)
+            *type = POINT_DATA;
+        if (numComponents != NULL)
+            *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
         return true;
     } else if (_dataSet->GetCellData() != NULL &&
                _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
-        *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
-        *type = CELL_DATA;
+        if (type != NULL)
+            *type = CELL_DATA;
+        if (numComponents != NULL)
+            *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
         return true;
     } else if (_dataSet->GetFieldData() != NULL &&
                _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
-        *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
-        *type = FIELD_DATA;
+        if (type != NULL)
+            *type = FIELD_DATA;
+        if (numComponents != NULL)
+            *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+        return true;
     }
     return false;
 }
@@ -659,7 +666,8 @@ bool DataSet::getFieldInfo(const char *fieldName,
     case POINT_DATA:
         if (_dataSet->GetPointData() != NULL &&
             _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
-            *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
+            if (numComponents != NULL)
+                *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
@@ -667,7 +675,8 @@ bool DataSet::getFieldInfo(const char *fieldName,
     case CELL_DATA:
         if (_dataSet->GetCellData() != NULL &&
             _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
-            *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
+            if (numComponents != NULL)
+                *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
@@ -675,7 +684,8 @@ bool DataSet::getFieldInfo(const char *fieldName,
     case FIELD_DATA:
         if (_dataSet->GetFieldData() != NULL &&
             _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
-            *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+            if (numComponents != NULL)
+                *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
