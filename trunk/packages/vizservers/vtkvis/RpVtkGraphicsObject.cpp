@@ -31,13 +31,16 @@ void VtkGraphicsObject::setDataSet(DataSet *dataSet,
 
 void VtkGraphicsObject::updateRanges(Renderer *renderer)
 {
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
     if (renderer->getUseCumulativeRange()) {
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
                                          1);
-    } else if (_dataSet != NULL) {
+    } else  {
         _dataSet->getScalarRange(_dataRange);
-    } else {
-        WARN("updateRanges called before setDataSet");
     }
 }

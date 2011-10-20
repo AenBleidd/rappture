@@ -1247,6 +1247,11 @@ void Streamlines::setLineTypeToRibbons(double width, double angle)
 
 void Streamlines::updateRanges(Renderer *renderer)
 {
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
     if (renderer->getUseCumulativeRange()) {
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
@@ -1259,7 +1264,7 @@ void Streamlines::updateRanges(Renderer *renderer)
                                              _dataSet->getActiveVectorsName(),
                                              3, i);
         }
-    } else if (_dataSet != NULL) {
+    } else {
         _dataSet->getScalarRange(_dataRange);
         _dataSet->getVectorRange(_vectorMagnitudeRange);
         for (int i = 0; i < 3; i++) {
@@ -1324,9 +1329,10 @@ void Streamlines::setColorMode(ColorMode mode,
 {
     if (_dataSet == NULL)
         return;
-    DataSet::DataAttributeType type;
-    int numComponents;
-    if (name != NULL && !_dataSet->getFieldInfo(name, &type, &numComponents)) {
+    DataSet::DataAttributeType type = DataSet::POINT_DATA;
+    int numComponents = 1;
+    if (name != NULL && strlen(name) > 0 &&
+        !_dataSet->getFieldInfo(name, &type, &numComponents)) {
         ERROR("Field not found: %s", name);
         return;
     }
@@ -1364,7 +1370,7 @@ void Streamlines::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         return;
     }
 
-    if (name != NULL) {
+    if (name != NULL && strlen(name) > 0) {
         _pdMapper->SelectColorArray(name);
     } else {
         _pdMapper->SetScalarModeToDefault();
@@ -1373,7 +1379,7 @@ void Streamlines::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     if (_lut != NULL) {
         if (range != NULL) {
             _lut->SetRange(range);
-        } else if (name != NULL) {
+        } else if (name != NULL && strlen(name) > 0) {
             double r[2];
             int comp = -1;
             if (mode == COLOR_BY_VECTOR_X)

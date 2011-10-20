@@ -5,36 +5,27 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#include <cfloat>
 #include <cstring>
-#include <cassert>
-#include <cmath>
 #include <typeinfo>
 
-#include <GL/gl.h>
-
-#ifdef WANT_TRACE
-#include <sys/time.h>
-#endif
-
-#include <vtkMath.h>
-#include <vtkCamera.h>
-#include <vtkLight.h>
-#include <vtkCoordinate.h>
-#include <vtkTransform.h>
+#include <vtkSmartPointer.h>
+#include <vtkDataSet.h>
 #include <vtkCharArray.h>
-#include <vtkAxisActor2D.h>
-#include <vtkCubeAxesActor.h>
 #include <vtkDataSetReader.h>
-#include <vtkDataSetMapper.h>
-#include <vtkProperty.h>
-#include <vtkProperty2D.h>
-#include <vtkPointData.h>
-#include <vtkLookupTable.h>
-#include <vtkVersion.h>
 
 #include "RpVtkRenderer.h"
-#include "RpMath.h"
+#include "RpVtkDataSet.h"
+#include "RpContour2D.h"
+#include "RpContour3D.h"
+#include "RpCutplane.h"
+#include "RpGlyphs.h"
+#include "RpHeightMap.h"
+#include "RpLIC.h"
+#include "RpMolecule.h"
+#include "RpPolyData.h"
+#include "RpPseudoColor.h"
+#include "RpStreamlines.h"
+#include "RpVolume.h"
 #include "ColorMap.h"
 #include "Trace.h"
 
@@ -575,9 +566,11 @@ bool Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
 }
 
 /**
- * \brief Controls the array used to color glyphs for the given DataSet
+ * \brief Set the color mode for the specified DataSet
  */
-void Renderer::setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode)
+void Renderer::setGlyphsColorMode(const DataSetId& id,
+                                  Glyphs::ColorMode mode,
+                                  const char *name, double range[2])
 {
     GlyphsHashmap::iterator itr;
 
@@ -595,7 +588,14 @@ void Renderer::setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode)
     }
 
     do {
+#ifdef HAVE_GLYPH3D_MAPPER
+        itr->second->setColorMode(mode, name, range);
+#else
+        if (name != NULL && strlen(name) > 0) {
+            WARN("Glyphs color mode doesn't support named fields for VTK < 5.8.0");
+        }
         itr->second->setColorMode(mode);
+#endif
     } while (doAll && ++itr != _glyphs.end());
 
     _needsRedraw = true;
@@ -604,7 +604,9 @@ void Renderer::setGlyphsColorMode(const DataSetId& id, Glyphs::ColorMode mode)
 /**
  * \brief Controls the array used to scale glyphs for the given DataSet
  */
-void Renderer::setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mode)
+void Renderer::setGlyphsScalingMode(const DataSetId& id,
+                                    Glyphs::ScalingMode mode,
+                                    const char *name, double range[2])
 {
     GlyphsHashmap::iterator itr;
 
@@ -622,7 +624,14 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id, Glyphs::ScalingMode mod
     }
 
     do {
+#ifdef HAVE_GLYPH3D_MAPPER
+        itr->second->setScalingMode(mode, name, range);
+#else
+        if (name != NULL && strlen(name) > 0) {
+            WARN("Glyphs scaling mode doesn't support named fields for VTK < 5.8.0");
+        }
         itr->second->setScalingMode(mode);
+#endif
     } while (doAll && ++itr != _glyphs.end());
 
     _renderer->ResetCameraClippingRange();

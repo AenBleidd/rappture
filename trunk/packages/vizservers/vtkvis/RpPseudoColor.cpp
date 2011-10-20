@@ -201,6 +201,11 @@ void PseudoColor::update()
 
 void PseudoColor::updateRanges(Renderer *renderer)
 {
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
     if (renderer->getUseCumulativeRange()) {
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
@@ -213,7 +218,7 @@ void PseudoColor::updateRanges(Renderer *renderer)
                                              _dataSet->getActiveVectorsName(),
                                              3, i);
         }
-    } else if (_dataSet != NULL) {
+    } else {
         _dataSet->getScalarRange(_dataRange);
         _dataSet->getVectorRange(_vectorMagnitudeRange);
         for (int i = 0; i < 3; i++) {
@@ -278,9 +283,10 @@ void PseudoColor::setColorMode(ColorMode mode,
 {
     if (_dataSet == NULL)
         return;
-    DataSet::DataAttributeType type;
-    int numComponents;
-    if (name != NULL && !_dataSet->getFieldInfo(name, &type, &numComponents)) {
+    DataSet::DataAttributeType type = DataSet::POINT_DATA;
+    int numComponents = 1;
+    if (name != NULL && strlen(name) > 0 &&
+        !_dataSet->getFieldInfo(name, &type, &numComponents)) {
         ERROR("Field not found: %s", name);
         return;
     }
@@ -318,7 +324,7 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
         return;
     }
 
-    if (name != NULL) {
+    if (name != NULL && strlen(name) > 0) {
         _dsMapper->SelectColorArray(name);
     } else {
         _dsMapper->SetScalarModeToDefault();
@@ -327,7 +333,7 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     if (_lut != NULL) {
         if (range != NULL) {
             _lut->SetRange(range);
-        } else if (name != NULL) {
+        } else if (name != NULL && strlen(name) > 0) {
             double r[2];
             int comp = -1;
             if (mode == COLOR_BY_VECTOR_X)
@@ -359,12 +365,11 @@ void PseudoColor::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
     case COLOR_BY_SCALAR:
         _dsMapper->ScalarVisibilityOn();
         break;
-    case COLOR_BY_VECTOR_MAGNITUDE: {
+    case COLOR_BY_VECTOR_MAGNITUDE:
         _dsMapper->ScalarVisibilityOn();
         if (_lut != NULL) {
             _lut->SetVectorModeToMagnitude();
         }
-    }
         break;
     case COLOR_BY_VECTOR_X:
         _dsMapper->ScalarVisibilityOn();

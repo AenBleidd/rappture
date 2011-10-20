@@ -135,6 +135,9 @@ void Volume::updateColorMap()
  */
 void Volume::setColorMap(ColorMap *cmap)
 {
+    if (cmap == NULL)
+        return;
+
     _colorMap = cmap;
 
     if (getVolume() != NULL) {

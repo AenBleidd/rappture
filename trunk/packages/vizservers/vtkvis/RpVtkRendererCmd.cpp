@@ -2160,16 +2160,26 @@ GlyphsColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
         mode = Glyphs::COLOR_BY_SCALAR;
     } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
         mode = Glyphs::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Glyphs::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Glyphs::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Glyphs::COLOR_BY_VECTOR_Z;
     } else {
         Tcl_AppendResult(interp, "bad color mode option \"", str,
-                         "\": should be one of: 'scalar', 'vmag', 'ccolor'", (char*)NULL);
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsColorMode(name, mode);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Glyphs::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setGlyphsColorMode(name, mode, fieldName);
     } else {
-        g_renderer->setGlyphsColorMode("all", mode);
+        g_renderer->setGlyphsColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -2385,11 +2395,12 @@ GlyphsScalingModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\": should be one of: 'scalar', 'vmag', 'vcomp', 'off'", (char*)NULL);
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsScalingMode(name, mode);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setGlyphsScalingMode(name, mode, fieldName);
     } else {
-        g_renderer->setGlyphsScalingMode("all", mode);
+        g_renderer->setGlyphsScalingMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -2474,7 +2485,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
     {"ccolor",    2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
-    {"colormode", 7, GlyphsColorModeOp, 3, 4, "mode ?dataSetNme?"},
+    {"colormode", 7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"gscale",    1, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
@@ -2487,7 +2498,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"pos",       1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"scale",     2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
-    {"smode",     2, GlyphsScalingModeOp, 3, 4, "mode ?dataSetNme?"},
+    {"smode",     2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
     {"visible",   1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
