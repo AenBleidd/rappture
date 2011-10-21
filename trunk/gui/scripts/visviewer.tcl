@@ -220,6 +220,7 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	    set _sid ""
             if {[llength $servers] == 0} {
                 blt::busy release $itk_component(hull)
+		Rappture::Tooltip::cue @$x,$y "Can't connect to any visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
                 return 0
             }
             # Get the next server
