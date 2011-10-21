@@ -71,15 +71,20 @@ itcl::class ::Rappture::VisViewer {
     protected method Euler2XYZ { theta phi psi }
 
     private proc CheckNameList { namelist }  {
-        set pattern {^[a-zA-Z0-9\.]+:[0-9]+(,[a-zA-Z0-9\.]+:[0-9]+)*$}
-        if { ![regexp $pattern $namelist match] } {
-            error "bad visualization server address \"$namelist\": should be host:port,host:port,..."
+        foreach host $namelist {
+            set pattern {^[a-zA-Z0-9\.]+:[0-9]}
+            if { ![regexp $pattern $host match] } {
+                error "bad visualization server address \"$host\": should be host:port,host:port,..."
+            }
         }
     }
     public proc GetServerList { tag } {
         return $_servers($tag)
     }
     public proc SetServerList { tag namelist } {
+	# Convert the comma separated list into a Tcl list.  OGRE also adds
+	# a trailing comma that we want to ignore.
+        regsub -all "," $namelist " " namelist
         CheckNameList $namelist
         set _servers($tag) $namelist
     }
@@ -156,8 +161,7 @@ itcl::body Rappture::VisViewer::destructor {} {
 #
 #   Shuffle the list of server hosts.
 #
-itcl::body Rappture::VisViewer::Shuffle { hostlist } {
-    set hosts [split $hostlist ,]
+itcl::body Rappture::VisViewer::Shuffle { hosts } {
     set randomHosts {}
     set ticks [clock clicks]
     expr {srand($ticks)}
@@ -210,7 +214,6 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     # Get the first server
     foreach {hostname port} [split [lindex $servers 0] :] break
     set servers [lrange $servers 1 end]
-    
     while {1} {
         puts stderr "connecting to $hostname:$port..."
         if { [catch {socket $hostname $port} _sid] != 0 } {
