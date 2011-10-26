@@ -2749,7 +2749,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
 	    set x [expr $x1 + [winfo rootx $itk_component(view)]]
 	    set y [expr $y2 + [winfo rooty $itk_component(view)]]
 	    puts stderr "combo x=$x y=$y"
-	    $itk_component(fieldmenu) post $x $y
+	    tk_popup $itk_component(fieldmenu) $x $y
         }
         activate {
 	    $c itemconfigure title -fill red
@@ -2766,17 +2766,3 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
