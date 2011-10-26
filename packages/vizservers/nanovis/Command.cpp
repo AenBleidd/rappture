@@ -1213,6 +1213,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
 #endif  /*__TEST_CODE__*/
+#ifdef HAVE_DX_DX_H
     } else if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
 	TRACE("Loading DX using OpenDX library...\n");
 	Rappture::Outcome context;
@@ -1221,6 +1222,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
         }
+#endif	/*HAVE_DX_DX_H*/
     } else {
         TRACE("OpenDX loading...\n");
         std::stringstream fdata;

@@ -1,4 +1,6 @@
 
+#include "nvconf.h"
+#ifdef HAVE_DX_DX_H
 #include "RpDX.h"
 #undef ERROR
 #include "dxReaderCommon.h"
@@ -117,3 +119,4 @@ load_volume_stream_odx(Rappture::Outcome &context, const char *tag,
     volPtr->location(Vector3(dx0, dy0, dz0));
     return volPtr;
 }
+#endif

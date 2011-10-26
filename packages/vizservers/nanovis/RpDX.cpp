@@ -13,6 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include "nvconf.h"
+#ifdef HAVE_DX_DX_H 
 #include "RpDX.h"
 #undef ERROR
 #include "Trace.h"
@@ -339,3 +341,4 @@ DX::interpolate(int* newAxisLen)
     return *this;
 }
 
+#endif /*HAVE_DX_DX_H*/

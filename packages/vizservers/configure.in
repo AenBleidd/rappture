@@ -225,7 +225,12 @@ elif test "${DX_INC_DIR}" = "/usr/include" ; then
 else 
   DX_INC_SPEC="-I{DX_INC_DIR}"
 fi
+
 AC_MSG_RESULT([${DX_INC_DIR}])
+save_CPPFLAGS=${CPPFLAGS}
+CPPFLAGS="$DX_INC_SPEC $CPPFLAGS"
+AC_CHECK_HEADERS(dx/dx.h)
+CPPFLAGS=${save_CPPFLAGS}
 
 DX_LIB_DIR=""
 for dir in \
@@ -254,7 +259,7 @@ AC_MSG_CHECKING([for libDXcallm library])
 if test "x${DX_LIB_DIR}" = "x" -o "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
   DX_LIB_SPEC=""
 else
-  DX_LIB_SPEC="-L${DX_LIB_DIR}"
+  DX_LIB_SPEC="-L${DX_LIB_DIR} -lDXcallm"
 fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
 
