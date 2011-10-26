@@ -28,7 +28,7 @@ CG_DIR          = @CG_DIR@
 CG_INC_SPEC     = -I$(CG_DIR)/include
 CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
 DX_INC_SPEC     = @DX_INC_SPEC@
-DX_LIB_SPEC     = @DX_LIB_SPEC@ -lDXcallm
+DX_LIB_SPEC     = @DX_LIB_SPEC@
 FF_LIB_SPEC     = @LIBS@
 FF_INC_SPEC     = @FF_INC_SPEC@
 

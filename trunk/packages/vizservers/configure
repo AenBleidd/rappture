@@ -8364,8 +8364,24 @@ elif test "${DX_INC_DIR}" = "/usr/include" ; then
 else
   DX_INC_SPEC="-I{DX_INC_DIR}"
 fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${DX_INC_DIR}" >&5
 $as_echo "${DX_INC_DIR}" >&6; }
+save_CPPFLAGS=${CPPFLAGS}
+CPPFLAGS="$DX_INC_SPEC $CPPFLAGS"
+for ac_header in dx/dx.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "dx/dx.h" "ac_cv_header_dx_dx_h" "$ac_includes_default"
+if test "x$ac_cv_header_dx_dx_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DX_DX_H 1
+_ACEOF
+
+fi
+
+done
+
+CPPFLAGS=${save_CPPFLAGS}
 
 DX_LIB_DIR=""
 for dir in \
