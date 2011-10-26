@@ -92,6 +92,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildVolumeTab {}
     private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend { title }
+    private method Combo { option }
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
     private method EventuallyReseed { numPoints } 
@@ -151,6 +152,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _scalarFields 
     private variable _fields 
     private variable _currentField ""
+    private variable _field	 ""
     private variable _numSeeds 200
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
 }
@@ -272,6 +274,13 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         ignore -highlightthickness -borderwidth  -background
     }
 
+    itk_component add fieldmenu {
+        menu $itk_component(plotarea).menu -bg black -fg white -relief flat \
+	    -tearoff no 
+    } {
+	usual
+	ignore -background -foreground -relief -tearoff
+    }
     set c $itk_component(view)
     bind $c <Configure> [itcl::code $this EventuallyResize %w %h]
     bind $c <4> [itcl::code $this Zoom in 0.25]
@@ -1036,15 +1045,30 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	array unset _vectorFields
 	set _currentField [$_first hints default]
 	$itk_component(field) choices delete 0 end
+	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
 	foreach { name title units } [$_first hints vectors] {
 	    set _vectorFields($title) $name
 	    $itk_component(field) choices insert end "$name" "$title"
+	    $itk_component(fieldmenu) add radiobutton -label "$title" \
+		-value $title -variable [itcl::scope _currentField] \
+		-selectcolor red \
+		-activebackground black \
+		-activeforeground white \
+		-font "Arial 8" \
+		-command [itcl::code $this Combo invoke]
 	    set _fields($name) [list $title $units]
 	}
 	foreach { name title units } [$_first hints scalars] {
 	    set _scalarFields($title) $name
 	    $itk_component(field) choices insert end "$name" "$title"
+	    $itk_component(fieldmenu) add radiobutton -label "$title" \
+		-value $title -variable [itcl::scope _currentField] \
+		-selectcolor red \
+		-activebackground black \
+		-activeforeground white \
+		-font "Arial 8" \
+		-command [itcl::code $this Combo invoke]
 	    set _fields($name) [list $title $units]
 	}
 	$itk_component(field) value $_currentField
@@ -1496,6 +1520,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		return
 	    }
 	    foreach dataset [CurrentDatasets -visible] {
+		puts stderr "streamlines colormode $_colorMode ${name} $dataset"
+		puts stderr "cutplane colormode $_colorMode ${name} $dataset"
 		SendCmd "streamlines colormode $_colorMode ${name} $dataset"
 		SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
@@ -2512,7 +2538,7 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
-    #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
+    puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
     set _title $title
@@ -2524,7 +2550,9 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	DrawLegend $_title
+	if { [catch {DrawLegend $_title} errs] != 0 } {
+	    puts stderr errs=$errs
+	}
     }
 }
 
@@ -2574,6 +2602,9 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { name } {
 	    $c bind colormap <Leave> [itcl::code $this LeaveLegend]
 	    $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
 	}
+	$c bind title <ButtonPress> [itcl::code $this Combo post]
+	$c bind title <Enter> [itcl::code $this Combo activate]
+	$c bind title <Leave> [itcl::code $this Combo deactivate]
 	# Reset the item coordinates according the current size of the plot.
 	$c itemconfigure title -text $title
 	if { $_limits(vmin) != "" } {
@@ -2696,3 +2727,56 @@ itcl::body Rappture::VtkStreamlinesViewer::Slice {option args} {
         }
     }
 }
+
+
+# ----------------------------------------------------------------------
+# USAGE: _dropdown post
+# USAGE: _dropdown unpost
+# USAGE: _dropdown select
+#
+# Used internally to handle the dropdown list for this combobox.  The
+# post/unpost options are invoked when the list is posted or unposted
+# to manage the relief of the controlling button.  The select option
+# is invoked whenever there is a selection from the list, to assign
+# the value back to the gauge.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
+    set c $itk_component(view) 
+    switch -- $option {
+        post {
+	    foreach { x1 y1 x2 y2 } [$c bbox title] break
+	    set x1 [expr [winfo width $itk_component(view)] - [winfo reqwidth $itk_component(fieldmenu)]]
+	    set x [expr $x1 + [winfo rootx $itk_component(view)]]
+	    set y [expr $y2 + [winfo rooty $itk_component(view)]]
+	    puts stderr "combo x=$x y=$y"
+	    $itk_component(fieldmenu) post $x $y
+        }
+        activate {
+	    $c itemconfigure title -fill red
+        }
+        deactivate {
+	    $c itemconfigure title -fill white 
+        }
+	invoke {
+	    $itk_component(field) value $_currentField
+	    AdjustSetting streamlines-field
+	}
+        default {
+            error "bad option \"$option\": should be post, unpost, select"
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
