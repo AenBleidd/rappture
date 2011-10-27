@@ -48,10 +48,11 @@ CDEBUGFLAGS     = -g -Wall
 
 LIBS = \
         -L../../../src/core -lrappture \
-        $(TCL_LIB_SPEC) -lexpat -lz -lm -lstdc++
+        $(TCL_LIB_SPEC) -lncurses -lexpat -lz -lm -lstdc++
 
 OBJS = \
         Rappture_Init.o \
+        RpCurses.o \
         RpDaemon.o \
         RpEncodeTclInterface.o \
         RpOp.o \

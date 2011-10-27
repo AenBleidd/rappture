@@ -28,6 +28,7 @@ extern Tcl_AppInitProc RpSignal_Init;
 extern Tcl_AppInitProc RpSplit_Init;
 extern Tcl_AppInitProc RpSysinfo_Init;
 extern Tcl_AppInitProc RpDaemon_Init;
+extern Tcl_AppInitProc RpCurses_Init;
 
 #ifdef notdef
 extern Tcl_AppInitProc RpLibrary_Init;
@@ -90,6 +91,9 @@ Rappture_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
     if (RpDaemon_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (RpCurses_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     return TCL_OK;
