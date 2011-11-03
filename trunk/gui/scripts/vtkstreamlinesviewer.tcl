@@ -1046,6 +1046,17 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             array set view $location
         }
 
+	if 0 {
+	    # Tell the server the name of the tool, the version, and dataset
+	    # that we are rendering.  Have to do it here because we don't know
+	    # what data objects are using the renderer until be get here.
+	    set args ""
+	    lappend args tool [$_first hints toolId]
+	    lappend args version [$_first hints toolRevision]
+	    lappend args dataset [$_first hints label]
+	    SendCmd "clientinfo $args"
+	}
+
 	foreach axis { x y z } {
 	    set label [$_first hints ${axis}label]
 	    if { $label != "" } {

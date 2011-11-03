@@ -502,19 +502,22 @@ itcl::body Rappture::Field::controls {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Field::hints {{keyword ""}} {
     foreach {key path} {
-        group   about.group
-        label   about.label
-        color   about.color
-        style   about.style
-        scale   about.scale
-        seeds   about.seeds
-        scalars about.scalars
-        vectors about.vectors
-        default about.default
-        units   units
-        updir   updir
-        camera  camera.position
-	type	about.type
+        camera          camera.position
+        color           about.color
+        default         about.default
+        group           about.group
+        label           about.label
+        scalars         about.scalars
+        scale           about.scale
+        seeds           about.seeds
+        style           about.style
+        toolId          tool.id
+        toolName        tool.name
+        toolRevision    tool.version.application.revision
+        type            about.type
+        units           units
+        updir           updir
+        vectors         about.vectors
     } {
         set str [$_field get $path]
         if {"" != $str} {
