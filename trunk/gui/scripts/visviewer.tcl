@@ -558,7 +558,8 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
 	if { [winfo exists $itk_component(plotarea).view.splash] } {
 	    return
 	}
-	label $itk_component(plotarea).view.splash -text "Please wait"
+	label $itk_component(plotarea).view.splash -text "Please wait" \
+	    -bg grey90 -relief solid -bd 2 -padx 20 -pady 20 -font "Arial 10"
 	pack $itk_component(plotarea).view.splash -expand yes -anchor c
     } else {
 	if { ![winfo exists $itk_component(plotarea).view.splash] } {
