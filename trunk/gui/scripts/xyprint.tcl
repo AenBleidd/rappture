@@ -1117,6 +1117,8 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     foreach option { -hide -position -anchor -borderwidth } {
         SetComponentOption legend $option
     }
+    set _settings($this-legend-fontfamily)  [$page.fontfamily value]
+    set _settings($this-legend-fontsize)    [$page.fontsize value]
     lappend font $_settings($this-legend-fontfamily)
     lappend font $_settings($this-legend-fontsize)
     lappend font $_settings($this-legend-fontweight)
@@ -1138,8 +1140,14 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
     foreach option { -min -max -loose -title -stepsize -subdivisions } {
         SetNamedComponentOption axis $axis $option
     }
+    set _settings($this-axis-ticks-fontfamily)  [$page.tickfontfamily value]
+    set _settings($this-axis-ticks-fontsize)    [$page.tickfontsize value]
+    set _settings($this-axis-title-fontfamily)  [$page.titlefontfamily value]
+    set _settings($this-axis-title-fontsize)    [$page.titlefontsize value]
+
     set tickfont {}
     set titlefont {}
+
     foreach attr { fontfamily fontsize fontweight fontslant } {
 	set specific $this-$axis-ticks
 	set general  $this-axis-ticks
