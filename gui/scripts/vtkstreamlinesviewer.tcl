@@ -97,6 +97,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method EventuallyResize { w h } 
     private method EventuallyReseed { numPoints } 
     private method EventuallyRotate { q } 
+    private method EventuallyRequestLegend {} 
     private method EventuallySetCutplane { axis args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
@@ -147,6 +148,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _reseedPending 0
     private variable _rotatePending 0
     private variable _cutplanePending 0
+    private variable _legendPending 0
     private variable _outline
     private variable _vectorFields 
     private variable _scalarFields 
@@ -181,6 +183,10 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     # Rotate event
     $_dispatcher register !rotate
     $_dispatcher dispatch $this !rotate "[itcl::code $this DoRotate]; list"
+
+    # Legend event
+    $_dispatcher register !legend
+    $_dispatcher dispatch $this !legend "[itcl::code $this RequestLegend]; list"
 
     # X-Cutplane event
     $_dispatcher register !xcutplane
@@ -472,13 +478,6 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::destructor {} {
     Disconnect
-    $_dispatcher cancel !rebuild
-    $_dispatcher cancel !resize
-    $_dispatcher cancel !reseed
-    $_dispatcher cancel !rotate
-    $_dispatcher cancel !xcutplane
-    $_dispatcher cancel !ycutplane
-    $_dispatcher cancel !zcutplane
     image delete $_image(plot)
     image delete $_image(download)
     catch { blt::arcball destroy $_arcball }
@@ -493,7 +492,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
     }
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
-    RequestLegend
+    EventuallyRequestLegend
 
     #SendCmd "imgflush"
 
@@ -551,6 +550,12 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallySetCutplane { axis args } {
     if { !$_cutplanePending } {
         set _cutplanePending 1
         $_dispatcher event -after 100 !${axis}cutplane
+    }
+}
+
+itcl::body Rappture::VtkStreamlinesViewer::EventuallyRequestLegend {} {
+    if { !$_legendPending } {
+        set _legendPending 1
     }
 }
 
@@ -844,6 +849,14 @@ itcl::body Rappture::VtkStreamlinesViewer::disconnect {} {
 itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     VisViewer::Disconnect
 
+    $_dispatcher cancel !rebuild
+    $_dispatcher cancel !resize
+    $_dispatcher cancel !reseed
+    $_dispatcher cancel !rotate
+    $_dispatcher cancel !xcutplane
+    $_dispatcher cancel !ycutplane
+    $_dispatcher cancel !zcutplane
+    $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
     set _outbuf ""
     array unset _datasets 
@@ -910,6 +923,9 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveImage { args } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
     }
+    if { $_legendPending } {
+	RequestLegend
+    }
 }
 
 #
@@ -974,7 +990,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
     set _buffering 1
-
     set _width $w
     set _height $h
     $_arcball resize $w $h
@@ -1084,7 +1099,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	Zoom reset
 	set _reset 0
     }
-	
     set _buffering 0;                        # Turn off buffering.
 
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -1481,7 +1495,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		foreach {dataobj comp} [split $dataset -] break
 		ChangeColormap $dataobj $comp $palette
             }
-	    RequestLegend
+	    EventuallyRequestLegend
         }
         "streamlines-opacity" {
 	    set val $_settings(streamlines-opacity)
@@ -1525,7 +1539,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		SendCmd "streamlines colormode $_colorMode ${name} $dataset"
 		SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
-	    RequestLegend
+	    EventuallyRequestLegend
         }
         default {
             error "don't know how to fix $what"
@@ -1541,6 +1555,8 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #	to be vertical when drawn.
 #
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
+    puts stderr "RequestLegend"
+    set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(legend)
