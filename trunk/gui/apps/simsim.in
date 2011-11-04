@@ -619,11 +619,22 @@ proc parseOptions {listVar returnVar} {
     set argc [llength $argv]
     for {set i 0} {$i < $argc} {incr i} {
         set opt [lindex $argv $i]
-        if {("-t" == $opt) || ("-tool" == $opt) || ("--tool" == $opt)} {
+        if { ("-t" == $opt)    ||
+             ("-tool" == $opt) ||
+             ("--tool" == $opt)   } {
             if {[expr {$i + 1}] < $argc} {
                 incr i
                 set params(--tool) [lindex $argv $i]
                 # need to check to see if file exists, if not raise error
+            } else {
+                printHelp
+            }
+        } elseif {  ("-tooldir" == $opt) ||
+                    ("--tooldir" == $opt)    } {
+            if {[expr {$i + 1}] < $argc} {
+                incr i
+                set params(--tooldir) [lindex $argv $i]
+                # need to check to see if directory exists, if not raise error
             } else {
                 printHelp
             }
@@ -704,6 +715,7 @@ proc main {argv} {
         --driver ""
         --runfile ""
         --tool "./tool.xml"
+        --tooldir ""
         oParams {}
     }
 
@@ -727,7 +739,11 @@ proc main {argv} {
     }
 
     set xmlobj [Rappture::library $params(--tool)]
-    set installdir [file dirname $params(--tool)]
+    if {$params(--tooldir) == ""} {
+        set installdir [file dirname $params(--tool)]
+    } else {
+        set installdir $params(--tooldir)
+    }
 
     # need a better way to do this,
     # maybe just take xmldiff functionality out of simsim
