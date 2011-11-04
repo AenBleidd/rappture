@@ -278,7 +278,7 @@ main(int argc, char **argv)
     Tcl_InitHashTable(&serverTable, TCL_ONE_WORD_KEYS);
 
     /* Process command line switches. */
-    while (1) {
+    for (;;) {
 	int c;
 	int option_index = 0;
 	struct option long_options[] = {
@@ -400,8 +400,8 @@ main(int argc, char **argv)
 	    int flags = fcntl(f, F_GETFD);
 	    flags |= FD_CLOEXEC;
 	    if (fcntl(f, F_SETFD, flags) < 0) {
-		ERROR("Can't set FD_CLOEXEC on socket \"%s\": %s", serverPtr->name, 
-		      strerror(errno));
+		ERROR("Can't set FD_CLOEXEC on socket \"%s\": %s", 
+			serverPtr->name, strerror(errno));
 		exit(1);
 	    }
 #endif
