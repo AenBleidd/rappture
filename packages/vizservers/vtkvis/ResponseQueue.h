@@ -42,10 +42,8 @@ public:
 
     virtual ~Response()
     {
-	if (_length > 0) {
-	    if (_allocType == DYNAMIC) {
-		free(_mesg);
-	    }
+	if ((_length > 0) && (_mesg != NULL) && (_allocType == DYNAMIC)) {
+            free(_mesg);
 	}
     }
 
