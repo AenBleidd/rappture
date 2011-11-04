@@ -27,10 +27,10 @@
 #define SERVERSFILE  "/opt/hubzero/rappture/render/lib/renderservers.tcl"
 #endif
 
-#define ERROR(...)      LogMessage(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
-#define TRACE(...)      LogMessage(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
-#define WARN(...)       LogMessage(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
-#define INFO(...)       LogMessage(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
+#define ERROR(...)      SysLog(LOG_ERR, __FILE__, __LINE__, __VA_ARGS__)
+#define TRACE(...)      SysLog(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
+#define WARN(...)       SysLog(LOG_WARNING, __FILE__, __LINE__, __VA_ARGS__)
+#define INFO(...)       SysLog(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
 
 static const char *syslogLevels[] = {
     "emergency",			/* System is unusable */
@@ -59,14 +59,14 @@ typedef struct {
 
 static Tcl_HashTable serverTable;	/* Table of render servers
 					 * representing services available to
-					 * clients.  A new instances is forked
+					 * clients.  A new instance is forked
 					 * and executed each time a new
 					 * request is accepted. */
 static int debug = FALSE;
 static pid_t serverPid;
 
-void
-LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
+static void
+SysLog(int priority, const char *path, int lineNum, const char* fmt, ...)
 {
 #define MSG_LEN (2047)
     char message[MSG_LEN+1];
@@ -82,7 +82,7 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
         s++;
     }
     length = snprintf(message, MSG_LEN, "nanoscale (%d %d) %s: %s:%d ", 
-		      serverPid, getpid(), syslogLevels[priority],  s, lineNum);
+	serverPid, getpid(), syslogLevels[priority],  s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
     if (debug) {
@@ -358,6 +358,7 @@ main(int argc, char **argv)
     for (;;) {
 	fd_set readFds;
 
+	/* Reset using the array of server file descriptors. */
 	memcpy(&readFds, &serverFds, sizeof(serverFds));
 	if (select(maxFd+1, &readFds, NULL, NULL, 0) <= 0) {
 	    ERROR("Select failed: %s", strerror(errno));
@@ -449,7 +450,7 @@ main(int argc, char **argv)
 		    exit(1);
 		}
 		if (dup2(errFd, 2) < 0) { /* Stderr */
-		    ERROR("%s: can't change to root directory for \"%s\": %s", 
+		    ERROR("%s: can't dup stderr for \"%s\": %s", 
 			  serverPtr->name, strerror(errno));
 		    exit(1);
 		}
