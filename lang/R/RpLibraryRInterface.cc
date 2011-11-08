@@ -1,6 +1,6 @@
 /*
  * ----------------------------------------------------------------------
- *  INTERFACE: Fortran Rappture Library Source
+ *  INTERFACE: R Rappture Library Source
  *
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
