@@ -8453,7 +8453,7 @@ $as_echo_n "checking for libDXcallm library... " >&6; }
 if test "x${DX_LIB_DIR}" = "x" -o "${DX_LIB_DIR}" = "/usr/lib" -o "${DX_LIB_DIR}" = "/usr/lib64"; then
   DX_LIB_SPEC=""
 else
-  DX_LIB_SPEC="-L${DX_LIB_DIR}"
+  DX_LIB_SPEC="-L${DX_LIB_DIR} -lDXcallm"
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DX_LIB_SPEC" >&5
 $as_echo "$DX_LIB_SPEC" >&6; }
@@ -8835,7 +8835,7 @@ SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanoscale/renderservers.tcl nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile pymolproxy/pymol vtkvis/Doxyfile vtkvis/Makefile start_viz.sh start_nanoscale.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanoscale/renderservers.tcl nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrutil/Makefile nanovis/vrmath/Makefile nanovis/vr3d/Makefile nanovis/imgLoaders/Makefile nanovis/transfer-function/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh start_nanoscale.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9555,7 +9555,6 @@ do
     "nanovis/imgLoaders/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/imgLoaders/Makefile" ;;
     "nanovis/transfer-function/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/transfer-function/Makefile" ;;
     "pymolproxy/Makefile") CONFIG_FILES="$CONFIG_FILES pymolproxy/Makefile" ;;
-    "pymolproxy/pymol") CONFIG_FILES="$CONFIG_FILES pymolproxy/pymol" ;;
     "vtkvis/Doxyfile") CONFIG_FILES="$CONFIG_FILES vtkvis/Doxyfile" ;;
     "vtkvis/Makefile") CONFIG_FILES="$CONFIG_FILES vtkvis/Makefile" ;;
     "start_viz.sh") CONFIG_FILES="$CONFIG_FILES start_viz.sh" ;;
