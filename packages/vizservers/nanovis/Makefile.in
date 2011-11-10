@@ -27,8 +27,6 @@ AUXSRC          = config.h define.h global.h
 CG_DIR          = @CG_DIR@
 CG_INC_SPEC     = -I$(CG_DIR)/include
 CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
-DX_INC_SPEC     = @DX_INC_SPEC@
-DX_LIB_SPEC     = @DX_LIB_SPEC@
 FF_LIB_SPEC     = @LIBS@
 FF_INC_SPEC     = @FF_INC_SPEC@
 
@@ -71,7 +69,6 @@ LD_RUN_PATH     = $(libdir):@LD_RPATH@
 
 LIBS		= \
 		$(RP_LIB_SPEC) \
-		$(DX_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
 		$(R2_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
@@ -155,7 +152,6 @@ OBJS		= \
 		RenderContext.o \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
-		RpDX.o \
 		ScreenSnapper.o \
 		Sphere.o \
 		Switch.o \
@@ -172,7 +168,6 @@ OBJS		= \
 		VolumeRenderer.o \
 		ZincBlendeVolume.o \
 		dxReader.o \
-		dxReader2.o \
 		dxReaderCommon.o \
 		nanovis.o
 
@@ -251,10 +246,6 @@ nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(VR3D_LIB)
 .cpp.o:
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
-dxReader2.o: $(srcdir)/dxReader2.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $<
-RpDX.o: $(srcdir)/RpDX.cpp
-	$(CXX) -c $(CXX_SWITCHES) $(DX_INC_SPEC) $<
 RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
 	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $<
 
@@ -350,7 +341,6 @@ Renderable.o: Renderable.cpp Renderable.h
 RenderContext.o: RenderContext.cpp RenderContext.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
-RpDX.o: RpDX.cpp RpDX.h Trace.h
 ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
 Sphere.o: Sphere.cpp Sphere.h
 Switch.o: Switch.cpp Switch.h
@@ -367,6 +357,5 @@ VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h Nv.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
-dxReader2.o: dxReader2.cpp dxReaderCommon.h RpDX.h Nv.h nanovis.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
