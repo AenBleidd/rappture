@@ -369,7 +369,6 @@ AC_OUTPUT([
    nanovis/imgLoaders/Makefile \
    nanovis/transfer-function/Makefile \
    pymolproxy/Makefile \
-   pymolproxy/pymol \
    vtkvis/Doxyfile \
    vtkvis/Makefile \
    start_viz.sh \
