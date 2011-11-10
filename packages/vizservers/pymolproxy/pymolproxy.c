@@ -99,7 +99,7 @@ static Stats stats;
 #define EXPECTTRACE	0
 #define WRITETRACE	0
 
-static int debug = TRUE;
+static int debug = FALSE;
 
 static FILE *flog;
 static FILE *scriptFile;
