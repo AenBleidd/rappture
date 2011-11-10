@@ -1,2 +1,0 @@
-#!/bin/sh
-exec @PYTHON@ @libdir@/pymol/modules/launch_pymol.py "$@"
