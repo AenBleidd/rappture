@@ -28,7 +28,7 @@ VPATH =		$(srcdir)
 
 .PHONY: all install clean distclean
 
-FILES =		pymolproxy pymolproxy2 pymol
+FILES =		pymolproxy pymolproxy2 
 PROXY_OBJS =	pymolproxy.o
 PROXY2_OBJS =	pymolproxy2.o
 LIBS =		$(TCL_LIB_SPEC) \
