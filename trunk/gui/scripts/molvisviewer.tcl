@@ -969,7 +969,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	if { $vector != "" } {
 	    set vertices [ComputeParallelepipedVertices $dataobj]
 	    SendCmd "raw -defer {verts = \[$vertices\]\n}"
-	    SendCmd "raw -defer {run \$PYMOL_PATH/rappture/box.py\n}"
+	    SendCmd "raw -defer {run \$PYMOL_SITE_PATH/rappture/box.py\n}"
 	    SendCmd "raw -defer {draw_box(verts)\n}"
 	    set _cell 1
 	}
