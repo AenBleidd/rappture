@@ -36,18 +36,18 @@ register_server vtkvis 2010 {
 register_server pymol 2019 {
     ${bindir}/pymolproxy ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
-    PYMOL_PATH ${libdir}/pymol
+    PYMOL_SITE_PATH ${libdir}/pymol
     LD_LIBRARY_PATH ${libdir}
 }
 
 #
 # Pymol server (threaded version of proxy) --
 #    Molecular layouts from PDB description.  
-#    Need PYMOL_PATH only for parallelpiped box.py location.
+#    Need PYMOL_SITE_PATH only for parallelpiped box.py location.
 #    
 register_server pymol-threaded 2020 {
     ${bindir}/pymolproxy2 ${bindir}/pymol -p -q -i -x -X 0 -Y 0
 } {
-    PYMOL_PATH ${libdir}/pymol
+    PYMOL_SITE_PATH ${libdir}/pymol
     LD_LIBRARY_PATH ${libdir}
 }
