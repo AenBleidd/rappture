@@ -24,12 +24,14 @@ itcl::class ::Rappture::VisViewer {
     set _servers(pymol)   "localhost:2020"
     set _servers(vtkvis)  "localhost:2010"
 
-    protected variable _sid ""        ;# socket connection to server
-    private common _done            ;# Used to indicate status of send.
-    private variable _buffer        ;# buffer for incoming/outgoing commands
+    protected variable _serverType "???";# Type of server.
+    protected variable _sid ""	    ;	# socket connection to server
+    private common _done            ;	# Used to indicate status of send.
+    private variable _buffer        ;	# buffer for incoming/outgoing commands
     private variable _initialized 
     private variable _isOpen 0
     private variable _afterId -1
+    private variable _icon 0
 
     # Number of milliseconds to wait before idle timeout.
     # If greater than 0, automatically disconnect from the visualization
@@ -38,9 +40,9 @@ itcl::class ::Rappture::VisViewer {
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
-    protected variable _dispatcher ""   ;# dispatcher for !events
-    protected variable _hosts ""    ;# list of hosts for server
-    protected variable _parser ""   ;# interpreter for incoming commands
+    protected variable _dispatcher "";	# dispatcher for !events
+    protected variable _hosts ""    ;	# list of hosts for server
+    protected variable _parser ""   ;	# interpreter for incoming commands
     protected variable _image
     protected variable _hostname
 
@@ -70,6 +72,8 @@ itcl::class ::Rappture::VisViewer {
     protected method Color2RGB { color }
     protected method Euler2XYZ { theta phi psi }
 
+    private method Waiting { option widget } 
+
     private proc CheckNameList { namelist }  {
         foreach host $namelist {
             set pattern {^[a-zA-Z0-9\.]+:[0-9]}
@@ -78,15 +82,25 @@ itcl::class ::Rappture::VisViewer {
             }
         }
     }
-    public proc GetServerList { tag } {
-        return $_servers($tag)
+    public proc GetServerList { type } {
+        return $_servers($type)
     }
-    public proc SetServerList { tag namelist } {
+    public proc SetServerList { type namelist } {
 	# Convert the comma separated list into a Tcl list.  OGRE also adds
 	# a trailing comma that we want to ignore.
         regsub -all "," $namelist " " namelist
         CheckNameList $namelist
-        set _servers($tag) $namelist
+        set _servers($type) $namelist
+    }
+    public proc RemoveServerFromList { type server } {
+	if { ![info exists _servers($type)] } {
+	    error "unknown server type \"$type\""
+	}
+	set i [lsearch $_servers($type) $server]
+	if { $i < 0 } {
+	    return
+	}
+	set _servers($type) [lreplace $_servers($type) $i $i]
     }
     public proc SetPymolServerList { namelist } {
         SetServerList "pymol" $namelist
@@ -113,6 +127,8 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     $_dispatcher dispatch $this !serverDown "[itcl::code $this ServerDown]; list"
     $_dispatcher register !timeout
     $_dispatcher dispatch $this !timeout "[itcl::code $this Disconnect]; list"
+
+    $_dispatcher register !waiting
 
     CheckNameList $hostlist
     set _hostlist $hostlist
@@ -205,37 +221,25 @@ itcl::body Rappture::VisViewer::ServerDown {} {
 #
 itcl::body Rappture::VisViewer::Connect { hostlist } {
     blt::busy hold $itk_component(hull) -cursor watch
-    # Can't call update because of all the pending stuff going on
-    #update
-    
-    # Shuffle the list of servers so as to pick random 
-    set servers [Shuffle $hostlist]
-    
-    # Get the first server
-    foreach {hostname port} [split [lindex $servers 0] :] break
-    set servers [lrange $servers 1 end]
-    while {1} {
-        puts stderr "connecting to $hostname:$port..."
+
+    puts stderr "server type is $_serverType"
+    foreach server [Shuffle $hostlist] {
+        puts stderr "connecting to $server..."
+	foreach {hostname port} [split $server ":"] break
         if { [catch {socket $hostname $port} _sid] != 0 } {
 	    set _sid ""
-            if {[llength $servers] == 0} {
-                blt::busy release $itk_component(hull)
-		set x [expr {[winfo rootx $itk_component(hull)]+10}]
-		set y [expr {[winfo rooty $itk_component(hull)]+10}]
-		Rappture::Tooltip::cue @$x,$y "Can't connect to any visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
-                return 0
-            }
-            # Get the next server
-            foreach {hostname port} [split [lindex $servers 0] :] break
-            set servers [lrange $servers 1 end]
-            continue
-        }
-	set _hostname $hostname:$port
+	    RemoveServerFromList $_serverType $server
+	    continue
+	}
+	set _hostname $server
         fconfigure $_sid -translation binary -encoding binary
 	
         # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
-	    error "reading from server"
+	    set _sid ""
+	    puts stderr "reading from server"
+	    RemoveServerFromList $_serverType $server
+	    continue
 	}
 	puts stderr "render server is $data"
 	# We're connected. Cancel any pending serverDown events and
@@ -249,8 +253,10 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
 	fileevent $_sid readable [itcl::code $this ReceiveHelper]
 	return 1
     }
-    #NOTREACHED
     blt::busy release $itk_component(hull)
+    set x [expr {[winfo rootx $itk_component(hull)]+10}]
+    set y [expr {[winfo rooty $itk_component(hull)]+10}]
+    Rappture::Tooltip::cue @$x,$y "Can't connect to any $_serverType visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
     return 0
 }
 
@@ -315,7 +321,7 @@ itcl::body Rappture::VisViewer::CheckConnection {} {
         $_dispatcher event -idle !rebuild
         Rappture::Tooltip::cue hide
     } else {
-        Rappture::Tooltip::cue @$x,$y "Can't connect to visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
+        Rappture::Tooltip::cue @$x,$y "Can't connect to any $_serverType visualization server.  This may be a network problem.  Wait a few moments and try resetting the view."
         return 0
     }
     return 1
@@ -410,12 +416,6 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     }
     after cancel $_afterId 
     set _afterId [after 500 [itcl::code $this SplashScreen on]]
-    if 0 {
-    if { ![CheckConnection] } {
-        puts stderr "connection is now down"
-        return 0
-    }
-    }
     return $_done($this)
 }
 
@@ -558,14 +558,46 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
 	if { [winfo exists $itk_component(plotarea).view.splash] } {
 	    return
 	}
-	label $itk_component(plotarea).view.splash -text "Please wait" \
-	    -bg grey90 -relief solid -bd 2 -padx 20 -pady 20 -font "Arial 10"
-	pack $itk_component(plotarea).view.splash -expand yes -anchor c
+	set inner [frame $itk_component(plotarea).view.splash]
+	$inner configure -relief solid -bd 2 
+	label $inner.text1 -text "Rendering..." \
+	    -font "Arial 10"
+	label $inner.text2 -text "Please wait." \
+	    -font "Arial 9"
+	label $inner.icon 
+	pack $inner -expand yes -anchor c
+	blt::table $inner \
+	    0,0 $inner.text1 -anchor w \
+	    1,0 $inner.icon 
+	Waiting start $inner.icon
     } else {
 	if { ![winfo exists $itk_component(plotarea).view.splash] } {
 	    return
 	}
+	Waiting stop $itk_component(plotarea).view.splash
 	destroy $itk_component(plotarea).view.splash
     }
 }
 
+itcl::body Rappture::VisViewer::Waiting { option widget } {
+    switch -- $option {
+        "start" {
+            $_dispatcher dispatch $this !waiting \
+                "[itcl::code $this Waiting "next" $widget] ; list"
+            set _icon 0
+            $widget configure -image [Rappture::icon bigroller${_icon}]
+            $_dispatcher event -after 100 !waiting
+        }
+        "next" {
+            incr _icon
+            if { $_icon >= 8 } {
+                set _icon 0
+            }
+            $widget configure -image [Rappture::icon bigroller${_icon}]
+            $_dispatcher event -after 100 !waiting
+        }
+        "stop" {
+            $_dispatcher cancel !waiting
+        }
+    }
+}

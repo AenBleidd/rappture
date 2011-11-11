@@ -64,6 +64,7 @@ itcl::class Rappture::VtkViewer {
     }
     public method scale {args}
 
+    protected variable _serverType "vtkvis"
     protected method Connect {}
     protected method CurrentDatasets {args}
     protected method Disconnect {}

@@ -60,6 +60,7 @@ itcl::class Rappture::HeightmapViewer {
         # do nothing
     }
     public method camera {option args}
+
     protected method Connect {}
     protected method Disconnect {}
     public method isconnected {}
@@ -113,6 +114,8 @@ itk::usual HeightmapViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
+    set _serverType "nanovis"
+
     # Draw legend event
     $_dispatcher register !legend
     $_dispatcher dispatch $this !legend \

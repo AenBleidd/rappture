@@ -40,6 +40,7 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
+
     private variable _icon 0
 
     private variable _mevent;		# info used for mouse event operations
@@ -151,6 +152,8 @@ itk::usual MolvisViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
+    set _serverType "pymol"
+
     # Register events to the dispatcher.  Base class expects !rebuild
     # event to be registered.
 
