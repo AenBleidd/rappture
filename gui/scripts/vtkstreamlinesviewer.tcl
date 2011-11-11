@@ -168,6 +168,8 @@ itk::usual VtkStreamlinesViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
+    set _serverType "vtkvis"
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"

@@ -164,6 +164,7 @@ itk::usual NanovisViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
+    set _serverType "nanovis"
 
     # Draw legend event
     $_dispatcher register !legend
