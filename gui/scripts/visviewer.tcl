@@ -559,16 +559,14 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
 	    return
 	}
 	set inner [frame $itk_component(plotarea).view.splash]
-	$inner configure -relief solid -bd 2 
-	label $inner.text1 -text "Rendering..." \
+	$inner configure -relief raised -bd 2 
+	label $inner.text1 -text "Rendering. Please Wait." \
 	    -font "Arial 10"
-	label $inner.text2 -text "Please wait." \
-	    -font "Arial 9"
 	label $inner.icon 
 	pack $inner -expand yes -anchor c
 	blt::table $inner \
 	    0,0 $inner.text1 -anchor w \
-	    1,0 $inner.icon 
+	    0,1 $inner.icon 
 	Waiting start $inner.icon
     } else {
 	if { ![winfo exists $itk_component(plotarea).view.splash] } {
@@ -586,7 +584,7 @@ itcl::body Rappture::VisViewer::Waiting { option widget } {
                 "[itcl::code $this Waiting "next" $widget] ; list"
             set _icon 0
             $widget configure -image [Rappture::icon bigroller${_icon}]
-            $_dispatcher event -after 100 !waiting
+            $_dispatcher event -after 150 !waiting
         }
         "next" {
             incr _icon
@@ -594,7 +592,7 @@ itcl::body Rappture::VisViewer::Waiting { option widget } {
                 set _icon 0
             }
             $widget configure -image [Rappture::icon bigroller${_icon}]
-            $_dispatcher event -after 100 !waiting
+            $_dispatcher event -after 150 !waiting
         }
         "stop" {
             $_dispatcher cancel !waiting
