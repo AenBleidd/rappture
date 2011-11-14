@@ -71,6 +71,8 @@ itcl::class ::Rappture::VisViewer {
     protected method Flush {}
     protected method Color2RGB { color }
     protected method Euler2XYZ { theta phi psi }
+    protected method StartWaiting {} 
+    protected method StopWaiting {} 
 
     private method Waiting { option widget } 
 
@@ -414,8 +416,6 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
         fileevent $_sid writable ""
         flush $_sid
     }
-    after cancel $_afterId 
-    set _afterId [after 500 [itcl::code $this SplashScreen on]]
     return $_done($this)
 }
 
@@ -424,8 +424,21 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 #    Read some number of bytes from the visualization server. 
 #
-itcl::body Rappture::VisViewer::ReceiveBytes { size } {
+itcl::body Rappture::VisViewer::StartWaiting {} {
+    after cancel $_afterId 
+    set _afterId [after 500 [itcl::code $this SplashScreen on]]
+}
+
+itcl::body Rappture::VisViewer::StopWaiting {} { 
     SplashScreen off
+}
+
+#
+# ReceiveBytes --
+#
+#    Read some number of bytes from the visualization server. 
+#
+itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     if { ![CheckConnection] } {
         return 0
     }
@@ -560,7 +573,7 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
 	}
 	set inner [frame $itk_component(plotarea).view.splash]
 	$inner configure -relief raised -bd 2 
-	label $inner.text1 -text "Rendering. Please Wait." \
+	label $inner.text1 -text "Rendering, please wait." \
 	    -font "Arial 10"
 	label $inner.icon 
 	pack $inner -expand yes -anchor c

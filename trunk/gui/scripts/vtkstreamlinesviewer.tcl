@@ -80,6 +80,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     protected method ReceiveLegend { colormap title vmin vmax size }
     protected method Rotate {option x y}
     protected method SendCmd {string}
+    protected method SendCmdNoWait {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
@@ -97,7 +98,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method EventuallyResize { w h } 
     private method EventuallyReseed { numPoints } 
     private method EventuallyRotate { q } 
-    private method EventuallyRequestLegend {} 
     private method EventuallySetCutplane { axis args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
@@ -494,7 +494,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
     }
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
-    EventuallyRequestLegend
+    set _legendPending 1
 
     #SendCmd "imgflush"
 
@@ -552,12 +552,6 @@ itcl::body Rappture::VtkStreamlinesViewer::EventuallySetCutplane { axis args } {
     if { !$_cutplanePending } {
         set _cutplanePending 1
         $_dispatcher event -after 100 !${axis}cutplane
-    }
-}
-
-itcl::body Rappture::VtkStreamlinesViewer::EventuallyRequestLegend {} {
-    if { !$_legendPending } {
-        set _legendPending 1
     }
 }
 
@@ -874,6 +868,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
 #
 itcl::body Rappture::VtkStreamlinesViewer::sendto { bytes } {
     SendBytes "$bytes\n"
+    StartWaiting
 }
 
 #
@@ -884,6 +879,22 @@ itcl::body Rappture::VtkStreamlinesViewer::sendto { bytes } {
 #       sent later.
 #
 itcl::body Rappture::VtkStreamlinesViewer::SendCmd {string} {
+    if { $_buffering } {
+        append _outbuf $string "\n"
+    } else {
+        SendBytes "$string\n"
+	StartWaiting
+    }
+}
+
+#
+# SendCmdNoWait
+#
+#       Send commands off to the rendering server.  If we're currently
+#       sending data objects to the server, buffer the commands to be 
+#       sent later.
+#
+itcl::body Rappture::VtkStreamlinesViewer::SendCmdNoWait {string} {
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
@@ -906,6 +917,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
+    StopWaiting
     if { $info(-type) == "image" } {
 	if 0 {
 	    set f [open "last.ppm" "w"] 
@@ -988,10 +1000,11 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	return
     }
 
+    set _buffering 1
+    set _legendPending 1
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
     set _width $w
     set _height $h
     $_arcball resize $w $h
@@ -1117,7 +1130,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    SendBytes $_outbuf;                        
+    sendto $_outbuf;                        
     blt::busy release $itk_component(hull)
     set _outbuf "";                        # Clear the buffer.                
 }
@@ -1508,7 +1521,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		foreach {dataobj comp} [split $dataset -] break
 		ChangeColormap $dataobj $comp $palette
             }
-	    EventuallyRequestLegend
+	    set _legendPending 1
         }
         "streamlines-opacity" {
 	    set val $_settings(streamlines-opacity)
@@ -1552,7 +1565,7 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 		SendCmd "streamlines colormode $_colorMode ${name} $dataset"
 		SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
-	    EventuallyRequestLegend
+	    set _legendPending 1
         }
         default {
             error "don't know how to fix $what"
@@ -1568,8 +1581,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
 #	to be vertical when drawn.
 #
 itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
-    puts stderr "RequestLegend"
-    set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(legend)
@@ -1589,7 +1600,8 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
 	foreach {dataobj comp} [split $dataset -] break
 	if { [info exists _dataset2style($dataset)] } {
-            SendCmd "legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
+            SendCmdNoWait \
+		"legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
 	    break;
         }
     }
@@ -2567,6 +2579,7 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
+    set _legendPending 0
     puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
