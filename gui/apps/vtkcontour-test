@@ -243,7 +243,7 @@ proc load_script {} {
     set file [tk_getOpenFile -title "Open Command File"]
     if {"" != $file && [catch {
             set fid [open $file r]
-            fconfigure $fid -translation binary
+            fconfigure $fid -translation binary -encoding binary
             set info [read $fid]
             close $fid
           }] == 0} {
