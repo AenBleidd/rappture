@@ -434,6 +434,19 @@ proc Rappture::bugreport::register {err} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: attachment <string>
+#
+# Low-level function used to capture information about a bug report
+# prior to calling "send", which actually sends the ticket.  We usually
+# let the user preview the information and decide whether or not to
+# send the ticket.
+# ----------------------------------------------------------------------
+proc Rappture::bugreport::attachment { string } {
+    variable details
+    set details(attachment) $string
+}
+
+# ----------------------------------------------------------------------
 # USAGE: send
 #
 # Low-level function used to send bug reports back to the hub site.
@@ -455,9 +468,18 @@ proc Rappture::bugreport::send {} {
     if {[string length $cmts] > 0} {
         set report "$cmts\n\n[string repeat = 72]\n$report"
     }
-
+    set toolFile ""
+    if { [info exists details(attachment)] } {
+	set toolFile "/tmp/tool[pid].xml"
+	set f [open $toolFile "w"]
+	puts $f $details(attachment)
+	close $f
+	unset details(attachment)
+    }
     set query [http::formatQuery \
         option com_support \
+        controller tickets \
+        upload $toolFile \
         task create \
         no_html 1 \
         report $report \
@@ -471,7 +493,6 @@ proc Rappture::bugreport::send {} {
         group $settings(group) \
         type $settings(type) \
     ]
-    
     set url [Rappture::Tool::resources -huburl]
     if { $url == "" } {
 	set url "http://hubzero.org"
@@ -491,6 +512,9 @@ proc Rappture::bugreport::send {} {
     set info $rval(body)
     http::cleanup $token
 
+    if { $toolFile != "" } {
+	file delete $toolFile
+    }
     if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
         return $match
     }
@@ -653,3 +677,4 @@ bind BugReportOnTop <ButtonPress> {
 }
 set btags [bindtags .bugreport]
 bindtags .bugreport [linsert $btags 0 BugReportOnTop]
+

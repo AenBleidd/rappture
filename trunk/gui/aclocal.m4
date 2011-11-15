@@ -1,1 +1,1 @@
-builtin(include,./tclconfig/tcl.m4)
+builtin(include,./cf/tcl.m4)
