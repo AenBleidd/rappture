@@ -140,7 +140,7 @@ destdir		= $(libdir)/$(name)/scripts
 all: tclIndex
 
 tclIndex: $(FILES)
-	$(TCLSH) $(srcdir)/../tclconfig/mkindex.tcl --srcdir $(srcdir) \
+	$(TCLSH) $(srcdir)/../cf/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
 
 install: install_scripts install_images 

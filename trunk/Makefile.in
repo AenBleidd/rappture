@@ -52,7 +52,6 @@ install:
 	done
 
 clean: 
-	$(RM) config.status config.log  *~
 	for i in $(TARGETS) ; do \
 	  $(MAKE) -C $$i clean || exit 1 ;\
 	done
