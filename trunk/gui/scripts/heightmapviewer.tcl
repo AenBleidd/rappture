@@ -71,6 +71,19 @@ itcl::class Rappture::HeightmapViewer {
     private method BuildViewTab {}
     private method BuildCameraTab {}
     private method PanCamera {}
+
+    private method AddImageControls { frame widget }
+    private method SetWaitVariable { value } {
+	set _getimage $value 
+    }
+    private method GetWaitVariable {} {
+	return $_getimage 
+    }
+    private method WaitForImage {} {
+	tkwait variable [itcl::scope _getimage]
+	return $_getimage
+    }
+
     protected method CurrentSurfaces {{what -all}}
     protected method Rebuild {}
     protected method Zoom {option}
@@ -103,6 +116,9 @@ itcl::class Rappture::HeightmapViewer {
     private variable _buffering 0
     private variable _resizePending 0
     private variable _resizeLegendPending 0
+    private variable _frame 0;		# Current frame number. 
+    private variable _getimage 0;
+    private variable _downloadPopup
 }
 
 itk::usual HeightmapViewer {
@@ -137,6 +153,10 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
+    array set _downloadPopup {
+	format image
+	image_controls ""
+    }
     # Initialize the view to some default parameters.
     array set _view {
         theta   45
@@ -481,17 +501,90 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
             }
         }
         controls {
-            # no controls for this download yet
-            return ""
+            set popup .heightmapviewerdownload
+            if {![winfo exists $popup]} {
+                # If we haven't created the popup yet, do it now
+                Rappture::Balloon $popup \
+                    -title "[Rappture::filexfer::label downloadWord] as..."
+                set inner [$popup component inner]
+                label $inner.summary -text "" -anchor w
+                pack $inner.summary -side top
+		radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
+		    -variable \
+		    ::Rappture::HeightmapViewer::_downloadPopup(format) \
+		    -font "Arial 10 " \
+		    -value image 
+		Rappture::Tooltip::for $inner.image "Save as image."
+                pack $inner.image -anchor w
+                button $inner.go -text [Rappture::filexfer::label download] \
+                    -command [lindex $args 0]
+                pack $inner.go -side bottom -pady 4
+		$inner.image select
+            } else {
+                set inner [$popup component inner]
+            }
+            set num [llength [get]]
+            set num [expr {($num == 1) ? "1 result" : "$num results"}]
+            set word [Rappture::filexfer::label downloadWord]
+            $inner.summary configure -text "$word $num in the following format:"
+            update idletasks ;		# Fix initial sizes
+            return $popup
         }
         now {
-            # Get the image data (as base64) and decode it back to binary.
-            # This is better than writing to temporary files.  When we switch
-            # to the BLT picture image it won't be necessary to decode the
-            # image data.
-            set bytes [$_image(download) data -format "jpeg -quality 100"]
-            set bytes [Rappture::encoding::decode -as b64 $bytes]
-            return [list .jpg $bytes]
+            set popup .heightmapviewerdownload
+            if { [winfo exists $popup] } {
+                $popup deactivate
+            }
+            switch -- $_downloadPopup(format) {
+                "image" {
+                    set popup .heightmapviewerimage
+                    if { ![winfo exists $popup] } {
+                        # Create the balloon popup and and the print image
+                        # dialog widget to it.
+                        Rappture::Balloon $popup -title "Save as image..." \
+			    -deactivatecommand \
+			    [itcl::code $this SetWaitVariable 0]
+                        set inner [$popup component inner]
+                        AddImageControls $inner [lindex $args 0]
+                    } else {
+                        set inner [$popup component inner]
+		    }			
+		    set _downloadPopup(image_controls) $inner
+                    update
+                    # Activate the popup and call for the output.
+                    foreach { widget toolName plotName } $args break
+		    SetWaitVariable 0
+                    $popup activate $widget left
+		    set bool [WaitForImage]
+                    $popup deactivate 
+		    if { $bool } {
+			set inner $_downloadPopup(image_controls)
+			set fmt [$inner.format translate [$inner.format value]]
+			# Get the image data (as base64) and decode it back to
+			# binary.  This is better than writing to temporary
+			# files.  When we switch to the BLT picture image it
+			# won't be necessary to decode the image data.
+			switch $fmt {
+			    "jpg" {
+				set bytes [$_image(download) data \
+					       -format "jpeg -quality 100"]
+			    }
+			    "png" {
+				set bytes [$_image(download) data -format "png"]
+			    }
+			    "gif" {
+				set bytes [$_image(download) data -format "gif"]
+			    }
+			    default {
+				return ""
+			    }
+			}
+			set bytes [Rappture::encoding::decode -as b64 $bytes]
+			return [list .$fmt $bytes]
+		    }
+		}
+            }
+	    return ""
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -1276,4 +1369,42 @@ itcl::body Rappture::HeightmapViewer::snap { w h } {
     set img [image create picture -width $w -height $h]
     $img resample $_image(plot)
     return $img
+}
+
+
+itcl::body Rappture::HeightmapViewer::AddImageControls { inner widget } {
+    label $inner.size_l -text "Size:" -font "Arial 9" 
+    set _downloadPopup(image_controls) $inner
+    set img $_image(plot)
+    set res "[image width $img]x[image height $img]"
+    Rappture::Combobox $inner.size -width 30 -editable no
+    $inner.size choices insert end \
+        "draft"  "Draft ($res)"         
+
+    label $inner.bgcolor_l -text "Background:" -font "Arial 9" 
+    Rappture::Combobox $inner.bgcolor -width 30 -editable no
+    $inner.bgcolor choices insert end \
+        "black"  "Black" \
+        "white"  "White" 
+
+    label $inner.format_l -text "Format:" -font "Arial 9" 
+    Rappture::Combobox $inner.format -width 30 -editable no
+    $inner.format choices insert end \
+        "png"  "PNG (Portable Network Graphics format)" \
+        "jpg"  "JPEG (Joint Photographic Experts Group format)" 
+
+    button $inner.go -text [Rappture::filexfer::label download] \
+        -command [itcl::code $this SetWaitVariable 1]
+
+    blt::table $inner \
+        0,0 $inner.format_l -anchor e \
+        0,1 $inner.format -anchor w -fill x  \
+        1,0 $inner.size_l -anchor e \
+        1,1 $inner.size -anchor w -fill x \
+        2,0 $inner.bgcolor_l -anchor e \
+        2,1 $inner.bgcolor -anchor w -fill x \
+        6,0 $inner.go -cspan 2 -pady 5
+    $inner.bgcolor value "Black"
+    $inner.size value "Draft ($res)"
+    $inner.format value  "PNG (Portable Network Graphics format)" 
 }

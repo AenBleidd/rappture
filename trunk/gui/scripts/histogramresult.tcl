@@ -791,12 +791,16 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
             }
         }
     }
+    set stepsize 1.0
     if { [array size _xlabels] > 0 } {
 	set command [itcl::code $this FormatLabels]
+        if { [array size _xlabels] > 20 } {
+           set stepsize 0.0
+        }
     } else {
 	set command ""
     }
-    $g axis configure x -command $command
+    $g axis configure x -command $command -stepsize $stepsize 
     $g configure -invertxy $invert
     $itk_component(legend) reset 
 }
