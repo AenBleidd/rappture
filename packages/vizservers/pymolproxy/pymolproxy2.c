@@ -93,6 +93,7 @@ static char stderrFile[200];
 static FILE *fdebug;
 static FILE *frecord;
 static int recording = FALSE;
+static int pymolIsAlive = TRUE;
 
 #define WANT_DEBUG	0
 #define READ_DEBUG	0
@@ -722,13 +723,13 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	 const char *argv[])
 {
     PymolProxy *p = clientData;
-    int i, push, defer, state, size;
+    int i, push, defer, bool, size;
     const char *model;
 
     clear_error(p);
     model = "all";
     size = 14;
-    state = TRUE;
+    bool = TRUE;
     push = defer = FALSE;
     for(i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-defer") == 0) {
@@ -743,7 +744,7 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
             if (++i < argc) {
                 size = atoi(argv[i]);
 	    }
-	} else if (Tcl_GetBoolean(interp, argv[i], &state) != TCL_OK) {
+	} else if (Tcl_GetBoolean(interp, argv[i], &bool) != TCL_OK) {
 	    return TCL_ERROR;
 	}
     }
@@ -756,7 +757,7 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     SendCmd(p, "set label_color,white,%s\nset label_size,%d,%s\n", 
 	    model, size, model);
-    if (state) {
+    if (bool) {
         SendCmd(p, "label %s,\"%%s%%s\" %% (ID,name)\n", model);
     } else {
         SendCmd(p, "label %s\n", model);
@@ -842,6 +843,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
+    p->cacheId = state;
 
     /* Does not invalidate cache? */
 
@@ -983,10 +985,14 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 
     /* Force pymol to update the current scene. */
     SendCmd(p, "refresh\n");
-#ifdef notdef
-    SendCmd(p, "png \"- %d %d %d\"\n", p->frame, p->cacheId, p->rockOffset);
-#endif
-    SendCmd(p, "png -\n");
+    /* This is a hack. We're encoding the filename to pass extra information
+     * to the MyPNGWrite routine inside of pymol. Ideally these would be
+     * parameters of a new "molvispng" command that would be passed all the
+     * way through to MyPNGWrite.
+     *
+     * The extra information is contained in the token we get from the
+     * molvisviewer client, the frame number, and rock offset. */
+    SendCmd(p, "png -:%d:%d:%d\n", p->cacheId, p->frame, p->rockOffset);
     return p->status;
 }
 
@@ -1000,11 +1006,15 @@ PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
 
     /* Force pymol to update the current scene. */
     SendCmd(p, "refresh\n");
-#ifdef notdef
-    SendCmd(p, "png \"- %d %d %d\",format=1\n", p->frame, p->cacheId, 
+    /* This is a hack. We're encoding the filename to pass extra information
+     * to the MyPNGWrite routine inside of pymol. Ideally these would be
+     * parameters of a new "molvispng" command that would be passed all the
+     * way through to MyPNGWrite.
+     *
+     * The extra information is contained in the token we get from the
+     * molvisviewer client, the frame number, and rock offset. */
+    SendCmd(p, "png -:%d:%d:%d,format=1\n", p->cacheId, p->frame, 
 	    p->rockOffset);
-#endif
-    SendCmd(p, "png -,format=1\n");
     p->flags &= ~(UPDATE_PENDING|FORCE_UPDATE);
     return p->status;
 }
@@ -1041,11 +1051,17 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	SendCmd(p, "set ray_opaque_background,on\n");
 	SendCmd(p, "bg_color %s\nrefresh\n", bgcolor);
     }
-    SendCmd(p, "ray %d,%d\n", width, height);
-#ifdef notdef
-    SendCmd(p, "png \"- print 0 0\",dpi=300\nbg_color black\n");
-#endif
-    SendCmd(p, "png -,dpi=300\nbg_color black\n");
+    /* This is a hack. We're encoding the filename to pass extra information
+     * to the MyPNGWrite routine inside of pymol. Ideally these would be
+     * parameters of a new "molvispng" command that would be passed all the
+     * way through to MyPNGWrite.  
+     *
+     * The extra information is contained in the token we get from the
+     * molvisviewer client, the frame number, and rock offset.
+     */
+    SendCmd(p, "png -:%s:0:0,width=%d,height=%d,ray=1,dpi=300\n", 
+	    token, width, height);
+    SendCmd(p, "bg_color black\n");
     return p->status;
 }
 
@@ -1890,6 +1906,7 @@ static void
 ChildHandler(int sigNum) 
 {
     ERROR("pymol (%d) died unexpectedly", stats.pid);
+    pymolIsAlive = FALSE;
     /*DoExit(1);*/
 }
 
@@ -1986,6 +2003,7 @@ InitProxy(PymolProxy *p, const char *fileName, char *const *argv)
         ERROR("can't exec `%s': %s", argv[0], strerror(errno));
 	exit(-1);
     } else {
+	pymolIsAlive = TRUE;
 	signal(SIGCHLD, ChildHandler);
     }
     stats.pid = child;
@@ -2103,12 +2121,12 @@ ClientToServer(void *clientData)
     DEBUG("Reader thread started");
 #endif
     Tcl_DStringInit(&command);
-    for (;;) {
+    while (pymolIsAlive) {
 	tvPtr = NULL;
 #if READ_DEBUG
 	DEBUG("Start I/O set");
 #endif
-	while (WaitForNextLine(&p->client, tvPtr)) {
+	while ((pymolIsAlive) && (WaitForNextLine(&p->client, tvPtr))) {
 	    size_t numBytes;
 	    const char *line;
 	    int status;
@@ -2181,7 +2199,7 @@ ServerToClient(void *clientData)
     DEBUG("Writer thread started");
 #endif
     list.headPtr = list.tailPtr = NULL;
-    for (;;) {
+    while (pymolIsAlive) {
 	while (WaitForNextLine(bp, NULL)) {
 	    Image *imgPtr;
 	    const char *line;
@@ -2199,18 +2217,14 @@ ServerToClient(void *clientData)
 #endif
 		return NULL;
 	    }
-	    if (strncmp(line, "ppm image follows: ", 16) != 0) {
+#if WRITE_DEBUG
+	    DEBUG("Writer: line found is %s\n", line);
+#endif
+	    if (strncmp(line, "image follows: ", 15) != 0) {
 		continue;
 	    }
-#ifdef notdef
 	    if (sscanf(line, "image follows: %d %s %d %d\n", &numBytes, cacheId,
 		       &frameNum, &rockOffset) != 4) {
-		ERROR("can't get # bytes from \"%s\"", line);
-		DEBUG("Leaving Writer thread");
-		return NULL;
-	    } 
-#endif
-	    if (sscanf(line, "ppm image follows: %d\n", &numBytes) != 1) {
 		ERROR("can't get # bytes from \"%s\"", line);
 		DEBUG("Leaving Writer thread");
 		return NULL;
@@ -2218,14 +2232,11 @@ ServerToClient(void *clientData)
 #if WRITE_DEBUG
 	    DEBUG("found image line \"%.*s\"", numBytes, line);
 #endif
-	    strcpy(cacheId, "0");
-	    frameNum = 0;
-	    rockOffset = 0;
-	    sprintf(header, "nv>image %d %s %d %d\n", numBytes, cacheId, frameNum, 
-		    rockOffset);
+	    sprintf(header, "nv>image %d %s %d %d\n", numBytes, cacheId, 
+		    frameNum, rockOffset);
 	    hdrLength = strlen(header);
 #if WRITE_DEBUG
-	    DEBUG("Queueing image numBytes=%d frameNum=%d, rockOffset=%d size=%d\n", numBytes, frameNum, rockOffset, numBytes + hdrLength);
+	    DEBUG("Queueing image numBytes=%d cacheId=%s, frameNum=%d, rockOffset=%d size=%d\n", numBytes, cacheId, frameNum, rockOffset, numBytes + hdrLength);
 #endif
 	    imgPtr = NewImage(&list, numBytes + hdrLength);
 	    memcpy(imgPtr->data, header, hdrLength);

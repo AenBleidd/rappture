@@ -134,7 +134,6 @@ for dir in \
   fi
 done
 
-
 AC_ARG_WITH(
     [ffmpeg],
     [AS_HELP_STRING([--with-ffmpeg[=DIR]],
@@ -164,7 +163,6 @@ fi
 
   
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
 
 AC_ARG_WITH(
     [vtk],
@@ -243,7 +241,6 @@ SC_ENABLE_SHARED
 # when building shared/static debug/optimized objects.  This information
 # is all taken from the tclConfig.sh file.
 #--------------------------------------------------------------------
-
 
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tclConfig.sh

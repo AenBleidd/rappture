@@ -40,8 +40,8 @@ itcl::class Rappture::MolvisViewer {
 
     itk_option define -device device Device ""
 
-
     private variable _icon 0
+    private variable _getimage 0
 
     private variable _mevent;		# info used for mouse event operations
     private variable _rocker;		# info used for rock operations
@@ -106,8 +106,15 @@ itcl::class Rappture::MolvisViewer {
     private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
-    private method DownloadPopup { popup command } 
-    private method EnableDownload { popup what }
+
+    private method AddImageControls { frame widget }
+    private method SetWaitVariable { value } {
+	set _getimage $value 
+    }
+    private method WaitForResponse {} {
+	tkwait variable [itcl::scope _getimage]
+	return $_getimage
+    }
 
     protected method Map {}
     protected method Pan {option x y}
@@ -115,7 +122,6 @@ itcl::class Rappture::MolvisViewer {
     protected method Rotate {option x y}
     protected method SendCmd { string }
     protected method Unmap {}
-    protected method Update { args }
     protected method Vmouse  {option b m x y}
     protected method Vmouse2 {option b m x y}
     protected method Zoom {option {factor 10}}
@@ -132,6 +138,9 @@ itcl::class Rappture::MolvisViewer {
     public method parameters {title args} { 
         # do nothing 
     }
+
+    private method UpdateState { args }
+
     public method snap { w h }
     private method Opacity {option}
     private method SphereScale {option {models "all"} }
@@ -165,7 +174,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
 
-    # Update event
+    # Update state event
     $_dispatcher register !update
     $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
 
@@ -558,12 +567,47 @@ itcl::body Rappture::MolvisViewer::download {option args} {
         coming {}
         controls {
             set popup .molvisviewerdownload
-            if { ![winfo exists .molvisviewerdownload] } {
-                set inner [DownloadPopup $popup [lindex $args 0]]
+            if {![winfo exists $popup]} {
+                # if we haven't created the popup yet, do it now
+                Rappture::Balloon $popup \
+                    -title "[Rappture::filexfer::label downloadWord] as..."
+                set inner [$popup component inner]
+                label $inner.summary -text "" -anchor w
+		radiobutton $inner.pdb \
+		    -text "PDB Protein Data Bank Format File" \
+		    -variable [itcl::scope _downloadPopup(format)] \
+		    -font "Arial 10 " \
+		    -value pdb  
+		Rappture::Tooltip::for $inner.pdb \
+		    "Save as PDB Protein Data Bank format file."
+		radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
+		    -variable [itcl::scope _downloadPopup(format)] \
+		    -font "Arial 10 " \
+		    -value image 
+		Rappture::Tooltip::for $inner.image \
+		    "Save as image."
+		set f [frame $inner.frame]
+		button $f.ok -text "Save" \
+		    -highlightthickness 0 -pady 3 -padx 3 \
+                    -command [lindex $args 0] \
+		    -compound left \
+		    -image [Rappture::icon download]
+		button $f.cancel -text "Cancel" \
+		    -highlightthickness 0 -pady 3 -padx 3 \
+		    -command [list $popup deactivate] \
+		    -compound left \
+		    -image [Rappture::icon cancel]
+		blt::table $f \
+		    0,0 $f.ok \
+		    0,1 $f.cancel 
+		blt::table $inner \
+		    0,0 $inner.pdb -anchor w \
+		    1,0 $inner.image -anchor w \
+		    2,0 $f -fill x -pady 4
+		$inner.pdb select
             } else {
                 set inner [$popup component inner]
             }
-            set _downloadPopup(image_controls) $inner.image_frame
             set num [llength [get]]
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
             set word [Rappture::filexfer::label downloadWord]
@@ -572,18 +616,40 @@ itcl::body Rappture::MolvisViewer::download {option args} {
             return $popup
         }
         now {
-
             set popup .molvisviewerdownload
-            if {[winfo exists .molvisviewerdownload]} {
+            if {[winfo exists $popup]} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
-                "image" {
-                    return [$this GetImage [lindex $args 0]]
-                }
                 "pdb" {
                     return [list .pdb $_pdbdata]
-                }
+		}
+                "image" {
+                    set popup .molvisviewerimage
+                    if { ![winfo exists $popup] } {
+                        # Create the balloon popup and and the print image
+                        # dialog widget to it.
+                        Rappture::Balloon $popup -title "Save as image..." \
+			    -deactivatecommand \
+			    [itcl::code $this SetWaitVariable 0]
+                        set inner [$popup component inner]
+			# Add image controls to the ballon popup
+                        AddImageControls $inner [lindex $args 0]
+                    } else {
+                        set inner [$popup component inner]
+		    }			
+                    update
+                    # Activate the popup and call for the output.
+                    foreach { widget toolName plotName } $args break
+		    SetWaitVariable 0
+                    $popup activate $widget left
+		    set bool [WaitForResponse]
+                    $popup deactivate 
+		    if { $bool } {
+			return [GetImage $widget]
+		    }
+		    return ""
+		}
             }
         }
         default {
@@ -687,6 +753,7 @@ itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
 #
 set count 0
 itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
+    puts stderr "ReceiveImage size=$size cacheid=$cacheid frame=$frame rock=$rock"
     global readyForNextFrame
     set readyForNextFrame 1
     set tag "$frame,$rock"
@@ -699,18 +766,14 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
     #debug "reading $size bytes from proxy\n"
     set data [ReceiveBytes $size]
     #debug "success: reading $size bytes from proxy\n"
-    if { $cacheid == "print" } {
+    if { [string match "print*" $cacheid] } {
         # $frame is the token that we sent to the proxy.
-        set _hardcopy($this-$frame) $data
+        set _hardcopy($this-$cacheid) $data
+        puts stderr "setting _hardcopy($this-$cacheid)"
     } else {
         set _imagecache($tag) $data
         #debug "CACHED: $tag,$cacheid"
         $_image(plot) configure -data $data
-	if 0 {
-	$_image(plot) write dummy.jpg -format jpeg
-        puts stderr "image width=[image width $_image(plot)] height=[image height $_image(plot)]"
-        puts stderr "screen width=$_width height=$_height"
-	}
         set _image(id) $tag
     }
 }
@@ -1032,7 +1095,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set flush 1
     } else {
         set _state(client) $state
-        Update
+        UpdateState
         set flush 0
     }
     if { $_reset } {
@@ -1130,6 +1193,7 @@ itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
 
 itcl::body Rappture::MolvisViewer::DoRotate {} {
     SendCmd "rotate $_view(a) $_view(b) $_view(c)"
+    array unset _imagecache 
     set _rotatePending 0
 }
     
@@ -1144,19 +1208,10 @@ itcl::body Rappture::MolvisViewer::EventuallyRotate { a b c } {
 }
 
 itcl::body Rappture::MolvisViewer::DoUpdate { } {
-    set scale  $_settings($this-spherescale)
-    set radius $_settings($this-stickradius) 
-    set overridescale [expr $scale * 0.8]
-    set overrideradius [expr $radius * 0.8]
-    SendCmd "spherescale -model all $overridescale"
-    SendCmd "stickradius -model all $overrideradius"
+    array unset _imagecache
     set models [array names _mlist]
-    foreach model $models {
-        if { [info exists _active($model)] } {
-            SendCmd "spherescale -model $model $scale"
-            SendCmd "stickradius -model $model $radius"
-        }
-    }
+    SphereScale $_settings($this-spherescale) $models
+    StickRadius $_settings($this-stickradius) $models
     set _updatePending 0
 }
 
@@ -1181,6 +1236,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy $y
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
+	array unset _imagecache 
         SendCmd "pan $dx $dy"
         return
     }
@@ -1195,6 +1251,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy [expr $y - $_mevent(y)]
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
+	array unset _imagecache 
         SendCmd "pan $dx $dy"
     }
     set _mevent(x) $x
@@ -1227,9 +1284,10 @@ itcl::body Rappture::MolvisViewer::Zoom {option {factor 10}} {
             SendCmd "reset"
         }
     }
+    array unset _imagecache 
 }
 
-itcl::body Rappture::MolvisViewer::Update { args } {
+itcl::body Rappture::MolvisViewer::UpdateState { args } {
     set tag "$_state(client),$_rocker(client)"
     if { $_image(id) != "$tag" } {
         if { [info exists _imagecache($tag)] } {
@@ -1268,7 +1326,7 @@ itcl::body Rappture::MolvisViewer::Rock { option } {
             set _rocker(server) $_rocker(client)
             SendCmd "rock $_rocker(client)"
         }
-        Update
+        UpdateState
     }
     if { $_rocker(on) && $option != "pause" } {
          set _rocker(afterid) [after 200 [itcl::code $this Rock step]]
@@ -1491,6 +1549,7 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
     if { $option == "update" } {
         set option $_settings($this-model)
     }
+    array unset _imagecache 
     if { $option == "sticks" } {
         set _settings($this-modelimg) [Rappture::icon lines]
     }  else {
@@ -1503,7 +1562,6 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
     # This method gets called without the user clicking on a radiobutton.
     set _settings($this-model) $option
     set _mrep $option
-
 
     foreach model [array names _mlist] {
         if { [info exists _model($model-rep)] } {
@@ -1529,6 +1587,7 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::OrthoProjection {option} {
+    array unset _imagecache
     switch -- $option {
         "orthoscopic" {
             set ortho 1
@@ -1590,6 +1649,7 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
         # nothing to do
         return
     }
+    array unset _imagecache 
     if { $cell } {
         Rappture::Tooltip::for $itk_component(ortho) \
             "Hide the cell."
@@ -1660,7 +1720,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     set $var ""
 
     set controls $_downloadPopup(image_controls) 
-    set combo $controls.size_combo
+    set combo $controls.size
     set size [$combo translate [$combo value]]
     switch -- $size {
         "standard" {
@@ -1676,7 +1736,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
             set height 400
         }
         default {
-            error "unknown image size [$inner.image_size_combo value]"
+            error "unknown image size [$combo value]"
         }
     }
     # Setup an automatic timeout procedure.
@@ -1702,7 +1762,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     } else {
         set inner [$popup component inner]
     }
-    set combo $controls.bgcolor_combo
+    set combo $controls.bgcolor
     set bgcolor [$combo translate [$combo value]]
     
     $_dispatcher event -after 60000 !pngtimeout
@@ -1727,9 +1787,9 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     update
 
     if { $_hardcopy($this-$token) != "" } {
-        set combo $controls.type_combo
-        set type [$combo translate [$combo value]]
-        switch -- $type {
+        set combo $controls.format
+        set fmt [$combo translate [$combo value]]
+        switch -- $fmt {
             "jpg" {
                 set img [image create photo -data $_hardcopy($this-$token)]
                 set bytes [$img data -format "jpeg -quality 100"]
@@ -1834,6 +1894,7 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
 # ----------------------------------------------------------------------
 
 itcl::body Rappture::MolvisViewer::Opacity { option } {
+    array unset _imagecache
     if { $option == "update" } {
         set opacity $_settings($this-opacity)
     } elseif { [string is double $option] } {
@@ -1874,6 +1935,8 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
     } else {
         error "bad option \"$option\""
     }
+    # Clear the image cache
+    array unset _imagecache
     set _settings($this-showlabels) $showlabels
     if { $models == "all" } {
         SendCmd "label -model all $showlabels"
@@ -1897,6 +1960,7 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
 # update the positions of the labels so they sit on top of each atom.
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
+    array unset _imagecache 
     set trace $_settings($this-cartoontrace)
     if { $option == "update" } {
         set trace $_settings($this-cartoontrace)
@@ -1920,98 +1984,60 @@ itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
     }
 }
 
-itcl::body Rappture::MolvisViewer::DownloadPopup { popup command } {
-    Rappture::Balloon $popup \
-        -title "[Rappture::filexfer::label downloadWord] as..."
-    set inner [$popup component inner]
-    label $inner.summary -text "" -anchor w -font "Arial 11 bold"
-    radiobutton $inner.pdb_button -text "PDB Protein Data Bank Format File" \
-        -variable [itcl::scope _downloadPopup(format)] \
-        -command [itcl::code $this EnableDownload $popup pdb] \
-        -font "Arial 10 " \
-        -value pdb  
-    Rappture::Tooltip::for $inner.pdb_button \
-        "Save as PDB Protein Data Bank format file."
-    radiobutton $inner.image_button -text "Image File" \
-        -variable [itcl::scope _downloadPopup(format)] \
-        -command [itcl::code $this EnableDownload $popup image] \
-        -font "Arial 10 " \
-        -value image 
-    Rappture::Tooltip::for $inner.image_button \
-        "Save as digital image."
-
-    set controls [frame $inner.image_frame -bd 2 -relief groove]
-    label $controls.size_label -text "Size:" \
-        -font "Arial 9" 
+itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
+    label $inner.size_l -text "Size:" -font "Arial 9" 
+    set _downloadPopup(image_controls) $inner
     set img $_image(plot)
     set res "[image width $img]x[image height $img]"
-    Rappture::Combobox $controls.size_combo -width 20 -editable no
-    $controls.size_combo choices insert end \
+    Rappture::Combobox $inner.size -width 30 -editable no
+    $inner.size choices insert end \
         "draft"  "Draft (400x400)"         \
         "standard"  "Standard (1200x1200)"          \
         "highquality"  "High Quality (2400x2400)"
 
-    label $controls.bgcolor_label -text "Background:" \
-        -font "Arial 9" 
-    Rappture::Combobox $controls.bgcolor_combo -width 20 -editable no
-    $controls.bgcolor_combo choices insert end \
+    label $inner.bgcolor_l -text "Background:" -font "Arial 9" 
+    Rappture::Combobox $inner.bgcolor -width 30 -editable no
+    $inner.bgcolor choices insert end \
         "black"  "Black" \
         "white"  "White" \
         "none"  "Transparent (PNG only)"         
 
-    label $controls.type_label -text "Type:" \
-        -font "Arial 9" 
-    Rappture::Combobox $controls.type_combo -width 20 -editable no
-    $controls.type_combo choices insert end \
-        "jpg"  "JPEG Joint Photographic Experts Group Format (*.jpg)" \
-        "png"  "PNG Portable Network Graphics Format (*.png)"         
+    label $inner.format_l -text "Format:" -font "Arial 9" 
+    Rappture::Combobox $inner.format -width 30 -editable no
+    $inner.format choices insert end \
+        "png"  "PNG (Portable Network Graphics format)" \
+        "jpg"  "JPEG (Joint Photographic Experts Group format)" \
+        "gif"  "GIF (GIF Graphics Interchange Format)"
 
-    button $inner.go -text [Rappture::filexfer::label download] \
-        -command $command
+    set f [frame $inner.frame]
+    button $f.ok -text "Save" \
+	-highlightthickness 0 -pady 3 -padx 3 \
+	-command [itcl::code $this SetWaitVariable 1] \
+	-compound left \
+	-image [Rappture::icon download
+]
+    button $f.cancel -text "Cancel" \
+	-highlightthickness 0 -pady 3 -padx 3 \
+	-command [itcl::code $this SetWaitVariable 0] \
+	-compound left \
+	-image [Rappture::icon cancel]
+    blt::table $f \
+	0,0 $f.ok  \
+	0,1 $f.cancel 
 
-    blt::table $controls \
-        1,0 $controls.size_label -anchor e \
-        1,1 $controls.size_combo -anchor w -fill x \
-        2,0 $controls.bgcolor_label -anchor e \
-        2,1 $controls.bgcolor_combo -anchor w -fill x \
-        3,0 $controls.type_label -anchor e \
-        3,1 $controls.type_combo -anchor w -fill x  
-    blt::table configure $controls r0 -height 16 
-    blt::table configure $controls -padx 4 -pady {0 6}
     blt::table $inner \
-        0,0 $inner.summary -cspan 2 \
-        1,0 $inner.pdb_button -cspan 2 -anchor w \
-        2,0 $inner.image_button -cspan 2 -rspan 2 -anchor nw -ipadx 2 -ipady 2 \
-        3,1 $controls -fill both \
-        6,0 $inner.go -cspan 2 -pady 5
-    blt::table configure $inner c0 -width 11
-    blt::table configure $inner r2 -height 11
-    #blt::table configure $inner c1 -width 8
-    raise $inner.image_button
-    $inner.pdb_button invoke
-    $controls.bgcolor_combo value "Black"
-    $controls.size_combo value "Draft (400x400)"
-    $controls.type_combo value  "PNG Portable Network Graphics Format (*.png)" 
-    return $inner
-}
-
-itcl::body Rappture::MolvisViewer::EnableDownload { popup what } {
-    set inner [$popup component inner]
-    switch -- $what {
-        "pdb" {
-            foreach w [winfo children $inner.image_frame] {
-                $w configure -state disabled
-            }
-        }
-        "image" {
-            foreach w [winfo children $inner.image_frame] {
-                $w configure -state normal
-            }
-        }
-        default {
-            error "unknown type of download"
-        }
-    }
+        0,0 $inner.format_l -anchor e \
+        0,1 $inner.format -anchor w -fill x  \
+        1,0 $inner.size_l -anchor e \
+        1,1 $inner.size -anchor w -fill x \
+        2,0 $inner.bgcolor_l -anchor e \
+        2,1 $inner.bgcolor -anchor w -fill x \
+        3,0 $f -cspan 2 -fill x
+    blt::table configure $inner r0 r1 r2 r3 -pady { 4 0 }
+    blt::table configure $inner r3 -pady { 4 4 }
+    $inner.bgcolor value "Black"
+    $inner.size value "Draft (400x400)"
+    $inner.format value  "PNG (Portable Network Graphics format)" 
 }
 
 itcl::body Rappture::MolvisViewer::snap { w h } {
@@ -2123,4 +2149,6 @@ itcl::configbody Rappture::MolvisViewer::device {
         $_dispatcher event -idle !rebuild
     }
 }
+
+
 
