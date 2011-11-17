@@ -15,6 +15,15 @@
 package require Itk
 package require BLT
 
+option add *XyResult.width 3i widgetDefault
+option add *XyResult.height 3i widgetDefault
+option add *XyResult.gridColor #d9d9d9 widgetDefault
+option add *XyResult.activeColor blue widgetDefault
+option add *XyResult.dimColor gray widgetDefault
+option add *XyResult.controlBackground gray widgetDefault
+option add *XyResult.font \
+    -*-helvetica-medium-r-normal-*-12-* widgetDefault
+
 set autocolors {
     #0000cd
     #cd0000
@@ -50,14 +59,6 @@ set autocolors {
     #551a8b
 }
 
-option add *XyResult.width 3i widgetDefault
-option add *XyResult.height 3i widgetDefault
-option add *XyResult.gridColor #d9d9d9 widgetDefault
-option add *XyResult.activeColor blue widgetDefault
-option add *XyResult.dimColor gray widgetDefault
-option add *XyResult.controlBackground gray widgetDefault
-option add *XyResult.font \
-    -*-helvetica-medium-r-normal-*-12-* widgetDefault
 option add *XyResult.autoColors $autocolors widgetDefault
 option add *XyResult*Balloon*Entry.background white widgetDefault
 
@@ -96,13 +97,13 @@ itcl::class Rappture::XyResult {
     protected method LeaveMarker { g name }
 
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _dlist ""     ;# list of data object objects
-    private variable _dataobj2color  ;# maps data object => plotting color
-    private variable _dataobj2width  ;# maps data object => line width
-    private variable _dataobj2dashes ;# maps data object => BLT -dashes list
-    private variable _dataobj2raise  ;# maps data object => raise flag 0/1
-    private variable _dataobj2desc   ;# maps data object => description of data
-    private variable _elem2dataobj   ;# maps graph element => data object
+    private variable _dlist ""     ;# list of dataobj objects
+    private variable _dataobj2color  ;# maps dataobj => plotting color
+    private variable _dataobj2width  ;# maps dataobj => line width
+    private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
+    private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
+    private variable _dataobj2desc   ;# maps dataobj => description of data
+    private variable _elem2dataobj   ;# maps graph element => dataobj
     private variable _label2axis   ;# maps axis label => axis ID
     private variable _limits       ;# axis limits:  x-min, x-max, etc.
     private variable _autoColorI 0 ;# index for next "-color auto"
@@ -169,7 +170,6 @@ itcl::body Rappture::XyResult::constructor {args} {
         -symbol square -pixels 3 -linewidth 2 \
         -outline black -fill red -color black
 
-    #
     # Add bindings so you can mouse over points to see values:
     #
     $itk_component(plot) element bind all <Enter> \
@@ -292,16 +292,16 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     if {"scatter" == $params(-type)} {
         set params(-width) 0
     }
-
     # if the color is "auto", then select a color from -autocolors
-    if {$params(-color) == "auto" || $params(-color) == "autoreset"} {
+    if { $params(-color) == "auto" || $params(-color) == "autoreset" } {
         if {$params(-color) == "autoreset"} {
             set _autoColorI 0
         }
-        set color [lindex $itk_option(-autocolors) $_autoColorI]
-        if {"" == $color} { set color black }
+	set color [lindex $itk_option(-autocolors) $_autoColorI]
+        if { "" == $color} { 
+	    set color black 
+	}
         set params(-color) $color
-
         # set up for next auto color
         if {[incr _autoColorI] >= [llength $itk_option(-autocolors)]} {
             set _autoColorI 0
@@ -319,7 +319,6 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
     if {$params(-brightness) != 0} {
         set params(-color) [Rappture::color::brightness \
             $params(-color) $params(-brightness)]
-
         set bg [$itk_component(plot) cget -plotbackground]
         foreach {h s v} [Rappture::color::RGBtoHSV $bg] break
         if {$v > 0.5} {
@@ -358,7 +357,7 @@ itcl::body Rappture::XyResult::get {} {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
 	    lappend top $obj
 	} else {
-	    lappend bottom $obj
+	    lappend bottom $obj 
 	}
     }
     set _dlist [concat $bottom $top]
@@ -368,27 +367,27 @@ itcl::body Rappture::XyResult::get {} {
 # ----------------------------------------------------------------------
 # USAGE: delete ?<dataobj1> <dataobj2> ...?
 #
-# Clients use this to delete a data object from the plot.  If no data objects
-# are specified, then all data objects are deleted.
+# Clients use this to delete a dataobj from the plot.  If no dataobjs
+# are specified, then all dataobjs are deleted.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::delete {args} {
     if {[llength $args] == 0} {
         set args $_dlist
     }
 
-    # delete all specified data objects
+    # delete all specified dataobjs
     set changed 0
     foreach dataobj $args {
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
             set _dlist [lreplace $_dlist $pos $pos]
-            catch {unset _dataobj2color($dataobj)}
-            catch {unset _dataobj2width($dataobj)}
-            catch {unset _dataobj2dashes($dataobj)}
-            catch {unset _dataobj2raise($dataobj)}
+            array unset _dataobj2color  $dataobj
+            array unset _dataobj2width  $dataobj
+            array unset _dataobj2dashes $dataobj
+            array unset _dataobj2raise  $dataobj
             foreach elem [array names _elem2dataobj] {
                 if {$_elem2dataobj($elem) == $dataobj} {
-                    unset _elem2dataobj($elem)
+                    array unset _elem2dataobj $elem
                 }
             }
             set changed 1
@@ -411,8 +410,8 @@ itcl::body Rappture::XyResult::delete {args} {
 #
 # Sets the default limits for the overall plot according to the
 # limits of the data for all of the given <dataobj> objects.  This
-# accounts for all data objects--even those not showing on the screen.
-# Because of this, the limits are appropriate for all data objects as
+# accounts for all dataobjs--even those not showing on the screen.
+# Because of this, the limits are appropriate for all dataobjs as
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::scale {args} {
@@ -430,15 +429,22 @@ itcl::body Rappture::XyResult::scale {args} {
 
     catch {unset _limits}
     foreach dataobj $args {
-        # find the axes for this data object (e.g., {x y2})
+        # find the axes for this dataobj (e.g., {x y2})
         foreach {map(x) map(y)} [GetAxes $dataobj] break
-
         foreach axis {x y} {
             # get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
                 foreach {min max} [$dataobj limits $axis$type] break
+		set amin [$dataobj hints ${axis}min]
+		set amax [$dataobj hints ${axis}max]
+		if { $amin != "" } {
+		    set min $amin
+		}
+		if { $amax != "" } {
+		    set max $amax
+		}
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -453,7 +459,6 @@ itcl::body Rappture::XyResult::scale {args} {
                     }
                 }
             }
-
             if {[$dataobj hints ${axis}scale] == "log"} {
                 Axis scale $map($axis) log
             }
@@ -496,7 +501,7 @@ itcl::body Rappture::XyResult::download {option args} {
                 pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
-                pack $inner.go -pady 4
+                pack $inner.go -side bottom -pady 4
             } else {
                 set inner [$popup component inner]
             }
@@ -674,13 +679,12 @@ itcl::body Rappture::XyResult::Rebuild {} {
     }
 
     #
-    # Plot all of the data objects.
+    # Plot all of the dataobjs.
     #
     set count 0
     foreach dataobj $_dlist {
         set label [$dataobj hints label]
         foreach {mapx mapy} [GetAxes $dataobj] break
-
         foreach comp [$dataobj components] {
             set xv [$dataobj mesh $comp]
             set yv [$dataobj values $comp]
@@ -693,7 +697,6 @@ itcl::body Rappture::XyResult::Rebuild {} {
                     set color black
                 }
             }
-
             if {[info exists _dataobj2width($dataobj)]} {
                 set lwidth $_dataobj2width($dataobj)
             } else {
@@ -1520,6 +1523,7 @@ itcl::body Rappture::XyResult::GetTextMarkerOptions {style} {
 # x-axis name (x, x2, x3, etc.), and y is the y-axis name.
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::GetAxes {dataobj} {
+    # rebuild if needed, so we know about the axes
     if 0 {
 	# Don't do this. Given dataobj may be deleted in the rebuild
 

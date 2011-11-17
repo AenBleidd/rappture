@@ -290,6 +290,9 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
     CopyOptions "configure" $orig $_clone
     # Axis component
     foreach axis [$orig axis names] {
+	if { $axis == "z" } {
+	    continue
+	}
         if { [$orig axis cget $axis -hide] } {
             continue
         }
@@ -378,6 +381,9 @@ itcl::body Rappture::XyPrint::InitClone {} {
     set _settings($this-axis-title-fontweight) normal
     set _settings($this-axis-title-fontslant)  roman
     foreach axis [$_clone axis names] {
+	if { $axis == "z" } {
+	    continue
+	}
         if { [$_clone axis cget $axis -hide] } {
             continue
         }
@@ -397,13 +403,27 @@ itcl::body Rappture::XyPrint::InitClone {} {
             -tickfont $tickfont \
             -titlefont $titlefont
     }
+    set count 0
     foreach elem [$_clone element names] {
         if { [$_clone element type $elem] == "bar" } {
             continue
         }
+	incr count
         if { [$_clone element cget $elem -linewidth] > 1 } {
             $_clone element configure $elem -linewidth 1 -pixels 3 
         }
+    }
+    if { $count == 0 } {
+	# There are no "line" elements in the graph. 
+	# Remove the symbol and dashes controls.
+	set page $itk_component(legend_page)
+	# May have already been forgotten.
+	catch { 
+	    blt::table forget $page.symbol_l
+	    blt::table forget $page.symbol
+	    blt::table forget $page.dashes_l
+	    blt::table forget $page.dashes 
+	}
     }
 }
 
