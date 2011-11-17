@@ -598,9 +598,10 @@ itcl::body Rappture::MolvisViewer::download {option args} {
 		    0,0 $f.ok \
 		    0,1 $f.cancel 
 		blt::table $inner \
-		    0,0 $inner.pdb -anchor w \
-		    1,0 $inner.image -anchor w \
-		    2,0 $f -fill x -pady 4
+		    0,0 $inner.summary -anchor w \
+		    1,0 $inner.pdb -anchor w \
+		    2,0 $inner.image -anchor w \
+		    3,0 $f -fill x -pady 4
 		$inner.pdb select
             } else {
                 set inner [$popup component inner]
