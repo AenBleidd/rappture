@@ -42,7 +42,6 @@ itcl::class Rappture::MolvisViewer {
 
     private variable _icon 0
     private variable _getimage 0
-
     private variable _mevent;		# info used for mouse event operations
     private variable _rocker;		# info used for rock operations
     private variable _dlist "";		# list of dataobj objects
@@ -106,7 +105,6 @@ itcl::class Rappture::MolvisViewer {
     private method GetImage { widget }
     private method ReceiveImage { size cacheid frame rock }
     private method WaitIcon { option widget }
-
     private method AddImageControls { frame widget }
     private method SetWaitVariable { value } {
 	set _getimage $value 
@@ -115,7 +113,6 @@ itcl::class Rappture::MolvisViewer {
 	tkwait variable [itcl::scope _getimage]
 	return $_getimage
     }
-
     protected method Map {}
     protected method Pan {option x y}
     protected method Rebuild { }
@@ -753,7 +750,6 @@ itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
 #
 set count 0
 itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
-    puts stderr "ReceiveImage size=$size cacheid=$cacheid frame=$frame rock=$rock"
     global readyForNextFrame
     set readyForNextFrame 1
     set tag "$frame,$rock"
@@ -777,7 +773,6 @@ itcl::body Rappture::MolvisViewer::ReceiveImage { size cacheid frame rock } {
         set _image(id) $tag
     }
 }
-
 
 itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
     set fg [option get $itk_component(hull) font Font]
@@ -1742,7 +1737,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     # Setup an automatic timeout procedure.
     $_dispatcher dispatch $this !pngtimeout "set $var {} ; list"
     
-    set popup .molvisviewerprint
+    set popup .molvisviewerimagedownload
     if { ![winfo exists $popup] } {
         Rappture::Balloon $popup -title "Generating file..."
         set inner [$popup component inner]
@@ -2135,7 +2130,6 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::MolvisViewer::device {
     if {$itk_option(-device) != "" } {
-
         if {![Rappture::library isvalid $itk_option(-device)]} {
             error "bad value \"$itk_option(-device)\": should be Rappture::library object"
         }
@@ -2149,6 +2143,4 @@ itcl::configbody Rappture::MolvisViewer::device {
         $_dispatcher event -idle !rebuild
     }
 }
-
-
 
