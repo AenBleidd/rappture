@@ -46,7 +46,6 @@ RM		= rm -f
 CDEBUGFLAGS     = -g -Wall
 
 LIBS		= \
-		-L../../src/core -lrappture \
 		-L$(libdir) $(TCL_LIB_SPEC) $(TK_LIB_SPEC) $(TK_XLIBSW) -lm
 
 OBJS 		= \
