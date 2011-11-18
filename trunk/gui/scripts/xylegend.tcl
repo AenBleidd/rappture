@@ -60,31 +60,36 @@ itcl::class ::Rappture::XyLegend {
     }
     private variable _lastColorIndex ""
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _graph        ""
-    private variable _tree        ""
-    private variable _diff        "";        # Polygon marker used for difference.
-    private variable _rename        "";        # Node selected to be renamed.
+    private variable _graph	""
+    private variable _tree	""
+    private variable _diff	"";	# Polygon marker used for difference.
+    private variable _rename	"";	# Node selected to be renamed.
     private variable _diffelements
+    private variable _unmapHidden 0
 
     constructor {graph args} {}
     destructor {}
 
     public method reset {} 
-    public method Average {} 
-    public method Recolor {} 
-    public method Check {}
-    public method Delete { args } 
-    public method Difference {} 
-    public method Editor { option args }
-    public method Hide { args } 
-    public method Lower { args } 
-    public method Raise { args } 
-    public method Rename {} 
-    public method Show { args } 
-    public method Toggle { args } 
-    private method GetData { elem what } 
+
     private method Add { elem label {flags ""}} 
+    private method Average {} 
+    private method BuildPopup { popup } 
+    private method Check { menu }
+    private method Delete { args } 
+    private method Difference {} 
+    private method Editor { option args }
+    private method GetData { elem what } 
+    private method Hide { args } 
+    private method Lower { args } 
+    private method Raise { args } 
+    private method PopupMenu { x y }
+    private method Recolor {} 
+    private method Rename {} 
     private method SelectAll {}
+    private method Show { args } 
+    private method Toggle { args } 
+    private method UnmapHidden {} 
 }
                                                                                 
 itk::usual XyLegend {
