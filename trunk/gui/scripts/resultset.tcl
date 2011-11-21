@@ -1518,8 +1518,8 @@ itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
             if {[string is integer $which]} {
                 if {$col == "xmlobj"} {
                     set val "#[expr {$which+1}]"
-                } else {
-                    set val [lindex [$_results get -format $col $which] 0]
+                } else { 
+		    set val [lindex [$_results get -format [list $col] $which] 0]
                 }
                 if {[info exists label2val($val)]} {
                     return [list $val $label2val($val)]
@@ -1611,7 +1611,7 @@ itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
             set desc ""
             foreach col $_cntlInfo($this-all) {
                 set quantity $_cntlInfo($this-$col-label)
-                set val [lindex [$_results get -format $col $index] 0]
+                set val [lindex [$_results get -format [list $col] $index] 0]
                 if {$col == "xmlobj"} {
                     set num [lindex [$_results find -format xmlobj $val] 0]
                     set val "#[expr {$num+1}]"

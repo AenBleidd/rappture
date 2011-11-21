@@ -75,7 +75,7 @@ itcl::class ::Rappture::XyLegend {
     private method Add { elem label {flags ""}} 
     private method Average {} 
     private method BuildPopup { popup } 
-    private method Check { menu }
+    private method Check {}
     private method Delete { args } 
     private method Difference {} 
     private method Editor { option args }
