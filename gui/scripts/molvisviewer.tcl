@@ -1198,7 +1198,7 @@ itcl::body Rappture::MolvisViewer::EventuallyRotate { a b c } {
     set _view(b) $b
     set _view(c) $c 
     if { !$_rotatePending } {
-        $_dispatcher event -after 50 !rotate
+        $_dispatcher event -after 100 !rotate
         set _rotatePending 1
     }
 }
