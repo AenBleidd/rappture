@@ -1214,6 +1214,10 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 #endif  /*__TEST_CODE__*/
     } else {
+	if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
+	    bytes += 5;
+	    nBytes -= 5;
+        }
         TRACE("DX loading...\n");
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
