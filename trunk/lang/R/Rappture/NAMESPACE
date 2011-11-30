@@ -1,0 +1,15 @@
+useDynLib(Rappture)
+
+export( rp_lib,
+        rp_lib_get_string,
+        rp_lib_get_double,
+        rp_lib_get_integer,
+        rp_lib_get_boolean,
+        rp_lib_get_file,
+        rp_lib_put_string,
+        rp_lib_put_double,
+        rp_lib_put_file,
+        rp_lib_result,
+        rp_units_convert_double,
+        rp_units_convert_string )
+ 
