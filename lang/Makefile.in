@@ -19,8 +19,9 @@ PERL            = @PERL@
 TCLSH           = @TCLSH@
 PYTHON          = @PYTHON_DISTUTILS@
 MEX             = @MEX@
-OCTAVE		= @OCTAVE_VERSION@
-JAVAC		= @JAVAC@
+OCTAVE          = @OCTAVE_VERSION@
+JAVAC           = @JAVAC@
+R               = @R@
 
 # Rappture requires it. We always build a Tcl language API.
 LANGS = tcl
@@ -43,8 +44,11 @@ endif
 ifneq ($(JAVAC),)
   LANGS += java
 endif
+ifneq ($(R),)
+  LANGS += R
+endif
 
-.PHONY:	tcl octave matlab perl python ruby java
+.PHONY:	tcl octave matlab perl python ruby java R
 
 all:
 	for i in $(LANGS) ; do \

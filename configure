@@ -667,6 +667,7 @@ AWK
 RUBY_VERSION
 SED
 RUBY
+R
 JAVAH
 JAVAC
 JAVA
@@ -786,6 +787,7 @@ with_mkoctfile2
 with_perl
 with_python
 with_java
+with_R
 with_ruby
 enable_shared
 enable_symbols
@@ -1440,6 +1442,7 @@ Optional Packages:
   --with-perl=DIR         location of perl [default=yes]
   --with-python=DIR       location of python [default=yes]
   --with-java=DIR         location of java [default=yes]
+  --with-R=DIR            location of R interpreter [default=yes]
   --with-ruby=DIR         location of ruby [default=yes]
 
 Some influential environment variables:
@@ -7225,7 +7228,6 @@ for dir in \
 done
 
 
-
 # Check whether --with-ffmpeg was given.
 if test "${with_ffmpeg+set}" = set; then :
   withval=$with_ffmpeg;
@@ -7338,7 +7340,6 @@ fi
 
 
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
-
 
 
 # Check whether --with-vtk was given.
@@ -8545,6 +8546,105 @@ if test "x${JAVA}" != "x" ; then
 fi
 
 
+
+# Check whether --with-R was given.
+if test "${with_R+set}" = set; then :
+  withval=$with_R;
+else
+  with_R=yes
+fi
+
+
+R=""
+if test "$with_R" != "no" ; then
+  if test "$with_R" = "yes" ; then
+    # Extract the first word of "R", so it can be a program name with args.
+set dummy R; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_R+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $R in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_R="$R" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_R="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+R=$ac_cv_path_R
+if test -n "$R"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $R" >&5
+$as_echo "$R" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  else
+    # Extract the first word of "R", so it can be a program name with args.
+set dummy R; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_R+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $R in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_R="$R" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="${with_R}/bin:${with_R}"
+for as_dir in $as_dummy
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_R="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+R=$ac_cv_path_R
+if test -n "$R"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $R" >&5
+$as_echo "$R" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  fi
+fi
+
+
+
 RUBY=""
 RUBY_DEV_PKG="no"
 
@@ -8999,7 +9099,6 @@ $as_echo "static" >&6; }
 # when building shared/static debug/optimized objects.  This information
 # is all taken from the tclConfig.sh file.
 #--------------------------------------------------------------------
-
 
 if test -f "${exec_prefix}/lib/tclConfig.sh" ; then
   . ${exec_prefix}/lib/tclConfig.sh
@@ -9697,13 +9796,14 @@ MAKE=${make_command}
 
 
 
+
 ac_configure_args="--disable-threads --enable-shared"
 
 
 subdirs="$subdirs packages/optimizer/src"
 
 
-ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile src/objects/RpHash.h gui/Makefile gui/apps/Makefile gui/apps/about gui/apps/encodedata gui/apps/rappture gui/apps/rappture-csh.env gui/apps/rappture.env gui/apps/rappture.use gui/apps/rerun gui/apps/simsim gui/apps/xmldiff gui/pkgIndex.tcl gui/scripts/Makefile gui/src/Makefile builder/Makefile builder/pkgIndex.tcl builder/scripts/Makefile tester/Makefile tester/pkgIndex.tcl tester/scripts/Makefile lang/Makefile lang/java/Makefile lang/java/rappture/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/octave/octave2/Makefile lang/octave/octave3/Makefile lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile lib/Makefile examples/3D/Makefile examples/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/java/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/matlab/compiled/Makefile examples/app-fermi/matlab/uncompiled/Makefile examples/app-fermi/octave/octave2/Makefile examples/app-fermi/octave/octave3/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/perl/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/flow/Makefile examples/flow/demo1/Makefile examples/flow/demo2/Makefile examples/flow/demo3/Makefile examples/graph/Makefile examples/objects/Makefile examples/objects/axis/Makefile examples/objects/contour/Makefile examples/objects/curve/Makefile examples/objects/dxWriter/Makefile examples/objects/floatBuffer/Makefile examples/objects/histogram/Makefile examples/objects/library/Makefile examples/objects/number/Makefile examples/objects/path/Makefile examples/objects/plot/Makefile examples/objects/scatter/Makefile examples/objects/string/Makefile examples/objects/tree/Makefile examples/objects/xmlparser/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/histogram/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/integer2/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/loadrun/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/number2/Makefile examples/zoo/parallelepiped/Makefile examples/zoo/periodicelement/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile examples/zoo/unirect2d/Makefile oldtest/Makefile oldtest/src/Makefile"
+ac_config_files="$ac_config_files Makefile packages/Makefile src/Makefile src/core/Makefile src/core2/Makefile src/objects/Makefile src/objects/RpHash.h gui/Makefile gui/apps/Makefile gui/apps/about gui/apps/encodedata gui/apps/rappture gui/apps/rappture-csh.env gui/apps/rappture.env gui/apps/rappture.use gui/apps/rerun gui/apps/simsim gui/apps/xmldiff gui/pkgIndex.tcl gui/scripts/Makefile gui/src/Makefile builder/Makefile builder/pkgIndex.tcl builder/scripts/Makefile tester/Makefile tester/pkgIndex.tcl tester/scripts/Makefile lang/Makefile lang/java/Makefile lang/java/rappture/Makefile lang/perl/Makefile lang/perl/Makefile.PL lang/python/Makefile lang/python/setup.py lang/matlab/Makefile lang/octave/Makefile lang/octave/octave2/Makefile lang/octave/octave3/Makefile lang/R/Makefile lang/ruby/Makefile lang/ruby/build.rb lang/tcl/Makefile lang/tcl/pkgIndex.tcl lang/tcl/src/Makefile lang/tcl/scripts/Makefile lang/tcl/tests/Makefile lib/Makefile examples/3D/Makefile examples/Makefile examples/app-fermi/2.0/Makefile examples/app-fermi/Makefile examples/app-fermi/cee/Makefile examples/app-fermi/fortran/Makefile examples/app-fermi/java/Makefile examples/app-fermi/matlab/Makefile examples/app-fermi/matlab/compiled/Makefile examples/app-fermi/matlab/uncompiled/Makefile examples/app-fermi/octave/octave2/Makefile examples/app-fermi/octave/octave3/Makefile examples/app-fermi/octave/Makefile examples/app-fermi/perl/Makefile examples/app-fermi/python/Makefile examples/app-fermi/ruby/Makefile examples/app-fermi/tcl/Makefile examples/app-fermi/wrapper/Makefile examples/app-fermi/wrapper/cee/Makefile examples/app-fermi/wrapper/perl/Makefile examples/app-fermi/wrapper/python/Makefile examples/app-fermi/wrapper/tcl/Makefile examples/app-fermi/R/Makefile examples/c-example/Makefile examples/canvas/Makefile examples/demo.bash examples/flow/Makefile examples/flow/demo1/Makefile examples/flow/demo2/Makefile examples/flow/demo3/Makefile examples/graph/Makefile examples/objects/Makefile examples/objects/axis/Makefile examples/objects/contour/Makefile examples/objects/curve/Makefile examples/objects/dxWriter/Makefile examples/objects/floatBuffer/Makefile examples/objects/histogram/Makefile examples/objects/library/Makefile examples/objects/number/Makefile examples/objects/path/Makefile examples/objects/plot/Makefile examples/objects/scatter/Makefile examples/objects/string/Makefile examples/objects/tree/Makefile examples/objects/xmlparser/Makefile examples/zoo/Makefile examples/zoo/binary/Makefile examples/zoo/boolean/Makefile examples/zoo/choice/Makefile examples/zoo/cloud/Makefile examples/zoo/cloud/matlab/Makefile examples/zoo/curve/Makefile examples/zoo/enable/Makefile examples/zoo/field/Makefile examples/zoo/group/Makefile examples/zoo/histogram/Makefile examples/zoo/image/Makefile examples/zoo/image/docs/Makefile examples/zoo/image/examples/Makefile examples/zoo/integer/Makefile examples/zoo/integer2/Makefile examples/zoo/loader/Makefile examples/zoo/loader/examples/Makefile examples/zoo/loadrun/Makefile examples/zoo/log/Makefile examples/zoo/note/Makefile examples/zoo/note/docs/Makefile examples/zoo/number/Makefile examples/zoo/number2/Makefile examples/zoo/parallelepiped/Makefile examples/zoo/periodicelement/Makefile examples/zoo/phase/Makefile examples/zoo/sequence/Makefile examples/zoo/sequence/examples/Makefile examples/zoo/string/Makefile examples/zoo/structure/Makefile examples/zoo/structure/examples/Makefile examples/zoo/table/Makefile examples/zoo/unirect2d/Makefile oldtest/Makefile oldtest/src/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -10449,6 +10549,7 @@ do
     "lang/octave/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/Makefile" ;;
     "lang/octave/octave2/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/octave2/Makefile" ;;
     "lang/octave/octave3/Makefile") CONFIG_FILES="$CONFIG_FILES lang/octave/octave3/Makefile" ;;
+    "lang/R/Makefile") CONFIG_FILES="$CONFIG_FILES lang/R/Makefile" ;;
     "lang/ruby/Makefile") CONFIG_FILES="$CONFIG_FILES lang/ruby/Makefile" ;;
     "lang/ruby/build.rb") CONFIG_FILES="$CONFIG_FILES lang/ruby/build.rb" ;;
     "lang/tcl/Makefile") CONFIG_FILES="$CONFIG_FILES lang/tcl/Makefile" ;;
@@ -10479,6 +10580,7 @@ do
     "examples/app-fermi/wrapper/perl/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/wrapper/perl/Makefile" ;;
     "examples/app-fermi/wrapper/python/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/wrapper/python/Makefile" ;;
     "examples/app-fermi/wrapper/tcl/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/wrapper/tcl/Makefile" ;;
+    "examples/app-fermi/R/Makefile") CONFIG_FILES="$CONFIG_FILES examples/app-fermi/R/Makefile" ;;
     "examples/c-example/Makefile") CONFIG_FILES="$CONFIG_FILES examples/c-example/Makefile" ;;
     "examples/canvas/Makefile") CONFIG_FILES="$CONFIG_FILES examples/canvas/Makefile" ;;
     "examples/demo.bash") CONFIG_FILES="$CONFIG_FILES examples/demo.bash" ;;

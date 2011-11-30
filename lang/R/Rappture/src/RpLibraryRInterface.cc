@@ -14,8 +14,7 @@
 #include "RpLibrary.h"
 #include "RpBindingsDict.h"
 
-#include <R.h>
-#include <Rinternals.h>
+#include "RpLibraryRInterface.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,0 +1,44 @@
+
+bindir          = @bindir@
+datadir         = @datadir@
+datarootdir     = @datarootdir@
+exec_prefix     = @exec_prefix@
+includedir      = @includedir@
+libdir          = @libdir@
+mandir          = @mandir@
+prefix          = @prefix@
+srcdir          = @srcdir@
+
+INSTALL         = @INSTALL@
+MKDIR_P         = @MKDIR_P@
+LN_S            = @LN_S@
+INSTALL_PROGRAM = ${INSTALL} -m 755
+INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_SCRIPT  = ${INSTALL} -m 644
+RM              = rm -f
+VPATH           = $(srcdir)
+
+R               = @R@
+
+coresrcdir      = ${PWD}/../../rappture/src/core
+corelibdir      = ${PWD}/../src/core
+R_flags         = --configure-args='--with-rappture-include=$(coresrcdir)\
+                                    --with-rappture-lib=$(corelibdir)'
+
+Rlib            = $(libdir)/R
+
+#	$(MKDIR_P) -m 0755 ${PWD}/build
+#	tar -C ${PWD}/build -clf - . | tar -C $(Rlib) -xpf -
+
+all:
+	$(R) CMD build $(srcdir)/Rappture
+	tar xvzf Rappture_1.0.tar.gz
+
+install:
+	$(MKDIR_P) -m 0755 $(Rlib)
+	$(R) CMD INSTALL $(R_flags) --library=$(Rlib) Rappture
+
+clean:
+	$(RM) -rf Rappture Rappture_1.0.tar.gz ${PWD}/build
+
+distclean: clean

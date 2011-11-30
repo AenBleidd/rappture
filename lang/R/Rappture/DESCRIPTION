@@ -1,0 +1,9 @@
+Package: Rappture
+Type: Package
+Title: Rappture bindings for R
+Version: 1.0
+Date: 2011-11-09
+Author: Derrick Kearney
+Maintainer: <rappture@nanohub.org>
+Description: Rappture toolkit
+License: see http://rappture.org/wiki/LicenseTerms

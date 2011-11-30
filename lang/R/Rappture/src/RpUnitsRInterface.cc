@@ -14,8 +14,7 @@
 #include "RpUnits.h"
 #include "RpBindingsDict.h"
 
-#include <R.h>
-#include <Rinternals.h>
+# include "RpUnitsRInterface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,8 +140,6 @@ RPRUnitsConvertString(
 
     return ans;
 }
-
-
 
 #ifdef __cplusplus
 }

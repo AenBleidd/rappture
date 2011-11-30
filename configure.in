@@ -161,7 +161,7 @@ if test "${with_tclsh}" != "no" ; then
   fi
 fi
 
-  
+
 TCL_INC_SPEC="$TCL_INCLUDE_SPEC"
 
 AC_ARG_WITH(
@@ -200,6 +200,7 @@ RP_LANG_OCTAVE
 RP_LANG_PERL
 RP_LANG_PYTHON
 RP_LANG_JAVA
+RP_LANG_R
 
 RUBY=""
 RUBY_DEV_PKG="no"
@@ -401,6 +402,7 @@ AC_SUBST(PYTHON_LIBDIR)
 AC_SUBST(PYTHON_SITE_DIR)
 AC_SUBST(PYTHON_SITE_PACKAGES)
 AC_SUBST(PYTHON_VERSION)
+AC_SUBST(R)
 AC_SUBST(RP_BASE)
 AC_SUBST(RUBY)
 AC_SUBST(RUBY_PLATFORM)
@@ -469,6 +471,7 @@ AC_CONFIG_FILES([
     lang/octave/Makefile
     lang/octave/octave2/Makefile
     lang/octave/octave3/Makefile
+    lang/R/Makefile
     lang/ruby/Makefile
     lang/ruby/build.rb
     lang/tcl/Makefile
@@ -499,6 +502,7 @@ AC_CONFIG_FILES([
     examples/app-fermi/wrapper/perl/Makefile
     examples/app-fermi/wrapper/python/Makefile
     examples/app-fermi/wrapper/tcl/Makefile
+    examples/app-fermi/R/Makefile
     examples/c-example/Makefile
     examples/canvas/Makefile
     examples/demo.bash
