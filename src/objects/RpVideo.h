@@ -45,3 +45,4 @@ int VideoClose (VideoObj *vidPtr);
 #ifdef __cplusplus
 }
 #endif
+

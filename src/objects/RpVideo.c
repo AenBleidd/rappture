@@ -54,6 +54,12 @@
 
 #include "RpVideo.h"
 
+#if LIBAVUTIL_VERSION_MAJOR < 51
+#define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
+#define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
+#endif	/* LIBAVUTIL_VERSION_MAJOR */
+
+
 /*
  * Each video object is represented by the following data:
  */
@@ -357,8 +363,8 @@ VideoModeRead(vidPtr)
      */
     vidPtr->videoStream = -1;
     for (i=0; i < vidPtr->pFormatCtx->nb_streams; i++) {
-        if (vidPtr->pFormatCtx->streams[i]->codec->codec_type
-                == CODEC_TYPE_VIDEO) {
+        if (vidPtr->pFormatCtx->streams[i]->codec->codec_type 
+	    == AVMEDIA_TYPE_VIDEO) {
             vidPtr->videoStream = i;
             break;
         }
@@ -1496,7 +1502,7 @@ VideoWriteFrame(vidPtr, framePtr)
                 vidPtr->outVideoStr->time_base);
         }
         if (codecCtx->coded_frame->key_frame) {
-            pkt.flags |= PKT_FLAG_KEY;
+            pkt.flags |= AV_PKT_FLAG_KEY;
         }
         pkt.stream_index = vidPtr->outVideoStr->index;
         pkt.data = outbuf;

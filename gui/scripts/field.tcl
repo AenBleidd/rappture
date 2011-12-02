@@ -602,7 +602,7 @@ itcl::body Rappture::Field::_build {} {
 		set type "vtk"
 	    }
         } elseif {[$_field element $cname.opendx] != ""} {
-            set type "opendx"
+            set type "dx"
         } elseif {[$_field element $cname.dx] != ""} {
             set type "dx"
         }
@@ -808,6 +808,18 @@ itcl::body Rappture::Field::_build {} {
             #
             set _comp2dims($cname) "3D"
             set _comp2dx($cname)  [$_field get -decode no $cname.dx]
+	    if 0 {
+            set data  [$_field get -decode yes $cname.dx]
+	    set file "/tmp/junk.dx"
+	    set f [open $file "w"]
+	    puts $f $data
+	    close $f
+	    if { [string match "<ODX>*" $data] } {
+		set data [string range $data 5 end]
+		set _comp2dx($cname) \
+			[Rappture::encoding::encode -as zb64 $data]
+	    } 
+	    }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
                 set _comp2flowhints($cname) \
