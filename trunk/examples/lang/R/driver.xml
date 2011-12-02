@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<run>
+    <tool>
+        <about>Press Simulate to view results.</about>
+        <command>tclsh @tool/fermi.tcl @driver</command>
+        <version>
+            <rappture>
+                <language>R</language>
+                <revision>$LastChangedRevision: 2408 $</revision>
+                <modified>$LastChangedDate: 2011-08-24 22:01:44 -0400 (Wed, 24 Aug 2011) $</modified>
+            </rappture>
+        </version>
+    </tool>
+    <input>
+        <number id="temperature">
+            <about>
+                <label>Ambient temperature</label>
+                <description>Temperature of the environment.</description>
+            </about>
+            <units>K</units>
+            <min>0K</min>
+            <max>500K</max>
+            <default>300K</default>
+            <current>300K</current>
+            <preset>
+                <value>300K</value>
+                <label>300K (room temperature)</label>
+            </preset>
+            <preset>
+                <value>77K</value>
+                <label>77K (liquid nitrogen)</label>
+            </preset>
+            <preset>
+                <value>4.2K</value>
+                <label>4.2K (liquid helium)</label>
+            </preset>
+        </number>
+        <number id="Ef">
+            <about>
+                <label>Fermi Level</label>
+                <description>Energy at center of distribution.</description>
+            </about>
+            <units>eV</units>
+            <min>-10eV</min>
+            <max>10eV</max>
+            <default>0eV</default>
+            <current>0eV</current>
+        </number>
+        <string id="ee">
+            <about>
+                <label>my string</label>
+                <description>my string's description</description>
+            </about>
+            <default>blah blah blah</default>
+            <current>blah blah blah blah</current>
+        </string>
+        <integer id="ii">
+            <about>
+                <label>my integer</label>
+                <description>my integer's description</description>
+            </about>
+            <default>4</default>
+            <current>5</current>
+        </integer>
+        <boolean id="bb">
+            <about>
+                <label>my integer</label>
+                <description>my integer's description</description>
+            </about>
+            <default>false</default>
+            <current>true</current>
+        </boolean>
+    </input>
+</run>
