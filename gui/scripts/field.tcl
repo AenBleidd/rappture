@@ -34,6 +34,7 @@ itcl::class Rappture::Field {
     public method extents {{what -overall}}
     public method flowhints { cname }
     public method type {}
+    public method vtkdata {{what -overall}}
 
     protected method _build {}
     protected method _getValue {expr}
@@ -49,6 +50,7 @@ itcl::class Rappture::Field {
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
     private variable _comp2vtkstreamlines   ;# maps component name => vtkFloatArray
+    private variable _comp2volume   ;# maps component name => vtkFloatArray
     private variable _comp2dx    ;# maps component name => OpenDX data
     private variable _comp2unirect2d ;# maps component name => unirect2d obj
     private variable _comp2unirect3d ;# maps component name => unirect3d obj
@@ -965,4 +967,45 @@ itcl::body Rappture::Field::extents {{what -overall}} {
         set what [lindex [components -name] 0]
     }
     return $_comp2extents($what)
+}
+
+# ----------------------------------------------------------------------
+# USAGE: blob ?<name>?
+#
+# Returns a string representing the blob of data for the mesh and values.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Field::vtkdata {{what -overall}} {
+    if {$what == "component0"} {
+        set what "component"
+    }
+    if {[info exists _comp2xy($what)]} {
+        return ""
+    }
+    if { [info exists _comp2vtk($what)] } {
+        return ""
+    }
+    if { [info exists _comp2vtkstreamlines($what)] } {
+	# Return the contents of the vtk file.
+        return $_comp2vtkstreamlines($what)
+    }
+    if { [info exists _comp2vtkvolume($what)] } {
+	# Return the contents of the vtk file.
+        return $_comp2vtkvolume($what)
+    }
+    if {[info exists _comp2dx($what)]} {
+	set data $_comp2dx($what)
+	if { $data == "" } {
+	    return ""
+	}
+	set data  [$_field get -decode yes $data]
+	set data [Rappture::ConvertDxToVtk $data]
+	return $data
+    }
+    if {[info exists _comp2unirect2d($what)]} {
+        return [$_comp2unirect2d($what) blob]
+    }
+    if {[info exists _comp2unirect3d($what)]} {
+        return [$_comp2unirect3d($what) blob]
+    }
+    error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
