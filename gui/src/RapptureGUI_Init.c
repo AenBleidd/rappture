@@ -44,6 +44,9 @@ Rappturegui_Init( Tcl_Interp * interp)
     if (RpCanvPlacard_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
+    if (RpConvertDxToVtk_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
