@@ -51,7 +51,8 @@ LIBS		= \
 OBJS 		= \
 		RapptureGUI_Init.o \
 		RpCanvPlacard.o \
-		RpDiffview.o
+		RpDiffview.o \
+		RpConvertDxToVtk.o
 
 name		= RapptureGUI$(version)
 libname 	= $(name)
