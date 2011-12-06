@@ -956,12 +956,11 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - activate trace
         # - multiple axes? dim other axes
         # - pop up tooltip about data
-        #
-        if {$_hilite(elem) != "" && $_hilite(elem) != $elem} {
-            $g element deactivate $_hilite(elem)
-            $g crosshairs configure -hide yes
-            Rappture::Tooltip::tooltip cancel
-        }
+
+	$g element deactivate $_hilite(elem)
+	$g crosshairs configure -hide yes
+	Rappture::Tooltip::tooltip cancel
+
         $g element activate $elem
         set _hilite(elem) $elem
 
@@ -1041,27 +1040,25 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - put all axes back to normal color
         # - take down tooltip
         #
-        if {"" != $_hilite(elem)} {
-            $g element deactivate $_hilite(elem)
+	$g element deactivate $_hilite(elem)
 
-            set allx [$g x2axis use]
-            if {[llength $allx] > 0} {
-                lappend allx x  ;# fix main x-axis too
-                foreach axis $allx {
-                    $g axis configure $axis -color $itk_option(-foreground) \
-                        -titlecolor $itk_option(-foreground)
-                }
-            }
+	set allx [$g x2axis use]
+	if {[llength $allx] > 0} {
+	    lappend allx x  ;		# fix main x-axis too
+	    foreach axis $allx {
+		$g axis configure $axis -color $itk_option(-foreground) \
+		    -titlecolor $itk_option(-foreground)
+	    }
+	}
 
-            set ally [$g y2axis use]
-            if {[llength $ally] > 0} {
-                lappend ally y  ;# fix main y-axis too
-                foreach axis $ally {
-                    $g axis configure $axis -color $itk_option(-foreground) \
-                        -titlecolor $itk_option(-foreground)
-                }
-            }
-        }
+	set ally [$g y2axis use]
+	if {[llength $ally] > 0} {
+	    lappend ally y  ;		# fix main y-axis too
+	    foreach axis $ally {
+		$g axis configure $axis -color $itk_option(-foreground) \
+		    -titlecolor $itk_option(-foreground)
+	    }
+	}
 
         $g crosshairs configure -hide yes
 
@@ -1210,7 +1207,7 @@ itcl::body Rappture::NumberResult::Axis {option args} {
                 set dx [expr {abs($x-$_axis(click-x))}]
                 set dy [expr {abs($y-$_axis(click-y))}]
                 if {$dx < 2 && $dy < 2} {
-                    _axis edit $axis
+                    Axis edit $axis
                 }
             } else {
                 # one last movement
