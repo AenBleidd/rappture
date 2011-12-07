@@ -142,7 +142,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     objPtr = Tcl_NewStringObj("vtk DataFile Version 2.0\n", -1);
     Tcl_AppendToObj(objPtr, "Converted from DX file\n", -1);
     Tcl_AppendToObj(objPtr, "ASCII\n", -1);
-    Tcl_AppendToObj(objPtr, "DATASET STRUCTURE_POINTS\n", -1);
+    Tcl_AppendToObj(objPtr, "DATASET STRUCTURED_POINTS\n", -1);
     sprintf(mesg, "DIMENSIONS %d %d %d\n", nx, ny, nz);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "ORIGIN %g %g %g\n", x0, y0, z0);
