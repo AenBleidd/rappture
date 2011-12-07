@@ -753,10 +753,9 @@ void CgErrorCallback(void)
     CGerror lastError = cgGetError();
 
     if(lastError) {
-        const char *listing = cgGetLastListing(g_context);
         TRACE("\n---------------------------------------------------\n");
         TRACE("%s\n\n", cgGetErrorString(lastError));
-        TRACE("%s\n", listing);
+        TRACE("%s\n", cgGetLastListing(g_context));
         TRACE("-----------------------------------------------------\n");
         TRACE("Cg error, exiting...\n");
         cgDestroyContext(g_context);
@@ -2248,7 +2247,6 @@ main(int argc, char **argv)
     const char *path;
     char *newPath;
     struct timeval tv;
-	int n, i;
     newPath = NULL;
     path = NULL;
     NanoVis::stdin = stdin;

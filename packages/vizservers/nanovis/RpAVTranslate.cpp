@@ -34,6 +34,15 @@ extern "C" {
 
 #include "RpAVTranslate.h"
 
+#if LIBAVUTIL_VERSION_MAJOR < 51
+#define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
+#define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
+#define av_guess_format		guess_format
+#define av_dump_format		dump_format
+#define avio_open		url_fopen	
+#define avio_close		url_fclose	
+#endif	/* LIBAVUTIL_VERSION_MAJOR */
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -100,13 +109,13 @@ AVTranslate::init(Outcome &status, const char *filename)
     av_register_all();
 
     /* Auto detect the output format from the name. default is mpeg. */
-    _fmtPtr = guess_format(NULL, filename, NULL);
+    _fmtPtr = av_guess_format(NULL, filename, NULL);
     if (_fmtPtr == NULL) {
         /*
 	  TRACE(  "Could not deduce output format from"
                  "file extension: using MPEG.\n");
         */
-        _fmtPtr = guess_format("mpeg", NULL, NULL);
+        _fmtPtr = av_guess_format("mpeg", NULL, NULL);
     }
     if (_fmtPtr == NULL) {
         status.addError("Could not find suitable output format");
@@ -135,13 +144,14 @@ AVTranslate::init(Outcome &status, const char *filename)
         }
     }
 
+#if LIBAVUTIL_VERSION_MAJOR < 51
     /* Set the output parameters (must be done even if no parameters). */
     if (av_set_parameters(_ocPtr, NULL) < 0) {
         status.addError("Invalid output format parameters");
         return false;
     }
-
-    dump_format(_ocPtr, 0, filename, 1);
+#endif
+    av_dump_format(_ocPtr, 0, filename, 1);
 
     /* Now that all the parameters are set, we can open the video codec and
        allocate the necessary encode buffers */
@@ -153,14 +163,18 @@ AVTranslate::init(Outcome &status, const char *filename)
 
     /* Open the output file, if needed. */
     if (!(_fmtPtr->flags & AVFMT_NOFILE)) {
-        if (url_fopen(&_ocPtr->pb, filename, URL_WRONLY) < 0) {
+        if (avio_open(&_ocPtr->pb, filename, URL_WRONLY) < 0) {
             status.addError("Could not open '%s'", filename);
             return false;
         }
     }
 
     /* write the stream header, if any */
+#if LIBAVUTIL_VERSION_MAJOR < 51
     av_write_header(_ocPtr);
+#else
+    avformat_write_header(_ocPtr, NULL);
+#endif
     return true;
 }
 
@@ -225,7 +239,7 @@ AVTranslate::done(Outcome &status)
 
     if (!(_fmtPtr->flags & AVFMT_NOFILE)) {
         /* close the output file */
-        url_fclose(_ocPtr->pb);
+        avio_close(_ocPtr->pb);
     }
 
     /* Free the stream */
@@ -256,7 +270,7 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
     AVCodecContext *codecPtr;
     codecPtr = streamPtr->codec;
     codecPtr->codec_id = codec_id;
-    codecPtr->codec_type = CODEC_TYPE_VIDEO;
+    codecPtr->codec_type = AVMEDIA_TYPE_VIDEO;
 
     /* Put sample parameters */
     codecPtr->bit_rate = _bitRate;
@@ -392,7 +406,7 @@ AVTranslate::writeVideoFrame(Outcome &status)
     pkt.pts = av_rescale_q(codecPtr->coded_frame->pts, codecPtr->time_base,
 			   _avStreamPtr->time_base);
     if (codecPtr->coded_frame->key_frame) {
-	pkt.flags |= PKT_FLAG_KEY;
+	pkt.flags |= AV_PKT_FLAG_KEY;
     }
     pkt.stream_index = _avStreamPtr->index;
     pkt.data = _videoOutbuf;
