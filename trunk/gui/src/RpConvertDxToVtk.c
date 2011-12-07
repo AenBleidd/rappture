@@ -28,15 +28,14 @@ SkipSpaces(char *string)
 }
 
 static INLINE char *
-GetLine(char **stringPtr, char *endPtr) 
+GetLine(char **stringPtr, const char *endPtr) 
 {
     char *line, *p;
 
     line = SkipSpaces(*stringPtr);
     for (p = line; p < endPtr; p++) {
 	if (*p == '\n') {
-	    p++;
-	    *stringPtr = p;
+	    *stringPtr = p + 1;
 	    return line;
 	}
     }
@@ -167,7 +166,9 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    size_t iz;
 
 	    for (iz = 0; iz < nz; iz++) {
-		char *line;
+		const char *line;
+		double vx, vy, vz;
+
 		if ((p == pend) || (nValues > (size_t)npts)) {
 		    break;
 		}
@@ -175,9 +176,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		if ((line[0] == '#') || (line[0] == '\n')) {
 		    continue;		/* Skip blank or comment lines. */
 		}
-		double vx, vy, vz;
 		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
-		    int nindex = (iz*nx*ny + iy*nx + ix) * 3;
 		    if (vx < xValueMin) {
 			xValueMin = vx;
 		    } else if (vx > xValueMax) {

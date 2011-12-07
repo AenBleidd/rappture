@@ -57,6 +57,8 @@
 #if LIBAVUTIL_VERSION_MAJOR < 51
 #define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
 #define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
+#define avio_close		url_fclose
+#define avformat_open_input	av_open_input_file
 #endif	/* LIBAVUTIL_VERSION_MAJOR */
 
 
@@ -340,15 +342,17 @@ VideoModeRead(vidPtr)
     /*
      * Open the video stream from that file.
      */
+#if LIBAVUTIL_VERSION_MAJOR < 51
     if (av_open_input_file(&vidPtr->pFormatCtx, vidPtr->fileName,
             NULL, 0, NULL) != 0) {
-        // Tcl_AppendResult(interp, "couldn't open file \"",
-        //     fileName, "\"", (char*)NULL);
-        // return TCL_ERROR;
-
-        // couldn't open file
         return -3;
     }
+#else
+    if (avformat_open_input(&vidPtr->pFormatCtx, vidPtr->fileName, NULL, 
+	NULL) != 0) {
+	return -3;
+    }
+#endif
     if (av_find_stream_info(vidPtr->pFormatCtx) < 0) {
         // Tcl_AppendResult(interp, "couldn't find streams in file \"",
         //     fileName, "\"", (char*)NULL);
@@ -1667,7 +1671,7 @@ VideoClose(vidPtr)
         }
 
         if (vidPtr->outFormatCtx->pb) {
-            url_fclose(vidPtr->outFormatCtx->pb);
+            avio_close(vidPtr->outFormatCtx->pb);
         }
 
         av_free(vidPtr->outFormatCtx);
