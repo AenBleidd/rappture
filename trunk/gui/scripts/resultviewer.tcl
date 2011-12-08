@@ -205,6 +205,7 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
+    puts stderr "ResultViewer _plotAdd info class [$dataobj info class]"
     switch -- [$dataobj info class] {
         ::Rappture::DataTable {
             set mode "datatable"
@@ -251,6 +252,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
         ::Rappture::Field {
             set dims [lindex [lsort [$dataobj components -dimensions]] end]
+	    puts stderr "ResultViewer in Field dims=$dims"
             switch -- $dims {
                 1D {
                     set mode "xy"
@@ -286,6 +288,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 3D {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
+			puts stderr "type=$type"
                         switch -- [$dataobj type] {
 			    "vtk" {
 				set fmt "vtk"
@@ -296,6 +299,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 				if { $extents > 1 } {
 				    set fmt "flowvis"
 				}
+			    }
+			    "vtkvolume" {
+				set fmt "vtkvolume"
 			    }
 			    "vtkstreamlines" {
 				set fmt "vtkstreamlines"

@@ -259,7 +259,6 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplane-visible	1
         cutplane-wireframe	0
 	cutplane-opacity	100
-        volume-edges		0
         volume-lighting		1
         volume-opacity		40
         volume-visible		1
@@ -1089,8 +1088,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     InitSettings volume-palette volume-visible 
 
     if { $_reset } {
-	InitSettings volume-edges volume-lighting volume-opacity \
-	    volume-wireframe 
+	InitSettings volume-lighting
 	Zoom reset
 	set _reset 0
     }
@@ -1337,23 +1335,10 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 	return
     }
     switch -- $what {
-        "volume-opacity" {
-	    set val $_settings(volume-opacity)
-	    set sval [expr { 0.01 * double($val) }]
-	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "polydata opacity $sval $dataset"
-	    }
-        }
-        "volume-wireframe" {
-	    set bool $_settings(volume-wireframe)
-	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "polydata wireframe $bool $dataset"
-            }
-        }
         "volume-visible" {
 	    set bool $_settings(volume-visible)
 	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "polydata visible $bool $dataset"
+		SendCmd "volume visible $bool $dataset"
             }
 	    if { $bool } {
 		Rappture::Tooltip::for $itk_component(volume) \
@@ -1366,13 +1351,7 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         "volume-lighting" {
 	    set bool $_settings(volume-lighting)
 	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "polydata lighting $bool $dataset"
-            }
-        }
-        "volume-edges" {
-	    set bool $_settings(volume-edges)
-	    foreach dataset [CurrentDatasets -visible] {
-		SendCmd "polydata edges $bool $dataset"
+		SendCmd "volume lighting $bool $dataset"
             }
         }
         "axis-visible" {
@@ -1577,6 +1556,7 @@ itcl::body Rappture::VtkVolumeViewer::SetColormap { dataobj comp } {
 }
 
 itcl::body Rappture::VtkVolumeViewer::ColorsToColormap { colors } {
+puts stderr colors=$colors
     switch -- $colors {
 	"grey-to-blue" {
 	    return {
@@ -1909,22 +1889,10 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         -command [itcl::code $this AdjustSetting volume-visible] \
         -font "Arial 9"
 
-    checkbutton $inner.wireframe \
-        -text "Show Wireframe" \
-        -variable [itcl::scope _settings(volume-wireframe)] \
-        -command [itcl::code $this AdjustSetting volume-wireframe] \
-        -font "Arial 9"
-
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(volume-lighting)] \
         -command [itcl::code $this AdjustSetting volume-lighting] \
-        -font "Arial 9"
-
-    checkbutton $inner.edges \
-        -text "Show Edges" \
-        -variable [itcl::scope _settings(volume-edges)] \
-        -command [itcl::code $this AdjustSetting volume-edges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
@@ -1969,11 +1937,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     blt::table $inner \
         0,0 $inner.volume    -anchor w -pady 2 \
-        1,0 $inner.wireframe -anchor w -pady 2 \
         2,0 $inner.lighting  -anchor w -pady 2 \
-        3,0 $inner.edges     -anchor w -pady 2 \
-        4,0 $inner.opacity_l -anchor w -pady 2 \
-        5,0 $inner.opacity   -fill x   -pady 2 \
         6,0 $inner.field_l     -anchor w -pady 2  \
         6,1 $inner.field       -anchor w -pady 2  \
         7,0 $inner.palette_l   -anchor w -pady 2  \
@@ -2381,19 +2345,8 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj comp } {
 	SendCmd "cutplane axis $axis 0 $tag"
     }
 
-    SendCmd "polydata add $tag"
-    SendCmd "polydata edges $settings(-edges) $tag"
-    set _settings(volume-edges) $settings(-edges)
-    SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
-    SendCmd "polydata lighting $settings(-lighting) $tag"
+    SendCmd "volume lighting $settings(-lighting) $tag"
     set _settings(volume-lighting) $settings(-lighting)
-    SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-    SendCmd "polydata linewidth $settings(-linewidth) $tag"
-    SendCmd "polydata opacity $settings(-opacity) $tag"
-    set _settings(volume-opacity) $settings(-opacity)
-    SendCmd "polydata wireframe $settings(-wireframe) $tag"
-    set _settings(volume-wireframe) $settings(-wireframe)
-    set _settings(volume-opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
 }
 

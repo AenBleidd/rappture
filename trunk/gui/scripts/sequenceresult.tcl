@@ -481,7 +481,17 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                         Rappture::Field2DResult $viewer -mode $mode
                     }
                     3D {
-                        Rappture::Field3DResult $viewer
+			set fmt [$dataobj type]
+			switch -- $fmt {
+			    "opendx" - "dx" - "points-on-mesh" {
+				set fmt "nanovis"
+				set extents [$dataobj extents]
+				if { $extents > 1 } {
+				    set fmt "flowvis"
+				}
+			    }
+			}
+                        Rappture::Field3DResult $viewer -mode $fmt
                     }
                     default {
                         error "don't know how to view sequences of $type\
