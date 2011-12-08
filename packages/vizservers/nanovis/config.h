@@ -44,7 +44,7 @@
  * [In the future, we'll use the OpenDX library reader and determine at
  * runtime if mesh decimation is required]
  */
-#define ISO_TEST                1
+#define ISO_TEST                0
 
 /* 
  * The following define controls whether the plane* commands are 

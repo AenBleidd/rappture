@@ -810,7 +810,7 @@ itcl::body Rappture::Field::_build {} {
             #
             set _comp2dims($cname) "3D"
             set _comp2dx($cname)  [$_field get -decode no $cname.dx]
-	    if 0 {
+	    if 1 {
             set data  [$_field get -decode yes $cname.dx]
 	    set file "/tmp/junk.dx"
 	    set f [open $file "w"]
