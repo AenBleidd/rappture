@@ -50,6 +50,7 @@ itcl::class Rappture::Field {
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
     private variable _comp2vtkstreamlines   ;# maps component name => vtkFloatArray
+    private variable _comp2vtkvolume   ;# maps component name => vtkFloatArray
     private variable _comp2volume   ;# maps component name => vtkFloatArray
     private variable _comp2dx    ;# maps component name => OpenDX data
     private variable _comp2unirect2d ;# maps component name => unirect2d obj
@@ -604,9 +605,19 @@ itcl::body Rappture::Field::_build {} {
 		set type "vtk"
 	    }
         } elseif {[$_field element $cname.opendx] != ""} {
-            set type "dx"
+	    global env
+	    if { [info exists env(VTKVOLUME)] } {
+		set type "vtkvolume"
+	    } else {
+		set type "dx"
+	    }
         } elseif {[$_field element $cname.dx] != ""} {
-            set type "dx"
+	    global env
+	    if { [info exists env(VTKVOLUME)] } {
+		set type "vtkvolume"
+	    } else {
+		set type "dx"
+	    }
         }
         set _comp2style($cname) ""
         
@@ -797,12 +808,27 @@ itcl::body Rappture::Field::_build {} {
 	    }
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
+        } elseif {$type == "vtkvolume"} {
+            set _comp2dims($cname) "3D"
+	    # Allow redirects to another element.
+	    set data [$_field get -decode no $cname.dx]
+            set data [Rappture::encoding::decode -as zb64 $data]
+	    if 1 {
+	    set file "/tmp/junk.dx"
+	    set f [open $file "w"]
+	    puts $f $data
+	    close $f
+	    }
+	    set data [Rappture::ConvertDxToVtk $data]
+	    set _comp2vtkvolume($cname) $data
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
         } elseif {$type == "vtkstreamlines2"} {
             set _comp2dims($cname) "3D"
             set _comp2vtkstreamlines($cname) [$_field get $cname.vtk]
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
-        } elseif {$type == "dx"} {
+        } elseif {$type == "dx" } {
             #
             # HACK ALERT!  Extract gzipped, base64-encoded OpenDX
             # data.  Assume that it's 3D.  Pass it straight
@@ -993,13 +1019,7 @@ itcl::body Rappture::Field::vtkdata {{what -overall}} {
         return $_comp2vtkvolume($what)
     }
     if {[info exists _comp2dx($what)]} {
-	set data $_comp2dx($what)
-	if { $data == "" } {
-	    return ""
-	}
-	set data  [$_field get -decode yes $data]
-	set data [Rappture::ConvertDxToVtk $data]
-	return $data
+	return $_comp2dx($what)
     }
     if {[info exists _comp2unirect2d($what)]} {
         return [$_comp2unirect2d($what) blob]

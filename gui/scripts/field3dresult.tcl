@@ -58,7 +58,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
 	"auto" - "nanovis" - "flowvis" {
 	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
 	}
-	"vtkcontour" - "vtkstreamlines" {
+	"vtkcontour" - "vtkstreamlines" - "vtkvolume" - "vtkviewer"  {
 	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
 	}
 	"vtk" {
@@ -79,6 +79,11 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             "flowvis" {
                 itk_component add renderer {
                     Rappture::FlowvisViewer $itk_interior.ren $servers
+                }
+            }
+            "vtkvolume" {
+                itk_component add renderer {
+                    Rappture::VtkVolumeViewer $itk_interior.ren $servers
                 }
             }
             "vtkstreamlines" {

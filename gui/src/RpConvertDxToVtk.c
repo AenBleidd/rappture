@@ -44,6 +44,40 @@ GetLine(char **stringPtr, const char *endPtr)
     return line;
 }
 
+static int
+GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr, 
+	  const char *endPtr, Tcl_Obj *objPtr) 
+{
+    int nValues;
+    int i;
+    const char *p;
+    char mesg[2000];
+
+    nValues = 0;
+    p = *stringPtr;
+    for (i = 0; i < nPoints; i++) {
+	double value;
+	char *nextPtr;
+		
+	if (p >= endPtr) {
+	    Tcl_AppendResult(interp, "unexpected EOF in reading points",
+			     (char *)NULL);
+	    return TCL_ERROR;
+	}
+	value = strtod(p, &nextPtr);
+	if (nextPtr == p) {
+	    Tcl_AppendResult(interp, "bad value found in reading points",
+			     (char *)NULL);
+	    return TCL_ERROR;
+	}
+	p = nextPtr;
+	sprintf(mesg, "%.15g\n", value);
+	Tcl_AppendToObj(objPtr, mesg, -1);
+    }
+    *stringPtr = p;
+    return TCL_OK;
+}
+
 /* 
  *  ConvertDxToVtk string
  */
@@ -52,18 +86,14 @@ static int
 ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		  Tcl_Obj *const *objv) 
 {
-    Tcl_Obj *objPtr;
+    Tcl_Obj *objPtr, *pointsObjPtr;
     char *p, *pend;
     char *string;
     char mesg[2000];
     double delta[3];
     double origin[3];
-    double xMax, yMax, zMax, xMin, yMin, zMin;
-    double maxValue[3], minValue[3];
     int count[3];
     int length, nComponents, nValues, nPoints;
-    int xNum, yNum, zNum;
-    size_t ix;
 
     nComponents = nPoints = 0;
     delta[0] = delta[1] = delta[2] = 0.0; /* Suppress compiler warning. */
@@ -76,12 +106,13 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     string = Tcl_GetStringFromObj(objv[1], &length);
+    pointsObjPtr = Tcl_NewStringObj("", -1);
     for (p = string, pend = p + length; p < pend; /*empty*/) {
 	char *line;
 	double ddx, ddy, ddz;
 
 	line = GetLine(&p, pend);
-        if (line == pend) {
+        if (line >= pend) {
 	    break;			/* EOF */
 	}
         if ((line[0] == '#') || (line[0] == '\n')) {
@@ -95,9 +126,17 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
 	    }
+#ifdef notdef
+	    fprintf(stderr, "found gridpositions counts %d %d %d\n",
+		    count[0], count[1], count[2]);
+#endif
 	} else if (sscanf(line, "origin %lg %lg %lg", origin, origin + 1, 
 		origin + 2) == 3) {
 	    /* Found origin. */
+#ifdef notdef
+	    fprintf(stderr, "found origin %g %g %g\n",
+		    origin[0], origin[1], origin[2]);
+#endif
 	} else if (sscanf(line, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
 	    if (nComponents == 3) {
 		Tcl_AppendResult(interp, "too many delta statements", 
@@ -106,14 +145,18 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    }
 	    delta[nComponents] = sqrt((ddx * ddx) + (ddy * ddy) + (ddz * ddz));
 	    nComponents++;
+#ifdef notdef
+	    fprintf(stderr, "found delta %g %g %g\n", ddx, ddy, ddx);
+#endif
 	} else if (sscanf(line, "object %*d class array type %*s shape 3"
 		" rank 1 items %d data follows", &nPoints) == 1) {
+	    fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
+		    nPoints);
 	    if (nPoints < 0) {
 		sprintf(mesg, "bad # points %d", nPoints);
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
             }	
-	    printf("#points=%d\n", nPoints);
 	    if (nPoints != count[0]*count[1]*count[2]) {
 		sprintf(mesg, "inconsistent data: expected %d points"
 			" but found %d points", count[0]*count[1]*count[2], 
@@ -121,9 +164,15 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
 	    }
-	    break;
+	    if (GetPoints(interp, nPoints, &p, pend, pointsObjPtr) != TCL_OK) {
+		return TCL_ERROR;
+	    }
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
-		" times %d data follows", &nPoints) == 1) {
+		" items %d data follows", &nPoints) == 1) {
+#ifdef notdef
+	    fprintf(stderr, "found class array type rank 0 nPoints=%d\n", 
+		nPoints);
+#endif
 	    if (nPoints != count[0]*count[1]*count[2]) {
 		sprintf(mesg, "inconsistent data: expected %d points"
 			" but found %d points", count[0]*count[1]*count[2], 
@@ -131,7 +180,13 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
 	    }
-	    break;
+	    if (GetPoints(interp, nPoints, &p, pend, pointsObjPtr) != TCL_OK) {
+		return TCL_ERROR;
+	    }
+#ifdef notdef
+	} else {
+	    fprintf(stderr, "unknown line (%.80s)\n", line);
+#endif
 	}
     }
     if (nPoints != count[0]*count[1]*count[2]) {
@@ -154,63 +209,8 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "POINT_DATA %d\n", nPoints);
     Tcl_AppendToObj(objPtr, mesg, -1);
-
-    minValue[0] = minValue[1] = minValue[2] = DBL_MAX;
-    maxValue[0] = maxValue[1] = maxValue[2] = -DBL_MAX;
-    xMin = origin[0], yMin = origin[1], zMin = origin[2];
-    xNum = count[0], yNum = count[1], zNum = count[2];
-    xMax = origin[0] + delta[0] * count[0];
-    yMax = origin[1] + delta[1] * count[1];
-    zMax = origin[2] + delta[2] * count[2];
-    nValues = 0;
-    for (ix = 0; ix < xNum; ix++) {
-	size_t iy;
-
-	for (iy = 0; iy < yNum; iy++) {
-	    size_t iz;
-
-	    for (iz = 0; iz < zNum; iz++) {
-		const char *line;
-		double vx, vy, vz;
-
-		if ((p == pend) || (nValues > (size_t)nPoints)) {
-		    break;
-		}
-		line = GetLine(&p, pend);
-		if ((line[0] == '#') || (line[0] == '\n')) {
-		    continue;		/* Skip blank or comment lines. */
-		}
-		if (sscanf(line, "%lg %lg %lg", &vx, &vy, &vz) == 3) {
-		    if (vx < minValue[0]) {
-			minValue[0] = vx;
-		    } else if (vx > maxValue[0]) {
-			maxValue[0] = vx;
-		    }
-		    if (vy < minValue[1]) {
-			minValue[1] = vy;
-		    } else if (vy > maxValue[1]) {
-			maxValue[1] = vy;
-		    }
-		    if (vz < minValue[2]) {
-			minValue[2] = vz;
-		    } else if (vz > maxValue[2]) {
-			maxValue[2] = vz;
-		    }
-		    sprintf(mesg, "%g %g %g\n", vx, vy, vz);
-		    Tcl_AppendToObj(objPtr, mesg, -1);
-		    nValues++;
-		}
-	    }
-	}
-    }
-    /* Make sure that we read all of the expected points. */
-    if (nValues != (size_t)nPoints) {
-	sprintf(mesg, "inconsistent data: expected %d points"
-			" but found %d points", nPoints, nValues);
-	Tcl_AppendResult(interp, mesg, (char *)NULL);
-	Tcl_DecrRefCount(objPtr);
-	return TCL_ERROR;
-    }
+    Tcl_AppendObjToObj(objPtr, pointsObjPtr);
+    Tcl_DecrRefCount(pointsObjPtr);
     Tcl_SetObjResult(interp, objPtr);
     return TCL_OK;
 }
