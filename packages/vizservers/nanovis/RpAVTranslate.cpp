@@ -34,14 +34,29 @@ extern "C" {
 
 #include "RpAVTranslate.h"
 
-#if LIBAVUTIL_VERSION_MAJOR < 51
+#ifndef HAVE_AVMEDIA_TYPE_VIDEO
 #define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
+#endif	/* HAVE_AVMEDIA_TYPE_VIDEO */
+
+#ifndef AV_PKT_FLAG_KEY
 #define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
+#endif
+
+#ifndef HAVE_AV_GUESS_FORMAT
 #define av_guess_format		guess_format
+#endif	/*HAVE_AV_GUESS_FORMAT*/
+
+#ifndef HAVE_AV_DUMP_FORMAT
 #define av_dump_format		dump_format
+#endif	/*HAVE_AV_DUMP_FORMAT*/
+
+#ifndef HAVE_AVIO_OPEN
 #define avio_open		url_fopen	
+#endif	/*HAVE_AVIO_OPEN*/
+
+#ifndef HAVE_AVIO_CLOSE
 #define avio_close		url_fclose	
-#endif	/* LIBAVUTIL_VERSION_MAJOR */
+#endif	/*HAVE_AVIO_CLOSE*/
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -144,7 +159,7 @@ AVTranslate::init(Outcome &status, const char *filename)
         }
     }
 
-#if LIBAVUTIL_VERSION_MAJOR < 51
+#if defined(HAVE_AV_SET_PARAMETERS) && !defined(HAVE_AVFORMAT_WRITE_HEADER)
     /* Set the output parameters (must be done even if no parameters). */
     if (av_set_parameters(_ocPtr, NULL) < 0) {
         status.addError("Invalid output format parameters");
@@ -170,10 +185,10 @@ AVTranslate::init(Outcome &status, const char *filename)
     }
 
     /* write the stream header, if any */
-#if LIBAVUTIL_VERSION_MAJOR < 51
-    av_write_header(_ocPtr);
-#else
+#ifdef HAVE_AVFORMAT_WRITE_HEADER
     avformat_write_header(_ocPtr, NULL);
+#else
+    av_write_header(_ocPtr);
 #endif
     return true;
 }

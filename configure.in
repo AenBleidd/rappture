@@ -380,6 +380,20 @@ if test "${with_ffmpeg}" != "no"; then
     AC_MSG_ERROR(oops! no sws_getCachedContext ?!?))
   AC_CHECK_FUNCS(img_convert)
   AC_CHECK_FUNCS(sws_scale)
+  AC_TRY_COMPILE([
+#define __STDC_CONSTANT_MACROS 1
+#include <stdlib.h>
+#ifdef HAVE_FFMPEG_AVCODEC_H
+# include <ffmpeg/avcodec.h>
+#endif
+#ifdef HAVE_LIBAVCODEC_AVCODEC_H
+# include <libavcodec/avcodec.h>
+#endif
+int x = AVMEDIA_TYPE_VIDEO;
+],, ac_avmedia_type_video="yes", ac_avmedia_type_video="no")
+  if test "$ac_avmedia_type_video" == "yes" ; then
+    AC_DEFINE(HAVE_AVMEDIA_TYPE_VIDEO,1,[Define if AVMEDIA_TYPE_VIDEO enum exists. ])
+  fi
 fi
 
 AC_SUBST(CFLAGS_DEBUG)
