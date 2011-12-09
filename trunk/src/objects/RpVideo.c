@@ -54,10 +54,13 @@
 
 #include "RpVideo.h"
 
-#if LIBAVUTIL_VERSION_MAJOR < 51
+#ifndef HAVE_AVMEDIA_TYPE_VIDEO
 #define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
+#endif	/* HAVE_AVMEDIA_TYPE_VIDEO */
+
+#ifndef AV_PKT_FLAG_KEY
 #define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
-#endif	/* LIBAVUTIL_VERSION_MAJOR */
+#endif
 
 #ifndef HAVE_AVIO_CLOSE
 #define avio_close		url_fclose

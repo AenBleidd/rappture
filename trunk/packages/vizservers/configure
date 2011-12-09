@@ -8549,6 +8549,475 @@ done
 
 CPPFLAGS=$save_CPPFLAGS
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavcodec" >&5
+$as_echo_n "checking for main in -lavcodec... " >&6; }
+if ${ac_cv_lib_avcodec_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavcodec  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avcodec_main=yes
+else
+  ac_cv_lib_avcodec_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avcodec_main" >&5
+$as_echo "$ac_cv_lib_avcodec_main" >&6; }
+if test "x$ac_cv_lib_avcodec_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVCODEC 1
+_ACEOF
+
+  LIBS="-lavcodec $LIBS"
+
+else
+  as_fn_error $? "requires libavcodec" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavutil" >&5
+$as_echo_n "checking for main in -lavutil... " >&6; }
+if ${ac_cv_lib_avutil_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavutil  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avutil_main=yes
+else
+  ac_cv_lib_avutil_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avutil_main" >&5
+$as_echo "$ac_cv_lib_avutil_main" >&6; }
+if test "x$ac_cv_lib_avutil_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVUTIL 1
+_ACEOF
+
+  LIBS="-lavutil $LIBS"
+
+else
+  as_fn_error $? "requires libavutil" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavformat" >&5
+$as_echo_n "checking for main in -lavformat... " >&6; }
+if ${ac_cv_lib_avformat_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavformat  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avformat_main=yes
+else
+  ac_cv_lib_avformat_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avformat_main" >&5
+$as_echo "$ac_cv_lib_avformat_main" >&6; }
+if test "x$ac_cv_lib_avformat_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVFORMAT 1
+_ACEOF
+
+  LIBS="-lavformat $LIBS"
+
+else
+  as_fn_error $? "requires libavformat" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lswscale" >&5
+$as_echo_n "checking for main in -lswscale... " >&6; }
+if ${ac_cv_lib_swscale_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lswscale  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_swscale_main=yes
+else
+  ac_cv_lib_swscale_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_swscale_main" >&5
+$as_echo "$ac_cv_lib_swscale_main" >&6; }
+if test "x$ac_cv_lib_swscale_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSWSCALE 1
+_ACEOF
+
+  LIBS="-lswscale $LIBS"
+
+else
+  as_fn_error $? "requires libswscale" "$LINENO" 5
+fi
+
+for ac_func in avcodec_decode_video2
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_decode_video2" "ac_cv_func_avcodec_decode_video2"
+if test "x$ac_cv_func_avcodec_decode_video2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_DECODE_VIDEO2 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_decode_video
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_decode_video" "ac_cv_func_avcodec_decode_video"
+if test "x$ac_cv_func_avcodec_decode_video" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_DECODE_VIDEO 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avformat_open_input
+do :
+  ac_fn_cxx_check_func "$LINENO" "avformat_open_input" "ac_cv_func_avformat_open_input"
+if test "x$ac_cv_func_avformat_open_input" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVFORMAT_OPEN_INPUT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_open_input_file
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_open_input_file" "ac_cv_func_av_open_input_file"
+if test "x$ac_cv_func_av_open_input_file" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_OPEN_INPUT_FILE 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_guess_format
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_guess_format" "ac_cv_func_av_guess_format"
+if test "x$ac_cv_func_av_guess_format" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_GUESS_FORMAT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in guess_format
+do :
+  ac_fn_cxx_check_func "$LINENO" "guess_format" "ac_cv_func_guess_format"
+if test "x$ac_cv_func_guess_format" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GUESS_FORMAT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_dump_format
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_dump_format" "ac_cv_func_av_dump_format"
+if test "x$ac_cv_func_av_dump_format" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_DUMP_FORMAT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in dump_format
+do :
+  ac_fn_cxx_check_func "$LINENO" "dump_format" "ac_cv_func_dump_format"
+if test "x$ac_cv_func_dump_format" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_DUMP_FORMAT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avio_open
+do :
+  ac_fn_cxx_check_func "$LINENO" "avio_open" "ac_cv_func_avio_open"
+if test "x$ac_cv_func_avio_open" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVIO_OPEN 1
+_ACEOF
+
+fi
+done
+
+for ac_func in url_fopen
+do :
+  ac_fn_cxx_check_func "$LINENO" "url_fopen" "ac_cv_func_url_fopen"
+if test "x$ac_cv_func_url_fopen" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_URL_FOPEN 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avio_close
+do :
+  ac_fn_cxx_check_func "$LINENO" "avio_close" "ac_cv_func_avio_close"
+if test "x$ac_cv_func_avio_close" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVIO_CLOSE 1
+_ACEOF
+
+fi
+done
+
+for ac_func in url_fclose
+do :
+  ac_fn_cxx_check_func "$LINENO" "url_fclose" "ac_cv_func_url_fclose"
+if test "x$ac_cv_func_url_fclose" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_URL_FCLOSE 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avformat_alloc_context
+do :
+  ac_fn_cxx_check_func "$LINENO" "avformat_alloc_context" "ac_cv_func_avformat_alloc_context"
+if test "x$ac_cv_func_avformat_alloc_context" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVFORMAT_ALLOC_CONTEXT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_alloc_format_context
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_alloc_format_context" "ac_cv_func_av_alloc_format_context"
+if test "x$ac_cv_func_av_alloc_format_context" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_ALLOC_FORMAT_CONTEXT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_set_parameters
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_set_parameters" "ac_cv_func_av_set_parameters"
+if test "x$ac_cv_func_av_set_parameters" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_SET_PARAMETERS 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avformat_write_header
+do :
+  ac_fn_cxx_check_func "$LINENO" "avformat_write_header" "ac_cv_func_avformat_write_header"
+if test "x$ac_cv_func_avformat_write_header" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVFORMAT_WRITE_HEADER 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_write_header
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_write_header" "ac_cv_func_av_write_header"
+if test "x$ac_cv_func_av_write_header" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_WRITE_HEADER 1
+_ACEOF
+
+fi
+done
+
+ac_fn_cxx_check_func "$LINENO" "av_write_trailer" "ac_cv_func_av_write_trailer"
+if test "x$ac_cv_func_av_write_trailer" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_write_trailer?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_freep" "ac_cv_func_av_freep"
+if test "x$ac_cv_func_av_freep" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_freep ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_free" "ac_cv_func_av_free"
+if test "x$ac_cv_func_av_free" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_free ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_new_stream" "ac_cv_func_av_new_stream"
+if test "x$ac_cv_func_av_new_stream" = xyes; then :
+
+else
+  as_fn_error $? "oops! av_new_stream ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_malloc" "ac_cv_func_av_malloc"
+if test "x$ac_cv_func_av_malloc" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_malloc ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_init_packet" "ac_cv_func_av_init_packet"
+if test "x$ac_cv_func_av_init_packet" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_init_packet ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_rescale_q" "ac_cv_func_av_rescale_q"
+if test "x$ac_cv_func_av_rescale_q" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_rescale_q ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "av_write_frame" "ac_cv_func_av_write_frame"
+if test "x$ac_cv_func_av_write_frame" = xyes; then :
+
+else
+  as_fn_error $? "oops! av_write_frame ?!?" "$LINENO" 5
+fi
+
+ac_fn_cxx_check_func "$LINENO" "avformat_alloc_context" "ac_cv_func_avformat_alloc_context"
+if test "x$ac_cv_func_avformat_alloc_context" = xyes; then :
+
+else
+  as_fn_error $? "oops! avformat_alloc_context ?!?" "$LINENO" 5
+fi
+
+for ac_func in img_convert
+do :
+  ac_fn_cxx_check_func "$LINENO" "img_convert" "ac_cv_func_img_convert"
+if test "x$ac_cv_func_img_convert" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_IMG_CONVERT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in sws_scale
+do :
+  ac_fn_cxx_check_func "$LINENO" "sws_scale" "ac_cv_func_sws_scale"
+if test "x$ac_cv_func_sws_scale" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SWS_SCALE 1
+_ACEOF
+
+fi
+done
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#define __STDC_CONSTANT_MACROS 1
+#include <stdlib.h>
+#ifdef HAVE_FFMPEG_AVCODEC_H
+# include <ffmpeg/avcodec.h>
+#endif
+#ifdef HAVE_LIBAVCODEC_AVCODEC_H
+# include <libavcodec/avcodec.h>
+#endif
+int x = AVMEDIA_TYPE_VIDEO;
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_avmedia_type_video="yes"
+else
+  ac_avmedia_type_video="no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+if test "$ac_avmedia_type_video" == "yes" ; then
+
+$as_echo "#define HAVE_AVMEDIA_TYPE_VIDEO 1" >>confdefs.h
+
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for avcodec_alloc_frame in -lavcodec" >&5
 $as_echo_n "checking for avcodec_alloc_frame in -lavcodec... " >&6; }
 if ${ac_cv_lib_avcodec_avcodec_alloc_frame+:} false; then :
@@ -8688,73 +9157,6 @@ $as_echo "$as_me: WARNING: libavformat not usable" >&2;}
 fi
 
 fi
-
-for ac_func in avformat_alloc_context
-do :
-  ac_fn_cxx_check_func "$LINENO" "avformat_alloc_context" "ac_cv_func_avformat_alloc_context"
-if test "x$ac_cv_func_avformat_alloc_context" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_AVFORMAT_ALLOC_CONTEXT 1
-_ACEOF
-
-fi
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for av_free in -lavutil" >&5
-$as_echo_n "checking for av_free in -lavutil... " >&6; }
-if ${ac_cv_lib_avutil_av_free+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lavutil  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char av_free ();
-int
-main ()
-{
-return av_free ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_avutil_av_free=yes
-else
-  ac_cv_lib_avutil_av_free=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avutil_av_free" >&5
-$as_echo "$ac_cv_lib_avutil_av_free" >&6; }
-if test "x$ac_cv_lib_avutil_av_free" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBAVUTIL 1
-_ACEOF
-
-  LIBS="-lavutil $LIBS"
-
-fi
-
-for ac_func in img_convert
-do :
-  ac_fn_cxx_check_func "$LINENO" "img_convert" "ac_cv_func_img_convert"
-if test "x$ac_cv_func_img_convert" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_IMG_CONVERT 1
-_ACEOF
-
-fi
-done
 
 
 

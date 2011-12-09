@@ -24,6 +24,9 @@
 /* Define to 1 if you have the `avio_close' function. */
 #undef HAVE_AVIO_CLOSE
 
+/* Define if AVMEDIA_TYPE_VIDEO enum exists. */
+#undef HAVE_AVMEDIA_TYPE_VIDEO
+
 /* Define to 1 if you have the `av_open_input_file' function. */
 #undef HAVE_AV_OPEN_INPUT_FILE
 

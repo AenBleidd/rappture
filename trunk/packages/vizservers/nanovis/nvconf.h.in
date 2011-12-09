@@ -9,11 +9,53 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Define to 1 if you have the `avcodec_decode_video' function. */
+#undef HAVE_AVCODEC_DECODE_VIDEO
+
+/* Define to 1 if you have the `avcodec_decode_video2' function. */
+#undef HAVE_AVCODEC_DECODE_VIDEO2
+
 /* Define to 1 if you have the `avformat_alloc_context' function. */
 #undef HAVE_AVFORMAT_ALLOC_CONTEXT
 
+/* Define to 1 if you have the `avformat_open_input' function. */
+#undef HAVE_AVFORMAT_OPEN_INPUT
+
+/* Define to 1 if you have the `avformat_write_header' function. */
+#undef HAVE_AVFORMAT_WRITE_HEADER
+
+/* Define to 1 if you have the `avio_close' function. */
+#undef HAVE_AVIO_CLOSE
+
+/* Define to 1 if you have the `avio_open' function. */
+#undef HAVE_AVIO_OPEN
+
+/* Define if AVMEDIA_TYPE_VIDEO enum exists. */
+#undef HAVE_AVMEDIA_TYPE_VIDEO
+
+/* Define to 1 if you have the `av_alloc_format_context' function. */
+#undef HAVE_AV_ALLOC_FORMAT_CONTEXT
+
+/* Define to 1 if you have the `av_dump_format' function. */
+#undef HAVE_AV_DUMP_FORMAT
+
+/* Define to 1 if you have the `av_guess_format' function. */
+#undef HAVE_AV_GUESS_FORMAT
+
+/* Define to 1 if you have the `av_open_input_file' function. */
+#undef HAVE_AV_OPEN_INPUT_FILE
+
+/* Define to 1 if you have the `av_set_parameters' function. */
+#undef HAVE_AV_SET_PARAMETERS
+
+/* Define to 1 if you have the `av_write_header' function. */
+#undef HAVE_AV_WRITE_HEADER
+
 /* Define to 1 if you have the <Cg/cgGL.h> header file. */
 #undef HAVE_CG_CGGL_H
+
+/* Define to 1 if you have the `dump_format' function. */
+#undef HAVE_DUMP_FORMAT
 
 /* Define to 1 if you have the <dx/dx.h> header file. */
 #undef HAVE_DX_DX_H
@@ -26,6 +68,9 @@
 
 /* Define to 1 if you have the <ffmpeg/avutil.h> header file. */
 #undef HAVE_FFMPEG_AVUTIL_H
+
+/* Define to 1 if you have the `guess_format' function. */
+#undef HAVE_GUESS_FORMAT
 
 /* Define to 1 if you have the `img_convert' function. */
 #undef HAVE_IMG_CONVERT
@@ -53,6 +98,9 @@
 
 /* Define to 1 if you have the `highgui' library (-lhighgui). */
 #undef HAVE_LIBHIGHGUI
+
+/* Define to 1 if you have the `swscale' library (-lswscale). */
+#undef HAVE_LIBSWSCALE
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -87,6 +135,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `sws_scale' function. */
+#undef HAVE_SWS_SCALE
+
 /* Define to 1 if you have the <sys/socket.h> header file. */
 #undef HAVE_SYS_SOCKET_H
 
@@ -101,6 +152,12 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `url_fclose' function. */
+#undef HAVE_URL_FCLOSE
+
+/* Define to 1 if you have the `url_fopen' function. */
+#undef HAVE_URL_FOPEN
 
 /* Define to 1 if you have the <vtkSmartPointer.h> header file. */
 #undef HAVE_VTKSMARTPOINTER_H
