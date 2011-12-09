@@ -59,6 +59,10 @@ AC_CHECK_FUNCS([sysinfo])
 AC_CHECK_HEADERS(sys/sysinfo.h)
 
 AC_CHECK_LIB(m, main,,AC_MSG_ERROR(librappture requires libm))
+
+AC_CHECK_LIB(ncurses, clrtoeol,,AC_MSG_ERROR([ncursers library missing?]))
+AC_CHECK_HEADERS(ncurses.h,,AC_MSG_WARN(ncurses headers missing ?))
+
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))
 AC_CHECK_HEADERS(algorithm,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(cctype,,AC_MSG_WARN(STL classes missing ?))
@@ -337,7 +341,6 @@ AC_CHECK_HEADERS([libswscale/swscale.h],[],[],
   #endif
 ]])
 
-
 HAVE_FFMPEG_LIBS=""
 if test "${with_ffmpeg}" != "no"; then
   if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
@@ -354,7 +357,7 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_LIB(avcodec, main,,AC_MSG_ERROR(librappture requires libavcodec))
   AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(librappture requires libavutil))
   AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(librappture requires libavformat))
-  AC_CHECK_LIB(swscale, main,,AC_MSG_ERROR(librappture requires libswscale))
+  AC_CHECK_LIB(swscale, main)
   AC_CHECK_FUNCS(avcodec_decode_video2)
   AC_CHECK_FUNCS(avcodec_decode_video)
   AC_CHECK_FUNCS(avformat_open_input)
@@ -376,8 +379,7 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_FUNC(avpicture_get_size,,
     AC_MSG_ERROR(oops! no avpicture_get_size ?!?))
   AC_CHECK_FUNC(avpicture_fill,,AC_MSG_ERROR(oops! no avpicture_fill ?!?))
-  AC_CHECK_FUNC(sws_getCachedContext,,
-    AC_MSG_ERROR(oops! no sws_getCachedContext ?!?))
+  AC_CHECK_FUNCS(sws_getCachedContext)
   AC_CHECK_FUNCS(img_convert)
   AC_CHECK_FUNCS(sws_scale)
   AC_TRY_COMPILE([
@@ -460,14 +462,21 @@ AC_SUBST(STLIB_LD)
 AC_SUBST(TCLSH)
 AC_SUBST(TCL_INC_SPEC)
 AC_SUBST(TCL_LIB_SPEC)
+AC_SUBST(TCL_CFLAGS_DEBUG)
+AC_SUBST(TCL_CFLAGS_OPTIMIZE)
+AC_SUBST(TCL_SHLIB_CFLAGS)
+AC_SUBST(TCL_SHLIB_LD)
+AC_SUBST(TCL_SHLIB_LDFLAGS)
+AC_SUBST(TCL_SHLIB_SUFFIX)
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_INC_SPEC)
 AC_SUBST(TK_LIB_SPEC)
-AC_SUBST(TCL_SHLIB_SUFFIX)
-AC_SUBST(TCL_SHLIB_LDFLAGS)
+AC_SUBST(TCL_CFLAGS_DEBUG)
 AC_SUBST(TCL_SHLIB_CFLAGS)
+AC_SUBST(TCL_SHLIB_SUFFIX)
 AC_SUBST(TCL_SHLIB_LD)
+AC_SUBST(TCL_SHLIB_LDFLAGS)
 AC_SUBST(TK_XLIBSW)
 AC_SUBST(TK_VERSION)
 AC_SUBST(VTKDIR)

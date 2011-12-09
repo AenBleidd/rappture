@@ -608,13 +608,15 @@ subdirs
 VTKDIR
 TK_VERSION
 TK_XLIBSW
-TCL_SHLIB_LD
-TCL_SHLIB_CFLAGS
-TCL_SHLIB_LDFLAGS
-TCL_SHLIB_SUFFIX
 TK_LIB_SPEC
 TK_INC_SPEC
 TCL_VERSION
+TCL_SHLIB_SUFFIX
+TCL_SHLIB_LDFLAGS
+TCL_SHLIB_LD
+TCL_SHLIB_CFLAGS
+TCL_CFLAGS_OPTIMIZE
+TCL_CFLAGS_DEBUG
 TCL_LIB_SPEC
 TCL_INC_SPEC
 SIZEOF_VOID_P
@@ -4910,6 +4912,70 @@ _ACEOF
 else
   as_fn_error $? "librappture requires libm" "$LINENO" 5
 fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for clrtoeol in -lncurses" >&5
+$as_echo_n "checking for clrtoeol in -lncurses... " >&6; }
+if ${ac_cv_lib_ncurses_clrtoeol+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lncurses  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char clrtoeol ();
+int
+main ()
+{
+return clrtoeol ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_ncurses_clrtoeol=yes
+else
+  ac_cv_lib_ncurses_clrtoeol=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ncurses_clrtoeol" >&5
+$as_echo "$ac_cv_lib_ncurses_clrtoeol" >&6; }
+if test "x$ac_cv_lib_ncurses_clrtoeol" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNCURSES 1
+_ACEOF
+
+  LIBS="-lncurses $LIBS"
+
+else
+  as_fn_error $? "ncursers library missing?" "$LINENO" 5
+fi
+
+for ac_header in ncurses.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "ncurses.h" "ac_cv_header_ncurses_h" "$ac_includes_default"
+if test "x$ac_cv_header_ncurses_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_NCURSES_H 1
+_ACEOF
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: ncurses headers missing ?" >&5
+$as_echo "$as_me: WARNING: ncurses headers missing ?" >&2;}
+fi
+
+done
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lstdc++" >&5
 $as_echo_n "checking for main in -lstdc++... " >&6; }
@@ -9687,7 +9753,6 @@ fi
 done
 
 
-
 HAVE_FFMPEG_LIBS=""
 if test "${with_ffmpeg}" != "no"; then
   if [ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
@@ -9863,8 +9928,6 @@ _ACEOF
 
   LIBS="-lswscale $LIBS"
 
-else
-  as_fn_error $? "librappture requires libswscale" "$LINENO" 5
 fi
 
   for ac_func in avcodec_decode_video2
@@ -10003,12 +10066,16 @@ else
   as_fn_error $? "oops! no avpicture_fill ?!?" "$LINENO" 5
 fi
 
+  for ac_func in sws_getCachedContext
+do :
   ac_fn_cxx_check_func "$LINENO" "sws_getCachedContext" "ac_cv_func_sws_getCachedContext"
 if test "x$ac_cv_func_sws_getCachedContext" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SWS_GETCACHEDCONTEXT 1
+_ACEOF
 
-else
-  as_fn_error $? "oops! no sws_getCachedContext ?!?" "$LINENO" 5
 fi
+done
 
   for ac_func in img_convert
 do :
@@ -10081,6 +10148,13 @@ fi
 
 
 MAKE=${make_command}
+
+
+
+
+
+
+
 
 
 
