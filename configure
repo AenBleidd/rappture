@@ -9687,6 +9687,7 @@ fi
 done
 
 
+
 HAVE_FFMPEG_LIBS=""
 if test "${with_ffmpeg}" != "no"; then
   if [ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
@@ -9702,9 +9703,314 @@ if test "${with_ffmpeg}" != "no"; then
 $as_echo "#define BUILD_with_ffmpeg 1" >>confdefs.h
 
   fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavcodec" >&5
+$as_echo_n "checking for main in -lavcodec... " >&6; }
+if ${ac_cv_lib_avcodec_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavcodec  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avcodec_main=yes
+else
+  ac_cv_lib_avcodec_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avcodec_main" >&5
+$as_echo "$ac_cv_lib_avcodec_main" >&6; }
+if test "x$ac_cv_lib_avcodec_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVCODEC 1
+_ACEOF
+
+  LIBS="-lavcodec $LIBS"
+
+else
+  as_fn_error $? "librappture requires libavcodec" "$LINENO" 5
 fi
 
-for ac_func in img_convert
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavutil" >&5
+$as_echo_n "checking for main in -lavutil... " >&6; }
+if ${ac_cv_lib_avutil_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavutil  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avutil_main=yes
+else
+  ac_cv_lib_avutil_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avutil_main" >&5
+$as_echo "$ac_cv_lib_avutil_main" >&6; }
+if test "x$ac_cv_lib_avutil_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVUTIL 1
+_ACEOF
+
+  LIBS="-lavutil $LIBS"
+
+else
+  as_fn_error $? "librappture requires libavutil" "$LINENO" 5
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lavformat" >&5
+$as_echo_n "checking for main in -lavformat... " >&6; }
+if ${ac_cv_lib_avformat_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lavformat  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_avformat_main=yes
+else
+  ac_cv_lib_avformat_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_avformat_main" >&5
+$as_echo "$ac_cv_lib_avformat_main" >&6; }
+if test "x$ac_cv_lib_avformat_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBAVFORMAT 1
+_ACEOF
+
+  LIBS="-lavformat $LIBS"
+
+else
+  as_fn_error $? "librappture requires libavformat" "$LINENO" 5
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lswscale" >&5
+$as_echo_n "checking for main in -lswscale... " >&6; }
+if ${ac_cv_lib_swscale_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lswscale  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_swscale_main=yes
+else
+  ac_cv_lib_swscale_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_swscale_main" >&5
+$as_echo "$ac_cv_lib_swscale_main" >&6; }
+if test "x$ac_cv_lib_swscale_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSWSCALE 1
+_ACEOF
+
+  LIBS="-lswscale $LIBS"
+
+else
+  as_fn_error $? "librappture requires libswscale" "$LINENO" 5
+fi
+
+  for ac_func in avcodec_decode_video2
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_decode_video2" "ac_cv_func_avcodec_decode_video2"
+if test "x$ac_cv_func_avcodec_decode_video2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_DECODE_VIDEO2 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in avcodec_decode_video
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_decode_video" "ac_cv_func_avcodec_decode_video"
+if test "x$ac_cv_func_avcodec_decode_video" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_DECODE_VIDEO 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in avformat_open_input
+do :
+  ac_fn_cxx_check_func "$LINENO" "avformat_open_input" "ac_cv_func_avformat_open_input"
+if test "x$ac_cv_func_avformat_open_input" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVFORMAT_OPEN_INPUT 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in av_open_input_file
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_open_input_file" "ac_cv_func_av_open_input_file"
+if test "x$ac_cv_func_av_open_input_file" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_OPEN_INPUT_FILE 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in avio_close
+do :
+  ac_fn_cxx_check_func "$LINENO" "avio_close" "ac_cv_func_avio_close"
+if test "x$ac_cv_func_avio_close" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVIO_CLOSE 1
+_ACEOF
+
+fi
+done
+
+  for ac_func in url_close
+do :
+  ac_fn_cxx_check_func "$LINENO" "url_close" "ac_cv_func_url_close"
+if test "x$ac_cv_func_url_close" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_URL_CLOSE 1
+_ACEOF
+
+fi
+done
+
+  ac_fn_cxx_check_func "$LINENO" "av_find_stream_info" "ac_cv_func_av_find_stream_info"
+if test "x$ac_cv_func_av_find_stream_info" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_find_stream_info?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avcodec_find_decoder" "ac_cv_func_avcodec_find_decoder"
+if test "x$ac_cv_func_avcodec_find_decoder" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_codec_find_decoder ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avcodec_open" "ac_cv_func_avcodec_open"
+if test "x$ac_cv_func_avcodec_open" = xyes; then :
+
+else
+  as_fn_error $? "oops! avcodec_open ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avcodec_alloc_frame" "ac_cv_func_avcodec_alloc_frame"
+if test "x$ac_cv_func_avcodec_alloc_frame" = xyes; then :
+
+else
+  as_fn_error $? "oops! no avcode_alloc_frame ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "av_rescale_q" "ac_cv_func_av_rescale_q"
+if test "x$ac_cv_func_av_rescale_q" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_rescale_q ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "av_read_frame" "ac_cv_func_av_read_frame"
+if test "x$ac_cv_func_av_read_frame" = xyes; then :
+
+else
+  as_fn_error $? "oops! av_read_frame ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "av_free" "ac_cv_func_av_free"
+if test "x$ac_cv_func_av_free" = xyes; then :
+
+else
+  as_fn_error $? "oops! no av_frame ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avcodec_default_release_buffer" "ac_cv_func_avcodec_default_release_buffer"
+if test "x$ac_cv_func_avcodec_default_release_buffer" = xyes; then :
+
+else
+  as_fn_error $? "oops! no avcode_default_release_buffer ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avpicture_get_size" "ac_cv_func_avpicture_get_size"
+if test "x$ac_cv_func_avpicture_get_size" = xyes; then :
+
+else
+  as_fn_error $? "oops! no avpicture_get_size ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "avpicture_fill" "ac_cv_func_avpicture_fill"
+if test "x$ac_cv_func_avpicture_fill" = xyes; then :
+
+else
+  as_fn_error $? "oops! no avpicture_fill ?!?" "$LINENO" 5
+fi
+
+  ac_fn_cxx_check_func "$LINENO" "sws_getCachedContext" "ac_cv_func_sws_getCachedContext"
+if test "x$ac_cv_func_sws_getCachedContext" = xyes; then :
+
+else
+  as_fn_error $? "oops! no sws_getCachedContext ?!?" "$LINENO" 5
+fi
+
+  for ac_func in img_convert
 do :
   ac_fn_cxx_check_func "$LINENO" "img_convert" "ac_cv_func_img_convert"
 if test "x$ac_cv_func_img_convert" = xyes; then :
@@ -9715,7 +10021,7 @@ _ACEOF
 fi
 done
 
-for ac_func in sws_scale
+  for ac_func in sws_scale
 do :
   ac_fn_cxx_check_func "$LINENO" "sws_scale" "ac_cv_func_sws_scale"
 if test "x$ac_cv_func_sws_scale" = xyes; then :
@@ -9726,6 +10032,7 @@ _ACEOF
 fi
 done
 
+fi
 
 
 

@@ -337,6 +337,7 @@ AC_CHECK_HEADERS([libswscale/swscale.h],[],[],
   #endif
 ]])
 
+
 HAVE_FFMPEG_LIBS=""
 if test "${with_ffmpeg}" != "no"; then
   if [[ \( "${ac_cv_header_ffmpeg_avcodec_h}" = "yes" -o \
@@ -350,10 +351,36 @@ if test "${with_ffmpeg}" != "no"; then
     HAVE_FFMPEG_LIBS="yes"
     AC_DEFINE(BUILD_with_ffmpeg, 1, [Build rappture with ffmpeg widgets])
   fi
+  AC_CHECK_LIB(avcodec, main,,AC_MSG_ERROR(librappture requires libavcodec))
+  AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(librappture requires libavutil))
+  AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(librappture requires libavformat))
+  AC_CHECK_LIB(swscale, main,,AC_MSG_ERROR(librappture requires libswscale))
+  AC_CHECK_FUNCS(avcodec_decode_video2)
+  AC_CHECK_FUNCS(avcodec_decode_video)
+  AC_CHECK_FUNCS(avformat_open_input)
+  AC_CHECK_FUNCS(av_open_input_file)
+  AC_CHECK_FUNCS(avio_close)
+  AC_CHECK_FUNCS(url_close)
+  AC_CHECK_FUNC(av_find_stream_info,, 
+  AC_MSG_ERROR(oops! no av_find_stream_info?!?))
+  AC_CHECK_FUNC(avcodec_find_decoder,,
+    AC_MSG_ERROR(oops! no av_codec_find_decoder ?!?))
+  AC_CHECK_FUNC(avcodec_open,,AC_MSG_ERROR(oops! avcodec_open ?!?))
+  AC_CHECK_FUNC(avcodec_alloc_frame,,
+    AC_MSG_ERROR(oops! no avcode_alloc_frame ?!?))
+  AC_CHECK_FUNC(av_rescale_q,,AC_MSG_ERROR(oops! no av_rescale_q ?!?))
+  AC_CHECK_FUNC(av_read_frame,,AC_MSG_ERROR(oops! av_read_frame ?!?))
+  AC_CHECK_FUNC(av_free,,AC_MSG_ERROR(oops! no av_frame ?!?))
+  AC_CHECK_FUNC(avcodec_default_release_buffer,,
+    AC_MSG_ERROR(oops! no avcode_default_release_buffer ?!?))
+  AC_CHECK_FUNC(avpicture_get_size,,
+    AC_MSG_ERROR(oops! no avpicture_get_size ?!?))
+  AC_CHECK_FUNC(avpicture_fill,,AC_MSG_ERROR(oops! no avpicture_fill ?!?))
+  AC_CHECK_FUNC(sws_getCachedContext,,
+    AC_MSG_ERROR(oops! no sws_getCachedContext ?!?))
+  AC_CHECK_FUNCS(img_convert)
+  AC_CHECK_FUNCS(sws_scale)
 fi
-
-AC_CHECK_FUNCS(img_convert)
-AC_CHECK_FUNCS(sws_scale)
 
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)

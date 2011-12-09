@@ -57,10 +57,11 @@
 #if LIBAVUTIL_VERSION_MAJOR < 51
 #define AVMEDIA_TYPE_VIDEO	CODEC_TYPE_VIDEO
 #define AV_PKT_FLAG_KEY		PKT_FLAG_KEY		
-#define avio_close		url_fclose
-#define avformat_open_input	av_open_input_file
 #endif	/* LIBAVUTIL_VERSION_MAJOR */
 
+#ifndef HAVE_AVIO_CLOSE
+#define avio_close		url_fclose
+#endif
 
 /*
  * Each video object is represented by the following data:
@@ -342,15 +343,15 @@ VideoModeRead(vidPtr)
     /*
      * Open the video stream from that file.
      */
-#if LIBAVUTIL_VERSION_MAJOR < 51
-    if (av_open_input_file(&vidPtr->pFormatCtx, vidPtr->fileName,
-            NULL, 0, NULL) != 0) {
-        return -3;
-    }
-#else
+#ifdef HAVE_AVFORMAT_OPEN_INPUT
     if (avformat_open_input(&vidPtr->pFormatCtx, vidPtr->fileName, NULL, 
 	NULL) != 0) {
 	return -3;
+    }
+#else
+    if (av_open_input_file(&vidPtr->pFormatCtx, vidPtr->fileName,
+            NULL, 0, NULL) != 0) {
+        return -3;
     }
 #endif
     if (av_find_stream_info(vidPtr->pFormatCtx) < 0) {
@@ -714,16 +715,15 @@ VideoNextFrame(vidPtr)
                     /* save pts so we can grab it again in VideoAvGetBuffer */
                     global_video_pkt_pts = packet.pts;
 
-#ifdef FFMPEG_AVCODEC_H
-                    // old avcodec decode video function
-                    avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
-                        &frameFinished, packet.data, packet.size);
-#else
+#ifdef HAVE_AVCODEC_DECODE_VIDEO2
                     // new avcodec decode video function
                     avcodec_decode_video2(vcodecCtx, vidPtr->pFrameYUV,
                         &frameFinished, &packet);
+#else
+                    // old avcodec decode video function
+                    avcodec_decode_video(vcodecCtx, vidPtr->pFrameYUV,
+                        &frameFinished, packet.data, packet.size);
 #endif
-
                     if (packet.dts == AV_NOPTS_VALUE
                           && vidPtr->pFrameYUV->opaque
                           && *(uint64_t*)vidPtr->pFrameYUV->opaque != AV_NOPTS_VALUE) {
