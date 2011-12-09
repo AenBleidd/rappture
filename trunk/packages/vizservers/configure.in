@@ -288,7 +288,7 @@ CPPFLAGS=$save_CPPFLAGS
 AC_CHECK_LIB(avcodec, main,,AC_MSG_ERROR(requires libavcodec))
 AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(requires libavutil))
 AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(requires libavformat))
-AC_CHECK_LIB(swscale, main,,AC_MSG_ERROR(requires libswscale))
+AC_CHECK_LIB(swscale, main)
 AC_CHECK_FUNCS(avcodec_decode_video2)
 AC_CHECK_FUNCS(avcodec_decode_video)
 AC_CHECK_FUNCS(avformat_open_input)

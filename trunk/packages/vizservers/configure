@@ -8709,8 +8709,6 @@ _ACEOF
 
   LIBS="-lswscale $LIBS"
 
-else
-  as_fn_error $? "requires libswscale" "$LINENO" 5
 fi
 
 for ac_func in avcodec_decode_video2
