@@ -1226,7 +1226,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    abort();
 	}
         Rappture::Outcome context;
-	sleep(30);
 #if ISO_TEST
         volPtr = load_volume_stream2(context, tag, fdata);
 #else

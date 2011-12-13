@@ -87,7 +87,10 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
     }
     scale = 1.0 / (vmax - vmin);
     for (i = 0; i < nPoints; i++) {
+#ifdef notdef
 	sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
+#endif
+	sprintf(mesg, "%g\n", array[i]);
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
     free(array);
@@ -191,7 +194,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		return TCL_ERROR;
 	    }
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
-		" items %d data follows", &nPoints) == 1) {
+		" %*s %d data follows", &nPoints) == 1) {
 #ifdef notdef
 	    fprintf(stderr, "found class array type rank 0 nPoints=%d\n", 
 		nPoints);
