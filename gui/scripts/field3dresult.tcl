@@ -82,9 +82,12 @@ itcl::body Rappture::Field3DResult::constructor {args} {
                 }
             }
             "vtkvolume" {
+		catch {
                 itk_component add renderer {
                     Rappture::VtkVolumeViewer $itk_interior.ren $servers
                 }
+		} errs
+		puts stderr errs=$errs
             }
             "vtkstreamlines" {
                 itk_component add renderer {

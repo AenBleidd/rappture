@@ -1024,6 +1024,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
 	    } else {
 		SendCmd "dataset visible 0 $tag"
 	    }
+	    break
         }
     }
     if {"" != $_first} {
@@ -1072,6 +1073,18 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
 	    set _fields($name) [list $title $units]
 	}
 	foreach { name title units } [$_first hints scalars] {
+	    set _scalarFields($title) $name
+	    $itk_component(field) choices insert end "$name" "$title"
+	    $itk_component(fieldmenu) add radiobutton -label "$title" \
+		-value $title -variable [itcl::scope _currentField] \
+		-selectcolor red \
+		-activebackground black \
+		-activeforeground white \
+		-font "Arial 8" \
+		-command [itcl::code $this Combo invoke]
+	    set _fields($name) [list $title $units]
+	}
+	foreach { name title units } { default Default ??? } {
 	    set _scalarFields($title) $name
 	    $itk_component(field) choices insert end "$name" "$title"
 	    $itk_component(fieldmenu) add radiobutton -label "$title" \
@@ -1458,9 +1471,9 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
 		return
 	    }
 	    foreach dataset [CurrentDatasets -visible] {
-		puts stderr "volume colormode $_colorMode ${name} $dataset"
+		#puts stderr "volume colormode $_colorMode ${name} $dataset"
 		puts stderr "cutplane colormode $_colorMode ${name} $dataset"
-		SendCmd "volume colormode $_colorMode ${name} $dataset"
+		#SendCmd "volume colormode $_colorMode ${name} $dataset"
 		SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
 	    set _legendPending 1
@@ -1756,10 +1769,16 @@ puts stderr colors=$colors
 	}
     }
     set cmap {}
-    for {set i 0} {$i < [llength $clist]} {incr i} {
-        set x [expr {double($i)/([llength $clist]-1)}]
-        set color [lindex $clist $i]
-        append cmap "$x [Color2RGB $color] "
+    set nColors [llength $clist]
+    if { $nColors == 1 } {
+        append cmap "0.0 [Color2RGB $colors] "
+        append cmap "1.0 [Color2RGB $colors] "
+    } else {
+	for {set i 0} {$i < [llength $clist]} {incr i} {
+	    set x [expr {double($i)/([llength $clist]-1)}]
+	    set color [lindex $clist $i]
+	    append cmap "$x [Color2RGB $color] "
+	}
     }
     return $cmap
 }
@@ -1779,6 +1798,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
     set max $_settings(volume-opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
+    set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
 }
 
@@ -1932,7 +1952,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 	"grey-to-blue" 	     "grey-to-blue" 	\
 	"orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(palette) value "BCGYR"
+    $itk_component(palette) value "nanohub"
     bind $inner.palette <<Value>> \
 	[itcl::code $this AdjustSetting volume-palette]
 

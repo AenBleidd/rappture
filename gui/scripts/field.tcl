@@ -586,6 +586,7 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2dx}
     catch {unset _comp2dims}
     catch {unset _comp2style}
+    array unset _comp2volume
     array unset _comp2vtkstreamlines
     array unset _comp2unirect2d
     array unset _comp2unirect3d
@@ -820,14 +821,14 @@ itcl::body Rappture::Field::_build {} {
 	    set data [$_field get -decode no $cname.dx]
             set data [Rappture::encoding::decode -as zb64 $data]
 	    if 1 {
-	    set file "/tmp/junk.dx"
+	    set file "/tmp/$cname.dx"
 	    set f [open $file "w"]
 	    puts $f $data
 	    close $f
 	    }
 	    set data [Rappture::ConvertDxToVtk $data]
 	    if 1 {
-	    set file "/tmp/junk.vtk"
+	    set file "/tmp/$cname.vtk"
 	    set f [open $file "w"]
 	    puts $f $data
 	    close $f
