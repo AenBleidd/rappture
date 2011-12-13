@@ -3074,7 +3074,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     if (objc == 9) {
         const char *dataSetName = Tcl_GetString(objv[8]);
         if (!g_renderer->renderColorMap(colorMapName, dataSetName, legendType, fieldName, title,
-                                        range, width, height, numLabels, imgData)) {
+                                        range, width, height, true, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" or dataset \"",
                              dataSetName, "\" was not found", (char*)NULL);
@@ -3082,7 +3082,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else {
         if (!g_renderer->renderColorMap(colorMapName, "all", legendType, fieldName, title,
-                                        range, width, height, numLabels, imgData)) {
+                                        range, width, height, true, numLabels, imgData)) {
             Tcl_AppendResult(interp, "Color map \"",
                              colorMapName, "\" was not found", (char*)NULL);
             return TCL_ERROR;
