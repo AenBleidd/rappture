@@ -1752,7 +1752,7 @@ puts stderr colors=$colors
 	    set clist "white yellow green cyan blue magenta"
 	}
 	default {
-	    set clist $colors
+	    set clist [split $colors :]
 	}
     }
     set cmap {}
@@ -1804,6 +1804,7 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkVolumeViewer::limits { dataobj } {
+    return
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
 	set tag $dataobj-$comp
@@ -2594,3 +2595,4 @@ itcl::body Rappture::VtkVolumeViewer::Combo {option} {
         }
     }
 }
+
