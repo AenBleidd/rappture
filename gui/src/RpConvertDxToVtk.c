@@ -52,9 +52,15 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
     int i;
     const char *p;
     char mesg[2000];
+    float *array, scale, vmin, vmax;
 
     nValues = 0;
     p = *stringPtr;
+    array = malloc(sizeof(float) * nPoints);
+    if (array == NULL) {
+	return TCL_ERROR;
+    }
+    vmin = FLT_MAX, vmax = -FLT_MAX;
     for (i = 0; i < nPoints; i++) {
 	double value;
 	char *nextPtr;
@@ -71,9 +77,20 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
 	    return TCL_ERROR;
 	}
 	p = nextPtr;
-	sprintf(mesg, "%.15g\n", value);
+	array[i] = value;
+	if (value < vmin) {
+	    vmin = value;
+	} 
+	if (value > vmax) {
+	    vmax = value;
+	}
+    }
+    scale = 1.0 / (vmax - vmin);
+    for (i = 0; i < nPoints; i++) {
+	sprintf(mesg, "%g\n", (array[i] - vmin) * scale);
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
+    free(array);
     *stringPtr = p;
     return TCL_OK;
 }
@@ -96,7 +113,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int length, nComponents, nValues, nPoints;
     char *name;
 
-    name = "myScalar";
+    name = "myScalars";
     nComponents = nPoints = 0;
     delta[0] = delta[1] = delta[2] = 0.0; /* Suppress compiler warning. */
     origin[0] = origin[1] = origin[2] = 0.0; /* May not have an origin line. */
@@ -108,6 +125,10 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
     string = Tcl_GetStringFromObj(objv[1], &length);
+    if (strncmp("<ODX>", string, 5) == 0) {
+	string += 5;
+	length -= 5;
+    }
     pointsObjPtr = Tcl_NewStringObj("", -1);
     for (p = string, pend = p + length; p < pend; /*empty*/) {
 	char *line;

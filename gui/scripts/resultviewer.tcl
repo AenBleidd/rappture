@@ -205,7 +205,6 @@ itcl::body Rappture::ResultViewer::plot {option args} {
 # new data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
-    puts stderr "ResultViewer _plotAdd info class [$dataobj info class]"
     switch -- [$dataobj info class] {
         ::Rappture::DataTable {
             set mode "datatable"
@@ -220,8 +219,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
             if {![info exists _mode2widget($mode)]} {
 		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
                 set w $itk_interior.vtkviewer
-		catch { Rappture::VtkViewer $w $servers } errs
-		puts stderr errs=$errs
+		Rappture::VtkViewer $w $servers
                 set _mode2widget($mode) $w
             }
         }
@@ -252,7 +250,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         }
         ::Rappture::Field {
             set dims [lindex [lsort [$dataobj components -dimensions]] end]
-	    puts stderr "ResultViewer in Field dims=$dims"
             switch -- $dims {
                 1D {
                     set mode "xy"
@@ -288,7 +285,6 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 3D {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
-			puts stderr "type=$type"
                         switch -- [$dataobj type] {
 			    "vtk" {
 				set fmt "vtk"
