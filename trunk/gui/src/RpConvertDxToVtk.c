@@ -94,7 +94,9 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     double origin[3];
     int count[3];
     int length, nComponents, nValues, nPoints;
+    char *name;
 
+    name = "myScalar";
     nComponents = nPoints = 0;
     delta[0] = delta[1] = delta[2] = 0.0; /* Suppress compiler warning. */
     origin[0] = origin[1] = origin[2] = 0.0; /* May not have an origin line. */
@@ -197,7 +199,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
 
-    objPtr = Tcl_NewStringObj("vtk DataFile Version 2.0\n", -1);
+    objPtr = Tcl_NewStringObj("# vtk DataFile Version 2.0\n", -1);
     Tcl_AppendToObj(objPtr, "Converted from DX file\n", -1);
     Tcl_AppendToObj(objPtr, "ASCII\n", -1);
     Tcl_AppendToObj(objPtr, "DATASET STRUCTURED_POINTS\n", -1);
@@ -208,6 +210,10 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     sprintf(mesg, "SPACING %g %g %g\n", delta[0], delta[1], delta[2]);
     Tcl_AppendToObj(objPtr, mesg, -1);
     sprintf(mesg, "POINT_DATA %d\n", nPoints);
+    Tcl_AppendToObj(objPtr, mesg, -1);
+    sprintf(mesg, "SCALARS %s float 1\n", name);
+    Tcl_AppendToObj(objPtr, mesg, -1);
+    sprintf(mesg, "LOOKUP_TABLE default\n");
     Tcl_AppendToObj(objPtr, mesg, -1);
     Tcl_AppendObjToObj(objPtr, pointsObjPtr);
     Tcl_DecrRefCount(pointsObjPtr);

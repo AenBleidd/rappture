@@ -1002,6 +1002,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     set _limits(zmin) ""
     set _limits(zmax) ""
     set _first ""
+
     foreach dataobj [get -objects] {
 	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
 	    set _first $dataobj
@@ -1803,7 +1804,6 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
 }
 
 itcl::body Rappture::VtkVolumeViewer::limits { dataobj } {
-    return
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
 	set tag $dataobj-$comp

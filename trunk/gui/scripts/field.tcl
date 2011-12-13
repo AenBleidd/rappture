@@ -203,6 +203,9 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
     if {[info exists _comp2dx($what)]} {
         return ""  ;# no mesh -- it's embedded in the value data
     }
+    if {[info exists _comp2vtkvolume($what)]} {
+        return ""  ;# no mesh -- it's embedded in the value data
+    }
     if {[info exists _comp2unirect2d($what)]} {
         set mobj [lindex $_comp2unirect2d($what) 0]
         return [$mobj mesh]
@@ -263,6 +266,9 @@ itcl::body Rappture::Field::blob {{what -overall}} {
     }
     if { [info exists _comp2vtk($what)] } {
         return ""
+    }
+    if { [info exists _comp2vtkvolume($what)] } {
+        return $_comp2vtkvolume($what)
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
 	# Return the contents of the vtk file.
@@ -820,6 +826,12 @@ itcl::body Rappture::Field::_build {} {
 	    close $f
 	    }
 	    set data [Rappture::ConvertDxToVtk $data]
+	    if 1 {
+	    set file "/tmp/junk.vtk"
+	    set f [open $file "w"]
+	    puts $f $data
+	    close $f
+	    }
 	    set _comp2vtkvolume($cname) $data
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
