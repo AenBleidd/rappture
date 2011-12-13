@@ -268,6 +268,7 @@ public:
                         std::string& title,
                         double range[2],
                         int width, int height,
+                        bool opaque,
                         int numLabels,
                         vtkUnsignedCharArray *imgData);
 
@@ -278,6 +279,7 @@ public:
                         std::string& title,
                         double range[2],
                         int width, int height,
+                        bool opaque,
                         int numLabels,
                         vtkUnsignedCharArray *imgData);
 
@@ -287,6 +289,7 @@ public:
                         std::string& title,
                         double range[2],
                         int width, int height,
+                        bool opaque,
                         int numLabels,
                         vtkUnsignedCharArray *imgData);
 

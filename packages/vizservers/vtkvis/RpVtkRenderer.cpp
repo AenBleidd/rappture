@@ -1099,6 +1099,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                               std::string& title,
                               double range[2],
                               int width, int height,
+                              bool opaque,
                               int numLabels,
                               vtkUnsignedCharArray *imgData)
 {
@@ -1109,7 +1110,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
             return renderColorMap(id, dataSetID, legendType,
                                   NULL,
                                   DataSet::POINT_DATA,
-                                  title, range, width, height, numLabels, imgData);
+                                  title, range, width, height, opaque, numLabels, imgData);
         } else {
             dataSet = _dataSets.begin()->second;
         }
@@ -1125,12 +1126,12 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         return renderColorMap(id, dataSetID, legendType,
                               dataSet->getActiveScalarsName(),
                               dataSet->getActiveScalarsType(),
-                              title, range, width, height, numLabels, imgData);
+                              title, range, width, height, opaque, numLabels, imgData);
     } else {
         return renderColorMap(id, dataSetID, legendType,
                               dataSet->getActiveVectorsName(),
                               dataSet->getActiveVectorsType(),
-                              title, range, width, height, numLabels, imgData);
+                              title, range, width, height, opaque, numLabels, imgData);
     }
 }
 
@@ -1165,6 +1166,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                               std::string& title,
                               double range[2],
                               int width, int height,
+                              bool opaque,
                               int numLabels,
                               vtkUnsignedCharArray *imgData)
 {
@@ -1175,7 +1177,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
             return renderColorMap(id, dataSetID, legendType,
                                   NULL,
                                   DataSet::POINT_DATA,
-                                  title, range, width, height, numLabels, imgData);
+                                  title, range, width, height, opaque, numLabels, imgData);
         } else {
             dataSet = _dataSets.begin()->second;
         }
@@ -1195,7 +1197,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     return renderColorMap(id, dataSetID, legendType,
                           fieldName,
                           attrType,
-                          title, range, width, height, numLabels, imgData);
+                          title, range, width, height, opaque, numLabels, imgData);
 }
 
 /**
@@ -1228,6 +1230,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
                               std::string& title,
                               double range[2],
                               int width, int height,
+                              bool opaque,
                               int numLabels,
                               vtkUnsignedCharArray *imgData)
 {
@@ -1258,8 +1261,13 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     if (_scalarBarActor == NULL) {
         _scalarBarActor = vtkSmartPointer<vtkScalarBarActor>::New();
-        _scalarBarActor->UseOpacityOn();
         _legendRenderer->AddViewProp(_scalarBarActor);
+    }
+
+    if (opaque) {
+        _scalarBarActor->UseOpacityOff();
+    } else {
+        _scalarBarActor->UseOpacityOn();
     }
 
     if (width > height) {
