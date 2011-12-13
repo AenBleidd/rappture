@@ -285,61 +285,9 @@ SC_ENABLE_SYMBOLS
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
 #--------------------------------------------------------------------
 
-AC_CHECK_HEADERS(ffmpeg/avcodec.h,[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_FFMPEG_AVCODEC_H
-  # include <ffmpeg/avcodec.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS(libavcodec/avcodec.h,[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_LIBAVCODEC_AVCODEC_H
-  # include <libavcodec/avcodec.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([ffmpeg/avformat.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_FFMPEG_AVFORMAT_H
-  # include <ffmpeg/avformat.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([libavformat/avformat.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_LIBAVFORMAT_AVFORMAT_H
-  # include <libavformat/avformat.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([ffmpeg/avutil.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_FFMPEG_AVUTIL_H
-  # include <ffmpeg/avutil.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([libavutil/avutil.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_LIBAVUTIL_AVUTIL_H
-  # include <libavutil/avutil.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([ffmpeg/swscale.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_FFMPEG_SWSCALE_H
-  # include <ffmpeg/swscale.h>
-  #endif
-]])
-
-AC_CHECK_HEADERS([libswscale/swscale.h],[],[],
-[[#define __STDC_CONSTANT_MACROS 1
-  #ifdef HAVE_LIBSWSCALE_SWSCALE_H
-  # include <libswscale/swscale.h>
-  #endif
-]])
+AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
+#define __STDC_CONSTANT_MACROS 1
+])
 
 HAVE_FFMPEG_LIBS=""
 if test "${with_ffmpeg}" != "no"; then
