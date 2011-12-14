@@ -473,7 +473,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
 			    if { [$dataobj hints type] == "contour" } {
 				set mode "vtkcontour" 
 			    } else {
-				set mode "heightmap"
+				set mode "vtkheightmap"
 			    }
                         } else {
                             set mode "vtk"

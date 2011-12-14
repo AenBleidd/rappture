@@ -266,7 +266,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
 			    if { [$dataobj hints type] == "contour" } {
 				set resultMode "vtkcontour" 
 			    } else {
-				set resultMode "heightmap"
+				set resultMode "vtkheightmap"
 			    }
                         } else {
                             set resultMode "vtk"

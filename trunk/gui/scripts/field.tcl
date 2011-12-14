@@ -695,15 +695,20 @@ itcl::body Rappture::Field::_build {} {
             if {[$_xmlobj element $path] != ""} {
                 set element [$_xmlobj element -as type $path]
                 if { $element == "unirect2d" } {
+		    global env
                     set _comp2dims($cname) "2D"
                     set _comp2unirect2d($cname) \
                         [Rappture::Unirect2d \#auto $_xmlobj $_field $cname \
                              $extents]
                     set _comp2style($cname) [$_field get $cname.style]
+		    if { [info exists env(VTKHEIGHTMAP)] } {
+			set type "vtkheightmap"
+		    } else {
                     if {[$_field element $cname.flow] != ""} {
                         set _comp2flowhints($cname) \
                             [Rappture::FlowHints ::\#auto $_field $cname $_units]
                     }
+		    }
                     incr _counter
                 } elseif { $element == "unirect3d" } {
                     set _comp2dims($cname) "3D"
