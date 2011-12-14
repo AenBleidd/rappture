@@ -766,6 +766,24 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
             $m visible yes
         }
     }
+
+    # The colormap may have changed. Resync the slicers with the colormap.
+    set vols [CurrentVolumes -cutplanes]
+    SendCmd "volume data state $_settings($this-volume) $vols"
+
+    # Adjust the cutplane for only the first component in the topmost volume
+    # (i.e. the first volume designated in the field).
+    set vol [lindex $vols 0]
+    foreach axis {x y z} {
+	# Turn off cutplanes for all volumes
+	SendCmd "cutplane state 0 $axis"
+	if { $_settings($this-${axis}cutplane) } {
+	    # Turn on cutplane for this particular volume and set the position
+	    SendCmd "cutplane state 1 $axis $vol"
+	    set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
+	    SendCmd "cutplane position $pos $axis $vol"
+	}
+    }
 }
 
 #
@@ -908,16 +926,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     if { [info exists _serverVols($_first-$comp)] } {
         updatetransferfuncs
     }
-
-    # Sync the state of slicers
-    set vols [CurrentVolumes -cutplanes]
-    foreach axis {x y z} {
-        SendCmd "cutplane state $_settings($this-${axis}cutplane) $axis $vols"
-        set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-	set vol [lindex $vols 0]
-        SendCmd "cutplane position $pos $axis $vol"
-    }
-    SendCmd "volume data state $_settings($this-volume) $vols"
     set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
