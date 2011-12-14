@@ -926,6 +926,10 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     if { [info exists _serverVols($_first-$comp)] } {
         updatetransferfuncs
     }
+    foreach axis {x y z} {
+	# Turn off cutplanes for all volumes
+	SendCmd "cutplane state 0 $axis"
+    }
     set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
