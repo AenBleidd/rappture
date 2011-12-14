@@ -1019,7 +1019,8 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
-                set bytes [$dataobj blob $comp]
+                set bytes [ConvertToVtkData $dataobj $comp]
+		puts stderr contents=$bytes
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
@@ -1366,10 +1367,10 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		SendCmd "heightmap visible $bool $dataset"
             }
 	    if { $bool } {
-		Rappture::Tooltip::for $itk_component(volume) \
+		Rappture::Tooltip::for $itk_component(surface) \
 		    "Hide the surface"
 	    } else {
-		Rappture::Tooltip::for $itk_component(volume) \
+		Rappture::Tooltip::for $itk_component(surface) \
 		    "Show the surface"
 	    }
         }
@@ -1828,10 +1829,10 @@ itcl::body Rappture::VtkHeightmapViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
 	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(volume-opacity)] } {
-        set _settings(volume-opacity) $style(-opacity)
+    if { ![info exists _settings(surface-opacity)] } {
+        set _settings(surface-opacity) $style(-opacity)
     }
-    set max $_settings(volume-opacity)
+    set max $_settings(surface-opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
@@ -1939,7 +1940,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
         -icon [Rappture::icon volume-on]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.volume \
+    checkbutton $inner.surface \
         -text "Show Surface" \
         -variable [itcl::scope _settings(surface-visible)] \
         -command [itcl::code $this AdjustSetting surface-visible] \
@@ -2018,14 +2019,14 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
 	[itcl::code $this AdjustSetting surface-palette]
 
     blt::table $inner \
-        0,0 $inner.volume    -anchor w -pady 2 \
+        0,0 $inner.surface    -anchor w -pady 2 \
         1,0 $inner.wireframe -anchor w -pady 2 \
         2,0 $inner.lighting  -anchor w -pady 2 \
         3,0 $inner.edges     -anchor w -pady 2 \
         4,0 $inner.opacity_l -anchor w -pady 2 \
         5,0 $inner.opacity   -fill x   -pady 2 \
-        6,0 $inner.density_l   -anchor w -pady 2 -cspan 2 \
-        6,0 $inner.density     -fill x   -pady 2 -cspan 2 \
+        6,0 $inner.numcontours_l   -anchor w -pady 2 -cspan 2 \
+        6,0 $inner.numcontours     -fill x   -pady 2 -cspan 2 \
         7,0 $inner.field_l     -anchor w -pady 2  \
         7,1 $inner.field       -anchor w -pady 2  \
         8,0 $inner.palette_l   -anchor w -pady 2  \
@@ -2342,8 +2343,9 @@ itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-	    #set contents [ConvertToVtkData $dataobj $comp]
-	    set contents [$dataobj blob $comp]
+	    set contents [ConvertToVtkData $dataobj $comp]
+	    puts stderr contents=$contents
+	    #set contents [$dataobj vtkdata $comp]
 	    append bytes "$contents\n\n"
         }
     }
@@ -2432,9 +2434,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
 	SendCmd "cutplane axis $axis 0 $tag"
     }
 
-    SendCmd "polydata add $tag"
     SendCmd "heightmap edges $settings(-edges) $tag"
-    set _settings(volume-edges) $settings(-edges)
+    set _settings(surface-edges) $settings(-edges)
     SendCmd "heightmap lighting $settings(-lighting) $tag"
     set _settings(surface-lighting) $settings(-lighting)
     SendCmd "heightmap linecolor [Color2RGB $settings(-edgecolor)] $tag"

@@ -56,11 +56,12 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     }
     array set flags $args
     set servers ""
+    puts stderr modeflags=$flags(-mode)
     switch -- $flags(-mode) {
 	"auto" - "heightmap" - "flowvis" {
 	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
 	}
-	"vtkcontour" {
+	"vtkcontour" - "vtkheightmap" {
 	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
 	}
 	"vtk" {
@@ -75,6 +76,11 @@ itcl::body Rappture::Field2DResult::constructor {args} {
             "auto" - "heightmap" {
                 itk_component add renderer {
                     Rappture::HeightmapViewer $itk_interior.ren $servers 
+                }
+            }
+            "vtkheightmap" {
+                itk_component add renderer {
+                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers 
                 }
             }
             "vtkcontour" {
