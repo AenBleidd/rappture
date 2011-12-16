@@ -27,6 +27,7 @@ SCRIPTS	= \
 		$(srcdir)/vtkcontour-test \
 		$(srcdir)/vtkstreamlines-test \
 		$(srcdir)/vtkviewer-test \
+		$(srcdir)/vtkvolume-test \
 		$(srcdir)/flowvis-test \
 		$(srcdir)/rpdiff \
 		rappture \
