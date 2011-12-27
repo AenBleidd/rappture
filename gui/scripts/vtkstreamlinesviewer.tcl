@@ -13,8 +13,7 @@
 # ======================================================================
 package require Itk
 package require BLT
-#package require Img
-package require vtk
+package require Img
 
 option add *VtkStreamlinesViewer.width 4i widgetDefault
 option add *VtkStreamlinesViewer*cursor crosshair widgetDefault
@@ -169,6 +168,7 @@ itk::usual VtkStreamlinesViewer {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
+    package require vtk
 
     # Rebuild event
     $_dispatcher register !rebuild

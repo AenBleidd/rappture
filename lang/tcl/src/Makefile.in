@@ -27,6 +27,8 @@ LIB_SEARCH_DIRS = @LIB_SEARCH_DIRS@
 CFLAGS          = @CFLAGS@ -fPIC
 TCL_VERSION     = @TCL_VERSION@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
+HAVE_FFMPEG     = @HAVE_FFMPEG_LIBS@
+HAVE_NCURSES    = @HAVE_LIBNCURSES@
 
 CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
@@ -69,8 +71,12 @@ ifeq ($(WIN32),"")
    OBJS += RpWinResource.o
 endif
 
-FFMPEG          = @HAVE_FFMPEG_LIBS@
-ifeq ($(FFMPEG),yes)
+ifeq ($(HAVE_LIBCURSES),yes)
+   OBJS += RpCurses.o
+   LIBS += -lncurses 
+endif
+
+ifeq ($(HAVE_FFMPEG),yes)
     OBJS += RpVideoTclInterface.o
     LIBS += -L../../../src/objects -lRpObjects
 endif

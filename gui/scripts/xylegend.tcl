@@ -450,20 +450,23 @@ itcl::body Rappture::XyLegend::Average {} {
     blt::busy hold $itk_component(hull)
     update
     # Step 1. Get the x-values for each curve, then sort them to get the
-    #              unique values.
+    #	      unique values.
 
+    set labels {}
     foreach node $nodes {
         set elem [$_tree label $node]
+        set label [$_graph element cget $elem -label]
         $xcoords append [GetData $elem -x]
         set elements [linsert $elements 0 $elem]
+        set labels [linsert $labels 0 $label]
     }
     # Sort the abscissas keeping unique values.
     $xcoords sort -uniq
 
     # Step 2. Now for each curve, generate a cubic spline of that curve
-    #              and interpolate to get the corresponding y-values for each 
-    #              abscissa.  Normally the abscissa are the same, so we're
-    #              interpolation the knots.
+    #	      and interpolate to get the corresponding y-values for each 
+    #	      abscissa.  Normally the abscissa are the same, so we're
+    #	      interpolation the knots.
 
     set x [blt::vector create \#auto -command ""]
     set y [blt::vector create \#auto -command ""]
@@ -484,15 +487,15 @@ itcl::body Rappture::XyLegend::Average {} {
     $sum expr "$sum / [llength $elements]"
 
     # Step 3.  Create a new curve which is the average. Append it to the
-    #               the end.
+    #	       the end.
 
     set count 0
     while {[$_graph element exists avg$count] } {
         incr count
     }
-    set elements [lsort -dictionary $elements]
+    set labels [lsort -dictionary $labels]
     set name "avg$count" 
-    set label "Avg. [join $elements ,]"
+    set label "Avg. [join $labels ,]"
 
     # Don't use the vector because we don't know when it will be cleaned up.
 
@@ -520,8 +523,8 @@ itcl::body Rappture::XyLegend::Difference {} {
     set elem2 [$_tree label [lindex $nodes 1]]
     if { [info exists _diffelements($elem1)] && 
          [info exists _diffelements($elem2)] } {
-        array unset _diffelements;        # Toggle the difference.
-        return;                                
+        array unset _diffelements;	# Toggle the difference.
+        return;				
     }
     array unset _diffelements
     set x [blt::vector create \#auto -command ""]
@@ -561,6 +564,10 @@ itcl::body Rappture::XyLegend::Recolor {} {
         set im [$itk_component(legend) entry cget $node -icon]
         $_graph legend icon $elem $im
     }
+}
+
+itcl::body Rappture::XyLegend::UnmapHidden {} {
+    $_graph configure -unmaphiddenelements $_unmapHidden
 }
 
 itcl::body Rappture::XyLegend::SelectAll { } {
