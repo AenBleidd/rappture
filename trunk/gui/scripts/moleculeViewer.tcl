@@ -27,14 +27,20 @@ itcl::class Rappture::MoleculeViewer {
     itk_option define -backdrop backdrop Backdrop "black"
     itk_option define -device device Device ""
 
-    constructor {tool args} { # defined below }
-    destructor { # defined below }
+    constructor {tool args} { 
+        # defined below 
+    }
+    destructor { 
+        # defined below 
+    }
 
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
-    public method parameters {title args} { # do nothing }
-
+    public method snap {w h}
+    public method parameters {title args} { 
+        # do nothing 
+    }
     public method emblems {option}
     public method download {option args}
 

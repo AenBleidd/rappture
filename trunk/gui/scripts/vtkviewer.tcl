@@ -14,7 +14,6 @@
 package require Itk
 package require BLT
 #package require Img
-package require vtk
 
 option add *VtkViewer.width 4i widgetDefault
 option add *VtkViewer*cursor crosshair widgetDefault
@@ -64,7 +63,6 @@ itcl::class Rappture::VtkViewer {
     }
     public method scale {args}
 
-    protected variable _serverType "vtkvis"
     protected method Connect {}
     protected method CurrentDatasets {args}
     protected method Disconnect {}
@@ -154,6 +152,9 @@ itk::usual VtkViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::constructor {hostlist args} {
+    set _serverType "vtkvis"
+    package require vtk
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"

@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: sequenceresult - series of results forming an animation
 #
@@ -26,14 +27,19 @@ option add *SequenceResult.boldFont \
 itcl::class Rappture::SequenceResult {
     inherit itk::Widget
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
-
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
-    public method parameters {title args} { # do nothing }
+    public method parameters {title args} { 
+	# do nothing 
+    }
     public method download {option args}
 
     public method play {}
@@ -340,22 +346,22 @@ itcl::body Rappture::SequenceResult::play {} {
     if { [llength $_indices] == 0 } {
         return;				# No frames (i.e. no data).
     }
-    # cancel any existing animation
+    # Stop any existing animation.
     pause
 
-    # at the end? then restart fresh
+    # At the end? then restart fresh
     if {$_pos >= [llength $_indices]-1} {
         goto 0
     }
 
-    # toggle the button to "pause" mode
+    # Toggle the button to "pause" mode
     $itk_component(play) configure \
         -bitmap [Rappture::icon pause] \
         -command [itcl::code $this pause]
 
     global readyForNextFrame 
     set readyForNextFrame 1;		# By default, always ready
-    # schedule the first frame
+    # Schedule the first frame
     set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }

@@ -1280,6 +1280,9 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set names [lsort [$_clone axis names]] 
     $itk_component(axis_combo) choices delete 0 end
     foreach axis $names {
+	if { $axis == "z" } {
+	    continue
+	}
         if { ![$_clone axis cget $axis -hide] } {
             $itk_component(axis_combo) choices insert end $axis $axis
         }
