@@ -227,7 +227,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         zoom		1.0 
         xpan		0
         ypan		0
-        ortho		0
+        ortho		1
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -992,8 +992,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
     # Reset the camera and other view parameters
     #
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-    if {$_view(ortho)} {
+    $_arcball quaternion $q 
+    SendCmd "camera mode persp"
+   if {$_view(ortho)} {
         SendCmd "camera mode ortho"
     } else {
         SendCmd "camera mode persp"
@@ -1020,7 +1021,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [ConvertToVtkData $dataobj $comp]
-		puts stderr contents=$bytes
+		puts stderr [GetVtkData]
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
@@ -1081,6 +1082,18 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    set _fields($name) [list $title $units]
 	}
 	foreach { name title units } [$_first hints scalars] {
+	    set _scalarFields($title) $name
+	    $itk_component(field) choices insert end "$name" "$title"
+	    $itk_component(fieldmenu) add radiobutton -label "$title" \
+		-value $title -variable [itcl::scope _currentField] \
+		-selectcolor red \
+		-activebackground black \
+		-activeforeground white \
+		-font "Arial 8" \
+		-command [itcl::code $this Combo invoke]
+	    set _fields($name) [list $title $units]
+	}
+	foreach { name title units } { default Default ??? } {
 	    set _scalarFields($title) $name
 	    $itk_component(field) choices insert end "$name" "$title"
 	    $itk_component(fieldmenu) add radiobutton -label "$title" \
@@ -2330,7 +2343,7 @@ itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
     append out "ORIGIN 0 0 0 \n"
     append out "SPACING 1 1 1 \n"
     append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS field float 1 \n"
+    append out "SCALARS default float 1 \n"
     append out "LOOKUP_TABLE default \n"
     append out [join $values "\n"]
     append out "\n"
@@ -2344,7 +2357,6 @@ itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
 	    set contents [ConvertToVtkData $dataobj $comp]
-	    puts stderr contents=$contents
 	    #set contents [$dataobj vtkdata $comp]
 	    append bytes "$contents\n\n"
         }
@@ -2422,16 +2434,16 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     }
     array set settings $style
     SendCmd "heightmap add $tag"
-    SendCmd "cutplane add $tag"
-    SendCmd "cutplane edges 0 $tag"
-    SendCmd "cutplane wireframe 0 $tag"
-    SendCmd "cutplane lighting 1 $tag"
-    SendCmd "cutplane linewidth 1 $tag"
+    #SendCmd "cutplane add $tag"
+    #SendCmd "cutplane edges 0 $tag"
+    #SendCmd "cutplane wireframe 0 $tag"
+    #SendCmd "cutplane lighting 1 $tag"
+    #SendCmd "cutplane linewidth 1 $tag"
     #SendCmd "cutplane linecolor 1 1 1 $tag"
     #SendCmd "cutplane visible $tag"
     foreach axis { x y z } {
-	SendCmd "cutplane slice $axis 1.0 $tag"
-	SendCmd "cutplane axis $axis 0 $tag"
+	#SendCmd "cutplane slice $axis 1.0 $tag"
+	#SendCmd "cutplane axis $axis 0 $tag"
     }
 
     SendCmd "heightmap edges $settings(-edges) $tag"

@@ -265,8 +265,10 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                         if { [$dataobj isunirect2d] } {
 			    if { [$dataobj hints type] == "contour" } {
 				set resultMode "vtkcontour" 
-			    } else {
+			    } elseif { [info exists env(VTKHEIGHTMAP)] } {
 				set resultMode "vtkheightmap"
+			    } else {
+				set resultMode "heightmap"
 			    }
                         } else {
                             set resultMode "vtk"
