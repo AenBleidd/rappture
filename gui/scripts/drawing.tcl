@@ -74,19 +74,19 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-		set _types($elem) polydata
-	    }
+                set _types($elem) polydata
+            }
             streamlines* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-		set _types($elem) streamlines
-	    }
+                set _types($elem) streamlines
+            }
             spheres* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-		set _types($elem) spheres
+                set _types($elem) spheres
             }
         }
     }
@@ -94,7 +94,7 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
         group   about.group
         label   about.label
         color   about.color
-	camera	about.camera
+        camera  about.camera
         type    about.type
         xlabel  xaxis.label
         xdesc   xaxis.description
@@ -138,7 +138,7 @@ itcl::body Rappture::Drawing::destructor {} {
 # 
 # label -- 
 # 
-#	Returns the label of the named drawing element.
+#       Returns the label of the named drawing element.
 #
 itcl::body Rappture::Drawing::label { elem } {
     if { [info exists _labels($elem)] } {
@@ -150,7 +150,7 @@ itcl::body Rappture::Drawing::label { elem } {
 # 
 # type -- 
 # 
-#	Returns the type of the named drawing element.
+#       Returns the type of the named drawing element.
 #
 itcl::body Rappture::Drawing::type { elem } {
     if { [info exists _types($elem)] } {
@@ -162,7 +162,7 @@ itcl::body Rappture::Drawing::type { elem } {
 # 
 # style -- 
 # 
-#	Returns the style string of the named drawing element.
+#       Returns the style string of the named drawing element.
 #
 itcl::body Rappture::Drawing::style { elem } {
     if { [info exists _styles($elem)] } {
@@ -174,7 +174,7 @@ itcl::body Rappture::Drawing::style { elem } {
 # 
 # data -- 
 # 
-#	Returns the data of the named drawing element.
+#       Returns the data of the named drawing element.
 #
 itcl::body Rappture::Drawing::data { elem } {
     if { [info exists _data($elem)] } {
@@ -185,9 +185,9 @@ itcl::body Rappture::Drawing::data { elem } {
 
 # ----------------------------------------------------------------------
 # method values 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing::values { elem } {
     if { [info exists _data($elem)] } {
@@ -202,8 +202,8 @@ itcl::body Rappture::Drawing::components { args } {
 
 # ----------------------------------------------------------------------
 # method limits <axis>
-#	Returns a list {min max} representing the limits for the 
-#	specified axis.
+#       Returns a list {min max} representing the limits for the 
+#       specified axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Drawing::limits {which} {
     set min ""

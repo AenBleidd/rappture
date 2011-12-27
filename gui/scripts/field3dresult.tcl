@@ -55,20 +55,20 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     }
     array set flags $args
     switch -- $flags(-mode) {
-	"auto" - "nanovis" - "flowvis" {
-	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
-	}
-	"vtkcontour" - "vtkstreamlines" - "vtkvolume" - "vtkviewer"  {
-	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-	}
-	"vtk" {
-	    # Old vtk contour widget
-	    set servers ""
-	}
-	default {
-	    puts stderr "unknown render mode \"$flags(-mode)\""
-	}
-    }		
+        "auto" - "nanovis" - "flowvis" {
+            set servers [Rappture::VisViewer::GetServerList "nanovis"]
+        }
+        "vtkcontour" - "vtkstreamlines" - "vtkvolume" - "vtkviewer"  {
+            set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+        }
+        "vtk" {
+            # Old vtk contour widget
+            set servers ""
+        }
+        default {
+            puts stderr "unknown render mode \"$flags(-mode)\""
+        }
+    }           
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "nanovis" {
@@ -82,12 +82,12 @@ itcl::body Rappture::Field3DResult::constructor {args} {
                 }
             }
             "vtkvolume" {
-		catch {
+                catch {
                 itk_component add renderer {
                     Rappture::VtkVolumeViewer $itk_interior.ren $servers
                 }
-		} errs
-		puts stderr errs=$errs
+                } errs
+                puts stderr errs=$errs
             }
             "vtkstreamlines" {
                 itk_component add renderer {
@@ -97,7 +97,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
             default {
                 puts stderr "unknown render mode \"$flags(-mode)\""
             }
-        }		
+        }               
         pack $itk_component(renderer) -expand yes -fill both
 
         # can't connect to rendering farm?  then fall back to older viewer

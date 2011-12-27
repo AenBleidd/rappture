@@ -31,15 +31,15 @@ itcl::class Rappture::Unirect2d {
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _axisOrder	"x y"
-    private variable _xMax	0
-    private variable _xMin	0
-    private variable _xNum	0
-    private variable _yMax	0
-    private variable _yMin	0
-    private variable _yNum	0
-    private variable _compNum	1
-    private variable _values	"";	# BLT vector containing the z-values 
+    private variable _axisOrder "x y"
+    private variable _xMax      0
+    private variable _xMin      0
+    private variable _xNum      0
+    private variable _yMax      0
+    private variable _yMin      0
+    private variable _yNum      0
+    private variable _compNum   1
+    private variable _values    "";     # BLT vector containing the z-values 
     private variable _hints
 }
 
@@ -78,7 +78,7 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
         yscale  yaxis.scale
         ymin    yaxis.min
         ymax    yaxis.max
-	type	about.type
+        type    about.type
     } {
         set str [$m get $path]
         if {"" != $str} {
@@ -116,9 +116,9 @@ itcl::body Rappture::Unirect2d::destructor {} {
 
 # ----------------------------------------------------------------------
 # method blob 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::blob {} {
     set data "unirect2d"
@@ -139,9 +139,9 @@ itcl::body Rappture::Unirect2d::blob {} {
 
 # ----------------------------------------------------------------------
 # method mesh.old 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::mesh.old {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
@@ -159,9 +159,9 @@ itcl::body Rappture::Unirect2d::mesh.old {} {
 
 # ----------------------------------------------------------------------
 # method mesh
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::mesh {} {
     lappend out $_xMin $_xMax $_xNum $_yMin $_yMax $_yNum
@@ -170,9 +170,9 @@ itcl::body Rappture::Unirect2d::mesh {} {
 
 # ----------------------------------------------------------------------
 # method values 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::values {} {
     if { [$_values length] > 0 } {
@@ -183,8 +183,8 @@ itcl::body Rappture::Unirect2d::values {} {
 
 # ----------------------------------------------------------------------
 # method limits <axis>
-#	Returns a list {min max} representing the limits for the 
-#	specified axis.
+#       Returns a list {min max} representing the limits for the 
+#       specified axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::limits {which} {
     set min ""

@@ -39,9 +39,9 @@ itcl::class Rappture::FlowHints {
     private method GetPosition { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _boxes "";		# List of boxes for the flow.
-    private variable _particles "";	# List of particle injection planes.
-    private variable _hints;		# Array of settings for the flow.
+    private variable _boxes "";         # List of boxes for the flow.
+    private variable _particles "";     # List of particle injection planes.
+    private variable _hints;            # Array of settings for the flow.
     private variable _units ""
 }
 
@@ -54,15 +54,15 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
         return 
     }
     array set _hints {
-        "axis"		"x"
+        "axis"          "x"
         "description"   ""
-        "outline"	"on"
-        "position"	"0.0%"
-        "streams"	"on"
-        "arrows"	"off"
-        "volume"	"on"
-        "duration"	"1:00"
-        "speed"		"1x"
+        "outline"       "on"
+        "position"      "0.0%"
+        "streams"       "on"
+        "arrows"        "off"
+        "volume"        "on"
+        "duration"      "1:00"
+        "speed"         "1x"
     }
     set _units $units
     set f [$field element -as object $cname.flow]
@@ -83,13 +83,13 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
             "particles*" {
                 array unset data
                 array set data {
-                    "axis"	    "x"
-                    "color"	    "blue"
+                    "axis"          "x"
+                    "color"         "blue"
                     "description"   ""
-                    "hide"	    "no"
+                    "hide"          "no"
                     "label"         ""
-                    "position"	    "0.0%"
-                    "size"	    "1.2"
+                    "position"      "0.0%"
+                    "size"          "1.2"
                 }
                 set p [$f element -as object $child]
                 set data(name) [$f element -as id $child]
@@ -114,11 +114,11 @@ itcl::body Rappture::FlowHints::constructor {field cname units} {
             "box*" {
                 array unset data
                 array set data {
-                    "color"	    "green"
+                    "color"         "green"
                     "description"   ""
-                    "hide"	    "no"
-                    "label"	    ""
-                    "linewidth"	    "2"
+                    "hide"          "no"
+                    "label"         ""
+                    "linewidth"     "2"
                 }
                 set b [$f element -as object $child]
                 set name [$f element -as id $child]

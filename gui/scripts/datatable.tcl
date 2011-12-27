@@ -35,10 +35,10 @@ itcl::class Rappture::DataTable {
     public method hints {{key ""}}
 
     protected method Build {}
-    private variable _xmlobj ""  ;	# ref to lib obj with datatable data
-    private variable _datatable "";	# lib obj representing this datatable
+    private variable _xmlobj ""  ;      # ref to lib obj with datatable data
+    private variable _datatable "";     # lib obj representing this datatable
     private variable _columns ""
-    private variable _hints      ;	# cache of hints stored in XML
+    private variable _hints      ;      # cache of hints stored in XML
     private variable _tree ""
 }
 
@@ -131,9 +131,9 @@ itcl::body Rappture::DataTable::Build {} {
 
     # Sniff for column information: label, descriptions, and style
     foreach cname [$_datatable children -type "column"] {
-        set label	 [$_datatable get "$cname.label"]
+        set label        [$_datatable get "$cname.label"]
         set description  [$_datatable get "$cname.description"]
-        set style	 [$_datatable get "$cname.style"]
+        set style        [$_datatable get "$cname.style"]
         lappend _columns $label $description $style
     }
     set csvdata [$_datatable get csv]

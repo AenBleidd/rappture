@@ -297,10 +297,10 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         if {$params(-color) == "autoreset"} {
             set _autoColorI 0
         }
-	set color [lindex $itk_option(-autocolors) $_autoColorI]
+        set color [lindex $itk_option(-autocolors) $_autoColorI]
         if { "" == $color} { 
-	    set color black 
-	}
+            set color black 
+        }
         set params(-color) $color
         # set up for next auto color
         if {[incr _autoColorI] >= [llength $itk_option(-autocolors)]} {
@@ -355,10 +355,10 @@ itcl::body Rappture::XyResult::get {} {
     set top {}
     foreach obj $_dlist {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
-	    lappend top $obj
-	} else {
-	    lappend bottom $obj 
-	}
+            lappend top $obj
+        } else {
+            lappend bottom $obj 
+        }
     }
     set _dlist [concat $bottom $top]
     return $_dlist
@@ -437,14 +437,14 @@ itcl::body Rappture::XyResult::scale {args} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
                 foreach {min max} [$dataobj limits $axis$type] break
-		set amin [$dataobj hints ${axis}min]
-		set amax [$dataobj hints ${axis}max]
-		if { $amin != "" } {
-		    set min $amin
-		}
-		if { $amax != "" } {
-		    set max $amax
-		}
+                set amin [$dataobj hints ${axis}min]
+                set amax [$dataobj hints ${axis}max]
+                if { $amin != "" } {
+                    set min $amin
+                }
+                if { $amax != "" } {
+                    set max $amax
+                }
                 if {"" != $min && "" != $max} {
                     if {![info exists _limits($id-min)]} {
                         set _limits($id-min) $min
@@ -1498,13 +1498,13 @@ itcl::body Rappture::XyResult::GetLineMarkerOptions {style} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::XyResult::GetTextMarkerOptions {style} {
     array set textOptions {
-        "-color"	"-outline"
-        "-textcolor"	"-outline"
-        "-font"		"-font"
-        "-xoffset"	"-xoffset"
-        "-yoffset"	"-yoffset"
-        "-anchor"	"-anchor"
-        "-rotate"	"-rotate"
+        "-color"        "-outline"
+        "-textcolor"    "-outline"
+        "-font"         "-font"
+        "-xoffset"      "-xoffset"
+        "-yoffset"      "-yoffset"
+        "-anchor"       "-anchor"
+        "-rotate"       "-rotate"
     }
     set options {}
     foreach {name value} $style {
@@ -1525,13 +1525,13 @@ itcl::body Rappture::XyResult::GetTextMarkerOptions {style} {
 itcl::body Rappture::XyResult::GetAxes {dataobj} {
     # rebuild if needed, so we know about the axes
     if 0 {
-	# Don't do this. Given dataobj may be deleted in the rebuild
+        # Don't do this. Given dataobj may be deleted in the rebuild
 
-	# rebuild if needed, so we know about the axes
-	if {[$_dispatcher ispending !rebuild]} {
-	    $_dispatcher cancel !rebuild
-	    $_dispatcher event -now !rebuild
-	}
+        # rebuild if needed, so we know about the axes
+        if {[$_dispatcher ispending !rebuild]} {
+            $_dispatcher cancel !rebuild
+            $_dispatcher event -now !rebuild
+        }
     }
     # what is the x axis?  x? x2? x3? ...
     set xlabel [$dataobj hints xlabel]

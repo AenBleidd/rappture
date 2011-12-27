@@ -33,18 +33,18 @@ itcl::class Rappture::Unirect3d {
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
 
-    private variable _axisOrder	 "x y z"
-    private variable _xMax	 0
-    private variable _xMin	 0
-    private variable _xNum	 0;	# Number of points along x-axis.
-    private variable _yMax	 0
-    private variable _yMin	 0
-    private variable _yNum	 0;	# Number of points along y-axis.
-    private variable _zMax	 0
-    private variable _zMin	 0
-    private variable _zNum	 0;	# Number of points along z-axis.
-    private variable _compNum	 1;	# Number of components in values.
-    private variable _values	 "";	# BLT vector containing the z-values 
+    private variable _axisOrder  "x y z"
+    private variable _xMax       0
+    private variable _xMin       0
+    private variable _xNum       0;     # Number of points along x-axis.
+    private variable _yMax       0
+    private variable _yMin       0
+    private variable _yNum       0;     # Number of points along y-axis.
+    private variable _zMax       0
+    private variable _zMin       0
+    private variable _zNum       0;     # Number of points along z-axis.
+    private variable _compNum    1;     # Number of components in values.
+    private variable _values     "";    # BLT vector containing the z-values 
     private variable _hints
 }
 
@@ -88,9 +88,9 @@ itcl::body Rappture::Unirect3d::destructor {} {
 
 # ----------------------------------------------------------------------
 # method blob 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::blob {} {
     lappend data "unirect3d"
@@ -106,9 +106,9 @@ itcl::body Rappture::Unirect3d::blob {} {
 
 # ----------------------------------------------------------------------
 # method mesh 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::mesh {} {
     set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
@@ -130,9 +130,9 @@ itcl::body Rappture::Unirect3d::mesh {} {
 
 # ----------------------------------------------------------------------
 # method values 
-#	Returns a base64 encoded, gzipped Tcl list that represents the
-#	Tcl command and data to recreate the uniform rectangular grid 
-#	on the nanovis server.
+#       Returns a base64 encoded, gzipped Tcl list that represents the
+#       Tcl command and data to recreate the uniform rectangular grid 
+#       on the nanovis server.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::values {} {
     if { [$_values length] > 0 } {
@@ -143,8 +143,8 @@ itcl::body Rappture::Unirect3d::values {} {
 
 # ----------------------------------------------------------------------
 # method limits <axis>
-#	Returns a list {min max} representing the limits for the 
-#	specified axis.
+#       Returns a list {min max} representing the limits for the 
+#       specified axis.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::limits {which} {
     set min ""

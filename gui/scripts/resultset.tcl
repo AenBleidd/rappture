@@ -1086,7 +1086,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         lappend params "???"
     }
     if { $_active == "" } {
-	return;				# Nothing active. Don't do anything.
+        return;                         # Nothing active. Don't do anything.
     }
     eval lappend params [_getValues $_active all]
 
@@ -1519,9 +1519,9 @@ itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
                 if {$col == "xmlobj"} {
                     set val "#[expr {$which+1}]"
                 } else { 
-		    # Be careful giving singleton elements as the "columns"
-		    # argument to "Tuples::get". It is expecting a list.
-		    set val [lindex [$_results get -format [list $col] $which] 0]
+                    # Be careful giving singleton elements as the "columns"
+                    # argument to "Tuples::get". It is expecting a list.
+                    set val [lindex [$_results get -format [list $col] $which] 0]
                 }
                 if {[info exists label2val($val)]} {
                     return [list $val $label2val($val)]
@@ -1613,8 +1613,8 @@ itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
             set desc ""
             foreach col $_cntlInfo($this-all) {
                 set quantity $_cntlInfo($this-$col-label)
-		# Be careful giving singleton elements as the "columns"
-		# argument to "Tuples::get". It is expecting a list.
+                # Be careful giving singleton elements as the "columns"
+                # argument to "Tuples::get". It is expecting a list.
                 set val [lindex [$_results get -format [list $col] $index] 0]
                 if {$col == "xmlobj"} {
                     set num [lindex [$_results find -format xmlobj $val] 0]

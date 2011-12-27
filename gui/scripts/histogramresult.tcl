@@ -357,10 +357,10 @@ itcl::body Rappture::HistogramResult::get {} {
     set top {}
     foreach obj $_dlist {
         if {[info exists _dataobj2raise($obj)] && $_dataobj2raise($obj)} {
-	    lappend top $obj
-	} else {
-	    lappend bottom $obj 
-	}
+            lappend top $obj
+        } else {
+            lappend bottom $obj 
+        }
     }
     set _dlist [concat $bottom $top]
     return $_dlist
@@ -683,72 +683,72 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
         set label [$dataobj hints label]
         foreach {mapx mapy} [GetAxes $dataobj] break
         foreach comp [$dataobj components] {
-	    set xv [$dataobj mesh $comp]
-	    set yv [$dataobj values $comp]
-	    set zv [$dataobj widths $comp]
-	    if {$xv eq "" || $yv eq "" || $zv eq ""} {
-		continue
-	    }
-	    if {[info exists _dataobj2color($dataobj)]} {
-		set color $_dataobj2color($dataobj)
-	    } else {
-		set color [$dataobj hints color]
-		if {"" == $color} {
-		    set color black
-		}
-	    }
-	    if {[info exists _dataobj2width($dataobj)]} {
-		set lwidth $_dataobj2width($dataobj)
-	    } else {
-		set lwidth 2
-	    }
-	    if {[info exists _dataobj2dashes($dataobj)]} {
-		set dashes $_dataobj2dashes($dataobj)
-	    } else {
-		set dashes ""
-	    }
-	    if {([$xv length] <= 1) || ($lwidth == 0)} {
-		set sym square
-		set pixels 2
-	    } else {
-		set sym ""
-		set pixels 6
-	    }
-	    # Compute default bar width for histogram elements.
-	    if { [$zv length] == [$xv length] } {
-		foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-		    set elem "elem[incr count]"
-		    set _elem2dataobj($elem) $dataobj
-		    $g element create $elem -x $x -y $y -barwidth $z \
-			-label $label -foreground $color \
-			-mapx $mapx -mapy $mapy
-		}
-	    } else {
-		set r [blt::vector expr {max($xv) - min($xv)}]
-		set z [expr {$r / ([$xv length]-1) * 0.8}]
-		set elem "elem[incr count]"
-		set _elem2dataobj($elem) $dataobj
-		$g element create $elem -x $xv -y $yv -barwidth $z \
+            set xv [$dataobj mesh $comp]
+            set yv [$dataobj values $comp]
+            set zv [$dataobj widths $comp]
+            if {$xv eq "" || $yv eq "" || $zv eq ""} {
+                continue
+            }
+            if {[info exists _dataobj2color($dataobj)]} {
+                set color $_dataobj2color($dataobj)
+            } else {
+                set color [$dataobj hints color]
+                if {"" == $color} {
+                    set color black
+                }
+            }
+            if {[info exists _dataobj2width($dataobj)]} {
+                set lwidth $_dataobj2width($dataobj)
+            } else {
+                set lwidth 2
+            }
+            if {[info exists _dataobj2dashes($dataobj)]} {
+                set dashes $_dataobj2dashes($dataobj)
+            } else {
+                set dashes ""
+            }
+            if {([$xv length] <= 1) || ($lwidth == 0)} {
+                set sym square
+                set pixels 2
+            } else {
+                set sym ""
+                set pixels 6
+            }
+            # Compute default bar width for histogram elements.
+            if { [$zv length] == [$xv length] } {
+                foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+                    set elem "elem[incr count]"
+                    set _elem2dataobj($elem) $dataobj
+                    $g element create $elem -x $x -y $y -barwidth $z \
+                        -label $label -foreground $color \
+                        -mapx $mapx -mapy $mapy
+                }
+            } else {
+                set r [blt::vector expr {max($xv) - min($xv)}]
+                set z [expr {$r / ([$xv length]-1) * 0.8}]
+                set elem "elem[incr count]"
+                set _elem2dataobj($elem) $dataobj
+                $g element create $elem -x $xv -y $yv -barwidth $z \
                     -label $label -foreground $color \
                     -mapx $mapx -mapy $mapy
-	    } 
-	    set index 0
-	    foreach label [$dataobj xlabels $comp] {
-		if  { [string length $label] > 3 } {
-		    set invert 1
-		}
-		set _xlabels($index) $label
-		incr index
-	    }
-	}
+            } 
+            set index 0
+            foreach label [$dataobj xlabels $comp] {
+                if  { [string length $label] > 3 } {
+                    set invert 1
+                }
+                set _xlabels($index) $label
+                incr index
+            }
+        }
     }
     foreach dataobj $_dlist {
-	set xmin -Inf
-	set ymin -Inf
-	set xmax Inf
-	set ymax Inf
-	# 
-	# Create text/line markers for each *axis.marker specified. 
+        set xmin -Inf
+        set ymin -Inf
+        set xmax Inf
+        set ymax Inf
+        # 
+        # Create text/line markers for each *axis.marker specified. 
         # 
         foreach m [$dataobj xmarkers] {
             foreach {at label style} $m break
@@ -793,12 +793,12 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
     }
     set stepsize 1.0
     if { [array size _xlabels] > 0 } {
-	set command [itcl::code $this FormatLabels]
+        set command [itcl::code $this FormatLabels]
         if { [array size _xlabels] > 20 } {
            set stepsize 0.0
         }
     } else {
-	set command ""
+        set command ""
     }
     $g axis configure x -command $command -stepsize $stepsize 
     $g configure -invertxy $invert
@@ -814,7 +814,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
 itcl::body Rappture::HistogramResult::ResetLimits {} {
     set g $itk_component(plot)
     foreach axis [$g axis names] {
-	$g axis configure $axis -min "" -max ""
+        $g axis configure $axis -min "" -max ""
     }
 }
 
@@ -852,7 +852,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
     set index ""
     if {$state == "at"} {
         set bool [$g element closest $x $y info -along y -halo 1]
-	# Must be in the element.
+        # Must be in the element.
         if { $bool } {
             # for dealing with xy line plots
             set elem $info(name)
@@ -870,11 +870,11 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
             if { $info(name) == $elem} {
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-		if { [$g cget -invertxy] } {
-		    set tmp $x
-		    set x $y
-		    set y $tmp
-		}
+                if { [$g cget -invertxy] } {
+                    set tmp $x
+                    set x $y
+                    set y $tmp
+                }
                  if {[info exists _elem2dataobj($elem)]} {
                     set dataobj $_elem2dataobj($elem)
                     set yunits [$dataobj hints yunits]
@@ -889,7 +889,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                 set xval [Axis format x dummy $info(x)]
                 append tip " @ $xval"
                 set tip [string trim $tip]
-		set index $info(index)
+                set index $info(index)
             }
             set state 1
         } else {
@@ -907,11 +907,11 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                 set tip ""
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
-		if { [$g cget -invertxy] } {
-		    set tmp $x
-		    set x $y
-		    set y $tmp
-		}
+                if { [$g cget -invertxy] } {
+                    set tmp $x
+                    set x $y
+                    set y $tmp
+                }
                if {[info exists _elem2dataobj($elem)]} {
                     set dataobj $_elem2dataobj($elem)
                     set yunits [$dataobj hints yunits]
@@ -926,7 +926,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
                 set xval [Axis format x dummy $info(x)]
                 append tip " @ $xval"
                 set tip [string trim $tip]
-		set index $info(index)
+                set index $info(index)
                 set state 1
             } else {
                 set state 0
@@ -946,10 +946,10 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
             $g crosshairs configure -hide yes
             Rappture::Tooltip::tooltip cancel
         }
-	if { $index != "" } {
-	    $g element activate $elem $index
-	    set _hilite(index) $index
-	}
+        if { $index != "" } {
+            $g element activate $elem $index
+            set _hilite(index) $index
+        }
         set _hilite(elem) $elem
 
         set mapx [$g element cget $elem -mapx]
@@ -1105,11 +1105,11 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
             }
             foreach { axis x y } $args break
             set g $itk_component(plot)
-	    if { [$g cget -invertxy] } {
-		set tmp $x
-		set x $y
-		set y $tmp
-	    }
+            if { [$g cget -invertxy] } {
+                set tmp $x
+                set x $y
+                set y $tmp
+            }
 
             set _axis(moved) 0
             set _axis(click-x) $x
@@ -1128,11 +1128,11 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
             }
             foreach { axis x y } $args break
             set g $itk_component(plot)
-	    if { [$g cget -invertxy] } {
-		set tmp $x
-		set x $y
-		set y $tmp
-	    }
+            if { [$g cget -invertxy] } {
+                set tmp $x
+                set x $y
+                set y $tmp
+            }
 
             if {[info exists _axis(click-x)] && [info exists _axis(click-y)]} {
                 foreach {x0 y0 pw ph} [$g extents plotarea] break
@@ -1189,11 +1189,11 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
             }
             foreach { axis x y } $args break
             set g $itk_component(plot)
-	    if { [$g cget -invertxy] } {
-		set tmp $x
-		set x $y
-		set y $tmp
-	    }
+            if { [$g cget -invertxy] } {
+                set tmp $x
+                set x $y
+                set y $tmp
+            }
 
             if {!$_axis(moved)} {
                 # small movement? then treat as click -- pop up axis editor
@@ -1401,9 +1401,9 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
             }
             set axis [lindex $args 0]
             set value [lindex $args 2]
-	    if { $axis == "x" } {
-		return [FormatLabels $itk_component(plot) $value]
-	    }
+            if { $axis == "x" } {
+                return [FormatLabels $itk_component(plot) $value]
+            }
             if {[$itk_component(plot) axis cget $axis -logscale]} {
                 set fmt "%.6g"
             } else {
@@ -1565,7 +1565,7 @@ itcl::body Rappture::HistogramResult::FormatLabels { w value } {
     # Determine the element name from the value
     set index [expr round($value)]
     if { [info exists _xlabels($index)] } {
-	return $_xlabels($index)
+        return $_xlabels($index)
     } 
     return " "
 }

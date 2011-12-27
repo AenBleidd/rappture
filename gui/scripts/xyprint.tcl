@@ -28,10 +28,10 @@ itcl::class Rappture::XyPrint {
     constructor {args} {}
     destructor {}
 
-    private variable _graph "";		# Original graph. 
-    private variable _clone "";		# Cloned graph.
-    private variable _preview "";	# Preview image.
-    private variable _savedSettings;	# Array of settings.
+    private variable _graph "";         # Original graph. 
+    private variable _clone "";         # Cloned graph.
+    private variable _preview "";       # Preview image.
+    private variable _savedSettings;    # Array of settings.
 
     private common _oldSettingsFile "~/.rpsettings"
     private common _settingsFile "~/.rp_settings"
@@ -290,9 +290,9 @@ itcl::body Rappture::XyPrint::CloneGraph { orig } {
     CopyOptions "configure" $orig $_clone
     # Axis component
     foreach axis [$orig axis names] {
-	if { $axis == "z" } {
-	    continue
-	}
+        if { $axis == "z" } {
+            continue
+        }
         if { [$orig axis cget $axis -hide] } {
             continue
         }
@@ -381,22 +381,22 @@ itcl::body Rappture::XyPrint::InitClone {} {
     set _settings($this-axis-title-fontweight) normal
     set _settings($this-axis-title-fontslant)  roman
     foreach axis [$_clone axis names] {
-	if { $axis == "z" } {
-	    continue
-	}
+        if { $axis == "z" } {
+            continue
+        }
         if { [$_clone axis cget $axis -hide] } {
             continue
         }
-	set _settings($this-$axis-ticks-fontfamily) helvetica
-	set _settings($this-$axis-ticks-fontsize)   10
-	set _settings($this-$axis-ticks-fontweight) normal
-	set _settings($this-$axis-ticks-fontslant)  roman
-	set _settings($this-$axis-title-fontfamily) helvetica
-	set _settings($this-$axis-title-fontsize)   10
-	set _settings($this-$axis-title-fontweight) normal
-	set _settings($this-$axis-title-fontslant)  roman
-	set tickfont "helvetica 10 normal roman"
-	set titlefont "helvetica 10 normal roman"
+        set _settings($this-$axis-ticks-fontfamily) helvetica
+        set _settings($this-$axis-ticks-fontsize)   10
+        set _settings($this-$axis-ticks-fontweight) normal
+        set _settings($this-$axis-ticks-fontslant)  roman
+        set _settings($this-$axis-title-fontfamily) helvetica
+        set _settings($this-$axis-title-fontsize)   10
+        set _settings($this-$axis-title-fontweight) normal
+        set _settings($this-$axis-title-fontslant)  roman
+        set tickfont "helvetica 10 normal roman"
+        set titlefont "helvetica 10 normal roman"
         $_clone axis configure $axis -ticklength 5  \
             -majorticks {} -minorticks {}
         $_clone axis configure $axis \
@@ -408,22 +408,22 @@ itcl::body Rappture::XyPrint::InitClone {} {
         if { [$_clone element type $elem] == "bar" } {
             continue
         }
-	incr count
+        incr count
         if { [$_clone element cget $elem -linewidth] > 1 } {
             $_clone element configure $elem -linewidth 1 -pixels 3 
         }
     }
     if { $count == 0 } {
-	# There are no "line" elements in the graph. 
-	# Remove the symbol and dashes controls.
-	set page $itk_component(legend_page)
-	# May have already been forgotten.
-	catch { 
-	    blt::table forget $page.symbol_l
-	    blt::table forget $page.symbol
-	    blt::table forget $page.dashes_l
-	    blt::table forget $page.dashes 
-	}
+        # There are no "line" elements in the graph. 
+        # Remove the symbol and dashes controls.
+        set page $itk_component(legend_page)
+        # May have already been forgotten.
+        catch { 
+            blt::table forget $page.symbol_l
+            blt::table forget $page.symbol
+            blt::table forget $page.dashes_l
+            blt::table forget $page.dashes 
+        }
     }
 }
 
@@ -481,10 +481,10 @@ itcl::body Rappture::XyPrint::RegeneratePreview {} {
     set maxwidth $rw
     set maxheight $rh
     if { $maxwidth > $cw } {
-	set maxwidth $cw 
+        set maxwidth $cw 
     }
     if { $maxheight > $ch } {
-	set maxheight $ch 
+        set maxheight $ch 
     }
     set sx [expr double($maxwidth)/$w]
     set sy [expr double($maxheight)/$h]
@@ -539,12 +539,12 @@ itcl::body Rappture::XyPrint::GetAxis {} {
         set _settings($this-axis$option) [$_clone axis cget $axis $option]
     }
     foreach attr { fontfamily fontsize fontweight fontslant } {
-	set specific $this-$axis-ticks
-	set general $this-axis-ticks
-	set _settings(${general}-${attr}) $_settings(${specific}-${attr})
-	set specific $this-$axis-title
-	set general $this-axis-title
-	set _settings(${general}-${attr}) $_settings(${specific}-${attr})
+        set specific $this-$axis-ticks
+        set general $this-axis-ticks
+        set _settings(${general}-${attr}) $_settings(${specific}-${attr})
+        set specific $this-$axis-title
+        set general $this-axis-title
+        set _settings(${general}-${attr}) $_settings(${specific}-${attr})
     }
     set type [GetAxisType $axis]
     if { [$_clone grid cget -map${type}] == $axis } {
@@ -720,10 +720,10 @@ itcl::body Rappture::XyPrint::ApplyLegendSettings {} {
     set page $itk_component(legend_page)
     set _settings($this-legend-anchor)    [$page.anchor current]
     if { $_clone != "" } {
-	lappend font $_settings($this-legend-fontfamily)
-	lappend font $_settings($this-legend-fontsize)
-	lappend font $_settings($this-legend-fontweight)
-	lappend font $_settings($this-legend-fontslant)
+        lappend font $_settings($this-legend-fontfamily)
+        lappend font $_settings($this-legend-fontsize)
+        lappend font $_settings($this-legend-fontweight)
+        lappend font $_settings($this-legend-fontslant)
         foreach option { -hide -position -anchor -borderwidth } {
             SetComponentOption legend $option
         }
@@ -1169,14 +1169,14 @@ itcl::body Rappture::XyPrint::ApplyAxisSettings {} {
     set titlefont {}
 
     foreach attr { fontfamily fontsize fontweight fontslant } {
-	set specific $this-$axis-ticks
-	set general  $this-axis-ticks
-	set _settings(${specific}-${attr}) $_settings(${general}-${attr})
-	lappend tickfont $_settings(${general}-${attr})
-	set specific $this-$axis-title
-	set general  $this-axis-title
-	set _settings(${specific}-${attr}) $_settings(${general}-${attr})
-	lappend titlefont $_settings(${general}-${attr})
+        set specific $this-$axis-ticks
+        set general  $this-axis-ticks
+        set _settings(${specific}-${attr}) $_settings(${general}-${attr})
+        lappend tickfont $_settings(${general}-${attr})
+        set specific $this-$axis-title
+        set general  $this-axis-title
+        set _settings(${specific}-${attr}) $_settings(${general}-${attr})
+        lappend titlefont $_settings(${general}-${attr})
     }
     $_clone axis configure $axis -tickfont $tickfont -titlefont $titlefont
     $_clone marker configure ${type}-zero -hide $_settings($this-axis-zero)
@@ -1280,9 +1280,9 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set names [lsort [$_clone axis names]] 
     $itk_component(axis_combo) choices delete 0 end
     foreach axis $names {
-	if { $axis == "z" } {
-	    continue
-	}
+        if { $axis == "z" } {
+            continue
+        }
         if { ![$_clone axis cget $axis -hide] } {
             $itk_component(axis_combo) choices insert end $axis $axis
         }
@@ -1313,7 +1313,7 @@ itcl::body Rappture::XyPrint::restore { toolName plotName data } {
 
 itcl::body Rappture::XyPrint::RestoreSettings { toolName plotName } {
     if { ![file readable $_settingsFile] } {
-        return;				# No file or not readable
+        return;                         # No file or not readable
     } 
     if { [file exists $_oldSettingsFile] } {
         file delete $_oldSettingsFile
@@ -1380,12 +1380,12 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
     set length [string length "${this}-"]
     append out "    array set settings {\n" 
     foreach item [array names _settings ${this}-*] {
-	set field [string range $item $length end]
-	if { [regexp {^element-[0-9]+$} $field] } {
-	    continue
-	}
-	set value $_settings($item)
-	append out "        [list $field] [list $value]\n"
+        set field [string range $item $length end]
+        if { [regexp {^element-[0-9]+$} $field] } {
+            continue
+        }
+        set value $_settings($item)
+        append out "        [list $field] [list $value]\n"
     }
     append out "    }\n" 
     # Legend font
@@ -1458,7 +1458,7 @@ itcl::body Rappture::XyPrint::CreateSettings { toolName plotName } {
         set hide [$_clone marker cget ${axis}-zero -hide]
         append out "        preview marker configure \"${axis}-zero\" -hide $hide\n"
         append out "    \}\n"
-    }	
+    }   
 
     append out "    preview grid configure" 
     append out " -hide \"[$_clone grid cget -hide]\""

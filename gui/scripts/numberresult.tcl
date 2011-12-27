@@ -73,10 +73,10 @@ itcl::class Rappture::NumberResult {
     itk_option define -autocolors autoColors AutoColors ""
 
     constructor {args} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
     public method add {dataobj {settings ""}}
     public method get {}
@@ -546,7 +546,7 @@ itcl::body Rappture::NumberResult::download {option args} {
             if {![winfo exists .numberresultdownload]} {
                 # if we haven't created the popup yet, do it now
                 Rappture::Balloon $popup \
-		    -title "[Rappture::filexfer::label downloadWord] as..."
+                    -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
@@ -576,55 +576,55 @@ itcl::body Rappture::NumberResult::download {option args} {
                 $popup deactivate
             }
             switch -- $_downloadPopup(format) {
-		csv {
-		    # March through the values in order and report
-		    # all data points
-		    set csvdata ""
-		    set xtitle [$itk_component(plot) xaxis cget -title]
-		    set ytitle [$itk_component(plot) yaxis cget -title]
-		    
-		    set desc ""
-		    set dataobj [lindex [get] end]
-		    
-		    # the "Simulation" axis shows all values
-		    # -- no need for assumptions
-		    if {$xtitle != "Simulation"
-			&& [info exists _dataobj2desc($dataobj)]} {
-			foreach line [split $_dataobj2desc($dataobj) \n] {
-			    # skip the current axis and the Simulation axis
-			    # Other values show assumptions about values reported
-			    if {[string match "$xtitle =*" $line]
-				|| [string match "Simulation =*" $line]} {
-				continue
-			    }
-			    set indent [expr {("" == $desc) ? "for:" : "    "}]
-			    append desc " $indent $line\n"
-			}
-		    }
-		    if {[string length $desc] > 0} {
-			append csvdata "[string repeat - 60]\n"
-			append csvdata $desc
-			append csvdata "[string repeat - 60]\n"
-		    }
-		    
-		    append csvdata "$xtitle, $ytitle\n"
-		    foreach xval [lsort -real [array names _xval2label]] {
-			set dataobj ""
-			set param [list $_xval2label($xval) $xval]
-			foreach obj $_dlist {
-			    if {[info exists _dataobj2param($obj)]
-				&& [string equal $_dataobj2param($obj) $param]} {
-				set dataobj $obj
-				break
-			    }
-			}
-			if {"" != $dataobj} {
-			    set yval [$dataobj get current]
-			    append csvdata "$_xval2label($xval), $yval\n"
-			}
-		    }
-		    return [list .txt $csvdata]
-		}
+                csv {
+                    # March through the values in order and report
+                    # all data points
+                    set csvdata ""
+                    set xtitle [$itk_component(plot) xaxis cget -title]
+                    set ytitle [$itk_component(plot) yaxis cget -title]
+                    
+                    set desc ""
+                    set dataobj [lindex [get] end]
+                    
+                    # the "Simulation" axis shows all values
+                    # -- no need for assumptions
+                    if {$xtitle != "Simulation"
+                        && [info exists _dataobj2desc($dataobj)]} {
+                        foreach line [split $_dataobj2desc($dataobj) \n] {
+                            # skip the current axis and the Simulation axis
+                            # Other values show assumptions about values reported
+                            if {[string match "$xtitle =*" $line]
+                                || [string match "Simulation =*" $line]} {
+                                continue
+                            }
+                            set indent [expr {("" == $desc) ? "for:" : "    "}]
+                            append desc " $indent $line\n"
+                        }
+                    }
+                    if {[string length $desc] > 0} {
+                        append csvdata "[string repeat - 60]\n"
+                        append csvdata $desc
+                        append csvdata "[string repeat - 60]\n"
+                    }
+                    
+                    append csvdata "$xtitle, $ytitle\n"
+                    foreach xval [lsort -real [array names _xval2label]] {
+                        set dataobj ""
+                        set param [list $_xval2label($xval) $xval]
+                        foreach obj $_dlist {
+                            if {[info exists _dataobj2param($obj)]
+                                && [string equal $_dataobj2param($obj) $param]} {
+                                set dataobj $obj
+                                break
+                            }
+                        }
+                        if {"" != $dataobj} {
+                            set yval [$dataobj get current]
+                            append csvdata "$_xval2label($xval), $yval\n"
+                        }
+                    }
+                    return [list .txt $csvdata]
+                }
                 image {
                     set popup .numberresultprintdownload
                     if { ![winfo exists $popup] } {
@@ -957,9 +957,9 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - multiple axes? dim other axes
         # - pop up tooltip about data
 
-	$g element deactivate $_hilite(elem)
-	$g crosshairs configure -hide yes
-	Rappture::Tooltip::tooltip cancel
+        $g element deactivate $_hilite(elem)
+        $g crosshairs configure -hide yes
+        Rappture::Tooltip::tooltip cancel
 
         $g element activate $elem
         set _hilite(elem) $elem
@@ -1040,25 +1040,25 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - put all axes back to normal color
         # - take down tooltip
         #
-	$g element deactivate $_hilite(elem)
+        $g element deactivate $_hilite(elem)
 
-	set allx [$g x2axis use]
-	if {[llength $allx] > 0} {
-	    lappend allx x  ;		# fix main x-axis too
-	    foreach axis $allx {
-		$g axis configure $axis -color $itk_option(-foreground) \
-		    -titlecolor $itk_option(-foreground)
-	    }
-	}
+        set allx [$g x2axis use]
+        if {[llength $allx] > 0} {
+            lappend allx x  ;           # fix main x-axis too
+            foreach axis $allx {
+                $g axis configure $axis -color $itk_option(-foreground) \
+                    -titlecolor $itk_option(-foreground)
+            }
+        }
 
-	set ally [$g y2axis use]
-	if {[llength $ally] > 0} {
-	    lappend ally y  ;		# fix main y-axis too
-	    foreach axis $ally {
-		$g axis configure $axis -color $itk_option(-foreground) \
-		    -titlecolor $itk_option(-foreground)
-	    }
-	}
+        set ally [$g y2axis use]
+        if {[llength $ally] > 0} {
+            lappend ally y  ;           # fix main y-axis too
+            foreach axis $ally {
+                $g axis configure $axis -color $itk_option(-foreground) \
+                    -titlecolor $itk_option(-foreground)
+            }
+        }
 
         $g crosshairs configure -hide yes
 

@@ -44,7 +44,7 @@ itcl::class Rappture::SidebarFrame {
     public method select {which}
     public method pop {what}
     public method width { size } {
-	set _width $size
+        set _width $size
     }
     public method enable { which }
     public method disable { which }
@@ -197,7 +197,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
     # Tabs used to select sidebar panels.  
     #
     # Note:  Bugs in BLT 2.4 tabset/VNC server crashes the server 
-    #	     when -outerpad is set to 0.
+    #        when -outerpad is set to 0.
     #
     itk_component add tabs {
         blt::tabset $itk_component(controlbar).tabs \

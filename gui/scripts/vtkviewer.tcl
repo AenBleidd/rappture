@@ -125,7 +125,7 @@ itcl::class Rappture::VtkViewer {
     private variable _settings
     private variable _volume
     private variable _axis
-    private variable _reset 1	   ;# indicates if camera needs to be reset
+    private variable _reset 1      ;# indicates if camera needs to be reset
                                     # to starting position.
     private variable _haveSpheres 0
 
@@ -177,23 +177,23 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
     array set _outline {
-	id -1
-	afterId -1
-	x1 -1
-	y1 -1
-	x2 -1
-	y2 -1
+        id -1
+        afterId -1
+        x1 -1
+        y1 -1
+        x2 -1
+        y2 -1
     }
     # Initialize the view to some default parameters.
     array set _view {
-	qw		1
-	qx		0
-	qy		0
-	qz		0
-        zoom		1.0 
-        xpan		0
-        ypan		0
-        ortho		0
+        qw              1
+        qx              0
+        qy              0
+        qz              0
+        zoom            1.0 
+        xpan            0
+        ypan            0
+        ortho           0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -203,30 +203,30 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     set _limits(zmax) 1.0
 
     array set _axis [subst {
-        xgrid		0
-        ygrid		0
-        zgrid		0
-        xcutaway	0
-        ycutaway	0
-        zcutaway	0
-        xposition	0
-        yposition	0
-        zposition	0
-        xdirection	-1
-        ydirection	-1
-        zdirection	-1
-        visible		1
-	labels		1
+        xgrid           0
+        ygrid           0
+        zgrid           0
+        xcutaway        0
+        ycutaway        0
+        zcutaway        0
+        xposition       0
+        yposition       0
+        zposition       0
+        xdirection      -1
+        ydirection      -1
+        zdirection      -1
+        visible         1
+        labels          1
     }]
     array set _volume [subst {
-        edges		1
-        lighting	1
-        opacity		40
-        visible		1
-        wireframe	0
+        edges           1
+        lighting        1
+        opacity         40
+        visible         1
+        wireframe       0
     }]
     array set _settings [subst {
-        legend		1
+        legend          1
     }]
 
     itk_component add view {
@@ -299,7 +299,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     BuildCutawayTab
     BuildCameraTab
     } errs] != 0 } {
-	puts stderr errs=$errs
+        puts stderr errs=$errs
     }
     # Legend
 
@@ -399,10 +399,10 @@ itcl::body Rappture::VtkViewer::destructor {} {
 
 itcl::body Rappture::VtkViewer::DoResize {} {
     if { $_width < 2 } {
-	set _width 500
+        set _width 500
     }
     if { $_height < 2 } {
-	set _height 500
+        set _height 500
     }
     #puts stderr "DoResize screen size $_width $_height"
     set _start [clock clicks -milliseconds]
@@ -440,7 +440,7 @@ itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
     foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
     if { !$_rotatePending } {
         set _rotatePending 1
-	global rotate_delay 
+        global rotate_delay 
         $_dispatcher event -after $rotate_delay !rotate
     }
 }
@@ -461,7 +461,7 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
         -raise 0
         -description ""
         -param ""
-	-type ""
+        -type ""
     }
     array set params $settings
     set params(-description) ""
@@ -478,7 +478,7 @@ itcl::body Rappture::VtkViewer::add {dataobj {settings ""}} {
     }
     set pos [lsearch -exact $dataobj $_dlist]
     if {$pos < 0} {
-	lappend _dlist $dataobj
+        lappend _dlist $dataobj
     }
     set _allDataObjs($dataobj) 1
     set _obj2ovride($dataobj-color) $params(-color)
@@ -504,18 +504,18 @@ itcl::body Rappture::VtkViewer::delete {args} {
     set changed 0
     foreach dataobj $args {
         set pos [lsearch -exact $_dlist $dataobj]
-	if { $pos < 0 } {
-	    continue;			# Don't know anything about it.
-	}
-	# Remove it from the dataobj list.
-	set _dlist [lreplace $_dlist $pos $pos]
-	foreach comp [$dataobj components] {
-	    SendCmd "dataset visible 0 $dataobj-$comp"
-	}
-	array unset _obj2ovride $dataobj-*
-	# Append to the end of the dataobj list.
-	lappend _dlist $dataobj
-	set changed 1
+        if { $pos < 0 } {
+            continue;                   # Don't know anything about it.
+        }
+        # Remove it from the dataobj list.
+        set _dlist [lreplace $_dlist $pos $pos]
+        foreach comp [$dataobj components] {
+            SendCmd "dataset visible 0 $dataobj-$comp"
+        }
+        array unset _obj2ovride $dataobj-*
+        # Append to the end of the dataobj list.
+        lappend _dlist $dataobj
+        set changed 1
     }
     # If anything changed, then rebuild the plot
     if { $changed } {
@@ -539,58 +539,58 @@ itcl::body Rappture::VtkViewer::get {args} {
 
     set op [lindex $args 0]
     switch -- $op {
-	"-objects" {
-	    # put the dataobj list in order according to -raise options
-	    set dlist {}
-	    foreach dataobj $_dlist {
-		if { ![IsValidObject $dataobj] } {
-		    continue
-		}
-		if {[info exists _obj2ovride($dataobj-raise)] && 
-		    $_obj2ovride($dataobj-raise)} {
-		    set dlist [linsert $dlist 0 $dataobj]
-		} else {
-		    lappend dlist $dataobj
-		}
-	    }
-	    return $dlist
-	}
-	"-visible" {
-	    set dlist {}
-	    foreach dataobj $_dlist {
-		if { ![IsValidObject $dataobj] } {
-		    continue
-		}
-		if { ![info exists _obj2ovride($dataobj-raise)] } {
-		    # No setting indicates that the object isn't invisible.
-		    continue
-		}
-		# Otherwise use the -raise parameter to put the object to
-		# the front of the list.
-		if { $_obj2ovride($dataobj-raise) } {
-		    set dlist [linsert $dlist 0 $dataobj]
-		} else {
-		    lappend dlist $dataobj
-		}
-	    }
-	    return $dlist
-	}	    
-	-image {
-	    if {[llength $args] != 2} {
-		error "wrong # args: should be \"get -image view\""
-	    }
-	    switch -- [lindex $args end] {
-		view {
-		    return $_image(plot)
-		}
-		default {
-		    error "bad image name \"[lindex $args end]\": should be view"
-		}
-	    }
-	}
-	default {
-	    error "bad option \"$op\": should be -objects or -image"
-	}
+        "-objects" {
+            # put the dataobj list in order according to -raise options
+            set dlist {}
+            foreach dataobj $_dlist {
+                if { ![IsValidObject $dataobj] } {
+                    continue
+                }
+                if {[info exists _obj2ovride($dataobj-raise)] && 
+                    $_obj2ovride($dataobj-raise)} {
+                    set dlist [linsert $dlist 0 $dataobj]
+                } else {
+                    lappend dlist $dataobj
+                }
+            }
+            return $dlist
+        }
+        "-visible" {
+            set dlist {}
+            foreach dataobj $_dlist {
+                if { ![IsValidObject $dataobj] } {
+                    continue
+                }
+                if { ![info exists _obj2ovride($dataobj-raise)] } {
+                    # No setting indicates that the object isn't invisible.
+                    continue
+                }
+                # Otherwise use the -raise parameter to put the object to
+                # the front of the list.
+                if { $_obj2ovride($dataobj-raise) } {
+                    set dlist [linsert $dlist 0 $dataobj]
+                } else {
+                    lappend dlist $dataobj
+                }
+            }
+            return $dlist
+        }           
+        -image {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"get -image view\""
+            }
+            switch -- [lindex $args end] {
+                view {
+                    return $_image(plot)
+                }
+                default {
+                    error "bad image name \"[lindex $args end]\": should be view"
+                }
+            }
+        }
+        default {
+            error "bad option \"$op\": should be -objects or -image"
+        }
     }
 }
 
@@ -607,26 +607,26 @@ itcl::body Rappture::VtkViewer::scale {args} {
     array unset _limits
     foreach dataobj $args {
         array set bounds [limits $dataobj]
-	if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
-	    set _limits(xmin) $bounds(xmin)
-	}
-	if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
-	    set _limits(xmax) $bounds(xmax)
-	}
+        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
+            set _limits(xmin) $bounds(xmin)
+        }
+        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
+            set _limits(xmax) $bounds(xmax)
+        }
 
-	if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
-	    set _limits(ymin) $bounds(ymin)
-	}
-	if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
-	    set _limits(ymax) $bounds(ymax)
-	}
+        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
+            set _limits(ymin) $bounds(ymin)
+        }
+        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
+            set _limits(ymax) $bounds(ymax)
+        }
 
-	if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
-	    set _limits(zmin) $bounds(zmin)
-	}
-	if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
-	    set _limits(zmax) $bounds(zmax)
-	}
+        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
+            set _limits(zmin) $bounds(zmin)
+        }
+        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
+            set _limits(zmax) $bounds(zmax)
+        }
     }
 }
 
@@ -662,7 +662,7 @@ itcl::body Rappture::VtkViewer::download {option args} {
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
-            update idletasks		;# Fix initial sizes
+            update idletasks            ;# Fix initial sizes
             return $popup
         }
         now {
@@ -701,7 +701,7 @@ itcl::body Rappture::VtkViewer::Connect {} {
     }
     set result [VisViewer::Connect $_hosts]
     if { $result } {
-	#puts stderr "Connected to $_hostname sid=$_sid"
+        #puts stderr "Connected to $_hostname sid=$_sid"
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -780,20 +780,20 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
     if { $info(-type) == "image" } {
-	if 0 {
-	    set f [open "last.ppm" "w"] 
-	    puts $f $bytes
-	    close $f
-	}
+        if 0 {
+            set f [open "last.ppm" "w"] 
+            puts $f $bytes
+            close $f
+        }
         $_image(plot) configure -data $bytes
-	set time [clock seconds]
-	set date [clock format $time]
+        set time [clock seconds]
+        set date [clock format $time]
         #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
-	if { $_start > 0 } {
-	    set finish [clock clicks -milliseconds]
-	    #puts stderr "round trip time [expr $finish -$_start] milliseconds"
-	    set _start 0
-	}
+        if { $_start > 0 } {
+            set finish [clock clicks -milliseconds]
+            #puts stderr "round trip time [expr $finish -$_start] milliseconds"
+            set _start 0
+        }
     } elseif { $info(type) == "print" } {
         set tag $this-print-$info(-token)
         set _hardcopy($tag) $bytes
@@ -809,36 +809,36 @@ itcl::body Rappture::VtkViewer::ReceiveDataset { args } {
     }
     set option [lindex $args 0]
     switch -- $option {
-	"scalar" {
-	    set option [lindex $args 1]
-	    switch -- $option {
-		"world" {
-		    foreach { x y z value tag } [lrange $args 2 end] break
-		}
-		"pixel" {
-		    foreach { x y value tag } [lrange $args 2 end] break
-		}
-	    }
-	}
-	"vector" {
-	    set option [lindex $args 1]
-	    switch -- $option {
-		"world" {
-		    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
-		}
-		"pixel" {
-		    foreach { x y vx vy vz tag } [lrange $args 2 end] break
-		}
-	    }
-	}
-	"names" {
+        "scalar" {
+            set option [lindex $args 1]
+            switch -- $option {
+                "world" {
+                    foreach { x y z value tag } [lrange $args 2 end] break
+                }
+                "pixel" {
+                    foreach { x y value tag } [lrange $args 2 end] break
+                }
+            }
+        }
+        "vector" {
+            set option [lindex $args 1]
+            switch -- $option {
+                "world" {
+                    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
+                }
+                "pixel" {
+                    foreach { x y vx vy vz tag } [lrange $args 2 end] break
+                }
+            }
+        }
+        "names" {
             foreach { name } [lindex $args 1] {
                 #puts stderr "Dataset: $name"
             }
-	}
-	default {
-	    error "unknown dataset option \"$option\" from server"
-	}
+        }
+        default {
+            error "unknown dataset option \"$option\" from server"
+        }
     }
 }
 
@@ -854,8 +854,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set w [winfo width $itk_component(view)]
     set h [winfo height $itk_component(view)]
     if { $w < 2 || $h < 2 } {
-	$_dispatcher event -idle !rebuild
-	return
+        $_dispatcher event -idle !rebuild
+        return
     }
 
     # Turn on buffering of commands to the server.  We don't want to
@@ -881,13 +881,13 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     PanCamera
     set _first [lindex [get -objects] 0] 
     if { $_reset || $_first == "" } {
-	Zoom reset
-	set _reset 0
+        Zoom reset
+        set _reset 0
     }
     FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-	axis-visible axis-labels \
-	volume-edges volume-lighting volume-opacity volume-visible \
-	volume-wireframe 
+        axis-visible axis-labels \
+        volume-edges volume-lighting volume-opacity volume-visible \
+        volume-wireframe 
 
     #SendCmd "imgflush"
 
@@ -895,10 +895,10 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     set _limits(zmax) ""
     set _first ""
     foreach dataobj [get -objects] {
-	if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
-	    set _first $dataobj
-	}
-	set _obj2datasets($dataobj) ""
+        if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
+            set _first $dataobj
+        }
+        set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
@@ -906,17 +906,17 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-		if { [$dataobj type $comp] != "spheres" } {
-		}
+                if { [$dataobj type $comp] != "spheres" } {
+                }
                 set _datasets($tag) 1
-	    }
-	    lappend _obj2datasets($dataobj) $tag
-	    if { [info exists _obj2ovride($dataobj-raise)] } {
-		SendCmd "dataset visible 1 $tag"
-	    } else {
-		SendCmd "dataset visible 0 $tag"
-	    }
-	    SetObjectStyle $dataobj $comp
+            }
+            lappend _obj2datasets($dataobj) $tag
+            if { [info exists _obj2ovride($dataobj-raise)] } {
+                SendCmd "dataset visible 1 $tag"
+            } else {
+                SendCmd "dataset visible 0 $tag"
+            }
+            SetObjectStyle $dataobj $comp
         }
     }
     if {"" != $_first} {
@@ -926,16 +926,16 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         }
     }
     foreach axis { x y z } {
-	set label [$_first hints ${axis}label]
-	if { $label != "" } {
-	    SendCmd "axis name $axis $label"
-	}
-	set units [$_first hints ${axis}units]
-	if { $units != "" } {
-	    SendCmd "axis units $axis $units"
-	}
+        set label [$_first hints ${axis}label]
+        if { $label != "" } {
+            SendCmd "axis name $axis $label"
+        }
+        set units [$_first hints ${axis}units]
+        if { $units != "" } {
+            SendCmd "axis units $axis $units"
+        }
     }
-	
+        
     set _buffering 0;                        # Turn off buffering.
 
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -956,37 +956,37 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 itcl::body Rappture::VtkViewer::CurrentDatasets {args} {
     set flag [lindex $args 0]
     switch -- $flag { 
-	"-all" {
-	    if { [llength $args] > 1 } {
-		error "CurrentDatasets: can't specify dataobj after \"-all\""
-	    }
-	    set dlist [get -objects]
-	}
-	"-visible" {
-	    if { [llength $args] > 1 } {
-		set dlist {}
-		set args [lrange $args 1 end]
-		foreach dataobj $args {
-		    if { [info exists _obj2ovride($dataobj-raise)] } {
-			lappend dlist $dataobj
-		    }
-		}
-	    } else {
-		set dlist [get -visible]
-	    }
-	}	    
-	default {
-	    set dlist $args
-	}
+        "-all" {
+            if { [llength $args] > 1 } {
+                error "CurrentDatasets: can't specify dataobj after \"-all\""
+            }
+            set dlist [get -objects]
+        }
+        "-visible" {
+            if { [llength $args] > 1 } {
+                set dlist {}
+                set args [lrange $args 1 end]
+                foreach dataobj $args {
+                    if { [info exists _obj2ovride($dataobj-raise)] } {
+                        lappend dlist $dataobj
+                    }
+                }
+            } else {
+                set dlist [get -visible]
+            }
+        }           
+        default {
+            set dlist $args
+        }
     }
     set rlist ""
     foreach dataobj $dlist {
-	foreach comp [$dataobj components] {
-	    set tag $dataobj-$comp
-	    if { [info exists _datasets($tag)] && $_datasets($tag) } {
-		lappend rlist $tag
-	    }
-	}
+        foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
+            if { [info exists _datasets($tag)] && $_datasets($tag) } {
+                lappend rlist $tag
+            }
+        }
     }
     return $rlist
 }
@@ -1003,18 +1003,18 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-	    SendCmd "camera zoom $_view(zoom)"
+            SendCmd "camera zoom $_view(zoom)"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-	    SendCmd "camera zoom $_view(zoom)"
+            SendCmd "camera zoom $_view(zoom)"
         }
         "reset" {
             array set _view {
-		qw	1
-		qx	0
-		qy	0
-		qz	0
+                qw      1
+                qx      0
+                qy      0
+                qz      0
                 zoom    1.0
                 xpan   0
                 ypan   0
@@ -1026,9 +1026,9 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-	    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-	    $_arcball quaternion $q
-	    DoRotate
+            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+            $_arcball quaternion $q
+            DoRotate
         }
     }
 }
@@ -1072,11 +1072,11 @@ itcl::body Rappture::VtkViewer::Rotate {option x y} {
                 }]} {
                     return
                 }
-		if { $dx == 0 && $dy == 0 } {
-		    return
-		}
-		set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-		EventuallyRotate $q
+                if { $dx == 0 && $dy == 0 } {
+                    return
+                }
+                set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+                EventuallyRotate $q
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1108,45 +1108,45 @@ itcl::body Rappture::VtkViewer::Pick {x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Pan {option x y} {
     switch -- $option {
-	"set" {
-	    set w [winfo width $itk_component(view)]
-	    set h [winfo height $itk_component(view)]
-	    set x [expr $x / double($w)]
-	    set y [expr $y / double($h)]
-	    set _view(xpan) [expr $_view(xpan) + $x]
-	    set _view(ypan) [expr $_view(ypan) + $y]
-	    PanCamera
-	    return
-	}
-	"click" {
-	    set _click(x) $x
-	    set _click(y) $y
-	    $itk_component(view) configure -cursor hand1
-	}
-	"drag" {
-	    if { ![info exists _click(x)] } {
-		set _click(x) $x
-	    }
-	    if { ![info exists _click(y)] } {
-		set _click(y) $y
-	    }
-	    set w [winfo width $itk_component(view)]
-	    set h [winfo height $itk_component(view)]
-	    set dx [expr ($_click(x) - $x)/double($w)]
-	    set dy [expr ($_click(y) - $y)/double($h)]
-	    set _click(x) $x
-	    set _click(y) $y
-	    set _view(xpan) [expr $_view(xpan) - $dx]
-	    set _view(ypan) [expr $_view(ypan) - $dy]
-	    PanCamera
-	}
-	"release" {
-	    Pan drag $x $y
-	    $itk_component(view) configure -cursor ""
-	}
-	default {
-	    error "unknown option \"$option\": should set, click, drag, or release"
-	}
+        "set" {
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set x [expr $x / double($w)]
+            set y [expr $y / double($h)]
+            set _view(xpan) [expr $_view(xpan) + $x]
+            set _view(ypan) [expr $_view(ypan) + $y]
+            PanCamera
+            return
+        }
+        "click" {
+            set _click(x) $x
+            set _click(y) $y
+            $itk_component(view) configure -cursor hand1
+        }
+        "drag" {
+            if { ![info exists _click(x)] } {
+                set _click(x) $x
+            }
+            if { ![info exists _click(y)] } {
+                set _click(y) $y
+            }
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set dx [expr ($_click(x) - $x)/double($w)]
+            set dy [expr ($_click(y) - $y)/double($h)]
+            set _click(x) $x
+            set _click(y) $y
+            set _view(xpan) [expr $_view(xpan) - $dx]
+            set _view(ypan) [expr $_view(ypan) - $dy]
+            PanCamera
+        }
+        "release" {
+            Pan drag $x $y
+            $itk_component(view) configure -cursor ""
+        }
+        default {
+            error "unknown option \"$option\": should set, click, drag, or release"
+        }
     }
 }
 
@@ -1159,100 +1159,100 @@ itcl::body Rappture::VtkViewer::Pan {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::FixSettings { args } {
     foreach setting $args {
-	AdjustSetting $setting
+        AdjustSetting $setting
     }
 }
 
 #
 # AdjustSetting --
 #
-#	Changes/updates a specific setting in the widget.  There are
-#	usually user-setable option.  Commands are sent to the render
-#	server.
+#       Changes/updates a specific setting in the widget.  There are
+#       usually user-setable option.  Commands are sent to the render
+#       server.
 #
 itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
     if { ![isconnected] } {
-	return
+        return
     }
     switch -- $what {
         "volume-opacity" {
-	    set val $_volume(opacity)
-	    set sval [expr { 0.01 * double($val) }]
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "polydata opacity $sval $dataset"
-	    }
+            set val $_volume(opacity)
+            set sval [expr { 0.01 * double($val) }]
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "polydata opacity $sval $dataset"
+            }
         }
         "volume-wireframe" {
-	    set bool $_volume(wireframe)
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "polydata wireframe $bool $dataset"
+            set bool $_volume(wireframe)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "polydata wireframe $bool $dataset"
             }
         }
         "volume-visible" {
-	    set bool $_volume(visible)
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "polydata visible $bool $dataset"
+            set bool $_volume(visible)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "polydata visible $bool $dataset"
             }
         }
         "volume-lighting" {
-	    set bool $_volume(lighting)
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "polydata lighting $bool $dataset"
+            set bool $_volume(lighting)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "polydata lighting $bool $dataset"
             }
         }
         "volume-edges" {
-	    set bool $_volume(edges)
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		SendCmd "polydata edges $bool $dataset"
+            set bool $_volume(edges)
+            foreach dataset [CurrentDatasets -visible $_first] {
+                SendCmd "polydata edges $bool $dataset"
             }
         }
         "axis-visible" {
-	    set bool $_axis(visible)
-	    SendCmd "axis visible all $bool"
+            set bool $_axis(visible)
+            SendCmd "axis visible all $bool"
         }
         "axis-labels" {
-	    set bool $_axis(labels)
-	    SendCmd "axis labels all $bool"
+            set bool $_axis(labels)
+            SendCmd "axis labels all $bool"
         }
         "axis-xgrid" {
-	    set bool $_axis(xgrid)
-	    SendCmd "axis grid x $bool"
+            set bool $_axis(xgrid)
+            SendCmd "axis grid x $bool"
         }
         "axis-ygrid" {
-	    set bool $_axis(ygrid)
-	    SendCmd "axis grid y $bool"
+            set bool $_axis(ygrid)
+            SendCmd "axis grid y $bool"
         }
         "axis-zgrid" {
-	    set bool $_axis(zgrid)
-	    SendCmd "axis grid z $bool"
+            set bool $_axis(zgrid)
+            SendCmd "axis grid z $bool"
         }
         "axis-mode" {
-	    set mode [$itk_component(axismode) value]
-	    set mode [$itk_component(axismode) translate $mode]
-	    SendCmd "axis flymode $mode"
+            set mode [$itk_component(axismode) value]
+            set mode [$itk_component(axismode) translate $mode]
+            SendCmd "axis flymode $mode"
         }
-	"axis-xcutaway" - "axis-ycutaway" - "axis-zcutaway" {
-	    set axis [string range $what 5 5]
-	    set bool $_axis(${axis}cutaway)
+        "axis-xcutaway" - "axis-ycutaway" - "axis-zcutaway" {
+            set axis [string range $what 5 5]
+            set bool $_axis(${axis}cutaway)
             if { $bool } {
-		set pos [expr $_axis(${axis}position) * 0.01]
-		set dir $_axis(${axis}direction)
+                set pos [expr $_axis(${axis}position) * 0.01]
+                set dir $_axis(${axis}direction)
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
-		SendCmd "renderer clipplane $axis $pos $dir"
+                SendCmd "renderer clipplane $axis $pos $dir"
             } else {
                 $itk_component(${axis}CutScale) configure -state disabled \
                     -troughcolor grey82
-		SendCmd "renderer clipplane $axis 1 -1"
+                SendCmd "renderer clipplane $axis 1 -1"
             }
-	}
-	"axis-xposition" - "axis-yposition" - "axis-zposition" - 
-	"axis-xdirection" - "axis-ydirection" - "axis-zdirection" {
-	    set axis [string range $what 5 5]
-	    #set dir $_axis(${axis}direction)
-	    set pos [expr $_axis(${axis}position) * 0.01]
-	    SendCmd "renderer clipplane ${axis} $pos -1"
-	}
+        }
+        "axis-xposition" - "axis-yposition" - "axis-zposition" - 
+        "axis-xdirection" - "axis-ydirection" - "axis-zdirection" {
+            set axis [string range $what 5 5]
+            #set dir $_axis(${axis}direction)
+            set pos [expr $_axis(${axis}position) * 0.01]
+            SendCmd "renderer clipplane ${axis} $pos -1"
+        }
         default {
             error "don't know how to fix $what"
         }
@@ -1262,9 +1262,9 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 #
 # RequestLegend --
 #
-#	Request a new legend from the server.  The size of the legend
-#	is determined from the height of the canvas.  It will be rotated
-#	to be vertical when drawn.
+#       Request a new legend from the server.  The size of the legend
+#       is determined from the height of the canvas.  It will be rotated
+#       to be vertical when drawn.
 #
 itcl::body Rappture::VtkViewer::RequestLegend {} {
     #puts stderr "RequestLegend _first=$_first"
@@ -1275,15 +1275,15 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
     set w 12
     set h [expr {$_height - 2 * ($lineht + 2)}]
     if { $h < 1} {
-	return
+        return
     }
     # Set the legend on the first dataset.
     foreach dataset [CurrentDatasets -visible] {
-	foreach {dataobj comp} [split $dataset -] break
-	if { [info exists _dataset2style($dataset)] } {
-	    #puts stderr "RequestLegend w=$w h=$h"
+        foreach {dataobj comp} [split $dataset -] break
+        if { [info exists _dataset2style($dataset)] } {
+            #puts stderr "RequestLegend w=$w h=$h"
             SendCmd "legend $_dataset2style($dataset) vmag {} $w $h 0"
-	    break;
+            break;
         }
     }
 }
@@ -1301,25 +1301,25 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style [$dataobj style $comp]
     set colormap "$style(-color):$style(-levels):$style(-opacity)"
     if { [info exists _colormaps($colormap)] } {
-	puts stderr "Colormap $colormap already built"
-	return $colormap
+        puts stderr "Colormap $colormap already built"
+        return $colormap
     }
     if { ![info exists _dataset2style($tag)] } {
-	set _dataset2style($tag) $colormap
-	lappend _style2datasets($colormap) $tag
+        set _dataset2style($tag) $colormap
+        lappend _style2datasets($colormap) $tag
     }
     if { ![info exists _colormaps($colormap)] } {
-	# Build the pseudo colormap if it doesn't exist.
-	BuildColormap $colormap $dataobj $comp
-	set _colormaps($colormap) 1
+        # Build the pseudo colormap if it doesn't exist.
+        BuildColormap $colormap $dataobj $comp
+        set _colormaps($colormap) 1
     }
     switch -- [$dataobj type $comp] {
-	"polygon" {
-	    SendCmd "pseudocolor colormap $colormap $tag"
-	}
-	"spheres" {
-	    #SendCmd "glyphs colormap $colormap $tag"
-	}
+        "polygon" {
+            SendCmd "pseudocolor colormap $colormap $tag"
+        }
+        "spheres" {
+            #SendCmd "glyphs colormap $colormap $tag"
+        }
     }
     return $colormap
 }
@@ -1345,7 +1345,7 @@ itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
         append cmap "$x [Color2RGB $color] "
     }
     if { [llength $cmap] == 0 } {
-	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
+        set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
     if { ![info exists _volume(opacity)] } {
         set _volume(opacity) $style(-opacity)
@@ -1381,63 +1381,63 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
 
     array unset _limits $dataobj-*
     foreach comp [$dataobj components] {
-	set tag $dataobj-$comp
-	if { ![info exists _limits($tag)] } {
-	    set data [$dataobj data $comp]
-	    set tmpfile file[pid].vtk
-	    set f [open "$tmpfile" "w"]
-	    fconfigure $f -translation binary -encoding binary
-	    puts $f $data 
-	    close $f
-	    set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-	    $reader SetFileName $tmpfile
-	    $reader ReadAllNormalsOn
-	    $reader ReadAllScalarsOn
-	    $reader ReadAllVectorsOn
-	    $reader ReadAllFieldsOn
-	    $reader Update
-	    set output [$reader GetOutput]
-	    set _limits($tag) [$output GetBounds]
-	    set pointData [$output GetPointData]
-	    puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-	    puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
-	    puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
-	    puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
-	    puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-	    puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
-	    set fieldData [$output GetFieldData]
-	    set pointData [$output GetPointData]
-	    puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-	    puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
-	    puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-	    puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-	    puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
-	    puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-	    puts stderr "point \#scalars=[$pointData GetScalars]"
-	    puts stderr vectors=[$pointData GetVectors]
-	    rename $output ""
-	    rename $reader ""
-	    file delete $tmpfile
-	}
+        set tag $dataobj-$comp
+        if { ![info exists _limits($tag)] } {
+            set data [$dataobj data $comp]
+            set tmpfile file[pid].vtk
+            set f [open "$tmpfile" "w"]
+            fconfigure $f -translation binary -encoding binary
+            puts $f $data 
+            close $f
+            set reader [vtkDataSetReader $tag-xvtkDataSetReader]
+            $reader SetFileName $tmpfile
+            $reader ReadAllNormalsOn
+            $reader ReadAllScalarsOn
+            $reader ReadAllVectorsOn
+            $reader ReadAllFieldsOn
+            $reader Update
+            set output [$reader GetOutput]
+            set _limits($tag) [$output GetBounds]
+            set pointData [$output GetPointData]
+            puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
+            puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
+            puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
+            puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
+            puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
+            puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
+            set fieldData [$output GetFieldData]
+            set pointData [$output GetPointData]
+            puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
+            puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
+            puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
+            puts stderr "point \#components=[$pointData GetNumberOfComponents]"
+            puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
+            puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
+            puts stderr "point \#scalars=[$pointData GetScalars]"
+            puts stderr vectors=[$pointData GetVectors]
+            rename $output ""
+            rename $reader ""
+            file delete $tmpfile
+        }
         foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
-	if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
-	    set limits(xmin) $xMin
-	}
-	if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
-	    set limits(xmax) $xMax
-	}
-	if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
-	    set limits(ymin) $xMin
-	}
-	if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
-	    set limits(ymax) $yMax
-	}
-	if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
-	    set limits(zmin) $zMin
-	}
-	if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
-	    set limits(zmax) $zMax
-	}
+        if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
+            set limits(xmin) $xMin
+        }
+        if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
+            set limits(xmax) $xMax
+        }
+        if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
+            set limits(ymin) $xMin
+        }
+        if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
+            set limits(ymax) $yMax
+        }
+        if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
+            set limits(zmin) $zMin
+        }
+        if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
+            set limits(zmax) $zMax
+        }
     }
     return [array get limits]
 }
@@ -1481,7 +1481,7 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
         -variable [itcl::scope _volume(opacity)] \
         -width 10 \
         -showvalue off \
-	-command [itcl::code $this AdjustSetting volume-opacity]
+        -command [itcl::code $this AdjustSetting volume-opacity]
 
     blt::table $inner \
         0,0 $inner.volume    -anchor w -pady 2 \
@@ -1536,7 +1536,7 @@ itcl::body Rappture::VtkViewer::BuildAxisTab {} {
     label $inner.mode_l -text "Mode" -font "Arial 9" 
 
     itk_component add axismode {
-	Rappture::Combobox $inner.mode -width 10 -editable no
+        Rappture::Combobox $inner.mode -width 10 -editable no
     }
     $inner.mode choices insert end \
         "static_triad"    "static" \
@@ -1601,7 +1601,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     
     set inner [$itk_component(main) insert end \
         -title "Cutaway Along Axis" \
-	-icon [Rappture::icon cutbutton]] 
+        -icon [Rappture::icon cutbutton]] 
 
     $inner configure -borderwidth 4
 
@@ -1635,9 +1635,9 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     itk_component add xDirButton {
         Rappture::PushButton $inner.xdir \
             -onimage [Rappture::icon arrow-down] \
-	    -onvalue -1 \
+            -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
-	    -offvalue 1 \
+            -offvalue 1 \
             -command [itcl::code $this AdjustSetting axis-xdirection] \
             -variable [itcl::scope _axis(xdirection)]
     }
@@ -1675,9 +1675,9 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     itk_component add yDirButton {
         Rappture::PushButton $inner.ydir \
             -onimage [Rappture::icon arrow-down] \
-	    -onvalue -1 \
+            -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
-	    -offvalue 1 \
+            -offvalue 1 \
             -command [itcl::code $this AdjustSetting axis-ydirection] \
             -variable [itcl::scope _axis(ydirection)]
     }
@@ -1715,9 +1715,9 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     itk_component add zDirButton {
         Rappture::PushButton $inner.zdir \
             -onimage [Rappture::icon arrow-down] \
-	    -onvalue -1 \
+            -onvalue -1 \
             -offimage [Rappture::icon arrow-up] \
-	    -offvalue 1 \
+            -offvalue 1 \
             -command [itcl::code $this AdjustSetting axis-zdirection] \
             -variable [itcl::scope _axis(zdirection)]
     }
@@ -1767,8 +1767,8 @@ itcl::body Rappture::VtkViewer::camera {option args} {
                 }
                 "qx" - "qy" - "qz" - "qw" {
                     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-		    $_arcball quaternion $q
-		    EventuallyRotate $q
+                    $_arcball quaternion $q
+                    EventuallyRotate $q
                 }
                 "zoom" {
                     SendCmd "camera zoom $_view(zoom)"
@@ -1802,8 +1802,8 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-	    set contents [ConvertToVtkData $dataobj $comp]
-	    append bytes "$contents\n\n"
+            set contents [ConvertToVtkData $dataobj $comp]
+            append bytes "$contents\n\n"
         }
     }
     return [list .txt $bytes]
@@ -1811,10 +1811,10 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
 
 itcl::body Rappture::VtkViewer::GetImage { args } {
     if { [image width $_image(download)] > 0 && 
-	 [image height $_image(download)] > 0 } {
-	set bytes [$_image(download) data -format "jpeg -quality 100"]
-	set bytes [Rappture::encoding::decode -as b64 $bytes]
-	return [list .jpg $bytes]
+         [image height $_image(download)] > 0 } {
+        set bytes [$_image(download) data -format "jpeg -quality 100"]
+        set bytes [Rappture::encoding::decode -as b64 $bytes]
+        return [list .jpg $bytes]
     }
     return ""
 }
@@ -1836,16 +1836,16 @@ itcl::body Rappture::VtkViewer::BuildDownloadPopup { popup command } {
         "Save as digital image."
 
     button $inner.ok -text "Save" \
-	-highlightthickness 0 -pady 2 -padx 3 \
+        -highlightthickness 0 -pady 2 -padx 3 \
         -command $command \
-	-compound left \
-	-image [Rappture::icon download]
+        -compound left \
+        -image [Rappture::icon download]
 
     button $inner.cancel -text "Cancel" \
-	-highlightthickness 0 -pady 2 -padx 3 \
-	-command [list $popup deactivate] \
-	-compound left \
-	-image [Rappture::icon cancel]
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command [list $popup deactivate] \
+        -compound left \
+        -image [Rappture::icon cancel]
 
     blt::table $inner \
         0,0 $inner.summary -cspan 2  \
@@ -1866,59 +1866,59 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     set type [$dataobj type $comp]
     set style [$dataobj style $comp]
     if { $dataobj != $_first } {
-	set settings(-wireframe) 1
+        set settings(-wireframe) 1
     }
     if { $type == "spheres" } {
-	array set settings {
-	    -color \#808080
-	    -gscale 1
-	    -edges 0
-	    -edgecolor black
-	    -linewidth 1.0
-	    -opacity 1.0
-	    -wireframe 0
-	    -lighting 1
-	    -visible 1
-	}
-	array set settings $style
-	SendCmd "glyphs add sphere $tag"
-	SendCmd "glyphs normscale 0 $tag"
-	SendCmd "glyphs gscale $settings(-gscale) $tag"
-	SendCmd "glyphs wireframe $settings(-wireframe) $tag"
-	#SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
-	#SendCmd "glyphs colormode ccolor {} $tag"
-	SendCmd "glyphs smode vcomp {} $tag"
-	SendCmd "glyphs opacity $settings(-opacity) $tag"
-	SendCmd "glyphs visible $settings(-visible) $tag"
-	set _haveSpheres 1
+        array set settings {
+            -color \#808080
+            -gscale 1
+            -edges 0
+            -edgecolor black
+            -linewidth 1.0
+            -opacity 1.0
+            -wireframe 0
+            -lighting 1
+            -visible 1
+        }
+        array set settings $style
+        SendCmd "glyphs add sphere $tag"
+        SendCmd "glyphs normscale 0 $tag"
+        SendCmd "glyphs gscale $settings(-gscale) $tag"
+        SendCmd "glyphs wireframe $settings(-wireframe) $tag"
+        #SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
+        #SendCmd "glyphs colormode ccolor {} $tag"
+        SendCmd "glyphs smode vcomp {} $tag"
+        SendCmd "glyphs opacity $settings(-opacity) $tag"
+        SendCmd "glyphs visible $settings(-visible) $tag"
+        set _haveSpheres 1
     } else {
-	array set settings {
-	    -color \#6666FF
-	    -edges 1
-	    -edgecolor black
-	    -linewidth 1.0
-	    -opacity 1.0
-	    -wireframe 0
-	    -lighting 1
-	    -visible 1
-	}
-	array set settings $style
-	SendCmd "polydata add $tag"
-	SendCmd "polydata visible $settings(-visible) $tag"
-	set _volume(visible) $settings(-visible)
+        array set settings {
+            -color \#6666FF
+            -edges 1
+            -edgecolor black
+            -linewidth 1.0
+            -opacity 1.0
+            -wireframe 0
+            -lighting 1
+            -visible 1
+        }
+        array set settings $style
+        SendCmd "polydata add $tag"
+        SendCmd "polydata visible $settings(-visible) $tag"
+        set _volume(visible) $settings(-visible)
     } 
     if { $type != "spheres" } {
-	SendCmd "polydata edges $settings(-edges) $tag"
-	set _volume(edges) $settings(-edges)
-	SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
-	SendCmd "polydata lighting $settings(-lighting) $tag"
-	set _volume(lighting) $settings(-lighting)
-	SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
-	SendCmd "polydata linewidth $settings(-linewidth) $tag"
-	SendCmd "polydata opacity $settings(-opacity) $tag"
-	set _volume(opacity) $settings(-opacity)
-	SendCmd "polydata wireframe $settings(-wireframe) $tag"
-	set _volume(wireframe) $settings(-wireframe)
+        SendCmd "polydata edges $settings(-edges) $tag"
+        set _volume(edges) $settings(-edges)
+        SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
+        SendCmd "polydata lighting $settings(-lighting) $tag"
+        set _volume(lighting) $settings(-lighting)
+        SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
+        SendCmd "polydata linewidth $settings(-linewidth) $tag"
+        SendCmd "polydata opacity $settings(-opacity) $tag"
+        set _volume(opacity) $settings(-opacity)
+        SendCmd "polydata wireframe $settings(-wireframe) $tag"
+        set _volume(wireframe) $settings(-wireframe)
     }
     set _volume(opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
@@ -1926,7 +1926,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
 
 itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
     if {[catch {$dataobj isa Rappture::Drawing} valid] != 0 || !$valid} {
-	return 0
+        return 0
     }
     return 1
 }
@@ -1950,15 +1950,15 @@ itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } 
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	DrawLegend
+        DrawLegend
     }
 }
 
 #
 # DrawLegend --
 #
-#	Draws the legend in it's own canvas which resides to the right
-#	of the contour plot area.
+#       Draws the legend in it's own canvas which resides to the right
+#       of the contour plot area.
 #
 itcl::body Rappture::VtkViewer::DrawLegend {} {
     set c $itk_component(view)
@@ -1968,33 +1968,33 @@ itcl::body Rappture::VtkViewer::DrawLegend {} {
     set lineht [font metrics $font -linespace]
     
     if { $_settings(legend) } {
-	set x [expr $w - 2]
-	if { [$c find withtag "legend"] == "" } {
-	    $c create image $x [expr {$lineht+2}] \
-		-anchor ne \
-		-image $_image(legend) -tags "colormap legend"
-	    $c create text $x 2 \
-		-anchor ne \
-		-fill $itk_option(-plotforeground) -tags "vmax legend" \
-		-font $font
-	    $c create text $x [expr {$h-2}] \
-		-anchor se \
-		-fill $itk_option(-plotforeground) -tags "vmin legend" \
-		-font $font
-	    #$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
-	    $c bind colormap <Leave> [itcl::code $this LeaveLegend]
-	    $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
-	}
-	# Reset the item coordinates according the current size of the plot.
-	$c coords colormap $x [expr {$lineht+2}]
-	if { $_limits(vmin) != "" } {
-	    $c itemconfigure vmin -text [format %g $_limits(vmin)]
-	}
-	if { $_limits(vmax) != "" } {
-	    $c itemconfigure vmax -text [format %g $_limits(vmax)]
-	}
-	$c coords vmin $x [expr {$h-2}]
-	$c coords vmax $x 2
+        set x [expr $w - 2]
+        if { [$c find withtag "legend"] == "" } {
+            $c create image $x [expr {$lineht+2}] \
+                -anchor ne \
+                -image $_image(legend) -tags "colormap legend"
+            $c create text $x 2 \
+                -anchor ne \
+                -fill $itk_option(-plotforeground) -tags "vmax legend" \
+                -font $font
+            $c create text $x [expr {$h-2}] \
+                -anchor se \
+                -fill $itk_option(-plotforeground) -tags "vmin legend" \
+                -font $font
+            #$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
+            $c bind colormap <Leave> [itcl::code $this LeaveLegend]
+            $c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
+        }
+        # Reset the item coordinates according the current size of the plot.
+        $c coords colormap $x [expr {$lineht+2}]
+        if { $_limits(vmin) != "" } {
+            $c itemconfigure vmin -text [format %g $_limits(vmin)]
+        }
+        if { $_limits(vmax) != "" } {
+            $c itemconfigure vmax -text [format %g $_limits(vmax)]
+        }
+        $c coords vmin $x [expr {$h-2}]
+        $c coords vmax $x 2
     }
 }
 
@@ -2039,11 +2039,11 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
 
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
-	#puts stderr "out of range: $imgY"
-	return
+        #puts stderr "out of range: $imgY"
+        return
     }
     if { ![info exists _image(swatch)] } {
-	set _image(swatch) [image create photo -width 24 -height 24]
+        set _image(swatch) [image create photo -width 24 -height 24]
     }
     set color [eval format "\#%02x%02x%02x" $pixel]
     $_image(swatch) put black  -to 0 0 23 23 
@@ -2082,11 +2082,11 @@ itcl::body Rappture::VtkViewer::Slice {option args} {
             set newpos [expr {0.01*$newval}]
             SendCmd "renderer clipplane $axis $newpos -1"
         }
-	"tooltip" {
-	    set axis [lindex $args 0]
-	    set val [$itk_component(${axis}CutScale) get]
-	    return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
-	}
+        "tooltip" {
+            set axis [lindex $args 0]
+            set val [$itk_component(${axis}CutScale) get]
+            return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
+        }
         default {
             error "bad option \"$option\": should be axis, move, or tooltip"
         }

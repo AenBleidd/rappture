@@ -25,9 +25,9 @@ itcl::class ::Rappture::VisViewer {
     set _servers(vtkvis)  "localhost:2010"
 
     protected variable _serverType "???";# Type of server.
-    protected variable _sid ""	    ;	# socket connection to server
-    private common _done            ;	# Used to indicate status of send.
-    private variable _buffer        ;	# buffer for incoming/outgoing commands
+    protected variable _sid ""      ;   # socket connection to server
+    private common _done            ;   # Used to indicate status of send.
+    private variable _buffer        ;   # buffer for incoming/outgoing commands
     private variable _initialized 
     private variable _isOpen 0
     private variable _afterId -1
@@ -40,9 +40,9 @@ itcl::class ::Rappture::VisViewer {
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
 
-    protected variable _dispatcher "";	# dispatcher for !events
-    protected variable _hosts ""    ;	# list of hosts for server
-    protected variable _parser ""   ;	# interpreter for incoming commands
+    protected variable _dispatcher "";  # dispatcher for !events
+    protected variable _hosts ""    ;   # list of hosts for server
+    protected variable _parser ""   ;   # interpreter for incoming commands
     protected variable _image
     protected variable _hostname
 
@@ -88,21 +88,21 @@ itcl::class ::Rappture::VisViewer {
         return $_servers($type)
     }
     public proc SetServerList { type namelist } {
-	# Convert the comma separated list into a Tcl list.  OGRE also adds
-	# a trailing comma that we want to ignore.
+        # Convert the comma separated list into a Tcl list.  OGRE also adds
+        # a trailing comma that we want to ignore.
         regsub -all "," $namelist " " namelist
         CheckNameList $namelist
         set _servers($type) $namelist
     }
     public proc RemoveServerFromList { type server } {
-	if { ![info exists _servers($type)] } {
-	    error "unknown server type \"$type\""
-	}
-	set i [lsearch $_servers($type) $server]
-	if { $i < 0 } {
-	    return
-	}
-	set _servers($type) [lreplace $_servers($type) $i $i]
+        if { ![info exists _servers($type)] } {
+            error "unknown server type \"$type\""
+        }
+        set i [lsearch $_servers($type) $server]
+        if { $i < 0 } {
+            return
+        }
+        set _servers($type) [lreplace $_servers($type) $i $i]
     }
     public proc SetPymolServerList { namelist } {
         SetServerList "pymol" $namelist
@@ -227,33 +227,33 @@ itcl::body Rappture::VisViewer::Connect { hostlist } {
     puts stderr "server type is $_serverType"
     foreach server [Shuffle $hostlist] {
         puts stderr "connecting to $server..."
-	foreach {hostname port} [split $server ":"] break
+        foreach {hostname port} [split $server ":"] break
         if { [catch {socket $hostname $port} _sid] != 0 } {
-	    set _sid ""
-	    RemoveServerFromList $_serverType $server
-	    continue
-	}
-	set _hostname $server
+            set _sid ""
+            RemoveServerFromList $_serverType $server
+            continue
+        }
+        set _hostname $server
         fconfigure $_sid -translation binary -encoding binary
-	
+        
         # Read back the server identification string.
         if { [gets $_sid data] <= 0 } {
-	    set _sid ""
-	    puts stderr "reading from server"
-	    RemoveServerFromList $_serverType $server
-	    continue
-	}
-	puts stderr "render server is $data"
-	# We're connected. Cancel any pending serverDown events and
-	# release the busy window over the hull.
-	$_dispatcher cancel !serverDown
-	if { $_idleTimeout > 0 } {
-	    $_dispatcher event -after $_idleTimeout !timeout
-	}
-	blt::busy release $itk_component(hull)
-	fconfigure $_sid -buffering line
-	fileevent $_sid readable [itcl::code $this ReceiveHelper]
-	return 1
+            set _sid ""
+            puts stderr "reading from server"
+            RemoveServerFromList $_serverType $server
+            continue
+        }
+        puts stderr "render server is $data"
+        # We're connected. Cancel any pending serverDown events and
+        # release the busy window over the hull.
+        $_dispatcher cancel !serverDown
+        if { $_idleTimeout > 0 } {
+            $_dispatcher event -after $_idleTimeout !timeout
+        }
+        blt::busy release $itk_component(hull)
+        fconfigure $_sid -buffering line
+        fileevent $_sid readable [itcl::code $this ReceiveHelper]
+        return 1
     }
     blt::busy release $itk_component(hull)
     set x [expr {[winfo rootx $itk_component(hull)]+10}]
@@ -283,11 +283,11 @@ itcl::body Rappture::VisViewer::Disconnect {} {
 #
 itcl::body Rappture::VisViewer::IsConnected {} {
     if { $_sid == "" } {
-	return 0
+        return 0
     }
     if { [eof $_sid] } {
-	set _sid ""
-	return 0
+        set _sid ""
+        return 0
     }
     return 1
 }
@@ -303,13 +303,13 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 itcl::body Rappture::VisViewer::CheckConnection {} {
     $_dispatcher cancel !timeout
     if { $_idleTimeout > 0 } {
-	$_dispatcher event -after $_idleTimeout !timeout
+        $_dispatcher event -after $_idleTimeout !timeout
     }
     if { [IsConnected] } {
-	return 1
+        return 1
     }
     if { $_sid != "" } {
-	fileevent $_sid writable ""
+        fileevent $_sid writable ""
     }
     # If we aren't connected, assume it's because the connection to the
     # visualization server broke. Try to open a connection and trigger a
@@ -354,7 +354,7 @@ itcl::body Rappture::VisViewer::SendHelper {} {
     }
     puts -nonewline $_sid $_buffer(out)
     flush $_sid 
-    set _done($this) 1;			# Success
+    set _done($this) 1;                 # Success
 }
 
 #
@@ -568,25 +568,25 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
     after cancel $_afterId
     set _afterId -1
     if { $state } {
-	if { [winfo exists $itk_component(plotarea).view.splash] } {
-	    return
-	}
-	set inner [frame $itk_component(plotarea).view.splash]
-	$inner configure -relief raised -bd 2 
-	label $inner.text1 -text "Rendering, please wait." \
-	    -font "Arial 10"
-	label $inner.icon 
-	pack $inner -expand yes -anchor c
-	blt::table $inner \
-	    0,0 $inner.text1 -anchor w \
-	    0,1 $inner.icon 
-	Waiting start $inner.icon
+        if { [winfo exists $itk_component(plotarea).view.splash] } {
+            return
+        }
+        set inner [frame $itk_component(plotarea).view.splash]
+        $inner configure -relief raised -bd 2 
+        label $inner.text1 -text "Rendering, please wait." \
+            -font "Arial 10"
+        label $inner.icon 
+        pack $inner -expand yes -anchor c
+        blt::table $inner \
+            0,0 $inner.text1 -anchor w \
+            0,1 $inner.icon 
+        Waiting start $inner.icon
     } else {
-	if { ![winfo exists $itk_component(plotarea).view.splash] } {
-	    return
-	}
-	Waiting stop $itk_component(plotarea).view.splash
-	destroy $itk_component(plotarea).view.splash
+        if { ![winfo exists $itk_component(plotarea).view.splash] } {
+            return
+        }
+        Waiting stop $itk_component(plotarea).view.splash
+        destroy $itk_component(plotarea).view.splash
     }
 }
 

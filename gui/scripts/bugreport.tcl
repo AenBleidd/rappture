@@ -85,8 +85,8 @@ proc Rappture::bugreport::activate {err} {
         update idletasks
         set w [winfo reqwidth .bugreport]
         set h [winfo reqheight .bugreport]
-	#gah@purdue: temporary hack to force view of dismiss button
-	incr h 300
+        #gah@purdue: temporary hack to force view of dismiss button
+        incr h 300
         set x [expr {([winfo screenwidth .bugreport]-$w)/2}]
         if {$x < 0} {set x "+0"} else {set x "+$x"}
         set y [expr {([winfo screenheight .bugreport]-$h)/2}]
@@ -470,11 +470,11 @@ proc Rappture::bugreport::send {} {
     }
     set toolFile ""
     if { [info exists details(attachment)] } {
-	set toolFile "/tmp/tool[pid].xml"
-	set f [open $toolFile "w"]
-	puts $f $details(attachment)
-	close $f
-	unset details(attachment)
+        set toolFile "/tmp/tool[pid].xml"
+        set f [open $toolFile "w"]
+        puts $f $details(attachment)
+        close $f
+        unset details(attachment)
     }
     set query [http::formatQuery \
         option com_support \
@@ -495,7 +495,7 @@ proc Rappture::bugreport::send {} {
     ]
     set url [Rappture::Tool::resources -huburl]
     if { $url == "" } {
-	set url "http://hubzero.org"
+        set url "http://hubzero.org"
     }
     if {[string index $url end] == "/"} {
         append url "index.php"
@@ -513,7 +513,7 @@ proc Rappture::bugreport::send {} {
     http::cleanup $token
 
     if { $toolFile != "" } {
-	file delete $toolFile
+        file delete $toolFile
     }
     if {[regexp {Ticket #[0-9]* +\(.*?\) +[0-9]+ +times} $info match]} {
         return $match

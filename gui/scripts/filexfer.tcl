@@ -342,7 +342,7 @@ proc Rappture::filexfer::webpage {url} {
     if {[regexp -nocase {^https?://} $url]} {
         foreach prog {
               clientaction
-	      /usr/lib/hubzero/clientaction
+              /usr/lib/hubzero/clientaction
               /apps/bin/clientaction
               /apps/xvnc/bin/clientaction
               /usr/lib/mw/bin/clientaction

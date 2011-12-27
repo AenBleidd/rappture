@@ -1,7 +1,7 @@
 
 # ----------------------------------------------------------------------
 #  COMPONENT: PeriodicElement - entry widget with a drop-down periodic 
-#	      table.
+#             table.
 #
 #  This widget is a typical periodicelement, an entry widget with a drop-down
 #  list of values.  If the -editable option is turned off, then the

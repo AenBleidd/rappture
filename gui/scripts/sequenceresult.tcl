@@ -28,17 +28,17 @@ itcl::class Rappture::SequenceResult {
     inherit itk::Widget
 
     constructor {args} { 
-	# defined below 
+        # defined below 
     }
     destructor { 
-	# defined below 
+        # defined below 
     }
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
     public method parameters {title args} { 
-	# do nothing 
+        # do nothing 
     }
     public method download {option args}
 
@@ -295,7 +295,7 @@ itcl::body Rappture::SequenceResult::scale {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::download {option args} {
     if { ![winfo exists $itk_component(area).viewer] } {
-        return "";	# No data, no viewer, no download.
+        return "";      # No data, no viewer, no download.
     }
     switch $option {
         coming {
@@ -344,7 +344,7 @@ itcl::body Rappture::SequenceResult::download {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::play {} {
     if { [llength $_indices] == 0 } {
-        return;				# No frames (i.e. no data).
+        return;                         # No frames (i.e. no data).
     }
     # Stop any existing animation.
     pause
@@ -360,7 +360,7 @@ itcl::body Rappture::SequenceResult::play {} {
         -command [itcl::code $this pause]
 
     global readyForNextFrame 
-    set readyForNextFrame 1;		# By default, always ready
+    set readyForNextFrame 1;            # By default, always ready
     # Schedule the first frame
     set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     set _afterId [after $delay [itcl::code $this _playFrame]]
@@ -378,15 +378,15 @@ itcl::body Rappture::SequenceResult::pause {} {
         set _afterId ""
     }
     global readyForNextFrame 
-    set readyForNextFrame 1;		# By default, always ready
-					
+    set readyForNextFrame 1;            # By default, always ready
+                                        
     # Check if the play button still exists. We may be in the process
     # of destroying the widget.
     if { [info exists itk_component(play)] } {
-	# toggle the button to "play" mode
-	$itk_component(play) configure \
-	    -bitmap [Rappture::icon play] \
-	    -command [itcl::code $this play]
+        # toggle the button to "play" mode
+        $itk_component(play) configure \
+            -bitmap [Rappture::icon play] \
+            -command [itcl::code $this play]
     }
 }
 
@@ -476,30 +476,30 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 switch -- $dimensions {
                     2D {
                         if { [$dataobj isunirect2d] } {
-			    global env
-			    if { [$dataobj hints type] == "contour" } {
-				set mode "vtkcontour" 
-			    } elseif { [info exists env(VTKHEIGHTMAP)] } {
-				set resultMode "vtkheightmap"
-			    } else {
-				set resultMode "heightmap"
-			    }
+                            global env
+                            if { [$dataobj hints type] == "contour" } {
+                                set mode "vtkcontour" 
+                            } elseif { [info exists env(VTKHEIGHTMAP)] } {
+                                set resultMode "vtkheightmap"
+                            } else {
+                                set resultMode "heightmap"
+                            }
                         } else {
                             set mode "vtk"
                         }
                         Rappture::Field2DResult $viewer -mode $mode
                     }
                     3D {
-			set fmt [$dataobj type]
-			switch -- $fmt {
-			    "opendx" - "dx" - "points-on-mesh" {
-				set fmt "nanovis"
-				set extents [$dataobj extents]
-				if { $extents > 1 } {
-				    set fmt "flowvis"
-				}
-			    }
-			}
+                        set fmt [$dataobj type]
+                        switch -- $fmt {
+                            "opendx" - "dx" - "points-on-mesh" {
+                                set fmt "nanovis"
+                                set extents [$dataobj extents]
+                                if { $extents > 1 } {
+                                    set fmt "flowvis"
+                                }
+                            }
+                        }
                         Rappture::Field3DResult $viewer -mode $fmt
                     }
                     default {
@@ -577,7 +577,7 @@ itcl::body Rappture::SequenceResult::_playFrame {} {
         goto $_pos
         set delay [expr {int(ceil(pow($_play(speed)/10.0+2,2.0)*15))}]
     } else {
-        set delay 50;			# Poll for completion
+        set delay 50;                   # Poll for completion
     }
     set _afterId [after $delay [itcl::code $this _playFrame]]
 }

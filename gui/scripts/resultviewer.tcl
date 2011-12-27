@@ -217,9 +217,9 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
         ::Rappture::Drawing {
             set mode "vtkviewer"
             if {![info exists _mode2widget($mode)]} {
-		set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+                set servers [Rappture::VisViewer::GetServerList "vtkvis"]
                 set w $itk_interior.vtkviewer
-		Rappture::VtkViewer $w $servers
+                Rappture::VtkViewer $w $servers
                 set _mode2widget($mode) $w
             }
         }
@@ -263,13 +263,13 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
                         if { [$dataobj isunirect2d] } {
-			    if { [$dataobj hints type] == "contour" } {
-				set resultMode "vtkcontour" 
-			    } elseif { [info exists env(VTKHEIGHTMAP)] } {
-				set resultMode "vtkheightmap"
-			    } else {
-				set resultMode "heightmap"
-			    }
+                            if { [$dataobj hints type] == "contour" } {
+                                set resultMode "vtkcontour" 
+                            } elseif { [info exists env(VTKHEIGHTMAP)] } {
+                                set resultMode "vtkheightmap"
+                            } else {
+                                set resultMode "heightmap"
+                            }
                         } else {
                             set resultMode "vtk"
                         }
@@ -288,23 +288,23 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     set mode "field3D"
                     if {![info exists _mode2widget($mode)]} {
                         switch -- [$dataobj type] {
-			    "vtk" {
-				set fmt "vtk"
-			    }
-			    "opendx" - "dx" - "points-on-mesh" {
-				set fmt "nanovis"
-				set extents [$dataobj extents]
-				if { $extents > 1 } {
-				    set fmt "flowvis"
-				}
-			    }
-			    "vtkvolume" {
-				set fmt "vtkvolume"
-			    }
-			    "vtkstreamlines" {
-				set fmt "vtkstreamlines"
-			    }
-			}
+                            "vtk" {
+                                set fmt "vtk"
+                            }
+                            "opendx" - "dx" - "points-on-mesh" {
+                                set fmt "nanovis"
+                                set extents [$dataobj extents]
+                                if { $extents > 1 } {
+                                    set fmt "flowvis"
+                                }
+                            }
+                            "vtkvolume" {
+                                set fmt "vtkvolume"
+                            }
+                            "vtkstreamlines" {
+                                set fmt "vtkstreamlines"
+                            }
+                        }
                         set w $itk_interior.field3D
                         Rappture::Field3DResult $w -mode $fmt
                         set _mode2widget($mode) $w
