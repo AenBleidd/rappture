@@ -298,16 +298,16 @@ if {[llength [$win.pager page]] == 2} {
     set w1 [winfo reqwidth [$win.pager page @1]]
 
     if { $style != "wizard" } {
-	# If only two windows and they're small enough, put them up
-	# side-by-side
-	if {$w0+$w1 < $screenw } {
-	    $win.pager configure -arrangement side-by-side
-	    $f.analyze configure -holdwindow [$win.pager page @0]
-	}
+        # If only two windows and they're small enough, put them up
+        # side-by-side
+        if {$w0+$w1 < $screenw } {
+            $win.pager configure -arrangement side-by-side
+            $f.analyze configure -holdwindow [$win.pager page @0]
+        }
     }
     set type [$tool xml get tool.control]
     if {$type == ""} {
-	set type [$tool xml get tool.control.type]
+        set type [$tool xml get tool.control.type]
     }
     set arrangement [$win.pager cget -arrangement]
     if { $type == "" } {
@@ -316,12 +316,12 @@ if {[llength [$win.pager page]] == 2} {
         }
     }
     if { $arrangement != "side-by-side" && 
-	    ($type == "manual" || $type == "auto" || $style == "wizard") } {
-	# in "auto" mode, we don't need a simulate button
-	$f.analyze configure -simcontrol off
+            ($type == "manual" || $type == "auto" || $style == "wizard") } {
+        # in "auto" mode, we don't need a simulate button
+        $f.analyze configure -simcontrol off
     } else {
-	# not in "auto" mode but side-by-side, we always need the button
-	$f.analyze configure -simcontrol on
+        # not in "auto" mode but side-by-side, we always need the button
+        $f.analyze configure -simcontrol on
     }
 } elseif {[llength [$win.pager page]] > 2} {
     # We have phases, so we shouldn't allow the "Simulate" button.

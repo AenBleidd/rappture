@@ -41,9 +41,9 @@ itcl::class Rappture::Histogram {
     private variable _hist ""    ;# lib obj representing this histogram
     private variable _widths     ;# array of vectors of bin widths 
     private variable _yvalues    ;# array of vectors of bin heights along 
-				 ;# y-axis.
+                                 ;# y-axis.
     private variable _xvalues    ;# array of vectors of bin locations along 
-				 ;# x-axis.
+                                 ;# x-axis.
     private variable _xlabels    ;# array of labels
     private variable _hints      ;# cache of hints stored in XML
     private variable _xmarkers "";# list of {x,label,options} triplets.
@@ -83,7 +83,7 @@ itcl::body Rappture::Histogram::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::mesh { comp } {
     if { [info exists _xvalues($comp)] } {
-	return $_xvalues($comp)
+        return $_xvalues($comp)
     }
     return ""
 }
@@ -95,7 +95,7 @@ itcl::body Rappture::Histogram::mesh { comp } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::values { comp } {
     if { [info exists _yvalues($comp)] } {
-	return $_yvalues($comp)
+        return $_yvalues($comp)
     }
     return ""
 }
@@ -109,7 +109,7 @@ itcl::body Rappture::Histogram::values { comp } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::widths { comp } {
     if { [info exists _widths($comp)] } {
-	return $_widths($comp)
+        return $_widths($comp)
     }
     return ""
 }
@@ -123,7 +123,7 @@ itcl::body Rappture::Histogram::widths { comp } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Histogram::xlabels { comp } {
     if { [info exists _xlabels($comp)] } {
-	return $_xlabels($comp)
+        return $_xlabels($comp)
     }
     return ""
 }
@@ -313,7 +313,7 @@ itcl::body Rappture::Histogram::Build {} {
     # enhancements require more than one component.
     #
     foreach cname [$_hist children -type component] {
-	ParseData $cname
+        ParseData $cname
     }
     # Creates lists of x and y marker data.
     set _xmarkers {}
@@ -337,9 +337,9 @@ itcl::body Rappture::Histogram::Build {} {
 #
 # ParseData --
 #
-#	Parse the components data representations.  The following
-#	elements may be used <xy>, <xhw>, <namevalue>, <xvector>,
-#	<yvector>.  Only one element is used for data.  
+#       Parse the components data representations.  The following
+#       elements may be used <xy>, <xhw>, <namevalue>, <xvector>,
+#       <yvector>.  Only one element is used for data.  
 #
 itcl::body Rappture::Histogram::ParseData { comp } {
     # Create new vectors or discard any existing data
@@ -350,78 +350,78 @@ itcl::body Rappture::Histogram::ParseData { comp } {
 
     set xydata [$_hist get ${comp}.xy]
     if { $xydata != "" } {
-	set count 0
+        set count 0
         foreach line [split $xydata \n] {
-	    foreach {name value} $line break
-	    $_yvalues($comp) append $value
-	    $_xvalues($comp) append $count
-	    lappend _xlabels($comp) $name
-	    incr count
-	}	    
-	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
-	return
+            foreach {name value} $line break
+            $_yvalues($comp) append $value
+            $_xvalues($comp) append $count
+            lappend _xlabels($comp) $name
+            incr count
+        }           
+        set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+        return
     }
     set xhwdata [$_hist get ${comp}.xhw]
     if { $xhwdata != "" } {
-	set count 0
+        set count 0
         foreach line [split $xhwdata \n] {
             set n [scan $line {%s %s %s} name h w]
-	    lappend _xlabels($comp) $name
-	    $_xvalues($comp) append $count
-	    $_yvalues($comp) append $h
+            lappend _xlabels($comp) $name
+            $_xvalues($comp) append $count
+            $_yvalues($comp) append $h
             if { $n == 3 } {
                 $_widths($comp) append $w
             }
-	    incr count
-	}	    
-	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
-	return
+            incr count
+        }           
+        set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+        return
 
         # FIXME:  There must be a width specified for each bin location.
-        #	  If this isn't true, we default to uniform widths
-        #	  (zero-length _widths vector == uniform).
+        #         If this isn't true, we default to uniform widths
+        #         (zero-length _widths vector == uniform).
         if { [$_xvalues($comp) length] != [$_widths($comp) length] } {
             $_widths($comp) set {}
         }
-	set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
-	return
+        set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
+        return
     }
     set xv [$_hist get $comp.xvector]
     set yv [$_hist get $comp.yvector]
     if { $xv != "" && $yv != "" } {
-	$_yvalues($comp) set $yv
-	$_xvalues($comp) seq 0 [$yv length]
-	set _xlabels($comp)
+        $_yvalues($comp) set $yv
+        $_xvalues($comp) seq 0 [$yv length]
+        set _xlabels($comp)
     }
     set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
 }
 
 itcl::body Rappture::Histogram::Clear { {comp ""} } {
     if { $comp == "" } {
-	foreach name [array names _widths] {
-	    blt::vector destroy $_widths($name)
-	}
-	array unset _widths
-	foreach name [array names _yvalues] {
-	    blt::vector destroy $_yvalues($name)
-	}
-	array unset _yvalues
-	foreach name [array names _xvalues] {
-	    blt::vector destroy $_xvalues($name)
-	}
-	array unset _xvalues
-	array unset _xlabels
-	array unset _comp2hist
-	return
+        foreach name [array names _widths] {
+            blt::vector destroy $_widths($name)
+        }
+        array unset _widths
+        foreach name [array names _yvalues] {
+            blt::vector destroy $_yvalues($name)
+        }
+        array unset _yvalues
+        foreach name [array names _xvalues] {
+            blt::vector destroy $_xvalues($name)
+        }
+        array unset _xvalues
+        array unset _xlabels
+        array unset _comp2hist
+        return
     }
     if { [info exists _widths($comp)] } {
-	blt::vector destroy $_widths($comp) 
+        blt::vector destroy $_widths($comp) 
     }
     if { [info exists _yvalues($comp)] } {
-	blt::vector destroy $_yvalues($comp) 
+        blt::vector destroy $_yvalues($comp) 
     }
     if { [info exists _xvalues($comp)] } {
-	blt::vector destroy $_xvalues($comp) 
+        blt::vector destroy $_xvalues($comp) 
     }
     array unset _xvalues $comp
     array unset _yvalues $comp

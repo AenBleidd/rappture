@@ -48,7 +48,7 @@ itcl::class Rappture::Panes {
     private variable _visibility ""  ;# list of visibilities for panes
     private variable _counter 0      ;# counter for auto-generated names
     private variable _frac 0.0       ;# list of fractions
-    public variable orientation	"vertical"
+    public variable orientation "vertical"
 }
 
 itk::usual Panes {
@@ -408,7 +408,7 @@ itcl::body Rappture::Panes::_fixLayout {args} {
                 -relheight 1.0 -width $pw
             set x [expr {$x + $pw}]
         }
-    }	
+    }   
 }
 
 # ----------------------------------------------------------------------

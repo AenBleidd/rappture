@@ -242,7 +242,7 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     #
     set str [$_owner xml get $path.default]
     if { $str != "" } { 
-	bind $itk_component(hull) <Map> [itcl::code $this SetDefaultValue $str]
+        bind $itk_component(hull) <Map> [itcl::code $this SetDefaultValue $str]
     }
 }
 
@@ -322,14 +322,14 @@ itcl::body Rappture::Loader::tooltip {} {
 #
 # SetDefaultValue --
 #
-#	Sets the designated default value for the loader.  This must be done
-#	after the entire application is assembled, otherwise the default
-#	values set up by the loader will be overwritten by the various widgets
-#	themselves when they try to set their default values.  
+#       Sets the designated default value for the loader.  This must be done
+#       after the entire application is assembled, otherwise the default
+#       values set up by the loader will be overwritten by the various widgets
+#       themselves when they try to set their default values.  
 #
-#	This is called from a  <Map> event to the loader (combobox).  This
-#	will get trigger the first time the loader is displayed.  The binding
-#	is then removed.
+#       This is called from a  <Map> event to the loader (combobox).  This
+#       will get trigger the first time the loader is displayed.  The binding
+#       is then removed.
 #
 itcl::body Rappture::Loader::SetDefaultValue { value } {
     after idle [itcl::code $this value $value]

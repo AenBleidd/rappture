@@ -223,7 +223,7 @@ itcl::body Rappture::DispatchObj::event {args} {
 
 # ----------------------------------------------------------------------
 # USAGE: cancel ?!event ...?
-#	 cancel all
+#        cancel all
 #
 # Used to cancel any event notifications pending for the specified
 # list of events.  Notifications may be pending if a particular

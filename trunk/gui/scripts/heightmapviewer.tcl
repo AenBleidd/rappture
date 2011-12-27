@@ -74,14 +74,14 @@ itcl::class Rappture::HeightmapViewer {
 
     private method AddImageControls { frame widget }
     private method SetWaitVariable { value } {
-	set _getimage $value 
+        set _getimage $value 
     }
     private method GetWaitVariable {} {
-	return $_getimage 
+        return $_getimage 
     }
     private method WaitForImage {} {
-	tkwait variable [itcl::scope _getimage]
-	return $_getimage
+        tkwait variable [itcl::scope _getimage]
+        return $_getimage
     }
 
     protected method CurrentSurfaces {{what -all}}
@@ -116,7 +116,7 @@ itcl::class Rappture::HeightmapViewer {
     private variable _buffering 0
     private variable _resizePending 0
     private variable _resizeLegendPending 0
-    private variable _frame 0;		# Current frame number. 
+    private variable _frame 0;          # Current frame number. 
     private variable _getimage 0;
     private variable _downloadPopup
 }
@@ -154,8 +154,8 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
     $_parser alias legend [itcl::code $this ReceiveLegend]
 
     array set _downloadPopup {
-	format image
-	image_controls ""
+        format image
+        image_controls ""
     }
     # Initialize the view to some default parameters.
     array set _view {
@@ -163,26 +163,26 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        pan-x	0
-        pan-y	0
+        pan-x   0
+        pan-y   0
     }
     foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
         set _limits($val) ""
     }
     array set _settings [subst {
-        $this-pan-x		$_view(pan-x)
-        $this-pan-y		$_view(pan-y)
-        $this-phi		$_view(phi)
-        $this-psi		$_view(psi)
-        $this-theta		$_view(theta)
-        $this-surface		1
-        $this-xcutplane		0
-        $this-xcutposition	0
-        $this-ycutplane		0
-        $this-ycutposition	0
-        $this-zcutplane		0
-        $this-zcutposition	0
-        $this-zoom		$_view(zoom)
+        $this-pan-x             $_view(pan-x)
+        $this-pan-y             $_view(pan-y)
+        $this-phi               $_view(phi)
+        $this-psi               $_view(psi)
+        $this-theta             $_view(theta)
+        $this-surface           1
+        $this-xcutplane         0
+        $this-xcutposition      0
+        $this-ycutplane         0
+        $this-ycutposition      0
+        $this-zcutplane         0
+        $this-zcutposition      0
+        $this-zoom              $_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -509,17 +509,17 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
                 pack $inner.summary -side top
-		radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
-		    -variable \
-		    ::Rappture::HeightmapViewer::_downloadPopup(format) \
-		    -font "Arial 10 " \
-		    -value image 
-		Rappture::Tooltip::for $inner.image "Save as image."
+                radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
+                    -variable \
+                    ::Rappture::HeightmapViewer::_downloadPopup(format) \
+                    -font "Arial 10 " \
+                    -value image 
+                Rappture::Tooltip::for $inner.image "Save as image."
                 pack $inner.image -anchor w
                 button $inner.go -text [Rappture::filexfer::label download] \
                     -command [lindex $args 0]
                 pack $inner.go -side bottom -pady 4
-		$inner.image select
+                $inner.image select
             } else {
                 set inner [$popup component inner]
             }
@@ -527,7 +527,7 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
-            update idletasks ;		# Fix initial sizes
+            update idletasks ;          # Fix initial sizes
             return $popup
         }
         now {
@@ -542,49 +542,49 @@ itcl::body Rappture::HeightmapViewer::download {option args} {
                         # Create the balloon popup and and the print image
                         # dialog widget to it.
                         Rappture::Balloon $popup -title "Save as image..." \
-			    -deactivatecommand \
-			    [itcl::code $this SetWaitVariable 0]
+                            -deactivatecommand \
+                            [itcl::code $this SetWaitVariable 0]
                         set inner [$popup component inner]
                         AddImageControls $inner [lindex $args 0]
                     } else {
                         set inner [$popup component inner]
-		    }			
-		    set _downloadPopup(image_controls) $inner
+                    }                   
+                    set _downloadPopup(image_controls) $inner
                     update
                     # Activate the popup and call for the output.
                     foreach { widget toolName plotName } $args break
-		    SetWaitVariable 0
+                    SetWaitVariable 0
                     $popup activate $widget left
-		    set bool [WaitForImage]
+                    set bool [WaitForImage]
                     $popup deactivate 
-		    if { $bool } {
-			set inner $_downloadPopup(image_controls)
-			set fmt [$inner.format translate [$inner.format value]]
-			# Get the image data (as base64) and decode it back to
-			# binary.  This is better than writing to temporary
-			# files.  When we switch to the BLT picture image it
-			# won't be necessary to decode the image data.
-			switch $fmt {
-			    "jpg" {
-				set bytes [$_image(download) data \
-					       -format "jpeg -quality 100"]
-			    }
-			    "png" {
-				set bytes [$_image(download) data -format "png"]
-			    }
-			    "gif" {
-				set bytes [$_image(download) data -format "gif"]
-			    }
-			    default {
-				return ""
-			    }
-			}
-			set bytes [Rappture::encoding::decode -as b64 $bytes]
-			return [list .$fmt $bytes]
-		    }
-		}
+                    if { $bool } {
+                        set inner $_downloadPopup(image_controls)
+                        set fmt [$inner.format translate [$inner.format value]]
+                        # Get the image data (as base64) and decode it back to
+                        # binary.  This is better than writing to temporary
+                        # files.  When we switch to the BLT picture image it
+                        # won't be necessary to decode the image data.
+                        switch $fmt {
+                            "jpg" {
+                                set bytes [$_image(download) data \
+                                               -format "jpeg -quality 100"]
+                            }
+                            "png" {
+                                set bytes [$_image(download) data -format "png"]
+                            }
+                            "gif" {
+                                set bytes [$_image(download) data -format "gif"]
+                            }
+                            default {
+                                return ""
+                            }
+                        }
+                        set bytes [Rappture::encoding::decode -as b64 $bytes]
+                        return [list .$fmt $bytes]
+                    }
+                }
             }
-	    return ""
+            return ""
         }
         default {
             error "bad option \"$option\": should be coming, controls, now"
@@ -832,15 +832,15 @@ itcl::body Rappture::HeightmapViewer::Rebuild {} {
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    SendBytes $_outbuf;			
+    SendBytes $_outbuf;                 
     blt::busy release $itk_component(hull)
 
     # The "readyForNextFrame" variable throttles the sequence play rate.
     global readyForNextFrame
-    set readyForNextFrame 0;		# Don't advance to the next frame
-					# until we get an image.
-    set _buffering 0;			# Turn off buffering.
-    set _outbuf "";			# Clear the buffer.		
+    set readyForNextFrame 0;            # Don't advance to the next frame
+                                        # until we get an image.
+    set _buffering 0;                   # Turn off buffering.
+    set _outbuf "";                     # Clear the buffer.             
 }
 
 # ----------------------------------------------------------------------
@@ -866,9 +866,9 @@ itcl::body Rappture::HeightmapViewer::Zoom {option} {
                 theta   45
                 phi     45
                 psi     0
-                zoom	1.0
-                pan-x	0
-                pan-y	0
+                zoom    1.0
+                pan-x   0
+                pan-y   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1236,11 +1236,11 @@ itcl::body Rappture::HeightmapViewer::BuildViewTab {} {
     $inner configure -borderwidth 4
 
     foreach { key value } {
-        grid		1
-        axes		0
-        contourlines	1
-        wireframe	fill
-        legend		1
+        grid            1
+        axes            0
+        contourlines    1
+        wireframe       fill
+        legend          1
     } {
         set _settings($this-$key) $value
     }

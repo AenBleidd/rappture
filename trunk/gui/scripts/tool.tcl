@@ -204,14 +204,14 @@ itcl::body Rappture::Tool::run {args} {
                 -output ::Rappture::Tool::job(output) \
                 -error ::Rappture::Tool::job(error) $cmd} result]
 
-	    if { $status != 0 } {
-		foreach {code pid mesg} $::Rappture::Tool::job(control) break
-		if { $code != "EXITED" } {
-		    set result "Abnormal program termination \"$code\": $mesg"
-		    return [list $status $result]
-		}
-	    }
-	}
+            if { $status != 0 } {
+                foreach {code pid mesg} $::Rappture::Tool::job(control) break
+                if { $code != "EXITED" } {
+                    set result "Abnormal program termination \"$code\": $mesg"
+                    return [list $status $result]
+                }
+            }
+        }
         # ...job is finished
         array set times [Rappture::rusage measure]
 

@@ -60,10 +60,10 @@ itcl::class ::Rappture::XyLegend {
     }
     private variable _lastColorIndex ""
     private variable _dispatcher "" ;# dispatcher for !events
-    private variable _graph	""
-    private variable _tree	""
-    private variable _diff	"";	# Polygon marker used for difference.
-    private variable _rename	"";	# Node selected to be renamed.
+    private variable _graph     ""
+    private variable _tree      ""
+    private variable _diff      "";     # Polygon marker used for difference.
+    private variable _rename    "";     # Node selected to be renamed.
     private variable _diffelements
     private variable _unmapHidden 0
 
@@ -450,7 +450,7 @@ itcl::body Rappture::XyLegend::Average {} {
     blt::busy hold $itk_component(hull)
     update
     # Step 1. Get the x-values for each curve, then sort them to get the
-    #	      unique values.
+    #         unique values.
 
     set labels {}
     foreach node $nodes {
@@ -464,9 +464,9 @@ itcl::body Rappture::XyLegend::Average {} {
     $xcoords sort -uniq
 
     # Step 2. Now for each curve, generate a cubic spline of that curve
-    #	      and interpolate to get the corresponding y-values for each 
-    #	      abscissa.  Normally the abscissa are the same, so we're
-    #	      interpolation the knots.
+    #         and interpolate to get the corresponding y-values for each 
+    #         abscissa.  Normally the abscissa are the same, so we're
+    #         interpolation the knots.
 
     set x [blt::vector create \#auto -command ""]
     set y [blt::vector create \#auto -command ""]
@@ -487,7 +487,7 @@ itcl::body Rappture::XyLegend::Average {} {
     $sum expr "$sum / [llength $elements]"
 
     # Step 3.  Create a new curve which is the average. Append it to the
-    #	       the end.
+    #          the end.
 
     set count 0
     while {[$_graph element exists avg$count] } {
@@ -523,8 +523,8 @@ itcl::body Rappture::XyLegend::Difference {} {
     set elem2 [$_tree label [lindex $nodes 1]]
     if { [info exists _diffelements($elem1)] && 
          [info exists _diffelements($elem2)] } {
-        array unset _diffelements;	# Toggle the difference.
-        return;				
+        array unset _diffelements;      # Toggle the difference.
+        return;                         
     }
     array unset _diffelements
     set x [blt::vector create \#auto -command ""]

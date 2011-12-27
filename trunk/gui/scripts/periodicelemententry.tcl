@@ -67,7 +67,7 @@ itcl::body Rappture::PeriodicElementEntry::constructor {owner path args} {
     }
     if { [llength $active] > 0 } {
         $itk_component(element) element active $active
-    }		
+    }           
     if { $defval != "" } {
         $itk_component(element) value $defval
     }

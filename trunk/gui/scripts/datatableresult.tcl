@@ -66,7 +66,7 @@ itcl::class Rappture::DataTableResult {
     private variable _dataobj2width  ;# maps dataobj => line width
     private variable _dataobj2dashes ;# maps dataobj => BLT -dashes list
     private variable _dataobj2raise  ;# maps dataobj => raise flag 0/1
-    private variable _raised	"";
+    private variable _raised    "";
     common _downloadPopup          ;# download options from popup
 }
                                                                                 

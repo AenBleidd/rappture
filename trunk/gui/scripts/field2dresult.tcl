@@ -58,19 +58,19 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     set servers ""
     puts stderr modeflags=$flags(-mode)
     switch -- $flags(-mode) {
-	"auto" - "heightmap" - "flowvis" {
-	    set servers [Rappture::VisViewer::GetServerList "nanovis"]
-	}
-	"vtkcontour" - "vtkheightmap" {
-	    set servers [Rappture::VisViewer::GetServerList "vtkvis"]
-	}
-	"vtk" {
-	    # Old vtk contour widget
-	}
-	default {
-	    puts stderr "unknown render mode \"$flags(-mode)\""
-	}
-    }		
+        "auto" - "heightmap" - "flowvis" {
+            set servers [Rappture::VisViewer::GetServerList "nanovis"]
+        }
+        "vtkcontour" - "vtkheightmap" {
+            set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+        }
+        "vtk" {
+            # Old vtk contour widget
+        }
+        default {
+            puts stderr "unknown render mode \"$flags(-mode)\""
+        }
+    }           
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "heightmap" {
@@ -96,7 +96,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
             default {
                 puts stderr "unknown render mode \"$flags(-mode)\""
             }
-        }		
+        }               
         pack $itk_component(renderer) -expand yes -fill both
         # can't connect to rendering farm?  then fall back to older viewer
         if {![$itk_component(renderer) isconnected]} {

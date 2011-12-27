@@ -84,7 +84,7 @@ itcl::body Rappture::TextEntry::constructor {owner path args} {
     set hints [$_owner xml get $path.about.hints]
     set icon [$_owner xml get $path.about.icon]
     if {[string length $icon] > 0} {
-	set _icon [image create photo -data $icon] 
+        set _icon [image create photo -data $icon] 
     } 
     if {[string length $hints] > 0} {
         itk_component add hints {
@@ -355,10 +355,10 @@ itcl::body Rappture::TextEntry::_layout {} {
                 itk_component add binary {
                     frame $itk_interior.bin
                 }
-		set icon $_icon
-		if { $icon == "" } {
-		    set icon [Rappture::icon binary]
-		}
+                set icon $_icon
+                if { $icon == "" } {
+                    set icon [Rappture::icon binary]
+                }
                 itk_component add binicon {
                     ::label $itk_component(binary).binicon \
                         -image $icon -borderwidth 0

@@ -39,9 +39,9 @@ itcl::class Rappture::Field {
     protected method _build {}
     protected method _getValue {expr}
 
-    private variable _xmlobj ""  ;	# ref to XML obj with device data
-    private variable _path "";		# Path of this object in the XML 
-    private variable _units ""   ;	# system of units for this field
+    private variable _xmlobj ""  ;      # ref to XML obj with device data
+    private variable _path "";          # Path of this object in the XML 
+    private variable _units ""   ;      # system of units for this field
     private variable _limits     ;# maps box name => {z0 z1} limits
     private variable _zmax 0     ;# length of the device
 
@@ -232,9 +232,9 @@ itcl::body Rappture::Field::values {{what -overall}} {
         return [lindex $_comp2xy($what) 1]  ;# return yv
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
-	# FIXME: Need to process the vtk file data to pull out the field's
-	# values.
-	error "vtkstreamlines: values not implements"
+        # FIXME: Need to process the vtk file data to pull out the field's
+        # values.
+        error "vtkstreamlines: values not implements"
         return [lindex $_comp2vtkstreamlines($what) 1] 
     }
     if { [info exists _comp2vtk($what)] } {
@@ -271,7 +271,7 @@ itcl::body Rappture::Field::blob {{what -overall}} {
         return $_comp2vtkvolume($what)
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
-	# Return the contents of the vtk file.
+        # Return the contents of the vtk file.
         return $_comp2vtkstreamlines($what)
     }
     if {[info exists _comp2dx($what)]} {
@@ -537,8 +537,8 @@ itcl::body Rappture::Field::hints {{keyword ""}} {
     set hints(tool) [$_xmlobj get tool.name]
     set hints(path) $_path
     if 0 {
-	# to be compatible with curve objects
-	set hints(xlabel) "Position"
+        # to be compatible with curve objects
+        set hints(xlabel) "Position"
     }
     if {[info exists hints(group)] && [info exists hints(label)]} {
         # pop-up help for each curve
@@ -606,25 +606,25 @@ itcl::body Rappture::Field::_build {} {
             [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
-	    if { [$_field get "about.view"] == "streamlines" } {
-		set type "vtkstreamlines"
-	    } else {
-		set type "vtk"
-	    }
+            if { [$_field get "about.view"] == "streamlines" } {
+                set type "vtkstreamlines"
+            } else {
+                set type "vtk"
+            }
         } elseif {[$_field element $cname.opendx] != ""} {
-	    global env
-	    if { [info exists env(VTKVOLUME)] } {
-		set type "vtkvolume"
-	    } else {
-		set type "dx"
-	    }
+            global env
+            if { [info exists env(VTKVOLUME)] } {
+                set type "vtkvolume"
+            } else {
+                set type "dx"
+            }
         } elseif {[$_field element $cname.dx] != ""} {
-	    global env
-	    if { [info exists env(VTKVOLUME)] } {
-		set type "vtkvolume"
-	    } else {
-		set type "dx"
-	    }
+            global env
+            if { [info exists env(VTKVOLUME)] } {
+                set type "vtkvolume"
+            } else {
+                set type "dx"
+            }
         }
         set _comp2style($cname) ""
         
@@ -635,7 +635,7 @@ itcl::body Rappture::Field::_build {} {
             set extents 1 
         }
         set _comp2extents($cname) $extents
-	set _type $type
+        set _type $type
         if {$type == "1D"} {
             #
             # 1D data can be represented as 2 BLT vectors,
@@ -797,43 +797,43 @@ itcl::body Rappture::Field::_build {} {
             incr _counter
         } elseif {$type == "vtkstreamlines"} {
             set _comp2dims($cname) "3D"
-	    # Allow redirects to another element.
+            # Allow redirects to another element.
             set vtkdata [$_field get $cname.vtk]
-	    if { ![string match "!*" $vtkdata] } {
-		set _comp2vtkstreamlines($cname) $vtkdata
-	    } else {
-		set path [string range $vtkdata 1 end]
-		if { [$_xmlobj element $path] == "" } {
-		    error "bad redirection path \"$path\""
-		}
-		puts stderr path=$path
-		set element [$_xmlobj element -as type $path]
-		if { $element != "vtk" } {
-		    error "bad path \"$path\": must redirect to a vtk element"
-		}
-		set _comp2vtkstreamlines($cname) [$_xmlobj get $path]
-	    }
+            if { ![string match "!*" $vtkdata] } {
+                set _comp2vtkstreamlines($cname) $vtkdata
+            } else {
+                set path [string range $vtkdata 1 end]
+                if { [$_xmlobj element $path] == "" } {
+                    error "bad redirection path \"$path\""
+                }
+                puts stderr path=$path
+                set element [$_xmlobj element -as type $path]
+                if { $element != "vtk" } {
+                    error "bad path \"$path\": must redirect to a vtk element"
+                }
+                set _comp2vtkstreamlines($cname) [$_xmlobj get $path]
+            }
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         } elseif {$type == "vtkvolume"} {
             set _comp2dims($cname) "3D"
-	    # Allow redirects to another element.
-	    set data [$_field get -decode no $cname.dx]
+            # Allow redirects to another element.
+            set data [$_field get -decode no $cname.dx]
             set data [Rappture::encoding::decode -as zb64 $data]
-	    if 1 {
-	    set file "/tmp/$cname.dx"
-	    set f [open $file "w"]
-	    puts $f $data
-	    close $f
-	    }
-	    set data [Rappture::ConvertDxToVtk $data]
-	    if 1 {
-	    set file "/tmp/$cname.vtk"
-	    set f [open $file "w"]
-	    puts $f $data
-	    close $f
-	    }
-	    set _comp2vtkvolume($cname) $data
+            if 1 {
+            set file "/tmp/$cname.dx"
+            set f [open $file "w"]
+            puts $f $data
+            close $f
+            }
+            set data [Rappture::ConvertDxToVtk $data]
+            if 1 {
+            set file "/tmp/$cname.vtk"
+            set f [open $file "w"]
+            puts $f $data
+            close $f
+            }
+            set _comp2vtkvolume($cname) $data
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         } elseif {$type == "vtkstreamlines2"} {
@@ -849,18 +849,18 @@ itcl::body Rappture::Field::_build {} {
             #
             set _comp2dims($cname) "3D"
             set _comp2dx($cname)  [$_field get -decode no $cname.dx]
-	    if 1 {
+            if 1 {
             set data  [$_field get -decode yes $cname.dx]
-	    set file "/tmp/junk.dx"
-	    set f [open $file "w"]
-	    puts $f $data
-	    close $f
-	    if { [string match "<ODX>*" $data] } {
-		set data [string range $data 5 end]
-		set _comp2dx($cname) \
-			[Rappture::encoding::encode -as zb64 $data]
-	    } 
-	    }
+            set file "/tmp/junk.dx"
+            set f [open $file "w"]
+            puts $f $data
+            close $f
+            if { [string match "<ODX>*" $data] } {
+                set data [string range $data 5 end]
+                set _comp2dx($cname) \
+                        [Rappture::encoding::encode -as zb64 $data]
+            } 
+            }
             set _comp2style($cname) [$_field get $cname.style]
             if {[$_field element $cname.flow] != ""} {
                 set _comp2flowhints($cname) \
@@ -1024,15 +1024,15 @@ itcl::body Rappture::Field::vtkdata {{what -overall}} {
         return ""
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
-	# Return the contents of the vtk file.
+        # Return the contents of the vtk file.
         return $_comp2vtkstreamlines($what)
     }
     if { [info exists _comp2vtkvolume($what)] } {
-	# Return the contents of the vtk file.
+        # Return the contents of the vtk file.
         return $_comp2vtkvolume($what)
     }
     if {[info exists _comp2dx($what)]} {
-	return $_comp2dx($what)
+        return $_comp2dx($what)
     }
     if {[info exists _comp2unirect2d($what)]} {
         return [$_comp2unirect2d($what) blob]

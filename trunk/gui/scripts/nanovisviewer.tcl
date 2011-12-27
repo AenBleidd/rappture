@@ -18,17 +18,17 @@ package require Img
                                         
 #
 # FIXME:
-#	Need to Add DX readers this client to examine the data before 
-#	it's sent to the server.  This will eliminate 90% of the insanity in
-#	computing the limits of all the volumes.  I can rip out all the 
-#	"receive data" "send transfer function" event crap.
+#       Need to Add DX readers this client to examine the data before 
+#       it's sent to the server.  This will eliminate 90% of the insanity in
+#       computing the limits of all the volumes.  I can rip out all the 
+#       "receive data" "send transfer function" event crap.
 #
 #       This means we can compute the transfer function (relative values) and
-#	draw the legend min/max values without waiting for the information to
-#	come from the server.  This will also prevent the flashing that occurs
-#	when a new volume is drawn (using the default transfer function) and
-#	then when the correct transfer function has been sent and linked to
-#	the volume.  
+#       draw the legend min/max values without waiting for the information to
+#       come from the server.  This will also prevent the flashing that occurs
+#       when a new volume is drawn (using the default transfer function) and
+#       then when the correct transfer function has been sent and linked to
+#       the volume.  
 #
 option add *NanovisViewer.width 4i widgetDefault
 option add *NanovisViewer*cursor crosshair widgetDefault
@@ -198,26 +198,26 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         phi     45
         psi     0
         zoom    1.0
-        pan-x	0
-        pan-y	0
+        pan-x   0
+        pan-y   0
     }
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
     array set _settings [subst {
-        $this-pan-x		$_view(pan-x)
-        $this-pan-y		$_view(pan-y)
-        $this-phi		$_view(phi)
-        $this-psi		$_view(psi)
-        $this-theta		$_view(theta)
-        $this-volume		1
-        $this-xcutplane		0
-        $this-xcutposition	0
-        $this-ycutplane		0
-        $this-ycutposition	0
-        $this-zcutplane		0
-        $this-zcutposition	0
-        $this-zoom		$_view(zoom)
+        $this-pan-x             $_view(pan-x)
+        $this-pan-y             $_view(pan-y)
+        $this-phi               $_view(phi)
+        $this-psi               $_view(psi)
+        $this-theta             $_view(theta)
+        $this-volume            1
+        $this-xcutplane         0
+        $this-xcutposition      0
+        $this-ycutplane         0
+        $this-ycutposition      0
+        $this-zcutplane         0
+        $this-zcutposition      0
+        $this-zoom              $_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -679,9 +679,9 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
         set _settings($this-$tf-thickness) $thickness
         ComputeTransferFunc $tf
         # FIXME: Need to the send information as to what transfer functions
-        #	 to update so that we only update the transfer function 
-        #	 as necessary.  Right now, all transfer functions are 
-        #	 updated. This makes moving the isomarker slider chunky.
+        #        to update so that we only update the transfer function 
+        #        as necessary.  Right now, all transfer functions are 
+        #        updated. This makes moving the isomarker slider chunky.
         if { ![info exists _activeTfs($tf)] || !$_activeTfs($tf) } {
             set _activeTfs($tf) 1
         }
@@ -707,7 +707,7 @@ itcl::body Rappture::NanovisViewer::ReceiveImage { args } {
     set bytes [ReceiveBytes $info(-bytes)]
     ReceiveEcho <<line "<read $info(-bytes) bytes"
     if { $info(-type) == "image" } {
-        ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"	
+        ReceiveEcho "for [image width $_image(plot)]x[image height $_image(plot)] image>"       
         $_image(plot) configure -data $bytes
     } elseif { $info(type) == "print" } {
         set tag $this-print-$info(-token)
@@ -775,14 +775,14 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
     # (i.e. the first volume designated in the field).
     set vol [lindex $vols 0]
     foreach axis {x y z} {
-	# Turn off cutplanes for all volumes
-	SendCmd "cutplane state 0 $axis"
-	if { $_settings($this-${axis}cutplane) } {
-	    # Turn on cutplane for this particular volume and set the position
-	    SendCmd "cutplane state 1 $axis $vol"
-	    set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-	    SendCmd "cutplane position $pos $axis $vol"
-	}
+        # Turn off cutplanes for all volumes
+        SendCmd "cutplane state 0 $axis"
+        if { $_settings($this-${axis}cutplane) } {
+            # Turn on cutplane for this particular volume and set the position
+            SendCmd "cutplane state 1 $axis $vol"
+            set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
+            SendCmd "cutplane position $pos $axis $vol"
+        }
     }
 }
 
@@ -927,8 +927,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         updatetransferfuncs
     }
     foreach axis {x y z} {
-	# Turn off cutplanes for all volumes
-	SendCmd "cutplane state 0 $axis"
+        # Turn off cutplanes for all volumes
+        SendCmd "cutplane state 0 $axis"
     }
     set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -989,9 +989,9 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                 theta   45
                 phi     45
                 psi     0
-                zoom	1.0
-                pan-x	0
-                pan-y	0
+                zoom    1.0
+                pan-x   0
+                pan-y   0
             }
             if { $_first != "" } {
                 set location [$_first hints camera]
@@ -1236,7 +1236,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
             set bool $_settings($this-$what)
             if { [isconnected] } {
                 set vols [CurrentVolumes -cutplanes] 
-		set vol [lindex $vols 0]
+                set vol [lindex $vols 0]
                 SendCmd "cutplane state $bool $axis $vol"
             }
             if { $bool } {
@@ -1610,13 +1610,13 @@ itcl::body Rappture::NanovisViewer::limits { tf } {
 
 itcl::body Rappture::NanovisViewer::BuildViewTab {} {
     foreach { key value } {
-        grid		0
-        axes		1
-        outline		1
-        volume		1
-        legend		1
-        particles	1
-        lic		1
+        grid            0
+        axes            1
+        outline         1
+        volume          1
+        legend          1
+        particles       1
+        lic             1
     } {
         set _settings($this-$key) $value
     }
@@ -1682,10 +1682,10 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 
 itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     foreach { key value } {
-        light		40
-        transp		50
-        opacity		100
-        thickness	350
+        light           40
+        transp          50
+        opacity         100
+        thickness       350
     } {
         set _settings($this-$key) $value
     }
@@ -1897,7 +1897,7 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
 
             set newpos [expr {0.01*$newval}]
             set vols [CurrentVolumes -cutplanes]
-	    set vol [lindex $vols 0]
+            set vol [lindex $vols 0]
             SendCmd "cutplane position $newpos $axis $vol"
         }
         default {

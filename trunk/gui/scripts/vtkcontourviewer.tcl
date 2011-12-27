@@ -168,27 +168,27 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
     $_parser alias dataset [itcl::code $this ReceiveDataset]
 
     array set _outline {
-	id -1
-	afterId -1
-	x1 -1
-	y1 -1
-	x2 -1
-	y2 -1
+        id -1
+        afterId -1
+        x1 -1
+        y1 -1
+        x2 -1
+        y2 -1
     }
 
     # Initialize the view to some default parameters.
     array set _view {
-	qx		0
-	qy		0
-	qz		0
-	qw		1
-        zoom		1.0 
-        pan-x		0
-        pan-y		0
+        qx              0
+        qy              0
+        qz              0
+        qw              1
+        zoom            1.0 
+        pan-x           0
+        pan-y           0
         ortho-x         0.0
         ortho-y         0.0
-	ortho-w		-1.0
-	ortho-h		-1.0
+        ortho-w         -1.0
+        ortho-h         -1.0
     }
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -198,15 +198,15 @@ itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
     set _limits(vmax) 1.0
 
     array set _settings [subst {
-        $this-axes		1
-        $this-edges		0
-        $this-lighting		1
-        $this-opacity		100
-        $this-volume		1
-        $this-isolines		1
-        $this-wireframe		0
-        $this-legend		1
-        $this-colormap		1
+        $this-axes              1
+        $this-edges             0
+        $this-lighting          1
+        $this-opacity           100
+        $this-volume            1
+        $this-isolines          1
+        $this-wireframe         0
+        $this-legend            1
+        $this-colormap          1
     }]
 
     itk_component add view {
@@ -374,14 +374,14 @@ itcl::body Rappture::VtkContourViewer::destructor {} {
 
 itcl::body Rappture::VtkContourViewer::DoResize {} {
     if { $_width < 2 } {
-	set _width 500
+        set _width 500
     }
     if { $_height < 2 } {
-	set _height 500
+        set _height 500
     }
     SendCmd "screen size $_width $_height"
     if { $_settings($this-legend) } {
-	EventuallyResizeLegend
+        EventuallyResizeLegend
     }
     set _resizePending 0
 }
@@ -419,7 +419,7 @@ itcl::body Rappture::VtkContourViewer::add {dataobj {settings ""}} {
         -raise 0
         -description ""
         -param ""
-	-type ""
+        -type ""
     }
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
@@ -589,7 +589,7 @@ itcl::body Rappture::VtkContourViewer::download {option args} {
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
-            update idletasks		;# Fix initial sizes
+            update idletasks            ;# Fix initial sizes
             return $popup
         }
         now {
@@ -731,7 +731,7 @@ itcl::body Rappture::VtkContourViewer::FixLegend {} {
     puts stderr "in fixlegend w=$w h=$h"
     if {$w > 0 && $h > 0 && $_first != "" } {
         set tag [lindex [CurrentDatasets] 0]
-	puts stderr "tag=$tag [info exists _dataset2style($tag)]"
+        puts stderr "tag=$tag [info exists _dataset2style($tag)]"
         if { [info exists _dataset2style($tag)] } {
             SendCmd "legend $_dataset2style($tag) scalar {} $w $h 0"
         }
@@ -743,8 +743,8 @@ itcl::body Rappture::VtkContourViewer::FixLegend {} {
 #
 # DrawLegend --
 #
-#	Draws the legend in it's own canvas which resides to the right
-#	of the contour plot area.
+#       Draws the legend in it's own canvas which resides to the right
+#       of the contour plot area.
 #
 itcl::body Rappture::VtkContourViewer::DrawLegend {} {
     set c $itk_component(legend)
@@ -754,26 +754,26 @@ itcl::body Rappture::VtkContourViewer::DrawLegend {} {
     set lineht [font metrics $itk_option(-font) -linespace]
     
     if { $_settings($this-legend) } {
-	if { [$c find withtag "legend"] == "" } {
-	    $c create image [expr {$w-2}] [expr {$lineht+2}] -anchor ne \
-		-image $_image(legend) -tags "transfunc legend"
-	    $c create text [expr {$w-2}] 2 -anchor ne \
-		-fill $itk_option(-plotforeground) -tags "vmax legend" \
-		-font "Arial 6"
-	    $c create text [expr {$w-2}] [expr {$h-2}] -anchor se \
-		-fill $itk_option(-plotforeground) -tags "vmin legend" \
-		-font "Arial 6"
-	}
-	# Reset the item coordinates according the current size of the plot.
-	$c coords transfunc [expr {$w-2}] [expr {$lineht+2}]
-	if { $_limits(vmin) != "" } {
-	    $c itemconfigure vmin -text [format %g $_limits(vmin)]
-	}
-	if { $_limits(vmax) != "" } {
-	    $c itemconfigure vmax -text [format %g $_limits(vmax)]
-	}
-	$c coords vmin [expr {$w-2}] [expr {$h-2}]
-	$c coords vmax [expr {$w-2}] 2
+        if { [$c find withtag "legend"] == "" } {
+            $c create image [expr {$w-2}] [expr {$lineht+2}] -anchor ne \
+                -image $_image(legend) -tags "transfunc legend"
+            $c create text [expr {$w-2}] 2 -anchor ne \
+                -fill $itk_option(-plotforeground) -tags "vmax legend" \
+                -font "Arial 6"
+            $c create text [expr {$w-2}] [expr {$h-2}] -anchor se \
+                -fill $itk_option(-plotforeground) -tags "vmin legend" \
+                -font "Arial 6"
+        }
+        # Reset the item coordinates according the current size of the plot.
+        $c coords transfunc [expr {$w-2}] [expr {$lineht+2}]
+        if { $_limits(vmin) != "" } {
+            $c itemconfigure vmin -text [format %g $_limits(vmin)]
+        }
+        if { $_limits(vmax) != "" } {
+            $c itemconfigure vmax -text [format %g $_limits(vmax)]
+        }
+        $c coords vmin [expr {$w-2}] [expr {$h-2}]
+        $c coords vmax [expr {$w-2}] 2
     }
 }
 
@@ -793,7 +793,7 @@ itcl::body Rappture::VtkContourViewer::ReceiveLegend { colormap title vmin vmax 
         }
         $_image(legend) configure -data $bytes
         puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-	DrawLegend
+        DrawLegend
     }
 }
 
@@ -806,40 +806,40 @@ itcl::body Rappture::VtkContourViewer::ReceiveDataset { args } {
     }
     set option [lindex $args 0]
     switch -- $option {
-	"scalar" {
-	    set option [lindex $args 1]
-	    switch -- $option {
-		"world" {
-		    foreach { x y z value tag } [lrange $args 2 end] break
-		    puts stderr "world x=$x y=$y z=$z value=$value tag=$tag"
-		}
-		"pixel" {
-		    foreach { x y value tag } [lrange $args 2 end] break
-		    puts stderr "pixel x=$x y=$y value=$value tag=$tag"
-		}
-	    }
-	}
-	"vector" {
-	    set option [lindex $args 1]
-	    switch -- $option {
-		"world" {
-		    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
+        "scalar" {
+            set option [lindex $args 1]
+            switch -- $option {
+                "world" {
+                    foreach { x y z value tag } [lrange $args 2 end] break
+                    puts stderr "world x=$x y=$y z=$z value=$value tag=$tag"
+                }
+                "pixel" {
+                    foreach { x y value tag } [lrange $args 2 end] break
+                    puts stderr "pixel x=$x y=$y value=$value tag=$tag"
+                }
+            }
+        }
+        "vector" {
+            set option [lindex $args 1]
+            switch -- $option {
+                "world" {
+                    foreach { x y z vx vy vz tag } [lrange $args 2 end] break
                     puts stderr "world x=$x y=$y z=$z value=$vx $xy $vz tag=$tag"
-		}
-		"pixel" {
-		    foreach { x y vx vy vz tag } [lrange $args 2 end] break
+                }
+                "pixel" {
+                    foreach { x y vx vy vz tag } [lrange $args 2 end] break
                     puts stderr "pixel x=$x y=$y value=$vx $xy $vz tag=$tag"
-		}
-	    }
-	}
-	"names" {
+                }
+            }
+        }
+        "names" {
             foreach { name } [lindex $args 1] {
                 puts stderr "Dataset: $name"
             }
-	}
-	default {
-	    error "unknown dataset option \"$option\" from server"
-	}
+        }
+        default {
+            error "unknown dataset option \"$option\" from server"
+        }
     }
 }
 
@@ -875,17 +875,17 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
                 array set style [lindex [$dataobj components -style $comp] 0]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-		append _outbuf "heightmap add numcontours [expr {$style(-levels)+1}] 0 $tag\n"
-		SetStyles $dataobj $comp
+                append _outbuf "heightmap add numcontours [expr {$style(-levels)+1}] 0 $tag\n"
+                SetStyles $dataobj $comp
                 set _datasets($tag) 1
-		foreach {min max} [$dataobj limits v] break
-		if { ($_limits(vmin) == "") || ($min < $_limits(vmin)) } {
-		    set _limits(vmin) $min
-		}
-		if { ($_limits(vmax) == "") || ($max < $_limits(vmax)) } {
-		    set _limits(vmax) $max
-		}
-	    }
+                foreach {min max} [$dataobj limits v] break
+                if { ($_limits(vmin) == "") || ($min < $_limits(vmin)) } {
+                    set _limits(vmin) $min
+                }
+                if { ($_limits(vmax) == "") || ($max < $_limits(vmax)) } {
+                    set _limits(vmax) $max
+                }
+            }
         }
     }
     #
@@ -913,7 +913,7 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
 
     # Nothing to send -- activate the proper ivol
     foreach tag [CurrentDatasets] {
-	SendCmd "dataset visible 0 $tag"
+        SendCmd "dataset visible 0 $tag"
     }
     set _first [lindex [get] 0]
     if {"" != $_first} {
@@ -954,7 +954,7 @@ itcl::body Rappture::VtkContourViewer::CurrentDatasets {{what -all}} {
     foreach comp [$_first components] {
         set tag $_first-$comp
         if { [info exists _datasets($tag)] && $_datasets($tag) } {
-	    lappend rlist $tag
+            lappend rlist $tag
         }
     }
     return $rlist
@@ -972,15 +972,15 @@ itcl::body Rappture::VtkContourViewer::Zoom {option} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
-	    SendCmd "camera zoom $_view(zoom)"
+            SendCmd "camera zoom $_view(zoom)"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
-	    SendCmd "camera zoom $_view(zoom)"
+            SendCmd "camera zoom $_view(zoom)"
         }
         "reset" {
             array set _view {
-                qx	0
+                qx      0
                 qy      0
                 qz      0
                 qw      1
@@ -996,7 +996,7 @@ itcl::body Rappture::VtkContourViewer::Zoom {option} {
                 }
             }
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-	    $_arcball quaternion $q
+            $_arcball quaternion $q
         }
     }
 }
@@ -1041,7 +1041,7 @@ itcl::body Rappture::VtkContourViewer::Rotate {option x y} {
                     return
                 }
                 set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-		foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
                 SendCmd "camera orient $q" 
                 set _click(x) $x
                 set _click(y) $y
@@ -1074,39 +1074,39 @@ itcl::body Rappture::VtkContourViewer::Pick {x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkContourViewer::Pan {option x y} {
     switch -- $option {
-	"set" {
-	    set w [winfo width $itk_component(view)]
-	    set h [winfo height $itk_component(view)]
-	    set x [expr $x / double($w)]
-	    set y [expr $y / double($h)]
-	    set _view(pan-x) [expr $_view(pan-x) + $x]
-	    set _view(pan-y) [expr $_view(pan-y) + $y]
-	    PanCamera
-	    return
-	}
-	"click" {
-	    set _click(x) $x
-	    set _click(y) $y
-	    $itk_component(view) configure -cursor hand1
-	}
-	"drag" {
-	    set w [winfo width $itk_component(view)]
-	    set h [winfo height $itk_component(view)]
-	    set dx [expr ($_click(x) - $x)/double($w)]
-	    set dy [expr ($_click(y) - $y)/double($h)]
-	    set _click(x) $x
-	    set _click(y) $y
-	    set _view(pan-x) [expr $_view(pan-x) - $dx]
-	    set _view(pan-y) [expr $_view(pan-y) - $dy]
-	    PanCamera
-	}
-	"release" {
-	    Pan drag $x $y
-	    $itk_component(view) configure -cursor ""
-	}
-	default {
-	    error "unknown option \"$option\": should set, click, drag, or release"
-	}
+        "set" {
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set x [expr $x / double($w)]
+            set y [expr $y / double($h)]
+            set _view(pan-x) [expr $_view(pan-x) + $x]
+            set _view(pan-y) [expr $_view(pan-y) + $y]
+            PanCamera
+            return
+        }
+        "click" {
+            set _click(x) $x
+            set _click(y) $y
+            $itk_component(view) configure -cursor hand1
+        }
+        "drag" {
+            set w [winfo width $itk_component(view)]
+            set h [winfo height $itk_component(view)]
+            set dx [expr ($_click(x) - $x)/double($w)]
+            set dy [expr ($_click(y) - $y)/double($h)]
+            set _click(x) $x
+            set _click(y) $y
+            set _view(pan-x) [expr $_view(pan-x) - $dx]
+            set _view(pan-y) [expr $_view(pan-y) - $dy]
+            PanCamera
+        }
+        "release" {
+            Pan drag $x $y
+            $itk_component(view) configure -cursor ""
+        }
+        default {
+            error "unknown option \"$option\": should set, click, drag, or release"
+        }
     }
 }
 
@@ -1123,54 +1123,54 @@ itcl::body Rappture::VtkContourViewer::FixSettings {what {value ""}} {
             if {[isconnected]} {
                 set val $_settings($this-opacity)
                 set sval [expr { 0.01 * double($val) }]
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap opacity $sval $dataset"
-		}
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap opacity $sval $dataset"
+                }
             }
         }
         "wireframe" {
             if {[isconnected]} {
-		set bool $_settings($this-wireframe)
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap wireframe $bool $dataset"
-		}
+                set bool $_settings($this-wireframe)
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap wireframe $bool $dataset"
+                }
             }
         }
         "colormap" {
             if {[isconnected]} {
-		set bool $_settings($this-colormap)
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap surface $bool $dataset"
-		}
+                set bool $_settings($this-colormap)
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap surface $bool $dataset"
+                }
             }
         }
         "isolines" {
             if {[isconnected]} {
-		set bool $_settings($this-isolines)
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap isolines $bool $dataset"
-		}
+                set bool $_settings($this-isolines)
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap isolines $bool $dataset"
+                }
             }
         }
         "edges" {
             if {[isconnected]} {
-		set bool $_settings($this-edges)
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap edges $bool $dataset"
-		}
+                set bool $_settings($this-edges)
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap edges $bool $dataset"
+                }
             }
         }
         "lighting" {
             if {[isconnected]} {
-		set bool $_settings($this-lighting)
-		foreach dataset [CurrentDatasets] {
-		    SendCmd "heightmap lighting $bool $dataset"
-		}
+                set bool $_settings($this-lighting)
+                foreach dataset [CurrentDatasets] {
+                    SendCmd "heightmap lighting $bool $dataset"
+                }
             }
         }
         "axes" {
             if { [isconnected] } {
-		set bool $_settings($this-axes)
+                set bool $_settings($this-axes)
                 SendCmd "axis visible all $bool"
             }
         }
@@ -1204,16 +1204,16 @@ itcl::body Rappture::VtkContourViewer::SetStyles { dataobj comp } {
     array set style [lindex [$dataobj components -style $comp] 0]
     set colormap "$style(-color):$style(-levels):$style(-opacity)"
     if { [info exists _colormaps($colormap)] } {
-	puts stderr "Colormap $colormap already built"
+        puts stderr "Colormap $colormap already built"
     }
     if { ![info exists _dataset2style($tag)] } {
-	set _dataset2style($tag) $colormap
-	lappend _style2datasets($colormap) $tag
+        set _dataset2style($tag) $colormap
+        lappend _style2datasets($colormap) $tag
     }
     if { ![info exists _colormaps($colormap)] } {
-	# Build the pseudo colormap if it doesn't exist.
-	BuildColormap $colormap $dataobj $comp
-	set _colormaps($colormap) 1
+        # Build the pseudo colormap if it doesn't exist.
+        BuildColormap $colormap $dataobj $comp
+        set _colormaps($colormap) 1
     }
     #SendCmd "heightmap numcontours $style(-levels) $tag\n"
     SendCmd "heightmap colormap $colormap $tag"
@@ -1243,7 +1243,7 @@ itcl::body Rappture::VtkContourViewer::BuildColormap { colormap dataobj comp } {
         append cmap "$x [Color2RGB $color] "
     }
     if { [llength $cmap] == 0 } {
-	set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
+        set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
     set tag $this-$colormap
     if { ![info exists _settings($tag-opacity)] } {
@@ -1429,7 +1429,7 @@ itcl::body Rappture::VtkContourViewer::camera {option args} {
                 }
                 "qx" - "qy" - "qz" - "qw" {
                     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-		    $_arcball quaternion $q
+                    $_arcball quaternion $q
                     #SendCmd "camera orient $q"
                 }
                 "zoom" {
@@ -1524,15 +1524,15 @@ itcl::body Rappture::VtkContourViewer::ConvertToVtkData { dataobj comp } {
 #
 # MarchingAnts --
 #
-#	Called from "after" timer events.  This routine is changes
-#	the dash offset of the selection outline rectangle to simulate
-#	marching ants.
+#       Called from "after" timer events.  This routine is changes
+#       the dash offset of the selection outline rectangle to simulate
+#       marching ants.
 #
 itcl::body Rappture::VtkContourViewer::MarchingAnts {} {
     set c $itk_component(view) 
     if { [winfo exists $c] && ![winfo viewable $c] } { 
-	KillSelectionRectangle
-	return
+        KillSelectionRectangle
+        return
     }
     $c itemconfigure $_outline(id) -dashoffset $_outline(offset)
     incr _outline(offset) 
@@ -1542,41 +1542,41 @@ itcl::body Rappture::VtkContourViewer::MarchingAnts {} {
 #
 # BeginSelectionRectangle --
 #
-#	Called from ButtonPress-1 events.  This routine creates the
-#	the selection outline rectangle.  It also clears the selection 
-#	in the sensor tree.
+#       Called from ButtonPress-1 events.  This routine creates the
+#       the selection outline rectangle.  It also clears the selection 
+#       in the sensor tree.
 #
 itcl::body Rappture::VtkContourViewer::BeginSelectionRectangle { x y } {
     set c $itk_component(view)
     set x [$c canvasx $x]
     set y [$c canvasy $y]
     if { $_outline(id) >= 0 } {
-	after cancel $_outline(afterId)
-	set _outline(afterId) -1
-	$c delete $_outline(id)
-	set _outline(id) -1
+        after cancel $_outline(afterId)
+        set _outline(afterId) -1
+        $c delete $_outline(id)
+        set _outline(id) -1
     }
     set _outline(offset) 0
     set _outline(x1) $x
     set _outline(y1) $y
     set _outline(id) \
-	[$c create line $x $y $x $y -dash "4 4" -width 2 -fill black]
+        [$c create line $x $y $x $y -dash "4 4" -width 2 -fill black]
     MarchingAnts 
 }
 
 #
 # AdjustSelectionRectangle --
 #
-#	Called from B1-Motion events.  This routine redraws the selection
-#	outline rectangle and redraws the sensors using the "selected"
-#	icon.
+#       Called from B1-Motion events.  This routine redraws the selection
+#       outline rectangle and redraws the sensors using the "selected"
+#       icon.
 #
 itcl::body Rappture::VtkContourViewer::AdjustSelectionRectangle { x y } {
     set c $itk_component(view)
     set x [$c canvasx $x]
     set y [$c canvasy $y]
     $c coords $_outline(id) $_outline(x1) $_outline(y1) $_outline(x1) $y \
-	$x $y $x $_outline(y1) $_outline(x1) $_outline(y1)
+        $x $y $x $_outline(y1) $_outline(x1) $_outline(y1)
     set _outline(x2) $x
     set _outline(y2) $y
 }
@@ -1584,8 +1584,8 @@ itcl::body Rappture::VtkContourViewer::AdjustSelectionRectangle { x y } {
 #
 # KillSelectionRectangle --
 #
-#	Removes the outline rectangle and adjusts the sensor icon
-#	according to the sensor's selected/deselected status.
+#       Removes the outline rectangle and adjusts the sensor icon
+#       according to the sensor's selected/deselected status.
 #
 itcl::body Rappture::VtkContourViewer::KillSelectionRectangle { } {
     after cancel $_outline(afterId)
@@ -1598,11 +1598,11 @@ itcl::body Rappture::VtkContourViewer::KillSelectionRectangle { } {
 #
 # EndSelectionRectangle --
 #
-#	Called from the ButtonRelease event to finish the outline of the
-#	selection rectangle.  If the outline is too small (less than 10
-#	pixels in length or width) the outline is removed and the selection
-#	is ignored.  Otherwise a popup menu is automatically generated and
-#	displayed.
+#       Called from the ButtonRelease event to finish the outline of the
+#       selection rectangle.  If the outline is too small (less than 10
+#       pixels in length or width) the outline is removed and the selection
+#       is ignored.  Otherwise a popup menu is automatically generated and
+#       displayed.
 #
 itcl::body Rappture::VtkContourViewer::EndSelectionRectangle { x y } {
     set c $itk_component(view)
@@ -1612,7 +1612,7 @@ itcl::body Rappture::VtkContourViewer::EndSelectionRectangle { x y } {
     set cw [winfo width $c]
     set ch [winfo height $c]
     if { abs($_outline(x1) - $cx) < 10 && abs($_outline(y1) - $cy) < 10 }  {
-	KillSelectionRectangle
+        KillSelectionRectangle
     } else {
         # Need x,y coordinates to be in the bottom left for camera ortho
         if {$_outline(x2) > $_outline(x1)} {
@@ -1629,8 +1629,8 @@ itcl::body Rappture::VtkContourViewer::EndSelectionRectangle { x y } {
             set oy [expr int($_outline(y1))]
             set h [expr int($_outline(y1) - $_outline(y2))]
         }
-	SendCmd "camera ortho pixel $ox $oy $w $h"
-	KillSelectionRectangle
+        SendCmd "camera ortho pixel $ox $oy $w $h"
+        KillSelectionRectangle
     }
 }
 
@@ -1639,8 +1639,8 @@ itcl::body Rappture::VtkContourViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-	    set contents [ConvertToVtkData $dataobj $comp]
-	    append bytes "$contents\n\n"
+            set contents [ConvertToVtkData $dataobj $comp]
+            append bytes "$contents\n\n"
         }
     }
     return [list .txt $bytes]
@@ -1648,10 +1648,10 @@ itcl::body Rappture::VtkContourViewer::GetVtkData { args } {
 
 itcl::body Rappture::VtkContourViewer::GetImage { args } {
     if { [image width $_image(download)] > 0 && 
-	 [image height $_image(download)] > 0 } {
-	set bytes [$_image(download) data -format "jpeg -quality 100"]
-	set bytes [Rappture::encoding::decode -as b64 $bytes]
-	return [list .jpg $bytes]
+         [image height $_image(download)] > 0 } {
+        set bytes [$_image(download) data -format "jpeg -quality 100"]
+        set bytes [Rappture::encoding::decode -as b64 $bytes]
+        return [list .jpg $bytes]
     }
     return ""
 }
@@ -1673,16 +1673,16 @@ itcl::body Rappture::VtkContourViewer::BuildDownloadPopup { popup command } {
         "Save as digital image."
 
     button $inner.ok -text "Save" \
-	-highlightthickness 0 -pady 2 -padx 3 \
+        -highlightthickness 0 -pady 2 -padx 3 \
         -command $command \
-	-compound left \
-	-image [Rappture::icon download]
+        -compound left \
+        -image [Rappture::icon download]
 
     button $inner.cancel -text "Cancel" \
-	-highlightthickness 0 -pady 2 -padx 3 \
-	-command [list $popup deactivate] \
-	-compound left \
-	-image [Rappture::icon cancel]
+        -highlightthickness 0 -pady 2 -padx 3 \
+        -command [list $popup deactivate] \
+        -compound left \
+        -image [Rappture::icon cancel]
 
     blt::table $inner \
         0,0 $inner.summary -cspan 2  \

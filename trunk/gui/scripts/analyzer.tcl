@@ -437,7 +437,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
         if {[Rappture::bugreport::shouldReport for jobs]} {
             set ::errorInfo "\n\n== RAPPTURE INPUT ==\n[$_tool xml xml]"
             Rappture::bugreport::register "Problem launching job:\n$result"
-	    Rappture::bugreport::attachment [$_tool xml xml]
+            Rappture::bugreport::attachment [$_tool xml xml]
             Rappture::bugreport::send
         }
     } else {
@@ -559,11 +559,11 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
             sequence* {
                 _autoLabel $xmlobj output.$item "Sequence" counters
             }
-	    default {
-		if 0 {
-		    puts stderr "unknown output $item"
-		}
-	    }
+            default {
+                if 0 {
+                    puts stderr "unknown output $item"
+                }
+            }
         }
         set label [$xmlobj get output.$item.about.group]
         if {"" == $label} {
@@ -588,9 +588,9 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
                 set label [$xmlobj get output.$item.about.label]
             }
             set hidden [$xmlobj get output.$item.hide]
-	    if { $hidden == "" } {
-		set hidden 0
-	    }
+            if { $hidden == "" } {
+                set hidden 0
+            }
             if {"" != $label && !$hidden} {
                 if {![info exists _label2page($label)]} {
                     set name "page[incr _pages]"
@@ -660,7 +660,7 @@ itcl::body Rappture::Analyzer::clear {} {
 
     foreach label [array names _label2page] {
         set page $_label2page($label)
-	destroy $page.rviewer
+        destroy $page.rviewer
         #$page.rviewer clear
     }
     $itk_component(resultselector) value ""
@@ -1241,7 +1241,7 @@ itcl::body Rappture::Analyzer::_pdbToSequence {xmlobj path id child data} {
                 set line [lindex $data $i]
                 set line [string trim $line]
                 if { $line == "" } {
-                    continue;		# Skip blank lines.
+                    continue;           # Skip blank lines.
                 }
                 if { [string match "ENDMDL*" $line] } {
                     break;
@@ -1287,7 +1287,7 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
     foreach line $data {
         set line [string trim $line]
         if { $line == "" } {
-            continue;			# Skip blank lines
+            continue;                   # Skip blank lines
         }
         if {[regexp {^[\t ]*ITEM:[ \t]+ATOMS} $line] } {
             if { $inModel && $frameContents != "" } {
@@ -1323,12 +1323,12 @@ itcl::body Rappture::Analyzer::_lammpsToSequence {xmlobj path id child data} {
 # ----------------------------------------------------------------------
 # USAGE: _trajToSequence <xmlobj> ?<path>?
 #
-#	Check for PDB and LAMMPS trajectories in molecule data and rewrite 
-#	the individual models as a sequence of molecules.  Used internally 
-#	to detect any molecule output elements that contain trajectory data.
-#	Trajectories will be converted into sequences of individual molecules.
-#	All other elements will be unaffected. Scans the entire xml tree if a
-#	starting path is not specified.  
+#       Check for PDB and LAMMPS trajectories in molecule data and rewrite 
+#       the individual models as a sequence of molecules.  Used internally 
+#       to detect any molecule output elements that contain trajectory data.
+#       Trajectories will be converted into sequences of individual molecules.
+#       All other elements will be unaffected. Scans the entire xml tree if a
+#       starting path is not specified.  
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
@@ -1342,7 +1342,7 @@ itcl::body Rappture::Analyzer::_trajToSequence {xmlobj {path ""}} {
         if { [string match "structure*" $child] } {
             set isTraj [$xmlobj get ${current}.components.molecule.trajectory]
             if { $isTraj == "" || !$isTraj } {
-                continue;		# Not a trajectory.
+                continue;               # Not a trajectory.
             }
             # Look for trajectory if molecule element found.  Check both pdb
             # data and lammps data.

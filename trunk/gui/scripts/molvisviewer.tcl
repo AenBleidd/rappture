@@ -42,15 +42,15 @@ itcl::class Rappture::MolvisViewer {
 
     private variable _icon 0
     private variable _getimage 0
-    private variable _mevent;		# info used for mouse event operations
-    private variable _rocker;		# info used for rock operations
-    private variable _dlist "";		# list of dataobj objects
-    private variable _dataobjs;		# data objects on server
+    private variable _mevent;           # info used for mouse event operations
+    private variable _rocker;           # info used for rock operations
+    private variable _dlist "";         # list of dataobj objects
+    private variable _dataobjs;         # data objects on server
     private variable _dobj2transparency;# maps dataobj => transparency
-    private variable _dobj2raise;	# maps dataobj => raise flag 0/1
+    private variable _dobj2raise;       # maps dataobj => raise flag 0/1
 
-    private variable _active;		# array of active models.
-    private variable _obj2models;	# array containing list of models 
+    private variable _active;           # array of active models.
+    private variable _obj2models;       # array containing list of models 
                                         # for each data object.
     private variable _view
     private variable _click
@@ -65,12 +65,12 @@ itcl::class Rappture::MolvisViewer {
     private variable _cacheid ""
     private variable _cacheimage ""
 
-    private common _settings  ;		# Array of settings for all known 
+    private common _settings  ;         # Array of settings for all known 
                                         # widgets
     private variable _initialized
 
-    private common _downloadPopup;	# Download options from popup
-    private variable _pdbdata;		# PDB data from run file sent to pymol
+    private common _downloadPopup;      # Download options from popup
+    private variable _pdbdata;          # PDB data from run file sent to pymol
     private common _hardcopy
     private variable _nextToken 0
     private variable _outbuf "";
@@ -80,8 +80,8 @@ itcl::class Rappture::MolvisViewer {
     private variable _rotatePending 0;
     private variable _width
     private variable _height
-    private variable _reset 1;	# Restore camera settings
-    private variable _cell 0;		# Restore camera settings
+    private variable _reset 1;  # Restore camera settings
+    private variable _cell 0;           # Restore camera settings
     private variable _flush 1
 
     constructor { hostlist args } {
@@ -107,11 +107,11 @@ itcl::class Rappture::MolvisViewer {
     private method WaitIcon { option widget }
     private method AddImageControls { frame widget }
     private method SetWaitVariable { value } {
-	set _getimage $value 
+        set _getimage $value 
     }
     private method WaitForResponse {} {
-	tkwait variable [itcl::scope _getimage]
-	return $_getimage
+        tkwait variable [itcl::scope _getimage]
+        return $_getimage
     }
     protected method Map {}
     protected method Pan {option x y}
@@ -209,17 +209,17 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         theta   45
         phi     45
         psi     0
-        vx	0
-        vy	0
-        vz	0
-        zoom	0
-        mx	0
-        my	0
-        mz	0
-        x	0
-        y	0
-        z	0
-        width	0
+        vx      0
+        vy      0
+        vz      0
+        zoom    0
+        mx      0
+        my      0
+        mz      0
+        x       0
+        y       0
+        z       0
+        width   0
         height  0
     }
 
@@ -234,7 +234,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         $this-ortho     no
         $this-rock      no
         $this-showlabels no
-        $this-showcell	yes
+        $this-showcell  yes
         $this-showlabels-initialized no
     }]
     
@@ -570,39 +570,39 @@ itcl::body Rappture::MolvisViewer::download {option args} {
                     -title "[Rappture::filexfer::label downloadWord] as..."
                 set inner [$popup component inner]
                 label $inner.summary -text "" -anchor w
-		radiobutton $inner.pdb \
-		    -text "PDB Protein Data Bank Format File" \
-		    -variable [itcl::scope _downloadPopup(format)] \
-		    -font "Arial 10 " \
-		    -value pdb  
-		Rappture::Tooltip::for $inner.pdb \
-		    "Save as PDB Protein Data Bank format file."
-		radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
-		    -variable [itcl::scope _downloadPopup(format)] \
-		    -font "Arial 10 " \
-		    -value image 
-		Rappture::Tooltip::for $inner.image \
-		    "Save as image."
-		set f [frame $inner.frame]
-		button $f.ok -text "Save" \
-		    -highlightthickness 0 -pady 3 -padx 3 \
+                radiobutton $inner.pdb \
+                    -text "PDB Protein Data Bank Format File" \
+                    -variable [itcl::scope _downloadPopup(format)] \
+                    -font "Arial 10 " \
+                    -value pdb  
+                Rappture::Tooltip::for $inner.pdb \
+                    "Save as PDB Protein Data Bank format file."
+                radiobutton $inner.image -text "Image (PNG/JPEG/GIF)" \
+                    -variable [itcl::scope _downloadPopup(format)] \
+                    -font "Arial 10 " \
+                    -value image 
+                Rappture::Tooltip::for $inner.image \
+                    "Save as image."
+                set f [frame $inner.frame]
+                button $f.ok -text "Save" \
+                    -highlightthickness 0 -pady 3 -padx 3 \
                     -command [lindex $args 0] \
-		    -compound left \
-		    -image [Rappture::icon download]
-		button $f.cancel -text "Cancel" \
-		    -highlightthickness 0 -pady 3 -padx 3 \
-		    -command [list $popup deactivate] \
-		    -compound left \
-		    -image [Rappture::icon cancel]
-		blt::table $f \
-		    0,0 $f.ok \
-		    0,1 $f.cancel 
-		blt::table $inner \
-		    0,0 $inner.summary -anchor w \
-		    1,0 $inner.pdb -anchor w \
-		    2,0 $inner.image -anchor w \
-		    3,0 $f -fill x -pady 4
-		$inner.pdb select
+                    -compound left \
+                    -image [Rappture::icon download]
+                button $f.cancel -text "Cancel" \
+                    -highlightthickness 0 -pady 3 -padx 3 \
+                    -command [list $popup deactivate] \
+                    -compound left \
+                    -image [Rappture::icon cancel]
+                blt::table $f \
+                    0,0 $f.ok \
+                    0,1 $f.cancel 
+                blt::table $inner \
+                    0,0 $inner.summary -anchor w \
+                    1,0 $inner.pdb -anchor w \
+                    2,0 $inner.image -anchor w \
+                    3,0 $f -fill x -pady 4
+                $inner.pdb select
             } else {
                 set inner [$popup component inner]
             }
@@ -610,7 +610,7 @@ itcl::body Rappture::MolvisViewer::download {option args} {
             set num [expr {($num == 1) ? "1 result" : "$num results"}]
             set word [Rappture::filexfer::label downloadWord]
             $inner.summary configure -text "$word $num in the following format:"
-            update idletasks ;		# Fix initial sizes
+            update idletasks ;          # Fix initial sizes
             return $popup
         }
         now {
@@ -621,33 +621,33 @@ itcl::body Rappture::MolvisViewer::download {option args} {
             switch -- $_downloadPopup(format) {
                 "pdb" {
                     return [list .pdb $_pdbdata]
-		}
+                }
                 "image" {
                     set popup .molvisviewerimage
                     if { ![winfo exists $popup] } {
                         # Create the balloon popup and and the print image
                         # dialog widget to it.
                         Rappture::Balloon $popup -title "Save as image..." \
-			    -deactivatecommand \
-			    [itcl::code $this SetWaitVariable 0]
+                            -deactivatecommand \
+                            [itcl::code $this SetWaitVariable 0]
                         set inner [$popup component inner]
-			# Add image controls to the ballon popup
+                        # Add image controls to the ballon popup
                         AddImageControls $inner [lindex $args 0]
                     } else {
                         set inner [$popup component inner]
-		    }			
+                    }                   
                     update
                     # Activate the popup and call for the output.
                     foreach { widget toolName plotName } $args break
-		    SetWaitVariable 0
+                    SetWaitVariable 0
                     $popup activate $widget left
-		    set bool [WaitForResponse]
+                    set bool [WaitForResponse]
                     $popup deactivate 
-		    if { $bool } {
-			return [GetImage $widget]
-		    }
-		    return ""
-		}
+                    if { $bool } {
+                        return [GetImage $widget]
+                    }
+                    return ""
+                }
             }
         }
         default {
@@ -789,14 +789,14 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         -font "Arial 9"
 
     itk_component add representation {
-	Rappture::Combobox $inner.rep -width 20 -editable no
+        Rappture::Combobox $inner.rep -width 20 -editable no
     }
     $inner.rep choices insert end \
         "ballnstick"  "ball and stick" \
         "spheres"     "spheres"         \
-        "sticks"      "sticks"		\
-        "lines"       "lines"		\
-        "cartoon"     "cartoon"		
+        "sticks"      "sticks"          \
+        "lines"       "lines"           \
+        "cartoon"     "cartoon"         
 
     bind $inner.rep <<Value>> [itcl::code $this Representation]
     $inner.rep value "ball and stick"
@@ -848,7 +848,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         "Set cartoon representation of bonds (sticks)."
 
     checkbutton $inner.cell -text "Parallelepiped" \
-	-command [itcl::code $this Cell toggle] \
+        -command [itcl::code $this Cell toggle] \
         -font "Arial 9"
     $inner.cell select
 
@@ -858,7 +858,7 @@ itcl::body Rappture::MolvisViewer::BuildSettingsTab {} {
         1,0 $inner.rock -anchor w -pady {1 0} \
         2,0 $inner.ortho -anchor w -pady {1 0} \
         3,0 $inner.cartoontrace -anchor w -pady {1 0} \
-	4,0 $inner.cell -anchor w  -pady {1 0} \
+        4,0 $inner.cell -anchor w  -pady {1 0} \
         5,0 $inner.rep_l -anchor w -pady { 2 0 } \
         6,0 $inner.rep -anchor w  \
         7,0 $inner.spherescale -fill x -pady {3 0} \
@@ -907,9 +907,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         }
         if { ![info exists _mlist($model)] } {  # new, turn on
             set _mlist($model) 2
-        } elseif { $_mlist($model) == 1 } {	# on, leave on
+        } elseif { $_mlist($model) == 1 } {     # on, leave on
             set _mlist($model) 3 
-        } elseif { $_mlist($model) == 0 } {	# off, turn on
+        } elseif { $_mlist($model) == 0 } {     # off, turn on
             set _mlist($model) 2
         }
         if { ![info exists _dataobjs($model-$state)] } {
@@ -1010,7 +1010,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                     append _outbuf $data3
                 }
                 set _dataobjs($model-$state) 1
-	    }
+            }
         }
         if { ![info exists _model($model-transparency)] } {
             set _model($model-transparency) ""
@@ -1028,15 +1028,15 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set _active($model) $dataobj
         }
         set vector [$dataobj get components.parallelepiped.vector]
-	if { $vector != "" } {
-	    set vertices [ComputeParallelepipedVertices $dataobj]
-	    SendCmd "raw -defer {verts = \[$vertices\]\n}"
-	    SendCmd "raw -defer {run \$PYMOL_SITE_PATH/rappture/box.py\n}"
-	    SendCmd "raw -defer {draw_box(verts)\n}"
-	    set _cell 1
-	}
+        if { $vector != "" } {
+            set vertices [ComputeParallelepipedVertices $dataobj]
+            SendCmd "raw -defer {verts = \[$vertices\]\n}"
+            SendCmd "raw -defer {run \$PYMOL_SITE_PATH/rappture/box.py\n}"
+            SendCmd "raw -defer {draw_box(verts)\n}"
+            set _cell 1
+        }
     }
-	
+        
     # enable/disable models as required (0=off->off, 1=on->off, 2=off->on,
     # 3=on->on)
 
@@ -1124,25 +1124,25 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     }
     set inner [$itk_component(main) panel "Settings"]
     if { $_cell } {
-	$inner.cell configure -state normal
+        $inner.cell configure -state normal
     } else {
-	$inner.cell configure -state disabled
+        $inner.cell configure -state disabled
     }
     if { $flush } {
         global readyForNextFrame
-        set readyForNextFrame 0;	# Don't advance to the next frame
+        set readyForNextFrame 0;        # Don't advance to the next frame
                                         # until we get an image.
-        #SendCmd "ppm";			# Flush the results.
-	set _flush 0
+        #SendCmd "ppm";                 # Flush the results.
+        set _flush 0
     }
-    set _buffering 0;			# Turn off buffering.
+    set _buffering 0;                   # Turn off buffering.
 
     blt::busy hold $itk_component(hull)
 
     # Actually write the commands to the server socket.  
     # If it fails, we don't care.  We're finished here.
-    SendBytes $_outbuf;			
-    set _outbuf "";			# Clear the buffer.		
+    SendBytes $_outbuf;                 
+    set _outbuf "";                     # Clear the buffer.             
     blt::busy release $itk_component(hull)
 
     debug "exiting rebuild"
@@ -1232,7 +1232,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy $y
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
-	array unset _imagecache 
+        array unset _imagecache 
         SendCmd "pan $dx $dy"
         return
     }
@@ -1247,7 +1247,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set dy [expr $y - $_mevent(y)]
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
-	array unset _imagecache 
+        array unset _imagecache 
         SendCmd "pan $dx $dy"
     }
     set _mevent(x) $x
@@ -1413,7 +1413,7 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
         set _view(my) [expr {$_view(my) + $my}]
         set _view(mz) [expr {$_view(mz) + $mz}]
         #SendCmd "rotate $mx $my $mz"
-	EventuallyRotate $mx $my $mz
+        EventuallyRotate $mx $my $mz
         debug "_vmmouse: rotate $_view(mx) $_view(my) $_view(mz)"
     }
     set _mevent(x) $x
@@ -1509,7 +1509,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
                     vy $vy
                     vz $vz
                 }]
-		EventuallyRotate $a $b $c
+                EventuallyRotate $a $b $c
                 #SendCmd "rotate $a $b $c"
                 debug "Rotate $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
                 set _click(x) $x
@@ -1536,8 +1536,8 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
     if { $option == "" } {
-	set value [$itk_component(representation) value]
-	set option [$itk_component(representation) translate $value]
+        set value [$itk_component(representation) value]
+        set option [$itk_component(representation) translate $value]
     }
     if { $option == $_mrep } {
         return 
@@ -1630,7 +1630,7 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
     switch -- $option {
         "on" - "off" {
             set cell $option
-	}
+        }
         "toggle" {
             set cell [expr {$_settings($this-showcell) == 0}]
         }
@@ -1844,7 +1844,7 @@ itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
 
 # ----------------------------------------------------------------------
 # USAGE: StickRadius radius ?models?
-#	 StickRadius update ?models?
+#        StickRadius update ?models?
 #
 # Used internally to change the stick radius used to render
 # our scene.
@@ -1880,7 +1880,7 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
 
 # ----------------------------------------------------------------------
 # USAGE: Opacity value ?models?
-#	 Opacity update ?models?
+#        Opacity update ?models?
 #
 # Used internally to change the opacity (transparency) used to render
 # our scene.
@@ -1911,7 +1911,7 @@ itcl::body Rappture::MolvisViewer::Opacity { option } {
     set overridetransparency 0.60
     SendCmd "transparency -model all $overridetransparency"
     foreach model $models {
-	SendCmd "transparency -model $model $transparency"
+        SendCmd "transparency -model $model $transparency"
     }
 }
 
@@ -2007,19 +2007,19 @@ itcl::body Rappture::MolvisViewer::AddImageControls { inner widget } {
 
     set f [frame $inner.frame]
     button $f.ok -text "Save" \
-	-highlightthickness 0 -pady 3 -padx 3 \
-	-command [itcl::code $this SetWaitVariable 1] \
-	-compound left \
-	-image [Rappture::icon download
+        -highlightthickness 0 -pady 3 -padx 3 \
+        -command [itcl::code $this SetWaitVariable 1] \
+        -compound left \
+        -image [Rappture::icon download
 ]
     button $f.cancel -text "Cancel" \
-	-highlightthickness 0 -pady 3 -padx 3 \
-	-command [itcl::code $this SetWaitVariable 0] \
-	-compound left \
-	-image [Rappture::icon cancel]
+        -highlightthickness 0 -pady 3 -padx 3 \
+        -command [itcl::code $this SetWaitVariable 0] \
+        -compound left \
+        -image [Rappture::icon cancel]
     blt::table $f \
-	0,0 $f.ok  \
-	0,1 $f.cancel 
+        0,0 $f.ok  \
+        0,1 $f.cancel 
 
     blt::table $inner \
         0,0 $inner.format_l -anchor e \
@@ -2062,22 +2062,22 @@ itcl::body Rappture::MolvisViewer::snap { w h } {
 itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     # Create a vector for every 3D point
     blt::vector point0(3) point1(3) point2(3) point3(3) point4(3) point5(3) \
-	point6(3) point7(3) origin(3) scale(3)
+        point6(3) point7(3) origin(3) scale(3)
 
     set count 0
     set parent [$dataobj element -as object "components.parallelepiped"]
     foreach child [$parent children] {
-	if { ![string match "vector*" $child] } {
-	    continue
-	}
-	incr count
-	set values [$parent get $child]
-	regexp -all {,} $values { } values
-	point$count set $values
+        if { ![string match "vector*" $child] } {
+            continue
+        }
+        incr count
+        set values [$parent get $child]
+        regexp -all {,} $values { } values
+        point$count set $values
     }
     itcl::delete object $parent
     if { $count < 1 || $count > 3 } {
-	error "bad number of vectors supplied to parallelepiped"
+        error "bad number of vectors supplied to parallelepiped"
     }
     point0 set { 0.0 0.0 0.0 }
     point4 expr {point2 + point1}
@@ -2089,39 +2089,39 @@ itcl::body Rappture::MolvisViewer::ComputeParallelepipedVertices { dataobj } {
     set n [llength $values]
     scale set { 1.0 1.0 1.0 }
     if { $n == 1 } {
-	set scale(0:2) [lindex $values 0]
+        set scale(0:2) [lindex $values 0]
     } elseif { $n == 2 } {
-	set scale(0:1) [lindex $values 0]
+        set scale(0:1) [lindex $values 0]
     } elseif { $n == 3 } {
-	scale set $values
+        scale set $values
     }
     set values [$dataobj get components.parallelepiped.origin]
     set n [llength $values]
     origin set { 0.0 0.0 0.0 }
     if { $n == 1 } {
-	set origin(0) [lindex $values 0]
+        set origin(0) [lindex $values 0]
     } elseif { $n == 2 } {
-	set origin(0) [lindex $values 0]
-	set origin(1) [lindex $values 1]
+        set origin(0) [lindex $values 0]
+        set origin(1) [lindex $values 1]
     } elseif { $n == 3 } {
-	origin set $values
+        origin set $values
     }
 
     # Scale and translate points 
     for { set i 0 } { $i < 8 } { incr i } {
-	point${i} expr "(point${i} * scale) + origin"
+        point${i} expr "(point${i} * scale) + origin"
     }
 
     # Generate vertices as a string for PyMOL
     set vertices ""
     foreach n { 0 1 0 2 0 3 1 4 2 4 2 6 1 7 3 7 5 7 4 5 3 6 5 } {
-	set values [point${n} range 0 end]
-	append vertices "\[ [join $values {, }] \], \\\n"
+        set values [point${n} range 0 end]
+        append vertices "\[ [join $values {, }] \], \\\n"
     }
     set values [point6 range 0 end]
     append vertices "\[ [join $values {, }] \]  \\\n"
     blt::vector destroy point0 point1 point2 point3 point4 point5 point6 \
-	point7 origin scale
+        point7 origin scale
     return $vertices
 }
 

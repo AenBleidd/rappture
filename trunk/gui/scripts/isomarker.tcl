@@ -17,12 +17,12 @@ package require BLT
 package require Img
 
 itcl::class Rappture::IsoMarker {
-    private variable _value	0.0;	# Absolute value of marker.
-    private variable _label	""
-    private variable _tick	""
-    private variable _canvas	""
-    private variable _nvobj	"";	# Parent nanovis object.
-    private variable _tf	"";	# Transfer function that this marker is 
+    private variable _value     0.0;    # Absolute value of marker.
+    private variable _label     ""
+    private variable _tick      ""
+    private variable _canvas    ""
+    private variable _nvobj     "";     # Parent nanovis object.
+    private variable _tf        "";     # Transfer function that this marker is 
                                         # associated with.
     private variable _activeMotion   0
     private variable _activePress    0
@@ -117,9 +117,9 @@ itcl::class Rappture::IsoMarker {
             set limits(min) 0.0
             set limits(max) 1.0
         }
-	if { [catch {expr $limits(vmax) - $limits(vmin)} r] != 0 } {
-	    return 0.0
-	}	    
+        if { [catch {expr $limits(vmax) - $limits(vmin)} r] != 0 } {
+            return 0.0
+        }           
         absval [expr {($x * $r) + $limits(vmin)}]
     }
     private method HandleEvent { option args } {

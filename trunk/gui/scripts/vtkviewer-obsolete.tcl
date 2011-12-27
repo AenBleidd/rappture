@@ -107,22 +107,22 @@ itcl::body Rappture::VtkViewerObsolete::constructor {args} {
     set _view(phi) 0
     
     array set _limits {
-        xMin	0 
-        xMax	1
-        yMin	0
-        yMax	1
-        zMin	0
-        zMax	1
-        vMin	0
-        vMax	1
+        xMin    0 
+        xMax    1
+        yMin    0
+        yMax    1
+        zMin    0
+        zMax    1
+        vMin    0
+        vMax    1
     }
 
 
     foreach { key value } {
-        edges		1
-        axes		1
-        smallaxes	0
-        wireframe	0
+        edges           1
+        axes            1
+        smallaxes       0
+        wireframe       0
     } {
         set _settings($this-$key) $value
     }
@@ -160,7 +160,7 @@ itcl::body Rappture::VtkViewerObsolete::constructor {args} {
     }
     pack $itk_component(reset) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(reset) \
-	"Reset the view to the default zoom level"
+        "Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $itk_component(zoom).zin \
@@ -171,7 +171,7 @@ itcl::body Rappture::VtkViewerObsolete::constructor {args} {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground \
-	    Background
+            Background
     }
     pack $itk_component(zoomin) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomin) "Zoom in"
@@ -185,7 +185,7 @@ itcl::body Rappture::VtkViewerObsolete::constructor {args} {
         usual
         ignore -borderwidth
         rename -highlightbackground -controlbackground controlBackground \
-	    Background
+            Background
     }
     pack $itk_component(zoomout) -padx 4 -pady 4
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
@@ -204,7 +204,7 @@ itcl::body Rappture::VtkViewerObsolete::constructor {args} {
         vtkTkRenderWidget $itk_component(area).plot -rw $_window \
             -width 1 -height 1
     } {
-	# empty
+        # empty
     }
     pack $itk_component(plot) -expand yes -fill both
     $_window AddRenderer $_renderer
@@ -298,7 +298,7 @@ itcl::body Rappture::VtkViewerObsolete::add {dataobj {settings ""}} {
         set _obj2color($dataobj) $params(-color)
         set _obj2width($dataobj) $params(-width)
         set _obj2raise($dataobj) $params(-raise)
-	
+        
         after cancel [itcl::code $this Rebuild]
         after idle [itcl::code $this Rebuild]
     }
@@ -345,11 +345,11 @@ itcl::body Rappture::VtkViewerObsolete::delete {args} {
             catch {unset _obj2color($dataobj)}
             catch {unset _obj2width($dataobj)}
             catch {unset _obj2raise($dataobj)}
-	    foreach actor $_actors($dataobj) {
-		$_renderer RemoveActor $actor
-	    }
-	    array unset _actors $dataobj
-	    array unset _dataobj2vtk $dataobj-*
+            foreach actor $_actors($dataobj) {
+                $_renderer RemoveActor $actor
+            }
+            array unset _actors $dataobj
+            array unset _dataobj2vtk $dataobj-*
             set changed 1
         }
     }
@@ -412,10 +412,10 @@ itcl::body Rappture::VtkViewerObsolete::download {option args} {
             rename $large ""
             FixSettings smallaxes
 
-	    set img [image create photo -file junk.jpg]
+            set img [image create photo -file junk.jpg]
             set bytes [$img data -format "jpeg -quality 100"]
             set bytes [Rappture::encoding::decode -as b64 $bytes]
-	    image delete $img
+            image delete $img
             return [list .jpg $bytes]
         }
         default {
@@ -441,9 +441,9 @@ itcl::body Rappture::VtkViewerObsolete::Clear {} {
         set _lights($ren) ""
     }
     foreach dataobj $_dlist {
-	foreach actor $_actors($dataobj) {
-	    $_renderer RemoveActor $actor
-	}
+        foreach actor $_actors($dataobj) {
+            $_renderer RemoveActor $actor
+        }
     }
     array unset _actors
     set _dlist ""
@@ -473,30 +473,30 @@ itcl::body Rappture::VtkViewerObsolete::Zoom {option} {
             $cam SetViewAngle 30
             $_renderer ResetCamera
             _3dView 90 -90
-	    array set camera {
-		xpos 1.73477e-06 ypos 74.7518 zpos -1.73477e-06
-		xviewup 5.38569e-16 yviewup 2.32071e-08 zviewup 1.0
-		xfocal 0.0 yfocal 0.0 zfocal 0.0 
-		angle 30
-	    }
-	    set dataobj [lindex $_dlist end]
-	    if { $dataobj != "" } {
-		array set camera [$dataobj hints camera]
-	    }
-	    if { [info exists camera(clipmin)] } {
-		$cam SetClippingRange $camera(clipmin) $camera(clipmax)
-	    }
-	    if { [info exists camera(parallelscale)] } {
-		$cam SetParallelScale $camera(parallelscale) 
-	    }
-	    $cam SetViewAngle $camera(angle)
-	    $cam SetFocalPoint $camera(xfocal) $camera(yfocal) $camera(zfocal)
-	    $cam SetPosition $camera(xpos) $camera(ypos) $camera(zpos)
-	    $cam SetViewUp $camera(xviewup) $camera(yviewup) $camera(zviewup)
-	    foreach key [array names camera] {
-		set _settings($this-$key) $camera($key)
-	    }
-	    $cam ComputeViewPlaneNormal
+            array set camera {
+                xpos 1.73477e-06 ypos 74.7518 zpos -1.73477e-06
+                xviewup 5.38569e-16 yviewup 2.32071e-08 zviewup 1.0
+                xfocal 0.0 yfocal 0.0 zfocal 0.0 
+                angle 30
+            }
+            set dataobj [lindex $_dlist end]
+            if { $dataobj != "" } {
+                array set camera [$dataobj hints camera]
+            }
+            if { [info exists camera(clipmin)] } {
+                $cam SetClippingRange $camera(clipmin) $camera(clipmax)
+            }
+            if { [info exists camera(parallelscale)] } {
+                $cam SetParallelScale $camera(parallelscale) 
+            }
+            $cam SetViewAngle $camera(angle)
+            $cam SetFocalPoint $camera(xfocal) $camera(yfocal) $camera(zfocal)
+            $cam SetPosition $camera(xpos) $camera(ypos) $camera(zpos)
+            $cam SetViewUp $camera(xviewup) $camera(yviewup) $camera(zviewup)
+            foreach key [array names camera] {
+                set _settings($this-$key) $camera($key)
+            }
+            $cam ComputeViewPlaneNormal
             $_window Render
         }
     }
@@ -534,13 +534,13 @@ itcl::body Rappture::VtkViewerObsolete::Move {option x y} {
                     #
                     # Shift the contour plot in 2D
                     #
-		    foreach dataobj $_dlist {
-			foreach actor $_actors($dataobj) {
-			    foreach {ax ay az} [$actor GetPosition] break
-			    $actor SetPosition [expr {$ax+$dx}] \
-				[expr {$ay-$dy}] 0
-			}
-		    }
+                    foreach dataobj $_dlist {
+                        foreach actor $_actors($dataobj) {
+                            foreach {ax ay az} [$actor GetPosition] break
+                            $actor SetPosition [expr {$ax+$dx}] \
+                                [expr {$ay-$dy}] 0
+                        }
+                    }
                     $_window Render
                 } elseif {$_dims == "3D"} {
                     #
@@ -550,7 +550,7 @@ itcl::body Rappture::VtkViewerObsolete::Move {option x y} {
                     if {$theta < 2} { set theta 2 }
                     if {$theta > 178} { set theta 178 }
                     set phi [expr {$_view(phi) - $dx*360}]
-		    
+                    
                     _3dView $theta $phi
                     $_window Render
                 }
@@ -617,7 +617,7 @@ itcl::body Rappture::VtkViewerObsolete::_fixLimits {} {
     $camera Zoom 1.5
     $_window Render
     if 0 {
-	$this-vtkRenderWindow2 Render
+        $this-vtkRenderWindow2 Render
     }
 }
 
@@ -643,8 +643,8 @@ itcl::configbody Rappture::VtkViewerObsolete::plotbackground {
     $_renderer SetBackground $r $g $b
     $_window Render
     if 0 {
-	$this-vtkRenderer2 SetBackground $r $g $b
-	$this-vtkRenderWindow2 Render
+        $this-vtkRenderer2 SetBackground $r $g $b
+        $this-vtkRenderWindow2 Render
     }
 }
 
@@ -703,57 +703,57 @@ itcl::body Rappture::VtkViewerObsolete::Rebuild {} {
     eval $_cubeAxesActor SetBounds [GetLimits]
     
     if 1 {
-	#
-	# LOOKUP TABLE FOR COLOR CONTOURS
-	#
-	# Use vmin/vmax if possible, otherwise get from data
-	if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
-	    set v0 0
-	    set v1 1
-	    if { [info exists _dataobj2vtk($dataobj)] } {
-		set pd [lindex $_dataobj2vtk($dataobj) 0]
-		if {"" != $pd} {
-		    foreach {v0 v1} [$pd GetScalarRange] break
-		}
-	    }
-	} else {
-	    set v0 $_limits(vMin)
-	    set v1 $_limits(vMax)
-	}
-    }	
+        #
+        # LOOKUP TABLE FOR COLOR CONTOURS
+        #
+        # Use vmin/vmax if possible, otherwise get from data
+        if {$_limits(vMin) == "" || $_limits(vMax) == ""} {
+            set v0 0
+            set v1 1
+            if { [info exists _dataobj2vtk($dataobj)] } {
+                set pd [lindex $_dataobj2vtk($dataobj) 0]
+                if {"" != $pd} {
+                    foreach {v0 v1} [$pd GetScalarRange] break
+                }
+            }
+        } else {
+            set v0 $_limits(vMin)
+            set v1 $_limits(vMax)
+        }
+    }   
     # scan through all data objects and build the contours
     set firstobj 1
     foreach dataobj $_dlist {
-	foreach comp [$dataobj components] {
-	    set tag $dataobj-$comp
-	    if { ![info exists _dataobj2vtk($tag)] } {
-		set actor [$dataobj values $comp]
-		set style [$dataobj style $comp]
-		set _dataobj2vtk($tag) $actor
-		lappend _actors($dataobj) $actor
-		$_renderer AddActor $actor
-		SetActorProperties $actor $style
-		incr id
-	    }
-	}
-	set firstobj 0
+        foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
+            if { ![info exists _dataobj2vtk($tag)] } {
+                set actor [$dataobj values $comp]
+                set style [$dataobj style $comp]
+                set _dataobj2vtk($tag) $actor
+                lappend _actors($dataobj) $actor
+                $_renderer AddActor $actor
+                SetActorProperties $actor $style
+                incr id
+            }
+        }
+        set firstobj 0
     }
     set top [lindex [get] end]
     if { $top != "" } {
-	foreach axis { x y z } {
-	    set title [$top hints ${axis}label]
-	    set units [$top hints ${axis}units]
-	    set method Set[string toupper $axis]Title
-	    set label "$title"
-	    if { $units != "" } {
-		append label " ($units)"
-	    }	    
-	    $_cubeAxesActor $method $label
-	}
+        foreach axis { x y z } {
+            set title [$top hints ${axis}label]
+            set units [$top hints ${axis}units]
+            set method Set[string toupper $axis]Title
+            set label "$title"
+            if { $units != "" } {
+                append label " ($units)"
+            }       
+            $_cubeAxesActor $method $label
+        }
     }
     if 1 {
-	_fixLimits
-	Zoom reset
+        _fixLimits
+        Zoom reset
 
     }
     $_interactor Start
@@ -795,8 +795,8 @@ itcl::body Rappture::VtkViewerObsolete::BuildViewTab {} {
         -yscrollbar $tab.ss.ys \
         -window $tab.ss.frame
     pack $tab.ss -fill both -expand yes 
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
+    blt::tk::scrollbar $tab.ss.xs               
+    blt::tk::scrollbar $tab.ss.ys               
     set inner [blt::tk::frame $tab.ss.frame]
     $inner configure -borderwidth 4
     }
@@ -843,9 +843,9 @@ itcl::body Rappture::VtkViewerObsolete::BuildViewTab {} {
 
 itcl::body Rappture::VtkViewerObsolete::BuildVolumeTab {} {
     foreach { key value } {
-        light		40
-        transp		50
-        opacity		1000
+        light           40
+        transp          50
+        opacity         1000
     } {
         set _settings($this-$key) $value
     }
@@ -860,8 +860,8 @@ itcl::body Rappture::VtkViewerObsolete::BuildVolumeTab {} {
         -yscrollbar $tab.ss.ys \
         -window $tab.ss.frame
     pack $tab.ss -fill both -expand yes 
-    blt::tk::scrollbar $tab.ss.xs		
-    blt::tk::scrollbar $tab.ss.ys		
+    blt::tk::scrollbar $tab.ss.xs               
+    blt::tk::scrollbar $tab.ss.ys               
     set inner [blt::tk::frame $tab.ss.frame]
     $inner configure -borderwidth 4
     }
@@ -916,10 +916,10 @@ itcl::body Rappture::VtkViewerObsolete::UpdateCameraInfo {} {
     foreach key { x y z } \
             pt  [$cam GetFocalPoint] \
             up  [$cam GetViewUp] \
-  	    pos [$cam GetPosition] {
-	set _settings($this-${key}focal) $pt
-	set _settings($this-${key}up) $up
-	set _settings($this-${key}pos) $pos
+            pos [$cam GetPosition] {
+        set _settings($this-${key}focal) $pt
+        set _settings($this-${key}up) $up
+        set _settings($this-${key}pos) $pos
     }
     foreach {min max} [$cam GetClippingRange] break
     set _settings($this-clipmin) $min
@@ -927,9 +927,9 @@ itcl::body Rappture::VtkViewerObsolete::UpdateCameraInfo {} {
     set _settings($this-parallelscale) [$cam GetParallelScale]
     set _settings($this-angle) [$cam GetViewAngle]
     foreach key { xpos ypos zpos xviewup yviewup zviewup 
-	xfocal yfocal zfocal angle clipmin clipmax parallelscale
+        xfocal yfocal zfocal angle clipmin clipmax parallelscale
     } {
-	set out($key) $_settings($this-$key)
+        set out($key) $_settings($this-$key)
     }
     puts \"[array get out]\"
 }
@@ -943,60 +943,60 @@ itcl::body Rappture::VtkViewerObsolete::BuildCameraTab {} {
 
     label $inner.xposl -text "Position"
     entry $inner.xpos -bg white \
-	-textvariable [itcl::scope _settings($this-xpos)]
+        -textvariable [itcl::scope _settings($this-xpos)]
     entry $inner.ypos -bg white \
-	-textvariable [itcl::scope _settings($this-ypos)]
+        -textvariable [itcl::scope _settings($this-ypos)]
     entry $inner.zpos -bg white \
-	-textvariable [itcl::scope _settings($this-zpos)]
+        -textvariable [itcl::scope _settings($this-zpos)]
     label $inner.xviewupl -text "View Up"
     entry $inner.xviewup -bg white \
-	-textvariable [itcl::scope _settings($this-xviewup)]
+        -textvariable [itcl::scope _settings($this-xviewup)]
     entry $inner.yviewup -bg white \
-	-textvariable [itcl::scope _settings($this-yviewup)]
+        -textvariable [itcl::scope _settings($this-yviewup)]
     entry $inner.zviewup -bg white \
-	-textvariable [itcl::scope _settings($this-zviewup)]
+        -textvariable [itcl::scope _settings($this-zviewup)]
     label $inner.xfocall -text "Focal Point"
     entry $inner.xfocal -bg white \
-	-textvariable [itcl::scope _settings($this-xfocal)]
+        -textvariable [itcl::scope _settings($this-xfocal)]
     entry $inner.yfocal -bg white \
-	-textvariable [itcl::scope _settings($this-yfocal)]
+        -textvariable [itcl::scope _settings($this-yfocal)]
     entry $inner.zfocal -bg white \
-	-textvariable [itcl::scope _settings($this-zfocal)]
+        -textvariable [itcl::scope _settings($this-zfocal)]
     label $inner.anglel -text "View Angle"
     entry $inner.angle -bg white \
-	-textvariable [itcl::scope _settings($this-angle)]
+        -textvariable [itcl::scope _settings($this-angle)]
     label $inner.clipl -text "Clipping Range"
     entry $inner.clipmin -bg white \
-	-textvariable [itcl::scope _settings($this-clipmin)]
+        -textvariable [itcl::scope _settings($this-clipmin)]
     entry $inner.clipmax -bg white \
-	-textvariable [itcl::scope _settings($this-clipmax)]
+        -textvariable [itcl::scope _settings($this-clipmax)]
     label $inner.pscalel -text "Parallel Scale"
     entry $inner.pscale -bg white \
-	-textvariable [itcl::scope _settings($this-parallelscale)]
+        -textvariable [itcl::scope _settings($this-parallelscale)]
 
     button $inner.refresh -text "Refresh" \
-	-command [itcl::code $this UpdateCameraInfo]
+        -command [itcl::code $this UpdateCameraInfo]
     blt::table $inner \
-	0,0 $inner.xposl -anchor w -pady 2 \
-	1,0 $inner.xpos -pady 2 -fill x\
-	2,0 $inner.ypos -pady 2 -fill x\
-	3,0 $inner.zpos -pady 2 -fill x\
-	4,0 $inner.xviewupl -anchor w -pady 2 \
-	5,0 $inner.xviewup -pady 2 -fill x \
-	6,0 $inner.yviewup -pady 2 -fill x \
-	7,0 $inner.zviewup -pady 2 -fill x \
-	8,0 $inner.xfocall -anchor w -pady 2 \
-	9,0 $inner.xfocal -pady 2 -fill x \
-	10,0 $inner.yfocal -pady 2 -fill x \
-	11,0 $inner.zfocal -pady 2 -fill x \
-	16,0 $inner.anglel -anchor w -pady 2 \
-	17,0 $inner.angle -pady 2 -fill x \
-	18,0 $inner.clipl -anchor w -pady 2 \
-	19,0 $inner.clipmin -pady 2 -fill x \
-	20,0 $inner.clipmax -pady 2 -fill x \
-	21,0 $inner.pscalel -anchor w -pady 2 \
-	22,0 $inner.pscale -pady 2 -fill x \
-	23,0 $inner.refresh 
+        0,0 $inner.xposl -anchor w -pady 2 \
+        1,0 $inner.xpos -pady 2 -fill x\
+        2,0 $inner.ypos -pady 2 -fill x\
+        3,0 $inner.zpos -pady 2 -fill x\
+        4,0 $inner.xviewupl -anchor w -pady 2 \
+        5,0 $inner.xviewup -pady 2 -fill x \
+        6,0 $inner.yviewup -pady 2 -fill x \
+        7,0 $inner.zviewup -pady 2 -fill x \
+        8,0 $inner.xfocall -anchor w -pady 2 \
+        9,0 $inner.xfocal -pady 2 -fill x \
+        10,0 $inner.yfocal -pady 2 -fill x \
+        11,0 $inner.zfocal -pady 2 -fill x \
+        16,0 $inner.anglel -anchor w -pady 2 \
+        17,0 $inner.angle -pady 2 -fill x \
+        18,0 $inner.clipl -anchor w -pady 2 \
+        19,0 $inner.clipmin -pady 2 -fill x \
+        20,0 $inner.clipmax -pady 2 -fill x \
+        21,0 $inner.pscalel -anchor w -pady 2 \
+        22,0 $inner.pscale -pady 2 -fill x \
+        23,0 $inner.refresh 
 
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner c0 -resize expand
