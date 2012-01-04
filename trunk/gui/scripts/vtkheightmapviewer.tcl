@@ -2442,7 +2442,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     #SendCmd "cutplane linecolor 1 1 1 $tag"
     #SendCmd "cutplane visible $tag"
     foreach axis { x y z } {
-        #SendCmd "cutplane slice $axis 1.0 $tag"
+        #SendCmd "cutplane slice $axis 0.5 $tag"
         #SendCmd "cutplane axis $axis 0 $tag"
     }
 
