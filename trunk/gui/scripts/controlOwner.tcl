@@ -65,6 +65,7 @@ itcl::body Rappture::ControlOwner::constructor {owner} {
         loader current
         note contents
         number current
+        periodicelement current
         string current
     }
 }
