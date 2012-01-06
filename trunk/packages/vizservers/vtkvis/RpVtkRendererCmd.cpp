@@ -1312,6 +1312,25 @@ CutplaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplaneColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Cutplane>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Cutplane>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 CutplaneColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -1477,6 +1496,23 @@ CutplaneOrientOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplaneOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneOutlineVisibility(name, state);
+    } else {
+        g_renderer->setCutplaneOutlineVisibility("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -1613,6 +1649,7 @@ CutplaneWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec cutplaneOps[] = {
     {"add",          2, CutplaneAddOp, 2, 3, "oper value ?dataSetName?"},
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
+    {"ccolor",       2, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
@@ -1622,6 +1659,7 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"linewidth",    5, CutplaneLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",      2, CutplaneOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, CutplaneOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"outline",      2, CutplaneOutlineOp, 3, 4, "bool ?dataSetName?"},
     {"pos",          1, CutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
     {"scale",        2, CutplaneScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"slice",        2, CutplaneVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},

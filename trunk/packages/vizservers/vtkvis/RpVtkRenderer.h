@@ -387,6 +387,8 @@ public:
 
     // Cutplanes
 
+    void setCutplaneOutlineVisibility(const DataSetId& id, bool state);
+
     void setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state);
 
     void setCutplaneColorMode(const DataSetId& id,

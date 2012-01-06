@@ -430,6 +430,35 @@ void Renderer::setContour3DContourList(const DataSetId& id, const std::vector<do
 }
 
 /**
+ * \brief Set the visibility of cutplane outlines
+ */
+void Renderer::setCutplaneOutlineVisibility(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOutlineVisibility(state);
+     } while (doAll && ++itr != _cutplanes.end());
+
+    _renderer->ResetCameraClippingRange();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the visibility of slices in one of the three axes
  */
 void Renderer::setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool state)

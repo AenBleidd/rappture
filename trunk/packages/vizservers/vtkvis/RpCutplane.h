@@ -15,6 +15,7 @@
 #include <vtkPlaneCollection.h>
 #include <vtkCutter.h>
 #include <vtkPlane.h>
+#include <vtkOutlineFilter.h>
 
 #include "ColorMap.h"
 #include "RpTypes.h"
@@ -49,7 +50,13 @@ public:
     virtual void setDataSet(DataSet *dataSet,
                             Renderer *renderer);
 
+    virtual void setLighting(bool state);
+
+    virtual void setEdgeVisibility(bool state);
+
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setOutlineVisibility(bool state);
 
     void selectVolumeSlice(Axis axis, double ratio);
 
@@ -92,9 +99,12 @@ private:
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _actor[3];
+    vtkSmartPointer<vtkActor> _borderActor[3];
     vtkSmartPointer<vtkDataSetMapper> _mapper[3];
+    vtkSmartPointer<vtkPolyDataMapper> _borderMapper[3];
     vtkSmartPointer<vtkCutter> _cutter[3];
     vtkSmartPointer<vtkPlane> _cutPlane[3];
+    vtkSmartPointer<vtkOutlineFilter> _outlineFilter[3];
 };
 
 }
