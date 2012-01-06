@@ -20,15 +20,15 @@ namespace eval Rappture::icon {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: Rappture::icondir ?<dirname> <dirname>...?
+# USAGE: Rappture::icon::searchpath ?<dirname> <dirname>...?
 #
 # Adds one or more directories onto the icon path searched when
 # locating icons in Rappture::icon.  You can do the same thing by
 # lappend'ing onto the "iconpath" variable, but this call avoids
 # duplicates and makes it easier
 # ----------------------------------------------------------------------
-proc Rappture::icondir {args} {
-    variable ::Rappture::icon::iconpath
+proc Rappture::icon::searchpath {args} {
+    variable iconpath
     foreach dir $args {
         if {[file isdirectory $dir]} {
             if {[lsearch $iconpath $dir] < 0} {
