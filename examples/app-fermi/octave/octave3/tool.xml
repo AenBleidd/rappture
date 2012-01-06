@@ -2,7 +2,7 @@
 <run>
     <tool>
         <about>Press Simulate to view results.</about>
-        <command>octave --silent --eval infile='@driver',path('@tool',path),fermi</command>
+        <command>octave --silent --eval "infile='@driver',path('@tool',path),fermi"</command>
     </tool>
     <input>
         <number id="temperature">

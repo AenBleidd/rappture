@@ -459,6 +459,9 @@ itcl::body Rappture::PeriodicTable::get { args } {
     }
     set elem [FindElement $name]
     if { $elem == "" || $_state($elem) == "disabled" } {
+	if { $elem != "" } {
+	    puts stderr "element $elem is disabled"
+	}
         return ""
     }
     array set info $_table($elem)
@@ -606,23 +609,21 @@ set last ""
 }
 
 # ----------------------------------------------------------------------
-# USAGE: select <name> 
+# USAGE: FindElement
 #
 # Used to manipulate the selection in the table.
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::FindElement { what } {
     foreach name [array names _table] { 
+        array unset info
         array set info $_table($name)
         if { $what == $info(name) || $what == $info(number) || 
              $what == $info(symbol) } {
-            break
+	    return $info(name)
         }
-        array unset info
     }
-    if { [info exists info] } {
-        return $info(name)
-    }
+    parray info
     return ""
 }
                                                                 

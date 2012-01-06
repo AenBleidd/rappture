@@ -183,7 +183,10 @@ itcl::body Rappture::Tool::run {args} {
         regsub -all @driver $cmd $file cmd
         regsub -all {\\} $cmd {\\\\} cmd
         set cmd [string trimleft $cmd " "]
-
+	if { $cmd == "" } {
+	    puts stderr "cmd is empty"
+	    return [list 1 "Command is empty.\n\nThere is no command specified by\n\n <command>\n </command>\n\nin the tool.xml file."]
+	}
         # if job_protocol is "submit", then use use submit command
         if {[resources -jobprotocol] == "submit"} {
             set cmd [linsert $cmd 0 submit --local]
@@ -196,20 +199,27 @@ itcl::body Rappture::Tool::run {args} {
             set status 0;
             set job(output) [string range $cmd 5 end] 
         } else {
-            set status [catch {eval blt::bgexec \
-                ::Rappture::Tool::job(control) \
-                -keepnewline yes \
-                -killsignal SIGTERM \
-                -onoutput [list [itcl::code $this _output]] \
-                -output ::Rappture::Tool::job(output) \
-                -error ::Rappture::Tool::job(error) $cmd} result]
+            set status [catch {
+		eval blt::bgexec \
+		    ::Rappture::Tool::job(control) \
+		    -keepnewline yes \
+		    -killsignal SIGTERM \
+		    -onoutput [list [itcl::code $this _output]] \
+		    -output ::Rappture::Tool::job(output) \
+		    -error ::Rappture::Tool::job(error) \
+		    $cmd
+	    } result]
 
             if { $status != 0 } {
-                foreach {code pid mesg} $::Rappture::Tool::job(control) break
-                if { $code != "EXITED" } {
-                    set result "Abnormal program termination \"$code\": $mesg"
-                    return [list $status $result]
-                }
+		if { $::Rappture::Tool::job(control) != "" } {
+		    set code [lindex $::Rappture::Tool::job(control) 0]
+		    set mesg [lindex $::Rappture::Tool::job(control) 2]
+		    if { $code != "EXITED" } {
+			set result \
+			    "Abnormal program termination \"$code\": $mesg"
+		    }
+		}
+		return [list $status $result]
             }
         }
         # ...job is finished
