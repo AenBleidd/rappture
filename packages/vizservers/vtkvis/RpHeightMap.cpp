@@ -720,6 +720,7 @@ const std::vector<double>& HeightMap::getContourList() const
  */
 void HeightMap::setLighting(bool state)
 {
+    _lighting = state;
     if (_dsActor != NULL)
         _dsActor->GetProperty()->SetLighting((state ? 1 : 0));
 }

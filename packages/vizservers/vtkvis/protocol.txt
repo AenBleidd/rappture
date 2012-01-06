@@ -146,6 +146,8 @@ contour3d wireframe <bool> <?datasetName?>
 cutplane add <?dataSetName?>
 cutplane axis <axis> <bool> <?dataSetName?>
          Toggle visibility of the 3 principal axis cutplanes
+cutplane ccolor r g b <?datasetName?>
+         Set color of outline bounding box
 cutplane colormap <colorMapName> <?dataSetName?>
 cutplane colormode <scalar|vmag|vx|vy|vz> <fieldName> <?datasetName?>
          Set the field used to color the object.  'scalar' uses
@@ -159,6 +161,8 @@ cutplane linecolor <r> <g> <b> <?dataSetName?>
 cutplane linewidth <width> <?dataSetName?>
 cutplane opacity <value> <?dataSetName?>
 cutplane orient <qw> <qx> <qy> <qz> <?dataSetName?>
+cutplane outline <bool> <?dataSetName?>
+         Toggle rendering of cutplane outlines
 cutplane pos <x> <y> <z> <?dataSetName?>
 cutplane scale <sx> <sy> <sz> <?dataSetName?>
 cutplane slice axis ratio <?dataSetName?>

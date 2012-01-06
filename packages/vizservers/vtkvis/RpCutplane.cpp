@@ -96,6 +96,7 @@ void Cutplane::initProp()
 
         for (int i = 0; i < 3; i++) {
             _actor[i] = vtkSmartPointer<vtkActor>::New();
+            _borderActor[i] = vtkSmartPointer<vtkActor>::New();
             //_actor[i]->VisibilityOff();
             vtkProperty *property = _actor[i]->GetProperty();
             property->SetColor(_color[0], _color[1], _color[2]);
@@ -110,6 +111,17 @@ void Cutplane::initProp()
             if (_faceCulling && _opacity == 1.0) {
                 setCulling(property, true);
             }
+            property = _borderActor[i]->GetProperty();
+            property->SetColor(_color[0], _color[1], _color[2]);
+            property->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
+            property->SetLineWidth(_edgeWidth);
+            property->SetPointSize(_pointSize);
+            property->EdgeVisibilityOff();
+            property->SetOpacity(_opacity);
+            property->SetAmbient(.2);
+            property->LightingOff();
+            
+            getAssembly()->AddPart(_borderActor[i]);
             getAssembly()->AddPart(_actor[i]);
         }
     }
@@ -289,6 +301,15 @@ void Cutplane::update()
         }
     }
 
+    for (int i = 0; i < 3; i++) {
+        if (_mapper[i] != NULL) {
+            _borderMapper[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
+            _outlineFilter[i] = vtkSmartPointer<vtkOutlineFilter>::New();
+            _outlineFilter[i]->SetInputConnection(_mapper[i]->GetInputConnection(0, 0));
+            _borderMapper[i]->SetInputConnection(_outlineFilter[i]->GetOutputPort());
+        }
+    }
+
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
     }
@@ -299,6 +320,10 @@ void Cutplane::update()
         if (_mapper[i] != NULL) {
             _actor[i]->SetMapper(_mapper[i]);
             _mapper[i]->Update();
+        }
+        if (_borderMapper[i] != NULL) {
+            _borderActor[i]->SetMapper(_borderMapper[i]);
+            _borderMapper[i]->Update();
         }
     }
 }
@@ -649,6 +674,42 @@ void Cutplane::setColorMap(ColorMap *cmap)
 }
 
 /**
+ * \brief Turn on/off lighting of this object
+ */
+void Cutplane::setLighting(bool state)
+{
+    _lighting = state;
+    for (int i = 0; i < 3; i++) {
+        if (_actor[i] != NULL)
+            _actor[i]->GetProperty()->SetLighting((state ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Turn on/off rendering of mesh edges
+ */
+void Cutplane::setEdgeVisibility(bool state)
+{
+    for (int i = 0; i < 3; i++) {
+        if (_actor[i] != NULL) {
+            _actor[i]->GetProperty()->SetEdgeVisibility((state ? 1 : 0));
+        }
+    }
+}
+
+/**
+ * \brief Turn on/off rendering of outlines
+ */
+void Cutplane::setOutlineVisibility(bool state)
+{
+    for (int i = 0; i < 3; i++) {
+        if (_borderActor[i] != NULL) {
+            _borderActor[i]->SetVisibility((state ? 1 : 0));
+        }
+    }
+}
+
+/**
  * \brief Set visibility of cutplane on specified axis
  */
 void Cutplane::setSliceVisibility(Axis axis, bool state)
@@ -657,15 +718,21 @@ void Cutplane::setSliceVisibility(Axis axis, bool state)
     case X_AXIS:
         if (_actor[0] != NULL)
             _actor[0]->SetVisibility((state ? 1 : 0));
+        if (_borderActor[0] != NULL)
+            _borderActor[0]->SetVisibility((state ? 1 : 0));
         break;
     case Y_AXIS:
         if (_actor[1] != NULL)
             _actor[1]->SetVisibility((state ? 1 : 0));
+        if (_borderActor[1] != NULL)
+            _borderActor[1]->SetVisibility((state ? 1 : 0));
         break;
     case Z_AXIS:
     default:
         if (_actor[2] != NULL)
             _actor[2]->SetVisibility((state ? 1 : 0));
+        if (_borderActor[2] != NULL)
+            _borderActor[2]->SetVisibility((state ? 1 : 0));
         break;
     }
 }
