@@ -1564,7 +1564,7 @@ itcl::body Rappture::VtkVolumeViewer::SetColormap { dataobj comp } {
     if { ![info exists _dataset2style($tag)] ||
          $_dataset2style($tag) != $name } {
         SendCmd "volume colormap $name $tag"
-        SendCmd "cutplane colormap $name $tag"
+        SendCmd "cutplane colormap $name-opaque $tag"
         set _dataset2style($tag) $name
     }
 }
@@ -1797,9 +1797,10 @@ itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
     }
     set max $_settings(volume-opacity)
 
-    set wmap "0.0 1.0 1.0 1.0"
+    set opaqueWmap "0.0 1.0 1.0 1.0"
     set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
+    SendCmd "colormap add $name-opaque { $cmap } { $opaqueWmap }"
 }
 
 # ----------------------------------------------------------------------
