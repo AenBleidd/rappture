@@ -261,9 +261,10 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplane-wireframe      0
         cutplane-opacity        100
         volume-lighting         1
+        volume-material         80
         volume-opacity          40
+        volume-quality          50
         volume-visible          1
-        volume-wireframe        0
         legend-visible          1
     }]
 
@@ -994,9 +995,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     PanCamera
     set _first ""
     InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-        axis-visible axis-labels cutplane-visible \
-        cutplane-xposition cutplane-yposition cutplane-zposition \
-        cutplane-xvisible cutplane-yvisible cutplane-zvisible
+        axis-visible axis-labels
 
     SendCmd "imgflush"
 
@@ -1100,7 +1099,10 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         $itk_component(field) value $_currentField
     }
 
-    InitSettings volume-palette volume-visible 
+    InitSettings volume-palette volume-material volume-quality volume-visible \
+        cutplane-visible \
+        cutplane-xposition cutplane-yposition cutplane-zposition \
+        cutplane-xvisible cutplane-yvisible cutplane-zvisible
 
     if { $_reset } {
         InitSettings volume-lighting
@@ -1363,10 +1365,28 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                     "Show the volume"
             }
         }
+        "volume-material" {
+            set val $_settings(volume-material)
+            set diffuse [expr {0.01*$val}]
+            set specular [expr {0.01*$val}]
+            #set power [expr {sqrt(160*$val+1.0)}]
+            set power [expr {$val+1.0}]
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume shading diffuse $diffuse $dataset"
+                SendCmd "volume shading specular $specular $power $dataset"
+            }
+        }
         "volume-lighting" {
             set bool $_settings(volume-lighting)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume lighting $bool $dataset"
+            }
+        }
+        "volume-quality" {
+            set val $_settings(volume-quality)
+            set val [expr {0.01*$val}]
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "volume quality $val $dataset"
             }
         }
         "axis-visible" {
@@ -1803,7 +1823,9 @@ itcl::body Rappture::VtkVolumeViewer::BuildColormap { name styles } {
     set max $_settings(volume-opacity)
 
     set opaqueWmap "0.0 1.0 1.0 1.0"
-    set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
+    #set wmap "0.0 0.0 0.1 0.0 0.2 0.8 0.98 0.8 0.99 0.0 1.0 0.0"
+    # Approximate cubic opacity curve
+    set wmap "0.0 0.0 0.1 0.001 0.2 0.008 0.3 0.027 0.4 0.064 0.5 0.125 0.6 0.216 0.7 0.343 0.8 0.512 0.9 0.729 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
     SendCmd "colormap add $name-opaque { $cmap } { $opaqueWmap }"
 }
@@ -1922,12 +1944,25 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         -command [itcl::code $this AdjustSetting volume-lighting] \
         -font "Arial 9"
 
+    label $inner.dim_l -text "Dim" -font "Arial 9"
+    ::scale $inner.material -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(volume-material)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-material]
+    label $inner.bright_l -text "Bright" -font "Arial 9"
+
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(volume-opacity)] \
         -width 10 \
         -showvalue off \
         -command [itcl::code $this AdjustSetting volume-opacity]
+
+    label $inner.quality_l -text "Quality" -font "Arial 9"
+    ::scale $inner.quality -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(volume-quality)] \
+        -width 10 \
+        -showvalue off -command [itcl::code $this AdjustSetting volume-quality]
 
     label $inner.field_l -text "Field" -font "Arial 9" 
     itk_component add field {
@@ -1963,15 +1998,20 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         [itcl::code $this AdjustSetting volume-palette]
 
     blt::table $inner \
-        0,0 $inner.volume    -anchor w -pady 2 \
-        2,0 $inner.lighting  -anchor w -pady 2 \
-        6,0 $inner.field_l     -anchor w -pady 2  \
-        6,1 $inner.field       -anchor w -pady 2  \
-        7,0 $inner.palette_l   -anchor w -pady 2  \
-        7,1 $inner.palette     -anchor w -pady 2  \
+        0,0 $inner.volume    -anchor w -pady 2 -cspan 4 \
+        2,0 $inner.lighting  -anchor w -pady 2 -cspan 4 \
+        3,0 $inner.dim_l     -anchor e -pady 2 \
+        3,1 $inner.material  -fill x   -pady 2 \
+        3,2 $inner.bright_l  -anchor w -pady 2 \
+        4,0 $inner.quality_l -anchor w -pady 2 -cspan 2 \
+        5,0 $inner.quality   -fill x   -pady 2 -cspan 2 \
+        6,0 $inner.field_l   -anchor w -pady 2  \
+        6,1 $inner.field     -anchor w -pady 2 -cspan 2 \
+        7,0 $inner.palette_l -anchor w -pady 2  \
+        7,1 $inner.palette   -anchor w -pady 2 -cspan 2 \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r8 c1 -resize expand
+    blt::table configure $inner r8 c3 -resize expand
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
