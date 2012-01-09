@@ -127,6 +127,21 @@ void Cutplane::initProp()
     }
 }
 
+/**
+ * \brief Set the material color (sets ambient, diffuse, and specular)
+ */
+void Cutplane::setColor(float color[3])
+{
+    for (int i = 0; i < 3; i++)
+        _color[i] = color[i];
+
+    for (int i = 0; i < 3; i++) {
+        if (_borderActor[i] != NULL) {
+            _borderActor[i]->GetProperty()->SetColor(color[0], color[1], color[2]);
+        }
+    }
+}
+
 void Cutplane::update()
 {
     if (_dataSet == NULL)
