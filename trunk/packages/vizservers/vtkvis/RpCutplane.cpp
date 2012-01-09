@@ -309,6 +309,7 @@ void Cutplane::update()
             _outlineFilter[i] = vtkSmartPointer<vtkOutlineFilter>::New();
             _outlineFilter[i]->SetInputConnection(_mapper[i]->GetInputConnection(0, 0));
             _borderMapper[i]->SetInputConnection(_outlineFilter[i]->GetOutputPort());
+            _borderMapper[i]->SetResolveCoincidentTopologyToPolygonOffset();
         }
     }
 

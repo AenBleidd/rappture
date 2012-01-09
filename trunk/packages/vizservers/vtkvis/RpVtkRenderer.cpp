@@ -1507,8 +1507,12 @@ void Renderer::setViewAngle(int height)
 void Renderer::setWindowSize(int width, int height)
 {
     if (_windowWidth == width &&
-        _windowHeight == height)
+        _windowHeight == height) {
+        TRACE("No change");
         return;
+    }
+
+    TRACE("Setting window size to %dx%d", width, height);
 
     //setViewAngle(height);
 
