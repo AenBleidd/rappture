@@ -70,7 +70,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         default {
             puts stderr "unknown render mode \"$flags(-mode)\""
         }
-    }           
+    }
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "heightmap" {
@@ -102,7 +102,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         if {![$itk_component(renderer) isconnected]} {
             #destroy $itk_component(renderer)
         }
-    } 
+    }
 
     if {![info exists itk_component(renderer)]} {
         itk_component add renderer {
