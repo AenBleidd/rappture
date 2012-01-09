@@ -257,6 +257,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         cutplane-yposition      50
         cutplane-zposition      50
         cutplane-visible        1
+        cutplane-lighting       1
         cutplane-wireframe      0
         cutplane-opacity        100
         volume-lighting         1
