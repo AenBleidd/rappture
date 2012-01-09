@@ -50,6 +50,8 @@ public:
     virtual void setDataSet(DataSet *dataSet,
                             Renderer *renderer);
 
+    virtual void setColor(float color[3]);
+
     virtual void setLighting(bool state);
 
     virtual void setEdgeVisibility(bool state);
