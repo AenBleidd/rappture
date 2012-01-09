@@ -258,6 +258,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
         cutplane-yposition      50
         cutplane-zposition      50
         cutplane-visible        1
+        cutplane-lighting       1
         cutplane-wireframe      0
         cutplane-opacity        100
         volume-edges            0
