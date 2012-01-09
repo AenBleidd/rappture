@@ -19,6 +19,7 @@
 #include <vtkUnstructuredGridVolumeRayCastMapper.h>
 #include <vtkProjectedTetrahedraMapper.h>
 #include <vtkDataSetTriangleFilter.h>
+#include <vtkGaussianSplatter.h>
 
 #include "RpVolume.h"
 #include "Trace.h"
@@ -53,6 +54,37 @@ void Volume::initProp()
 }
 
 /**
+ * \brief Get the voxel dimensions (if the volume is not a
+ * uniform grid, unit spacing is returned)
+ */
+void Volume::getSpacing(double spacing[3])
+{
+    spacing[0] = spacing[1] = spacing[2] = 1.0;
+    if (_dataSet == NULL)
+        return;
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    if (ds != NULL && vtkImageData::SafeDownCast(ds) != NULL) {
+        vtkImageData::SafeDownCast(ds)->GetSpacing(spacing);
+    } else if (ds != NULL && vtkVolumeMapper::SafeDownCast(_volumeMapper) != NULL) {
+        vtkImageData *imgData = vtkVolumeMapper::SafeDownCast(_volumeMapper)->GetInput();
+        if (imgData != NULL) {
+            imgData->GetSpacing(spacing);
+        }
+    }
+}
+
+/**
+ * \brief Get the average voxel dimension (if the volume is not a
+ * uniform grid, unit spacing is returned)
+ */
+double Volume::getAverageSpacing()
+{
+    double spacing[3];
+    getSpacing(spacing);
+    return (spacing[0] + spacing[1] + spacing[2]) * 0.333;
+}
+
+/**
  * \brief Internal method to set up pipeline after a state change
  */
 void Volume::update()
@@ -62,15 +94,22 @@ void Volume::update()
 
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
+    if (_dataSet->is2D()) {
+        ERROR("Volume requires a 3D DataSet");
+        _dataSet = NULL;
+        return;
+    }
+
     if (vtkImageData::SafeDownCast(ds) != NULL) {
         // Image data required for these mappers
 #ifdef USE_GPU_RAYCAST_MAPPER
         _volumeMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->AutoAdjustSampleDistancesOff();
 #else
         _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
 #endif
         _volumeMapper->SetInput(ds);
-        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();        
+        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else if (vtkUnstructuredGrid::SafeDownCast(ds) != NULL) {
         vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(ds);
         // DataSet is unstructured grid
@@ -92,6 +131,26 @@ void Volume::update()
 
         vtkUnstructuredGridVolumeMapper::SafeDownCast(_volumeMapper)->
             SetBlendModeToComposite();
+    } else if (vtkPolyData::SafeDownCast(ds) != NULL &&
+               vtkPolyData::SafeDownCast(ds)->GetNumberOfLines() == 0 &&
+               vtkPolyData::SafeDownCast(ds)->GetNumberOfPolys() == 0 &&
+               vtkPolyData::SafeDownCast(ds)->GetNumberOfStrips() == 0 ) {
+        // DataSet is a 3D point cloud
+        vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+        splatter->SetInput(ds);
+        int dims[3];
+        dims[0] = dims[1] = dims[2] = 64;
+        TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
+              dims[0], dims[1], dims[2]);
+        splatter->SetSampleDimensions(dims);
+#ifdef USE_GPU_RAYCAST_MAPPER
+        _volumeMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->AutoAdjustSampleDistancesOff();
+#else
+        _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
+#endif
+        _volumeMapper->SetInputConnection(splatter->GetOutputPort());
+        vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else {
         ERROR("Unsupported DataSet type: %s", _dataSet->getVtkType());
         _dataSet = NULL;
@@ -110,6 +169,8 @@ void Volume::update()
     if (_colorMap == NULL) {
         setColorMap(ColorMap::getVolumeDefault());
     }
+
+    setSampleDistance(getAverageSpacing());
 
     getVolume()->SetMapper(_volumeMapper);
     _volumeMapper->Update();
@@ -179,5 +240,22 @@ void Volume::setClippingPlanes(vtkPlaneCollection *planes)
 {
     if (_volumeMapper != NULL) {
         _volumeMapper->SetClippingPlanes(planes);
+    }
+}
+
+/**
+ * \brief Set distance between samples along rays
+ */
+void Volume::setSampleDistance(float d)
+{
+    TRACE("Sample distance: %g", d);
+    if (_volumeMapper != NULL &&
+#ifdef USE_GPU_RAYCAST_MAPPER
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper) != NULL) {
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->SetSampleDistance(d);
+#else
+        vtkVolumeTextureMapper3D::SafeDownCast(_volumeMapper) != NULL) {
+        vtkVolumeTextureMapper3D::SafeDownCast(_volumeMapper)->SetSampleDistance(d);
+#endif
     }
 }

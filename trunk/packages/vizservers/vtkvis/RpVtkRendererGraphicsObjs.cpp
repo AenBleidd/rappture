@@ -1708,3 +1708,34 @@ void Renderer::setStreamlinesSeedColor(const DataSetId& id, float color[3])
 
     _needsRedraw = true;
 }
+
+/**
+ * \brief Set the sample rate for the volume shader
+ *
+ * Smaller values will give better rendering at the cost
+ * of slower rendering
+ */
+void Renderer::setVolumeSampleDistance(const DataSetId& id, double distance)
+{
+    VolumeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _volumes.begin();
+        doAll = true;
+    } else {
+        itr = _volumes.find(id);
+    }
+    if (itr == _volumes.end()) {
+        ERROR("Volume not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        distance *= itr->second->getAverageSpacing();
+        itr->second->setSampleDistance((float)distance);
+    } while (doAll && ++itr != _volumes.end());
+
+    _needsRedraw = true;
+}

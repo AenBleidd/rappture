@@ -1651,7 +1651,7 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"axis",         2, CutplaneSliceVisibilityOp, 4, 5, "axis bool ?dataSetName?"},
     {"ccolor",       2, CutplaneColorOp, 5, 6, "r g b ?dataSetName?"},
     {"colormap",     7, CutplaneColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
+    {"colormode",    7, CutplaneColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, CutplaneDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, CutplaneEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",     3, CutplaneLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -2520,10 +2520,10 @@ GlyphsWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec glyphsOps[] = {
-    {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetNme?"},
+    {"add",       1, GlyphsAddOp, 3, 4, "shape ?dataSetName?"},
     {"ccolor",    2, GlyphsColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
-    {"colormode", 7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
+    {"colormap",  7, GlyphsColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"gscale",    1, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
@@ -2536,7 +2536,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"pos",       1, GlyphsPositionOp, 5, 6, "x y z ?dataSetName?"},
     {"scale",     2, GlyphsScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"shape",     2, GlyphsShapeOp, 3, 4, "shapeVal ?dataSetName?"},
-    {"smode",     2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
+    {"smode",     2, GlyphsScalingModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"visible",   1, GlyphsVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, GlyphsWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
@@ -4314,8 +4314,8 @@ PseudoColorWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec pseudoColorOps[] = {
     {"add",       1, PseudoColorAddOp, 2, 3, "?dataSetName?"},
     {"ccolor",    2, PseudoColorColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetNme?"},
-    {"colormode", 7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetNme?"},
+    {"colormap",  7, PseudoColorColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, PseudoColorColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, PseudoColorDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, PseudoColorEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, PseudoColorLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -5163,7 +5163,7 @@ static Rappture::CmdSpec streamlinesOps[] = {
     {"add",       1, StreamlinesAddOp,            2, 3, "?dataSetName?"},
     {"ccolor",    1, StreamlinesColorOp,          5, 6, "r g b ?dataSetName?"},
     {"colormap",  7, StreamlinesColorMapOp,       3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetNme?"},
+    {"colormode", 7, StreamlinesColorModeOp,      4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, StreamlinesDeleteOp,         2, 3, "?dataSetName?"},
     {"edges",     1, StreamlinesEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"length",    2, StreamlinesLengthOp,         3, 4, "length ?dataSetName?"},
@@ -5316,6 +5316,36 @@ VolumePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+VolumeSampleRateOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double quality;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quality) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (quality < 0.0 || quality > 1.0) {
+        Tcl_AppendResult(interp, "bad volume quality value \"",
+                         Tcl_GetString(objv[2]),
+                         "\": should be in the range [0,1]", (char*)NULL);
+        return TCL_ERROR;
+    }
+    double distance;
+    double maxFactor = 4.0;
+    if (quality >= 0.5) {
+        distance = 1.0 / ((quality - 0.5) * (maxFactor - 1.0) * 2.0 + 1.0);
+    } else {
+        distance = ((0.5 - quality) * (maxFactor - 1.0) * 2.0 + 1.0);
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setVolumeSampleDistance(name, distance);
+    } else {
+        g_renderer->setVolumeSampleDistance("all", distance);
+    }
+    return TCL_OK;
+}
+
+static int
 VolumeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -5428,16 +5458,17 @@ VolumeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeOps[] = {
-    {"add",      1, VolumeAddOp,      2, 3, "?dataSetName?"},
-    {"colormap", 1, VolumeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"delete",   1, VolumeDeleteOp,   2, 3, "?dataSetName?"},
-    {"lighting", 1, VolumeLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"opacity",  2, VolumeOpacityOp,  3, 4, "val ?dataSetName?"},
-    {"orient",   2, VolumeOrientOp,   6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",      1, VolumePositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",    2, VolumeScaleOp,    5, 6, "sx sy sz ?dataSetName?"},
-    {"shading",  2, VolumeShadingOp,  4, 6, "oper val ?dataSetName?"},
-    {"visible",  1, VolumeVisibleOp,  3, 4, "bool ?dataSetName?"}
+    {"add",      1, VolumeAddOp,        2, 3, "?dataSetName?"},
+    {"colormap", 1, VolumeColorMapOp,   3, 4, "colorMapName ?dataSetName?"},
+    {"delete",   1, VolumeDeleteOp,     2, 3, "?dataSetName?"},
+    {"lighting", 1, VolumeLightingOp,   3, 4, "bool ?dataSetName?"},
+    {"opacity",  2, VolumeOpacityOp,    3, 4, "val ?dataSetName?"},
+    {"orient",   2, VolumeOrientOp,     6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",      1, VolumePositionOp,   5, 6, "x y z ?dataSetName?"},
+    {"quality",  1, VolumeSampleRateOp, 3, 4, "val ?dataSetName?"},
+    {"scale",    2, VolumeScaleOp,      5, 6, "sx sy sz ?dataSetName?"},
+    {"shading",  2, VolumeShadingOp,    4, 6, "oper val ?dataSetName?"},
+    {"visible",  1, VolumeVisibleOp,    3, 4, "bool ?dataSetName?"}
 };
 static int nVolumeOps = NumCmdSpecs(volumeOps);
 
