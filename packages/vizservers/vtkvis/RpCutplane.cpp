@@ -220,9 +220,9 @@ void Cutplane::update()
             int dims[3];
             splatter->GetSampleDimensions(dims);
             TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
-            if (plane == DataSet::PLANE_ZY) {
+            if (plane == PLANE_ZY) {
                 dims[0] = 3;
-            } else if (plane == DataSet::PLANE_XZ) {
+            } else if (plane == PLANE_XZ) {
                 dims[1] = 3;
             } else {
                 dims[2] = 3;
@@ -254,8 +254,10 @@ void Cutplane::update()
             vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
             splatter->SetInput(pd);
             int dims[3];
-            splatter->GetSampleDimensions(dims);
-            TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
+            dims[0] = dims[1] = dims[2] = 64;
+            TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
+                  dims[0], dims[1], dims[2]);
+            splatter->SetSampleDimensions(dims);
             for (int i = 0; i < 3; i++) {
                 _cutter[i]->SetInputConnection(splatter->GetOutputPort());
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();

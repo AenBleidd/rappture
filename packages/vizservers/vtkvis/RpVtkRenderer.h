@@ -514,6 +514,10 @@ public:
 
     void setStreamlinesSeedColor(const DataSetId& id, float color[3]);
 
+    // Volumes
+
+    void setVolumeSampleDistance(const DataSetId& id, double distance);
+
 private:
     static void printCameraInfo(vtkCamera *camera);
 

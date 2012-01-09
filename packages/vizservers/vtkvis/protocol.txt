@@ -365,6 +365,8 @@ volume delete <?datasetName?>
 volume lighting <bool> <?datasetName?>
 volume orient <qw> <qx> <qy> <qz> <?dataSetName?>
 volume pos <x> <y> <z> <?dataSetName?>
+volume quality <val> <?datasetName?>
+       val = [0,1]
 volume scale <sx> <sy> <sz> <?dataSetName?>
 volume shading ambient <coeff> <?datasetName?>
 volume shading diffuse <coeff> <?datasetName?>

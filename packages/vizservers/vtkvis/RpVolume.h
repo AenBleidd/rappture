@@ -42,6 +42,10 @@ public:
         return "Volume";
     }
 
+    void getSpacing(double spacing[3]);
+
+    double getAverageSpacing();
+
     virtual void setOpacity(double opacity);
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
@@ -53,6 +57,8 @@ public:
     void updateColorMap();
 
     virtual void updateRanges(Renderer *renderer);
+
+    void setSampleDistance(float d);
 
 private:
     virtual void initProp();
