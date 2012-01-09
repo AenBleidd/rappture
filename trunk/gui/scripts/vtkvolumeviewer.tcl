@@ -1428,12 +1428,16 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 $itk_component(${axis}CutScale) configure -state disabled \
                     -troughcolor grey82
             }
-            SendCmd "cutplane axis $axis $bool"
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "cutplane axis $axis $bool $dataset"
+            }
         }
         "cutplane-xposition" - "cutplane-yposition" - "cutplane-zposition" {
             set axis [string range $what 9 9]
             set pos [expr $_settings($what) * 0.01]
-            SendCmd "cutplane slice ${axis} ${pos}"
+            foreach dataset [CurrentDatasets -visible] {
+                SendCmd "cutplane slice ${axis} ${pos} $dataset"
+            }
             set _cutplanePending 0
         }
         "volume-palette" {
