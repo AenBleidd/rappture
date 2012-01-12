@@ -16,6 +16,7 @@
 #include <vtkCutter.h>
 #include <vtkPlane.h>
 #include <vtkOutlineFilter.h>
+#include <vtkGaussianSplatter.h>
 
 #include "ColorMap.h"
 #include "RpTypes.h"
@@ -107,6 +108,7 @@ private:
     vtkSmartPointer<vtkCutter> _cutter[3];
     vtkSmartPointer<vtkPlane> _cutPlane[3];
     vtkSmartPointer<vtkOutlineFilter> _outlineFilter[3];
+    vtkSmartPointer<vtkGaussianSplatter> _splatter;
 };
 
 }
