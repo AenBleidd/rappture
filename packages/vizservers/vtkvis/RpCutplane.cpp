@@ -230,10 +230,12 @@ void Cutplane::update()
                 _mapper[i]->SetInputConnection(mesher->GetOutputPort());
             }
 #else
-            vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-            splatter->SetInput(pd);
+            if (_splatter == NULL) {
+                _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+            }
+            _splatter->SetInput(pd);
             int dims[3];
-            splatter->GetSampleDimensions(dims);
+            _splatter->GetSampleDimensions(dims);
             TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
             if (plane == PLANE_ZY) {
                 dims[0] = 3;
@@ -242,9 +244,9 @@ void Cutplane::update()
             } else {
                 dims[2] = 3;
             }
-            splatter->SetSampleDimensions(dims);
+            _splatter->SetSampleDimensions(dims);
             for (int i = 0; i < 3; i++) {
-                _cutter[i]->SetInputConnection(splatter->GetOutputPort());
+                _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
                 gf->SetInputConnection(_cutter[i]->GetOutputPort());
@@ -266,15 +268,17 @@ void Cutplane::update()
                 _mapper[i]->SetInputConnection(gf->GetOutputPort());
             }
 #else
-            vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
-            splatter->SetInput(pd);
+            if (_splatter == NULL) {
+                _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+            }
+            _splatter->SetInput(pd);
             int dims[3];
             dims[0] = dims[1] = dims[2] = 64;
             TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
                   dims[0], dims[1], dims[2]);
-            splatter->SetSampleDimensions(dims);
+            _splatter->SetSampleDimensions(dims);
             for (int i = 0; i < 3; i++) {
-                _cutter[i]->SetInputConnection(splatter->GetOutputPort());
+                _cutter[i]->SetInputConnection(_splatter->GetOutputPort());
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
                 gf->SetInputConnection(_cutter[i]->GetOutputPort());
@@ -526,7 +530,11 @@ void Cutplane::setColorMode(ColorMode mode,
         return;
     }
 
-    if (name != NULL && strlen(name) > 0) {
+    if (_splatter != NULL) {
+        for (int i = 0; i < 3; i++) {
+            _mapper[i]->SelectColorArray("SplatterValues");
+        }
+    } else if (name != NULL && strlen(name) > 0) {
         for (int i = 0; i < 3; i++) {
             _mapper[i]->SelectColorArray(name);
         }
