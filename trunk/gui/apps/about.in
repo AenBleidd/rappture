@@ -19,7 +19,8 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 #\
-. rappture.env \
+dir=`dirname $0` \
+. $dir/rappture.env \
 exec wish "$0" $*
 # ----------------------------------------------------------------------
 # wish executes everything from here on...

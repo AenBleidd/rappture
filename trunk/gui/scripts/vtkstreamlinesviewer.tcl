@@ -79,7 +79,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     protected method ReceiveLegend { colormap title vmin vmax size }
     protected method Rotate {option x y}
     protected method SendCmd {string}
-    protected method SendCmdNoWait {string}
+    protected method SendCmdNoSplash {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
@@ -889,13 +889,12 @@ itcl::body Rappture::VtkStreamlinesViewer::SendCmd {string} {
 }
 
 #
-# SendCmdNoWait
+# SendCmdNoSplash
 #
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
+#       Send commands off to the rendering server.  This method
+#	doesn't initiate the slash screen. 
 #
-itcl::body Rappture::VtkStreamlinesViewer::SendCmdNoWait {string} {
+itcl::body Rappture::VtkStreamlinesViewer::SendCmdNoSplash {string} {
     if { $_buffering } {
         append _outbuf $string "\n"
     } else {
@@ -1284,7 +1283,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rotate {option x y} {
 
 itcl::body Rappture::VtkStreamlinesViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
-        SendCmd "dataset getscalar pixel $x $y $tag"
+        SendCmdNoSplash "dataset getscalar pixel $x $y $tag"
     } 
 }
 
@@ -1605,7 +1604,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            SendCmdNoWait \
+            SendCmdNoSplash \
                 "legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
             break;
         }

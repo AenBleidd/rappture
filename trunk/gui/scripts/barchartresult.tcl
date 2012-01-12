@@ -911,10 +911,11 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
     }
     set tip ""
     if {$state == "at"} {
+	set state 0
         if {[$g element closest $x $y info -interpolate yes]} {
             # for dealing with xy line plots
             set elem $info(name)
-
+	    
             # Some elements are generated dynamically and therefore will
             # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
@@ -922,13 +923,13 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
             if {[info exists _elem2dataobj($elem)]} {
                 foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
-
+	    
             # search again for an exact point -- this time don't interpolate
             set tip ""
             array unset info
             if {[$g element closest $x $y info -interpolate no]
-                  && $info(name) == $elem} {
-
+		&& $info(name) == $elem} {
+		
                 set x [$g axis transform $mapx $info(x)]
                 set y [$g axis transform $mapy $info(y)]
                 
@@ -951,7 +952,7 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
         } elseif {[$g element closest $x $y info -interpolate no]} {
             # for dealing with xy scatter plot
             set elem $info(name)
-
+	    
             # Some elements are generated dynamically and therefore will
             # not have a dataobj associated with them.
             set mapx [$g element cget $elem -mapx]
@@ -959,33 +960,32 @@ itcl::body Rappture::BarchartResult::_hilite {state x y} {
             if {[info exists _elem2dataobj($elem)]} {
                 foreach {mapx mapy} [_getAxes $_elem2dataobj($elem)] break
             }
-
+	    
             set tip ""
             set x [$g axis transform $mapx $info(x)]
             set y [$g axis transform $mapy $info(y)]
-                
-                if {[info exists _elem2dataobj($elem)]} {
-                    set dataobj $_elem2dataobj($elem)
-                    set yunits [$dataobj hints yunits]
-                    set xunits [$dataobj hints xunits]
-                } else {
-                    set xunits ""
-                    set yunits ""
-                }
-                set tip [$g element cget $elem -label]
-                set yval [_axis format y dummy $info(y)]
-                append tip "\n$yval$yunits"
-                set xval [_axis format x dummy $info(x)]
-                append tip " @ $xval$xunits"
-                set tip [string trim $tip]
-                set state 1
-            } else {
-                set state 0
-            }
-        }
+	    
+	    if {[info exists _elem2dataobj($elem)]} {
+		set dataobj $_elem2dataobj($elem)
+		set yunits [$dataobj hints yunits]
+		set xunits [$dataobj hints xunits]
+	    } else {
+		set xunits ""
+		set yunits ""
+	    }
+	    set tip [$g element cget $elem -label]
+	    set yval [_axis format y dummy $info(y)]
+	    append tip "\n$yval$yunits"
+	    set xval [_axis format x dummy $info(x)]
+	    append tip " @ $xval$xunits"
+	    set tip [string trim $tip]
+	    set state 1
+	}
+    } else {
+	set state 0
     }
 
-    if {$state} {
+    if { $state } {
         #
         # Highlight ON:
         # - activate trace
@@ -1489,7 +1489,7 @@ itcl::body Rappture::BarchartResult::_axis {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BarchartResult::_getLineMarkerOptions {style} {
     array set lineOptions {
-        "-color"  "-color"
+        "-color"  "-outline"
         "-dashes" "-dashes"
         "-linecolor" "-foreground"
         "-linewidth" "-borderwidth"

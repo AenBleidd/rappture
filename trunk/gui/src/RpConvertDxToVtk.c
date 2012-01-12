@@ -45,7 +45,7 @@ GetLine(char **stringPtr, const char *endPtr)
 }
 
 static int
-GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr, 
+GetPoints(Tcl_Interp *interp, int nPoints, int *counts, char **stringPtr, 
 	  const char *endPtr, Tcl_Obj *objPtr) 
 {
     int nValues;
@@ -53,6 +53,7 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
     const char *p;
     char mesg[2000];
     float *array, scale, vmin, vmax;
+    int iX, iY, iZ;
 
     nValues = 0;
     p = *stringPtr;
@@ -61,10 +62,12 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
 	return TCL_ERROR;
     }
     vmin = FLT_MAX, vmax = -FLT_MAX;
+    iX = iY = iZ = 0;
     for (i = 0; i < nPoints; i++) {
 	double value;
 	char *nextPtr;
-		
+	int loc;
+
 	if (p >= endPtr) {
 	    Tcl_AppendResult(interp, "unexpected EOF in reading points",
 			     (char *)NULL);
@@ -77,7 +80,15 @@ GetPoints(Tcl_Interp *interp, int nPoints, char **stringPtr,
 	    return TCL_ERROR;
 	}
 	p = nextPtr;
-	array[i] = value;
+	loc = iZ*counts[0]*counts[1] + iY*counts[0] + iX;
+	if (++iZ >= counts[2]) {
+	    iZ = 0;
+	    if (++iY >= counts[1]) {
+		iY = 0;
+		++iX;
+	    }
+	}
+	array[loc] = value;
 	if (value < vmin) {
 	    vmin = value;
 	} 
@@ -174,6 +185,9 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 #ifdef notdef
 	    fprintf(stderr, "found delta %g %g %g\n", ddx, ddy, ddx);
 #endif
+	} else if (sscanf(line, "object %*d class regulararray count %d", 
+			  count[2]) == 1) {
+	    
 	} else if (sscanf(line, "object %*d class array type %*s shape 3"
 		" rank 1 items %d data follows", &nPoints) == 1) {
 	    fprintf(stderr, "found class array type shape 3 nPoints=%d\n",
@@ -190,7 +204,8 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
 	    }
-	    if (GetPoints(interp, nPoints, &p, pend, pointsObjPtr) != TCL_OK) {
+	    if (GetPoints(interp, nPoints, count, &p, pend, pointsObjPtr) 
+		!= TCL_OK) {
 		return TCL_ERROR;
 	    }
 	} else if (sscanf(line, "object %*d class array type %*s rank 0"
@@ -206,7 +221,8 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 		Tcl_AppendResult(interp, mesg, (char *)NULL);
 		return TCL_ERROR;
 	    }
-	    if (GetPoints(interp, nPoints, &p, pend, pointsObjPtr) != TCL_OK) {
+	    if (GetPoints(interp, nPoints, count, &p, pend, pointsObjPtr) 
+		!= TCL_OK) {
 		return TCL_ERROR;
 	    }
 #ifdef notdef
