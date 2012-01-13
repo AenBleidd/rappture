@@ -308,8 +308,6 @@ AC_CHECK_FUNC(av_malloc,, AC_MSG_ERROR(oops! no av_malloc ?!?))
 AC_CHECK_FUNC(av_init_packet,,AC_MSG_ERROR(oops! no av_init_packet ?!?))
 AC_CHECK_FUNC(av_rescale_q,,AC_MSG_ERROR(oops! no av_rescale_q ?!?))
 AC_CHECK_FUNC(av_write_frame,,AC_MSG_ERROR(oops! av_write_frame ?!?))
-AC_CHECK_FUNC(avformat_alloc_context,,
-  AC_MSG_ERROR(oops! avformat_alloc_context ?!?))
 AC_CHECK_FUNCS(img_convert)
 AC_CHECK_FUNCS(sws_scale)
 AC_TRY_COMPILE([
