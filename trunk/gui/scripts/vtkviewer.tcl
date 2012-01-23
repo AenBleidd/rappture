@@ -1282,7 +1282,7 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
             #puts stderr "RequestLegend w=$w h=$h"
-            SendCmd "legend $_dataset2style($dataset) vmag {} $w $h 0"
+            SendCmd "legend $_dataset2style($dataset) vmag {} {} $w $h 0"
             break;
         }
     }
