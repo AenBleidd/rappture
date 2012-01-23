@@ -733,7 +733,7 @@ itcl::body Rappture::VtkContourViewer::FixLegend {} {
         set tag [lindex [CurrentDatasets] 0]
         puts stderr "tag=$tag [info exists _dataset2style($tag)]"
         if { [info exists _dataset2style($tag)] } {
-            SendCmd "legend $_dataset2style($tag) scalar {} $w $h 0"
+            SendCmd "legend $_dataset2style($tag) scalar {} {} $w $h 0"
         }
     } else {
         #$itk_component(legend) delete all
