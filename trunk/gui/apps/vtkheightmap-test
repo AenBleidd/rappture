@@ -1,0 +1,479 @@
+#!/bin/sh
+# -*- mode: Tcl -*-
+# ----------------------------------------------------------------------
+#  TEST PROGRAM for VtkContourViewer
+#
+#  This program is a test harness for the VtkVis visualization
+#  engine.  It allows you to monitor the commands being sent back
+#  and forth between a standard Rappture application and the VtkVis
+#  server.  You can also send your own commands to the server, to
+#  debug new features.
+#
+# ======================================================================
+#  AUTHOR:  Michael McLennan, Purdue University
+#  Copyright (c) 2004-2007  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#\
+bindir=`dirname $0` ; \
+exec $bindir/wish "$0" $*
+# ----------------------------------------------------------------------
+# wish executes everything from here on...
+
+set installdir [file root $argv0]
+set libdir [file join $installdir "lib"]
+
+lappend auto_path $libdir $libdir/vtk $libdir/vtk/tcl
+
+package require Itcl
+package require Rappture
+package require RapptureGUI
+package require vtk
+
+option add *comm.font -*-courier-medium-r-normal-*-*-120-*
+option add *Menu.tearOff off
+
+option add *Tooltip.background white
+option add *Editor.background white
+option add *Gauge.textBackground white
+option add *TemperatureGauge.textBackground white
+option add *Switch.textBackground white
+option add *Progress.barColor #ffffcc
+option add *Balloon.titleBackground #6666cc
+option add *Balloon.titleForeground white
+option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-*-120-*
+option add *Balloon*Radiobutton.font -*-helvetica-medium-r-normal-*-*-120-*
+option add *Balloon*Checkbutton.font -*-helvetica-medium-r-normal-*-*-120-*
+option add *ResultSet.controlbarBackground #6666cc
+option add *ResultSet.controlbarForeground white
+option add *ResultSet.activeControlBackground #ccccff
+option add *ResultSet.activeControlForeground black
+option add *Radiodial.length 3i
+option add *BugReport*banner*foreground white
+option add *BugReport*banner*background #a9a9a9
+option add *BugReport*banner*highlightBackground #a9a9a9
+option add *BugReport*banner*font -*-helvetica-bold-r-normal-*-*-180-*
+
+# fix the "grab" command to support a stack of grab windows
+#Rappture::grab::init
+
+# ----------------------------------------------------------------------
+# LOAD RESOURCE SETTINGS
+#
+# Try to load the $SESSIONDIR/resources file, which contains
+# middleware settings, such as the application name and the
+# filexfer settings.
+# ----------------------------------------------------------------------
+Rappture::resources::load
+
+# ----------------------------------------------------------------------
+# Fake data object for sending VTK data file...
+# ----------------------------------------------------------------------
+itcl::class visData {
+    inherit Rappture::Field
+
+    constructor {args} {
+        Rappture::Field::constructor [Rappture::library standard] ""
+    } {
+        set _reader [vtkDataSetReader $this-xvtkDataSetReader]
+        $_reader SetFileName [lindex $args 0]
+        $_reader Update
+        set _data [$_reader GetOutput]
+    }
+    destructor {
+        rename _data ""
+        rename _reader ""
+    }
+    public method components {args} {
+        if {[llength $args] == 0} {
+            return "one"
+        }
+        return ""
+    }
+    public method mesh {args} {
+        switch -- [$_data GetClassName] {
+            vtkPolyData {
+                if {[$_data GetNumberOfCells] > 0} {
+                    return $_data
+                } else {
+                    return [$_data GetPoints]
+                }
+            }
+            vtkStructuredPoints -
+            vtkUniformGrid -
+            vtkImageData {
+                foreach { x1 y1 z1 } [$_data GetOrigin] break
+                foreach { xN yN zN } [$_data GetDimensions] break
+                foreach { xS yS zS } [$_data GetSpacing] break
+                set x2 [expr {$x1 + $xN * $xS}]
+                set y2 [expr {$x1 + $yN * $yS}]
+                set z2 [expr {$x1 + $zN * $zS}]
+                if {$zN == 1} {
+                    lappend out $x1 $x2 $xN $y1 $y2 $yN
+                } else {
+                    lappend out $x1 $x2 $xN $y1 $y2 $yN $z1 $z2 $zN
+                }
+                return $out
+            }
+            default {
+                return $_data
+            }
+        }
+    }
+    public method isunirect2d {args} {
+        if {[$_data GetClassName] != "vtkImageData" &&
+            [$_data GetClassName] != "vtkStructuredPoints" &&
+            [$_data GetClassName] != "vtkUniformGrid"} {
+            return 0
+        }
+        foreach { xN yN zN } [$_data GetDimensions] break
+        if {$zN == 1} {
+            return 1
+        } else {
+            return 0
+        }
+    }
+    public method isunirect3d {args} {
+        if {[$_data GetClassName] != "vtkImageData" &&
+            [$_data GetClassName] != "vtkStructuredPoints" &&
+            [$_data GetClassName] != "vtkUniformGrid"} {
+            return 0
+        }
+        foreach { xN yN zN } [$_data GetDimensions] break
+        if {$zN > 1} {
+            return 1
+        } else {
+            return 0
+        }
+    }
+    public method data {args} {
+        return [values $args]
+    }
+    public method values {args} {
+        set dataAttrs [$_data GetPointData]
+        if {"" == $dataAttrs} {
+            puts stderr "No point data"
+            return ""
+        }
+        set scalarArr [$dataAttrs GetScalars]
+        if {"" == $scalarArr} {
+            for {set i 0} {$i < [$dataAttrs GetNumberOfArrays]} {incr i} {
+                if {[[$dataAttrs GetArray $i] GetNumberOfComponents] == 1} {
+                    $dataAttrs SetActiveScalars [$dataAttrs GetArrayName $i]
+                    puts stderr "Set scalars to '[$dataAttrs GetArrayName $i]'"
+                    break
+                }
+            }
+            set scalarArr [$dataAttrs GetScalars]
+            if {"" == $scalarArr} {
+                puts stderr "No scalar point data"
+                return ""
+            }
+        }
+        if {[isunirect2d] || [isunirect3d]} {
+            for {set i 0} {$i < [$scalarArr GetNumberOfTuples]} {incr i} {
+                lappend out [$scalarArr GetComponent $i 0]
+            }
+            return $out
+        } 
+        return $scalarArr
+    }
+    public method limits {which} {
+        foreach { xMin xMax yMin yMax zMin zMax} [$_data GetBounds] break
+        set min ""
+        set max ""
+
+        switch -- $which {
+            x - xlin - xlog {
+                set min $xMin
+                set max $xMax
+                set axis "xaxis"
+            }
+            y - ylin - ylog {
+                set min $yMin
+                set max $yMax
+                set axis "yaxis"
+            }
+            z - zlin - zlog {
+                set min $zMin
+                set max $zMax
+                set axis "zaxis"
+            }
+            v - vlin - vlog {
+                foreach { min max } [$_data GetScalarRange] break
+                set axis "vaxis"
+            }
+            default {
+                error "unknown axis description \"$which\""
+            }
+        }
+        return [list $min $max]
+    }
+    public method hints {args} {
+        return ""
+    }
+
+    private variable _data ""
+    private variable _reader ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: send_file
+#
+# Prompts the user for a text file, and then sends the text within
+# that file along to the rendering widget.
+# ----------------------------------------------------------------------
+proc send_file {} {
+    global widgets
+
+    set file [tk_getOpenFile -title "Open VTK File"]
+    if {"" != $file} {
+        set obj [visData #auto $file]
+        $widgets(vtkheightmapviewer) add $obj
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: load_script
+#
+# Prompts the user for a text file, and then sends the text within
+# that file along to the rendering widget.
+# ----------------------------------------------------------------------
+proc load_script {} {
+    global widgets
+
+    set file [tk_getOpenFile -title "Open Command File"]
+    if {"" != $file && [catch {
+            set fid [open $file r]
+            fconfigure $fid -translation binary -encoding binary
+            set info [read $fid]
+            close $fid
+          }] == 0} {
+
+        $widgets(command) insert 0 $info
+        send_command
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: send_command
+#
+# Invoked automatically whenever the user enters a command and
+# presses <Return>.  Sends the command along to the rendering
+# widget.
+# ----------------------------------------------------------------------
+proc send_command {} {
+    global widgets
+    global last_command
+
+    set cmd [$widgets(command) get]
+
+    if {[string length $cmd] > 0} {
+        set last_command $cmd
+    } else {
+        set cmd $last_command
+    }
+    namespace eval Rappture::VtkHeightmapViewer [list $widgets(vtkheightmapviewer) SendCmd $cmd]
+    $widgets(command) delete 0 end
+}
+
+# ----------------------------------------------------------------------
+# USAGE: reset
+#
+# Used internally to reset the connection to the rendering server.
+# Discards all data and resets the widget connection to the server.
+# ----------------------------------------------------------------------
+proc reset {} {
+    global widgets
+    $widgets(vtkheightmapviewer) delete
+    $widgets(vtkheightmapviewer) disconnect
+    $widgets(comm) configure -state normal
+    $widgets(comm) delete 1.0 end
+    $widgets(comm) configure -state disabled
+}
+
+# ----------------------------------------------------------------------
+# USAGE: show_comm <channel> <data>
+#
+# Invoked automatically whenever there is communication between
+# the rendering widget and the server.  Eavesdrops on the communication
+# and posts the commands in a text viewer.
+# ----------------------------------------------------------------------
+proc show_comm {channel {data ""}} {
+    global widgets
+
+    $widgets(comm) configure -state normal
+    switch -- $channel {
+        closed {
+            $widgets(comm) insert end "--CLOSED--\n" error
+        }
+        <<line {
+            $widgets(comm) insert end $data incoming "\n" incoming
+            images_refresh
+        }
+        >>line {
+            $widgets(comm) insert end $data outgoing "\n" outgoing
+        }
+        error {
+            $widgets(comm) insert end $data error "\n" error
+        }
+        default {
+            $widgets(comm) insert end "$data\n"
+        }
+    }
+    $widgets(comm) configure -state disabled
+    $widgets(comm) see end
+}
+
+# ----------------------------------------------------------------------
+# USAGE: activate_flow
+#
+# ----------------------------------------------------------------------
+proc activate_flow {} {
+    global widgets
+    # global img_storage_dir
+    # "flow capture 117 $img_storage_dir"
+
+    set info {flow vectorid 0
+              flow particle visible on
+              flow lic on
+              flow capture 100}
+
+    $widgets(command) insert 0 $info
+    send_command
+
+}
+
+# ----------------------------------------------------------------------
+# TOPLEVEL FOR IMAGES
+# ----------------------------------------------------------------------
+# USAGE: images_save
+#
+# Invoked when the user presses the "Save As..." button on the
+# images panel.  Saves the current image in a file, which can be
+# examined by some external program.
+# ----------------------------------------------------------------------
+proc images_save {} {
+    global widgets images
+
+    set imh [$widgets(vtkheightmapviewer) get -image $images(which)]
+
+    set file [tk_getSaveFile -title "Save Image File" \
+        -defaultextension .jpg -filetypes {{{JPEG files} .jpg} {{All Files} *}}]
+
+    if {"" != $file} {
+        set cmds {
+            $imh write $file -format jpeg
+        }
+        if {[catch $cmds err]} {
+            tk_messageBox -icon error -message "Oops!  Save failed:\n$err"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: images_refresh
+#
+# Invoked automatically whenever there is a change in the view/legend
+# controls on the images panel.  Updates the image being shown based
+# on the current selection.
+# ----------------------------------------------------------------------
+proc images_refresh {} {
+    global widgets images
+    set c $widgets(viewer)
+
+    set w [winfo width $c]
+    set h [winfo height $c]
+
+    set imh [$widgets(vtkheightmapviewer) get -image $images(which)]
+    set iw [image width $imh]
+    set ih [image height $imh]
+
+    $c coords image [expr {$w/2}] [expr {$h/2}]
+    $c itemconfigure image -image $imh
+    $c coords outline [expr {$w/2-$iw/2}] [expr {$h/2-$ih/2}] \
+        [expr {$w/2+$iw/2}] [expr {$h/2+$ih/2}]
+}
+
+toplevel .images
+wm title .images "VtkHeightmapViewer: Images"
+wm withdraw .images
+wm protocol .images WM_DELETE_WINDOW {wm withdraw .images}
+
+frame .images.cntls
+pack .images.cntls -side bottom -fill x
+button .images.cntls.save -text "Save As..." -command images_save
+pack .images.cntls.save -side right -padx 4
+radiobutton .images.cntls.view -text "3D View" -variable images(which) \
+    -value "view" -command images_refresh
+pack .images.cntls.view -side top -anchor w
+radiobutton .images.cntls.legend -text "Legend" -variable images(which) \
+    -value "legend" -command images_refresh
+pack .images.cntls.legend -side top -anchor w
+set images(which) "view"
+
+canvas .images.viewer -background black -width 500 -height 500
+pack .images.viewer -expand yes -fill both
+bind .images.viewer <Configure> images_refresh
+set widgets(viewer) .images.viewer
+
+$widgets(viewer) create image 0 0 -anchor c \
+    -image [image create photo] -tags image
+$widgets(viewer) create rectangle 0 0 1 1 -width 2 -outline red -fill "" \
+    -tags outline
+
+
+# ----------------------------------------------------------------------
+# MAIN WINDOW
+# ----------------------------------------------------------------------
+menu .mbar
+menu .mbar.file
+.mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
+.mbar.file add command -label "Load script..." -underline 0 -command load_script
+.mbar.file add command -label "Reset" -underline 0 -command reset
+.mbar.file add separator
+.mbar.file add command -label "Exit" -underline 1 -command exit
+.mbar add cascade -label "File" -underline 0 -menu .mbar.file
+
+menu .mbar.view
+.mbar.view add command -label "Images..." -underline 0 \
+    -command {wm deiconify .images}
+.mbar add cascade -label "View" -underline 0 -menu .mbar.view
+
+. configure -menu .mbar
+
+
+Rappture::Panes .main -sashwidth 4 -sashrelief raised -sashpadding 4 \
+    -width 6i -height 4i
+pack .main -expand yes -fill both
+
+set f [.main pane 0]
+set servers [Rappture::VisViewer::GetServerList "vtkvis"]
+Rappture::VtkHeightmapViewer $f.viewer $servers
+pack $f.viewer -expand yes -fill both
+set widgets(vtkheightmapviewer) $f.viewer
+
+$f.viewer configure \
+    -sendcommand show_comm \
+    -receivecommand show_comm
+
+set f [.main insert end -fraction 0.5]
+frame $f.send
+pack $f.send -side bottom -fill x
+label $f.send.l -text "Send:"
+pack $f.send.l -side left
+set widgets(command) [entry $f.send.e]
+pack $f.send.e -side left -expand yes -fill x
+bind $f.send.e <KeyPress-Return> send_command
+
+scrollbar $f.sb -orient vertical -command "$f.comm yview"
+pack $f.sb -side right -fill y
+text $f.comm -wrap char -yscrollcommand "$f.sb set"
+pack $f.comm -expand yes -fill both
+set widgets(comm) $f.comm
+
+$widgets(comm) tag configure error -foreground red \
+    -font -*-courier-medium-o-normal-*-*-120-*
+$widgets(comm) tag configure incoming -foreground blue
