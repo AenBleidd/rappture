@@ -993,8 +993,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
     #
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q 
-    SendCmd "camera mode persp"
-   if {$_view(ortho)} {
+    if {$_view(ortho)} {
         SendCmd "camera mode ortho"
     } else {
         SendCmd "camera mode persp"
@@ -2039,14 +2038,14 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
         4,0 $inner.opacity_l -anchor w -pady 2 \
         5,0 $inner.opacity   -fill x   -pady 2 \
         6,0 $inner.numcontours_l   -anchor w -pady 2 -cspan 2 \
-        6,0 $inner.numcontours     -fill x   -pady 2 -cspan 2 \
-        7,0 $inner.field_l     -anchor w -pady 2  \
-        7,1 $inner.field       -anchor w -pady 2  \
-        8,0 $inner.palette_l   -anchor w -pady 2  \
-        8,1 $inner.palette     -anchor w -pady 2  \
+        7,0 $inner.numcontours     -fill x   -pady 2 -cspan 2 \
+        8,0 $inner.field_l     -anchor w -pady 2  \
+        8,1 $inner.field       -anchor w -pady 2  \
+        9,0 $inner.palette_l   -anchor w -pady 2  \
+        9,1 $inner.palette     -anchor w -pady 2  \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r6 c1 -resize expand
+    blt::table configure $inner r10 c1 -resize expand
 }
 
 
