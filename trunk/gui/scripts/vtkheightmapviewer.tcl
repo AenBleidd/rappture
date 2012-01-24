@@ -260,11 +260,11 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         cutplane-opacity        100
         surface-edges           0
         surface-lighting        1
-        surface-opacity         40
+        surface-opacity         100
         surface-visible         1
         surface-wireframe       0
         surface-numcontours     10
-        surface-scale           1
+        surface-scale           50
         legend-visible          1
     }]
 
@@ -1111,7 +1111,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 
     if { $_reset } {
         InitSettings surface-opacity \
-            surface-numcontours surface-lighting \
+            surface-numcontours surface-scale surface-lighting \
             surface-palette surface-field \
             surface-edges surface-opacity surface-wireframe 
         Zoom reset
@@ -1501,9 +1501,9 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         }
         "surface-scale" {
             set val $_settings(surface-scale)
-            set sval [expr { 0.01 * double($val) }]
+            set sval [expr { $val >= 50 ? double($val)/50.0 : 1.0/(2.0-(double($val)/50.0)) }]
             foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "heightmap scale $sval $sval $sval $dataset"
+                SendCmd "heightmap heightscale $sval $dataset"
             }
         }
         "surface-lighting" {
@@ -1991,7 +1991,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
         -command [itcl::code $this AdjustSetting surface-numcontours]
 
     label $inner.scale_l -text "Scale" -font "Arial 9"
-    ::scale $inner.scale -from 1 -to 100 -orient horizontal \
+    ::scale $inner.scale -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(surface-scale)] \
         -width 10 \
         -showvalue off \
@@ -2031,7 +2031,7 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
         [itcl::code $this AdjustSetting surface-palette]
 
     blt::table $inner \
-        0,0 $inner.surface    -anchor w -pady 2 \
+        0,0 $inner.surface   -anchor w -pady 2 \
         1,0 $inner.wireframe -anchor w -pady 2 \
         2,0 $inner.lighting  -anchor w -pady 2 \
         3,0 $inner.edges     -anchor w -pady 2 \
@@ -2039,13 +2039,15 @@ itcl::body Rappture::VtkHeightmapViewer::BuildSurfaceTab {} {
         5,0 $inner.opacity   -fill x   -pady 2 \
         6,0 $inner.numcontours_l   -anchor w -pady 2 -cspan 2 \
         7,0 $inner.numcontours     -fill x   -pady 2 -cspan 2 \
-        8,0 $inner.field_l     -anchor w -pady 2  \
-        8,1 $inner.field       -anchor w -pady 2  \
-        9,0 $inner.palette_l   -anchor w -pady 2  \
-        9,1 $inner.palette     -anchor w -pady 2  \
+        8,0 $inner.scale_l     -anchor w -pady 2 -cspan 2 \
+        9,0 $inner.scale       -fill x   -pady 2 -cspan 2 \
+        10,0 $inner.field_l    -anchor w -pady 2  \
+        10,1 $inner.field      -anchor w -pady 2  \
+        11,0 $inner.palette_l  -anchor w -pady 2  \
+        11,1 $inner.palette    -anchor w -pady 2  \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r10 c1 -resize expand
+    blt::table configure $inner r12 c1 -resize expand
 }
 
 
@@ -2422,17 +2424,24 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         -color \#808080
         -edges 0
         -edgecolor black
-        -linewidth 1.0
-        -opacity 0.4
-        -wireframe 0
         -lighting 1
+        -linewidth 1.0
+        -opacity 1.0
+        -scale 1.0
+        -numcontours 10
         -visible 1
+        -wireframe 0
     }
     if { $dataobj != $_first } {
         set settings(-opacity) 1
     }
     array set settings $style
-    SendCmd "heightmap add $tag"
+    SendCmd "heightmap add numcontours $settings(-numcontours) $settings(-scale) $tag"
+    set _settings(surface-numcontours) $settings(-numcontours)
+    set val $settings(-scale)
+    set val [expr { $val < 0.5 ? 0.5 : $val } ]
+    set val [expr { $val > 2.0 ? 2.0 : $val } ]
+    set _settings(surface-scale) [expr { $val >= 1.0 ? int($val * 50.0) : int(50.0 * (2.0 - (1.0/$val))) }]
     #SendCmd "cutplane add $tag"
     #SendCmd "cutplane edges 0 $tag"
     #SendCmd "cutplane wireframe 0 $tag"
