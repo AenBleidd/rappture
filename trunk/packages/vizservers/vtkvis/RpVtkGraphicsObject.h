@@ -209,7 +209,7 @@ public:
                 axis[0] = quat[1] / denom;
                 axis[1] = quat[2] / denom;
                 axis[2] = quat[3] / denom;
-             }
+            }
             setOrientation(angle, axis);
         }
     }

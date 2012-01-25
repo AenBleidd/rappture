@@ -24,7 +24,8 @@ axis color <r> <g> <b>
      Set color of axis lines, labels, titles, ticks
 axis flymode <mode>
      <mode> = static_edges|static_triad|outer_edges|furthest_triad|closest_triad
-axis grid <bool>
+axis grid <axis> <bool>
+     <axis> = x|y|z|all
 axis labels <axis> <bool>
      Toggle visibility of axis labels
      <axis> = x|y|z|all
@@ -221,7 +222,7 @@ heightmap opacity <value> <?dataSetName?>
 heightmap orient <qw> <qx> <qy> <qz> <?dataSetName?>
 heightmap pos <x> <y> <z> <?dataSetName?>
 heightmap scale <sx> <sy> <sz> <?dataSetName?>
-heightmap slice axis ratio <?dataSetName?>
+heightmap slice <axis> <ratio> <?dataSetName?>
           For 3D data, select a slice along a principle axis of the volume. The
           ratio is [0,1]
 heightmap surface <bool> <?dataSetName?>
