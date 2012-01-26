@@ -1442,16 +1442,17 @@ itcl::body Rappture::VtkContourViewer::camera {option args} {
 
 itcl::body Rappture::VtkContourViewer::ConvertToVtkData { dataobj comp } {
     set ds ""
+    set arr ""
     if {[$dataobj isunirect2d]} {
         foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
         set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
         set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
 
-        set ds [vtkImageData $this-grdataTemp]
+        set ds [vtkImageData $dataobj-grdataTemp]
         $ds SetDimensions $xN $yN 1
         $ds SetOrigin $x1 $y1 0
         $ds SetSpacing $spacingX $spacingY 0
-        set arr [vtkDoubleArray $this-arrTemp]
+        set arr [vtkDoubleArray $dataobj-arrTemp]
         foreach {val} [$dataobj values $comp] {
             $arr InsertNextValue $val
         }
@@ -1462,38 +1463,38 @@ itcl::body Rappture::VtkContourViewer::ConvertToVtkData { dataobj comp } {
         set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
         set spacingZ [expr {double($z2 - $z1)/double($zN - 1)}]
 
-        set ds [vtkImageData $this-grdataTemp]
+        set ds [vtkImageData $dataobj-grdataTemp]
         $ds SetDimensions $xN $yN $zN
         $ds SetOrigin $x1 $y1 $z1
         $ds SetSpacing $spacingX $spacingY $spacingZ
-        set arr [vtkDoubleArray $this-arrTemp]
+        set arr [vtkDoubleArray $dataobj-arrTemp]
         foreach {val} [$dataobj values $comp] {
             $arr InsertNextValue $val
         }
-        [$ds GetPointData] SetScalars $val
+        [$ds GetPointData] SetScalars $arr
     } else {
         set mesh [$dataobj mesh $comp]
         switch -- [$mesh GetClassName] {
             vtkPoints {
                 # handle cloud of points
-                set ds [vtkPolyData $this-polydataTemp]
+                set ds [vtkPolyData $dataobj-polydataTemp]
                 $ds SetPoints $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkPolyData {
-                set ds [vtkPolyData $this-polydataTemp]
+                set ds [vtkPolyData $dataobj-polydataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkUnstructuredGrid {
                 # handle 3D grid with connectivity
-                set ds [vtkUnstructuredGrid $this-grdataTemp]
+                set ds [vtkUnstructuredGrid $dataobj-grdataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkRectilinearGrid {
                 # handle 3D grid with connectivity
-                set ds [vtkRectilinearGrid $this-grdataTemp]
+                set ds [vtkRectilinearGrid $dataobj-grdataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
@@ -1512,6 +1513,9 @@ itcl::body Rappture::VtkContourViewer::ConvertToVtkData { dataobj comp } {
         set out [$writer GetOutputString]
         $ds Delete
         $writer Delete
+        if {"" != $arr} {
+            $arr Delete
+        }
     } else {
         set out ""
         error "No DataSet to write"

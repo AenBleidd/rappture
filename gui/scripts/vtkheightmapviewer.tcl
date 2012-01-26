@@ -2369,24 +2369,24 @@ itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
         switch -- [$mesh GetClassName] {
             vtkPoints {
                 # handle cloud of points
-                set ds [vtkPolyData $this-polydataTemp]
+                set ds [vtkPolyData $dataobj-polydataTemp]
                 $ds SetPoints $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkPolyData {
-                set ds [vtkPolyData $this-polydataTemp]
+                set ds [vtkPolyData $dataobj-polydataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkUnstructuredGrid {
                 # handle 3D grid with connectivity
-                set ds [vtkUnstructuredGrid $this-grdataTemp]
+                set ds [vtkUnstructuredGrid $dataobj-grdataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
             vtkRectilinearGrid {
                 # handle 3D grid with connectivity
-                set ds [vtkRectilinearGrid $this-grdataTemp]
+                set ds [vtkRectilinearGrid $dataobj-grdataTemp]
                 $ds ShallowCopy $mesh
                 [$ds GetPointData] SetScalars [$dataobj values $comp]
             }
