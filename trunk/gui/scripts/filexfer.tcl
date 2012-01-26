@@ -50,6 +50,11 @@ proc Rappture::filexfer::init {} {
             }
         }
         if {[file executable $path]} {
+            # the new filexfer has a --provenance arg for file names
+            set info [exec $path --help]
+            if {[regexp -- {--provenance} $info]} {
+                lappend path --provenance
+            }
             set commands($op) $path
         } else {
             return 0
@@ -131,6 +136,12 @@ proc Rappture::filexfer::label {operation} {
 # If successful, the <callback> is invoked to handle the uploaded
 # information.  If anything goes wrong, the same callback is used
 # to post errors near the widget that invoked this operation.
+#
+# The <id> is usually a Rappture path for the control that is being
+# uploaded into.  It is passed along to the <callback>, so that code
+# knows where to put the result.  If <id> is "@@<dir>", then the file
+# is uploaded into the specified directory <dir> using the name that
+# comes from the remote upload.
 # ----------------------------------------------------------------------
 proc Rappture::filexfer::upload {tool controlList callback} {
     global env
@@ -172,21 +183,41 @@ proc Rappture::filexfer::upload {tool controlList callback} {
         if {$status == 0} {
             set changed ""
             set errs ""
-            foreach file $job(output) {
+            foreach line [split $job(output) \n] {
+                # the new filexfer reports "file <= desktopName"
+                # the old one just reports "file"
+                set remote ""
+                if {![regexp {(.+) +<= +(.+)} $line match file remote]} {
+                    set file [string trim $line]
+                }
+
                 # load the uploaded for this control
                 set status [catch {
                     set fid [open $file r]
                     fconfigure $fid -translation binary -encoding binary
                     set info [read $fid]
                     close $fid
-                    file delete -force $file
+                    if {[string match @@* $file2path($file)]} {
+                        if {$remote ne "" && $remote ne "@CLIPBOARD"} {
+                            set dir [string range $file2path($file) 2 end]
+                            if {$dir eq ""} { set dir [pwd] }
+                            set newloc [file join $dir $remote]
+                            file rename -force -- $file $newloc
+                        }
+                    } else {
+                        file delete -force $file
+                    }
                 } result]
 
                 if {$status != 0} {
                     append errs "Error loading data for \"$file2label($file)\":\n$result\n"
                 } else {
                     lappend changed $file2path($file)
-                    uplevel #0 [list $callback path $file2path($file) data $info]
+                    set cmd [list $callback path $file2path($file) local $file data $info]
+                    if {$remote ne ""} {
+                        lappend cmd remote $remote
+                    }
+                    uplevel #0 $cmd
                 }
             }
             if {[llength $changed] == 0} {
@@ -225,7 +256,7 @@ proc Rappture::filexfer::upload {tool controlList callback} {
                 if {[catch $cmds err]} {
                     uplevel #0 [list $callback error "Error loading file [file tail $file]: $err"]
                 } else {
-                    uplevel #0 [list $callback path $path data $info]
+                    uplevel #0 [list $callback path $path data $info filename $file]
                 }
             }
         }
