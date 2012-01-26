@@ -25,6 +25,7 @@ SCRIPTS	= \
 		$(srcdir)/grabdata \
 		$(srcdir)/nanovis-test \
 		$(srcdir)/vtkcontour-test \
+		$(srcdir)/vtkheightmap-test \
 		$(srcdir)/vtkstreamlines-test \
 		$(srcdir)/vtkviewer-test \
 		$(srcdir)/vtkvolume-test \
