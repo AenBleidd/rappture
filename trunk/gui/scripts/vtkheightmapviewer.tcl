@@ -1020,7 +1020,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [ConvertToVtkData $dataobj $comp]
-                puts stderr [GetVtkData]
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
@@ -2335,16 +2334,17 @@ itcl::body Rappture::VtkHeightmapViewer::camera {option args} {
 
 itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
     set ds ""
+    set arr ""
     if {[$dataobj isunirect2d]} {
         foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
         set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
         set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
 
-        set ds [vtkImageData $this-grdataTemp]
+        set ds [vtkImageData $dataobj-grdataTemp]
         $ds SetDimensions $xN $yN 1
         $ds SetOrigin $x1 $y1 0
         $ds SetSpacing $spacingX $spacingY 0
-        set arr [vtkDoubleArray $this-arrTemp]
+        set arr [vtkDoubleArray $dataobj-arrTemp]
         foreach {val} [$dataobj values $comp] {
             $arr InsertNextValue $val
         }
@@ -2355,15 +2355,15 @@ itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
         set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
         set spacingZ [expr {double($z2 - $z1)/double($zN - 1)}]
 
-        set ds [vtkImageData $this-grdataTemp]
+        set ds [vtkImageData $dataobj-grdataTemp]
         $ds SetDimensions $xN $yN $zN
         $ds SetOrigin $x1 $y1 $z1
         $ds SetSpacing $spacingX $spacingY $spacingZ
-        set arr [vtkDoubleArray $this-arrTemp]
+        set arr [vtkDoubleArray $dataobj-arrTemp]
         foreach {val} [$dataobj values $comp] {
             $arr InsertNextValue $val
         }
-        [$ds GetPointData] SetScalars $val
+        [$ds GetPointData] SetScalars $arr
     } else {
         set mesh [$dataobj mesh $comp]
         switch -- [$mesh GetClassName] {
@@ -2405,6 +2405,9 @@ itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
         set out [$writer GetOutputString]
         $ds Delete
         $writer Delete
+        if {"" != $arr} {
+            $arr Delete
+	}
     } else {
         set out ""
         error "No DataSet to write"
