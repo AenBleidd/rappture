@@ -2334,23 +2334,85 @@ itcl::body Rappture::VtkHeightmapViewer::camera {option args} {
 }
 
 itcl::body Rappture::VtkHeightmapViewer::ConvertToVtkData { dataobj comp } {
-    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
-    set values [$dataobj values $comp]
-    append out "# vtk DataFile Version 2.0 \n"
-    append out "Test data \n"
-    append out "ASCII \n"
-    append out "DATASET STRUCTURED_POINTS \n"
-    append out "DIMENSIONS $xN $yN 1 \n"
-    append out "ORIGIN 0 0 0 \n"
-    append out "SPACING 1 1 1 \n"
-    append out "POINT_DATA [expr $xN * $yN] \n"
-    append out "SCALARS default float 1 \n"
-    append out "LOOKUP_TABLE default \n"
-    append out [join $values "\n"]
+    set ds ""
+    if {[$dataobj isunirect2d]} {
+        foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
+        set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+        set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+
+        set ds [vtkImageData $this-grdataTemp]
+        $ds SetDimensions $xN $yN 1
+        $ds SetOrigin $x1 $y1 0
+        $ds SetSpacing $spacingX $spacingY 0
+        set arr [vtkDoubleArray $this-arrTemp]
+        foreach {val} [$dataobj values $comp] {
+            $arr InsertNextValue $val
+        }
+        [$ds GetPointData] SetScalars $arr
+    } elseif {[$dataobj isunirect3d]} {
+        foreach { x1 x2 xN y1 y2 yN z1 z2 zN } [$dataobj mesh $comp] break
+        set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+        set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+        set spacingZ [expr {double($z2 - $z1)/double($zN - 1)}]
+
+        set ds [vtkImageData $this-grdataTemp]
+        $ds SetDimensions $xN $yN $zN
+        $ds SetOrigin $x1 $y1 $z1
+        $ds SetSpacing $spacingX $spacingY $spacingZ
+        set arr [vtkDoubleArray $this-arrTemp]
+        foreach {val} [$dataobj values $comp] {
+            $arr InsertNextValue $val
+        }
+        [$ds GetPointData] SetScalars $val
+    } else {
+        set mesh [$dataobj mesh $comp]
+        switch -- [$mesh GetClassName] {
+            vtkPoints {
+                # handle cloud of points
+                set ds [vtkPolyData $this-polydataTemp]
+                $ds SetPoints $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkPolyData {
+                set ds [vtkPolyData $this-polydataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkUnstructuredGrid {
+                # handle 3D grid with connectivity
+                set ds [vtkUnstructuredGrid $this-grdataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            vtkRectilinearGrid {
+                # handle 3D grid with connectivity
+                set ds [vtkRectilinearGrid $this-grdataTemp]
+                $ds ShallowCopy $mesh
+                [$ds GetPointData] SetScalars [$dataobj values $comp]
+            }
+            default {
+                error "don't know how to handle [$mesh GetClassName] data"
+            }
+        }
+    }
+
+    if {"" != $ds} {
+        set writer [vtkDataSetWriter $this-dsWriterTmp]
+        $writer SetInput $ds
+        $writer SetFileTypeToASCII
+        $writer WriteToOutputStringOn
+        $writer Write
+        set out [$writer GetOutputString]
+        $ds Delete
+        $writer Delete
+    } else {
+        set out ""
+        error "No DataSet to write"
+    }
+
     append out "\n"
     return $out
 }
-
 
 itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
     set bytes ""
