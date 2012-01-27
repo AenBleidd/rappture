@@ -255,6 +255,7 @@ itcl::body Rappture::Histogram::hints {{keyword ""}} {
             xlabel  xaxis.label
             xdesc   xaxis.description
             xunits  xaxis.units
+	    xorient xaxis.orientation 
             xscale  xaxis.scale
             xmin    xaxis.min
             xmax    xaxis.max
