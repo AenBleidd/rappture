@@ -734,7 +734,7 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
             } 
             set index 0
             foreach label [$dataobj xlabels $comp] {
-                if  { [string length $label] > 3 } {
+                if  { [string length $label] > 6 } {
                     set invert 1
                 }
                 set _xlabels($index) $label
@@ -801,6 +801,12 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
         set command ""
     }
     $g axis configure x -command $command -stepsize $stepsize 
+    set xorient [$dataobj hints xorient]
+    if { $xorient == "horizontal" } {
+	set invert 0
+    } elseif { $xorient == "vertical" } {
+	set invert 1
+    }
     $g configure -invertxy $invert
     $itk_component(legend) reset 
 }
