@@ -35,6 +35,7 @@ TEMPLATEFILES	= \
 		$(srcdir)/templates/octave.tl \
 		$(srcdir)/templates/perl.tl \
 		$(srcdir)/templates/python.tl \
+		$(srcdir)/templates/r.tl \
 		$(srcdir)/templates/ruby.tl \
 		$(srcdir)/templates/tcl.tl
 
