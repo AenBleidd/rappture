@@ -11,5 +11,6 @@ export( rp_lib,
         rp_lib_put_file,
         rp_lib_result,
         rp_units_convert_double,
-        rp_units_convert_string )
+        rp_units_convert_string,
+        rp_utils_progress )
  

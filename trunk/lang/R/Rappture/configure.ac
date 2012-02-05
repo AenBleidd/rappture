@@ -43,10 +43,11 @@ CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
 CPPFLAGS="${CPPFLAGS} ${RAPPTURE_CPPFLAGS}"
 
 dnl Check the headers can be found
-AC_CHECK_HEADERS(RpLibrary.h RpUnits.h)
-if test "${ac_cv_header_RpLibrary_h}" = no || 
-   test "${ac_cv_header_RpUnits_h}" = no; then
-   AC_MSG_ERROR("Rappture headers RpLibrary.h and RpUnits.h not found")
+AC_CHECK_HEADERS(RpLibrary.h RpUnits.h RpUtils.h)
+if test "${ac_cv_header_RpLibrary_h}" = no ||
+   test "${ac_cv_header_RpUnits_h}" = no ||
+   test "${ac_cv_header_RpUtils_h}" = no; then
+   AC_MSG_ERROR("Rappture headers RpLibrary.h, RpUnits.h, RpUtils.h not found")
 fi
 
 dnl search for a library containing Rappture functions
@@ -54,6 +55,8 @@ AC_SEARCH_LIBS(rpLibrary, rappture, ,
          AC_MSG_ERROR("no librappture with RpLibrary found"))
 AC_SEARCH_LIBS(rpConvert, rappture, ,
          AC_MSG_ERROR("no librappture with RpUnits found"))
+AC_SEARCH_LIBS(rpUtilsProgress, rappture, ,
+         AC_MSG_ERROR("no librappture with RpUtils found"))
 
 
 AC_CHECK_SIZEOF(long, 4)

@@ -13,6 +13,7 @@
 
 #include "RpLibraryRInterface.h"
 #include "RpUnitsRInterface.h"
+#include "RpUtilsRInterface.h"
 
 #include <R_ext/Rdynload.h>
 
@@ -30,6 +31,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"RPRLibResult", (DL_FUNC) &RPRLibResult, 1},
     {"RPRUnitsConvertDouble", (DL_FUNC) &RPRUnitsConvertDouble, 2},
     {"RPRUnitsConvertString", (DL_FUNC) &RPRUnitsConvertString, 3},
+    {"RPRUtilsProgress", (DL_FUNC) &RPRUtilsProgress, 2},
     {NULL, NULL, 0}
 };
 
