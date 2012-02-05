@@ -54,3 +54,16 @@ show = FALSE
 result = rp_units_convert_string("100mm","m",show)
 is.character(result)
 result
+
+percent = as.integer(56)
+result = rp_utils_progress(percent,"almost done...")
+is.integer(result)
+result
+
+result = rp_utils_progress(76,"almost done...")
+is.integer(result)
+result
+
+result = rp_utils_progress(36.546,"almost done...")
+is.integer(result)
+result

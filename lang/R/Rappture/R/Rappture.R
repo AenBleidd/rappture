@@ -48,5 +48,9 @@ rp_units_convert_string <- function(from,to,showUnits) {
     .Call("RPRUnitsConvertString",from,to,showUnits)
 }
 
+rp_utils_progress <- function(percent,message) {
+    .Call("RPRUtilsProgress",percent,message)
+}
+
 .onLoad <- function(lib,pkg) {
 }
