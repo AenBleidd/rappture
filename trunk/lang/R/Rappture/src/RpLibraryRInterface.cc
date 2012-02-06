@@ -463,7 +463,7 @@ RPRLibPutString(
              RPLIB_TRANSLATE);
 
 
-    INTEGER(ans)[0] = 1;
+    INTEGER(ans)[0] = 0;
 
     UNPROTECT(1);
 
@@ -553,7 +553,7 @@ RPRLibPutData(
                  INTEGER(nbytes),
                  appendVal);
 
-    INTEGER(ans)[0] = 1;
+    INTEGER(ans)[0] = 0;
 
     UNPROTECT(1);
 
@@ -641,7 +641,7 @@ RPRLibPutDouble(
              "",
              appendVal);
 
-    INTEGER(ans)[0] = 1;
+    INTEGER(ans)[0] = 0;
 
     UNPROTECT(1);
 
@@ -738,7 +738,7 @@ RPRLibPutFile(
                  compressVal,
                  appendVal);
 
-    INTEGER(ans)[0] = 1;
+    INTEGER(ans)[0] = 0;
 
     UNPROTECT(1);
 
