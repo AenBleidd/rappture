@@ -16,7 +16,8 @@ RM		= rm -f
 
 FILES		= \
 		$(srcdir)/enable.tcl \
-		$(srcdir)/tool.xml 
+		$(srcdir)/tool.xml \
+		$(srcdir)/tool2.xml 
 
 destdir		= $(prefix)/examples/zoo/enable
 
