@@ -53,7 +53,6 @@ itcl::class Rappture::ResultSet {
     public method activate {column}
     public method contains {xmlobj}
     public method size {{what -results}}
-    public method addtotree {} 
 
     protected method _doClear {}
     protected method _doSettings {{cmd ""}}
@@ -1658,33 +1657,3 @@ itcl::configbody Rappture::ResultSet::activecontrolforeground {
     $_dispatcher event -idle !layout
 }
 
-itcl::body Rappture::ResultSet::addtotree {} {
-    set index current
-    if {$index == "current"} {
-        # search for the result for these settings
-        set format ""
-        set tuple ""
-        foreach col [lrange [$_results column names] 1 end] {
-            lappend format $col
-            lappend tuple $_cntlInfo($this-$col-value)
-        }
-        set index [$_results find -format $format -- $tuple]
-        if {"" == $index} {
-            return ""  ;# somethings wrong -- bail out!
-        }
-    }
-    set tree [blt::tree create]
-    foreach col $_cntlInfo($this-all) {
-	set node [$tree insert 0 -label $col]
-	set quantity $_cntlInfo($this-$col-label)
-	# Be careful giving singleton elements as the "columns"
-	# argument to "Tuples::get". It is expecting a list.
-	foreach {label val} [_getValues $col all] {
-	    if {$col == "xmlobj"} {
-		set val "#[expr {$val+1}]"
-	    }
-	    $tree set $node $label $val
-	}
-    }
-    $tree dumpfile 0 clear.dump
-}
