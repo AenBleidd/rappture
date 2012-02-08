@@ -191,13 +191,10 @@ itcl::body Rappture::Controls::insert {pos path} {
     #
     set notify [string trim [$_owner xml get $path.about.notify]]
 
-    #
-    # If this element has an <enable> expression, then register
-    # its controlling widget here.
-    #
     set disablestyle [string trim [$_owner xml get $path.about.disablestyle]]
-    set _name2info($name-disablestyle) $disablestyle
-
+    if { $disablestyle != "" } {
+	set _name2info($name-disablestyle) $disablestyle
+    }
     #
     # If this element has an <enable> expression, then register
     # its controlling widget here.

@@ -645,8 +645,6 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
 # Discards all results previously loaded into the analyzer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::clear {} {
-    $itk_component(resultset) addtotree 
-
     foreach obj $_runs {
         itcl::delete object $obj
     }
