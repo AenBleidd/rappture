@@ -128,6 +128,7 @@ itcl::body Rappture::Controls::insert {pos path} {
     set _name2info($name-type) ""
     set _name2info($name-value) [set w $_frame.v$name]
     set _name2info($name-enable) "yes"
+    set _name2info($name-disablestyle) "greyout"
 
     set type [$_owner xml element -as type $path]
     set _name2info($name-type) $type
@@ -189,6 +190,13 @@ itcl::body Rappture::Controls::insert {pos path} {
     # its controlling widget here.
     #
     set notify [string trim [$_owner xml get $path.about.notify]]
+
+    #
+    # If this element has an <enable> expression, then register
+    # its controlling widget here.
+    #
+    set disablestyle [string trim [$_owner xml get $path.about.disablestyle]]
+    set _name2info($name-disablestyle) $disablestyle
 
     #
     # If this element has an <enable> expression, then register
@@ -314,12 +322,7 @@ itcl::body Rappture::Controls::delete {first {last ""}} {
             destroy $_name2info($name-value)
         }
         $_owner widgetfor $_name2info($name-path) ""
-
-        unset _name2info($name-path)
-        unset _name2info($name-label)
-        unset _name2info($name-type)
-        unset _name2info($name-value)
-        unset _name2info($name-enable)
+	array unset _name2info $name-*
     }
     set _controls [lreplace $_controls $first $last]
 
@@ -365,6 +368,7 @@ itcl::body Rappture::Controls::control {args} {
         flag switch -label
         flag switch -path
         flag switch -enable
+        flag switch -disablestyle
     }
     if {[llength $args] == 0} {
         error "missing control name"
@@ -423,9 +427,11 @@ itcl::body Rappture::Controls::_layout {} {
             # hard-coded "off" -- ignore completely
         } elseif {[catch {expr $cond} show] == 0} {
             set type $_name2info($name-type)
+	    set disablestyle $_name2info($name-disablestyle)
             set lwidget $_name2info($name-label)
             set vwidget $_name2info($name-value)
-            if {[lsearch -exact {group image structure} $type] >= 0} {
+            if {[lsearch -exact {group image structure} $type] >= 0 || 
+		$disablestyle == "hide" } {
                 if {$show ne "" && $show} {
                     lappend showing $name
                 } else {
