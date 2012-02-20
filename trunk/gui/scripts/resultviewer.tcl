@@ -262,6 +262,7 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                 2D {
                     set mode "contour"
                     if {![info exists _mode2widget($mode)]} {
+                        global env
                         if { [$dataobj isunirect2d] } {
                             if { [$dataobj hints type] == "contour" } {
                                 set resultMode "vtkcontour" 
@@ -270,6 +271,8 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                             } else {
                                 set resultMode "heightmap"
                             }
+                        } elseif { [info exists env(VTKCONTOUR)] } {
+                            set resultMode "vtkcontour"
                         } else {
                             set resultMode "vtk"
                         }
