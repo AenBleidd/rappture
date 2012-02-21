@@ -1592,7 +1592,7 @@ itcl::body Rappture::VtkHeightmapViewer::ChangeColormap {dataobj comp color} {
 #
 itcl::body Rappture::VtkHeightmapViewer::SetColormap { dataobj comp } {
     array set style {
-        -color BGYOR
+        -color BCGYR
         -levels 6
         -opacity 1.0
     }
