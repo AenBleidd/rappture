@@ -1630,7 +1630,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ChangeColormap {dataobj comp color} {
 #
 itcl::body Rappture::VtkStreamlinesViewer::SetColormap { dataobj comp } {
     array set style {
-        -color BGYOR
+        -color BCGYR
         -levels 6
         -opacity 1.0
     }
