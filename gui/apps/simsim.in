@@ -10,7 +10,7 @@
 #\
 dir=`dirname $0` ; \
 . $dir/rappture.env ; \
-exec $dir/tclsh "$0" $*
+exec $dir/tclsh "$0" "$@"
 
 package require Rappture
 package require RapptureGUI
