@@ -31,4 +31,4 @@
 #
 dir=`dirname $0`
 . $dir/rappture.env
-exec $dir/rappture -nosim true -load $*
+exec $dir/rappture -nosim true -load "$@"

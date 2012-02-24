@@ -21,7 +21,7 @@
 #\
 dir=`dirname $0` ; \
 . $dir/rappture.env ; \
-exec wish "$0" $*
+exec wish "$0" "$@"
 # ----------------------------------------------------------------------
 # wish executes everything from here on...
 
