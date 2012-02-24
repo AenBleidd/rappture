@@ -51,7 +51,7 @@ proc Rappture::filexfer::init {} {
         }
         if {[file executable $path]} {
             # the new filexfer has a --provenance arg for file names
-            set info [exec $path --help]
+            set info [exec $path --help  2>@1]
             if {[regexp -- {--provenance} $info]} {
                 lappend path --provenance
             }
