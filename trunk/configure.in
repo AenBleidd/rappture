@@ -445,6 +445,7 @@ AC_CONFIG_FILES([
     gui/Makefile
     gui/apps/Makefile
     gui/apps/about
+    gui/apps/copy_rappture_examples
     gui/apps/encodedata
     gui/apps/rappture
     gui/apps/rappture-csh.env
