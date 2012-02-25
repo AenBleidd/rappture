@@ -1,0 +1,37 @@
+#!/bin/sh
+# -*- mode: Tcl -*-
+# ======================================================================
+#  Copyright (c) 2004-2012  Purdue Research Foundation
+#
+#  See the file "license.terms" for information on usage and
+#  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+# ======================================================================
+#\
+dir=`dirname $0` ; \
+. $dir/rappture.env ; \
+exec $dir/wish "$0" $*
+
+wm withdraw .
+proc RecursiveCopy { src dest } {
+   set tail [file tail $src]
+   if { [file isdirectory $src] } {
+       set subdir [file join $dest $tail]
+       file mkdir $subdir
+       foreach item [glob -nocomplain $src/*] {
+          RecursiveCopy $item $subdir
+       }
+   } else {
+       set file [file join $dest $tail]
+       file copy $src $dest
+       file attributes $file -permissions +rw
+   }
+}
+set installdir [file normalize [file dirname [info script]]]
+set examplesdir [file join [file dirname $installdir] examples]
+set dir [tk_chooseDirectory -title "Select where to create \"examples\""]
+if  { $dir != "" } {
+   file mkdir $dir
+   RecursiveCopy $examplesdir $dir
+}
+exit 0
+

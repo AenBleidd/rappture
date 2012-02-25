@@ -20,6 +20,8 @@ MKDIR_P		= @MKDIR_P@
 INSTALL		= @INSTALL@
 
 SCRIPTS	= \
+		about \
+		copy_rappture_examples \
 		encodedata \
 		$(srcdir)/launcher.tcl \
 		$(srcdir)/grabdata \
@@ -37,8 +39,7 @@ SCRIPTS	= \
 		rappture.use \
 		rerun \
 		simsim  \
-		xmldiff \
-		about
+		xmldiff
 
 WINDOWS_SCRIPTS =  \
 		$(srcdir)/rappture.cmd \
