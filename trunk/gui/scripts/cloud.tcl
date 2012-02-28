@@ -12,7 +12,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itcl
-package require vtk
 
 namespace eval Rappture { # forward declaration }
 
@@ -91,6 +90,7 @@ itcl::body Rappture::Cloud::release {obj} {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::constructor {xmlobj path} {
+    package require vtk
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }

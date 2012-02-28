@@ -144,8 +144,8 @@ itk::usual VtkContourViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkContourViewer::constructor {hostlist args} {
-    set  _serverType "vtkvis"
     package require vtk
+    set  _serverType "vtkvis"
 
     # Draw legend event
     $_dispatcher register !legend

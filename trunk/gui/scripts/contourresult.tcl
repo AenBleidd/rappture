@@ -13,8 +13,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
-package require vtk
-package require vtkinteraction
 package require BLT
 package require Img
 
@@ -78,6 +76,8 @@ itk::usual ContourResult {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ContourResult::constructor {args} {
+    package require vtk
+    package require vtkinteraction
     option add hull.width hull.height
     pack propagate $itk_component(hull) no
 

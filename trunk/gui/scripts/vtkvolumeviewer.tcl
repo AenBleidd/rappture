@@ -14,7 +14,6 @@
 package require Itk
 package require BLT
 #package require Img
-package require vtk
 
 option add *VtkVolumeViewer.width 4i widgetDefault
 option add *VtkVolumeViewer*cursor crosshair widgetDefault
@@ -167,6 +166,7 @@ itk::usual VtkVolumeViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
+    package require vtk
     set _serverType "vtkvis"
 
     # Rebuild event
