@@ -167,8 +167,8 @@ itk::usual VtkStreamlinesViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
-    set _serverType "vtkvis"
     package require vtk
+    set _serverType "vtkvis"
 
     # Rebuild event
     $_dispatcher register !rebuild

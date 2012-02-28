@@ -14,7 +14,6 @@
 package require Itk
 package require BLT
 #package require Img
-package require vtk
 
 option add *VtkHeightmapViewer.width 4i widgetDefault
 option add *VtkHeightmapViewer*cursor crosshair widgetDefault
@@ -166,6 +165,7 @@ itk::usual VtkHeightmapViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
+    package require vtk
     set _serverType "vtkvis"
 
     # Rebuild event

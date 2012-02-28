@@ -12,8 +12,6 @@
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
 package require Itk
-package require vtk
-package require vtkinteraction
 package require BLT
 package require Img
 
@@ -71,6 +69,8 @@ itk::usual MoleculeViewer {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::MoleculeViewer::constructor {tool args} {
+    package require vtk
+    package require vtkinteraction
     set _tool $tool
 
     Rappture::dispatcher _dispatcher
