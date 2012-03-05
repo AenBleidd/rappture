@@ -42,7 +42,6 @@
 
 #include "define.h"
 #include "global.h"
-#include "socket/Socket.h"
 #include "rappture.h"
 #include "NvCamera.h"
 #include "ConvexPolygon.h"

@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/types.h>
+#include <sys/uio.h> // for readv/writev
 #include <time.h>
 #include <unistd.h>
 
