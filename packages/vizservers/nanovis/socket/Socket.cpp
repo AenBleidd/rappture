@@ -21,7 +21,7 @@
 ssize_t writen(int fd, void *vptr, size_t n) ;
 ssize_t readn(int fd, void *vptr, size_t n) ;
 
-void error(int status, int err, char *fmt, ... ){
+void error(int status, int err, const char *fmt, ... ){
   va_list ap;
   va_start(ap, fmt);
   //fprintf(stderr, "%s: ", program_name);
@@ -37,7 +37,7 @@ void error(int status, int err, char *fmt, ... ){
 void 
 set_address(char *hname, char *sname, struct sockaddr_in *sap, char *protocol)
 {
-    struct servent *sp;
+    struct servent *sp = NULL;
     struct hostent *hp;
     char *endptr;
     short port;
@@ -72,7 +72,7 @@ void parse_GET_string(char *_str, char keys[256][256], char values[256][256], in
   char str[1024];
   strcpy(str, _str);
   char * pch_amp;
-  char * pch_eq;
+
   //printf ("Splitting string \"%s\" in tokens:\n",str);
   pch_amp = strtok (str,"&");
   //return;
