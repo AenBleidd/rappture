@@ -35,7 +35,7 @@ const int MAXCONNECTIONS = 5;
 //const int MAXRECV = 512*512*4*sizeof(float)+1;
 const int MAXRECV = 512*512*4+1;
 
-void error(int status, int err, char *fmt, ... );
+void error(int status, int err, const char *fmt, ... );
 void set_address(char *hname, char *sname, struct sockaddr_in *sap, char *protocol);
 void parse_GET_string(char *_str, char keys[256][256], char values[256][256], int *count);
 
