@@ -99,7 +99,7 @@ static unsigned short getVoxel16(int x, int y, int z)
                                         x];
 }
 
-static unsigned char getVoxelFloat(int x, int y, int z)
+static float getVoxelFloat(int x, int y, int z)
 {
     return ((float*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
                                        y * g_numOfSlices[0] +
