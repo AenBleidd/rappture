@@ -121,7 +121,7 @@ public:
 #endif
     static VelocityArrowsSlice* velocityArrowsSlice;
     static NvLIC* licRenderer;
-    static vector<PointSet*> pointSet;
+    static std::vector<PointSet*> pointSet;
     static PlaneRenderer* plane_render;
 
     /**
@@ -130,11 +130,11 @@ public:
     static Texture2D* plane[10];
     static NvColorTableRenderer* color_table_renderer;
     static graphics::RenderContext* renderContext;
-    static vector<HeightMap*> heightMap;
+    static std::vector<HeightMap*> heightMap;
     static unsigned char* screen_buffer;
     static Tcl_HashTable volumeTable;
     static Tcl_HashTable heightmapTable;
-    static vector<NvVectorField*> flow;
+    static std::vector<NvVectorField*> flow;
     static Grid* grid;
     static R2Fonts* fonts;
     static int updir;
