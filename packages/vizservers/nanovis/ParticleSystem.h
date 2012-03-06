@@ -7,9 +7,7 @@
 #include <algorithm>
 #include <limits>
 
-#include <GL/glew.h>
 #include <Cg/cg.h>
-#include <Cg/cgGL.h>
 
 #include <vr3d/vrTexture2D.h>
 #include <vr3d/vrTexture3D.h>
