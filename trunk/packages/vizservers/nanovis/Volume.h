@@ -28,21 +28,24 @@
 #include "R2/R2Object.h"
 #include "TransferFunction.h"
 
-struct CutPlane{
+struct CutPlane {
     int orient;			// orientation - 1: xy slice, 2: yz slice, 3:
 				// xz slice
     float offset;		// normalized offset [0,1] in the volume
     bool enabled;
 
-    CutPlane(int _orient, float _offset): orient(_orient), offset(_offset),
-	enabled(true) {
+    CutPlane(int _orient, float _offset) :
+        orient(_orient),
+        offset(_offset),
+	enabled(true)
+    {
     }
 };
 
 class VolumeInterpolator;
 
-
-class Volume {
+class Volume
+{
 protected:
     TransferFunction *_tfPtr;		// This is the designated transfer 
 					// to use to render this volume.
@@ -57,16 +60,15 @@ protected:
     const char *_name;
     Vector3 _physical_min;
     Vector3 _physical_max;
-    float* _data;
-    
+    float *_data;
+
     int _n_components;
 
     double _nonzero_min;
-    
-    std::vector <CutPlane> _plane; // cut planes
+
+    std::vector<CutPlane> _plane; // cut planes
 
     Texture3D* _tex;		// OpenGL texture storing the volume
-
     
     int _pointsetIndex;
 
@@ -112,13 +114,11 @@ public:
     static bool update_pending;
     static double valueMin, valueMax;
 
-public :
     Volume(float x, float y, float z, int width, int height, int depth, 
 	   float size, int n_component, float* data, double vmin, double vmax, 
 	   double nonzero_min);
     virtual ~Volume();
-	
-public :
+
     void visible(bool value) { 
 	_enabled = value; 
     }
@@ -230,9 +230,10 @@ public :
     }
 };
 
-inline 
-int Volume::add_cutplane(int orientation, float location) {
-    _plane.push_back(CutPlane(1, 0.5));
+inline int
+Volume::add_cutplane(int orientation, float location)
+{
+    _plane.push_back(CutPlane(orientation, location));
     return _plane.size() - 1;
 }
 
@@ -303,22 +304,21 @@ Volume::set_label(int axis, const char* txt)
     label[axis] = txt;
 }
 
-
 inline void 
 Volume::setPhysicalBBox(const Vector3& min, const Vector3& max)
 {
-	_physical_min = min;
-	_physical_max = max;
+    _physical_min = min;
+    _physical_max = max;
 
-/*
-	aspect_ratio_width = size * 1;
-	aspect_ratio_height = size * (max.y - min.y) / (max.x - min.x);
-    	aspect_ratio_depth = size* (max.z - min.z) / (max.x - min.x);
+    /*
+    aspect_ratio_width = size * 1;
+    aspect_ratio_height = size * (max.y - min.y) / (max.x - min.x);
+    aspect_ratio_depth = size* (max.z - min.z) / (max.x - min.x);
 
-        location.x = -0.5;
-        location.y = -0.5* aspect_ratio_height;
-        location.z = -0.5* aspect_ratio_depth;
-*/
+    location.x = -0.5;
+    location.y = -0.5* aspect_ratio_height;
+    location.z = -0.5* aspect_ratio_depth;
+    */
 }
 
 inline Vector3& 
@@ -332,6 +332,5 @@ Volume::getPhysicalBBoxMax()
 {
     return _physical_max;
 }
-
 
 #endif
