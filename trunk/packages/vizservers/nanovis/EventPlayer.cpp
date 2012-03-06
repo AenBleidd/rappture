@@ -26,8 +26,6 @@
 #include "clientlib.h"
 #include "../Event.h"
 
-using namespace std;
-
 Event* event[300];
 int cur_event = 0;
 double interval_sum = 0;

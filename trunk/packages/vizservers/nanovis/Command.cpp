@@ -84,7 +84,7 @@
 // in Nv.cpp
 
 // in nanovis.cpp
-extern vector<PointSet*> g_pointSet;
+extern std::vector<PointSet*> g_pointSet;
 
 extern PlaneRenderer* plane_render;
 extern Texture2D* plane[10];
@@ -363,7 +363,7 @@ GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
  */
 static int
 GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
-           vector<Volume *>* vectorPtr)
+           std::vector<Volume *>* vectorPtr)
 {
     if (objc == 0) {
 	// No arguments. Get all volumes. 
@@ -404,7 +404,7 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
  */
 static int
 GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
-           vector<HeightMap *>* vectorPtr)
+              std::vector<HeightMap *>* vectorPtr)
 {
     if (objc == 0) {
 	// No arguments. Get all heightmaps. 
@@ -736,11 +736,11 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->move_cutplane(axis, relval);
     }
@@ -764,17 +764,17 @@ CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
     if (state) {
-        vector<Volume *>::iterator iter;
+        std::vector<Volume *>::iterator iter;
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
             (*iter)->enable_cutplane(axis);
         }
     } else {
-        vector<Volume *>::iterator iter;
+        std::vector<Volume *>::iterator iter;
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
             (*iter)->disable_cutplane(axis);
         }
@@ -1086,7 +1086,7 @@ static int
 VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
 {
-    vector<Volume *> volumes;
+    std::vector<Volume *> volumes;
     if (GetVolumes(interp, objc - 3, objv + 3, &volumes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -1276,11 +1276,11 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
 	(*iter)->data_enabled(state);
     }
@@ -1392,11 +1392,11 @@ VolumeOutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetColor(interp, objc - 3, objv + 3, rgb) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 6, objv + 6, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->set_outline_color(rgb);
     }
@@ -1411,11 +1411,11 @@ VolumeOutlineStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
 	(*iter)->outline(state);
     }
@@ -1453,11 +1453,11 @@ VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
 
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->diffuse(diffuse);
     }
@@ -1472,11 +1472,11 @@ VolumeShadingIsosurfaceOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &iso_surface) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->isosurface(iso_surface);
     }
@@ -1493,11 +1493,11 @@ VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     TRACE("set opacity %f\n", opacity);
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->opacity_scale(opacity);
     }
@@ -1512,11 +1512,11 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &specular) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
         (*iter)->specular(specular);
     }
@@ -1535,11 +1535,11 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
 	TRACE("setting %s with transfer function %s\n", (*iter)->name(),
 	       tfPtr->name());
@@ -1590,11 +1590,11 @@ VolumeAxisOp(ClientData clientData, Tcl_Interp *interp, int objc,
         if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
             return TCL_ERROR;
         }
-        vector<Volume *> ivol;
+        std::vector<Volume *> ivol;
         if (GetVolumes(interp, objc - 5, objv + 5, &ivol) != TCL_OK) {
             return TCL_ERROR;
         }
-        vector<Volume *>::iterator iter;
+        std::vector<Volume *>::iterator iter;
         const char *label;
         label = Tcl_GetString(objv[4]);
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
@@ -1616,11 +1616,11 @@ VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *> ivol;
+    std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 3, objv + 3, &ivol) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<Volume *>::iterator iter;
+    std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
 	(*iter)->visible(state);
     }
@@ -1749,11 +1749,11 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *> imap;
+    std::vector<HeightMap *> imap;
     if (GetHeightMaps(interp, objc - 4, objv + 4, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *>::iterator iter;
+    std::vector<HeightMap *>::iterator iter;
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setVisible(visible);
     }
@@ -1790,11 +1790,11 @@ HeightMapLineContourColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetColor(interp, objc - 3, objv + 3, rgb) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *> imap;
+    std::vector<HeightMap *> imap;
     if (GetHeightMaps(interp, objc - 6, objv + 6, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *>::iterator iter;
+    std::vector<HeightMap *>::iterator iter;
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourColor(rgb);
     }
@@ -1810,11 +1810,11 @@ HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp,
     if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *> imap;
+    std::vector<HeightMap *> imap;
     if (GetHeightMaps(interp, objc - 4, objv + 4, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *>::iterator iter;
+    std::vector<HeightMap *>::iterator iter;
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourVisible(visible);
     }
@@ -2017,11 +2017,11 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          "\" is not defined", (char*)NULL);
         return TCL_ERROR;
     }
-    vector<HeightMap *> imap;
+    std::vector<HeightMap *> imap;
     if (GetHeightMaps(interp, objc - 3, objv + 3, &imap) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *>::iterator iter;
+    std::vector<HeightMap *>::iterator iter;
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->transferFunction(tfPtr);
     }
@@ -2038,11 +2038,11 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[2], &opacity) != TCL_OK) {
 	return TCL_ERROR;
     }
-    vector<HeightMap *> heightmaps;
+    std::vector<HeightMap *> heightmaps;
     if (GetHeightMaps(interp, objc - 3, objv + 3, &heightmaps) != TCL_OK) {
         return TCL_ERROR;
     }
-    vector<HeightMap *>::iterator iter;
+    std::vector<HeightMap *>::iterator iter;
     for (iter = heightmaps.begin(); iter != heightmaps.end(); iter++) {
         (*iter)->opacity(opacity);
     }

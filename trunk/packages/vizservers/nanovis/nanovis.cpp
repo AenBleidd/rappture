@@ -111,7 +111,7 @@ Tcl_HashTable NanoVis::volumeTable;
 Tcl_HashTable NanoVis::heightmapTable;
 VolumeRenderer* NanoVis::vol_renderer = NULL;
 PointSetRenderer* NanoVis::pointset_renderer = NULL;
-vector<PointSet*> NanoVis::pointSet;
+std::vector<PointSet*> NanoVis::pointSet;
 PlaneRenderer* NanoVis::plane_render = NULL;
 Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = NULL;
@@ -218,8 +218,6 @@ float NanoVis::lic_slice_x = 0.5f;
 float NanoVis::lic_slice_y = 0.5f;
 float NanoVis::lic_slice_z = 0.5f;
 int NanoVis::lic_axis = 2; // z axis
-
-using namespace std;
 
 #define RM_VOLUME 1
 #define RM_POINT 2
