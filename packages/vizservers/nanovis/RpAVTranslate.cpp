@@ -80,8 +80,8 @@ AVTranslate::AVTranslate(size_t width, size_t height) :
 }
 
 AVTranslate::AVTranslate(size_t width, size_t height, size_t bitRate,
-			 float frameRate)
-  : _width (width),
+			 float frameRate) :
+    _width (width),
     _height (height),
     _bitRate(bitRate),
     _frameRate(frameRate),
