@@ -299,12 +299,12 @@ BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
 Color.o: Color.cpp Color.h
-Command.o: Command.cpp Command.h
+Command.o: Command.cpp
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
 DataLoader.o: DataLoader.cpp 
 Event.o: Event.cpp Event.h
-FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h Command.h CmdProc.h Nv.h NvLIC.h Unirect.h
+FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h Nv.h NvLIC.h Unirect.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h
 HeightMap.o: HeightMap.cpp HeightMap.h
