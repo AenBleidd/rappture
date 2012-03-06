@@ -78,7 +78,7 @@ inline void swap(int& x, int& y)
 
 void *ParticleSystem::dataLoadMain(void *data)
 {
-    ParticleSystem* particleSystem = (ParticleSystem*) data;
+    ParticleSystem *particleSystem = (ParticleSystem *)data;
     CircularFifo<float*, 10>& queue = particleSystem->_queue;
 
     // TBD..
@@ -89,9 +89,9 @@ void *ParticleSystem::dataLoadMain(void *data)
     int endIndex = particleSystem->_flowFileEndIndex;
 
     int curIndex = startIndex;
-    float flowWidth = particleSystem->_flowWidth;
-    float flowHeight = particleSystem->_flowHeight;
-    float flowDepth = particleSystem->_flowDepth;
+    int flowWidth = particleSystem->_flowWidth;
+    int flowHeight = particleSystem->_flowHeight;
+    int flowDepth = particleSystem->_flowDepth;
 
     const char* fileNameFormat = particleSystem->_fileNameFormat.c_str();
     char buff[256];
@@ -107,10 +107,14 @@ void *ParticleSystem::dataLoadMain(void *data)
             if (tail != -1) {
                 sprintf(buff, fileNameFormat, curIndex);
                 //std::string path = vrFilePath::getInstance()->getPath(buff);
+#ifdef WANT_TRACE
                 float t = clock() /(float) CLOCKS_PER_SEC;
+#endif
                 LoadProcessedFlowRaw(buff, flowWidth, flowHeight, flowDepth, queue.array[tail]);
+#ifdef WANT_TRACE
                 float ti = clock() / (float) CLOCKS_PER_SEC;
-                printf("%f\n",ti - t);
+                TRACE("LoadProcessedFlowRaw time: %f\n", ti - t);
+#endif
                 queue.push();
                 TRACE("%d loaded\n", curIndex);
                 ++curIndex;
@@ -1072,9 +1076,11 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
                 if (_queue.top(data)) {
 #ifdef WANT_TRACE
                     float t = clock() /(float) CLOCKS_PER_SEC;
+#endif
                     _vectorFields[0]->updatePixels(data);
+#ifdef WANT_TRACE
                     float ti = clock() / (float) CLOCKS_PER_SEC;
-                    TRACE("pixels %f\n",ti - t);
+                    TRACE("updatePixels time: %f\n", ti - t);
 #endif
                     _queue.pop();
                     oldTime = time;
@@ -1173,7 +1179,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
         // NEW PARTICLES
         for (unsigned int i = 0; i < _emitters.size(); ++i) {
             // TBD..
-            unsigned int numOfNewParticles = randomRange(_emitters[i]->_minNumOfNewParticles, _emitters[i]->_maxNumOfNewParticles) * deltaT;
+            unsigned int numOfNewParticles = (unsigned int)(randomRange(_emitters[i]->_minNumOfNewParticles, _emitters[i]->_maxNumOfNewParticles) * deltaT);
             for (unsigned int k = 0; k < numOfNewParticles; ++k) {
                 float3 position = _emitters[i]->_position;
                 position += _emitters[i]->_maxPositionOffset * 
