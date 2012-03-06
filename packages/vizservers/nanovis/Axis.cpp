@@ -17,7 +17,7 @@ inline double EXP10(double x) {
 }
 
 inline int ROUND(double x) {
-    return round(x);
+    return (int)round(x);
 }
 
 inline double UROUND(double x, double u) {
@@ -347,8 +347,8 @@ Axis::LogScale()
 	    tickMax = max;
 	}
     }
-    major_.SetValues(majorStep, nMajor, floor(tickMin));
-    minor_.SetValues(minorStep, nMinor, minorStep);
+    major_.SetValues(floor(tickMin), majorStep, nMajor);
+    minor_.SetValues(minorStep, minorStep, nMinor);
     min_ = tickMin;
     max_ = tickMax;
     range_ = max_ - min_;
