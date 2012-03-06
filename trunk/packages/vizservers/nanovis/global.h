@@ -10,10 +10,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-
-//system wide global or static functions
-
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
@@ -21,74 +17,6 @@
 #include <Cg/cgGL.h>
 #include <Trace.h>
 #include <stdio.h>
-
-#ifdef notdef
-#define CHECK_FRAMEBUFFER_STATUS() \
-{\
- GLenum status; \
- status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT); \
- TRACE("%x\n", status);			   \
- switch(status) { \
- case GL_FRAMEBUFFER_COMPLETE_EXT: \
-     TRACE("framebuffer complete!\n");	\
-   break; \
- case GL_FRAMEBUFFER_UNSUPPORTED_EXT: \
-     ERROR("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");	\
-    /* you gotta choose different formats */ \
-   assert(0); \
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:		\
-     TRACE("framebuffer INCOMPLETE_ATTACHMENT\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT: \
-     TRACE("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT: \
-     TRACE("framebuffer FRAMEBUFFER_DIMENSIONS\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_DUPLICATE_ATTACHMENT_EXT: \
-     TRACE("framebuffer INCOMPLETE_DUPLICATE_ATTACHMENT\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT: \
-     TRACE("framebuffer INCOMPLETE_FORMATS\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT: \
-     TRACE("framebuffer INCOMPLETE_DRAW_BUFFER\n");	\
-   break; \
- case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT: \
-     TRACE("framebuffer INCOMPLETE_READ_BUFFER\n");	\
-   break; \
- case GL_FRAMEBUFFER_BINDING_EXT: \
-     TRACE("framebuffer BINDING_EXT\n");	\
-   break; \
-/* 
- *  case GL_FRAMEBUFFER_STATUS_ERROR_EXT: \
- *     TRACE("framebuffer STATUS_ERROR\n");\
- *        break; \
- *        */ \
- default: \
-   /* programming error; will fail on all hardware */ \
-   assert(0); \
- }\
-}
-
-#define CHECK_FRAMEBUFFER_STATUS()                            \
-  {                                                           \
-    GLenum status;                                            \
-    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT); \
-    switch(status) {                                          \
-      case GL_FRAMEBUFFER_COMPLETE_EXT:                       \
-        break;                                                \
-      case GL_FRAMEBUFFER_UNSUPPORTED_EXT:                    \
-~        /* choose different formats */                        \
-        break;                                                \
-      default:                                                \
-        /* programming error; will fail on all hardware */    \
-	ERROR("programming error\n");               \
-        assert(0);                                            \
-     }	                                                      \
-   }
-#endif
 
 inline void 
 draw_quad(int w, int h, int tw, int th)
@@ -100,7 +28,6 @@ draw_quad(int w, int h, int tw, int th)
     glTexCoord2f(0,         (float)th); glVertex2f(0,        (float) h);
     glEnd();
 }
-
 
 //query opengl information
 inline void 
