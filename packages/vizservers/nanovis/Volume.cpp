@@ -23,10 +23,9 @@ bool Volume::update_pending = false;
 double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
-Volume::Volume(
-		float x, float y, float z,
-		int w, int h, int d, float s, 
-		int n, float* data, double v0, double v1, double nz_min):
+Volume::Volume(float x, float y, float z,
+               int w, int h, int d, float s, 
+               int n, float* data, double v0, double v1, double nz_min) :
     _tfPtr(NULL),
     _specular(6.),		// default value
     _diffuse(3.),		// default value
@@ -38,10 +37,10 @@ Volume::Volume(
     _n_slices(512),		// default value
     _enabled(true),
     //n_slice(256),		// default value
-    _data_enabled(true),		// default value
+    _data_enabled(true),	// default value
     _outline_enabled(true),	// default value
     _outline_color(1.,1.,1.),	// default value
-    _volume_type(CUBIC),		//by default, is a cubic volume
+    _volume_type(CUBIC),	// default is a cubic volume
     _iso_surface(0),
     width(w),
     height(h),
@@ -63,23 +62,23 @@ Volume::Volume(
     }
 
     id = _tex->id;
-    
+
     wAxis.SetRange(v0, v1);
 
     // VOLUME
     aspect_ratio_width  = s * _tex->aspect_ratio_width;
     aspect_ratio_height = s * _tex->aspect_ratio_height;
     aspect_ratio_depth =  s * _tex->aspect_ratio_depth;
-    
-    _location = Vector3(x,y,z);
-    
+
+    _location = Vector3(x, y, z);
+
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
     _plane.clear();
-    _plane.push_back(CutPlane(1, 0.5));
-    _plane.push_back(CutPlane(2, 0.5));
-    _plane.push_back(CutPlane(3, 0.5));
-    
+    add_cutplane(1, 0.5f);
+    add_cutplane(2, 0.5f);
+    add_cutplane(3, 0.5f);
+
     //initialize the labels  
     label[0] = "X Label";
     label[1] = "Y Label";
@@ -90,12 +89,11 @@ Volume::Volume(
 
 Volume::~Volume()
 { 
-    if (_pointsetIndex != -1)
-    {
+    if (_pointsetIndex != -1) {
         // TBD...
     }
 
     delete [] _data;
 
-    delete _tex; 
+    delete _tex;
 }
