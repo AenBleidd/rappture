@@ -70,7 +70,6 @@ inline void swap(int& x, int& y)
 
 void* ParticleSystem::dataLoadMain(void* data)
 {
-	
     ParticleSystem* particleSystem = (ParticleSystem*) data;
     CircularFifo<float*, 10>& queue = particleSystem->_queue;
 	

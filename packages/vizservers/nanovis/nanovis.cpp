@@ -224,53 +224,10 @@ int NanoVis::lic_axis = 2; // z axis
 
 int renderMode = RM_VOLUME;
 
-/*
- * ----------------------------------------------------------------------
- * USAGE: debug("string", ...)
- *
- * Use this anywhere within the package to send a debug message
- * back to the client.  The string can have % fields as used by
- * the printf() package.  Any remaining arguments are treated as
- * field substitutions on that.
- * ----------------------------------------------------------------------
- */
-void
-debug(char *str)
-{
-    ssize_t nWritten;
-
-    nWritten = write(2, str, strlen(str));
-}
-
-void
-debug(char *str, double v1)
-{
-    char buffer[512];
-    sprintf(buffer, str, v1);
-    debug(buffer);
-}
-
-void
-debug(char *str, double v1, double v2)
-{
-    char buffer[512];
-    sprintf(buffer, str, v1, v2);
-    debug(buffer);
-}
-
-void
-debug(char *str, double v1, double v2, double v3)
-{
-    char buffer[512];
-    sprintf(buffer, str, v1, v2, v3);
-    debug(buffer);
-}
-
 void removeAllData()
 {
     //
 }
-
 
 void 
 NanoVis::EventuallyRedraw(unsigned int flag)
@@ -399,25 +356,7 @@ DoExit(int code)
     exit(code);
 }
 
-//report errors related to CG shaders
-void
-cgErrorCallback(void)
-{
-    CGerror lastError = cgGetError();
-    if(lastError) {
-        const char *listing = cgGetLastListing(g_context);
-        ERROR("\n---------------------------------------------------\n");
-        ERROR("%s\n\n", cgGetErrorString(lastError));
-        ERROR("%s\n", listing);
-        ERROR("-----------------------------------------------------\n");
-        ERROR("Cg error, exiting...\n");
-        cgDestroyContext(g_context);
-        DoExit(-1);
-    }
-}
-
-
-CGprogram 
+CGprogram
 LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile, 
                     const char *entryPoint)
 {
