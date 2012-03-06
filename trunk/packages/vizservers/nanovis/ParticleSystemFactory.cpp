@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "ParticleSystemFactory.h"
 #include "ParticleSystem.h"
 #include <vrutil/vrFilePath.h>

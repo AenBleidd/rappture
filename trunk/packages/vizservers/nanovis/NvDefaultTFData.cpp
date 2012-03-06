@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 float tfdefaultdata[] = 
 {
     1.000000, 1.000000, 1.000000, 

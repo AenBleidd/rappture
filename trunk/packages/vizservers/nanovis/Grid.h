@@ -1,5 +1,6 @@
-#ifndef _AXIS_H_
-#define _AXIS_H_
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#ifndef _GRID_H_
+#define _GRID_H_
 
 #include <R2/R2Fonts.h>
 #include "Axis.h"

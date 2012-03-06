@@ -1,4 +1,4 @@
- 
+ /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * ConvexPolygon.cpp: convex polygon class

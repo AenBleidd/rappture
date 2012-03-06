@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
  * Quaternion code by BLACKAXE / kolor aka Laurent Schmalen
  *

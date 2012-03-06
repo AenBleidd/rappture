@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * Command.cpp
@@ -53,7 +53,6 @@
 #include <RpBuffer.h>
 
 #include "Trace.h"
-#include "Command.h"
 #include "nanovis.h"
 #include "CmdProc.h"
 #include "Nv.h"

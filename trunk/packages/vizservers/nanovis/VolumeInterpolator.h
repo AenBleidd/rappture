@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __VOLUME_INTERPOLATOR_H__
 #define __VOLUME_INTERPOLATOR_H__
 

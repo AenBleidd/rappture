@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vrmath/vrBBox.h>
 #include <vrmath/vrVector3f.h>
 

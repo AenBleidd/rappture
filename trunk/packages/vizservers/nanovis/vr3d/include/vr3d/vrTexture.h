@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
  * @file vrvrTexture.h
  * @brief An abtract class for the texture

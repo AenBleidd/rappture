@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "Nv.h"
 #include <GL/gl.h>
 #include "PointSetRenderer.h"

@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "nvconf.h"
 #ifdef HAVE_DX_DX_H
 #include "RpDX.h"

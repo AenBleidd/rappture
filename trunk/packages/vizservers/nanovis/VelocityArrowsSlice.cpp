@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <GL/glew.h>
 #ifdef _WIN32
 #include <windows.h>

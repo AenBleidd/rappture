@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __NV_REGULAR_SHADER_H__
 #define __NV_REGULAR_SHADER_H__
 

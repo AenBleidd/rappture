@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #pragma once
 #include <vrmath/vrLinmath.h>
 

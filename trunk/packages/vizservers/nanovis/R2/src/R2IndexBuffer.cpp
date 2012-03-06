@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <R2/graphics/R2IndexBuffer.h>
 #include <stdlib.h>
 #include <memory.h>

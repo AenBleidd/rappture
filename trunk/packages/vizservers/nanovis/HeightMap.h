@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _HEIGHT_MAP_H_
 #define _HEIGHT_MAP_H_
 

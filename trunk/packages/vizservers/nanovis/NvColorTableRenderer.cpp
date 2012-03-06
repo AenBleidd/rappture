@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <R2/R2Fonts.h>
 #include "NvColorTableRenderer.h"
 #include <stdlib.h>

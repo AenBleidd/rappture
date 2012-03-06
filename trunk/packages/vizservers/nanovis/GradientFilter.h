@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _GRADIENT_FILTER_H
 #define _GRADIENT_FILTER_H
 

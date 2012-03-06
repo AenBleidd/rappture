@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __RENDER_CONTEXT_H__
 #define __RENDER_CONTEXT_H__
 
