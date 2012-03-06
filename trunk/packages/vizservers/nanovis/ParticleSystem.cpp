@@ -34,18 +34,26 @@
 
 //#define TEST
 // TEST
-extern void* LoadFlowDx(const char* fname, int& width, int& height, int&depth,
-                        float& min, float& max, float& nonzero_min, 
-                        float& axisScaleX, float& axisScaleY, float& axisScaleZ);
-extern void* LoadFlowRaw(const char* fname, int width, int height, int depth,
-                         float& min, float& max, float& nonzero_min, 
-			 float& axisScaleX, float& axisScaleY, float& axisScaleZ,
-                         int skipByte, bool bigEndian);
-extern void* LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
-                                  float min, float max,
-                                  float& axisScaleX, float& axisScaleY, float& axisScaleZ, int skipByte);
-extern void LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
-                                 float* data);
+extern void*
+LoadFlowDx(const char* fname, int& width, int& height, int&depth,
+           float& min, float& max, float& nonzero_min, 
+           float& axisScaleX, float& axisScaleY, float& axisScaleZ);
+
+extern void*
+LoadFlowRaw(const char* fname, int width, int height, int depth,
+            float& min, float& max, float& nonzero_min, 
+            float& axisScaleX, float& axisScaleY, float& axisScaleZ,
+            int skipByte, bool bigEndian);
+
+extern void*
+LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
+                     float min, float max,
+                     float& axisScaleX, float& axisScaleY, float& axisScaleZ,
+                     int skipByte);
+
+extern void
+LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
+                     float* data);
 
 inline float randomRange(float rangeMin, float rangeMax)
 {
@@ -68,11 +76,11 @@ inline void swap(int& x, int& y)
     }
 }
 
-void* ParticleSystem::dataLoadMain(void* data)
+void* ParticleSystem::dataLoadMain(void *data)
 {
     ParticleSystem* particleSystem = (ParticleSystem*) data;
     CircularFifo<float*, 10>& queue = particleSystem->_queue;
-	
+
     // TBD..
     //float min = particleSystem->_time_series_vel_mag_min;
     //float max = particleSystem->_time_series_vel_mag_max;
@@ -84,7 +92,7 @@ void* ParticleSystem::dataLoadMain(void* data)
     float flowWidth = particleSystem->_flowWidth;
     float flowHeight = particleSystem->_flowHeight;
     float flowDepth = particleSystem->_flowDepth;
-	
+
     const char* fileNameFormat = particleSystem->_fileNameFormat.c_str();
     char buff[256];
 
@@ -107,7 +115,8 @@ void* ParticleSystem::dataLoadMain(void* data)
                 TRACE("%d loaded\n", curIndex);
                 ++curIndex;
             }
-	}
+        }
+    }
 
     return 0;
 }
@@ -129,7 +138,6 @@ void MakeSphereTexture()
     glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, col);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-
     float *img = new float[DIM*DIM];
 
     vrVector3f light(1,1,3);
@@ -138,7 +146,7 @@ void MakeSphereTexture()
     for (int y = 0; y < DIM; y++) {
         for (int x = 0; x < DIM; x++) {
             // Clamping the edges to zero allows Nvidia's blend optimizations to do their thing.
-            if (x==0 || x==DIM-1 || y==0 || y==DIM-1) {
+            if (x == 0 || x == DIM-1 || y == 0 || y == DIM-1) {
                 img[y*DIM+x] = 0;
             } else {
                 vrVector3f p(x, y, 0);
@@ -175,7 +183,8 @@ ParticleSystem::ParticleSystem(int width, int height,
                                int fieldWidth, int fieldHeight, int fieldDepth, 
                                bool timeVaryingData,
                                int flowFileStartIndex, int flowFileEndIndex) :
-  _width(width), _height(height)
+    _width(width),
+    _height(height)
 {
     ////////////////////////////////
     // TIME-VARYING SERIES
@@ -242,8 +251,7 @@ ParticleSystem::ParticleSystem(int width, int height,
     float min, max, nonzero_min, axisScaleX, axisScaleY, axisScaleZ;
     int index = fileName.rfind('.');
     std::string ext = fileName.substr(index + 1, fileName.size() - (index + 1));
-    float* data = 0;
-
+    float *data = 0;
 
     if (this->isTimeVaryingField()) {
         axisScaleX = _flowWidth;
@@ -269,8 +277,8 @@ ParticleSystem::ParticleSystem(int width, int height,
             data = (float*) LoadFlowRaw(fileName.c_str(), _flowWidth, _flowHeight, _flowDepth, min, max, nonzero_min, axisScaleX, axisScaleY, axisScaleZ, 5 * sizeof(int), true);
         } else if (ext == "data") {
             data = (float*) LoadFlowRaw(fileName.c_str(), _flowWidth, _flowHeight, _flowDepth, min, max, nonzero_min, axisScaleX, axisScaleY, axisScaleZ, 0, true);
+#endif
         }
-#endif	
         //_criticalPoints = find_critical_points((vrVector4f*) data, _flowWidth,  _flowHeight,  _flowDepth);
         //algorithm_test((vrVector4f*) data,  _flowWidth,  _flowHeight,  _flowDepth);
     }
@@ -338,26 +346,26 @@ ParticleSystem::ParticleSystem(int width, int height,
 
 #ifdef notdef
     // TBD..
-      std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
-      AUX_RGBImageRec *pTextureImage = auxDIBImageLoad(path.c_str());
-      unsigned char* pixels = new unsigned char [pTextureImage->sizeX * pTextureImage->sizeY * sizeof(unsigned char) * 4];
-      unsigned char* srcPixels = pTextureImage->data;
-      unsigned char* dstPixels = pixels;
-      for (int i = 0; i < pTextureImage->sizeX * pTextureImage->sizeY; ++i) {
-          *dstPixels = *srcPixels; ++srcPixels;
-          *(dstPixels + 1) = *srcPixels; ++srcPixels;
-          *(dstPixels + 2) = *srcPixels; ++srcPixels;
+    std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
+    AUX_RGBImageRec *pTextureImage = auxDIBImageLoad(path.c_str());
+    unsigned char* pixels = new unsigned char [pTextureImage->sizeX * pTextureImage->sizeY * sizeof(unsigned char) * 4];
+    unsigned char* srcPixels = pTextureImage->data;
+    unsigned char* dstPixels = pixels;
+    for (int i = 0; i < pTextureImage->sizeX * pTextureImage->sizeY; ++i) {
+        *dstPixels = *srcPixels; ++srcPixels;
+        *(dstPixels + 1) = *srcPixels; ++srcPixels;
+        *(dstPixels + 2) = *srcPixels; ++srcPixels;
 
-          if ((*dstPixels > 127) && (*(dstPixels + 1) < 127) && (*(dstPixels + 2) < 127)) {
-              *(dstPixels + 3) = 0;
-          } else {
-              *(dstPixels + 3) = 255;
-          }
+        if ((*dstPixels > 127) && (*(dstPixels + 1) < 127) && (*(dstPixels + 2) < 127)) {
+            *(dstPixels + 3) = 0;
+        } else {
+            *(dstPixels + 3) = 255;
+        }
 
-          dstPixels += 4;
-      }
+        dstPixels += 4;
+    }
 
-      _arrows->setPixels(CF_RGBA, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pixels);
+    _arrows->setPixels(CF_RGBA, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pixels);
 #endif
 
 #endif // USE_RGBA_ARROW
@@ -459,7 +467,7 @@ void ParticleSystem::initStreamlines(int width, int height)
 void ParticleSystem::callbackForCgError()
 {
     CGerror lastError = cgGetError();
-    if(lastError) {
+    if (lastError) {
         const char *listing = cgGetLastListing(_context);
         ERROR("\n---------------------------------------------------\n");
         ERROR("%s\n\n", cgGetErrorString(lastError));
@@ -622,7 +630,7 @@ void ParticleSystem::reset()
     for (int i = 0; i < _particleMaxCount; i++)	{
         pinfo[i] = _particles[i];
     }
-	
+
     glUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
 
     // POSITION
@@ -976,7 +984,7 @@ void ParticleSystem::advectStreamlines()
 {
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
-	
+
     //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1054,16 +1062,20 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
     static bool firstLoad = true;
     if (this->isTimeVaryingField()) {
         static float oldTime = vrGetTimeStamp();
+#ifdef WANT_TRACE
         static int index = 0;
+#endif
         float time = vrGetTimeStamp();
         if ((time - oldTime) > 2.0) {
             if (!_queue.isEmpty()) {
                 float* data = 0;
                 if (_queue.top(data)) {
+#ifdef WANT_TRACE
                     float t = clock() /(float) CLOCKS_PER_SEC;
                     _vectorFields[0]->updatePixels(data);
                     float ti = clock() / (float) CLOCKS_PER_SEC;
                     TRACE("pixels %f\n",ti - t);
+#endif
                     _queue.pop();
                     oldTime = time;
 
@@ -1276,7 +1288,7 @@ void ParticleSystem::initNewParticles()
     glPopAttrib();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-	
+
     // INIT NEW END
     /////////////////////////////
 #if 1
@@ -1346,8 +1358,8 @@ void ParticleSystem::cleanUpParticles()
             //_usedIndices[i] = false;
 
             //if (i >= _maxUsedIndex)
-            //	while (!_usedIndices[_maxUsedIndex])
-            //		_maxUsedIndex--;
+            //    while (!_usedIndices[_maxUsedIndex])
+            //        _maxUsedIndex--;
         }
     }
 }
@@ -1530,7 +1542,7 @@ void ParticleSystem::sort()
 void ParticleSystem::mergeSort(int count)
 {
     if (count > 1) {
-        mergeSort(count >> 1); 
+        mergeSort(count >> 1);
         merge(count, 1);
     }
 }
@@ -1645,7 +1657,8 @@ void ParticleSystem::renderStreamlines()
         _streamVertices->SetPointer(0);
         //glColorPointer(4, GL_FLOAT, 0, 0);
 
-        ::glDrawElements(GL_LINES, _particleCount * 2 * (_currentStreamlineIndex - 1), GL_UNSIGNED_INT, _indexBuffer);
+        ::glDrawElements(GL_LINES, _particleCount * 2 * (_currentStreamlineIndex - 1),
+                         GL_UNSIGNED_INT, _indexBuffer);
         glDisableClientState(GL_VERTEX_ARRAY);
         glPopMatrix();
     }
@@ -1731,7 +1744,6 @@ void ParticleSystem::render()
             cgGLDisableProfile(CG_PROFILE_VP40);
             cgGLDisableProfile(CG_PROFILE_FP40);
 
-
             glDepthMask(GL_TRUE);
 
             glDisable(GL_POINT_SPRITE_NV);
@@ -1772,26 +1784,26 @@ void ParticleSystem::render()
             glDisable(GL_BLEND);
 #endif
         } else {
-                if (_drawBBoxEnabled) drawUnitBox();
+            if (_drawBBoxEnabled) drawUnitBox();
 
-                glColor3f(1, 1, 1);
-                glEnableClientState(GL_VERTEX_ARRAY);
-                //glEnableClientState(GL_COLOR_ARRAY);
-                glPointSize(10);
-                _vertices->SetPointer(0);
-                //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
-                //glColorPointer(4, GL_FLOAT, 0, 0);
-                //glBindBufferARB(GL_ARRAY_BUFFER, 0);
-                glDrawArrays(GL_POINTS, 0, _particleMaxCount);
+            glColor3f(1, 1, 1);
+            glEnableClientState(GL_VERTEX_ARRAY);
+            //glEnableClientState(GL_COLOR_ARRAY);
+            glPointSize(10);
+            _vertices->SetPointer(0);
+            //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
+            //glColorPointer(4, GL_FLOAT, 0, 0);
+            //glBindBufferARB(GL_ARRAY_BUFFER, 0);
+            glDrawArrays(GL_POINTS, 0, _particleMaxCount);
 
-                glPointSize(1);
-                _vertices->SetPointer(0);
-                //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
-                //glColorPointer(4, GL_FLOAT, 0, 0);
-                //glBindBufferARB(GL_ARRAY_BUFFER, 0);
-                glDrawArrays(GL_POINTS, 0, _particleMaxCount);
+            glPointSize(1);
+            _vertices->SetPointer(0);
+            //glBindBufferARB(GL_ARRAY_BUFFER, _colorBufferID);
+            //glColorPointer(4, GL_FLOAT, 0, 0);
+            //glBindBufferARB(GL_ARRAY_BUFFER, 0);
+            glDrawArrays(GL_POINTS, 0, _particleMaxCount);
 
-                glDisableClientState(GL_VERTEX_ARRAY);
+            glDisableClientState(GL_VERTEX_ARRAY);
         }
 
 #ifdef notdef
@@ -1801,7 +1813,7 @@ void ParticleSystem::render()
             glPointSize(10);
             glBegin(GL_POINTS);
             for (iter = _criticalPoints->begin(); iter != _criticalPoints->end(); ++iter) {
-                glVertex3f((*iter).x, (*iter).y, (*iter).z);		
+                glVertex3f((*iter).x, (*iter).y, (*iter).z);
             }
             glEnd();
             glPointSize(1);
