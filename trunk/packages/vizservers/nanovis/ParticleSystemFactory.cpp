@@ -113,11 +113,11 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
         } else if (!strcmp(attrs[i], "particle-point-size")) {
             pointSize = (float) atof(attrs[i + 1]);
         } else if (!strcmp(attrs[i], "vector-field-x")) {
-            fieldWidth = (float) atof(attrs[i + 1]);
+            fieldWidth = atoi(attrs[i + 1]);
         } else if (!strcmp(attrs[i], "vector-field-y")) {
-            fieldHeight = (float) atof(attrs[i + 1]);
+            fieldHeight = atoi(attrs[i + 1]);
         } else if (!strcmp(attrs[i], "vector-field-z")) {
-            fieldDepth = (float) atof(attrs[i + 1]);
+            fieldDepth = atoi(attrs[i + 1]);
         } else if (!strcmp(attrs[i], "sort-enabled")) {
             if (!strcmp(attrs[i + 1], "true"))
                 sortEnabled = true;
