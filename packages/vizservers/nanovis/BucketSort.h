@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __BUCKETSORT_H_
 #define __BUCKETSORT_H_
 

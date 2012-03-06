@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _CONTOURFILTER_H_
 #define _CONTOURFILTER_H_
 

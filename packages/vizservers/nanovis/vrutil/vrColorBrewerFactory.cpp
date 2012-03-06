@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vrutil/vrColorBrewerFactory.h>
 #include <vrutil/vrColorBrewer.h>
 #include <string.h>

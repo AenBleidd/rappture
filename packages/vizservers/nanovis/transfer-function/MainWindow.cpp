@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * MainWindow.h: implementation of the main transfer function gui window

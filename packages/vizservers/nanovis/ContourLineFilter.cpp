@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * @note : I refer to 'http://www.codeproject.com/useritems/ScoOterVisualizationPart2.asp'
  * @note : for this class

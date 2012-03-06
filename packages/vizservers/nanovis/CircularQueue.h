@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /* CircularFifo.h 
 * Not any company's property but Public-Domain
 * Do with source-code as you will. No requirement to keep this

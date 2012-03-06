@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 //#include <math/projection.h>
 #include <math.h>
 #include <memory.h>

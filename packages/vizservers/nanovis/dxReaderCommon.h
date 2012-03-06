@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _DX_READER_COMMON_H
 #define _DX_READER_COMMON_H
 

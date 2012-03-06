@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __R2_FILE_PATH_H__
 #define __R2_FILE_PATH_H__
 

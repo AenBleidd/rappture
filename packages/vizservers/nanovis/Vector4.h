@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * Vector4.h: Vector4 class

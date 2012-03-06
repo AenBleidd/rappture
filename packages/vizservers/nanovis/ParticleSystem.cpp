@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vr3d/vr3d.h>
 #include <time.h>
 #include <stdlib.h>

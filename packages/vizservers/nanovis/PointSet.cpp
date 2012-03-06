@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "PointSet.h"
 #include "PCASplit.h"
 #include <stdlib.h>

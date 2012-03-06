@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "Nv.h"
 #include "NvShader.h"
 #include "NvParticleRenderer.h"

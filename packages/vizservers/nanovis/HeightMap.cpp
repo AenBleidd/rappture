@@ -1,4 +1,4 @@
- 
+ /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <memory.h>
 #include <stdlib.h>
 #include <sys/time.h>

@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef VELOCITY_ARROW_SLICE_H
 #define VELOCITY_ARROW_SLICE_H 1
 

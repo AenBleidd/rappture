@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "Image.h"
 #include <memory.h>
 #include <stdlib.h>

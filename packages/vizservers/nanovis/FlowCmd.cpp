@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <nvconf.h>
 #if defined(HAVE_LIBAVCODEC) || defined(HAVE_LIBAVFORMAT)
 #define HAVE_FFMPEG 1

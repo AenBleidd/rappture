@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * ColorMap.h: color map class contains an array of (RGBA) values 

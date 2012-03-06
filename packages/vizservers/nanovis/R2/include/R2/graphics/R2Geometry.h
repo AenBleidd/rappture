@@ -1,4 +1,4 @@
- 
+ /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _R2_GEOMETRY_H_
 #define _R2_GEOMETRY_H_
 

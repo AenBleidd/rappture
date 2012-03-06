@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef NV_VECTOR_FIELD_H
 #define NV_VECTOR_FIELD_H 1
 

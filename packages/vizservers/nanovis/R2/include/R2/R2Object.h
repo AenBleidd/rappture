@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __R2_OBJECT_H__
 #define __R2_OBJECT_H__
 

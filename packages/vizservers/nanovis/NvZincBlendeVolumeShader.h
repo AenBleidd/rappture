@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __NV_ZINCBLENDE_SHADER_H__
 #define __NV_ZINCBLENDE_SHADER_H__
 

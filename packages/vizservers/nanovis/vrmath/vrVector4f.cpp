@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vrmath/vrVector4f.h>
 #include <vrmath/vrMatrix4x4f.h>
 

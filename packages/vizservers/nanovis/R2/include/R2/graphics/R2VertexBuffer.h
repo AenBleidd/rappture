@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _R2_VERTEXBUFFER_H_
 #define _R2_VERTEXBUFFER_H_
 

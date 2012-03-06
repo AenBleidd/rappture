@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "VolumeInterpolator.h"
 #include "Volume.h"
 #include <string.h>

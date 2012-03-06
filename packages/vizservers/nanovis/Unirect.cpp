@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <float.h>
 #include <tcl.h>
 #include <Unirect.h>

@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <Vector3.h>
 
 void evaluate(float fraction, float* key, int count, Vector3* keyValue, Vector3* ret)

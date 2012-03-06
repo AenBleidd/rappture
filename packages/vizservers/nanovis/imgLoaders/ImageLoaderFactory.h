@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __IMAGE_LOADER_FACTORY_H__
 #define __IMAGE_LOADER_FACTORY_H__
 

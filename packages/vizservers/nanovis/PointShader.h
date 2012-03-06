@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __POINTSHADER_H__
 #define __POINTSHADER_H__
 

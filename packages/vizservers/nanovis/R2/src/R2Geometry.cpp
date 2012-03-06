@@ -1,4 +1,4 @@
-
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <R2/graphics/R2Geometry.h>

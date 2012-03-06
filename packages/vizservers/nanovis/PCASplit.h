@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef __PCA_SPLIT_H__
 #define __PCA_SPLIT_H__
 

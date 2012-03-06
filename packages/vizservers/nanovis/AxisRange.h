@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _AXIS_RANGE_H
 #define _AXIS_RANGE_H
 

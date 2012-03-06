@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ----------------------------------------------------------------------
  * ZincBlendeVolume.h: 3d zincblende volume class, a subclass of Volume. 
