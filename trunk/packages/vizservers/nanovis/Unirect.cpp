@@ -44,7 +44,7 @@ Rappture::Unirect2d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
     Tcl_Obj **objv;
     int objc;
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
-	return NULL;
+	return TCL_ERROR;
     }
     int result;
     result = LoadData(interp, objc, objv);
@@ -63,7 +63,7 @@ Rappture::Unirect3d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
     Tcl_Obj **objv;
     int objc;
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
-	return NULL;
+	return TCL_ERROR;
     }
     int result;
     result = LoadData(interp, objc, objv);

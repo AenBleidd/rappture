@@ -35,7 +35,7 @@
 //#define TEST
 // TEST
 extern void*
-LoadFlowDx(const char* fname, int& width, int& height, int&depth,
+LoadFlowDx(const char* fname, int& width, int& height, int& depth,
            float& min, float& max, float& nonzero_min, 
            float& axisScaleX, float& axisScaleY, float& axisScaleZ);
 
@@ -76,7 +76,7 @@ inline void swap(int& x, int& y)
     }
 }
 
-void* ParticleSystem::dataLoadMain(void *data)
+void *ParticleSystem::dataLoadMain(void *data)
 {
     ParticleSystem* particleSystem = (ParticleSystem*) data;
     CircularFifo<float*, 10>& queue = particleSystem->_queue;
