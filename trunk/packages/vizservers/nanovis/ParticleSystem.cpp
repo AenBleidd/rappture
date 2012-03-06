@@ -1,12 +1,21 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vr3d/vr3d.h>
+
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+
+#include <vr3d/vr3d.h>
 #include <vr3d/vrTexture3D.h>
+
+#include <Cg/cgGL.h>
+
+#include <vrutil/vrFilePath.h>
+
 #include <vrmath/vrMatrix4x4f.h>
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrVector4f.h>
+
 #include "particlemacro.h"
 #ifdef _WIN32
 #include <GL/glaux.h>
@@ -16,11 +25,10 @@
 #include <opencv/highgui.h>
 #endif
 #endif
+
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
 #include "Trace.h"
-#include <vrutil/vrFilePath.h>
-#include <pthread.h>
 
 #define USE_RGBA_ARROW
 
