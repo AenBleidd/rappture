@@ -32,7 +32,6 @@ PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height):
 
 PlaneRenderer::~PlaneRenderer() 
 {
-    /*empty*/
 }
 
 //initialize the render shader
@@ -46,7 +45,6 @@ PlaneRenderer::init_shaders()
     m_tf_param = cgGetNamedParameter(m_fprog, "tf");
     m_render_param = cgGetNamedParameter(m_fprog, "render_param");
 }
-
 
 int 
 PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
@@ -65,15 +63,14 @@ PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
 
 void
 PlaneRenderer::remove_plane(int index) {
-    vector<Texture2D*>::iterator piter = plane.begin()+index;
-    vector<TransferFunction*>::iterator tfiter = tf.begin()+index;
+    std::vector<Texture2D*>::iterator piter = plane.begin()+index;
+    std::vector<TransferFunction*>::iterator tfiter = tf.begin()+index;
 
     plane.erase(piter);
     tf.erase(tfiter);
 
     n_planes--;
 }
-
 
 void 
 PlaneRenderer::render()
@@ -121,7 +118,6 @@ PlaneRenderer::activate_shader(int index)
     cgGLBindProgram(m_fprog);
     cgGLEnableProfile(CG_PROFILE_FP30);
 }
-
 
 void 
 PlaneRenderer::deactivate_shader()

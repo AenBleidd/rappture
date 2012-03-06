@@ -39,8 +39,6 @@
 #include <GL/gl.h>
 #include <stdio.h>
 
-using namespace std;
-
 RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
     m_usage(GL_STREAM_COPY), 
     m_nverts(nverts), 

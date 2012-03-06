@@ -13,7 +13,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #ifndef _PLANE_RENDERER_H_
 #define _PLANE_RENDERER_H_
 
@@ -31,13 +30,11 @@
 #include "TransferFunction.h"
 #include "Texture2D.h"
 
-using namespace std;
-
-class PlaneRenderer{
-
+class PlaneRenderer
+{
 private:
-    vector <Texture2D*> plane;	// Array of volumes
-    vector <TransferFunction*> tf; // Array of corresponding transfer functions 
+    std::vector<Texture2D*> plane;	// Array of volumes
+    std::vector<TransferFunction*> tf; // Array of corresponding transfer functions 
     int active_plane;		// The active plane, only one is rendered
     int n_planes;
 
