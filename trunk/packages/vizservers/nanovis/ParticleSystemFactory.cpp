@@ -65,7 +65,7 @@ ParticleSystem* ParticleSystemFactory::create(const std::string& fileName)
     size_t stat;
     size_t cnt;
 
-    while(! feof(fp)) {
+    while (! feof(fp)) {
         void *buff = XML_GetBuffer(parser, BUFSIZE);
         if (! buff) {
             break;
