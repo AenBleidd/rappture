@@ -23,7 +23,6 @@
 #include "TransferFunction.h"
 
 #include "nanovis.h"
-#include "Command.h"
 #include "CmdProc.h"
 #include "Nv.h"
 
