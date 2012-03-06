@@ -199,7 +199,7 @@ class RpDict
         // functionality for the user to access/adjust data members
 
         // checks table size
-        /*virtual*/ const int size() const;
+        /*virtual*/ int size() const;
 
         // insert new object into table
         // returns 0 on success (object inserted or already exists)
@@ -344,7 +344,7 @@ class RpDict
  *************************************************************************/
 
 template <typename KeyType, typename ValType, class _Compare>
-const int
+int
 RpDict<KeyType,ValType,_Compare>::size() const
 {
     return numEntries;
