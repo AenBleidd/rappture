@@ -26,8 +26,8 @@ rappture_binary_tarfile	= rappture-$(os)-$(machine)-$(build_date).tar.gz
 rappture_source_tarfile = rappture-src-$(build_date).tar.gz
 runtime_source_tarfile = rappture-runtime-src-$(build_date).tar.gz
 
-runtime_repo = https://repo.nanohub.org/svn/rappture-runtime/trunk
-rappture_repo = https://repo.nanohub.org/svn/rappture/trunk
+runtime_repo = https://nanohub.org/infrastructure/rappture-runtime/svn/trunk
+rappture_repo = https://nanohub.org/infrastructure/rappture/svn/trunk
 
 ENABLE_GUI	= @ENABLE_GUI@
 
