@@ -112,6 +112,7 @@ itcl::class Rappture::XyResult {
     private variable _axisPopup    ;# info for axis being edited in popup
     common _downloadPopup          ;# download options from popup
     private variable _markers
+    private variable _nextElement 0
 }
                                                                                 
 itk::usual XyResult {
@@ -717,7 +718,7 @@ itcl::body Rappture::XyResult::Rebuild {} {
                 set pixels 6
             }
 
-            set elem "elem[incr count]"
+            set elem "elem[incr _nextElement]"
             set _elem2dataobj($elem) $dataobj
             lappend label2elem($label) $elem
             $g element create $elem -x $xv -y $yv \
