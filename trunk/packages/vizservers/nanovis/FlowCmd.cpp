@@ -1943,7 +1943,7 @@ static Rappture::SwitchCustom videoFormatSwitch = {
 };
 
 Rappture::SwitchSpec FlowCmd::videoSwitches[] = {
-    {Rappture::SWITCH_FLOAT, "-bitrate", "value",
+    {Rappture::SWITCH_INT, "-bitrate", "value",
 	offsetof(FlowVideoValues, bitRate), 0},
     {Rappture::SWITCH_CUSTOM, "-format", "string",
         offsetof(FlowVideoValues, format), 0, 0, &videoFormatSwitch},
@@ -1976,7 +1976,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     token = Tcl_GetString(objv[2]);
     values.frameRate = 25.0f;		// Default frame rate 25 fps
-    values.bitRate = 6.0e+6f;		// Default video bit rate.
+    values.bitRate = 6000000;		// Default video bit rate.
     values.width = NanoVis::win_width;
     values.height = NanoVis::win_height;
     values.nFrames = 100;
@@ -1994,7 +1994,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	Tcl_AppendResult(interp, "bad frame rate.", (char *)NULL);
 	return TCL_ERROR;
     }
-    if (values.bitRate < 0.0f) {
+    if (values.bitRate < 0) {
 	Tcl_AppendResult(interp, "bad bit rate.", (char *)NULL);
 	return TCL_ERROR;
     }
@@ -2011,8 +2011,9 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     Rappture::Outcome context;
 
-    Rappture::AVTranslate movie(values.width, values.height, values.bitRate, 
-	values.frameRate);
+    Rappture::AVTranslate movie(values.width, values.height,
+                                values.bitRate, 
+                                values.frameRate);
     char tmpFileName[200];
     sprintf(tmpFileName,"/tmp/flow%d.mpeg", getpid());
     if (!movie.init(context, tmpFileName)) {
