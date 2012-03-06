@@ -241,11 +241,11 @@ HeightMap::reset()
 {
     if (_vertexBufferObjectID) {
         glDeleteBuffers(1, &_vertexBufferObjectID);
-	_vertexBufferObjectID = NULL;
+	_vertexBufferObjectID = 0;
     }
     if (_textureBufferObjectID) {
         glDeleteBuffers(1, &_textureBufferObjectID);
-	_textureBufferObjectID = NULL;
+	_textureBufferObjectID = 0;
     }
     if (_contour != NULL) {
         delete _contour;
