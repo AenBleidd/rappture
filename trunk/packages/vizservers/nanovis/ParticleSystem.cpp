@@ -16,7 +16,6 @@
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrVector4f.h>
 
-#include "particlemacro.h"
 #ifdef _WIN32
 #include <GL/glaux.h>
 #else
@@ -235,7 +234,7 @@ ParticleSystem::ParticleSystem(int width, int height,
     _colorBuffer = new color4[_particleMaxCount];
     memset(_colorBuffer, 0, sizeof(color4) * _particleMaxCount);
 
-    _positionBuffer = new float3[_particleMaxCount];
+    _positionBuffer = new vrVector3f[_particleMaxCount];
     _vertices = new RenderVertexArray(_particleMaxCount, 3, GL_FLOAT);
 
     srand(time(0));
@@ -638,7 +637,7 @@ void ParticleSystem::reset()
     glUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
 
     // POSITION
-    memset(_positionBuffer, 0, sizeof(float3) * _width * _height);
+    memset(_positionBuffer, 0, sizeof(vrVector3f) * _width * _height);
     for (int y = 0; y < _height; y++) {
         for (int x = 0; x < _width; x++) {
             _positionBuffer[_width * y + x].x = (float)rand() / (float) RAND_MAX;
@@ -1123,13 +1122,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
         // INSOO
         // TIME SCALE
 
-#ifdef USE_TORNADOR
-        cgGLSetParameter1f(_mpTimeScale, 1.0);
-#else
         cgGLSetParameter1f(_mpTimeScale, 0.005);
-        //cgGLSetParameter1f(_mpTimeScale, 0.5);
-#endif
-        //cgGLSetParameter1f(_mpTimeScale, 0.1);
 
         //////////////////////////////////////////////////////
         // UPDATE POS
@@ -1181,14 +1174,14 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
             // TBD..
             unsigned int numOfNewParticles = (unsigned int)(randomRange(_emitters[i]->_minNumOfNewParticles, _emitters[i]->_maxNumOfNewParticles) * deltaT);
             for (unsigned int k = 0; k < numOfNewParticles; ++k) {
-                float3 position = _emitters[i]->_position;
+                vrVector3f position = _emitters[i]->_position;
                 position += _emitters[i]->_maxPositionOffset * 
-                    float3(randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f));
+                    vrVector3f(randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f), randomRange(-1.0f, 1.0f));
 
                 float lifetime = randomRange(_emitters[i]->_minLifeTime, _emitters[i]->_maxLifeTime);
 
                 // TBD..
-                allocateParticle(position, float3(0.0f, 0.0f, 0.0f),  lifetime, 1 - (float) k / numOfNewParticles);
+                allocateParticle(position, vrVector3f(0.0f, 0.0f, 0.0f),  lifetime, 1 - (float) k / numOfNewParticles);
             }
         }
 
@@ -1202,7 +1195,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
     return true;
 }
 
-void ParticleSystem::allocateParticle(const float3& position, const float3& velocity,
+void ParticleSystem::allocateParticle(const vrVector3f& position, const vrVector3f& velocity,
                                       float lifeTime, float initTimeStep)
 {
     if (_availableIndices.empty()) {

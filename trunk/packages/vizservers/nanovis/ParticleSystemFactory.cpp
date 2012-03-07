@@ -8,17 +8,9 @@
 #include <stdio.h>
 #include "Trace.h"
 
-#ifdef _WIN32
-#include <expat/expat.h>
-#else
 #include <expat.h>
-#endif
 
 #include <string.h>
-
-#ifdef WIN32
-#pragma warning (disable : 4996)
-#endif
 
 #define BUFSIZE 4096
 

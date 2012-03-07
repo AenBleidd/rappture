@@ -1,5 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
+#ifndef PARTICLESYSTEM_H
+#define PARTICLESYSTEM_H
 
 #include <vector>
 #include <queue>
@@ -11,17 +12,17 @@
 
 #include <vr3d/vrTexture2D.h>
 #include <vr3d/vrTexture3D.h>
+#include <vrmath/vrVector3f.h>
 
 #include "ParticleEmitter.h"
 #include "RenderVertexArray.h"
 
 #include "CircularQueue.h"
-#include "datatype.h"
 
 struct NewParticle {
     int index;
-    float3 position;
-    float3 velocity;
+    vrVector3f position;
+    vrVector3f velocity;
     float timeOfDeath;
     float initTimeStep;
 };
@@ -32,11 +33,7 @@ class priority_queue_vector : public std::priority_queue<Type, std::vector<Type>
 public:
     void reserve(typename priority_queue_vector<Type>::size_type count)
     {
-#ifdef _WIN32
-        c.reserve(count);
-#else
-        //priority_queue<Type,vector<Type>, Compare>::reserve(count);
-#endif
+        //priority_queue<Type, std::vector<Type>, Compare>::reserve(count);
     }
 };
 
@@ -55,6 +52,10 @@ namespace std
         }
     };
 }
+
+struct color4 {
+    float r, g, b, a;
+};
 
 struct Particle {
     float timeOfBirth;
@@ -107,7 +108,7 @@ public:
     int _currentPosIndex;
     int _destPosIndex;
 
-    std::vector<ParticleEmitter*> _emitters;
+    std::vector<ParticleEmitter *> _emitters;
 
     float _currentTime;
 
@@ -135,11 +136,11 @@ public:
     ///////////////////////////////////////////////////
     // TIME SERIES
     std::vector<unsigned int> _vectorFieldIDs;
-    std::vector<vrTexture3D*> _vectorFields;
+    std::vector<vrTexture3D *> _vectorFields;
     unsigned int _curVectorFieldID;
     float _time_series_vel_mag_min;
     float _time_series_vel_mag_max;
-    CircularFifo<float*, 10> _queue;
+    CircularFifo<float *, 10> _queue;
     int _flowFileStartIndex;
     int _flowFileEndIndex;
     ///////////////////////////////////////////////////
@@ -149,13 +150,13 @@ public:
 	
     RenderVertexArray* _vertices;
 
-    Particle* _particles;
-    float3* _positionBuffer;
-    color4* _colorBuffer;
+    Particle *_particles;
+    vrVector3f *_positionBuffer;
+    color4 *_colorBuffer;
     unsigned _colorBufferID;
 
     //////////////////////////////////////////
-    vrTexture2D* _arrows;
+    vrTexture2D *_arrows;
 
     float _camx;
     float _camy;
@@ -225,11 +226,11 @@ public:
     int _atlasWidth, _atlasHeight;
     unsigned int _atlas_fbo;
     unsigned int _atlas_tex;
-    RenderVertexArray* _streamVertices;
+    RenderVertexArray *_streamVertices;
     unsigned int _atlasIndexBufferID;
-	
+
     unsigned int _maxIndexBufferSize;
-    unsigned int* _indexBuffer;
+    unsigned int *_indexBuffer;
     int _atlas_x, _atlas_y;
 
     //////////////////////////////////////////
@@ -255,9 +256,9 @@ public:
 
     // INSOO
     // TEST
-    std::vector<vrVector3f>* _criticalPoints;
+    std::vector<vrVector3f> *_criticalPoints;
 
-    static void* dataLoadMain(void* data);
+    static void *dataLoadMain(void *data);
 
     ParticleSystem(int width, int height, const std::string& fileName,
                    int fieldWidth, int fieldHeight, int fieldDepth, 
@@ -276,8 +277,8 @@ public:
     bool isEnabled(EnableEnum enabled);
 
     ////////////////////////////////////////////
-    void addEmitter(ParticleEmitter* emitter);
-    ParticleEmitter* getEmitter(int index);
+    void addEmitter(ParticleEmitter *emitter);
+    ParticleEmitter *getEmitter(int index);
     unsigned int getNumEmitters() const;
     void removeEmitter(int index);
     void removeAllEmitters();
@@ -322,7 +323,7 @@ protected:
     void resetStreamlines();
     void initInitPosTex();
 
-    void allocateParticle(const float3&, const float3&, float, float);
+    void allocateParticle(const vrVector3f&, const vrVector3f&, float, float);
     void initNewParticles();
     void cleanUpParticles();
 };
@@ -404,3 +405,5 @@ inline bool ParticleSystem::getDepthCueEnabled() const
 {
     return _depthCueEnabled;
 }
+
+#endif
