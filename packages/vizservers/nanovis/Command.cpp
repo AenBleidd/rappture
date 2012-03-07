@@ -59,7 +59,6 @@
 #include "PointSetRenderer.h"
 #include "PointSet.h"
 #include "ZincBlendeVolume.h"
-#include "NvLoadFile.h"
 #include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
 #include "NvZincBlendeReconstructor.h"
