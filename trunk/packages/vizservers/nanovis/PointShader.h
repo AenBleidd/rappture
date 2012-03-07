@@ -2,7 +2,6 @@
 #ifndef __POINTSHADER_H__
 #define __POINTSHADER_H__
 
-#include "Nv.h"
 #include "NvShader.h"
 #include "Texture3D.h"
 

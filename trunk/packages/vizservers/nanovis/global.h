@@ -15,8 +15,8 @@
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
+
 #include <Trace.h>
-#include <stdio.h>
 
 inline void 
 draw_quad(int w, int h, int tw, int th)
@@ -33,11 +33,11 @@ draw_quad(int w, int h, int tw, int th)
 inline void 
 system_info()
 {
-    INFO("-----------------------------------------------------------\n");
-    INFO("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
+    TRACE("-----------------------------------------------------------\n");
+    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
 	   glGetString(GL_VERSION));
-    INFO("Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    INFO("-----------------------------------------------------------\n");
+    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    TRACE("-----------------------------------------------------------\n");
 }
 
 extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 

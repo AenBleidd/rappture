@@ -140,7 +140,7 @@ PCASplit::createClusterBlock(ClusterListNode* clusterList, int count, int level)
 	++i;
     }
     if (count != i) {
-	TRACE("ERROR\n");
+	ERROR("Problem walking clusterList: count: %d, i: %d\n", count, i);
     }
     return clusterBlock;
 }

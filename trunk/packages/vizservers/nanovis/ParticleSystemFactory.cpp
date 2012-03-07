@@ -149,8 +149,9 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
             int index = path.rfind('/');
             if (index == -1) {
                 index = path.rfind('\\');
-                if (index == -1)
+                if (index == -1) {
                     TRACE("file not found\n");
+                }
             }
 
             dir = path.substr(0, index + 1);

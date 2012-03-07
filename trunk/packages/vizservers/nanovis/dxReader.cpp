@@ -30,8 +30,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "Nv.h"
-
 #include "nanovis.h"
 #include "RpField1D.h"
 #include "RpFieldRect3D.h"

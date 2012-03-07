@@ -23,7 +23,6 @@
 do {                                                            \
     GLenum status;                                              \
     status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);   \
-    TRACE("%x\n", status);                                      \
     switch(status) {                                            \
     case GL_FRAMEBUFFER_COMPLETE_EXT:                           \
         TRACE("framebuffer complete!\n");                       \

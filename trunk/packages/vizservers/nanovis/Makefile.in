@@ -100,7 +100,7 @@ INCLUDES	= \
 CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
-EXTRA_CFLAGS    = -Wall
+EXTRA_CFLAGS    = -Wall -Wextra
 DEFINES         = 
 CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
@@ -120,7 +120,6 @@ OBJS		= \
 		Grid.o \
 		HeightMap.o \
 		Mat4x4.o \
-		Nv.o \
 		NvCamera.o \
 		NvColorTableRenderer.o \
 		NvColorTableShader.o \
@@ -281,7 +280,7 @@ clean:
 	$(MAKE) -C $(VR3D_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
-	$(RM) nanovis client $(OBJS)
+	$(RM) nanovis client *.o
 
 distclean: clean
 	$(MAKE) -C $(MAT_DIR) distclean
@@ -299,15 +298,14 @@ CmdProc.o: CmdProc.cpp CmdProc.h
 Color.o: Color.cpp Color.h
 Command.o: Command.cpp
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
-ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h
+ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
 DataLoader.o: DataLoader.cpp 
 Event.o: Event.cpp Event.h
-FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h Nv.h NvLIC.h Unirect.h
+FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h
 HeightMap.o: HeightMap.cpp HeightMap.h
 Mat4x4.o: Mat4x4.cpp Mat4x4.h
-Nv.o: Nv.cpp Nv.h NvShader.h NvParticleRenderer.h NvColorTableRenderer.h NvEventLog.h VolumeRenderer.h PointSetRenderer.h
 NvCamera.o: NvCamera.cpp NvCamera.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
@@ -329,7 +327,7 @@ ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
 PCASplit.o: PCASplit.cpp PCASplit.h
 PerfQuery.o: PerfQuery.cpp PerfQuery.h
-Plane.o: Plane.cpp Plane.h
+Plane.o: Plane.cpp Plane.h Vector4.h Mat4x4.h
 PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
@@ -352,6 +350,6 @@ Volume.o: Volume.cpp Volume.h $(AUXSRC)
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
-dxReader.o: dxReader.cpp dxReaderCommon.h Nv.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
+dxReader.o: dxReader.cpp dxReaderCommon.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)

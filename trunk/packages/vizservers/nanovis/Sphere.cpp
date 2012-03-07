@@ -15,13 +15,12 @@
  */
 
 #include "Sphere.h"
-#include <stdio.h>
 
 Sphere::Sphere(float x, float y, float z, 
                float r, float g, float b,
                float _radius,
                int _stack,
-               int _slice):
+               int _slice) :
     Renderable(Vector3(x, y, z)),
     radius(_radius),
     color(Color(r,g,b)),
@@ -31,14 +30,13 @@ Sphere::Sphere(float x, float y, float z,
     boundary = BoundBox(x-r, y-r, z-r, x+r, y+r, z+r);
 }
 
-Sphere::~Sphere() {
-    /*empty*/
+Sphere::~Sphere()
+{
 }
 
 void 
 Sphere::render()
 {
-    /*empty*/
 }
 
 void 

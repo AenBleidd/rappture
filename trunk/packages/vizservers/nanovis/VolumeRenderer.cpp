@@ -13,18 +13,25 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
+#include <stdlib.h>
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+
+#include <GL/glew.h>
+#include <GL/glut.h>
+
+#include <tcl.h>
+
+#include <vector>
 
 #include <R2/R2string.h>
 #include <R2/R2FilePath.h>
 
 #include "nanovis.h"
-
 #include "VolumeRenderer.h"
-#include "VolumeInterpolator.h"
+#include "ConvexPolygon.h"
+
 #include "NvStdVertexShader.h"
 #include "Trace.h"
 #include "Grid.h"
@@ -39,8 +46,8 @@ VolumeRenderer::VolumeRenderer() :
 
     const char *path = R2FilePath::getInstance()->getPath("Font.bmp");
     if (path == NULL) {
-	ERROR("can't find Font.bmp\n");
-	assert(path != NULL);
+        ERROR("can't find Font.bmp\n");
+        assert(path != NULL);
     }
     init_font(path);
     delete [] path;
@@ -56,36 +63,38 @@ VolumeRenderer::~VolumeRenderer()
 }
 
 //initialize the volume shaders
-void VolumeRenderer::init_shaders(){
-  
-  //standard vertex program
-  _stdVertexShader = new NvStdVertexShader();
+void VolumeRenderer::init_shaders()
+{
+    //standard vertex program
+    _stdVertexShader = new NvStdVertexShader();
 
-  //volume rendering shader: one cubic volume
-  _regularVolumeShader = new NvRegularVolumeShader();
+    //volume rendering shader: one cubic volume
+    _regularVolumeShader = new NvRegularVolumeShader();
 
-  //volume rendering shader: one zincblende orbital volume.
-  //This shader renders one orbital of the simulation.
-  //A sim has S, P, D, SS orbitals. thus a full rendering requires 4 zincblende orbital volumes. 
-  //A zincblende orbital volume is decomposed into 2 "interlocking" cubic 4-component volumes and passed to the shader. 
-  //We render each orbital with a independent transfer functions then blend the result.
-  //
-  //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
-  //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
-  _zincBlendeShader = new NvZincBlendeVolumeShader();
+    //volume rendering shader: one zincblende orbital volume.
+    //This shader renders one orbital of the simulation.
+    //A sim has S, P, D, SS orbitals. thus a full rendering requires 4 zincblende orbital volumes. 
+    //A zincblende orbital volume is decomposed into 2 "interlocking" cubic 4-component volumes and passed to the shader. 
+    //We render each orbital with a independent transfer functions then blend the result.
+    //
+    //The engine is already capable of rendering multiple volumes and combine them. Thus, we just invoke this shader on
+    //S, P, D and SS orbitals with different transfor functions. The result is a multi-orbital rendering.
+    _zincBlendeShader = new NvZincBlendeVolumeShader();
 }
 
 struct SortElement {
     float z;
     int volume_id;
     int slice_id;
+
     SortElement(float _z, int _v, int _s) :
-	z(_z), volume_id(_v), slice_id(_s)
+        z(_z), volume_id(_v), slice_id(_s)
     {}
 };
 
-int slice_sort(const void* a, const void* b){
-    if((*((SortElement*)a)).z > (*((SortElement*)b)).z)
+int slice_sort(const void* a, const void* b)
+{
+    if ((*((SortElement*)a)).z > (*((SortElement*)b)).z)
         return 1;
     else
         return -1;
@@ -548,7 +557,6 @@ VolumeRenderer::activate_volume_shader(Volume* volPtr, bool slice_mode)
 	_zincBlendeShader->bind(tfPtr->id(), volPtr, slice_mode);
     }
 }
-
 void VolumeRenderer::deactivate_volume_shader()
 {
     _stdVertexShader->unbind();
@@ -556,46 +564,41 @@ void VolumeRenderer::deactivate_volume_shader()
     _zincBlendeShader->unbind();
 }
 
-void VolumeRenderer::get_near_far_z(Mat4x4 mv, double &zNear, double &zFar)
+void VolumeRenderer::get_near_far_z(const Mat4x4& mv, double& zNear, double& zFar)
 {
-  double x0 = 0;
-  double y0 = 0;
-  double z0 = 0;
-  double x1 = 1;
-  double y1 = 1;
-  double z1 = 1;
+    double x0 = 0;
+    double y0 = 0;
+    double z0 = 0;
+    double x1 = 1;
+    double y1 = 1;
+    double z1 = 1;
 
-  double zMin, zMax;
-  zMin =  10000;
-  zMax = -10000;
+    double zMin, zMax;
+    zMin =  10000;
+    zMax = -10000;
 
-  double vertex[8][4];
+    double vertex[8][4];
 
-  vertex[0][0]=x0; vertex[0][1]=y0; vertex[0][2]=z0; vertex[0][3]=1.0;
-  vertex[1][0]=x1; vertex[1][1]=y0; vertex[1][2]=z0; vertex[1][3]=1.0;
-  vertex[2][0]=x0; vertex[2][1]=y1; vertex[2][2]=z0; vertex[2][3]=1.0;
-  vertex[3][0]=x0; vertex[3][1]=y0; vertex[3][2]=z1; vertex[3][3]=1.0;
-  vertex[4][0]=x1; vertex[4][1]=y1; vertex[4][2]=z0; vertex[4][3]=1.0;
-  vertex[5][0]=x1; vertex[5][1]=y0; vertex[5][2]=z1; vertex[5][3]=1.0;
-  vertex[6][0]=x0; vertex[6][1]=y1; vertex[6][2]=z1; vertex[6][3]=1.0;
-  vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
+    vertex[0][0]=x0; vertex[0][1]=y0; vertex[0][2]=z0; vertex[0][3]=1.0;
+    vertex[1][0]=x1; vertex[1][1]=y0; vertex[1][2]=z0; vertex[1][3]=1.0;
+    vertex[2][0]=x0; vertex[2][1]=y1; vertex[2][2]=z0; vertex[2][3]=1.0;
+    vertex[3][0]=x0; vertex[3][1]=y0; vertex[3][2]=z1; vertex[3][3]=1.0;
+    vertex[4][0]=x1; vertex[4][1]=y1; vertex[4][2]=z0; vertex[4][3]=1.0;
+    vertex[5][0]=x1; vertex[5][1]=y0; vertex[5][2]=z1; vertex[5][3]=1.0;
+    vertex[6][0]=x0; vertex[6][1]=y1; vertex[6][2]=z1; vertex[6][3]=1.0;
+    vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
 
-  for (int i = 0; i < 8; i++) {
-    Vector4 tmp = mv.transform(Vector4(vertex[i][0], vertex[i][1], vertex[i][2], vertex[i][3]));
-    tmp.perspective_devide();
-    vertex[i][2] = tmp.z;
-    if (vertex[i][2]<zMin) zMin = vertex[i][2];
-    if (vertex[i][2]>zMax) zMax = vertex[i][2];
-  }
+    for (int i = 0; i < 8; i++) {
+        Vector4 tmp = mv.transform(Vector4(vertex[i][0], vertex[i][1], vertex[i][2], vertex[i][3]));
+        tmp.perspective_divide();
+        vertex[i][2] = tmp.z;
+        if (vertex[i][2] < zMin) zMin = vertex[i][2];
+        if (vertex[i][2] > zMax) zMax = vertex[i][2];
+    }
 
-  zNear = zMax;
-  zFar = zMin;
+    zNear = zMax;
+    zFar = zMin;
 }
-
-void VolumeRenderer::set_slice_mode(bool val) { slice_mode = val; }
-void VolumeRenderer::set_volume_mode(bool val) { volume_mode = val; }
-void VolumeRenderer::switch_slice_mode() { slice_mode = (!slice_mode); }
-void VolumeRenderer::switch_volume_mode() { volume_mode = (!volume_mode); }
 
 bool 
 VolumeRenderer::init_font(const char* filename) 
@@ -758,13 +761,13 @@ VolumeRenderer::draw_label(Volume* vol)
     int length = vol->label[0].size();
     glPushMatrix();
 
-    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height, 
+    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height,
 		 -0.1*vol->aspect_ratio_depth);
     glRotatef(180, 0, 0, 1);
     glRotatef(90, 1, 0, 0);
 
     glScalef(0.0008, 0.0008, 0.0008);
-    for(int i=0; i<length; i++){
+    for (int i = 0; i < length; i++) {
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[0].c_str()[i]);
 	glTranslatef(0.04, 0., 0.);
     }
@@ -776,9 +779,9 @@ VolumeRenderer::draw_label(Volume* vol)
     glTranslatef(vol->aspect_ratio_width, 0.5*vol->aspect_ratio_height, -0.1*vol->aspect_ratio_depth);
     glRotatef(90, 0, 1, 0);
     glRotatef(90, 0, 0, 1);
-    
+
     glScalef(0.0008, 0.0008, 0.0008);
-    for(int i=0; i<length; i++){
+    for (int i = 0; i < length; i++) {
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[1].c_str()[i]);
 	glTranslatef(0.04, 0., 0.);
     }
@@ -791,7 +794,7 @@ VolumeRenderer::draw_label(Volume* vol)
     glRotatef(90, 0, 1, 0);
 
     glScalef(0.0008, 0.0008, 0.0008);
-    for(int i=0; i<length; i++){
+    for (int i = 0; i < length; i++) {
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[2].c_str()[i]);
 	glTranslatef(0.04, 0., 0.);
     }
@@ -810,17 +813,17 @@ VolumeRenderer::build_font()
         cx = (float) (loop % 16) / 16.0f;
         cy = (float) (loop / 16) / 16.0f;
         glNewList(font_base + loop, GL_COMPILE);
-	glBegin(GL_QUADS);
-	glTexCoord2f(cx, 1 - cy - 0.0625f);
-	glVertex3f(0, 0, 0);
-	glTexCoord2f(cx + 0.0625f, 1 - cy - 0.0625f);
-	glVertex3f(0.04, 0, 0);
-	glTexCoord2f(cx + 0.0625f, 1 - cy);
-	glVertex3f(0.04, 0.04, 0);
-	glTexCoord2f(cx, 1 - cy);
-	glVertex3f(0, 0.04, 0);
-	glEnd();
-	glTranslated(0.04, 0, 0);
+        glBegin(GL_QUADS);
+        glTexCoord2f(cx, 1 - cy - 0.0625f);
+        glVertex3f(0, 0, 0);
+        glTexCoord2f(cx + 0.0625f, 1 - cy - 0.0625f);
+        glVertex3f(0.04, 0, 0);
+        glTexCoord2f(cx + 0.0625f, 1 - cy);
+        glVertex3f(0.04, 0.04, 0);
+        glTexCoord2f(cx, 1 - cy);
+        glVertex3f(0, 0.04, 0);
+        glEnd();
+        glTranslated(0.04, 0, 0);
         glEndList();
     }
 }
@@ -829,7 +832,7 @@ void
 VolumeRenderer::glPrint(char* string, int set)
 {
     if (set > 1) {
-	set=1;
+        set = 1;
     }
     glBindTexture(GL_TEXTURE_2D, font_texture);
     glListBase(font_base - 32 + (128 * set));

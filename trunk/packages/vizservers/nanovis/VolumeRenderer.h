@@ -19,28 +19,18 @@
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
-#include <GL/glut.h>
-#include <math.h>
-#include <stdio.h>
-#include <assert.h>
-#include <float.h>
-#include <vector>
 
-#include "define.h"
-#include "global.h"
-#include "ConvexPolygon.h"
-#include "TransferFunction.h"
 #include "Mat4x4.h"
 #include "Volume.h"
-#include "ZincBlendeVolume.h"
-#include "PerfQuery.h"
+#include "VolumeInterpolator.h"
 #include "NvRegularVolumeShader.h"
 #include "NvZincBlendeVolumeShader.h"
 #include "NvStdVertexShader.h"
-#include "VolumeInterpolator.h"
 
-class VolumeRenderer {
+class VolumeRenderer
+{
     friend class NanoVis;
+
 private:
     VolumeInterpolator* _volumeInterpolator;
 
@@ -67,12 +57,12 @@ private:
      * same space.
      */
     NvZincBlendeVolumeShader* _zincBlendeShader;
-  
+
     /**
      * standard vertex shader 
      */
     NvStdVertexShader* _stdVertexShader;
-  
+
     //standard vertex shader parameters
     CGprogram m_vert_std_vprog;
     CGparameter m_mvp_vert_std_param;
@@ -81,46 +71,81 @@ private:
     GLuint font_texture;	//the id of the font texture
 
     void init_shaders();
+
     void activate_volume_shader(Volume* vol, bool slice_mode);
+
     void deactivate_volume_shader();
+
     //draw bounding box
     void draw_bounding_box(float x0, float y0, float z0,
 			   float x1, float y1, float z1,
 			   float r, float g, float b, float line_width);
 
-    void get_near_far_z(Mat4x4 mv, double &zNear, double &zFar);
+    void get_near_far_z(const Mat4x4& mv, double& zNear, double& zFar);
+
     bool init_font(const char* filename);
+
     void glPrint(char* string, int set); //there are two sets of font in the
 					 //texture. 0, 1
+
     void draw_label(Volume* vol); //draw label using bitmap texture
 				// the texture.
+
     void build_font();		// Register the location of each alphabet in
 
 public:
     VolumeRenderer();
+
     ~VolumeRenderer();
 
     void render_all();			//render all enabled volumes;
-    void specular(float val);
-    void diffuse(float val);
-    void set_slice_mode(bool val);	//control independently.
-    void set_volume_mode(bool val);
-    void switch_slice_mode();		//switch_cutplane_mode
-    void switch_volume_mode();
 
-    void clearAnimatedVolumeInfo(void) {
-	_volumeInterpolator->clearAll();
+    void specular(float val);
+
+    void diffuse(float val);
+
+    void set_slice_mode(bool val)	//control independently.
+    {
+        slice_mode = val;
     }
-    void addAnimatedVolume(Volume* volume) {
-	_volumeInterpolator->addVolume(volume);
+
+    void set_volume_mode(bool val)
+    {
+        volume_mode = val;
     }
-    void startVolumeAnimation(void) {
-	_volumeInterpolator->start();
+
+    void switch_slice_mode()		//switch_cutplane_mode
+    {
+        slice_mode = (!slice_mode);
     }
-    void stopVolumeAnimation(void) {
+
+    void switch_volume_mode()
+    {
+        volume_mode = (!volume_mode);
+    }
+
+    void clearAnimatedVolumeInfo()
+    {
+        _volumeInterpolator->clearAll();
+    }
+
+    void addAnimatedVolume(Volume* volume)
+    {
+        _volumeInterpolator->addVolume(volume);
+    }
+
+    void startVolumeAnimation()
+    {
+        _volumeInterpolator->start();
+    }
+
+    void stopVolumeAnimation()
+    {
 	_volumeInterpolator->stop();
     }
-    VolumeInterpolator* getVolumeInterpolator(void) {
+
+    VolumeInterpolator* getVolumeInterpolator()
+    {
 	return _volumeInterpolator;
     }
 };

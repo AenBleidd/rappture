@@ -1,21 +1,23 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _AXIS_H
-#define _AXIS_H
+#ifndef AXIS_H
+#define AXIS_H
 
 #include "Chain.h"
 
 class Axis;
 
-class NaN {
+class NaN
+{
 private:
-    double x_;
+    double _x;
 public:
-    NaN(void) {
+    NaN()
+    {
 	union DoubleValue {
 	    unsigned int words[2];
 	    double value;
 	} result;
-	
+
 #ifdef WORDS_BIGENDIAN
 	result.words[0] = 0x7ff80000;
 	result.words[1] = 0x00000000;
@@ -23,10 +25,12 @@ public:
 	result.words[0] = 0x00000000;
 	result.words[1] = 0x7ff80000;
 #endif
-	x_ = result.value;
+	_x = result.value;
     }
-    operator const double() {
-	return x_;
+
+    operator double() const
+    {
+	return _x;
     }
 };
 
@@ -142,7 +146,7 @@ public:
     }
     void Append (float x) {
 	chain_.Append(GetClientData(x));
-    }    
+    }
     void SetValues(double initial, double step, unsigned int nSteps) {
 	initial_ = initial, step_ = step, nSteps_ = nSteps;
     }
@@ -345,4 +349,4 @@ public:
     }
 };
 
-#endif /*_AXIS_H*/
+#endif

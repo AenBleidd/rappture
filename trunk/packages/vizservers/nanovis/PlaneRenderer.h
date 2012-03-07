@@ -18,14 +18,13 @@
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
-#include <GL/glut.h>
+
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
 #include <float.h>
 #include <vector>
 
-#include "define.h"
 #include "global.h"
 #include "TransferFunction.h"
 #include "Texture2D.h"

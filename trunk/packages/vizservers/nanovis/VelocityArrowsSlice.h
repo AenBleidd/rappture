@@ -149,7 +149,7 @@ public:
     {
         _enabled = enabled;
     }
-    bool enabled(void) const
+    bool enabled() const
     {
         return _enabled;
     }

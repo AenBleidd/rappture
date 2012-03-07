@@ -1,13 +1,13 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "Nv.h"
-#include <GL/gl.h>
-#include "PointSetRenderer.h"
-#include <PCASplit.h>
+#include <GL/glew.h>
+
 #include <Image.h>
 #include <ImageLoaderFactory.h>
 #include <ImageLoader.h>
-#include <stdio.h>
 #include <R2/R2FilePath.h>
+
+#include "PointSetRenderer.h"
+#include "PCASplit.h"
 
 #define USE_TEXTURE 
 //#define USE_SHADER 

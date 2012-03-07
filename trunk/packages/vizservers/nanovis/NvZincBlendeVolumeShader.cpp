@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include "global.h"
-#include "Nv.h"
 #include "NvZincBlendeVolumeShader.h"
 
 
