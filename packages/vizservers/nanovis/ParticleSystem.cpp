@@ -1,9 +1,21 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include "nvconf.h"
 
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+
+#ifdef _WIN32
+#include <GL/glaux.h>
+#else
+#ifdef HAVE_OPENCV_H
+#include <opencv/cv.h>
+#endif
+#ifdef HAVE_OPENCV_HIGHGUI_H
+#include <opencv/highgui.h>
+#endif
+#endif
 
 #include <vr3d/vr3d.h>
 #include <vr3d/vrTexture3D.h>
@@ -15,15 +27,6 @@
 #include <vrmath/vrMatrix4x4f.h>
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrVector4f.h>
-
-#ifdef _WIN32
-#include <GL/glaux.h>
-#else
-#ifdef notdef
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#endif
-#endif
 
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
@@ -225,7 +228,7 @@ ParticleSystem::ParticleSystem(int width, int height,
     _sortEnd = _sortPassesPerFrame;
     _currentTime = 0;
     _sortEnabled = false;
-    _glypEnabled = false;
+    _glyphEnabled = false;
     _advectionEnabled = false;
     _streamlineEnabled = false;
     _particles = new Particle[_particleMaxCount];
@@ -346,7 +349,6 @@ ParticleSystem::ParticleSystem(int width, int height,
     IplImage* pTextureImage = cvLoadImage("arrows_flip2.png");
     _arrows->setPixels(CF_RGB, DT_UBYTE, pTextureImage->width, pTextureImage->height, (void*) pTextureImage->imageData);
 #else
-
 #ifdef notdef
     // TBD..
     std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
@@ -927,8 +929,8 @@ bool ParticleSystem::isEnabled(EnableEnum enabled)
     case PS_SORT :
         return _sortEnabled;
         break;
-    case PS_GLYPE :
-        return _glypEnabled;
+    case PS_GLYPH :
+        return _glyphEnabled;
         break;
     case PS_DRAW_BBOX :
         return _drawBBoxEnabled;
@@ -947,8 +949,8 @@ void ParticleSystem::enable(EnableEnum enabled)
     case PS_SORT :
         _sortEnabled = true;
         break;
-    case PS_GLYPE :
-        _glypEnabled = true;
+    case PS_GLYPH :
+        _glyphEnabled = true;
         break;
     case PS_DRAW_BBOX :
         _drawBBoxEnabled = true;
@@ -968,8 +970,8 @@ void ParticleSystem::disable(EnableEnum enabled)
     case PS_SORT :
         _sortEnabled = false;
         break;
-    case PS_GLYPE :
-        _glypEnabled = false;
+    case PS_GLYPH :
+        _glyphEnabled = false;
         break;
     case PS_DRAW_BBOX :
         _drawBBoxEnabled = false;
@@ -1672,7 +1674,7 @@ void ParticleSystem::render()
     } else {
         glScalef(_scalex, _scaley, _scalez);
         glTranslatef(-0.5f, -0.5f, -0.5f);
-        if (_glypEnabled) {
+        if (_glyphEnabled) {
             if (_drawBBoxEnabled) drawUnitBox();
             glColor3f(1, 1, 1);
             glDepthMask(GL_FALSE);

@@ -17,7 +17,6 @@
 #ifndef RAPPTURE_DX_H
 #define RAPPTURE_DX_H
 
-// #include "rappture2.h"
 #include <dx/dx.h>
 #include <RpOutcome.h>
 

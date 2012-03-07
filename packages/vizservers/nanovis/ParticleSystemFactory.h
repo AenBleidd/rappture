@@ -11,13 +11,13 @@ class ParticleSystem;
 class ParticleSystemFactory
 {
     ParticleSystem *_newParticleSystem;
-public :
+public:
     ParticleSystemFactory();
     ~ParticleSystemFactory();
 
     ParticleSystem *create(const std::string& fileName);
 
-private :
+private:
     void parseParticleSysInfo(const char **attrs);
     void parseEmitterInfo(const char **attrs);
 
