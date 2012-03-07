@@ -5,7 +5,7 @@
 #include <vr3d/vrEnums.h>
 #include <vr3d/vrTexture.h>
 
-class Vr3DExport vrTexture2D : public vrTexture
+class vrTexture2D : public vrTexture
 {
     /**
      * @brief Two-dimensional texture width.

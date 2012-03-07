@@ -1,19 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-#include <string.h>
-#include <math.h>
-#include <valarray>
-
 #include <vr3d/vrTexture3D.h>
-
-#ifdef _WIN32
-inline unsigned int log2(unsigned int x) 
-{
-    unsigned int i = 0;
-    while ( ( x = ( x >> 1 ) ) != 0 ) i++;
-	return i;     
-}
-#endif
 
 vrTexture3D::vrTexture3D() :
     _width(0),
