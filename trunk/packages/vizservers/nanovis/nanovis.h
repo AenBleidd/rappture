@@ -40,9 +40,10 @@
 #include <fcntl.h>
 #include <signal.h>
 
+#include <rappture.h>
+
 #include "define.h"
 #include "global.h"
-#include "rappture.h"
 #include "NvCamera.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"

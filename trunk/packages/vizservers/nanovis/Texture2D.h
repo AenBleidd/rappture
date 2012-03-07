@@ -19,8 +19,8 @@
 
 #include <GL/glew.h>
 
-class Texture2D{
-	
+class Texture2D
+{
 public:
   int width;
   int height;

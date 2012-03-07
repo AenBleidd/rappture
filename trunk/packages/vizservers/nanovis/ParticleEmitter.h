@@ -16,7 +16,7 @@ public:
 
     float _minLifeTime;
     float _maxLifeTime;
-	
+
     // [0..1] * _maxPositionOffset;
     vrVector3f _maxPositionOffset;
 

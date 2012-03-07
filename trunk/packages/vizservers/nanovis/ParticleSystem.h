@@ -69,7 +69,7 @@ class ParticleSystem
 public:
     enum EnableEnum {
         PS_SORT = 1,
-        PS_GLYPE = 2,
+        PS_GLYPH = 2,
         PS_DRAW_BBOX = 4,
         PS_ADVECTION = 8,
         PS_STREAMLINE = 16,
@@ -154,7 +154,6 @@ public:
     vrVector3f *_positionBuffer;
     color4 *_colorBuffer;
     unsigned _colorBufferID;
-
     //////////////////////////////////////////
     vrTexture2D *_arrows;
 
@@ -165,7 +164,7 @@ public:
     float _scalex, _scaley, _scalez;
 
     bool _sortEnabled;
-    bool _glypEnabled;
+    bool _glyphEnabled;
     bool _drawBBoxEnabled;
     bool _advectionEnabled;
     bool _streamlineEnabled;
@@ -267,7 +266,6 @@ public:
     void createRenderTargets();
     void createSortRenderTargets();
     void createStreamlineRenderTargets();
-
     void advectStreamlines();
     void renderStreamlines();
 

@@ -1,22 +1,20 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include <stdio.h>
+#include <string.h>
+
+#include <expat.h>
 
 #include <vrutil/vrFilePath.h>
 
 #include "ParticleSystemFactory.h"
 #include "ParticleSystem.h"
-
-#include <stdio.h>
 #include "Trace.h"
-
-#include <expat.h>
-
-#include <string.h>
 
 #define BUFSIZE 4096
 
 void ParticleSystemFactory::text(void *data, const XML_Char *txt, int len)
 {
-}  
+}
 
 void ParticleSystemFactory::startElement(void *userData, const char *elementName, const char **attrs)
 {
@@ -84,7 +82,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
     float pointSize = -1.0f;
     int numOfUsedParticles = -1;
     bool sortEnabled = false;
-    bool glypEnabled = false;
+    bool glyphEnabled = false;
     bool bboxVisible = false;
     bool advectionEnabled = false;
     bool streamlineEnabled = false;
@@ -113,9 +111,9 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
         } else if (!strcmp(attrs[i], "sort-enabled")) {
             if (!strcmp(attrs[i + 1], "true"))
                 sortEnabled = true;
-        } else if (!strcmp(attrs[i], "glyp-enabled")) {
+        } else if (!strcmp(attrs[i], "glyph-enabled")) {
             if (!strcmp(attrs[i + 1], "true"))
-                glypEnabled = true;
+                glyphEnabled = true;
         } else if (!strcmp(attrs[i], "bbox-draw-enabled")) {
             if (!strcmp(attrs[i + 1], "true"))
                 bboxVisible = true;
@@ -157,19 +155,28 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
 
             dir = path.substr(0, index + 1);
             path = dir + fileName;
-
-            _newParticleSystem = new ParticleSystem(width, height, path.c_str(), fieldWidth, fieldHeight, fieldDepth, timeVaryingData, startIndex, endIndex);
+		
+            _newParticleSystem =
+                new ParticleSystem(width, height, path.c_str(),
+                                   fieldWidth, fieldHeight, fieldDepth,
+                                   timeVaryingData, startIndex, endIndex);
         } else {
-            _newParticleSystem = new ParticleSystem(width, height, fileName.c_str(), fieldWidth, fieldHeight, fieldDepth, timeVaryingData, startIndex, endIndex);
+            _newParticleSystem =
+                new ParticleSystem(width, height, fileName.c_str(),
+                                   fieldWidth, fieldHeight, fieldDepth,
+                                   timeVaryingData, startIndex, endIndex);
         }
     } else {
         std::string path = vrFilePath::getInstance()->getPath(fileName.c_str());
-        _newParticleSystem = new ParticleSystem(width, height, path.c_str(), fieldWidth, fieldHeight, fieldDepth, timeVaryingData, startIndex, endIndex);
+        _newParticleSystem =
+            new ParticleSystem(width, height, path.c_str(),
+                               fieldWidth, fieldHeight, fieldDepth,
+                               timeVaryingData, startIndex, endIndex);
     }
 
     if (pointSize != -1.0f) _newParticleSystem->setDefaultPointSize(pointSize);
     if (sortEnabled) _newParticleSystem->enable(ParticleSystem::PS_SORT);
-    if (glypEnabled) _newParticleSystem->enable(ParticleSystem::PS_GLYPE);
+    if (glyphEnabled) _newParticleSystem->enable(ParticleSystem::PS_GLYPH);
     if (bboxVisible) _newParticleSystem->enable(ParticleSystem::PS_DRAW_BBOX);
     if (advectionEnabled) _newParticleSystem->enable(ParticleSystem::PS_ADVECTION);
     if (streamlineEnabled) _newParticleSystem->enable(ParticleSystem::PS_STREAMLINE);
