@@ -66,8 +66,6 @@
 #include <BMPImageLoaderImpl.h>
 #include <ImageLoaderFactory.h>
 
-//#define  _LOCAL_ZINC_TEST_
-
 // R2 headers
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
