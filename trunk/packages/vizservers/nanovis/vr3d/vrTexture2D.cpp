@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-#include <string.h>
-#include <math.h>
-#include <valarray>
-
 #include <vr3d/vrTexture2D.h>
 
 #ifdef _WIN32
@@ -30,10 +26,8 @@ vrTexture2D::~vrTexture2D()
 
 void vrTexture2D::setPixels(COLORFORMAT colorFormat, DATATYPE type,
                             int width, int height, void *data)
-
 {
     TEXTARGET target;
-#ifndef OPENGLES
     if ((pow(2.0f, (float)log2(width)) != width) && 
         (pow(2.0f, (float)log2(height)) != height)) {
         if (type == DT_FLOAT) {
@@ -44,9 +38,6 @@ void vrTexture2D::setPixels(COLORFORMAT colorFormat, DATATYPE type,
     } else {
         target = TT_TEXTURE_2D;
     }
-#else
-    target = TT_TEXTURE_2D;
-#endif
 
     setPixels(target, colorFormat, colorFormat, type, width, height, data);
 }
@@ -54,7 +45,8 @@ void vrTexture2D::setPixels(COLORFORMAT colorFormat, DATATYPE type,
 void vrTexture2D::setPixels(TEXTARGET target,
                             COLORFORMAT internalColorFormat,
                             COLORFORMAT colorFormat,
-                            DATATYPE type, int width, int height, void* data)
+                            DATATYPE type,
+                            int width, int height, void *data)
 {
     _target = target;
     _width = width;

@@ -15,5 +15,5 @@ vrTexture::vrTexture() :
 
 vrTexture::~vrTexture()
 {
-    ::glDeleteTextures(1, &_objectID);
+    glDeleteTextures(1, &_objectID);
 }

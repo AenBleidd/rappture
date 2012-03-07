@@ -1,18 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+
 #include <vr3d/vrTexture1D.h>
-
-#include <string.h>
-#include <math.h>
-#include <valarray> 
-
-#ifdef _WIN32
-inline unsigned int log2(unsigned int x) 
-{
-    unsigned int i = 0;
-    while ( ( x = ( x >> 1 ) ) != 0 ) i++;
-	return i;     
-}
-#endif
 
 vrTexture1D::vrTexture1D(bool depth):
     _width(0)
@@ -42,10 +30,9 @@ void vrTexture1D::setPixels(TEXTARGET target,  COLORFORMAT internalColorFormat,
     _colorFormat = colorFormat;
     _compCount = GetNumComponent(_colorFormat);
 
-    if (_objectID)
-	{
-            glDeleteTextures(1, &_objectID);
-	}
+    if (_objectID) {
+        glDeleteTextures(1, &_objectID);
+    }
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glGenTextures(1, &_objectID);
@@ -54,7 +41,6 @@ void vrTexture1D::setPixels(TEXTARGET target,  COLORFORMAT internalColorFormat,
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, _magFilter);
     glTexParameteri(_target, GL_TEXTURE_MIN_FILTER, _minFilter);
     glTexParameteri(_target, GL_TEXTURE_WRAP_S, _wrapS);
-
     glTexImage1D(_target, 0, _internalColorFormat, _width, 0, _colorFormat, _type, data);
 }
 

@@ -29,7 +29,7 @@ void vrUpdateTimeStamp()
 
 void vrInit()
 {
-    ::glewInit();
+    glewInit();
 }
 
 void vrExit()

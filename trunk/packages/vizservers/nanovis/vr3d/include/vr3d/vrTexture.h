@@ -11,7 +11,7 @@
 #include <vr3d/vr3d.h>
 #include <vr3d/vrEnums.h>
 
-class Vr3DExport vrTexture
+class vrTexture
 {
 protected:
     /**

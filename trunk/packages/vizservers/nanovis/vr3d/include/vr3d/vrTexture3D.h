@@ -4,7 +4,7 @@
 
 #include <vr3d/vrTexture.h>
 
-class Vr3DExport vrTexture3D : public vrTexture
+class vrTexture3D : public vrTexture
 {
     /**
      * @brief Three-dimensional texture width.
@@ -160,4 +160,4 @@ inline TEXWRAP vrTexture3D::getWrapT() const
     return _wrapT;
 }
 
-#endif 
+#endif
