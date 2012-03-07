@@ -160,7 +160,6 @@ OBJS		= \
 		Trace.o \
 		TransferFunction.o \
 		Unirect.o \
-		Util.o \
 		VelocityArrowsSlice.o \
 		Volume.o \
 		VolumeInterpolator.o \
@@ -348,7 +347,6 @@ Texture3D.o: Texture3D.cpp Texture3D.h $(AUXSRC)
 Trace.o: Trace.cpp Trace.h
 TransferFunction.o: TransferFunction.cpp
 Unirect.o: Unirect.cpp Unirect.h Trace.h
-Util.o: Util.cpp Util.h
 VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
 Volume.o: Volume.cpp Volume.h $(AUXSRC)
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h

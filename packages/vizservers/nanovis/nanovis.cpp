@@ -40,7 +40,6 @@
 #include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
-#include "Util.h"
 #include <NvLIC.h>
 #include <Trace.h>
 

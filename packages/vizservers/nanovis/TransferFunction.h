@@ -13,24 +13,26 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#ifndef TRANSFER_FUNCTION_H
+#define TRANSFER_FUNCTION_H
 
-#ifndef _TRANSFER_FUNCTION_H_
-#define _TRANSFER_FUNCTION_H_
-
-
-#include "Texture1D.h"
 #include <R2/R2Object.h>
 
+#include "Texture1D.h"
+#include "Vector3.h"
 
-class TransferFunction : public R2Object {
+class TransferFunction : public R2Object
+{
     int _size;			//the resolution of the color map, how many
 				//(RGBA) quadraples
     float* _data;
     Texture1D* _tex;		//the texture storing the colors 
     const char *_name;
     GLuint _id;			//OpenGL's texture identifier
+
 protected :
     ~TransferFunction();
+
 public:
     TransferFunction(int size, float *data);
     void update(float *data);
@@ -56,6 +58,9 @@ public:
     void name(const char *name) {
 	_name = name;
     }
+
+    static void sample(float fraction, float *key, int count, Vector3 *keyValue, Vector3 *ret);
+    static void sample(float fraction, float *key, int count, float *keyValue, float *ret);
 };
 
 #endif
