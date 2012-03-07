@@ -2,8 +2,6 @@
 #ifndef VR3D_H
 #define VR3D_H
 
-#include <list>
-
 #include <GL/glew.h>
 
 #ifdef __cplusplus

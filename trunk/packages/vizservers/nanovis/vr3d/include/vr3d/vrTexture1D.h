@@ -41,9 +41,8 @@ public :
      */
     void setWrapS(TEXWRAP wrap);
 
-
     /**
-     * @brief set wrap mode
+     * @brief get wrap mode
      */
     TEXWRAP getWrapS() const;
 
