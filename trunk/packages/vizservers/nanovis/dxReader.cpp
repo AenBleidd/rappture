@@ -40,8 +40,6 @@
 #include "ZincBlendeVolume.h"
 #include "NvZincBlendeReconstructor.h"
 
-#define  _LOCAL_ZINC_TEST_ 0
-
 /* Load a 3D volume from a dx-format file
  */
 Volume *
@@ -125,8 +123,8 @@ load_volume_stream2(Rappture::Outcome &result, const char *tag,
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
         int count = 0;
-                // found one of the delta lines
-                if (ddx != 0.0) {
+        // found one of the delta lines
+        if (ddx != 0.0) {
             dx = ddx;
             count++;
         }

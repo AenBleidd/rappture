@@ -70,13 +70,6 @@
 #include "Unirect.h"
 
 #define PLANE_CMD               0
-#define __TEST_CODE__           0
-// FOR testing new functions
-#define _LOCAL_ZINC_TEST_       0
-
-#if _LOCAL_ZINC_TEST_
-/* #include "Test.h" */
-#endif
 
 // EXTERN DECLARATIONS
 // in Nv.cpp
@@ -1147,35 +1140,17 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     bytes = buf.bytes();
     nBytes = buf.size();
 
-#if _LOCAL_ZINC_TEST_
-    //FILE* fp = fopen("/home/nanohub/vrinside/nv/data/HOON/QDWL_100_100_50_strain_8000i.nd_zatom_12_1", "rb");
-    FILE* fp;
-
-    fp = fopen("/home/nanohub/vrinside/nv/data/HOON/GaAs_AlGaAs_2QD_B4.nd_zc_1_wf", "rb");
-    if (fp == NULL) {
-        ERROR("cannot open the file\n");
-        return TCL_ERROR;
-    }
-    unsigned char* b = (unsigned char*)malloc(nBytes);
-    fread(b, nBytes, 1, fp);
-    fclose(fp);
-#endif  /*_LOCAL_ZINC_TEST_*/
     TRACE("Checking header[%.20s]\n", bytes);
 
-    Volume *volPtr;
-    volPtr = NULL;			// Supress compiler warning.
-    
+    Volume *volPtr = NULL;
+
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
         TRACE("ZincBlende stream is in\n");
          //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
         //fdata.write(buf.bytes(),buf.size());
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
 
-#if _LOCAL_ZINC_TEST_
-        volPtr = NvZincBlendeReconstructor::getInstance()->loadFromMemory(b);
-#else
         volPtr = NvZincBlendeReconstructor::getInstance()->loadFromMemory((void*) buf.bytes());
-#endif  /*_LOCAL_ZINC_TEST_*/
         if (volPtr == NULL) {
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
@@ -1198,18 +1173,6 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	}
 	Tcl_SetHashValue(hPtr, volPtr);
 	volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
-#if __TEST_CODE__
-    } else if ((nBytes > 5) && (strncmp(bytes, "<FET>", 5) == 0)) {
-        TRACE("FET loading...\n");
-        std::stringstream fdata;
-        fdata.write(nBytes - 5, bytes + 5);
-	Rappture::Outcome context;
-	volPtr = load_volume_stream3(context, tag, fdata);
-	if (volPtr == NULL) {
-            Tcl_AppendResult(interp, context.remark(), (char*)NULL);
-            return TCL_ERROR;
-        }
-#endif  /*__TEST_CODE__*/
     } else {
 	if ((nBytes > 5) && (strncmp(bytes, "<ODX>", 5) == 0)) {
 	    bytes += 5;
@@ -2393,9 +2356,7 @@ initTcl()
     Tcl_CreateObjCommand(interp, "unirect3d",   Unirect3dCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "up",          UpCmd,          NULL, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      NULL, NULL);
-#if __TEST_CODE__
-    Tcl_CreateObjCommand(interp, "test", TestCmd, NULL, NULL);
-#endif
+
     Tcl_InitHashTable(&NanoVis::volumeTable, TCL_STRING_KEYS);
     Tcl_InitHashTable(&NanoVis::heightmapTable, TCL_STRING_KEYS);
     // create a default transfer function
