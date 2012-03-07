@@ -66,12 +66,12 @@ public:
     void setWrapT(TEXWRAP wrap);
 
     /**
-     * @brief set wrap mode
+     * @brief get wrap mode
      */
     TEXWRAP getWrapS() const;
 
     /*
-     * @brief set wrap mode
+     * @brief get wrap mode
      */
     TEXWRAP getWrapT() const;
 

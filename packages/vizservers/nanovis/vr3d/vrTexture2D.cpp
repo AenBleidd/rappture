@@ -1,5 +1,7 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
+#include <math.h>
+
 #include <vr3d/vrTexture2D.h>
 
 #ifdef _WIN32
