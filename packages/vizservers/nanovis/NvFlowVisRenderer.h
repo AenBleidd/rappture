@@ -1,7 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _NVFLOWVISRENDERER_H
-#define  _NVFLOWVISRENDERER_H
-#pragma once
+#ifndef NVFLOWVISRENDERER_H
+#define NVFLOWVISRENDERER_H
 
 #include "GL/glew.h"
 #include "Cg/cgGL.h"
@@ -89,5 +88,4 @@ public:
     }
 };
 
-
-#endif /* _NVFLOWVISRENDERER_H */
+#endif

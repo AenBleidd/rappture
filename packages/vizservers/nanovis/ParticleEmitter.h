@@ -1,22 +1,24 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
+#ifndef PARTICLEEMITTER_H
+#define PARTICLEEMITTER_H
 
-#include "datatype.h"
 #include <string>
+
+#include <vrmath/vrVector3f.h>
 
 class ParticleEmitter
 {
 public:
     std::string _name;
-    float3 _position;
+    vrVector3f _position;
 
-    float3 _oldPosition;
+    vrVector3f _oldPosition;
 
     float _minLifeTime;
     float _maxLifeTime;
 	
     // [0..1] * _maxPositionOffset;
-    float3 _maxPositionOffset;
+    vrVector3f _maxPositionOffset;
 
     int _minNumOfNewParticles;
     int _maxNumOfNewParticles;
@@ -76,3 +78,5 @@ inline bool ParticleEmitter::isEnabled() const
 {
     return _enabled;
 }
+
+#endif
