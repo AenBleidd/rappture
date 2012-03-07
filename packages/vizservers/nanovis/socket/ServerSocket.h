@@ -18,7 +18,6 @@
 
 #include "Socket.h"
 
-
 class ServerSocket : private Socket
 {
  private:

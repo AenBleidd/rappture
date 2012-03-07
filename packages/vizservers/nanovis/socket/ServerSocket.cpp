@@ -16,7 +16,6 @@
 #include "ServerSocket.h"
 #include "SocketException.h"
 
-
 ServerSocket::ServerSocket ( int port )
 {
   connected = false;

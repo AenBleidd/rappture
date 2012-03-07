@@ -37,8 +37,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef USE_POINTSET_RENDERER
 #include "PointSetRenderer.h"
 #include "PointSet.h"
+#endif
+
 #include <NvLIC.h>
 #include <Trace.h>
 
@@ -107,8 +110,10 @@ NvCamera* NanoVis::cam = NULL;
 Tcl_HashTable NanoVis::volumeTable;
 Tcl_HashTable NanoVis::heightmapTable;
 VolumeRenderer* NanoVis::vol_renderer = NULL;
+#ifdef USE_POINTSET_RENDERER
 PointSetRenderer* NanoVis::pointset_renderer = NULL;
 std::vector<PointSet*> NanoVis::pointSet;
+#endif
 PlaneRenderer* NanoVis::plane_render = NULL;
 Texture2D* NanoVis::plane[10];
 NvColorTableRenderer* NanoVis::color_table_renderer = NULL;
@@ -695,7 +700,7 @@ void CgErrorCallback(void)
 {
     CGerror lastError = cgGetError();
 
-    if(lastError) {
+    if (lastError) {
         TRACE("\n---------------------------------------------------\n");
         TRACE("%s\n\n", cgGetErrorString(lastError));
         TRACE("%s\n", cgGetLastListing(g_context));
@@ -755,7 +760,7 @@ void NanoVis::init(const char* path)
     grid = new Grid();
     grid->setFont(fonts);
 
-#ifdef notdef
+#ifdef USE_POINTSET_RENDERER
     pointset_renderer = new PointSetRenderer();
 #endif
 }
@@ -1651,7 +1656,7 @@ NanoVis::display()
         plane_render->render();
         perf->disable();
     }
-	TRACE("in display: render heightmap\n");
+    TRACE("in display: render heightmap\n");
     perf->reset();
     CHECK_FRAMEBUFFER_STATUS();
     TRACE("leaving display\n");
@@ -2115,8 +2120,8 @@ NanoVis::xinetd_listen(void)
             // non-blocking for next read -- we might not get anything
             fcntl(0, F_SETFL, flags | O_NONBLOCK);
             isComplete = false;
-	    nCommands++;
-	    CHECK_FRAMEBUFFER_STATUS();
+            nCommands++;
+            CHECK_FRAMEBUFFER_STATUS();
         }
     }
     fcntl(0, F_SETFL, flags);
@@ -2185,6 +2190,7 @@ main(int argc, char **argv)
     const char *path;
     char *newPath;
     struct timeval tv;
+
     newPath = NULL;
     path = NULL;
     NanoVis::stdin = stdin;

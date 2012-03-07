@@ -1,14 +1,14 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __R2_FONTS_H__
-#define __R2_FONTS_H__
+#ifndef R2_FONTS_H
+#define R2_FONTS_H
 
 #include <R2/R2.h>
 #include <R2/R2Object.h>
 #include <R2/R2string.h>
 #include <vector>
 
-class R2Fonts : public R2Object {
-
+class R2Fonts : public R2Object
+{
     struct R2FontAttributes {
         char *_fontName;
         R2int32 _textureWidth;

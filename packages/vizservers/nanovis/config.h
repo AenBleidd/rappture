@@ -35,6 +35,8 @@
 
 #define NEW_FLOW_ENGINE		1
 
+//#define USE_POINTSET_RENDERER
+
 /* 
  * The following define controls whether new load_volume_stream or
  * load_volume_stream2 are used to load DX data.  The difference is that

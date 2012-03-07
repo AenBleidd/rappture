@@ -1,9 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <float.h>
 #include <tcl.h>
-#include <Unirect.h>
-#include "RpField1D.h"
-#include "RpFieldRect3D.h"
+
+#include <RpField1D.h>
+#include <RpFieldRect3D.h>
+
+#include "Unirect.h"
 #include "Trace.h"
 
 extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 

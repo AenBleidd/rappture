@@ -13,8 +13,10 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _VECTOR4_H_ 
-#define _VECTOR4_H_
+#ifndef VECTOR4_H 
+#define VECTOR4_H
+
+#include <vector>
 
 #include "Trace.h"
 
@@ -72,5 +74,7 @@ public:
         return Vector4(x / op2, y / op2, z / op2, w / op2);
     }
 };
+
+typedef std::vector<Vector4> Vector4Array;
 
 #endif

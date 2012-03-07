@@ -13,10 +13,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _VECTOR3_H_
-#define _VECTOR3_H_
+#ifndef VECTOR3_H
+#define VECTOR3_H
 
-#include <math.h> 
+#include <math.h>
+
+#include <vector>
+
 #include "Mat4x4.h"
 
 class Vector3
@@ -139,7 +142,7 @@ public:
 
     void transform(const Vector3& v, const Mat4x4& mat)
     {
-	const float* m = mat.m;
+	const float *m = mat.m;
 	x = m[0] * v.x + m[4] * v.y + m[8]  * v.z + m[12];
 	y = m[1] * v.x + m[5] * v.y + m[9]  * v.z + m[13];
 	z = m[2] * v.x + m[6] * v.y + m[10] * v.z + m[14];
@@ -165,5 +168,7 @@ private:
         return (M_PI * degree) / 180.0;
     }
 };
+
+typedef std::vector<Vector3> Vector3Array;
 
 #endif

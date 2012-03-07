@@ -16,10 +16,10 @@
 #ifndef _RENDER_SERVER_H_
 #define _RENDER_SERVER_H_
 
-#include "ServerSocket.h"
-#include "SocketException.h"
 #include <string>
 
+#include "ServerSocket.h"
+#include "SocketException.h"
 
 class RenderServer{
 	

@@ -15,7 +15,6 @@
  */
 #include "RenderServer.h"
 
-
 RenderServer::RenderServer(){}
 
 RenderServer::RenderServer(int port_num){
