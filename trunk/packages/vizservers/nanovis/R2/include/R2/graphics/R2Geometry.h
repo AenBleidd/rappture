@@ -1,12 +1,13 @@
  /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _R2_GEOMETRY_H_
-#define _R2_GEOMETRY_H_
+#ifndef R2_GEOMETRY_H
+#define R2_GEOMETRY_H
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 #include <R2/graphics/R2VertexBuffer.h>
 #include <R2/graphics/R2IndexBuffer.h>
 
-class R2Geometry {
+class R2Geometry
+{
 public :
     enum {
         LINES = GL_LINES,
@@ -16,21 +17,20 @@ public :
         QUADS = GL_QUADS
     };
 
-private :
-    R2VertexBuffer* _vertexBuffer;
-    R2VertexBuffer* _colorBuffer;
-    R2IndexBuffer* _indexBuffer;
-    int _primitiveType;
-
 public :
     R2Geometry(int primitive, R2VertexBuffer* vertexBuffer, 
                R2IndexBuffer* indexBuffer);
     R2Geometry(int primitive, R2VertexBuffer* pointBuffer, 
                R2VertexBuffer* colorBuffer, R2IndexBuffer* indexBuffer);
     ~R2Geometry();
-    
-public :
+
     void render();
+
+private :
+    R2VertexBuffer *_vertexBuffer;
+    R2VertexBuffer *_colorBuffer;
+    R2IndexBuffer *_indexBuffer;
+    int _primitiveType;
 };
 
 #endif /*_R2_GEOMETRY_H_*/

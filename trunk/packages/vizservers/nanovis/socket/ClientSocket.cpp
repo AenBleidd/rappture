@@ -16,7 +16,6 @@
 #include "ClientSocket.h"
 #include "SocketException.h"
 
-
 ClientSocket::ClientSocket ( std::string host, int port )
 {
   if ( ! Socket::create() )

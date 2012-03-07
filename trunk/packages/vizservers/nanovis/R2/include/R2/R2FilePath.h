@@ -1,11 +1,13 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __R2_FILE_PATH_H__
-#define __R2_FILE_PATH_H__
+#ifndef R2_FILE_PATH_H
+#define R2_FILE_PATH_H
 
 #include <list>
+
 #include <R2/R2string.h>
 
-class R2FilePath {
+class R2FilePath
+{
     typedef std::list<R2string> R2stringList;
     typedef std::list<R2string>::iterator R2stringListIter;
     

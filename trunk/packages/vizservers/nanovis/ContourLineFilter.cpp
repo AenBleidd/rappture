@@ -4,13 +4,14 @@
  * @note : for this class
  */
 
-#include <string>
-#include "ContourLineFilter.h"
-#include <R2/graphics/R2VertexBuffer.h>
 #include <stdlib.h>
 #include <memory.h>
-#include "Vector4.h"
-#include "Vector3.h"
+
+#include <string>
+
+#include <R2/graphics/R2VertexBuffer.h>
+
+#include "ContourLineFilter.h"
 
 ContourLineFilter::ContourLineFilter()
     : _colorMap(0), _top(false)

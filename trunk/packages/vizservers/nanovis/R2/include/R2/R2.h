@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __R2_H__
-#define __R2_H__
+#ifndef R2_H
+#define R2_H
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -63,5 +63,5 @@ enum R2TEXWRAP {
 extern void R2Init();
 extern void R2Exit();
 
-#endif // __R2_H__
+#endif
 

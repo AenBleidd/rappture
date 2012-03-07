@@ -11,7 +11,6 @@
 #include "Grid.h"
 #include "HeightMap.h"
 #include "ContourLineFilter.h"
-#include "TypeDefs.h"
 #include "Texture1D.h"
 #include "R2/R2FilePath.h"
 #include "RpField1D.h"

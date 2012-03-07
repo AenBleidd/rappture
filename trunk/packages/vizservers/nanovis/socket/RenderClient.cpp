@@ -14,7 +14,6 @@
  * ======================================================================
  */
 #include <GL/freeglut.h>
-#include "RenderClient.h"
 #include <stdlib.h>
 #include <sstream>
 #include <string.h>
@@ -22,13 +21,13 @@
 #include <iostream>
 #include <assert.h>
 
-#include "../Event.h"
+#include "RenderClient.h"
+#include "Event.h"
 
 using namespace std;
 
 Event* event[5000];
 int cur_event = 0;
-
 
 int width, height;
 RenderClient::RenderClient(){}

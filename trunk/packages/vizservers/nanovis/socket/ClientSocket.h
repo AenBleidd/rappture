@@ -18,7 +18,6 @@
 
 #include "Socket.h"
 
-
 class ClientSocket : private Socket
 {
  public:

@@ -16,11 +16,11 @@
 #ifndef _RENDER_CLIENT_H_
 #define _RENDER_CLIENT_H_
 
-#include "ClientSocket.h"
-#include "SocketException.h"
 #include <iostream>
 #include <string>
 
+#include "ClientSocket.h"
+#include "SocketException.h"
 
 class RenderClient{
 	
