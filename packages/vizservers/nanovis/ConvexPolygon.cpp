@@ -15,7 +15,7 @@
  */
 #include <assert.h>
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include "ConvexPolygon.h"
 #include "Trace.h"
