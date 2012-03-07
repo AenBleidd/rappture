@@ -128,7 +128,6 @@ OBJS		= \
 		NvEventLog.o \
 		NvFlowVisRenderer.o \
 		NvLIC.o \
-		NvLoadFile.o \
 		NvParticleAdvectionShader.o \
 		NvParticleRenderer.o \
 		NvRegularVolumeShader.o \
@@ -317,7 +316,6 @@ NvDefaultTFData.o: NvDefaultTFData.cpp
 NvEventLog.o: NvEventLog.cpp NvEventLog.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
 NvLIC.o: NvLIC.cpp NvLIC.h
-NvLoadFile.o: NvLoadFile.cpp NvLoadFile.h
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
 NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
