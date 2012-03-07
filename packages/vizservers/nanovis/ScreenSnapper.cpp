@@ -35,18 +35,18 @@ ScreenSnapper::ScreenSnapper(int w, int h, GLuint type,
     assert(channel_per_pixel == 3 || channel_per_pixel == 4); 
     n_channels_per_pixel = channel_per_pixel;
 
-    if(type == GL_FLOAT)
+    if (type == GL_FLOAT)
         data = new float[w*h*channel_per_pixel];
-    else if(type == GL_UNSIGNED_BYTE)
+    else if (type == GL_UNSIGNED_BYTE)
         data = new unsigned char[w*h*channel_per_pixel];
   
-    assert(data!=0);
+    assert(data != 0);
     reset(0);   //reset data
 }
 
 ScreenSnapper::~ScreenSnapper()
 {
-    if(data_type == GL_FLOAT)
+    if (data_type == GL_FLOAT)
         delete[] (float*)data;
     else if(data_type == GL_UNSIGNED_BYTE)
         delete[] (unsigned char*)data;
@@ -60,11 +60,9 @@ ScreenSnapper::reset(char c)
     case GL_FLOAT:
         elemSize = sizeof(float);
 	break;
-
     case GL_UNSIGNED_BYTE:
         elemSize = sizeof(unsigned char);
 	break;
-
     default:
 	assert(0);
 	break;
@@ -77,47 +75,47 @@ ScreenSnapper::reset(char c)
 void 
 ScreenSnapper::capture()
 {
-    if(data_type == GL_FLOAT){
-        if(n_channels_per_pixel==3)
+    if (data_type == GL_FLOAT) {
+        if (n_channels_per_pixel == 3)
             glReadPixels(0, 0, width, height, GL_RGB, GL_FLOAT, data);
-        else if(n_channels_per_pixel==4)
+        else if (n_channels_per_pixel == 4)
             glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, data);
-    }
-    else if(data_type == GL_UNSIGNED_BYTE){
-        if(n_channels_per_pixel==3)
+    } else if (data_type == GL_UNSIGNED_BYTE) {
+        if (n_channels_per_pixel == 3)
             glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-        else if(n_channels_per_pixel==4)
+        else if (n_channels_per_pixel == 4)
             glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
     }
-    assert(glGetError()==0);
+    assert(glGetError() == 0);
 }
 
-void 
+void
 ScreenSnapper::print()
 {
-    for(int i=0; i<width*height; i++){
-        if(data_type == GL_FLOAT){
-            if(n_channels_per_pixel==3)
+    for (int i = 0; i < width*height; i++) {
+        if (data_type == GL_FLOAT) {
+            if (n_channels_per_pixel == 3) {
                 TRACE("(%f %f %f) ", ((float*)data)[3*i], 
-		       ((float*)data)[3*i+1], ((float*)data)[3*i+2]);
-            else if(n_channels_per_pixel==4)
+                      ((float*)data)[3*i+1], ((float*)data)[3*i+2]);
+            } else if (n_channels_per_pixel==4) {
                 TRACE("(%f %f %f %f) ", ((float*)data)[4*i], 
 		      ((float*)data)[4*i+1],
 		      ((float*)data)[4*i+2],
-		       ((float*)data)[4*i+3]);
-        }
-        else if(data_type == GL_UNSIGNED_BYTE){
-            if(n_channels_per_pixel==3)
+                      ((float*)data)[4*i+3]);
+            }
+        } else if (data_type == GL_UNSIGNED_BYTE) {
+            if (n_channels_per_pixel==3) {
                 TRACE("(%d %d %d) ", 
-                        ((unsigned char*)data)[3*i], 
-                        ((unsigned char*)data)[3*i+1], 
-		       ((unsigned char*)data)[3*i+2]);
-            else if(n_channels_per_pixel==4)
+                      ((unsigned char*)data)[3*i], 
+                      ((unsigned char*)data)[3*i+1], 
+                      ((unsigned char*)data)[3*i+2]);
+            } else if (n_channels_per_pixel == 4) {
                 TRACE("(%d %d %d %d) ", 
-                        ((unsigned char*)data)[4*i], 
-                        ((unsigned char*)data)[4*i+1],
-                        ((unsigned char*)data)[4*i+2],
-		       ((unsigned char*)data)[4*i+3]);
+                      ((unsigned char*)data)[4*i], 
+                      ((unsigned char*)data)[4*i+1],
+                      ((unsigned char*)data)[4*i+2],
+                      ((unsigned char*)data)[4*i+3]);
+            }
         }
     }
 }

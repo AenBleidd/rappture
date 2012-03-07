@@ -17,23 +17,27 @@
 #ifndef _SPHERE_H_
 #define _SPHERE_H_
 
+#include <GL/glew.h>
+#include <GL/glu.h>
+
 #include "Trace.h"
-#include <GL/glut.h>
 
 #include "Color.h"
 #include "Renderable.h"
 
-class Sphere : public Renderable{
-
+class Sphere : public Renderable
+{
 public:
     float radius;
     Color color;
     int stack;
     int slice;
 
-    ~Sphere();
     Sphere(float x, float y, float z, float r, float g, float b, float _radius,
 	   int _stack, int _slice);
+
+    virtual ~Sphere();
+
     void set_vertical_res(int _stack);
     void set_horizontal_res(int _slice);
         

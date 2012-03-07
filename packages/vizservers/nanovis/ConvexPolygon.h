@@ -16,44 +16,59 @@
 #ifndef _CONVEX_POLYGON_H_
 #define _CONVEX_POLYGON_H_
 
-#include "Vector4.h"
-#include "Plane.h"
 #include <assert.h>
 #include <vector>
+
+#include "Vector4.h"
+#include "Plane.h"
 
 typedef std::vector<Vector4> VertexVector;
 typedef std::vector<Vector4> TexVector;
 
-class ConvexPolygon {
+class ConvexPolygon
+{
 public:
     VertexVector vertices;
     TexVector texcoords;
     int volume_id;	//which volume this polygon slice belongs to
-    
-    ConvexPolygon();
+
+    ConvexPolygon()
+    {}
+
     ConvexPolygon(VertexVector vertices);
-    
-    void transform(Mat4x4 mat);
-    void translate(Vector4 shift);
-    
+
+    void transform(const Mat4x4& mat);
+
+    void translate(const Vector4& shift);
+
     // Clips the polygon, retaining the portion where ax + by + cz + d >= 0
-    void clip(Plane &clipPlane, bool copy_to_texcoords);
+    void clip(Plane& clipPlane, bool copy_to_texcoords);
+
     void Emit(bool use_texture);
-    void Emit(bool use_texture, Vector3& shift, Vector3& scale);
+
+    void Emit(bool use_texture, const Vector3& shift, const Vector3& scale);
+
     void copy_vertices_to_texcoords();
 
-    void set_id(int v_id) { 
-	volume_id = v_id; 
-    };
-    void append_vertex(Vector4 vert) {
-	vertices.push_back(vert);
+    void set_id(int v_id)
+    { 
+        volume_id = v_id; 
     }
-    void insert_vertex(unsigned int index, Vector4 vert) {
-	assert(index<vertices.size());
-	vertices.insert(vertices.begin() + index, vert);
+
+    void append_vertex(const Vector4& vert)
+    {
+        vertices.push_back(vert);
     }
-    bool is_retained(Vector4 point, Vector4 plane) {
-	return ((point * plane) >= 0);  
+
+    void insert_vertex(unsigned int index, const Vector4& vert)
+    {
+        assert(index<vertices.size());
+        vertices.insert(vertices.begin() + index, vert);
+    }
+
+    bool is_retained(const Vector4& point, const Vector4& plane)
+    {
+        return ((point * plane) >= 0);  
     }
 };
 

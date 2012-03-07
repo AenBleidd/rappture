@@ -5,7 +5,7 @@
 #include <stdarg.h>
 
 #include <GL/glew.h>
-#include <GL/glut.h>
+
 #include <syslog.h>
 
 static const char *syslogLevels[] = {
@@ -35,8 +35,8 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
 	s++;
     }
-    length = snprintf(message, MSG_LEN, "nanovis (%d) %s: %s:%d ", 
-		      getpid(), syslogLevels[priority],  s, lineNum);
+    length = snprintf(message, MSG_LEN, "%s: %s:%d ", 
+                      syslogLevels[priority], s, lineNum);
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
     syslog(priority, message, length);

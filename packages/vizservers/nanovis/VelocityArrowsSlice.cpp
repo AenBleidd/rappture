@@ -21,7 +21,6 @@
 
 #ifdef USE_NANOVIS_LIB
 #include "global.h"
-#include "Nv.h"
 #include "R2/R2FilePath.h"
 #endif 
 

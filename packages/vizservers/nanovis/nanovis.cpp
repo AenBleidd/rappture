@@ -37,7 +37,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
 #include <NvLIC.h>
@@ -346,7 +345,15 @@ DoExit(int code)
 {
     TRACE("in DoExit\n");
     removeAllData();
-    NvExit();
+
+#ifdef EVENTLOG
+    NvExitEventLog();
+#endif
+
+#ifdef XINETD
+    NvExitService();
+#endif
+
 #if KEEPSTATS
     WriteStats("nanovis", code);
 #endif
@@ -383,7 +390,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     double start, finish;
     int result;
 
-    TRACE("in ExecuteCommand(%s)\n", Tcl_DStringValue(dsPtr));
+    TRACE("command: '%s'", Tcl_DStringValue(dsPtr));
 
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
@@ -702,11 +709,8 @@ void CgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print system information
-    TRACE("-----------------------------------------------------------\n");
-    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR), 
-	   glGetString(GL_VERSION));
-    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
-    TRACE("-----------------------------------------------------------\n");
+    system_info();
+
     if (path == NULL) {
         ERROR("No path defined for shaders or resources\n");
         DoExit(1);
@@ -2093,8 +2097,6 @@ NanoVis::xinetd_listen(void)
             }
             ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
-	    TRACE("in xinetd_listen: checking buffer=%s\n", 
-		  Tcl_DStringValue(&cmdbuffer));
             if (ch == '\n') {
                 isComplete = Tcl_CommandComplete(Tcl_DStringValue(&cmdbuffer));
                 if (isComplete) {
@@ -2190,7 +2192,7 @@ main(int argc, char **argv)
     fprintf(stdout, "NanoVis %s\n", NANOVIS_VERSION);
     fflush(stdout);
 
-    /* openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID,  LOG_USER); */
+    openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID, LOG_USER);
     gettimeofday(&tv, NULL);
     stats.start = tv;
 

@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _AXIS_RANGE_H
-#define _AXIS_RANGE_H
+#ifndef AXIS_RANGE_H
+#define AXIS_RANGE_H
 
 #include <string.h>
 
@@ -49,4 +49,4 @@ public:
     }
 };
 
-#endif /*_AXIS_RANGE_H*/
+#endif

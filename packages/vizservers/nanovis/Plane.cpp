@@ -14,18 +14,20 @@
  * ======================================================================
  */
 #include <assert.h>
+
 #include "Plane.h"
 
-Plane::Plane(float _a, float _b, float _c, float _d) {
-    this->a = _a;
-    this->b = _b;
-    this->c = _c;
-    this->d = _d;
-
+Plane::Plane(float _a, float _b, float _c, float _d) :
+    a(_a),
+    b(_b),
+    c(_c),
+    d(_d)
+{
     assert(a != 0 || b != 0 || c != 0);
 }
 
-Plane::Plane(float coeffs[4]) {
+Plane::Plane(float coeffs[4])
+{
     a = coeffs[0];
     b = coeffs[1];
     c = coeffs[2];
@@ -34,9 +36,9 @@ Plane::Plane(float coeffs[4]) {
     assert(a != 0 || b != 0 || c != 0);
 }
 
-
-void 
-Plane::transform(Mat4x4 mat) {
+void
+Plane::transform(const Mat4x4& mat)
+{
     Vector4 coeffs(a, b, c, d);
 
     Mat4x4 inv = mat.inverse();
@@ -47,21 +49,22 @@ Plane::transform(Mat4x4 mat) {
     d = new_coeffs.w;
 }
 
-void 
-Plane::get_point(Vector3 &point){
-    if (a != 0) { 
-	point.x = -d/a;
-	point.y = 0;
-	point.z = 0;
+void
+Plane::get_point(Vector3& point)
+{
+    if (a != 0) {
+        point.x = -d/a;
+        point.y = 0;
+        point.z = 0;
     } else if (b != 0) {
-	point.y = -d/b;
-	point.x = 0;
-	point.z = 0;
+        point.y = -d/b;
+        point.x = 0;
+        point.z = 0;
     } else if (c != 0) {
-	point.z = -d /c;
-	point.y = 0;
-	point.x = 0;
-    } else{
-	assert(false);
+        point.z = -d /c;
+        point.y = 0;
+        point.x = 0;
+    } else {
+        assert(false);
     }
 }

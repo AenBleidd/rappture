@@ -55,7 +55,6 @@
 #include "Trace.h"
 #include "nanovis.h"
 #include "CmdProc.h"
-#include "Nv.h"
 #include "PointSetRenderer.h"
 #include "PointSet.h"
 #include "ZincBlendeVolume.h"

@@ -16,54 +16,60 @@
 #ifndef _VECTOR4_H_ 
 #define _VECTOR4_H_
 
-#include <stdio.h>
-#include <Trace.h>
+#include "Trace.h"
 
 class Vector4  
 {
 public:
     float x, y, z, w;
 
-    Vector4(void) {
-	/*empty*/
-    }
-    Vector4(float x_val, float y_val, float z_val, float w_val) {
-	set(x_val, y_val, z_val, w_val);
-    }
-    void perspective_devide(void) {
-	/* Divide vector by w */
-	x /= w, y /= w, z /= w, w = 1.;
+    Vector4()
+    {}
+
+    Vector4(float x_val, float y_val, float z_val, float w_val)
+    {
+        set(x_val, y_val, z_val, w_val);
     }
 
-    void print(void) {
-	TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
-    }
-
-    Vector4 operator +(Vector4 &op2){
-	return Vector4(x + op2.x, y + op2.y, z + op2.z, w + op2.w);
-    }
-
-    Vector4 operator -(Vector4 &op2){
-	return Vector4(x - op2.x, y - op2.y, z - op2.z, w - op2.w);
-    }
-
-    float operator *(Vector4 &op2) {
-	return (x * op2.x) + (y * op2.y) + (z * op2.z) + (w * op2.w);
-    }
-
-    Vector4 operator *(float op2){
-	return Vector4(x * op2, y * op2, z * op2, w * op2);
-    }
-
-    Vector4 operator /(float op2) {
-	return Vector4(x / op2, y / op2, z / op2, w / op2);
-    }
-
-    void operator <(Vector4 &op2) {
-	set(op2.x, op2.y, op2.z, op2.w);
-    }
-    void set(float x_val, float y_val, float z_val, float w_val) {
+    void set(float x_val, float y_val, float z_val, float w_val)
+    {
 	x = x_val, y = y_val, z = z_val, w = w_val;
+    }
+
+    void perspective_divide()
+    {
+        /* Divide vector by w */
+        x /= w, y /= w, z /= w, w = 1.;
+    }
+
+    void print() const
+    {
+        TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
+    }
+
+    Vector4 operator +(const Vector4& op2) const
+    {
+        return Vector4(x + op2.x, y + op2.y, z + op2.z, w + op2.w);
+    }
+
+    Vector4 operator -(const Vector4& op2) const
+    {
+        return Vector4(x - op2.x, y - op2.y, z - op2.z, w - op2.w);
+    }
+
+    float operator *(const Vector4& op2) const
+    {
+        return (x * op2.x) + (y * op2.y) + (z * op2.z) + (w * op2.w);
+    }
+
+    Vector4 operator *(float op2) const
+    {
+        return Vector4(x * op2, y * op2, z * op2, w * op2);
+    }
+
+    Vector4 operator /(float op2) const
+    {
+        return Vector4(x / op2, y / op2, z / op2, w / op2);
     }
 };
 

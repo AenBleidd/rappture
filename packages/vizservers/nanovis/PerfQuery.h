@@ -15,14 +15,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #ifndef _PERFQUERY_H_
 #define _PERFQUERY_H_
 
 #include <stdio.h>
-#include "Trace.h"
+
 #include <GL/glew.h>
 
+#include "Trace.h"
 #include "define.h"
 
 //check if occlusion query is supported
@@ -31,18 +31,17 @@ inline bool check_query_support()
     int bitsSupported = -1;
     glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
 		    &bitsSupported);
-    if(bitsSupported == 0) {
-	INFO("occlusion query not supported!\n");
+    if (bitsSupported == 0) {
+	TRACE("occlusion query not supported!\n");
 	return false;
     } else {
-	INFO("Occlusion query with %d bits supported\n", bitsSupported);
+	TRACE("Occlusion query with %d bits supported\n", bitsSupported);
 	return true;
     }
 }
 
 class PerfQuery
 {
-
 public:
     GLuint id;
     int pixel;
@@ -50,18 +49,19 @@ public:
     PerfQuery();
     ~PerfQuery();
     
-    void enable(void);	//start counting how many pixels are rendered
-    void disable(void);	//stop counting
+    void enable();	//start counting how many pixels are rendered
+    void disable();	//stop counting
 
-    void reset(void) { 
+    void reset()
+    { 
 	pixel = 0; 
     }
-    int get_pixel_count(void) {
+
+    int get_pixel_count()
+    {
 	return pixel;		//return current pixel count
     }
 };
-
-
 
 #endif
 

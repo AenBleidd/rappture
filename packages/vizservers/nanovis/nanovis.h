@@ -44,6 +44,7 @@
 
 #include "define.h"
 #include "global.h"
+
 #include "NvCamera.h"
 #include "ConvexPolygon.h"
 #include "Texture3D.h"
@@ -63,6 +64,7 @@
 #include "PointSet.h"
 #include "HeightMap.h"
 #include "Grid.h"
+#include "VolumeRenderer.h"
 #include "VelocityArrowsSlice.h"
 
 #include "config.h"
@@ -80,26 +82,30 @@ class NvVectorField;
 
 struct Vector2 {
     float x, y;
-    float mag(void) {
+    float mag()
+    {
 	return sqrt(x*x+y*y);
     }
 };
 
-struct RegGrid2{
+struct RegGrid2 {
     int width, height;
     Vector2* field;
     
-    RegGrid2(int w, int h){
+    RegGrid2(int w, int h)
+    {
 	width = w;
 	height = h;
 	field = new Vector2[w*h];
     }
 
-    void put(Vector2& v, int x ,int y) {
+    void put(Vector2& v, int x ,int y)
+    {
 	field[x+y*width] = v;
     }
     
-    Vector2& get(int x, int y) {
+    Vector2& get(int x, int y)
+    {
 	return field[x+y*width];
     }
 };
@@ -108,10 +114,11 @@ class NvLIC;
 class FlowCmd;
 class FlowIterator;
 
-class NanoVis {
+class NanoVis
+{
     //frame buffer for final rendering
     static GLuint final_fbo, final_color_tex, final_depth_rb;
-public:
+
 public:
     static VolumeRenderer* vol_renderer;
     static PointSetRenderer* pointset_renderer;
@@ -157,7 +164,6 @@ public:
     static Tcl_Interp *interp;
     static Tcl_DString cmdbuffer;
 
-public :
     static TransferFunction* get_transfunc(const char *name);
     static TransferFunction* DefineTransferFunction(const char *name, 
         size_t n, float *data);
@@ -202,11 +208,13 @@ public :
 
     static FILE *stdin, *logfile, *recfile;
 
-    static void read_screen(void) {
+    static void read_screen()
+    {
         glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
-                screen_buffer);
+                     screen_buffer);
     }
-    static void offscreen_buffer_capture(void) {
+    static void offscreen_buffer_capture()
+    {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
     }
 

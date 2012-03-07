@@ -3,7 +3,6 @@
 #define __TRACE_H__
 
 #include <GL/glew.h>
-#include <GL/glut.h>
 #include <syslog.h>
 
 #define MAKE_STRING(x) #x

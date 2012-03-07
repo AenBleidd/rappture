@@ -13,29 +13,31 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "Mat4x4.h"
 #include <math.h>
-#include <stdio.h>
-#include <assert.h>
 
-Mat4x4::Mat4x4(float *vals) {
-    int i;
-    for (i=0;i<16;i++)
-	m[i] = vals[i];
+#include "Mat4x4.h"
+
+Mat4x4::Mat4x4(float *vals)
+{
+    for (int i = 0; i < 16; i++) {
+        m[i] = vals[i];
+    }
 }
 
-void 
-Mat4x4::print(){
-    TRACE("\n%f %f %f %f\n", m[0], m[1], m[2], m[3]);
+void
+Mat4x4::print() const
+{
+    TRACE("%f %f %f %f\n", m[0], m[1], m[2], m[3]);
     TRACE("%f %f %f %f\n", m[4], m[5], m[6], m[7]);
     TRACE("%f %f %f %f\n", m[8], m[9], m[10], m[11]);
-    TRACE("%f %f %f %f\n\n", m[12], m[13], m[14], m[15]);
+    TRACE("%f %f %f %f\n", m[12], m[13], m[14], m[15]);
 }
 
-Mat4x4 
-Mat4x4::inverse(){
+Mat4x4
+Mat4x4::inverse() const
+{
     Mat4x4 p;
-	
+
     float m00 = m[0], m01 = m[4], m02 = m[8], m03 = m[12];
     float m10 = m[1], m11 = m[5], m12 = m[9], m13 = m[13];
     float m20 = m[2], m21 = m[6], m22 = m[10], m23 = m[14];
@@ -50,17 +52,17 @@ Mat4x4::inverse(){
     float cof01 = -det33(m12, m13, m10, m22, m23, m20, m32, m33, m30);
     float cof02 =  det33(m13, m10, m11, m23, m20, m21, m33, m30, m31);
     float cof03 = -det33(m10, m11, m12, m20, m21, m22, m30, m31, m32);
-    
+
     float cof10 = -det33(m21, m22, m23, m31, m32, m33, m01, m02, m03);
     float cof11 =  det33(m22, m23, m20, m32, m33, m30, m02, m03, m00);
     float cof12 = -det33(m23, m20, m21, m33, m30, m31, m03, m00, m01);
     float cof13 =  det33(m20, m21, m22, m30, m31, m32, m00, m01, m02);
-    
+
     float cof20 =  det33(m31, m32, m33, m01, m02, m03, m11, m12, m13);
     float cof21 = -det33(m32, m33, m30, m02, m03, m00, m12, m13, m10);
     float cof22 =  det33(m33, m30, m31, m03, m00, m01, m13, m10, m11);
     float cof23 = -det33(m30, m31, m32, m00, m01, m02, m10, m11, m12);
-    
+
     float cof30 = -det33(m01, m02, m03, m11, m12, m13, m21, m22, m23);
     float cof31 =  det33(m02, m03, m00, m12, m13, m10, m22, m23, m20);
     float cof32 = -det33(m03, m00, m01, m13, m10, m11, m23, m20, m21);
@@ -102,12 +104,13 @@ Mat4x4::inverse(){
     p.m[13] = cof31 * inv0;
     p.m[14] = cof32 * inv0;
     p.m[15]= cof33 * inv0;	
-	
+
     return p;
 }
 
-Vector4 
-Mat4x4::multiply_row_vector(Vector4 v){
+Vector4
+Mat4x4::multiply_row_vector(const Vector4& v) const
+{
     Vector4 ret;
     ret.x = (m[0]  * v.x) + (m[1]  * v.y) + (m[2]  * v.z) + (m[3]  * v.w);
     ret.y = (m[4]  * v.x) + (m[5]  * v.y) + (m[6]  * v.z) + (m[7]  * v.w);
@@ -116,8 +119,9 @@ Mat4x4::multiply_row_vector(Vector4 v){
     return ret;
 }
 
-Vector4 
-Mat4x4::transform(Vector4 v){
+Vector4
+Mat4x4::transform(const Vector4& v) const
+{
     Vector4 ret;
     ret.x = v.x*m[0]+v.y*m[4]+v.z*m[8]+v.w*m[12];
     ret.y = v.x*m[1]+v.y*m[5]+v.z*m[9]+v.w*m[13];
@@ -127,7 +131,8 @@ Mat4x4::transform(Vector4 v){
 }
 
 Mat4x4 
-Mat4x4::operator *(Mat4x4 mat){
+Mat4x4::operator *(const Mat4x4& mat) const
+{
     Mat4x4 ret;
     
     ret.m[0] = m[0]*mat.m[0]+m[1]*mat.m[4]+m[2]*mat.m[8]+m[3]*mat.m[12];
@@ -153,15 +158,14 @@ Mat4x4::operator *(Mat4x4 mat){
     return ret;
 }
 
-Mat4x4 
-Mat4x4::transpose(){
+Mat4x4
+Mat4x4::transpose() const
+{
     Mat4x4 ret;
-    for(int i=0; i<4; i++){
-	for(int j=0; j<4; j++){
-	    ret.m[j+4*i] = this->m[i+4*j];
-	}
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            ret.m[j+4*i] = this->m[i+4*j];
+        }
     }
     return ret;
 }
-
-

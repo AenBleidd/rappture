@@ -18,22 +18,27 @@
 
 #include "Vector4.h"
 
-class Mat4x4  
+class Mat4x4
 {
-        
 public:
     float m[16];        //row by row
-    Mat4x4() {
-	/*empty*/
-    };
+
+    Mat4x4()
+    {}
+
     Mat4x4(float *vals);
 
-    void print(void);
-    Mat4x4 inverse(void);
-    Mat4x4 transpose(void);
-    Vector4 multiply_row_vector(Vector4 v);
-    Vector4 transform(Vector4 v);
-    Mat4x4 operator*(Mat4x4 op);
+    void print() const;
+
+    Mat4x4 inverse() const;
+
+    Mat4x4 transpose() const;
+
+    Vector4 multiply_row_vector(const Vector4& v) const;
+
+    Vector4 transform(const Vector4& v) const;
+
+    Mat4x4 operator*(const Mat4x4& op) const;
 };
 
 #endif

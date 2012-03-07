@@ -10,7 +10,6 @@
 #include <fstream>
 
 // nanovis headers
-#include "Nv.h"
 #include "nanovis.h"
 
 // rappture headers

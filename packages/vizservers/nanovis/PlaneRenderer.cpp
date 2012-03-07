@@ -18,7 +18,7 @@
 #include "PlaneRenderer.h"
 #include "Trace.h"
 
-PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height):
+PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height) :
     active_plane(-1),
     n_planes(0),
     render_width(_width),

@@ -13,11 +13,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "Socket.h"
-#include "string.h"
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+
+#include "Socket.h"
 
 ssize_t writen(int fd, void *vptr, size_t n) ;
 ssize_t readn(int fd, void *vptr, size_t n) ;

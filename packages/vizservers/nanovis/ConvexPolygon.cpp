@@ -13,14 +13,15 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#include "ConvexPolygon.h"
-#include "Trace.h"
-#include <GL/gl.h>
 #include <assert.h>
 
-ConvexPolygon::ConvexPolygon(){}
+#include <GL/gl.h>
 
-ConvexPolygon::ConvexPolygon(VertexVector newvertices){
+#include "ConvexPolygon.h"
+#include "Trace.h"
+
+ConvexPolygon::ConvexPolygon(VertexVector newvertices)
+{
     vertices.insert(vertices.begin(), newvertices.begin(), newvertices.end());
 }
 
@@ -33,18 +34,21 @@ ConvexPolygon::ConvexPolygon(VertexVector newvertices){
 //
 // http://astronomy.swin.edu.au/pbourke/geometry/planeline/
 bool 
-findIntersection(Vector4 p1, Vector4 p2, Vector4 plane, Vector4 &ret){
+findIntersection(const Vector4& pt1, const Vector4& pt2, const Vector4& plane, Vector4& ret)
+{
     float a = plane.x;
     float b = plane.y;
     float c = plane.z;
     float d = plane.w;
 
-    p1.perspective_devide();
+    Vector4 p1 = pt1;
+    p1.perspective_divide();
     float x1 = p1.x;
     float y1 = p1.y;
     float z1 = p1.z;
 
-    p2.perspective_devide();
+    Vector4 p2 = pt2;
+    p2.perspective_divide();
     float x2 = p2.x;
     float y2 = p2.y;
     float z2 = p2.z;
@@ -56,8 +60,7 @@ findIntersection(Vector4 p1, Vector4 p2, Vector4 plane, Vector4 &ret){
         //plane parallel to line
         ERROR("Unexpected code path: ConvexPolygon.cpp\n");
         if (uNumer == 0){
-            for (int i = 0; i < 4; i++) 
-                ret < p1;
+            ret = p1;
             return true;
         }
         return false;
@@ -71,8 +74,9 @@ findIntersection(Vector4 p1, Vector4 p2, Vector4 plane, Vector4 &ret){
     return true;
 }
 
-void 
-ConvexPolygon::transform(Mat4x4 mat){
+void
+ConvexPolygon::transform(const Mat4x4& mat)
+{
     VertexVector tmp = vertices;
     vertices.clear();
 
@@ -82,9 +86,9 @@ ConvexPolygon::transform(Mat4x4 mat){
     }
 }
 
-
-void 
-ConvexPolygon::translate(Vector4 shift){
+void
+ConvexPolygon::translate(const Vector4& shift)
+{
     VertexVector tmp = vertices;
     vertices.clear();
 
@@ -94,8 +98,9 @@ ConvexPolygon::translate(Vector4 shift){
     }
 }
 
-void 
-ConvexPolygon::clip(Plane &clipPlane, bool copy_to_texcoord) {
+void
+ConvexPolygon::clip(Plane& clipPlane, bool copy_to_texcoord)
+{
     if (vertices.size() == 0) {
         //ERROR("ConvexPolygon: polygon has no vertices\n");  
         return;
@@ -148,25 +153,26 @@ ConvexPolygon::clip(Plane &clipPlane, bool copy_to_texcoord) {
                     clippedVerts.begin(),
                     clippedVerts.end());
 
-    if(copy_to_texcoord)
+    if (copy_to_texcoord)
         copy_vertices_to_texcoords();
 }
 
-void 
-ConvexPolygon::copy_vertices_to_texcoords(){
-    if(texcoords.size()>0)
+void
+ConvexPolygon::copy_vertices_to_texcoords()
+{
+    if (texcoords.size() > 0)
         texcoords.clear();
 
-    for (unsigned int i=0; i<vertices.size(); i++) {
+    for (unsigned int i = 0; i < vertices.size(); i++) {
         texcoords.push_back(vertices[i]);
     }
 }
 
-void 
-ConvexPolygon::Emit(bool use_texture) 
+void
+ConvexPolygon::Emit(bool use_texture)
 {
     if (vertices.size() >= 3) {
-	for (unsigned int i = 0; i<vertices.size(); i++) {
+	for (unsigned int i = 0; i < vertices.size(); i++) {
 	    if(use_texture) {
 		glTexCoord4fv((float *)&(texcoords[i]));
 		//glTexCoord4fv((float *)&(vertices[i]));
@@ -176,13 +182,12 @@ ConvexPolygon::Emit(bool use_texture)
     } 
 }
 
-
 void 
-ConvexPolygon::Emit(bool use_texture, Vector3& shift, Vector3& scale) 
+ConvexPolygon::Emit(bool use_texture, const Vector3& shift, const Vector3& scale) 
 {
     if (vertices.size() >= 3) {
-	for (unsigned int i = 0; i<vertices.size(); i++) {
-	    if(use_texture) {
+	for (unsigned int i = 0; i < vertices.size(); i++) {
+	    if (use_texture) {
 		glTexCoord4fv((float *)&(vertices[i]));
 	    }
 	    Vector4 tmp = (vertices[i]);

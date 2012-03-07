@@ -1,7 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #ifndef _UNIRECT_H
 #define _UNIRECT_H
+
+#include <float.h>
+
 #include <rappture.h>
+
 #include "Trace.h"
 
 namespace Rappture {
