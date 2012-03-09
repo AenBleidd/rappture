@@ -120,9 +120,13 @@ VolumeRenderer *NanoVis::vol_renderer = NULL;
 PointSetRenderer *NanoVis::pointset_renderer = NULL;
 std::vector<PointSet *> NanoVis::pointSet;
 #endif
+
 PlaneRenderer *NanoVis::plane_renderer = NULL;
+#if PLANE_CMD
 // pointers to 2D planes, currently handle up 10
 Texture2D *NanoVis::plane[10];
+#endif
+Texture2D *NanoVis::legendTexture = NULL;
 NvColorTableRenderer *NanoVis::color_table_renderer = NULL;
 
 #ifndef NEW_FLOW_ENGINE
@@ -522,8 +526,8 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
     for (int i=0; i < 256; i++) {
         data[i] = data[i+256] = (float)(i/255.0);
     }
-    plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-    int index = plane_renderer->add_plane(plane[0], tf);
+    legendTexture = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
+    int index = plane_renderer->add_plane(legendTexture, tf);
     plane_renderer->set_active_plane(index);
 
     offscreen_buffer_capture();
@@ -548,7 +552,7 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
     resize_offscreen_buffer(old_width, old_height);
 
     TRACE("leaving render_legend\n");
-    delete plane[0];
+    delete legendTexture;
     return TCL_OK;
 }
 
@@ -670,6 +674,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     TRACE("leaving resize_offscreen_buffer(%d, %d)\n", w, h);
 }
 
+#if PROTOTYPE
 /*
  * FIXME: This routine is fairly expensive (60000 floating pt divides).
  *      I've put an ifdef around the call to it so that the released
@@ -693,6 +698,7 @@ make_test_2D_data()
     NanoVis::plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
     delete[] data;
 }
+#endif
 
 void NanoVis::initParticle()
 {
