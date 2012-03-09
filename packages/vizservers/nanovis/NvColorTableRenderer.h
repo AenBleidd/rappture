@@ -1,29 +1,31 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __NV_COLORTABLE_RENDERER_H__
-#define __NV_COLORTABLE_RENDERER_H__
+#ifndef NV_COLORTABLE_RENDERER_H
+#define NV_COLORTABLE_RENDERER_H
+
+#include <R2/R2Fonts.h>
 
 #include "Texture2D.h"
 #include "TransferFunction.h"
 #include "NvColorTableShader.h"
 
-#include <R2/R2Fonts.h>
-
-class NvColorTableRenderer {
-    NvColorTableShader* _shader;
-    R2Fonts* _fonts;
+class NvColorTableRenderer
+{
 public :
     NvColorTableRenderer();
     ~NvColorTableRenderer();
 
-public :
-    void render(int width, int height, Texture2D* texture, TransferFunction* tf, double rangeMin, double rageMax);
-    void setFonts(R2Fonts* fonts);
+    void render(int width, int height,
+                Texture2D *texture, TransferFunction *tf,
+                double rangeMin, double rageMax);
+
+    void setFonts(R2Fonts *fonts)
+    {
+        _fonts = fonts;
+    }
+
+private:
+    NvColorTableShader* _shader;
+    R2Fonts* _fonts;
 };
 
-inline void NvColorTableRenderer::setFonts(R2Fonts* fonts)
-{
-    _fonts = fonts;
-}
-
 #endif 
-

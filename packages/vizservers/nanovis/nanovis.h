@@ -107,11 +107,7 @@ public:
     };
 
     static VolumeRenderer *vol_renderer;
-#ifndef NEW_FLOW_ENGINE
-    static NvParticleRenderer *flowVisRenderer;
-#else
     static NvFlowVisRenderer *flowVisRenderer;
-#endif
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *plane_renderer;
