@@ -129,11 +129,7 @@ Texture2D *NanoVis::plane[10];
 Texture2D *NanoVis::legendTexture = NULL;
 NvColorTableRenderer *NanoVis::color_table_renderer = NULL;
 
-#ifndef NEW_FLOW_ENGINE
-NvParticleRenderer *NanoVis::flowVisRenderer = NULL;
-#else
 NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
-#endif
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 
 graphics::RenderContext *NanoVis::renderContext = NULL;
@@ -210,7 +206,6 @@ const float def_target_z = 100.0f;
 const float def_eye_x = -0.0f;
 const float def_eye_y = -0.0f;
 const float def_eye_z = -2.5f;
-
 
 #ifndef XINETD
 // Last locations mouse events
@@ -754,11 +749,7 @@ void NanoVis::init(const char* path)
     
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
-#ifndef NEW_FLOW_ENGINE
-    flowVisRenderer = new NvParticleRenderer(NMESH, NMESH, g_context);
-#else
-    flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH, g_context);
-#endif
+    flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
 
     NanoVis::velocityArrowsSlice = new VelocityArrowsSlice;
 
@@ -1732,7 +1723,6 @@ NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
     cam->z(cam->z() + delta_z * 0.03);
 }
 
-#ifdef NEW_FLOW_ENGINE
 void addVectorField(const char* filename, const char* vf_name, 
 		    const char* plane_name1, const char* plane_name2, 
 		    const Vector4& color1, const Vector4& color2)
@@ -1793,7 +1783,6 @@ void addVectorField(const char* filename, const char* vf_name,
     }
     //NanoVis::initParticle();
 }
-#endif
 
 void 
 NanoVis::keyboard(unsigned char key, int x, int y)
@@ -1810,7 +1799,6 @@ NanoVis::keyboard(unsigned char key, int x, int y)
     }
 #endif
 
-#ifdef NEW_FLOW_ENGINE
     switch (key) {
     case 'a' :
 	{
@@ -1996,7 +1984,6 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 	}
 	break;
     }
-#endif
 }
 
 void 

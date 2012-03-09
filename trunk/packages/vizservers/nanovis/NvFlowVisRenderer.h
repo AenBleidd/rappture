@@ -21,9 +21,10 @@
 
 class NvParticleRenderer;
 
-class NvFlowVisRenderer {
+class NvFlowVisRenderer
+{
 public:
-    NvFlowVisRenderer(int w, int h, CGcontext context);
+    NvFlowVisRenderer(int w, int h);
 
     ~NvFlowVisRenderer();
 
@@ -97,7 +98,6 @@ public:
 private:
     int _psys_width;
     int _psys_height;
-    CGcontext context;
 
     std::map<std::string, NvVectorField *> _vectorFieldMap;
 

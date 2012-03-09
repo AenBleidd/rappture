@@ -27,18 +27,11 @@
 
 #define NV_32
 
-NvFlowVisRenderer::NvFlowVisRenderer(int w, int h, CGcontext context) :
+NvFlowVisRenderer::NvFlowVisRenderer(int w, int h) :
     _activated(true)
 {
     _psys_width = w;
     _psys_height = h;
-
-//     licRenderer[0] = new NvLIC(NMESH, NPIX, NPIX, 0, 
-//                                Vector3(0, 0, 0), g_context);
-//     licRenderer[1] = new NvLIC(NMESH, NPIX, NPIX, 1, 
-//                                Vector3(0, 0, 0), g_context);
-//     licRenderer[2] = new NvLIC(NMESH, NPIX, NPIX, 2, 
-//                                Vector3(0, 0, 0), g_context);
 }
 
 NvFlowVisRenderer::~NvFlowVisRenderer()
@@ -47,12 +40,6 @@ NvFlowVisRenderer::~NvFlowVisRenderer()
     for (iter = _vectorFieldMap.begin(); iter != _vectorFieldMap.end(); ++iter) {
         delete (*iter).second;
     }
-
-    /*
-      for (int i = 0; i < 3; ++i) {
-          delete licRenderer[i];
-      }
-    */
 }
 
 void 

@@ -32,8 +32,6 @@
  */
 #define PROTOTYPE		0
 
-#define NEW_FLOW_ENGINE		1
-
 //#define USE_POINTSET_RENDERER
 
 /* 

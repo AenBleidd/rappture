@@ -17,11 +17,8 @@ NvColorTableShader::~NvColorTableShader()
 void NvColorTableShader::init()
 {
     _cgFP = LoadCgSourceProgram(g_context, "one_plane.cg", CG_PROFILE_FP30, 
-	"main"); 
+                                "main"); 
     _dataParam = cgGetNamedParameter(_cgFP, "data");
     _tfParam = cgGetNamedParameter(_cgFP, "tf");
     _renderParam = cgGetNamedParameter(_cgFP, "render_param");
 }
-
-
-

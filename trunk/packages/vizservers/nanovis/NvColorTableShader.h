@@ -1,28 +1,33 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __NV_COLORTABLE_SHADER_H__
-#define __NV_COLORTABLE_SHADER_H__
+#ifndef NV_COLORTABLE_SHADER_H
+#define NV_COLORTABLE_SHADER_H
+
+#include <Cg/cg.h>
 
 #include "Texture2D.h"
 #include "TransferFunction.h"
 #include "NvShader.h"
 
-class NvColorTableShader : public NvShader {
-    CGparameter _dataParam;
-    CGparameter _tfParam;
-    CGparameter _renderParam;
-
-public :
+class NvColorTableShader : public NvShader
+{
+public:
     NvColorTableShader();
+
     ~NvColorTableShader();
+
+    void bind(Texture2D *plane, TransferFunction *tf);
+
+    void unbind();
 
 private :
     void init();
-public :
-    void bind(Texture2D* plane, TransferFunction* tf);
-    void unbind();
+
+    CGparameter _dataParam;
+    CGparameter _tfParam;
+    CGparameter _renderParam;
 };
 
-inline void NvColorTableShader::bind(Texture2D* plane, TransferFunction* tf)
+inline void NvColorTableShader::bind(Texture2D *plane, TransferFunction *tf)
 {
     cgGLSetTextureParameter(_dataParam, plane->id);
     cgGLSetTextureParameter(_tfParam, tf->id());

@@ -1,10 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <R2/R2Fonts.h>
-#include "NvColorTableRenderer.h"
 #include <stdlib.h>
 
-NvColorTableRenderer::NvColorTableRenderer()
-: _fonts(NULL)
+#include <R2/R2Fonts.h>
+
+#include "NvColorTableRenderer.h"
+
+NvColorTableRenderer::NvColorTableRenderer() :
+    _fonts(NULL)
 {
     _shader = new NvColorTableShader();    
 }
@@ -14,7 +16,9 @@ NvColorTableRenderer::~NvColorTableRenderer()
     delete _shader;
 }
 
-void NvColorTableRenderer::render(int width, int height, Texture2D* texture, TransferFunction* tf, double rangeMin, double rangeMax)
+void NvColorTableRenderer::render(int width, int height,
+                                  Texture2D *texture, TransferFunction *tf,
+                                  double rangeMin, double rangeMax)
 {
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -30,7 +34,7 @@ void NvColorTableRenderer::render(int width, int height, Texture2D* texture, Tra
     glPushMatrix();
     glLoadIdentity();
 
-    //glColor3f(1.,1.,1.);         //MUST HAVE THIS LINE!!!
+    //glColor3f(1., 1., 1.);         //MUST HAVE THIS LINE!!!
     _shader->bind(texture, tf);
 
     glBegin(GL_QUADS);
@@ -42,8 +46,7 @@ void NvColorTableRenderer::render(int width, int height, Texture2D* texture, Tra
 
     _shader->unbind();
 
-    if (_fonts)
-    {
+    if (_fonts) {
         _fonts->resize(width, height);
         _fonts->begin();
 

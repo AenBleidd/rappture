@@ -1,5 +1,4 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "config.h"
 #include <stdio.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -8,12 +7,13 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include "NvEventLog.h"
+
+#include "config.h"
 #include "nanovis.h"
+#include "NvEventLog.h"
 
-
-FILE* event_log;
-double cur_time;	//in seconds
+static FILE *event_log;
+static double cur_time;	//in seconds
 
 #ifdef XINETD
 void NvInitService()
@@ -24,12 +24,12 @@ void NvInitService()
 
     if (user == NULL) {
         logNameLen = 20+1;
-        logName = (char*) calloc(logNameLen,sizeof(char));
-        strncpy(logName,"/tmp/nanovis_log.txt",logNameLen);
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log.txt", logNameLen);
     } else {
         logNameLen = 17+1+strlen(user);
-        logName = (char*) calloc(logNameLen,sizeof(char));
-        strncpy(logName,"/tmp/nanovis_log_",logNameLen);
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log_", logNameLen);
         strncat(logName, user, strlen(user));
     }
 
@@ -57,7 +57,7 @@ void NvExitService()
 void NvInitEventLog()
 {
     event_log = fopen("event.txt", "w");
-    assert(event_log!=0);
+    assert(event_log != NULL);
 
     struct timeval time;
     gettimeofday(&time, NULL);
