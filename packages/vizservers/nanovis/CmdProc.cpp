@@ -1,7 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <tcl.h>
-#include "CmdProc.h"
 #include <string.h>
+
+#include <tcl.h>
+
+#include "CmdProc.h"
 
 /*
  *-------------------------------------------------------------------------------

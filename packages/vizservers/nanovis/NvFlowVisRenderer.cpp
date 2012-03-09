@@ -20,10 +20,10 @@
 #include <string.h>
 
 #include <R2/R2FilePath.h>
+
 #include "NvFlowVisRenderer.h"
 #include "NvVectorField.h"
-#include <Trace.h>
-
+#include "Trace.h"
 
 #define NV_32
 

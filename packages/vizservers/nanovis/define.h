@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _DEFINE_H_
-#define _DEFINE_H_
+#ifndef DEFINE_H
+#define DEFINE_H
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>

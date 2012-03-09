@@ -22,13 +22,17 @@
 
 #include "config.h"
 
-Texture3D::Texture3D(){ id=0; gl_resource_allocated = false; }
+Texture3D::Texture3D() :
+    gl_resource_allocated(false),
+    id(0)
+{}
 
-Texture3D::Texture3D(int width, int height, int depth, GLuint type=GL_FLOAT, GLuint interp=GL_LINEAR, int components=4)
+Texture3D::Texture3D(int width, int height, int depth,
+                     GLuint type, GLuint interp,
+                     int numComponents, void *data) :
+    gl_resource_allocated(false),
+    id(0)
 {
-    assert(type == GL_UNSIGNED_BYTE || type == GL_FLOAT|| type ==GL_UNSIGNED_INT);
-    assert(interp == GL_LINEAR || interp == GL_NEAREST);
-        
     this->width = width;
     this->height = height;
     this->depth = depth;
@@ -47,143 +51,67 @@ Texture3D::Texture3D(int width, int height, int depth, GLuint type=GL_FLOAT, GLu
 
     this->type = type;
     this->interp_type = interp;
-    this->n_components = components;
+    this->n_components = numComponents;
 
-    this->id = 0;
-    gl_resource_allocated = false;
+    if (data != NULL)
+        initialize(data);
 }
 
-void Texture3D::update(float* data)
+Texture3D::~Texture3D()
 {
-    //load texture with 16 bit half floating point precision if card is 6 series NV40
-    //half float with linear interpolation is only supported by 6 series and up cards
-    //If NV40 not defined, data is quantized to 8-bit from 32-bit.
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    glBindTexture(GL_TEXTURE_3D, id);
-    assert(id != (GLuint)-1);
-
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    if(interp_type==GL_LINEAR){
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
-    else{
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    }
-
-    //to do: add handling to more formats
-    if(type==GL_FLOAT){
-        switch(n_components){
-#ifdef NV40
-        case 1:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE16F_ARB, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
-            break;
-        case 2:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA16F_ARB, width, height, depth, 0, GL_LUMINANCE_ALPHA, GL_FLOAT, data);
-            break;
-        case 3:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB16F_ARB, width, height, depth, 0, GL_RGB, GL_FLOAT, data);
-            break;
-        case 4:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F_ARB, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
-            break;
-#else
-        case 1:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
-            break;
-        case 2:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA, width, height, depth, 0, GL_LUMINANCE_ALPHA, GL_FLOAT, data);
-            break;
-        case 3:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, width, height, depth, 0, GL_RGB, GL_FLOAT, data);
-            break;
-        case 4:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
-            break;
-#endif
-        default:
-            break;
-        }
-    }
-
-
-    assert(glGetError()==0);
-        
-    gl_resource_allocated = true;
-
+    glDeleteTextures(1, &id);
 }
 
-GLuint Texture3D::initialize(float *data)
+GLuint Texture3D::initialize(void *data)
 {
-    if (id != 0) glDeleteTextures(1, &id);
-
-    //load texture with 16 bit half floating point precision if card is 6 series NV40
-    //half float with linear interpolation is only supported by 6 series and up cards
-    //If NV40 not defined, data is quantized to 8-bit from 32-bit.
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    if (id != 0)
+        glDeleteTextures(1, &id);
 
     glGenTextures(1, &id);
+
+    update(data);
+ 
+    return id;
+}
+
+void Texture3D::update(void *data)
+{
+    assert(id > 0 && id != (GLuint)-1);
     glBindTexture(GL_TEXTURE_3D, id);
-    assert(id != (GLuint)-1);
+
+    //load texture with 16 bit half floating point precision if card is 6 series NV40
+    //half float with linear interpolation is only supported by 6 series and up cards
+    //If NV40 not defined, data is quantized to 8-bit from 32-bit.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    if(interp_type==GL_LINEAR){
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
-    else{
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    }
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, interp_type);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, interp_type);
 
     //to do: add handling to more formats
-    if(type==GL_FLOAT){
-        switch(n_components){
 #ifdef NV40
-        case 1:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE16F_ARB, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
-            break;
-        case 2:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA16F_ARB, width, height, depth, 0, GL_LUMINANCE_ALPHA, GL_FLOAT, data);
-            break;
-        case 3:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB16F_ARB, width, height, depth, 0, GL_RGB, GL_FLOAT, data);
-            break;
-        case 4:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F_ARB, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
-            break;
-#else
-        case 1:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE, width, height, depth, 0, GL_LUMINANCE, GL_FLOAT, data);
-            break;
-        case 2:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA, width, height, depth, 0, GL_LUMINANCE_ALPHA, GL_FLOAT, data);
-            break;
-        case 3:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, width, height, depth, 0, GL_RGB, GL_FLOAT, data);
-            break;
-        case 4:
-            glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, width, height, depth, 0, GL_RGBA, GL_FLOAT, data);
-            break;
+    if (type == GL_FLOAT) {
+        GLuint targetFormat[5] = { -1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, GL_RGB16F_ARB, GL_RGBA16F_ARB };
+        GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+        glTexImage3D(GL_TEXTURE_3D, 0, targetFormat[n_components],
+                     width, height, depth, 0, 
+                     format[n_components], type, data);
+    } else {
 #endif
-        default:
-            break;
-        }
+        GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+        glTexImage3D(GL_TEXTURE_3D, 0, format[n_components],
+                     width, height, depth, 0, 
+                     format[n_components], type, data);
+#ifdef NV40
     }
-
+#endif
 
     assert(glGetError()==0);
-        
+
     gl_resource_allocated = true;
-    return id;
 }
 
 void Texture3D::activate()
@@ -197,20 +125,16 @@ void Texture3D::deactivate()
     glDisable(GL_TEXTURE_3D);           
 }
 
-Texture3D::~Texture3D()
+void Texture3D::check_max_size()
 {
-    glDeleteTextures(1, &id);
-}
-
-void Texture3D::check_max_size(){
     GLint max = 0;
     glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max);
-        
-    //TRACE("%d", glGetError());
+
     TRACE("max 3d texture size: %d\n", max);
 }
 
-void Texture3D::check_max_unit(){
+void Texture3D::check_max_unit()
+{
     int max;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);
 

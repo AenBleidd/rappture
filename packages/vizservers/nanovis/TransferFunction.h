@@ -23,44 +23,62 @@
 
 class TransferFunction : public R2Object
 {
-    int _size;			//the resolution of the color map, how many
+public:
+    TransferFunction(int size, float *data);
+
+    void update(float *data);
+
+    void update(int size, float *data);
+
+    GLuint id()
+    {
+        return _id;
+    }
+
+    void id(GLuint id)
+    {
+        _id = id;
+    }
+
+    Texture1D *getTexture()
+    {
+        return _tex;
+    }
+
+    float *getData()
+    { 
+        return _data; 
+    }
+
+    int getSize() const
+    {
+        return _size;
+    }
+
+    const char *name() const
+    {
+        return _name;
+    }
+
+    void name(const char *name)
+    {
+        _name = name;
+    }
+
+    static void sample(float fraction, float *key, int count, Vector3 *keyValue, Vector3 *ret);
+
+    static void sample(float fraction, float *key, int count, float *keyValue, float *ret);
+
+protected :
+    ~TransferFunction();
+
+private:
+   int _size;			//the resolution of the color map, how many
 				//(RGBA) quadraples
     float* _data;
     Texture1D* _tex;		//the texture storing the colors 
     const char *_name;
     GLuint _id;			//OpenGL's texture identifier
-
-protected :
-    ~TransferFunction();
-
-public:
-    TransferFunction(int size, float *data);
-    void update(float *data);
-    void update(int size, float *data);
-    GLuint id(void) {
-	return _id;
-    }
-    void id(GLuint id) {
-	_id = id;
-    }
-    Texture1D* getTexture(void) {
-	return _tex;
-    }
-    float* getData(void) { 
-	return _data; 
-    }
-    int getSize() const {
-	return _size;
-    }
-    const char *name(void) const {
-	return _name;
-    }
-    void name(const char *name) {
-	_name = name;
-    }
-
-    static void sample(float fraction, float *key, int count, Vector3 *keyValue, Vector3 *ret);
-    static void sample(float fraction, float *key, int count, float *keyValue, float *ret);
 };
 
 #endif

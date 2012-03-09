@@ -17,10 +17,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-// common dx functions
-#include "dxReaderCommon.h"
-
 #include <stdio.h>
 #include <math.h>
 #include <fstream>
@@ -30,13 +26,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "nanovis.h"
-#include "RpField1D.h"
-#include "RpFieldRect3D.h"
-#include "RpFieldPrism3D.h"
-#include <Unirect.h>
+#include <RpField1D.h>
+#include <RpFieldRect3D.h>
+#include <RpFieldPrism3D.h>
 
-//transfer function headers
+// common dx functions
+#include "dxReaderCommon.h"
+
+#include "nanovis.h"
+#include "Unirect.h"
 #include "ZincBlendeVolume.h"
 #include "NvZincBlendeReconstructor.h"
 

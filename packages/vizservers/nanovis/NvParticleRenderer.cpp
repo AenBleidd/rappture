@@ -18,11 +18,12 @@
 #include <assert.h>
 #include <malloc.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <R2/R2FilePath.h>
+
 #include "NvParticleRenderer.h"
-#include <Trace.h>
-#include <stdlib.h>
+#include "Trace.h"
 
 #define NV_32
 

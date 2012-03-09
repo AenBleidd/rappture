@@ -6,15 +6,11 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#ifdef _WIN32
-#include <GL/glaux.h>
-#else
 #ifdef HAVE_OPENCV_H
 #include <opencv/cv.h>
 #endif
 #ifdef HAVE_OPENCV_HIGHGUI_H
 #include <opencv/highgui.h>
-#endif
 #endif
 
 #include <vr3d/vr3d.h>
@@ -317,37 +313,9 @@ ParticleSystem::ParticleSystem(int width, int height,
     _arrows->setWrapS(TW_MIRROR);
     _arrows->setWrapT(TW_MIRROR);
 
-#ifdef _WIN32
-#ifndef USE_RGBA_ARROW
-    std::string path = vrFilePath::getInstance()->getPath("arrows.bmp");
-    AUX_RGBImageRec *pTextureImage = auxDIBImageLoad(path.c_str());
-    _arrows->setPixels(CF_RGB, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pTextureImage->data);
-#else
-    std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
-    AUX_RGBImageRec *pTextureImage = auxDIBImageLoad(path.c_str());
-    unsigned char* pixels = new unsigned char [pTextureImage->sizeX * pTextureImage->sizeY * sizeof(unsigned char) * 4];
-    unsigned char* srcPixels = pTextureImage->data;
-    unsigned char* dstPixels = pixels;
-    for (int i = 0; i < pTextureImage->sizeX * pTextureImage->sizeY; ++i) {
-        *dstPixels = *srcPixels; ++srcPixels;
-        *(dstPixels + 1) = *srcPixels; ++srcPixels;
-        *(dstPixels + 2) = *srcPixels; ++srcPixels;
-
-        if ((*dstPixels > 127) && (*(dstPixels + 1) < 127) && (*(dstPixels + 2) < 127)) {
-            *(dstPixels + 3) = 0;
-        } else {
-            *(dstPixels + 3) = 255;
-        }
-
-        dstPixels += 4;
-    }
-    _arrows->setPixels(CF_RGBA, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pixels);
-#endif
-
-#else
 #ifndef USE_RGBA_ARROW
     IplImage* pTextureImage = cvLoadImage("arrows_flip2.png");
-    _arrows->setPixels(CF_RGB, DT_UBYTE, pTextureImage->width, pTextureImage->height, (void*) pTextureImage->imageData);
+    _arrows->setPixels(CF_RGB, DT_UBYTE, pTextureImage->width, pTextureImage->height, pTextureImage->imageData);
 #else
 #ifdef notdef
     // TBD..
@@ -374,7 +342,6 @@ ParticleSystem::ParticleSystem(int width, int height,
 #endif
 
 #endif // USE_RGBA_ARROW
-#endif // _WIN32
 
 #ifdef TEST
     MakeSphereTexture();

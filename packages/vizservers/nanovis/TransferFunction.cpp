@@ -20,16 +20,14 @@
 
 TransferFunction::TransferFunction(int size, float *data)
 {
-    _tex = new Texture1D(size, GL_FLOAT);
-
     // _size : # of slot, 4 : rgba
     _size = size * 4;
     _data = new float[_size];
     memcpy(_data, data, sizeof(float) * _size);
-    _tex->initialize_float_rgba(_data);
+
+    _tex = new Texture1D(size, GL_FLOAT, GL_LINEAR, 4, data);
     _id = _tex->id;
 }
-
 
 TransferFunction::~TransferFunction()
 { 
@@ -37,15 +35,14 @@ TransferFunction::~TransferFunction()
     delete _tex; 
 }
 
-void 
-TransferFunction::update(float* data)
+void
+TransferFunction::update(float *data)
 {
     memcpy(_data, data, sizeof(float) * _size);
-    _tex->update_float_rgba(_data);
+    _tex->update(_data);
 }
 
-
-void 
+void
 TransferFunction::update(int size, float *data)
 {
     // TBD..

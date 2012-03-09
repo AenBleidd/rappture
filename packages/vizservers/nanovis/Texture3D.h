@@ -13,44 +13,51 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _TEXTURE_3D_H_
-#define _TEXTURE_3D_H_
+#ifndef TEXTURE3D_H
+#define TEXTURE3D_H
 
 #include <GL/glew.h>
-#include "config.h"
 
-class Texture3D{
-	
-
+class Texture3D
+{
 public:
-	int width;
-	int height;
-	int depth;
+    Texture3D();
 
-	double aspect_ratio_width;
-	double aspect_ratio_height;
-	double aspect_ratio_depth;
+    Texture3D(int width, int height, int depth,
+              GLuint type = GL_FLOAT,
+              GLuint interp = GL_LINEAR,
+              int numComponents = 4,
+              void *data = NULL);
 
-	GLuint type;
-	GLuint interp_type;
-	int n_components;
-	bool gl_resource_allocated;
+    ~Texture3D();
 
-	GLuint id;
-	GLuint tex_unit;
+    GLuint initialize(void *data);
 
-	Texture3D();
-	Texture3D(int width, int height, int depth, GLuint type, GLuint interp, int n);
-	~Texture3D();
-	
-	void activate();
-	void deactivate();
-	GLuint initialize(float* data);
-	static void check_max_size();
-	static void check_max_unit();
+    void update(void *data);
 
-    void update(float* data);
+    void activate();
 
+    void deactivate();
+
+    static void check_max_size();
+
+    static void check_max_unit();
+
+    int width;
+    int height;
+    int depth;
+
+    double aspect_ratio_width;
+    double aspect_ratio_height;
+    double aspect_ratio_depth;
+
+    int n_components;
+
+    bool gl_resource_allocated;
+    GLuint id;
+    GLuint type;
+    GLuint interp_type;
+    //GLuint tex_unit;
 };
 
 #endif

@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "NvRegularVolumeShader.h"
-#include <global.h>
+#include "global.h"
 
 NvRegularVolumeShader::NvRegularVolumeShader()
 {

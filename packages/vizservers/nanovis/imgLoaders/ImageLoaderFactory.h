@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __IMAGE_LOADER_FACTORY_H__
-#define __IMAGE_LOADER_FACTORY_H__
+#ifndef IMAGE_LOADER_FACTORY_H
+#define IMAGE_LOADER_FACTORY_H
 
 #include <map>
 #include <string>
@@ -9,20 +9,21 @@ class ImageLoaderImpl;
 class Image;
 class ImageLoader;
 
-class ImageLoaderFactory {
-    std::map< std::string, ImageLoaderImpl*> _loaderImpls;
+class ImageLoaderFactory
+{
+public:
+    void addLoaderImpl(const std::string& ext, ImageLoaderImpl *loaderImpl);
+    ImageLoader *createLoader(const std::string& ext);
 
-    static ImageLoaderFactory* _instance;
+    static ImageLoaderFactory *getInstance();
+
 protected :
     ImageLoaderFactory();
     ~ImageLoaderFactory();
 
-public :
-    static ImageLoaderFactory* getInstance();
-
-public :
-    void addLoaderImpl(const std::string& ext, ImageLoaderImpl* loaderImpl);
-    ImageLoader* createLoader(const std::string& ext);
+private:
+    std::map<std::string, ImageLoaderImpl *> _loaderImpls;
+    static ImageLoaderFactory *_instance;
 };
 
-#endif //
+#endif

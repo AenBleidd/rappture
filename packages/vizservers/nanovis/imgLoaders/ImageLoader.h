@@ -1,32 +1,31 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __IMAGE_LOADER_H__
-#define __IMAGE_LOADER_H__
+#ifndef IMAGE_LOADER_H
+#define IMAGE_LOADER_H
 
 #include <map>
+
 #include <Image.h>
 
 class ImageLoaderImpl;
 class Image;
 
-class ImageLoader {
+class ImageLoader
+{
+public:
     friend class ImageLoaderFactory;
 
-    ImageLoaderImpl* _loaderImpl;
-public :
     ImageLoader();
 
-public :
-    Image* load(const char* fileName);
-    Image* load(const char* fileName, const Image::ImageFormat targetFormat);
+    Image *load(const char *fileName, const Image::ImageFormat targetFormat = Image::IMG_RGB);
 
-private :
-    void setLoaderImpl(ImageLoaderImpl* loaderImpl);
+private:
+    void setLoaderImpl(ImageLoaderImpl *loaderImpl)
+    {
+        _loaderImpl = loaderImpl;
+    }
+
+    ImageLoaderImpl * _loaderImpl;
 };
 
-inline void ImageLoader::setLoaderImpl(ImageLoaderImpl* loaderImpl)
-{
-    _loaderImpl= loaderImpl;
-}
-
-#endif //
+#endif
 

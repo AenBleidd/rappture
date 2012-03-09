@@ -1,8 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <R2/R2FilePath.h>
+
 #include "NvColorTableShader.h"
-#include <Trace.h>
-#include <global.h>
+#include "Trace.h"
+#include "global.h"
 
 NvColorTableShader::NvColorTableShader()
 {

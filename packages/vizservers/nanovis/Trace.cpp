@@ -1,12 +1,12 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "nanovis.h"
-#include <Trace.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <syslog.h>
 
 #include <GL/glew.h>
 
-#include <syslog.h>
+#include "nanovis.h"
+#include "Trace.h"
 
 static const char *syslogLevels[] = {
     "emergency",			/* System is unusable */

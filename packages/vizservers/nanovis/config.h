@@ -30,8 +30,7 @@
  * releases are built directly from the subversion repository.  So for now,
  * we'll rely on developers to set this in their respective sandboxes.
  */
-//#define PROTOTYPE		0
-#define PROTOTYPE		1
+#define PROTOTYPE		0
 
 #define NEW_FLOW_ENGINE		1
 
