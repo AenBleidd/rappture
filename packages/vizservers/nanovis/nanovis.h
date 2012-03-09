@@ -107,7 +107,6 @@ public:
     };
 
     static VolumeRenderer *vol_renderer;
-    static PointSetRenderer *pointset_renderer;
 #ifndef NEW_FLOW_ENGINE
     static NvParticleRenderer *flowVisRenderer;
 #else
@@ -116,13 +115,17 @@ public:
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *plane_renderer;
+#if PLANE_CMD
+    static Texture2D *plane[]; //< Pointers to 2D planes
+#endif
+#ifdef USE_POINTSET_RENDERER
+    static PointSetRenderer *pointset_renderer;
     static std::vector<PointSet *> pointSet;
+#endif
 
-    /**
-     *  pointers to 2D planes
-     */
-    static Texture2D *plane[];
+    static Texture2D *legendTexture;
     static NvColorTableRenderer *color_table_renderer;
+
     static graphics::RenderContext *renderContext;
     static std::vector<HeightMap *> heightMap;
     static unsigned char *screen_buffer;
