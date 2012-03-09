@@ -2,8 +2,12 @@
 #ifndef NVFLOWVISRENDERER_H
 #define NVFLOWVISRENDERER_H
 
-#include "GL/glew.h"
-#include "Cg/cgGL.h"
+#include <vector>
+#include <map>
+#include <string>
+
+#include <GL/glew.h>
+#include <Cg/cgGL.h>
 
 #include "define.h"
 #include "config.h"
@@ -12,11 +16,6 @@
 #include "Renderable.h"
 #include "RenderVertexArray.h"
 #include "Vector3.h"
-
-#include <vector>
-#include <map>
-#include <string>
-
 #include "NvParticleAdvectionShader.h"
 #include "NvVectorField.h"
 
