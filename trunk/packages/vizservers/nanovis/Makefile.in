@@ -24,9 +24,8 @@ RM              = rm -f
 
 AUXSRC          = config.h define.h global.h
 
-CG_DIR          = @CG_DIR@
-CG_INC_SPEC     = -I$(CG_DIR)/include
-CG_LIB_SPEC     = -L$(CG_DIR)/lib -lCg -lCgGL
+CG_INC_SPEC     = @CG_INC_SPEC@
+CG_LIB_SPEC     = @CG_LIB_SPEC@
 FF_LIB_SPEC     = @LIBS@
 FF_INC_SPEC     = @FF_INC_SPEC@
 
@@ -100,7 +99,7 @@ INCLUDES	= \
 CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
-EXTRA_CFLAGS    = -Wall -Wextra
+EXTRA_CFLAGS    = -Wall
 DEFINES         = 
 CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 

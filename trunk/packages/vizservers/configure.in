@@ -346,17 +346,19 @@ do
 done
 AC_MSG_RESULT([${CG_DIR}])
 
-CG_INC_DIR="$dir/include"
-CG_LIB_DIR="$dir/lib"
+CG_INC_SPEC="-I${CG_DIR}/include"
+CG_LIB_DIR="${CG_DIR}/lib"
 
 save_CPPFLAGS=$CPPFLAGS
-CPPFLAGS="-I${CG_INC_DIR} $CPPFLAGS"
+CPPFLAGS="${CG_INC_SPEC} $CPPFLAGS"
 AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_WARN([cannot find nVidia Cg headers]))
 CPPFLAGS=$save_CPPFLAGS
 
 if test "${CG_DIR}" = "/usr" ; then
-  CG_DIR=""
+  CG_INC_SPEC=""
+  CG_LIB_SPEC="-lCg -lCgGL"
 else 
+  CG_LIB_SPEC="-L${CG_LIB_DIR} -lCg -lCgGL"
   LD_RPATH="$loader_run_path:${CG_LIB_DIR}"
 fi
 
@@ -364,9 +366,8 @@ SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
 
 AC_SUBST(CFLAGS_DEBUG)
 AC_SUBST(CFLAGS_OPTIMIZE)
-AC_SUBST(CG_DIR)
-AC_SUBST(CG_INC_DIR)
-AC_SUBST(CG_LIB_DIR)
+AC_SUBST(CG_INC_SPEC)
+AC_SUBST(CG_LIB_SPEC)
 AC_SUBST(DX_INC_SPEC)
 AC_SUBST(DX_LIB_SPEC)
 AC_SUBST(FF_INC_SPEC)
