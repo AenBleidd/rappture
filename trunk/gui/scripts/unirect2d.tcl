@@ -51,7 +51,6 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
     set path [$field get $cname.mesh]
-
     set m [$xmlobj element -as object $path]
     GetValue $m "xaxis.min" _xMin
     GetValue $m "xaxis.max" _xMax
