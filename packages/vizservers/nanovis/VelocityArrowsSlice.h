@@ -2,9 +2,10 @@
 #ifndef VELOCITY_ARROW_SLICE_H
 #define VELOCITY_ARROW_SLICE_H
 
+#include <vector>
+
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
-#include <vector>
 
 #include "Texture2D.h"
 #include "Vector3.h"

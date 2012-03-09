@@ -333,7 +333,7 @@ NvParticleRenderer::advect()
     flip = (!flip);
     
     psys_frame++;
-    if(psys_frame==max_life) {
+    if (psys_frame==max_life) {
 	psys_frame=0;
 //	reborn = true;
     }
@@ -471,14 +471,12 @@ NvParticleRenderer::setVectorField(unsigned int texID, const Vector3& ori,
 
 void NvParticleRenderer::setAxis(int axis)
 {
-	_slice_axis = axis;
-    	initializeDataArray();
+    _slice_axis = axis;
+    initializeDataArray();
 }
 
 void NvParticleRenderer::setPos(float pos)
 {
-	_slice_pos = pos;
-    	initializeDataArray();
+    _slice_pos = pos;
+    initializeDataArray();
 }
-
-

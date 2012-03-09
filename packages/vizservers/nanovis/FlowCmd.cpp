@@ -568,27 +568,32 @@ FlowCmd::ScaleVectorField()
     NanoVis::zOrigin = loc.z;
 
     _fieldPtr->setVectorField(_volPtr, loc, 
-	1.0f, height / width, depth  / width, NanoVis::magMax);
+                              1.0f,
+                              height / width,
+                              depth  / width,
+                              NanoVis::magMax);
 
     if (NanoVis::licRenderer != NULL) {
-        NanoVis::licRenderer->setVectorField(_volPtr->id, loc,
-		1.0f / _volPtr->aspect_ratio_width,
-		1.0f / _volPtr->aspect_ratio_height,
-		1.0f / _volPtr->aspect_ratio_depth,
-		_volPtr->wAxis.max());
+        NanoVis::licRenderer->
+            setVectorField(_volPtr->id, loc,
+                           1.0f / _volPtr->aspect_ratio_width,
+                           1.0f / _volPtr->aspect_ratio_height,
+                           1.0f / _volPtr->aspect_ratio_depth,
+                           _volPtr->wAxis.max());
 	SetCurrentPosition();
 	SetAxis();
 	SetActive();
     }
 
     if (NanoVis::velocityArrowsSlice != NULL) {
-        NanoVis::velocityArrowsSlice->vectorField(_volPtr->id,
-            //*(volPtr->get_location()),
-            1.0f,
-	    _volPtr->aspect_ratio_height / _volPtr->aspect_ratio_width,
-	    _volPtr->aspect_ratio_depth / _volPtr->aspect_ratio_width
-            //,volPtr->wAxis.max()
-            );
+        NanoVis::velocityArrowsSlice->
+            vectorField(_volPtr->id,
+                        //*(volPtr->get_location()),
+                        1.0f,
+                        _volPtr->aspect_ratio_height / _volPtr->aspect_ratio_width,
+                        _volPtr->aspect_ratio_depth / _volPtr->aspect_ratio_width
+                        //,volPtr->wAxis.max()
+                        );
 	TRACE("Arrows enabled set to %d\n", _sv.showArrows);
 	NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
 	NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);

@@ -116,7 +116,7 @@ public:
     static NvLIC *licRenderer;
     static PlaneRenderer *plane_renderer;
 #if PLANE_CMD
-    static Texture2D *plane[]; //< Pointers to 2D planes
+    static Texture2D *plane[]; ///< Pointers to 2D planes
 #endif
 #ifdef USE_POINTSET_RENDERER
     static PointSetRenderer *pointset_renderer;

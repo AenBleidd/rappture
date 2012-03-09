@@ -40,7 +40,7 @@ PlaneRenderer::init_shaders()
 {
     //plane rendering shader
     _fprog = LoadCgSourceProgram(_g_context, "one_plane.cg", CG_PROFILE_FP30, 
-	NULL);
+                                 NULL);
     _data_param = cgGetNamedParameter(_fprog, "data");
     _tf_param = cgGetNamedParameter(_fprog, "tf");
     _render_param = cgGetNamedParameter(_fprog, "render_param");
@@ -54,7 +54,7 @@ PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
     _plane.push_back(_p);
     _tf.push_back(tfPtr);
 
-    if(ret==0)
+    if (ret == 0)
         _active_plane = ret;
 
     _n_planes++;
@@ -88,7 +88,7 @@ PlaneRenderer::render()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    //glColor3f(1.,1.,1.);         //MUST HAVE THIS LINE!!!
+    //glColor3f(1., 1., 1.);         //MUST HAVE THIS LINE!!!
 
     //if no active plane
     if (_active_plane == -1)

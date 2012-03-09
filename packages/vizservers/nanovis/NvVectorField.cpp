@@ -1,14 +1,15 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "NvVectorField.h"
-#include "NvParticleRenderer.h"
 #include "nanovis.h"
 
+#include "NvVectorField.h"
+#include "NvParticleRenderer.h"
+
 NvVectorField::NvVectorField() :
-    _vectorFieldId(0), 
-    _activated(true), 
-    _scaleX(1), 
-    _scaleY(1), 
-    _scaleZ(1), 
+    _vectorFieldId(0),
+    _activated(true),
+    _scaleX(1),
+    _scaleY(1),
+    _scaleZ(1),
     _max(1)
 {
     _deviceVisible = false;
@@ -18,7 +19,7 @@ NvVectorField::NvVectorField() :
 
 NvVectorField::~NvVectorField()
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter;
+    std::map<std::string, NvParticleRenderer *>::iterator iter;
     for (iter = _particleRendererMap.begin(); 
 	 iter != _particleRendererMap.end(); iter++) {
 	delete (*iter).second;
@@ -26,7 +27,7 @@ NvVectorField::~NvVectorField()
 }
 
 void 
-NvVectorField::setVectorField(Volume* volPtr, const Vector3& ori, 
+NvVectorField::setVectorField(Volume *volPtr, const Vector3& ori, 
 			      float scaleX, float scaleY, float scaleZ, 
 			      float max)
 {
@@ -59,7 +60,7 @@ void NvVectorField::removeDeviceShape(const std::string& name)
 
 void NvVectorField::initialize()
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter;
+    std::map<std::string, NvParticleRenderer *>::iterator iter;
     for (iter = _particleRendererMap.begin(); 
 	 iter != _particleRendererMap.end(); iter++) {
 	if ((*iter).second) (*iter).second->initialize();
@@ -68,7 +69,7 @@ void NvVectorField::initialize()
 
 void NvVectorField::reset()
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter;
+    std::map<std::string, NvParticleRenderer *>::iterator iter;
     for (iter = _particleRendererMap.begin(); 
 	 iter != _particleRendererMap.end(); iter++) {
 	if ((*iter).second) (*iter).second->reset();
@@ -77,7 +78,7 @@ void NvVectorField::reset()
 
 void NvVectorField::setPlaneAxis(const std::string& name, int axis)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	(*iter).second->setAxis(axis);
     }
@@ -86,7 +87,7 @@ void NvVectorField::setPlaneAxis(const std::string& name, int axis)
 
 void NvVectorField::setPlanePos(const std::string& name, float pos)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	(*iter).second->setPos(pos);
     }
@@ -94,8 +95,8 @@ void NvVectorField::setPlanePos(const std::string& name, float pos)
 
 void NvVectorField::addPlane(const std::string& name)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
-    NvParticleRenderer* renderer = 0;
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
+    NvParticleRenderer *renderer = NULL;
     if (iter != _particleRendererMap.end()) {
 	if ((*iter).second != 0) {
 	    renderer = (*iter).second;
@@ -106,7 +107,7 @@ void NvVectorField::addPlane(const std::string& name)
 	renderer = new NvParticleRenderer(NMESH, NMESH, g_context);
 	_particleRendererMap[name] = renderer;
     }
-	
+
     renderer->setVectorField(_vectorFieldId, _origin, _scaleX, _scaleY, _scaleZ, _max);
     if (renderer) {
 	renderer->initialize();
@@ -115,7 +116,7 @@ void NvVectorField::addPlane(const std::string& name)
 
 void NvVectorField::removePlane(const std::string& name)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer* >::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	delete (*iter).second;
 	_particleRendererMap.erase(iter);
@@ -124,7 +125,7 @@ void NvVectorField::removePlane(const std::string& name)
 
 void NvVectorField::activatePlane(const std::string& name)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	(*iter).second->active(true);
     }
@@ -132,7 +133,7 @@ void NvVectorField::activatePlane(const std::string& name)
 
 void NvVectorField::deactivatePlane(const std::string& name)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	(*iter).second->active(false);
     }
@@ -140,7 +141,7 @@ void NvVectorField::deactivatePlane(const std::string& name)
 
 void NvVectorField::setParticleColor(const std::string& name, const Vector4& color)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	(*iter).second->setColor(color);
     }
@@ -148,7 +149,7 @@ void NvVectorField::setParticleColor(const std::string& name, const Vector4& col
 
 void NvVectorField::setParticleColor(const std::string& name, float r, float g, float b, float a)
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter = _particleRendererMap.find(name);
+    std::map<std::string, NvParticleRenderer *>::iterator iter = _particleRendererMap.find(name);
     if (iter != _particleRendererMap.end()) {
 	if ((*iter).second) (*iter).second->setColor(Vector4(r,g,b,a));
     }
@@ -156,7 +157,7 @@ void NvVectorField::setParticleColor(const std::string& name, float r, float g, 
 
 void NvVectorField::advect()
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter;
+    std::map<std::string, NvParticleRenderer *>::iterator iter;
     for (iter = _particleRendererMap.begin(); 
 	 iter != _particleRendererMap.end(); ++iter) {
 	if ((*iter).second && (*iter).second->active()) 
@@ -166,7 +167,7 @@ void NvVectorField::advect()
 
 void NvVectorField::render()
 {
-    std::map<std::string, NvParticleRenderer*>::iterator iter;
+    std::map<std::string, NvParticleRenderer *>::iterator iter;
     for (iter = _particleRendererMap.begin(); 
 	 iter != _particleRendererMap.end(); ++iter) {
 	if ((*iter).second && (*iter).second->active()) {
@@ -276,5 +277,3 @@ NvVectorField::deactivateDeviceShape(const std::string& name)
 	(*iter).second.visible = false;
     }
 }
-
-
