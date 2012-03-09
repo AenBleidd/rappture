@@ -105,7 +105,6 @@ CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 OBJS		= \
 		Axis.o \
-		BucketSort.o \
 		Chain.o \
 		CmdProc.o \
 		Color.o \
@@ -135,16 +134,9 @@ OBJS		= \
 		NvVolumeShader.o \
 		NvZincBlendeReconstructor.o \
 		NvZincBlendeVolumeShader.o \
-		ParticleEmitter.o \
-		ParticleSystem.o \
-		ParticleSystemFactory.o \
-		PCASplit.o \
 		PerfQuery.o \
 		Plane.o \
 		PlaneRenderer.o \
-		PointSet.o \
-		PointSetRenderer.o \
-		PointShader.o \
 		Renderable.o \
 		RenderContext.o \
 		RenderVertexArray.o \
@@ -166,6 +158,20 @@ OBJS		= \
 		dxReader.o \
 		dxReaderCommon.o \
 		nanovis.o
+
+ifdef NOTDEF
+OBJS +=		ParticleEmitter.o \
+		ParticleSystem.o \
+		ParticleSystemFactory.o
+endif
+
+ifdef USE_POINTSET_RENDERER
+OBJS += 	BucketSort.o \
+		PCASplit.o \
+		PointSet.o \
+		PointSetRenderer.o \
+		PointShader.o
+endif
 
 resources	= \
 		$(srcdir)/resources/Font.bmp \

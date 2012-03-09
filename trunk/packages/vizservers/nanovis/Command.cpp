@@ -61,7 +61,6 @@
 #include "NvCamera.h"
 #include "NvZincBlendeReconstructor.h"
 #include "Unirect.h"
-#include "VelocityArrowsSlice.h"
 #include "VolumeRenderer.h"
 
 // default transfer function

@@ -134,7 +134,7 @@ NvParticleRenderer *NanoVis::flowVisRenderer = NULL;
 #else
 NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
 #endif
-VelocityArrowsSlice *NanoVis::velocityArrowsSlice = 0;
+VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 
 graphics::RenderContext *NanoVis::renderContext = NULL;
 NvLIC *NanoVis::licRenderer = NULL;
@@ -189,7 +189,7 @@ float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 // maps transfunc name to TransferFunction object
 Tcl_HashTable NanoVis::tfTable;
 
-PerfQuery *perf;                        //perfromance counter
+PerfQuery *perf = NULL;                        //perfromance counter
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
@@ -2433,26 +2433,3 @@ NanoVis::remove_volume(Volume *volPtr)
     }
     delete volPtr;			
 }
-
-/*
-void NanoVis::drawArrows(const Vector3& v1, const Vector3& v2)
-{
-    Vector3 v3, v4;
-    if if((v1.z-v2.z) != 0)
-    {
-        v3.set(1, 1, (-(v1.x-v2.x)-(v1.y-v2.y))/(v1.z-v2.z));
-
-        adj = sqrt((x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2)) / (4 * sqrt((x3^2)+(y3^2)+(z3^2)));
-        v3.scale(adj);
-        v4 = -v3;
-
-        //x3 = x1 + (3/4)*(x1-x2) + x3
-        //y3 = y1 + (3/4)*(y1-y2) + y3
-        //z3 = z1 + (3/4)*(z1-z2) + z3
-
-        //x4 = x1 + (3/4)*(x1-x2) + x4
-        //y4 = y1 + (3/4)*(y1-y2) + y4
-        //z4 = z1 + (3/4)*(z1-z2) + z4
-    }
-}
-*/
