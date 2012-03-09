@@ -13,15 +13,14 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 
 #include <R2/R2FilePath.h>
+
 #include "NvLIC.h"
-#include <Trace.h>
+#include "Trace.h"
 #include "global.h"
 
 NvLIC::NvLIC(int _size, int _width, int _height, int _axis, 

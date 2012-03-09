@@ -9,7 +9,8 @@
 #include "Trace.h"
 
 extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, 
-	float *valuePtr);
+                           float *valuePtr);
+
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr);
 
 static INLINE char *

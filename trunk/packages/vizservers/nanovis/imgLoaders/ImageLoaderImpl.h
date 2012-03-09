@@ -1,21 +1,23 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __IMAGE_LOADER_IMPL_H__
-#define __IMAGE_LOADER_IMPL_H__
+#ifndef IMAGE_LOADER_IMPL_H
+#define IMAGE_LOADER_IMPL_H
 
 #include <Image.h>
 
-class ImageLoaderImpl {
+class ImageLoaderImpl
+{
+public:
     friend class ImageLoader;
 
-protected :
-    Image::ImageFormat _targetImageFormat;
-
-public :
     ImageLoaderImpl();
+
     virtual ~ImageLoaderImpl();
 
-public :
-    virtual Image* load(const char* fileName);
+protected:
+    Image::ImageFormat _targetImageFormat;
+
+public:
+    virtual Image *load(const char *fileName) = 0;
 };
 
 #endif

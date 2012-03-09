@@ -1,8 +1,4 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <nvconf.h>
-#if defined(HAVE_LIBAVCODEC) || defined(HAVE_LIBAVFORMAT)
-#define HAVE_FFMPEG 1
-#endif
 
 #include <assert.h>
 #include <stdlib.h>
@@ -10,25 +6,33 @@
 #include <limits.h>
 #include <stdint.h>
 #include <poll.h>
+
 #include <tcl.h>
-#include "Switch.h"
+
 #include <RpField1D.h>
 #include <RpFieldRect3D.h>
 #include <RpFieldPrism3D.h>
 #include <RpOutcome.h>
-#ifdef HAVE_FFMPEG
-#include <RpAVTranslate.h>
+
+#include "nvconf.h"
+
+#if defined(HAVE_LIBAVCODEC) || defined(HAVE_LIBAVFORMAT)
+#define HAVE_FFMPEG 1
 #endif
-#include "Trace.h"
-#include "TransferFunction.h"
+
+#ifdef HAVE_FFMPEG
+#include "RpAVTranslate.h"
+#endif
 
 #include "nanovis.h"
-#include "CmdProc.h"
-
-#include "NvLIC.h"
-
-#include "Unirect.h"
 #include "FlowCmd.h"
+#include "CmdProc.h"
+#include "Switch.h"
+#include "TransferFunction.h"
+#include "NvLIC.h"
+#include "Trace.h"
+#include "Unirect.h"
+#include "VelocityArrowsSlice.h"
 
 #define RELPOS 0
 #define ABSPOS 1

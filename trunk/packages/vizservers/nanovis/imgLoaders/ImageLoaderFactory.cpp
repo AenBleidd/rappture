@@ -1,54 +1,49 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include <stdio.h>
+
+#include <map>
+#include <string>
+
 #include "ImageLoader.h"
 #include "ImageLoaderImpl.h"
 #include "ImageLoaderFactory.h"
-#include <map>
-#include <string>
-#include <stdio.h>
 
-ImageLoaderFactory* ImageLoaderFactory::_instance = 0;
+ImageLoaderFactory *ImageLoaderFactory::_instance = NULL;
 
 ImageLoaderFactory::ImageLoaderFactory()
 {
 }
 
-ImageLoaderFactory* ImageLoaderFactory::getInstance()
+ImageLoaderFactory *ImageLoaderFactory::getInstance()
 {
-    if (_instance == 0)
-    {
+    if (_instance == NULL) {
         _instance = new ImageLoaderFactory();
     }
 
     return _instance;
 }
 
-void ImageLoaderFactory::addLoaderImpl(const std::string& ext, ImageLoaderImpl* loaderImpl)
+void ImageLoaderFactory::addLoaderImpl(const std::string& ext, ImageLoaderImpl *loaderImpl)
 {
-    std::map< std::string, ImageLoaderImpl*>::iterator iter;
+    std::map<std::string, ImageLoaderImpl *>::iterator iter;
     iter = _loaderImpls.find(ext);
-    if (iter == _loaderImpls.end())
-    {
+    if (iter == _loaderImpls.end()) {
         _loaderImpls[ext] = loaderImpl;
-    }
-    else
-    {
-        printf("conflick data loader for .%s files\n", ext.c_str());
+    } else {
+        printf("conflicting data loader for .%s files\n", ext.c_str());
         return;
     }
 }
 
-ImageLoader* ImageLoaderFactory::createLoader(const std::string& ext)
+ImageLoader *ImageLoaderFactory::createLoader(const std::string& ext)
 {
-    std::map< std::string, ImageLoaderImpl*>::iterator iter;
+    std::map<std::string, ImageLoaderImpl *>::iterator iter;
     iter = _loaderImpls.find(ext);
-    if (iter != _loaderImpls.end())
-    {
-        ImageLoader* imageLoader = new ImageLoader();
+    if (iter != _loaderImpls.end()) {
+        ImageLoader *imageLoader = new ImageLoader();
         imageLoader->setLoaderImpl((*iter).second);
         return imageLoader;
-    }
-    else
-    {
+    } else {
         printf("%s file not supported\n", ext.c_str());
     }
     return 0;

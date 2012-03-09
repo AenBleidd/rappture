@@ -13,34 +13,45 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-#ifndef _TEXTURE_2D_H_
-#define _TEXTURE_2D_H_
+#ifndef TEXTURE2D_H
+#define TEXTURE2D_H
 
 #include <GL/glew.h>
 
 class Texture2D
 {
 public:
-  int width;
-  int height;
+    Texture2D();
 
-  GLuint type;
-  GLuint id;
-  GLuint interp_type;
-  int n_components;
+    Texture2D(int width, int height,
+              GLuint type = GL_FLOAT,
+              GLuint interp = GL_LINEAR,
+              int numComponents = 4,
+              void *data = NULL);
 
-  Texture2D();
-  Texture2D(int width, int height, GLuint type, GLuint interp, int n, float* data);
-  ~Texture2D();
-	
-  void activate();
-  void deactivate();
-  void enable();
-  void disable();
-  GLuint initialize(float* data);
-  static void check_max_size();
-  static void check_max_unit();
+    ~Texture2D();
+
+    GLuint initialize(void *data);
+
+    void update(void *data);
+
+    void activate();
+
+    void deactivate();
+
+    static void check_max_size();
+
+    static void check_max_unit();
+
+    int width;
+    int height;
+
+    int n_components;
+
+    bool gl_resource_allocated;
+    GLuint id;
+    GLuint type;
+    GLuint interp_type;
 };
 
 #endif

@@ -23,7 +23,6 @@
 
 /*
  * TODO:  In no particular order...
- *        x Convert to Tcl_CmdObj interface. (done)
  *        o Use Tcl command option parser to reduce size of procedures, remove
  *          lots of extra error checking code. (almost there)
  *        o Convert GetVolumeIndices to GetVolumes.  Goal is to remove
@@ -32,17 +31,15 @@
  *        o Rationalize volume id scheme. Right now it's the index in
  *          the vector. 1) Use a list instead of a vector. 2) carry
  *          an id field that's a number that gets incremented each new volume.
- *        x Create R2, matrix, etc. libraries. (done)
  *        o Add bookkeeping for volumes, heightmaps, flows, etc. to track
  *          1) id #  2) simulation # 3) include/exclude.  The include/exclude
  *          is to indicate whether the item should contribute to the overall
  *          limits of the axes.
  */
 
-
-
 #include <assert.h>
 #include <stdlib.h>
+
 #include <tcl.h>
 
 #include <RpField1D.h>
@@ -52,35 +49,20 @@
 #include <RpOutcome.h>
 #include <RpBuffer.h>
 
-#include "Trace.h"
 #include "nanovis.h"
 #include "CmdProc.h"
-#include "PointSetRenderer.h"
-#include "PointSet.h"
-#include "ZincBlendeVolume.h"
-#include "NvColorTableRenderer.h"
-#include "NvEventLog.h"
-#include "NvZincBlendeReconstructor.h"
-#include "VolumeInterpolator.h"
-#include "HeightMap.h"
+#include "Trace.h"
+
+#if PLANE_CMD
+#include "PlaneRenderer.h"
+#endif
 #include "Grid.h"
+#include "HeightMap.h"
 #include "NvCamera.h"
-#include "RenderContext.h"
-#include "NvLIC.h"
+#include "NvZincBlendeReconstructor.h"
 #include "Unirect.h"
-
-#define PLANE_CMD               0
-
-// EXTERN DECLARATIONS
-// in Nv.cpp
-
-// in nanovis.cpp
-extern std::vector<PointSet*> g_pointSet;
-
-extern PlaneRenderer* plane_render;
-extern Texture2D* plane[10];
-
-// Tcl interpreter for incoming messages
+#include "VelocityArrowsSlice.h"
+#include "VolumeRenderer.h"
 
 // default transfer function
 static const char def_transfunc[] =
@@ -1505,13 +1487,12 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	TRACE("setting %s with transfer function %s\n", (*iter)->name(),
 	       tfPtr->name());
         (*iter)->transferFunction(tfPtr);
-#ifdef POINTSET
+#ifdef USE_POINTSET_RENDERER
         // TBD..
-        // POINTSET
-        if ((*iter)->pointsetIndex != -1) {
-            g_pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
-        }
-#endif /*POINTSET*/
+ //        if ((*iter)->pointsetIndex != -1) {
+//             NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
+//         }
+#endif
     }
     return TCL_OK;
 }
@@ -2012,8 +1993,7 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightMapOps[] = {
-    {"create",       2, HeightMapCreateOp,      10, 10,
-     "tag xmin ymin xmax ymax xnum ynum values",},
+    {"create",       2, HeightMapCreateOp,      10, 10, "tag xmin ymin xmax ymax xnum ynum values",},
     {"cull",         2, HeightMapCullOp,        3, 3, "mode",},
     {"data",         1, HeightMapDataOp,        3, 0, "oper ?args?",},
     {"legend",       2, HeightMapLegendOp,      5, 5, "index width height",},
@@ -2192,7 +2172,7 @@ PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
     //Now read w*h*4 bytes. The server expects the plane to be a stream of
     //floats
-    char* tmp = new char[int(w*h*sizeof(float))];
+    char *tmp = new char[int(w*h*sizeof(float))];
     if (tmp == NULL) {
         Tcl_AppendResult(interp, "can't allocate stream data", (char *)NULL);
         return TCL_ERROR;
@@ -2203,11 +2183,10 @@ PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc,
         exit(0);                // Bail out on read error?  Should log the
                                 // error and return a non-zero exit status.
     }
-    plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
+    NanoVis::plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
     delete[] tmp;
     return TCL_OK;
 }
-
 
 static int
 PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -2228,7 +2207,7 @@ PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[2], &tf_index) != TCL_OK) {
         return TCL_ERROR;
     }
-    //plane_render->add_plane(plane[plane_index], tf[tf_index]);
+    //NanoVis::plane_renderer->add_plane(NanoVis::plane[plane_index], tf[tf_index]);
     return TCL_OK;
 }
 
@@ -2256,7 +2235,7 @@ PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (mode == 0) {
         plane_index = -1;
     }
-    plane_render->set_active_plane(plane_index);
+    NanoVis::plane_renderer->set_active_plane(plane_index);
     return TCL_OK;
 }
 
@@ -2327,7 +2306,6 @@ Unirect3dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 Tcl_Interp *
 initTcl()
 {
-
     /*
      * Ideally the connection is authenticated by nanoscale.  I still like the
      * idea of creating a non-safe master interpreter with a safe slave
@@ -2349,6 +2327,9 @@ initTcl()
     Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
+#if PLANE_CMD
+    Tcl_CreateObjCommand(interp, "plane",       PlaneCmd,       NULL, NULL);
+#endif
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);
     Tcl_CreateObjCommand(interp, "snapshot",    SnapshotCmd,    NULL, NULL);
     Tcl_CreateObjCommand(interp, "transfunc",   TransfuncCmd,   NULL, NULL);

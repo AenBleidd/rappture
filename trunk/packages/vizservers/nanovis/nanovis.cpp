@@ -18,16 +18,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <fstream>
 #include <getopt.h>
-#include <iostream>
-#include <cmath>
 #include <memory.h>
 #include <signal.h>
-#include <sstream>
-#include <cstdio>
-#include <cstdlib>
-#include <string>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -37,42 +30,57 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef USE_POINTSET_RENDERER
-#include "PointSetRenderer.h"
-#include "PointSet.h"
-#endif
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
 
-#include <NvLIC.h>
-#include <Trace.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
 
-#include "nanovis.h"
-#include "define.h"
-#include "RpField1D.h"
-#include "RpFieldRect3D.h"
-#include "RpFieldPrism3D.h"
-#include "RpEncode.h"
+#include <RpField1D.h>
+#include <RpFieldRect3D.h>
+#include <RpFieldPrism3D.h>
+#include <RpEncode.h>
 
-#include "ZincBlendeVolume.h"
-#include "NvColorTableRenderer.h"
-#include "NvEventLog.h"
-#include "NvZincBlendeReconstructor.h"
-#include "NvFlowVisRenderer.h"
-#include "HeightMap.h"
-#include "Grid.h"
-#include "VolumeInterpolator.h"
-#include <RenderContext.h>
+#include <R2/R2FilePath.h>
+#include <R2/R2Fonts.h>
+
 #include <vrutil/vrFilePath.h>
 
 #include <BMPImageLoaderImpl.h>
 #include <ImageLoaderFactory.h>
 
-// R2 headers
-#include <R2/R2FilePath.h>
-#include <R2/R2Fonts.h>
+#include <GL/glew.h>
+#include <GL/glut.h>
 
-#include "Unirect.h"
-#include "Switch.h"
+#include "nanovis.h"
+#include "define.h"
+
 #include "FlowCmd.h"
+#include "Grid.h"
+#include "HeightMap.h"
+#include "NvCamera.h"
+#include "NvColorTableRenderer.h"
+#include "NvEventLog.h"
+#include "NvFlowVisRenderer.h"
+#include "NvLIC.h"
+#include "NvZincBlendeReconstructor.h"
+#include "PerfQuery.h"
+#include "PlaneRenderer.h"
+#ifdef USE_POINTSET_RENDERER
+#include "PointSetRenderer.h"
+#include "PointSet.h"
+#endif
+#include "RenderContext.h"
+#include "Switch.h"
+#include "Trace.h"
+#include "Unirect.h"
+#include "VelocityArrowsSlice.h"
+#include "VolumeInterpolator.h"
+#include "VolumeRenderer.h"
+#include "ZincBlendeVolume.h"
 
 #define SIZEOF_BMP_HEADER   54
 
@@ -104,28 +112,29 @@ static Stats stats;
 // STATIC MEMBER DATA
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
-NvCamera* NanoVis::cam = NULL;
+NvCamera *NanoVis::cam = NULL;
 Tcl_HashTable NanoVis::volumeTable;
 Tcl_HashTable NanoVis::heightmapTable;
-VolumeRenderer* NanoVis::vol_renderer = NULL;
+VolumeRenderer *NanoVis::vol_renderer = NULL;
 #ifdef USE_POINTSET_RENDERER
-PointSetRenderer* NanoVis::pointset_renderer = NULL;
-std::vector<PointSet*> NanoVis::pointSet;
+PointSetRenderer *NanoVis::pointset_renderer = NULL;
+std::vector<PointSet *> NanoVis::pointSet;
 #endif
-PlaneRenderer* NanoVis::plane_render = NULL;
-Texture2D* NanoVis::plane[10];
-NvColorTableRenderer* NanoVis::color_table_renderer = NULL;
+PlaneRenderer *NanoVis::plane_renderer = NULL;
+// pointers to 2D planes, currently handle up 10
+Texture2D *NanoVis::plane[10];
+NvColorTableRenderer *NanoVis::color_table_renderer = NULL;
 
 #ifndef NEW_FLOW_ENGINE
-NvParticleRenderer* NanoVis::flowVisRenderer = NULL;
+NvParticleRenderer *NanoVis::flowVisRenderer = NULL;
 #else
-NvFlowVisRenderer* NanoVis::flowVisRenderer = NULL;
+NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
 #endif
-VelocityArrowsSlice* NanoVis::velocityArrowsSlice = 0;
+VelocityArrowsSlice *NanoVis::velocityArrowsSlice = 0;
 
-graphics::RenderContext* NanoVis::renderContext = NULL;
-NvLIC* NanoVis::licRenderer = NULL;
-R2Fonts* NanoVis::fonts;
+graphics::RenderContext *NanoVis::renderContext = NULL;
+NvLIC *NanoVis::licRenderer = NULL;
+R2Fonts *NanoVis::fonts;
 
 FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
@@ -139,9 +148,9 @@ Tcl_Interp *NanoVis::interp;
 Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
-GLuint NanoVis::final_color_tex = 0;
-GLuint NanoVis::final_depth_rb = 0;
-GLuint NanoVis::final_fbo = 0;
+GLuint NanoVis::_final_color_tex = 0;
+GLuint NanoVis::_final_depth_rb = 0;
+GLuint NanoVis::_final_fbo = 0;
 int NanoVis::render_window = 0;       /* GLUT handle for the render window */
 int NanoVis::win_width = NPIX;        /* Width of the render window */
 int NanoVis::win_height = NPIX;       /* Height of the render window */
@@ -176,10 +185,7 @@ float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 // maps transfunc name to TransferFunction object
 Tcl_HashTable NanoVis::tfTable;
 
-// pointers to 2D planes, currently handle up 10
-
-
-PerfQuery* perf;                        //perfromance counter
+PerfQuery *perf;                        //perfromance counter
 
 CGprogram m_passthru_fprog;
 CGparameter m_passthru_scale_param, m_passthru_bias_param;
@@ -508,7 +514,7 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
     int old_width = win_width;
     int old_height = win_height;
 
-    plane_render->set_screen_size(width, height);
+    plane_renderer->set_screen_size(width, height);
     resize_offscreen_buffer(width, height);
 
     // generate data for the legend
@@ -517,12 +523,12 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
         data[i] = data[i+256] = (float)(i/255.0);
     }
     plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-    int index = plane_render->add_plane(plane[0], tf);
-    plane_render->set_active_plane(index);
+    int index = plane_renderer->add_plane(plane[0], tf);
+    plane_renderer->set_active_plane(index);
 
     offscreen_buffer_capture();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
-    plane_render->render();
+    plane_renderer->render();
 
     // INSOO
     glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen_buffer);
@@ -538,7 +544,7 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
         nWritten = write(1, "\n", 1);
 	assert(nWritten == 1);
     }
-    plane_render->remove_plane(index);
+    plane_renderer->remove_plane(index);
     resize_offscreen_buffer(old_width, old_height);
 
     TRACE("leaving render_legend\n");
@@ -552,11 +558,11 @@ NanoVis::init_offscreen_buffer()
 {
     TRACE("in init_offscreen_buffer\n");
     // Initialize a fbo for final display.
-    glGenFramebuffersEXT(1, &final_fbo);
-    
-    glGenTextures(1, &final_color_tex);
-    glBindTexture(GL_TEXTURE_2D, final_color_tex);
-    
+    glGenFramebuffersEXT(1, &_final_fbo);
+
+    glGenTextures(1, &_final_color_tex);
+    glBindTexture(GL_TEXTURE_2D, _final_color_tex);
+
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef NV40
@@ -566,15 +572,15 @@ NanoVis::init_offscreen_buffer()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, win_width, win_height, 0,
                  GL_RGB, GL_INT, NULL);
 #endif
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
-    glGenRenderbuffersEXT(1, &final_depth_rb);
-    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _final_fbo);
+    glGenRenderbuffersEXT(1, &_final_depth_rb);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
 			     win_width, win_height);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-			      GL_TEXTURE_2D, final_color_tex, 0);
+			      GL_TEXTURE_2D, _final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-				 GL_RENDERBUFFER_EXT, final_depth_rb);
+				 GL_RENDERBUFFER_EXT, _final_depth_rb);
 
     GLenum status;
     if (!CheckFBO(&status)) {
@@ -584,11 +590,10 @@ NanoVis::init_offscreen_buffer()
 
     // Check framebuffer completeness at the end of initialization.
     //CHECK_FRAMEBUFFER_STATUS();
-    
+
     //assert(glGetError()==0);
     TRACE("leaving init_offscreen_buffer\n");
 }
-
 
 //resize the offscreen buffer 
 void 
@@ -600,34 +605,34 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     }
     win_width = w;
     win_height = h;
-    
+
     if (fonts) {
         fonts->resize(w, h);
     }
     TRACE("screen_buffer size: %d %d\n", w, h);
-    
+
     if (screen_buffer != NULL) {
         delete [] screen_buffer;
         screen_buffer = NULL;
     }
-    
+
     screen_buffer = new unsigned char[4*win_width*win_height];
     assert(screen_buffer != NULL);
     
     //delete the current render buffer resources
-    glDeleteTextures(1, &final_color_tex);
-    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
-    glDeleteRenderbuffersEXT(1, &final_depth_rb);
+    glDeleteTextures(1, &_final_color_tex);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _final_depth_rb);
+    glDeleteRenderbuffersEXT(1, &_final_depth_rb);
 
     TRACE("before deleteframebuffers\n");
-    glDeleteFramebuffersEXT(1, &final_fbo);
+    glDeleteFramebuffersEXT(1, &_final_fbo);
 
     TRACE("reinitialize FBO\n");
     //Reinitialize final fbo for final display
-    glGenFramebuffersEXT(1, &final_fbo);
+    glGenFramebuffersEXT(1, &_final_fbo);
 
-    glGenTextures(1, &final_color_tex);
-    glBindTexture(GL_TEXTURE_2D, final_color_tex);
+    glGenTextures(1, &_final_color_tex);
+    glBindTexture(GL_TEXTURE_2D, _final_color_tex);
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -639,17 +644,17 @@ NanoVis::resize_offscreen_buffer(int w, int h)
                  GL_RGB, GL_INT, NULL);
 #endif
     TRACE("before bindframebuffer\n");
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, final_fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _final_fbo);
     TRACE("after bindframebuffer\n");
-    glGenRenderbuffersEXT(1, &final_depth_rb);
-    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, final_depth_rb);
+    glGenRenderbuffersEXT(1, &_final_depth_rb);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
 			     win_width, win_height);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-			      GL_TEXTURE_2D, final_color_tex, 0);
+			      GL_TEXTURE_2D, _final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-				 GL_RENDERBUFFER_EXT, final_depth_rb);
-    
+				 GL_RENDERBUFFER_EXT, _final_depth_rb);
+
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "final_fbo");
@@ -660,7 +665,7 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     TRACE("change camera\n");
     //change the camera setting
     cam->set_screen_size(0, 0, win_width, win_height);
-    plane_render->set_screen_size(win_width, win_height);
+    plane_renderer->set_screen_size(win_width, win_height);
 
     TRACE("leaving resize_offscreen_buffer(%d, %d)\n", w, h);
 }
@@ -676,14 +681,15 @@ make_test_2D_data()
 {
     int w = 300;
     int h = 200;
-    float* data = new float[w*h];
+    float *data = new float[w*h];
 
     //procedurally make a gradient plane
-    for(int j=0; j<h; j++){
-        for(int i=0; i<w; i++){
+    for (int j = 0; j < h; j++){
+        for (int i = 0; i < w; i++){
             data[w*j+i] = float(i)/float(w);
         }
     }
+
     NanoVis::plane[0] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, data);
     delete[] data;
 }
@@ -819,13 +825,13 @@ NanoVis::initGL(void)
 
     // create
     renderContext = new graphics::RenderContext();
-   
+
     //create an 2D plane renderer
-    plane_render = new PlaneRenderer(g_context, win_width, win_height);
+    plane_renderer = new PlaneRenderer(g_context, win_width, win_height);
 #if PROTOTYPE
     make_test_2D_data();
-#endif  /* PROTOTYPE */
-    plane_render->add_plane(plane[0], get_transfunc("default"));
+    plane_renderer->add_plane(plane[0], get_transfunc("default"));
+#endif
 
     //assert(glGetError()==0);
 
@@ -1191,7 +1197,7 @@ NanoVis::display_offscreen_buffer()
     TRACE("in display_offscreen_buffer\n");
     glEnable(GL_TEXTURE_2D);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-    glBindTexture(GL_TEXTURE_2D, final_color_tex);
+    glBindTexture(GL_TEXTURE_2D, _final_color_tex);
 
     glViewport(0, 0, win_width, win_height);
     glMatrixMode(GL_PROJECTION);
@@ -1211,8 +1217,6 @@ NanoVis::display_offscreen_buffer()
     glEnd();
     TRACE("leaving display_offscreen_buffer\n");
 }
-
-
 
 #if 0
 //oddeven sort on GPU
@@ -1294,7 +1298,6 @@ sortstep()
     //assert(glGetError()==0);
 }
 #endif
-
 
 void 
 draw_3d_axis()
@@ -1636,25 +1639,27 @@ NanoVis::display()
         vol_renderer->render_all();
         //perf->disable();
 
-	TRACE("in display: render heightmap\n");
-	Tcl_HashEntry *hPtr;
-	Tcl_HashSearch iter;
-	for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-	     hPtr = Tcl_NextHashEntry(&iter)) {
-	    HeightMap *hmPtr;
-	    hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-            if (hmPtr->isVisible()) {
-                hmPtr->render(renderContext);
+        if (heightmapTable.numEntries > 0) {
+            TRACE("in display: render heightmap\n");
+            Tcl_HashEntry *hPtr;
+            Tcl_HashSearch iter;
+            for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
+                 hPtr = Tcl_NextHashEntry(&iter)) {
+                HeightMap *hmPtr;
+                hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+                if (hmPtr->isVisible()) {
+                    hmPtr->render(renderContext);
+                }
             }
         }
         glPopMatrix();
     } else {
         //2D rendering mode
         perf->enable();
-        plane_render->render();
+        plane_renderer->render();
         perf->disable();
     }
-    TRACE("in display: render heightmap\n");
+
     perf->reset();
     CHECK_FRAMEBUFFER_STATUS();
     TRACE("leaving display\n");
@@ -1754,7 +1759,7 @@ void addVectorField(const char* filename, const char* vf_name,
 		volPtr->depth  / (float)volPtr->width,
 		1.0f);
 	    NanoVis::flowVisRenderer->activateVectorField(vf_name);
-	    
+
 	    //////////////////////////////////
 	    // ADD Particle Injection Plane1
 	    NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
@@ -1767,16 +1772,17 @@ void addVectorField(const char* filename, const char* vf_name,
 	    NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
 	    NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
 	    NanoVis::flowVisRenderer->initialize(vf_name);
-	    
+
 	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
 	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
-	    
-	    NanoVis::licRenderer->setVectorField(volPtr->id,
-				*(volPtr->get_location()),
-				1.0f / volPtr->aspect_ratio_width,
-				1.0f / volPtr->aspect_ratio_height,
-				1.0f / volPtr->aspect_ratio_depth,
-				volPtr->wAxis.max());
+
+	    NanoVis::licRenderer->
+                setVectorField(volPtr->id,
+                               *(volPtr->get_location()),
+                               1.0f / volPtr->aspect_ratio_width,
+                               1.0f / volPtr->aspect_ratio_height,
+                               1.0f / volPtr->aspect_ratio_depth,
+                               volPtr->wAxis.max());
 	}
     }
     //NanoVis::initParticle();
@@ -2352,7 +2358,7 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     resize_offscreen_buffer(width, height);
 
     /*
-      plane_render->set_screen_size(width, height);
+      plane_renderer->set_screen_size(width, height);
 
       // generate data for the legend
       float data[512];
@@ -2360,13 +2366,13 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
       data[i] = data[i+256] = (float)(i/255.0);
       }
       plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-      int index = plane_render->add_plane(plane[0], tf);
-      plane_render->set_active_plane(index);
+      int index = plane_renderer->add_plane(plane[0], tf);
+      plane_renderer->set_active_plane(index);
 
       offscreen_buffer_capture();
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
-      //plane_render->render();
+      //plane_renderer->render();
       // INSOO : is going to implement here for the topview of the heightmap
       heightmap->render(renderContext);
 
@@ -2383,7 +2389,7 @@ NanoVis::render_2d_contour(HeightMap* heightmap, int width, int height)
     //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
     //ppm_write(prefix);
     //write(1, "\n", 1);
-    //plane_render->remove_plane(index);
+    //plane_renderer->remove_plane(index);
 
     // CURRENT
     offscreen_buffer_capture();

@@ -13,30 +13,46 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _TEXTURE_1D_H_
-#define _TEXTURE_1D_H_
+#ifndef TEXTURE1D_H
+#define TEXTURE1D_H
 
 #include <GL/glew.h>
 
-class Texture1D {
+class Texture1D
+{
 public:
-    int width;
-    bool gl_resource_allocated;
-    
-    GLuint type;
-    GLuint id;
-    GLuint tex_unit;
-
     Texture1D();
-    Texture1D(int length, int type = GL_UNSIGNED_BYTE);
+
+    Texture1D(int width,
+              GLuint type = GL_FLOAT,
+              GLuint interp = GL_LINEAR,
+              int numComponents = 4,
+              void *data = NULL);
+
     ~Texture1D();
-        
+
+    GLuint initialize(void *data);
+
+    void update(void *data);
+
     void activate();
+
     void deactivate();
-    GLuint initialize_float_rgba(float* data);
-    void update_float_rgba(float* data);
+
     static void check_max_size();
+
     static void check_max_unit();
+
+    int width;
+
+    int n_components;
+
+    bool gl_resource_allocated;
+    GLuint id;
+    GLuint type;
+    GLuint interp_type;
+
+    //GLuint tex_unit;
 };
 
 #endif

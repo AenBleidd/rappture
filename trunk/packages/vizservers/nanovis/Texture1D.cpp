@@ -14,60 +14,67 @@
  * ======================================================================
  */
 
-#include "Texture1D.h"
-#include "Trace.h"
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
 
+#include "Texture1D.h"
+#include "Trace.h"
 
-Texture1D::Texture1D(){
-    id = -1;			
-    gl_resource_allocated = false;
+Texture1D::Texture1D() :
+    gl_resource_allocated(false),
+    id(0)
+{
 }
 
-Texture1D::Texture1D(int width, int type)
+Texture1D::Texture1D(int width,
+                     GLuint type, GLuint interp,
+                     int numComponents, void *data) :
+    gl_resource_allocated(false),
+    id(0)
 {
-    assert(type == GL_UNSIGNED_BYTE || type == GL_FLOAT || 
-	   type == GL_UNSIGNED_INT);
-        
     this->width = width;
     this->type = type;
+    this->interp_type = interp;
+    this->n_components = numComponents;
 
-    id = -1;
-    gl_resource_allocated = false;
+    if (data != NULL)
+        initialize(data);
 }
 
-GLuint Texture1D::initialize_float_rgba(float *data)
+Texture1D::~Texture1D()
 {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glDeleteTextures(1, &id);
+}
+
+GLuint Texture1D::initialize(void *data)
+{
+    if (gl_resource_allocated)
+        glDeleteTextures(1, &id);
 
     glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_1D, id);
-    assert(id != (GLuint)-1);
 
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, width, 0, GL_RGBA, GL_FLOAT, data);
-    assert(glGetError()==0);
+    update(data);
         
     gl_resource_allocated = true;
     return id;
 }
 
-void Texture1D::update_float_rgba(float* data){
+void Texture1D::update(void *data)
+{
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
     glBindTexture(GL_TEXTURE_1D, id);
         
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, interp_type);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, interp_type);
 
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
 
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, width, 0, GL_RGBA, GL_FLOAT, data);
+    glTexImage1D(GL_TEXTURE_1D, 0, format[n_components], width, 0,
+                 format[n_components], type, data);
+
     assert(glGetError()==0);    
 }
 
@@ -82,20 +89,16 @@ void Texture1D::deactivate()
     glDisable(GL_TEXTURE_1D);           
 }
 
-Texture1D::~Texture1D()
+void Texture1D::check_max_size()
 {
-    glDeleteTextures(1, &id);
-}
-
-void Texture1D::check_max_size(){
     GLint max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
-        
-    //TRACE("%d", glGetError());
+
     TRACE("max texture size: %d\n", max);
 }
 
-void Texture1D::check_max_unit(){
+void Texture1D::check_max_unit()
+{
     int max;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);
 

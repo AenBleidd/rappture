@@ -6,71 +6,8 @@
 #include <Cg/cgGL.h>
 #include <vector>
 
-#define USE_NANOVIS_LIB
-
-#ifdef USE_NANOVIS_LIB
 #include "Texture2D.h"
 #include "Vector3.h"
-#else
-#include <vr3d/vrTexture2D.h>
-
-typedef vrTexture2D Texture2D;
-
-class Vector3
-{
-public:
-    float x, y, z;
-
-    Vector3() :
-        x(0.0f), y(0.0f), z(0.0f)
-    {}
-
-    Vector3(float x1, float y1, float z1) :
-        x(x1), y(y1), z(z1)
-    {}
-
-    Vector3 operator*(float scale)
-    {
-        Vector3 vec;
-        vec.x = x * scale;
-        vec.y = y * scale;
-        vec.z = z * scale;
-        return vec;
-    }
-
-    Vector3 scale(const Vector3& scale)
-    {
-        Vector3 vec;
-        vec.x = x * scale.x;
-        vec.y = y * scale.y;
-        vec.z = z * scale.z;
-        return vec;
-    }
-
-    Vector3 operator*(const Vector3& scale)
-    {
-        Vector3 vec;
-        vec.x = x * scale.x;
-        vec.y = y * scale.y;
-        vec.z = z * scale.z;
-        return vec;
-    }
-
-    friend Vector3 operator+(const Vector3& value1, const Vector3& value2);
-
-    void set(float x1, float y1, float z1)
-    {
-        x = x1; y = y1; z = z1;
-    }
-};
-
-inline Vector3 operator+(const Vector3& value1, const Vector3& value2)
-{
-    return Vector3(value1.x + value2.x, value1.y + value2.y, value1.z + value2.z);
-}
-
-#endif
-
 
 class VelocityArrowsSlice
 {
@@ -79,6 +16,70 @@ public:
         LINES,
         GLYPHS,
     };
+
+    VelocityArrowsSlice();
+
+    ~VelocityArrowsSlice();
+
+    void vectorField(unsigned int vfGraphicsID, float xScale, float yScale, float zScale);
+
+    void axis(int axis);
+
+    int axis() const
+    {
+        return _axis;
+    }
+
+    void slicePos(float pos)
+    {
+        _slicePos = pos;
+        _dirty = true;
+    }
+
+    float slicePos() const
+    {
+        return _slicePos;
+    }
+
+    void queryVelocity();
+
+    void render();
+
+    void enabled(bool enabled)
+    {
+        _enabled = enabled;
+    }
+
+    bool enabled() const
+    {
+        return _enabled;
+    }
+
+    void tickCountForMinSizeAxis(int tickCount)
+    {
+        _tickCountForMinSizeAxis = tickCount;
+    }
+
+    int tickCountForMinSizeAxis() const
+    {
+        return _tickCountForMinSizeAxis;
+    }
+
+    void arrowColor(const Vector3& color)
+    {
+        _arrowColor = color;
+    }
+
+    void renderMode(RenderMode mode)
+    {
+        _renderMode = mode;
+        _dirty = true;
+    }
+
+    RenderMode renderMode() const
+    {
+        return _renderMode;
+    }
 
 private:
     unsigned int _vectorFieldGraphicsID;
@@ -132,64 +133,8 @@ private:
     RenderMode _renderMode;
 
     void createRenderTarget();
+
     void computeSamplingTicks();
-
-public:
-    VelocityArrowsSlice();
-    ~VelocityArrowsSlice();
-
-    void vectorField(unsigned int vfGraphicsID, float xScale, float yScale, float zScale);
-    void axis(int axis);
-    int axis() const;
-    void slicePos(float pos);
-    float slicePos() const;
-    void queryVelocity();
-    void render();
-    void enabled(bool enabled)
-    {
-        _enabled = enabled;
-    }
-    bool enabled() const
-    {
-        return _enabled;
-    }
-    void tickCountForMinSizeAxis(int tickCount);
-    int tickCountForMinSizeAxis() const;
-    void arrowColor(const Vector3& color);
-    void renderMode(RenderMode mode);
-    RenderMode renderMode() const;
 };
 
-inline int VelocityArrowsSlice::axis() const
-{
-    return _axis;
-}
-
-inline float VelocityArrowsSlice::slicePos() const
-{
-    return _slicePos;
-}
-
-
-inline int VelocityArrowsSlice::tickCountForMinSizeAxis() const
-{
-    return _tickCountForMinSizeAxis;
-}
-
-inline void VelocityArrowsSlice::arrowColor(const Vector3& color)
-{
-    _arrowColor = color;
-}
-
-inline void VelocityArrowsSlice::renderMode(VelocityArrowsSlice::RenderMode mode)
-{
-    _renderMode = mode;
-    _dirty = true;
-}
-
-inline VelocityArrowsSlice::RenderMode VelocityArrowsSlice::renderMode() const
-{
-    return _renderMode;
-}
- 
 #endif

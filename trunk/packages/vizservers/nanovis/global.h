@@ -10,13 +10,13 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _GLOBAL_H_
-#define _GLOBAL_H_
+#ifndef GLOBAL_H
+#define GLOBAL_H
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include <Trace.h>
+#include "Trace.h"
 
 inline void 
 draw_quad(int w, int h, int tw, int th)
@@ -41,6 +41,6 @@ system_info()
 }
 
 extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 
-	CGprofile profile, const char *entryPoint);
+                                     CGprofile profile, const char *entryPoint);
 
 #endif
