@@ -67,6 +67,37 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     GetSize $m "yaxis.numpoints" _yNum
     GetSize $m "zaxis.numpoints" _zNum
     set _compNum $extents
+    foreach {key path} {
+        group   about.group
+        label   about.label
+        color   about.color
+        style   about.style
+        type    about.type
+        xlabel  xaxis.label
+        xdesc   xaxis.description
+        xunits  xaxis.units
+        xscale  xaxis.scale
+        ylabel  yaxis.label
+        ydesc   yaxis.description
+        yunits  yaxis.units
+        yscale  yaxis.scale
+        zlabel  zaxis.label
+        zdesc   zaxis.description
+        zunits  zaxis.units
+        zscale  zaxis.scale
+        order   about.axisorder 
+    } {
+        set str [$m get $path]
+        if {"" != $str} {
+            set _hints($key) $str
+        }
+    }
+    foreach {key} { axisorder } {
+        set str [$field get $cname.$key]
+        if {"" != $str} {
+            set _hints($key) $str
+        }
+    }
     itcl::delete object $m
 
     set _values [blt::vector create #auto]
@@ -192,49 +223,22 @@ itcl::body Rappture::Unirect3d::limits {which} {
 # the hint for that <keyword>, if it exists.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect3d::hints {{keyword ""}} {
-    if {![info exists _hints]} {
-        foreach {key path} {
-            group   about.group
-            label   about.label
-            color   about.color
-            style   about.style
-            type    about.type
-            xlabel  xaxis.label
-            xdesc   xaxis.description
-            xunits  xaxis.units
-            xscale  xaxis.scale
-            ylabel  yaxis.label
-            ydesc   yaxis.description
-            yunits  yaxis.units
-            yscale  yaxis.scale
-            zlabel  zaxis.label
-            zdesc   zaxis.description
-            zunits  zaxis.units
-            zscale  zaxis.scale
-            order   about.axisorder 
-        } {
-            set str [$_curve get $path]
-            if {"" != $str} {
-                set _hints($key) $str
-            }
-        }
+    if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
+        && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
+        set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
+    }
+    if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
+        && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
+        set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
+    }
+    if {[info exists _hints(zlabel)] && "" != $_hints(zlabel)
+        && [info exists _hints(zunits)] && "" != $_hints(zunits)} {
+        set _hints(ylabel) "$_hints(zlabel) ($_hints(zunits))"
+    }
 
-        if {[info exists _hints(xlabel)] && "" != $_hints(xlabel)
-              && [info exists _hints(xunits)] && "" != $_hints(xunits)} {
-            set _hints(xlabel) "$_hints(xlabel) ($_hints(xunits))"
-        }
-        if {[info exists _hints(ylabel)] && "" != $_hints(ylabel)
-              && [info exists _hints(yunits)] && "" != $_hints(yunits)} {
-            set _hints(ylabel) "$_hints(ylabel) ($_hints(yunits))"
-        }
-        if {[info exists _hints(zlabel)] && "" != $_hints(zlabel)
-              && [info exists _hints(zunits)] && "" != $_hints(zunits)} {
-            set _hints(ylabel) "$_hints(zlabel) ($_hints(zunits))"
-        }
-        if {[info exists _hints(group)] && [info exists _hints(label)]} {
-            # pop-up help for each curve
-            set _hints(tooltip) $_hints(label)
-        }
+    if {[info exists _hints(group)] && [info exists _hints(label)]} {
+        # pop-up help for each curve
+        set _hints(tooltip) $_hints(label)
     }
     if {$keyword != ""} {
         if {[info exists _hints($keyword)]} {
