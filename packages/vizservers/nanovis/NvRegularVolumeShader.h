@@ -5,52 +5,52 @@
 #include "Volume.h"
 #include "NvVolumeShader.h"
 
-class NvRegularVolumeShader : public NvVolumeShader {
-    CGparameter m_vol_one_volume_param;
-    CGparameter m_tf_one_volume_param;
-    CGparameter m_mvi_one_volume_param;
-    CGparameter m_mv_one_volume_param;
-    CGparameter m_render_param_one_volume_param;
-    CGparameter m_option_one_volume_param;
-
-public :
+class NvRegularVolumeShader : public NvVolumeShader
+{
+public:
     NvRegularVolumeShader();
     ~NvRegularVolumeShader();
-private :
-    void init();
 
-public :
     void bind(unsigned int tfID, Volume* volume, int sliceMode);
     void unbind();
 
+private:
+    void init();
+
+    CGparameter _vol_one_volume_param;
+    CGparameter _tf_one_volume_param;
+    CGparameter _mvi_one_volume_param;
+    CGparameter _mv_one_volume_param;
+    CGparameter _render_param_one_volume_param;
+    CGparameter _option_one_volume_param;
 };
 
 inline void 
 NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
 {
     //regular cubic volume
-    cgGLSetStateMatrixParameter(m_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLSetStateMatrixParameter(m_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
+    cgGLSetStateMatrixParameter(_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
+    cgGLSetStateMatrixParameter(_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
 
-    cgGLSetTextureParameter(m_vol_one_volume_param, volume->id);
-    cgGLSetTextureParameter(m_tf_one_volume_param, tfID);
-    cgGLEnableTextureParameter(m_vol_one_volume_param);
-    cgGLEnableTextureParameter(m_tf_one_volume_param);
+    cgGLSetTextureParameter(_vol_one_volume_param, volume->id);
+    cgGLSetTextureParameter(_tf_one_volume_param, tfID);
+    cgGLEnableTextureParameter(_vol_one_volume_param);
+    cgGLEnableTextureParameter(_tf_one_volume_param);
 
     if(!sliceMode)
-        cgGLSetParameter4f(m_render_param_one_volume_param,
+        cgGLSetParameter4f(_render_param_one_volume_param,
             volume->n_slices(),
             volume->opacity_scale(),
             volume->diffuse(),
             volume->specular());
     else
-        cgGLSetParameter4f(m_render_param_one_volume_param,
+        cgGLSetParameter4f(_render_param_one_volume_param,
             0.,
             volume->opacity_scale(),
             volume->diffuse(),
             volume->specular());
 
-    cgGLSetParameter4f(m_option_one_volume_param,
+    cgGLSetParameter4f(_option_one_volume_param,
     	0.0f,
 	volume->isosurface(),
 	0.0f,
@@ -62,11 +62,10 @@ NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
 
 inline void NvRegularVolumeShader::unbind()
 {
-    cgGLDisableTextureParameter(m_vol_one_volume_param);
-    cgGLDisableTextureParameter(m_tf_one_volume_param);
+    cgGLDisableTextureParameter(_vol_one_volume_param);
+    cgGLDisableTextureParameter(_tf_one_volume_param);
 
     cgGLDisableProfile(CG_PROFILE_FP30);
 }
 
-
-#endif // 
+#endif

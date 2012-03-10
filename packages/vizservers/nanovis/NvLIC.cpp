@@ -24,8 +24,8 @@
 #include "global.h"
 
 NvLIC::NvLIC(int _size, int _width, int _height, int _axis, 
-	     const Vector3& _offset, CGcontext _context) : 
-    Renderable(Vector3(0.0f,0.0f,0.0f)),
+	     const Vector3& _offset, CGcontext _context) :
+    Renderable(Vector3(0.0f, 0.0f, 0.0f)),
     disListID(0),
     width(_width),
     height(_height),
@@ -38,7 +38,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
     tmax(NPIX/(SCALE*NPN)),
     dmax(SCALE/NPIX),
     max(1.0f),
-    m_g_context(_context),
+    _g_context(_context),
     _vectorFieldId(0),
     _activate(false)
 {
@@ -109,13 +109,13 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-    m_render_vel_fprog = LoadCgSourceProgram(m_g_context, "render_vel.cg", 
+    _render_vel_fprog = LoadCgSourceProgram(_g_context, "render_vel.cg", 
 	CG_PROFILE_FP30, "main");
-    m_vel_tex_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+    _vel_tex_param_render_vel = cgGetNamedParameter(_render_vel_fprog, 
 	"vel_tex");
-    m_plane_normal_param_render_vel = cgGetNamedParameter(m_render_vel_fprog, 
+    _plane_normal_param_render_vel = cgGetNamedParameter(_render_vel_fprog, 
 	"plane_normal");
-    m_max_param = cgGetNamedParameter(m_render_vel_fprog, "vmax");
+    _max_param = cgGetNamedParameter(_render_vel_fprog, "vmax");
 
 
     make_patterns();
@@ -139,11 +139,11 @@ NvLIC::~NvLIC()
     
 /*
     TBD..
-    cgDestroyParameter(m_vel_tex_param_render_vel);
-    cgDestroyParameter(m_plane_normal_param_render_vel);
-    cgDestroyParameter(m_max_param);
+    cgDestroyParameter(_vel_tex_param_render_vel);
+    cgDestroyParameter(_plane_normal_param_render_vel);
+    cgDestroyParameter(_max_param);
 */
-    cgDestroyProgram(m_render_vel_fprog);
+    cgDestroyProgram(_render_vel_fprog);
 
     delete [] slice_vector;
 }
@@ -193,7 +193,6 @@ NvLIC::make_patterns()
                  GL_RGBA, GL_UNSIGNED_BYTE, pat);
     TRACE("finish make_patterns\n");
 }
-
 
 void NvLIC::make_magnitudes()
 {
@@ -247,12 +246,12 @@ NvLIC::get_slice()
 
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, _vectorFieldId);
-    cgGLBindProgram(m_render_vel_fprog);
+    cgGLBindProgram(_render_vel_fprog);
 
-    cgGLSetTextureParameter(m_vel_tex_param_render_vel, _vectorFieldId);
-    cgGLEnableTextureParameter(m_vel_tex_param_render_vel);
-    cgGLSetParameter4f(m_plane_normal_param_render_vel, 1., 1., 0., 0);
-    cgGLSetParameter1f(m_max_param, max);
+    cgGLSetTextureParameter(_vel_tex_param_render_vel, _vectorFieldId);
+    cgGLEnableTextureParameter(_vel_tex_param_render_vel);
+    cgGLSetParameter4f(_plane_normal_param_render_vel, 1., 1., 0., 0);
+    cgGLSetParameter1f(_max_param, max);
 
     cgGLEnableProfile(CG_PROFILE_FP30);
 
@@ -285,7 +284,7 @@ NvLIC::get_slice()
     
     cgGLDisableProfile(CG_PROFILE_FP30);
    
-    cgGLDisableTextureParameter(m_vel_tex_param_render_vel);
+    cgGLDisableTextureParameter(_vel_tex_param_render_vel);
 
     glBindTexture(GL_TEXTURE_3D, 0);
     glDisable(GL_TEXTURE_3D);
@@ -411,8 +410,10 @@ NvLIC::convolve()
     glMatrixMode(GL_MODELVIEW);
 }
 
-void NvLIC::render(){ display(); }
-
+void NvLIC::render()
+{
+    display();
+}
 
 void 
 NvLIC::display()

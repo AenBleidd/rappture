@@ -28,11 +28,6 @@
 class Sphere : public Renderable
 {
 public:
-    float radius;
-    Color color;
-    int stack;
-    int slice;
-
     Sphere(float x, float y, float z, float r, float g, float b, float _radius,
 	   int _stack, int _slice);
 
@@ -44,6 +39,11 @@ public:
     //display the sphere
     void draw(GLUquadric* q);
     void render();
+
+    float radius;
+    Color color;
+    int stack;
+    int slice;
 };
 
 #endif
