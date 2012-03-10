@@ -142,7 +142,6 @@ OBJS		= \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
 		ScreenSnapper.o \
-		Sphere.o \
 		Switch.o \
 		Texture1D.o \
 		Texture2D.o \
@@ -162,7 +161,8 @@ OBJS		= \
 ifdef NOTDEF
 OBJS +=		ParticleEmitter.o \
 		ParticleSystem.o \
-		ParticleSystemFactory.o
+		ParticleSystemFactory.o \
+		Sphere.o
 endif
 
 ifdef USE_POINTSET_RENDERER

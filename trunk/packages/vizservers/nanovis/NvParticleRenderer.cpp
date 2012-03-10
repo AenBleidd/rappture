@@ -27,18 +27,22 @@
 
 #define NV_32
 
-NvParticleAdvectionShader* NvParticleRenderer::_advectionShader = NULL;
+NvParticleAdvectionShader *NvParticleRenderer::_advectionShader = NULL;
 
-class NvParticleAdvectionShaderInstance {
+class NvParticleAdvectionShaderInstance
+{
 public :
-    NvParticleAdvectionShaderInstance() {
-    }
-    ~NvParticleAdvectionShaderInstance() {
+    NvParticleAdvectionShaderInstance()
+    {}
+
+    ~NvParticleAdvectionShaderInstance()
+    {
 	if (NvParticleRenderer::_advectionShader) {
 	    delete NvParticleRenderer::_advectionShader;
 	}
     }
 };
+
 NvParticleAdvectionShaderInstance shaderInstance;
 
 NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
@@ -63,7 +67,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
     data = new Particle[w*h];
     memset(data, 0, sizeof(Particle) * w * h);
 
-    m_vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
+    _vertex_array = new RenderVertexArray(psys_width*psys_height, 3, GL_FLOAT);
 
     assert(CheckGL(AT));
 
@@ -118,19 +122,6 @@ NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) :
 
     CHECK_FRAMEBUFFER_STATUS();
 
-    //load related shaders
-    /*
-      m_g_context = context;
-
-      m_pos_fprog = LoadCgSourceProgram(m_g_context, "update_pos.cg", 
-	CG_PROFILE_FP30, NULL);
-      m_pos_timestep_param  = cgGetNamedParameter(m_pos_fprog, "timestep");
-      m_vel_tex_param = cgGetNamedParameter(m_pos_fprog, "vel_tex");
-      m_pos_tex_param = cgGetNamedParameter(m_pos_fprog, "pos_tex");
-      m_scale_param = cgGetNamedParameter(m_pos_fprog, "scale");
-      cgGLSetTextureParameter(m_vel_tex_param, volume);
-      cgGLSetParameter3f(m_scale_param, scale_x, scale_y, scale_z);
-    */
     if (_advectionShader == NULL) {
 	_advectionShader = new NvParticleAdvectionShader();
     }
@@ -148,7 +139,7 @@ NvParticleRenderer::~NvParticleRenderer()
 
     glDeleteFramebuffersEXT(2, psys_fbo);
 
-    delete m_vertex_array;
+    delete _vertex_array;
     delete [] data;
 }
 
@@ -279,18 +270,8 @@ NvParticleRenderer::advect()
 	
 	_advectionShader->bind(psys_tex[0], initPosTex);
 	
-	//cgGLBindProgram(m_pos_fprog);
-	//cgGLSetParameter1f(m_pos_timestep_param, 0.05);
-	//cgGLEnableTextureParameter(m_vel_tex_param);
-	//cgGLSetTextureParameter(m_pos_tex_param, psys_tex[0]);
-	//cgGLEnableTextureParameter(m_pos_tex_param);
-	//cgGLEnableProfile(CG_PROFILE_FP30);
-	
 	draw_quad(psys_width, psys_height, psys_width, psys_height);
-	
-	//cgGLDisableProfile(CG_PROFILE_FP30);
-	//cgGLDisableTextureParameter(m_vel_tex_param);
-	//cgGLDisableTextureParameter(m_pos_tex_param);
+
 	glDisable(GL_TEXTURE_RECTANGLE_NV);
     } else {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[0]);
@@ -309,31 +290,17 @@ NvParticleRenderer::advect()
 	
 	_advectionShader->bind(psys_tex[1], initPosTex);
 	
-	//cgGLBindProgram(m_pos_fprog);
-	//cgGLSetParameter1f(m_pos_timestep_param, 0.05);
-	//cgGLEnableTextureParameter(m_vel_tex_param);
-	//cgGLSetTextureParameter(m_pos_tex_param, psys_tex[1]);
-	//cgGLEnableTextureParameter(m_pos_tex_param);
-	//cgGLEnableProfile(CG_PROFILE_FP30);
-	
 	draw_quad(psys_width, psys_height, psys_width, psys_height);
-	//draw_quad(psys_width, psys_height, 1.0f, 1.0f);
-	
-	//cgGLDisableProfile(CG_PROFILE_FP30);
-	//cgGLDisableTextureParameter(m_vel_tex_param);
-	//cgGLDisableTextureParameter(m_pos_tex_param);
     }
-    
+
     _advectionShader->unbind();
-    
-    //soft_read_verts();
-    
+
     update_vertex_buffer();
-    
+
     flip = (!flip);
-    
+
     psys_frame++;
-    if (psys_frame==max_life) {
+    if (psys_frame == max_life) {
 	psys_frame=0;
 //	reborn = true;
     }
@@ -343,9 +310,9 @@ NvParticleRenderer::advect()
 void 
 NvParticleRenderer::update_vertex_buffer()
 {
-    m_vertex_array->Read(psys_width, psys_height);
+    _vertex_array->Read(psys_width, psys_height);
 
-    //m_vertex_array->LoadData(vert);     //does not work??
+    //_vertex_array->LoadData(vert);     //does not work??
     //assert(glGetError()==0);
 }
 
@@ -447,7 +414,7 @@ NvParticleRenderer::display_vertices()
     //glColor4f(.2,.2,.8,1.);
     glColor4f(_color.x, _color.y, _color.z, _color.w);
     glEnableClientState(GL_VERTEX_ARRAY);
-    m_vertex_array->SetPointer(0);
+    _vertex_array->SetPointer(0);
     glDrawArrays(GL_POINTS, 0, psys_width*psys_height);
     glDisableClientState(GL_VERTEX_ARRAY);
 

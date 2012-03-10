@@ -13,22 +13,38 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-
 #include "Renderable.h"
 
-Renderable::Renderable(){}
-Renderable::Renderable(Vector3 loc):
+Renderable::Renderable()
+{
+}
+
+Renderable::Renderable(const Vector3& loc) :
     location(loc),
     enabled(true)
 { 
 }
 
-Renderable::~Renderable(){}
-  
-void Renderable::move(Vector3 new_loc) { location = new_loc; }
+Renderable::~Renderable()
+{}
 
-void Renderable::enable() { enabled = true; }
-void Renderable::disable() { enabled = false; }
-bool Renderable::is_enabled() { return enabled; }
+void Renderable::move(const Vector3& new_loc)
+{
+    location = new_loc;
+}
+
+void Renderable::enable()
+{
+    enabled = true;
+}
+
+void Renderable::disable()
+{
+    enabled = false;
+}
+
+bool Renderable::is_enabled() const
+{
+    return enabled;
+}
 

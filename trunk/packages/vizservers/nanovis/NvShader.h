@@ -35,7 +35,6 @@ public:
         if (_cgFP) {
             return cgGetNamedParameter(_cgFP, paramName);
         }
-
         return 0;
     }
 
@@ -44,7 +43,6 @@ public:
         if (_cgVP) {
             return cgGetNamedParameter(_cgVP, paramName);
         }
-
         return 0;
     }
 

@@ -13,13 +13,11 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#ifndef NV_LIC_H
+#define NV_LIC_H
 
-
-#ifndef _NV_LIC_H_
-#define _NV_LIC_H_
-
-#include "GL/glew.h"
-#include "Cg/cgGL.h"
+#include <GL/glew.h>
+#include <Cg/cgGL.h>
 
 #include "define.h"
 #include "config.h"
@@ -35,15 +33,78 @@
 #define NPIX  512 //display size  
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
-class NvLIC : public Renderable { 
+class NvLIC : public Renderable
+{ 
+public:
+    NvLIC(int _size, int _width, int _height, int axis, 
+	  const Vector3& _offset, CGcontext _context);
+    ~NvLIC();
+
+    /// project 3D vectors to a 2D slice for line integral convolution
+    void convolve();
+
+    /// Display the convolution result
+    void display();
+
+    void render();
+
+    void make_patterns();
+
+    void make_magnitudes();
+
+    void get_velocity(float x, float y, float *px, float *py);
+
+    void get_slice();
+
+    void set_offset(float v);
+
+    /** 
+     * @brief Specify the perdicular axis
+     *
+     * 0 : x axis<br>
+     * 1 : y axis<br>
+     * 2 : z axis<br>
+     */
+    void set_axis(int axis);
+
+    void setVectorField(unsigned int texID, const Vector3& ori,
+                        float scaleX, float scaleY, float scaleZ, float max);
+
+    void reset();
+
+    void visible(bool state)
+    {
+	_isHidden = !state;
+    }
+
+    bool visible() const
+    {
+	return (!_isHidden);
+    }
+
+    void active(bool state)
+    {
+	_activate = state;
+    }
+
+    bool active() const
+    {
+	return _activate;
+    }
 
 private:
+    /**
+     * @brief the normal vector of the NvLIC plane, 
+     * the inherited Vector3 location is its center
+     */
+    Vector3 normal;
+
     GLuint disListID;
 
     int width, height;
     int size;				// The lic is a square of size, it can
 					// be stretched
-    float* slice_vector;		// Storage for the per slice vectors
+    float *slice_vector;		// Storage for the per slice vectors
 					// driving the follow.
     Vector3 scale;			// Scaling factor stretching the lic
 					// plane to fit the actual dimensions
@@ -60,68 +121,26 @@ private:
     float tmax;
     float dmax;
     float max;
-    
+
     //CG shader parameters
-    CGcontext m_g_context;
-    CGparameter m_vel_tex_param;
-    CGparameter m_vel_tex_param_render_vel, m_plane_normal_param_render_vel;
-    CGprogram m_render_vel_fprog;
-    CGparameter m_max_param;
-    
+    CGcontext _g_context;
+    CGparameter _vel_tex_param;
+    CGparameter _vel_tex_param_render_vel;
+    CGparameter _plane_normal_param_render_vel;
+    CGprogram _render_vel_fprog;
+    CGparameter _max_param;
+ 
     GLuint color_tex, pattern_tex, mag_tex;
     GLuint fbo, vel_fbo, slice_vector_tex;  // For projecting 3d vector to 2d
 					    // vector on a plane.
     GLuint _vectorFieldId;
 
-    Volume* _vectorField; 
+    Volume *_vectorField; 
     /**
      * flag for rendering
      */
     bool _activate;
     bool _isHidden;			// Indicates if LIC plane is displayed.
-public:
-    Vector3 normal; //the normal vector of the NvLIC plane, 
-    //the inherited Vector3 location is its center
-    NvLIC(int _size, int _width, int _height, int axis, 
-	  const Vector3& _offset, CGcontext _context);
-    ~NvLIC();
-
-    /**
-     * @brief project 3D vectors to a 2D slice for line integral convolution
-     */
-    void convolve();
-
-    void display(void);			// Display the convolution result
-    void render(void);
-    void make_patterns();
-    void make_magnitudes();
-    void get_velocity(float x, float y, float* px, float* py);
-    void get_slice();
-    void set_offset(float v);
-    /** 
-     * @brief Specify the perdicular axis
-     * @brief 0 : x axis
-     * @brief 1 : y axis
-     * @brief 2 : z axis
-     */
-    void set_axis(int axis);
-
-    void setVectorField(unsigned int texID, const Vector3& ori, float scaleX, float scaleY, float scaleZ, float max);
-
-    void reset(void);
-    void visible(bool state) {
-	_isHidden = !state;
-    }
-    bool visible(void) {
-	return (!_isHidden);
-    }
-    void active(bool state) {
-	_activate = state;
-    }
-    bool active(void) {
-	return _activate;
-    }
 };
-
 
 #endif
