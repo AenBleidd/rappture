@@ -14,8 +14,8 @@
  * ======================================================================
  */
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef CONFIG_H__
+#define CONFIG_H__
 
 #define NV40				/* Uncomment if using 6 series
 					 * card. By default we assume older
@@ -24,6 +24,11 @@
 //#define EVENTLOG			/* Enable event logging. */
 //#define DO_RLE			/* Do run length compression. */
 
+/*
+ * Controls if debug trace logging is enabled
+ */
+//#define WANT_TRACE
+
 /* 
  * The following define controls whether new prototype features are to be
  * compiled.  Right now by default it's off (0). That's because nanovis
@@ -31,8 +36,6 @@
  * we'll rely on developers to set this in their respective sandboxes.
  */
 #define PROTOTYPE		0
-
-//#define USE_POINTSET_RENDERER
 
 /* 
  * The following define controls whether new load_volume_stream or

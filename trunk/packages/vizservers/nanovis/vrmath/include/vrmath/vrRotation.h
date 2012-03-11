@@ -7,7 +7,7 @@
 class vrVector3f;
 class vrQuaternion;
 
-class LmExport vrRotation
+class vrRotation
 {
 public:
     vrRotation() :

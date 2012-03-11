@@ -1,29 +1,34 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
+#ifndef VRCOLORBREWER_H
+#define VRCOLORBREWER_H
 
 #include <string>
+
 #include <vrutil/vrUtil.h>
 
-class VrUtilExport CBColor {
+class CBColor
+{
 public :
-	float r, g, b;
+    float r, g, b;
 };
 
-
-class VrUtilExport vrColorBrewer {
+class vrColorBrewer
+{
 public:
-	CBColor *colorScheme;
-	float* colorKey;
-	float* defaultOpacity;
-	int size;
-	std::string label;
+    vrColorBrewer();
 
-public:
-	vrColorBrewer();
-	vrColorBrewer(int size, char label[20]);
-	~vrColorBrewer(void);
-	
-public :
-	void setColor(int index, float r, float g, float b);
+    vrColorBrewer(int size, char label[20]);
+
+    ~vrColorBrewer();
+
+    void setColor(int index, float r, float g, float b);
+
+    CBColor *colorScheme;
+    float* colorKey;
+    float* defaultOpacity;
+    int size;
+    std::string label;
 };
+
+#endif
 

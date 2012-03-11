@@ -5,6 +5,8 @@
 #include <GL/glew.h>
 #include <syslog.h>
 
+#include "config.h"
+
 #define MAKE_STRING(x) #x
 #define NEWSTRING(x) MAKE_STRING(x)
 #define AT __FILE__ ":" NEWSTRING(__LINE__)

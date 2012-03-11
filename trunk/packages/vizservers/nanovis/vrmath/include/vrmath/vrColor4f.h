@@ -4,7 +4,7 @@
 
 #include <vrmath/vrLinmath.h>
 
-class LmExport vrColor4f
+class vrColor4f
 {
 public:
     float r, g, b, a;

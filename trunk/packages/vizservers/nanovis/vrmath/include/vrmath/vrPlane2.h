@@ -12,7 +12,7 @@
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrLineSegment.h>
 
-class LmExport vrPlane2
+class vrPlane2
 {
 public:
     void makePts(const vrVector3f& pt1, const vrVector3f& pt2, const vrVector3f& pt3);

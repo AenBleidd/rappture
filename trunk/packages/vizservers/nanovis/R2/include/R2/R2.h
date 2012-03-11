@@ -2,24 +2,11 @@
 #ifndef R2_H
 #define R2_H
 
-#include <GL/glew.h>
-#include <GL/gl.h>
 #include <math.h>
 #include <string.h>
 
-
-typedef bool            R2bool;
-
-typedef float           R2float;
-typedef double R2double;
-typedef char            R2int8;
-typedef char            R2char;
-typedef unsigned char   R2uint8;
-typedef short           R2int16;
-typedef unsigned short  R2uint16;
-typedef int             R2int32;
-typedef unsigned int    R2uint32;
-typedef void            R2void;
+#include <GL/glew.h>
+#include <GL/gl.h>
 
 #ifndef PI
 #   define PI 3.14159265358979323846f

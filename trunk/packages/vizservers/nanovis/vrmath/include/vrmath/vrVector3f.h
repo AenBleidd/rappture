@@ -9,7 +9,7 @@
 
 class vrMatrix4x4f;
 
-class LmExport vrVector3f
+class vrVector3f
 {
 public:
     vrVector3f() :

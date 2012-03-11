@@ -4,13 +4,7 @@
 
 class R2VertexBuffer
 {
-    unsigned int _graphicObjectID;
-    int _byteSize;
-    int _vertexCount;
-
 public:
-    void *_data;
-
     enum {
         POSITION3 = 0x01,
         NORMAL3 = 0x02,
@@ -18,23 +12,33 @@ public:
         COLOR4 = 0x08
     };
 
-    R2VertexBuffer(int type, int vertexCount, int byteSize, void* data, bool copy = true);
+    R2VertexBuffer(int type, int vertexCount,
+                   int byteSize, void *data, bool copy = true);
+
     ~R2VertexBuffer();
 
     unsigned int getGraphicObjectID() const;
 
-    void updateBuffer(void* data);
+    void updateBuffer(void *data);
+
     int getVertexCount() const;
+
+    void *_data;
+
+private:
+    unsigned int _graphicObjectID;
+    int _byteSize;
+    int _vertexCount;
 };
 
 inline int R2VertexBuffer::getVertexCount() const
 {
-	return _vertexCount;
+    return _vertexCount;
 }
 
 inline unsigned int R2VertexBuffer::getGraphicObjectID() const
 {
-	return _graphicObjectID;
+    return _graphicObjectID;
 }
 
 #endif

@@ -12,7 +12,7 @@
 
 class vrRotation;
 
-class LmExport vrQuaternion
+class vrQuaternion
 {
 public:
     vrQuaternion();

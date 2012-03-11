@@ -24,7 +24,7 @@ CC		= @CC@
 CXX		= @CXX@
 VPATH		= $(srcdir)
 
-INCLUDES	= -I$(srcdir)/include
+INCLUDES	= -I$(srcdir)/include -I$(srcdir)/..
 
 CFLAGS		= @CFLAGS@ 
 EXTRA_CFLAGS	= -Wall 

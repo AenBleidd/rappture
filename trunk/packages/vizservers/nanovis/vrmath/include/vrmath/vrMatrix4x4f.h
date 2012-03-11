@@ -7,7 +7,7 @@
 #include <vrmath/vrRotation.h>
 #include <memory.h>
 
-class LmExport vrMatrix4x4f
+class vrMatrix4x4f
 {
 public:
     /**

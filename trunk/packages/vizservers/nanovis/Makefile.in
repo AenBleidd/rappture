@@ -96,11 +96,16 @@ INCLUDES	= \
 		$(GL_INC_SPEC) \
 		$(RP_INC_SPEC)
 
+USE_POINTSET_RENDERER = #yes
+
 CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
 DEFINES         = 
+ifdef USE_POINTSET_RENDERER
+DEFINES         +=-DUSE_POINTSET_RENDERER
+endif
 CXX_SWITCHES    = $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 OBJS		= \

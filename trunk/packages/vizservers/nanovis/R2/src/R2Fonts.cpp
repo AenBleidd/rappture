@@ -25,22 +25,21 @@ R2Fonts::~R2Fonts()
 }
 
 void 
-R2Fonts::setFont(const char* fontName)
+R2Fonts::setFont(const char *fontName)
 {
     if (fontName != NULL) {
-	unsigned int i;
-	for (i = 0; i < _fonts.size(); ++i) {
-	    if (strcmp(_fonts[i]._fontName, fontName) == 0) {
-		_fontIndex = i;
-		break;
-	    }
-	}
+        unsigned int i;
+        for (i = 0; i < _fonts.size(); ++i) {
+            if (strcmp(_fonts[i]._fontName, fontName) == 0) {
+                _fontIndex = i;
+                break;
+            }
+        }
     }
 }
 
-
 void 
-R2Fonts::addFont(const char* fontName, const char* fontFileName)
+R2Fonts::addFont(const char *fontName, const char *fontFileName)
 {
     R2FontAttributes sFont;
     
@@ -50,17 +49,17 @@ R2Fonts::addFont(const char* fontName, const char* fontFileName)
 }
 
 void 
-R2Fonts::draw(const char* pString, ...) const
+R2Fonts::draw(const char *pString, ...) const
 {
     va_list vlArgs;
     char szVargsBuffer[1024];
-    
+
     va_start(vlArgs, pString);
     vsprintf(szVargsBuffer, pString, vlArgs);
-    
+
     if (_fontIndex != -1) {
         int length = strlen(szVargsBuffer);
-        
+
         glListBase(_fonts[_fontIndex]._displayLists);
         glCallLists(length, GL_UNSIGNED_BYTE, 
                     reinterpret_cast<const GLvoid*>(szVargsBuffer));
@@ -72,14 +71,14 @@ R2Fonts::begin()
 {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, _fonts[_fontIndex]. _fontTextureID);
-    
+
     glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    
+
     glLoadIdentity( );
     gluOrtho2D(0.0f, _screenWidth, _screenHeight, 0.0f);
-    
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix( );
     glLoadIdentity( );
@@ -108,7 +107,7 @@ R2Fonts::initializeFont(R2FontAttributes& attr)
 {
     attr._displayLists = glGenLists(256);
 
-    R2int32 index;
+    int index;
     for (index = 0; index < 256; ++index) {
         R2FontAttributes::R2CharInfo& charInfo = attr._chars[index];
         glNewList(attr._displayLists + index, GL_COMPILE);
@@ -134,15 +133,15 @@ R2Fonts::initializeFont(R2FontAttributes& attr)
     }
 }
 
-R2bool 
-R2Fonts::loadFont(const char* fontName, const char* fontFileName, 
+bool 
+R2Fonts::loadFont(const char *fontName, const char *fontFileName, 
                   R2FontAttributes& sFont)
 {
-    R2bool bSuccess = false;
+    bool bSuccess = false;
 
     const char *path = R2FilePath::getInstance()->getPath(fontFileName);
     if (path == NULL) {
-	return false;
+        return false;
     }
     std::ifstream fsInput(path, std::ios::binary);
     if (fsInput) {
@@ -193,14 +192,14 @@ R2Fonts::loadFont(const char* fontName, const char* fontFileName,
         // allocate and read the texture map
         if (!fsInput.eof() && !fsInput.fail()) {
             unsigned int uiArea = sFont._textureWidth * sFont._textureHeight;
-            unsigned char* pRawMap = new unsigned char[uiArea];
-            fsInput.read(reinterpret_cast<char*>(pRawMap), uiArea);
+            unsigned char *pRawMap = new unsigned char[uiArea];
+            fsInput.read(reinterpret_cast<char *>(pRawMap), uiArea);
 
             // we've only read the luminance values, but we need a luminance +
             // alpha buffer, so we make a new buffer and duplicate the
             // luminance values
-            unsigned char* pTexMap = new unsigned char[2 * uiArea];
-            unsigned char* pMap = pTexMap;
+            unsigned char *pTexMap = new unsigned char[2 * uiArea];
+            unsigned char *pMap = pTexMap;
             for (unsigned int i = 0; i < uiArea; ++i) {
                 *pMap++ = pRawMap[i];
                 *pMap++ = pRawMap[i];
@@ -233,7 +232,7 @@ R2Fonts::loadFont(const char* fontName, const char* fontFileName,
 }
 
 void 
-R2Fonts::resize(R2int32 width, R2int32 height)
+R2Fonts::resize(int width, int height)
 {
     _screenWidth = width;
     _screenHeight = height;
