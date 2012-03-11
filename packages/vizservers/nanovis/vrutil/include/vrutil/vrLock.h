@@ -1,32 +1,33 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
-
-#include <vrutil/vrUtil.h>
-
-#ifndef IPHONE
+#ifndef VRLOCK_H
+#define VRLOCK_H
 
 #include <pthread.h>
 
-class VrUtilExport vrLock {
-	pthread_mutex_t _mutex; 
-	pthread_mutexattr_t _attr;
-public :
-	vrLock();
-	~vrLock();
+#include <vrutil/vrUtil.h>
 
-public :
-	void lock();
-	void unlock();
+class vrLock
+{
+public:
+    vrLock();
+    ~vrLock();
+
+    void lock();
+    void unlock();
+
+private:
+    pthread_mutex_t _mutex; 
+    pthread_mutexattr_t _attr;
 };
 
 inline void vrLock::lock()
 {
-	  pthread_mutex_lock(&_mutex);
+    pthread_mutex_lock(&_mutex);
 }
 
 inline void vrLock::unlock()
 {
-	  pthread_mutex_unlock(&_mutex);
+    pthread_mutex_unlock(&_mutex);
 }
 
 #endif

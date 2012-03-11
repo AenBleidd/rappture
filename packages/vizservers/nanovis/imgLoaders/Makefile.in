@@ -23,7 +23,7 @@ RANLIB		= @RANLIB@
 CC		= @CC@
 VPATH		= $(srcdir)
 
-INCLUDES	= -I$(srcdir)
+INCLUDES	= -I$(srcdir) -I$(srcdir)/..
 
 CFLAGS		= @CFLAGS@
 EXTRA_CFLAGS	= -Wall 

@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <cmath>
 
-class LmExport vrVector2f
+class vrVector2f
 {
 public:
     vrVector2f() :

@@ -13,7 +13,7 @@
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrMatrix4x4f.h>
 
-class LmExport vrLineSegment
+class vrLineSegment
 {
 public:
     vrLineSegment();

@@ -1,43 +1,49 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
-
-#include <vrutil/vrUtil.h>
-
-class vrColorBrewer;
+#ifndef VRCOLORBREWERFACTORY_H
+#define VRCOLORBREWERFACTORY_H
 
 #include <vector>
 #include <string>
 
-#define COLOR_SCHEME_START    3
+#include <vrutil/vrUtil.h>
+
+#define COLOR_SCHEME_START      3
 #define COLOR_SCHEME_SEQ_END    9
 #define COLOR_SCHEME_DIV_END    11
 
-class vrColorBrewerFactory {
-	std::vector<vrColorBrewer*> colorList;
-	
-	vrColorBrewer* _currentColorBrewer;
+class vrColorBrewer;
 
-	static vrColorBrewerFactory* _instance;
-protected :
-	vrColorBrewerFactory();
-public :
-	static vrColorBrewerFactory* getInstance();
+class vrColorBrewerFactory
+{
+public:
+    void loadColorBrewerList();
 
-public :
-	void loadColorBrewerList();
-	int getColorMapCount() const;
+    int getColorMapCount() const;
 
-	vrColorBrewer* getColorMap(int id);
+    vrColorBrewer *getColorMap(int id);
 
-	vrColorBrewer* chooseColorScheme(const std::string& scheme, int size);
+    vrColorBrewer *chooseColorScheme(const std::string& scheme, int size);
+
+    static vrColorBrewerFactory* getInstance();
+
+protected:
+    vrColorBrewerFactory();
+
+private:
+    std::vector<vrColorBrewer *> colorList;
+    vrColorBrewer *_currentColorBrewer;
+
+    static vrColorBrewerFactory *_instance;
 };
 
 inline vrColorBrewer* vrColorBrewerFactory::getColorMap(int id)
 {
-	return colorList[id];
+    return colorList[id];
 }
 
 inline int vrColorBrewerFactory::getColorMapCount() const
 {
-	return (int) colorList.size();
+    return (int) colorList.size();
 }
+
+#endif

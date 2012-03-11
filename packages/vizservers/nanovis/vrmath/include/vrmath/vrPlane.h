@@ -14,7 +14,7 @@
 #include <vrmath/vrVector4f.h>
 #include <vrmath/vrVector3f.h>
 
-class LmExport vrPlane
+class vrPlane
 {
 public:
     bool intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector3f& intersectPoint) const;
