@@ -1,5 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#pragma once
+#ifndef VRLINMATH_H
+#define VRLINMATH_H
 
 #ifdef _WIN32
 //#include <windows.h>
@@ -37,4 +38,5 @@ void LmExport vrPerspective(float fovy, float aspect, float zNear, float zFar, f
 };
 #endif
 
+#endif
 
