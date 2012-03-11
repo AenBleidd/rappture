@@ -1,12 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <stdio.h>
-
 #include <map>
 #include <string>
 
 #include "ImageLoader.h"
 #include "ImageLoaderImpl.h"
 #include "ImageLoaderFactory.h"
+#include "Trace.h"
 
 ImageLoaderFactory *ImageLoaderFactory::_instance = NULL;
 
@@ -30,7 +29,7 @@ void ImageLoaderFactory::addLoaderImpl(const std::string& ext, ImageLoaderImpl *
     if (iter == _loaderImpls.end()) {
         _loaderImpls[ext] = loaderImpl;
     } else {
-        printf("conflicting data loader for .%s files\n", ext.c_str());
+        TRACE("conflicting data loader for .%s files\n", ext.c_str());
         return;
     }
 }
@@ -44,7 +43,7 @@ ImageLoader *ImageLoaderFactory::createLoader(const std::string& ext)
         imageLoader->setLoaderImpl((*iter).second);
         return imageLoader;
     } else {
-        printf("%s file not supported\n", ext.c_str());
+        TRACE("%s file not supported\n", ext.c_str());
     }
     return 0;
 }

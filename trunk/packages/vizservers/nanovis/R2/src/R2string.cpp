@@ -1,6 +1,7 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <R2/R2string.h>
 #include <string.h>
+
+#include <R2/R2string.h>
 
 R2string::R2string() : 
     _string(NULL), 

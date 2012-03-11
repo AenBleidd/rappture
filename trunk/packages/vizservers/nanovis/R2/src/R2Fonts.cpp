@@ -1,8 +1,10 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include <stdarg.h>
+
+#include <fstream>
+
 #include <R2/R2Fonts.h>
 #include <R2/R2FilePath.h>
-#include <fstream>
-#include <stdarg.h>
 
 // constants
 const int c_nFileMagicHeader = 6666;

@@ -120,25 +120,25 @@ load_volume_stream2(Rappture::Outcome &result, const char *tag,
             } else if (sscanf(start, "origin %lg %lg %lg", &x0, &y0, &z0) == 3) {
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
-        int count = 0;
-        // found one of the delta lines
-        if (ddx != 0.0) {
-            dx = ddx;
-            count++;
-        }
-        if (ddy != 0.0) {
-            dy = ddy;
-            count++;
-        }
-        if (ddz != 0.0) {
-            dz = ddz;
-            count++;
-        }
-        if (count > 1) {
-            result.addError("don't know how to handle multiple non-zero"
-                            " delta values");
-            return NULL;
-        }
+                int count = 0;
+                // found one of the delta lines
+                if (ddx != 0.0) {
+                    dx = ddx;
+                    count++;
+                }
+                if (ddy != 0.0) {
+                    dy = ddy;
+                    count++;
+                }
+                if (ddz != 0.0) {
+                    dz = ddz;
+                    count++;
+                }
+                if (count > 1) {
+                    result.addError("don't know how to handle multiple non-zero"
+                                    " delta values");
+                    return NULL;
+                }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows", &dummy, type, &npts) == 3) {
                 if (isrect && (npts != nx*ny*nz)) {
                     result.addError("inconsistent data: expected %d points "

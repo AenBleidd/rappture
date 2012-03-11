@@ -6,48 +6,37 @@
  *  \version 1.0
  *  \date    Nov. 2006-2007
  */
-#pragma once
+#ifndef VRLINESEGMENT_H
+#define VRLINESEGMENT_H
 
 #include <vrmath/vrLinmath.h>
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrMatrix4x4f.h>
 
-class LmExport vrLineSegment {
+class LmExport vrLineSegment
+{
 public:
-	/**
-	 * @brief The position of the line segment
-	 */
-	vrVector3f pos;
+    vrLineSegment();
 
-	/**
-	 * @brief The direction of the line segment
-	 */
-	vrVector3f dir;
+    /// Return the point
+    vrVector3f getPoint(float d) const;
 
-	/**
-	 * @brief The length of the line segment
-	 */
-	float length;
+    /// Transfrom the line segment using mat
+    void transform(const vrMatrix4x4f &transMat, const vrLineSegment &seg);
 
-public :			
-	/**
-	 * @brief Constructor
-	 */
-	vrLineSegment();
-	
-	/**
-	 * @brief Return the point 
-	 */
-	vrVector3f getPoint(float d) const;
+    /// The position of the line segment
+    vrVector3f pos;
 
-	/**
-	 * @brief Transfrom the line segment using mat
-	 */
-	void transform(const vrMatrix4x4f &transMat, const vrLineSegment &seg);
+    /// The direction of the line segment
+    vrVector3f dir;
+
+    /// The length of the line segment
+    float length;
 };
 
 inline vrVector3f vrLineSegment::getPoint(float d) const 
 {
-
-	return vrVector3f(pos.x + d * dir.x, pos.y + d * dir.y, pos.z + d * dir.z);
+    return vrVector3f(pos.x + d * dir.x, pos.y + d * dir.y, pos.z + d * dir.z);
 }
+
+#endif

@@ -5,6 +5,7 @@
 
 #include "BMPImageLoaderImpl.h"
 #include "Image.h"
+#include "Trace.h"
 
 BMPImageLoaderImpl::BMPImageLoaderImpl()
 {
@@ -17,26 +18,25 @@ BMPImageLoaderImpl::~BMPImageLoaderImpl()
 // I referred to cjbackhouse@hotmail.com                www.backhouse.tk
 Image *BMPImageLoaderImpl::load(const char *fileName)
 {
-    printf("BMP loader\n");
-    fflush(stdout);
+    TRACE("BMP loader\n");
     Image *image = NULL;
 
-    printf("opening image file \"%s\"\n", fileName);
+    TRACE("opening image file \"%s\"\n", fileName);
     FILE *f = fopen(fileName, "rb");
 
     if (!f)  {
-        printf("File not found\n");
+        TRACE("File not found\n");
         return 0;
     }
 
     char header[54];
     if (fread(&header, 54, 1, f) != 1) {
-        printf("can't read header of BMP file\n");
+        TRACE("can't read header of BMP file\n");
         return 0;
     }
 
     if (header[0] != 'B' ||  header[1] != 'M') {
-        printf("File is not BMP format\n");
+        TRACE("File is not BMP format\n");
         return 0;
     }
 
@@ -49,20 +49,17 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
 
     int bits = int(header[28]);           //colourdepth
 
-    printf("image width = %d height = %d bits=%d\n", width, height, bits);
-    fflush(stdout);
+    TRACE("image width = %d height = %d bits=%d\n", width, height, bits);
 
     image = new Image(width, height, _targetImageFormat, 
                       Image::IMG_UNSIGNED_BYTE, NULL);
 
-    printf("image created\n");
-    fflush(stdout);
+    TRACE("image created\n");
 
     unsigned char *bytes = (unsigned char *)image->getImageBuffer();
     memset(bytes, 0, sizeof(unsigned char) * width * height * _targetImageFormat);
 
-    printf("reset image buffer\n");
-    fflush(stdout);
+    TRACE("reset image buffer\n");
 
     unsigned int x, y;
     unsigned char cols[256*4];	//colourtable
@@ -71,7 +68,7 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         fseek(f, offset, SEEK_SET);
         if (_targetImageFormat == Image::IMG_RGB) {
             if (fread(bytes, width*height*3, 1, f) != 1) {
-                fprintf(stderr, "can't read image data\n");
+                ERROR("can't read image data\n");
             }
             for (x = 0; x < width*height*3; x += 3)  { //except the format is BGR, grr
                 unsigned char temp = bytes[x];
@@ -81,7 +78,7 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         } else if (_targetImageFormat == Image::IMG_RGBA) {
             char *buff = (char*)malloc(width * height * sizeof(unsigned char) * 3);
             if (fread(buff, width*height*3, 1, f) != 1) {
-                fprintf(stderr, "can't read BMP image data\n");
+                ERROR("can't read BMP image data\n");
             }
             for (x = 0, y = 0; x < width*height*3; x += 3, y += 4) {       //except the format is BGR, grr
                 bytes[y] = buff[x+2];
@@ -95,7 +92,7 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         fseek(f, offset, SEEK_SET);
         if (_targetImageFormat == Image::IMG_RGBA) {
             if (fread(bytes, width*height*4, 1, f) != 1) {
-                fprintf(stderr, "can't read image data\n");
+                ERROR("can't read image data\n");
             }
             for (x = 0; x < width*height*4; x += 4)  { //except the format is BGR, grr
                 unsigned char temp = bytes[x];
@@ -105,7 +102,7 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         } else if (_targetImageFormat == Image::IMG_RGB) {
             char *buff = (char*)malloc(width * height * sizeof(unsigned char) * 3);
             if (fread(buff, width*height*4, 1, f) != 1) {
-                fprintf(stderr, "can't read BMP image data\n");
+                ERROR("can't read BMP image data\n");
             }
             for (x = 0, y = 0; x < width*height*4; x += 4, y += 3) {       //except the format is BGR, grr
                 bytes[y] = buff[x+2];
@@ -116,14 +113,14 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         break;
     case 8:
         if (fread(cols, 256 * 4, 1, f) != 1) {
-            fprintf(stderr, "can't read colortable from BMP file\n");
+            ERROR("can't read colortable from BMP file\n");
         }
         fseek(f,offset,SEEK_SET);  
         for (y = 0; y < height; ++y) {	//(Notice 4bytes/col for some reason)
             for (x = 0; x < width; ++x) {
                 unsigned char byte;                 
                 if (fread(&byte, 1, 1, f) != 1) {
-                    fprintf(stderr, "error reading BMP file\n");
+                    ERROR("error reading BMP file\n");
                 }
                 for (int c = 0; c < 3; ++c) {
                     //bytes[(y*width+x)*3+c] = cols[byte*4+2-c];        //and look up in the table 
@@ -134,7 +131,6 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
         break;
     }
 
-    printf("image initialized\n");
-    fflush(stdout);
+    TRACE("image initialized\n");
     return image;
 }

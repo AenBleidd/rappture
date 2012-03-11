@@ -1,9 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <GL/glew.h>
-#include <R2/graphics/R2VertexBuffer.h>
-#include <GL/gl.h>
 #include <memory.h>
 #include <stdlib.h>
+
+#include <GL/glew.h>
+#include <GL/gl.h>
+
+#include <R2/graphics/R2VertexBuffer.h>
 
 R2VertexBuffer::R2VertexBuffer(int type, int vertexCount, int byteSize, void* data, bool copy)
 : _graphicObjectID(0), _byteSize(byteSize), _vertexCount(vertexCount)
