@@ -22,16 +22,11 @@
 #include "define.h"
 #include "config.h"
 #include "global.h"
+#include "nanovis.h"
 
 #include "Renderable.h"
 #include "Vector3.h"
 #include "Volume.h"
-
-#define NPN 256   //resolution of background pattern
-#define NMESH 256 //resolution of flow mesh
-#define DM ((float) (1.0/(NMESH-1.0))) //distance in world coords between mesh lines
-#define NPIX  512 //display size  
-#define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
 class NvLIC : public Renderable
 { 

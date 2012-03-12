@@ -36,11 +36,8 @@
 #define NANOVIS_VERSION		"1.0"
 
 //defines for the image based flow visualization
-#define	NPN 256 	//resolution of background pattern
 #define NMESH 256	//resolution of flow mesh
-#define DM  ((float) (1.0/(NMESH-1.0)))	//distance in world coords between mesh lines
 #define NPIX  512	//display size
-#define SCALE 3.0	//scale for background pattern. small value -> fine texture
 
 namespace graphics {
     class RenderContext;
@@ -76,39 +73,47 @@ public:
 	MAP_HEIGHTMAPS = (1 << 3),
     };
 
-    static TransferFunction *get_transfunc(const char *name);
-    static TransferFunction *DefineTransferFunction(const char *name, 
-                                                    size_t n, float *data);
-    static void SetVolumeRanges();
-    static void SetHeightmapRanges();
     static void init(const char *path);
+    static void xinetd_listen();
     static void initGL();
-    static void init_lic();
     static void init_offscreen_buffer();
-    static void initParticle();
     static void resize_offscreen_buffer(int w, int h);
-
-    // For development
     static void resize(int w, int h);
     static void render();
+    static void display();
+    static void idle();
+    static void update();
+    static void display_offscreen_buffer();
+    static void pan(float dx, float dy);
+    static void zoom(float z);
+
+    static void EventuallyRedraw(unsigned int flag = 0);
+
+    static void SetVolumeRanges();
+    static void SetHeightmapRanges();
+
+    static void init_lic();
+    static void initParticle();
 
     static void ppm_write(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
                                  size_t dlen);
     static void bmp_write(const char *prefix);
     static void bmp_write_to_file(int frame_number, const char* directory_name);
-    static void display();
-    static void idle();
-    static void update();
-    static void display_offscreen_buffer();
+ 
+    static TransferFunction *get_transfunc(const char *name);
+    static TransferFunction *DefineTransferFunction(const char *name, 
+                                                    size_t n, float *data);
+
+    static int render_2d_contour(HeightMap *heightmap, int width, int height);
+
     static int render_legend(TransferFunction *tf, double min, double max, 
                              int width, int height, const char *volArg);
+
     static Volume *load_volume(const char *tag, int width, int height, 
                                int depth, int n, float* data, double vmin, double vmax, 
                                double nzero_min);
-    static void xinetd_listen();
-    static int render_2d_contour(HeightMap *heightmap, int width, int height);
-    static void pan(float dx, float dy);
+    static void remove_volume(Volume *volPtr);
 
 #ifndef XINETD
     static void keyboard(unsigned char key, int x, int y);
@@ -140,9 +145,6 @@ public:
     static void ResetFlows();
     static bool UpdateFlows();
     static void AdvectFlows();
-
-    static void EventuallyRedraw(unsigned int flag = 0);
-    static void remove_volume(Volume *volPtr);
 
     static FILE *stdin, *logfile, *recfile;
 
