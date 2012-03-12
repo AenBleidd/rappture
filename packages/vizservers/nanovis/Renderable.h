@@ -19,8 +19,8 @@
 #include "Vector3.h"
 
 struct BoundBox {
-    Vector3 low; //lower coordinates
-    Vector3 high; //higher coordinates
+    Vector3 low;  ///< lower coordinates
+    Vector3 high; ///< higher coordinates
 
     BoundBox()
     {}
@@ -52,9 +52,9 @@ public:
     bool is_enabled() const;
 
 protected:
-    Vector3 location;	//the location (x,y,z) of the object
-    bool enabled;	//display is enabled
-    BoundBox boundary;	//the bounding box
+    Vector3 _location;	///< the location (x,y,z) of the object
+    bool _enabled;	///< display is enabled
+    BoundBox _boundary;	///< the bounding box
 };
 
 #endif

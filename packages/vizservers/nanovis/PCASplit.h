@@ -18,8 +18,6 @@ public:
     {}
 
     Vector3 position;
-    // histogram Index;
-    //unsigned char color;
     Vector4 color;
     float size;
     float value;
@@ -29,14 +27,15 @@ class Cluster
 {
 public:
     Cluster() :
-        color(1.0f, 1.0f, 1.0f, 1.0f), 
-        scale(0.0f), 
-        numOfChildren(0), 
+        centroid(0.0f, 0.0f, 0.0f),
+        color(1.0f, 1.0f, 1.0f, 1.0f),
+        scale(0.0f),
+        numOfChildren(0),
         numOfPoints(0),
-        points(0), 
-        children(0), 
-        vbo(0)/*, minValue(0.0f), maxValue(0.0f)*/
-        , level(0)
+        points(NULL),
+        children(NULL),
+        vbo(0),
+        level(0)
     {
     }
 
@@ -45,6 +44,7 @@ public:
         this->children = children;
         numOfChildren = count;
     }
+
     void setPoints(Point *points, int count)
     {
         this->points = points;
@@ -66,21 +66,21 @@ public:
 class ClusterAccel
 {
 public:
-    ClusterAccel(int maxlevel)
-        : root(0),
-          maxLevel(maxlevel)
+    ClusterAccel(int maxlevel) :
+        root(NULL),
+        maxLevel(maxlevel)
     {
         startPointerCluster = new Cluster *[maxLevel];
         numOfClusters = new int[maxLevel];
-        _vbo = new unsigned int[maxLevel];
-        memset(_vbo, 0, sizeof(unsigned int) * maxLevel);
+        vbo = new unsigned int[maxLevel];
+        memset(vbo, 0, sizeof(unsigned int) * maxLevel);
     }
 
     Cluster *root;
     int maxLevel;
     Cluster **startPointerCluster;
     int *numOfClusters;
-    unsigned int *_vbo;
+    unsigned int *vbo;
 };
 
 class Cluster_t

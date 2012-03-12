@@ -48,12 +48,11 @@ struct FlowPoint {
 };
 
 struct FlowParticlesValues {
-    FlowPosition position;		/* Position on axis of particle
-					 * plane */
-    FlowColor color;			/* Color of particles */
-    int isHidden;			/* Indicates if particle injection
-					 * plane is active or not. */
-    float particleSize;			/* Size of the particles. */
+    FlowPosition position;	///< Position on axis of particle plane
+    FlowColor color;		///< Color of particles
+    /// Indicates if particle injection plane is active or not
+    int isHidden;
+    float particleSize;		///< Size of the particles
 };
 
 struct FlowParticlesIterator {
@@ -124,11 +123,13 @@ public:
     void Configure();
 
 private:
-    const char *_name;			/* Name of particle injection
-					 * plane. Actual character string is
-					 * stored in hash table. */
+    /**
+     * Name of particle injection plane. Actual character string is
+     * stored in hash table.
+     */
+    const char *_name;
     Tcl_HashEntry *_hashPtr;
-    NvParticleRenderer *_rendererPtr;	/* Particle renderer. */
+    NvParticleRenderer *_rendererPtr;	///< Particle renderer
     FlowParticlesValues _sv;
 
     static Rappture::SwitchSpec _switches[];
@@ -140,14 +141,12 @@ struct FlowBoxIterator {
 };
 
 struct FlowBoxValues {
-    float position;			/* Position on axis of particle
-					 * plane */
-    FlowPoint corner1, corner2;		/* Coordinates of the box. */
-    
-    FlowColor color;			/* Color of particles */
+    float position;		///< Position on axis of particle plane
+    FlowPoint corner1, corner2;	///< Coordinates of the box.
+    FlowColor color;		///< Color of particles
     float lineWidth;
-    int isHidden;			/* Indicates if particle injection
-					 * plance is active or not. */
+    /// Indicates if particle injection plane is active or not
+    int isHidden;
 };
 
 class FlowBox
@@ -390,36 +389,54 @@ private:
 
     Tcl_Interp *_interp;
     Tcl_HashEntry *_hashPtr;
-    const char *_name;			/* Name of the flow.  This may differ
-					 * from the name of the command
-					 * associated with the flow, if the
-					 * command was renamed. */
-    Tcl_Command _cmdToken;		/* Command associated with the flow.
-					 * When the command is deleted, so is
-					 * the flow. */
-    Rappture::Unirect3d *_dataPtr;	/* Uniform rectangular data
-					 * representing the mesh and vector
-					 * field values.  These values are
-					 * kept to regenerate the volume
-					 * associated with the flow. */
-    Volume *_volPtr;			/* The volume associated with the
-					 * flow.  This isn't the same thing as
-					 * a normal volume displayed. */
+    /**
+     * Name of the flow.  This may differ
+     * from the name of the command
+     * associated with the flow, if the
+     * command was renamed. */
+    const char *_name;
 
-    NvVectorField *_fieldPtr;		/* Vector field generated from the 
-					 * above volume. */
+    /**
+     * Command associated with the flow.
+     * When the command is deleted, so is
+     * the flow. */
+    Tcl_Command _cmdToken;
 
-    Tcl_HashTable _particlesTable;	/* For each field there can be one or
-					 * more particle injection planes
-					 * where the particles are injected
-					 * into the flow. */
+    /**
+     * Uniform rectangular data
+     * representing the mesh and vector
+     * field values.  These values are
+     * kept to regenerate the volume
+     * associated with the flow. */
+    Rappture::Unirect3d *_dataPtr;
 
-    Tcl_HashTable _boxTable;		/* A table of boxes.  There maybe
-					 * zero or more boxes associated
-					 * with each field. */
+    /**
+     * The volume associated with the
+     * flow.  This isn't the same thing as
+     * a normal volume displayed. */
+    Volume *_volPtr;
+
+    /**
+     * Vector field generated from the 
+     * above volume */
+    NvVectorField *_fieldPtr;
+
+    /**
+     * For each field there can be one or
+     * more particle injection planes
+     * where the particles are injected
+     * into the flow. */
+    Tcl_HashTable _particlesTable;
+
+    /**
+     * A table of boxes.  There maybe
+     * zero or more boxes associated
+     * with each field. */
+    Tcl_HashTable _boxTable;
+
+    FlowValues _sv;
 
     static Rappture::SwitchSpec _switches[];
-    FlowValues _sv;
 };
 
 extern int GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes);

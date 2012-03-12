@@ -2,10 +2,11 @@
 #ifndef VRMATRIX4X4_H
 #define VRMATRIX4X4_H
 
+#include <memory.h>
+
 #include <vrmath/vrLinmath.h>
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrRotation.h>
-#include <memory.h>
 
 class vrMatrix4x4f
 {
@@ -120,13 +121,14 @@ inline void vrMatrix4x4f::set(float *m)
     memcpy(_data, m, sizeof(float) * 16);
 }
 
-
 inline void vrMatrix4x4f::getTranslation(vrVector3f& translation)
 {
-    translation.set(_data[12],_data[13], _data[14]);
+    translation.set(_data[12], _data[13], _data[14]);
 }
 
-inline void vrMatrix4x4f::makeTRS(const vrVector3f& translation, const vrRotation& rotation, const vrVector3f& scale)
+inline void vrMatrix4x4f::makeTRS(const vrVector3f& translation,
+                                  const vrRotation& rotation,
+                                  const vrVector3f& scale)
 {
     vrMatrix4x4f mat;
     mat.makeTR(translation, rotation);
@@ -136,7 +138,8 @@ inline void vrMatrix4x4f::makeTRS(const vrVector3f& translation, const vrRotatio
     multiply(mat, *this);
 }
 
-inline void vrMatrix4x4f::makeTR(const vrVector3f& translation, const vrRotation& rotation)
+inline void vrMatrix4x4f::makeTR(const vrVector3f& translation,
+                                 const vrRotation& rotation)
 {
     makeRotation(rotation);
 	

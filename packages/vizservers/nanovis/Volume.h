@@ -13,31 +13,31 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-#ifndef _VOLUME_H_
-#define _VOLUME_H_
+#ifndef VOLUME_H
+#define VOLUME_H
 
 #include <string>
 #include <vector>
+
+#include <R2/R2Object.h>
 
 #include "define.h"
 #include "Color.h"
 #include "Texture3D.h"
 #include "Vector3.h"
 #include "AxisRange.h"
-#include "R2/R2Object.h"
 #include "TransferFunction.h"
 
 struct CutPlane {
-    int orient;			// orientation - 1: xy slice, 2: yz slice, 3:
-				// xz slice
-    float offset;		// normalized offset [0,1] in the volume
+    /// orientation - 1: xy slice, 2: yz slice, 3: xz slice
+    int orient;
+    float offset;	///< normalized offset [0,1] in the volume
     bool enabled;
 
     CutPlane(int _orient, float _offset) :
         orient(_orient),
         offset(_offset),
-	enabled(true)
+        enabled(true)
     {
     }
 };
@@ -46,17 +46,243 @@ class VolumeInterpolator;
 
 class Volume
 {
-protected:
-    TransferFunction *_tfPtr;		// This is the designated transfer 
-					// to use to render this volume.
+public:
+    enum VolumeType {
+        CUBIC,
+        VOLQD,
+        ZINCBLENDE
+    };
 
-    float _specular;			// Specular lighting parameter
-    float _diffuse;			// Diffuse lighting parameter
-    float _opacity_scale;		// The scale multiplied to the opacity
-					// assigned by the transfer function.
-					// Rule of thumb: higher opacity_scale
-					// the object is to appear like
-					// plastic
+    Volume(float x, float y, float z,
+           int width, int height, int depth, 
+           float size, int n_component,
+           float *data,
+           double vmin, double vmax, 
+           double nonzero_min);
+
+    virtual ~Volume();
+
+    void visible(bool value)
+    { 
+        _enabled = value; 
+    }
+
+    bool visible() const
+    { 
+        return _enabled; 
+    }
+
+    void location(const Vector3& loc)
+    { 
+        _location = loc; 
+    }
+
+    Vector3 location() const
+    {
+        return _location;
+    }
+
+    int isosurface() const
+    {
+        return _iso_surface;
+    }
+
+    void isosurface(int iso)
+    {
+        _iso_surface = iso;
+    }
+
+    int n_components() const
+    {
+        return _n_components;
+    }
+
+    double nonzero_min() const
+    {
+        return _nonzero_min;
+    }
+
+    double range_nzero_min() const
+    {
+        return _nonzero_min;
+    }
+
+    int volume_type() const
+    {
+        return _volume_type;
+    }
+
+    float *data()
+    {
+        return _data;
+    }
+
+    Texture3D *tex()
+    {
+        return _tex;
+    }
+    
+    int n_slices() const
+    {
+        return _n_slices;
+    }
+
+    void n_slices(int n)
+    {
+        _n_slices = n;
+    }
+
+    /// set the drawing size of volume 
+    void set_size(float s);
+
+    // methods related to cutplanes
+    /// add a plane and returns its index
+    int add_cutplane(int orientation, float location);
+
+    void enable_cutplane(int index);
+
+    void disable_cutplane(int index);
+
+    void move_cutplane(int index, float location);
+
+    CutPlane *get_cutplane(int index);
+
+    /// returns the number of cutplanes in the volume
+    int get_cutplane_count();
+
+    /// check if a cutplane is enabled
+    bool cutplane_is_enabled(int index) const;
+
+    // methods related to shading. These parameters are per volume 
+    float specular() const
+    {
+        return _specular;
+    }
+
+    void specular(float value)
+    {
+        _specular = value;
+    }
+
+    float diffuse() const
+    {
+        return _diffuse;
+    }
+
+    void diffuse(float value)
+    {
+        _diffuse = value;
+    }
+
+    float opacity_scale() const
+    {
+        return _opacity_scale;
+    }
+
+    void opacity_scale(float value)
+    {
+        _opacity_scale = value;
+    }
+
+    void data_enabled(bool value)
+    {
+        _data_enabled = value;
+    }
+
+    bool data_enabled() const
+    {
+        return _data_enabled;
+    }
+
+    void outline(bool value)
+    {
+        _outline_enabled = value; 
+    }
+
+    bool outline()
+    {
+        return _outline_enabled;
+    }
+
+    TransferFunction *transferFunction()
+    {
+        return _tfPtr;
+    }
+
+    void transferFunction(TransferFunction *tfPtr)
+    {
+        _tfPtr = tfPtr;
+    }
+
+    void set_outline_color(float *rgb);
+
+    void get_outline_color(float *rgb);
+    
+    /// change the label displayed on an axis
+    void set_label(int axis, const char *txt);
+
+    void setPhysicalBBox(const Vector3& min, const Vector3& max);
+
+    const Vector3& getPhysicalBBoxMin() const;
+
+    const Vector3& getPhysicalBBoxMax() const;
+
+    const char *name() const
+    {
+        return _name;
+    }
+
+    void name(const char *name)
+    {
+        _name = name;
+    }
+
+    float aspect_ratio_width;
+    float aspect_ratio_height;
+    float aspect_ratio_depth;
+
+    GLuint id;		///< OpenGL textue identifier (==_tex->id)
+
+    // Width, height and depth are point resolution, NOT physical
+    // units
+    /// The resolution of the data (how many points in X direction)
+    int width;
+    /// The resolution of the data (how many points in Y direction)
+    int height;
+    /// The resolution of the data (how many points in Z direction)
+    int depth;
+    /**
+     * This is the scaling factor that will size the volume on screen.
+     * A render program drawing different objects, always knows how
+     * large an object is in relation to other objects. This size is 
+     * provided by the render engine.
+     */
+    float size;
+
+    int pointsetIndex;
+
+    AxisRange xAxis, yAxis, zAxis, wAxis;
+    std::string label[3]; ///< the labels along each axis 0:x, 1:y, 2:z
+
+    static bool update_pending;
+    static double valueMin, valueMax;
+
+protected:
+    /**
+     * This is the designated transfer function to use to
+     * render this volume.
+     */
+    TransferFunction *_tfPtr;
+
+    float _specular;		///< Specular lighting parameter
+    float _diffuse;		///< Diffuse lighting parameter
+    /**
+     * The scale multiplied to the opacity assigned by the 
+     * transfer function. Rule of thumb: higher opacity_scale
+     * the object is to appear like plastic
+     */
+    float _opacity_scale;
+
     const char *_name;
     Vector3 _physical_min;
     Vector3 _physical_max;
@@ -66,168 +292,23 @@ protected:
 
     double _nonzero_min;
 
-    std::vector<CutPlane> _plane; // cut planes
+    std::vector<CutPlane> _plane; ///< cut planes
 
-    Texture3D* _tex;		// OpenGL texture storing the volume
-    
-    int _pointsetIndex;
+    Texture3D *_tex;		///< OpenGL texture storing the volume
 
     Vector3 _location;
 
-    int _n_slices;		// Number of slices when rendered. The greater
-				// the better quality, lower speed.
-
+    /**
+     * Number of slices when rendered. The greater
+     * the better quality, lower speed.
+     */
+    int _n_slices;
     bool _enabled; 
-
-    bool _data_enabled;		// show/hide cloud of volume data
-    
-    bool _outline_enabled;	// show/hide outline around volume
-
-    Color _outline_color;	// color for outline around volume
-
-    int _volume_type;		// cubic or zincblende
-    
+    bool _data_enabled;		///< show/hide cloud of volume data
+    bool _outline_enabled;	///< show/hide outline around volume
+    Color _outline_color;	///< color for outline around volume
+    int _volume_type;		///< cubic or zincblende
     int _iso_surface;
-
-public:
-    enum { CUBIC, VOLQD, ZINCBLENDE };
-    float aspect_ratio_width;
-    float aspect_ratio_height;
-    float aspect_ratio_depth;
-
-    GLuint id;			//OpenGL textue identifier (==tex->id)
-
-    int width;			// The resolution of the data (how many points
-				// in each direction.
-    int height;			// It is different from the size of the volume
-				// object drawn on screen.
-    int depth;			// Width, height and depth together determing
-				// the proprotion of the volume ONLY.
-    float size;			// This is the scaling factor that will size
-				// the volume on screen.  A render program
-				// drawing different objects, always knows how
-				// large an object is in relation to other
-				// objects. This size is provided by the
-				// render engine.
-
-    AxisRange xAxis, yAxis, zAxis, wAxis;
-    static bool update_pending;
-    static double valueMin, valueMax;
-
-    Volume(float x, float y, float z, int width, int height, int depth, 
-	   float size, int n_component, float* data, double vmin, double vmax, 
-	   double nonzero_min);
-    virtual ~Volume();
-
-    void visible(bool value) { 
-	_enabled = value; 
-    }
-    bool visible(void) { 
-	return _enabled; 
-    }
-    void location(Vector3 loc) { 
-	_location = loc; 
-    }
-    Vector3 location(void) const {
-	return _location;
-    }
-    int isosurface(void) const {
-	return _iso_surface;
-    }
-    void isosurface(int iso) {
-	_iso_surface = iso;
-    }
-    int n_components(void) {
-	return _n_components;
-    }
-    double nonzero_min(void) {
-	return _nonzero_min;
-    }
-    int volume_type(void) {
-	return _volume_type;
-    }
-    float *data(void) {
-	return _data;
-    }
-    Texture3D *tex(void) {
-	return _tex;
-    }
-
-    double range_nzero_min() { return _nonzero_min; }
-    
-    int n_slices(void) const {
-	return _n_slices;
-    }
-    void n_slices(int n) {
-	_n_slices = n;
-    }
-
-    void set_size(float s);	//set the drawing size of volume 
-
-    //methods related to cutplanes
-    int add_cutplane(int _orientation, float _location); // add a plane and
-							 // returns its index
-    void enable_cutplane(int index);
-    void disable_cutplane(int index);
-    void move_cutplane(int index, float _location);
-    CutPlane* get_cutplane(int index);
-    int get_cutplane_count();  //returns the number of cutplanes in the volume
-    bool cutplane_is_enabled(int index); //check if a cutplane is enabled
-
-    //methods related to shading. These parameters are per volume 
-    float specular(void) {
-	return _specular;
-    }
-    void specular(float value) {
-	_specular = value;
-    }
-    float diffuse(void) {
-	return _diffuse;
-    }
-    void diffuse(float value) {
-	_diffuse = value;
-    }
-    float opacity_scale(void) {
-	return _opacity_scale;
-    }
-    void opacity_scale(float value) {
-	_opacity_scale = value;
-    }
-    void data_enabled(bool value) {
-	_data_enabled = value;
-    }
-    bool data_enabled(void) {
-	return _data_enabled;
-    }
-    void outline(bool value) {
-	_outline_enabled = value; 
-    }
-    bool outline(void) {
-	return _outline_enabled;
-    }
-    TransferFunction *transferFunction(void) {
-	return _tfPtr;
-    }
-    void transferFunction(TransferFunction *tfPtr) {
-	_tfPtr = tfPtr;
-    }
-    void set_outline_color(float* rgb);
-    void get_outline_color(float* rgb);
-    
-    void set_label(int axis, const char* txt); // change the label displayed
-					       // on an axis
-    std::string label[3];	// the labels along each axis 0:x , 1:y, 2:z
-
-    void setPhysicalBBox(const Vector3& min, const Vector3& max);
-    Vector3& getPhysicalBBoxMin();
-    Vector3& getPhysicalBBoxMax();
-
-    const char *name(void) {
-	return _name;
-    }
-    void name(const char *name) {
-	_name = name;
-    }
 };
 
 inline int
@@ -257,7 +338,7 @@ Volume::move_cutplane(int index, float location)
     _plane[index].offset = location;
 }
 
-inline CutPlane* 
+inline CutPlane * 
 Volume::get_cutplane(int index)
 {
     //assert(index < plane.size());
@@ -271,7 +352,7 @@ Volume::get_cutplane_count()
 }
 
 inline bool 
-Volume::cutplane_is_enabled(int index)
+Volume::cutplane_is_enabled(int index) const
 {
     //assert(index < plane.size());
     return _plane[index].enabled; 
@@ -289,13 +370,13 @@ Volume::set_size(float s)
 inline void 
 Volume::set_outline_color(float *rgb) 
 {
-    _outline_color = Color(rgb[0],rgb[1],rgb[2]);
+    _outline_color = Color(rgb[0], rgb[1], rgb[2]);
 }
 
 inline void 
 Volume::get_outline_color(float *rgb) 
 {
-    _outline_color.GetRGB(rgb);
+    _outline_color.getRGB(rgb);
 }
 
 inline void 
@@ -321,14 +402,14 @@ Volume::setPhysicalBBox(const Vector3& min, const Vector3& max)
     */
 }
 
-inline Vector3& 
-Volume::getPhysicalBBoxMin()
+inline const Vector3& 
+Volume::getPhysicalBBoxMin() const
 {
     return _physical_min;
 }
 
-inline Vector3& 
-Volume::getPhysicalBBoxMax()
+inline const Vector3& 
+Volume::getPhysicalBBoxMax() const
 {
     return _physical_max;
 }

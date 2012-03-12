@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "NvZincBlendeReconstructor.h"
 #include "ZincBlendeVolume.h"
 
@@ -148,12 +149,12 @@ struct _NvAtomInfo {
     int getIndex(int width, int height) const 
     {
         // NOTE 
-        // Zinc blende data has different axises from OpenGL
+        // Zinc blende data has different axes from OpenGL
         // + z -> +x (OpenGL)
         // + x -> +y (OpenGL)
         // + y -> +z (OpenGL), But in 3D texture coordinate is the opposite direction of z 
-        // The reasone why index is multiplied by 4 is that one unit cell has half of eight atoms
-        // ,i.e. four atoms are mapped into RGBA component of one texel
+        // The reason why index is multiplied by 4 is that one unit cell has half of eight atoms,
+        // i.e. four atoms are mapped into RGBA component of one texel
         //return ((int) (indexZ - 1)+ (int) (indexX - 1) * width + (int) (indexY - 1) * width * height) * 4;
         return ((int)(indexX - 1) + (int)(indexY - 1) * width + (int)(indexZ - 1) * width * height) * 4;
     }
@@ -193,7 +194,7 @@ inline T _NvMin4(T* a)
 
 ZincBlendeVolume * 
 NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
-                                   int width, int height, int depth, void* data)
+                                   int width, int height, int depth, void *data)
 {
     ZincBlendeVolume *zincBlendeVolume = NULL;
 

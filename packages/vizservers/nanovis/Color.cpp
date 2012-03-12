@@ -13,96 +13,83 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <stdio.h>
 #include <assert.h>
 
 #include "Color.h"
 #include "define.h"
 
-Color::Color() {
-	R=G=B=0.0;
-	next=0;
+Color::Color() :
+    _r(0),
+    _g(0),
+    _b(0)
+{
 }
 
-Color::Color(double r, double g, double b) {
-	R=r;
-	G=g;
-	B=b;
-	next=0;
+Color::Color(double r, double g, double b) :
+    _r(r),
+    _g(g),
+    _b(b)
+{
 }
 
-Color::Color(const Color& c)
- : R(c.R), G(c.G), B(c.B), next(c.next)
+Color::Color(const Color& c) :
+    _r(c._r),
+    _g(c._g),
+    _b(c._b)
+{
+}
+
+Color::~Color()
 {
 }
 
 Color&
 Color::operator=(const Color& c)
 {
-    R = c.R;
-    G = c.G;
-    B = c.B;
-    next = c.next;
+    _r = c._r;
+    _g = c._g;
+    _b = c._b;
     return *this;
 }
 
-void Color::LimitColors(){ //Limits the color to be in range of 0.0 and 1.0
-	if (R>1.0) R=1.0;
-	if (G>1.0) G=1.0;
-	if (B>1.0) B=1.0;
+// Limits the color to be in range of [0,1]
+void Color::clamp()
+{
+    if (_r > 1.0) _r = 1.0;
+    if (_g > 1.0) _g = 1.0;
+    if (_b > 1.0) _b = 1.0;
 
-	if (R<0.0) R=0.0;
-	if (G<0.0) G=0.0;
-	if (B<0.0) B=0.0;
+    if (_r < 0.0) _r = 0.0;
+    if (_g < 0.0) _g = 0.0;
+    if (_b < 0.0) _b = 0.0;
 }
 
-Color Color::operator*(double k){
-	return Color(R*k, G*k, B*k);
+Color Color::operator*(double k) const
+{
+    return Color(_r * k, _g * k, _b * k);
 }
 
-
-//This is NOT member operator. It's used so we can write (k*V), not only (V*k) (V-vector k-scalar)
-Color operator*(double k, Color &other){
-	return Color(other.R*k, other.G*k, other.B*k);
+Color Color::operator*(const Color& other) const
+{
+    return Color(_r * other._r, _g * other._g, _b * other._b);
 }
 
-Color::~Color(){}
-
-Color Color::operator +(Color &other){
-	return Color(this->R+other.R,this->G+other.G,this->B+other.B);
+Color Color::operator+(const Color& other) const
+{
+    return Color(_r + other._r, _g + other._g, _b + other._b);
 }
 
-Color Color::operator *(Color &other){
-	return Color(this->R*other.R,this->G*other.G,this->B*other.B);
+void Color::getRGB(unsigned char *result)
+{
+    result[0] = (unsigned char)(_r*255.0);
+    result[1] = (unsigned char)(_g*255.0);
+    result[2] = (unsigned char)(_b*255.0);
 }
 
-void Color::GetRGBA(double opacity, unsigned char *result){
-	LimitColors();
-
-	assert(opacity>=0 && opacity <=1);
-
-	result[0] = (unsigned char) (R*255.0);
-	result[1] = (unsigned char) (G*255.0);
-	result[2] = (unsigned char) (B*255.0);
-	result[3] = (unsigned char) (opacity*255.0);
+void Color::getRGB(float *result)
+{
+    result[0] = (float)_r;
+    result[1] = (float)_g;
+    result[2] = (float)_b;
 }
-
-void Color::SetRGBA(unsigned char *color){
-	R = color[0];
-	G = color[1];
-	B = color[2];
-}
-
-void Color::GetRGB(unsigned char *result){
-	result[0] = (unsigned char) (R*255.0);
-	result[1] = (unsigned char) (G*255.0);
-	result[2] = (unsigned char) (B*255.0);
-}
-
-void Color::GetRGB(float *result){
-	result[0] = (float) (R);
-	result[1] = (float) (G);
-	result[2] = (float) (B);
-}
-

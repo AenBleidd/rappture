@@ -14,15 +14,16 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+
 #include "nvconf.h"
 #ifdef HAVE_DX_DX_H 
 #include "RpDX.h"
 #undef ERROR
 #include "Trace.h"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <float.h>
 
 using namespace Rappture;
 
@@ -135,7 +136,7 @@ DX::DX(Outcome &result, const char* filename) :
     }
     memset(_max, 0, _numAxis);
 
-    __findPosMax();
+    findPosMax();
 
     // parse out the gridconnections (length of each axis) array
     // dxgrid = (Array) DXQueryGridConnections(dxpos, &_numAxis, _axisLen);
@@ -185,7 +186,7 @@ DX::DX(Outcome &result, const char* filename) :
             _positions[pt+3],_positions[pt+4],_positions[pt+5],_data[lcv+1],
             _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
     }
-    __collectDataStats();
+    collectDataStats();
 }
 
 DX::~DX()
@@ -199,7 +200,7 @@ DX::~DX()
 }
 
 void
-DX::__findPosMax()
+DX::findPosMax()
 {
     int lcv = 0;
 
@@ -218,7 +219,7 @@ DX::__findPosMax()
 }
 
 void
-DX::__collectDataStats()
+DX::collectDataStats()
 {
     _dataMin = FLT_MAX;
     _dataMax = -FLT_MAX;
@@ -250,7 +251,7 @@ DX::__collectDataStats()
  * This function overwrites the original positions array
  */
 void
-DX::__getInterpPos()
+DX::getInterpPos()
 {
     Array dxpos;
     float* pos = NULL;
@@ -285,7 +286,7 @@ DX::__getInterpPos()
  * array.
  */
 void
-DX::__getInterpData()
+DX::getInterpData()
 {
     int pts = _n;
     int interppts = pts;
@@ -316,7 +317,7 @@ DX::__getInterpData()
             _positions[pt+6],_positions[pt+7],_positions[pt+8],_data[lcv+2]);
     }
 
-    __collectDataStats();
+    collectDataStats();
 }
 
 /*
@@ -336,8 +337,8 @@ DX::interpolate(int* newAxisLen)
             _axisLen[i] = newAxisLen[i];
         }
     }
-    __getInterpPos();
-    __getInterpData();
+    getInterpPos();
+    getInterpData();
     TRACE("----end interpolation----\n");
     return *this;
 }

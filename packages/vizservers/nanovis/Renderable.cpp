@@ -20,8 +20,8 @@ Renderable::Renderable()
 }
 
 Renderable::Renderable(const Vector3& loc) :
-    location(loc),
-    enabled(true)
+    _location(loc),
+    _enabled(true)
 { 
 }
 
@@ -30,21 +30,21 @@ Renderable::~Renderable()
 
 void Renderable::move(const Vector3& new_loc)
 {
-    location = new_loc;
+    _location = new_loc;
 }
 
 void Renderable::enable()
 {
-    enabled = true;
+    _enabled = true;
 }
 
 void Renderable::disable()
 {
-    enabled = false;
+    _enabled = false;
 }
 
 bool Renderable::is_enabled() const
 {
-    return enabled;
+    return _enabled;
 }
 

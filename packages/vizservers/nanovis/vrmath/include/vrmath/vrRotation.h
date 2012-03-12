@@ -8,7 +8,7 @@ class vrVector3f;
 class vrQuaternion;
 
 /**
- * Represents an axis/angle rotation
+ * Represents an axis/angle rotation (angle in radians)
  */
 class vrRotation
 {

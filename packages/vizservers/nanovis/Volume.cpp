@@ -13,9 +13,9 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <memory.h>
 #include <assert.h>
+
 #include "Volume.h"
 #include "Trace.h"
 
@@ -25,27 +25,34 @@ double Volume::valueMax = 1.0;
 
 Volume::Volume(float x, float y, float z,
                int w, int h, int d, float s, 
-               int n, float* data, double v0, double v1, double nz_min) :
+               int n, float *data,
+               double v0, double v1, double nz_min) :
+    aspect_ratio_width(1),
+    aspect_ratio_height(1),
+    aspect_ratio_depth(1),
+    id(0),
+    width(w),
+    height(h),
+    depth(d),
+    size(s),
+    pointsetIndex(-1),
     _tfPtr(NULL),
     _specular(6.),		// default value
     _diffuse(3.),		// default value
     _opacity_scale(10.),	// default value
     _name(NULL),
+    _data(NULL),
     _n_components(n),
     _nonzero_min(nz_min),
-    _pointsetIndex(-1),
+    _tex(NULL),
+    _location(x, y, z),
     _n_slices(512),		// default value
     _enabled(true),
-    //n_slice(256),		// default value
     _data_enabled(true),	// default value
     _outline_enabled(true),	// default value
-    _outline_color(1.,1.,1.),	// default value
+    _outline_color(1., 1., 1.),	// default value
     _volume_type(CUBIC),	// default is a cubic volume
-    _iso_surface(0),
-    width(w),
-    height(h),
-    depth(d),
-    size(s)
+    _iso_surface(0)
 {
     _tex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
     int fcount = width * height * depth * _n_components;
@@ -70,8 +77,6 @@ Volume::Volume(float x, float y, float z,
     aspect_ratio_height = s * _tex->aspect_ratio_height;
     aspect_ratio_depth =  s * _tex->aspect_ratio_depth;
 
-    _location = Vector3(x, y, z);
-
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
     _plane.clear();
@@ -89,11 +94,10 @@ Volume::Volume(float x, float y, float z,
 
 Volume::~Volume()
 { 
-    if (_pointsetIndex != -1) {
+    if (pointsetIndex != -1) {
         // TBD...
     }
 
     delete [] _data;
-
     delete _tex;
 }
