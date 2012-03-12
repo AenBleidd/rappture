@@ -1,4 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include <math.h>
+
 #include <vrmath/vrRotation.h>
 #include <vrmath/vrVector3f.h>
 #include <vrmath/vrQuaternion.h>
@@ -16,7 +18,7 @@ void vrRotation::set(const vrVector3f &vec1, const vrVector3f &vec2)
     vrVector3f cross;
     cross.cross(vec1, vec2);
 
-    float ang = atan2( cross.length(), vec1.dot(vec2) );
+    float ang = atan2(cross.length(), vec1.dot(vec2));
 
     cross.normalize();
 
@@ -32,7 +34,11 @@ void vrRotation::set(const vrQuaternion& quat)
 
     angle = acos(quat.w) * 2.0f;
     float scale = sqrt(1 - quat.w * quat.w);
-    if (scale < 0.001) {
+    if (angle < 1.0e-6f) {
+        x = 1;
+        y = 0;
+        z = 0;
+    } else if (scale < 1.0e-6f) {
         x = quat.x;
         y = quat.y;
         z = quat.z;
@@ -41,11 +47,17 @@ void vrRotation::set(const vrQuaternion& quat)
         y = quat.y / scale;
         z = quat.z / scale;
     }
-    /*
-    // http://gpwiki.org/index.php/OpenGL:Tutorials:Using_Quaternions_to_represent_rotation#Quaternion_to_axis-angle
-    float scale = sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z);
-    x = quat.x / scale;
-    y = quat.y / scale;
-    z = quat.z / scale;
-    */
+}
+
+vrQuaternion vrRotation::getQuaternion() const
+{
+    vrQuaternion result;
+
+    result.w = cos(angle / 2.0);
+    double sinHalfAngle = sin(angle / 2.0);
+    result.x = x * sinHalfAngle;
+    result.y = y * sinHalfAngle;
+    result.z = z * sinHalfAngle;
+
+    return result;
 }
