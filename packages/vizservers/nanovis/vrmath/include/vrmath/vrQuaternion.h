@@ -16,17 +16,51 @@ class vrQuaternion
 {
 public:
     vrQuaternion();
+
     explicit vrQuaternion(const vrRotation& rot);
+
     vrQuaternion(float x, float y = 0, float z = 0, float w = 0);
 
     void set(float x1, float y1, float z1, float w1);
+
     const vrQuaternion& set(const vrRotation& rot);
+
+    vrQuaternion conjugate() const
+    {
+        vrQuaternion result;
+        result.w = w;
+        result.x = -x;
+        result.y = -y;
+        result.z = -z;
+        return result;
+    }
+
+    vrQuaternion reciprocal() const
+    {
+        double denom =  w*w + x*x + y*y + z*z;
+        vrQuaternion result = conjugate();
+        result.x /= denom;
+        result.y /= denom;
+        result.z /= denom;
+        result.w /= denom;
+        return result;
+    }
 
     void slerp(const vrRotation &a,const vrRotation &b, const float t);
 
     void slerp(const vrQuaternion &a,const vrQuaternion &b, const float t);
 
     const vrQuaternion& normalize();
+
+    vrQuaternion operator*(const vrQuaternion& q2) const
+    {
+        vrQuaternion result;
+        result.w = (w * q2.w) - (x * q2.x) - (y * q2.y) - (z * q2.z);
+        result.x = (w * q2.x) + (x * q2.w) + (y * q2.z) - (z * q2.y);
+        result.y = (w * q2.y) + (y * q2.w) + (z * q2.x) - (x * q2.z);
+        result.z = (w * q2.z) + (z * q2.w) + (x * q2.y) - (y * q2.x);
+        return result;
+    }
 
     friend bool operator==(const vrQuaternion& q1, const vrQuaternion& q2);
 

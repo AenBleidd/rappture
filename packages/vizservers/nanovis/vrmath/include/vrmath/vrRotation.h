@@ -7,6 +7,9 @@
 class vrVector3f;
 class vrQuaternion;
 
+/**
+ * Represents an axis/angle rotation
+ */
 class vrRotation
 {
 public:
@@ -27,13 +30,15 @@ public:
     float getZ() const;
     float getAngle() const;
 
+    vrQuaternion getQuaternion() const;
+
     void set(float x, float y, float z, float angle);
-    void set(const vrVector3f &vec1, const vrVector3f &vec2);
+    void set(const vrVector3f& vec1, const vrVector3f& vec2);
     void set(const vrQuaternion& quat);
     void set(const vrRotation& rot);
     void setAxis(float x, float y, float z);
     void setAngle(float angle);
-	
+
     friend bool operator!=(const vrRotation& rot1, const vrRotation& rot2);
     friend bool operator==(const vrRotation& rot1, const vrRotation& rot2);
 

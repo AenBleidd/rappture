@@ -10,6 +10,11 @@
 class vrMatrix4x4f
 {
 public:
+    vrMatrix4x4f()
+    {
+        makeIdentity();
+    }
+
     /**
      * @brief make a identity matrix
      */

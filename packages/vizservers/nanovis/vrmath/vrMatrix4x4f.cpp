@@ -6,16 +6,16 @@
 void vrMatrix4x4f::makeIdentity()
 {
     _data[1] = _data[2] = _data[3] = _data[4] =
-	_data[6] = _data[7] = _data[8] = _data[9] =
-	_data[11] = _data[12] = _data[13] = _data[14] = 0.0f;
+        _data[6] = _data[7] = _data[8] = _data[9] =
+        _data[11] = _data[12] = _data[13] = _data[14] = 0.0f;
     _data[0] = _data[5] = _data[10] = _data[15] = 1.0f;
 }
 
 void vrMatrix4x4f::makeTranslation(const vrVector3f& translation)
 {
     _data[1] = _data[2] = _data[3] = _data[4] =
-	_data[6] = _data[7] = _data[8] = _data[9] =
-	_data[11] = 0.0f;
+        _data[6] = _data[7] = _data[8] = _data[9] =
+        _data[11] = 0.0f;
     _data[0] = _data[5] = _data[10] = _data[15] = 1.0f;
     _data[12] = translation.x;
     _data[13] = translation.y;
@@ -25,8 +25,8 @@ void vrMatrix4x4f::makeTranslation(const vrVector3f& translation)
 void vrMatrix4x4f::makeTranslation(float x, float y, float z)
 {
     _data[1] = _data[2] = _data[3] = _data[4] =
-	_data[6] = _data[7] = _data[8] = _data[9] =
-	_data[11] = 0.0f;
+        _data[6] = _data[7] = _data[8] = _data[9] =
+        _data[11] = 0.0f;
     _data[0] = _data[5] = _data[10] = _data[15] = 1.0f;
     _data[12] = x;
     _data[13] = y;
@@ -35,13 +35,16 @@ void vrMatrix4x4f::makeTranslation(float x, float y, float z)
 
 void vrMatrix4x4f::makeRotation(const vrRotation& rotation)
 {
-    if (rotation.getX() == 0.0f && rotation.getY() == 0.0f && rotation.getZ() == 0.0f) {
+    if (rotation.getAngle() == 0.0f || 
+        (rotation.getX() == 0.0f &&
+         rotation.getY() == 0.0f &&
+         rotation.getZ() == 0.0f)) {
         makeIdentity();
         return;
     }
 
     float xAxis = rotation.getX(), yAxis = rotation.getY(), zAxis = rotation.getZ();
-    float invLen = 1.0f / sqrt( xAxis * xAxis + yAxis * yAxis + zAxis * zAxis);
+    float invLen = 1.0f / sqrt(xAxis * xAxis + yAxis * yAxis + zAxis * zAxis);
     float cosine = cos(rotation.getAngle());
     float sine = sin(rotation.getAngle());
 
@@ -69,12 +72,15 @@ void vrMatrix4x4f::makeRotation(const vrRotation& rotation)
 
 void vrMatrix4x4f::makeRotation(float xAxis, float yAxis, float zAxis, float angle)
 {
-    if (xAxis == 0.0f && yAxis == 0.0f && zAxis == 0.0f) {
+    if (angle == 0.0f ||
+        (xAxis == 0.0f &&
+         yAxis == 0.0f &&
+         zAxis == 0.0f)) {
         makeIdentity();
         return;
     }
 
-    float invLen = 1.0f / sqrt( xAxis * xAxis + yAxis * yAxis + zAxis * zAxis);
+    float invLen = 1.0f / sqrt(xAxis * xAxis + yAxis * yAxis + zAxis * zAxis);
     float cosine = cos(angle);
     float sine = sin(angle);
 
@@ -100,12 +106,11 @@ void vrMatrix4x4f::makeRotation(float xAxis, float yAxis, float zAxis, float ang
     _data[10] = zAxis * zAxis * oneMinusCosine + cosine;
 }
 
-
 void vrMatrix4x4f::makeScale(const vrVector3f& scale)
 {
     _data[1] = _data[2] = _data[3] = _data[4] =
-	_data[6] = _data[7] = _data[8] = _data[9] =
-	_data[11] = 0.0f;
+        _data[6] = _data[7] = _data[8] = _data[9] =
+        _data[11] = 0.0f;
 
     _data[0] = scale.x;
     _data[5] = scale.y;
@@ -118,7 +123,7 @@ void vrMatrix4x4f::makeScale(const vrVector3f& scale)
 void vrMatrix4x4f::multiply(const vrMatrix4x4f& m1)
 {
     float mat[16];
-    float* mat1 = (float*) m1._data;
+    float *mat1 = (float *)m1._data;
 
     // 1 row
     mat[0] = float(_data[0] * mat1[0] + _data[4] * mat1[1] + 
@@ -168,8 +173,8 @@ void vrMatrix4x4f::multiply(const vrMatrix4x4f& m1)
 void vrMatrix4x4f::multiply(const vrMatrix4x4f& m1, const vrMatrix4x4f& m2)
 {
     float mat[16];
-    float* mat1 = (float*) m1._data;
-    float* mat2 = (float*) m2._data;
+    float *mat1 = (float *)m1._data;
+    float *mat2 = (float *)m2._data;
 
     // 1 row
     mat[0] = float(mat1[0] * mat2[0] + mat1[4] * mat2[1] + 
@@ -217,8 +222,8 @@ void vrMatrix4x4f::multiply(const vrMatrix4x4f& m1, const vrMatrix4x4f& m2)
 
 void vrMatrix4x4f::multiplyFast(const vrMatrix4x4f& m1, const vrMatrix4x4f& m2)
 {
-    float* mat1 = (float*) m1._data;
-    float* mat2 = (float*) m2._data;
+    float *mat1 = (float *)m1._data;
+    float *mat2 = (float *)m2._data;
 
     // 1 row
     _data[0] = float(mat1[0] * mat2[0] + mat1[4] * mat2[1] + 
@@ -283,7 +288,6 @@ void vrMatrix4x4f::getRotation(vrRotation& rotation)
 }
 
 void vrMatrix4x4f::invert()
-
 {
     float det =
         _data[12] * _data[9] * _data[6] * _data[3]-
@@ -431,11 +435,9 @@ void vrMatrix4x4f::invert()
     set(mat);
 }
 
-
-
 void vrMatrix4x4f::invert(const vrMatrix4x4f& mat)
 {
-    float* data = (float*) mat._data;
+    float *data = (float *)mat._data;
 
     float det =
         data[12] * data[9] * data[6] * data[3]-
@@ -585,7 +587,7 @@ void vrMatrix4x4f::invert(const vrMatrix4x4f& mat)
 
 void vrMatrix4x4f::invertFast(const vrMatrix4x4f& mat)
 {
-    float* srcData = (float*) mat._data;
+    float *srcData = (float *)mat._data;
 
     float det =
         srcData[12] * srcData[9] * srcData[6] * srcData[3]-
@@ -809,7 +811,7 @@ void vrMatrix4x4f::transpose(const vrMatrix4x4f& mat)
 void vrMatrix4x4f::set(double* m)
 {
     for (int i = 0; i < 16; ++i) {
-        _data[i] = (float) m[i];
+        _data[i] = (float)m[i];
     }
 }
 
