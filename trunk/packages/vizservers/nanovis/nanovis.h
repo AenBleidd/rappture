@@ -66,36 +66,6 @@ class Volume;
 class FlowCmd;
 class FlowIterator;
 
-struct Vector2 {
-    float x, y;
-    float mag()
-    {
-	return sqrt(x*x + y*y);
-    }
-};
-
-struct RegGrid2 {
-    int width, height;
-    Vector2 *field;
-
-    RegGrid2(int w, int h)
-    {
-	width = w;
-	height = h;
-	field = new Vector2[w*h];
-    }
-
-    void put(Vector2& v, int x ,int y)
-    {
-	field[x+y*width] = v;
-    }
-    
-    Vector2& get(int x, int y)
-    {
-	return field[x+y*width];
-    }
-};
-
 class NanoVis
 {
 public:
@@ -105,49 +75,6 @@ public:
 	MAP_VOLUMES = (1 << 2),
 	MAP_HEIGHTMAPS = (1 << 3),
     };
-
-    static VolumeRenderer *vol_renderer;
-    static NvFlowVisRenderer *flowVisRenderer;
-    static VelocityArrowsSlice *velocityArrowsSlice;
-    static NvLIC *licRenderer;
-    static PlaneRenderer *plane_renderer;
-#if PLANE_CMD
-    static Texture2D *plane[]; ///< Pointers to 2D planes
-#endif
-#ifdef USE_POINTSET_RENDERER
-    static PointSetRenderer *pointset_renderer;
-    static std::vector<PointSet *> pointSet;
-#endif
-
-    static Texture2D *legendTexture;
-    static NvColorTableRenderer *color_table_renderer;
-
-    static graphics::RenderContext *renderContext;
-    static std::vector<HeightMap *> heightMap;
-    static unsigned char *screen_buffer;
-    static Tcl_HashTable volumeTable;
-    static Tcl_HashTable heightmapTable;
-    static std::vector<NvVectorField *> flow;
-    static Grid *grid;
-    static R2Fonts *fonts;
-    static int updir;
-    static NvCamera *cam;
-
-    static float lic_slice_x;
-    static float lic_slice_y;
-    static float lic_slice_z;
-    static int lic_axis;	/* 0:x, 1:y, 2:z */
-
-    static bool axis_on;
-    static bool config_pending;	// Indicates if the limits need to be recomputed.
-    static int win_width;	//size of the render window
-    static int win_height;	//size of the render window
-    static int render_window; 
-
-    static bool debug_flag;
-
-    static Tcl_Interp *interp;
-    static Tcl_DString cmdbuffer;
 
     static TransferFunction *get_transfunc(const char *name);
     static TransferFunction *DefineTransferFunction(const char *name, 
@@ -191,8 +118,6 @@ public:
     static void update_trans(int delta_x, int delta_y, int delta_z);
 #endif
 
-    static FILE *stdin, *logfile, *recfile;
-
     static void read_screen()
     {
         glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
@@ -202,12 +127,6 @@ public:
     {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _final_fbo);
     }
-
-    static unsigned int flags;
-    static Tcl_HashTable flowTable;
-    static double magMin, magMax;
-    static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-    static float xOrigin, yOrigin, zOrigin;
 
     static FlowCmd *FirstFlow(FlowIterator *iterPtr);
     static FlowCmd *NextFlow(FlowIterator *iterPtr);
@@ -224,26 +143,62 @@ public:
 
     static void EventuallyRedraw(unsigned int flag = 0);
     static void remove_volume(Volume *volPtr);
+
+    static FILE *stdin, *logfile, *recfile;
+
+    static unsigned int flags;
+    static bool debug_flag;
+    static bool axis_on;
+    static bool config_pending;	// Indicates if the limits need to be recomputed.
+    static int win_width;	//size of the render window
+    static int win_height;	//size of the render window
+    static int render_window;
+    static unsigned char *screen_buffer;
+    static Grid *grid;
+    static R2Fonts *fonts;
+    static int updir;
+    static NvCamera *cam;
+    static graphics::RenderContext *renderContext;
+
+    static Tcl_HashTable volumeTable;
+
+    static std::vector<NvVectorField *> flow;
+    static Tcl_HashTable flowTable;
+    static double magMin, magMax;
+    static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
+    static float xOrigin, yOrigin, zOrigin;
+
+    static VolumeRenderer *vol_renderer;
+    static NvFlowVisRenderer *flowVisRenderer;
+    static VelocityArrowsSlice *velocityArrowsSlice;
+    static NvLIC *licRenderer;
+    static PlaneRenderer *plane_renderer;
+#if PLANE_CMD
+    static Texture2D *plane[]; ///< Pointers to 2D planes
+#endif
+#ifdef USE_POINTSET_RENDERER
+    static PointSetRenderer *pointset_renderer;
+    static std::vector<PointSet *> pointSet;
+#endif
+
     static Tcl_HashTable tfTable;
+    static Texture2D *legendTexture;
+    static NvColorTableRenderer *color_table_renderer;
+
+    static std::vector<HeightMap *> heightMap;
+    static Tcl_HashTable heightmapTable;
+
+    static float lic_slice_x;
+    static float lic_slice_y;
+    static float lic_slice_z;
+    static int lic_axis;	/* 0:x, 1:y, 2:z */
+
+    static Tcl_Interp *interp;
+    static Tcl_DString cmdbuffer;
 
 private:
     //frame buffer for final rendering
     static GLuint _final_fbo, _final_color_tex, _final_depth_rb;
 };
-
-extern Volume *load_volume_stream(Rappture::Outcome &status, const char *tag, 
-                                  std::iostream& fin);
-
-extern Volume *load_volume_stream_odx(Rappture::Outcome& status, 
-                                      const char *tag, const char *buf, int nBytes);
-
-extern Volume *load_volume_stream2(Rappture::Outcome & status, const char *tag, 
-                                   std::iostream& fin);
-
-extern Volume *load_vector_stream(Rappture::Outcome& result, const char *tag, 
-                                  size_t length, char *bytes);
-
-extern Volume *load_vector_stream2(Rappture::Outcome& result, const char *tag, 
-                                   size_t length, char *bytes);
 
 #endif

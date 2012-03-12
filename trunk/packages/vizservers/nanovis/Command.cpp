@@ -56,6 +56,10 @@
 #if PLANE_CMD
 #include "PlaneRenderer.h"
 #endif
+#ifdef USE_POINTSET_RENDERER
+#include "PointSet.h"
+#endif
+#include "dxReader.h"
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"

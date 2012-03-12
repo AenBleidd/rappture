@@ -306,7 +306,7 @@ BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
 Color.o: Color.cpp Color.h
-Command.o: Command.cpp
+Command.o: Command.cpp dxReader.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
 DataLoader.o: DataLoader.cpp 
