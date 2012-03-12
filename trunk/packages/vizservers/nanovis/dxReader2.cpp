@@ -1,25 +1,26 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "nvconf.h"
-#ifdef HAVE_DX_DX_H
-#include "RpDX.h"
-#undef ERROR
-#include "dxReaderCommon.h"
-
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
 
-// nanovis headers
-#include "nanovis.h"
-
 // rappture headers
-#include "RpEncode.h"
-#include "RpOutcome.h"
+#include <RpEncode.h>
+#include <RpOutcome.h>
+
+#include "nvconf.h"
+#ifdef HAVE_DX_DX_H
+#include "RpDX.h"
+#undef ERROR
+
+#include "nanovis.h"
+#include "dxReaderCommon.h"
+#include "Volume.h"
+
 /* Load a 3D volume from a dx-format file the new way
  */
 Volume *
-load_volume_stream_odx(Rappture::Outcome &context, const char *tag, 
-			const char *buf, int nBytes)
+load_volume_stream_odx(Rappture::Outcome& context, const char *tag, 
+                       const char *buf, int nBytes)
 {
     char dxfilename[128];
 
@@ -29,8 +30,6 @@ load_volume_stream_odx(Rappture::Outcome &context, const char *tag,
     }
 
     // write the dx file to disk, because DXImportDX takes a file name
-
-    // You can do it like this.  Give 
     sprintf(dxfilename, "/tmp/dx%d.dx", getpid());
 
     FILE *f;
@@ -60,14 +59,14 @@ load_volume_stream_odx(Rappture::Outcome &context, const char *tag,
     float dy = ny;
     float dz = nz;
 
-    const float* data1 = dxObj.data();
+    const float *data1 = dxObj.data();
     float *data = new float[nx*ny*nz*4];
     memset(data, 0, nx*ny*nz*4);
-    int iz=0, ix=0, iy=0;
+    int iz = 0, ix = 0, iy = 0;
     float dv = dxObj.dataMax() - dxObj.dataMin();
     float vmin = dxObj.dataMin();
 
-    for (int i=0; i < nx*ny*nz; i++) {
+    for (int i = 0; i < nx*ny*nz; i++) {
         int nindex = (iz*nx*ny + iy*nx + ix) * 4;
         float v = data1[i];
 
@@ -89,9 +88,10 @@ load_volume_stream_odx(Rappture::Outcome &context, const char *tag,
 
     computeSimpleGradient(data, nx, ny, nz);
 
-    TRACE("nx = %i ny = %i nz = %i\n",nx,ny,nz);
-    TRACE("dx = %lg dy = %lg dz = %lg\n",dx,dy,dz);
-    TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", dxObj.dataMin(),dxObj.dataMax(),dxObj.nzero_min());
+    TRACE("nx = %i ny = %i nz = %i\n", nx, ny, nz);
+    TRACE("dx = %lg dy = %lg dz = %lg\n", dx, dy, dz);
+    TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n",
+          dxObj.dataMin(), dxObj.dataMax(), dxObj.nzero_min());
 
     Volume *volPtr;
     volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data, 
