@@ -8,17 +8,16 @@
 #define NUMDIGITS	6
 #define GRID_TICK	0.05
 
-Grid::Grid() : 
+Grid::Grid() :
+    xAxis("X"), 
+    yAxis("Y"), 
+    zAxis("Z"),
     _axisColor(1.0f, 1.0f, 1.0f, 1.0f), 
     _majorColor(1.0f, 1.0f, 1.0f, 1.0f), 
     _minorColor(0.5f, 0.5f, 0.5f, 1.0f), 
     _font(0), 
-    _visible(false),
-    xAxis("X"), 
-    yAxis("Y"), 
-    zAxis("Z")
+    _visible(false)
 {
-    /*empty*/
 }
 
 void Grid::render()

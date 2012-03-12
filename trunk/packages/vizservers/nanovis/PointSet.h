@@ -28,7 +28,7 @@ public :
 		    const Vector3& scale, const Vector3& origin, 
 		    float min, float max);
 
-    void updateColor(float *color, int  count);
+    void updateColor(float *color, int count);
 
     bool isVisible() const
     {
@@ -72,7 +72,7 @@ public :
 
 private:
     unsigned int _sortLevel;
-    PCA::ClusterAccel* _cluster;
+    PCA::ClusterAccel *_cluster;
 
     Vector3 _scale;
     Vector3 _origin;

@@ -73,12 +73,12 @@ protected :
     ~TransferFunction();
 
 private:
-   int _size;			//the resolution of the color map, how many
-				//(RGBA) quadraples
-    float* _data;
-    Texture1D* _tex;		//the texture storing the colors 
+    /// the resolution of the color map, how many (RGBA) quadraples
+    int _size;
+    float *_data;
+    Texture1D *_tex;	///< the texture storing the colors 
     const char *_name;
-    GLuint _id;			//OpenGL's texture identifier
+    GLuint _id;		///< OpenGL texture identifier
 };
 
 #endif

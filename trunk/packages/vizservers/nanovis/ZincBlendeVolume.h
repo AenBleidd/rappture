@@ -14,26 +14,23 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #ifndef _ZINCBLENDE_VOLUME_H_
 #define _ZINCBLENDE_VOLUME_H_
-
 
 #include "Volume.h"
 
 class ZincBlendeVolume : public Volume
 {
 public:
-	Texture3D* zincblende_tex[2];	//the textures of two cubic volumes
-	Vector3 cell_size;	//the cell size in texture space
+    ZincBlendeVolume(float x, float y, float z, 
+                     int width, int height, int depth, float size, int n_component, 
+                     float *dataVolumeA, float *dataVolumeB,
+                     double vmin, double vmax, double non_zeromin, const Vector3& cellSize);
 
+    virtual ~ZincBlendeVolume();
 
-	ZincBlendeVolume(float x, float y, float z, 
-		int width, int height, int depth, float size, int n_component, 
-		float* dataVolumeA, float* dataVolumeB,
-		double vmin, double vmax, double non_zeromin, const Vector3& cellSize);
-
-	virtual ~ZincBlendeVolume();
+    Texture3D *zincblende_tex[2];	//the textures of two cubic volumes
+    Vector3 cell_size;	//the cell size in texture space
 };
 
 #endif

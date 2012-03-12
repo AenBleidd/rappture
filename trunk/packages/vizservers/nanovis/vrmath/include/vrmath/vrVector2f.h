@@ -2,10 +2,10 @@
 #ifndef VRVECTOR2F_H
 #define VRVECTOR2F_H
 
-#include <vrmath/vrLinmath.h>
-
 #include <cstdlib>
 #include <cmath>
+
+#include <vrmath/vrLinmath.h>
 
 class vrVector2f
 {

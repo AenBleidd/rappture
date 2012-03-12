@@ -16,11 +16,12 @@
  */
 
 #include <assert.h>
+
 #include "ZincBlendeVolume.h"
 
 ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
                                    int w, int h, int d, float s, int n, 
-                                   float* dataVolumeA, float* dataVolumeB,
+                                   float *dataVolumeA, float *dataVolumeB,
                                    double v0, double v1, double non_zeromin,
                                    const Vector3& cellSize) :
     Volume(x, y, z, w, h, d, s, n, dataVolumeA, v0, v1, non_zeromin),
@@ -34,7 +35,7 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
     zincblende_tex[0] = _tex;
 
     //now add another tex as zincblende_tex[1]
-    Texture3D* secondTex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
+    Texture3D *secondTex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
     assert(secondTex);
     secondTex->initialize(dataVolumeB);
 
@@ -44,8 +45,8 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
 ZincBlendeVolume::~ZincBlendeVolume()
 { 
     // This data will be deleted in a destrutor of Volume class
-    //if(zincblende_tex[0])
+    //if (zincblende_tex[0])
     //  delete zincblende_tex[0];
-    if(zincblende_tex[1])
+    if (zincblende_tex[1])
 	delete zincblende_tex[1];
 }

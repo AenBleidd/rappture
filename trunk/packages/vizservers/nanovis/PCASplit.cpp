@@ -110,15 +110,15 @@ PCASplit::computeDistortion(Point *data, int count, const Vector3& mean,
     //finalSize = 0.5f * sqrt (finalSize) / (float) (count - 1) + maxSize;
     finalSize = sqrt (finalSize) + maxSize;
 }
-      
-void 
+
+void
 PCASplit::init()
 {
-    _curClusterNode = 0;
+    _curClusterNode = NULL;
     _curClusterCount = 0;
 }
 
-Cluster * 
+Cluster *
 PCASplit::createClusterBlock(ClusterListNode *clusterList, int count, int level)
 {
     static int cc = 0;
@@ -178,7 +178,7 @@ PCASplit::doIt(Point *data, int count)
 
     ClusterListNode *clustNodeList = &(_memClusterChunk2[0]);
     clustNodeList->data = cluster_t;
-    clustNodeList->next = 0;
+    clustNodeList->next = NULL;
 
     _curRoot = root;
     do {
@@ -188,7 +188,7 @@ PCASplit::doIt(Point *data, int count)
         ++level;
 
         // swap memory buffer & init
-        _curMemClusterChunk = (_curMemClusterChunk == _memClusterChunk1)?
+        _curMemClusterChunk = (_curMemClusterChunk == _memClusterChunk1) ?
             _memClusterChunk2 : _memClusterChunk1;
         _memClusterChunkIndex = 0;
 
@@ -232,6 +232,8 @@ PCASplit::split(Point *data, int count, float limit)
 
     computeCovariant(data, count, mean, m);
 
+    // Begin newmat11 dependency
+
     SymmetricMatrix A(3);
     for (int i = 1; i <= 3; ++i) {
         for (int j = 1; j <= i; ++j) {
@@ -241,8 +243,10 @@ PCASplit::split(Point *data, int count, float limit)
 
     Matrix U;
     DiagonalMatrix D;
-    eigenvalues(A,D,U);
+    eigenvalues(A, D ,U);
     Vector3 emax(U(1, 3), U(2, 3), U(3, 3));
+
+    // End newmat11 dependency
 
     int left = 0, right = count - 1;
 
@@ -369,4 +373,3 @@ PCASplit::analyze(ClusterListNode *clusterNode, Cluster *parent, int level,
         }
     }
 }
-

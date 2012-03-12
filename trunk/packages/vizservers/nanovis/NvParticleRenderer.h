@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef NV_PARTICLE_SYSTEM_H
-#define NV_PARTICLE_SYSTEM_H
+#ifndef NVPARTICLERENDERER_H
+#define NVPARTICLERENDERER_H
 
 #include <vector>
 

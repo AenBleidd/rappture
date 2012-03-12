@@ -18,16 +18,22 @@
 #define RAPPTURE_DX_H
 
 #include <dx/dx.h>
+
 #include <RpOutcome.h>
 
 namespace Rappture {
 
-class DX {
+class DX
+{
 public:
     DX();
-    DX(Rappture::Outcome &result, const char* filename);
+
+    DX(Rappture::Outcome& result, const char *filename);
+
     DX(const DX& rpdx);
+
     DX& operator=(const DX& rpdx);
+
     virtual ~DX();
 
     /*
@@ -36,74 +42,93 @@ public:
     virtual double valueMin() const;
     virtual double valueMax() const;
     */
-    virtual DX& interpolate(int* newAxisLen);
+    virtual DX& interpolate(int *newAxisLen);
 
-    int n(void) const {
-	return _n;
-    }
-    int rank(void) const {
-	return _rank;
-    }
-    int shape(void) const {
-	return _shape;
-    }
-    const float* delta(void) const {
-	// FIXME: Delta is always three numbers.
-	return _delta;
-    }
-    const float *max(void) const {
-	return _max;
-    }
-    const float *origin(void) const {
-	return _origin;
-    }
-    const float * positions(void) const {
-	return _positions;
-    }
-    const int *axisLen(void) const {
-	return _axisLen;
-    }
-    const float *data(void) const {
-	return _data;
-    }
-    float dataMin(void) const {
-	return _dataMin;
-    }
-    float dataMax(void) const {
-	return _dataMax;
-    }
-    float nzero_min(void) const {
-	return _nzero_min;
+    int n() const
+    {
+        return _n;
     }
 
-protected:
+    int rank() const
+    {
+        return _rank;
+    }
+
+    int shape() const
+    {
+        return _shape;
+    }
+
+    const float *delta() const
+    {
+        // FIXME: Delta is always three numbers.
+        return _delta;
+    }
+
+    const float *max() const
+    {
+        return _max;
+    }
+
+    const float *origin() const
+    {
+        return _origin;
+    }
+
+    const float * positions() const
+    {
+        return _positions;
+    }
+
+    const int *axisLen() const
+    {
+        return _axisLen;
+    }
+
+    const float *data() const
+    {
+        return _data;
+    }
+
+    float dataMin() const
+    {
+        return _dataMin;
+    }
+
+    float dataMax() const
+    {
+        return _dataMax;
+    }
+
+    float nzero_min() const
+    {
+        return _nzero_min;
+    }
 
 private:
+    void findPosMax();
+    void collectDataStats();
+    void getInterpPos();
+    void getInterpData();
+
     float _dataMin;
     float _dataMax;
     float _nzero_min;
-    int _numAxis;       // same as _shape if _rank == 1
-    int *_axisLen;      // number of points on each axis
-    float* _data;
+    int _numAxis;       ///< same as _shape if _rank == 1
+    int *_axisLen;      ///< number of points on each axis
+    float *_data;
 
-    int _n;             // number of points in the position array
-    int _rank;          // number of dimensions in each item
-    int _shape;         // array of the extents of each dimension
-    float* _positions;  // array holding the x,y,z coord of each point
-    float* _delta;      // array holding deltas of the uniform mesh
-    float* _max;        // array hodling coord of most distant pt from origin
-    float* _origin;     // array holding coord of origin
+    int _n;             ///< number of points in the position array
+    int _rank;          ///< number of dimensions in each item
+    int _shape;         ///< array of the extents of each dimension
+    float *_positions;  ///< array holding the x,y,z coord of each point
+    float *_delta;      ///< array holding deltas of the uniform mesh
+    float *_max;        ///< array hodling coord of most distant pt from origin
+    float *_origin;     ///< array holding coord of origin
 
     Object _dxobj;
-
-    void __findPosMax();
-    void __collectDataStats();
-    void __getInterpPos();
-    void __getInterpData();
-
-
 };
 
-} // namespace Rappture
+}
 
 #endif

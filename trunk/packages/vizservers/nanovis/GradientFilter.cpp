@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
+
 #include "Trace.h"
 #include "GradientFilter.h"
 
@@ -13,9 +14,9 @@
 #endif
 
 #define GRADIENTS_EXT       ".grd"
-int g_numOfSlices[3] = { 256, 256, 256 };
-void* g_volData = 0;
-float g_sliceDists[3];
+static int g_numOfSlices[3] = { 256, 256, 256 };
+static void *g_volData = 0;
+static float g_sliceDists[3];
 
 #define SOBEL               1
 #define GRAD_FILTER_SIZE    5
@@ -286,7 +287,6 @@ void computeGradients(float *gradients, void* volData, int *sizes, DataType data
             }
         }
     }
-
 }
 
 void filterGradients(float *gradients, int *sizes)

@@ -13,35 +13,48 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-#ifndef _COLOR_H_ 
-#define _COLOR_H_
+#ifndef COLOR_H 
+#define COLOR_H
 
 class Color  
 {
 public:
-	double R;		// Red component
-	double G;		// Green component
-	double B;		// Blue component
+    Color();
 
-	void GetRGB(unsigned char *result);
-	void GetRGB(float *result);
+    Color(double r, double g, double b);
 
-	void SetRGBA(unsigned char *color);
-	void GetRGBA(double opacity, unsigned char *result);
-	Color operator *(Color &other);
-	Color* next;	//pointer to the next color
+    ~Color();
 
-	Color();
-	Color(double r, double g, double b);
-	Color(const Color& c);
-	Color& operator=(const Color& c);
-	~Color();
+    Color(const Color& c);
 
-	void LimitColors(); //Limits the color to be in range of 0.0 and 1.0
-	Color operator*(double k);
-	friend Color operator*(double k, Color &other);
-	Color operator+(Color &other);
+    Color& operator=(const Color& c);
+
+    void getRGB(unsigned char *result);
+
+    void getRGB(float *result);
+
+    /// Limits the color to be in range of [0,1]
+    void clamp();
+
+    Color operator*(const Color& other) const;
+
+    Color operator*(double k) const;
+
+    Color operator+(const Color& other) const;
+
+    friend Color operator*(double k, const Color& other);
+
+private:
+    double _r;	///< Red component
+    double _g;	///< Green component
+    double _b;	///< Blue component
 };
+
+// This is NOT member operator. It's used so we can write (k*V), 
+// not only (V*k) (V-vector k-scalar)
+inline Color operator*(double k, const Color& c)
+{
+    return Color(c._r * k, c._g * k, c._b * k);
+}
 
 #endif

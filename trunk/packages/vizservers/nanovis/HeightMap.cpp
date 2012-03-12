@@ -6,8 +6,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
+
 #include <GL/glew.h>
 #include <GL/gl.h>
+
 #include "Grid.h"
 #include "HeightMap.h"
 #include "ContourLineFilter.h"
@@ -531,7 +533,7 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
 
     glTranslatef(0.0, 0.0, -10.0);
 
-    // put camera rotation and traslation
+    // put camera rotation and translation
     //glScalef(1 / _scale.x, 1 / _scale.y , 1 / _scale.z);
 
     if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
@@ -646,4 +648,3 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
 
     glPopAttrib();
 }
-

@@ -43,7 +43,9 @@ void vrMatrix4x4f::makeRotation(const vrRotation& rotation)
         return;
     }
 
-    float xAxis = rotation.getX(), yAxis = rotation.getY(), zAxis = rotation.getZ();
+    float xAxis = rotation.getX();
+    float yAxis = rotation.getY();
+    float zAxis = rotation.getZ();
     float invLen = 1.0f / sqrt(xAxis * xAxis + yAxis * yAxis + zAxis * zAxis);
     float cosine = cos(rotation.getAngle());
     float sine = sin(rotation.getAngle());

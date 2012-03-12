@@ -4,49 +4,70 @@
 
 #include <string.h>
 
-class AxisRange {
-    double min_, max_;
-    char *units_;
+class AxisRange
+{
 public:
-    AxisRange(void) {
-	min(0.0);
-	max(1.0);
-    	units_ = NULL;
+    AxisRange() :
+        _min(0.0),
+        _max(1.0),
+        _units(NULL)
+    {
     }
-    ~AxisRange(void) {
-	if (units_ != NULL) {
-	    delete [] units_;
-	}
+
+    ~AxisRange()
+    {
+        if (_units != NULL) {
+            delete [] _units;
+        }
     }
-    void SetRange(double min, double max) {
-	min_ = min, max_ = max;
+
+    void SetRange(double min, double max)
+    {
+        _min = min;
+        _max = max;
     }
-    double min(void) {
-	return min_;
+
+    double min() const
+    {
+        return _min;
     }
-    void min(double min) {
-	min_ = min;
+
+    void min(double min)
+    {
+        _min = min;
     }
-    double max(void) {
-	return max_;
+
+    double max() const
+    {
+        return _max;
     }
-    void max(double max) {
-	max_ = max;
+
+    void max(double max)
+    {
+        _max = max;
     }
-    const char *units(void) {
-	return units_;
+
+    const char *units() const
+    {
+        return _units;
     }
-    void units(const char *units) {
-	if (units_ != NULL) {
-	    delete [] units_;
-	}
-	if (units == NULL) {
-	    units_ = NULL;
-	} else {
-	    units_ = new char [strlen(units) + 1];
-	    strcpy(units_, units);
-	}
+
+    void units(const char *units)
+    {
+        if (_units != NULL) {
+            delete [] _units;
+        }
+        if (units == NULL) {
+            _units = NULL;
+        } else {
+            _units = new char[strlen(units) + 1];
+            strcpy(_units, units);
+        }
     }
+
+private:
+    double _min, _max;
+    char *_units;
 };
 
 #endif
