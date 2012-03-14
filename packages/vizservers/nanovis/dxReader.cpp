@@ -244,6 +244,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
             v = data[ngen];
             // scale all values [0-1], -1 => out of bounds
             v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
+
             data[ngen] = v;
             ngen += 4;
         }
@@ -345,52 +346,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
             }
         }
 
-        // FIXME: This next section of code should be replaced by a
-        // call to the computeSimpleGradient() function. There is a slight
-        // difference in the code below and the aforementioned function
-        // in that the commented out lines in the else statements are
-        // different.
-        //
-        // Compute the gradient of this data.  BE CAREFUL: center
-        // calculation on each node to avoid skew in either direction.
-        ngen = 0;
-        for (int iz=0; iz < nz; iz++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int ix=0; ix < nx; ix++) {
-                    // gradient in x-direction
-                    double valm1 = (ix == 0) ? 0.0 : data[ngen-4];
-                    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+4];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+1] = 0.0;
-                    } else {
-                        data[ngen+1] = valp1-valm1; // assume dx=1
-                        //data[ngen+1] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                    }
-                    
-                    // gradient in y-direction
-                    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+2] = 0.0;
-                    } else {
-                        data[ngen+2] = valp1-valm1; // assume dy=1
-                        //data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                    }
-                    
-                    // gradient in z-direction
-                    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+3] = 0.0;
-                    } else {
-                        data[ngen+3] = valp1-valm1; // assume dz=1
-                        //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1
-                    }
-                    
-                    ngen += 4;
-                }
-            }
-        }
+        computeSimpleGradient(data, nx, ny, nz);
 
         volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
                                       field.valueMin(), field.valueMax(),
