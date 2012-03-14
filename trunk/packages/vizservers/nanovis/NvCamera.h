@@ -33,100 +33,109 @@ public:
     //move location of camera
     void x(float loc_x)
     {
-	_location.x = loc_x;
+        _location.x = loc_x;
     }
 
     float x() const
     {
-	return _location.x;
+        return _location.x;
     }
 
     void y(float loc_y)
     {
-	_location.y = loc_y;
+        _location.y = loc_y;
     }
 
     float y() const
     {
-	return _location.y;
+        return _location.y;
     }
 
     void z(float loc_z)
     {
-	_location.z = loc_z;
+        _location.z = loc_z;
     }
 
     float z() const
     {
-	return _location.z;
+        return _location.z;
     }
 
     //move location of target
     void xAim(float x)
     {
-	_target.x = x;
+        _target.x = x;
     }
 
     float xAim() const
     {
-	return _target.x;
+        return _target.x;
     }
 
     void yAim(float y)
     {
-	_target.y = y;
+        _target.y = y;
     }
 
     float yAim() const
     {
-	return _target.y;
+        return _target.y;
     }
 
     void zAim(float z)
     {
-	_target.z = z;
+        _target.z = z;
     }
 
     float zAim() const
     {
-	return _target.z;
+        return _target.z;
     }
 
     void rotate(float angle_x, float angle_y, float angle_z)
     { 
-	_angle = Vector3(angle_x, angle_y, angle_z);
+        _angle = Vector3(angle_x, angle_y, angle_z);
     }
 
     void rotate(const Vector3& angle)
     { 
-	_angle = angle;
+        _angle = angle;
     }
 
     Vector3 rotate() const
     { 
-	return _angle;
+        return _angle;
     }
 
     void set_screen_size(int sx, int sy, int w, int h)
     {
-	_width = w;
+        _width = w;
         _height = h;
-	_startX = sx;
+        _startX = sx;
         _startY = sy;
     }
 
-    //make the camera setting active, this has to be
-    //called before drawing things
+    /**
+     * \brief make the camera setting active, this has to be
+     * called before drawing things
+     */
     void initialize();
 
 private:
-    Vector3 _location;		//Location of the camera in the scene
-    Vector3 _target;		//Location the camera is looking at.  
-				//location and target: two points define the
-                                //line-of-sight
-    Vector3 _angle;		//rotation angles of camera along x, y, z
-    int _width;			//screen width
-    int _height;		//screen height
+    /// Location of the camera in the scene
+    Vector3 _location;
+    /**
+     * \brief Location the camera is looking at
+     *
+     * Location and target: two points define the line-of-sight
+     */
+    Vector3 _target;
+    /// rotation angles of camera along x, y, z
+    Vector3 _angle;
+    /// screen width
+    int _width;
+    /// screen height
+    int _height;
     int _startX;
     int _startY;
 };

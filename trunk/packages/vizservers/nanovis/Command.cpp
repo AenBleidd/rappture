@@ -624,11 +624,11 @@ static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
-    float zoom;
-    if (GetFloatFromObj(interp, objv[2], &zoom) != TCL_OK) {
+    float z;
+    if (GetFloatFromObj(interp, objv[2], &z) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::cam->z(-2.5f / zoom);
+    NanoVis::zoom(z);
     return TCL_OK;
 }
 
