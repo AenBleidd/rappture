@@ -76,7 +76,7 @@ computeSimpleGradient(float *data, int nx, int ny, int nz)
                     data[ngen+2] = 0.0;
                 } else {
                     data[ngen+2] = valp1-valm1; // assume dy=1
-                    //data[ngen+2] = ((valp1-valm1) + .01) * 0.5; // assume dy=1 (ISO)
+                    //data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dy=1 (ISO)
                 }
 
                 // gradient in z-direction
