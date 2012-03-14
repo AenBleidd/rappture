@@ -86,9 +86,14 @@
 
 extern void NvInitCG(); // in Shader.cpp
 
-// Indicates "up" axis:  x=1, y=2, z=3, -x=-1, -y=-2, -z=-3
+/// Indicates "up" axis
 enum AxisDirections { 
-    X_POS = 1, Y_POS = 2, Z_POS = 3, X_NEG = -1, Y_NEG = -2, Z_NEG = -3
+    X_POS = 1,
+    Y_POS = 2,
+    Z_POS = 3,
+    X_NEG = -1,
+    Y_NEG = -2,
+    Z_NEG = -3
 };
 
 #define KEEPSTATS	1
@@ -435,6 +440,16 @@ NanoVis::pan(float dx, float dy)
     TRACE("set aim to %f %f\n", cam->xAim(), cam->yAim());
 }
 
+void
+NanoVis::zoom(float z)
+{
+    /* Move the camera and its target by equal amounts along the x and y
+     * axes. */
+    TRACE("zoom: z=%f\n", z);
+
+    cam->z(def_eye_z / z);
+    TRACE("set cam z to %f\n", cam->z());
+}
 
 /* Load a 3D volume
  * index:	the index into the volume array, which stores pointers 
@@ -1572,30 +1587,30 @@ NanoVis::display()
         //set up the orientation of items in the scene.
         glPushMatrix();
         switch (updir) {
-        case 1:  // x
+        case X_POS:
             glRotatef(90, 0, 0, 1);
             glRotatef(90, 1, 0, 0);
             break;
 
-        case 2:  // y
+        case Y_POS:
             // this is the default
             break;
 
-        case 3:  // z
+        case Z_POS:
             glRotatef(-90, 1, 0, 0);
             glRotatef(-90, 0, 0, 1);
             break;
 
-        case -1:  // -x
+        case X_NEG:
             glRotatef(-90, 0, 0, 1);
             break;
 
-        case -2:  // -y
+        case Y_NEG:
             glRotatef(180, 0, 0, 1);
             glRotatef(-90, 0, 1, 0);
             break;
 
-        case -3:  // -z
+        case Z_NEG:
             glRotatef(90, 1, 0, 0);
             break;
         }
@@ -1666,8 +1681,8 @@ NanoVis::display()
 void 
 NanoVis::mouse(int button, int state, int x, int y)
 {
-    if(button==GLUT_LEFT_BUTTON){
-        if (state==GLUT_DOWN) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
             left_last_x = x;
             left_last_y = y;
             left_down = true;
@@ -1679,7 +1694,7 @@ NanoVis::mouse(int button, int state, int x, int y)
     } else {
         //TRACE("right mouse\n");
 
-        if(state==GLUT_DOWN){
+        if (state == GLUT_DOWN){
             //TRACE("right mouse down\n");
             right_last_x = x;
             right_last_y = y;
@@ -1991,10 +2006,10 @@ NanoVis::motion(int x, int y)
 {
     int old_x, old_y;
 
-    if(left_down){
+    if (left_down) {
         old_x = left_last_x;
         old_y = left_last_y;
-    } else if(right_down){
+    } else if (right_down) {
         old_x = right_last_x;
         old_y = right_last_y;
     }
