@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (c) 2004-2005 Lutz Latta
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -29,77 +30,73 @@
 #ifndef USE_RGB_FORMAT
 float2 initSortIndex(float2 sortIndex : TEXCOORD0) : COLOR
 {
-	// TBD...
-	return float2(0, pack_2half(sortIndex));
-	//return float2(sortIndex.x, sortIndex.y);
+    // TBD...
+    return float2(0, pack_2half(sortIndex));
+    //return float2(sortIndex.x, sortIndex.y);
 }
 
 float2 computeDistance(float2 texCoord : TEXCOORD0,
-	uniform samplerRECT sortTexture : register(s0),
-	uniform samplerRECT positionTexture : register(s1),
-	uniform float3 viewerPosition
-) : COLOR
+                       uniform samplerRECT sortTexture : register(s0),
+                       uniform samplerRECT positionTexture : register(s1),
+                       uniform float3 viewerPosition) : COLOR
 {
-	float sortIndex = texRECT(sortTexture, texCoord.xy).y;
-	half2 particleIndex = unpack_2half(sortIndex);
+    float sortIndex = texRECT(sortTexture, texCoord.xy).y;
+    half2 particleIndex = unpack_2half(sortIndex);
 
-	float3 particlePos = (float3)texRECT(positionTexture, particleIndex);
+    float3 particlePos = (float3)texRECT(positionTexture, particleIndex);
 	
-	float3 delta = viewerPosition - particlePos;
-	float distanceSqr = dot(delta, delta);
+    float3 delta = viewerPosition - particlePos;
+    float distanceSqr = dot(delta, delta);
 
-	// Prevent unused, far-away particles from destroying comparisons in sorting.
-	if (distanceSqr > 1e6 || isnan(distanceSqr))
-		distanceSqr = 1e6;
+    // Prevent unused, far-away particles from destroying comparisons in sorting.
+    if (distanceSqr > 1e6 || isnan(distanceSqr))
+        distanceSqr = 1e6;
 
-	return float2(distanceSqr, sortIndex);
+    return float2(distanceSqr, sortIndex);
 }
 float4 lookupPosition(float2 texCoord : TEXCOORD0,
-	uniform samplerRECT sortTexture : register(s0),
-	uniform samplerRECT positionTexture : register(s1)
-) : COLOR
+                      uniform samplerRECT sortTexture : register(s0),
+                      uniform samplerRECT positionTexture : register(s1)) : COLOR
 {
-	float sortIndex = texRECT(sortTexture, texCoord.xy).y;
-	half2 particleIndex = unpack_2half(sortIndex);
-	float4 particlePos = (float4)texRECT(positionTexture, particleIndex);
+    float sortIndex = texRECT(sortTexture, texCoord.xy).y;
+    half2 particleIndex = unpack_2half(sortIndex);
+    float4 particlePos = (float4)texRECT(positionTexture, particleIndex);
 
-	return particlePos;
+    return particlePos;
 }
 
 #else
 float3 initSortIndex(float2 sortIndex : TEXCOORD0) : COLOR
 {
-	//return float3(0, sortIndex.x, sortIndex.y);
-	return float3(1e6, sortIndex.x, sortIndex.y);
+    //return float3(0, sortIndex.x, sortIndex.y);
+    return float3(1e6, sortIndex.x, sortIndex.y);
 }
 
 float3 computeDistance(float2 texCoord : TEXCOORD0,
-	uniform samplerRECT sortTexture : register(s0),
-	uniform samplerRECT positionTexture : register(s1),
-	uniform float3 viewerPosition
-) : COLOR
+                       uniform samplerRECT sortTexture : register(s0),
+                       uniform samplerRECT positionTexture : register(s1),
+                       uniform float3 viewerPosition) : COLOR
 {
-	float2 particleIndex = texRECT(sortTexture, texCoord.xy).yz;
-	float3 particlePos = texRECT(positionTexture, particleIndex).xyz;
+    float2 particleIndex = texRECT(sortTexture, texCoord.xy).yz;
+    float3 particlePos = texRECT(positionTexture, particleIndex).xyz;
 
-	float3 delta = viewerPosition - particlePos;
-	float distanceSqr = dot(delta, delta);
+    float3 delta = viewerPosition - particlePos;
+    float distanceSqr = dot(delta, delta);
 
-	// Prevent unused, far-away particles from destroying comparisons in sorting.
-	if (distanceSqr > 1e6 || isnan(distanceSqr))
-		distanceSqr = 1e6;
+    // Prevent unused, far-away particles from destroying comparisons in sorting.
+    if (distanceSqr > 1e6 || isnan(distanceSqr))
+        distanceSqr = 1e6;
 
-	return float3(distanceSqr, particleIndex.x, particleIndex.y);
+    return float3(distanceSqr, particleIndex.x, particleIndex.y);
 }
 
 float3 lookupPosition(float2 texCoord : TEXCOORD0,
-	uniform samplerRECT sortTexture : register(s0),
-	uniform samplerRECT positionTexture : register(s1)
-) : COLOR
+                      uniform samplerRECT sortTexture : register(s0),
+                      uniform samplerRECT positionTexture : register(s1)) : COLOR
 {
-	float2 particleIndex = texRECT(sortTexture, texCoord.xy).yz;
-	float3 particlePos = texRECT(positionTexture, particleIndex).xyz;
+    float2 particleIndex = texRECT(sortTexture, texCoord.xy).yz;
+    float3 particlePos = texRECT(positionTexture, particleIndex).xyz;
 
-	return particlePos;
+    return particlePos;
 }
 #endif

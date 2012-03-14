@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (c) 2004-2005 Lutz Latta
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -28,38 +29,36 @@
 
 float2 initSortIndex(float2 _SortIndex : TEXCOORD0) : COLOR
 {
-	return float2(0, pack_2half(_SortIndex));
+    return float2(0, pack_2half(_SortIndex));
 }
 
 float2 computeDistance(float2 _TexCoord : TEXCOORD0,
-	uniform samplerRECT _SortTexture : register(s0),
-	uniform samplerRECT _PositionTexture : register(s1),
-	uniform float3 _ViewerPosition
-) : COLOR
+                       uniform samplerRECT _SortTexture : register(s0),
+                       uniform samplerRECT _PositionTexture : register(s1),
+                       uniform float3 _ViewerPosition) : COLOR
 {
-	float sortIndex = texRECT(_SortTexture, _TexCoord.xy).y;
-	half2 particleIndex = unpack_2half(sortIndex);
+    float sortIndex = texRECT(_SortTexture, _TexCoord.xy).y;
+    half2 particleIndex = unpack_2half(sortIndex);
 
-	float3 particlePos = (float3)texRECT(_PositionTexture, particleIndex);
+    float3 particlePos = (float3)texRECT(_PositionTexture, particleIndex);
 
-	float3 delta = _ViewerPosition - particlePos;
-	float distanceSqr = dot(delta, delta);
+    float3 delta = _ViewerPosition - particlePos;
+    float distanceSqr = dot(delta, delta);
 
-	// Prevent unused, far-away particles from destroying comparisons in sorting.
-	if (distanceSqr > 1e6 || isnan(distanceSqr))
-		distanceSqr = 1e6;
+    // Prevent unused, far-away particles from destroying comparisons in sorting.
+    if (distanceSqr > 1e6 || isnan(distanceSqr))
+        distanceSqr = 1e6;
 
-	return float2(distanceSqr, sortIndex);
+    return float2(distanceSqr, sortIndex);
 }
 
 float4 lookupPosition(float2 _TexCoord : TEXCOORD0,
-	uniform samplerRECT _SortTexture : register(s0),
-	uniform samplerRECT _PositionTexture : register(s1)
-) : COLOR
+                      uniform samplerRECT _SortTexture : register(s0),
+                      uniform samplerRECT _PositionTexture : register(s1)) : COLOR
 {
-	float sortIndex = texRECT(_SortTexture, _TexCoord.xy).y;
-	half2 particleIndex = unpack_2half(sortIndex);
-	float4 particlePos = (float4)texRECT(_PositionTexture, particleIndex);
+    float sortIndex = texRECT(_SortTexture, _TexCoord.xy).y;
+    half2 particleIndex = unpack_2half(sortIndex);
+    float4 particlePos = (float4)texRECT(_PositionTexture, particleIndex);
 
-	return particlePos;
+    return particlePos;
 }

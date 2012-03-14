@@ -1,61 +1,56 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "particle_common.cg"
-void vpmain(
-	in float4 posin : POSITION,
-	in float4 colin : COLOR0,
-	out float4 posout : POSITION,
-	out float4 colout : COLOR0,
-	out float2 center : TEXCOORD2,
-	out float4 rotation : TEXCOORD3,
-	out float4 pointSize : PSIZE,
-	uniform sampler3D vfield,
-	uniform float tanHalfFOV,
-    uniform float4x4 modelview,
-    uniform float4x4 projection,
-    uniform float4x4 mvp)
+void vpmain(in float4 posin : POSITION,
+            in float4 colin : COLOR0,
+            out float4 posout : POSITION,
+            out float4 colout : COLOR0,
+            out float2 center : TEXCOORD2,
+            out float4 rotation : TEXCOORD3,
+            out float4 pointSize : PSIZE,
+            uniform sampler3D vfield,
+            uniform float tanHalfFOV,
+            uniform float4x4 modelview,
+            uniform float4x4 projection,
+            uniform float4x4 mvp)
 {
-	float4 vec;
-	vec.xyz = posin.xyz;
-	vec.w = 1.0;
-	
-	// length
-	// the scale of from bottom to top 
-	float3 velocity = tex3D(vfield, vec.xyz).yzw * 2 - float3(1, 1, 1);
-	
-	
-	// bottom to top
-	// scale
-	center.y = ((((int) (length(velocity.xyz) * 511)) / SUBIMAGE_SIZE_Y) * SUBIMAGE_SIZE_Y) / 512.0;
-	
-	velocity = mul(modelview, float4(velocity.x, velocity.y, velocity.z, 0.0)).xyz;
-	if (length(velocity) != 0.0)
-		velocity = normalize(velocity);
-	
-	float a = (asin(velocity.z) / 3.141592 + 1) * 0.5;
-	center.x = ((((int) (a * 511)) / SUBIMAGE_SIZE_X) * SUBIMAGE_SIZE_X) / 512.0;
-	
-	if ((abs(velocity.x) == 0.0) && (abs(velocity.y) == 0.0))
-	{
-		rotation.x = 1;
-		rotation.y = 0;
-		rotation.z = 0;
-		rotation.w = 1;	
-	}
-	else
-	{
-		float2 xy = normalize(velocity.xy);
-		rotation.x = xy.x * 0.8;
-		rotation.y = -xy.y * 0.8;
-		rotation.z = xy.y * 0.8;
-		rotation.w = xy.x * 0.8;
+    float4 vec;
+    vec.xyz = posin.xyz;
+    vec.w = 1.0;
 
-	}
+    // length
+    // the scale of from bottom to top 
+    float3 velocity = tex3D(vfield, vec.xyz).yzw * 2 - float3(1, 1, 1);
 
-	float4 posEye =  mul(modelview, posin);
-	//pointSize = tanHalfFOV / -posEye.z / 5;
-	pointSize = tanHalfFOV / -posEye.z / 10; //j-wire
-	//pointSize = 10 / -posEye.z;
-	
-	posout = mul(mvp, vec);
-	
-	colout = colin;
+    // bottom to top
+    // scale
+    center.y = ((((int) (length(velocity.xyz) * 511)) / SUBIMAGE_SIZE_Y) * SUBIMAGE_SIZE_Y) / 512.0;
+
+    velocity = mul(modelview, float4(velocity.x, velocity.y, velocity.z, 0.0)).xyz;
+    if (length(velocity) != 0.0)
+        velocity = normalize(velocity);
+
+    float a = (asin(velocity.z) / 3.141592 + 1) * 0.5;
+    center.x = ((((int) (a * 511)) / SUBIMAGE_SIZE_X) * SUBIMAGE_SIZE_X) / 512.0;
+
+    if ((abs(velocity.x) == 0.0) && (abs(velocity.y) == 0.0)) {
+        rotation.x = 1;
+        rotation.y = 0;
+        rotation.z = 0;
+        rotation.w = 1;	
+    } else {
+        float2 xy = normalize(velocity.xy);
+        rotation.x = xy.x * 0.8;
+        rotation.y = -xy.y * 0.8;
+        rotation.z = xy.y * 0.8;
+        rotation.w = xy.x * 0.8;
+    }
+
+    float4 posEye =  mul(modelview, posin);
+    //pointSize = tanHalfFOV / -posEye.z / 5;
+    pointSize = tanHalfFOV / -posEye.z / 10; //j-wire
+    //pointSize = 10 / -posEye.z;
+
+    posout = mul(mvp, vec);
+
+    colout = colin;
 }

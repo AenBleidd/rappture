@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // Copyright (c) 2004-2005 Lutz Latta
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -26,88 +27,76 @@ float2
 #else
 float3
 #endif
-mergeSortEnd(
-	float2 current : TEXCOORD0,
-	uniform samplerRECT sortData : register(s0),
-	uniform int2 size,
-	uniform int step
-) : COLOR
+mergeSortEnd(float2 current : TEXCOORD0,
+             uniform samplerRECT sortData : register(s0),
+             uniform int2 size,
+             uniform int step) : COLOR
 {
 #ifndef USE_RGB_FORMAT
-	float2 currentSample = texRECT(sortData, (float2)current).xy;
+    float2 currentSample = texRECT(sortData, (float2)current).xy;
 #else
-	float3 currentSample = texRECT(sortData, (float2)current).xyz;
+    float3 currentSample = texRECT(sortData, (float2)current).xyz;
 #endif
 
-	float i = (current.y - 0.5) * size.x + current.x;
-	//float i = current.y * size.x + current.x;
+    float i = (current.y - 0.5) * size.x + current.x;
+    //float i = current.y * size.x + current.x;
 
-	// swap direction
-	float b = (fmod(i / step, 2.0) < 1.0 ? 1.0 : -1.0);
+    // swap direction
+    float b = (fmod(i / step, 2.0) < 1.0 ? 1.0 : -1.0);
 
 	
-	float otherI = i + (b * step);
-	float2 otherPos = float2(fmod(otherI, size.x), floor(otherI / size.x) + 0.5);
-	//float2 otherPos = float2(fmod(otherI, size.x), floor(otherI / size.x));
+    float otherI = i + (b * step);
+    float2 otherPos = float2(fmod(otherI, size.x), floor(otherI / size.x) + 0.5);
+    //float2 otherPos = float2(fmod(otherI, size.x), floor(otherI / size.x));
 #ifndef USE_RGB_FORMAT
-	float2 otherSample = texRECT(sortData, otherPos).xy;
+    float2 otherSample = texRECT(sortData, otherPos).xy;
 #else
-	float3 otherSample = texRECT(sortData, otherPos).xyz;
+    float3 otherSample = texRECT(sortData, otherPos).xyz;
 #endif
-	if (b >= 0)
-	{
-		return currentSample.x > otherSample.x ? currentSample : otherSample;
-	}
-	else
-	{
-		return currentSample.x < otherSample.x ? currentSample : otherSample;
-	}
+    if (b >= 0) {
+        return currentSample.x > otherSample.x ? currentSample : otherSample;
+    } else {
+        return currentSample.x < otherSample.x ? currentSample : otherSample;
+    }
 }
 #ifndef USE_RGB_FORMAT
 float2 
 #else
 float3
 #endif
-mergeSortRecursion(
-	float2 _Current : TEXCOORD0,
-	uniform samplerRECT _SortData : register(s0),
-	uniform int2 _Size,
-	uniform int _Step,
-	uniform int _Count
-) : COLOR
+mergeSortRecursion(float2 _Current : TEXCOORD0,
+                   uniform samplerRECT _SortData : register(s0),
+                   uniform int2 _Size,
+                   uniform int _Step,
+                   uniform int _Count) : COLOR
 {
 #ifndef USE_RGB_FORMAT
-	float2 currentSample = texRECT(_SortData, (float2)_Current).xy;
+    float2 currentSample = texRECT(_SortData, (float2)_Current).xy;
 #else
-	float3 currentSample = texRECT(_SortData, (float2)_Current).xyz;
+    float3 currentSample = texRECT(_SortData, (float2)_Current).xyz;
 #endif
-	float i = (_Current.y - 0.5) * _Size.x + _Current.x;
-	//float i = _Current.y * _Size.x + _Current.x;
+    float i = (_Current.y - 0.5) * _Size.x + _Current.x;
+    //float i = _Current.y * _Size.x + _Current.x;
 
-	float iMod = fmod((float)(i / _Step), (float)_Count);
+    float iMod = fmod((float)(i / _Step), (float)_Count);
 
-	if (iMod >= 1.0 && iMod < _Count - 1.0)
-	{
-		float b = (fmod((float)iMod, 2.0) > 1.0 ? 1.0 : -1.0);
+    if (iMod >= 1.0 && iMod < _Count - 1.0) {
+        float b = (fmod((float)iMod, 2.0) > 1.0 ? 1.0 : -1.0);
 
-		float otherI = i + (b * _Step);
-		float2 otherPos = float2(fmod(otherI, _Size.x), floor(otherI / _Size.x) + 0.5);
-		//float2 otherPos = float2(fmod(otherI, _Size.x), floor(otherI / _Size.x));
+        float otherI = i + (b * _Step);
+        float2 otherPos = float2(fmod(otherI, _Size.x), floor(otherI / _Size.x) + 0.5);
+        //float2 otherPos = float2(fmod(otherI, _Size.x), floor(otherI / _Size.x));
 
 #ifndef USE_RGB_FORMAT	
-		float2 otherSample = texRECT(_SortData, otherPos).xy;
+        float2 otherSample = texRECT(_SortData, otherPos).xy;
 #else
-		float3 otherSample = texRECT(_SortData, otherPos).xyz;
+        float3 otherSample = texRECT(_SortData, otherPos).xyz;
 #endif
-		if (b >= 0)
-		{
-			return currentSample.x > otherSample.x ? currentSample : otherSample;
-		}
-		else
-		{
-			return currentSample.x < otherSample.x ? currentSample : otherSample;
-		}
-	}
-	else
-		return currentSample;
+        if (b >= 0) {
+            return currentSample.x > otherSample.x ? currentSample : otherSample;
+        } else {
+            return currentSample.x < otherSample.x ? currentSample : otherSample;
+        }
+    } else
+        return currentSample;
 }

@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -18,25 +19,21 @@ float4 main(in float2 uv : TEXCOORD0,
             uniform samplerRECT pos_tex,
             uniform samplerRECT init_pos_tex,
             uniform sampler3D vel_tex,
-//            uniform sampler1D tf_tex,
+            // uniform sampler1D tf_tex,
             uniform float timestep,
             uniform float max,
             uniform float mode,
-            uniform float3 scale
-            ) : COLOR
+            uniform float3 scale) : COLOR
 {
     float4 ret;
-/*
-    if (mode == 0)
-    {
-        float4 pos = texRECT(pos_tex, uv);
-        float4 vel = tex3D(vel_tex, pos.xyz);
-        ret.xyz = tex1D(tf_tex, vel.x).xyz;
-	ret.w = 1;
-    }
-    else
-    {
-*/
+    /*
+      if (mode == 0) {
+          float4 pos = texRECT(pos_tex, uv);
+          float4 vel = tex3D(vel_tex, pos.xyz);
+          ret.xyz = tex1D(tf_tex, vel.x).xyz;
+          ret.w = 1;
+      } else {
+    */
     // get previous position and velocity
     float4 pos = texRECT(pos_tex, uv);
     float time = pos.w;
@@ -44,14 +41,13 @@ float4 main(in float2 uv : TEXCOORD0,
     // TBD...
     //time -= 0.01;
 
-    if (time < 0)
-    {
-    	pos = texRECT(init_pos_tex, uv);
-	time = pos.w;
+    if (time < 0) {
+        pos = texRECT(init_pos_tex, uv);
+        time = pos.w;
     }
 
-	/// INSOO
-	// TEMP
+    /// INSOO
+    // TEMP
     if (max > 100) max = 100;
 
     //reconstruct negative value
@@ -69,18 +65,15 @@ float4 main(in float2 uv : TEXCOORD0,
 
     //not drawing if the particle is out of bound
     /*
-    if(ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
-      ret = float4(0,0,0,0); 
-    else
-      ret.w = 1;
+      if (ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
+          ret = float4(0,0,0,0); 
+      else
+          ret.w = 1;
     */
-    if(ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1)
-    {
-    	ret = texRECT(init_pos_tex, uv);
-    }
-    else
-    {
-      ret.w = time;
+    if (ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1){
+        ret = texRECT(init_pos_tex, uv);
+    } else {
+        ret.w = time;
     }
 //    }
 

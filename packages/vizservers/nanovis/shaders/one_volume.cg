@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -15,74 +16,71 @@
 /*
  * render one volume 
  */
-
-
 PixelOut main(v2f IN,
-		uniform sampler3D volume,
-		uniform sampler1D tf,
-		//uniform sampler1D tf_cutplane,
-		uniform float4x4 modelViewInv,
-		uniform float4x4 modelView,
-		uniform float4 renderParameters,
-		uniform float4 options)
+              uniform sampler3D volume,
+              uniform sampler1D tf,
+              //uniform sampler1D tf_cutplane,
+              uniform float4x4 modelViewInv,
+              uniform float4x4 modelView,
+              uniform float4 renderParameters,
+              uniform float4 options)
 {
-  PixelOut OUT;
-  float4 tex_coord = mul(modelViewInv, IN.TexCoord);
-  float4 sample = tex3D(volume, tex_coord.xyz);
+    PixelOut OUT;
+    float4 tex_coord = mul(modelViewInv, IN.TexCoord);
+    float4 sample = tex3D(volume, tex_coord.xyz);
 
-  //sample the transfer function texture
-  float4 color = tex1D(tf, sample.x);
+    //sample the transfer function texture
+    float4 color = tex1D(tf, sample.x);
 
-  if(renderParameters.x < 0.5) 
-  { //If single slice render, only flat shading, completely opaque.
-    //color = tex1D(tf_cutplane, sample.x);
-    color.w = 1;
-    //color.w = renderParameters.y*color.w/renderParameters.x;
-  }
-  else 
-  { //regular volume rendering, we do PHONG SHADING 
-    //lighting parameters 
-    float3 normal;
-    if(length(sample.yzw)>0.0)
-    {
+    if (renderParameters.x < 0.5) {
+        //If single slice render, only flat shading, completely opaque.
+        //color = tex1D(tf_cutplane, sample.x);
+        color.w = 1;
+        //color.w = renderParameters.y*color.w/renderParameters.x;
+    } else {
+        //regular volume rendering, we do PHONG SHADING 
+        //lighting parameters 
+        float3 normal;
+        if (length(sample.yzw) > 0.0) {
+            // INSOO (iso)
+            //normal = sample.yzw * 2.0 - 1.0; //(iso)
+            //normal = normalize(normal);
+            normal = normalize(sample.yzw);
+        }
+
+        float3 light_vector = normalize(IN.Light);
+        float3 eye_vector = normalize(IN.EyeVector);
+        float3 half_vector = normalize(eye_vector+light_vector);
+
+        //lighting computation
+        float normal_dot_light = max(dot(normal, light_vector), 0);
+        float normal_dot_half = max(dot(normal, half_vector), 0);
+
         // INSOO (iso)
-        //normal = sample.yzw * 2.0 - 1.0; //(iso)
-        //normal = normalize(normal);
-        normal = normalize(sample.yzw);
+        //float normal_dot_light = abs(dot(normal, light_vector));
+        //float normal_dot_half = abs(dot(normal, half_vector));
+
+        float ambient = 0.8;
+
+        float diffuse = normal_dot_light * renderParameters.z;
+
+        float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
+
+        float lighting = ambient + diffuse + specular;
+        color.xyz = color.xyz * lighting;
+
+        if (options.y < 0.5) {
+            //opacity is modulated by the number of total slices
+            //to avoid very opaque volume when number of slices is high
+            color.w = renderParameters.y*color.w/renderParameters.x;
+
+            // INSOO (iso)
+            //opacity is modulated by the number of total slices
+            //color.w = renderParameters.y*color.w/renderParameters.x * 0.2;
+        }
     }
-
-    float3 light_vector = normalize(IN.Light);
-    float3 eye_vector = normalize(IN.EyeVector);
-    float3 half_vector = normalize(eye_vector+light_vector);
-
-    //lighting computation
-    float normal_dot_light = max(dot(normal, light_vector), 0);
-    float normal_dot_half = max(dot(normal, half_vector), 0);
-
-    // INSOO (iso)
-    //float normal_dot_light = abs(dot(normal, light_vector));
-    //float normal_dot_half = abs(dot(normal, half_vector));
-
-    float ambient = 0.8;
-
-    float diffuse = normal_dot_light * renderParameters.z;
-
-    float specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
-
-    float lighting = ambient + diffuse + specular;
-    color.xyz = color.xyz * lighting;
-
-    if (options.y < 0.5)
-    {
-    	color.w = renderParameters.y*color.w/renderParameters.x; //opacity is modulated by the number of total slices
-							//to avoid very opaque volume when number of slices is high
-        // INSOO (iso)
-    	//color.w = renderParameters.y*color.w/renderParameters.x * 0.2; //opacity is modulated by the number of total slices
-    }
-  }
 
   OUT.Color = color;
 
   return OUT;
 }
-
