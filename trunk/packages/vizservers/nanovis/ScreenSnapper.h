@@ -15,32 +15,40 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#ifndef SCREEN_SNAPPER_H 
+#define SCREEN_SNAPPER_H
 
-#ifndef _SCREEN_SNAPPER_H_ 
-#define _SCREEN_SNAPPER_H_
-
-#include "define.h"
-#include <GL/gl.h>
 #include <stdio.h>
 
+#include <GL/glew.h>
+
+#include "define.h"
 
 class ScreenSnapper 
 {
 public:
-	int width, height;	//size of the screen
-	GLuint data_type;	//data type: GL_FLOAT or GL_UNSIGNED_BYTE
-	int n_channels_per_pixel; //RGB(3) or RGBA(4)
-	
-	void* data;  //storage array for the captured image. This array is "flat".
-		//It stores pixels in the order from lower-left corner to upper-right corner.
-		//[rgb][rgb][rgb]... or [rgba][rgba][rgba]...
+    ScreenSnapper(int width, int height, GLuint type, int channel_per_pixel);
+    ~ScreenSnapper();
 
-	ScreenSnapper(int width, int height, GLuint type, int channel_per_pixel);
-	~ScreenSnapper();
+    /// set every byte in the data array to c
+    void reset(char c);
 
-	void reset(char c);	//set every byte in the data array to c
-	void capture();
-	void print();
+    void capture();
+
+    void print();
+
+    int width;  ///< width of the screen
+    int height;	///< height of the screen
+    GLuint data_type;	///< GL_FLOAT or GL_UNSIGNED_BYTE
+    int n_channels_per_pixel; ///< RGB(3) or RGBA(4)
+
+    /**
+     * storage array for the captured image. This array is "flat".
+     * It stores pixels in the order from lower-left corner to 
+     * upper-right corner.
+     * [rgb][rgb][rgb]... or [rgba][rgba][rgba]...
+     */
+    void *data;
 };
 
 #endif
