@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -12,23 +13,23 @@
 
 #include "common.cg"
  
-v2f main(a2v IN, 
-		uniform float4x4 modelViewProjMatrix, 
-		uniform float4x4 modelViewInv)
+v2f main(a2v IN,
+         uniform float4x4 modelViewProjMatrix,
+         uniform float4x4 modelViewInv)
 {
-	v2f OUT;
+    v2f OUT;
 
-	//clip space vertex position
-	OUT.HPosition = mul(modelViewProjMatrix, mul(modelViewInv, IN.Position));
-	
-	//eye space texture coordinates
-	OUT.TexCoord = IN.TexCoord;
+    //clip space vertex position
+    OUT.HPosition = mul(modelViewProjMatrix, mul(modelViewInv, IN.Position));
 
-        //world space eye position
-        OUT.EyeVector = normalize(-IN.Position.xyz);
+    //eye space texture coordinates
+    OUT.TexCoord = IN.TexCoord;
 
-        //world space light postion
-        OUT.Light = normalize(float3(1,1,1)-IN.Position.xyz);
+    //world space eye position
+    OUT.EyeVector = normalize(-IN.Position.xyz);
 
-	return OUT;
+    //world space light postion
+    OUT.Light = normalize(float3(1,1,1)-IN.Position.xyz);
+
+    return OUT;
 }

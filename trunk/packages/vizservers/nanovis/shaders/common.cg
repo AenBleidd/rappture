@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -29,7 +30,8 @@ void FloorConstraint(inout float3 x, float level)
 }
 
 // constrain particle to heightfield stored in texture
-void TerrainConstraint(inout float3 pos, uniform sampler2D terrain_tex, float3 scale, float3 offset)
+void TerrainConstraint(inout float3 pos, uniform sampler2D terrain_tex,
+                       float3 scale, float3 offset)
 {
     float2 uv = (pos.xz - offset.xz) / scale.xz;
     float h = tex2D(terrain_tex, uv).r*scale.y + offset.y;
@@ -38,35 +40,38 @@ void TerrainConstraint(inout float3 pos, uniform sampler2D terrain_tex, float3 s
     }
 }
 
-void SphereCollide(inout float3 x, inout float3 vel, float3 center, float r, float3 sphere_vel, float friction, inout float3 force)
+void SphereCollide(inout float3 x, inout float3 vel, float3 center, float r,
+                   float3 sphere_vel, float friction, inout float3 force)
 {
     float3 delta = x - center;
     float dist = length(delta);
     if (dist < r) {
-//      x = center + delta*(r / dist);    
-      vel += (delta / dist) * friction;
-      vel += sphere_vel;
+        // x = center + delta*(r / dist);    
+        vel += (delta / dist) * friction;
+        vel += sphere_vel;
     }
 }
 
-void FloorCollide(inout float3 x, inout float3 vel, float level, float friction, inout float3 force)
+void FloorCollide(inout float3 x, inout float3 vel, float level,
+                  float friction, inout float3 force)
 {
     if (x.y < level) {
-//        x.y = level;
-//        force.y += -vel.y*friction;
+        // x.y = level;
+        // force.y += -vel.y*friction;
         vel.y += -vel.y*friction;
     }
 }
 
 void Gravitation(float3 pos, float3 mass_pos, inout float3 force, float epsilon)
 {
-  float3 delta = mass_pos - pos;
-  float dist = length(delta);
-  float3 dir = delta / dist;
-  force += dir * (1.0 / (epsilon + dist*dist));
+    float3 delta = mass_pos - pos;
+    float dist = length(delta);
+    float3 dir = delta / dist;
+    force += dir * (1.0 / (epsilon + dist*dist));
 }
 
-void TerrainCollide(float3 pos, inout float3 vel, uniform sampler2D terrain_tex, float3 scale, float3 offset, float friction)
+void TerrainCollide(float3 pos, inout float3 vel, uniform sampler2D terrain_tex,
+                    float3 scale, float3 offset, float friction)
 {
     const float2 texelSize = float2( 1.0 / 256.0, 1.0 / 256.0 );
     float2 uv = (pos.xz - offset.xz) / scale.xz;
@@ -76,7 +81,8 @@ void TerrainCollide(float3 pos, inout float3 vel, uniform sampler2D terrain_tex,
         // calculate normal (could precalc this)
         float h1 = tex2D(terrain_tex, uv + texelSize*float2(1, 0) ).r;
         float h2 = tex2D(terrain_tex, uv + texelSize*float2(0, 1) ).r;
-        float3 N = cross( float3(scale.x*texelSize.x, (h1-h0)*scale.y, 0), float3(0, (h2-h0)*scale.y, scale.z*texelSize.y) );
+        float3 N = cross(float3(scale.x*texelSize.x, (h1-h0)*scale.y, 0),
+                         float3(0, (h2-h0)*scale.y, scale.z*texelSize.y));
         N = normalize(N);
         vel = reflect(vel, N);
         vel *= friction;
@@ -85,21 +91,20 @@ void TerrainCollide(float3 pos, inout float3 vel, uniform sampler2D terrain_tex,
 
 struct a2v
 {
-  //For semantics, see pages 230-240 of Cg_Toolkit.pdf
-  float4 Position :	POSITION;
-  float4 TexCoord :	TEXCOORD0;
+    //For semantics, see pages 230-240 of Cg_Toolkit.pdf
+    float4 Position : POSITION;
+    float4 TexCoord : TEXCOORD0;
 };
 
 struct v2f
 {
-  float4 HPosition		: HPOS;		//Clip space pos. Not readable in frag prog
-  float4 TexCoord		: TEXCOORD0;
-  float3 EyeVector		: TEXCOORD1;	//world space eye vector
-  float3 Light                  : TEXCOORD2;    //world space light vector 
+    float4 HPosition: HPOS;		//Clip space pos. Not readable in frag prog
+    float4 TexCoord : TEXCOORD0;
+    float3 EyeVector: TEXCOORD1;	//world space eye vector
+    float3 Light    : TEXCOORD2;    //world space light vector 
 };
 
 struct PixelOut {
-  float4 Color:	COLOR0;
-  //float Depth:	DEPTH;
+    float4 Color:	COLOR0;
+    //float Depth:	DEPTH;
 };
-

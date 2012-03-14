@@ -1,67 +1,57 @@
-float4 main
-(
-	float2 texCoord : TEXCOORD0,
-	uniform samplerRECT posTexture : register(s0),
-	uniform samplerRECT initTexture : register(s1),
-	uniform sampler3D vfield,
-	uniform float3 scale,
-	uniform float maxScale,
-	uniform float useInitPos,
-	uniform float timeStep,
-	uniform float currentTime
-) : COLOR
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+float4 main (float2 texCoord : TEXCOORD0,
+             uniform samplerRECT posTexture : register(s0),
+             uniform samplerRECT initTexture : register(s1),
+             uniform sampler3D vfield,
+             uniform float3 scale,
+             uniform float maxScale,
+             uniform float useInitPos,
+             uniform float timeStep,
+             uniform float currentTime) : COLOR
 {
-	if (maxScale > 100) maxScale = 100;
+    if (maxScale > 100) maxScale = 100;
 
-	float3 oldPosition = f3texRECT(posTexture, texCoord);
-	float3 velocity = tex3D(vfield, oldPosition).yzw - float3(0.5, 0.5, 0.5);
-	velocity = velocity * (2 * maxScale);
-	velocity = velocity * scale;
+    float3 oldPosition = f3texRECT(posTexture, texCoord);
+    float3 velocity = tex3D(vfield, oldPosition).yzw - float3(0.5, 0.5, 0.5);
+    velocity = velocity * (2 * maxScale);
+    velocity = velocity * scale;
 	
-	float3 position = oldPosition + velocity * timeStep * 0.01;
-	//float3 position = oldPosition;
+    float3 position = oldPosition + velocity * timeStep * 0.01;
+    //float3 position = oldPosition;
 
-	//if (useInitPos)
-	{
-		if ((position.x < 0) || (position.x > 1) || 
-			(position.y < 0) || (position.y > 1) || 
-			(position.z < 0) || (position.z > 1))
-		{
-			position = f3texRECT(initTexture, texCoord);
-		}
-	}
+    //if (useInitPos) {
+        if ((position.x < 0) || (position.x > 1) || 
+            (position.y < 0) || (position.y > 1) || 
+            (position.z < 0) || (position.z > 1)) {
+            position = f3texRECT(initTexture, texCoord);
+        }
+    //}
 
-	return float4(position, 1);
+    return float4(position, 1);
 }
 
-float4 initParticlePosMain
-(
-	float3 initPos : TEXCOORD0,
-	float2 texCoord : TEXCOORD1,
-	float timeStep : TEXCOORD2,
-	uniform sampler3D vfield
-) : COLOR
+float4 initParticlePosMain(float3 initPos : TEXCOORD0,
+                           float2 texCoord : TEXCOORD1,
+                           float timeStep : TEXCOORD2,
+                           uniform sampler3D vfield) : COLOR
 {
-	float3 oldPosition = initPos;
-	//float3 velocity = tex3D(vfield, oldPosition).yzw * 2 - float3(1, 1, 1);
-	//float3 position = oldPosition + timeStep * velocity;
-	//return float4(position, 1);
-	return float4(initPos, 1);
+    float3 oldPosition = initPos;
+    //float3 velocity = tex3D(vfield, oldPosition).yzw * 2 - float3(1, 1, 1);
+    //float3 position = oldPosition + timeStep * velocity;
+    //return float4(position, 1);
+    return float4(initPos, 1);
 }
 
-float4 mainlines
-(
-	float2 texCoord : TEXCOORD0,
-	uniform samplerRECT posTexture : register(s0),
-	uniform sampler3D vfield,
-	uniform float2 offset,
-	uniform float timeStep
-) : COLOR
+float4 mainlines(float2 texCoord : TEXCOORD0,
+                 uniform samplerRECT posTexture : register(s0),
+                 uniform sampler3D vfield,
+                 uniform float2 offset,
+                 uniform float timeStep) : COLOR
 {
-	float3 oldPosition = f3texRECT(posTexture, texCoord);
-	float3 velocity = tex3D(vfield, oldPosition).yzw * 2 - float3(1, 1, 1);
+    float3 oldPosition = f3texRECT(posTexture, texCoord);
+    float3 velocity = tex3D(vfield, oldPosition).yzw * 2 - float3(1, 1, 1);
 	
-	float3 position = oldPosition + velocity * timeStep;
+    float3 position = oldPosition + velocity * timeStep;
 
-	return float4(position, 1);
+    return float4(position, 1);
 }

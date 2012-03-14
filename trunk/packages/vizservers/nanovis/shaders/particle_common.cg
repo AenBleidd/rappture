@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #define SUBIMAGE_SIZE_X 32
 #define SUBIMAGE_SIZE_Y 32
 #define NUM_SUBIMAGE_X 16

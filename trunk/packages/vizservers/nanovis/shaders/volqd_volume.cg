@@ -1,23 +1,22 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "common.cg"
 
 PixelOut main(v2f IN, 
-    uniform sampler1D tf,
-    uniform sampler3D vol_grid_s, 
-    uniform float4 cell_size, 
-    uniform float4x4 ModelViewInv, 
-    uniform float4 renderParameters)
+              uniform sampler1D tf,
+              uniform sampler3D vol_grid_s, 
+              uniform float4 cell_size, 
+              uniform float4x4 ModelViewInv, 
+              uniform float4 renderParameters)
 {
     PixelOut OUT;
 
     float tf_coord_s, tf_coord_p, tf_coord_d, tf_coord_ss;
-                    
 
     float4 twice_cell_size = cell_size*2.0;
     float4 tex_coord = mul(ModelViewInv, IN.TexCoord);
     float4 tex_coord_a = tex_coord - float4(twice_cell_size.x, twice_cell_size.y, 0, 0);
     float4 tex_coord_b = tex_coord - float4(twice_cell_size.x, 0, twice_cell_size.z, 0);
     float4 tex_coord_c = tex_coord - float4(0, twice_cell_size.y, twice_cell_size.z, 0); 
-
 
     float4 voxel_corner = f4tex3D(vol_grid_s, tex_coord);
     float4 voxel_face_center_a = f4tex3D(vol_grid_s, tex_coord_a);
@@ -28,13 +27,11 @@ PixelOut main(v2f IN,
     //sample the transfer function texture
     float4 color = tex1D(tf, sample.x);
 
-    if(renderParameters.x < 0.5) 
-    { 
+    if (renderParameters.x < 0.5) { 
         //If single slice render, only flat shading, completely opaque.
         color.w = 1;
-    }
-    else 
-    {   //regular volume rendering, we do FLAT SHADING 
+    } else {
+        //regular volume rendering, we do FLAT SHADING 
         //since all 4 components of the volume texture has been used to store orbital data,
         //there is no room to store normal vector. If we really need PHONG shading we have to pass more volumes to
         //the shader. We might add this later.
@@ -48,4 +45,3 @@ PixelOut main(v2f IN,
 
     return OUT;
 }
-

@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -17,8 +18,7 @@
 float4 main(in float3 uvw : TEXCOORD0,
             uniform sampler3D vel_tex,
             uniform float4 plane_normal,
-            uniform float vmax
-            ) : COLOR
+            uniform float vmax) : COLOR
 {
     float3 ret;
 

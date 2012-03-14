@@ -1,3 +1,4 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
  * ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
@@ -14,21 +15,17 @@
 
 #include "common.cg"
 
-void   main(in float2 uv : TEXCOORD0,
-
-            uniform samplerRECT pos_tex,
-            uniform samplerRECT vel_tex,
-            uniform sampler2D terrain_tex,
-            
-            uniform float timestep = 0.01,
-            uniform float damping = 0.99,
-            uniform float3 gravity = float3(0, -1, 0),
-            uniform float3 spherePos,
-            uniform float3 sphereVel,
-            
-            out float4 new_pos : COLOR0,
-            out float4 new_vel : COLOR1
-            )
+void main(in float2 uv : TEXCOORD0,
+          uniform samplerRECT pos_tex,
+          uniform samplerRECT vel_tex,
+          uniform sampler2D terrain_tex,
+          uniform float timestep = 0.01,
+          uniform float damping = 0.99,
+          uniform float3 gravity = float3(0, -1, 0),
+          uniform float3 spherePos,
+          uniform float3 sphereVel,
+          out float4 new_pos : COLOR0,
+          out float4 new_vel : COLOR1)
 {
     const float3 terrain_scale = float3(8.0, 2.0, 8.0);
     const float3 terrain_offset = float3(-4.0, 0.01, -4.0);
@@ -40,11 +37,11 @@ void   main(in float2 uv : TEXCOORD0,
 
     // update velocity
     float3 force = gravity;
-//    float3 force = 0.0;
-//    Gravitation(pos, spherePos, force, 0.1);
+    // float3 force = 0.0;
+    // Gravitation(pos, spherePos, force, 0.1);
 
     SphereCollide(pos_next, vel, spherePos, 1.0, sphereVel, 0.5, force);
-//    FloorCollide(pos_next, vel, 0.0, 0.5, force);    
+    // FloorCollide(pos_next, vel, 0.0, 0.5, force);    
     TerrainCollide(pos_next, vel, terrain_tex, terrain_scale, terrain_offset, 0.5);
 
     const float inv_mass = 1.0;    
@@ -53,11 +50,11 @@ void   main(in float2 uv : TEXCOORD0,
 
     // update position
     SphereConstraint(pos, spherePos, 1.0f);
-//    FloorConstraint(pos, 0.0f);
+    // FloorConstraint(pos, 0.0f);
     TerrainConstraint(pos, terrain_tex, terrain_scale, terrain_offset);
 
     pos += vel * timestep;
-    
+
     new_vel = float4(vel, 1);
     new_pos = float4(pos, 1);
 }

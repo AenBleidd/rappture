@@ -1,9 +1,8 @@
-float4 main
-(
-	float3 pos : TEXCOORD0,
-	uniform sampler3D vfield
-) : COLOR
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+float4 main (float3 pos : TEXCOORD0,
+             uniform sampler3D vfield
+             ) : COLOR
 {
-	float3 velocity = tex3D(vfield, pos).yzw * 2 - float3(1, 1, 1);
-	return float4(velocity, 1);
+    float3 velocity = tex3D(vfield, pos).yzw * 2 - float3(1, 1, 1);
+    return float4(velocity, 1);
 }

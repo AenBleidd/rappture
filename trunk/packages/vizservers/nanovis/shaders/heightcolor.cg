@@ -1,8 +1,8 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-float4 main(
-    float4 texCoord : TEXCOORD0,
-    uniform float opacity, 
-    uniform sampler1D tf) : COLOR
+float4 main(float4 texCoord : TEXCOORD0,
+            uniform float opacity, 
+            uniform sampler1D tf) : COLOR
 {
     float4 color = tex1D(tf, texCoord.z);
     color.w = opacity;

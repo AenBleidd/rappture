@@ -1,8 +1,8 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 float4 main(float2 texCoord : TEXCOORD0,
-	uniform samplerRECT tex : register(s0),
-	uniform float4 scale,
-	uniform float4 bias
-) : COLOR
+            uniform samplerRECT tex : register(s0),
+            uniform float4 scale,
+            uniform float4 bias) : COLOR
 {
     return texRECT(tex, texCoord.xy) * scale + bias;
 }

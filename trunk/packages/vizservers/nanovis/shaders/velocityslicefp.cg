@@ -1,18 +1,19 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "particle_common.cg"
 
 float4 fpmain(float2 texCoord : TEXCOORD0,
-		float3 color : COLOR, 
-		float2 center : TEXCOORD2,
-		float4 rotation : TEXCOORD3,
-		uniform sampler2D arrows : register(s0)) : COLOR
+              float3 color : COLOR, 
+              float2 center : TEXCOORD2,
+              float4 rotation : TEXCOORD3,
+              uniform sampler2D arrows : register(s0)) : COLOR
 {
-	float2 newTexCoord = float2((texCoord.x - 0.5) / NUM_SUBIMAGE_X, (texCoord.y - 0.5) / NUM_SUBIMAGE_Y);
-	float2 rotTexCoord;
-	rotTexCoord.x = rotation.x * newTexCoord.x + rotation.y * newTexCoord.y;
-	rotTexCoord.y = rotation.z * newTexCoord.x + rotation.w * newTexCoord.y;
-	rotTexCoord.x = rotTexCoord.x + 0.5 / NUM_SUBIMAGE_X;
-	rotTexCoord.y = rotTexCoord.y + 0.5 / NUM_SUBIMAGE_Y;
-	rotTexCoord = rotTexCoord + center;
-	
-	return float4(tex2D(arrows, rotTexCoord.xy).xyz * color, 1.0);
+    float2 newTexCoord = float2((texCoord.x - 0.5) / NUM_SUBIMAGE_X, (texCoord.y - 0.5) / NUM_SUBIMAGE_Y);
+    float2 rotTexCoord;
+    rotTexCoord.x = rotation.x * newTexCoord.x + rotation.y * newTexCoord.y;
+    rotTexCoord.y = rotation.z * newTexCoord.x + rotation.w * newTexCoord.y;
+    rotTexCoord.x = rotTexCoord.x + 0.5 / NUM_SUBIMAGE_X;
+    rotTexCoord.y = rotTexCoord.y + 0.5 / NUM_SUBIMAGE_Y;
+    rotTexCoord = rotTexCoord + center;
+
+    return float4(tex2D(arrows, rotTexCoord.xy).xyz * color, 1.0);
 }
