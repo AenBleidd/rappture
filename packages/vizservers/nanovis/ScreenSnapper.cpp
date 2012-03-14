@@ -17,12 +17,13 @@
  */
 
 #include <memory.h>
-#include "Trace.h"
 #include <assert.h>
+
 #include "ScreenSnapper.h"
+#include "Trace.h"
 
 ScreenSnapper::ScreenSnapper(int w, int h, GLuint type, 
-			     int channel_per_pixel)
+                             int channel_per_pixel)
 {
     width = w;
     height = h;
@@ -59,13 +60,13 @@ ScreenSnapper::reset(char c)
     switch (data_type) {
     case GL_FLOAT:
         elemSize = sizeof(float);
-	break;
+        break;
     case GL_UNSIGNED_BYTE:
         elemSize = sizeof(unsigned char);
-	break;
+        break;
     default:
-	assert(0);
-	break;
+        assert(0);
+        break;
     }
     unsigned int size;
     size = elemSize * width * height * n_channels_per_pixel;
@@ -99,8 +100,8 @@ ScreenSnapper::print()
                       ((float*)data)[3*i+1], ((float*)data)[3*i+2]);
             } else if (n_channels_per_pixel==4) {
                 TRACE("(%f %f %f %f) ", ((float*)data)[4*i], 
-		      ((float*)data)[4*i+1],
-		      ((float*)data)[4*i+2],
+                      ((float*)data)[4*i+1],
+                      ((float*)data)[4*i+2],
                       ((float*)data)[4*i+3]);
             }
         } else if (data_type == GL_UNSIGNED_BYTE) {

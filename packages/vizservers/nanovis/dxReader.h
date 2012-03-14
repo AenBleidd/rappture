@@ -2,6 +2,8 @@
 #ifndef DXREADER_H
 #define DXREADER_H
 
+#include <iostream>
+
 namespace Rappture {
     class Outcome;
 }

@@ -1,13 +1,14 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "VolumeInterpolator.h"
-#include "Volume.h"
 #include <string.h>
 #include <memory.h>
-#include "Vector3.h"
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
 #include <stdlib.h>
+
+#include "VolumeInterpolator.h"
+#include "Volume.h"
+#include "Vector3.h"
 #include "Trace.h"
 
 VolumeInterpolator::VolumeInterpolator() : 
@@ -19,7 +20,6 @@ VolumeInterpolator::VolumeInterpolator() :
     _n_components(0), 
     _referenceOfVolume(0)
 {
-    /*empty*/
 }
 
 void VolumeInterpolator::start()
@@ -42,7 +42,7 @@ void VolumeInterpolator::stop()
     _started = false;
 }
 
-Volume* VolumeInterpolator::update(float fraction)
+Volume *VolumeInterpolator::update(float fraction)
 {
     int key1, key2;
     float interp;
@@ -53,9 +53,9 @@ Volume* VolumeInterpolator::update(float fraction)
         memcpy(_volume->data(), _volumes[key1]->data(), _numBytes);
         _volume->tex()->update(_volume->data());
     } else {
-        float* data1 = _volumes[key1]->data();
-        float* data2 = _volumes[key2]->data();
-        float* result = _volume->data();
+        float *data1 = _volumes[key1]->data();
+        float *data2 = _volumes[key2]->data();
+        float *result = _volume->data();
 
         Vector3 normal1, normal2, normal;
         for (unsigned int i = 0; i < _dataCount; ++i) {
@@ -74,13 +74,13 @@ Volume* VolumeInterpolator::update(float fraction)
 
         _volume->tex()->update(_volume->data());
     }
-    
+
     return _volume;
 }
 
-void 
-VolumeInterpolator::computeKeys(float fraction, int count, float* interp, 
-                                int* key1, int* key2)
+void
+VolumeInterpolator::computeKeys(float fraction, int count, float *interp, 
+                                int *key1, int *key2)
 {
     int limit = (int) count - 1;
     if (fraction <= 0) {
@@ -91,18 +91,17 @@ VolumeInterpolator::computeKeys(float fraction, int count, float* interp,
         *interp = 0.0f;
     } else {
         int n;
-        for (n = 0;n < limit; n++){
+        for (n = 0; n < limit; n++){
             if (fraction >= (n / (count - 1.0f)) && 
                 fraction < ((n+1)/(count-1.0f))) {
                 break;
             }
         }
-        
+
         TRACE("n = %d count = %d\n", n, count);
-        if (n >= limit){
+        if (n >= limit) {
             *key1 = *key2 = limit;
             *interp = 0.0f;
-            
         } else {
             *key1 = n;
             *key2 = n+1;
@@ -112,14 +111,14 @@ VolumeInterpolator::computeKeys(float fraction, int count, float* interp,
     }
 }
 
-void 
+void
 VolumeInterpolator::clearAll()
 {
     _volumes.clear();
 }
 
-void 
-VolumeInterpolator::addVolume(Volume* refPtr)
+void
+VolumeInterpolator::addVolume(Volume *refPtr)
 {
     if (_volumes.size() != 0) {
         if (_volumes[0]->width != refPtr->width || 
@@ -129,7 +128,6 @@ VolumeInterpolator::addVolume(Volume* refPtr)
             TRACE("The volume should be the same width, height, number of components\n");
             return;
         }
-        
     } else {
         _dataCount = refPtr->width * refPtr->height * refPtr->depth;
         _n_components = refPtr->n_components();
@@ -163,9 +161,8 @@ VolumeInterpolator::addVolume(Volume* refPtr)
     TRACE("a Volume[%s] is added to VolumeInterpolator\n", refPtr->name());
 }
 
-Volume* VolumeInterpolator::getVolume()
+Volume *VolumeInterpolator::getVolume()
 {
     return _volume;
     //return _volumes[0];
 }
-

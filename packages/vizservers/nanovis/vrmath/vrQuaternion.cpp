@@ -7,11 +7,12 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <float.h>
+
 #include <vrmath/vrQuaternion.h>
 #include <vrmath/vrRotation.h>
 #include <vrmath/vrLinmath.h>
 #include <vrmath/vrVector3f.h>
-#include <float.h>
 
 #ifndef PI
 #define PI 3.14159264
