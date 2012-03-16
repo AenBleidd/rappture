@@ -754,14 +754,16 @@ void NanoVis::init(const char* path)
     }
 
     vrFilePath::getInstance()->setPath(path);
-    
+
+    ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
+
     NvInitCG();
     NvShader::setErrorCallback(CgErrorCallback);
-    
+
     fonts = new R2Fonts();
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
-    
+
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
     flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
@@ -772,7 +774,6 @@ void NanoVis::init(const char* path)
 			    Vector3(lic_slice_x, lic_slice_y, lic_slice_z), 
 			    g_context);
 
-    ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
     grid = new Grid();
     grid->setFont(fonts);
 
