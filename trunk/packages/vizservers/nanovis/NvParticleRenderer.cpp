@@ -45,7 +45,7 @@ public :
 
 NvParticleAdvectionShaderInstance shaderInstance;
 
-NvParticleRenderer::NvParticleRenderer(int w, int h, CGcontext context) : 
+NvParticleRenderer::NvParticleRenderer(int w, int h) : 
     _particleSize(1.2),
     scale(1, 1, 1), 
     origin(0, 0, 0),
@@ -150,9 +150,9 @@ void NvParticleRenderer::initializeDataArray()
 
     int index;
     bool particle;
-    float* p = (float*) data;
-    for (int i=0; i<psys_width; i++) {
-        for (int j=0; j<psys_height; j++) {
+    float *p = (float *)data;
+    for (int i = 0; i < psys_width; i++) {
+        for (int j = 0; j < psys_height; j++) {
             index = i + psys_height*j;
             particle = (rand() % 256) > 150; 
             if(particle) {

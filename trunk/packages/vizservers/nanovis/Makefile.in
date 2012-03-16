@@ -316,7 +316,7 @@ NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
 NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
 NvShader.o: NvShader.cpp NvShader.h
 NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
-NvVectorField.o: NvVectorField.cpp NvVectorField.h
+NvVectorField.o: NvVectorField.cpp NvVectorField.h NvParticleRenderer.h
 NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
 NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h Vector3.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
@@ -350,4 +350,4 @@ VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
-nanovis.o: nanovis.cpp nanovis.h $(AUXSRC)
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvEventLog.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h

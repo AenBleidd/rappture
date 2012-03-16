@@ -101,10 +101,10 @@ void NvVectorField::addPlane(const std::string& name)
 	if ((*iter).second != 0) {
 	    renderer = (*iter).second;
 	} else {
-	    renderer = (*iter).second = new NvParticleRenderer(NMESH, NMESH, g_context);
+	    renderer = (*iter).second = new NvParticleRenderer(NMESH, NMESH);
 	}
     } else {
-	renderer = new NvParticleRenderer(NMESH, NMESH, g_context);
+	renderer = new NvParticleRenderer(NMESH, NMESH);
 	_particleRendererMap[name] = renderer;
     }
 

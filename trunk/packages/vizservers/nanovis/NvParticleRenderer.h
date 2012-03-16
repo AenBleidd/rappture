@@ -47,7 +47,7 @@ struct Particle {
 class NvParticleRenderer : public Renderable
 {
 public:
-    NvParticleRenderer(int w, int h, CGcontext context);
+    NvParticleRenderer(int w, int h);
 
     ~NvParticleRenderer();
 

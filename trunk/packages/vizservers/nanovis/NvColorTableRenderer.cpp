@@ -6,9 +6,9 @@
 #include "NvColorTableRenderer.h"
 
 NvColorTableRenderer::NvColorTableRenderer() :
-    _fonts(NULL)
+    _fonts(NULL),
+    _shader(new NvColorTableShader())
 {
-    _shader = new NvColorTableShader();    
 }
 
 NvColorTableRenderer::~NvColorTableRenderer()

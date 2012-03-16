@@ -131,8 +131,7 @@ FlowParticles::FlowParticles(const char *name, Tcl_HashEntry *hPtr)
     _sv.position.value = 0.0f;	
     _sv.position.flags = RELPOS;
     _sv.color.r = _sv.color.b = _sv.color.g = _sv.color.a = 1.0f;
-    _rendererPtr = new NvParticleRenderer(NMESH, NMESH, 
-		/* Global nVidia Cg context */g_context);
+    _rendererPtr = new NvParticleRenderer(NMESH, NMESH);
 }
 
 FlowParticles::~FlowParticles(void) 

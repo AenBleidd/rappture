@@ -18,40 +18,28 @@
 #include "PlaneRenderer.h"
 #include "Trace.h"
 
-PlaneRenderer::PlaneRenderer(CGcontext _context, int _width, int _height) :
+PlaneRenderer::PlaneRenderer(int width, int height) :
     _active_plane(-1),
     _n_planes(0),
-    _render_width(_width),
-    _render_height(_height),
-    _g_context(_context)
+    _render_width(width),
+    _render_height(height),
+    _shader(new NvColorTableShader())
 {
     _plane.clear();
     _tf.clear();
-    init_shaders();
 }
 
 PlaneRenderer::~PlaneRenderer() 
 {
-}
-
-//initialize the render shader
-void 
-PlaneRenderer::init_shaders()
-{
-    //plane rendering shader
-    _fprog = LoadCgSourceProgram(_g_context, "one_plane.cg", CG_PROFILE_FP30, 
-                                 NULL);
-    _data_param = cgGetNamedParameter(_fprog, "data");
-    _tf_param = cgGetNamedParameter(_fprog, "tf");
-    _render_param = cgGetNamedParameter(_fprog, "render_param");
+    delete _shader;
 }
 
 int 
-PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
+PlaneRenderer::add_plane(Texture2D *p, TransferFunction *tfPtr)
 {
     int ret = _n_planes;
 
-    _plane.push_back(_p);
+    _plane.push_back(p);
     _tf.push_back(tfPtr);
 
     if (ret == 0)
@@ -62,9 +50,10 @@ PlaneRenderer::add_plane(Texture2D* _p, TransferFunction* tfPtr)
 }
 
 void
-PlaneRenderer::remove_plane(int index) {
-    std::vector<Texture2D*>::iterator piter = _plane.begin()+index;
-    std::vector<TransferFunction*>::iterator tfiter = _tf.begin()+index;
+PlaneRenderer::remove_plane(int index)
+{
+    std::vector<Texture2D *>::iterator piter = _plane.begin()+index;
+    std::vector<TransferFunction *>::iterator tfiter = _tf.begin()+index;
 
     _plane.erase(piter);
     _tf.erase(tfiter);
@@ -94,37 +83,14 @@ PlaneRenderer::render()
     if (_active_plane == -1)
         return;
 
-    activate_shader(_active_plane);
+    _shader->bind(_plane[_active_plane], _tf[_active_plane]);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0); glVertex2f(0, 0);
     glTexCoord2f(1, 0); glVertex2f(_render_width, 0);
     glTexCoord2f(1, 1); glVertex2f(_render_width, _render_height);
     glTexCoord2f(0, 1); glVertex2f(0, _render_height);
     glEnd();
-    deactivate_shader();
-
-}
-
-void 
-PlaneRenderer::activate_shader(int index)
-{
-    cgGLSetTextureParameter(_data_param, _plane[index]->id());
-    cgGLSetTextureParameter(_tf_param, _tf[index]->id());
-    cgGLEnableTextureParameter(_data_param);
-    cgGLEnableTextureParameter(_tf_param);
-
-    cgGLSetParameter4f(_render_param, 0., 0., 0., 0.);
-
-    cgGLBindProgram(_fprog);
-    cgGLEnableProfile(CG_PROFILE_FP30);
-}
-
-void 
-PlaneRenderer::deactivate_shader()
-{
-    cgGLDisableProfile(CG_PROFILE_FP30);
-    cgGLDisableTextureParameter(_data_param);
-    cgGLDisableTextureParameter(_tf_param);
+    _shader->unbind();
 }
 
 void

@@ -243,11 +243,11 @@ void
 NanoVis::EventuallyRedraw(unsigned int flag)
 {
     if (flag) {
-	flags |= flag;
+        flags |= flag;
     }
     if ((flags & REDRAW_PENDING) == 0) {
-	glutPostRedisplay();
-	flags |= REDRAW_PENDING;
+        glutPostRedisplay();
+        flags |= REDRAW_PENDING;
     }
 }
 
@@ -385,11 +385,11 @@ LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile,
     TRACE("cg program compiling: %s\n", path);
     CGprogram program;
     program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
-				      entryPoint, NULL);
+                                      entryPoint, NULL);
     cgGLLoadProgram(program);
     CGerror LastError = cgGetError();
     if (LastError) {
-	ERROR("Error message: %s\n", cgGetLastListing(context));
+        ERROR("Error message: %s\n", cgGetLastListing(context));
     }
     TRACE("successfully compiled program: %s\n", path);
     delete [] path;
@@ -461,22 +461,22 @@ NanoVis::zoom(float z)
  */
 Volume *
 NanoVis::load_volume(const char *name, int width, int height, int depth, 
-		     int n_component, float* data, double vmin, double vmax, 
-		     double nzero_min)
+                     int n_component, float* data, double vmin, double vmax, 
+                     double nzero_min)
 {
     Tcl_HashEntry *hPtr;
     hPtr = Tcl_FindHashEntry(&NanoVis::volumeTable, name);
     if (hPtr != NULL) {
-	Volume *volPtr; 
-	WARN("volume \"%s\" already exists", name);
-	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-	remove_volume(volPtr);
+        Volume *volPtr; 
+        WARN("volume \"%s\" already exists", name);
+        volPtr = (Volume *)Tcl_GetHashValue(hPtr);
+        remove_volume(volPtr);
     }
     int isNew;
     hPtr = Tcl_CreateHashEntry(&NanoVis::volumeTable, name, &isNew);
     Volume* volPtr;
     volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, 1., n_component,
-		data, vmin, vmax, nzero_min);
+                data, vmin, vmax, nzero_min);
     Tcl_SetHashValue(hPtr, volPtr);
     volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
     return volPtr;
@@ -506,7 +506,7 @@ NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
     hPtr = Tcl_CreateHashEntry(&tfTable, name, &isNew);
     if (isNew) {
         tfPtr = new TransferFunction(n, data);
-	tfPtr->name(Tcl_GetHashKey(&tfTable, hPtr));
+        tfPtr->name(Tcl_GetHashKey(&tfTable, hPtr));
         Tcl_SetHashValue(hPtr, tfPtr);
     } else {
         /* 
@@ -521,7 +521,7 @@ NanoVis::DefineTransferFunction(const char *name, size_t n, float *data)
 
 int
 NanoVis::render_legend(TransferFunction *tf, double min, double max,
-		       int width, int height, const char* volArg)
+                       int width, int height, const char* volArg)
 {
     TRACE("in render_legend\n");
 
@@ -550,13 +550,13 @@ NanoVis::render_legend(TransferFunction *tf, double min, double max,
 
     {
         char prefix[200];
-	ssize_t nWritten;
+        ssize_t nWritten;
 
         TRACE("ppm legend image");
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
         ppm_write(prefix);
         nWritten = write(1, "\n", 1);
-	assert(nWritten == 1);
+        assert(nWritten == 1);
     }
     plane_renderer->remove_plane(index);
     resize_offscreen_buffer(old_width, old_height);
@@ -590,16 +590,16 @@ NanoVis::init_offscreen_buffer()
     glGenRenderbuffersEXT(1, &_final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
-			     win_width, win_height);
+                             win_width, win_height);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-			      GL_TEXTURE_2D, _final_color_tex, 0);
+                              GL_TEXTURE_2D, _final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-				 GL_RENDERBUFFER_EXT, _final_depth_rb);
+                                 GL_RENDERBUFFER_EXT, _final_depth_rb);
 
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "final_fbo");
-    	DoExit(3);
+            DoExit(3);
     }
 
     // Check framebuffer completeness at the end of initialization.
@@ -663,16 +663,16 @@ NanoVis::resize_offscreen_buffer(int w, int h)
     glGenRenderbuffersEXT(1, &_final_depth_rb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _final_depth_rb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
-			     win_width, win_height);
+                             win_width, win_height);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
-			      GL_TEXTURE_2D, _final_color_tex, 0);
+                              GL_TEXTURE_2D, _final_color_tex, 0);
     glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-				 GL_RENDERBUFFER_EXT, _final_depth_rb);
+                                 GL_RENDERBUFFER_EXT, _final_depth_rb);
 
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "final_fbo");
-	DoExit(3);
+        DoExit(3);
     }
 
     //CHECK_FRAMEBUFFER_STATUS();
@@ -766,13 +766,14 @@ void NanoVis::init(const char* path)
 
     color_table_renderer = new NvColorTableRenderer();
     color_table_renderer->setFonts(fonts);
+
     flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
 
     NanoVis::velocityArrowsSlice = new VelocityArrowsSlice;
 
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, 
-			    Vector3(lic_slice_x, lic_slice_y, lic_slice_z), 
-			    g_context);
+                            Vector3(lic_slice_x, lic_slice_y, lic_slice_z), 
+                            g_context);
 
     grid = new Grid();
     grid->setFont(fonts);
@@ -789,17 +790,17 @@ NanoVis::initGL(void)
     TRACE("in initGL\n");
     //buffer to store data read from the screen
     if (screen_buffer) {
-	delete[] screen_buffer;
-	screen_buffer = NULL;
+        delete[] screen_buffer;
+        screen_buffer = NULL;
     }
     screen_buffer = new unsigned char[4*win_width*win_height];
     assert(screen_buffer != NULL);
 
     //create the camera with default setting
     cam = new NvCamera(0, 0, win_width, win_height,
-		       def_eye_x, def_eye_y, def_eye_z,          /* location. */
-		       def_target_x, def_target_y, def_target_z, /* target. */
-		       def_rot_x, def_rot_y, def_rot_z);         /* angle. */
+                       def_eye_x, def_eye_y, def_eye_z,          /* location. */
+                       def_target_x, def_target_y, def_target_z, /* target. */
+                       def_rot_x, def_rot_y, def_rot_z);         /* angle. */
 
     glEnable(GL_TEXTURE_2D);
     glShadeModel(GL_FLAT);
@@ -827,8 +828,8 @@ NanoVis::initGL(void)
 
     //check if performance query is supported
     if(check_query_support()){
-	//create queries to count number of rendered pixels
-	perf = new PerfQuery();
+        //create queries to count number of rendered pixels
+        perf = new PerfQuery();
     }
 
     init_offscreen_buffer();    //frame buffer object for offscreen rendering
@@ -839,8 +840,8 @@ NanoVis::initGL(void)
     // create
     renderContext = new graphics::RenderContext();
 
-    //create an 2D plane renderer
-    plane_renderer = new PlaneRenderer(g_context, win_width, win_height);
+    //create n 2D plane renderer
+    plane_renderer = new PlaneRenderer(win_width, win_height);
 #if PROTOTYPE
     make_test_2D_data();
     plane_renderer->add_plane(plane[0], get_transfunc("default"));
@@ -993,10 +994,10 @@ NanoVis::bmp_write_to_file(int frame_number, const char *directory_name)
         }
     }
     if (fwrite(header, SIZEOF_BMP_HEADER, 1, f) != 1) {
-	ERROR("can't write header: short write\n");
+        ERROR("can't write header: short write\n");
     }
     if (fwrite(screen_buffer, (3*win_width+pad)*win_height, 1, f) != 1) {
-	ERROR("can't write data: short write\n");
+        ERROR("can't write data: short write\n");
     }
     fclose(f);
 }
@@ -1139,7 +1140,7 @@ NanoVis::ppm_write(const char *prefix)
         srcRowPtr += bytesPerRow;
     }
     if (writev(1, iov, nRecs) < 0) {
-	ERROR("write failed: %s\n", strerror(errno));
+        ERROR("write failed: %s\n", strerror(errno));
     }
     free(iov);
     stats.nFrames++;
@@ -1181,7 +1182,7 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = dlen;
     if (writev(1, iov, nRecs) < 0) {
-	ERROR("write failed: %s\n", strerror(errno));
+        ERROR("write failed: %s\n", strerror(errno));
     }
     delete [] iov;
     // stats.nFrames++;
@@ -1265,7 +1266,7 @@ sortstep()
     glUniform3fARB(oddevenMergeSort.getUniformLocation("Param1"), float(pstage+pstage),
                    float(ppass%pstage), float((pstage+pstage)-(ppass%pstage)-1));
     glUniform3fARB(oddevenMergeSort.getUniformLocation("Param2"),
-		   float(psys_width), float(psys_height), float(ppass));
+                   float(psys_width), float(psys_height), float(ppass));
     glUniform1iARB(oddevenMergeSort.getUniformLocation("Data"), 0);
     staticdebugmsg("sort","stage "<<pstage<<" pass "<<ppass);
 
@@ -1413,7 +1414,7 @@ void NanoVis::update()
             vol_renderer->_volumeInterpolator->getStartTime();
 
         TRACE("%lf %lf\n", elapsed_time, 
-	       vol_renderer->_volumeInterpolator->getInterval());
+               vol_renderer->_volumeInterpolator->getInterval());
         float fraction;
         float f;
 
@@ -1434,15 +1435,13 @@ NanoVis::SetVolumeRanges()
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
     TRACE("in SetVolumeRanges\n");
-    xMin = yMin = zMin = wMin = FLT_MAX;
-    xMax = yMax = zMax = wMax = -FLT_MAX;
+    xMin = yMin = zMin = wMin = DBL_MAX;
+    xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
-	 hPtr = Tcl_NextHashEntry(&iter)) {
-        Volume *volPtr;
-
-	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
+         hPtr = Tcl_NextHashEntry(&iter)) {
+        Volume *volPtr = (Volume *)Tcl_GetHashValue(hPtr);
         if (xMin > volPtr->xAxis.min()) {
             xMin = volPtr->xAxis.min();
         }
@@ -1491,14 +1490,13 @@ NanoVis::SetHeightmapRanges()
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
     TRACE("in SetHeightmapRanges\n");
-    xMin = yMin = zMin = wMin = FLT_MAX;
-    xMax = yMax = zMax = wMax = -FLT_MAX;
+    xMin = yMin = zMin = wMin = DBL_MAX;
+    xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
     Tcl_HashSearch iter;
     for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-	 hPtr = Tcl_NextHashEntry(&iter)) {
-        HeightMap *hmPtr;
-	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+         hPtr = Tcl_NextHashEntry(&iter)) {
+        HeightMap *hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
         if (xMin > hmPtr->xAxis.min()) {
             xMin = hmPtr->xAxis.min();
         }
@@ -1538,9 +1536,9 @@ NanoVis::SetHeightmapRanges()
         HeightMap::valueMax = grid->yAxis.max();
     }
     for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
-	 hPtr = Tcl_NextHashEntry(&iter)) {
+         hPtr = Tcl_NextHashEntry(&iter)) {
         HeightMap *hmPtr;
-	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
+        hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
         hmPtr->MapToGrid(grid);
     }
     HeightMap::update_pending = false;
@@ -1554,12 +1552,12 @@ NanoVis::display()
     TRACE("in display\n");
 #ifdef notdef
     if (flags & MAP_FLOWS) {
-	xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
-	xMax = yMax = zMax = wMax = -FLT_MAX, magMax = -DBL_MAX;
+        xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
+        xMax = yMax = zMax = wMax = -FLT_MAX, magMax = -DBL_MAX;
     }
 #endif
     if (flags & MAP_FLOWS) {
-	MapFlows();
+        MapFlows();
         grid->xAxis.SetScale(xMin, xMax);
         grid->yAxis.SetScale(yMin, yMax);
         grid->zAxis.SetScale(zMin, zMax);
@@ -1576,9 +1574,9 @@ NanoVis::display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
     if (volume_mode) {
-	TRACE("in display: volume_mode\n");
+        TRACE("in display: volume_mode\n");
         //3D rendering mode
-	// TBD..
+        // TBD..
         //glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
 
@@ -1587,30 +1585,26 @@ NanoVis::display()
 
         //set up the orientation of items in the scene.
         glPushMatrix();
+
         switch (updir) {
         case X_POS:
             glRotatef(90, 0, 0, 1);
             glRotatef(90, 1, 0, 0);
             break;
-
         case Y_POS:
             // this is the default
             break;
-
         case Z_POS:
             glRotatef(-90, 1, 0, 0);
             glRotatef(-90, 0, 0, 1);
             break;
-
         case X_NEG:
             glRotatef(-90, 0, 0, 1);
             break;
-
         case Y_NEG:
             glRotatef(180, 0, 0, 1);
             glRotatef(-90, 0, 1, 0);
             break;
-
         case Z_NEG:
             glRotatef(90, 1, 0, 0);
             break;
@@ -1636,11 +1630,11 @@ NanoVis::display()
 #ifdef notdef
         if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
             flowVisRenderer->render();
-	}
+        }
 #endif
-	if (flowTable.numEntries > 0) {
-	    RenderFlows();
-	}
+        if (flowTable.numEntries > 0) {
+            RenderFlows();
+        }
 
         //soft_display_verts();
         //perf->enable();
@@ -1695,7 +1689,7 @@ NanoVis::mouse(int button, int state, int x, int y)
     } else {
         //TRACE("right mouse\n");
 
-        if (state == GLUT_DOWN){
+        if (state == GLUT_DOWN) {
             //TRACE("right mouse down\n");
             right_last_x = x;
             right_last_y = y;
@@ -1740,8 +1734,8 @@ NanoVis::update_trans(int delta_x, int delta_y, int delta_z)
 }
 
 void addVectorField(const char* filename, const char* vf_name, 
-		    const char* plane_name1, const char* plane_name2, 
-		    const Vector4& color1, const Vector4& color2)
+                    const char* plane_name1, const char* plane_name2, 
+                    const Vector4& color1, const Vector4& color2)
 {
     Rappture::Outcome result;
     Rappture::Buffer buf;
@@ -1749,53 +1743,53 @@ void addVectorField(const char* filename, const char* vf_name,
     buf.load(filename);
     int n = NanoVis::n_volumes;
     if (load_vector_stream2(result, n, buf.size(), buf.bytes())) {
-	Volume *volPtr = NanoVis::volume[n];
-	if (volPtr != NULL) {
-	    volPtr->set_n_slice(256-n);
-	    // volPtr->set_n_slice(512-n);
-	    volPtr->disable_cutplane(0);
-	    volPtr->disable_cutplane(1);
-	    volPtr->disable_cutplane(2);
-	    volPtr->transferFunction(NanoVis::get_transfunc("default"));
+        Volume *volPtr = NanoVis::volume[n];
+        if (volPtr != NULL) {
+            volPtr->set_n_slice(256-n);
+            // volPtr->set_n_slice(512-n);
+            volPtr->disable_cutplane(0);
+            volPtr->disable_cutplane(1);
+            volPtr->disable_cutplane(2);
+            volPtr->transferFunction(NanoVis::get_transfunc("default"));
 
-	    float dx0 = -0.5;
-	    float dy0 = -0.5*volPtr->height/volPtr->width;
-	    float dz0 = -0.5*volPtr->depth/volPtr->width;
-	    volPtr->move(Vector3(dx0, dy0, dz0));
-	    //volPtr->data(true);
-	    volPtr->data(false);
-	    NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
-		*(volPtr->get_location()),
-		1.0f,
-		volPtr->height / (float)volPtr->width,
-		volPtr->depth  / (float)volPtr->width,
-		1.0f);
-	    NanoVis::flowVisRenderer->activateVectorField(vf_name);
+            float dx0 = -0.5;
+            float dy0 = -0.5*volPtr->height/volPtr->width;
+            float dz0 = -0.5*volPtr->depth/volPtr->width;
+            volPtr->move(Vector3(dx0, dy0, dz0));
+            //volPtr->data(true);
+            volPtr->data(false);
+            NanoVis::flowVisRenderer->addVectorField(vf_name, volPtr, 
+                *(volPtr->get_location()),
+                1.0f,
+                volPtr->height / (float)volPtr->width,
+                volPtr->depth  / (float)volPtr->width,
+                1.0f);
+            NanoVis::flowVisRenderer->activateVectorField(vf_name);
 
-	    //////////////////////////////////
-	    // ADD Particle Injection Plane1
-	    NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
-	    NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name1, 0);
-	    NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name1, 0.9);
-	    NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name1, color1);
-	    // ADD Particle Injection Plane2
-	    NanoVis::flowVisRenderer->addPlane(vf_name, plane_name2);
-	    NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name2, 0);
-	    NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
-	    NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
-	    NanoVis::flowVisRenderer->initialize(vf_name);
+            //////////////////////////////////
+            // ADD Particle Injection Plane1
+            NanoVis::flowVisRenderer->addPlane(vf_name, plane_name1);
+            NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name1, 0);
+            NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name1, 0.9);
+            NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name1, color1);
+            // ADD Particle Injection Plane2
+            NanoVis::flowVisRenderer->addPlane(vf_name, plane_name2);
+            NanoVis::flowVisRenderer->setPlaneAxis(vf_name, plane_name2, 0);
+            NanoVis::flowVisRenderer->setPlanePos(vf_name, plane_name2, 0.2);
+            NanoVis::flowVisRenderer->setParticleColor(vf_name, plane_name2, color2);
+            NanoVis::flowVisRenderer->initialize(vf_name);
 
-	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
-	    NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
+            NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name1);
+            NanoVis::flowVisRenderer->activatePlane(vf_name, plane_name2);
 
-	    NanoVis::licRenderer->
+            NanoVis::licRenderer->
                 setVectorField(volPtr->id,
                                *(volPtr->get_location()),
                                1.0f / volPtr->aspect_ratio_width,
                                1.0f / volPtr->aspect_ratio_height,
                                1.0f / volPtr->aspect_ratio_depth,
                                volPtr->wAxis.max());
-	}
+        }
     }
     //NanoVis::initParticle();
 }
@@ -1805,200 +1799,200 @@ NanoVis::keyboard(unsigned char key, int x, int y)
 {
 #ifdef EVENTLOG
     if(log){
-	float param[3];
-	param[0] = cam->x();
-	param[1] = cam->y();
-	param[2] = cam->z();
-	Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
-	tmp->write(event_log);
-	delete tmp;
+        float param[3];
+        param[0] = cam->x();
+        param[1] = cam->y();
+        param[2] = cam->z();
+        Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
+        tmp->write(event_log);
+        delete tmp;
     }
 #endif
 
     switch (key) {
     case 'a' :
-	{
-	    TRACE("flowvis active\n");
-	    char cmd[] = {
-		"foreach flow [flow names] {\n"
-		"    $flow configure -hide no -slice yes\n"
-		"}\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("flowvis active\n");
+            char cmd[] = {
+                "foreach flow [flow names] {\n"
+                "    $flow configure -hide no -slice yes\n"
+                "}\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->active(true);
-	    NanoVis::licRenderer->active(true);
+            NanoVis::flowVisRenderer->active(true);
+            NanoVis::licRenderer->active(true);
 #endif
-	}
-	break;
+        }
+        break;
     case 'd' :
-	{
-	    TRACE("flowvis deactived\n");
-	    char cmd[] = {
-		"foreach flow [flow names] {\n"
-		"    $flow configure -hide yes -slice no\n"
-		"}\n"
-	    };
+        {
+            TRACE("flowvis deactived\n");
+            char cmd[] = {
+                "foreach flow [flow names] {\n"
+                "    $flow configure -hide yes -slice no\n"
+                "}\n"
+            };
 #ifdef notdef
-	    NanoVis::flowVisRenderer->active(false);
-	    NanoVis::licRenderer->active(false);
+            NanoVis::flowVisRenderer->active(false);
+            NanoVis::licRenderer->active(false);
 #endif
-	}
-	break;
+        }
+        break;
     case '1' :
-	{
-	    TRACE("add vector field\n");
-	    char cmd[] = {
-		"flow create flow1\n"
-		"flow1 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx 3\n"
-		"flow1 particles add plane1 -color { 0 0 1 1 }\n"
-		"flow1 particles add plane2 -color { 0 1 1 1 }\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("add vector field\n");
+            char cmd[] = {
+                "flow create flow1\n"
+                "flow1 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx 3\n"
+                "flow1 particles add plane1 -color { 0 0 1 1 }\n"
+                "flow1 particles add plane2 -color { 0 1 1 1 }\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx",
-			   "vf_name2", "plane_name1", "plane_name2", Vector4(0, 0, 1, 1), Vector4(0, 1, 1, 1));
+            addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/jwire/J-wire-vec.dx",
+                           "vf_name2", "plane_name1", "plane_name2", Vector4(0, 0, 1, 1), Vector4(0, 1, 1, 1));
 #endif
-	}
-	break;
+        }
+        break;
     case '2' :
-	{
-	    char cmd[] = {
-		"flow create flow2\n"
-		"flow2 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx 3\n"
-		"flow2 particles add plane1 -color { 1 0 0 1 }\n"
-		"flow2 particles add plane2 -color { 1 1 0 1 }\n"
-	    };
-	    Tcl_Eval(interp, cmd);
-	    TRACE("add vector field\n");
-	    addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
-			   "vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
-	}
-	break;
+        {
+            char cmd[] = {
+                "flow create flow2\n"
+                "flow2 data file /home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx 3\n"
+                "flow2 particles add plane1 -color { 1 0 0 1 }\n"
+                "flow2 particles add plane2 -color { 1 1 0 1 }\n"
+            };
+            Tcl_Eval(interp, cmd);
+            TRACE("add vector field\n");
+            addVectorField("/home/iwoo/projects/nanovis/rappture/packages/vizservers/nanovis/data/flowvis_dx_files/3DWireLeakage/SiO2/SiO2.dx",
+                           "vf_name1", "plane_name1", "plane_name2", Vector4(1, 0, 0, 1), Vector4(1, 1, 0, 1));
+        }
+        break;
     case '3':
-	{
-	    TRACE("activate\n");
-	    char cmd[] = {
-		"flow1 particles add plane2 -hide no\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("activate\n");
+            char cmd[] = {
+                "flow1 particles add plane2 -hide no\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->activatePlane("vf_name1", "plane_name2"); 
+            NanoVis::flowVisRenderer->activatePlane("vf_name1", "plane_name2"); 
 #endif
-	}
-	break;
+        }
+        break;
     case '4' :
-	{
-	    TRACE("deactivate\n");
-	    char cmd[] = {
-		"flow1 particles add plane2 -hide yes\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("deactivate\n");
+            char cmd[] = {
+                "flow1 particles add plane2 -hide yes\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
+            NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
 #endif
-	}
-	break;
+        }
+        break;
     case '5' :
-	{
-	    TRACE("vector field deleted (vf_name2)\n");
-	    char cmd[] = {
-		"flow delete flow2\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("vector field deleted (vf_name2)\n");
+            char cmd[] = {
+                "flow delete flow2\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->removeVectorField("vf_name2");
+            NanoVis::flowVisRenderer->removeVectorField("vf_name2");
 #endif
-	}
-	break;
+        }
+        break;
     case '6' :
-	{
-	    TRACE("add device shape\n");
-	    char cmd[] = {
-		"flow1 box add box1 -corner1 {0 0 0} -corner2 {30 3 3} -color { 1 0 0 1 }\n"
-		"flow1 box add box2 -corner1 {0 -1 -1} -corner2 {30 4 4} -color { 0 1 0 1 }\n"
-		"flow1 box add box3 -corner1 {10 -1.5 -1} -corner2 {20 4.5 4.5} -color { 0 0 1 1 }\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("add device shape\n");
+            char cmd[] = {
+                "flow1 box add box1 -corner1 {0 0 0} -corner2 {30 3 3} -color { 1 0 0 1 }\n"
+                "flow1 box add box2 -corner1 {0 -1 -1} -corner2 {30 4 4} -color { 0 1 0 1 }\n"
+                "flow1 box add box3 -corner1 {10 -1.5 -1} -corner2 {20 4.5 4.5} -color { 0 0 1 1 }\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NvDeviceShape shape;
-	    shape.min.set(0, 0, 0);
-	    shape.max.set(30, 3, 3);
-	    shape.color.set(1, 0, 0, 1);
-	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
-	    shape.min.set(0, -1, -1);
-	    shape.max.set(30, 4, 4);
-	    shape.color.set(0, 1, 0, 1);
-	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
-	    shape.min.set(10, -1.5, -1);
-	    shape.max.set(20, 4.5, 4.5);
-	    shape.color.set(0, 0, 1, 1);
-	    NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
-	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+            NvDeviceShape shape;
+            shape.min.set(0, 0, 0);
+            shape.max.set(30, 3, 3);
+            shape.color.set(1, 0, 0, 1);
+            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
+            shape.min.set(0, -1, -1);
+            shape.max.set(30, 4, 4);
+            shape.color.set(0, 1, 0, 1);
+            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
+            shape.min.set(10, -1.5, -1);
+            shape.max.set(20, 4.5, 4.5);
+            shape.color.set(0, 0, 1, 1);
+            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
+            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
 #endif
-	}
-	break;
+        }
+        break;
     case '7' :
-	{
-	    TRACE("hide shape \n");
-	    char cmd[] = {
-		"flow1 box configure box1 -hide yes\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("hide shape \n");
+            char cmd[] = {
+                "flow1 box configure box1 -hide yes\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
+            NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
 #endif
-	}
-	break;
+        }
+        break;
     case '8' :
-	{
-	    TRACE("show shape\n");
-	    char cmd[] = {
-		"flow1 box configure box1 -hide no\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("show shape\n");
+            char cmd[] = {
+                "flow1 box configure box1 -hide no\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
 #endif
-	}
-	break;
+        }
+        break;
     case '9' :
-	{
-	    TRACE("show a shape \n");
-	    char cmd[] = {
-		"flow1 box configure box3 -hide no\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("show a shape \n");
+            char cmd[] = {
+                "flow1 box configure box3 -hide no\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
+            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
 #endif
-	}
-	break;
+        }
+        break;
     case '0' :
-	{
-	    TRACE("delete a shape \n");
-	    char cmd[] = {
-		"flow1 box delete box3\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("delete a shape \n");
+            char cmd[] = {
+                "flow1 box delete box3\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
+            NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
 #endif
-	}
-	break;
+        }
+        break;
     case 'r' :
-	{
-	    TRACE("reset \n");
-	    char cmd[] = {
-		"flow reset\n"
-	    };
-	    Tcl_Eval(interp, cmd);
+        {
+            TRACE("reset \n");
+            char cmd[] = {
+                "flow reset\n"
+            };
+            Tcl_Eval(interp, cmd);
 #ifdef notdef
-	    NanoVis::flowVisRenderer->reset();
-	    NanoVis::licRenderer->reset();
+            NanoVis::flowVisRenderer->reset();
+            NanoVis::licRenderer->reset();
 #endif
-	}
-	break;
+        }
+        break;
     }
 }
 
@@ -2022,12 +2016,12 @@ NanoVis::motion(int x, int y)
     //if(abs(delta_x)<10 && abs(delta_y)<10)
     //return;
 
-    if(left_down){
+    if (left_down) {
         left_last_x = x;
         left_last_y = y;
 
         update_rot(-delta_y, -delta_x);
-    } else if (right_down){
+    } else if (right_down) {
         //TRACE("right mouse motion (%d,%d)\n", x, y);
 
         right_last_x = x;
@@ -2053,17 +2047,17 @@ NanoVis::render()
 
 #ifdef notdef
     if ((NanoVis::licRenderer != NULL) && (NanoVis::licRenderer->active())) {
-	NanoVis::licRenderer->convolve();
+        NanoVis::licRenderer->convolve();
     }
 #else
     if (NanoVis::licRenderer != NULL) {
-	NanoVis::licRenderer->convolve();
+        NanoVis::licRenderer->convolve();
     }
 #endif
 
 #ifdef notdef
     if ((NanoVis::flowVisRenderer != NULL) && (NanoVis::flowVisRenderer->active())) {
-	NanoVis::flowVisRenderer->advect();
+        NanoVis::flowVisRenderer->advect();
     }
 #endif
     NanoVis::update();
@@ -2103,7 +2097,7 @@ NanoVis::xinetd_listen(void)
         //  immediately following the command, and we shouldn't consume it
         //  here.
         //
-	TRACE("in xinetd_listen: EOF=%d\n", feof(NanoVis::stdin));
+        TRACE("in xinetd_listen: EOF=%d\n", feof(NanoVis::stdin));
         while (!feof(NanoVis::stdin)) {
             int c = fgetc(NanoVis::stdin);
             char ch;
@@ -2111,7 +2105,7 @@ NanoVis::xinetd_listen(void)
                 if (errno == EWOULDBLOCK) {
                     break;
                 }
-		DoExit(100);
+                DoExit(100);
             }
             ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
@@ -2144,7 +2138,7 @@ NanoVis::xinetd_listen(void)
         int nBytes;
 
         string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
-	TRACE("errorInfo=(%s)\n", string);
+        TRACE("errorInfo=(%s)\n", string);
         nBytes = strlen(string);
         struct iovec iov[3];
         iov[0].iov_base = (char *)"NanoVis Server Error: ";
@@ -2154,9 +2148,9 @@ NanoVis::xinetd_listen(void)
         iov[2].iov_len = 1;
         iov[2].iov_base = (char *)'\n';
         if (writev(1, iov, 3) < 0) {
-	    ERROR("write failed: %s\n", strerror(errno));
-	}
-	TRACE("Leaving xinetd_listen on ERROR\n");
+            ERROR("write failed: %s\n", strerror(errno));
+        }
+        TRACE("Leaving xinetd_listen on ERROR\n");
         return;
     }
     if (feof(NanoVis::stdin)) {
@@ -2180,7 +2174,7 @@ NanoVis::xinetd_listen(void)
 #endif
 
     if (feof(NanoVis::stdin)) {
-	DoExit(90);
+        DoExit(90);
     }
 #if DO_RLE
     do_rle();
@@ -2237,10 +2231,10 @@ main(int argc, char **argv)
 
     while (1) {
         static struct option long_options[] = {
-            {"infile",  required_argument, NULL,	   0},
-            {"path",    required_argument, NULL,	   2},
-            {"debug",   no_argument,       NULL,	   3},
-            {"record",  required_argument, NULL,	   4},
+            {"infile",  required_argument, NULL, 0},
+            {"path",    required_argument, NULL, 2},
+            {"debug",   no_argument,       NULL, 3},
+            {"record",  required_argument, NULL, 4},
             {0, 0, 0, 0}
         };
         int option_index = 0;
@@ -2257,7 +2251,7 @@ main(int argc, char **argv)
         case ':':
             if (optopt < 4) {
                 fprintf(stderr, "argument missing for --%s option\n", 
-			long_options[optopt].name);
+                        long_options[optopt].name);
             } else {
                 fprintf(stderr, "argument missing for -%c option\n", optopt);
             }
@@ -2312,7 +2306,7 @@ main(int argc, char **argv)
             p = strrchr((char *)path, '/');
         }
         if (p == NULL) {
-	    TRACE("path not specified\n");
+            TRACE("path not specified\n");
             return 1;
         }
         *p = '\0';
@@ -2320,12 +2314,12 @@ main(int argc, char **argv)
         sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
         path = newPath;
 #else
-	char buff[256];
-	getcwd(buff, 255);
+        char buff[256];
+        getcwd(buff, 255);
         p = strrchr(buff, '/');
         if (p != NULL) {
             *p = '\0';
-	}
+        }
         newPath = new char[(strlen(buff) + 15) * 2 + 1];
         sprintf(newPath, "%s/lib/shaders:%s/lib/resources", buff, buff);
         path = newPath;
@@ -2432,7 +2426,7 @@ NanoVis::remove_volume(Volume *volPtr)
     Tcl_HashEntry *hPtr;
     hPtr = Tcl_FindHashEntry(&volumeTable, volPtr->name());
     if (hPtr != NULL) {
-	Tcl_DeleteHashEntry(hPtr);
+        Tcl_DeleteHashEntry(hPtr);
     }
-    delete volPtr;			
+    delete volPtr;
 }
