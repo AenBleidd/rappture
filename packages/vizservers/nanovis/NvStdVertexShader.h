@@ -24,18 +24,5 @@ private:
     CGparameter _mvi_vert_std_param;
 };
 
-inline void NvStdVertexShader::bind()
-{
-    cgGLSetStateMatrixParameter(_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
-    cgGLSetStateMatrixParameter(_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLBindProgram(_cgVP);
-    cgGLEnableProfile(CG_PROFILE_VP30);
-}
-
-inline void NvStdVertexShader::unbind()
-{
-    cgGLDisableProfile(CG_PROFILE_VP30);
-}
-
 #endif 
 
