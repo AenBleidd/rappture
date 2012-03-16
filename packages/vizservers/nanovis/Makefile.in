@@ -110,7 +110,6 @@ OBJS		= \
 		Command.o \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
-		DataLoader.o \
 		Event.o \
 		FlowCmd.o \
 		GradientFilter.o \
@@ -158,7 +157,8 @@ OBJS		= \
 		nanovis.o
 
 ifdef NOTDEF
-OBJS +=		ParticleEmitter.o \
+OBJS +=		DataLoader.o \
+		ParticleEmitter.o \
 		ParticleSystem.o \
 		ParticleSystemFactory.o \
 		Sphere.o
@@ -297,7 +297,7 @@ Color.o: Color.cpp Color.h
 Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
-DataLoader.o: DataLoader.cpp 
+DataLoader.o: DataLoader.cpp DataLoader.h
 Event.o: Event.cpp Event.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
@@ -321,7 +321,7 @@ NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
 NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h Vector3.h
 NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
-ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h
+ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h DataLoader.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
 PCASplit.o: PCASplit.cpp PCASplit.h
 PerfQuery.o: PerfQuery.cpp PerfQuery.h

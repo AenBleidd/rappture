@@ -21,6 +21,7 @@
 
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
+#include "DataLoader.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
 #include "Trace.h"
@@ -28,27 +29,6 @@
 #define USE_RGBA_ARROW
 
 //#define TEST
-// TEST
-extern void*
-LoadFlowDx(const char* fname, int& width, int& height, int& depth,
-           float& min, float& max, float& nonzero_min, 
-           float& axisScaleX, float& axisScaleY, float& axisScaleZ);
-
-extern void*
-LoadFlowRaw(const char* fname, int width, int height, int depth,
-            float& min, float& max, float& nonzero_min, 
-            float& axisScaleX, float& axisScaleY, float& axisScaleZ,
-            int skipByte, bool bigEndian);
-
-extern void*
-LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
-                     float min, float max,
-                     float& axisScaleX, float& axisScaleY, float& axisScaleZ,
-                     int skipByte);
-
-extern void
-LoadProcessedFlowRaw(const char* fname, int width, int height, int depth,
-                     float* data);
 
 inline float randomRange(float rangeMin, float rangeMax)
 {

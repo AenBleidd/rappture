@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "DataLoader.h"
 #include "Trace.h"
 
 inline void endian_swap(unsigned int& x)
