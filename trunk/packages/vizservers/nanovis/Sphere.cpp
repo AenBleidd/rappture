@@ -18,49 +18,44 @@
 
 Sphere::Sphere(float x, float y, float z, 
                float r, float g, float b,
-               float _radius,
-               int _stack,
-               int _slice) :
+               float radius,
+               int stack,
+               int slice) :
     Renderable(Vector3(x, y, z)),
-    radius(_radius),
-    color(Color(r,g,b)),
-    stack(_stack),
-    slice(_slice)
+    _radius(radius),
+    _color(Color(r, g, b)),
+    _stack(stack),
+    _slice(slice)
 { 
-    boundary = BoundBox(x-r, y-r, z-r, x+r, y+r, z+r);
 }
 
 Sphere::~Sphere()
 {
 }
 
-void 
-Sphere::render()
+void
+Sphere::draw(GLUquadric *quad)
 {
-}
+    glColor3f(_color.r(), _color.g(), _color.b());
 
-void 
-Sphere::draw(GLUquadric* quad)
-{
-    glColor3f(color.R, color.G, color.B);
-    
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glTranslatef(location.x, location.y, location.z);
-    
+    glTranslatef(_location.x, _location.y, _location.z);
+
     //draw it
-    gluSphere(quad, radius, stack, slice);
-    
+    gluSphere(quad, _radius, _stack, _slice);
+
     glPopMatrix();
 }
 
-void 
-Sphere::set_horizontal_res(int _slice) {
-    slice=_slice;
+void
+Sphere::set_horizontal_res(int slice)
+{
+    _slice = slice;
 }
 
-void 
-Sphere::set_vertical_res(int _stack) {
-    stack=_stack;
+void
+Sphere::set_vertical_res(int stack)
+{
+    _stack = stack;
 }
-

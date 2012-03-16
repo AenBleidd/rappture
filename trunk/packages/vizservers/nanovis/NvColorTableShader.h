@@ -29,7 +29,7 @@ private :
 
 inline void NvColorTableShader::bind(Texture2D *plane, TransferFunction *tf)
 {
-    cgGLSetTextureParameter(_dataParam, plane->id);
+    cgGLSetTextureParameter(_dataParam, plane->id());
     cgGLSetTextureParameter(_tfParam, tf->id());
     cgGLEnableTextureParameter(_dataParam);
     cgGLEnableTextureParameter(_tfParam);

@@ -29,7 +29,7 @@ PointSetRenderer::PointSetRenderer()
     if (bytes) {
         for (unsigned int y = 0; y < image->getHeight(); ++y) {
             for (unsigned int x = 0; x < image->getWidth(); ++x, bytes += 4) {
-                bytes[3] =  (bytes[0] == 0) ? 0 : 255;
+                bytes[3] = (bytes[0] == 0) ? 0 : 255;
             }
         }
     }
@@ -43,6 +43,7 @@ PointSetRenderer::PointSetRenderer()
     }
 
     delete loader;
+    delete image;
     _bucketSort = new PCA::BucketSort(1024);
 }
 

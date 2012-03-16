@@ -33,7 +33,10 @@ inline void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, in
     ZincBlendeVolume *vol = (ZincBlendeVolume *)volume;
     cgGLSetStateMatrixParameter(_mviParam, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
     cgGLSetTextureParameter(_tfParam, tfID);
-    cgGLSetParameter4f(_cellSizeParam, vol->cell_size.x, vol->cell_size.y, vol->cell_size.z, 0.);
+    cgGLSetParameter4f(_cellSizeParam,
+                       vol->cell_size.x,
+                       vol->cell_size.y,
+                       vol->cell_size.z, 0.);
 
     if (!sliceMode) {
         cgGLSetParameter4f(_renderParam,
@@ -55,8 +58,8 @@ inline void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, in
                        0.0f,
                        0.0f);
 
-    cgGLSetTextureParameter(_volumeAParam, vol->zincblende_tex[0]->id);
-    cgGLSetTextureParameter(_volumeBParam, vol->zincblende_tex[1]->id);
+    cgGLSetTextureParameter(_volumeAParam, vol->zincblende_tex[0]->id());
+    cgGLSetTextureParameter(_volumeBParam, vol->zincblende_tex[1]->id());
     cgGLEnableTextureParameter(_volumeAParam);
     cgGLEnableTextureParameter(_volumeBParam);
 

@@ -111,4 +111,3 @@ R2FilePath::setWorkingDirectory(int argc, const char** argv)
     }
     _curDirectory = buff;
 }
-

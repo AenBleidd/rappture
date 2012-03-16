@@ -27,7 +27,7 @@ public:
     void setWorkingDirectory(int argc, const char **argv);
 
     /// get R2FilePath instance
-    static R2FilePath* getInstance();
+    static R2FilePath *getInstance();
 
 private:
     typedef std::list<R2string> R2stringList;

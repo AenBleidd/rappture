@@ -33,6 +33,21 @@ public:
 
     void getRGB(float *result);
 
+    double r() const
+    {
+        return _r;
+    }
+
+    double g() const
+    {
+        return _g;
+    }
+
+    double b() const
+    {
+        return _b;
+    }
+
     /// Limits the color to be in range of [0,1]
     void clamp();
 
