@@ -9,6 +9,18 @@
 class ParticleEmitter
 {
 public:
+   ParticleEmitter();
+
+    void setName(const std::string& name);
+    void setPosition(float x, float y, float z);
+    void setMinMaxLifeTime(float minLifeTime, float maxLifeTime);
+    void setMaxPositionOffset(float offsetX, float offsetY, float offsetZ);
+    void setMinMaxNumOfNewParticles(int minNum, int maxNum);
+
+    void setVectorField();
+    void setEnabled(bool enabled);
+    bool isEnabled() const;
+
     std::string _name;
     vrVector3f _position;
 
@@ -24,18 +36,6 @@ public:
     int _maxNumOfNewParticles;
 
     bool _enabled;
-
-    ParticleEmitter();
-
-    void setName(const std::string& name);
-    void setPosition(float x, float y, float z);
-    void setMinMaxLifeTime(float minLifeTime, float maxLifeTime);
-    void setMaxPositionOffset(float offsetX, float offsetY, float offsetZ);
-    void setMinMaxNumOfNewParticles(int minNum, int maxNum);
-
-    void setVectorField();
-    void setEnabled(bool enabled);
-    bool isEnabled() const;
 };
 
 inline void ParticleEmitter::setName(const std::string& name)
