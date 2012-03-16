@@ -24,8 +24,8 @@ public :
     }
 
 private:
-    NvColorTableShader* _shader;
-    R2Fonts* _fonts;
+    R2Fonts *_fonts;
+    NvColorTableShader *_shader;
 };
 
 #endif 

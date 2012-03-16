@@ -27,17 +27,18 @@
 #include <Cg/cgGL.h>
 
 #include "global.h"
+#include "NvColorTableShader.h"
 #include "TransferFunction.h"
 #include "Texture2D.h"
 
 class PlaneRenderer
 {
 public:
-    PlaneRenderer(CGcontext _context, int width, int height);
+    PlaneRenderer(int width, int height);
 
     ~PlaneRenderer();
 
-    int add_plane(Texture2D* _p, TransferFunction* _tf);
+    int add_plane(Texture2D *p, TransferFunction *tf);
 
     // Add a plane and its transfer function. We require a transfer function
     // when a plane is added.
@@ -50,12 +51,6 @@ public:
     void render();
 
 private:
-    void init_shaders();
-
-    void activate_shader(int plane_index);
-
-    void deactivate_shader();
-
     std::vector<Texture2D *> _plane;	// Array of volumes
     std::vector<TransferFunction *> _tf; // Array of corresponding transfer functions 
     int _active_plane;		// The active plane, only one is rendered
@@ -64,12 +59,7 @@ private:
     int _render_width;   //render size
     int _render_height;  
 
-    //cg related
-    CGcontext _g_context;	// The Nvidia cg context 
-    CGprogram _fprog;
-    CGparameter _data_param;
-    CGparameter _tf_param;
-    CGparameter _render_param;
+    NvColorTableShader *_shader;
 };
 
 #endif
