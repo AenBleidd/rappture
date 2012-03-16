@@ -75,6 +75,59 @@ public:
         PS_STREAMLINE = 16,
     };
 
+    ParticleSystem(int width, int height, const std::string& fileName,
+                   int fieldWidth, int fieldHeight, int fieldDepth, 
+                   bool timeVaryingData, int flowFileStartIndex, int flowFileEndIndex);
+    ~ParticleSystem();
+    void createRenderTargets();
+    void createSortRenderTargets();
+    void createStreamlineRenderTargets();
+    void advectStreamlines();
+    void renderStreamlines();
+
+    bool advect(float deltaT, float camx, float camy, float camz);
+    void enable(EnableEnum enabled);
+    void disable(EnableEnum enabled);
+    bool isEnabled(EnableEnum enabled);
+
+    ////////////////////////////////////////////
+    void addEmitter(ParticleEmitter *emitter);
+    ParticleEmitter *getEmitter(int index);
+    unsigned int getNumEmitters() const;
+    void removeEmitter(int index);
+    void removeAllEmitters();
+
+    int getMaxSize() const;
+
+    void render();
+
+    void reset();
+
+    void setDefaultPointSize(float size);
+
+    unsigned int getNumOfActiveParticles() const;
+
+    void setScreenSize(int sreenWidth, int screenHeight);
+
+    void setFOV(float fov);
+
+    void setUserDefinedNumOfParticles(int numParticles);
+
+    float getScaleX() const;
+    float getScaleY() const;
+    float getScaleZ() const;
+    unsigned int getVectorFieldGraphicsID() const;
+
+    bool isTimeVaryingField() const;
+    void setTimeVaryingField(bool timeVarying);
+
+    void setDepthCueEnabled(bool enabled);
+    bool getDepthCueEnabled() const;
+
+    static void *dataLoadMain(void *data);
+    // TEMP
+    static void callbackForCgError();
+
     const int _width;
     const int _height;
     /**
@@ -132,7 +185,6 @@ public:
     unsigned int velocity_fbo[2]; 
     unsigned int velocity_tex[2];
 
-    // TEMP
     ///////////////////////////////////////////////////
     // TIME SERIES
     std::vector<unsigned int> _vectorFieldIDs;
@@ -169,10 +221,6 @@ public:
     bool _advectionEnabled;
     bool _streamlineEnabled;
     bool _depthCueEnabled;
-
-    // TEMP
-    static void callbackForCgError();
-    static CGcontext _context;
 
     CGprogram _distanceInitFP;
 
@@ -257,56 +305,8 @@ public:
     // TEST
     std::vector<vrVector3f> *_criticalPoints;
 
-    static void *dataLoadMain(void *data);
-
-    ParticleSystem(int width, int height, const std::string& fileName,
-                   int fieldWidth, int fieldHeight, int fieldDepth, 
-                   bool timeVaryingData, int flowFileStartIndex, int flowFileEndIndex);
-    ~ParticleSystem();
-    void createRenderTargets();
-    void createSortRenderTargets();
-    void createStreamlineRenderTargets();
-    void advectStreamlines();
-    void renderStreamlines();
-
-    bool advect(float deltaT, float camx, float camy, float camz);
-    void enable(EnableEnum enabled);
-    void disable(EnableEnum enabled);
-    bool isEnabled(EnableEnum enabled);
-
-    ////////////////////////////////////////////
-    void addEmitter(ParticleEmitter *emitter);
-    ParticleEmitter *getEmitter(int index);
-    unsigned int getNumEmitters() const;
-    void removeEmitter(int index);
-    void removeAllEmitters();
-
-    int getMaxSize() const;
-
-    void render();
-
-    void reset();
-
-    void setDefaultPointSize(float size);
-
-    unsigned int getNumOfActiveParticles() const;
-
-    void setScreenSize(int sreenWidth, int screenHeight);
-
-    void setFOV(float fov);
-
-    void setUserDefinedNumOfParticles(int numParticles);
-
-    float getScaleX()const;
-    float getScaleY()const;
-    float getScaleZ()const;
-    unsigned int getVectorFieldGraphicsID() const;
-
-    bool isTimeVaryingField() const;
-    void setTimeVaryingField(bool timeVarying);
-
-    void setDepthCueEnabled(bool enabled);
-    bool getDepthCueEnabled() const;
+    // TEMP
+    static CGcontext _context;
 
 protected:
     void mergeSort(int count);
