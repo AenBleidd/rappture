@@ -23,35 +23,45 @@
 #include "config.h"
 
 Texture3D::Texture3D() :
-    gl_resource_allocated(false),
-    id(0)
+    _width(0),
+    _height(0),
+    _depth(0),
+    _numComponents(3),
+    _glResourceAllocated(false),
+    _id(0),
+    _type(GL_FLOAT),
+    _interpType(GL_LINEAR),
+    _wrapS(GL_CLAMP_TO_EDGE),
+    _wrapT(GL_CLAMP_TO_EDGE),
+    _wrapR(GL_CLAMP_TO_EDGE)
 {}
 
 Texture3D::Texture3D(int width, int height, int depth,
                      GLuint type, GLuint interp,
                      int numComponents, void *data) :
-    gl_resource_allocated(false),
-    id(0)
+    _width(width),
+    _height(height),
+    _depth(depth),
+    _numComponents(numComponents),
+    _glResourceAllocated(false),
+    _id(0),
+    _type(type),
+    _interpType(interp),
+    _wrapS(GL_CLAMP_TO_EDGE),
+    _wrapT(GL_CLAMP_TO_EDGE),
+    _wrapR(GL_CLAMP_TO_EDGE)
 {
-    this->width = width;
-    this->height = height;
-    this->depth = depth;
+    //int m = (_width > _height) ? _width : _height;
+    //m = (m > _depth) ? m : _depth; 
 
-    //int m = (width > height) ? width : height;
-    //m = (m > depth) ? m : depth; 
+    //int m = max(max(_width, _height), _depth);
+    _aspectRatioWidth = 1.;
+    _aspectRatioHeight = (double)_height/(double)_width;
+    _aspectRatioDepth = (double)_depth/(double)_width;
 
-    //int m = max(max(width, height), depth);
-    this->aspect_ratio_width = 1.;
-    this->aspect_ratio_height = (double)height/(double)width;
-    this->aspect_ratio_depth = (double)depth/(double)width;
-
-    //this->aspect_ratio_width = (double)width/(double)m;
-    //this->aspect_ratio_height = (double)height/(double)m;
-    //this->aspect_ratio_depth = (double)depth/(double)m;
-
-    this->type = type;
-    this->interp_type = interp;
-    this->n_components = numComponents;
+    //_aspectRatioWidth = (double)_width/(double)m;
+    //_aspectRatioHeight = (double)_height/(double)m;
+    //_aspectRatioDepth = (double)_depth/(double)m;
 
     if (data != NULL)
         initialize(data);
@@ -59,70 +69,83 @@ Texture3D::Texture3D(int width, int height, int depth,
 
 Texture3D::~Texture3D()
 {
-    glDeleteTextures(1, &id);
+    glDeleteTextures(1, &_id);
 }
 
 GLuint Texture3D::initialize(void *data)
 {
-    if (id != 0)
-        glDeleteTextures(1, &id);
+    if (_glResourceAllocated)
+        glDeleteTextures(1, &_id);
 
-    glGenTextures(1, &id);
+    glGenTextures(1, &_id);
 
     update(data);
- 
-    return id;
+
+    _glResourceAllocated = true;
+    return _id;
 }
 
 void Texture3D::update(void *data)
 {
-    assert(id > 0 && id != (GLuint)-1);
-    glBindTexture(GL_TEXTURE_3D, id);
+    glBindTexture(GL_TEXTURE_3D, _id);
 
     //load texture with 16 bit half floating point precision if card is 6 series NV40
     //half float with linear interpolation is only supported by 6 series and up cards
     //If NV40 not defined, data is quantized to 8-bit from 32-bit.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, _wrapS);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, _wrapT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, _wrapR);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, interp_type);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, interp_type);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, _interpType);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, _interpType);
 
     //to do: add handling to more formats
 #ifdef NV40
-    if (type == GL_FLOAT) {
+    if (_type == GL_FLOAT) {
         GLuint targetFormat[5] = { -1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, GL_RGB16F_ARB, GL_RGBA16F_ARB };
         GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-        glTexImage3D(GL_TEXTURE_3D, 0, targetFormat[n_components],
-                     width, height, depth, 0, 
-                     format[n_components], type, data);
+        glTexImage3D(GL_TEXTURE_3D, 0, targetFormat[_numComponents],
+                     _width, _height, _depth, 0, 
+                     format[_numComponents], _type, data);
     } else {
 #endif
         GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-        glTexImage3D(GL_TEXTURE_3D, 0, format[n_components],
-                     width, height, depth, 0, 
-                     format[n_components], type, data);
+        glTexImage3D(GL_TEXTURE_3D, 0, format[_numComponents],
+                     _width, _height, _depth, 0, 
+                     format[_numComponents], _type, data);
 #ifdef NV40
     }
 #endif
 
     assert(glGetError()==0);
-
-    gl_resource_allocated = true;
 }
 
 void Texture3D::activate()
 {
     glEnable(GL_TEXTURE_3D);
-    glBindTexture(GL_TEXTURE_3D, id);
+    glBindTexture(GL_TEXTURE_3D, _id);
 }
 
 void Texture3D::deactivate()
 {
     glDisable(GL_TEXTURE_3D);           
+}
+
+void Texture3D::setWrapS(GLuint wrapMode)
+{
+    _wrapS = wrapMode;
+}
+
+void Texture3D::setWrapT(GLuint wrapMode)
+{
+    _wrapT = wrapMode;
+}
+
+void Texture3D::setWrapR(GLuint wrapMode)
+{
+    _wrapR = wrapMode;
 }
 
 void Texture3D::check_max_size()

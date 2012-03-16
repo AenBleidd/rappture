@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef __NV_REGULAR_SHADER_H__
-#define __NV_REGULAR_SHADER_H__
+#ifndef NV_REGULAR_SHADER_H
+#define NV_REGULAR_SHADER_H
 
 #include "Volume.h"
 #include "NvVolumeShader.h"
@@ -26,7 +26,7 @@ private:
 };
 
 inline void 
-NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
+NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMode)
 {
     //regular cubic volume
     cgGLSetStateMatrixParameter(_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
@@ -37,18 +37,19 @@ NvRegularVolumeShader::bind(unsigned int tfID, Volume* volume, int sliceMode)
     cgGLEnableTextureParameter(_vol_one_volume_param);
     cgGLEnableTextureParameter(_tf_one_volume_param);
 
-    if(!sliceMode)
+    if (!sliceMode) {
         cgGLSetParameter4f(_render_param_one_volume_param,
             volume->n_slices(),
             volume->opacity_scale(),
             volume->diffuse(),
             volume->specular());
-    else
+    } else {
         cgGLSetParameter4f(_render_param_one_volume_param,
             0.,
             volume->opacity_scale(),
             volume->diffuse(),
             volume->specular());
+    }
 
     cgGLSetParameter4f(_option_one_volume_param,
     	0.0f,

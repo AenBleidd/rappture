@@ -68,14 +68,14 @@ Volume::Volume(float x, float y, float z,
         _tex->initialize(_data);
     }
 
-    id = _tex->id;
+    id = _tex->id();
 
     wAxis.SetRange(v0, v1);
 
     // VOLUME
-    aspect_ratio_width  = s * _tex->aspect_ratio_width;
-    aspect_ratio_height = s * _tex->aspect_ratio_height;
-    aspect_ratio_depth =  s * _tex->aspect_ratio_depth;
+    aspect_ratio_width  = s * _tex->aspectRatioWidth();
+    aspect_ratio_height = s * _tex->aspectRatioHeight();
+    aspect_ratio_depth =  s * _tex->aspectRatioDepth();
 
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.

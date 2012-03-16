@@ -263,9 +263,6 @@ else
 fi
 AC_MSG_RESULT([$DX_LIB_SPEC])
 
-AC_CHECK_HEADERS([opencv/cv.h opencv/highgui.h])
-AC_CHECK_LIB([highgui], [cvLoadImage])
-
 save_CPPFLAGS=$CPPFLAGS
 # Test for redhat-specific location of ffmpeg headers. 
 if test -d "/usr/include/ffmpeg" ; then 
@@ -403,7 +400,6 @@ AC_OUTPUT([
    nanovis/R2/src/Makefile \
    nanovis/vrutil/Makefile \
    nanovis/vrmath/Makefile \
-   nanovis/vr3d/Makefile \
    nanovis/imgLoaders/Makefile \
    nanovis/transfer-function/Makefile \
    pymolproxy/Makefile \

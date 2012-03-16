@@ -1,32 +1,30 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vrutil/vrFilePath.h>
-
-#ifdef _WIN32
-#pragma warning (disable : 4996)
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #ifdef _WIN32
 #include <direct.h>
 #endif
+
+#include <vrutil/vrFilePath.h>
+
+#include "Trace.h"
 
 std::string vrFilePath::_curDirectory;
 vrFilePath vrFilePath::_instance;
 
 static char seps[]  = ";";
+
 vrFilePath::vrFilePath()
 {
     char buff[255];
 #ifdef _WIN32
     if (_getcwd(buff, 255) == 0) {
-        printf("failed to get the current directory in vrFilePath::vrFilePath\n");
+        ERROR("failed to get the current working directory\n");
     }
 #else
     if (getcwd(buff, 255) == 0) {
-        printf("failed to get the current directory in vrFilePath::vrFilePath\n");
+        ERROR("failed to get the current working directory\n");
     }
 #endif
 
@@ -112,11 +110,11 @@ std::string vrFilePath::getPath(const char* fileName)
     for (iter = _pathList.begin(); iter != _pathList.end(); ++iter) {
 #ifdef _WIN32
         if (_chdir(iter->c_str()) == -1) {
-            printf("error : change dir (%s)", iter->c_str());
+            ERROR("error: change dir (%s)", iter->c_str());
         }
 #else
         if (chdir(iter->c_str()) == -1) {
-            printf("error : change dir (%s)", iter->c_str());
+            ERROR("error: change dir (%s)", iter->c_str());
         }
 #endif
         if ((file = fopen(fileName, "rb")) != NULL) {
@@ -124,18 +122,18 @@ std::string vrFilePath::getPath(const char* fileName)
 
             path = (*iter) + fileName;
 
-            printf("returned [%s]\n", path.c_str());
+            ERROR("error: returned [%s]\n", path.c_str());
             break;
         }
     }
 
 #ifdef _WIN32
     if (_chdir(_curDirectory.c_str()) != -1) {
-        printf("error : change dir (%s)", _curDirectory.c_str());
+        ERROR("error: change dir (%s)", _curDirectory.c_str());
     }
 #else
     if (chdir(_curDirectory.c_str()) != -1) {
-        printf("error : change dir (%s)", _curDirectory.c_str());
+        ERROR("error: change dir (%s)", _curDirectory.c_str());
     }
 #endif
 

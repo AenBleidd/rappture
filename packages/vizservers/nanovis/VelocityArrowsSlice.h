@@ -89,10 +89,10 @@ private:
     float _vfZscale;
     float _slicePos;
     int _axis;
-	
-    unsigned int _fbo; 	
+
+    unsigned int _fbo;
     unsigned int _tex;
-	
+
     CGcontext _context;
     CGprogram _queryVelocityFP;
     CGparameter _qvVectorFieldParam;
@@ -107,13 +107,13 @@ private:
     int _tickCountX;
     int _tickCountY;
     int _tickCountZ;
-	
+
     int _pointCount;
 
     Vector3 _maxVelocityScale;
     Vector3 _arrowColor;
 
-    bool _enabled;	
+    bool _enabled;
     bool _dirty;
     bool _dirtySamplingPosition;
     bool _dirtyRenderTarget;
@@ -125,7 +125,7 @@ private:
     CGparameter _mvParticleParam;
     CGparameter _mvTanHalfFOVParam;
     CGparameter _mvCurrentTimeParam;
-	
+
     CGprogram _particleFP;
     CGparameter _vectorParticleParam;
 

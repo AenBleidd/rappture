@@ -13,9 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
-#ifndef _SPHERE_H_
-#define _SPHERE_H_
+#ifndef SPHERE_H
+#define SPHERE_H
 
 #include <GL/glew.h>
 #include <GL/glu.h>
@@ -28,22 +27,26 @@
 class Sphere : public Renderable
 {
 public:
-    Sphere(float x, float y, float z, float r, float g, float b, float _radius,
-	   int _stack, int _slice);
+    Sphere(float x, float y, float z,
+           float r, float g, float b,
+           float radius,
+	   int stack, int slice);
 
     virtual ~Sphere();
 
-    void set_vertical_res(int _stack);
-    void set_horizontal_res(int _slice);
-        
-    //display the sphere
-    void draw(GLUquadric* q);
-    void render();
+    void set_vertical_res(int stack);
+    void set_horizontal_res(int slice);
 
-    float radius;
-    Color color;
-    int stack;
-    int slice;
+    //display the sphere
+    void draw(GLUquadric *q);
+    void render()
+    {}
+
+private:
+    float _radius;
+    Color _color;
+    int _stack;
+    int _slice;
 };
 
 #endif

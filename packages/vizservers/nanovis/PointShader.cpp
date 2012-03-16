@@ -12,7 +12,7 @@ PointShader::PointShader() :
     NvShader(), 
     _normal(0)
 {
-    this->loadVertexProgram("pointsvp.cg", "main");
+    loadVertexProgram("pointsvp.cg", "main");
     _modelviewVP  = getNamedParameterFromVP("modelview");
     _projectionVP = getNamedParameterFromVP("projection");
     _attenVP      = getNamedParameterFromVP("atten");

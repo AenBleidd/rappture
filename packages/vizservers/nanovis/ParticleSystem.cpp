@@ -4,21 +4,16 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <pthread.h>
 
-#ifdef HAVE_OPENCV_H
-#include <opencv/cv.h>
-#endif
-#ifdef HAVE_OPENCV_HIGHGUI_H
-#include <opencv/highgui.h>
-#endif
-
-#include <vr3d/vr3d.h>
-#include <vr3d/vrTexture3D.h>
-
+#include <GL/glew.h>
 #include <Cg/cgGL.h>
 
 #include <vrutil/vrFilePath.h>
+#include <Image.h>
+#include <ImageLoader.h>
+#include <ImageLoaderFactory.h>
 
 #include <vrmath/vrMatrix4x4f.h>
 #include <vrmath/vrVector3f.h>
@@ -26,6 +21,8 @@
 
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
+#include "Texture2D.h"
+#include "Texture3D.h"
 #include "Trace.h"
 
 #define USE_RGBA_ARROW
@@ -291,57 +288,65 @@ ParticleSystem::ParticleSystem(int width, int height,
     _maxVelocityScale = max;
 
     if (!this->isTimeVaryingField()) {
-        vrTexture3D* flow = new vrTexture3D();
-        flow->setMinFilter(TF_LINEAR);
-        flow->setMagFilter(TF_LINEAR);
-        flow->setPixels(CF_RGBA, DT_FLOAT, _flowWidth, _flowHeight, _flowDepth, data);
-        this->_curVectorFieldID = flow->getGraphicsObjectID();
+        Texture3D *flow = new Texture3D(_flowWidth, _flowHeight, _flowDepth,
+                                        GL_FLOAT, GL_LINEAR, 4, data);
+        _curVectorFieldID = flow->id();
         _vectorFieldIDs.push_back(_curVectorFieldID);
     } else {
         for (int i = 0; i < 3; ++i) {
-            vrTexture3D* flow = new vrTexture3D();
-            flow->setMinFilter(TF_LINEAR);
-            flow->setMagFilter(TF_LINEAR);
-            flow->setPixels(CF_RGBA, DT_FLOAT, _flowWidth, _flowHeight, _flowDepth, data);
+            Texture3D *flow = new Texture3D(_flowWidth, _flowHeight, _flowDepth,
+                                            GL_FLOAT, GL_LINEAR, 4, data);
             _vectorFields.push_back(flow);
-            _vectorFieldIDs.push_back(flow->getGraphicsObjectID());
+            _vectorFieldIDs.push_back(flow->id());
         }
-        this->_curVectorFieldID = _vectorFieldIDs[0];
+        _curVectorFieldID = _vectorFieldIDs[0];
     }
 
-    _arrows = new vrTexture2D();
-    _arrows->setWrapS(TW_MIRROR);
-    _arrows->setWrapT(TW_MIRROR);
-
-#ifndef USE_RGBA_ARROW
-    IplImage* pTextureImage = cvLoadImage("arrows_flip2.png");
-    _arrows->setPixels(CF_RGB, DT_UBYTE, pTextureImage->width, pTextureImage->height, pTextureImage->imageData);
+#ifdef USE_RGBA_ARROW
+    std::string path = vrFilePath::getInstance()->getPath("arrow.bmp");
 #else
-#ifdef notdef
-    // TBD..
     std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
-    AUX_RGBImageRec *pTextureImage = auxDIBImageLoad(path.c_str());
-    unsigned char* pixels = new unsigned char [pTextureImage->sizeX * pTextureImage->sizeY * sizeof(unsigned char) * 4];
-    unsigned char* srcPixels = pTextureImage->data;
-    unsigned char* dstPixels = pixels;
-    for (int i = 0; i < pTextureImage->sizeX * pTextureImage->sizeY; ++i) {
-        *dstPixels = *srcPixels; ++srcPixels;
-        *(dstPixels + 1) = *srcPixels; ++srcPixels;
-        *(dstPixels + 2) = *srcPixels; ++srcPixels;
-
-        if ((*dstPixels > 127) && (*(dstPixels + 1) < 127) && (*(dstPixels + 2) < 127)) {
-            *(dstPixels + 3) = 0;
-        } else {
-            *(dstPixels + 3) = 255;
-        }
-
-        dstPixels += 4;
-    }
-
-    _arrows->setPixels(CF_RGBA, DT_UBYTE, pTextureImage->sizeX, pTextureImage->sizeY, (void*) pixels);
 #endif
-
-#endif // USE_RGBA_ARROW
+    if (!path.empty()) {
+        ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
+        if (loader != NULL) {
+#ifdef USE_RGBA_ARROW
+            Image *image = loader->load(path.c_str(), Image::IMG_RGBA);
+#else
+            Image *image = loader->load(path.c_str(), Image::IMG_RGB);
+#endif
+            if (image != NULL) {
+                unsigned char *bytes = (unsigned char *)image->getImageBuffer();
+                if (bytes != NULL) {
+#ifdef USE_RGBA_ARROW
+                    for (unsigned int y = 0; y < image->getHeight(); ++y) {
+                        for (unsigned int x = 0; x < image->getWidth(); ++x, bytes += 4) {
+                            bytes[3] = (bytes[0] > 127 &&
+                                        bytes[1] < 127 &&
+                                        bytes[2] < 127) ? 0 : 255;
+                        }
+                    }
+                    _arrows = new Texture2D(image->getWidth(), image->getHeight(),
+                                            GL_UNSIGNED_BYTE, GL_LINEAR, 4, NULL);
+#else
+                    _arrows = new Texture2D(image->getWidth(), image->getHeight(),
+                                            GL_UNSIGNED_BYTE, GL_LINEAR, 3, NULL);
+#endif
+                    _arrows->setWrapS(GL_MIRRORED_REPEAT);
+                    _arrows->setWrapT(GL_MIRRORED_REPEAT);
+                    _arrows->initialize(image->getImageBuffer());
+                }
+                delete image;
+            } else {
+                ERROR("Failed to load image: arrows.bmp\n");
+            }
+            delete loader;
+        } else {
+            ERROR("Couldn't find loader for arrows.bmp\n");
+        }
+    } else {
+        ERROR("Couldn't find path to arrows.bmp\n");
+    }
 
 #ifdef TEST
     MakeSphereTexture();
@@ -1033,19 +1038,19 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
 {
     static bool firstLoad = true;
     if (this->isTimeVaryingField()) {
-        static float oldTime = vrGetTimeStamp();
+        static float oldTime = (float)clock()/(float)CLOCKS_PER_SEC;
 #ifdef WANT_TRACE
         static int index = 0;
 #endif
-        float time = vrGetTimeStamp();
+        float time = (float)clock()/(float)CLOCKS_PER_SEC;
         if ((time - oldTime) > 2.0) {
             if (!_queue.isEmpty()) {
-                float* data = 0;
+                float *data = NULL;
                 if (_queue.top(data)) {
 #ifdef WANT_TRACE
                     float t = clock() /(float) CLOCKS_PER_SEC;
 #endif
-                    _vectorFields[0]->updatePixels(data);
+                    _vectorFields[0]->update(data);
 #ifdef WANT_TRACE
                     float ti = clock() / (float) CLOCKS_PER_SEC;
                     TRACE("updatePixels time: %f\n", ti - t);
@@ -1660,7 +1665,7 @@ void ParticleSystem::render()
             glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
 
 #ifndef TEST
-            _arrows->bind(0);
+            _arrows->activate(); //_arrows->bind(0);
             glEnable(GL_TEXTURE_2D);
             //glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 60.0f );
             glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
@@ -1676,10 +1681,10 @@ void ParticleSystem::render()
 
             cgSetParameter1f(_mvCurrentTimeParam, _currentTime);
             //TRACE("%f %f, %f %d\n", _fov, tan(_fov), tan(_fov / 2.0), _screenHeight);
-            //cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5);
-            //float v = tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5;
-            cgSetParameter1f(_mvTanHalfFOVParam, tan(_fov * PI / 180 * 0.5) * _screenHeight * 0.5);
-            //cgSetParameter1f(_mvTanHalfFOVParam,  _screenHeight * 0.5 / tan(_fov * PI / 180 * 0.5));
+            //cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5);
+            //float v = tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5;
+            cgSetParameter1f(_mvTanHalfFOVParam, tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5);
+            //cgSetParameter1f(_mvTanHalfFOVParam,  _screenHeight * 0.5 / tan(_fov * M_PI / 180 * 0.5));
 
             cgGLSetStateMatrixParameter(_mvpParticleParam,
                                         CG_GL_MODELVIEW_PROJECTION_MATRIX,

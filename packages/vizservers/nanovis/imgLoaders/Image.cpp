@@ -35,4 +35,3 @@ Image::~Image()
     //aligend_free(_dataBuffer);
     free(_dataBuffer);
 }   
-

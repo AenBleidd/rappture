@@ -10,12 +10,12 @@
 
 #include <Cg/cg.h>
 
-#include <vr3d/vrTexture2D.h>
-#include <vr3d/vrTexture3D.h>
 #include <vrmath/vrVector3f.h>
 
 #include "ParticleEmitter.h"
 #include "RenderVertexArray.h"
+#include "Texture2D.h"
+#include "Texture3D.h"
 
 #include "CircularQueue.h"
 
@@ -136,7 +136,7 @@ public:
     ///////////////////////////////////////////////////
     // TIME SERIES
     std::vector<unsigned int> _vectorFieldIDs;
-    std::vector<vrTexture3D *> _vectorFields;
+    std::vector<Texture3D *> _vectorFields;
     unsigned int _curVectorFieldID;
     float _time_series_vel_mag_min;
     float _time_series_vel_mag_max;
@@ -155,7 +155,7 @@ public:
     color4 *_colorBuffer;
     unsigned _colorBufferID;
     //////////////////////////////////////////
-    vrTexture2D *_arrows;
+    Texture2D *_arrows;
 
     float _camx;
     float _camy;

@@ -39,25 +39,69 @@ public:
 
     void deactivate();
 
+    int width() const
+    {
+        return _width;
+    }
+
+    int height() const
+    {
+        return _width;
+    }
+
+    int depth() const
+    {
+        return _width;
+    }
+
+    double aspectRatioWidth() const
+    {
+        return _aspectRatioWidth;
+    }
+
+    double aspectRatioHeight() const
+    {
+        return _aspectRatioHeight;
+    }
+
+    double aspectRatioDepth() const
+    {
+        return _aspectRatioDepth;
+    }
+
+    GLuint id() const
+    {
+        return _id;
+    }
+
+    void setWrapS(GLuint wrapMode);
+
+    void setWrapT(GLuint wrapMode);
+
+    void setWrapR(GLuint wrapMode);
+
     static void check_max_size();
 
     static void check_max_unit();
 
-    int width;
-    int height;
-    int depth;
+private:
+    int _width;
+    int _height;
+    int _depth;
 
-    double aspect_ratio_width;
-    double aspect_ratio_height;
-    double aspect_ratio_depth;
+    double _aspectRatioWidth;
+    double _aspectRatioHeight;
+    double _aspectRatioDepth;
 
-    int n_components;
+    int _numComponents;
 
-    bool gl_resource_allocated;
-    GLuint id;
-    GLuint type;
-    GLuint interp_type;
-    //GLuint tex_unit;
+    bool _glResourceAllocated;
+    GLuint _id;
+    GLuint _type;
+    GLuint _interpType;
+    GLuint _wrapS;
+    GLuint _wrapT;
+    GLuint _wrapR;
 };
 
 #endif

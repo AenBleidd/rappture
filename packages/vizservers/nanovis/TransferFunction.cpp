@@ -26,7 +26,7 @@ TransferFunction::TransferFunction(int size, float *data)
     memcpy(_data, data, sizeof(float) * _size);
 
     _tex = new Texture1D(size, GL_FLOAT, GL_LINEAR, 4, data);
-    _id = _tex->id;
+    _id = _tex->id();
 }
 
 TransferFunction::~TransferFunction()

@@ -362,9 +362,9 @@ inline void
 Volume::set_size(float s) 
 { 
     size = s; 
-    aspect_ratio_width  = s * _tex->aspect_ratio_width;
-    aspect_ratio_height = s * _tex->aspect_ratio_height;
-    aspect_ratio_depth  = s * _tex->aspect_ratio_depth;
+    aspect_ratio_width  = s * _tex->aspectRatioWidth();
+    aspect_ratio_height = s * _tex->aspectRatioHeight();
+    aspect_ratio_depth  = s * _tex->aspectRatioDepth();
 }
 
 inline void 

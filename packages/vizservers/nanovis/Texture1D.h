@@ -39,20 +39,32 @@ public:
 
     void deactivate();
 
+    int width() const
+    {
+        return _width;
+    }
+
+    GLuint id() const
+    {
+        return _id;
+    }
+
+    void setWrapS(GLuint wrapMode);
+
     static void check_max_size();
 
     static void check_max_unit();
 
-    int width;
+private:
+    int _width;
 
-    int n_components;
+    int _numComponents;
 
-    bool gl_resource_allocated;
-    GLuint id;
-    GLuint type;
-    GLuint interp_type;
-
-    //GLuint tex_unit;
+    bool _glResourceAllocated;
+    GLuint _id;
+    GLuint _type;
+    GLuint _interpType;
+    GLuint _wrapS;
 };
 
 #endif

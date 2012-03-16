@@ -108,7 +108,7 @@ PlaneRenderer::render()
 void 
 PlaneRenderer::activate_shader(int index)
 {
-    cgGLSetTextureParameter(_data_param, _plane[index]->id);
+    cgGLSetTextureParameter(_data_param, _plane[index]->id());
     cgGLSetTextureParameter(_tf_param, _tf[index]->id());
     cgGLEnableTextureParameter(_data_param);
     cgGLEnableTextureParameter(_tf_param);

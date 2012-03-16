@@ -2,9 +2,10 @@
 #ifndef VRFILEPATH_H
 #define VRFILEPATH_H
 
-#include <vrutil/vrUtil.h>
 #include <string>
 #include <list>
+
+#include <vrutil/vrUtil.h>
 
 class vrFilePath
 {

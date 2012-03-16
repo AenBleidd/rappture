@@ -7,17 +7,16 @@
 class ImageLoaderImpl
 {
 public:
-    friend class ImageLoader;
-
     ImageLoaderImpl();
 
     virtual ~ImageLoaderImpl();
 
+    virtual Image *load(const char *fileName) = 0;
+
+    friend class ImageLoader;
+
 protected:
     Image::ImageFormat _targetImageFormat;
-
-public:
-    virtual Image *load(const char *fileName) = 0;
 };
 
 #endif

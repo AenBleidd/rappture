@@ -1,4 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+
 void main(in float4 posin : POSITION,
           in float4 colin : COLOR0,
           out float psize : PSIZE,

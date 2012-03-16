@@ -47,10 +47,6 @@ VRUTIL_DIR	= ./vrutil
 VRUTIL_INC_SPEC	= -I$(srcdir)/$(VRUTIL_DIR)/include
 VRUTIL_LIB	= $(VRUTIL_DIR)/vrutil.a
 VRUTIL_LIB_SPEC	= $(VRUTIL_LIB)
-VR3D_DIR	= ./vr3d
-VR3D_INC_SPEC	= -I$(srcdir)/$(VR3D_DIR)/include
-VR3D_LIB	= $(VR3D_DIR)/vr3d.a
-VR3D_LIB_SPEC	= $(VR3D_LIB)
 R2_DIR		= ./R2
 R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
 R2_LIB		= $(R2_DIR)/src/R2.a
@@ -73,7 +69,6 @@ LIBS		= \
 		$(MAT_LIB_SPEC) \
 		$(VRMATH_LIB_SPEC) \
 		$(VRUTIL_LIB_SPEC) \
-		$(VR3D_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
@@ -89,7 +84,6 @@ INCLUDES	= \
 		$(MAT_INC_SPEC) \
 		$(VRMATH_INC_SPEC) \
 		$(VRUTIL_INC_SPEC) \
-		$(VR3D_INC_SPEC) \
 		$(TCL_INC_SPEC) \
 		$(FF_INC_SPEC) \
 		$(CG_INC_SPEC) \
@@ -216,9 +210,9 @@ shaders		= \
 		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/velocity.cg
 
-.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function 
+.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil transfer-function 
 
-all: newmat11 R2 imgloaders vrmath vrutil vr3d transfer-function nanovis 
+all: newmat11 R2 imgloaders vrmath vrutil nanovis 
 
 install: install-nanovis install-resources install-shaders
 
@@ -226,7 +220,6 @@ newmat11:		$(MAT_LIB)
 R2:			$(R2_LIB)
 vrmath:			$(VRMATH_LIB)
 vrutil:			$(VRUTIL_LIB)
-vr3d:			$(VR3D_LIB)
 imgloaders:		$(IMG_LIB)
 
 $(MAT_LIB):
@@ -238,16 +231,13 @@ $(VRMATH_LIB):
 $(VRUTIL_LIB):
 	$(MAKE) -C $(VRUTIL_DIR) all
 
-$(VR3D_LIB):
-	$(MAKE) -C $(VR3D_DIR) all
-
 $(R2_LIB): 
 	$(MAKE) -C $(R2_DIR)/src all
 
 $(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(VR3D_LIB) $(OBJS)
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -287,7 +277,6 @@ clean:
 	$(MAKE) -C $(MAT_DIR) clean
 	$(MAKE) -C $(VRMATH_DIR) clean
 	$(MAKE) -C $(VRUTIL_DIR) clean
-	$(MAKE) -C $(VR3D_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
 	$(RM) nanovis client *.o
@@ -296,7 +285,6 @@ distclean: clean
 	$(MAKE) -C $(MAT_DIR) distclean
 	$(MAKE) -C $(VRMATH_DIR) distclean
 	$(MAKE) -C $(VRUTIL_DIR) distclean
-	$(MAKE) -C $(VR3D_DIR) distclean
 	$(MAKE) -C $(R2_DIR)/src distclean
 	$(MAKE) -C $(IMG_DIR) distclean
 	$(RM) Makefile nvconf.h *~
@@ -306,7 +294,7 @@ BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
 Color.o: Color.cpp Color.h
-Command.o: Command.cpp dxReader.h
+Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
 DataLoader.o: DataLoader.cpp 
