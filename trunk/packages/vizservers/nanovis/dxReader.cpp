@@ -64,6 +64,10 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
     nx = ny = nz = npts = nxy = 0;
     do {
         fin.getline(line, sizeof(line) - 1);
+        if (fin.fail()) {
+            result.error("error in data stream");
+            return NULL;
+        }
         for (start = line; *start == ' ' || *start == '\t'; start++)
             ;  // skip leading blanks
 
@@ -80,7 +84,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
                 for (int i = 0; i < nxy; i++) {
                     fin.getline(line,sizeof(line)-1);
                     if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
-                        xymesh.addNode( Rappture::Node2D(xx,yy) );
+                        xymesh.addNode(Rappture::Node2D(xx,yy));
                     }
                 }
 
@@ -175,7 +179,8 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
     } while (!fin.eof());
 
     TRACE("found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n", 
-           nx, ny, nz, x0, y0, z0);
+          nx, ny, nz, x0, y0, z0);
+
     // read data points
     if (fin.eof() && (npts > 0)) {
         result.addError("EOF found: expecting %d points", npts);
@@ -198,6 +203,10 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
 
         while (!fin.eof() && nread < npts) {
             fin.getline(line,sizeof(line)-1);
+            if (fin.fail()) {
+                result.addError("error reading data points");
+                return NULL;
+            }
             int n = sscanf(line, "%lg %lg %lg %lg %lg %lg",
                            &dval[0], &dval[1], &dval[2], &dval[3], &dval[4], &dval[5]);
 
@@ -264,7 +273,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
         volPtr->update_pending = true;
         delete [] data;
     } else {
-        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+        Rappture::Mesh1D zgrid(z0, z0 + nz*dz, nz);
         Rappture::FieldPrism3D field(xymesh, zgrid);
 
         double dval;
@@ -370,13 +379,22 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
     float dz0 = -0.5*dz/dx;
     if (volPtr) {
         volPtr->location(Vector3(dx0, dy0, dz0));
-        TRACE("volume moved\n");
+        TRACE("Set volume location to %g %g %g\n", dx0, dy0, dz0);
     }
     return volPtr;
 }
 
 /**
  * \brief Load a 3D volume from a dx-format file
+ *
+ * In DX format:
+ *  rank 0 means scalars,
+ *  rank 1 means vectors,
+ *  rank 2 means matrices,
+ *  rank 3 means tensors
+ * 
+ *  For rank 1, shape is a single number equal to the number of dimensions.
+ *  e.g. rank 1 shape 3 means a 3-component vector field
  */
 Volume *
 load_volume_stream(Rappture::Outcome& result, const char *tag,
@@ -416,7 +434,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                 for (int i = 0; i < nxy; i++) {
                     fin.getline(line,sizeof(line)-1);
                     if (sscanf(line, "%lg %lg %lg", &xx, &yy, &zz) == 3) {
-                        xymesh.addNode( Rappture::Node2D(xx,yy) );
+                        xymesh.addNode(Rappture::Node2D(xx,yy));
                     }
                 }
 
@@ -468,12 +486,23 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                 // found origin
             } else if (sscanf(start, "delta %lg %lg %lg", &ddx, &ddy, &ddz) == 3) {
                 // found one of the delta lines
+                int count = 0;
                 if (ddx != 0.0) {
                     dx = ddx;
-                } else if (ddy != 0.0) {
+                    count++;
+                }
+                if (ddy != 0.0) {
                     dy = ddy;
-                } else if (ddz != 0.0) {
+                    count++;
+                }
+                if (ddz != 0.0) {
                     dz = ddz;
+                    count++;
+                }
+                if (count > 1) {
+                    result.addError("don't know how to handle multiple non-zero"
+                                    " delta values");
+                    return NULL;
                 }
             } else if (sscanf(start, "object %d class array type %s rank 0 items %d data follows",
                               &dummy, type, &npts) == 3) {
@@ -483,7 +512,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                     return NULL;
                 } else if (!isrect && (npts != nxy*nz)) {
                     result.addError("inconsistent data: expected %d points"
-                                    " but found %d points", nx*ny*nz, npts);
+                                    " but found %d points", nxy*nz, npts);
                     return NULL;
                 }
                 break;
@@ -498,6 +527,10 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             }
         }
     }
+
+    TRACE("found nx=%d ny=%d, nz=%d, x0=%f, y0=%f, z0=%f\n", 
+          nx, ny, nz, x0, y0, z0);
+
     // read data points
     if (fin.eof()) {
         result.error("data not found in stream");
@@ -505,9 +538,9 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     }
     Volume *volPtr = NULL;
     if (isrect) {
-        Rappture::Mesh1D xgrid(x0, x0+nx*dx, nx);
-        Rappture::Mesh1D ygrid(y0, y0+ny*dy, ny);
-        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+        Rappture::Mesh1D xgrid(x0, x0 + nx*dx, nx);
+        Rappture::Mesh1D ygrid(y0, y0 + ny*dy, ny);
+        Rappture::Mesh1D zgrid(z0, z0 + nz*dz, nz);
         Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
 
         double dval[6];
@@ -541,7 +574,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         // make sure that we read all of the expected points
         if (nread != nx*ny*nz) {
             result.addError("inconsistent data: expected %d points"
-                            " but found %d points", nx*ny*nz, npts);
+                            " but found %d points", nx*ny*nz, nread);
             return NULL;
         }
 
@@ -563,7 +596,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
-//#define _SOBEL
+//#define _SOBEL_
 #ifdef _SOBEL_
         const int step = 1;
         float *cdata = new float[nx*ny*nz * step];
@@ -612,6 +645,10 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                     double xval = x0 + ix*dmin;
                     double v = field.value(xval,yval,zval);
 
+                    if (v != 0.0 && v < nzero_min) {
+                        nzero_min = v;
+                    }
+
                     // scale all values [0-1], -1 => out of bounds
                     v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
 
@@ -641,19 +678,17 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
         volPtr->update_pending = true;
         // TBD..
-        // POINTSET
-        /*
-          PointSet *pset = new PointSet();
-          pset->initialize(volPtr, (float*)data);
-          pset->setVisible(true);
-          NanoVis::pointSet.push_back(pset);
-          updateColor(pset);
-          volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
-        */
-
+#if 0 && defined(USE_POINTSET_RENDERER)
+        PointSet *pset = new PointSet();
+        pset->initialize(volPtr, (float*)data);
+        pset->setVisible(true);
+        NanoVis::pointSet.push_back(pset);
+        updateColor(pset);
+        volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
+#endif
         delete [] data;
     } else {
-        Rappture::Mesh1D zgrid(z0, z0+nz*dz, nz);
+        Rappture::Mesh1D zgrid(z0, z0 + nz*dz, nz);
         Rappture::FieldPrism3D field(xymesh, zgrid);
 
         double dval;
@@ -681,7 +716,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         // make sure that we read all of the expected points
         if (nread != nxy*nz) {
             result.addError("inconsistent data: expected %d points"
-                            " but found %d points", nx*ny*nz, npts);
+                            " but found %d points", nxy*nz, nread);
             return NULL;
         }
 
@@ -735,46 +770,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             }
         }
 
-        // Compute the gradient of this data.  BE CAREFUL: center
-        // calculation on each node to avoid skew in either direction.
-        ngen = 0;
-        for (int iz=0; iz < nz; iz++) {
-            for (int iy=0; iy < ny; iy++) {
-                for (int ix=0; ix < nx; ix++) {
-                    // gradient in x-direction
-                    double valm1 = (ix == 0) ? 0.0 : data[ngen-1];
-                    double valp1 = (ix == nx-1) ? 0.0 : data[ngen+1];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+1] = 0.0;
-                    } else {
-                        data[ngen+1] = valp1-valm1; // assume dx=1
-                        //data[ngen+1] = ((valp1-valm1) + 1.0) * 0.5; // assume dx=1 (ISO)
-                    }
-                    
-                    // gradient in y-direction
-                    valm1 = (iy == 0) ? 0.0 : data[ngen-4*nx];
-                    valp1 = (iy == ny-1) ? 0.0 : data[ngen+4*nx];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+2] = 0.0;
-                    } else {
-                        data[ngen+2] = valp1-valm1; // assume dy=1
-                        //data[ngen+2] = ((valp1-valm1) + 1.0) * 0.5; // assume dy=1 (ISO)
-                    }
-                    
-                    // gradient in z-direction
-                    valm1 = (iz == 0) ? 0.0 : data[ngen-4*nx*ny];
-                    valp1 = (iz == nz-1) ? 0.0 : data[ngen+4*nx*ny];
-                    if (valm1 < 0 || valp1 < 0) {
-                        data[ngen+3] = 0.0;
-                    } else {
-                        data[ngen+3] = valp1-valm1; // assume dz=1
-                        //data[ngen+3] = ((valp1-valm1) + 1.0) * 0.5; // assume dz=1 (ISO)
-                    }
-                    
-                    ngen += 4;
-                }
-            }
-        }
+        computeSimpleGradient(data, nx, ny, nz);
 
         volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
                                       field.valueMin(), field.valueMax(),
@@ -788,16 +784,14 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
         volPtr->update_pending = true;
         // TBD..
-        // POINTSET
-        /*
-          PointSet *pset = new PointSet();
-          pset->initialize(volPtr, (float*)data);
-          pset->setVisible(true);
-          NanoVis::pointSet.push_back(pset);
-          updateColor(pset);
-          volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
-        */
-
+#if 0 && defined(USE_POINTSET_RENDERER)
+        PointSet *pset = new PointSet();
+        pset->initialize(volPtr, (float*)data);
+        pset->setVisible(true);
+        NanoVis::pointSet.push_back(pset);
+        updateColor(pset);
+        volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
+#endif
         delete [] data;
     }
 
@@ -809,6 +803,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     float dz0 = -0.5*dz/dx;
     if (volPtr) {
         volPtr->location(Vector3(dx0, dy0, dz0));
+        TRACE("Set volume location to %g %g %g\n", dx0, dy0, dz0);
     }
     return volPtr;
 }
