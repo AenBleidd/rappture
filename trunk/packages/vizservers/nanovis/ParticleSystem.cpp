@@ -303,9 +303,9 @@ ParticleSystem::ParticleSystem(int width, int height,
     }
 
 #ifdef USE_RGBA_ARROW
-    std::string path = vrFilePath::getInstance()->getPath("arrow.bmp");
-#else
     std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
+#else
+    std::string path = vrFilePath::getInstance()->getPath("arrows.bmp");
 #endif
     if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
