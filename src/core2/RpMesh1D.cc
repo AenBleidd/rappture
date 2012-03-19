@@ -279,7 +279,7 @@ Mesh1D::_locateInterval(double x) const
         double x0 = _nodelist[pos].x();
         double x1 = (pos+1 <= max) ? _nodelist[pos+1].x() : x0;
 
-        if (x >= x0 && x < x1) {
+        if (x >= x0 && x <= x1) {
             return pos;
         }
         else if (x < x0) {
