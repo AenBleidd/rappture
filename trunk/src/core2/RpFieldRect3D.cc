@@ -103,8 +103,8 @@ FieldRect3D::rangeMax(Axis which) const
 FieldRect3D&
 FieldRect3D::define(int nodeId, double f)
 {
-    while (_valuelist.size() < (unsigned int)(nodeId)) {
-        _valuelist.push_back(NAN);
+    if (_valuelist.size() < (unsigned int)(nodeId+1)) {
+        _valuelist.resize((unsigned int)(nodeId+1), NAN);
     }
     _valuelist[nodeId] = f;
 
