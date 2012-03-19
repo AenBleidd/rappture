@@ -277,13 +277,20 @@ Mesh1D::_locateInterval(double x) const
         int next = pos+1;
 
         double x0 = _nodelist[pos].x();
-        double x1 = (pos+1 <= max) ? _nodelist[pos+1].x() : x0;
+        double x1 = (next <= max) ? _nodelist[next].x() : x0;
 
         if (x >= x0 && x <= x1) {
+            if (next > max) {
+                // On boundary node
+                if (prev >= first)
+                    return prev;
+                else
+                    return -1; // Shouldn't happen - single node!
+            }
             return pos;
         }
         else if (x < x0) {
-            if (prev < 0) {
+            if (prev < first) {
                 return -1;   // can't go there -- bail out!
             }
             last = prev;
