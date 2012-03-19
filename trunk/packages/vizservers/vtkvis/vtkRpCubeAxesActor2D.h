@@ -14,7 +14,7 @@
 =========================================================================*/
 // .NAME vtkRpCubeAxesActor2D - create a 2D plot of a bounding box edges - used for navigation
 // .SECTION Description
-// vtkCubeAxesActor2D is a composite actor that draws three axes of the 
+// vtkRpCubeAxesActor2D is a composite actor that draws three axes of the 
 // bounding box of an input dataset. The axes include labels and titles
 // for the x-y-z axes. The algorithm selects the axes that are on the 
 // "exterior" of the bounding box, exterior as determined from examining
@@ -22,8 +22,8 @@
 // the edges closest to the viewer (i.e., camera position) can be drawn.
 // 
 // To use this object you must define a bounding box and the camera used
-// to render the vtkCubeAxesActor2D. The camera is used to control the 
-// scaling and position of the vtkCubeAxesActor2D so that it fits in the
+// to render the vtkRpCubeAxesActor2D. The camera is used to control the 
+// scaling and position of the vtkRpCubeAxesActor2D so that it fits in the
 // viewport and always remains visible.)
 //
 // The font property of the axes titles and labels can be modified through the
