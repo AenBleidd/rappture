@@ -16,8 +16,10 @@
 #include <vtkSmartPointer.h>
 #include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
+#include "vtkRpCubeAxesActor.h"
 #include "vtkRpCubeAxesActor2D.h"
 #else
+#include <vtkCubeAxesActor.h>
 #include <vtkCubeAxesActor2D.h>
 #endif
 #include <vtkScalarBarActor.h>
@@ -88,20 +90,6 @@ public:
     typedef std::string DataSetId;
     typedef std::string ColorMapId;
     typedef std::string FieldId;
-    typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
-    typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
-    typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Cutplane *> CutplaneHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
-    typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
-    typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
-    typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
-    typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
-    typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
 
     // Data sets
 
@@ -519,6 +507,21 @@ public:
     void setVolumeSampleDistance(const DataSetId& id, double distance);
 
 private:
+    typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
+    typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
+    typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Cutplane *> CutplaneHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
+    typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
+    typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
+    typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
+    typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
+
     static void printCameraInfo(vtkCamera *camera);
 
     static void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
@@ -600,10 +603,11 @@ private:
     vtkSmartPointer<vtkPlane> _cameraClipPlanes[4];
     vtkSmartPointer<vtkPlane> _userClipPlanes[6];
     vtkSmartPointer<vtkPlaneCollection> _activeClipPlanes;
-    vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
 #ifdef USE_CUSTOM_AXES
+    vtkSmartPointer<vtkRpCubeAxesActor> _cubeAxesActor; // For 3D view
     vtkSmartPointer<vtkRpCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
 #else
+    vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
     vtkSmartPointer<vtkCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
 #endif
     vtkSmartPointer<vtkScalarBarActor> _scalarBarActor;

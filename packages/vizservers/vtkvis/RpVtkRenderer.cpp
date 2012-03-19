@@ -518,8 +518,13 @@ void Renderer::resetAxes(double bounds[6])
 void Renderer::initAxes()
 {
     TRACE("Initializing axes");
+#ifdef USE_CUSTOM_AXES
+    if (_cubeAxesActor == NULL)
+        _cubeAxesActor = vtkSmartPointer<vtkRpCubeAxesActor>::New();
+#else
     if (_cubeAxesActor == NULL)
         _cubeAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
+#endif
     _cubeAxesActor->SetCamera(_renderer->GetActiveCamera());
     _cubeAxesActor->GetProperty()->LightingOff();
     // Don't offset labels at origin
@@ -1087,6 +1092,7 @@ void Renderer::deleteColorMap(const ColorMapId& id)
  * range computed, will be filled with valid min and max values
  * \param[in] width Pixel width of legend (aspect controls orientation)
  * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] opaque Flag to control if legend is rendered opaque or translucent
  * \param[in] numLabels Number of labels to render (includes min/max)
  * \param[in,out] imgData Pointer to array to fill with image bytes. Array
  * will be resized if needed.
@@ -1153,6 +1159,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
  * range computed, will be filled with valid min and max values
  * \param[in] width Pixel width of legend (aspect controls orientation)
  * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] opaque Flag to control if legend is rendered opaque or translucent
  * \param[in] numLabels Number of labels to render (includes min/max)
  * \param[in,out] imgData Pointer to array to fill with image bytes. Array
  * will be resized if needed.
@@ -1216,6 +1223,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
  * range computed, will be filled with valid min and max values
  * \param[in] width Pixel width of legend (aspect controls orientation)
  * \param[in] height Pixel height of legend (aspect controls orientation)
+ * \param[in] opaque Flag to control if legend is rendered opaque or translucent
  * \param[in] numLabels Number of labels to render (includes min/max)
  * \param[in,out] imgData Pointer to array to fill with image bytes. Array
  * will be resized if needed.
@@ -1980,8 +1988,8 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     int outerGutter = (int)(0.03 * (double)_windowWidth);
     outerGutter = (outerGutter > 15 ? 15 : outerGutter);
 
-    int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
     int imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
+    int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
 
     double imgAspect = width / height;
     double winAspect = (double)_windowWidth / _windowHeight;
@@ -1989,9 +1997,9 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     double pxToWorld;
 
     if (imgAspect >= winAspect) {
-        pxToWorld = width / imgWidthPx;
+        pxToWorld = width / (double)imgWidthPx;
     } else {
-        pxToWorld = height / imgHeightPx;
+        pxToWorld = height / (double)imgHeightPx;
     }
 
     double offsetX = pxOffsetX * pxToWorld;
