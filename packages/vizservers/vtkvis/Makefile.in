@@ -103,7 +103,11 @@ SERVER_SRCS	= \
 		Trace.cpp
 
 ifdef USE_CUSTOM_AXES
-SERVER_SRCS+=vtkRpCubeAxesActor2D.cpp
+SERVER_SRCS+= \
+	vtkRpAxisActor.cpp \
+	vtkRpAxisActor2D.cpp \
+	vtkRpCubeAxesActor.cpp \
+	vtkRpCubeAxesActor2D.cpp
 endif
 ifdef USE_THREADS
 SERVER_SRCS+=ResponseQueue.cpp
@@ -160,7 +164,10 @@ RpVtkGraphicsObject.o: RpVtkGraphicsObject.h RpVtkRenderer.h RpVtkDataSet.h RpCo
 RpVtkRenderer.o: RpVtkRenderer.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
 RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RpVtkRendererGraphicsObjs.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpAxisActor.h vtkRpCubeAxesActor.h vtkRpAxisActor2D.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h ResponseQueue.h Trace.h
+vtkRpAxisActor.o: vtkRpAxisActor.h
+vtkRpAxisActor2D.o: vtkRpAxisActor2D.h
+vtkRpCubeAxesActor.o: vtkRpCubeAxesActor.h 
 vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h
