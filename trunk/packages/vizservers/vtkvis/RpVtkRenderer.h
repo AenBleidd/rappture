@@ -14,7 +14,6 @@
 #include <typeinfo>
 
 #include <vtkSmartPointer.h>
-#include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
 #include "vtkRpCubeAxesActor.h"
 #include "vtkRpCubeAxesActor2D.h"
