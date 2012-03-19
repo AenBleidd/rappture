@@ -34,6 +34,7 @@ FieldTri2D::FieldTri2D(const MeshTri2D& grid)
     _counter(0)
 {
     _meshPtr = Ptr<MeshTri2D>( new MeshTri2D(grid) );
+    _valuelist.reserve(grid.sizeNodes());
 }
 
 FieldTri2D::FieldTri2D(const FieldTri2D& field)
@@ -98,8 +99,8 @@ FieldTri2D::rangeMax(Axis which) const
 FieldTri2D&
 FieldTri2D::define(int nodeId, double f)
 {
-    while (_valuelist.size() < nodeId) {
-        _valuelist.push_back(NAN);
+    if (_valuelist.size() < (unsigned int)(nodeId+1)) {
+        _valuelist.resize((unsigned int)(nodeId+1), NAN);
     }
     _valuelist[nodeId] = f;
 
