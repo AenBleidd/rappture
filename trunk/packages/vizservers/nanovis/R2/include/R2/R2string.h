@@ -2,6 +2,8 @@
 #ifndef R2_STRING_H
 #define R2_STRING_H
 
+#include <string.h>
+
 #include <R2/R2.h>
 
 class R2string

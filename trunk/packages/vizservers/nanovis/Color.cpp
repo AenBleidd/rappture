@@ -17,7 +17,6 @@
 #include <assert.h>
 
 #include "Color.h"
-#include "define.h"
 
 Color::Color() :
     _r(0),

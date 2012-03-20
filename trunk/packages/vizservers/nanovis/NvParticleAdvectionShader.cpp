@@ -1,9 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <R2/R2FilePath.h>
 
+#include <GL/glew.h>
+#include <Cg/cgGL.h>
+
 #include "NvParticleAdvectionShader.h"
 #include "Trace.h"
-#include "global.h"
 
 NvParticleAdvectionShader::NvParticleAdvectionShader() : 
     _velocityVolumeID(0), 
@@ -21,8 +23,7 @@ NvParticleAdvectionShader::~NvParticleAdvectionShader()
 
 void NvParticleAdvectionShader::init()
 {
-    _cgFP = LoadCgSourceProgram(g_context, "update_pos.cg", CG_PROFILE_FP30, 
-                                "main");
+    loadFragmentProgram("update_pos.cg", "main");
     _posTimestepParam  = cgGetNamedParameter(_cgFP, "timestep");
     _maxParam          = cgGetNamedParameter(_cgFP, "max");
     _velTexParam       = cgGetNamedParameter(_cgFP, "vel_tex");

@@ -20,8 +20,9 @@
 #include <R2/R2FilePath.h>
 
 #include "NvLIC.h"
+#include "NvShader.h"
+#include "define.h"
 #include "Trace.h"
-#include "global.h"
 
 #define NPN 256   //resolution of background pattern
 #define DM ((float) (1.0/(NMESH-1.0))) //distance in world coords between mesh lines
@@ -42,7 +43,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
     tmax(NPIX/(SCALE*NPN)),
     dmax(SCALE/NPIX),
     max(1.0f),
-    _g_context(_context),
+    _cgContext(_context),
     _vectorFieldId(0),
     _activate(false)
 {
@@ -112,7 +113,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
     _render_vel_fprog = 
-        LoadCgSourceProgram(_g_context, "render_vel.cg", 
+        LoadCgSourceProgram(_cgContext, "render_vel.cg", 
                             CG_PROFILE_FP30, "main");
 
     _vel_tex_param_render_vel =

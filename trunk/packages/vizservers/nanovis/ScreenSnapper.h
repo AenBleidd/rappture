@@ -22,8 +22,6 @@
 
 #include <GL/glew.h>
 
-#include "define.h"
-
 class ScreenSnapper 
 {
 public:
@@ -37,10 +35,11 @@ public:
 
     void print();
 
-    int width;  ///< width of the screen
-    int height;	///< height of the screen
-    GLuint data_type;	///< GL_FLOAT or GL_UNSIGNED_BYTE
-    int n_channels_per_pixel; ///< RGB(3) or RGBA(4)
+private:
+    int _width;  ///< width of the screen
+    int _height;	///< height of the screen
+    GLuint _dataType;	///< GL_FLOAT or GL_UNSIGNED_BYTE
+    int _numChannelsPerPixel; ///< RGB(3) or RGBA(4)
 
     /**
      * storage array for the captured image. This array is "flat".
@@ -48,7 +47,7 @@ public:
      * upper-right corner.
      * [rgb][rgb][rgb]... or [rgba][rgba][rgba]...
      */
-    void *data;
+    void *_data;
 };
 
 #endif

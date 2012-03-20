@@ -18,10 +18,10 @@ public :
     };
 
 public :
-    R2Geometry(int primitive, R2VertexBuffer* vertexBuffer, 
-               R2IndexBuffer* indexBuffer);
-    R2Geometry(int primitive, R2VertexBuffer* pointBuffer, 
-               R2VertexBuffer* colorBuffer, R2IndexBuffer* indexBuffer);
+    R2Geometry(int primitive, R2VertexBuffer *vertexBuffer, 
+               R2IndexBuffer *indexBuffer);
+    R2Geometry(int primitive, R2VertexBuffer *pointBuffer, 
+               R2VertexBuffer *colorBuffer, R2IndexBuffer *indexBuffer);
     ~R2Geometry();
 
     void render();

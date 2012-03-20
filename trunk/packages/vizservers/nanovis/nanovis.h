@@ -29,8 +29,6 @@
 
 #include <rappture.h>
 
-#include "define.h"
-#include "global.h"
 #include "config.h"
 
 #define NANOVIS_VERSION		"1.0"

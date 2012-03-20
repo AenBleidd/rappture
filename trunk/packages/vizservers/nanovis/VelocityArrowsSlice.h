@@ -92,6 +92,7 @@ private:
 
     unsigned int _fbo;
     unsigned int _tex;
+    float _maxPointSize;
 
     CGcontext _context;
     CGprogram _queryVelocityFP;

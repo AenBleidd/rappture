@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #include <GL/glew.h>
-#include <GL/gl.h>
+#include <Cg/cgGL.h>
 
 #include "Grid.h"
 #include "HeightMap.h"

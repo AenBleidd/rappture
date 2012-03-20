@@ -23,6 +23,7 @@
 #include <R2/R2FilePath.h>
 
 #include "NvParticleRenderer.h"
+#include "define.h"
 #include "Trace.h"
 
 #define NV_32

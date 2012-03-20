@@ -9,8 +9,9 @@
 #include <ImageLoaderFactory.h>
 #include <ImageLoader.h>
 
+#include "nanovis.h"
 #include "VelocityArrowsSlice.h"
-#include "global.h"
+#include "NvShader.h"
 
 VelocityArrowsSlice::VelocityArrowsSlice()
 {
@@ -98,6 +99,15 @@ VelocityArrowsSlice::VelocityArrowsSlice()
     }
 
     _arrowColor.set(1, 1, 0);
+
+    GLfloat minMax[2];
+    glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, minMax);
+    TRACE("Aliased point size range: %g %g\n", minMax[0], minMax[1]);
+    _maxPointSize = minMax[1];
+    glGetFloatv(GL_SMOOTH_POINT_SIZE_RANGE, minMax);
+    TRACE("Smooth point size range: %g %g\n", minMax[0], minMax[1]);
+    _maxPointSize = minMax[1] > _maxPointSize ? minMax[1] : _maxPointSize;
+    TRACE("Max point size: %g\n", _maxPointSize);
 
     TRACE("Leaving VelocityArrowsSlice constructor\n");
 }
@@ -254,15 +264,6 @@ void VelocityArrowsSlice::render()
                     pos2 = _velocities[index].scale(_projectionVector).scale(_maxVelocityScale) + pos;
                     glVertex3f(pos.x, pos.y, pos.z);
                     glVertex3f(pos2.x, pos2.y, pos2.z);
-                    /*v = pos - pos2;
-                      v2.x = 1;
-                      v2.y = 1;
-                      v2.z = (-(x1-x2)-(y1-y2))/(z1-z2)
-                      adj = v.length() / (4 * sqrt((x3^2)+(y3^2)+(z3^2)));
-                      x3 *= adj
-                      y3 *= adj
-                      z3 *= adj
-                    */
                 }
             }
         } else if (_axis == 1) {
@@ -295,7 +296,7 @@ void VelocityArrowsSlice::render()
         glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        glEnable(GL_POINT_SPRITE_NV);
+        glEnable(GL_POINT_SPRITE_ARB);
         glPointSize(20);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
 
@@ -304,7 +305,7 @@ void VelocityArrowsSlice::render()
 
         glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f);
         glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
-        glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100.0f);
+        glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, _maxPointSize);
         glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
         cgGLBindProgram(_particleVP);
@@ -316,6 +317,7 @@ void VelocityArrowsSlice::render()
         cgGLEnableTextureParameter(_vectorParticleParam);
 
         //cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * 0.5) * _screenHeight * 0.5);
+        cgSetParameter1f(_mvTanHalfFOVParam, tan(30. * 0.5) * NanoVis::win_height * 0.5);
 
         cgGLSetStateMatrixParameter(_mvpParticleParam,
                                     CG_GL_MODELVIEW_PROJECTION_MATRIX,

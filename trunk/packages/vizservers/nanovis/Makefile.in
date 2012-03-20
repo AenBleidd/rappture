@@ -22,7 +22,7 @@ INSTALL_DATA    = ${INSTALL} -m 0444
 INSTALL_SCRIPT  = ${INSTALL} -m 0444
 RM              = rm -f
 
-AUXSRC          = config.h define.h global.h
+AUXSRC          = config.h define.h
 
 CG_INC_SPEC     = @CG_INC_SPEC@
 CG_LIB_SPEC     = @CG_LIB_SPEC@
@@ -139,7 +139,6 @@ OBJS		= \
 		RenderContext.o \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
-		ScreenSnapper.o \
 		Switch.o \
 		Texture1D.o \
 		Texture2D.o \
@@ -161,6 +160,7 @@ OBJS +=		DataLoader.o \
 		ParticleEmitter.o \
 		ParticleSystem.o \
 		ParticleSystemFactory.o \
+		ScreenSnapper.o \
 		Sphere.o
 endif
 
@@ -174,9 +174,8 @@ endif
 
 resources	= \
 		$(srcdir)/resources/Font.bmp \
-		$(srcdir)/resources/arrows_flip2.png \
-		$(srcdir)/resources/arrows_red_bg.bmp \
 		$(srcdir)/resources/arrows.bmp \
+		$(srcdir)/resources/arrows_red_bg.bmp \
 		$(srcdir)/resources/particle2.bmp \
 		$(srcdir)/resources/verdana.fnt \
 		$(srcdir)/resources/verdana_bold.fnt
@@ -184,31 +183,32 @@ resources	= \
 shaders		= \
 		$(srcdir)/shaders/common.cg \
 		$(srcdir)/shaders/copy_texcoord.cg \
+		$(srcdir)/shaders/distance.cg \
+		$(srcdir)/shaders/distancesort.cg \
 		$(srcdir)/shaders/heightcolor.cg \
+		$(srcdir)/shaders/mergesort.cg \
+		$(srcdir)/shaders/moveparticles.cg \
 		$(srcdir)/shaders/one_plane.cg \
 		$(srcdir)/shaders/one_volume.cg \
                 $(srcdir)/shaders/particle_common.cg \
+		$(srcdir)/shaders/particlefp.cg \
+		$(srcdir)/shaders/particlevp.cg \
+		$(srcdir)/shaders/passthrough.cg \
 		$(srcdir)/shaders/passthru.cg \
 		$(srcdir)/shaders/pointsvp.cg \
 		$(srcdir)/shaders/queryvelocity.cg \
+		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/render_vel.cg \
 		$(srcdir)/shaders/update_pos.cg \
 		$(srcdir)/shaders/update_pos_vel.cg \
 		$(srcdir)/shaders/update_vel.cg \
+		$(srcdir)/shaders/velocity.cg \
+                $(srcdir)/shaders/velocityslicefp.cg \
+                $(srcdir)/shaders/velocityslicevp.cg \
 		$(srcdir)/shaders/vertex_std.cg \
 		$(srcdir)/shaders/volqd_volume.cg \
-                $(srcdir)/shaders/velocityslicevp.cg \
-                $(srcdir)/shaders/velocityslicefp.cg \
-		$(srcdir)/shaders/zincblende_volume.cg \
-		$(srcdir)/shaders/distance.cg \
-		$(srcdir)/shaders/distancesort.cg \
-		$(srcdir)/shaders/mergesort.cg \
-		$(srcdir)/shaders/moveparticles.cg \
-		$(srcdir)/shaders/particlefp.cg \
-		$(srcdir)/shaders/particlevp.cg \
-		$(srcdir)/shaders/passthrough.cg \
-		$(srcdir)/shaders/renderparticle.cg \
-		$(srcdir)/shaders/velocity.cg
+		$(srcdir)/shaders/zincblende_volume.cg
+
 
 .PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil transfer-function 
 
@@ -334,7 +334,7 @@ Renderable.o: Renderable.cpp Renderable.h
 RenderContext.o: RenderContext.cpp RenderContext.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
-ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h define.h
+ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h
 Sphere.o: Sphere.cpp Sphere.h
 Switch.o: Switch.cpp Switch.h
 Texture1D.o: Texture1D.cpp Texture1D.h
@@ -348,6 +348,6 @@ Volume.o: Volume.cpp Volume.h $(AUXSRC)
 VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
-dxReader.o: dxReader.cpp dxReaderCommon.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
+dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvEventLog.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h

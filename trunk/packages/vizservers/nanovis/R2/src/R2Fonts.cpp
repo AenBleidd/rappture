@@ -1,7 +1,10 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <stdarg.h>
+#include <string.h>
 
 #include <fstream>
+
+#include <GL/glew.h>
 
 #include <R2/R2Fonts.h>
 #include <R2/R2FilePath.h>

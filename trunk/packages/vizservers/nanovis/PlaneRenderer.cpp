@@ -14,7 +14,6 @@
  * ======================================================================
  */
 
-#include "global.h"
 #include "PlaneRenderer.h"
 #include "Trace.h"
 

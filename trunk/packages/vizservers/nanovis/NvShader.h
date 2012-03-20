@@ -3,15 +3,15 @@
 #define NV_SHADER_H
 
 #include <Cg/cg.h>
-#include <Cg/cgGL.h>
 
-typedef void NvCgCallbackFunction(void);
-
-extern CGcontext g_context;
+extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 
+                                     CGprofile profile, const char *entryPoint);
 
 class NvShader
 {
 public:
+    typedef void NvCgCallbackFunction(void);
+
     NvShader();
 
     virtual ~NvShader();
@@ -56,13 +56,26 @@ public:
         return _cgFP;
     }
 
+    static void initCg();
+
+    static void exitCg();
+
+    static bool printErrorInfo();
+
     static void setErrorCallback(NvCgCallbackFunction callback);
 
+    static CGcontext getCgContext()
+    {
+        return _cgContext;
+    }
+
 protected:
+    void resetPrograms();
+
     CGprogram _cgVP;
     CGprogram _cgFP;
 
-    void resetPrograms();
+    static CGcontext _cgContext;
 };
 
 #endif

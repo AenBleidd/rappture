@@ -10,7 +10,7 @@
 
 PointShader::PointShader() : 
     NvShader(), 
-    _normal(0)
+    _normal(NULL)
 {
     loadVertexProgram("pointsvp.cg", "main");
     _modelviewVP  = getNamedParameterFromVP("modelview");

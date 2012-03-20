@@ -4,9 +4,9 @@
 
 #include <Cg/cg.h>
 
+#include "NvShader.h"
 #include "Texture2D.h"
 #include "TransferFunction.h"
-#include "NvShader.h"
 
 class NvColorTableShader : public NvShader
 {

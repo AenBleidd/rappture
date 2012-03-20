@@ -26,7 +26,6 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include "global.h"
 #include "NvColorTableShader.h"
 #include "TransferFunction.h"
 #include "Texture2D.h"
