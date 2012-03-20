@@ -39,7 +39,7 @@ PointSetRenderer::PointSetRenderer()
                                       GL_UNSIGNED_BYTE, GL_LINEAR,    
                                       4, image->getImageBuffer());
     } else {
-        ERROR("fail to load image [%s]\n", "particles2.bmp");
+        ERROR("fail to load image [%s]\n", "particle2.bmp");
     }
 
     delete loader;
@@ -68,8 +68,6 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
 #ifdef USE_TEXTURE 
     glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 #endif
-
-    glEnable(GL_POINT_SPRITE_ARB);
 
     bool setSize = false;
     glBegin(GL_POINTS);

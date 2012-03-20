@@ -1,6 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-#include "global.h"
+#include <GL/glew.h>
+#include <Cg/cgGL.h>
+
 #include "NvRegularVolumeShader.h"
 
 NvRegularVolumeShader::NvRegularVolumeShader()
@@ -14,8 +16,7 @@ NvRegularVolumeShader::~NvRegularVolumeShader()
 
 void NvRegularVolumeShader::init()
 {
-    _cgFP = LoadCgSourceProgram(g_context, "one_volume.cg", CG_PROFILE_FP30, 
-                                "main");
+    loadFragmentProgram("one_volume.cg", "main");
     _mvi_one_volume_param = cgGetNamedParameter(_cgFP, "modelViewInv");
     _mv_one_volume_param = cgGetNamedParameter(_cgFP, "modelView");
 

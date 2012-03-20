@@ -2,7 +2,9 @@
 
 #include <string.h>
 
-#include "global.h"
+#include <GL/glew.h>
+#include <Cg/cgGL.h>
+
 #include "NvZincBlendeVolumeShader.h"
 
 NvZincBlendeVolumeShader::NvZincBlendeVolumeShader()
@@ -16,8 +18,7 @@ NvZincBlendeVolumeShader::~NvZincBlendeVolumeShader()
 
 void NvZincBlendeVolumeShader::init()
 {
-    _cgFP = LoadCgSourceProgram(g_context, "zincblende_volume.cg", 
-                                CG_PROFILE_FP30, "main");
+    loadFragmentProgram("zincblende_volume.cg", "main");
     _tfParam = cgGetNamedParameter(_cgFP, "tf");
     _volumeAParam = cgGetNamedParameter(_cgFP, "volumeA");
     _volumeBParam = cgGetNamedParameter(_cgFP, "volumeB");

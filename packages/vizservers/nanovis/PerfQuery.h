@@ -23,7 +23,6 @@
 #include <GL/glew.h>
 
 #include "Trace.h"
-#include "define.h"
 
 //check if occlusion query is supported
 inline bool check_query_support()

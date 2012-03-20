@@ -62,8 +62,10 @@
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
-#include "NvColorTableRenderer.h"
 #include "NvEventLog.h"
+#include "RenderContext.h"
+#include "NvShader.h"
+#include "NvColorTableRenderer.h"
 #include "NvFlowVisRenderer.h"
 #include "NvLIC.h"
 #include "NvZincBlendeReconstructor.h"
@@ -73,7 +75,6 @@
 #include "PointSetRenderer.h"
 #include "PointSet.h"
 #endif
-#include "RenderContext.h"
 #include "Switch.h"
 #include "Trace.h"
 #include "Unirect.h"
@@ -83,8 +84,6 @@
 #include "ZincBlendeVolume.h"
 
 #define SIZEOF_BMP_HEADER   54
-
-extern void NvInitCG(); // in Shader.cpp
 
 /// Indicates "up" axis
 enum AxisDirections { 
@@ -191,9 +190,6 @@ float slice_vector[NMESH*NMESH*4];      //per slice vectors in main memory
 Tcl_HashTable NanoVis::tfTable;
 
 PerfQuery *perf = NULL;                        //perfromance counter
-
-CGprogram m_passthru_fprog;
-CGparameter m_passthru_scale_param, m_passthru_bias_param;
 
 // Variables for mouse events
 
@@ -359,6 +355,8 @@ DoExit(int code)
     TRACE("in DoExit\n");
     removeAllData();
 
+    NvShader::exitCg();
+
 #ifdef EVENTLOG
     NvExitEventLog();
 #endif
@@ -372,28 +370,6 @@ DoExit(int code)
 #endif
     closelog();
     exit(code);
-}
-
-CGprogram
-LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile, 
-                    const char *entryPoint)
-{
-    const char *path = R2FilePath::getInstance()->getPath(fileName);
-    if (path == NULL) {
-        ERROR("can't find program \"%s\"\n", fileName);
-    }
-    TRACE("cg program compiling: %s\n", path);
-    CGprogram program;
-    program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
-                                      entryPoint, NULL);
-    cgGLLoadProgram(program);
-    CGerror LastError = cgGetError();
-    if (LastError) {
-        ERROR("Error message: %s\n", cgGetLastListing(context));
-    }
-    TRACE("successfully compiled program: %s\n", path);
-    delete [] path;
-    return program;
 }
 
 static int
@@ -718,15 +694,8 @@ void NanoVis::initParticle()
 
 void CgErrorCallback(void)
 {
-    CGerror lastError = cgGetError();
-
-    if (lastError) {
-        TRACE("\n---------------------------------------------------\n");
-        TRACE("%s\n\n", cgGetErrorString(lastError));
-        TRACE("%s\n", cgGetLastListing(g_context));
-        TRACE("-----------------------------------------------------\n");
+    if (!NvShader::printErrorInfo()) {
         TRACE("Cg error, exiting...\n");
-        cgDestroyContext(g_context);
         DoExit(-1);
     }
 }
@@ -734,7 +703,11 @@ void CgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print system information
-    system_info();
+    TRACE("-----------------------------------------------------------\n");
+    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR),
+          glGetString(GL_VERSION));
+    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    TRACE("-----------------------------------------------------------\n");
 
     if (path == NULL) {
         ERROR("No path defined for shaders or resources\n");
@@ -757,7 +730,7 @@ void NanoVis::init(const char* path)
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
-    NvInitCG();
+    NvShader::initCg();
     NvShader::setErrorCallback(CgErrorCallback);
 
     fonts = new R2Fonts();
@@ -773,7 +746,7 @@ void NanoVis::init(const char* path)
 
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, lic_axis, 
                             Vector3(lic_slice_x, lic_slice_y, lic_slice_z), 
-                            g_context);
+                            NvShader::getCgContext());
 
     grid = new Grid();
     grid->setFont(fonts);
@@ -840,7 +813,7 @@ NanoVis::initGL(void)
     // create
     renderContext = new graphics::RenderContext();
 
-    //create n 2D plane renderer
+    //create a 2D plane renderer
     plane_renderer = new PlaneRenderer(win_width, win_height);
 #if PROTOTYPE
     make_test_2D_data();

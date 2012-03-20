@@ -4,15 +4,16 @@
 
 class R2IndexBuffer
 {
-    int _indexCount;
-    int *_data;
-
 public:
-    R2IndexBuffer(int indexCount, int* data, bool copy = true);
+    R2IndexBuffer(int indexCount, int *data, bool copy = true);
     ~R2IndexBuffer();
 
     int getIndexCount() const;
-    const int* getData() const;
+    const int *getData() const;
+
+private:
+    int _indexCount;
+    int *_data;
 };
 
 inline int R2IndexBuffer::getIndexCount() const

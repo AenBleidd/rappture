@@ -9,9 +9,7 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include "define.h"
 #include "config.h"
-#include "global.h"
 
 #include "Renderable.h"
 #include "RenderVertexArray.h"

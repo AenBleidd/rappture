@@ -19,9 +19,7 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include "define.h"
 #include "config.h"
-#include "global.h"
 #include "nanovis.h"
 
 #include "Renderable.h"
@@ -118,7 +116,7 @@ private:
     float max;
 
     //CG shader parameters
-    CGcontext _g_context;
+    CGcontext _cgContext;
     CGparameter _vel_tex_param;
     CGparameter _vel_tex_param_render_vel;
     CGparameter _plane_normal_param_render_vel;

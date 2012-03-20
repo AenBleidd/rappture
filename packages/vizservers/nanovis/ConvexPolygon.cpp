@@ -173,7 +173,7 @@ ConvexPolygon::Emit(bool use_texture)
 {
     if (vertices.size() >= 3) {
 	for (unsigned int i = 0; i < vertices.size(); i++) {
-	    if(use_texture) {
+	    if (use_texture) {
 		glTexCoord4fv((float *)&(texcoords[i]));
 		//glTexCoord4fv((float *)&(vertices[i]));
 	    }

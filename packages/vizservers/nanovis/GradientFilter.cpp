@@ -13,7 +13,6 @@
 #define SQR(a) ((a) * (a))
 #endif
 
-#define GRADIENTS_EXT       ".grd"
 static int g_numOfSlices[3] = { 256, 256, 256 };
 static void *g_volData = 0;
 static float g_sliceDists[3];
@@ -27,28 +26,22 @@ static float g_sliceDists[3];
 
 #ifdef notused
 static char *
-getFloatGradientsFilename(void)
+getFloatGradientsFilename()
 {
     char floatExt[] = "_float";
     char *filename;
+    char extension[] = ".grd";
 
-    /*
-    if (! (filename = (char *)malloc(strlen(g.basename) +
-                                     strlen(floatExt) +
-                                     strlen(GRADIENTS_EXT) + 1))) {
-                                         */
     if (! (filename = (char *)malloc(strlen("base") +
                                      strlen(floatExt) +
-                                     strlen(GRADIENTS_EXT) + 1))) {
+                                     strlen(extension) + 1))) {
         ERROR("not enough memory for filename\n");
         exit(1);
     }
 
-    //strcpy(filename, g.basename);
     strcpy(filename, "base");
-
     strcat(filename, floatExt);
-    strcat(filename, GRADIENTS_EXT);
+    strcat(filename, extension);
 
     return filename;
 }
@@ -69,6 +62,30 @@ saveFloatGradients(float *gradients, int *sizes)
         ERROR("writing float gradients failed\n");
         exit(1);
     }
+    fclose(fp);
+}
+
+static void
+saveGradients(void *gradients, int *sizes, DataType dataType)
+{
+    char *filename;
+    int size;
+    FILE *fp;
+
+    filename = getGradientsFilename();
+    if (! (fp = fopen(filename, "wb"))) {
+        perror("cannot open gradients file for writing");
+        exit(1);
+    }
+
+    size = 3 * sizes[0] * sizes[1] * sizes[2]
+           * getDataTypeSize(dataType);
+
+    if (fwrite(gradients, size, 1, fp) != 1) {
+        ERROR("writing gradients failed\n");
+        exit(1);
+    }
+
     fclose(fp);
 }
 #endif
@@ -103,8 +120,8 @@ static unsigned short getVoxel16(int x, int y, int z)
 static float getVoxelFloat(int x, int y, int z)
 {
     return ((float*)g_volData)[z * g_numOfSlices[0] * g_numOfSlices[1] +
-                                       y * g_numOfSlices[0] +
-                                       x];
+                               y * g_numOfSlices[0] +
+                               x];
 }
 
 static float getVoxel(int x, int y, int z, DataType dataType)
@@ -126,7 +143,6 @@ static float getVoxel(int x, int y, int z, DataType dataType)
     }
     return 0.0;
 }
-
 
 void computeGradients(float *gradients, void* volData, int *sizes, DataType dataType)
 {
@@ -424,7 +440,6 @@ void filterGradients(float *gradients, int *sizes)
     free(filter);
 }
 
-
 void quantize8(float *grad, unsigned char *data)
 {
     float len;
@@ -488,7 +503,6 @@ void quantizeFloat(float *grad, float *data)
 void quantizeGradients(float *gradientsIn, void *gradientsOut,
                        int *sizes, DataType dataType)
 {
-
     int idx, idy, idz, di;
 
     di = 0;
@@ -517,28 +531,3 @@ void quantizeGradients(float *gradientsIn, void *gradientsOut,
         }
     }
 }
-/*
-
-void saveGradients(void *gradients, int *sizes, DataType dataType)
-{
-    char *filename;
-    int size;
-    FILE *fp;
-
-    filename = getGradientsFilename();
-    if (! (fp = fopen(filename, "wb"))) {
-        perror("cannot open gradients file for writing");
-        exit(1);
-    }
-
-    size = 3 * sizes[0] * sizes[1] * sizes[2]
-           * getDataTypeSize(dataType);
-
-    if (fwrite(gradients, size, 1, fp) != 1) {
-         ERROR("writing gradients failed\n");
-        exit(1);
-    }
-
-    fclose(fp);
-}
-*/

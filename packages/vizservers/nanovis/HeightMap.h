@@ -2,7 +2,6 @@
 #ifndef HEIGHTMAP_H
 #define HEIGHTMAP_H
 
-#include <Cg/cgGL.h>
 #include <Cg/cg.h>
 
 #include <R2/graphics/R2Geometry.h>

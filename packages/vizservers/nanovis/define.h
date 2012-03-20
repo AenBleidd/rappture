@@ -17,7 +17,6 @@
 #define DEFINE_H
 
 #include <GL/glew.h>
-#include <Cg/cgGL.h>
 
 #define CHECK_FRAMEBUFFER_STATUS()                              \
 do {                                                            \
@@ -58,5 +57,16 @@ do {                                                            \
         assert(0);                                              \
     }                                                           \
 } while(0)
+
+inline void 
+draw_quad(int w, int h, int tw, int th)
+{
+    glBegin(GL_QUADS);
+    glTexCoord2f(0,         0);         glVertex2f(0,        0);
+    glTexCoord2f((float)tw, 0);         glVertex2f((float)w, 0);
+    glTexCoord2f((float)tw, (float)th); glVertex2f((float)w, (float) h);
+    glTexCoord2f(0,         (float)th); glVertex2f(0,        (float) h);
+    glEnd();
+}
 
 #endif

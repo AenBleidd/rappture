@@ -24,6 +24,7 @@
 #include "DataLoader.h"
 #include "Texture2D.h"
 #include "Texture3D.h"
+#include "NvShader.h"
 #include "Trace.h"
 
 #define USE_RGBA_ARROW
@@ -421,28 +422,10 @@ void ParticleSystem::initStreamlines(int width, int height)
     }
 }
 
-void ParticleSystem::callbackForCgError()
-{
-    CGerror lastError = cgGetError();
-    if (lastError) {
-        const char *listing = cgGetLastListing(_context);
-        ERROR("\n---------------------------------------------------\n");
-        ERROR("%s\n\n", cgGetErrorString(lastError));
-        ERROR("%s\n", listing);
-        ERROR("-----------------------------------------------------\n");
-        ERROR("Cg error, exiting...\n");
-
-        cgDestroyContext(_context);
-        getchar();
-        exit(-1);
-    }
-}
-
 void ParticleSystem::initShaders()
 {
     // TBD...
-    _context = cgCreateContext();
-    cgSetErrorCallback(callbackForCgError);
+    _context = NvShader::getCgContext();
 
     std::string path = vrFilePath::getInstance()->getPath("distance.cg");
     _distanceInitFP =  
