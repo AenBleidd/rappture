@@ -2,61 +2,46 @@
 #ifndef AXIS_H
 #define AXIS_H
 
+#include <cmath>
+#include <limits>
+
 #include "Chain.h"
+
+#ifndef NAN
+#define NAN (std::numeric_limits<double>::quiet_NaN())
+#endif
 
 class Axis;
 
-class NaN
+class TickIter
 {
+public:
+    void SetStartingLink(ChainLink *linkPtr)
+    {
+        _linkPtr = linkPtr;
+    }
+
+    bool Next()
+    {
+        if (_linkPtr == NULL) {
+            return false;
+        }
+        _linkPtr = _linkPtr->Next();
+        return (_linkPtr != NULL);
+    }
+
+    float GetValue()
+    {
+        union {
+            float x;
+            void *clientData;
+        } value;
+        value.clientData = _linkPtr->GetValue();
+        return value.x;
+    }
+
 private:
-    double _x;
-public:
-    NaN()
-    {
-	union DoubleValue {
-	    unsigned int words[2];
-	    double value;
-	} result;
-
-#ifdef WORDS_BIGENDIAN
-	result.words[0] = 0x7ff80000;
-	result.words[1] = 0x00000000;
-#else
-	result.words[0] = 0x00000000;
-	result.words[1] = 0x7ff80000;
-#endif
-	_x = result.value;
-    }
-
-    operator double() const
-    {
-	return _x;
-    }
-};
-
-extern NaN _NaN;
-
-class TickIter {
-    ChainLink *linkPtr_;
-public:
-    void SetStartingLink(ChainLink *linkPtr) {
-	linkPtr_ = linkPtr;
-    }
-    bool Next(void) {
-	if (linkPtr_ == NULL) {
-	    return false;
-	}
-	linkPtr_ = linkPtr_->Next();
-	return (linkPtr_ != NULL);
-    }
-    float GetValue(void) {
-	union {
-	    float x;
-	    void *clientData;
-	} value;
-	value.clientData = linkPtr_->GetValue();
-	return value.x;
-    }
+    ChainLink *_linkPtr;
 };
 
 /*
@@ -64,19 +49,114 @@ public:
  *
  * Ticks --
  *
- * 	Structure containing information where the ticks (major or
- *	minor) will be displayed on the graph.
+ *         Structure containing information where the ticks (major or
+ *        minor) will be displayed on the graph.
  *
  * ----------------------------------------------------------------------
  */
-class Ticks {
-    bool autoscale_;		/* Indicates if the ticks are autoscaled. */
+class Ticks
+{
+public:
+    Ticks(int numTicks) :
+        reqNumTicks(numTicks),
+        _autoscale(true),
+        _numTicks(0),
+        _ticks(NULL)
+    {
+    }
+
+    ~Ticks()
+    {
+        if (_ticks != NULL) {
+            delete [] _ticks;
+        }
+        _chain.Reset();
+    }
+
+    void SetTicks(float *ticks, int nTicks)
+    {
+        _ticks = ticks, _numTicks = nTicks;
+    }
+
+    int numTicks()
+    {
+        return _numTicks;
+    }
+
+    double tick(int i)
+    {
+        if ((i < 0) || (i >= _numTicks)) {
+            return NAN;
+        }
+        return _ticks[i];
+    }
+
+    void Reset()
+    {
+        _chain.Reset();
+    }
+
+    float step()
+    {
+        return _step;
+    }
+
+    void Append (float x)
+    {
+        _chain.Append(GetClientData(x));
+    }
+
+    void SetValues(double initial, double step, unsigned int nSteps)
+    {
+        _initial = initial, _step = step, _nSteps = nSteps;
+    }
+
+    bool autoscale()
+    {
+        return _autoscale;
+    }
+
+    void SweepTicks()
+    {
+        if (_autoscale) {
+            if (_ticks != NULL) {
+                delete [] _ticks;
+            }
+            SetTicks();
+        }
+    }
+
+    bool FirstTick(TickIter &iter)
+    {
+        ChainLink *linkPtr;
+
+        linkPtr = _chain.FirstLink();
+        iter.SetStartingLink(linkPtr);
+        return (linkPtr != NULL);
+    }
+
+    int reqNumTicks;		/**< Default number of ticks to be displayed. */
+
+private:
+    void SetTicks();	/**< Routine used internally to create the array
+				 * of ticks as defined by a given sweep. */
+    void *GetClientData(float x)
+    {
+        union {
+            float x;
+            void *clientData;
+        } value;
+        value.x = x;
+        return value.clientData;
+    }
+
+    bool _autoscale;		/**< Indicates if the ticks are autoscaled. */
     /* 
      * Tick locations may be generated in two fashions
      */
-    /*	 1. an array of values provided by the user. */
-    int numTicks_;		/* # of ticks on axis */
-    float *ticks_;		/* Array of tick values (alloc-ed).  Right now
+    /* 1. an array of values provided by the user. */
+    int _numTicks;		/* # of ticks on axis */
+    float *_ticks;		/* Array of tick values (alloc-ed).  Right now
 				 * it's a float so we don't have to allocate
 				 * store for the list of ticks generated.  In
 				 * the future when we store both the tick
@@ -84,124 +164,228 @@ class Ticks {
 				 * extend this to a double.
 				 */
     /*
-     *   2. a defined sweep of initial, step, and nsteps.  This in turn
-     *      will generate the an array of values.
+     * 2. a defined sweep of initial, step, and nsteps.  This in turn
+     *    will generate the an array of values.
      */
-    double initial_;		/* Initial value */
-    double step_;		/* Size of interval */
-    unsigned int nSteps_;	/* Number of intervals. */
+    double _initial;		/**< Initial value */
+    double _step;		/**< Size of interval */
+    unsigned int _nSteps;	/**< Number of intervals. */
 
-    /* 
+    /**
      *This finally generates a list of ticks values that exclude duplicate
      * minor ticks (that are always represented by major ticks).  In the
      * future, the string representing the tick label will be stored in 
      * the chain.
      */
-    Chain chain_;		
-
-    void SetTicks(void);	/* Routine used internally to create the array
-				 * of ticks as defined by a given sweep. */
-    void *GetClientData(float x) {
-	union {
-	    float x;
-	    void *clientData;
-	} value;
-	value.x = x;
-	return value.clientData;
-    }
-
-public:
-    int reqNumTicks;		/* Default number of ticks to be displayed. */
-
-    Ticks(int numTicks) {
-	reqNumTicks = numTicks;
-	ticks_ = NULL;
-	numTicks_ = 0;
-	autoscale_ = true;
-    }
-    ~Ticks(void) {
-	if (ticks_ != NULL) {
-	    delete [] ticks_;
-	}
-	chain_.Reset();
-	
-    }
-    void SetTicks(float *ticks, int nTicks) {
-	ticks_ = ticks, numTicks_ = nTicks;
-    }
-    int numTicks(void) {
-	return numTicks_;
-    }
-    double tick(int i) {
-	if ((i < 0) || (i >= numTicks_)) {
-	    return _NaN;
-	}
-	return ticks_[i];
-    }
-    void Reset(void) {
-	chain_.Reset();
-    }
-    float step() {
-	return step_;
-    }
-    void Append (float x) {
-	chain_.Append(GetClientData(x));
-    }
-    void SetValues(double initial, double step, unsigned int nSteps) {
-	initial_ = initial, step_ = step, nSteps_ = nSteps;
-    }
-    bool autoscale(void) {
-	return autoscale_;
-    }
-    void SweepTicks(void) {
-	if (autoscale_) {
-	    if (ticks_ != NULL) {
-		delete [] ticks_;
-	    }
-	    SetTicks();
-	}
-    }
-    bool FirstTick(TickIter &iter) {
-	ChainLink *linkPtr;
-
-	linkPtr = chain_.FirstLink();
-	iter.SetStartingLink(linkPtr);
-	return (linkPtr != NULL);
-    }
+    Chain _chain;
 };
 
-
-/*
- * ----------------------------------------------------------------------
- *
- * Axis --
- *
- * 	Structure contains options controlling how the axis will be
- * 	displayed.
- *
- * ----------------------------------------------------------------------
+/**
+ * Structure contains options controlling how the axis will be
+ * displayed.
  */
-class Axis {
-    /* Flags associated with the axis. */
+class Axis
+{
+public:
+    /// Flags associated with the axis.
     enum AxisFlags {
-	AUTOSCALE=(1<<0),
-	DESCENDING=(1<<1),
-	LOGSCALE=(1<<2),
-	TIGHT_MIN=(1<<3),
-	TIGHT_MAX=(1<<4)
+        AUTOSCALE  = (1<<0),
+        DESCENDING = (1<<1),
+        LOGSCALE   = (1<<2),
+        TIGHT_MIN  = (1<<3),
+        TIGHT_MAX  = (1<<4)
     };
 
-    const char *name_;		/* Name of the axis. Malloc-ed */
+    Axis(const char *name);
 
-    unsigned int flags_;
+    ~Axis()
+    {
+        if (_name != NULL) {
+            free((void *)_name);
+        }
+        if (_units != NULL) {
+            free((void *)_units);
+        }
+        if (_title != NULL) {
+            free((void *)_title);
+        }
+    }
 
-    const char *title_;		/* Title of the axis. */
+    void ResetRange();
 
-    const char *units_;		/* Units of the axis. */
+    void FixRange(double min, double max);
 
-    double valueMin_, valueMax_; /* The limits of the data. */
+    void SetScale(double min, double max);
 
-    double reqMin_, reqMax_;	/* Requested axis bounds. Consult the
+    double scale()
+    {
+        return _scale;
+    }
+
+    double range()
+    {
+        return _range;
+    }
+
+    bool FirstMajor(TickIter& iter)
+    {
+        return _major.FirstTick(iter);
+    }
+
+    bool FirstMinor(TickIter& iter)
+    {
+        return _minor.FirstTick(iter);
+    }
+
+    void GetDataLimits(double& min, double& max)
+    {
+        min = _valueMin, max = _valueMax;
+    }
+
+    double Map(double x);
+
+    double InvMap(double x);
+
+    const char *name()
+    {
+        return _name;
+    }
+
+    void name(const char *name)
+    {
+        if (_name != NULL) {
+            free((void *)_name);
+        }
+        _name = strdup(name);
+    }
+
+    const char *units()
+    {
+        return _units;
+    }
+
+    void units(const char *units)
+    {
+        if (_units != NULL) {
+            free((void *)_units);
+        }
+        _units = strdup(units);
+    }
+
+    const char *title()
+    {
+        return _title;
+    }
+
+    void title(const char *title)
+    {
+        if (_title != NULL) {
+            free((void *)_title);
+        }
+        _title = strdup(title);
+    }
+
+    double min()
+    {
+        return _min;
+    }
+
+    void min(double min)
+    {
+        _reqMin = min;
+    }
+
+    double max()
+    {
+        return _max;
+    }
+
+    void max(double max)
+    {
+        _reqMax = max;
+    }
+
+    void SetLimits(double min, double max)
+    {
+        _reqMin = min, _reqMax = max;
+    }
+
+    void UnsetLimits()
+    {
+        min(NAN), max(NAN);
+    }
+
+    void SetDescendingOption(bool value)
+    {
+        if (value) {
+            _flags |= DESCENDING;
+        } else {
+            _flags &= ~DESCENDING;
+        }
+    }
+
+    void SetTightMinOption(bool value)
+    {
+        if (value) {
+            _flags |= TIGHT_MIN;
+        } else {
+            _flags &= ~TIGHT_MIN;
+        }
+    }
+
+    void SetTightMaxOption(bool value)
+    {
+        if (value) {
+            _flags |= TIGHT_MAX;
+        } else {
+            _flags &= ~TIGHT_MAX;
+        }
+    }
+
+    void SetLogScaleOption(bool value)
+    {
+        if (value) {
+            _flags |= LOGSCALE;
+        } else {
+            _flags &= ~LOGSCALE;
+        }
+    }
+
+    void SetMajorStepOption(double value)
+    {
+        _reqStep = value;	// Setting to 0.0 resets step to "auto"
+    }
+
+    void SetNumMinorTicksOption(int n)
+    {
+        _minor.reqNumTicks = n;
+    }
+
+    void SetNumMajorTicksOption(int n)
+    {
+        _major.reqNumTicks = n;
+    }
+
+private:
+    void LogScale();
+
+    void LinearScale();
+
+    bool InRange(double x);
+
+    void MakeTicks();
+
+    const char *_name;		/**< Name of the axis. Malloc-ed */
+
+    unsigned int _flags;
+
+    const char *_title;		/**< Title of the axis. */
+
+    const char *_units;		/**< Units of the axis. */
+
+    double _valueMin, _valueMax; /**< The limits of the data. */
+
+    double _reqMin, _reqMax;	/**< Requested axis bounds. Consult the
 				 * axisPtr->flags field for
 				 * Axis::CONFIG_MIN and Axis::CONFIG_MAX
 				 * to see if the requested bound have
@@ -209,144 +393,22 @@ class Axis {
 				 * computed range of the axis
 				 * (determined by auto-scaling). */
 
-    double min_, max_;		/* Smallest and largest major tick values for
+    double _min, _max;		/**< Smallest and largest major tick values for
 				 * the axis.  If loose, the tick values lie
 				 * outside the range of data values.  If
 				 * tight, they lie interior to the limits of
 				 * the data. */
 
-    double range_;		/* Range of values on axis (max_ - min_) */
-    double scale_;		/* Scale factor for axis (1.0/_range) */
+    double _range;		/**< Range of values on axis (max_ - min_) */
+    double _scale;		/**< Scale factor for axis (1.0/_range) */
 
-    double reqStep_;		/* If > 0.0, overrides the computed major tick
+    double _reqStep;		/**< If > 0.0, overrides the computed major tick
 				 * interval.  Otherwise a stepsize is
 				 * automatically calculated, based upon the
 				 * range of elements mapped to the axis. The
 				 * default value is 0.0. */
 
-    Ticks major_, minor_;
-
-    void LogScale(void);
-    void LinearScale(void);
-    bool InRange(double x);
-    void MakeTicks(void);
-
-public:
-    Axis(const char *name);
-    ~Axis(void) {
-	if (name_ != NULL) {
-	    free((void *)name_);
-	}
-	if (units_ != NULL) {
-	    free((void *)units_);
-	}
-	if (title_ != NULL) {
-	    free((void *)title_);
-	}
-    }
-
-    void ResetRange(void);
-    void FixRange(double min, double max);
-    void SetScale(double min, double max);
-    double scale(void) {
-	return scale_;
-    }
-    double range(void) {
-	return range_;
-    }
-    bool FirstMajor(TickIter &iter) {
-	return major_.FirstTick(iter);
-    }
-    bool FirstMinor(TickIter &iter) {
-	return minor_.FirstTick(iter);
-    }
-    void GetDataLimits(double &min, double &max) {
-	min = valueMin_, max = valueMax_;
-    }
-    double Map(double x);
-    double InvMap(double x);
-    const char *name(void) {
-	return name_;
-    }
-    void name(const char *name) {
-	if (name_ != NULL) {
-	    free((void *)name_);
-	}
-	name_ = strdup(name);
-    }
-    const char *units(void) {
-	return units_;
-    }
-    void units(const char *units) {
-	if (units_ != NULL) {
-	    free((void *)units_);
-	}
-	units_ = strdup(units);
-    }
-    const char *title(void) {
-	return title_;
-    }
-    void title(const char *title) {
-	if (title_ != NULL) {
-	    free((void *)title_);
-	}
-	title_ = strdup(title);
-    }
-    double min(void) {
-	return min_;		
-    }
-    void min(double min) {
-	reqMin_ = min;	
-    }
-    double max(void) {
-	return max_;		
-    }
-    void max(double max) {
-	reqMax_ = max;	
-    }
-    void SetLimits(double min, double max) {
-	reqMin_ = min, reqMax_ = max;
-    }
-    void UnsetLimits() {
-	min(_NaN), max(_NaN);
-    }
-    void SetDescendingOption(bool value) {
-	if (value) {
-	    flags_ |= DESCENDING;
-	} else {
-	    flags_ &= ~DESCENDING;
-	}
-    }
-    void SetTightMinOption(bool value) {
-	if (value) {
-	    flags_ |= TIGHT_MIN;
-	} else {
-	    flags_ &= ~TIGHT_MIN;
-	}
-    }
-    void SetTightMaxOption(bool value) {
-	if (value) {
-	    flags_ |= TIGHT_MAX;
-	} else {
-	    flags_ &= ~TIGHT_MAX;
-	}
-    }
-    void SetLogScaleOption(bool value) {
-	if (value) {
-	    flags_ |= LOGSCALE;
-	} else {
-	    flags_ &= ~LOGSCALE;
-	}
-    }
-    void SetMajorStepOption(double value) {
-	reqStep_ = value;	// Setting to 0.0 resets step to "auto"
-    }
-    void SetNumMinorTicksOption(int n) {
-	minor_.reqNumTicks = n;
-    }
-    void SetNumMajorTicksOption(int n) {
-	major_.reqNumTicks = n;
-    }
+    Ticks _major, _minor;
 };
 
 #endif
