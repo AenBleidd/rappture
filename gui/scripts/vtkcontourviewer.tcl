@@ -922,6 +922,18 @@ itcl::body Rappture::VtkContourViewer::Rebuild {} {
         if { $location != "" } {
             array set view $location
         }
+
+        foreach axis { x y z } {
+            set label [$_first hints ${axis}label]
+            if { $label != "" } {
+                SendCmd "axis name $axis $label"
+            }
+            set units [$_first hints ${axis}units]
+            if { $units != "" } {
+                SendCmd "axis units $axis $units"
+            }
+        }
+
         foreach tag [array names _datasets $_first-*]  {
             SendCmd "dataset visible 1 $tag"
             SendCmd "heightmap opacity 1.0 $tag"
