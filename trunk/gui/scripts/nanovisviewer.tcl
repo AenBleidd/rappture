@@ -1321,7 +1321,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
         -levels 6
         -opacity 1.0
     }
-    foreach {dataobj comp} [split $_style2vols($tf) -] break
+    foreach {dataobj comp} [split [lindex $_style2vols($tf) 0] -] break
     array set style [lindex [$dataobj components -style $comp] 0]
 
 
