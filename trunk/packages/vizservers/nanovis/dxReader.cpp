@@ -626,6 +626,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         float *data = computeGradient(cdata, nx, ny, nz,
                                       field.valueMin(),
                                       field.valueMax());
+        delete [] cdata;
 #else
         double vmin = field.valueMin();
         double vmax = field.valueMax();
