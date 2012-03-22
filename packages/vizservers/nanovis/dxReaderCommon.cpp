@@ -45,8 +45,10 @@ computeGradient(float *fdata, int width, int height, int depth,
     computeGradients(tempGradients, fdata, sizes, DATRAW_FLOAT);
     filterGradients(tempGradients, sizes);
     quantizeGradients(tempGradients, gradients, sizes, DATRAW_FLOAT);
+    free(tempGradients);
     normalizeScalar(fdata, width * height * depth, min, max);
     float *data = merge(fdata, gradients, width * height * depth);
+    free(gradients);
     return data;
 }
 
