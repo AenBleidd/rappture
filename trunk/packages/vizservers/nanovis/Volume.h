@@ -54,10 +54,10 @@ public:
 
     Volume(float x, float y, float z,
            int width, int height, int depth, 
-           float size, int n_component,
+           float size, int numComponents,
            float *data,
            double vmin, double vmax, 
-           double nonzero_min);
+           double nonZeroMin);
 
     virtual ~Volume();
 
@@ -83,32 +83,27 @@ public:
 
     int isosurface() const
     {
-        return _iso_surface;
+        return _isosurface;
     }
 
     void isosurface(int iso)
     {
-        _iso_surface = iso;
+        _isosurface = iso;
     }
 
-    int n_components() const
+    int numComponents() const
     {
-        return _n_components;
+        return _numComponents;
     }
 
-    double nonzero_min() const
+    double nonZeroMin() const
     {
-        return _nonzero_min;
+        return _nonZeroMin;
     }
 
-    double range_nzero_min() const
+    int volumeType() const
     {
-        return _nonzero_min;
-    }
-
-    int volume_type() const
-    {
-        return _volume_type;
+        return _volumeType;
     }
 
     float *data()
@@ -121,86 +116,95 @@ public:
         return _tex;
     }
     
-    int n_slices() const
+    int numSlices() const
     {
-        return _n_slices;
+        return _numSlices;
     }
 
-    void n_slices(int n)
+    void numSlices(int n)
     {
-        _n_slices = n;
+        _numSlices = n;
     }
 
     /// set the drawing size of volume 
-    void set_size(float s);
+    void setSize(float s);
 
     // methods related to cutplanes
     /// add a plane and returns its index
-    int add_cutplane(int orientation, float location);
+    int addCutplane(int orientation, float location);
 
-    void enable_cutplane(int index);
+    void enableCutplane(int index);
 
-    void disable_cutplane(int index);
+    void disableCutplane(int index);
 
-    void move_cutplane(int index, float location);
+    void moveCutplane(int index, float location);
 
-    CutPlane *get_cutplane(int index);
+    CutPlane *getCutplane(int index);
 
     /// returns the number of cutplanes in the volume
-    int get_cutplane_count();
+    int getCutplaneCount();
 
     /// check if a cutplane is enabled
-    bool cutplane_is_enabled(int index) const;
+    bool isCutplaneEnabled(int index) const;
 
     // methods related to shading. These parameters are per volume 
+
+    /// Get specular exponent
     float specular() const
     {
         return _specular;
     }
 
+    /// Set specular exponent [0,128]
     void specular(float value)
     {
+        if (value < 0.0f) value = 0.0f;
+        if (value > 128.0f) value = 128.0f;
         _specular = value;
     }
 
+    /// Get diffuse coefficient
     float diffuse() const
     {
         return _diffuse;
     }
 
+    /// Set diffuse coefficient [0,1]
     void diffuse(float value)
     {
+        if (value < 0.0f) value = 0.0f;
+        if (value > 1.0f) value = 1.0f;
         _diffuse = value;
     }
 
-    float opacity_scale() const
+    float opacityScale() const
     {
-        return _opacity_scale;
+        return _opacityScale;
     }
 
-    void opacity_scale(float value)
+    void opacityScale(float value)
     {
-        _opacity_scale = value;
+        _opacityScale = value;
     }
 
-    void data_enabled(bool value)
+    void dataEnabled(bool value)
     {
-        _data_enabled = value;
+        _dataEnabled = value;
     }
 
-    bool data_enabled() const
+    bool dataEnabled() const
     {
-        return _data_enabled;
+        return _dataEnabled;
     }
 
     void outline(bool value)
     {
-        _outline_enabled = value; 
+        _outlineEnabled = value; 
     }
 
     bool outline()
     {
-        return _outline_enabled;
+        return _outlineEnabled;
     }
 
     TransferFunction *transferFunction()
@@ -213,12 +217,12 @@ public:
         _tfPtr = tfPtr;
     }
 
-    void set_outline_color(float *rgb);
+    void setOutlineColor(float *rgb);
 
-    void get_outline_color(float *rgb);
-    
+    void getOutlineColor(float *rgb);
+
     /// change the label displayed on an axis
-    void set_label(int axis, const char *txt);
+    void setLabel(int axis, const char *txt);
 
     void setPhysicalBBox(const Vector3& min, const Vector3& max);
 
@@ -236,9 +240,9 @@ public:
         _name = name;
     }
 
-    float aspect_ratio_width;
-    float aspect_ratio_height;
-    float aspect_ratio_depth;
+    float aspectRatioWidth;
+    float aspectRatioHeight;
+    float aspectRatioDepth;
 
     GLuint id;		///< OpenGL textue identifier (==_tex->id)
 
@@ -263,7 +267,7 @@ public:
     AxisRange xAxis, yAxis, zAxis, wAxis;
     std::string label[3]; ///< the labels along each axis 0:x, 1:y, 2:z
 
-    static bool update_pending;
+    static bool updatePending;
     static double valueMin, valueMax;
 
 protected:
@@ -280,16 +284,16 @@ protected:
      * transfer function. Rule of thumb: higher opacity_scale
      * the object is to appear like plastic
      */
-    float _opacity_scale;
+    float _opacityScale;
 
     const char *_name;
-    Vector3 _physical_min;
-    Vector3 _physical_max;
+    Vector3 _physicalMin;
+    Vector3 _physicalMax;
     float *_data;
 
-    int _n_components;
+    int _numComponents;
 
-    double _nonzero_min;
+    double _nonZeroMin;
 
     std::vector<CutPlane> _plane; ///< cut planes
 
@@ -301,85 +305,85 @@ protected:
      * Number of slices when rendered. The greater
      * the better quality, lower speed.
      */
-    int _n_slices;
+    int _numSlices;
     bool _enabled; 
-    bool _data_enabled;		///< show/hide cloud of volume data
-    bool _outline_enabled;	///< show/hide outline around volume
-    Color _outline_color;	///< color for outline around volume
-    int _volume_type;		///< cubic or zincblende
-    int _iso_surface;
+    bool _dataEnabled;		///< show/hide cloud of volume data
+    bool _outlineEnabled;	///< show/hide outline around volume
+    Color _outlineColor;	///< color for outline around volume
+    int _volumeType;		///< cubic or zincblende
+    int _isosurface;
 };
 
 inline int
-Volume::add_cutplane(int orientation, float location)
+Volume::addCutplane(int orientation, float location)
 {
     _plane.push_back(CutPlane(orientation, location));
     return _plane.size() - 1;
 }
 
 inline void 
-Volume::enable_cutplane(int index)
+Volume::enableCutplane(int index)
 { 
     //assert(index < plane.size());
     _plane[index].enabled = true;
 }
 inline void 
-Volume::disable_cutplane(int index)
+Volume::disableCutplane(int index)
 {
     //assert(index < plane.size());
     _plane[index].enabled = false;
 }
 
 inline void 
-Volume::move_cutplane(int index, float location)
+Volume::moveCutplane(int index, float location)
 {
     //assert(index < plane.size());
     _plane[index].offset = location;
 }
 
 inline CutPlane * 
-Volume::get_cutplane(int index)
+Volume::getCutplane(int index)
 {
     //assert(index < plane.size());
     return &_plane[index];
 }
 
 inline int 
-Volume::get_cutplane_count()
+Volume::getCutplaneCount()
 {
     return _plane.size();
 }
 
 inline bool 
-Volume::cutplane_is_enabled(int index) const
+Volume::isCutplaneEnabled(int index) const
 {
     //assert(index < plane.size());
     return _plane[index].enabled; 
 }
 
 inline void 
-Volume::set_size(float s) 
+Volume::setSize(float s) 
 { 
     size = s; 
-    aspect_ratio_width  = s * _tex->aspectRatioWidth();
-    aspect_ratio_height = s * _tex->aspectRatioHeight();
-    aspect_ratio_depth  = s * _tex->aspectRatioDepth();
+    aspectRatioWidth  = s * _tex->aspectRatioWidth();
+    aspectRatioHeight = s * _tex->aspectRatioHeight();
+    aspectRatioDepth  = s * _tex->aspectRatioDepth();
 }
 
 inline void 
-Volume::set_outline_color(float *rgb) 
+Volume::setOutlineColor(float *rgb) 
 {
-    _outline_color = Color(rgb[0], rgb[1], rgb[2]);
+    _outlineColor = Color(rgb[0], rgb[1], rgb[2]);
 }
 
 inline void 
-Volume::get_outline_color(float *rgb) 
+Volume::getOutlineColor(float *rgb) 
 {
-    _outline_color.getRGB(rgb);
+    _outlineColor.getRGB(rgb);
 }
 
 inline void 
-Volume::set_label(int axis, const char* txt)
+Volume::setLabel(int axis, const char* txt)
 {
     label[axis] = txt;
 }
@@ -387,30 +391,30 @@ Volume::set_label(int axis, const char* txt)
 inline void 
 Volume::setPhysicalBBox(const Vector3& min, const Vector3& max)
 {
-    _physical_min = min;
-    _physical_max = max;
+    _physicalMin = min;
+    _physicalMax = max;
 
     /*
-    aspect_ratio_width = size * 1;
-    aspect_ratio_height = size * (max.y - min.y) / (max.x - min.x);
-    aspect_ratio_depth = size* (max.z - min.z) / (max.x - min.x);
+    aspectRatioWidth = size * 1;
+    aspectRatioHeight = size * (max.y - min.y) / (max.x - min.x);
+    aspectRatioDepth = size* (max.z - min.z) / (max.x - min.x);
 
     location.x = -0.5;
-    location.y = -0.5* aspect_ratio_height;
-    location.z = -0.5* aspect_ratio_depth;
+    location.y = -0.5* aspectRatioHeight;
+    location.z = -0.5* aspectRatioDepth;
     */
 }
 
 inline const Vector3& 
 Volume::getPhysicalBBoxMin() const
 {
-    return _physical_min;
+    return _physicalMin;
 }
 
 inline const Vector3& 
 Volume::getPhysicalBBoxMax() const
 {
-    return _physical_max;
+    return _physicalMax;
 }
 
 #endif

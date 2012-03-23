@@ -23,7 +23,7 @@ public :
 
     void computeKeys(float fraction, int count, float *interp, int *key1, int *key2);
 
-    bool is_started() const;
+    bool isStarted() const;
 
     double getInterval() const;
 
@@ -42,19 +42,19 @@ private:
     bool _started;
     unsigned int _numBytes;
     unsigned int _dataCount;
-    unsigned int _n_components;
+    unsigned int _numComponents;
     unsigned int _referenceOfVolume;
-    double _start_time;
+    double _startTime;
 };
 
-inline bool VolumeInterpolator::is_started() const
+inline bool VolumeInterpolator::isStarted() const
 {
     return _started;
 }
 
 inline double VolumeInterpolator::getStartTime() const
 {
-    return _start_time;
+    return _startTime;
 }
 
 inline double VolumeInterpolator::getInterval() const

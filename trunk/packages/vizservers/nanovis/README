@@ -31,7 +31,7 @@
        (See http://www.nvidia.com/object/unix.html)
      Nvidia CG Toolkit for GPU (Graphics Processing Unit) programming.
        (See http://developer.nvidia.com/object/cg_toolkit.html)
-     The OpenGL Wrangler Library for OpenGL extension management.
+     The OpenGL Wrangler Library (>= 1.1.0) for OpenGL extension management.
        (See http://glew.sourceforge.net/)
      OpenGL Utility Toolkit (GLUT). Freeglut is an opensource GLUT replacement.
        (See http://freeglut.sourceforge.net/)

@@ -13,32 +13,34 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <assert.h>
+
 #include "PerfQuery.h"
 
-
-PerfQuery::PerfQuery(){
-  glGenQueriesARB(1, &id);
-  pixel = 0;
+PerfQuery::PerfQuery()
+{
+    glGenQueriesARB(1, &id);
+    pixel = 0;
 }
 
-PerfQuery::~PerfQuery(){
-  glDeleteQueriesARB(1, &id);
+PerfQuery::~PerfQuery()
+{
+    glDeleteQueriesARB(1, &id);
 }
 
 //There can only be one active query at any given moment
-void PerfQuery::enable(){
-  glBeginQueryARB(GL_SAMPLES_PASSED_ARB, id);
+void PerfQuery::enable()
+{
+    glBeginQueryARB(GL_SAMPLES_PASSED_ARB, id);
 }
 
-void PerfQuery::disable(){
-  glEndQueryARB(GL_SAMPLES_PASSED_ARB);
+void PerfQuery::disable()
+{
+    glEndQueryARB(GL_SAMPLES_PASSED_ARB);
 
-  GLuint count;
-  glGetQueryObjectuivARB(id, GL_QUERY_RESULT_ARB, &count);
+    GLuint count;
+    glGetQueryObjectuivARB(id, GL_QUERY_RESULT_ARB, &count);
 
-  //accumulate pixel count count
-  pixel+=count;
+    //accumulate pixel count count
+    pixel += count;
 }
-

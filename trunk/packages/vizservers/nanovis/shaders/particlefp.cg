@@ -1,5 +1,4 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include "particlemacro.h"
 #include "particle_common.cg"
 
 #ifdef USE_TIME_SERIES

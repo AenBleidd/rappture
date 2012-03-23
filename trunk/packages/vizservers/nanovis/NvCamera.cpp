@@ -19,6 +19,10 @@
 #include <GL/glew.h>
 #include <GL/glu.h>
 
+#include <vrmath/vrQuaternion.h>
+#include <vrmath/vrRotation.h>
+#include <vrmath/vrMatrix4x4f.h>
+
 #include "NvCamera.h"
 #include "Trace.h"
 
@@ -60,11 +64,74 @@ NvCamera::initialize()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+#ifndef OLD_CAMERA
+    glTranslatef(-_location.x, -_location.y, -_location.z);
+    glMultMatrixf((const GLfloat *)_cameraMatrix.get());
+#else
+
     gluLookAt(_location.x, _location.y, _location.z,
               _target.x, _target.y, _target.z,
               0., 1., 0.);
 
-    glRotated(_angle.x, 1., 0., 0.);
-    glRotated(_angle.y, 0., 1., 0.);
-    glRotated(_angle.z, 0., 0., 1.);
+    if (_angle.x != 0.0f)
+        glRotated(_angle.x, 1., 0., 0.);
+    if (_angle.y != 0.0f)
+        glRotated(_angle.y, 0., 1., 0.);
+    if (_angle.z != 0.0f)
+        glRotated(_angle.z, 0., 0., 1.);
+#endif
+}
+
+void NvCamera::rotate(double *quat)
+{
+    vrQuaternion q(quat[0], quat[1], quat[2], quat[3]);
+    vrRotation rot;
+    rot.set(q);
+    _cameraMatrix.makeRotation(rot);
+    _cameraMatrix.transpose();
+    _angle.set(0, 0, 0);
+    TRACE("Set rotation to quat: %g %g %g %g\n",
+          quat[0], quat[1], quat[2], quat[3]);
+}
+
+void NvCamera::rotate(float angle_x, float angle_y, float angle_z)
+{
+#ifdef OLD_CAMERA
+    _angle = Vector3(angle_x, angle_y, angle_z);
+#else
+    angle_x = -angle_x;
+    angle_y = angle_y - 180.;
+    _angle = Vector3(angle_x, angle_y, angle_z);
+
+    _cameraMatrix.makeRotation(1, 0, 0, deg2rad(_angle.x));
+    vrMatrix4x4f mat;
+    mat.makeRotation(0, 1, 0, deg2rad(_angle.y));
+    _cameraMatrix.multiply(mat);
+    mat.makeRotation(0, 0, 1, deg2rad(_angle.z));
+    _cameraMatrix.multiply(mat);
+    //_cameraMatrix.transpose();
+#endif
+    TRACE("Set rotation to angles: %g %g %g\n",
+          _angle.x, _angle.y, _angle.z);
+}
+
+void NvCamera::rotate(const Vector3& angle)
+{ 
+#ifdef OLD_CAMERA
+    _angle = angle;
+#else
+    _angle.x = -angle.x;
+    _angle.y = angle.y - 180.;
+    _angle.z = angle.z;
+
+    _cameraMatrix.makeRotation(1, 0, 0, deg2rad(_angle.x));
+    vrMatrix4x4f mat;
+    mat.makeRotation(0, 1, 0, deg2rad(_angle.y));
+    _cameraMatrix.multiply(mat);
+    mat.makeRotation(0, 0, 1, deg2rad(_angle.z));
+    _cameraMatrix.multiply(mat);
+    //_cameraMatrix.transpose();
+#endif
+    TRACE("Set rotation to angles: %g %g %g\n",
+          _angle.x, _angle.y, _angle.z);
 }

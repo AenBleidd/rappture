@@ -23,25 +23,21 @@ public:
 
     /**
      * @brief make a translation matrix
-     * @param translation translation
      */
     void makeTranslation(const vrVector3f& translation);
 
     /**
      * @brief make a translation matrix
-     * @param x x position
      */
     void makeTranslation(float x, float y, float z);
 
     /**
      * @brief make a rotation matrix
-     * @param rotation rotation
      */
     void makeRotation(const vrRotation& rotation);
 
     /**
      * @brief Make a rotation matrix
-     * @param rotation rotation
      */
     void makeRotation(float x, float y, float z, float angle);
 
@@ -49,7 +45,6 @@ public:
 
     /**
      * @brief make a scale matrix
-     * @param scale scale
      */
     void makeScale(const vrVector3f& scale);
     void makeTR(const vrVector3f& translation, const vrRotation& rotation);

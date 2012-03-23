@@ -72,63 +72,63 @@ public:
     };
 
     static void init(const char *path);
-    static void xinetd_listen();
+    static void xinetdListen();
     static void initGL();
-    static void init_offscreen_buffer();
-    static void resize_offscreen_buffer(int w, int h);
+    static void initOffscreenBuffer();
+    static void resizeOffscreenBuffer(int w, int h);
     static void resize(int w, int h);
     static void render();
     static void display();
     static void idle();
     static void update();
-    static void display_offscreen_buffer();
+    static void displayOffscreenBuffer();
     static void pan(float dx, float dy);
     static void zoom(float z);
 
-    static void EventuallyRedraw(unsigned int flag = 0);
+    static void eventuallyRedraw(unsigned int flag = 0);
 
-    static void SetVolumeRanges();
-    static void SetHeightmapRanges();
+    static void setVolumeRanges();
+    static void setHeightmapRanges();
 
-    static void init_lic();
     static void initParticle();
 
-    static void ppm_write(const char *prefix);
+    static void ppmWrite(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
                                  size_t dlen);
-    static void bmp_write(const char *prefix);
-    static void bmp_write_to_file(int frame_number, const char* directory_name);
+    static void bmpWrite(const char *prefix);
+    static void bmpWriteToFile(int frame_number, const char* directory_name);
  
-    static TransferFunction *get_transfunc(const char *name);
-    static TransferFunction *DefineTransferFunction(const char *name, 
+    static TransferFunction *getTransfunc(const char *name);
+    static TransferFunction *defineTransferFunction(const char *name, 
                                                     size_t n, float *data);
 
-    static int render_2d_contour(HeightMap *heightmap, int width, int height);
+    static int render2dContour(HeightMap *heightmap, int width, int height);
 
-    static int render_legend(TransferFunction *tf, double min, double max, 
-                             int width, int height, const char *volArg);
+    static int renderLegend(TransferFunction *tf, double min, double max, 
+                            int width, int height, const char *volArg);
 
-    static Volume *load_volume(const char *tag, int width, int height, 
-                               int depth, int n, float* data, double vmin, double vmax, 
-                               double nzero_min);
-    static void remove_volume(Volume *volPtr);
+    static Volume *loadVolume(const char *tag, int width, int height, int depth,
+                              int n, float* data, double vmin, double vmax, 
+                              double nonZeroMin);
+
+    static void removeVolume(Volume *volPtr);
 
 #ifndef XINETD
     static void keyboard(unsigned char key, int x, int y);
     static void mouse(int button, int state, int x, int y);
     static void motion(int x, int y);
-    static void update_rot(int delta_x, int delta_y);
-    static void update_trans(int delta_x, int delta_y, int delta_z);
+    static void updateRot(int delta_x, int delta_y);
+    static void updateTrans(int delta_x, int delta_y, int delta_z);
 #endif
 
-    static void read_screen()
+    static void readScreen()
     {
-        glReadPixels(0, 0, win_width, win_height, GL_RGB, GL_UNSIGNED_BYTE, 
-                     screen_buffer);
+        glReadPixels(0, 0, winWidth, winHeight, GL_RGB, GL_UNSIGNED_BYTE, 
+                     screenBuffer);
     }
-    static void offscreen_buffer_capture()
+    static void offscreenBufferCapture()
     {
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _final_fbo);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
 
     static FlowCmd *FirstFlow(FlowIterator *iterPtr);
@@ -147,13 +147,12 @@ public:
     static FILE *stdin, *logfile, *recfile;
 
     static unsigned int flags;
-    static bool debug_flag;
-    static bool axis_on;
-    static bool config_pending;	// Indicates if the limits need to be recomputed.
-    static int win_width;	//size of the render window
-    static int win_height;	//size of the render window
-    static int render_window;
-    static unsigned char *screen_buffer;
+    static bool debugFlag;
+    static bool axisOn;
+    static int winWidth;	//size of the render window
+    static int winHeight;	//size of the render window
+    static int renderWindow;
+    static unsigned char *screenBuffer;
     static Grid *grid;
     static R2Fonts *fonts;
     static int updir;
@@ -168,37 +167,37 @@ public:
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
     static float xOrigin, yOrigin, zOrigin;
 
-    static VolumeRenderer *vol_renderer;
+    static VolumeRenderer *volRenderer;
     static NvFlowVisRenderer *flowVisRenderer;
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
-    static PlaneRenderer *plane_renderer;
+    static PlaneRenderer *planeRenderer;
 #if PLANE_CMD
     static Texture2D *plane[]; ///< Pointers to 2D planes
 #endif
 #ifdef USE_POINTSET_RENDERER
-    static PointSetRenderer *pointset_renderer;
+    static PointSetRenderer *pointSetRenderer;
     static std::vector<PointSet *> pointSet;
 #endif
 
     static Tcl_HashTable tfTable;
     static Texture2D *legendTexture;
-    static NvColorTableRenderer *color_table_renderer;
+    static NvColorTableRenderer *colorTableRenderer;
 
     static std::vector<HeightMap *> heightMap;
     static Tcl_HashTable heightmapTable;
-
-    static float lic_slice_x;
-    static float lic_slice_y;
-    static float lic_slice_z;
-    static int lic_axis;	/* 0:x, 1:y, 2:z */
 
     static Tcl_Interp *interp;
     static Tcl_DString cmdbuffer;
 
 private:
+    static float _licSliceX;
+    static float _licSliceY;
+    static float _licSliceZ;
+    static int _licAxis;     /* 0:x, 1:y, 2:z */
+
     //frame buffer for final rendering
-    static GLuint _final_fbo, _final_color_tex, _final_depth_rb;
+    static GLuint _finalFbo, _finalColorTex, _finalDepthRb;
 };
 
 #endif

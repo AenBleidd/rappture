@@ -13,8 +13,4 @@ extern Volume *
 load_volume_stream(Rappture::Outcome& status, const char *tag, 
                    std::iostream& fin);
 
-extern Volume *
-load_volume_stream2(Rappture::Outcome& status, const char *tag, 
-                    std::iostream& fin);
-
 #endif

@@ -71,6 +71,10 @@ GLuint Texture2D::initialize(void *data)
 
 void Texture2D::update(void *data)
 {
+    static GLuint floatFormats[] = { -1, GL_LUMINANCE32F_ARB, GL_LUMINANCE_ALPHA32F_ARB, GL_RGB32F_ARB, GL_RGBA32F_ARB };
+    static GLuint halfFloatFormats[] = { -1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, GL_RGB16F_ARB, GL_RGBA16F_ARB };
+    static GLuint basicFormats[] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+
     glBindTexture(GL_TEXTURE_2D, _id);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -82,20 +86,25 @@ void Texture2D::update(void *data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, _interpType);
 
     //to do: add handling to more formats
-#ifdef NV40
+    GLuint *targetFormats;
+#ifdef HAVE_FLOAT_TEXTURES
     if (_type == GL_FLOAT) {
-        GLuint targetFormat[5] = { -1, GL_LUMINANCE16F_ARB, GL_LUMINANCE_ALPHA16F_ARB, GL_RGB16F_ARB, GL_RGBA16F_ARB };
-        GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-        glTexImage2D(GL_TEXTURE_2D, 0, targetFormat[_numComponents], _width, _height, 0, 
-                     format[_numComponents], _type, data);
+# ifdef USE_HALF_FLOAT
+        targetFormats = halfFloatFormats;
+# else
+        targetFormats = floatFormats;
+# endif
     } else {
 #endif
-        GLuint format[5] = { -1, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-        glTexImage2D(GL_TEXTURE_2D, 0, format[_numComponents], _width, _height, 0, 
-                     format[_numComponents], _type, data);
-#ifdef NV40
+        targetFormats = basicFormats;
+#ifdef HAVE_FLOAT_TEXTURES
     }
 #endif
+
+    glTexImage2D(GL_TEXTURE_2D, 0, targetFormats[_numComponents],
+                 _width, _height, 0, 
+                 basicFormats[_numComponents], _type, data);
+
     assert(glGetError() == 0);
 }
 

@@ -20,7 +20,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 // Velocity change operations.
-#include "velocityOps.cg"
+//#include "velocityOps.cg"
 
 // Uniform parameters influencing velocity.
 uniform float3 _SphereCenter;
@@ -31,7 +31,7 @@ uniform float3 _LocalAttractorPosition[4];
 float3 advanceVelocity(float3 _Velocity, float3 _Position, float _TimeStep)
 {
     float3 gravity = float3(0, -.01, 0);
-	
+
     float3 acceleration = gravity;
 
     //acceleration += 
@@ -72,7 +72,7 @@ float4 main(float2 _TexCoord : TEXCOORD0,
 {
     float3 velocity = (float3)texRECT(_VelocityTexture, _TexCoord);
     float3 position = (float3)texRECT(_PositionTexture, _TexCoord);
-	
+
     return float4(advanceVelocity(velocity, position, _TimeStep), 0);
 }
 

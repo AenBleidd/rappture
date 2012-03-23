@@ -19,7 +19,6 @@ namespace graphics {
 class Grid;
 
 /**
- *@class HeightMap
  *@brief Create a surface from height map and line contour of the generated surface
  */
 class HeightMap
@@ -122,7 +121,7 @@ public:
     }
 
     AxisRange xAxis, yAxis, zAxis, wAxis;
-    static bool update_pending;
+    static bool updatePending;
     static double valueMin, valueMax;
 
 private:

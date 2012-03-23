@@ -14,7 +14,7 @@
 #endif
 
 static int g_numOfSlices[3] = { 256, 256, 256 };
-static void *g_volData = 0;
+static void *g_volData = NULL;
 static float g_sliceDists[3];
 
 #define SOBEL               1
@@ -22,7 +22,7 @@ static float g_sliceDists[3];
 #define SIGMA2              5.0
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define EPS 1e-5f
+#define EPS 1e-6f
 
 #ifdef notused
 static char *
@@ -144,16 +144,17 @@ static float getVoxel(int x, int y, int z, DataType dataType)
     return 0.0;
 }
 
-void computeGradients(float *gradients, void* volData, int *sizes, DataType dataType)
+void computeGradients(float *gradients, void *volData, int *sizes, 
+                      float *spacing, DataType dataType)
 {
     ::g_volData = volData;
     g_numOfSlices[0] = sizes[0];
     g_numOfSlices[1] = sizes[1];
     g_numOfSlices[2] = sizes[2];
 
-    g_sliceDists[0] = 1.0f / sizes[0];
-    g_sliceDists[1] = 1.0f / sizes[1];
-    g_sliceDists[2] = 1.0f / sizes[2];
+    g_sliceDists[0] = spacing[0];
+    g_sliceDists[1] = spacing[1];
+    g_sliceDists[2] = spacing[2];
 
     int i, j, k, dir, di, vdi, idz, idy, idx;
     float *gp;

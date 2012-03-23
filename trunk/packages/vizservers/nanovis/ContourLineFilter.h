@@ -15,17 +15,16 @@ public:
     class ContourLine
     {
     public:
-	float _value;
-	std::list<Vector3> _points;
-
 	ContourLine(float value);
 
         /**
-	 * @brief
-	 * @ret Returns the number of points
+	 * @return Returns the number of points
 	 */
 	int createLine(int width, int height, Vector3 *vertices, bool top);
 	int createLine(int width, int height, Vector4 *vertices, bool top);
+
+	float _value;
+	std::list<Vector3> _points;
 
     private:
 	bool isValueWithIn(float v1, float v2)

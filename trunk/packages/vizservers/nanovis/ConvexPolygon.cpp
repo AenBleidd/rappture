@@ -99,7 +99,7 @@ ConvexPolygon::translate(const Vector4& shift)
 }
 
 void
-ConvexPolygon::clip(Plane& clipPlane, bool copy_to_texcoord)
+ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
 {
     if (vertices.size() == 0) {
         //ERROR("ConvexPolygon: polygon has no vertices\n");  
@@ -122,12 +122,12 @@ ConvexPolygon::clip(Plane& clipPlane, bool copy_to_texcoord)
     Vector4 intersect;
     Vector4 plane = clipPlane.get_coeffs();
 
-    bool prevRetained = is_retained(vertices[0], plane);
+    bool prevRetained = isRetained(vertices[0], plane);
     if (prevRetained) 
         clippedVerts.push_back(vertices[0]);
 
     for (unsigned int i = 1; i < vertices.size(); i++) {
-        bool retained = is_retained(vertices[i], plane);
+        bool retained = isRetained(vertices[i], plane);
         if (retained != prevRetained) {
             bool found = findIntersection(vertices[i - 1], vertices[i], 
                                           plane, intersect);
@@ -140,7 +140,7 @@ ConvexPolygon::clip(Plane& clipPlane, bool copy_to_texcoord)
         prevRetained = retained;
     }
 
-    bool retained = is_retained(vertices[0], plane);
+    bool retained = isRetained(vertices[0], plane);
     if (retained != prevRetained) {
         bool found = findIntersection(vertices[vertices.size() - 1], 
 				      vertices[0], plane, intersect);
@@ -153,12 +153,12 @@ ConvexPolygon::clip(Plane& clipPlane, bool copy_to_texcoord)
                     clippedVerts.begin(),
                     clippedVerts.end());
 
-    if (copy_to_texcoord)
-        copy_vertices_to_texcoords();
+    if (copyToTexcoord)
+        copyVerticesToTexcoords();
 }
 
 void
-ConvexPolygon::copy_vertices_to_texcoords()
+ConvexPolygon::copyVerticesToTexcoords()
 {
     if (texcoords.size() > 0)
         texcoords.clear();
@@ -169,11 +169,11 @@ ConvexPolygon::copy_vertices_to_texcoords()
 }
 
 void
-ConvexPolygon::Emit(bool use_texture)
+ConvexPolygon::emit(bool useTexture)
 {
     if (vertices.size() >= 3) {
 	for (unsigned int i = 0; i < vertices.size(); i++) {
-	    if (use_texture) {
+	    if (useTexture) {
 		glTexCoord4fv((float *)&(texcoords[i]));
 		//glTexCoord4fv((float *)&(vertices[i]));
 	    }
@@ -183,11 +183,11 @@ ConvexPolygon::Emit(bool use_texture)
 }
 
 void 
-ConvexPolygon::Emit(bool use_texture, const Vector3& shift, const Vector3& scale) 
+ConvexPolygon::emit(bool useTexture, const Vector3& shift, const Vector3& scale) 
 {
     if (vertices.size() >= 3) {
 	for (unsigned int i = 0; i < vertices.size(); i++) {
-	    if (use_texture) {
+	    if (useTexture) {
 		glTexCoord4fv((float *)&(vertices[i]));
 	    }
 	    Vector4 tmp = (vertices[i]);

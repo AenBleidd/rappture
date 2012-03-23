@@ -16,6 +16,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <vrmath/vrMatrix4x4f.h>
+
+#include "config.h"
 #include "Vector3.h"
 
 class NvCamera
@@ -28,7 +31,6 @@ public:
 
     ~NvCamera()
     {}
-
 
     //move location of camera
     void x(float loc_x)
@@ -92,15 +94,11 @@ public:
         return _target.z;
     }
 
-    void rotate(float angle_x, float angle_y, float angle_z)
-    { 
-        _angle = Vector3(angle_x, angle_y, angle_z);
-    }
+    void rotate(double *quat);
 
-    void rotate(const Vector3& angle)
-    { 
-        _angle = angle;
-    }
+    void rotate(float angle_x, float angle_y, float angle_z);
+
+    void rotate(const Vector3& angle);
 
     Vector3 rotate() const
     { 
@@ -116,7 +114,7 @@ public:
     }
 
     /**
-     * \brief make the camera setting active, this has to be
+     * \brief Make the camera setting active, this has to be
      * called before drawing things
      */
     void initialize();
@@ -132,6 +130,9 @@ private:
     Vector3 _target;
     /// rotation angles of camera along x, y, z
     Vector3 _angle;
+
+    vrMatrix4x4f _cameraMatrix;
+
     /// screen width
     int _width;
     /// screen height

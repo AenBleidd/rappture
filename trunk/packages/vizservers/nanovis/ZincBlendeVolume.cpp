@@ -23,23 +23,23 @@ ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
                                    int w, int h, int d, float s, int n, 
                                    float *dataVolumeA, float *dataVolumeB,
                                    double v0, double v1, double non_zeromin,
-                                   const Vector3& cellSize) :
+                                   const Vector3& cellSz) :
     Volume(x, y, z, w, h, d, s, n, dataVolumeA, v0, v1, non_zeromin),
-    cell_size(cellSize)
+    cellSize(cellSz)
 {
     //label it as zincblende
-    _volume_type = ZINCBLENDE;
+    _volumeType = ZINCBLENDE;
 
     //store member tex initialize in Volume() as zincblende_tex[0]
     assert(_tex);
-    zincblende_tex[0] = _tex;
+    zincblendeTex[0] = _tex;
 
     //now add another tex as zincblende_tex[1]
     Texture3D *secondTex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
     assert(secondTex);
     secondTex->initialize(dataVolumeB);
 
-    zincblende_tex[1] = secondTex;
+    zincblendeTex[1] = secondTex;
 }
 
 ZincBlendeVolume::~ZincBlendeVolume()
@@ -47,6 +47,6 @@ ZincBlendeVolume::~ZincBlendeVolume()
     // This data will be deleted in a destrutor of Volume class
     //if (zincblende_tex[0])
     //  delete zincblende_tex[0];
-    if (zincblende_tex[1])
-	delete zincblende_tex[1];
+    if (zincblendeTex[1])
+	delete zincblendeTex[1];
 }

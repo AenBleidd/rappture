@@ -49,8 +49,8 @@ void vpmain(in float4 posin : POSITION,
 
     float4 posEye =  mul(modelview, posin);
     //pointSize = tanHalfFOV / -posEye.z / 5;
-    pointSize = tanHalfFOV / -posEye.z / 10; //j-wire
-    //pointSize = 10 / -posEye.z;
+    //pointSize = tanHalfFOV / -posEye.z / 10; //j-wire
+    pointSize = 20; //0 / -posEye.z;
 
     posout = mul(mvp, vec);
 

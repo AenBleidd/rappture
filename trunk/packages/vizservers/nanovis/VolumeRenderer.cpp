@@ -39,17 +39,17 @@
 #define NUMDIGITS	6
 
 VolumeRenderer::VolumeRenderer() :
-    slice_mode(false),
-    volume_mode(true)
+    _sliceMode(false),
+    _volumeMode(true)
 {
-    init_shaders();
+    initShaders();
 
     const char *path = R2FilePath::getInstance()->getPath("Font.bmp");
     if (path == NULL) {
         ERROR("can't find Font.bmp\n");
         assert(path != NULL);
     }
-    init_font(path);
+    initFont(path);
     delete [] path;
     _volumeInterpolator = new VolumeInterpolator();
 }
@@ -63,7 +63,7 @@ VolumeRenderer::~VolumeRenderer()
 }
 
 //initialize the volume shaders
-void VolumeRenderer::init_shaders()
+void VolumeRenderer::initShaders()
 {
     //standard vertex program
     _stdVertexShader = new NvStdVertexShader();
@@ -84,15 +84,17 @@ void VolumeRenderer::init_shaders()
 
 struct SortElement {
     float z;
-    int volume_id;
-    int slice_id;
+    int volumeId;
+    int sliceId;
 
     SortElement(float _z, int _v, int _s) :
-        z(_z), volume_id(_v), slice_id(_s)
+        z(_z),
+        volumeId(_v),
+        sliceId(_s)
     {}
 };
 
-int slice_sort(const void* a, const void* b)
+static int sliceSort(const void *a, const void *b)
 {
     if ((*((SortElement*)a)).z > (*((SortElement*)b)).z)
         return 1;
@@ -101,11 +103,11 @@ int slice_sort(const void* a, const void* b)
 }
 
 void 
-VolumeRenderer::render_all()
+VolumeRenderer::renderAll()
 {
     size_t total_rendered_slices = 0;
 
-    if (_volumeInterpolator->is_started()) {
+    if (_volumeInterpolator->isStarted()) {
 #ifdef notdef
         ani_vol = _volumeInterpolator->getVolume();
         ani_tf = ani_vol->transferFunction();
@@ -129,7 +131,7 @@ VolumeRenderer::render_all()
         // second volume will overwrite the first, so the first won't appear
         // at all.
         volumes.push_back(volPtr);
-        volPtr->n_slices(256 - volumes.size());
+        volPtr->numSlices(256 - volumes.size());
     }
 
     //two dimension pointer array
@@ -143,7 +145,7 @@ VolumeRenderer::render_all()
         polys[i] = NULL;
         actual_slices[i] = 0;
 
-        int n_slices = volPtr->n_slices();
+        int n_slices = volPtr->numSlices();
         if (volPtr->isosurface()) {
             // double the number of slices
             n_slices <<= 1;
@@ -173,9 +175,9 @@ VolumeRenderer::render_all()
 
         //get modelview matrix with no translation
         glPushMatrix();
-        glScalef(volPtr->aspect_ratio_width, 
-                 volPtr->aspect_ratio_height, 
-                 volPtr->aspect_ratio_depth);
+        glScalef(volPtr->aspectRatioWidth, 
+                 volPtr->aspectRatioHeight, 
+                 volPtr->aspectRatioDepth);
 
         glEnable(GL_DEPTH_TEST);
 
@@ -190,9 +192,9 @@ VolumeRenderer::render_all()
         //get modelview matrix with translation
         glPushMatrix();
         glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-        glScalef(volPtr->aspect_ratio_width, 
-                 volPtr->aspect_ratio_height, 
-                 volPtr->aspect_ratio_depth);
+        glScalef(volPtr->aspectRatioWidth, 
+                 volPtr->aspectRatioHeight, 
+                 volPtr->aspectRatioDepth);
         GLfloat mv_trans[16];
         glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
 
@@ -203,8 +205,8 @@ VolumeRenderer::render_all()
         //space)
         if (volPtr->outline()) {
             float olcolor[3];
-            volPtr->get_outline_color(olcolor);
-            draw_bounding_box(x0, y0, z0, x0+1, y0+1, z0+1,
+            volPtr->getOutlineColor(olcolor);
+            drawBoundingBox(x0, y0, z0, x0+1, y0+1, z0+1,
                 (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
                 1.5);
         }
@@ -222,13 +224,13 @@ VolumeRenderer::render_all()
         for (size_t j = 0; j < 6; j++) {
             volume_planes[j].transform(model_view_no_trans);
         }
-        get_near_far_z(mv_no_trans, zNear, zFar);
+        getNearFarZ(mv_no_trans, zNear, zFar);
 
         //compute actual rendering slices
         float z_step = fabs(zNear-zFar)/n_slices;
         size_t n_actual_slices;
 
-        if (volPtr->data_enabled()) {
+        if (volPtr->dataEnabled()) {
             n_actual_slices = (int)(fabs(zNear-zFar)/z_step + 1);
             polys[i] = new ConvexPolygon*[n_actual_slices];
         } else {
@@ -248,12 +250,12 @@ VolumeRenderer::render_all()
         // vice versa.
 
         ConvexPolygon static_poly;
-        for (int j = 0; j < volPtr->get_cutplane_count(); j++) {
-            if (!volPtr->cutplane_is_enabled(j)) {
+        for (int j = 0; j < volPtr->getCutplaneCount(); j++) {
+            if (!volPtr->isCutplaneEnabled(j)) {
                 continue;
             }
-            float offset = volPtr->get_cutplane(j)->offset;
-            int axis = volPtr->get_cutplane(j)->orient;
+            float offset = volPtr->getCutplane(j)->offset;
+            int axis = volPtr->getCutplane(j)->orient;
             
             if (axis == 3) {
                 vert1 = Vector4(-10, -10, offset, 1);
@@ -283,10 +285,10 @@ VolumeRenderer::render_all()
             ConvexPolygon *p = &static_poly;
             p->vertices.clear();
 
-            p->append_vertex(vert1);
-            p->append_vertex(vert2);
-            p->append_vertex(vert3);
-            p->append_vertex(vert4);
+            p->appendVertex(vert1);
+            p->appendVertex(vert2);
+            p->appendVertex(vert3);
+            p->appendVertex(vert4);
 
             for (size_t k = 0; k < 6; k++) {
                 p->clip(volume_planes[k], true);
@@ -296,22 +298,22 @@ VolumeRenderer::render_all()
             p->transform(model_view_trans);
 
             glPushMatrix();
-            glScalef(volPtr->aspect_ratio_width,
-                     volPtr->aspect_ratio_height,
-                     volPtr->aspect_ratio_depth);
+            glScalef(volPtr->aspectRatioWidth,
+                     volPtr->aspectRatioHeight,
+                     volPtr->aspectRatioDepth);
 
-            activate_volume_shader(volPtr, true);
+            activateVolumeShader(volPtr, true);
             glPopMatrix();
 
             glEnable(GL_DEPTH_TEST);
             glDisable(GL_BLEND);
 
             glBegin(GL_POLYGON);
-            p->Emit(true); 
+            p->emit(true); 
             glEnd();
             glDisable(GL_DEPTH_TEST);
 
-            deactivate_volume_shader();
+            deactivateVolumeShader();
         } //done cutplanes
 
         //Now do volume rendering
@@ -333,7 +335,7 @@ VolumeRenderer::render_all()
             counter++;
 
             poly->vertices.clear();
-            poly->set_id(i);
+            poly->setId(i);
 
             //Setting Z-coordinate 
             vert1.z = slice_z;
@@ -341,10 +343,10 @@ VolumeRenderer::render_all()
             vert3.z = slice_z;
             vert4.z = slice_z;
 
-            poly->append_vertex(vert1);
-            poly->append_vertex(vert2);
-            poly->append_vertex(vert3);
-            poly->append_vertex(vert4);
+            poly->appendVertex(vert1);
+            poly->appendVertex(vert2);
+            poly->appendVertex(vert3);
+            poly->appendVertex(vert4);
 
             for (size_t k = 0; k < 6; k++) {
                 poly->clip(volume_planes[k], true);
@@ -376,7 +378,7 @@ VolumeRenderer::render_all()
     }
 
     //sort them
-    qsort(slices, total_rendered_slices, sizeof(SortElement), slice_sort);
+    qsort(slices, total_rendered_slices, sizeof(SortElement), sliceSort);
 
     //Now we are ready to render all the slices from back to front
     glEnable(GL_DEPTH_TEST);
@@ -385,28 +387,29 @@ VolumeRenderer::render_all()
     for (size_t i = 0; i < total_rendered_slices; i++) {
         Volume *volPtr = NULL;
 
-        int volume_index = slices[i].volume_id;
-        int slice_index = slices[i].slice_id;
+        int volume_index = slices[i].volumeId;
+        int slice_index = slices[i].sliceId;
         ConvexPolygon *cur = polys[volume_index][slice_index];
 
         volPtr = volumes[volume_index];
 
         glPushMatrix();
-        glScalef(volPtr->aspect_ratio_width, volPtr->aspect_ratio_height, 
-                 volPtr->aspect_ratio_depth);
+        glScalef(volPtr->aspectRatioWidth,
+                 volPtr->aspectRatioHeight, 
+                 volPtr->aspectRatioDepth);
 
 #ifdef notdef
         TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d\n", 
                volPtr->name(), volPtr, slice_index, volume_index);
 #endif
-        activate_volume_shader(volPtr, false);
+        activateVolumeShader(volPtr, false);
         glPopMatrix();
 
         glBegin(GL_POLYGON);
-        cur->Emit(true);
+        cur->emit(true);
         glEnd();
 
-        deactivate_volume_shader();
+        deactivateVolumeShader();
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -427,10 +430,10 @@ VolumeRenderer::render_all()
 }
 
 void 
-VolumeRenderer::draw_bounding_box(float x0, float y0, float z0, 
-                                  float x1, float y1, float z1,
-                                  float r, float g, float b, 
-                                  float line_width)
+VolumeRenderer::drawBoundingBox(float x0, float y0, float z0, 
+                                float x1, float y1, float z1,
+                                float r, float g, float b, 
+                                float line_width)
 {
     glPushMatrix();
     glEnable(GL_DEPTH_TEST);
@@ -546,25 +549,26 @@ VolumeRenderer::draw_bounding_box(float x0, float y0, float z0,
 }
 
 void 
-VolumeRenderer::activate_volume_shader(Volume* volPtr, bool slice_mode)
+VolumeRenderer::activateVolumeShader(Volume* volPtr, bool sliceMode)
 {
     //vertex shader
     _stdVertexShader->bind();
     TransferFunction *tfPtr  = volPtr->transferFunction();
-    if (volPtr->volume_type() == Volume::CUBIC) {
-        _regularVolumeShader->bind(tfPtr->id(), volPtr, slice_mode);
-    } else if (volPtr->volume_type() == Volume::ZINCBLENDE) {
-        _zincBlendeShader->bind(tfPtr->id(), volPtr, slice_mode);
+    if (volPtr->volumeType() == Volume::CUBIC) {
+        _regularVolumeShader->bind(tfPtr->id(), volPtr, sliceMode);
+    } else if (volPtr->volumeType() == Volume::ZINCBLENDE) {
+        _zincBlendeShader->bind(tfPtr->id(), volPtr, sliceMode);
     }
 }
-void VolumeRenderer::deactivate_volume_shader()
+
+void VolumeRenderer::deactivateVolumeShader()
 {
     _stdVertexShader->unbind();
     _regularVolumeShader->unbind();
     _zincBlendeShader->unbind();
 }
 
-void VolumeRenderer::get_near_far_z(const Mat4x4& mv, double& zNear, double& zFar)
+void VolumeRenderer::getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar)
 {
     double x0 = 0;
     double y0 = 0;
@@ -601,7 +605,7 @@ void VolumeRenderer::get_near_far_z(const Mat4x4& mv, double& zNear, double& zFa
 }
 
 bool 
-VolumeRenderer::init_font(const char *filename) 
+VolumeRenderer::initFont(const char *filename) 
 {
     FILE *f;
     unsigned short int bfType;
@@ -730,8 +734,8 @@ VolumeRenderer::init_font(const char *filename)
     free(data);
 
     //create opengl texture 
-    glGenTextures(1, &font_texture);
-    glBindTexture(GL_TEXTURE_2D, font_texture);
+    glGenTextures(1, &_fontTexture);
+    glBindTexture(GL_TEXTURE_2D, _fontTexture);
     //glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_with_alpha);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -740,7 +744,7 @@ VolumeRenderer::init_font(const char *filename)
 
     free(data_with_alpha);
 
-    build_font();
+    buildFont();
     return (glGetError()==0);
 
  error:
@@ -749,7 +753,7 @@ VolumeRenderer::init_font(const char *filename)
 }
 
 void 
-VolumeRenderer::draw_label(Volume* vol)
+VolumeRenderer::drawLabel(Volume* vol)
 {
     //glEnable(GL_TEXTURE_2D);
     glDisable(GL_TEXTURE_2D);
@@ -761,8 +765,9 @@ VolumeRenderer::draw_label(Volume* vol)
     int length = vol->label[0].size();
     glPushMatrix();
 
-    glTranslatef(.5*vol->aspect_ratio_width, vol->aspect_ratio_height,
-                 -0.1*vol->aspect_ratio_depth);
+    glTranslatef(.5 * vol->aspectRatioWidth,
+                 vol->aspectRatioHeight,
+                 -0.1 * vol->aspectRatioDepth);
     glRotatef(180, 0, 0, 1);
     glRotatef(90, 1, 0, 0);
 
@@ -776,7 +781,9 @@ VolumeRenderer::draw_label(Volume* vol)
     //y
     length = vol->label[1].size();
     glPushMatrix();
-    glTranslatef(vol->aspect_ratio_width, 0.5*vol->aspect_ratio_height, -0.1*vol->aspect_ratio_depth);
+    glTranslatef(vol->aspectRatioWidth,
+                 0.5*vol->aspectRatioHeight,
+                 -0.1*vol->aspectRatioDepth);
     glRotatef(90, 0, 1, 0);
     glRotatef(90, 0, 0, 1);
 
@@ -790,7 +797,9 @@ VolumeRenderer::draw_label(Volume* vol)
     //z
     length = vol->label[2].size();
     glPushMatrix();
-    glTranslatef(0., 1.*vol->aspect_ratio_height, 0.5*vol->aspect_ratio_depth);
+    glTranslatef(0.,
+                 1. * vol->aspectRatioHeight,
+                 0.5 * vol->aspectRatioDepth);
     glRotatef(90, 0, 1, 0);
 
     glScalef(0.0008, 0.0008, 0.0008);
@@ -804,15 +813,15 @@ VolumeRenderer::draw_label(Volume* vol)
 }
 
 void 
-VolumeRenderer::build_font() 
+VolumeRenderer::buildFont() 
 {
     GLfloat cx, cy;         /* the character coordinates in our texture */
-    font_base = glGenLists(256);
-    glBindTexture(GL_TEXTURE_2D, font_texture);
+    _fontBase = glGenLists(256);
+    glBindTexture(GL_TEXTURE_2D, _fontTexture);
     for (int loop = 0; loop < 256; loop++) {
         cx = (float) (loop % 16) / 16.0f;
         cy = (float) (loop / 16) / 16.0f;
-        glNewList(font_base + loop, GL_COMPILE);
+        glNewList(_fontBase + loop, GL_COMPILE);
         glBegin(GL_QUADS);
         glTexCoord2f(cx, 1 - cy - 0.0625f);
         glVertex3f(0, 0, 0);
@@ -834,7 +843,7 @@ VolumeRenderer::glPrint(char* string, int set)
     if (set > 1) {
         set = 1;
     }
-    glBindTexture(GL_TEXTURE_2D, font_texture);
-    glListBase(font_base - 32 + (128 * set));
+    glBindTexture(GL_TEXTURE_2D, _fontTexture);
+    glListBase(_fontBase - 32 + (128 * set));
     glCallLists(strlen(string), GL_BYTE, string);
 }

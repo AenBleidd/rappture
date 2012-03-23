@@ -37,8 +37,10 @@
 namespace Rappture {
 
 typedef int (SwitchParseProc)(ClientData clientData, Tcl_Interp *interp, 
-	const char *switchName, Tcl_Obj *valueObjPtr, char *record, int offset,
-	int flags);
+                              const char *switchName, Tcl_Obj *valueObjPtr,
+                              char *record, int offset,
+                              int flags);
+
 typedef void (SwitchFreeProc)(char *record, int offset, int flags);
 
 typedef struct {
@@ -121,7 +123,8 @@ typedef struct {
 #define SWITCH_USER_BIT		(1<<8)
 
 extern int ParseSwitches(Tcl_Interp *interp, SwitchSpec *specPtr, 
-	int objc, Tcl_Obj *const *objv, void *rec, int flags);
+                         int objc, Tcl_Obj *const *objv,
+                         void *rec, int flags);
 
 extern void FreeSwitches(SwitchSpec *specs, void *rec, int flags);
 

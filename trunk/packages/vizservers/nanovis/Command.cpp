@@ -258,7 +258,7 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
     HeightMap* hmPtr;
     hmPtr = new HeightMap();
     hmPtr->setHeight(xMin, yMin, xMax, yMax, xNum, yNum, heights);
-    hmPtr->transferFunction(NanoVis::get_transfunc("default"));
+    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
     delete [] heights;
@@ -606,7 +606,6 @@ CameraAngleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
 static int
 CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
@@ -674,20 +673,20 @@ SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     int w, h;
 
-    w = NanoVis::win_width, h = NanoVis::win_height;
-    NanoVis::resize_offscreen_buffer(2048, 2048);
+    w = NanoVis::winWidth, h = NanoVis::winHeight;
+    NanoVis::resizeOffscreenBuffer(2048, 2048);
 #ifdef notdef
-    NanoVis::cam->set_screen_size(0, 0, NanoVis::win_width,NanoVis::win_height);
+    NanoVis::cam->set_screen_size(0, 0, NanoVis::winWidth, NanoVis::winHeight);
     NanoVis::cam->set_screen_size(30, 90, 2048 - 60, 2048 - 120);
 #endif
-    NanoVis::offscreen_buffer_capture();  //enable offscreen render
+    NanoVis::offscreenBufferCapture();  //enable offscreen render
     NanoVis::display();
-    NanoVis::read_screen();
+    NanoVis::readScreen();
 #ifdef notdef
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); 
 #endif
-    NanoVis::ppm_write("nv>image -bytes %d -type print");
-    NanoVis::resize_offscreen_buffer(w, h);
+    NanoVis::ppmWrite("nv>image -bytes %d -type print");
+    NanoVis::resizeOffscreenBuffer(w, h);
     return TCL_OK;
 }
 
@@ -718,7 +717,7 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->move_cutplane(axis, relval);
+        (*iter)->moveCutplane(axis, relval);
     }
     return TCL_OK;
 }
@@ -747,12 +746,12 @@ CutplaneStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (state) {
         std::vector<Volume *>::iterator iter;
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->enable_cutplane(axis);
+            (*iter)->enableCutplane(axis);
         }
     } else {
         std::vector<Volume *>::iterator iter;
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->disable_cutplane(axis);
+            (*iter)->disableCutplane(axis);
         }
     }
     return TCL_OK;
@@ -817,7 +816,7 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *name;
     name = Tcl_GetString(objv[1]);
     TransferFunction *tf;
-    tf = NanoVis::get_transfunc(name);
+    tf = NanoVis::getTransfunc(name);
     if (tf == NULL) {
         Tcl_AppendResult(interp, "unknown transfer function \"", name, "\"",
                              (char*)NULL);
@@ -828,10 +827,10 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    if (Volume::update_pending) {
-        NanoVis::SetVolumeRanges();
+    if (Volume::updatePending) {
+        NanoVis::setVolumeRanges();
     }
-    NanoVis::render_legend(tf, Volume::valueMin, Volume::valueMax, w, h, name);
+    NanoVis::renderLegend(tf, Volume::valueMin, Volume::valueMax, w, h, name);
     return TCL_OK;
 }
 
@@ -859,7 +858,7 @@ ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[2], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    NanoVis::resize_offscreen_buffer(w, h);
+    NanoVis::resizeOffscreenBuffer(w, h);
     return TCL_OK;
 }
 
@@ -963,7 +962,7 @@ TransfuncCmd(ClientData clientData, Tcl_Interp *interp, int objc,
             data[4*i+3] = wFunc.value(x);
         }
         // find or create this transfer function
-        NanoVis::DefineTransferFunction(Tcl_GetString(objv[2]), nslots, data);
+        NanoVis::defineTransferFunction(Tcl_GetString(objv[2]), nslots, data);
     } else {
         Tcl_AppendResult(interp, "bad option \"", string,
                 "\": should be define", (char*)NULL);
@@ -1009,9 +1008,9 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     VolumeInterpolator* interpolator;
-    interpolator = NanoVis::vol_renderer->getVolumeInterpolator();
+    interpolator = NanoVis::volRenderer->getVolumeInterpolator();
     interpolator->start();
-    if (interpolator->is_started()) {
+    if (interpolator->isStarted()) {
         const char *fileName = (objc < 5) ? NULL : Tcl_GetString(objv[4]);
         for (int frame_num = 0; frame_num < total; ++frame_num) {
             float fraction;
@@ -1021,14 +1020,14 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
             //interpolator->update(((float)frame_num) / (total - 1));
             interpolator->update(fraction);
 
-            NanoVis::offscreen_buffer_capture();  //enable offscreen render
+            NanoVis::offscreenBufferCapture();  //enable offscreen render
 
             NanoVis::display();
-            NanoVis::read_screen();
+            NanoVis::readScreen();
 
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-            NanoVis::bmp_write_to_file(frame_num, fileName);
+            NanoVis::bmpWriteToFile(frame_num, fileName);
         }
     }
     return TCL_OK;
@@ -1038,7 +1037,7 @@ static int
 VolumeAnimationClearOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
-    NanoVis::vol_renderer->clearAnimatedVolumeInfo();
+    NanoVis::volRenderer->clearAnimatedVolumeInfo();
     return TCL_OK;
 }
 
@@ -1046,7 +1045,7 @@ static int
 VolumeAnimationStartOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
-    NanoVis::vol_renderer->startVolumeAnimation();
+    NanoVis::volRenderer->startVolumeAnimation();
     return TCL_OK;
 }
 
@@ -1054,7 +1053,7 @@ static int
 VolumeAnimationStopOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       Tcl_Obj *const *objv)
 {
-    NanoVis::vol_renderer->stopVolumeAnimation();
+    NanoVis::volRenderer->stopVolumeAnimation();
     return TCL_OK;
 }
 
@@ -1073,7 +1072,7 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	 hPtr = Tcl_NextHashEntry(&iter)) {
 	Volume *volPtr;
 	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        NanoVis::vol_renderer->addAnimatedVolume(volPtr);
+        NanoVis::volRenderer->addAnimatedVolume(volPtr);
     }
     return TCL_OK;
 }
@@ -1189,19 +1188,19 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     // overwrite the first, so the first won't appear at all.
     //
     if (volPtr != NULL) {
-        //volPtr->n_slices(512-n);
-        //volPtr->n_slices(256-n);
-        volPtr->disable_cutplane(0);
-        volPtr->disable_cutplane(1);
-        volPtr->disable_cutplane(2);
-        volPtr->transferFunction(NanoVis::get_transfunc("default"));
+        //volPtr->numSlices(512-n);
+        //volPtr->numSlices(256-n);
+        volPtr->disableCutplane(0);
+        volPtr->disableCutplane(1);
+        volPtr->disableCutplane(2);
+        volPtr->transferFunction(NanoVis::getTransfunc("default"));
 	volPtr->visible(true);
 
         char info[1024];
 	ssize_t nWritten;
 
-        if (Volume::update_pending) {
-            NanoVis::SetVolumeRanges();
+        if (Volume::updatePending) {
+            NanoVis::setVolumeRanges();
         }
 
         // FIXME: strlen(info) is the return value of sprintf
@@ -1228,7 +1227,7 @@ VolumeDataStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	(*iter)->data_enabled(state);
+	(*iter)->dataEnabled(state);
     }
     return TCL_OK;
 }
@@ -1273,9 +1272,9 @@ VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	if (GetVolumeFromObj(interp, objv[i], &volPtr) != TCL_OK) {
 	    return TCL_ERROR;
 	}
-	NanoVis::remove_volume(volPtr);
+	NanoVis::removeVolume(volPtr);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1344,7 +1343,7 @@ VolumeOutlineColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->set_outline_color(rgb);
+        (*iter)->setOutlineColor(rgb);
     }
     return TCL_OK;
 }
@@ -1398,7 +1397,9 @@ VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &diffuse) != TCL_OK) {
         return TCL_ERROR;
     }
-
+    if (diffuse < 0.0f || diffuse > 1.0f) {
+        WARN("Invalid diffuse coefficient requested: %g, should be [0,1]", diffuse);
+    }
     std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
@@ -1445,7 +1446,7 @@ VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->opacity_scale(opacity);
+        (*iter)->opacityScale(opacity);
     }
     return TCL_OK;
 }
@@ -1457,6 +1458,9 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
     float specular;
     if (GetFloatFromObj(interp, objv[3], &specular) != TCL_OK) {
         return TCL_ERROR;
+    }
+    if (specular < 0.0f || specular > 128.0f) {
+        WARN("Invalid specular exponent requested: %g, should be [0,128]", specular);
     }
     std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
@@ -1475,7 +1479,7 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     TransferFunction *tfPtr;
     const char *name = Tcl_GetString(objv[3]);
-    tfPtr = NanoVis::get_transfunc(name);
+    tfPtr = NanoVis::getTransfunc(name);
     if (tfPtr == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", name,
                          "\" is not defined", (char*)NULL);
@@ -1492,9 +1496,9 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (*iter)->transferFunction(tfPtr);
 #ifdef USE_POINTSET_RENDERER
         // TBD..
- //        if ((*iter)->pointsetIndex != -1) {
-//             NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tf->getData(), 256);
-//         }
+        if ((*iter)->pointsetIndex != -1) {
+            NanoVis::pointSet[(*iter)->pointsetIndex]->updateColor(tfPtr->getData(), 256);
+        }
 #endif
     }
     return TCL_OK;
@@ -1543,7 +1547,7 @@ VolumeAxisOp(ClientData clientData, Tcl_Interp *interp, int objc,
         const char *label;
         label = Tcl_GetString(objv[4]);
         for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->set_label(axis, label);
+            (*iter)->setLabel(axis, label);
         }
     } else {
         Tcl_AppendResult(interp, "bad option \"", string,
@@ -1583,7 +1587,7 @@ VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (hPtr != NULL) {
 	Volume *volPtr;
 	volPtr = (Volume *)Tcl_GetHashValue(hPtr);
-        volPtr->data_enabled(false);
+        volPtr->dataEnabled(false);
         volPtr->visible(false);
     }
     return TCL_OK;
@@ -1679,10 +1683,10 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     hmPtr->wAxis.units(data.yUnits());
     hmPtr->setHeight(data.xMin(), data.yMin(), data.xMax(), data.yMax(), 
 		     data.xNum(), data.yNum(), data.transferValues());
-    hmPtr->transferFunction(NanoVis::get_transfunc("default"));
+    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1702,7 +1706,7 @@ HeightMapDataVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setVisible(visible);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1743,7 +1747,7 @@ HeightMapLineContourColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourColor(rgb);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1763,7 +1767,7 @@ HeightMapLineContourVisibleOp(ClientData clientData, Tcl_Interp *interp,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->setLineContourVisible(visible);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1796,7 +1800,7 @@ HeightMapCullOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setCullMode(mode);
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1822,7 +1826,7 @@ HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     Tcl_SetHashValue(hPtr, hmPtr);
     Tcl_SetStringObj(Tcl_GetObjResult(interp), tag, -1);;
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     TRACE("Number of heightmaps=%d\n", NanoVis::heightmapTable.numEntries);
     return TCL_OK;
 }
@@ -1849,11 +1853,11 @@ HeightMapLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
         (Tcl_GetIntFromObj(interp, objv[4], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
-    if (HeightMap::update_pending) {
-        NanoVis::SetHeightmapRanges();
+    if (HeightMap::updatePending) {
+        NanoVis::setHeightmapRanges();
     }
-    NanoVis::render_legend(tfPtr, HeightMap::valueMin, HeightMap::valueMax, 
-		w, h, tag);
+    NanoVis::renderLegend(tfPtr, HeightMap::valueMin, HeightMap::valueMax, 
+                          w, h, tag);
     return TCL_OK;
 }
 
@@ -1866,7 +1870,7 @@ HeightMapPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setPolygonMode(mode);
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1879,7 +1883,7 @@ HeightMapShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     NanoVis::renderContext->setShadingModel(model);
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1897,8 +1901,8 @@ HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
     // HELP ME
     // GEORGE
 
-    NanoVis::render_2d_contour(heightmap, image_width, image_height);
-    NanoVis::EventuallyRedraw();
+    NanoVis::render2dContour(heightmap, image_width, image_height);
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1928,7 +1932,7 @@ HeightMapTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
     float miny = 0.5f;
     float maxy = 3.5f;
     hmPtr->setHeight(minx, miny, maxx, maxy, 20, 20, data);
-    hmPtr->transferFunction(NanoVis::get_transfunc("default"));
+    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
     hmPtr->setVisible(true);
     hmPtr->setLineContourVisible(true);
     NanoVis::grid->setVisible(true);
@@ -1944,7 +1948,7 @@ HeightMapTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
     int image_width = 512;
     int image_height = 512;
 
-    NanoVis::render_2d_contour(hmPtr, image_width, image_height);
+    NanoVis::render2dContour(hmPtr, image_width, image_height);
 
     return TCL_OK;
 }
@@ -1956,7 +1960,7 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *name;
     name = Tcl_GetString(objv[2]);
     TransferFunction *tfPtr;
-    tfPtr = NanoVis::get_transfunc(name);
+    tfPtr = NanoVis::getTransfunc(name);
     if (tfPtr == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", name,
                          "\" is not defined", (char*)NULL);
@@ -1970,7 +1974,7 @@ HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = imap.begin(); iter != imap.end(); iter++) {
         (*iter)->transferFunction(tfPtr);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1991,7 +1995,7 @@ HeightMapOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     for (iter = heightmaps.begin(); iter != heightmaps.end(); iter++) {
         (*iter)->opacity(opacity);
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -2141,7 +2145,7 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         if (GetBooleanFromObj(interp, objv[2], &visible) != TCL_OK) {
             return TCL_ERROR;
         }
-        NanoVis::axis_on = visible;
+        NanoVis::axisOn = visible;
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be visible", (char*)NULL);

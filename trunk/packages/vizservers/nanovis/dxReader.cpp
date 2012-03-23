@@ -34,6 +34,7 @@
 // common dx functions
 #include "dxReaderCommon.h"
 
+#include "config.h"
 #include "nanovis.h"
 #include "Unirect.h"
 #include "Volume.h"
@@ -264,13 +265,13 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
         dy = ny;
         dz = nz;
 
-        volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
-                                      vmin, vmax, nzero_min);
+        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+                                     vmin, vmax, nzero_min);
         volPtr->xAxis.SetRange(x0, x0 + (nx * dx));
         volPtr->yAxis.SetRange(y0, y0 + (ny * dy));
         volPtr->zAxis.SetRange(z0, z0 + (nz * dz)); 
         volPtr->wAxis.SetRange(vmin, vmax);
-        volPtr->update_pending = true;
+        volPtr->updatePending = true;
         delete [] data;
     } else {
         Rappture::Mesh1D zgrid(z0, z0 + nz*dz, nz);
@@ -318,7 +319,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
         nx = (int)ceil(dx/dmin);
         ny = (int)ceil(dy/dmin);
         nz = (int)ceil(dz/dmin);
-#ifndef NV40
+#ifndef HAVE_NPOT_TEXTURES
         // must be an even power of 2 for older cards
         nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
         ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
@@ -357,9 +358,9 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
 
         computeSimpleGradient(data, nx, ny, nz);
 
-        volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
-                                      field.valueMin(), field.valueMax(),
-                                      nzero_min);
+        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+                                     field.valueMin(), field.valueMax(),
+                                     nzero_min);
         volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
                                field.rangeMax(Rappture::xaxis));
         volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -367,7 +368,7 @@ load_volume_stream2(Rappture::Outcome& result, const char *tag,
         volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                                field.rangeMax(Rappture::zaxis));
         volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-        volPtr->update_pending = true;
+        volPtr->updatePending = true;
         delete [] data;
     }
 
@@ -589,15 +590,14 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         ny = (int)ceil(dy/dmin);
         nz = (int)ceil(dz/dmin);
 
-#ifndef NV40
+#ifndef HAVE_NPOT_TEXTURES
         // must be an even power of 2 for older cards
         nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
         ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
         nz = (int)pow(2.0, ceil(log10((double)nz)/log10(2.0)));
 #endif
 
-//#define _SOBEL_
-#ifdef _SOBEL_
+#ifdef FILTER_GRADIENTS
         const int step = 1;
         float *cdata = new float[nx*ny*nz * step];
         int ngen = 0;
@@ -667,9 +667,9 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n", 
               field.valueMin(), field.valueMax(), nzero_min);
 
-        volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
-                                      field.valueMin(), field.valueMax(),
-                                      nzero_min);
+        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+                                     field.valueMin(), field.valueMax(),
+                                     nzero_min);
         volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
                                field.rangeMax(Rappture::xaxis));
         volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -677,7 +677,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                                field.rangeMax(Rappture::zaxis));
         volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-        volPtr->update_pending = true;
+        volPtr->updatePending = true;
         // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
         PointSet *pset = new PointSet();
@@ -734,7 +734,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         nx = (int)ceil(dx/dmin);
         ny = (int)ceil(dy/dmin);
         nz = (int)ceil(dz/dmin);
-#ifndef NV40
+#ifndef HAVE_NPOT_TEXTURES
         // must be an even power of 2 for older cards
         nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));
         ny = (int)pow(2.0, ceil(log10((double)ny)/log10(2.0)));
@@ -773,9 +773,9 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         computeSimpleGradient(data, nx, ny, nz);
 
-        volPtr = NanoVis::load_volume(tag, nx, ny, nz, 4, data,
-                                      field.valueMin(), field.valueMax(),
-                                      nzero_min);
+        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+                                     field.valueMin(), field.valueMax(),
+                                     nzero_min);
         volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
                                field.rangeMax(Rappture::xaxis));
         volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
@@ -783,7 +783,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
                                field.rangeMax(Rappture::zaxis));
         volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
-        volPtr->update_pending = true;
+        volPtr->updatePending = true;
         // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
         PointSet *pset = new PointSet();

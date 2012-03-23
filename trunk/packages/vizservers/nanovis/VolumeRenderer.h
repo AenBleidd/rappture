@@ -34,32 +34,32 @@ public:
     ~VolumeRenderer();
 
     /// render all enabled volumes
-    void render_all();
+    void renderAll();
 
     void specular(float val);
 
     void diffuse(float val);
 
     /// control independently
-    void set_slice_mode(bool val)
+    void setSliceMode(bool val)
     {
-        slice_mode = val;
+        _sliceMode = val;
     }
 
-    void set_volume_mode(bool val)
+    void setVolumeMode(bool val)
     {
-        volume_mode = val;
+        _volumeMode = val;
     }
 
     /// switch_cutplane_mode
-    void switch_slice_mode()
+    void switchSliceMode()
     {
-        slice_mode = (!slice_mode);
+        _sliceMode = (!_sliceMode);
     }
 
-    void switch_volume_mode()
+    void switchVolumeMode()
     {
-        volume_mode = (!volume_mode);
+        _volumeMode = (!_volumeMode);
     }
 
     void clearAnimatedVolumeInfo()
@@ -90,33 +90,33 @@ public:
     friend class NanoVis;
 
 private:
-    void init_shaders();
+    void initShaders();
 
-    void activate_volume_shader(Volume *vol, bool slice_mode);
+    void activateVolumeShader(Volume *vol, bool slice_mode);
 
-    void deactivate_volume_shader();
+    void deactivateVolumeShader();
 
-     void draw_bounding_box(float x0, float y0, float z0,
-                            float x1, float y1, float z1,
-                            float r, float g, float b, float line_width);
+    void drawBoundingBox(float x0, float y0, float z0,
+                         float x1, float y1, float z1,
+                         float r, float g, float b, float line_width);
 
-    void get_near_far_z(const Mat4x4& mv, double& zNear, double& zFar);
+    void getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar);
 
-    bool init_font(const char *filename);
+    bool initFont(const char *filename);
 
     /// there are two sets of font in the texture. 0, 1
     void glPrint(char *string, int set);
 
     /// draw label using bitmap texture
-    void draw_label(Volume *vol);
+    void drawLabel(Volume *vol);
 
     /// Register the location of each alphabet in
-    void build_font();
+    void buildFont();
 
     VolumeInterpolator *_volumeInterpolator;
 
-    bool slice_mode;  ///< enable cut planes
-    bool volume_mode; ///< enable full volume rendering
+    bool _sliceMode;  ///< enable cut planes
+    bool _volumeMode; ///< enable full volume rendering
 
     /** 
      * shader parameters for rendering a single cubic volume
@@ -145,11 +145,11 @@ private:
     NvStdVertexShader *_stdVertexShader;
 
     //standard vertex shader parameters
-    CGprogram m_vert_std_vprog;
-    CGparameter m_mvp_vert_std_param;
-    CGparameter m_mvi_vert_std_param;
-    GLuint font_base;		// The base of the font display list.
-    GLuint font_texture;	//the id of the font texture
+    CGprogram _vertStdVprog;
+    CGparameter _mvpVertStdParam;
+    CGparameter _mviVertStdParam;
+    GLuint _fontBase;      ///< The base of the font display list.
+    GLuint _fontTexture;   ///< The id of the font texture
 };
 
 #endif
