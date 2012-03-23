@@ -1158,7 +1158,7 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
         light {
             if {[isconnected]} {
                 set val $_settings($this-light)
-                set sval [expr {0.1*$val}]
+                set sval [expr {0.01*$val}]
                 SendCmd "volume shading diffuse $sval"
                 set sval [expr {sqrt($val+1.0)}]
                 SendCmd "volume shading specular $sval"
