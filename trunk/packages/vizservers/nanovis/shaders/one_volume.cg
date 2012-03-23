@@ -95,11 +95,7 @@ PixelOut main(v2f IN,
             //to avoid very opaque volume when number of slices is high
             // renderParameters.x = number of slices
             // renderParameters.y = opacity scale (1-21)
-            color.w = color.w * 0.2 * renderParameters.y/renderParameters.x;
-
-            // INSOO (iso)
-            //opacity is modulated by the number of total slices
-            //color.w = color.w * renderParameters.y/renderParameters.x * 0.2;
+            color.w = color.w * renderParameters.y/renderParameters.x;
         }
     }
 

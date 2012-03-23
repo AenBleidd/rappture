@@ -607,6 +607,21 @@ CameraAngleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if ((Tcl_GetDoubleFromObj(interp, objv[2], &quat[3]) != TCL_OK) ||
+        (Tcl_GetDoubleFromObj(interp, objv[3], &quat[0]) != TCL_OK) ||
+        (Tcl_GetDoubleFromObj(interp, objv[4], &quat[1]) != TCL_OK) ||
+        (Tcl_GetDoubleFromObj(interp, objv[5], &quat[2]) != TCL_OK)) {
+        return TCL_ERROR;
+    }
+    NanoVis::cam->rotate(quat);
+    return TCL_OK;
+}
+
+static int
 CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -634,6 +649,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec cameraOps[] = {
     {"aim",     2, CameraAimOp,      5, 5, "x y z",},
     {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
+    {"orient",  1, CameraOrientOp,   6, 6, "qw qx qy qz",},
     {"pan",     1, CameraPanOp,      4, 4, "x y",},
     {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
 };
@@ -1170,11 +1186,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    abort();
 	}
         Rappture::Outcome context;
-#if ISO_TEST
-        volPtr = load_volume_stream2(context, tag, fdata);
-#else
         volPtr = load_volume_stream(context, tag, fdata);
-#endif
         if (volPtr == NULL) {
             Tcl_AppendResult(interp, context.remark(), (char*)NULL);
             return TCL_ERROR;
