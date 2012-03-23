@@ -13,7 +13,7 @@ extern int GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr,
 
 extern int GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr);
 
-static INLINE char *
+static inline char *
 skipspaces(char *string) 
 {
     while (isspace(*string)) {
@@ -22,7 +22,7 @@ skipspaces(char *string)
     return string;
 }
 
-static INLINE char *
+static inline char *
 getline(char **stringPtr, char *endPtr) 
 {
     char *line, *p;
@@ -661,19 +661,18 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
     }
     // Figure out a good mesh spacing
     double dx, dy, dz;
-    dx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
-    dy = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
-    dz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
+    double lx, ly, lz;
+    lx = xfield.rangeMax(Rappture::xaxis) - xfield.rangeMin(Rappture::xaxis);
+    ly = xfield.rangeMax(Rappture::yaxis) - xfield.rangeMin(Rappture::yaxis);
+    lz = xfield.rangeMax(Rappture::zaxis) - xfield.rangeMin(Rappture::zaxis);
 
     double dmin;
-    dmin = pow((dx*dy*dz)/(nSamples*nSamples*nSamples), 0.333);
-    
-    TRACE("dx:%lf dy:%lf dz:%lf dmin:%lf\n", dx, dy, dz, dmin);
+    dmin = pow((lx*ly*lz)/((nSamples-1)*(nSamples-1)*(nSamples-1)), 0.333);
 
     /* Recompute new number of points for each axis. */
-    _xNum = (size_t)ceil(dx/dmin);
-    _yNum = (size_t)ceil(dy/dmin);
-    _zNum = (size_t)ceil(dz/dmin);
+    _xNum = (size_t)ceil(lx/dmin);
+    _yNum = (size_t)ceil(ly/dmin);
+    _zNum = (size_t)ceil(lz/dmin);
 
 #ifndef HAVE_NPOT_TEXTURES
     // must be an even power of 2 for older cards
@@ -682,24 +681,30 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
     _zNum = (int)pow(2.0, ceil(log10((double)_zNum)/log10(2.0)));
 #endif
 
+    dx = lx/(double)(_xNum-1);
+    dy = ly/(double)(_yNum-1);
+    dz = lz/(double)(_zNum-1);
+
+    TRACE("lx:%lf ly:%lf lz:%lf dmin:%lf dx:%lf dy:%lf dz:%lf\n", lx, ly, lz, dmin, dx, dy, dz);
+
     size_t n = _nComponents * _xNum * _yNum * _zNum;
     _values = (float *)realloc(_values, sizeof(float) * n);
     memset(_values, 0, sizeof(float) * n);
-    
+
     // Generate the uniformly sampled rectangle that we need for a volume
     float *destPtr = _values;
     for (size_t i = 0; i < _zNum; i++) {
         double z;
 
-        z = _zMin + (i * dmin);
+        z = _zMin + (i * dx);
         for (size_t j = 0; j < _yNum; j++) {
             double y;
                 
-            y = _yMin + (j * dmin);
+            y = _yMin + (j * dy);
             for (size_t k = 0; k < _xNum; k++) {
                 double x;
 
-                x = _xMin + (k * dmin);
+                x = _xMin + (k * dz);
                 destPtr[0] = xfield.value(x, y, z);
                 destPtr[1] = yfield.value(x, y, z);
                 destPtr[2] = zfield.value(x, y, z);
@@ -710,9 +715,8 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
     return true;
 }
 
-
 void
-Rappture::Unirect3d::GetVectorRange(void)
+Rappture::Unirect3d::GetVectorRange()
 {
     assert(_nComponents == 3);
     TRACE("GetVectorRange\n");

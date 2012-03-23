@@ -36,6 +36,7 @@
 // common dx functions
 #include "dxReaderCommon.h"
 
+#include "config.h"
 #include "nanovis.h"
 #include "Unirect.h"
 #include "Volume.h"
