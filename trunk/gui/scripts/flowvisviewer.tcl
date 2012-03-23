@@ -1601,7 +1601,7 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
-                set diffuse [expr {0.1*$_settings($this-light)}]
+                set diffuse [expr {0.01*$_settings($this-light)}]
                 set specular [expr {sqrt($_settings($this-light)+1.0)}]
                 SendCmd "$tag configure -diffuse $diffuse -specular $specular"
             }
