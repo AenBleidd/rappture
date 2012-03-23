@@ -188,6 +188,7 @@ PerfQuery *perf = NULL;                        //perfromance counter
 
 // Variables for mouse events
 
+#ifdef OLD_CAMERA
 // Default camera rotation angles.
 const float def_rot_x = 90.0f;
 const float def_rot_y = 180.0f;
@@ -196,12 +197,30 @@ const float def_rot_z = -135.0f;
 // Default camera target.
 const float def_target_x = 0.0f;
 const float def_target_y = 0.0f;
-const float def_target_z = 100.0f; 
+const float def_target_z = 0.0f; //100.0f; 
 
 // Default camera location.
 const float def_eye_x = 0.0f;
 const float def_eye_y = 0.0f;
 const float def_eye_z = -2.5f;
+
+#else
+
+// Default camera rotation angles.
+const float def_rot_x = 0.0f; // 45.0f;
+const float def_rot_y = 0.0f; // -45.0f;
+const float def_rot_z = 0.0f;
+
+// Default camera target.
+const float def_target_x = 0.0f;
+const float def_target_y = 0.0f;
+const float def_target_z = 0.0f;
+
+// Default camera location.
+const float def_eye_x = 0.0f;
+const float def_eye_y = 0.0f;
+const float def_eye_z = 2.5f;
+#endif
 
 #ifndef XINETD
 // Last locations mouse events
@@ -398,11 +417,18 @@ NanoVis::pan(float dx, float dy)
      * axes. */
     TRACE("pan: x=%f, y=%f\n", dx, dy);
 
+#ifdef OLD_CAMERA
     cam->x(def_eye_x + dx);
+#else
+    cam->x(def_eye_x - dx);
+#endif
     cam->y(def_eye_y + dy);
     TRACE("set eye to %f %f\n", cam->x(), cam->y());
-
+#ifdef OLD_CAMERA
     cam->xAim(def_target_x + dx);
+#else
+    cam->xAim(def_target_x - dx);
+#endif
     cam->yAim(def_target_y + dy);
     TRACE("set aim to %f %f\n", cam->xAim(), cam->yAim());
 }
