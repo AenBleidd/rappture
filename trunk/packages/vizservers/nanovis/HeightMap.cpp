@@ -102,7 +102,7 @@ HeightMap::render(graphics::RenderContext* renderContext)
             //
             
             cgGLBindProgram(_shader->getFP());
-            cgGLEnableProfile(CG_PROFILE_FP30);
+            cgGLEnableProfile(CG_PROFILE_FP40);
             
             cgGLSetTextureParameter(_tfParam, _tfPtr->id());
             cgGLEnableTextureParameter(_tfParam);
@@ -136,7 +136,7 @@ HeightMap::render(graphics::RenderContext* renderContext)
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             
-            cgGLDisableProfile(CG_PROFILE_FP30);
+            cgGLDisableProfile(CG_PROFILE_FP40);
         }
     }
     glShadeModel(GL_FLAT);
@@ -574,7 +574,7 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
         
         if (_tfPtr != NULL) {
             cgGLBindProgram(_shader->getFP());
-            cgGLEnableProfile(CG_PROFILE_FP30);
+            cgGLEnableProfile(CG_PROFILE_FP40);
             
             cgGLSetTextureParameter(_tfParam, _tfPtr->id());
             cgGLEnableTextureParameter(_tfParam);
@@ -610,7 +610,7 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             
-            cgGLDisableProfile(CG_PROFILE_FP30);
+            cgGLDisableProfile(CG_PROFILE_FP40);
         }
     }
     

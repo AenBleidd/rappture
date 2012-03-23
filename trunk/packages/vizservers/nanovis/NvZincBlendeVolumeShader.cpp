@@ -64,7 +64,7 @@ void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, int slice
     cgGLEnableTextureParameter(_volumeBParam);
 
     cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 }
 
 void NvZincBlendeVolumeShader::unbind() 
@@ -73,5 +73,5 @@ void NvZincBlendeVolumeShader::unbind()
     cgGLDisableTextureParameter(_volumeBParam);
     cgGLDisableTextureParameter(_tfParam);
 
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 }

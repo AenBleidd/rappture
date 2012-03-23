@@ -50,13 +50,13 @@ NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
     cgGLSetTextureParameter(_initPosTexParam, initPosTexID);
     cgGLEnableTextureParameter(_initPosTexParam);
 
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 }
 
 void
 NvParticleAdvectionShader::unbind()
 {
-     cgGLDisableProfile(CG_PROFILE_FP30);
+     cgGLDisableProfile(CG_PROFILE_FP40);
    
      cgGLDisableTextureParameter(_velTexParam);
      cgGLDisableTextureParameter(_posTexParam);

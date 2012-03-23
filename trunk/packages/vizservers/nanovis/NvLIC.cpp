@@ -114,7 +114,7 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
 
     _render_vel_fprog = 
         LoadCgSourceProgram(_cgContext, "render_vel.cg", 
-                            CG_PROFILE_FP30, "main");
+                            CG_PROFILE_FP40, "main");
 
     _vel_tex_param_render_vel =
         cgGetNamedParameter(_render_vel_fprog, "vel_tex");
@@ -259,7 +259,7 @@ NvLIC::get_slice()
     cgGLSetParameter4f(_plane_normal_param_render_vel, 1., 1., 0., 0);
     cgGLSetParameter1f(_max_param, max);
 
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 
     glBegin(GL_QUADS);
     {
@@ -288,7 +288,7 @@ NvLIC::get_slice()
     }
     glEnd();
 
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     cgGLDisableTextureParameter(_vel_tex_param_render_vel);
 

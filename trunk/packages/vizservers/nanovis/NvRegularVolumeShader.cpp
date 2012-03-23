@@ -58,7 +58,7 @@ void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMod
 	0.0f);
 
     cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 }
 
 void NvRegularVolumeShader::unbind()
@@ -66,5 +66,5 @@ void NvRegularVolumeShader::unbind()
     cgGLDisableTextureParameter(_vol_one_volume_param);
     cgGLDisableTextureParameter(_tf_one_volume_param);
 
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 }

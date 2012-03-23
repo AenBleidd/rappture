@@ -314,7 +314,6 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
 int 
 Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc, 
                               Tcl_Obj *const *objv)
@@ -490,7 +489,6 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
 bool
 Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
                               size_t length, char *string) 
@@ -635,7 +633,6 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 #endif
     return true;
 }
-
 
 bool
 Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)

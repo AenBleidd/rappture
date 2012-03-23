@@ -760,6 +760,11 @@ void NanoVis::init(const char* path)
         doExit(1);
     }
 #endif
+    if (!GLEW_NV_vertex_program3 ||
+        !GLEW_NV_fragment_program2) {
+        ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required to run nanovis\n");
+        doExit(1);
+    }
 
     if (!R2FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s\n", path);

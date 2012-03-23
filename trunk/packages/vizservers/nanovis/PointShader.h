@@ -28,21 +28,21 @@ public:
 
         if (_cgVP) {
             cgGLBindProgram(_cgVP);
-            cgGLEnableProfile((CGprofile) CG_PROFILE_VP30);
+            cgGLEnableProfile((CGprofile) CG_PROFILE_VP40);
         }
         if (_cgFP) {
             cgGLBindProgram(_cgFP);
-            cgGLEnableProfile((CGprofile) CG_PROFILE_FP30);
+            cgGLEnableProfile((CGprofile) CG_PROFILE_FP40);
         }
     }
 
     void unbind()
     {
         if (_cgVP) {
-            cgGLDisableProfile((CGprofile)CG_PROFILE_VP30);
+            cgGLDisableProfile((CGprofile)CG_PROFILE_VP40);
         }
         if (_cgFP) {
-            cgGLDisableProfile((CGprofile)CG_PROFILE_FP30);
+            cgGLDisableProfile((CGprofile)CG_PROFILE_FP40);
         }
 
         resetParameters();

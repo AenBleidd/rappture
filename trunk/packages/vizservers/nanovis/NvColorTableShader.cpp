@@ -33,12 +33,12 @@ void NvColorTableShader::bind(Texture2D *plane, TransferFunction *tf)
     cgGLSetParameter4f(_renderParam, 0., 0., 0., 0.);
 
     cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 }
 
 void NvColorTableShader::unbind()
 {
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
     cgGLDisableTextureParameter(_dataParam);
     cgGLDisableTextureParameter(_tfParam);
 }
