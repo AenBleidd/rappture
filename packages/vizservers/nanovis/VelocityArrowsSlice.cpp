@@ -28,7 +28,7 @@ VelocityArrowsSlice::VelocityArrowsSlice()
     _tickCountForMinSizeAxis = 10;
 
     _queryVelocityFP = 
-        LoadCgSourceProgram(_context, "queryvelocity.cg", CG_PROFILE_FP30, "main");
+        LoadCgSourceProgram(_context, "queryvelocity.cg", CG_PROFILE_FP40, "main");
 
     _qvVectorFieldParam = cgGetNamedParameter(_queryVelocityFP, "vfield");
 
@@ -190,7 +190,7 @@ void VelocityArrowsSlice::queryVelocity()
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
     glDisable(GL_DEPTH_TEST);
     cgGLBindProgram(_queryVelocityFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
     cgGLSetTextureParameter(_qvVectorFieldParam, _vectorFieldGraphicsID);
     cgGLEnableTextureParameter(_qvVectorFieldParam);
 
@@ -219,7 +219,7 @@ void VelocityArrowsSlice::queryVelocity()
 
     glDisable(GL_TEXTURE_RECTANGLE_NV);
     cgGLDisableTextureParameter(_qvVectorFieldParam);
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     glReadPixels(0, 0, _renderTargetWidth, _renderTargetHeight, GL_RGB, GL_FLOAT, _velocities);
 

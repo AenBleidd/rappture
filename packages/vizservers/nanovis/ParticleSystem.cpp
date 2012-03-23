@@ -430,24 +430,24 @@ void ParticleSystem::initShaders()
     std::string path = vrFilePath::getInstance()->getPath("distance.cg");
     _distanceInitFP =  
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-                                CG_PROFILE_FP30, "initSortIndex", NULL);
+                                CG_PROFILE_FP40, "initSortIndex", NULL);
     cgGLLoadProgram(_distanceInitFP);
 
     _distanceSortFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE,  path.c_str(),
-                                CG_PROFILE_FP30, "computeDistance", NULL);
+                                CG_PROFILE_FP40, "computeDistance", NULL);
     _viewPosParam = cgGetNamedParameter(_distanceSortFP, "viewerPosition");
     cgGLLoadProgram(_distanceSortFP);
 
     _distanceSortLookupFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE,  path.c_str(),
-                                CG_PROFILE_FP30, "lookupPosition", NULL);
+                                CG_PROFILE_FP40, "lookupPosition", NULL);
     cgGLLoadProgram(_distanceSortLookupFP);
 
     path = vrFilePath::getInstance()->getPath("mergesort.cg");
     _sortRecursionFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-                                CG_PROFILE_FP30, "mergeSortRecursion", NULL);
+                                CG_PROFILE_FP40, "mergeSortRecursion", NULL);
     cgGLLoadProgram(_sortRecursionFP);
 
     _srSizeParam = cgGetNamedParameter(_sortRecursionFP, "_Size");
@@ -456,7 +456,7 @@ void ParticleSystem::initShaders()
 
     _sortEndFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-                                CG_PROFILE_FP30, "mergeSortEnd", NULL);
+                                CG_PROFILE_FP40, "mergeSortEnd", NULL);
     cgGLLoadProgram(_sortEndFP);
 
     _seSizeParam = cgGetNamedParameter(_sortEndFP, "size");
@@ -465,7 +465,7 @@ void ParticleSystem::initShaders()
     path = vrFilePath::getInstance()->getPath("passthrough.cg");
     _passthroughFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-                                CG_PROFILE_FP30, "main", NULL);
+                                CG_PROFILE_FP40, "main", NULL);
     cgGLLoadProgram(_passthroughFP);
 
     _scaleParam = cgGetNamedParameter(_passthroughFP, "scale");
@@ -474,7 +474,7 @@ void ParticleSystem::initShaders()
     path = vrFilePath::getInstance()->getPath("moveparticles.cg");
     _moveParticlesFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-                                CG_PROFILE_FP30, "main", NULL);
+                                CG_PROFILE_FP40, "main", NULL);
     cgGLLoadProgram(_moveParticlesFP);
     _mpTimeScale = cgGetNamedParameter(_moveParticlesFP, "timeStep");
     _mpVectorField = cgGetNamedParameter(_moveParticlesFP, "vfield");
@@ -503,7 +503,7 @@ void ParticleSystem::initShaders()
     path = vrFilePath::getInstance()->getPath("moveparticles.cg");
     _initParticlePosFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
-				CG_PROFILE_FP30, "initParticlePosMain", NULL);
+				CG_PROFILE_FP40, "initParticlePosMain", NULL);
     cgGLLoadProgram(_initParticlePosFP);
     _ipVectorFieldParam = cgGetNamedParameter(_moveParticlesFP, "vfield");
 }
@@ -511,7 +511,7 @@ void ParticleSystem::initShaders()
 void ParticleSystem::passThoughPositions()
 {
     cgGLBindProgram(_passthroughFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 
     cgGLSetParameter4f(_scaleParam, 1.0, 1.0, 1.0, 1.0);
     cgGLSetParameter4f(_biasParam, 0.0, 0.0, 0.0, 0.0);
@@ -521,7 +521,7 @@ void ParticleSystem::passThoughPositions()
 
     drawQuad();
 
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 }
 
 void ParticleSystem::resetStreamlines()
@@ -630,11 +630,11 @@ void ParticleSystem::reset()
         glLoadIdentity();
 
         cgGLBindProgram(_distanceInitFP);
-        cgGLEnableProfile(CG_PROFILE_FP30);
+        cgGLEnableProfile(CG_PROFILE_FP40);
 
         drawQuad();
 
-        cgGLDisableProfile(CG_PROFILE_FP30);
+        cgGLDisableProfile(CG_PROFILE_FP40);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);		
 
         _currentSortPass = 0;
@@ -941,7 +941,7 @@ void ParticleSystem::advectStreamlines()
     glEnable(GL_TEXTURE_RECTANGLE_NV);
 
     cgGLBindProgram(_moveParticlesFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
     cgGLSetParameter1f(_mpTimeScale, 0.005);
     cgGLSetParameter1f(_mpUseInitTex, 1.0);
     cgGLSetParameter1f(_mpCurrentTime, _currentTime);
@@ -963,7 +963,7 @@ void ParticleSystem::advectStreamlines()
 
     cgGLDisableTextureParameter(_mpVectorField);
     glDisable(GL_TEXTURE_RECTANGLE_NV);
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -1054,7 +1054,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
         glEnable(GL_TEXTURE_RECTANGLE_NV);
 
         cgGLBindProgram(_moveParticlesFP);
-        cgGLEnableProfile(CG_PROFILE_FP30);
+        cgGLEnableProfile(CG_PROFILE_FP40);
 
         // INSOO
         // TIME SCALE
@@ -1085,7 +1085,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
         glDisable(GL_TEXTURE_RECTANGLE_NV);
 
         glDisable(GL_TEXTURE_RECTANGLE_NV);
-        cgGLDisableProfile(CG_PROFILE_FP30);
+        cgGLDisableProfile(CG_PROFILE_FP40);
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -1187,7 +1187,7 @@ void ParticleSystem::initNewParticles()
     glLoadIdentity();
 
     cgGLBindProgram(_initParticlePosFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
     cgGLSetTextureParameter(_ipVectorFieldParam, _curVectorFieldID);
     cgGLEnableTextureParameter(_ipVectorFieldParam);
     // TBD..
@@ -1215,7 +1215,7 @@ void ParticleSystem::initNewParticles()
 
     glDisable(GL_TEXTURE_RECTANGLE_NV);
     cgGLDisableTextureParameter(_ipVectorFieldParam);
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -1240,7 +1240,7 @@ void ParticleSystem::initNewParticles()
     glLoadIdentity();
 
     cgGLBindProgram(_initParticlePosFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
     cgGLSetTextureParameter(_ipVectorFieldParam, _curVectorFieldID);
     cgGLEnableTextureParameter(_ipVectorFieldParam);
     // TBD..
@@ -1269,7 +1269,7 @@ void ParticleSystem::initNewParticles()
 
     glDisable(GL_TEXTURE_RECTANGLE_NV);
     cgGLDisableTextureParameter(_ipVectorFieldParam);
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -1316,7 +1316,7 @@ void ParticleSystem::sort()
     mat.getTranslation(pos);
 
     cgGLBindProgram(_distanceSortFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
     glEnable(GL_TEXTURE_RECTANGLE_NV);
@@ -1341,7 +1341,7 @@ void ParticleSystem::sort()
 
     drawQuad();
 
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -1422,7 +1422,7 @@ void ParticleSystem::sort()
     // POSITION LOOKUP
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
     cgGLBindProgram(_distanceSortLookupFP);
-    cgGLEnableProfile(CG_PROFILE_FP30);
+    cgGLEnableProfile(CG_PROFILE_FP40);
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
     glBindTexture(GL_TEXTURE_RECTANGLE_NV, sort_tex[_currentSortIndex]);
@@ -1449,7 +1449,7 @@ void ParticleSystem::sort()
     glPopAttrib();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-    cgGLDisableProfile(CG_PROFILE_FP30);
+    cgGLDisableProfile(CG_PROFILE_FP40);
 
     // POSITION LOOKUP
     ///////////////////////////////////////////////////////////
@@ -1500,7 +1500,7 @@ void ParticleSystem::merge(int count, int step)
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[_destSortIndex]);
         cgGLBindProgram(_sortRecursionFP);
-        cgGLEnableProfile(CG_PROFILE_FP30);
+        cgGLEnableProfile(CG_PROFILE_FP40);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
         glBindTexture(GL_TEXTURE_RECTANGLE_NV , sort_tex[_currentSortIndex]);
@@ -1526,7 +1526,7 @@ void ParticleSystem::merge(int count, int step)
         glPopMatrix();
         glPopAttrib();
 
-        cgGLDisableProfile(CG_PROFILE_FP30);
+        cgGLDisableProfile(CG_PROFILE_FP40);
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         glBindTexture(GL_TEXTURE_RECTANGLE_NV , 0);
@@ -1543,7 +1543,7 @@ void ParticleSystem::merge(int count, int step)
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[_destSortIndex]);
         cgGLBindProgram(_sortEndFP);
-        cgGLEnableProfile(CG_PROFILE_FP30);
+        cgGLEnableProfile(CG_PROFILE_FP40);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
         glBindTexture(GL_TEXTURE_RECTANGLE_NV , sort_tex[_currentSortIndex]);
@@ -1568,7 +1568,7 @@ void ParticleSystem::merge(int count, int step)
         glPopMatrix();
         glPopAttrib();
 
-        cgGLDisableProfile(CG_PROFILE_FP30);
+        cgGLDisableProfile(CG_PROFILE_FP40);
 
         glBindTexture(GL_TEXTURE_RECTANGLE_NV , 0);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);

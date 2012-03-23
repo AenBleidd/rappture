@@ -47,6 +47,7 @@ private :
     CGparameter _scaleParam;
     CGparameter _maxParam;
     CGparameter _modeParam;
+
     unsigned int _velocityVolumeID;
     Vector3 _scale;
     float _max;
