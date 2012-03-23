@@ -48,11 +48,11 @@ struct FlowPoint {
 };
 
 struct FlowParticlesValues {
-    FlowPosition position;	///< Position on axis of particle plane
-    FlowColor color;		///< Color of particles
+    FlowPosition position;        ///< Position on axis of particle plane
+    FlowColor color;              ///< Color of particles
     /// Indicates if particle injection plane is active or not
     int isHidden;
-    float particleSize;		///< Size of the particles
+    float particleSize;           ///< Size of the particles
 };
 
 struct FlowParticlesIterator {
@@ -129,7 +129,7 @@ private:
      */
     const char *_name;
     Tcl_HashEntry *_hashPtr;
-    NvParticleRenderer *_rendererPtr;	///< Particle renderer
+    NvParticleRenderer *_rendererPtr;        ///< Particle renderer
     FlowParticlesValues _sv;
 
     static Rappture::SwitchSpec _switches[];
@@ -141,9 +141,9 @@ struct FlowBoxIterator {
 };
 
 struct FlowBoxValues {
-    float position;		///< Position on axis of particle plane
-    FlowPoint corner1, corner2;	///< Coordinates of the box.
-    FlowColor color;		///< Color of particles
+    float position;                ///< Position on axis of particle plane
+    FlowPoint corner1, corner2;    ///< Coordinates of the box.
+    FlowColor color;               ///< Color of particles
     float lineWidth;
     /// Indicates if particle injection plane is active or not
     int isHidden;
@@ -189,10 +189,8 @@ public:
     void Render(Volume *volPtr);
 
 private:
-    const char *_name;			/* Name of this box in the hash
-					 * table. */
-    Tcl_HashEntry *_hashPtr;		/* Pointer to this entry in the hash
-					 * table of boxes. */
+    const char *_name;          ///< Name of this box in the hash table.
+    Tcl_HashEntry *_hashPtr;    ///< Pointer to this entry in the hash table of boxes.
     FlowBoxValues _sv;
     static Rappture::SwitchSpec _switches[];
 
@@ -206,10 +204,9 @@ struct FlowValues {
     int showVolume;
     int showOutline;
     int isHidden;
-    /* The following are settings for the volume.*/
-    float diffuse;
-    float specular;
-    float opacity;
+    float diffuse;  ///< Diffuse volume shading
+    float specular; ///< Specular volume shading
+    float opacity;  ///< Volume opacity
 };
 
 struct FlowIterator {
@@ -229,7 +226,7 @@ public:
     int CreateParticles(Tcl_Interp *interp, Tcl_Obj *objPtr);
 
     int GetParticles(Tcl_Interp *interp, Tcl_Obj *objPtr,
-		     FlowParticles **particlePtrPtr);
+                     FlowParticles **particlePtrPtr);
 
     void Render();
 
