@@ -29,8 +29,8 @@ public:
 
     virtual ~ZincBlendeVolume();
 
-    Texture3D *zincblende_tex[2];	//the textures of two cubic volumes
-    Vector3 cell_size;	//the cell size in texture space
+    Texture3D *zincblendeTex[2]; //the textures of two cubic volumes
+    Vector3 cellSize;	//the cell size in texture space
 };
 
 #endif

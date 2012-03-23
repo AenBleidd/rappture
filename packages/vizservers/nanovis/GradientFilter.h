@@ -8,7 +8,8 @@ typedef enum {
     DATRAW_USHORT
 } DataType;
 
-extern void computeGradients(float *gradients, void *volData, int *sizes, DataType dataType);
+extern void computeGradients(float *gradients, void *volData,
+                             int *sizes, float *spacing, DataType dataType);
 
 extern void filterGradients(float *gradients, int *sizes);
 

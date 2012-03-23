@@ -1,6 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/** \class vrPlane vrPlane <R2/math/vrPlane.h>
- *  \brief plane
+/** \class vrBPlane vrBPlane.h <vrmath/vrBPlane.h>
  *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
  *  \author PhD research assistants in PURPL at Purdue University  
  *  \version 1.0

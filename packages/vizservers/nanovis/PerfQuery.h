@@ -15,8 +15,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _PERFQUERY_H_
-#define _PERFQUERY_H_
+#ifndef PERFQUERY_H
+#define PERFQUERY_H
 
 #include <stdio.h>
 
@@ -24,43 +24,48 @@
 
 #include "Trace.h"
 
-//check if occlusion query is supported
-inline bool check_query_support()
-{
-    int bitsSupported = -1;
-    glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
-		    &bitsSupported);
-    if (bitsSupported == 0) {
-	TRACE("occlusion query not supported!\n");
-	return false;
-    } else {
-	TRACE("Occlusion query with %d bits supported\n", bitsSupported);
-	return true;
-    }
-}
-
 class PerfQuery
 {
 public:
-    GLuint id;
-    int pixel;
-    
     PerfQuery();
     ~PerfQuery();
-    
+
     void enable();	//start counting how many pixels are rendered
     void disable();	//stop counting
 
     void reset()
-    { 
-	pixel = 0; 
+    {
+        pixel = 0; 
     }
 
-    int get_pixel_count()
+    int getPixelCount()
     {
-	return pixel;		//return current pixel count
+        return pixel;		//return current pixel count
     }
+
+    static bool checkQuerySupport();
+
+    GLuint id;
+    int pixel;
 };
 
+//check if occlusion query is supported
+inline bool PerfQuery::checkQuerySupport()
+{
+    if (!GLEW_ARB_occlusion_query) {
+        TRACE("ARB_occlusion_query extension not supported\n");
+        return false;
+    }
+    int bitsSupported = -1;
+    glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
+                    &bitsSupported);
+    if (bitsSupported == 0) {
+        TRACE("occlusion query not supported!\n");
+        return false;
+    } else {
+        TRACE("Occlusion query with %d bits supported\n", bitsSupported);
+        return true;
+    }
+}
 #endif
 

@@ -317,7 +317,7 @@ void VelocityArrowsSlice::render()
         cgGLEnableTextureParameter(_vectorParticleParam);
 
         //cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * 0.5) * _screenHeight * 0.5);
-        cgSetParameter1f(_mvTanHalfFOVParam, tan(30. * 0.5) * NanoVis::win_height * 0.5);
+        cgSetParameter1f(_mvTanHalfFOVParam, tan(30. * 0.5) * NanoVis::winHeight * 0.5);
 
         cgGLSetStateMatrixParameter(_mvpParticleParam,
                                     CG_GL_MODELVIEW_PROJECTION_MATRIX,

@@ -165,7 +165,7 @@ R2Fonts::loadFont(const char *fontName, const char *fontFileName,
             fsInput.read(reinterpret_cast<char*>(&sFont._fontHeight), 
                          sizeof(unsigned int));
 
-            // read dimensions for each charactor in 256-char ASCII chart
+            // read dimensions for each character in 256-char ASCII chart
             for (int i = 0; i < 256; ++i) {
                 unsigned int uiSize = 0;
 

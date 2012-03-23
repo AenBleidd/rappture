@@ -98,6 +98,6 @@ void NvShader::resetPrograms()
 
 void NvShader::setErrorCallback(NvCgCallbackFunction callback)
 {
-    TRACE("NvShader error callback: %p\n", callback);
+    TRACE("NvShader setting error callback to: %p\n", callback);
     cgSetErrorCallback(callback);
 }

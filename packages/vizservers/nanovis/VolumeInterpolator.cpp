@@ -17,7 +17,7 @@ VolumeInterpolator::VolumeInterpolator() :
     _started(false), 
     _numBytes(0), 
     _dataCount(0), 
-    _n_components(0), 
+    _numComponents(0), 
     _referenceOfVolume(0)
 {
 }
@@ -33,7 +33,7 @@ void VolumeInterpolator::start()
     }
     struct timeval clock;
     gettimeofday(&clock, NULL);
-    _start_time = clock.tv_sec + clock.tv_usec/1000000.0;
+    _startTime = clock.tv_sec + clock.tv_usec/1000000.0;
     TRACE("End Start - VolumeInterpolator\n");
 }
 
@@ -67,9 +67,9 @@ Volume *VolumeInterpolator::update(float fraction)
             normal = normal * 0.5 + 0.5;
             *((Vector3*)(result + 1)) = normal;
 
-            result += _n_components;
-            data1 += _n_components;
-            data2 += _n_components;
+            result += _numComponents;
+            data1 += _numComponents;
+            data2 += _numComponents;
         }
 
         _volume->tex()->update(_volume->data());
@@ -124,35 +124,35 @@ VolumeInterpolator::addVolume(Volume *refPtr)
         if (_volumes[0]->width != refPtr->width || 
             _volumes[0]->height != refPtr->height ||   
             _volumes[0]->depth != refPtr->depth || 
-            _volumes[0]->n_components() != refPtr->n_components()) {
+            _volumes[0]->numComponents() != refPtr->numComponents()) {
             TRACE("The volume should be the same width, height, number of components\n");
             return;
         }
     } else {
         _dataCount = refPtr->width * refPtr->height * refPtr->depth;
-        _n_components = refPtr->n_components();
-        _numBytes = _dataCount * _n_components * sizeof(float);
+        _numComponents = refPtr->numComponents();
+        _numBytes = _dataCount * _numComponents * sizeof(float);
 	Vector3 loc = refPtr->location();
         _volume = new Volume(loc.x, loc.y, loc.z,
                              refPtr->width, refPtr->height, refPtr->depth, 
                              refPtr->size,
-                             refPtr->n_components(), 
+                             refPtr->numComponents(), 
                              refPtr->data(), 
                              refPtr->wAxis.min(), 
                              refPtr->wAxis.max(), 
-			     refPtr->nonzero_min());
+			     refPtr->nonZeroMin());
 	/*
         _referenceOfVolume = refPtr->dataID();
 	*/
-        _volume->n_slices(256-1);
-        _volume->disable_cutplane(0);
-        _volume->disable_cutplane(1);
-        _volume->disable_cutplane(2);
+        _volume->numSlices(256-1);
+        _volume->disableCutplane(0);
+        _volume->disableCutplane(1);
+        _volume->disableCutplane(2);
         _volume->visible(true);
-        _volume->data_enabled(true);
+        _volume->dataEnabled(true);
         _volume->specular(refPtr->specular());
         _volume->diffuse(refPtr->diffuse());
-        _volume->opacity_scale(refPtr->opacity_scale());
+        _volume->opacityScale(refPtr->opacityScale());
         _volume->isosurface(0);
         TRACE("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 
 	       refPtr->name());

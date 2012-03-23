@@ -45,6 +45,11 @@ public:
         TRACE("(x:%f, y:%f, z:%f)\n", x, y, z);
     }
 
+    Vector3 operator -() const
+    {
+        return Vector3(-x, -y, -z);
+    }
+
     Vector3 operator +(float scalar) const
     {
         return Vector3(x + scalar, y + scalar, z + scalar);
@@ -98,7 +103,11 @@ public:
     Vector3 normalize() const
     {
         float len = length();
-        return Vector3(x / len, y / len, z / len);
+        if (len > 1.0e-6) {
+            return Vector3(x / len, y / len, z / len);
+        } else {
+            return *this;
+        }
     }
 
     Vector3 rot_x(float degree) const

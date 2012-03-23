@@ -20,7 +20,7 @@ public:
 
     /**
      * @brief set default data paths
-     * @param filePath all default paths separated by colon(:)
+     * @param path all default paths separated by colon(:)
      */
     bool setPath(const char *path);
 

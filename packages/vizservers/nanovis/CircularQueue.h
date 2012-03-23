@@ -102,7 +102,6 @@ bool CircularFifo<Element, Size>::pop(Element& item_)
 * If queue is empty at 'pop' operation no retrieve will happen
 * It is up to the caller to handle this case
 *
-* \param item_ return by reference the wanted item
 * \return whether operation was successful or not */
 template<typename Element, unsigned int Size>
 bool CircularFifo<Element, Size>::pop()

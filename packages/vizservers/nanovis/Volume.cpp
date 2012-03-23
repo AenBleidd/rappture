@@ -19,17 +19,17 @@
 #include "Volume.h"
 #include "Trace.h"
 
-bool Volume::update_pending = false;
+bool Volume::updatePending = false;
 double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
 Volume::Volume(float x, float y, float z,
                int w, int h, int d, float s, 
                int n, float *data,
-               double v0, double v1, double nz_min) :
-    aspect_ratio_width(1),
-    aspect_ratio_height(1),
-    aspect_ratio_depth(1),
+               double v0, double v1, double nonZeroMin) :
+    aspectRatioWidth(1),
+    aspectRatioHeight(1),
+    aspectRatioDepth(1),
     id(0),
     width(w),
     height(h),
@@ -37,25 +37,25 @@ Volume::Volume(float x, float y, float z,
     size(s),
     pointsetIndex(-1),
     _tfPtr(NULL),
-    _specular(6.),		// default value
-    _diffuse(3.),		// default value
-    _opacity_scale(10.),	// default value
+    _specular(6.),
+    _diffuse(3.),
+    _opacityScale(10.),
     _name(NULL),
     _data(NULL),
-    _n_components(n),
-    _nonzero_min(nz_min),
+    _numComponents(n),
+    _nonZeroMin(nonZeroMin),
     _tex(NULL),
     _location(x, y, z),
-    _n_slices(512),		// default value
+    _numSlices(512),
     _enabled(true),
-    _data_enabled(true),	// default value
-    _outline_enabled(true),	// default value
-    _outline_color(1., 1., 1.),	// default value
-    _volume_type(CUBIC),	// default is a cubic volume
-    _iso_surface(0)
+    _dataEnabled(true),
+    _outlineEnabled(true),
+    _outlineColor(1., 1., 1.),
+    _volumeType(CUBIC),
+    _isosurface(0)
 {
     _tex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
-    int fcount = width * height * depth * _n_components;
+    int fcount = width * height * depth * _numComponents;
     _data = new float[fcount];
     if (data != NULL) {
         TRACE("data is copied\n");
@@ -63,7 +63,7 @@ Volume::Volume(float x, float y, float z,
         _tex->initialize(_data);
     } else {
         TRACE("data is null\n");
-        memset(_data, 0, sizeof(width * height * depth * _n_components * 
+        memset(_data, 0, sizeof(width * height * depth * _numComponents * 
 				sizeof(float)));
         _tex->initialize(_data);
     }
@@ -73,16 +73,16 @@ Volume::Volume(float x, float y, float z,
     wAxis.SetRange(v0, v1);
 
     // VOLUME
-    aspect_ratio_width  = s * _tex->aspectRatioWidth();
-    aspect_ratio_height = s * _tex->aspectRatioHeight();
-    aspect_ratio_depth =  s * _tex->aspectRatioDepth();
+    aspectRatioWidth  = s * _tex->aspectRatioWidth();
+    aspectRatioHeight = s * _tex->aspectRatioHeight();
+    aspectRatioDepth =  s * _tex->aspectRatioDepth();
 
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
     _plane.clear();
-    add_cutplane(1, 0.5f);
-    add_cutplane(2, 0.5f);
-    add_cutplane(3, 0.5f);
+    addCutplane(1, 0.5f);
+    addCutplane(2, 0.5f);
+    addCutplane(3, 0.5f);
 
     //initialize the labels  
     label[0] = "X Label";

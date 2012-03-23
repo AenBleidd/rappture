@@ -19,17 +19,24 @@ v2f main(a2v IN,
 {
     v2f OUT;
 
+    // IN.Position is in eye coords
+    float4 objPos = mul(modelViewInv, IN.Position);
+    float4 eyePosObjSpace = mul(modelViewInv, float4(0,0,0,1));
+
     //clip space vertex position
-    OUT.HPosition = mul(modelViewProjMatrix, mul(modelViewInv, IN.Position));
+    //OUT.HPosition = mul(modelViewProjMatrix, mul(modelViewInv, IN.Position));
+    OUT.HPosition = mul(modelViewProjMatrix, objPos);
 
     //eye space texture coordinates
     OUT.TexCoord = IN.TexCoord;
 
     //world space eye position
-    OUT.EyeVector = normalize(-IN.Position.xyz);
+    //OUT.EyeVector = normalize(-IN.Position.xyz);
+    OUT.EyeVector = normalize(eyePosObjSpace - objPos);
 
     //world space light postion
-    OUT.Light = normalize(float3(1,1,1)-IN.Position.xyz);
+    //OUT.Light = normalize(float3(1,1,1)-IN.Position.xyz);
+    OUT.Light = normalize(mul(modelViewInv, float4(1,1,1,1))-objPos);
 
     return OUT;
 }

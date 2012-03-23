@@ -18,7 +18,7 @@
 #include "RpField1D.h"
 #include "RenderContext.h"
 
-bool HeightMap::update_pending = false;
+bool HeightMap::updatePending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
@@ -259,12 +259,12 @@ HeightMap::reset()
 }
 
 void 
-HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
+HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
 {
     _vertexCount = xCount * yCount;
     reset();
-    
-    _heights = (float *)heights; 
+
+    _heights = (float *)heights;
     float min, max;
     min = heights[0].y, max = heights[0].y;
 
@@ -286,8 +286,8 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
     yAxis.SetRange(0.0, 1.0);
     zAxis.SetRange(0.0, 1.0);
     wAxis.SetRange(min, max);
-    update_pending = true;
-    
+    updatePending = true;
+
     _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + min, _scale.y * 0.5);
 
     Vector3* texcoord = new Vector3[count];
@@ -333,7 +333,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3* heights)
 
 void 
 HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax, 
-                     int xNum, int yNum, float* heights)
+                     int xNum, int yNum, float *heights)
 {
     _vertexCount = xNum * yNum;
     _xNum = xNum, _yNum = yNum;
@@ -375,7 +375,7 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     // Save the scales.
     _scale.x = _scale.y = _scale.z = 1.0;
 
-    update_pending = true;
+    updatePending = true;
 
     _centerPoint.set(0.5, 0.5, 0.5);
     
@@ -419,9 +419,9 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
 #endif
 }
 
-Vector3* 
+Vector3 *
 HeightMap::createHeightVertices(float xMin, float yMin, float xMax, 
-				float yMax, int xNum, int yNum, float* height)
+				float yMax, int xNum, int yNum, float *height)
 {
     Vector3* vertices = new Vector3[xNum * yNum];
 

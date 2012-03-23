@@ -33,6 +33,7 @@
 #include "Trace.h"
 #include "Unirect.h"
 #include "VelocityArrowsSlice.h"
+#include "Volume.h"
 
 #define RELPOS 0
 #define ABSPOS 1
@@ -293,7 +294,7 @@ FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr) :
 {
     memset(&_sv, 0, sizeof(FlowValues));
     _sv.sliceVisible = 1;
-    _sv.tfPtr = NanoVis::get_transfunc("default");
+    _sv.tfPtr = NanoVis::getTransfunc("default");
 
     Tcl_InitHashTable(&_particlesTable, TCL_STRING_KEYS);
     Tcl_InitHashTable(&_boxTable, TCL_STRING_KEYS);
@@ -316,7 +317,7 @@ FlowCmd::~FlowCmd()
         delete _dataPtr;
     }
     if (_volPtr != NULL) {
-        NanoVis::remove_volume(_volPtr);
+        NanoVis::removeVolume(_volPtr);
         _volPtr = NULL;
     }
 
@@ -529,7 +530,7 @@ FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
         TRACE("from ScaleVectorField volId=%s\n", _volPtr->name());
-        NanoVis::remove_volume(_volPtr);
+        NanoVis::removeVolume(_volPtr);
         _volPtr = NULL;
     }
     float *vdata;
@@ -574,9 +575,9 @@ FlowCmd::ScaleVectorField()
     if (NanoVis::licRenderer != NULL) {
         NanoVis::licRenderer->
             setVectorField(_volPtr->id, loc,
-                           1.0f / _volPtr->aspect_ratio_width,
-                           1.0f / _volPtr->aspect_ratio_height,
-                           1.0f / _volPtr->aspect_ratio_depth,
+                           1.0f / _volPtr->aspectRatioWidth,
+                           1.0f / _volPtr->aspectRatioHeight,
+                           1.0f / _volPtr->aspectRatioDepth,
                            _volPtr->wAxis.max());
         SetCurrentPosition();
         SetAxis();
@@ -588,8 +589,8 @@ FlowCmd::ScaleVectorField()
             vectorField(_volPtr->id,
                         //*(volPtr->get_location()),
                         1.0f,
-                        _volPtr->aspect_ratio_height / _volPtr->aspect_ratio_width,
-                        _volPtr->aspect_ratio_depth / _volPtr->aspect_ratio_width
+                        _volPtr->aspectRatioHeight / _volPtr->aspectRatioWidth,
+                        _volPtr->aspectRatioDepth / _volPtr->aspectRatioWidth
                         //,volPtr->wAxis.max()
                         );
         TRACE("Arrows enabled set to %d\n", _sv.showArrows);
@@ -656,9 +657,9 @@ FlowCmd::MakeVolume(float *data)
 {
     Volume *volPtr;
 
-    volPtr = NanoVis::load_volume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
-                                  _dataPtr->zNum(), 4, data, 
-                                  NanoVis::magMin, NanoVis::magMax, 0);
+    volPtr = NanoVis::loadVolume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
+                                 _dataPtr->zNum(), 4, data, 
+                                 NanoVis::magMin, NanoVis::magMax, 0);
     volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.SetRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.SetRange(_dataPtr->zMin(), _dataPtr->zMax());
@@ -671,21 +672,21 @@ FlowCmd::MakeVolume(float *data)
           NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
           NanoVis::magMin, NanoVis::magMax);
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
-    //volPtr->set_n_slice(256 - _volIndex);
-    // volPtr->set_n_slice(512- _volIndex);
-    //volPtr->n_slices(256-n);
+    //volPtr->numSlices(256 - _volIndex);
+    //volPtr->numSlices(512 - _volIndex);
+    //volPtr->numSlices(256 - n);
     // TBD..
     /* Don't set the slice number until we're are about to render the
        volume. */
-    volPtr->disable_cutplane(0);
-    volPtr->disable_cutplane(1);
-    volPtr->disable_cutplane(2);
+    volPtr->disableCutplane(0);
+    volPtr->disableCutplane(1);
+    volPtr->disableCutplane(2);
 
     /* Initialize the volume with the previously configured values. */
     volPtr->transferFunction(_sv.tfPtr);
-    volPtr->data_enabled(_sv.showVolume);
+    volPtr->dataEnabled(_sv.showVolume);
     volPtr->outline(_sv.showOutline);
-    volPtr->opacity_scale(_sv.opacity);
+    volPtr->opacityScale(_sv.opacity);
     volPtr->specular(_sv.specular);
     volPtr->diffuse(_sv.diffuse);
     TRACE("volume is now %d %d\n", _sv.showVolume, volPtr->visible());
@@ -694,7 +695,7 @@ FlowCmd::MakeVolume(float *data)
     float dy0 = -0.5*volPtr->height/volPtr->width;
     float dz0 = -0.5*volPtr->depth/volPtr->width;
     volPtr->location(Vector3(dx0, dy0, dz0));
-    Volume::update_pending = true;
+    Volume::updatePending = true;
     return volPtr;
 }
 
@@ -764,7 +765,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     flowPtr->data(dataPtr);
-    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
+    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -856,7 +857,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         nWritten  = write(1, info, length);
         assert(nWritten == (ssize_t)strlen(info));
     }
-    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
+    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -1330,7 +1331,7 @@ TransferFunctionSwitchProc(ClientData clientData, Tcl_Interp *interp,
 {
     TransferFunction **funcPtrPtr = (TransferFunction **)(record + offset);
     TransferFunction *funcPtr;
-    funcPtr = NanoVis::get_transfunc(Tcl_GetString(objPtr));
+    funcPtr = NanoVis::getTransfunc(Tcl_GetString(objPtr));
     if (funcPtr == NULL) {
         Tcl_AppendResult(interp, "transfer function \"", Tcl_GetString(objPtr),
                          "\" is not defined", (char*)NULL);
@@ -1349,7 +1350,7 @@ FlowConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (flowPtr->ParseSwitches(interp, objc - 2, objv + 2) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
+    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -1371,7 +1372,7 @@ FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     particlesPtr->Configure();
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     Tcl_SetObjResult(interp, objv[3]);
     return TCL_OK;
 }
@@ -1390,7 +1391,7 @@ FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     particlesPtr->Configure();
-    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
+    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -1407,7 +1408,7 @@ FlowParticlesDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
             delete particlesPtr;
         }
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1485,7 +1486,7 @@ FlowBoxAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         delete boxPtr;
         return TCL_ERROR;
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     Tcl_SetObjResult(interp, objv[3]);
     return TCL_OK;
 }
@@ -1503,7 +1504,7 @@ FlowBoxDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
             delete boxPtr;
         }
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1540,7 +1541,7 @@ FlowBoxConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (boxPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         return TCL_ERROR;
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1612,7 +1613,7 @@ FlowLegendOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
         NanoVis::MapFlows();
     }
-    NanoVis::render_legend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
+    NanoVis::renderLegend(tf, NanoVis::magMin, NanoVis::magMax, w, h, label);
     return TCL_OK;
 }
 
@@ -1680,7 +1681,7 @@ FlowAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Tcl_SetObjResult(interp, objv[2]);
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1698,7 +1699,7 @@ FlowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         Tcl_DeleteCommand(interp, flowPtr->name());
     }
-    NanoVis::EventuallyRedraw(NanoVis::MAP_FLOWS);
+    NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
 
@@ -1745,7 +1746,7 @@ FlowGotoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         NanoVis::AdvectFlows();
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     return TCL_OK;
 }
 
@@ -1776,7 +1777,7 @@ FlowNextOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (NanoVis::flags & NanoVis::MAP_FLOWS) {
         NanoVis::MapFlows();
     }
-    NanoVis::EventuallyRedraw();
+    NanoVis::eventuallyRedraw();
     NanoVis::licRenderer->convolve();
     NanoVis::AdvectFlows();
     return TCL_OK;
@@ -1879,8 +1880,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     token = Tcl_GetString(objv[2]);
     values.frameRate = 25.0f;                // Default frame rate 25 fps
     values.bitRate = 6000000;                // Default video bit rate.
-    values.width = NanoVis::win_width;
-    values.height = NanoVis::win_height;
+    values.width = NanoVis::winWidth;
+    values.height = NanoVis::winHeight;
     values.nFrames = 100;
     values.format = Rappture::AVTranslate::MPEG1;
     if (Rappture::ParseSwitches(interp, FlowCmd::videoSwitches, 
@@ -1906,8 +1907,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     // Save the old dimensions of the offscreen buffer.
     int oldWidth, oldHeight;
-    oldWidth = NanoVis::win_width;
-    oldHeight = NanoVis::win_height;
+    oldWidth = NanoVis::winWidth;
+    oldHeight = NanoVis::winHeight;
 
     TRACE("FLOW started\n");
 
@@ -1925,7 +1926,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if ((values.width != oldWidth) || (values.height != oldHeight)) {
         // Resize to the requested size.
-        NanoVis::resize_offscreen_buffer(values.width, values.height);
+        NanoVis::resizeOffscreenBuffer(values.width, values.height);
     }
     // Now compute the line padding for the offscreen buffer.
     int pad = 0;
@@ -1945,11 +1946,11 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
             NanoVis::licRenderer->convolve();
         }
         NanoVis::AdvectFlows();
-        NanoVis::offscreen_buffer_capture();
+        NanoVis::offscreenBufferCapture();
         NanoVis::display();
-        NanoVis::read_screen();
+        NanoVis::readScreen();
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        movie.append(context, NanoVis::screen_buffer, pad);
+        movie.append(context, NanoVis::screenBuffer, pad);
     }
     movie.done(context);
     TRACE("FLOW end\n");
@@ -1970,7 +1971,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
     if ((values.width != oldWidth) || (values.height != oldHeight)) {
-        NanoVis::resize_offscreen_buffer(oldWidth, oldHeight);
+        NanoVis::resizeOffscreenBuffer(oldWidth, oldHeight);
     }
     NanoVis::ResetFlows();
     if (unlink(tmpFileName) != 0) {

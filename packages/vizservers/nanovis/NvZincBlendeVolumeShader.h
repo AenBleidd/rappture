@@ -25,7 +25,7 @@ private:
     CGparameter _cellSizeParam;
     CGparameter _mviParam;
     CGparameter _renderParam;
-    CGparameter _option_one_volume_param;
+    CGparameter _optionOneVolumeParam;
 };
 
 #endif 

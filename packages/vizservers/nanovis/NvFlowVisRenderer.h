@@ -50,12 +50,11 @@ public:
 
     /** 
      * @brief Specify the axis of the index plane
-     * @param index the index of the array of injection planes
      */
     void setPlaneAxis(const std::string& vfName, const std::string& name, int axis);
 
     /**
-     * @param pos : Specify the position of slice
+     * @param pos Specify the position of slice
      */
     void setPlanePos(const std::string& vfName, const std::string& name, float pos);
 

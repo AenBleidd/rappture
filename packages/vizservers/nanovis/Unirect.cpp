@@ -674,8 +674,8 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
     _xNum = (size_t)ceil(dx/dmin);
     _yNum = (size_t)ceil(dy/dmin);
     _zNum = (size_t)ceil(dz/dmin);
-    
-#ifndef NV40
+
+#ifndef HAVE_NPOT_TEXTURES
     // must be an even power of 2 for older cards
     _xNum = (int)pow(2.0, ceil(log10((double)_xNum)/log10(2.0)));
     _yNum = (int)pow(2.0, ceil(log10((double)_yNum)/log10(2.0)));
