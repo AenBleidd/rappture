@@ -47,7 +47,7 @@
  */
 #define WANT_TRACE
 
-//#define OLD_CAMERA
+#define OLD_CAMERA
 
 /* 
  * The following define controls whether new prototype features are to be
