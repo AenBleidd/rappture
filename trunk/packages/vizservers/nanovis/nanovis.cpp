@@ -749,12 +749,12 @@ void NanoVis::init(const char* path)
     }
 #ifdef HAVE_NPOT_TEXTURES
     if (!GLEW_ARB_texture_non_power_of_two) {
-        ERROR("GLEW_ARB_texture_non_power_of_two extension is required to run nanovis\n");
+        ERROR("ARB_texture_non_power_of_two extension is required to run nanovis\n");
         doExit(1);
     }
 #endif
     if (!GLEW_ARB_texture_rectangle) {
-        ERROR("GLEW_ARB_texture_rectangle extension is required to run nanovis\n");
+        ERROR("ARB_texture_rectangle extension is required to run nanovis\n");
         doExit(1);
     }
 #ifdef HAVE_FLOAT_TEXTURES
