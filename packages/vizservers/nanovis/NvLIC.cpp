@@ -70,21 +70,21 @@ NvLIC::NvLIC(int _size, int _width, int _height, int _axis,
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, slice_vector_tex);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, slice_vector_tex);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // ADD INSOO
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, 
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, 
 		    GL_CLAMP_TO_EDGE); 
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, 
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, 
 		    GL_CLAMP_TO_EDGE); 
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, size, size, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, size, size, 
 		0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                  GL_TEXTURE_RECTANGLE_NV, slice_vector_tex, 0);
+                  GL_TEXTURE_RECTANGLE_ARB, slice_vector_tex, 0);
 
     //render buffer for the convolution
     glGenFramebuffersEXT(1, &fbo);
