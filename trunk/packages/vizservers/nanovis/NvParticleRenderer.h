@@ -38,7 +38,7 @@ struct Particle {
     {}
 
     Particle(float _x, float _y, float _z, float _life) :
-	x(_x), y(_y), z(_z), aux(_life)
+        x(_x), y(_y), z(_z), aux(_life)
     {}
 };
 
@@ -56,9 +56,9 @@ public:
 
     void advect();
 
-    void update_vertex_buffer();
+    void updateVertexBuffer();
 
-    void display_vertices();
+    void displayVertices();
 
     void reset();
 
@@ -66,82 +66,82 @@ public:
 
     bool active() const
     {
-	return _activate;
+        return _activate;
     }
 
     void active(bool state)
     {
-	_activate = state;
+        _activate = state;
     }
 
     void setColor(const Vector4& color)
     {
-	_color = color;
+        _color = color;
     }
 
     void setAxis(int axis);
 
     void setPos(float pos);
 
-    void draw_bounding_box(float x0, float y0, float z0, 
-			   float x1, float y1, float z1, 
-			   float r, float g, float b, float line_width);
+    void drawBoundingBox(float x0, float y0, float z0,
+                         float x1, float y1, float z1,
+                         float r, float g, float b, float line_width);
 
     void initializeDataArray();
 
     void particleSize(float size)
     {
-	_particleSize = size;
+        _particleSize = size;
     }
 
     float particleSize() const
     {
-	return _particleSize;
+        return _particleSize;
     }
 
    static NvParticleAdvectionShader *_advectionShader;
 
 private:
     /// frame buffer objects: two are defined, flip them as input output every step
-    GLuint psys_fbo[2]; 	
+    GLuint _psysFbo[2];
 
     /// color textures attached to frame buffer objects
-    GLuint psys_tex[2];	
-    GLuint initPosTex;	
-    Particle *data;
+    GLuint _psysTex[2];
+    GLuint _initPosTex;
+    Particle *_data;
 
     /// Count the frame number of particle system iteration
-    int psys_frame;	    
+    int _psysFrame;
 
     /// Reinitiate particles
-    bool reborn;			
+    bool _reborn;
 
     /// flip the source and destination render targets
-    bool flip;			
+    bool _flip;
 
-    float max_life;
+    float _maxLife;
 
     /// Size of the particle: default is 1.2
     float _particleSize;
 
     /// vertex array for display particles
-    RenderVertexArray *_vertex_array;	
+    RenderVertexArray *_vertexArray;
 
-    /// scale of flow data 
-    Vector3 scale;
+    /// scale of flow data
+    Vector3 _scale;
 
-    Vector3 origin;
+    Vector3 _origin;
 
     bool _activate;
 
-    float _slice_pos;
-    int _slice_axis;
+    float _slicePos;
+    int _sliceAxis;
 
     Vector4 _color;
 
     //the storage of particles is implemented as a 2D array.
-    int psys_width;
-    int psys_height;
+    int _psysWidth;
+    int _psysHeight;
 };
 
 #endif
