@@ -74,47 +74,47 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[0]);
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[0]);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, _psysTex[0], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, _psysTex[0], 0);
 
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[1]);
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[1]);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[1]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, _psysTex[1], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, _psysTex[1], 0);
  
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
     glGenTextures(1, &_initPosTex);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
 
@@ -197,43 +197,43 @@ void NvParticleRenderer::initialize()
     //also store the data on main memory for next initialization
     //memcpy(data, p, psys_width*psys_height*sizeof(Particle));
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[0]);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #endif
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
     _flip = true;
     _reborn = false;
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #endif
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
     TRACE("init particles\n");
 }
 
 void NvParticleRenderer::reset()
 {
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[0]);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
 #ifdef HAVE_FLOAT_TEXTURES
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA32F_ARB, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #else
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, (float*)_data);
 #endif
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
     _flip = true;
     _reborn = false;
     _psysFrame = 0;
@@ -250,8 +250,8 @@ NvParticleRenderer::advect()
 
     if (_flip) {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[1]);
-        glEnable(GL_TEXTURE_RECTANGLE_NV);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[0]);
+        glEnable(GL_TEXTURE_RECTANGLE_ARB);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //glClear(GL_COLOR_BUFFER_BIT);
@@ -268,10 +268,10 @@ NvParticleRenderer::advect()
 
         draw_quad(_psysWidth, _psysHeight, _psysWidth, _psysHeight);
 
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
+        glDisable(GL_TEXTURE_RECTANGLE_ARB);
     } else {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[0]);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, _psysTex[1]);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[1]);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //glClear(GL_COLOR_BUFFER_BIT);

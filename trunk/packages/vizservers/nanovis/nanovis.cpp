@@ -753,6 +753,10 @@ void NanoVis::init(const char* path)
         doExit(1);
     }
 #endif
+    if (!GLEW_ARB_texture_rectangle) {
+        ERROR("GLEW_ARB_texture_rectangle extension is required to run nanovis\n");
+        doExit(1);
+    }
 #ifdef HAVE_FLOAT_TEXTURES
     if (!GLEW_ARB_texture_float ||
         !GLEW_ARB_color_buffer_float) {

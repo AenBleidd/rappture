@@ -370,17 +370,17 @@ void ParticleSystem::initInitPosTex()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGB_NV,
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGB32F_ARB,
                  _width, _height, 0, GL_RGB, GL_FLOAT, NULL);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, _initPosTex, 0);
+                              GL_TEXTURE_RECTANGLE_ARB, _initPosTex, 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
@@ -516,7 +516,7 @@ void ParticleSystem::passThoughPositions()
     cgGLSetParameter4f(_scaleParam, 1.0, 1.0, 1.0, 1.0);
     cgGLSetParameter4f(_biasParam, 0.0, 0.0, 0.0, 0.0);
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGB_NV, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGB32F_ARB, 
                  _width, _height, 0, GL_RGB, GL_FLOAT, (GLfloat *) _positionBuffer);
 
     drawQuad();
@@ -584,10 +584,10 @@ void ParticleSystem::reset()
         }
     }
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGB_NV,
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGB32F_ARB,
                  _width, _height, 0, GL_RGB, GL_FLOAT, (float*)_positionBuffer);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, 0);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_currentPosIndex]);
     glViewport(0, 0, _width, _height);
@@ -661,21 +661,21 @@ void ParticleSystem::createRenderTargets()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[0]);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[0]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _width, _height, 0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, psys_tex[0], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, psys_tex[0], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[1]);
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[1]);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[1]);
     glViewport(0, 0, _width, _height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -683,22 +683,22 @@ void ParticleSystem::createRenderTargets()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _width, _height, 0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, psys_tex[1], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, psys_tex[1], 0);
  
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
 
-//#define ATLAS_TEXTURE_TARGET GL_TEXTURE_RECTANGLE_NV
-//#define ATLAS_INTERNAL_TYPE GL_FLOAT_RGBA32_NV
+//#define ATLAS_TEXTURE_TARGET GL_TEXTURE_RECTANGLE_ARB
+//#define ATLAS_INTERNAL_TYPE GL_RGBA32F_ARB
 #define ATLAS_TEXTURE_TARGET GL_TEXTURE_2D
 #define ATLAS_INTERNAL_TYPE GL_RGBA
 
@@ -732,7 +732,7 @@ void ParticleSystem::createStreamlineRenderTargets()
 //#define SORT_TEXTURE_FORMAT  GL_LUMINANCE_ALPHA
 //#define SORT_TEXTURE_INNER_FORMAT GL_LUMINANCE_ALPHA_FLOAT32_ATI
 #define SORT_TEXTURE_FORMAT  GL_RGB
-#define SORT_TEXTURE_INNER_FORMAT GL_FLOAT_RGB32_NV
+#define SORT_TEXTURE_INNER_FORMAT GL_RGB32F_ARB
 
 void ParticleSystem::createSortRenderTargets()
 {
@@ -747,16 +747,16 @@ void ParticleSystem::createSortRenderTargets()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, sort_tex[0]);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, SORT_TEXTURE_INNER_FORMAT, 
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, sort_tex[0]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, SORT_TEXTURE_INNER_FORMAT, 
                  _width, _height, 0, SORT_TEXTURE_FORMAT, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, sort_tex[0], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, sort_tex[0], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[1]);
     glViewport(0, 0, _width, _height);
@@ -766,16 +766,16 @@ void ParticleSystem::createSortRenderTargets()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, sort_tex[1]);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, SORT_TEXTURE_INNER_FORMAT, 
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, sort_tex[1]);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, SORT_TEXTURE_INNER_FORMAT, 
                  _width, _height, 0, SORT_TEXTURE_FORMAT, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, sort_tex[1], 0);
+                              GL_TEXTURE_RECTANGLE_ARB, sort_tex[1], 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
@@ -938,7 +938,7 @@ void ParticleSystem::advectStreamlines()
     glPushMatrix();
     glLoadIdentity();
 
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
     cgGLBindProgram(_moveParticlesFP);
     cgGLEnableProfile(CG_PROFILE_FP40);
@@ -954,15 +954,15 @@ void ParticleSystem::advectStreamlines()
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
         glClear(GL_COLOR_BUFFER_BIT);
         glActiveTextureARB(GL_TEXTURE0_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_currentPosIndex]);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_currentPosIndex]);
         glActiveTextureARB(GL_TEXTURE1_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
         drawQuad();
         swap(_currentPosIndex, _destPosIndex);
     }
 
     cgGLDisableTextureParameter(_mpVectorField);
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
     cgGLDisableProfile(CG_PROFILE_FP40);
 
     glMatrixMode(GL_PROJECTION);
@@ -1051,7 +1051,7 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
         glPushMatrix();
         glLoadIdentity();
 
-        glEnable(GL_TEXTURE_RECTANGLE_NV);
+        glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
         cgGLBindProgram(_moveParticlesFP);
         cgGLEnableProfile(CG_PROFILE_FP40);
@@ -1071,20 +1071,20 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glActiveTextureARB(GL_TEXTURE0_ARB);
-            glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_currentPosIndex]);
+            glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_currentPosIndex]);
             glActiveTextureARB(GL_TEXTURE1_ARB);
-            glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
+            glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
             drawQuad();
             swap(_currentPosIndex, _destPosIndex);
         }
         cgGLDisableTextureParameter(_mpVectorField);
 
         glActiveTextureARB(GL_TEXTURE1_ARB);
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
+        glDisable(GL_TEXTURE_RECTANGLE_ARB);
         glActiveTextureARB(GL_TEXTURE0_ARB);
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
+        glDisable(GL_TEXTURE_RECTANGLE_ARB);
 
-        glDisable(GL_TEXTURE_RECTANGLE_NV);
+        glDisable(GL_TEXTURE_RECTANGLE_ARB);
         cgGLDisableProfile(CG_PROFILE_FP40);
 
         glMatrixMode(GL_PROJECTION);
@@ -1195,8 +1195,8 @@ void ParticleSystem::initNewParticles()
     //VelocityPBuffers[VelocityCurrent]->Bind();
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_destPosIndex]);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_destPosIndex]);
 
     glBegin(GL_POINTS);
     for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++) {
@@ -1213,7 +1213,7 @@ void ParticleSystem::initNewParticles()
     }
     glEnd();
 
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
     cgGLDisableTextureParameter(_ipVectorFieldParam);
     cgGLDisableProfile(CG_PROFILE_FP40);
 
@@ -1248,9 +1248,9 @@ void ParticleSystem::initNewParticles()
     //VelocityPBuffers[VelocityCurrent]->Bind();
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
-    //glBindTexture(GL_TEXTURE_RECTANGLE_NV, _initPosTex);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_destPosIndex]);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    //glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_destPosIndex]);
 
     glBegin(GL_POINTS);
     for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++) {
@@ -1267,7 +1267,7 @@ void ParticleSystem::initNewParticles()
     }
     glEnd();
 
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
     cgGLDisableTextureParameter(_ipVectorFieldParam);
     cgGLDisableProfile(CG_PROFILE_FP40);
 
@@ -1319,12 +1319,12 @@ void ParticleSystem::sort()
     cgGLEnableProfile(CG_PROFILE_FP40);
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, sort_tex[_currentSortIndex]);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, sort_tex[_currentSortIndex]);
 
     glActiveTextureARB(GL_TEXTURE1_ARB);
-    glEnable(GL_TEXTURE_RECTANGLE_NV);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_currentPosIndex]);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_currentPosIndex]);
 
     cgGLSetParameter3f(_viewPosParam, pos.x, pos.y, pos.z);
 
@@ -1425,10 +1425,10 @@ void ParticleSystem::sort()
     cgGLEnableProfile(CG_PROFILE_FP40);
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, sort_tex[_currentSortIndex]);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, sort_tex[_currentSortIndex]);
 
     glActiveTextureARB(GL_TEXTURE1_ARB);
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, psys_tex[_currentPosIndex]);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, psys_tex[_currentPosIndex]);
 
     glPushAttrib(GL_VIEWPORT_BIT);
     glViewport(0, 0, _width, _height);
@@ -1454,10 +1454,10 @@ void ParticleSystem::sort()
     // POSITION LOOKUP
     ///////////////////////////////////////////////////////////
     glActiveTextureARB(GL_TEXTURE1_ARB);
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
 
     glActiveTextureARB(GL_TEXTURE0_ARB);
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
 
     // _DEBUG
     /*
@@ -1503,7 +1503,7 @@ void ParticleSystem::merge(int count, int step)
         cgGLEnableProfile(CG_PROFILE_FP40);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV , sort_tex[_currentSortIndex]);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB , sort_tex[_currentSortIndex]);
 
         cgGLSetParameter1f(_srStepParam, (float)step);
         cgGLSetParameter1f(_srCountParam, (float)count);
@@ -1529,7 +1529,7 @@ void ParticleSystem::merge(int count, int step)
         cgGLDisableProfile(CG_PROFILE_FP40);
 
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV , 0);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB , 0);
     } else {
         _currentSortPass++;
 
@@ -1546,7 +1546,7 @@ void ParticleSystem::merge(int count, int step)
         cgGLEnableProfile(CG_PROFILE_FP40);
 
         glActiveTextureARB(GL_TEXTURE0_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV , sort_tex[_currentSortIndex]);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB , sort_tex[_currentSortIndex]);
 
         cgGLSetParameter1f(_seStepParam, (float)step);
 
@@ -1570,7 +1570,7 @@ void ParticleSystem::merge(int count, int step)
 
         cgGLDisableProfile(CG_PROFILE_FP40);
 
-        glBindTexture(GL_TEXTURE_RECTANGLE_NV , 0);
+        glBindTexture(GL_TEXTURE_RECTANGLE_ARB , 0);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
 
@@ -1622,10 +1622,10 @@ void ParticleSystem::render()
             //glAlphaFunc(GL_GEQUAL, 0.5);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
-            glEnable(GL_POINT_SPRITE_NV);
+            glEnable(GL_POINT_SPRITE_ARB);
             glPointSize(_pointSize);
 
-            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
 #ifndef TEST
             _arrows->activate(); //_arrows->bind(0);
@@ -1682,8 +1682,8 @@ void ParticleSystem::render()
 
             glDepthMask(GL_TRUE);
 
-            glDisable(GL_POINT_SPRITE_NV);
-            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+            glDisable(GL_POINT_SPRITE_ARB);
+            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDisable(GL_BLEND);
@@ -1713,8 +1713,8 @@ void ParticleSystem::render()
 
             glDepthMask(GL_TRUE);
 
-            glDisable(GL_POINT_SPRITE_NV);
-            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+            glDisable(GL_POINT_SPRITE_ARB);
+            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDisable(GL_BLEND);

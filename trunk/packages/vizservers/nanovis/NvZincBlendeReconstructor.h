@@ -13,8 +13,8 @@
  * redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef __NV_ZINC_BLENDE_RECONSTRUCTOR_H__
-#define __NV_ZINC_BLENDE_RECONSTRUCTOR_H__
+#ifndef NV_ZINC_BLENDE_RECONSTRUCTOR_H
+#define NV_ZINC_BLENDE_RECONSTRUCTOR_H
 
 #include <stdio.h>
 #include <ostream>
@@ -61,7 +61,7 @@ public:
     /**
      * @brief Return a singleton instance
      */
-    static NvZincBlendeReconstructor* getInstance();
+    static NvZincBlendeReconstructor *getInstance();
 
 private:
     NvZincBlendeReconstructor();
@@ -77,7 +77,7 @@ private:
     char buff[255];
 
     /// A ZincBlendeReconstructor Singleton instance
-    static NvZincBlendeReconstructor* _instance;
+    static NvZincBlendeReconstructor *_instance;
 };
 
 #endif

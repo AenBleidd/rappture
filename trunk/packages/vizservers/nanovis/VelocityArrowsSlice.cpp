@@ -16,7 +16,7 @@
 VelocityArrowsSlice::VelocityArrowsSlice()
 {
     _enabled = false;
-    _context = cgCreateContext();
+    _context = NvShader::getCgContext();
     _vectorFieldGraphicsID = 0;
     _vfXscale = _vfYscale = _vfZscale = 0;
     _slicePos = 0.5f;
@@ -142,18 +142,18 @@ void VelocityArrowsSlice::createRenderTarget()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_NV, _tex);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_NV, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _tex);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_RECTANGLE_NV, 0, GL_FLOAT_RGBA32_NV, 
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, 
                  _renderTargetWidth, _renderTargetHeight, 0,
                  GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                              GL_TEXTURE_RECTANGLE_NV, _tex, 0);
+                              GL_TEXTURE_RECTANGLE_ARB, _tex, 0);
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
@@ -217,7 +217,7 @@ void VelocityArrowsSlice::queryVelocity()
 
     glEnd();
 
-    glDisable(GL_TEXTURE_RECTANGLE_NV);
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
     cgGLDisableTextureParameter(_qvVectorFieldParam);
     cgGLDisableProfile(CG_PROFILE_FP40);
 
@@ -248,7 +248,9 @@ void VelocityArrowsSlice::render()
     glScalef(_vfXscale,_vfYscale, _vfZscale);
     glTranslatef(-0.5f, -0.5f, -0.5f);
     if (_renderMode == LINES) {
+        glPushAttrib(GL_ENABLE_BIT);
         glDisable(GL_TEXTURE_2D);
+        glDisable(GL_LIGHTING);
         glLineWidth(2.0);
         glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
         glBegin(GL_LINES);
@@ -292,13 +294,14 @@ void VelocityArrowsSlice::render()
 
         glEnd();
         glLineWidth(1.0);
+        glPopAttrib();
     } else {
         glColor3f(_arrowColor.x, _arrowColor.y, _arrowColor.z);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
         glEnable(GL_POINT_SPRITE_ARB);
         glPointSize(20);
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
         _arrowsTex->activate();
         glEnable(GL_TEXTURE_2D);
@@ -342,8 +345,8 @@ void VelocityArrowsSlice::render()
 
         glDepthMask(GL_TRUE);
 
-        glDisable(GL_POINT_SPRITE_NV);
-        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_NV);
+        glDisable(GL_POINT_SPRITE_ARB);
+        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDisable(GL_BLEND);
@@ -415,9 +418,9 @@ void VelocityArrowsSlice::computeSamplingTicks()
         }
     }
 
-    _maxVelocityScale.x = 1.0f / _tickCountX * 0.8f;
-    _maxVelocityScale.y = 1.0f / _tickCountY * 0.8f;
-    _maxVelocityScale.z = 1.0f / _tickCountZ * 0.8f;
+    _maxVelocityScale.x = (1.0f / _tickCountX) * 0.8f;
+    _maxVelocityScale.y = (1.0f / _tickCountY) * 0.8f;
+    _maxVelocityScale.z = (1.0f / _tickCountZ) * 0.8f;
 
     int pointCount = _tickCountX * _tickCountY * _tickCountZ;
     if (_pointCount != pointCount) {
