@@ -304,22 +304,22 @@ GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h
 HeightMap.o: HeightMap.cpp HeightMap.h
 Mat4x4.o: Mat4x4.cpp Mat4x4.h
-NvCamera.o: NvCamera.cpp NvCamera.h
+NvCamera.o: NvCamera.cpp NvCamera.h config.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
-NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h
+NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
 NvDefaultTFData.o: NvDefaultTFData.cpp
 NvEventLog.o: NvEventLog.cpp NvEventLog.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
 NvLIC.o: NvLIC.cpp NvLIC.h
-NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h
+NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h NvShader.h
 NvParticleRenderer.o: NvParticleRenderer.cpp NvParticleRenderer.h
-NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h
+NvRegularVolumeShader.o: NvRegularVolumeShader.cpp NvRegularVolumeShader.h NvVolumeShader.h NvShader.h
 NvShader.o: NvShader.cpp NvShader.h
-NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h
+NvStdVertexShader.o: NvStdVertexShader.cpp NvStdVertexShader.h NvShader.h
 NvVectorField.o: NvVectorField.cpp NvVectorField.h NvParticleRenderer.h
-NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h
+NvVolumeShader.o: NvVolumeShader.cpp NvVolumeShader.h NvShader.h
 NvZincBlendeReconstructor.o: NvZincBlendeReconstructor.cpp NvZincBlendeReconstructor.h ZincBlendeVolume.h Volume.h Vector3.h
-NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h
+NvZincBlendeVolumeShader.o: NvZincBlendeVolumeShader.cpp NvZincBlendeVolumeShader.h NvVolumeShader.h NvShader.h
 ParticleEmitter.o: ParticleEmitter.cpp ParticleEmitter.h
 ParticleSystem.o: ParticleSystem.cpp ParticleSystem.h DataLoader.h
 ParticleSystemFactory.o: ParticleSystemFactory.cpp ParticleSystemFactory.h
