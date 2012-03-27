@@ -178,7 +178,6 @@ public:
         if (_magMin == DBL_MAX) {
             GetVectorRange();
         }
-        TRACE("magMin=%g %g\n", _magMin, DBL_MAX);
         return _magMin;
     }
 
@@ -187,7 +186,6 @@ public:
         if (_magMax == -DBL_MAX) {
             GetVectorRange();
         }
-        TRACE("magMax=%g %g\n", _magMax, -DBL_MAX);
         return _magMax;
     }
 
