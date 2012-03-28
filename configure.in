@@ -285,7 +285,7 @@ SC_ENABLE_SYMBOLS
 # search for ffmpeg libraries libavcodec, libavformat, libswscale
 #--------------------------------------------------------------------
 
-AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h],,,[
+AC_CHECK_HEADERS([ffmpeg/avcodec.h libavcodec/avcodec.h ffmpeg/avformat.h libavformat/avformat.h ffmpeg/avutil.h libavutil/avutil.h ffmpeg/swscale.h libswscale/swscale.h],,,[
 #define __STDC_CONSTANT_MACROS 1
 ])
 
@@ -306,17 +306,24 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_LIB(avutil, main,,AC_MSG_ERROR(librappture requires libavutil))
   AC_CHECK_LIB(avformat, main,,AC_MSG_ERROR(librappture requires libavformat))
   AC_CHECK_LIB(swscale, main)
-  AC_CHECK_FUNCS(avcodec_decode_video2)
-  AC_CHECK_FUNCS(avcodec_decode_video)
-  AC_CHECK_FUNCS(avformat_open_input)
+  AC_CHECK_FUNCS(av_find_stream_info)
   AC_CHECK_FUNCS(av_open_input_file)
+  AC_CHECK_FUNCS(avcodec_decode_video)
+  AC_CHECK_FUNCS(avcodec_decode_video2)
+  AC_CHECK_FUNCS(avcodec_open)
+  AC_CHECK_FUNCS(avcodec_open2)
+  AC_CHECK_FUNCS(avformat_find_stream_info)
+  AC_CHECK_FUNCS(avformat_open_input)
   AC_CHECK_FUNCS(avio_close)
+  AC_CHECK_FUNCS(img_convert)
+  AC_CHECK_FUNCS(sws_getCachedContext)
+  AC_CHECK_FUNCS(sws_scale)
   AC_CHECK_FUNCS(url_close)
-  AC_CHECK_FUNC(av_find_stream_info,, 
-  AC_MSG_ERROR(oops! no av_find_stream_info?!?))
+  AC_CHECK_FUNCS(av_close_input_file)
+  AC_CHECK_FUNCS(avformat_close_input)
+	
   AC_CHECK_FUNC(avcodec_find_decoder,,
     AC_MSG_ERROR(oops! no av_codec_find_decoder ?!?))
-  AC_CHECK_FUNC(avcodec_open,,AC_MSG_ERROR(oops! avcodec_open ?!?))
   AC_CHECK_FUNC(avcodec_alloc_frame,,
     AC_MSG_ERROR(oops! no avcode_alloc_frame ?!?))
   AC_CHECK_FUNC(av_rescale_q,,AC_MSG_ERROR(oops! no av_rescale_q ?!?))
@@ -327,9 +334,7 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_FUNC(avpicture_get_size,,
     AC_MSG_ERROR(oops! no avpicture_get_size ?!?))
   AC_CHECK_FUNC(avpicture_fill,,AC_MSG_ERROR(oops! no avpicture_fill ?!?))
-  AC_CHECK_FUNCS(sws_getCachedContext)
-  AC_CHECK_FUNCS(img_convert)
-  AC_CHECK_FUNCS(sws_scale)
+
   AC_TRY_COMPILE([
 #define __STDC_CONSTANT_MACROS 1
 #include <stdlib.h>
@@ -563,7 +568,10 @@ AC_CONFIG_FILES([
     examples/zoo/structure/examples/Makefile
     examples/zoo/table/Makefile
     examples/zoo/unirect2d/Makefile
+    video/Makefile
+    video/pkgIndex.tcl
     oldtest/Makefile
     oldtest/src/Makefile
 ])
 AC_OUTPUT
+	
