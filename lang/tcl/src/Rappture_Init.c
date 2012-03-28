@@ -37,10 +37,6 @@ extern Tcl_AppInitProc RpUnits_Init;
 extern Tcl_AppInitProc RpEncoding_Init;
 extern Tcl_AppInitProc RpUtils_Init;
 
-#ifdef BUILD_with_ffmpeg
-extern Tcl_AppInitProc RpVideo_Init;
-#endif
-
 #ifdef BUILD_Rappture
 __declspec( dllexport )
 #endif
@@ -70,11 +66,6 @@ Rappture_Init( Tcl_Interp * interp)
     if (RpUtils_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
-#ifdef BUILD_with_ffmpeg
-    if (RpVideo_Init(interp) != TCL_OK) {
-        return TCL_ERROR;
-    }
-#endif
     if (RpRlimit_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
