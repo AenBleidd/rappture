@@ -28,57 +28,39 @@ CFLAGS          = @CFLAGS@ -fPIC
 TCL_VERSION     = @TCL_VERSION@
 TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 HAVE_FFMPEG     = @HAVE_FFMPEG_LIBS@
-HAVE_NCURSES    = @HAVE_LIBNCURSES@
 
 CC_SWITCHES     = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 CXX_SWITCHES    = $(CFLAGS) $(CFLAGS_DEBUG) $(INCLUDES) $(DEFINES)
 
-INCLUDES    = -I$(srcdir) \
-  -I../../../src/core \
-  -I$(srcdir)/../../../src/core \
-  -I$(srcdir)/../../../src/objects \
-  -I$(includedir)
-version         = @PACKAGE_VERSION@
-DEFINES         = -DPACKAGE_VERSION=\"$(version)\"
+INCLUDES =	\
+		-I$(srcdir) \
+		-I../src/core \
+		-I$(srcdir)/../src/core \
+		-I$(srcdir)/../src/objects \
+		-I$(includedir)
 
-RANLIB          = @RANLIB@
-AR              = ar
-VPATH           = $(srcdir)
-RM              = rm -f
+LIBS =		\
+	        -L../src/core -lrappture \
+		-lavcodec -lavformat -lswscale \
+	        $(TCL_LIB_SPEC) -lexpat -lz -lm -lstdc++ \
 
-CDEBUGFLAGS     = -g -Wall
+version =	@PACKAGE_VERSION@
+DEFINES =	-DPACKAGE_VERSION=\"$(version)\"
 
-LIBS = \
-        -L../../../src/core -lrappture \
-        $(TCL_LIB_SPEC) -lncurses -lexpat -lz -lm -lstdc++
+RANLIB =	@RANLIB@
+AR =		ar
+VPATH =		$(srcdir)
+RM =		rm -f
 
-OBJS = \
-        Rappture_Init.o \
-        RpCurses.o \
-        RpDaemon.o \
-        RpEncodeTclInterface.o \
-        RpOp.o \
-        RpRlimit.o  \
-        RpRusage.o \
-        RpSignal.o  \
-        RpSlice.o  \
-        RpSysinfo.o  \
-        Switch.o \
-        RpUnitsTclInterface.o \
-        RpUtilsTclInterface.o
+CDEBUGFLAGS =	-g -Wall
 
-ifeq ($(WIN32),"")
-   OBJS += RpWinResource.o
-endif
 
-ifeq ($(HAVE_LIBCURSES),yes)
-   OBJS += RpCurses.o
-   LIBS += -lncurses 
-endif
+OBJS =		\
+		RpVideoTclInterface.o \
+		RpOp.o \
+		RpVideo.o 
 
-# Not using     RpLibraryTclInterface.o \
-
-name        = Rappture$(version)
+name        = RapptureVideo$(version)
 libname     = $(name)
 lib         = $(libname)$(SHLIB_SUFFIX)
 destdir     = $(libdir)/$(name)
@@ -92,6 +74,7 @@ $(lib): $(OBJS)
 install: $(lib)
 	$(MKDIR_P) -m 0755 $(destdir)
 	$(INSTALL) -m 0555 $(lib) $(destdir)
+	$(INSTALL) -m 0444 pkgIndex.tcl $(destdir)
 
 .cc.o:
 	$(CXX) $(CXX_SWITCHES) -c $?

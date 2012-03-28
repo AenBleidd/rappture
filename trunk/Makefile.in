@@ -30,11 +30,14 @@ runtime_repo = https://nanohub.org/infrastructure/rappture-runtime/svn/trunk
 rappture_repo = https://nanohub.org/infrastructure/rappture/svn/trunk
 
 ENABLE_GUI	= @ENABLE_GUI@
-
+HAVE_FFMPEG     = @HAVE_FFMPEG_LIBS@
 TARGETS		= src lang lib
 
 ifneq ($(ENABLE_GUI),)
   TARGETS += gui builder tester examples 
+endif
+ifeq ($(HAVE_FFMEG),)
+  TARGETS += video
 endif
 
 .PHONY: $(TARGETS)

@@ -111,6 +111,15 @@ OBJS = \
 		RpUtils2.o \
 		RpObject.o
 
+ifeq ($(FFMPEG),yes)
+  # since ffmpeg libraries are available,
+  # include them in compilation
+  LIBS += -lavcodec -lavformat -lswscale
+  HEADERS += RpVideo.h
+  OBJS += RpVideo.o
+endif
+
+
 name        = RpObjects
 lib         = lib$(name).a
 shared_lib  = lib$(name)$(SHLIB_SUFFIX)

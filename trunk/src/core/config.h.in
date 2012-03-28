@@ -18,6 +18,18 @@
 /* Define to 1 if you have the `avcodec_decode_video2' function. */
 #undef HAVE_AVCODEC_DECODE_VIDEO2
 
+/* Define to 1 if you have the `avcodec_open' function. */
+#undef HAVE_AVCODEC_OPEN
+
+/* Define to 1 if you have the `avcodec_open2' function. */
+#undef HAVE_AVCODEC_OPEN2
+
+/* Define to 1 if you have the `avformat_close_input' function. */
+#undef HAVE_AVFORMAT_CLOSE_INPUT
+
+/* Define to 1 if you have the `avformat_find_stream_info' function. */
+#undef HAVE_AVFORMAT_FIND_STREAM_INFO
+
 /* Define to 1 if you have the `avformat_open_input' function. */
 #undef HAVE_AVFORMAT_OPEN_INPUT
 
@@ -26,6 +38,12 @@
 
 /* Define if AVMEDIA_TYPE_VIDEO enum exists. */
 #undef HAVE_AVMEDIA_TYPE_VIDEO
+
+/* Define to 1 if you have the `av_close_input_file' function. */
+#undef HAVE_AV_CLOSE_INPUT_FILE
+
+/* Define to 1 if you have the `av_find_stream_info' function. */
+#undef HAVE_AV_FIND_STREAM_INFO
 
 /* Define to 1 if you have the `av_open_input_file' function. */
 #undef HAVE_AV_OPEN_INPUT_FILE
@@ -105,6 +123,9 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
+/* Define to 1 if you have the `ncurses' library (-lncurses). */
+#undef HAVE_LIBNCURSES
+
 /* Define to 1 if you have the `stdc++' library (-lstdc++). */
 #undef HAVE_LIBSTDC__
 
@@ -128,6 +149,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <ncurses.h> header file. */
+#undef HAVE_NCURSES_H
 
 /* Define to 1 if you have the <Python.h> header file. */
 #undef HAVE_PYTHON_H
@@ -155,6 +179,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `sws_getCachedContext' function. */
+#undef HAVE_SWS_GETCACHEDCONTEXT
 
 /* Define to 1 if you have the `sws_scale' function. */
 #undef HAVE_SWS_SCALE

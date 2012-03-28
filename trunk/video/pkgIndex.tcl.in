@@ -1,0 +1,7 @@
+package ifneeded RapptureVideo @PACKAGE_VERSION@ [format {
+    set dir "%s"
+    set version @PACKAGE_VERSION@
+    set ext [info sharedlibextension] 
+    load [file join $dir "RapptureVideo${version}${ext}"] RpVideo
+    package provide RapptureVideo $version
+} $dir]
