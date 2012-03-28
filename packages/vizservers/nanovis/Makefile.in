@@ -155,23 +155,6 @@ OBJS		= \
 		dxReaderCommon.o \
 		nanovis.o
 
-ifdef NOTDEF
-OBJS +=		DataLoader.o \
-		ParticleEmitter.o \
-		ParticleSystem.o \
-		ParticleSystemFactory.o \
-		ScreenSnapper.o \
-		Sphere.o
-endif
-
-ifdef USE_POINTSET_RENDERER
-OBJS += 	BucketSort.o \
-		PCASplit.o \
-		PointSet.o \
-		PointSetRenderer.o \
-		PointShader.o
-endif
-
 resources	= \
 		$(srcdir)/resources/Font.bmp \
 		$(srcdir)/resources/arrows.bmp \
@@ -182,33 +165,43 @@ resources	= \
 
 shaders		= \
 		$(srcdir)/shaders/common.cg \
-		$(srcdir)/shaders/copy_texcoord.cg \
-		$(srcdir)/shaders/distance.cg \
-		$(srcdir)/shaders/distancesort.cg \
 		$(srcdir)/shaders/heightcolor.cg \
-		$(srcdir)/shaders/mergesort.cg \
-		$(srcdir)/shaders/moveparticles.cg \
 		$(srcdir)/shaders/one_plane.cg \
 		$(srcdir)/shaders/one_volume.cg \
                 $(srcdir)/shaders/particle_common.cg \
-		$(srcdir)/shaders/particlefp.cg \
-		$(srcdir)/shaders/particlevp.cg \
-		$(srcdir)/shaders/passthrough.cg \
-		$(srcdir)/shaders/passthru.cg \
-		$(srcdir)/shaders/pointsvp.cg \
 		$(srcdir)/shaders/queryvelocity.cg \
-		$(srcdir)/shaders/renderparticle.cg \
 		$(srcdir)/shaders/render_vel.cg \
 		$(srcdir)/shaders/update_pos.cg \
-		$(srcdir)/shaders/update_pos_vel.cg \
-		$(srcdir)/shaders/update_vel.cg \
-		$(srcdir)/shaders/velocity.cg \
                 $(srcdir)/shaders/velocityslicefp.cg \
                 $(srcdir)/shaders/velocityslicevp.cg \
 		$(srcdir)/shaders/vertex_std.cg \
-		$(srcdir)/shaders/volqd_volume.cg \
 		$(srcdir)/shaders/zincblende_volume.cg
 
+ifdef NOTDEF
+OBJS +=		DataLoader.o \
+		ParticleEmitter.o \
+		ParticleSystem.o \
+		ParticleSystemFactory.o \
+		ScreenSnapper.o \
+		Sphere.o
+
+shaders +=      $(srcdir)/shaders/passthrough.cg \
+		$(srcdir)/shaders/distance.cg \
+		$(srcdir)/shaders/mergesort.cg \
+		$(srcdir)/shaders/moveparticles.cg \
+		$(srcdir)/shaders/particlefp.cg \
+		$(srcdir)/shaders/particlevp.cg
+endif
+
+ifdef USE_POINTSET_RENDERER
+OBJS += 	BucketSort.o \
+		PCASplit.o \
+		PointSet.o \
+		PointSetRenderer.o \
+		PointShader.o
+
+shaders +=      $(srcdir)/shaders/pointsvp.cg
+endif
 
 .PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil transfer-function 
 
@@ -301,7 +294,7 @@ DataLoader.o: DataLoader.cpp DataLoader.h
 Event.o: Event.cpp Event.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
-Grid.o: Grid.cpp Grid.h
+Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
 Mat4x4.o: Mat4x4.cpp Mat4x4.h
 NvCamera.o: NvCamera.cpp NvCamera.h config.h
@@ -350,4 +343,4 @@ VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
-nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvEventLog.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvEventLog.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
