@@ -1,0 +1,193 @@
+================================================================================
+================================================================================
+Protocol for nanovis render server.  
+
+Commands take the general form of command and arguments using Tcl syntax and are 
+terminated by a newline.  Some command arguments expect a Tcl list which can be
+sent by enclosing the list in curly braces to prevent the interpreter from 
+splitting the list into multiple arguments.  Likewise, strings with spaces 
+should be quoted or enclosed in curly braces.  In the documentation below,
+arguments are indicated by angle brackets and optional arguments are surrounded
+by question marks -- the brackets and question marks are not part of the
+protocol and should not be included in argument strings.  The arguments shown 
+in angle brackets should be replaced with a string (where there are fixed 
+choices this document indicates valid values by separating them with pipe 
+symbols), a list in Tcl syntax, or a numeric value.  Boolean arguments can take
+the form of 0|1, true|false, or yes|no.  Since the protocol commands are 
+executed in a Tcl interpreter, Tcl code such as math expressions in expr 
+commands enclosed in square brackets are also allowed.  Since the interpreter
+is a "safe" interpreter, some Tcl commands that could cause security issues may 
+not be available for use.
+
+Some commands such as the 'flowvis add' commands create Tcl objects within the
+server's interpreter.  The name sent as an argument when adding the object can 
+then be used as a protocol command.  For example, the string sent as the <name>
+argument to 'flowvis add' can then be used in place of <flowObj> in the commands
+documented below.  The flow object name also creates a volume name that can 
+be used in volume and cutplane commands, but in that case the name is used as
+an argument to the volume or cutplane commands rather than as the command 
+itself.
+
+When binary data is to be sent, it should follow the newline after a command 
+that indicates incoming data including a byte count argument.
+================================================================================
+================================================================================
+Requests:
+================================================================================
+axis visible <false|true> 
+
+grid axiscolor <red> <green> <blue> <?alpha?>
+grid axisname <x|y|z> <name> 
+grid linecolor <red> <green> <blue> <?alpha?>
+grid visible <false|true>
+
+camera angle <xAngle(phi)> <yAngle(theta)> <zAngle(psi)>
+camera orient <quatW> <quatX> <quatY> <quatZ>
+camera pan <x> <y>
+camera zoom <factor>
+
+screen <width> <height>
+    Set size of rendered images
+snapshot
+    Render a 2k x 2k image (offscreen buffer)
+
+transfunc define <name> {colors} {alpha}
+          colors => 1 line each of "value r g b"
+          alpha => 1 line each of "value alpha"
+          value => [0,1]
+
+legend <transferfunc name> <width> <height>
+       Request render of transfer function
+
+heightmap data visible <true|false> <volume IDs>
+heightmap data follows <nbytes> <data>
+heightmap linecontour visible <true|false> <volume IDs>
+heightmap linecontour color <red> <green> <blue> <volume IDs>
+heightmap tranfunc <transfer function name> <volume IDs>
+heightmap cull <no/back/front>
+heightmap polygon <wireframe/fill> 
+
+flow add <name> <?option value...?>
+         <name> is an object name to use in <flowObj> commands
+         In addition, a volume is added with the same name
+         which can be used in volume and cutplane commands
+         see '<flowObj> configure' for switch options
+flow delete <names>
+flow exists <name>
+flow goto <nSteps>
+flow names <?pattern?>
+flow next
+flow reset
+flow video <token> <?switches...?>
+     -bitrate <val>
+     -format <mpeg|theora|mov>
+     -framerate <val>
+     -height <val>
+     -numframes <val>
+     -width <val>
+
+<flowObj> box add <name> <?switches...?>
+          See '<flowObj> box configure' for switches
+<flowObj> box configure <name> <?switches...?>
+         -color <{r g b a}>
+         -corner1 <{x y z}>
+         -corner2 <{x y z}>
+         -hide <bool>
+         -linewidth <val>
+<flowObj> box delete <?names?>
+<flowObj> box names <?pattern?>
+
+<flowObj> configure <?option value...?>
+          -arrows <bool>
+          -axis <x|y|z>
+          -diffuse <val>
+          -hide <bool>
+          -opacity <val>
+          -outline <bool>
+          -position <val|%val>
+           val = [0,100], or %val = [0,1]
+          -slice <bool>
+          -specular <val>
+          -transferfunction <name>
+          -volume <bool>
+<flowObj> data file <fileName> <numComponents>
+          Load a data file.  fileName is path to file on server
+<flowObj> data follows <nbytes> <numComponents>
+          Send flow data.  Data bytes follow the newline after the command
+<flowObj> legend <w> <h>
+<flowObj> particles add <name> <?switches?>
+          see '<flowObj> particles configure' for switches
+<flowObj> particles configure <name> <?switches?>
+          -axis <x|y|z>
+          -color <{r g b a}>
+          -hide <bool>
+          -position <val|%val>
+           val = [0,100], or %val = [0,1]
+          -size <val>
+
+volume axis label <x|y|z> <value> <?names?>
+volume data state <on|off> <?names?>
+volume data follows <size> <tag>
+volume delete <?names?>
+volume exists <name>
+volume names <?pattern?>
+volume outline color <r> <g> <b> <?names?>
+volume outline state|visible <bool> <?names?>
+volume shading diffuse <value> <?names?>
+volume shading isosurface <bool> <?names?>
+volume shading opacity <value> <?names?>
+volume shading specular <value> <?names?>
+volume shading transfunc <tfName> <?names?>
+volume state <bool> <?names?>
+
+volume animation volumes <volume IDs>
+volume animation start
+volume animation stop
+volume animation clear
+volume animation capture numframes <filename>
+
+cutplane position <relval> <x|y|z> <?names?>
+         Set the position of a volume cutplane.  Names is
+         an optional list of volume names.
+         relval = [0,1]
+cutplane state <bool> <x|y|z> <?names?>
+         Set the axis (normal) of a volume cutplane.  Names is
+         an optional list of volume names.
+
+up <x|y|z|-x|-y|-z>
+   Set orientation of volumes
+
+
+--- Colormaped Plane (if PLANE_CMD=1 in config.h) ---
+plane active <planeIdx>
+      Set the active plane [0,9], or -1 to disable
+      Plane must first be added and linked
+plane add <planeIdx> <width> <height>
+      followed by image data: w * h floats on stdin
+      planeIdx: [0,9]
+plane link <planeIdx> <transfunc name>
+      Enable a plane for rendering using the given transfer
+      function.  Plane must first be added.
+--- End Colormaped Plane (if PLANE_CMD=1 in config.h) ---
+
+================================================================================
+Replies:
+================================================================================
+nv>legend <volume> <min> <max> <nbytes>
+  (followed by bytes and newline)
+
+nv>image -type image -bytes <nbytes>
+  (followed by bytes -- command _preceded_ by newline)
+
+nv>image -type print -bytes <nbytes>
+  (followed by bytes -- command _preceded_ by newline)
+
+nv>image -type movie -token <token> -bytes <nbytes>
+  (followed by bytes)
+
+================================================================================
+Error Replies:
+================================================================================
+Prefixed with "NanoVis Server Error: "
+Currently not guaranteed to be on a single line
+================================================================================
