@@ -1,9 +1,30 @@
 ================================================================================
-On connection, send 32-bit little endian int indicating memory requirements
-(comsumed by nanoscale server before exec-ing vtkvis)
+================================================================================
+Protocol for vtkvis render server.  
+
+Commands take the general form of command and arguments using Tcl syntax and are 
+terminated by a newline.  Some command arguments expect a Tcl list which can be
+sent by enclosing the list in curly braces to prevent the interpreter from 
+splitting the list into multiple arguments.  Likewise, strings with spaces 
+should be quoted or enclosed in curly braces.  In the documentation below,
+arguments are indicated by angle brackets and optional arguments are surrounded
+by question marks -- the brackets and question marks are not part of the
+protocol and should not be included in argument strings.  The arguments shown 
+in angle brackets should be replaced with a string (where there are fixed 
+choices this document indicates valid values by separating them with pipe 
+symbols), a list in Tcl syntax, or a numeric value.  Boolean arguments can take
+the form of 0|1, true|false, or yes|no.  Since the protocol commands are 
+executed in a Tcl interpreter, Tcl code such as math expressions in expr 
+commands enclosed in square brackets are also allowed.  Since the interpreter
+is a "safe" interpreter, some Tcl commands that could cause security issues may 
+not be available for use.
+
+When binary data is to be sent, it should follow the newline after a command 
+that indicates incoming data including a byte count argument.
+================================================================================
 ================================================================================
 Requests:
-
+================================================================================
 screen bgcolor <r> <g> <b>
 screen size <width> <height>
 
@@ -376,7 +397,7 @@ volume visible <bool> <?datasetName?>
 
 ================================================================================
 Replies:
-
+================================================================================
 nv>camera set <posX> <posY> <posZ> <focalPtX> <focalPtY> <focalPtZ> <viewUpX> <viewUpY> <viewUpZ>
    Reply to "camera get"
 nv>image -type image -bytes <nbytes>
@@ -395,7 +416,8 @@ nv>dataset vector world <x> <y> <z> <valueX> <valueY> <valueZ> <dataSetName>
 nv>dataset vector pixel <x> <y> <valueX> <valueY> <valueZ> <dataSetName>
 
 ================================================================================
-Errors:
-
+Error Replies:
+================================================================================
 Prefixed with "VtkVis Server Error: "
 Currently not guaranteed to be on a single line
+================================================================================
