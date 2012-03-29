@@ -24,7 +24,13 @@ CC		= @CC@
 CXX		= @CXX@
 VPATH		= $(srcdir)
 
-INCLUDES	= -I$(srcdir)/include -I$(srcdir)/..
+RP_DIR          =  @RP_DIR@
+RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
+
+INCLUDES	= \
+		-I$(srcdir)/include \
+		-I$(srcdir)/.. \
+		$(RP_INC_SPEC)
 
 CFLAGS		= @CFLAGS@ 
 EXTRA_CFLAGS	= -Wall 
