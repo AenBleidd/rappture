@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * ColorGradientGLUTWindow.cpp
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,12 +9,10 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include "TransferFunctionMain.h"
 #include "ColorGradientGLUTWindow.h"
 #include "ColorPaletteWindow.h"
 #include "TransferFunctionGLUTWindow.h"
-
 
 int mapNumOfOutput=MAP_NUM_OF_OUTPUT;
 float* mapOutput;
@@ -54,7 +48,6 @@ ColorGradientGLUTWindow::ColorGradientGLUTWindow()
     map = new ColorGradient();
 }
 
-
 ColorGradientGLUTWindow::~ColorGradientGLUTWindow()
 { 
 }
@@ -81,7 +74,7 @@ ColorGradientGLUTWindow::cmInit(int main_win_x, int main_win_y)
     gv_lastY=0;
     distanceThreshold=64;
 
-    if(mapOutput==0)
+    if (mapOutput==0)
         fprintf(stderr, "NULL");
 
     //initialize mapOutput
@@ -91,13 +84,11 @@ ColorGradientGLUTWindow::cmInit(int main_win_x, int main_win_y)
     }
 }
 
-
-
 void 
 ColorGradientGLUTWindow::createGLUIWidgets()
 {
     cm_glui = GLUI_Master.create_glui_subwindow(colorMapWindow, 
-						GLUI_SUBWINDOW_BOTTOM);
+                                                GLUI_SUBWINDOW_BOTTOM);
     pan=cm_glui->add_panel("buttons", GLUI_PANEL_NONE);
     cm_glui->set_main_gfx_window(colorMapWindow);
     cm_glui->add_column_to_panel(pan, false );
@@ -109,7 +100,6 @@ ColorGradientGLUTWindow::createGLUIWidgets()
     cm_glui->add_column_to_panel(pan, false );
     cm_glui->add_button_to_panel(pan, "Remove", 3, changeState);
 }
-
 
 void update_tf_texture();
 
@@ -147,14 +137,12 @@ ColorGradientGLUTWindow::cmDisplay()
     glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-
     int i;
 
-    if(map == NULL){
+    if (map == NULL) {
         fprintf(stderr, "ColorGradient Window : forgot to bind the colorMap\n");
         return;
     }
-
 
     Color* leftColor=map->keyColors;
     Color* rightColor;
@@ -168,9 +156,9 @@ ColorGradientGLUTWindow::cmDisplay()
     //draw "rainbow"
     glShadeModel(GL_SMOOTH);
     glDisable(GL_DEPTH_TEST);
-        
+
     glBegin(GL_QUADS);
-    for(i=0; i<map->numOfKeys-1; i++){ 
+    for (i=0; i<map->numOfKeys-1; i++) { 
         left_x=leftPoint->x;
         leftColor->GetRGB(left_color);
 
@@ -188,14 +176,12 @@ ColorGradientGLUTWindow::cmDisplay()
         glColor3f(right_color[0], right_color[1], right_color[2]);      
         glVertex2d(right_x, cm_winy-10);
         glVertex2d(right_x, 0);
-                        
+
         leftColor=leftColor->next;
         leftPoint=leftPoint->next;
-
     }
     glEnd();
     glColor3f(0, 0, 0);
-
 
     //draw bar
     glLineWidth(1.0);
@@ -204,11 +190,10 @@ ColorGradientGLUTWindow::cmDisplay()
     glVertex2d(15+tf_unitWidth, cm_winy-1);
     glEnd();
 
-
     i=0;
     Color* curColor=map->keyColors;
     ControlPoint* curKey=map->keyList;
-    for (i=0; i<map->numOfKeys ; i++){
+    for (i=0; i<map->numOfKeys ; i++) {
         //glColor3d(curColor->R, curColor->G, curColor->B);
         glColor3d(0.0, 0.0, 0.0);
         curKey->glDraw_2();
@@ -216,13 +201,9 @@ ColorGradientGLUTWindow::cmDisplay()
         curKey=curKey->next;
     }
 
-
     glColor3d(0.0, 0.0, 0.0);
     glutSwapBuffers();
 }
-
-
-
 
 void 
 ColorGradientGLUTWindow::cmReshape(int x, int y)
@@ -248,9 +229,6 @@ ColorGradientGLUTWindow::cmReshape(int x, int y)
     glutPostRedisplay();
 }
 
-
-
-
 void 
 ColorGradientGLUTWindow::cmDestroy()
 {
@@ -261,13 +239,13 @@ ColorGradientGLUTWindow::cmKeyboard(unsigned char key, int x, int y)
 {
     switch(key) {    
     case 'p':
-	//printPoints();
-	break;
+        //printPoints();
+        break;
     case 'c':
-	printInterpolation();
-	break; 
+        printInterpolation();
+        break; 
     default:
-	break;
+        break;
     }
 }
 
@@ -294,60 +272,54 @@ ColorGradientGLUTWindow::cmMouse(int button, int state, int x, int y)
     //Selecting point, begin dragging
     bool gvIsSelected = SelectPoint(scX, scY);
 
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-                
-        if (gvIsSelected && cm_editState==0){
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        if (gvIsSelected && cm_editState==0) {
             //assert(cm_gvSelectedPoint!=NULL);
             gv_DX = scX - cm_gvSelectedPoint->x; //Offset from current point to selected point, for dragging corrections
         
             cm_gvSelectedPoint->dragged = true;
             cm_gvIsDragging = true;
         }
-        /*else if ((!gvIsSelected) && cm_editState==1){
-          GLint viewportVector[4];
-          double scX, scY;
+        /*else if ((!gvIsSelected) && cm_editState==1) {
+            GLint viewportVector[4];
+            double scX, scY;
 
-          glGetIntegerv(GL_VIEWPORT, viewportVector);
+            glGetIntegerv(GL_VIEWPORT, viewportVector);
 
-          gv_X = scX = x;
-          gv_Y = scY = viewportVector[3] - (GLint) y - 1;
-          cm_gvSelectedPoint=map->addKey(scX - gv_DX, new Color(1,1,1));
-          cm_editState=0;
-          WriteControlPoints();
-          }*/
+            gv_X = scX = x;
+            gv_Y = scY = viewportVector[3] - (GLint) y - 1;
+            cm_gvSelectedPoint=map->addKey(scX - gv_DX, new Color(1,1,1));
+            cm_editState=0;
+            WriteControlPoints();
+        }*/
     } else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-        //"     End dragging" code.
+        // End dragging code.
         cm_gvIsDragging = false;
-        if (cm_gvSelectedPoint) 
+        if (cm_gvSelectedPoint)
             cm_gvSelectedPoint->dragged = false;
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-	GLint viewportVector[4];
-	double scX, scY;
-	
-	glGetIntegerv(GL_VIEWPORT, viewportVector);
-	
-	gv_X = scX = x;
-	gv_Y = scY = viewportVector[3] - (GLint) y - 1;
-	cm_gvSelectedPoint=map->addKey(scX - gv_DX, new Color(1,1,1));
-	cm_editState=0;
-	WriteControlPoints();
+        GLint viewportVector[4];
+        double scX, scY;
+        
+        glGetIntegerv(GL_VIEWPORT, viewportVector);
+        
+        gv_X = scX = x;
+        gv_Y = scY = viewportVector[3] - (GLint) y - 1;
+        cm_gvSelectedPoint=map->addKey(scX - gv_DX, new Color(1,1,1));
+        cm_editState=0;
+        WriteControlPoints();
     }
-    
 
     if (button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN)
-	cm_gvScaleDragging = true;
-    
-    if (button == GLUT_MIDDLE_BUTTON && state == GLUT_UP)
-	cm_gvScaleDragging = false;
+        cm_gvScaleDragging = true;
 
-    ///////////////////////////
+    if (button == GLUT_MIDDLE_BUTTON && state == GLUT_UP)
+        cm_gvScaleDragging = false;
+
     glutSetWindow(colorMapWindow);
-    ////////////////////////
     glutPostRedisplay();
 }
-
-
 
 void 
 ColorGradientGLUTWindow::cmMotion(int x, int y)
@@ -360,10 +332,9 @@ ColorGradientGLUTWindow::cmMotion(int x, int y)
     gv_X = scX = x;
     gv_Y = scY = viewportVector[3] - (GLint) y - 1;
 
-    if (cm_gvIsDragging == true && cm_gvSelectedPoint!=NULL){
+    if (cm_gvIsDragging == true && cm_gvSelectedPoint!=NULL) {
         //Dragging handling code.
         cm_gvSelectedPoint->dragged = true;
-
 
         ControlPoint* cur=map->keyList;
         while (cur->next!=0){
@@ -406,7 +377,7 @@ ColorGradientGLUTWindow::SelectPoint(double x, double y)
 
     //Traverse the points and find the one that seems close
     cur=map->keyList;
-    while(cur!=0){
+    while (cur!=0) {
         double distanceSq;
         distanceSq = (cur->x - x)*(cur->x - x) + (cur->y - y)*(cur->y - y);     
         if (distanceSq < distanceThreshold){
@@ -420,20 +391,18 @@ ColorGradientGLUTWindow::SelectPoint(double x, double y)
     return false;
 }
 
-
 void update_tf_texture();
 
 void 
 ColorGradientGLUTWindow::WriteControlPoints()
 {
-
     //special case: all points have the same color
     Color* curColor=map->keyColors;
     bool allSameY=true;
     double R = map->keyColors->R;
     double G = map->keyColors->G;
     double B = map->keyColors->B;
-    while (curColor!=0){
+    while (curColor!=0) {
         if (curColor->R!=R || curColor->G!=G || curColor->B!=B){
             allSameY=false;
             break;
@@ -441,10 +410,10 @@ ColorGradientGLUTWindow::WriteControlPoints()
         curColor=curColor->next;
     }
 
-    if (allSameY){
+    if (allSameY) {
         int i=0;
-                
-        for(i=0;i<mapNumOfOutput;i++){
+
+        for (i=0;i<mapNumOfOutput;i++) {
             color_table[i][0]=R;
             color_table[i][1]=G;
             color_table[i][2]=B;
@@ -474,9 +443,8 @@ ColorGradientGLUTWindow::WriteControlPoints()
     float t=0;
 
     int i=0;
-    for(i=0;i<numOfOutput;i++){
-                
-        if (unit*i+15>x2){
+    for (i=0; i<numOfOutput; i++) {
+        if (unit*i+15>x2) {
             //go to next line segment
             curColor=nextColor;
             nextColor=nextColor->next;
@@ -498,7 +466,6 @@ ColorGradientGLUTWindow::WriteControlPoints()
             r2=nextColor->R*255;
             g2=nextColor->G*255;
             b2=nextColor->B*255;
-
         }
         t=((float)(unit*i+15-x1))/((float)(x2-x1));
 
@@ -511,7 +478,6 @@ ColorGradientGLUTWindow::WriteControlPoints()
     glutSetWindow(colorMapWindow);
 }
 
-
 ControlPoint* 
 ColorGradientGLUTWindow::boundaryChecking()
 {
@@ -521,7 +487,7 @@ ColorGradientGLUTWindow::boundaryChecking()
     ControlPoint* left=map->keyList;
     ControlPoint* right=map->keyList;
 
-    while (right!=cm_gvSelectedPoint){
+    while (right!=cm_gvSelectedPoint) {
         left=right;
         right=right->next;
     }
@@ -529,21 +495,20 @@ ColorGradientGLUTWindow::boundaryChecking()
     //selected point is not the right-end point
     if (right->next!=0){
         right=right->next;
-        if (cm_gvSelectedPoint->x>right->x){
+        if (cm_gvSelectedPoint->x>right->x) {
             sortPoints();
         }
     }
 
     //selected point is not the left-end point
     if (left!=cm_gvSelectedPoint) {
-        if (cm_gvSelectedPoint->x<left->x){
+        if (cm_gvSelectedPoint->x<left->x) {
             sortPoints();
         }
     }
 
     return cm_gvSelectedPoint;
 }
-
 
 //sort all controlpoints by bubble sort
 void 
@@ -565,14 +530,14 @@ ColorGradientGLUTWindow::sortPoints()
     Color* d;
     curColor=map->keyColors;
 
-    preColor = NULL;		/* Suppress compiler warning. */
+    preColor = NULL;
     pre = NULL;
 
     int i;
-    for(i=0;i<map->numOfKeys-1;i++){
+    for (i=0;i<map->numOfKeys-1;i++) {
         while (cur->next!=NULL){
-            if (cur->x > cur->next->x){
-                if (cur==map->keyList){
+            if (cur->x > cur->next->x) {
+                if (cur==map->keyList) {
                     //first node
                     a=map->keyList;
                     b=map->keyList->next;
@@ -587,8 +552,7 @@ ColorGradientGLUTWindow::sortPoints()
                     d->next=c;
                     map->keyColors=d;
                     curColor=map->keyColors;
-                }
-                else {
+                } else {
                     a=cur;
                     b=cur->next;
                     a->next=b->next;
@@ -616,13 +580,11 @@ ColorGradientGLUTWindow::sortPoints()
     WriteControlPoints();
 }
 
-
-
 void 
 ColorGradientGLUTWindow::printInterpolation()
 {
     int i=0;
-    for(i=0;i<numOfOutput;i++){
+    for (i=0;i<numOfOutput;i++) {
         //printf("(%g,%g,%g) ", mapOutput[3*i], mapOutput[3*i+1], mapOutput[3*i+2]);
         fprintf(stderr, "(%g,%g,%g) ", color_table[i][0], color_table[i][1], color_table[i][2]);
     }

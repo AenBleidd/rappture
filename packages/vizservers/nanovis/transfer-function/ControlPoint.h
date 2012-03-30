@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * ControlPoint.h
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,30 +9,30 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
+#ifndef CONTROL_POINT_H
+#define CONTROL_POINT_H
 
-#ifndef _CONTROL_POINT_H_
-#define _CONTROL_POINT_H_
-
-class ControlPoint  
+class ControlPoint
 {
 public:
-	
-	double x;
-	double y;
+    ControlPoint(double _x, double _y);
+    virtual ~ControlPoint();
 
-	bool selected;
-	bool dragged;
+    void Set(double x, double y);
 
-	ControlPoint * next;
+    void glDraw();    //draw a cross
 
-public:
-	void Set(double x, double y);
-	void glDraw();		//draw a cross
-	void glDraw_2();	//draw a filled squre
-	void glDraw_3();	//draw a circle
-	ControlPoint(double _x, double _y);
-	virtual ~ControlPoint();
+    void glDraw_2();  //draw a filled squre
 
+    void glDraw_3();  //draw a circle
+
+    double x;
+    double y;
+
+    bool selected;
+    bool dragged;
+
+    ControlPoint * next;
 };
 
 #endif

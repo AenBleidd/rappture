@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * ColorPaletteWindow.cpp: color palette window class
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,7 +9,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <math.h>
 
 #include "ColorPaletteWindow.h"
@@ -32,7 +27,6 @@ GLUI * cp_glui;
 GLUI_Spinner *color_r, *color_g, *color_b, *color_H, *color_S, *color_B;
 GLUI_StaticText *eye_distance_label, *fps_label;
 
-
 namespace ColorPaletteWindow {
     int  cpwin_pos_x = 100;
     int  cpwin_pos_y = 425;
@@ -47,8 +41,6 @@ namespace ColorPaletteWindow {
 
 using namespace ColorPaletteWindow;
 
-
-
 ColorPalette::ColorPalette()
 {
 }
@@ -59,7 +51,7 @@ ColorPalette::~ColorPalette()
 
 void ColorPalette::cpSyncLive()
 {
-    if (cp_glui!=0){
+    if (cp_glui!=0) {
         cp_glui->sync_live();
     }
 }
@@ -69,7 +61,7 @@ void ColorPalette::cpInit()
     color_model = 0;
 
     //fileName=(char*) malloc(sizeof(char)*30);
-    for(int i=0;i<200;i++){
+    for (int i=0;i<200;i++) {
         fileName[i]=0;
     }
     cp_winx = 430;
@@ -81,7 +73,7 @@ void ColorPalette::cpInit()
 
     glutInitWindowPosition( cpwin_pos_x, cpwin_pos_y);
     glutInitWindowSize( cp_winx, cp_winy );
-  
+
     colorPaletteWindow = glutCreateWindow("Color Palette");
 
     glutDisplayFunc( cpDisplay );
@@ -90,7 +82,6 @@ void ColorPalette::cpInit()
     glutIdleFunc (cpIdle);
     glutMouseFunc (cpMouse);
     glutMotionFunc (cpMotion);
-
 
     GLUI_Master.set_glutReshapeFunc(cpReshape);
     GLUI_Master.set_glutDisplayFunc( cpDisplay );
@@ -102,11 +93,11 @@ void ColorPalette::cpInit()
     createGLUIWidgets();
 }
 
-
 void update_tf_texture();
 
-void ColorPalette::cmdHandler(int arg){
-    switch (arg){
+void ColorPalette::cmdHandler(int arg)
+{
+    switch (arg) {
     case 1: //add color 
         cm_editState=1;
         break;
@@ -136,7 +127,7 @@ void ColorPalette::cmdHandler(int arg){
         update_tf_texture();
         break;
     case 8:
-        if (color_model==0){
+        if (color_model==0) {
             color_r->enable();
             color_g->enable();
             color_b->enable();
@@ -152,13 +143,12 @@ void ColorPalette::cmdHandler(int arg){
             cp_color_H=0;
             cp_color_S=0;
             cp_color_B=0;
-                                
+
             color_point_1->x=0;
             color_point_1->y=cp_winy;
 
             cp_glui->sync_live();
-        }
-        else if (color_model==1){
+        } else if (color_model==1) {
             color_r->enable();
             color_g->enable();
             color_b->enable();
@@ -179,8 +169,7 @@ void ColorPalette::cmdHandler(int arg){
             color_point_1->y=cp_winy;
 
             cp_glui->sync_live();
-        }
-        else if (color_model==2){
+        } else if (color_model==2) {
             color_r->enable();
             color_g->enable();
             color_b->enable();
@@ -204,7 +193,7 @@ void ColorPalette::cmdHandler(int arg){
 
             cp_glui->sync_live();
         }
-                
+
         glutSetWindow(colorPaletteWindow);
         glutPostRedisplay();
         break;
@@ -212,21 +201,17 @@ void ColorPalette::cmdHandler(int arg){
         break;
     case 10:
         break;
-
     default:
         break;
     }
 }
 
-
-void ColorPalette::openFile(){
-        
+void ColorPalette::openFile()
+{
 }
 
-
-
-
-void ColorPalette::createGLUIWidgets(){
+void ColorPalette::createGLUIWidgets()
+{
     cp_glui = GLUI_Master.create_glui_subwindow(colorPaletteWindow, GLUI_SUBWINDOW_BOTTOM);
     cp_glui->set_main_gfx_window(colorPaletteWindow);
     //cp_glui->add_column( false );
@@ -255,7 +240,6 @@ void ColorPalette::createGLUIWidgets(){
     color_B->set_alignment(GLUI_ALIGN_CENTER);
     color_B->disable();
 
-
     cp_glui->add_column(true);
 
     GLUI_Panel* model_panel=cp_glui->add_panel("Color Model", GLUI_PANEL_EMBOSSED);
@@ -274,7 +258,6 @@ void ColorPalette::createGLUIWidgets(){
     cp_glui->add_button("Reset Colormap", 6, cmdHandler);
     cp_glui->add_button("Reset TF", 7, cmdHandler);
 
-
     cp_glui->add_column(true);
     cp_glui->add_statictext("File:");
     cp_glui->add_edittext("Name: ",GLUI_EDITTEXT_TEXT, fileName);
@@ -287,16 +270,14 @@ void ColorPalette::createGLUIWidgets(){
     fps_label = cp_glui->add_statictext("FPS: ");
 }
 
-
-void ColorPalette::cpIdle(){
+void ColorPalette::cpIdle()
+{
     //glutSetWindow(mainWindow);
     //glutPostRedisplay();
 }
 
-
-
-
-void ColorPalette::confirm(int arg){
+void ColorPalette::confirm(int arg)
+{
     if (cm_gvSelectedPoint!=0)
         map->changeColor((double)cp_color_r/255, (double)cp_color_g/255, (double)cp_color_b/255);
     /*
@@ -307,8 +288,6 @@ void ColorPalette::confirm(int arg){
     */
 }
 
-
-
 void ColorPalette::cpDisplay()
 {
     //draw selectPoint
@@ -317,14 +296,11 @@ void ColorPalette::cpDisplay()
     glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-
     glColor3d(0.0, 0.0, 0.0);
     glShadeModel(GL_SMOOTH);
     glDisable(GL_DEPTH_TEST);
 
-
-    if (color_model==RGB){
-
+    if (color_model==RGB) {
         Color* leftColor = new Color(1, 0, 0);
         Color* rightColor = new Color(0, 0, 1);
 
@@ -335,25 +311,24 @@ void ColorPalette::cpDisplay()
         rightColor->GetRGB(right_color);
 
         GLfloat rainbowColor[18] = {
-	    1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1
-	};
-                
+            1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1
+        };
+
         int i=0;
         float unitWidth = cp_winx/6;
 
         glBegin(GL_QUADS);
-        for (i=0; i<6; i++){            
+        for (i=0; i<6; i++) {            
 
             glColor3f(rainbowColor[3*i], rainbowColor[3*i+1], rainbowColor[3*i+2]);
             glVertex2d(unitWidth*i, 0);
             glVertex2d(unitWidth*i, cp_winy);
 
-            if (i==5){
+            if (i==5) {
                 glColor3f(rainbowColor[0], rainbowColor[1], rainbowColor[2]);
                 glVertex2d(cp_winx, cp_winy);
                 glVertex2d(cp_winx, 0);
-            }
-            else {
+            } else {
                 glColor3f(rainbowColor[3*i+3], rainbowColor[3*i+4], rainbowColor[3*i+5]);
                 glVertex2d(unitWidth*(i+1), cp_winy);
                 glVertex2d(unitWidth*(i+1), 0);
@@ -364,9 +339,7 @@ void ColorPalette::cpDisplay()
         //draw color point
         glColor3d(0,0,0);
         color_point_1->glDraw_3();
-    }
-
-    else if (color_model==GRAY){
+    } else if (color_model==GRAY) {
         glBegin(GL_QUADS);              
         glColor3f(0, 0, 0);
         glVertex2d(0, 0);
@@ -379,10 +352,7 @@ void ColorPalette::cpDisplay()
 
         glColor3d(1,0,0);
         color_point_1->glDraw_3();
-    }
-
-    else if(color_model==HSB){
-                
+    } else if(color_model==HSB) {
         glBegin(GL_QUADS);              
         glColor3f(0, 0, 0);
         glVertex2d(0, 2*cp_winy/3);
@@ -406,15 +376,14 @@ void ColorPalette::cpDisplay()
         rightColor->GetRGB(right_color);
 
         GLfloat rainbowColor[18] = {
-	    1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1
-	};
-                
+            1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1
+        };
+
         int i=0;
         float unitWidth = cp_winx/6;
 
         glBegin(GL_QUADS);
-        for (i=0; i<6; i++){            
-
+        for (i=0; i<6; i++) {            
             glColor3f(rainbowColor[3*i], rainbowColor[3*i+1], rainbowColor[3*i+2]);
             glVertex2d(unitWidth*i, 2*cp_winy/3-15);
             glVertex2d(unitWidth*i, 2*cp_winy/3);
@@ -423,8 +392,7 @@ void ColorPalette::cpDisplay()
                 glColor3f(rainbowColor[0], rainbowColor[1], rainbowColor[2]);
                 glVertex2d(cp_winx, 2*cp_winy/3);
                 glVertex2d(cp_winx, 2*cp_winy/3-15);
-            }
-            else {
+            } else {
                 glColor3f(rainbowColor[3*i+3], rainbowColor[3*i+4], rainbowColor[3*i+5]);
                 glVertex2d(unitWidth*(i+1), 2*cp_winy/3);
                 glVertex2d(unitWidth*(i+1), 2*cp_winy/3-15);
@@ -458,17 +426,14 @@ void ColorPalette::cpDisplay()
           curKey=curKey->next;
           }
         */
-
     }
 
     glColor3f(0, 0, 0);
     glutSwapBuffers();
 }
 
-
-
-
-void ColorPalette::cpReshape(int x, int y){
+void ColorPalette::cpReshape(int x, int y)
+{
     //printf("cpreshape=%d",x);
 
     if (x==0 || y==0)
@@ -489,13 +454,10 @@ void ColorPalette::cpReshape(int x, int y){
     glutPostRedisplay();
 }
 
-
 void ColorPalette::cpKeyboard(unsigned char key, int x, int y)
 {
     //glutPostRedisplay();
 }
-
-
 
 void ColorPalette::cpMouse(int button, int state, int x, int y){
 
@@ -507,18 +469,16 @@ void ColorPalette::cpMouse(int button, int state, int x, int y){
     scX = x;
     scY = viewportVector[3] - (GLint) y - 1;
 
-
     if (color_model!=HSB){
         color_point_1->x=scX;
         color_point_1->y=scY;
-    }
-    else{ //HSB
-        if (scY>=2*cp_winy/3){
+    } else { //HSB
+        if (scY>=2*cp_winy/3) {
             color_point_1->x=scX;
             color_point_1->y=scY;
             getColor(scX, scY);
         }
-        if (scY<2*cp_winy/3){
+        if (scY<2*cp_winy/3) {
             color_point_2->x=scX;
             //color_point_1->x=0;
             //color_point_1->y=cp_winy;
@@ -527,28 +487,25 @@ void ColorPalette::cpMouse(int button, int state, int x, int y){
     }
     //printf("(%g, %g)\n", scX, scY);
 
-
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         getColor(scX, scY);
-    } 
-    else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP){}
-    else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN){}
-    else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_UP){}
+    } else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+    } else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN) {
+    } else if (button == GLUT_MIDDLE_BUTTON && state == GLUT_UP){
+    }
 
     cp_glui->sync_live();
     glutPostRedisplay();
-
 }
 
-
-
-void ColorPalette::cpMotion(int x, int y){ }
-
-
+void ColorPalette::cpMotion(int x, int y)
+{
+}
 
 //interpolate GRB color
-Color ColorPalette::getColor(double x, double y){
-    if (color_model==RGB){
+Color ColorPalette::getColor(double x, double y)
+{
+    if (color_model==RGB) {
         float unitWidth = cp_winx/6;            
         GLfloat rainbowColor[21] = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0};
 
@@ -573,9 +530,7 @@ Color ColorPalette::getColor(double x, double y){
 
         cp_glui->sync_live();
         return Color(r,g,b);
-    }
-
-    else if (color_model==GRAY){
+    } else if (color_model==GRAY) {
         float t=((float)x)/((float)cp_winx);
         double r, g, b;
         r = t;
@@ -588,11 +543,9 @@ Color ColorPalette::getColor(double x, double y){
 
         cp_glui->sync_live();
         return Color(r,g,b);
-    }
-
-    else if (color_model==HSB){
+    } else if (color_model==HSB) {
         double r, g, b;
-        if (y==color_point_2->y){
+        if (y==color_point_2->y) {
             float unitWidth = cp_winx/6;                
             GLfloat rainbowColor[21] = {1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0};
 
@@ -605,7 +558,6 @@ Color ColorPalette::getColor(double x, double y){
 
             int blue_left = (int)rainbowColor[3*pos+2];
             int blue_right = (int)rainbowColor[3*(pos+1)+2];
-
                 
             r = (red_left+(x/unitWidth-pos)*(red_right-red_left));
             g = (green_left+(x/unitWidth-pos)*(green_right-green_left));
@@ -616,9 +568,7 @@ Color ColorPalette::getColor(double x, double y){
             hue_color->R=r;
             hue_color->G=g;
             hue_color->B=b;
-                        
-        }
-        else{
+        } else {
             cp_color_S=(int)(100.0*(1-(double)color_point_1->x/(double)cp_winx));
             cp_color_B=(int)(100.0*((double)(color_point_1->y-(double)(2*cp_winy/3))/((double)cp_winy/3)));
         }
@@ -645,7 +595,7 @@ Color ColorPalette::getColor(double x, double y){
         //printf("(%d,%d,%d)    ", cp_color_r, cp_color_g, cp_color_b);
 
         cp_glui->sync_live();
-                
+
         return Color(r,g,b);
     }
 

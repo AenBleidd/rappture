@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * TransferFunctionGLUTWindow.cpp: implementation of the TransferFunctionGLUTWindow class.
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,7 +9,6 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,12 +20,10 @@
 #include "ControlPoint.h"
 #include "TransferFunctionMain.h"
 
-
 /****************Result Array******************/
 int numOfOutput=NUM_OF_OUTPUT;
 float* output=(float*)malloc(sizeof(float)*numOfOutput); //result array
 /**********************************************/
-
 
 //Histograms
 Histogram Hist[4];
@@ -48,7 +41,6 @@ int tf_pointEditState;
 
 namespace TransferFunctionWindow
 {
-
     int winx = 600;
     int winy = 150;
 
@@ -66,28 +58,20 @@ namespace TransferFunctionWindow
 
     float lv_tf_width_scale = 1.0;
     float last_lv_tf_width_scale= 1.0;
-
 };
 
 using namespace TransferFunctionWindow;
 
-
 TransferFunctionGLUTWindow::TransferFunctionGLUTWindow()
 {
-
 }
 
 TransferFunctionGLUTWindow::~TransferFunctionGLUTWindow()
 {
-
 }
-
-
-
 
 void TransferFunctionGLUTWindow::tfInit(int main_window_x, int main_window_y)
 {
-
     //initialize the global list of contorlPoint "tf_pointList"
     tf_winx=main_window_x;
     tf_winy=main_window_y*2/3;
@@ -95,18 +79,16 @@ void TransferFunctionGLUTWindow::tfInit(int main_window_x, int main_window_y)
     unitHeight = (int)(0.8*tf_winy);
     tf_unitWidth = (int)(0.95*tf_winx);
 
-
     //printf("tf_unitWidth=%d\n", tf_unitWidth);
-
 
     tf_pointList = new ControlPoint(15,15);
     tf_pointList->next = new ControlPoint(15+tf_unitWidth,15);
 
     int i=0;
-    for(i=0;i<numOfOutput;i++){
+    for (i=0;i<numOfOutput;i++) {
         //output[i]=0;
         color_table[i][3]=0;
-    }   
+    }
     tf_numOfPoints=2;
     tf_pointEditState=0;
 
@@ -115,15 +97,10 @@ void TransferFunctionGLUTWindow::tfInit(int main_window_x, int main_window_y)
     fprintf(stderr, "Transferfunction Init...\n");
 }
 
-
-
-
 void TransferFunctionGLUTWindow::tfDisplay()
 {
-
     glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
 
     glColor3d(0, 0, 0);
 
@@ -145,7 +122,6 @@ void TransferFunctionGLUTWindow::tfDisplay()
     glRasterPos2f(18+tf_unitWidth, 2);
     glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, '1');
 
-
     //draw marker on axis
     glLineWidth(2.0);
     glBegin(GL_LINES);
@@ -154,12 +130,11 @@ void TransferFunctionGLUTWindow::tfDisplay()
 
     int k;
     k = 1;
-    while (15+k*unitHeight/lv_tf_height_scale < winy)
-        {
-            glVertex2d(20, 15+k*unitHeight/lv_tf_height_scale);
-            glVertex2d(15, 15+k*unitHeight/lv_tf_height_scale);
-            k++;
-        }
+    while (15+k*unitHeight/lv_tf_height_scale < winy) {
+        glVertex2d(20, 15+k*unitHeight/lv_tf_height_scale);
+        glVertex2d(15, 15+k*unitHeight/lv_tf_height_scale);
+        k++;
+    }
     glEnd();
     glLineWidth(1.0);
 
@@ -175,7 +150,7 @@ void TransferFunctionGLUTWindow::tfDisplay()
 	  label[2]=0;
 	  itoa(k, label, 10);
 	  int i=0;
-	  while (label[i]!=0){
+	  while (label[i]!=0) {
 	      glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, label[i]);
 	      i++;
 	  }
@@ -184,10 +159,9 @@ void TransferFunctionGLUTWindow::tfDisplay()
       printf("tf_unitWidth=%d\n", tf_unitWidth);
 #endif
 
-
     //draw all points
     ControlPoint* cur=tf_pointList;
-    while(cur!=0){
+    while (cur!=0) {
         cur->glDraw();
         cur=cur->next;
     }
@@ -195,44 +169,40 @@ void TransferFunctionGLUTWindow::tfDisplay()
     glEnable(GL_LINE_SMOOTH);
     glLineWidth(2.0);
 
-
     //connect all points
     cur=tf_pointList;
     glBegin(GL_LINES);
     glVertex2d(cur->x, cur->y);
 
-    while (cur!=0){
-        if (cur->next!=0){
+    while (cur!=0) {
+        if (cur->next!=0) {
             glVertex2d(cur->x, cur->y);
+            glVertex2d(cur->x, cur->y);
+        } else {
             glVertex2d(cur->x, cur->y);
         }
-        else
-            glVertex2d(cur->x, cur->y);
         cur=cur->next;
     }
-    glVertex2d(winx, 15);       
+    glVertex2d(winx, 15);
     glEnd();
 
     glLineWidth(1.0);
     glDisable(GL_LINE_SMOOTH);
     plotHist();
 
-    glutSwapBuffers(); 
-
+    glutSwapBuffers();
 }
-
-
 
 bool TransferFunctionGLUTWindow::SelectPoint(double x, double y)
 {
     //printf("select point\n");
-        
+
     if (tf_numOfPoints==0)
         return false;
 
     //Reset selected/dragged flags
     ControlPoint* cur=tf_pointList;
-    while(cur!=0){
+    while (cur!=0) {
         cur->dragged=false;
         cur->selected=false;
         cur=cur->next;
@@ -242,11 +212,11 @@ bool TransferFunctionGLUTWindow::SelectPoint(double x, double y)
 
     //Traverse the points and find the one that seems close
     cur=tf_pointList;
-    while(cur!=0){
+    while (cur!=0) {
         double distanceSq;
         distanceSq = (cur->x - x)*(cur->x - x) + (cur->y - y)*(cur->y - y);
-                
-        if (distanceSq < distanceThreshold){
+
+        if (distanceSq < distanceThreshold) {
             cur->selected = true;
             tf_gvSelectedPoint = cur;
             return true;
@@ -257,7 +227,6 @@ bool TransferFunctionGLUTWindow::SelectPoint(double x, double y)
     return false;
 }
 
-
 void TransferFunctionGLUTWindow::tfMouse(int button, int state, int x, int y)
 {
     //printf("tf mouse\n");
@@ -266,7 +235,7 @@ void TransferFunctionGLUTWindow::tfMouse(int button, int state, int x, int y)
     double scX, scY;
 
     glGetIntegerv(GL_VIEWPORT, viewportVector);
-        
+
     gv_X = scX = x;
     gv_Y = scY = viewportVector[3] - (GLint) y - 1;
 
@@ -275,38 +244,16 @@ void TransferFunctionGLUTWindow::tfMouse(int button, int state, int x, int y)
     //Selecting point, begin dragging
     bool gvIsSelected = SelectPoint(scX, scY);  
 
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-                
-        if (gvIsSelected && tf_pointEditState==0){
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        if (gvIsSelected && tf_pointEditState==0) {
             assert(tf_gvSelectedPoint!=NULL);
             gv_DX = scX - tf_gvSelectedPoint->x; //Offset from current point to selected point, for dragging corrections
             gv_DY = scY - tf_gvSelectedPoint->y;
-        
+
             tf_gvSelectedPoint->dragged = true;
             tf_gvIsDragging = true;
         }
-        /*else if ((!gvIsSelected) && tf_pointEditState==1){
-          GLint viewportVector[4];
-          double scX, scY;
-
-          glGetIntegerv(GL_VIEWPORT, viewportVector);
-
-          gv_X = scX = x;
-          gv_Y = scY = viewportVector[3] - (GLint) y - 1;
-          tf_gvSelectedPoint=addPoint(scX - gv_DX,scY - gv_DY);
-          tf_pointEditState=0;
-          WriteControlPoints();
-          }*/
-    } 
-    else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP){
-        //"     End dragging" code.
-        tf_gvIsDragging = false;
-        if (tf_gvSelectedPoint) 
-            tf_gvSelectedPoint->dragged = false;
-    }
-
-    if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP)
-        {
+        /*else if ((!gvIsSelected) && tf_pointEditState==1) {
             GLint viewportVector[4];
             double scX, scY;
 
@@ -317,9 +264,26 @@ void TransferFunctionGLUTWindow::tfMouse(int button, int state, int x, int y)
             tf_gvSelectedPoint=addPoint(scX - gv_DX,scY - gv_DY);
             tf_pointEditState=0;
             WriteControlPoints();
-        }
+        }*/
+    } else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+        // End dragging code.
+        tf_gvIsDragging = false;
+        if (tf_gvSelectedPoint)
+            tf_gvSelectedPoint->dragged = false;
+    }
 
+    if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP) {
+        GLint viewportVector[4];
+        double scX, scY;
 
+        glGetIntegerv(GL_VIEWPORT, viewportVector);
+
+        gv_X = scX = x;
+        gv_Y = scY = viewportVector[3] - (GLint) y - 1;
+        tf_gvSelectedPoint=addPoint(scX - gv_DX,scY - gv_DY);
+        tf_pointEditState=0;
+        WriteControlPoints();
+    }
         
     if (button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN)
         gvScaleDragging = true;
@@ -330,10 +294,8 @@ void TransferFunctionGLUTWindow::tfMouse(int button, int state, int x, int y)
     glutPostRedisplay();
 }
 
-
 void TransferFunctionGLUTWindow::tfMotion(int x, int y)
 {
-
     GLint viewportVector[4];
     double scX, scY;
 
@@ -342,29 +304,26 @@ void TransferFunctionGLUTWindow::tfMotion(int x, int y)
     gv_X = scX = x;
     gv_Y = scY = viewportVector[3] - (GLint) y - 1;
 
-    if (tf_gvIsDragging == true && tf_gvSelectedPoint!=NULL){
+    if (tf_gvIsDragging == true && tf_gvSelectedPoint!=NULL) {
         //Dragging handling code.
         tf_gvSelectedPoint->dragged = true;
 
-
         ControlPoint* cur=tf_pointList;
-        while (cur->next!=0){
+        while (cur->next!=0) {
             cur=cur->next;
         }
 
         //update x, y values for selected point
-        if (tf_gvSelectedPoint!=tf_pointList && tf_gvSelectedPoint!=cur){
+        if (tf_gvSelectedPoint!=tf_pointList && tf_gvSelectedPoint!=cur) {
             //not the first one, not the last one
             tf_gvSelectedPoint->x = scX - gv_DX;
-            if (tf_gvSelectedPoint->x<=15){
+            if (tf_gvSelectedPoint->x<=15) {
                 tf_gvSelectedPoint->x=16;
-            }
-            else if(tf_gvSelectedPoint->x>=15+tf_unitWidth){
+            } else if (tf_gvSelectedPoint->x>=15+tf_unitWidth) {
                 tf_gvSelectedPoint->x=15+tf_unitWidth-1;
             }
         }
         tf_gvSelectedPoint->y = scY - gv_DY;
-
 
         //Boundary conditions, so we can't drag point away from the screen.
         if (scY - gv_DY > viewportVector[3])
@@ -373,23 +332,23 @@ void TransferFunctionGLUTWindow::tfMotion(int x, int y)
         if (scY - gv_DY < 15)
             tf_gvSelectedPoint->y = 15;
 
-
-        boundaryChecking();     
+        boundaryChecking();
     }
 
-    if (gvScaleDragging == true){
+    if (gvScaleDragging == true) {
         last_lv_tf_height_scale=lv_tf_height_scale;
         lv_tf_height_scale += (scY - gv_lastY)*0.007;
         gv_lastY = scY;
         scalePointsY((int)(scY - gv_lastY));
-    }   
+    }
 
     WriteControlPoints();
 
-    glutPostRedisplay(); 
+    glutPostRedisplay();
 }
 
-void TransferFunctionGLUTWindow::tfIdle(){
+void TransferFunctionGLUTWindow::tfIdle()
+{
     /*
       glutSetWindow(tfWinId);
       glutPostRedisplay();
@@ -402,53 +361,51 @@ void TransferFunctionGLUTWindow::tfIdle(){
     */
 }
 
-void TransferFunctionGLUTWindow::tfKeyboard(unsigned char key, int x, int y){
-    switch(key) 
-        {    
-        case 'q':
-            exit(0);
-            break;    
-        case 'a':
-            tf_pointEditState=1;
-            break;
-        case 'd':
-            tf_pointEditState=2;
-            if (tf_gvSelectedPoint!=NULL){
-                removePoint(tf_gvSelectedPoint);
-                tf_gvSelectedPoint=0;
-                WriteControlPoints();
-                glutPostRedisplay();
-            }
-            tf_pointEditState=0;
-            break;   
-        case 'p':
-            printPoints();
-            break;
-        case 'w':
-            printInterpolation();
-            break; 
-        case 'r':
-            readHist();
-            break; 
-        case 'u':
-            dumpHist();
-            break; 
-        case 'i':
-            printHist();
-            break;
+void TransferFunctionGLUTWindow::tfKeyboard(unsigned char key, int x, int y)
+{
+    switch (key) {    
+    case 'q':
+        exit(0);
+        break;    
+    case 'a':
+        tf_pointEditState=1;
+        break;
+    case 'd':
+        tf_pointEditState=2;
+        if (tf_gvSelectedPoint!=NULL) {
+            removePoint(tf_gvSelectedPoint);
+            tf_gvSelectedPoint=0;
+            WriteControlPoints();
+            glutPostRedisplay();
+        }
+        tf_pointEditState=0;
+        break;   
+    case 'p':
+        printPoints();
+        break;
+    case 'w':
+        printInterpolation();
+        break; 
+    case 'r':
+        readHist();
+        break; 
+    case 'u':
+        dumpHist();
+        break; 
+    case 'i':
+        printHist();
+        break;
 
-        default:
-            break;
-        }    
+    default:
+        break;
+    }    
 }
 
-
-void  TransferFunctionGLUTWindow::tfReshape(int x, int y){
-
+void  TransferFunctionGLUTWindow::tfReshape(int x, int y)
+{
     //do not accept 0 value!!!
     if (x==0 || y==0)
         return;
-
 
     last_lv_tf_height_scale=lv_tf_height_scale;
     lv_tf_height_scale=lv_tf_height_scale*y/winy;
@@ -479,21 +436,15 @@ void  TransferFunctionGLUTWindow::tfReshape(int x, int y){
     glutPostRedisplay();
 }
 
-
-
-
-
 void  TransferFunctionGLUTWindow::ReadControlPoints()
 {
     //read the live variables and update the points.
 }
 
-
 void update_tf_texture();
 
 void TransferFunctionGLUTWindow::WriteControlPoints()
 {
-        
     //special case: all points have the same y coordinates
     double rangeY=0;
     float unitY=0;
@@ -505,18 +456,17 @@ void TransferFunctionGLUTWindow::WriteControlPoints()
     ControlPoint* cur=tf_pointList;
     int allSameY=1;
     int y=(int)tf_pointList->y;
-    while (cur!=0){
-        if (cur->y!=y){
+    while (cur!=0) {
+        if (cur->y!=y) {
             allSameY=0;
             break;
         }
         cur=cur->next;
     }
 
-        
-    if (allSameY==1){
+    if (allSameY==1) {
         int i=0;
-        for(i=0;i<numOfOutput;i++){
+        for (i=0; i<numOfOutput; i++){
             //output[i]=0;
             color_table[i][3]=0;
         }               
@@ -525,22 +475,21 @@ void TransferFunctionGLUTWindow::WriteControlPoints()
 
     //get max Y
     cur=tf_pointList;
-    while (cur!=0){
-        if (cur->y>maxY){
+    while (cur!=0) {
+        if (cur->y>maxY) {
             maxY=cur->y;
         }
-        if (cur->x>maxX){
+        if (cur->x>maxX) {
             maxX=cur->x;
         }
         cur=cur->next;
     }
 
-
     //get min Y
     cur=tf_pointList;
     double minY=maxY;
-    while (cur!=0){
-        if (cur->y<minY){
+    while (cur!=0) {
+        if (cur->y<minY) {
             minY=cur->y;
         }
         cur=cur->next;
@@ -565,13 +514,12 @@ void TransferFunctionGLUTWindow::WriteControlPoints()
     float t;  //t=(x-a)/(b-a)
 
     int i=0;
-    for(i=0;i<numOfOutput;i++){
-                
-        if (unitX*i+15>x2){
+    for (i=0; i<numOfOutput; i++) {
+        if (unitX*i+15>x2) {
             //go to next line segment
             cur=next;
             next=next->next;
-            if (next==0){
+            if (next==0) {
                 return;
             }
             x1=cur->x;
@@ -588,22 +536,18 @@ void TransferFunctionGLUTWindow::WriteControlPoints()
 
     update_tf_texture();
     glutSetWindow(transferFunctionWindow);
-}       
+}
 
-
-
-
-void TransferFunctionGLUTWindow::printInterpolation(){
+void TransferFunctionGLUTWindow::printInterpolation()
+{
     WriteControlPoints();
     int i=0;
-    for(i=0;i<numOfOutput;i++){
+    for (i=0; i<numOfOutput; i++) {
         //printf("%f, ",output[i]);
         fprintf(stderr, "%f, ",color_table[i][3]);
     }
     fprintf(stderr, "\n");
 }
-
-
 
 //sort all controlpoints by bubble sort
 void 
@@ -621,10 +565,10 @@ TransferFunctionGLUTWindow::sortPoints()
 
     int i;
     pre = NULL;			/* Suppress compiler warning */
-    for(i=0;i<tf_numOfPoints-1;i++){
-        while (cur->next!=NULL){
-            if (cur->x > cur->next->x){
-                if (cur==tf_pointList){
+    for (i=0; i<tf_numOfPoints-1; i++) {
+        while (cur->next!=NULL) {
+            if (cur->x > cur->next->x) {
+                if (cur==tf_pointList) {
                     //first node
                     a=tf_pointList;
                     b=tf_pointList->next;
@@ -649,7 +593,6 @@ TransferFunctionGLUTWindow::sortPoints()
     WriteControlPoints();
 }
 
-
 ControlPoint* 
 TransferFunctionGLUTWindow::addPoint(double x, double y)
 {
@@ -659,7 +602,7 @@ TransferFunctionGLUTWindow::addPoint(double x, double y)
     while (last->next!=0){
         last=last->next;
     }
-    if (x<15 || x>last->x || y<15){
+    if (x<15 || x>last->x || y<15) {
         return tf_pointList;
     }
 
@@ -667,7 +610,7 @@ TransferFunctionGLUTWindow::addPoint(double x, double y)
     ControlPoint* pre=cur;
 
     //if x is the first or last. Don't add, but update.
-    if(x==cur->x) {
+    if (x==cur->x) {
         cur->y=y;
         return tf_pointList;
     } else if(x==last->x) {
@@ -708,8 +651,6 @@ TransferFunctionGLUTWindow::addPoint(double x, double y)
     }
 }
 
-
-
 void 
 TransferFunctionGLUTWindow::removePoint(void* ptr)
 {
@@ -717,19 +658,18 @@ TransferFunctionGLUTWindow::removePoint(void* ptr)
         return;
 
     ControlPoint* last=tf_pointList;
-    while (last->next!=0){
+    while (last->next!=0) {
         last=last->next;
     }
 
-    if (ptr==tf_pointList || ptr==last){
+    if (ptr==tf_pointList || ptr==last) {
         /*
-          if (tf_numOfPoints=1){
-          delete(ptr);
-          tf_pointList=0;
-          }
-          else{
-          tf_pointList=tf_pointList->next;
-          delete(ptr);
+          if (tf_numOfPoints=1) {
+              delete(ptr);
+              tf_pointList=0;
+          } else {
+              tf_pointList=tf_pointList->next;
+              delete(ptr);
           }
         */
         return;
@@ -737,7 +677,7 @@ TransferFunctionGLUTWindow::removePoint(void* ptr)
         //find the previous point
         ControlPoint* cur=tf_pointList;
         ControlPoint* pre=cur;
-        while (cur->next!=0){
+        while (cur->next!=0) {
             if (cur==ptr) {
                 break;
             }
@@ -751,15 +691,15 @@ TransferFunctionGLUTWindow::removePoint(void* ptr)
     tf_numOfPoints--;
 }
 
-
 //remove all points but the two initial points
-void TransferFunctionGLUTWindow::cleanUpPoints(){
+void TransferFunctionGLUTWindow::cleanUpPoints()
+{
     if (tf_numOfPoints<2)
         return;
 
     ControlPoint* cur=tf_pointList;
 
-    if (tf_numOfPoints==2){
+    if (tf_numOfPoints==2) {
         cur->x=15;
         cur->y=15;
                 
@@ -767,7 +707,6 @@ void TransferFunctionGLUTWindow::cleanUpPoints(){
         cur->next->y=15;
         return;
     }
-
 
     cur=tf_pointList->next;
     ControlPoint* pre=tf_pointList;
@@ -782,20 +721,15 @@ void TransferFunctionGLUTWindow::cleanUpPoints(){
     delete(pre);
     tf_pointList->next=cur;
 
-
     tf_pointList->x=15;
     tf_pointList->y=15;
-        
+
     tf_pointList->next->x=15+tf_unitWidth;
     tf_pointList->next->y=15;
 
     tf_numOfPoints=2;
     TransferFunctionGLUTWindow::WriteControlPoints();
 }
-
-
-
-
 
 //debugging: print out all points
 void 
@@ -808,14 +742,13 @@ TransferFunctionGLUTWindow::printPoints()
     if (tf_numOfPoints==0)
         return;
 
-    while (cur->next!=0){
+    while (cur->next!=0) {
         fprintf(stderr, "(%g,%g)\n", cur->x, cur->y);
         cur=cur->next;
     }
     fprintf(stderr, "(%g,%g)\n", cur->x, cur->y);
     fprintf(stderr, "********************\n");
 }
-
 
 ControlPoint* 
 TransferFunctionGLUTWindow::boundaryChecking()
@@ -828,15 +761,15 @@ TransferFunctionGLUTWindow::boundaryChecking()
     ControlPoint* left=tf_pointList;
     ControlPoint* right=tf_pointList;
 
-    while (right!=tf_gvSelectedPoint){
+    while (right!=tf_gvSelectedPoint) {
         left=right;
         right=right->next;
     }
 
     //selected point is not the right-end point
-    if (right->next!=0){
+    if (right->next!=0) {
         right=right->next;
-        if (tf_gvSelectedPoint->x>right->x){
+        if (tf_gvSelectedPoint->x>right->x) {
             sortPoints();
         }
     }
@@ -851,7 +784,6 @@ TransferFunctionGLUTWindow::boundaryChecking()
     return tf_gvSelectedPoint;
 }
 
-
 void 
 TransferFunctionGLUTWindow::scalePointsY(int offset)
 {
@@ -859,10 +791,10 @@ TransferFunctionGLUTWindow::scalePointsY(int offset)
         return;
 
     ControlPoint* cur=tf_pointList;
-    while (cur!=0){
+    while (cur!=0) {
         cur->y=((cur->y)-offset-15)*((float)last_lv_tf_height_scale/(float)lv_tf_height_scale)+15;
         cur=cur->next;
-    }           
+    }
     WriteControlPoints();
 }
 
@@ -870,13 +802,12 @@ void
 TransferFunctionGLUTWindow::scalePointsX()
 {
     ControlPoint* cur=tf_pointList;
-    while (cur!=0){
+    while (cur!=0) {
         cur->x=(cur->x-15)*((float)lv_tf_width_scale/(float)last_lv_tf_width_scale)+15;
         cur=cur->next;
     }
     WriteControlPoints();
 }
-
 
 void 
 TransferFunctionGLUTWindow::dumpHist()
@@ -895,7 +826,6 @@ TransferFunctionGLUTWindow::dumpHist()
       fclose(fp);
     */
 }
-
 
 void 
 TransferFunctionGLUTWindow::readHist()
@@ -959,11 +889,10 @@ void TransferFunctionGLUTWindow::printHist()
     */
 }
 
-
 void 
 TransferFunctionGLUTWindow::plotHist()
 {
-    for(int j=0; j<4; j++){
+    for (int j=0; j<4; j++) {
         Histogram cur = Hist[j];
 
         float unitX=(float)tf_unitWidth/(float)(cur.range-1);
@@ -971,22 +900,21 @@ TransferFunctionGLUTWindow::plotHist()
         unsigned long maxY;
         unsigned long minY;
         double rangeY;
-                
+
         float result[256];
-                
+ 
         //get max Y
         maxY=0;
         int i=0;
-        for (i=0; i<cur.range; i++){
+        for (i=0; i<cur.range; i++) {
             if (cur.count[i]>maxY)
                 maxY=cur.count[i];
         }
         //printf("maxY=%d\n", maxY);
 
-
         //get min Y
         minY=maxY;
-        for (i=0; i<cur.range; i++){
+        for (i=0; i<cur.range; i++) {
             if (cur.count[i]<minY)
                 minY=cur.count[i];
         }
@@ -998,26 +926,25 @@ TransferFunctionGLUTWindow::plotHist()
         unitY=(float)(winy-20)/(float)rangeY;
 
         //reduce all values with log then by minY
-        for (i=0; i<cur.range; i++){
-            if (cur.count[i]==0)
+        for (i=0; i<cur.range; i++) {
+            if (cur.count[i]==0) {
                 result[i]=0;
-            else
+            } else {
                 //result[i]=log((double)(cur.count[i]));
                 //result[i]=double(cur.count[i]);
                 //result[i]=log((float)(cur.count[i]))-log((float)minY);
-                result[i]=log((float)(cur.count[i])-(float)minY);       
+                result[i]=log((float)(cur.count[i])-(float)minY);
+            }   
         }
-
 
         //draw points
         glColor3d(0, 0, 1);
         glBegin(GL_LINES);
-        for (i=0; i<cur.range-1; i++){
+        for (i=0; i<cur.range-1; i++) {
             glVertex2f(15+i*unitX, 15+result[i]*unitY);
             glVertex2f(15+(i+1)*unitX, 15+result[i+1]*unitY);
         }
         glEnd();
         glColor3d(0, 0, 0);     
-
     }
 }
