@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * Implementation of the ClientSocket class
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -16,67 +12,56 @@
 #include "ClientSocket.h"
 #include "SocketException.h"
 
-ClientSocket::ClientSocket ( std::string host, int port )
+ClientSocket::ClientSocket(std::string host, int port)
 {
-  if ( ! Socket::create() )
-    {
-      throw SocketException ( "Could not create client socket." );
+    if (!Socket::create()) {
+        throw SocketException("Could not create client socket.");
     }
 
-  if ( ! Socket::connect ( host, port ) )
-    {
-      throw SocketException ( "Could not bind to port." );
+    if (!Socket::connect(host, port)) {
+        throw SocketException("Could not bind to port.");
     }
-
 }
 
-
-const ClientSocket& ClientSocket::operator << ( const std::string& s ) const
+const ClientSocket& ClientSocket::operator <<(const std::string& s) const
 {
-  if ( ! Socket::send ( s ) )
-    {
-      throw SocketException ( "Could not write to socket." );
+    if (!Socket::send(s)) {
+        throw SocketException("Could not write to socket.");
     }
 
-  return *this;
-
+    return *this;
 }
 
-
-const ClientSocket& ClientSocket::operator >> ( std::string& s ) const
+const ClientSocket& ClientSocket::operator >>(std::string& s) const
 {
-  if ( ! Socket::recv ( s ) )
-    {
-      throw SocketException ( "Could not read from socket." );
+    if (!Socket::recv(s)) {
+        throw SocketException("Could not read from socket.");
     }
 
-  return *this;
+    return *this;
 }
 
-void ClientSocket::set_non_blocking(bool val){
-        Socket::set_non_blocking(val);
-}
-
-
-bool ClientSocket::send (char* s, int size) const
+void ClientSocket::set_non_blocking(bool val)
 {
-  bool ret = Socket::send (s, size);
-  if (!ret)
-    {
-      throw SocketException ( "Could not write to socket." );
+    Socket::set_non_blocking(val);
+}
+
+bool ClientSocket::send(char* s, int size) const
+{
+    bool ret = Socket::send(s, size);
+    if (!ret) {
+        throw SocketException("Could not write to socket.");
     }
 
-  return ret;
+    return ret;
 }
 
-
-int ClientSocket::recv ( char* s, int size) const
+int ClientSocket::recv(char *s, int size) const
 {
-  bool ret = Socket::recv (s, size);
-  if (!ret)
-    {
-      throw SocketException ( "Could not read from socket." );
+    bool ret = Socket::recv (s, size);
+    if (!ret) {
+        throw SocketException("Could not read from socket.");
     }
 
-  return ret;
+    return ret;
 }
