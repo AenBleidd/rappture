@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * RenderServer.h: server with OpenRenderer engine
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,27 +9,28 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _RENDER_SERVER_H_
-#define _RENDER_SERVER_H_
+#ifndef RENDER_SERVER_H
+#define RENDER_SERVER_H
 
 #include <string>
 
 #include "ServerSocket.h"
 #include "SocketException.h"
 
-class RenderServer{
-	
-private:
-	ServerSocket* server_socket;
-	ServerSocket open_socket;
-	int socket_num;
-
+class RenderServer
+{
 public:
-	RenderServer();
-	RenderServer(int port_num);
-	bool listen(std::string& data);
-	bool send(std::string& data);
-	bool send(char* data, int size); //send raw bytes
+    RenderServer();
+    RenderServer(int port_num);
+
+    bool listen(std::string& data);
+    bool send(std::string& data);
+    bool send(char* data, int size); //send raw bytes
+
+private:
+    ServerSocket *server_socket;
+    ServerSocket open_socket;
+    int socket_num;
 };
 
 #endif

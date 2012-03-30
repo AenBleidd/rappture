@@ -1,9 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/*
- * ----------------------------------------------------------------------
- * SocketException class
- *
- * ======================================================================
+/* ======================================================================
  *  AUTHOR:  Wei Qiao <qiaow@purdue.edu>
  *           Purdue Rendering and Perceptualization Lab (PURPL)
  *
@@ -13,23 +9,28 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef SocketException_class
-#define SocketException_class
+#ifndef SOCKETEXCEPTION_H
+#define SOCKETEXCEPTION_H
 
 #include <string>
 
 class SocketException
 {
- public:
-  SocketException ( std::string s ) : m_s ( s ) {};
-  ~SocketException (){};
+public:
+    SocketException (std::string s) :
+        m_s (s)
+    {}
 
-  std::string description() { return m_s; }
+    ~SocketException()
+    {}
 
- private:
+    std::string description()
+    {
+        return m_s;
+    }
 
-  std::string m_s;
-
+private:
+    std::string m_s;
 };
 
 #endif
