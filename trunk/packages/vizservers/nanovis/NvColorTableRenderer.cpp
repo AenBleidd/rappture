@@ -20,6 +20,8 @@ void NvColorTableRenderer::render(int width, int height,
                                   Texture2D *texture, TransferFunction *tf,
                                   double rangeMin, double rangeMax)
 {
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
+
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
 
@@ -72,4 +74,6 @@ void NvColorTableRenderer::render(int width, int height,
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+
+    glPopAttrib();
 }
