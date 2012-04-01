@@ -166,12 +166,12 @@ VolumeRenderer::renderAll()
 
         //initialize volume plane with world coordinates
         Plane volume_planes[6];
-        volume_planes[0].set_coeffs( 1,  0,  0, -x0);
-        volume_planes[1].set_coeffs(-1,  0,  0,  x0+1);
-        volume_planes[2].set_coeffs( 0,  1,  0, -y0);
-        volume_planes[3].set_coeffs( 0, -1,  0,  y0+1);
-        volume_planes[4].set_coeffs( 0,  0,  1, -z0);
-        volume_planes[5].set_coeffs( 0,  0, -1,  z0+1);
+        volume_planes[0].setCoeffs( 1,  0,  0, -x0);
+        volume_planes[1].setCoeffs(-1,  0,  0,  x0+1);
+        volume_planes[2].setCoeffs( 0,  1,  0, -y0);
+        volume_planes[3].setCoeffs( 0, -1,  0,  y0+1);
+        volume_planes[4].setCoeffs( 0,  0,  1, -z0);
+        volume_planes[5].setCoeffs( 0,  0, -1,  z0+1);
 
         //get modelview matrix with no translation
         glPushMatrix();
