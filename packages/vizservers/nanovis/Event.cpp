@@ -13,21 +13,27 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <memory.h>
+
 #include "Event.h"
 
-Event::Event(){}
-Event::~Event(){}
-
-
-Event::Event(int _type, float _param[3], float _time){
-  type = _type;
-  memcpy(parameter, _param, 3*sizeof(float));
-  msec = _time;
+Event::Event()
+{
 }
-    
-void Event::write(FILE* fd){
+
+Event::~Event()
+{
+}
+
+Event::Event(int _type, float _param[3], float _time) :
+    type(_type),
+    msec(_time)
+{
+    memcpy(parameter, _param, 3*sizeof(float));
+}
+
+void Event::write(FILE *fd)
+{
     fprintf(fd, "%d %f %f %f %g\n", type, parameter[0], parameter[1], parameter[2], msec);
 }
 
