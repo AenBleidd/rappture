@@ -14,27 +14,33 @@
  * ======================================================================
  */
 
-#ifndef _EVENT_H_
-#define _EVENT_H_
+#ifndef EVENT_H
+#define EVENT_H
 
 #include <stdio.h>
 #include <fstream>
 
-enum EventType {EVENT_ROTATE, EVENT_MOVE, EVENT_OTHER};
+enum EventType {
+    EVENT_ROTATE,
+    EVENT_MOVE,
+    EVENT_OTHER
+};
 
-class Event{
-
+class Event
+{
 public:
-   int type;
-   float parameter[3];	//event parameters: rotate: x,y,z  
-			//                  move: x,y,z
-  			//                  other: nan 
-   float msec;		//millisecond since the session started
-	
    Event();
    Event(int _type, float _param[3], float _time);
    ~Event();
-   void write(FILE* fd);
+
+   void write(FILE *fd);
+
+   int type;
+   float parameter[3];	/**< event parameters: 
+                           rotate: x,y,z  
+                           move: x,y,z
+                           other: nan */
+   float msec;         ///< millisecond since the session started
 };
 
 
