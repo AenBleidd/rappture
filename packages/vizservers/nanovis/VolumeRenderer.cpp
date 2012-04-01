@@ -594,7 +594,7 @@ void VolumeRenderer::getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar)
 
     for (int i = 0; i < 8; i++) {
         Vector4 tmp = mv.transform(Vector4(vertex[i][0], vertex[i][1], vertex[i][2], vertex[i][3]));
-        tmp.perspective_divide();
+        tmp.perspectiveDivide();
         vertex[i][2] = tmp.z;
         if (vertex[i][2] < zMin) zMin = vertex[i][2];
         if (vertex[i][2] > zMax) zMax = vertex[i][2];
