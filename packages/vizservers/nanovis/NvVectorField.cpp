@@ -6,15 +6,17 @@
 
 NvVectorField::NvVectorField() :
     _vectorFieldId(0),
+    _volPtr(NULL),
     _activated(true),
+    _origin(0, 0, 0),
+    _physicalMin(0, 0, 0),
+    _physicalSize(1, 1, 1),
     _scaleX(1),
     _scaleY(1),
     _scaleZ(1),
-    _max(1)
+    _max(1),
+    _deviceVisible(false)
 {
-    _deviceVisible = false;
-    _volPtr = 0;
-    _physicalSize.set(1.0f, 1.0f, 1.0f);
 }
 
 NvVectorField::~NvVectorField()
@@ -27,21 +29,21 @@ NvVectorField::~NvVectorField()
 }
 
 void 
-NvVectorField::setVectorField(Volume *volPtr, const Vector3& ori, 
+NvVectorField::setVectorField(Volume *volPtr, const Vector3& origin, 
 			      float scaleX, float scaleY, float scaleZ, 
 			      float max)
 {
     _volPtr = volPtr;
-    _origin = ori;
+    _origin = origin;
     _scaleX = scaleX;
     _scaleY = scaleY;
     _scaleZ = scaleZ;
     _max = max;
     _vectorFieldId = volPtr->id;
     _physicalMin = volPtr->getPhysicalBBoxMin();
-    TRACE("_pysicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
+    TRACE("_physicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
     _physicalSize = volPtr->getPhysicalBBoxMax() - _physicalMin;
-    TRACE("_pysicalSize %f %f %f\n", 
+    TRACE("_physicalSize %f %f %f\n", 
 	   _physicalSize.x, _physicalSize.y, _physicalSize.z);
 }
 
@@ -182,15 +184,18 @@ void NvVectorField::render()
 void 
 NvVectorField::drawDeviceShape()
 {
+    glPushAttrib(GL_ENABLE_BIT);
+
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
 
     float x0, y0, z0, x1, y1, z1;
     std::map<std::string, NvDeviceShape>::iterator iterShape;
-    
-    glPushMatrix();
+
     glTranslatef(_origin.x, _origin.y, _origin.z);
     glScaled(_scaleX, _scaleY, _scaleZ);
     for (iterShape = _shapeMap.begin(); iterShape != _shapeMap.end(); 
@@ -252,12 +257,9 @@ NvVectorField::drawDeviceShape()
 	}
 	glEnd();
     }
-    glPopMatrix();
     
     glPopMatrix();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
+    glPopAttrib();
 }
 
 void 

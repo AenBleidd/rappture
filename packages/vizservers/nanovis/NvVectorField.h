@@ -30,7 +30,7 @@ public :
 
     ~NvVectorField();
 
-    void setVectorField(Volume* vol, const Vector3& ori,
+    void setVectorField(Volume *vol, const Vector3& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     bool active()
