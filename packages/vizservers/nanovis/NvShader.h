@@ -10,7 +10,7 @@
 
 extern CGprogram
 LoadCgSourceProgram(CGcontext context, const char *fileName,
-                    CGprofile profile, const char *entryPoint)
+                    CGprofile profile, const char *entryPoint);
 
 class NvShader
 {
