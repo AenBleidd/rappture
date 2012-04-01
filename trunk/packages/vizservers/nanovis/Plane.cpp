@@ -50,7 +50,7 @@ Plane::transform(const Mat4x4& mat)
 }
 
 void
-Plane::get_point(Vector3& point)
+Plane::getPoint(Vector3& point)
 {
     if (a != 0) {
         point.x = -d/a;
