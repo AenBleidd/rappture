@@ -49,13 +49,13 @@ Sphere::draw(GLUquadric *quad)
 }
 
 void
-Sphere::set_horizontal_res(int slice)
+Sphere::setHorizontalRes(int slice)
 {
     _slice = slice;
 }
 
 void
-Sphere::set_vertical_res(int stack)
+Sphere::setVerticalRes(int stack)
 {
     _stack = stack;
 }

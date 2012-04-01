@@ -34,8 +34,8 @@ public:
 
     virtual ~Sphere();
 
-    void set_vertical_res(int stack);
-    void set_horizontal_res(int slice);
+    void setVerticalRes(int stack);
+    void setHorizontalRes(int slice);
 
     //display the sphere
     void draw(GLUquadric *q);
