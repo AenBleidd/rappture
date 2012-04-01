@@ -38,7 +38,7 @@ public:
 	x = x_val, y = y_val, z = z_val, w = w_val;
     }
 
-    void perspective_divide()
+    void perspectiveDivide()
     {
         /* Divide vector by w */
         x /= w, y /= w, z /= w, w = 1.;

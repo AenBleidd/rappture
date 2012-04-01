@@ -110,7 +110,7 @@ public:
         }
     }
 
-    Vector3 rot_x(float degree) const
+    Vector3 rotX(float degree) const
     {
         float rad = radians(degree);
         return Vector3(x,
@@ -118,7 +118,7 @@ public:
                        y*sin(rad) + z*cos(rad));
     }
 
-    Vector3 rot_y(float degree) const
+    Vector3 rotY(float degree) const
     {
         float rad = radians(degree);
         return Vector3(x*cos(rad) + z*sin(rad),
@@ -126,7 +126,7 @@ public:
                        -x*sin(rad) + z*cos(rad));
     }
 
-    Vector3 rot_z(float degree) const
+    Vector3 rotZ(float degree) const
     {
         float rad = radians(degree);
         return Vector3(x*cos(rad) - y*sin(rad),

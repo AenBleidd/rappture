@@ -13,8 +13,8 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-#ifndef _PLANE_H_
-#define _PLANE_H_
+#ifndef PLANE_H
+#define PLANE_H
 
 #include "Vector3.h"
 #include "Mat4x4.h"
@@ -31,7 +31,7 @@ public:
     Plane()
     {}
 
-    void get_point(Vector3& point);
+    void getPoint(Vector3& point);
 
     //bool clips(float point[3]) const { return !retains(point); }
 
@@ -48,17 +48,17 @@ public:
 	return ((a*point.x + b*point.y + c*point.z + d) >= 0);
     }
 
-    Vector4 get_coeffs() const
+    Vector4 getCoeffs() const
     {
         return Vector4(a, b, c, d);
     }
 
-    void set_coeffs(float a_val, float b_val, float c_val, float d_val)
+    void setCoeffs(float a_val, float b_val, float c_val, float d_val)
     {
         a = a_val, b = b_val, c = c_val, d = d_val;
     }
 
-    void get_normal(Vector3& normal) const
+    void getNormal(Vector3& normal) const
     {
         normal.x = a;
         normal.y = b;

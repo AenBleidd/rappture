@@ -42,13 +42,13 @@ findIntersection(const Vector4& pt1, const Vector4& pt2, const Vector4& plane, V
     float d = plane.w;
 
     Vector4 p1 = pt1;
-    p1.perspective_divide();
+    p1.perspectiveDivide();
     float x1 = p1.x;
     float y1 = p1.y;
     float z1 = p1.z;
 
     Vector4 p2 = pt2;
-    p2.perspective_divide();
+    p2.perspectiveDivide();
     float x2 = p2.x;
     float y2 = p2.y;
     float z2 = p2.z;
@@ -120,7 +120,7 @@ ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
     // add it to the new list as well.
 
     Vector4 intersect;
-    Vector4 plane = clipPlane.get_coeffs();
+    Vector4 plane = clipPlane.getCoeffs();
 
     bool prevRetained = isRetained(vertices[0], plane);
     if (prevRetained) 
