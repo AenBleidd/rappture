@@ -120,6 +120,10 @@ public:
         return _cgContext;
     }
 
+    static CGprogram
+    loadCgSourceProgram(CGcontext context, const char *filename, 
+                        CGprofile profile, const char *entryPoint);
+
 protected:
     void resetPrograms();
 
@@ -131,11 +135,6 @@ protected:
     static CGprofile _defaultVertexProfile;
     static CGprofile _defaultFragmentProfile;
     static CGcontext _cgContext;
-
-private:
-    static CGprogram
-    loadCgSourceProgram(CGcontext context, const char *filename, 
-                        CGprofile profile, const char *entryPoint);
 };
 
 #endif
