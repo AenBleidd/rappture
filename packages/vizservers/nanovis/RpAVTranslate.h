@@ -38,57 +38,86 @@ extern "C" {
 
 namespace Rappture {
 
-class AVTranslate {
+class AVTranslate
+{
 public:
-    enum VideoFormats { MPEG1, MPEG4, THEORA, QUICKTIME };
+    enum VideoFormats {
+        MPEG1,
+        MPEG4,
+        THEORA,
+        QUICKTIME
+    };
+
     AVTranslate(size_t width, size_t height);
 
     AVTranslate(size_t width, size_t height, size_t bitRate, float frameRate);
 
     virtual ~AVTranslate();
 
-    bool init(Outcome &status, const char *filename );
+    bool init(Outcome &status, const char *filename);
+
     bool append(Outcome &status, uint8_t *rgbData, size_t linePad);
+
     bool done(Outcome &status);
 
 private:
     bool addVideoStream(Outcome &status, CodecID codecId, AVStream **stream);
+
     bool allocPicture(Outcome &status, PixelFormat pixFmt, AVFrame **pic );
+
     bool openVideo(Outcome &status);
+
     bool writeVideoFrame(Outcome &status);
+
     bool closeVideo(Outcome &status);
+
+    size_t width()
+    {
+        return _width;
+    }
+
+    void width(size_t width)
+    {
+        _width = width;
+    }
+
+    size_t height()
+    {
+        return _width;
+    }
+
+    void height(size_t width)
+    {
+        _width = width;
+    }
+
+    size_t bitRate()
+    {
+        return _bitRate;
+    }
+
+    void bitRate(size_t bitRate)
+    {
+        _bitRate = bitRate;
+    }
+
+    float frameRate()
+    {
+        return _frameRate;
+    }
+
+    void frameRate(size_t frameRate)
+    {
+        _frameRate = frameRate;
+    }
 
     size_t _width;
     size_t _height;
     size_t _bitRate;
-    float _frameRate;		// frames/seconds
+    float _frameRate;         ///< frames/seconds
     size_t _videoOutbufSize;
     uint8_t *_videoOutbuf;
 
-    size_t width(void) {
-	return _width;
-    }
-    void width(size_t width) {
-	_width = width;
-    }
-    size_t height(void) {
-	return _width;
-    }
-    void height(size_t width) {
-	_width = width;
-    }
-    size_t bitRate(void) {
-	return _bitRate;
-    }
-    void bitRate(size_t bitRate) {
-	_bitRate = bitRate;
-    }
-    float frameRate(void) {
-	return _frameRate;
-    }
-    void frameRate(size_t frameRate) {
-	_frameRate = frameRate;
-    }
     AVOutputFormat *_fmtPtr;
     AVFormatContext *_ocPtr;
     AVStream *_avStreamPtr;
@@ -96,6 +125,6 @@ private:
 
 };
 
-} // namespace Rappture
+}
  
-#endif /* RP_AVTRANSLATE_H */
+#endif
