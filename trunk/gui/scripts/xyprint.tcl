@@ -1291,9 +1291,9 @@ itcl::body Rappture::XyPrint::InitializeSettings {} {
     set axis [lindex $names 0]
 
     $page.titlefontfamily value $_settings($this-$axis-title-fontfamily)
-    $page.titlefontsize value   $_settings($this-axis-title-fontsize)
+    $page.titlefontsize value   $_settings($this-$axis-title-fontsize)
     $page.tickfontfamily value  $_settings($this-$axis-ticks-fontfamily)
-    $page.tickfontsize value    $_settings($this-axis-ticks-fontsize)
+    $page.tickfontsize value    $_settings($this-$axis-ticks-fontsize)
 
     # Always hide the zero line.
     set _settings($this-axis-zero) 1
