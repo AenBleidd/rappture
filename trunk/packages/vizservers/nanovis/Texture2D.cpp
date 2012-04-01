@@ -129,7 +129,7 @@ void Texture2D::setWrapT(GLuint wrapMode)
     _wrapT = wrapMode;
 }
 
-void Texture2D::check_max_size()
+void Texture2D::checkMaxSize()
 {
     GLint max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
@@ -137,7 +137,7 @@ void Texture2D::check_max_size()
     TRACE("max texture size: %d\n", max);
 }
 
-void Texture2D::check_max_unit()
+void Texture2D::checkMaxUnit()
 {
     int max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);

@@ -51,9 +51,9 @@ public:
 
     void setWrapS(GLuint wrapMode);
 
-    static void check_max_size();
+    static void checkMaxSize();
 
-    static void check_max_unit();
+    static void checkMaxUnit();
 
 private:
     int _width;
