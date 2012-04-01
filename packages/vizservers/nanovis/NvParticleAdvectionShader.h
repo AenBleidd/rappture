@@ -12,9 +12,9 @@ public :
 
     virtual ~NvParticleAdvectionShader();
 
-    void bind(unsigned int texID, unsigned int initPosTexID);
+    virtual void bind(unsigned int texID, unsigned int initPosTexID);
 
-    void unbind();
+    virtual void unbind();
 
     void setScale(const Vector3& scale)
     {
@@ -25,6 +25,9 @@ public :
     {
         _velocityVolumeID = texID;
         _max = max;
+        // FIXME: Is this needed?
+        //if (_max > 100.f)
+        //    _max = 100.0f;
     }
 
     void setTimeStep(float timeStep)
@@ -40,13 +43,13 @@ public :
 private :
     void init();
 
-    CGparameter _posTimestepParam;
-    CGparameter _velTexParam;
     CGparameter _posTexParam;
     CGparameter _initPosTexParam;
-    CGparameter _scaleParam;
+    CGparameter _velTexParam;
+    CGparameter _posTimestepParam;
     CGparameter _maxParam;
     CGparameter _modeParam;
+    CGparameter _scaleParam;
 
     unsigned int _velocityVolumeID;
     Vector3 _scale;

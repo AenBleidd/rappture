@@ -11,9 +11,9 @@ NvParticleAdvectionShader::NvParticleAdvectionShader() :
     _velocityVolumeID(0), 
     _scale(1.0f, 1.0f, 1.0f), 
     _max(1.0f), 
-    _timeStep(0.005f)
+    _timeStep(0.0005f),
+    _mode(1)
 {
-    _mode = 1;
     init();
 }
 
@@ -24,41 +24,41 @@ NvParticleAdvectionShader::~NvParticleAdvectionShader()
 void NvParticleAdvectionShader::init()
 {
     loadFragmentProgram("update_pos.cg", "main");
-    _posTimestepParam  = cgGetNamedParameter(_cgFP, "timestep");
-    _maxParam          = cgGetNamedParameter(_cgFP, "max");
-    _velTexParam       = cgGetNamedParameter(_cgFP, "vel_tex");
-    _posTexParam       = cgGetNamedParameter(_cgFP, "pos_tex");
-    _initPosTexParam   = cgGetNamedParameter(_cgFP, "init_pos_tex");
-    _scaleParam        = cgGetNamedParameter(_cgFP, "scale");
-    _modeParam         = cgGetNamedParameter(_cgFP, "mode");
+    _posTexParam       = getNamedParameterFromFP("pos_tex");
+    _initPosTexParam   = getNamedParameterFromFP("init_pos_tex");
+    _velTexParam       = getNamedParameterFromFP("vel_tex");
+    _posTimestepParam  = getNamedParameterFromFP("timestep");
+    _maxParam          = getNamedParameterFromFP("max");
+    _modeParam         = getNamedParameterFromFP("mode");
+    _scaleParam        = getNamedParameterFromFP("scale");
 }
 
 void 
 NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 {
-    cgGLBindProgram(_cgFP);
-    cgGLSetParameter1f(_posTimestepParam, _timeStep);
-    cgGLSetParameter1f(_maxParam, _max);
-    cgGLSetParameter1f(_modeParam, _mode);
-    cgGLSetParameter3f(_scaleParam, _scale.x, _scale.y, _scale.z);
-    cgGLSetTextureParameter(_velTexParam, _velocityVolumeID);
-    cgGLEnableTextureParameter(_velTexParam);
-
     cgGLSetTextureParameter(_posTexParam, texID);
     cgGLEnableTextureParameter(_posTexParam);
 
     cgGLSetTextureParameter(_initPosTexParam, initPosTexID);
     cgGLEnableTextureParameter(_initPosTexParam);
 
-    cgGLEnableProfile(CG_PROFILE_FP40);
+    cgGLSetTextureParameter(_velTexParam, _velocityVolumeID);
+    cgGLEnableTextureParameter(_velTexParam);
+
+    cgGLSetParameter1f(_posTimestepParam, _timeStep);
+    cgGLSetParameter1f(_maxParam, _max);
+    cgGLSetParameter1f(_modeParam, _mode);
+    cgGLSetParameter3f(_scaleParam, _scale.x, _scale.y, _scale.z);
+
+    NvShader::bind();
 }
 
 void
 NvParticleAdvectionShader::unbind()
 {
-     cgGLDisableProfile(CG_PROFILE_FP40);
-   
-     cgGLDisableTextureParameter(_velTexParam);
      cgGLDisableTextureParameter(_posTexParam);
      cgGLDisableTextureParameter(_initPosTexParam);
+     cgGLDisableTextureParameter(_velTexParam);
+
+     NvShader::unbind();
 }

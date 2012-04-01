@@ -34,42 +34,27 @@ float4 main(in float2 uv : TEXCOORD0,
           ret.w = 1;
       } else {
     */
-    // get previous position and velocity
+    // get previous position
     float4 pos = texRECT(pos_tex, uv);
     float time = pos.w;
 
-    // TBD...
-    //time -= 0.01;
+#ifdef EXPIRE
+    time -= timestep;
 
+    // Lifetime ended?
     if (time < 0) {
-        pos = texRECT(init_pos_tex, uv);
-        time = pos.w;
+        return texRECT(init_pos_tex, uv);
     }
-
-    /// INSOO
-    // TEMP
-    if (max > 100) max = 100;
+#endif
 
     //reconstruct negative value
     float4 vel = float4(tex3D(vel_tex, pos.xyz).yzw, 0) - float4(0.5, 0.5, 0.5, 0.0f);
     vel = vel * (2 * max);
-    //vel.x *= scale.x;
-    //vel.y *= scale.y;
-    //vel.z *= scale.z;
-    ret = pos;
-
-    ret.x += vel.x * 0.0005;
-    ret.y += vel.y * 0.0005;
-    ret.z += vel.z * 0.0005;
+    //vel *= float4(scale, 1);
+    ret = pos + (vel * timestep);
 
     //not drawing if the particle is out of bound
-    /*
-      if (ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1 || time==0)
-          ret = float4(0,0,0,0); 
-      else
-          ret.w = 1;
-    */
-    if (ret.x<0 || ret.x>1 || ret.y<0 || ret.y>1 || ret.z<0 || ret.z>1){
+    if (ret.x < 0 || ret.x > 1 || ret.y < 0 || ret.y > 1 || ret.z < 0 || ret.z > 1) {
         ret = texRECT(init_pos_tex, uv);
     } else {
         ret.w = time;
