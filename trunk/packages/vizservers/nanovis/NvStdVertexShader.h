@@ -9,19 +9,23 @@ class NvStdVertexShader : public NvShader
 public:
     NvStdVertexShader();
 
-    ~NvStdVertexShader();
+    virtual ~NvStdVertexShader();
 
-    void bind();
-    void unbind();
+    virtual void bind();
+
+    virtual void unbind()
+    {
+        NvShader::unbind();
+    }
 
 private:
     void init();
 
     /// A parameter id for ModelViewProjection matrix of Cg program
-    CGparameter _mvp_vert_std_param;
+    CGparameter _mvpVertStdParam;
 
     /// A parameter id for ModelViewInverse matrix of Cg program
-    CGparameter _mvi_vert_std_param;
+    CGparameter _mviVertStdParam;
 };
 
 #endif 
