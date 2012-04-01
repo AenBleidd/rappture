@@ -17,7 +17,7 @@ public:
         alpha(a)
     {}
 
-    void SetColor(float r, float g, float b, float a)
+    void set(float r, float g, float b, float a)
     {
         red   = r;
         green = g;
@@ -45,12 +45,12 @@ public:
 
     void setAxisColor(float r, float g, float b, float a)
     {
-        _axisColor.SetColor(r, g, b, a);
+        _axisColor.set(r, g, b, a);
     }
 
     void setLineColor(float r, float g, float b, float a)
     {
-        _majorColor.SetColor(r, g, b, a);
+        _majorColor.set(r, g, b, a);
         _minorColor = _majorColor;
     }
 
