@@ -2,10 +2,15 @@
 #ifndef NV_SHADER_H
 #define NV_SHADER_H
 
+#include <GL/glew.h>
 #include <Cg/cg.h>
+#include <Cg/cgGL.h>
 
-extern CGprogram LoadCgSourceProgram(CGcontext context, const char *filename, 
-                                     CGprofile profile, const char *entryPoint);
+#include "Trace.h"
+
+extern CGprogram
+LoadCgSourceProgram(CGcontext context, const char *fileName,
+                    CGprofile profile, const char *entryPoint)
 
 class NvShader
 {
@@ -46,6 +51,11 @@ public:
         return 0;
     }
 
+    void setTextureParameter(CGparameter param, GLuint texobj)
+    {
+        cgGLSetTextureParameter(param, texobj);
+    }
+
     CGprogram getVP() const
     {
         return _cgVP;
@@ -56,7 +66,48 @@ public:
         return _cgFP;
     }
 
-    static void initCg();
+    virtual void bind()
+    {
+        if (_cgVP) {
+            cgGLBindProgram(_cgVP);
+            enableVertexProfile();
+        }
+        if (_cgFP) {
+            cgGLBindProgram(_cgFP);
+            enableFragmentProfile();
+        }
+    }
+
+    virtual void unbind()
+    {
+        if (_cgVP)
+            disableVertexProfile();
+        if (_cgFP)
+            disableFragmentProfile();
+    }
+
+    void enableVertexProfile()
+    {
+        cgGLEnableProfile(_vertexProfile);
+    }
+
+    void disableVertexProfile()
+    {
+        cgGLDisableProfile(_vertexProfile);
+    }
+
+    void enableFragmentProfile()
+    {
+        cgGLEnableProfile(_fragmentProfile);
+    }
+
+    void disableFragmentProfile()
+    {
+        cgGLDisableProfile(_fragmentProfile);
+    }
+
+    static void initCg(CGprofile defaultVertexProfile = CG_PROFILE_VP40,
+                       CGprofile defaultFragmentProfile = CG_PROFILE_FP40);
 
     static void exitCg();
 
@@ -72,10 +123,19 @@ public:
 protected:
     void resetPrograms();
 
+    CGprofile _vertexProfile;
+    CGprofile _fragmentProfile;
     CGprogram _cgVP;
     CGprogram _cgFP;
 
+    static CGprofile _defaultVertexProfile;
+    static CGprofile _defaultFragmentProfile;
     static CGcontext _cgContext;
+
+private:
+    static CGprogram
+    loadCgSourceProgram(CGcontext context, const char *filename, 
+                        CGprofile profile, const char *entryPoint);
 };
 
 #endif

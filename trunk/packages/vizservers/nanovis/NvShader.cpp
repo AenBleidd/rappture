@@ -10,10 +10,15 @@
 #include "NvShader.h"
 #include "Trace.h"
 
+CGprofile NvShader::_defaultVertexProfile = CG_PROFILE_VP40;
+CGprofile NvShader::_defaultFragmentProfile = CG_PROFILE_FP40;
 CGcontext NvShader::_cgContext = NULL;
 
-void NvShader::initCg()
+void NvShader::initCg(CGprofile defaultVertexProfile,
+                      CGprofile defaultFragmentProfile)
 {
+    _defaultVertexProfile = defaultVertexProfile;
+    _defaultFragmentProfile = defaultFragmentProfile;
     _cgContext = cgCreateContext();
 }
 
@@ -22,7 +27,9 @@ void NvShader::exitCg()
     setErrorCallback(NULL);
     printErrorInfo();
     if (_cgContext != NULL) {
+        TRACE("Before DestroyContext");
         cgDestroyContext(_cgContext);
+        TRACE("After DestroyContext");
         _cgContext = NULL;
     }
 }
@@ -41,8 +48,16 @@ bool NvShader::printErrorInfo()
 }
 
 CGprogram
-LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile, 
-                    const char *entryPoint)
+LoadCgSourceProgram(CGcontext context, const char *fileName,
+                    CGprofile profile, const char *entryPoint)
+{
+    return NvShader::loadCgSourceProgram(context, fileName,
+                                         profile, entryPoint);
+}
+
+CGprogram
+NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
+                              CGprofile profile, const char *entryPoint)
 {
     const char *path = R2FilePath::getInstance()->getPath(fileName);
     if (path == NULL) {
@@ -63,6 +78,8 @@ LoadCgSourceProgram(CGcontext context, const char *fileName, CGprofile profile,
 }
 
 NvShader::NvShader():
+    _vertexProfile(_defaultVertexProfile),
+    _fragmentProfile(_defaultFragmentProfile),
     _cgVP(NULL),
     _cgFP(NULL)
 {
@@ -70,19 +87,30 @@ NvShader::NvShader():
 
 NvShader::~NvShader()
 {
-    resetPrograms();
+    TRACE("In ~NvShader");
+    if (_cgContext == NULL) {
+        TRACE("Lost Cg context");
+    } else {
+        resetPrograms();
+    }
 }
 
 void NvShader::loadVertexProgram(const char *fileName, const char *entryPoint)
 {
-    resetPrograms();
-
-    _cgVP = LoadCgSourceProgram(_cgContext, fileName, CG_PROFILE_VP40, entryPoint);
+    if (_cgVP != NULL) {
+        cgDestroyProgram(_cgVP);
+    }
+    _cgVP = loadCgSourceProgram(_cgContext, fileName,
+                                _vertexProfile, entryPoint);
 }
 
 void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
 {
-    _cgFP = LoadCgSourceProgram(_cgContext, fileName, CG_PROFILE_FP40, entryPoint);
+    if (_cgFP != NULL) {
+        cgDestroyProgram(_cgFP);
+    }
+    _cgFP = loadCgSourceProgram(_cgContext, fileName,
+                                _fragmentProfile, entryPoint);
 }
 
 void NvShader::resetPrograms()
