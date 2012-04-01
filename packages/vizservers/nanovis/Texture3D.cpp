@@ -151,7 +151,7 @@ void Texture3D::setWrapR(GLuint wrapMode)
     _wrapR = wrapMode;
 }
 
-void Texture3D::check_max_size()
+void Texture3D::checkMaxSize()
 {
     GLint max = 0;
     glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max);
@@ -159,7 +159,7 @@ void Texture3D::check_max_size()
     TRACE("max 3d texture size: %d\n", max);
 }
 
-void Texture3D::check_max_unit()
+void Texture3D::checkMaxUnit()
 {
     int max;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);

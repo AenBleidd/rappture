@@ -54,16 +54,19 @@ public:
         return _width;
     }
 
+    /// Always 1
     double aspectRatioWidth() const
     {
         return _aspectRatioWidth;
     }
 
+    /// height / width
     double aspectRatioHeight() const
     {
         return _aspectRatioHeight;
     }
 
+    /// depth / width
     double aspectRatioDepth() const
     {
         return _aspectRatioDepth;
@@ -80,9 +83,9 @@ public:
 
     void setWrapR(GLuint wrapMode);
 
-    static void check_max_size();
+    static void checkMaxSize();
 
-    static void check_max_unit();
+    static void checkMaxUnit();
 
 private:
     int _width;
