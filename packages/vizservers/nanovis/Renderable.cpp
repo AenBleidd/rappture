@@ -43,7 +43,7 @@ void Renderable::disable()
     _enabled = false;
 }
 
-bool Renderable::is_enabled() const
+bool Renderable::isEnabled() const
 {
     return _enabled;
 }

@@ -49,7 +49,7 @@ public:
 
     void disable();
 
-    bool is_enabled() const;
+    bool isEnabled() const;
 
 protected:
     Vector3 _location;	///< the location (x,y,z) of the object
