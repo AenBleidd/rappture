@@ -19,9 +19,9 @@ NvColorTableShader::~NvColorTableShader()
 void NvColorTableShader::init()
 {
     loadFragmentProgram("one_plane.cg", "main"); 
-    _dataParam = cgGetNamedParameter(_cgFP, "data");
-    _tfParam = cgGetNamedParameter(_cgFP, "tf");
-    _renderParam = cgGetNamedParameter(_cgFP, "render_param");
+    _dataParam = getNamedParameterFromFP("data");
+    _tfParam = getNamedParameterFromFP("tf");
+    _renderParam = getNamedParameterFromFP("render_param");
 }
 
 void NvColorTableShader::bind(Texture2D *plane, TransferFunction *tf)
@@ -32,13 +32,13 @@ void NvColorTableShader::bind(Texture2D *plane, TransferFunction *tf)
     cgGLEnableTextureParameter(_tfParam);
     cgGLSetParameter4f(_renderParam, 0., 0., 0., 0.);
 
-    cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP40);
+    NvShader::bind();
 }
 
 void NvColorTableShader::unbind()
 {
-    cgGLDisableProfile(CG_PROFILE_FP40);
     cgGLDisableTextureParameter(_dataParam);
     cgGLDisableTextureParameter(_tfParam);
+
+    NvShader::unbind();
 }

@@ -18,19 +18,14 @@ NvStdVertexShader::~NvStdVertexShader()
 void NvStdVertexShader::init()
 {
     loadVertexProgram("vertex_std.cg", "main");
-    _mvp_vert_std_param = cgGetNamedParameter(_cgVP, "modelViewProjMatrix");
-    _mvi_vert_std_param = cgGetNamedParameter(_cgVP, "modelViewInv");
+    _mvpVertStdParam = getNamedParameterFromVP("modelViewProjMatrix");
+    _mviVertStdParam = getNamedParameterFromVP("modelViewInv");
 }
 
 void NvStdVertexShader::bind()
 {
-    cgGLSetStateMatrixParameter(_mvp_vert_std_param, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
-    cgGLSetStateMatrixParameter(_mvi_vert_std_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLBindProgram(_cgVP);
-    cgGLEnableProfile(CG_PROFILE_VP40);
-}
+    cgGLSetStateMatrixParameter(_mvpVertStdParam, CG_GL_MODELVIEW_PROJECTION_MATRIX, CG_GL_MATRIX_IDENTITY);
+    cgGLSetStateMatrixParameter(_mviVertStdParam, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
 
-void NvStdVertexShader::unbind()
-{
-    cgGLDisableProfile(CG_PROFILE_VP40);
+    NvShader::bind();
 }

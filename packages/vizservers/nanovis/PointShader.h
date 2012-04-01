@@ -10,7 +10,7 @@ class PointShader : public NvShader
 public:
     PointShader();
 
-    ~PointShader();
+    virtual ~PointShader();
 
     void setScale(float scale)
     {
@@ -22,30 +22,18 @@ public:
         _normal = n;
     }
 
-    void bind()
+    virtual void bind()
     {
         setParameters();
 
-        if (_cgVP) {
-            cgGLBindProgram(_cgVP);
-            cgGLEnableProfile((CGprofile) CG_PROFILE_VP40);
-        }
-        if (_cgFP) {
-            cgGLBindProgram(_cgFP);
-            cgGLEnableProfile((CGprofile) CG_PROFILE_FP40);
-        }
+        NvShader::bind();
     }
 
-    void unbind()
+    virtual  void unbind()
     {
-        if (_cgVP) {
-            cgGLDisableProfile((CGprofile)CG_PROFILE_VP40);
-        }
-        if (_cgFP) {
-            cgGLDisableProfile((CGprofile)CG_PROFILE_FP40);
-        }
-
         resetParameters();
+
+        NvShader::unbind();
     }
 
 protected:

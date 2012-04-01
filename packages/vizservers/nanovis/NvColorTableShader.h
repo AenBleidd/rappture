@@ -13,11 +13,11 @@ class NvColorTableShader : public NvShader
 public:
     NvColorTableShader();
 
-    ~NvColorTableShader();
+    virtual ~NvColorTableShader();
 
-    void bind(Texture2D *plane, TransferFunction *tf);
+    virtual void bind(Texture2D *plane, TransferFunction *tf);
 
-    void unbind();
+    virtual void unbind();
 
 private :
     void init();
