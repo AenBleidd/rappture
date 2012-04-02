@@ -30,8 +30,8 @@ public:
 
     void render(graphics::RenderContext *renderContext);
 
-    void render_topview(graphics::RenderContext *renderContext,
-                        int render_width, int render_height);
+    void renderTopview(graphics::RenderContext *renderContext,
+                       int render_width, int render_height);
 
     /**
      *@brief Create a height map with heigh values
@@ -53,7 +53,7 @@ public:
      */
     void setHeight(int xCount, int yCount, Vector3 *heights);
 
-    void MapToGrid(Grid *gridPtr);
+    void mapToGrid(Grid *gridPtr);
 
     /**
      *@brief Define a color map for color shading of heightmap
