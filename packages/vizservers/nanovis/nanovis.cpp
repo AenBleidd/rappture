@@ -1488,13 +1488,13 @@ NanoVis::setVolumeRanges()
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-        grid->xAxis.SetScale(xMin, xMax);
+        grid->xAxis.setScale(xMin, xMax);
     }
     if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-        grid->yAxis.SetScale(yMin, yMax);
+        grid->yAxis.setScale(yMin, yMax);
     }
     if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-        grid->zAxis.SetScale(zMin, zMax);
+        grid->zAxis.setScale(zMin, zMax);
     }
     if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
         Volume::valueMin = wMin;
@@ -1543,13 +1543,13 @@ NanoVis::setHeightmapRanges()
         }
     }
     if ((xMin < DBL_MAX) && (xMax > -DBL_MAX)) {
-        grid->xAxis.SetScale(xMin, xMax);
+        grid->xAxis.setScale(xMin, xMax);
     }
     if ((yMin < DBL_MAX) && (yMax > -DBL_MAX)) {
-        grid->yAxis.SetScale(yMin, yMax);
+        grid->yAxis.setScale(yMin, yMax);
     }
     if ((zMin < DBL_MAX) && (zMax > -DBL_MAX)) {
-        grid->zAxis.SetScale(zMin, zMax);
+        grid->zAxis.setScale(zMin, zMax);
     }
     if ((wMin < DBL_MAX) && (wMax > -DBL_MAX)) {
         HeightMap::valueMin = grid->yAxis.min();
@@ -1578,9 +1578,9 @@ NanoVis::display()
 #endif
     if (flags & MAP_FLOWS) {
         MapFlows();
-        grid->xAxis.SetScale(xMin, xMax);
-        grid->yAxis.SetScale(yMin, yMax);
-        grid->zAxis.SetScale(zMin, zMax);
+        grid->xAxis.setScale(xMin, xMax);
+        grid->yAxis.setScale(yMin, yMax);
+        grid->zAxis.setScale(zMin, zMax);
     }
     //assert(glGetError()==0);
     if (HeightMap::updatePending) {

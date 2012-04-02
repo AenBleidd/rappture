@@ -16,27 +16,27 @@ class Axis;
 class TickIter
 {
 public:
-    void SetStartingLink(ChainLink *linkPtr)
+    void setStartingLink(ChainLink *linkPtr)
     {
         _linkPtr = linkPtr;
     }
 
-    bool Next()
+    bool next()
     {
         if (_linkPtr == NULL) {
             return false;
         }
-        _linkPtr = _linkPtr->Next();
+        _linkPtr = _linkPtr->next();
         return (_linkPtr != NULL);
     }
 
-    float GetValue()
+    float getValue()
     {
         union {
             float x;
             void *clientData;
         } value;
-        value.clientData = _linkPtr->GetValue();
+        value.clientData = _linkPtr->getValue();
         return value.x;
     }
 
@@ -70,10 +70,10 @@ public:
         if (_ticks != NULL) {
             delete [] _ticks;
         }
-        _chain.Reset();
+        _chain.reset();
     }
 
-    void SetTicks(float *ticks, int nTicks)
+    void setTicks(float *ticks, int nTicks)
     {
         _ticks = ticks, _numTicks = nTicks;
     }
@@ -91,9 +91,9 @@ public:
         return _ticks[i];
     }
 
-    void Reset()
+    void reset()
     {
-        _chain.Reset();
+        _chain.reset();
     }
 
     float step()
@@ -101,12 +101,12 @@ public:
         return _step;
     }
 
-    void Append (float x)
+    void append (float x)
     {
-        _chain.Append(GetClientData(x));
+        _chain.append(getClientData(x));
     }
 
-    void SetValues(double initial, double step, unsigned int nSteps)
+    void setValues(double initial, double step, unsigned int nSteps)
     {
         _initial = initial, _step = step, _nSteps = nSteps;
     }
@@ -116,31 +116,31 @@ public:
         return _autoscale;
     }
 
-    void SweepTicks()
+    void sweepTicks()
     {
         if (_autoscale) {
             if (_ticks != NULL) {
                 delete [] _ticks;
             }
-            SetTicks();
+            setTicks();
         }
     }
 
-    bool FirstTick(TickIter &iter)
+    bool firstTick(TickIter &iter)
     {
         ChainLink *linkPtr;
 
-        linkPtr = _chain.FirstLink();
-        iter.SetStartingLink(linkPtr);
+        linkPtr = _chain.firstLink();
+        iter.setStartingLink(linkPtr);
         return (linkPtr != NULL);
     }
 
     int reqNumTicks;		/**< Default number of ticks to be displayed. */
 
 private:
-    void SetTicks();	/**< Routine used internally to create the array
+    void setTicks();	/**< Routine used internally to create the array
 				 * of ticks as defined by a given sweep. */
-    void *GetClientData(float x)
+    void *getClientData(float x)
     {
         union {
             float x;
@@ -211,11 +211,11 @@ public:
         }
     }
 
-    void ResetRange();
+    void resetRange();
 
-    void FixRange(double min, double max);
+    void fixRange(double min, double max);
 
-    void SetScale(double min, double max);
+    void setScale(double min, double max);
 
     double scale()
     {
@@ -227,24 +227,24 @@ public:
         return _range;
     }
 
-    bool FirstMajor(TickIter& iter)
+    bool firstMajor(TickIter& iter)
     {
-        return _major.FirstTick(iter);
+        return _major.firstTick(iter);
     }
 
-    bool FirstMinor(TickIter& iter)
+    bool firstMinor(TickIter& iter)
     {
-        return _minor.FirstTick(iter);
+        return _minor.firstTick(iter);
     }
 
-    void GetDataLimits(double& min, double& max)
+    void getDataLimits(double& min, double& max)
     {
         min = _valueMin, max = _valueMax;
     }
 
-    double Map(double x);
+    double map(double x);
 
-    double InvMap(double x);
+    double invMap(double x);
 
     const char *name()
     {
@@ -305,17 +305,17 @@ public:
         _reqMax = max;
     }
 
-    void SetLimits(double min, double max)
+    void setLimits(double min, double max)
     {
         _reqMin = min, _reqMax = max;
     }
 
-    void UnsetLimits()
+    void unsetLimits()
     {
         min(NAN), max(NAN);
     }
 
-    void SetDescendingOption(bool value)
+    void setDescendingOption(bool value)
     {
         if (value) {
             _flags |= DESCENDING;
@@ -324,7 +324,7 @@ public:
         }
     }
 
-    void SetTightMinOption(bool value)
+    void setTightMinOption(bool value)
     {
         if (value) {
             _flags |= TIGHT_MIN;
@@ -333,7 +333,7 @@ public:
         }
     }
 
-    void SetTightMaxOption(bool value)
+    void setTightMaxOption(bool value)
     {
         if (value) {
             _flags |= TIGHT_MAX;
@@ -342,7 +342,7 @@ public:
         }
     }
 
-    void SetLogScaleOption(bool value)
+    void setLogScaleOption(bool value)
     {
         if (value) {
             _flags |= LOGSCALE;
@@ -351,29 +351,29 @@ public:
         }
     }
 
-    void SetMajorStepOption(double value)
+    void setMajorStepOption(double value)
     {
         _reqStep = value;	// Setting to 0.0 resets step to "auto"
     }
 
-    void SetNumMinorTicksOption(int n)
+    void setNumMinorTicksOption(int n)
     {
         _minor.reqNumTicks = n;
     }
 
-    void SetNumMajorTicksOption(int n)
+    void setNumMajorTicksOption(int n)
     {
         _major.reqNumTicks = n;
     }
 
 private:
-    void LogScale();
+    void logScale();
 
-    void LinearScale();
+    void linearScale();
 
-    bool InRange(double x);
+    bool inRange(double x);
 
-    void MakeTicks();
+    void makeTicks();
 
     const char *_name;		/**< Name of the axis. Malloc-ed */
 
