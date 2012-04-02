@@ -189,15 +189,17 @@ void
 FlowBox::Render(Volume *volPtr)
 {
     TRACE("Rendering box %s\n", _name);
-    glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
 
-    glPushMatrix();
+    glPushAttrib(GL_ENABLE_BIT);
 
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
+    //glEnable(GL_BLEND);
 
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
+
     Vector3 origin = volPtr->location();
     glTranslatef(origin.x, origin.y, origin.z);
 
@@ -238,6 +240,7 @@ FlowBox::Render(Volume *volPtr)
     }
     TRACE("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
 
+    glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
     glLineWidth(_sv.lineWidth);
     glBegin(GL_LINE_LOOP); 
     {
@@ -275,13 +278,9 @@ FlowBox::Render(Volume *volPtr)
     glEnd();
 
     glPopMatrix();
-    assert(CheckGL(AT));
-    glPopMatrix();
-    assert(CheckGL(AT));
+    glPopAttrib();
 
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
+    assert(CheckGL(AT));
 }
 
 FlowCmd::FlowCmd(Tcl_Interp *interp, const char *name, Tcl_HashEntry *hPtr) :
@@ -632,18 +631,18 @@ FlowCmd::GetScaledVector()
     memset(data, 0, sizeof(float) * n);
     float *destPtr = data;
     const float *values = _dataPtr->values();
-    for (size_t iz=0; iz < _dataPtr->zNum(); iz++) {
-        for (size_t iy=0; iy < _dataPtr->yNum(); iy++) {
-            for (size_t ix=0; ix < _dataPtr->xNum(); ix++) {
+    for (size_t iz = 0; iz < _dataPtr->zNum(); iz++) {
+        for (size_t iy = 0; iy < _dataPtr->yNum(); iy++) {
+            for (size_t ix = 0; ix < _dataPtr->xNum(); ix++) {
                 double vx, vy, vz, vm;
                 vx = values[0];
                 vy = values[1];
                 vz = values[2];
                 vm = sqrt(vx*vx + vy*vy + vz*vz);
-                destPtr[0] = vm / NanoVis::magMax; 
-                destPtr[1] = vx /(2.0*NanoVis::magMax) + 0.5; 
-                destPtr[2] = vy /(2.0*NanoVis::magMax) + 0.5; 
-                destPtr[3] = vz /(2.0*NanoVis::magMax) + 0.5; 
+                destPtr[0] = vm / NanoVis::magMax;
+                destPtr[1] = vx /(2.0*NanoVis::magMax) + 0.5;
+                destPtr[2] = vy /(2.0*NanoVis::magMax) + 0.5;
+                destPtr[3] = vz /(2.0*NanoVis::magMax) + 0.5;
                 values += 3;
                 destPtr += 4;
             }
@@ -1066,7 +1065,6 @@ NanoVis::MapFlows()
         // FIXME: This doesn't work when there is more than one flow.
         licRenderer->setOffset(flowPtr->GetRelativePosition());
         NanoVis::velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
-        
     }
     AdvectFlows();
     return true;
@@ -1946,10 +1944,16 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
             NanoVis::licRenderer->convolve();
         }
         NanoVis::AdvectFlows();
-        NanoVis::offscreenBufferCapture();
+
+        int fboOrig;
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
+        NanoVis::bindOffscreenBuffer();
         NanoVis::display();
         NanoVis::readScreen();
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
+
         movie.append(context, NanoVis::screenBuffer, pad);
     }
     movie.done(context);
@@ -1966,8 +1970,8 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
 
         char command[200];
-        sprintf(command,"nv>image -bytes %lu -type movie -token \"%s\"\n", 
-                (unsigned long)data.size(), token);
+        sprintf(command,"nv>image -type movie -token \"%s\" -bytes %lu\n", 
+                token, (unsigned long)data.size());
         NanoVis::sendDataToClient(command, data.bytes(), data.size());
     }
     if ((values.width != oldWidth) || (values.height != oldHeight)) {

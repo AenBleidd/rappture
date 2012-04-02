@@ -190,20 +190,14 @@ GetPolygonMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
     return TCL_OK;
 }
 
-/*
- * -----------------------------------------------------------------------
+/**
+ * Creates a heightmap from the given the data. The format of the data
+ * should be as follows:
  *
- * CreateHeightMap --
+ *     xMin, xMax, xNum, yMin, yMax, yNum, heights...
  *
- *      Creates a heightmap from the given the data. The format of the data
- *      should be as follows:
- *
- *              xMin, xMax, xNum, yMin, yMax, yNum, heights...
- *
- *      xNum and yNum must be integer values, all others are real numbers.
- *      The number of heights must be xNum * yNum;
- *
- * -----------------------------------------------------------------------
+ * xNum and yNum must be integer values, all others are real numbers.
+ * The number of heights must be xNum * yNum;
  */
 static HeightMap *
 CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -265,13 +259,6 @@ CreateHeightMap(ClientData clientData, Tcl_Interp *interp, int objc,
     return hmPtr;
 }
 
-/*
- * ----------------------------------------------------------------------
- *
- * GetHeightMapFromObj --
- *
- * ----------------------------------------------------------------------
- */
 static int
 GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 {
@@ -292,10 +279,7 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
 }
 
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetVolumeFromObj
- *
+/**
  * Used internally to decode a series of volume index values and
  * store then in the specified vector.  If there are no volume index
  * arguments, this means "all volumes" to most commands, so all
@@ -303,7 +287,6 @@ GetHeightMapFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, HeightMap **hmPtrPtr)
  *
  * Updates pushes index values into the vector.  Returns TCL_OK or
  * TCL_ERROR to indicate an error.
- * ----------------------------------------------------------------------
  */
 static int
 GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
@@ -324,10 +307,7 @@ GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
     return TCL_OK;
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetVolumes()
- *
+/**
  * Used internally to decode a series of volume index values and
  * store then in the specified vector.  If there are no volume index
  * arguments, this means "all volumes" to most commands, so all
@@ -335,7 +315,6 @@ GetVolumeFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, Volume **volPtrPtr)
  *
  * Updates pushes index values into the vector.  Returns TCL_OK or
  * TCL_ERROR to indicate an error.
- * ----------------------------------------------------------------------
  */
 static int
 GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
@@ -365,10 +344,7 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
     return TCL_OK;
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetHeightMaps()
- *
+/**
  * Used internally to decode a series of volume index values and
  * store then in the specified vector.  If there are no volume index
  * arguments, this means "all volumes" to most commands, so all
@@ -376,7 +352,6 @@ GetVolumes(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
  *
  * Updates pushes index values into the vector.  Returns TCL_OK or
  * TCL_ERROR to indicate an error.
- * ----------------------------------------------------------------------
  */
 static int
 GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
@@ -405,16 +380,11 @@ GetHeightMaps(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv,
     return TCL_OK;
 }
 
-
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetAxis()
- *
+/**
  * Used internally to decode an axis value from a string ("x", "y",
  * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
  * along with a value in valPtr.  Otherwise, it returns TCL_ERROR
  * and an error message in the interpreter.
- * ----------------------------------------------------------------------
  */
 static int
 GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
@@ -440,15 +410,11 @@ GetAxis(Tcl_Interp *interp, const char *string, int *indexPtr)
     return TCL_ERROR;
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetAxisFromObj()
- *
+/**
  * Used internally to decode an axis value from a string ("x", "y",
  * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
  * along with a value in indexPtr.  Otherwise, it returns TCL_ERROR
  * and an error message in the interpreter.
- * ----------------------------------------------------------------------
  */
 int
 GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr)
@@ -456,15 +422,11 @@ GetAxisFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr)
     return GetAxis(interp, Tcl_GetString(objPtr), indexPtr);
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetAxisDirFromObj()
- *
+/**
  * Used internally to decode an axis value from a string ("x", "y",
  * or "z") to its index (0, 1, or 2).  Returns TCL_OK if successful,
  * along with a value in indexPtr.  Otherwise, it returns TCL_ERROR
  * and an error message in the interpreter.
- * ----------------------------------------------------------------------
  */
 static int
 GetAxisDirFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr, int *dirPtr)
@@ -485,15 +447,11 @@ GetAxisDirFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, int *indexPtr, int *dirPt
     return TCL_OK;
 }
 
-/*
- * ----------------------------------------------------------------------
- * FUNCTION: GetColor()
- *
+/**
  * Used internally to decode a color value from a string ("R G B")
  * as a list of three numbers 0-1.  Returns TCL_OK if successful,
  * along with RGB values in rgbPtr.  Otherwise, it returns TCL_ERROR
  * and an error message in the interpreter.
- * ----------------------------------------------------------------------
  */
 static int
 GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
@@ -512,15 +470,9 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
 }
 
 
-/*
- * -----------------------------------------------------------------------
- *
- * GetDataStream -- 
- *
- *      Read the requested number of bytes from standard input into the given
- *      buffer.  The buffer is then decompressed and decoded.
- *
- * -----------------------------------------------------------------------
+/**
+ * Read the requested number of bytes from standard input into the given
+ * buffer.  The buffer is then decompressed and decoded.
  */
 int
 GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
@@ -574,7 +526,6 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
     }
     return TCL_OK;
 }
-
 
 static int
 CameraAimOp(ClientData clientData, Tcl_Interp *interp, int objc, 
@@ -690,19 +641,19 @@ SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int w, h;
 
     w = NanoVis::winWidth, h = NanoVis::winHeight;
+
     NanoVis::resizeOffscreenBuffer(2048, 2048);
 #ifdef notdef
     NanoVis::cam->setScreenSize(0, 0, NanoVis::winWidth, NanoVis::winHeight);
     NanoVis::cam->setScreenSize(30, 90, 2048 - 60, 2048 - 120);
 #endif
-    NanoVis::offscreenBufferCapture();  //enable offscreen render
+    NanoVis::bindOffscreenBuffer();  //enable offscreen render
     NanoVis::display();
     NanoVis::readScreen();
-#ifdef notdef
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0); 
-#endif
+
     NanoVis::ppmWrite("nv>image -bytes %d -type print");
     NanoVis::resizeOffscreenBuffer(w, h);
+
     return TCL_OK;
 }
 
@@ -1014,7 +965,6 @@ UpCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     return TCL_OK;
 }
 
-
 static int
 VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_Obj *const *objv)
@@ -1036,12 +986,15 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
             //interpolator->update(((float)frame_num) / (total - 1));
             interpolator->update(fraction);
 
-            NanoVis::offscreenBufferCapture();  //enable offscreen render
+            int fboOrig;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
+            NanoVis::bindOffscreenBuffer();  //enable offscreen render
 
             NanoVis::display();
             NanoVis::readScreen();
 
-            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
             NanoVis::bmpWriteToFile(frame_num, fileName);
         }
@@ -1116,7 +1069,6 @@ VolumeAnimationOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return (*proc) (clientData, interp, objc, objv);
 }
-
 
 static int
 VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -2168,7 +2120,7 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 #if PLANE_CMD
 static int 
-PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+PlaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv)
 {
     TRACE("load plane for 2D visualization command\n");
@@ -2180,6 +2132,10 @@ PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if (Tcl_GetIntFromObj(interp, objv[1], &index) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (index >= NanoVis::numPlanes) {
+        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetIntFromObj(interp, objv[2], &w) != TCL_OK) {
@@ -2197,10 +2153,11 @@ PlaneNewOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     bzero(tmp, w*h*4);
-    int status = read(0, tmp, w*h*sizeof(float));
+    int status = read(fileno(NanoVis::stdin), tmp, w*h*sizeof(float));
     if (status <= 0) {
-        exit(0);                // Bail out on read error?  Should log the
-                                // error and return a non-zero exit status.
+        delete[] tmp;
+        Tcl_AppendResult(interp, "Failed to read image data for plane", (char*)NULL);
+        return TCL_ERROR;
     }
     NanoVis::plane[index] = new Texture2D(w, h, GL_FLOAT, GL_LINEAR, 1, (float*)tmp);
     delete[] tmp;
@@ -2213,20 +2170,22 @@ PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     TRACE("link the plane to the 2D renderer command\n");
 
-    int plane_index, tf_index;
+    int plane_index;
 
     if (objc != 3) {
         Tcl_AppendResult(interp, "wrong # args: should be \"",
-            Tcl_GetString(objv[0]), " plane_index tf_index \"", (char*)NULL);
+            Tcl_GetString(objv[0]), " plane_index transfunc_name \"", (char*)NULL);
         return TCL_ERROR;
     }
     if (Tcl_GetIntFromObj(interp, objv[1], &plane_index) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (Tcl_GetIntFromObj(interp, objv[2], &tf_index) != TCL_OK) {
+    if (plane_index >= NanoVis::numPlanes) {
+        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
         return TCL_ERROR;
     }
-    //NanoVis::plane_renderer->add_plane(NanoVis::plane[plane_index], tf[tf_index]);
+    NanoVis::planeRenderer->addPlane(NanoVis::plane[plane_index],
+                                     NanoVis::getTransfunc(Tcl_GetString(objv[2])));
     return TCL_OK;
 }
 
@@ -2247,21 +2206,21 @@ PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (Tcl_GetIntFromObj(interp, objv[1], &plane_index) != TCL_OK) {
         return TCL_ERROR;
     }
-    int mode;
-    if (Tcl_GetIntFromObj(interp, objv[2], &mode) != TCL_OK) {
+    if (plane_index >= NanoVis::numPlanes) {
+        Tcl_AppendResult(interp, "Invalid plane_index", (char*)NULL);
         return TCL_ERROR;
-    }
-    if (mode == 0) {
+    } else if (plane_index < 0) {
         plane_index = -1;
     }
-    NanoVis::plane_renderer->set_active_plane(plane_index);
+
+    NanoVis::planeRenderer->setActivePlane(plane_index);
     return TCL_OK;
 }
 
 static Rappture::CmdSpec planeOps[] = {
-    {"enable",     1, PlaneEnableOp,    4, 4, "planeIdx mode",},
+    {"active",     1, PlaneEnableOp,    3, 3, "planeIdx",},
+    {"add",        1, PlaneAddOp,       5, 5, "planeIdx width height",},
     {"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfuncIdx",},
-    {"new",        1, PlaneNewOp,       5, 5, "planeIdx width height",},
 };
 static int nPlaneOps = NumCmdSpecs(planeOps);
 
