@@ -12,7 +12,6 @@ void vpmain(in float4 posin : POSITION,
             uniform sampler3D vfield,
             uniform float tanHalfFOV,
             uniform float4x4 modelview,
-            uniform float4x4 projection,
             uniform float4x4 mvp)
 {
     float4 vec;
