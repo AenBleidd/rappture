@@ -64,25 +64,25 @@ void Grid::render()
         bool result;
         TickIter iter;
 
-        for (result = xAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
-            x = xAxis.Map(iter.GetValue());
+            x = xAxis.map(iter.getValue());
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 1.0f, 0.0f);
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 0.0f, 1.0f + GRID_TICK);
         }
-        for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
-            y = yAxis.Map(iter.GetValue());
+            y = yAxis.map(iter.getValue());
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(1.0f + GRID_TICK, y, 0.0f);
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(0.0f, y, 1.0f);
         }
-        for (result = zAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
             float z;
-            z = zAxis.Map(iter.GetValue());
+            z = zAxis.map(iter.getValue());
             glVertex3f(0.0f, 0.0f, z);
             glVertex3f(0.0f, 1.0f, z);
             glVertex3f(0.0f, 0.0f, z);
@@ -100,25 +100,25 @@ void Grid::render()
         bool result;
         TickIter iter;
 
-        for (result = xAxis.FirstMinor(iter); result; result = iter.Next()) {
+        for (result = xAxis.firstMinor(iter); result; result = iter.next()) {
             float x;
-            x = xAxis.Map(iter.GetValue());
+            x = xAxis.map(iter.getValue());
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 1.0f, 0.0f);
             glVertex3f(x, 0.0f, 0.0f);
             glVertex3f(x, 0.0f, 1.0f);
         }
-        for (result = yAxis.FirstMinor(iter); result; result = iter.Next()) {
+        for (result = yAxis.firstMinor(iter); result; result = iter.next()) {
             float y;
-            y = yAxis.Map(iter.GetValue());
+            y = yAxis.map(iter.getValue());
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(1.0f, y, 0.0f);
             glVertex3f(0.0f, y, 0.0f);
             glVertex3f(0.0f, y, 1.0f);
         }
-        for (result = zAxis.FirstMinor(iter); result; result = iter.Next()) {
+        for (result = zAxis.firstMinor(iter); result; result = iter.next()) {
             float z;
-            z = zAxis.Map(iter.GetValue());
+            z = zAxis.map(iter.getValue());
             glVertex3f(0.0f, 0.0f, z);
             glVertex3f(0.0f, 1.0f, z);
             glVertex3f(0.0f, 0.0f, z);
@@ -171,36 +171,36 @@ void Grid::render()
         
         glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 
 
-        for (result = xAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = xAxis.firstMajor(iter); result; result = iter.next()) {
             float x;
-            x = xAxis.Map(iter.GetValue());
+            x = xAxis.map(iter.getValue());
             if (gluProject(x, 0.0f, 1.06f, mv, prjm, viewport, &wx, &wy, &wz)) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
-                sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
+                sprintf(buff, "%.*g", NUMDIGITS, iter.getValue());
                 _font->draw(buff);
             }
         }
-        for (result = yAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = yAxis.firstMajor(iter); result; result = iter.next()) {
             float y;
-            y = yAxis.Map(iter.GetValue());
+            y = yAxis.map(iter.getValue());
             if (gluProject(1.06f, y, 0.0f, mv, prjm, viewport, &wx, &wy, &wz)) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
-                sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
+                sprintf(buff, "%.*g", NUMDIGITS, iter.getValue());
                 _font->draw(buff);
             }
         }
-        for (result = zAxis.FirstMajor(iter); result; result = iter.Next()) {
+        for (result = zAxis.firstMajor(iter); result; result = iter.next()) {
             float z;
-            z = zAxis.Map(iter.GetValue());
+            z = zAxis.map(iter.getValue());
             if (gluProject(1.06f, 0.0f, z, mv, prjm, viewport, &wx, &wy, &wz)) {
                 char buff[20];
                 glLoadIdentity();
                 glTranslatef((int) wx, (int) viewport[3] - (int)wy, 0.0f);
-                sprintf(buff, "%.*g", NUMDIGITS, iter.GetValue());
+                sprintf(buff, "%.*g", NUMDIGITS, iter.getValue());
                 _font->draw(buff);
             }
         }
