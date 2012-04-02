@@ -711,7 +711,7 @@ makeTest2DData()
 void NanoVis::initParticle()
 {
     flowVisRenderer->initialize();
-    licRenderer->make_patterns();
+    licRenderer->makePatterns();
 }
 
 static
@@ -794,8 +794,7 @@ void NanoVis::init(const char* path)
     NanoVis::velocityArrowsSlice = new VelocityArrowsSlice;
 
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, 
-                            Vector3(_licSliceX, _licSliceY, _licSliceZ), 
-                            NvShader::getCgContext());
+                            Vector3(_licSliceX, _licSliceY, _licSliceZ));
 
     grid = new Grid();
     grid->setFont(fonts);

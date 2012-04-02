@@ -297,8 +297,8 @@ public:
     void ActivateSlice()
     {
         /* Must set axis before offset or position goes to wrong axis. */
-        NanoVis::licRenderer->set_axis(_sv.slicePos.axis);
-        NanoVis::licRenderer->set_offset(_sv.slicePos.value);
+        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
+        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
         NanoVis::licRenderer->active(true);
     }
 
@@ -321,24 +321,24 @@ public:
 
     void SetAxis()
     {
-        NanoVis::licRenderer->set_axis(_sv.slicePos.axis);
+        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
     }
 
     void SetAxis(FlowCmd::SliceAxis axis)
     {
         _sv.slicePos.axis = axis;
-        NanoVis::licRenderer->set_axis(_sv.slicePos.axis);
+        NanoVis::licRenderer->setAxis(_sv.slicePos.axis);
     }
 
     void SetCurrentPosition(float position)
     {
         _sv.slicePos.value = position;
-        NanoVis::licRenderer->set_offset(_sv.slicePos.value);
+        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
     }
 
     void SetCurrentPosition()
     {
-        NanoVis::licRenderer->set_offset(_sv.slicePos.value);
+        NanoVis::licRenderer->setOffset(_sv.slicePos.value);
     }
 
     void SetActive(bool state)
