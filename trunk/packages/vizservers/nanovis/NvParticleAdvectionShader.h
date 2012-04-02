@@ -7,7 +7,7 @@
 
 class NvParticleAdvectionShader : public NvShader
 {
-public : 
+public: 
     NvParticleAdvectionShader();
 
     virtual ~NvParticleAdvectionShader();
@@ -40,7 +40,7 @@ public :
         _mode = mode;
     }
 
-private :
+private:
     void init();
 
     CGparameter _posTexParam;

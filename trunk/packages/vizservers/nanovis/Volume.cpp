@@ -70,7 +70,7 @@ Volume::Volume(float x, float y, float z,
 
     id = _tex->id();
 
-    wAxis.SetRange(v0, v1);
+    wAxis.setRange(v0, v1);
 
     // VOLUME
     aspectRatioWidth  = s * _tex->aspectRatioWidth();

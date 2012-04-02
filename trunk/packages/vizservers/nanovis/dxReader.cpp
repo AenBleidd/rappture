@@ -385,10 +385,10 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
                                      vmin, vmax, nzero_min);
-        volPtr->xAxis.SetRange(x0, x0 + lx);
-        volPtr->yAxis.SetRange(y0, y0 + ly);
-        volPtr->zAxis.SetRange(z0, z0 + lz); 
-        volPtr->wAxis.SetRange(vmin, vmax);
+        volPtr->xAxis.setRange(x0, x0 + lx);
+        volPtr->yAxis.setRange(y0, y0 + ly);
+        volPtr->zAxis.setRange(z0, z0 + lz); 
+        volPtr->wAxis.setRange(vmin, vmax);
         volPtr->updatePending = true;
         // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
@@ -494,13 +494,13 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
                                      vmin, vmax, nzero_min);
-        volPtr->xAxis.SetRange(field.rangeMin(Rappture::xaxis),
+        volPtr->xAxis.setRange(field.rangeMin(Rappture::xaxis),
                                field.rangeMax(Rappture::xaxis));
-        volPtr->yAxis.SetRange(field.rangeMin(Rappture::yaxis),
+        volPtr->yAxis.setRange(field.rangeMin(Rappture::yaxis),
                                field.rangeMax(Rappture::yaxis));
-        volPtr->zAxis.SetRange(field.rangeMin(Rappture::zaxis),
+        volPtr->zAxis.setRange(field.rangeMin(Rappture::zaxis),
                                field.rangeMax(Rappture::zaxis));
-        volPtr->wAxis.SetRange(field.valueMin(), field.valueMax());
+        volPtr->wAxis.setRange(field.valueMin(), field.valueMax());
         volPtr->updatePending = true;
         // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
