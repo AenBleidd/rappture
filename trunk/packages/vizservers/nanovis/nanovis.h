@@ -71,17 +71,16 @@ public:
 	MAP_HEIGHTMAPS = (1 << 3),
     };
 
-    static void init(const char *path);
     static void xinetdListen();
+    static void init(const char *path);
     static void initGL();
     static void initOffscreenBuffer();
     static void resizeOffscreenBuffer(int w, int h);
-    static void resize(int w, int h);
-    static void render();
+    static void displayOffscreenBuffer();
     static void display();
     static void idle();
     static void update();
-    static void displayOffscreenBuffer();
+
     static void pan(float dx, float dy);
     static void zoom(float z);
 
@@ -119,6 +118,8 @@ public:
     static void motion(int x, int y);
     static void updateRot(int delta_x, int delta_y);
     static void updateTrans(int delta_x, int delta_y, int delta_z);
+    static void resize(int w, int h);
+    static void render();
 #endif
 
     static void readScreen()
@@ -126,7 +127,7 @@ public:
         glReadPixels(0, 0, winWidth, winHeight, GL_RGB, GL_UNSIGNED_BYTE, 
                      screenBuffer);
     }
-    static void offscreenBufferCapture()
+    static void bindOffscreenBuffer()
     {
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     }
@@ -173,6 +174,7 @@ public:
     static NvLIC *licRenderer;
     static PlaneRenderer *planeRenderer;
 #if PLANE_CMD
+    static int numPlanes;
     static Texture2D *plane[]; ///< Pointers to 2D planes
 #endif
 #ifdef USE_POINTSET_RENDERER

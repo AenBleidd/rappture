@@ -127,6 +127,7 @@ std::vector<PointSet *> NanoVis::pointSet;
 PlaneRenderer *NanoVis::planeRenderer = NULL;
 #if PLANE_CMD
 // pointers to 2D planes, currently handle up 10
+int NanoVis::numPlanes = 10;
 Texture2D *NanoVis::plane[10];
 #endif
 Texture2D *NanoVis::legendTexture = NULL;
@@ -457,7 +458,7 @@ NanoVis::loadVolume(const char *name, int width, int height, int depth,
                     double nzero_min)
 {
     Tcl_HashEntry *hPtr;
-    hPtr = Tcl_FindHashEntry(&NanoVis::volumeTable, name);
+    hPtr = Tcl_FindHashEntry(&volumeTable, name);
     if (hPtr != NULL) {
         Volume *volPtr; 
         WARN("volume \"%s\" already exists", name);
@@ -465,17 +466,17 @@ NanoVis::loadVolume(const char *name, int width, int height, int depth,
         removeVolume(volPtr);
     }
     int isNew;
-    hPtr = Tcl_CreateHashEntry(&NanoVis::volumeTable, name, &isNew);
+    hPtr = Tcl_CreateHashEntry(&volumeTable, name, &isNew);
     Volume* volPtr;
     volPtr = new Volume(0.f, 0.f, 0.f, width, height, depth, 1., n_component,
-                data, vmin, vmax, nzero_min);
+                        data, vmin, vmax, nzero_min);
     Tcl_SetHashValue(hPtr, volPtr);
-    volPtr->name(Tcl_GetHashKey(&NanoVis::volumeTable, hPtr));
+    volPtr->name(Tcl_GetHashKey(&volumeTable, hPtr));
     return volPtr;
 }
 
 // Gets a colormap 1D texture by name.
-TransferFunction*
+TransferFunction *
 NanoVis::getTransfunc(const char *name) 
 {
     Tcl_HashEntry *hPtr;
@@ -484,11 +485,11 @@ NanoVis::getTransfunc(const char *name)
     if (hPtr == NULL) {
         return NULL;
     }
-    return (TransferFunction*)Tcl_GetHashValue(hPtr);
+    return (TransferFunction *)Tcl_GetHashValue(hPtr);
 }
 
 // Creates of updates a colormap 1D texture by name.
-TransferFunction*
+TransferFunction *
 NanoVis::defineTransferFunction(const char *name, size_t n, float *data)
 {
     int isNew;
@@ -520,7 +521,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
     int old_width = winWidth;
     int old_height = winHeight;
 
-    planeRenderer->set_screen_size(width, height);
+    planeRenderer->setScreenSize(width, height);
     resizeOffscreenBuffer(width, height);
 
     // generate data for the legend
@@ -529,10 +530,10 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
         data[i] = data[i+256] = (float)(i/255.0);
     }
     legendTexture = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-    int index = planeRenderer->add_plane(legendTexture, tf);
-    planeRenderer->set_active_plane(index);
+    int index = planeRenderer->addPlane(legendTexture, tf);
+    planeRenderer->setActivePlane(index);
 
-    offscreenBufferCapture();
+    bindOffscreenBuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     planeRenderer->render();
 
@@ -550,7 +551,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
         nWritten = write(1, "\n", 1);
         assert(nWritten == 1);
     }
-    planeRenderer->remove_plane(index);
+    planeRenderer->removePlane(index);
     resizeOffscreenBuffer(old_width, old_height);
 
     TRACE("leaving renderLegend\n");
@@ -563,6 +564,7 @@ void
 NanoVis::initOffscreenBuffer()
 {
     TRACE("in initOffscreenBuffer\n");
+    assert(_finalFbo == 0);
     // Initialize a fbo for final display.
     glGenFramebuffersEXT(1, &_finalFbo);
 
@@ -571,6 +573,8 @@ NanoVis::initOffscreenBuffer()
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
 #if defined(HAVE_FLOAT_TEXTURES) && defined(USE_HALF_FLOAT)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);
@@ -581,6 +585,7 @@ NanoVis::initOffscreenBuffer()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);
 #endif
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
     glGenRenderbuffersEXT(1, &_finalDepthRb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _finalDepthRb);
@@ -597,10 +602,6 @@ NanoVis::initOffscreenBuffer()
         doExit(3);
     }
 
-    // Check framebuffer completeness at the end of initialization.
-    //CHECK_FRAMEBUFFER_STATUS();
-
-    //assert(glGetError()==0);
     TRACE("leaving initOffscreenBuffer\n");
 }
 
@@ -645,6 +646,8 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
 #if defined(HAVE_FLOAT_TEXTURES) && defined(USE_HALF_FLOAT)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);
@@ -655,9 +658,8 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, winWidth, winHeight, 0,
                  GL_RGB, GL_INT, NULL);
 #endif
-    TRACE("before bindframebuffer\n");
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _finalFbo);
-    TRACE("after bindframebuffer\n");
     glGenRenderbuffersEXT(1, &_finalDepthRb);
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _finalDepthRb);
     glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, 
@@ -673,11 +675,10 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
         doExit(3);
     }
 
-    //CHECK_FRAMEBUFFER_STATUS();
     TRACE("change camera\n");
     //change the camera setting
     cam->setScreenSize(0, 0, winWidth, winHeight);
-    planeRenderer->set_screen_size(winWidth, winHeight);
+    planeRenderer->setScreenSize(winWidth, winHeight);
 
     TRACE("leaving resizeOffscreenBuffer(%d, %d)\n", w, h);
 }
@@ -725,11 +726,11 @@ void cgErrorCallback(void)
 
 void NanoVis::init(const char* path)
 {
-    // print system information
+    // print OpenGL driver information
     TRACE("-----------------------------------------------------------\n");
-    TRACE("OpenGL driver: %s %s\n", glGetString(GL_VENDOR),
-          glGetString(GL_VERSION));
-    TRACE("Graphics hardware: %s\n", glGetString(GL_RENDERER));
+    TRACE("OpenGL version: %s\n", glGetString(GL_VERSION));
+    TRACE("OpenGL vendor: %s\n", glGetString(GL_VENDOR));
+    TRACE("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
     TRACE("-----------------------------------------------------------\n");
 
     if (path == NULL) {
@@ -743,30 +744,38 @@ void NanoVis::init(const char* path)
     }
     TRACE("Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
+    // OpenGL 2.1 includes VBOs, PBOs, MRT, NPOT textures, point parameters, point sprites,
+    // GLSL 1.2, and occlusion queries.
+    if (!GLEW_VERSION_2_1) {
+        ERROR("OpenGL version 2.1 or greater is required\n");
+        doExit(1);
+    }
+
+    // Additional extensions not in 2.1 core
+
+    // Framebuffer objects were promoted in 3.0
     if (!GLEW_EXT_framebuffer_object) {
-        ERROR("EXT_framebuffer_oject extension is required to run nanovis\n");
+        ERROR("EXT_framebuffer_oject extension is required\n");
         doExit(1);
     }
-#ifdef HAVE_NPOT_TEXTURES
-    if (!GLEW_ARB_texture_non_power_of_two) {
-        ERROR("ARB_texture_non_power_of_two extension is required to run nanovis\n");
-        doExit(1);
-    }
-#endif
+    // Rectangle textures were promoted in 3.1
+    // FIXME: can use NPOT in place of rectangle textures
     if (!GLEW_ARB_texture_rectangle) {
-        ERROR("ARB_texture_rectangle extension is required to run nanovis\n");
+        ERROR("ARB_texture_rectangle extension is required\n");
         doExit(1);
     }
 #ifdef HAVE_FLOAT_TEXTURES
+    // Float color buffers and textures were promoted in 3.0
     if (!GLEW_ARB_texture_float ||
         !GLEW_ARB_color_buffer_float) {
-        ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required to run nanovis\n");
+        ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required\n");
         doExit(1);
     }
 #endif
+    // FIXME: should use ARB programs or (preferably) a GLSL profile for portability
     if (!GLEW_NV_vertex_program3 ||
         !GLEW_NV_fragment_program2) {
-        ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required to run nanovis\n");
+        ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required\n");
         doExit(1);
     }
 
@@ -791,7 +800,7 @@ void NanoVis::init(const char* path)
 
     flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
 
-    NanoVis::velocityArrowsSlice = new VelocityArrowsSlice;
+    velocityArrowsSlice = new VelocityArrowsSlice;
 
     licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, 
                             Vector3(_licSliceX, _licSliceY, _licSliceZ));
@@ -804,9 +813,8 @@ void NanoVis::init(const char* path)
 #endif
 }
 
-/*----------------------------------------------------*/
 void
-NanoVis::initGL(void)
+NanoVis::initGL()
 {
     TRACE("in initGL\n");
     //buffer to store data read from the screen
@@ -826,9 +834,8 @@ NanoVis::initGL(void)
     glEnable(GL_TEXTURE_2D);
     glShadeModel(GL_FLAT);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glClearColor(0,0,0,1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //initialize lighting
     GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
@@ -864,7 +871,7 @@ NanoVis::initGL(void)
     planeRenderer = new PlaneRenderer(winWidth, winHeight);
 #if PROTOTYPE
     make_test_2D_data();
-    planeRenderer->add_plane(plane[0], getTransfunc("default"));
+    planeRenderer->addPlane(plane[0], getTransfunc("default"));
 #endif
 
     //assert(glGetError()==0);
@@ -1229,6 +1236,7 @@ void
 NanoVis::displayOffscreenBuffer()
 {
     TRACE("in display_offscreen_buffer\n");
+
     glEnable(GL_TEXTURE_2D);
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     glBindTexture(GL_TEXTURE_2D, _finalColorTex);
@@ -1249,6 +1257,7 @@ NanoVis::displayOffscreenBuffer()
         glTexCoord2f(0, 1); glVertex2f(0, winHeight);
     }
     glEnd();
+
     TRACE("leaving display_offscreen_buffer\n");
 }
 
@@ -1336,18 +1345,17 @@ sortstep()
 static void 
 draw3dAxis()
 {
+    glPushAttrib(GL_ENABLE_BIT);
+
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_COLOR_MATERIAL);
+    glDisable(GL_BLEND);
 
     //draw axes
     GLUquadric *obj;
 
     obj = gluNewQuadric();
-
-    glDepthFunc(GL_LESS);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
 
     int segments = 50;
 
@@ -1415,12 +1423,9 @@ draw3dAxis()
     gluCylinder(obj, 0.02, 0.0, 0.06, segments, segments);
     glPopMatrix();
 
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
     gluDeleteQuadric(obj);
 
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_DEPTH_TEST);
+    glPopAttrib();
 }
 
 void NanoVis::update()
@@ -1589,16 +1594,20 @@ NanoVis::display()
     if (Volume::updatePending) {
         setVolumeRanges();
     }
-    TRACE("in display: glClear\n");
+
     //start final rendering
+
+    // Need to reset fbo since it may have been changed to default (0)
+    bindOffscreenBuffer();
+
+    TRACE("in display: glClear\n");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
     if (volumeMode) {
         TRACE("in display: volumeMode\n");
         //3D rendering mode
-        // TBD..
-        //glEnable(GL_TEXTURE_2D);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_COLOR_MATERIAL);
 
         //camera setting activated
         cam->initialize();
@@ -1629,9 +1638,6 @@ NanoVis::display()
             glRotatef(90, 1, 0, 0);
             break;
         }
-
-        // TBD : This will be removed after being sure that all the functions work well.
-        //glPushMatrix();
 
         //now render things in the scene
         if (axisOn) {
@@ -1843,8 +1849,8 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->active(true);
-            NanoVis::licRenderer->active(true);
+            flowVisRenderer->active(true);
+            licRenderer->active(true);
 #endif
         }
         break;
@@ -1858,8 +1864,8 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->active(false);
-            NanoVis::licRenderer->active(false);
+            flowVisRenderer->active(false);
+            licRenderer->active(false);
 #endif
         }
         break;
@@ -1915,7 +1921,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
+            flowVisRenderer->deactivatePlane("vf_name1", "plane_name2"); 
 #endif
         }
         break;
@@ -1927,7 +1933,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->removeVectorField("vf_name2");
+            flowVisRenderer->removeVectorField("vf_name2");
 #endif
         }
         break;
@@ -1945,16 +1951,16 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             shape.min.set(0, 0, 0);
             shape.max.set(30, 3, 3);
             shape.color.set(1, 0, 0, 1);
-            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
+            flowVisRenderer->addDeviceShape("vf_name1", "device1", shape);
             shape.min.set(0, -1, -1);
             shape.max.set(30, 4, 4);
             shape.color.set(0, 1, 0, 1);
-            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
+            flowVisRenderer->addDeviceShape("vf_name1", "device2", shape);
             shape.min.set(10, -1.5, -1);
             shape.max.set(20, 4.5, 4.5);
             shape.color.set(0, 0, 1, 1);
-            NanoVis::flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
-            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+            flowVisRenderer->addDeviceShape("vf_name1", "device3", shape);
+            flowVisRenderer->activateDeviceShape("vf_name1");
 #endif
         }
         break;
@@ -1966,7 +1972,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1");
+            flowVisRenderer->deactivateDeviceShape("vf_name1");
 #endif
         }
         break;
@@ -1978,7 +1984,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1");
+            flowVisRenderer->activateDeviceShape("vf_name1");
 #endif
         }
         break;
@@ -1990,7 +1996,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->activateDeviceShape("vf_name1", "device3");
+            flowVisRenderer->activateDeviceShape("vf_name1", "device3");
 #endif
         }
         break;
@@ -2002,7 +2008,7 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
+            flowVisRenderer->deactivateDeviceShape("vf_name1", "device3");
 #endif
         }
         break;
@@ -2014,8 +2020,8 @@ NanoVis::keyboard(unsigned char key, int x, int y)
             };
             Tcl_Eval(interp, cmd);
 #ifdef notdef
-            NanoVis::flowVisRenderer->reset();
-            NanoVis::licRenderer->reset();
+            flowVisRenderer->reset();
+            licRenderer->reset();
 #endif
         }
         break;
@@ -2065,28 +2071,26 @@ NanoVis::motion(int x, int y)
     glutPostRedisplay();
 }
 
-#endif /*XINETD*/
-
 void 
 NanoVis::render()
 {
 
 #ifdef notdef
-    if ((NanoVis::licRenderer != NULL) && (NanoVis::licRenderer->active())) {
-        NanoVis::licRenderer->convolve();
+    if ((licRenderer != NULL) && (licRenderer->active())) {
+        licRenderer->convolve();
     }
 #else
-    if (NanoVis::licRenderer != NULL) {
-        NanoVis::licRenderer->convolve();
+    if (licRenderer != NULL) {
+        licRenderer->convolve();
     }
 #endif
 
 #ifdef notdef
-    if ((NanoVis::flowVisRenderer != NULL) && (NanoVis::flowVisRenderer->active())) {
-        NanoVis::flowVisRenderer->advect();
+    if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
+        flowVisRenderer->advect();
     }
 #endif
-    NanoVis::update();
+    update();
     display();
     glutSwapBuffers();
 }
@@ -2097,10 +2101,12 @@ NanoVis::resize(int x, int y)
     glViewport(0, 0, x, y);
 }
 
+#endif /*XINETD*/
+
 void 
-NanoVis::xinetdListen(void)
+NanoVis::xinetdListen()
 {
-    NanoVis::flags &= ~REDRAW_PENDING;
+    flags &= ~REDRAW_PENDING;
 
     TRACE("Enter xinetdListen\n");
 
@@ -2183,19 +2189,17 @@ NanoVis::xinetdListen(void)
         doExit(90);
     }
 
-    NanoVis::update();
+    update();
 
-    NanoVis::offscreenBufferCapture();  //enable offscreen render
+    bindOffscreenBuffer();  //enable offscreen render
 
-    NanoVis::display();
+    display();
 
-    // INSOO
 #ifdef XINETD
-    NanoVis::readScreen();
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    readScreen();
 #else
-    NanoVis::displayOffscreenBuffer(); //display the final rendering on screen
-    NanoVis::readScreen();
+    displayOffscreenBuffer(); //display the final rendering on screen
+    readScreen();
     glutSwapBuffers();
 #endif
 
@@ -2210,13 +2214,11 @@ NanoVis::xinetdListen(void)
     write(1, offsets, offsets_size*sizeof(offsets[0]));
     write(1, rle, rle_size);    //unsigned byte
 #else
-    NanoVis::ppmWrite("\nnv>image -type image -bytes");
+    ppmWrite("\nnv>image -type image -bytes");
 #endif
     TRACE("Leaving xinetd_listen OK\n");
 }
 
-
-/*----------------------------------------------------*/
 int 
 main(int argc, char **argv)
 {
@@ -2387,18 +2389,18 @@ NanoVis::render2dContour(HeightMap* heightmap, int width, int height)
     resizeOffscreenBuffer(width, height);
 
     /*
-      planeRenderer->set_screen_size(width, height);
+      planeRenderer->setScreenSize(width, height);
 
       // generate data for the legend
       float data[512];
       for (int i=0; i < 256; i++) {
-      data[i] = data[i+256] = (float)(i/255.0);
+          data[i] = data[i+256] = (float)(i/255.0);
       }
       plane[0] = new Texture2D(256, 2, GL_FLOAT, GL_LINEAR, 1, data);
-      int index = planeRenderer->add_plane(plane[0], tf);
-      planeRenderer->set_active_plane(index);
+      int index = planeRenderer->addPlane(plane[0], tf);
+      planeRenderer->setActivePlane(index);
 
-      offscreenBufferCapture();
+      bindOffscreenBuffer();
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
       //planeRenderer->render();
@@ -2418,14 +2420,14 @@ NanoVis::render2dContour(HeightMap* heightmap, int width, int height)
     //sprintf(prefix, "nv>height_top_view %s %g %g", volArg, min, max);
     //ppmWrite(prefix);
     //write(1, "\n", 1);
-    //planeRenderer->remove_plane(index);
+    //planeRenderer->removePlane(index);
 
     // CURRENT
-    offscreenBufferCapture();
+    bindOffscreenBuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
     //glEnable(GL_TEXTURE_2D);
     //glEnable(GL_DEPTH_TEST);
-    //heightmap->render_topview(renderContext, width, height);
+    //heightmap->renderTopview(renderContext, width, height);
     //NanoVis::display();
     if (HeightMap::updatePending) {
         setHeightmapRanges();
@@ -2435,8 +2437,7 @@ NanoVis::render2dContour(HeightMap* heightmap, int width, int height)
 
     heightmap->renderTopview(renderContext, width, height);
 
-    NanoVis::readScreen();
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    readScreen();
 
     // INSOO TEST CODE
     bmpWriteToFile(1, "/tmp");

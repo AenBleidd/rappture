@@ -37,26 +37,27 @@ public:
 
     ~PlaneRenderer();
 
-    int add_plane(Texture2D *p, TransferFunction *tf);
+    /// Add a plane and its transfer function.
+    int addPlane(Texture2D *p, TransferFunction *tf);
 
-    // Add a plane and its transfer function. We require a transfer function
-    // when a plane is added.
-    void remove_plane(int index);
+    void removePlane(int index);
 
-    void set_active_plane(int index); //set the active plane to be rendered
+    /// Set the active plane to be rendered
+    void setActivePlane(int index);
 
-    void set_screen_size(int w, int h);	//change the rendering size
+    /// Change the rendering size
+    void setScreenSize(int w, int h);
 
     void render();
 
 private:
-    std::vector<Texture2D *> _plane;	// Array of volumes
-    std::vector<TransferFunction *> _tf; // Array of corresponding transfer functions 
-    int _active_plane;		// The active plane, only one is rendered
-    int _n_planes;
+    std::vector<Texture2D *> _plane;	 ///< Array of images
+    std::vector<TransferFunction *> _tf; ///< Array of corresponding transfer functions 
+    int _activePlane;                    ///< The active plane, only one is rendered
+    int _numPlanes;
 
-    int _render_width;   //render size
-    int _render_height;  
+    int _renderWidth;
+    int _renderHeight;  
 
     NvColorTableShader *_shader;
 };

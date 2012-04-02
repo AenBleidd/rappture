@@ -18,10 +18,10 @@
 #include "Trace.h"
 
 PlaneRenderer::PlaneRenderer(int width, int height) :
-    _active_plane(-1),
-    _n_planes(0),
-    _render_width(width),
-    _render_height(height),
+    _activePlane(-1),
+    _numPlanes(0),
+    _renderWidth(width),
+    _renderHeight(height),
     _shader(new NvColorTableShader())
 {
     _plane.clear();
@@ -34,22 +34,22 @@ PlaneRenderer::~PlaneRenderer()
 }
 
 int 
-PlaneRenderer::add_plane(Texture2D *p, TransferFunction *tfPtr)
+PlaneRenderer::addPlane(Texture2D *p, TransferFunction *tfPtr)
 {
-    int ret = _n_planes;
+    int ret = _numPlanes;
 
     _plane.push_back(p);
     _tf.push_back(tfPtr);
 
     if (ret == 0)
-        _active_plane = ret;
+        _activePlane = ret;
 
-    _n_planes++;
+    _numPlanes++;
     return ret;
 }
 
 void
-PlaneRenderer::remove_plane(int index)
+PlaneRenderer::removePlane(int index)
 {
     std::vector<Texture2D *>::iterator piter = _plane.begin()+index;
     std::vector<TransferFunction *>::iterator tfiter = _tf.begin()+index;
@@ -57,50 +57,62 @@ PlaneRenderer::remove_plane(int index)
     _plane.erase(piter);
     _tf.erase(tfiter);
 
-    _n_planes--;
+    _numPlanes--;
 }
 
 void 
 PlaneRenderer::render()
 {
-    if (_n_planes == 0)
+    if (_numPlanes == 0)
         return;
+
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
 
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
 
-    glViewport(0, 0, _render_width, _render_height);
+    glViewport(0, 0, _renderWidth, _renderHeight);
     glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
     glLoadIdentity();
-    gluOrtho2D(0, _render_width, 0, _render_height);
+    gluOrtho2D(0, _renderWidth, 0, _renderHeight);
     glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
     glLoadIdentity();
 
     //glColor3f(1., 1., 1.);         //MUST HAVE THIS LINE!!!
 
     //if no active plane
-    if (_active_plane == -1)
+    if (_activePlane == -1)
         return;
 
-    _shader->bind(_plane[_active_plane], _tf[_active_plane]);
+    _shader->bind(_plane[_activePlane], _tf[_activePlane]);
     glBegin(GL_QUADS);
     glTexCoord2f(0, 0); glVertex2f(0, 0);
-    glTexCoord2f(1, 0); glVertex2f(_render_width, 0);
-    glTexCoord2f(1, 1); glVertex2f(_render_width, _render_height);
-    glTexCoord2f(0, 1); glVertex2f(0, _render_height);
+    glTexCoord2f(1, 0); glVertex2f(_renderWidth, 0);
+    glTexCoord2f(1, 1); glVertex2f(_renderWidth, _renderHeight);
+    glTexCoord2f(0, 1); glVertex2f(0, _renderHeight);
     glEnd();
     _shader->unbind();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glPopAttrib();
 }
 
 void
-PlaneRenderer::set_active_plane(int index) 
+PlaneRenderer::setActivePlane(int index) 
 {
-    _active_plane = index;
+    _activePlane = index;
 }
 
 void
-PlaneRenderer::set_screen_size(int w, int h) 
+PlaneRenderer::setScreenSize(int w, int h) 
 {
-    _render_width = w;
-    _render_height = h;
+    _renderWidth = w;
+    _renderHeight = h;
 }
