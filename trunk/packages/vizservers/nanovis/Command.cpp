@@ -1669,7 +1669,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     Rappture::Unirect2d data(1);
-    if (data.ParseBuffer(interp, buf) != TCL_OK) {
+    if (data.parseBuffer(interp, buf) != TCL_OK) {
 	return TCL_ERROR;
     }
     if (data.nValues() == 0) {
@@ -2298,7 +2298,7 @@ Unirect2dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Rappture::Unirect2d *dataPtr = (Rappture::Unirect2d *)clientData;
 
-    return dataPtr->LoadData(interp, objc, objv);
+    return dataPtr->loadData(interp, objc, objv);
 }
 
 /*
@@ -2319,7 +2319,7 @@ Unirect3dCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Rappture::Unirect3d *dataPtr = (Rappture::Unirect3d *)clientData;
 
-    return dataPtr->LoadData(interp, objc, objv);
+    return dataPtr->loadData(interp, objc, objv);
 }
 
 Tcl_Interp *

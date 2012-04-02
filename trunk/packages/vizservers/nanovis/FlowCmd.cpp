@@ -731,28 +731,28 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     size_t length = buf.size();
     char *bytes = (char *)buf.bytes();
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-        if (!dataPtr->ImportDx(result, nComponents, length-4, bytes+4)) {
+        if (!dataPtr->importDx(result, nComponents, length-4, bytes+4)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-        if (dataPtr->ParseBuffer(interp, buf) != TCL_OK) {
+        if (dataPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete dataPtr;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
         Rappture::Unirect2d *u2dPtr;
         u2dPtr = new Rappture::Unirect2d(nComponents);
-        if (u2dPtr->ParseBuffer(interp, buf) != TCL_OK) {
+        if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete u2dPtr;
             return TCL_ERROR;
         }
-        dataPtr->Convert(u2dPtr);
+        dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
         TRACE("header is %.14s\n", buf.bytes());
-        if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
+        if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
             return TCL_ERROR;
@@ -814,28 +814,28 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     size_t length = buf.size();
     char *bytes = (char *)buf.bytes();
     if ((length > 4) && (strncmp(bytes, "<DX>", 4) == 0)) {
-        if (!dataPtr->ImportDx(result, nComponents, length - 4, bytes + 4)) {
+        if (!dataPtr->importDx(result, nComponents, length - 4, bytes + 4)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect3d ", 10) == 0)) {
-        if (dataPtr->ParseBuffer(interp, buf) != TCL_OK) {
+        if (dataPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete dataPtr;
             return TCL_ERROR;
         }
     } else if ((length > 10) && (strncmp(bytes, "unirect2d ", 10) == 0)) {
         Rappture::Unirect2d *u2dPtr;
         u2dPtr = new Rappture::Unirect2d(nComponents);
-        if (u2dPtr->ParseBuffer(interp, buf) != TCL_OK) {
+        if (u2dPtr->parseBuffer(interp, buf) != TCL_OK) {
             delete u2dPtr;
             return TCL_ERROR;
         }
-        dataPtr->Convert(u2dPtr);
+        dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
         TRACE("header is %.14s\n", buf.bytes());
-        if (!dataPtr->ImportDx(result, nComponents, length, bytes)) {
+        if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
             return TCL_ERROR;

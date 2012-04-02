@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef _UNIRECT_H
-#define _UNIRECT_H
+#ifndef UNIRECT_H
+#define UNIRECT_H
 
 #include <float.h>
 
@@ -54,19 +54,19 @@ public:
     {
         if (_values != NULL) {
             free(_values);
-	}
-	if (_xUnits != NULL) {
+        }
+        if (_xUnits != NULL) {
             free(_xUnits);
-	}
-	if (_yUnits != NULL) {
+        }
+        if (_yUnits != NULL) {
             free(_yUnits);
-	}
-	if (_zUnits != NULL) {
+        }
+        if (_zUnits != NULL) {
             free(_zUnits);
-	}
-	if (_vUnits != NULL) {
+        }
+        if (_vUnits != NULL) {
             free(_vUnits);
-	}
+        }
     }
 
     size_t xNum()
@@ -176,7 +176,7 @@ public:
     double magMin()
     {
         if (_magMin == DBL_MAX) {
-            GetVectorRange();
+            getVectorRange();
         }
         return _magMin;
     }
@@ -184,7 +184,7 @@ public:
     double magMax()
     {
         if (_magMax == -DBL_MAX) {
-            GetVectorRange();
+            getVectorRange();
         }
         return _magMax;
     }
@@ -203,16 +203,16 @@ public:
         return _nValues;
     }
 
-    int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
+    int loadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
 
-    int ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
+    int parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
 
-    bool ImportDx(Rappture::Outcome &result, size_t nComponents, 
-		  size_t length, char *string);
+    bool importDx(Rappture::Outcome &result, size_t nComponents, 
+                  size_t length, char *string);
 
-    bool Convert(Unirect2d *dataPtr);
+    bool convert(Unirect2d *dataPtr);
 
-    bool Resample(Rappture::Outcome &context, size_t nSamples = 30);
+    bool resample(Rappture::Outcome &context, size_t nSamples = 30);
 
     bool isInitialized()
     {
@@ -220,7 +220,7 @@ public:
     }
 
 private:
-    void GetVectorRange();
+    void getVectorRange();
 
     size_t _xNum, _yNum, _zNum;
     size_t _nValues;
@@ -229,8 +229,8 @@ private:
     float _xValueMin, _xValueMax;
     float _yValueMin, _yValueMax;
     float _zValueMin, _zValueMax;
-    double _magMin, _magMax;		/* Range of magnitudes of vector
-					 * data. */
+    double _magMin, _magMax;                /* Range of magnitudes of vector
+                                         * data. */
     char *_xUnits;
     char *_yUnits;
     char *_zUnits;
@@ -257,13 +257,13 @@ public:
     {
         if (_values != NULL) {
             free(_values);
-	}
+        }
         if (_xUnits != NULL) {
             free(_xUnits);
-	}
+        }
         if (_yUnits != NULL) {
             free(_yUnits);
-	}
+        }
         if (_vUnits != NULL) {
             free(_vUnits);
         }
@@ -358,10 +358,10 @@ public:
         return _nValues;
     }
 
-    int LoadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
-    
-    int ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
-    
+    int loadData(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv);
+
+    int parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf);
+
     bool isInitialized()
     {
         return _initialized;
@@ -388,4 +388,3 @@ private:
 }
 
 #endif
-
