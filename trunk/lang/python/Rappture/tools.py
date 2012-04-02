@@ -6,7 +6,7 @@
 #  Copyright (c) 2005-2007  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 
-import sys, os, re, popen2, select
+import sys, os, re, subprocess, select
 
 # getCommandOutput function written by Steve Clark
 
@@ -14,16 +14,18 @@ def getCommandOutput(command,
                      streamOutput=False):
     global commandPid
 
-    child = popen2.Popen3(command,1)
+    BUFSIZ = 4096
+    child      = subprocess.Popen(command,shell=True,bufsize=BUFSIZ, \
+                                  stdout=subprocess.PIPE, \
+                                  stderr=subprocess.PIPE, \
+                                  close_fds=True)
     commandPid = child.pid
-    child.tochild.close() # don't need to talk to child
-    childout = child.fromchild
+    childout   = child.stdout
     childoutFd = childout.fileno()
-    childerr = child.childerr
+    childerr   = child.stderr
     childerrFd = childerr.fileno()
 
     outEOF = errEOF = 0
-    BUFSIZ = 4096
 
     outData = []
     errData = []
