@@ -10,11 +10,11 @@ class NvZincBlendeVolumeShader : public NvVolumeShader
 public:
     NvZincBlendeVolumeShader();
 
-    ~NvZincBlendeVolumeShader();
+    virtual ~NvZincBlendeVolumeShader();
 
-    void bind(unsigned int tfID, Volume *volume, int sliceMode);
+    virtual void bind(unsigned int tfID, Volume *volume, int sliceMode);
 
-    void unbind();
+    virtual void unbind();
 
 private:
     void init();

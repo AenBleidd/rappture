@@ -9,20 +9,20 @@ class NvRegularVolumeShader : public NvVolumeShader
 {
 public:
     NvRegularVolumeShader();
-    ~NvRegularVolumeShader();
+    virtual ~NvRegularVolumeShader();
 
-    void bind(unsigned int tfID, Volume* volume, int sliceMode);
-    void unbind();
+    virtual void bind(unsigned int tfID, Volume* volume, int sliceMode);
+    virtual void unbind();
 
 private:
     void init();
 
-    CGparameter _vol_one_volume_param;
-    CGparameter _tf_one_volume_param;
-    CGparameter _mvi_one_volume_param;
-    CGparameter _mv_one_volume_param;
-    CGparameter _render_param_one_volume_param;
-    CGparameter _option_one_volume_param;
+    CGparameter _volOneVolumeParam;
+    CGparameter _tfOneVolumeParam;
+    CGparameter _mviOneVolumeParam;
+    CGparameter _mvOneVolumeParam;
+    CGparameter _renderParamOneVolumeParam;
+    CGparameter _optionOneVolumeParam;
 };
 
 #endif
