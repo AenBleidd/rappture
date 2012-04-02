@@ -692,8 +692,8 @@ SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     w = NanoVis::winWidth, h = NanoVis::winHeight;
     NanoVis::resizeOffscreenBuffer(2048, 2048);
 #ifdef notdef
-    NanoVis::cam->set_screen_size(0, 0, NanoVis::winWidth, NanoVis::winHeight);
-    NanoVis::cam->set_screen_size(30, 90, 2048 - 60, 2048 - 120);
+    NanoVis::cam->setScreenSize(0, 0, NanoVis::winWidth, NanoVis::winHeight);
+    NanoVis::cam->setScreenSize(30, 90, 2048 - 60, 2048 - 120);
 #endif
     NanoVis::offscreenBufferCapture();  //enable offscreen render
     NanoVis::display();
