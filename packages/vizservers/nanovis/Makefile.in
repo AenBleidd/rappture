@@ -29,7 +29,7 @@ CG_LIB_SPEC     = @CG_LIB_SPEC@
 FF_LIB_SPEC     = @LIBS@
 FF_INC_SPEC     = @FF_INC_SPEC@
 
-GL_INC_SPEC     = -I/usr/include/GL
+GL_INC_SPEC     =
 GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
 IMG_DIR		= ./imgLoaders
 IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)

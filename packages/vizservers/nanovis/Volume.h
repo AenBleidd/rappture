@@ -52,6 +52,25 @@ public:
         ZINCBLENDE
     };
 
+    /**
+     * \brief Volume data constructor
+     *
+     * Represents a 3D regular grid with uniform spacing along
+     * each axis.  Sample spacing may differ between X, Y and Z
+     *
+     * \param x X location
+     * \param y Y location
+     * \param z Z location
+     * \param width Number of samples in X
+     * \param height Number of samples in Y
+     * \param depth Number of samples in Z
+     * \param size Scale factor
+     * \param numComponents Number of components per sample
+     * \param data width * height * depth * numComponent sample array
+     * \param vmin Scalar value minimum
+     * \param vmax Scalar value maximum
+     * \param nonZeroMin Scalar minimum which is greater than zero
+     */
     Volume(float x, float y, float z,
            int width, int height, int depth, 
            float size, int numComponents,

@@ -24,20 +24,21 @@ Grid::Grid() :
 
 void Grid::render()
 {
-    glPushMatrix();
+    glPushAttrib(GL_ENABLE_BIT);
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
-
 #ifdef notdef
     glEnable(GL_LINE_SMOOTH);
 #endif
+
+    glPushMatrix();
 #ifdef notdef
     glScalef(xAxis.scale(), 
              yAxis.range() / xAxis.range(), 
              zAxis.range() / xAxis.range());
 #endif
-    glScalef(1.0, 1.0, 1.0);
 
     glTranslatef(-0.5f, -0.5f, -0.5f);
     glLineWidth(2.0f);
@@ -206,12 +207,9 @@ void Grid::render()
         }
         _font->end();
     };
+
     glPopMatrix();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-#ifdef notdef
-    glDisable(GL_LINE_SMOOTH);
-#endif
+    glPopAttrib();
 }
 
 void Grid::setFont(R2Fonts *font)

@@ -659,10 +659,10 @@ FlowCmd::MakeVolume(float *data)
     volPtr = NanoVis::loadVolume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
                                  _dataPtr->zNum(), 4, data, 
                                  NanoVis::magMin, NanoVis::magMax, 0);
-    volPtr->xAxis.SetRange(_dataPtr->xMin(), _dataPtr->xMax());
-    volPtr->yAxis.SetRange(_dataPtr->yMin(), _dataPtr->yMax());
-    volPtr->zAxis.SetRange(_dataPtr->zMin(), _dataPtr->zMax());
-    volPtr->wAxis.SetRange(NanoVis::magMin, NanoVis::magMax);
+    volPtr->xAxis.setRange(_dataPtr->xMin(), _dataPtr->xMax());
+    volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
+    volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
+    volPtr->wAxis.setRange(NanoVis::magMin, NanoVis::magMax);
 
     Vector3 physicalMin(NanoVis::xMin, NanoVis::yMin, NanoVis::zMin);
     Vector3 physicalMax(NanoVis::xMax, NanoVis::yMax, NanoVis::zMax);

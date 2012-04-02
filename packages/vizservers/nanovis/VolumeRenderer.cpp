@@ -134,10 +134,12 @@ VolumeRenderer::renderAll()
         volPtr->numSlices(256 - volumes.size());
     }
 
+    glPushAttrib(GL_ENABLE_BIT);
+
     //two dimension pointer array
     ConvexPolygon ***polys = new ConvexPolygon**[volumes.size()];
     //number of actual slices for each volume
-    size_t *actual_slices = new size_t[volumes.size()]; 
+    size_t *actual_slices = new size_t[volumes.size()];
 
     TRACE("start loop %d\n", volumes.size());
     for (size_t i = 0; i < volumes.size(); i++) {
@@ -215,8 +217,8 @@ VolumeRenderer::renderAll()
         //draw labels
         glPushMatrix();
         glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-        if(volPtr->outline()) {
-            //draw_label(i);
+        if (volPtr->outline()) {
+            //drawLabel(i);
         }
         glPopMatrix();
 
@@ -382,6 +384,8 @@ VolumeRenderer::renderAll()
 
     //Now we are ready to render all the slices from back to front
     glEnable(GL_DEPTH_TEST);
+    // Non pre-multiplied alpha
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
     for (size_t i = 0; i < total_rendered_slices; i++) {
@@ -412,8 +416,7 @@ VolumeRenderer::renderAll()
         deactivateVolumeShader();
     }
 
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
+    glPopAttrib();
 
     //Deallocate all the memory used
     for (size_t i = 0; i < volumes.size(); i++) {
@@ -435,10 +438,14 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
                                 float r, float g, float b, 
                                 float line_width)
 {
-    glPushMatrix();
+    glPushAttrib(GL_ENABLE_BIT);
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
 
     glColor4d(r, g, b, 1.0);
     glLineWidth(line_width);
@@ -543,9 +550,7 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
     };
 #endif
     glPopMatrix();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
+    glPopAttrib();
 }
 
 void 

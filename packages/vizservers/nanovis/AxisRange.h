@@ -21,7 +21,7 @@ public:
         }
     }
 
-    void SetRange(double min, double max)
+    void setRange(double min, double max)
     {
         _min = min;
         _max = max;
@@ -45,6 +45,11 @@ public:
     void max(double max)
     {
         _max = max;
+    }
+
+    double range() const
+    {
+        return (_max - _min);
     }
 
     const char *units() const

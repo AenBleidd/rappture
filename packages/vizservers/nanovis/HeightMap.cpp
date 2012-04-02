@@ -284,10 +284,10 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
     _scale.z = max - min;
     _scale.y = 1.0f;
 
-    xAxis.SetRange(0.0, 1.0);
-    yAxis.SetRange(0.0, 1.0);
-    zAxis.SetRange(0.0, 1.0);
-    wAxis.SetRange(min, max);
+    xAxis.setRange(0.0, 1.0);
+    yAxis.setRange(0.0, 1.0);
+    zAxis.setRange(0.0, 1.0);
+    wAxis.setRange(min, max);
     updatePending = true;
 
     _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + min, _scale.y * 0.5);
@@ -365,12 +365,11 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     }
 #endif
 
-    wAxis.SetRange(min, max);
-    yAxis.SetRange(min, max);
-    xAxis.SetRange(xMin, xMax);
-    zAxis.SetRange(yMin, yMax);
-    
-    
+    wAxis.setRange(min, max);
+    yAxis.setRange(min, max);
+    xAxis.setRange(xMin, xMax);
+    zAxis.setRange(yMin, yMax);
+
     min = 0.0, max = 1.0;
     xMin = yMin = min = 0.0; 
     xMax = yMax = max = 1.0;
