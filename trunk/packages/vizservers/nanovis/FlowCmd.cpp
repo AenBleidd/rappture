@@ -1064,7 +1064,7 @@ NanoVis::MapFlows()
             return false;
         }
         // FIXME: This doesn't work when there is more than one flow.
-        licRenderer->set_offset(flowPtr->GetRelativePosition());
+        licRenderer->setOffset(flowPtr->GetRelativePosition());
         NanoVis::velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
         
     }

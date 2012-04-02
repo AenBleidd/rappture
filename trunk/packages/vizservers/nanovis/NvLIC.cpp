@@ -28,142 +28,132 @@
 #define DM ((float) (1.0/(NMESH-1.0))) //distance in world coords between mesh lines
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
-NvLIC::NvLIC(int _size, int _width, int _height, int _axis, 
-	     const Vector3& _offset, CGcontext _context) :
+NvLIC::NvLIC(int size, int width, int height, int axis, 
+             const Vector3& offset) :
     Renderable(Vector3(0.0f, 0.0f, 0.0f)),
-    disListID(0),
-    width(_width),
-    height(_height),
-    size(_size),
-    scale(1.0f, 1.0f, 1.0f),
-    offset(_offset),
-    iframe(0),
-    Npat(64),
-    alpha((int) 0.12*255),
-    tmax(NPIX/(SCALE*NPN)),
-    dmax(SCALE/NPIX),
-    max(1.0f),
-    _cgContext(_context),
+    _width(width),
+    _height(height),
+    _size(size),
+    _scale(1.0f, 1.0f, 1.0f),
+    _origin(0, 0, 0),
+    _offset(offset),
+    _axis(axis),
+    _iframe(0),
+    _Npat(64),
+    _alpha((int)0.12*255),
+    _tmax(NPIX/(SCALE*NPN)),
+    _dmax(SCALE/NPIX),
+    _max(1.0f),
+    _disListID(0),
     _vectorFieldId(0),
     _activate(false)
 {
+    _sliceVector = new float[_size*_size*4];
+    memset(_sliceVector, 0, sizeof(float) * _size * _size * 4);
 
-    axis = _axis;
-    slice_vector = new float[size*size*4];
-    memset(slice_vector, 0, sizeof(float) * size * size * 4);
-
-    origin.set(0, 0, 0);
+    int fboOrig;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
 
     //initialize the pattern texture
-    glGenTextures(1, &pattern_tex);
-    glBindTexture(GL_TEXTURE_2D, pattern_tex);
+    glGenTextures(1, &_patternTex);
+    glBindTexture(GL_TEXTURE_2D, _patternTex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
     //initialize frame buffer objects
     //render buffer for projecting 3D velocity onto a 2D plane
-    glGenFramebuffersEXT(1, &vel_fbo);
-    glGenTextures(1, &slice_vector_tex);
+    glGenFramebuffersEXT(1, &_velFbo);
+    glGenTextures(1, &_sliceVectorTex);
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _velFbo);
 
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, slice_vector_tex);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _sliceVectorTex);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
 
-    // ADD INSOO
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, 
-		    GL_CLAMP_TO_EDGE); 
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, 
-		    GL_CLAMP_TO_EDGE); 
-
-    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, size, size, 
-		0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA32F_ARB, _size, _size, 
+                 0, GL_RGBA, GL_FLOAT, NULL);
 
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
-                  GL_TEXTURE_RECTANGLE_ARB, slice_vector_tex, 0);
+                              GL_TEXTURE_RECTANGLE_ARB, _sliceVectorTex, 0);
 
     //render buffer for the convolution
-    glGenFramebuffersEXT(1, &fbo);
-    glGenTextures(1, &color_tex);
+    glGenFramebuffersEXT(1, &_fbo);
+    glGenTextures(1, &_colorTex);
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
 
     //initialize color texture for lic
-    glBindTexture(GL_TEXTURE_2D, color_tex);
-    // INSOO
-    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, _colorTex);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0,
-                 GL_RGB, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _width, _height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                            GL_COLOR_ATTACHMENT0_EXT,
-                            GL_TEXTURE_2D, color_tex, 0);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+                              GL_TEXTURE_2D, _colorTex, 0);
 
     // Check framebuffer completeness at the end of initialization.
     CHECK_FRAMEBUFFER_STATUS();
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
-    _render_vel_fprog = 
-        LoadCgSourceProgram(_cgContext, "render_vel.cg", 
-                            CG_PROFILE_FP40, "main");
+    _renderVelShader = new NvShader();
+    _renderVelShader->loadFragmentProgram("render_vel.cg", "main");
 
-    _vel_tex_param_render_vel =
-        cgGetNamedParameter(_render_vel_fprog, "vel_tex");
+    _velTexParamRenderVel =
+        _renderVelShader->getNamedParameterFromFP("vel_tex");
 
-    _plane_normal_param_render_vel =
-        cgGetNamedParameter(_render_vel_fprog, "plane_normal");
+    _planeNormalParamRenderVel =
+        _renderVelShader->getNamedParameterFromFP("plane_normal");
 
-    _max_param = cgGetNamedParameter(_render_vel_fprog, "vmax");
+    _maxParam = 
+        _renderVelShader->getNamedParameterFromFP("vmax");
 
-    make_patterns();
+    makePatterns();
 }
 
 NvLIC::~NvLIC()
 {
-    glDeleteTextures(1, &pattern_tex);
-    glDeleteTextures(1, &mag_tex);
+    glDeleteTextures(1, &_patternTex);
+    glDeleteTextures(1, &_magTex);
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
-    glDeleteTextures(1, &slice_vector_tex);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _velFbo);
+    glDeleteTextures(1, &_sliceVectorTex);
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-    glDeleteTextures(1, &color_tex);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+    glDeleteTextures(1, &_colorTex);
 
-    GLuint buffers[2] = {vel_fbo, fbo};
+    GLuint buffers[2] = {_velFbo, _fbo};
     glDeleteFramebuffersEXT(2, buffers);
 
-    glDeleteLists(disListID, Npat);
-    
-/*
-    TBD..
-    cgDestroyParameter(_vel_tex_param_render_vel);
-    cgDestroyParameter(_plane_normal_param_render_vel);
-    cgDestroyParameter(_max_param);
-*/
-    cgDestroyProgram(_render_vel_fprog);
+    glDeleteLists(_disListID, _Npat);
 
-    delete [] slice_vector;
+    delete _renderVelShader;
+
+    delete [] _sliceVector;
 }
 
 void 
-NvLIC::make_patterns() 
+NvLIC::makePatterns() 
 { 
-    TRACE("begin make_patterns\n");
-    if (disListID > 0) {
-	glDeleteLists(disListID, Npat);
+    TRACE("begin makePatterns\n");
+    if (_disListID > 0) {
+        glDeleteLists(_disListID, _Npat);
     }
-    disListID = glGenLists(Npat);
+    _disListID = glGenLists(_Npat);
 
-    TRACE("DisplayList : %d\n", disListID);
+    TRACE("DisplayList : %d\n", _disListID);
 
     int lut[256];
     int phase[NPN][NPN];
@@ -178,29 +168,29 @@ NvLIC::make_patterns()
             phase[i][j] = rand() >> 8;
         }
     }
-    for (k = 0; k < Npat; k++) {
-        t = (k << 8) / Npat;
+    for (k = 0; k < _Npat; k++) {
+        t = (k << 8) / _Npat;
         for (i = 0; i < NPN; i++) {
             for (j = 0; j < NPN; j++) {
                 pat[i][j][0] = pat[i][j][1] = pat[i][j][2] = 
                     lut[(t + phase[i][j]) % 255];
-                pat[i][j][3] = alpha;
+                pat[i][j][3] = _alpha;
             }
         }
-        glNewList(disListID + k, GL_COMPILE);
-        glBindTexture(GL_TEXTURE_2D, pattern_tex);
-        glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, GL_RGBA, 
-                     GL_UNSIGNED_BYTE, pat);
+        glNewList(_disListID + k, GL_COMPILE);
+        glBindTexture(GL_TEXTURE_2D, _patternTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, pat);
         glEndList();
     }
 
-    glBindTexture(GL_TEXTURE_2D, pattern_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, 4, NPN, NPN, 0, 
+    glBindTexture(GL_TEXTURE_2D, _patternTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, pat);
-    TRACE("finish make_patterns\n");
+    TRACE("finish makePatterns\n");
 }
 
-void NvLIC::make_magnitudes()
+void NvLIC::makeMagnitudes()
 {
     GLubyte mag[NMESH][NMESH][4];
 
@@ -224,8 +214,8 @@ void NvLIC::make_magnitudes()
             mag[i][j][3] = a;
         }
     }
-    glGenTextures(1, &mag_tex);
-    glBindTexture(GL_TEXTURE_2D, mag_tex);
+    glGenTextures(1, &_magTex);
+    glBindTexture(GL_TEXTURE_2D, _magTex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -237,76 +227,92 @@ void NvLIC::make_magnitudes()
 }
 
 void 
-NvLIC::get_slice()
+NvLIC::getSlice()
 {
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, vel_fbo);
+    int fboOrig;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _velFbo);
+
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
 
     glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 
-    glViewport(0, 0, size, size);
+    glViewport(0, 0, _size, _size);
     glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
     glLoadIdentity();
-    gluOrtho2D(0, size, 0, size);
+    gluOrtho2D(0, _size, 0, _size);
     glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
     glLoadIdentity();
 
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, _vectorFieldId);
-    cgGLBindProgram(_render_vel_fprog);
 
-    cgGLSetTextureParameter(_vel_tex_param_render_vel, _vectorFieldId);
-    cgGLEnableTextureParameter(_vel_tex_param_render_vel);
-    cgGLSetParameter4f(_plane_normal_param_render_vel, 1., 1., 0., 0);
-    cgGLSetParameter1f(_max_param, max);
+    cgGLSetTextureParameter(_velTexParamRenderVel, _vectorFieldId);
+    cgGLEnableTextureParameter(_velTexParamRenderVel);
+    cgGLSetParameter4f(_planeNormalParamRenderVel, 1., 1., 0., 0);
+    cgGLSetParameter1f(_maxParam, _max);
 
-    cgGLEnableProfile(CG_PROFILE_FP40);
+    _renderVelShader->bind();
 
     glBegin(GL_QUADS);
     {
-	switch (axis) {
-	case 0 :
-	    // TBD..
-            glTexCoord3f(offset.x, 0., 0.); glVertex2f(0.,   0.);
-            glTexCoord3f(offset.x, 1., 0.); glVertex2f(size, 0.);
-            glTexCoord3f(offset.x, 1., 1.); glVertex2f(size, size);
-            glTexCoord3f(offset.x, 0., 1.); glVertex2f(0.,   size);
-		break;
-	case 1 :
-	    // TBD..
-            glTexCoord3f(0., offset.y, 0.); glVertex2f(0.,   0.);
-            glTexCoord3f(1., offset.y, 0.); glVertex2f(size, 0.);
-            glTexCoord3f(1., offset.y, 1.); glVertex2f(size, size);
-            glTexCoord3f(0., offset.y, 1.); glVertex2f(0.,   size);
-		break;
-	case 2 :
-            glTexCoord3f(0., 0., offset.z); glVertex2f(0.,   0.);
-            glTexCoord3f(1., 0., offset.z); glVertex2f(size, 0.);
-            glTexCoord3f(1., 1., offset.z); glVertex2f(size, size);
-            glTexCoord3f(0., 1., offset.z); glVertex2f(0.,   size);
-	    break;	
-	}
+        switch (_axis) {
+        case 0 :
+            // TBD..
+            glTexCoord3f(_offset.x, 0., 0.); glVertex2f(0.,    0.);
+            glTexCoord3f(_offset.x, 1., 0.); glVertex2f(_size, 0.);
+            glTexCoord3f(_offset.x, 1., 1.); glVertex2f(_size, _size);
+            glTexCoord3f(_offset.x, 0., 1.); glVertex2f(0.,    _size);
+                break;
+        case 1 :
+            // TBD..
+            glTexCoord3f(0., _offset.y, 0.); glVertex2f(0.,    0.);
+            glTexCoord3f(1., _offset.y, 0.); glVertex2f(_size, 0.);
+            glTexCoord3f(1., _offset.y, 1.); glVertex2f(_size, _size);
+            glTexCoord3f(0., _offset.y, 1.); glVertex2f(0.,    _size);
+                break;
+        case 2 :
+            glTexCoord3f(0., 0., _offset.z); glVertex2f(0.,    0.);
+            glTexCoord3f(1., 0., _offset.z); glVertex2f(_size, 0.);
+            glTexCoord3f(1., 1., _offset.z); glVertex2f(_size, _size);
+            glTexCoord3f(0., 1., _offset.z); glVertex2f(0.,    _size);
+            break;
+        }
     }
     glEnd();
 
-    cgGLDisableProfile(CG_PROFILE_FP40);
+    _renderVelShader->unbind();
 
-    cgGLDisableTextureParameter(_vel_tex_param_render_vel);
+    cgGLDisableTextureParameter(_velTexParamRenderVel);
 
     glBindTexture(GL_TEXTURE_3D, 0);
     glDisable(GL_TEXTURE_3D);
 
     //read the vectors
-    glReadPixels(0, 0, size, size, GL_RGBA, GL_FLOAT, slice_vector);
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glReadPixels(0, 0, _size, _size, GL_RGBA, GL_FLOAT, _sliceVector);
 
-    int lim = size * size * 4;
-    float* v= slice_vector;
+    int lim = _size * _size * 4;
+    float *v = _sliceVector;
     for (int i = 0; i < lim; ++i) {
         if (isnan(*v)) {
             *v = 0.0f;    
         }
         ++v;
     }
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glPopAttrib();
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 }
 
 //line integral convolution
@@ -314,64 +320,73 @@ void
 NvLIC::convolve()
 {
     if (_vectorFieldId == 0) {
-	return;
+        return;
     }
 
     int   i, j; 
     float x1, x2, y, px, py;
 
-    glPushMatrix();
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+    int fboOrig;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity(); 
-    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
+    glPushMatrix();
+    glLoadIdentity();
 
-    /*glPushMatrix();*/
     glViewport(0, 0, (GLsizei) NPIX, (GLsizei) NPIX);
     //glTranslatef(-1.0, -1.0, 0.0); 
     //glScalef(2.0, 2.0, 1.0);
     glOrtho(0.0f, 1.0f, 0.0f, 1.0f, -10.0f, 10.0f);
 
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity(); 
+    glPushMatrix();
+    glLoadIdentity();
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
+    //glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
 
-    //sa = 0.010*cos(iframe*2.0*M_PI/200.0);
+    //_sa = 0.010*cos(_iframe*2.0*M_PI/200.0);
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, pattern_tex);
-    sa = 0.01;
+    glBindTexture(GL_TEXTURE_2D, _patternTex);
+    _sa = 0.01;
  
+    glColor4f(1, 1, 1, 1);
     for (i = 0; i < NMESH-1; i++) {
         x1 = DM*i; x2 = x1 + DM;
         glBegin(GL_QUAD_STRIP);
         for (j = 0; j < NMESH-1; j++) {
             y = DM*j;
             glTexCoord2f(x1, y); 
-            get_velocity(x1, y, &px, &py);
+            getVelocity(x1, y, &px, &py);
             glVertex2f(px, py);
-            
+
             glTexCoord2f(x2, y); 
-            get_velocity(x2, y, &px, &py); 
+            getVelocity(x2, y, &px, &py); 
             glVertex2f(px, py);
         }
         glEnd();
     }
-    iframe = iframe + 1;
+    _iframe = _iframe + 1;
 
     glEnable(GL_BLEND);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_TEXTURE_2D);
-    glCallList(iframe % Npat + disListID);
+    glCallList(_iframe % _Npat + _disListID);
     glBegin(GL_QUAD_STRIP);
     {
-        glTexCoord2f(0.0,  0.0);  glVertex2f(0.0, 0.0);
-        glTexCoord2f(0.0,  tmax); glVertex2f(0.0, 1.0);
-        glTexCoord2f(tmax, 0.0);  glVertex2f(1.0, 0.0);
-        glTexCoord2f(tmax, tmax); glVertex2f(1.0, 1.0);
+        glTexCoord2f(0.0,   0.0);   glVertex2f(0.0, 0.0);
+        glTexCoord2f(0.0,   _tmax); glVertex2f(0.0, 1.0);
+        glTexCoord2f(_tmax, 0.0);   glVertex2f(1.0, 0.0);
+        glTexCoord2f(_tmax, _tmax); glVertex2f(1.0, 1.0);
         glEnd();
     }
     glDisable(GL_TEXTURE_2D);
@@ -388,14 +403,12 @@ NvLIC::convolve()
     glEnd();
     */
 
-    glDisable(GL_ALPHA_TEST);
-
     glDisable(GL_BLEND);
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, NPIX, NPIX, 0);
 
     /*
     //blend magnitude texture
-    glBindTexture(GL_TEXTURE_2D, mag_tex);
+    glBindTexture(GL_TEXTURE_2D, _magTex);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBegin(GL_QUADS);
@@ -406,102 +419,107 @@ NvLIC::convolve()
     glEnd();
     */
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-    glPopAttrib();
-    glPopMatrix();
     glMatrixMode(GL_PROJECTION);
-    /*glPopMatrix();*/
+    glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
-}
+    glPopMatrix();
 
-void NvLIC::render()
-{
-    display();
+    glPopAttrib();
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 }
 
 void 
-NvLIC::display()
+NvLIC::render()
 {
     if (_vectorFieldId == 0) {
-	return;
+        return;
     }
 
-    glBindTexture(GL_TEXTURE_2D, color_tex);
-    glEnable(GL_TEXTURE_2D);
-
     //draw line integral convolution quad
+
+    glPushAttrib(GL_ENABLE_BIT | GL_LIGHTING_BIT);
+    glBindTexture(GL_TEXTURE_2D, _colorTex);
+    glEnable(GL_TEXTURE_2D);
+    //glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+    //glEnable(GL_LIGHTING);
+    glDisable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    float w = 1.0f / scale.x;
-    glTranslatef(origin.x, origin.y, origin.z);
-    glScalef(1.0f, 1.0f / scale.y / w, 1.0f / scale.z / w);
+    float w = 1.0f / _scale.x;
+    glTranslatef(_origin.x, _origin.y, _origin.z);
+    glScalef(1.0f, 1.0f / _scale.y / w, 1.0f / _scale.z / w);
 
+    glColor4f(1, 1, 1, 1);
     glBegin(GL_QUADS);
-    switch (axis) {
+    switch (_axis) {
     case 0:
-        glTexCoord2f(0, 0); glVertex3f(offset.x, 0, 0);
-        glTexCoord2f(1, 0); glVertex3f(offset.x, 1, 0);
-        glTexCoord2f(1, 1); glVertex3f(offset.x, 1, 1);
-        glTexCoord2f(0, 1); glVertex3f(offset.x, 0, 1);
-	break;
+        glNormal3f(1, 0, 0);
+        glTexCoord2f(0, 0); glVertex3f(_offset.x, 0, 0);
+        glTexCoord2f(1, 0); glVertex3f(_offset.x, 1, 0);
+        glTexCoord2f(1, 1); glVertex3f(_offset.x, 1, 1);
+        glTexCoord2f(0, 1); glVertex3f(_offset.x, 0, 1);
+        break;
     case 1:
-        glTexCoord2f(0, 0); glVertex3f(0, offset.y, 0);
-        glTexCoord2f(1, 0); glVertex3f(1, offset.y, 0);
-        glTexCoord2f(1, 1); glVertex3f(1, offset.y, 1);
-        glTexCoord2f(0, 1); glVertex3f(0, offset.y, 1);
-	break;
+        glNormal3f(0, 1, 0);
+        glTexCoord2f(0, 0); glVertex3f(0, _offset.y, 0);
+        glTexCoord2f(1, 0); glVertex3f(1, _offset.y, 0);
+        glTexCoord2f(1, 1); glVertex3f(1, _offset.y, 1);
+        glTexCoord2f(0, 1); glVertex3f(0, _offset.y, 1);
+        break;
     case 2:
-        glTexCoord2f(0, 0); glVertex3f(0, 0, offset.z);
-        glTexCoord2f(1, 0); glVertex3f(1, 0, offset.z);
-        glTexCoord2f(1, 1); glVertex3f(1, 1, offset.z);
-        glTexCoord2f(0, 1); glVertex3f(0, 1, offset.z);
-	break;
+        glNormal3f(0, 0, 1);
+        glTexCoord2f(0, 0); glVertex3f(0, 0, _offset.z);
+        glTexCoord2f(1, 0); glVertex3f(1, 0, _offset.z);
+        glTexCoord2f(1, 1); glVertex3f(1, 1, _offset.z);
+        glTexCoord2f(0, 1); glVertex3f(0, 1, _offset.z);
+        break;
     }
     glEnd();
 
     glPopMatrix();
 
-    glBindTexture(GL_TEXTURE_2D,0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
+    glPopAttrib();
 }
 
 void 
-NvLIC::setVectorField(unsigned int texID, const Vector3& ori, 
-		      float scaleX, float scaleY, float scaleZ, float max)
+NvLIC::setVectorField(unsigned int texID, const Vector3& origin, 
+                      float scaleX, float scaleY, float scaleZ, float max)
 {
     TRACE("NvLIC: vector field is assigned [%d]\n", texID);
     _vectorFieldId = texID;
-    origin = ori;
-    scale = Vector3(scaleX, scaleY, scaleZ);
-    this->max = max;
+    _origin = origin;
+    _scale = Vector3(scaleX, scaleY, scaleZ);
+    _max = max;
 
-    make_patterns();
+    makePatterns();
 
-    get_slice();
+    getSlice();
 }
 
 void 
-NvLIC::get_velocity(float x, float y, float *px, float *py) 
+NvLIC::getVelocity(float x, float y, float *px, float *py) 
 {
    float vx, vy, r;
 
-   int xi = (int)(x*size);
-   int yi = (int)(y*size);
+   int xi = (int)(x*_size);
+   int yi = (int)(y*_size);
 
     //TRACE("(xi yi) = (%d %d), ", xi, yi);
-   vx = slice_vector[4 * (xi+yi*size)];
-   vy = slice_vector[4 * (xi+yi*size)+1];
+   vx = _sliceVector[4 * (xi+yi*_size)];
+   vy = _sliceVector[4 * (xi+yi*_size)+1];
    r  = vx*vx + vy*vy;
 
     //TRACE("(vx vx) = (%f %f), r=%f, ", vx, vy, r);
-   if (r > (dmax*dmax)) {
+   if (r > (_dmax * _dmax)) {
       r  = sqrt(r);
-      vx *= dmax/r;
-      vy *= dmax/r;
+      vx *= _dmax/r;
+      vy *= _dmax/r;
    }
 
    *px = x + vx;
@@ -511,22 +529,22 @@ NvLIC::get_velocity(float x, float y, float *px, float *py)
 }
 
 void 
-NvLIC::set_offset(float v)
+NvLIC::setOffset(float v)
 {
-    switch (axis) {
-    case 0 : offset.x = v; break;
-    case 1 : offset.y = v; break;
-    case 2 : offset.z = v; break;
+    switch (_axis) {
+    case 0 : _offset.x = v; break;
+    case 1 : _offset.y = v; break;
+    case 2 : _offset.z = v; break;
     }
-    get_slice();
+    getSlice();
 }
 
-void NvLIC::set_axis(int axis)
+void NvLIC::setAxis(int axis)
 {
-    this->axis = axis;
+    _axis = axis;
 }
 
 void NvLIC::reset()
 {
-    make_patterns();
+    makePatterns();
 }

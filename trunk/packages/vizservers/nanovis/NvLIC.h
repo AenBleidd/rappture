@@ -17,7 +17,7 @@
 #define NV_LIC_H
 
 #include <GL/glew.h>
-#include <Cg/cgGL.h>
+#include <Cg/cg.h>
 
 #include "config.h"
 #include "nanovis.h"
@@ -25,42 +25,41 @@
 #include "Renderable.h"
 #include "Vector3.h"
 #include "Volume.h"
+#include "NvShader.h"
 
 class NvLIC : public Renderable
 { 
 public:
-    NvLIC(int _size, int _width, int _height, int axis, 
-	  const Vector3& _offset, CGcontext _context);
+    NvLIC(int size, int width, int height, int axis, 
+	  const Vector3& offset);
     ~NvLIC();
 
     /// project 3D vectors to a 2D slice for line integral convolution
     void convolve();
 
     /// Display the convolution result
-    void display();
-
     void render();
 
-    void make_patterns();
+    void makePatterns();
 
-    void make_magnitudes();
+    void makeMagnitudes();
 
-    void get_velocity(float x, float y, float *px, float *py);
+    void getVelocity(float x, float y, float *px, float *py);
 
-    void get_slice();
+    void getSlice();
 
-    void set_offset(float v);
+    void setOffset(float v);
 
     /** 
-     * @brief Specify the perdicular axis
+     * @brief Specify the perpendicular axis
      *
      * 0 : x axis<br>
      * 1 : y axis<br>
      * 2 : z axis<br>
      */
-    void set_axis(int axis);
+    void setAxis(int axis);
 
-    void setVectorField(unsigned int texID, const Vector3& ori,
+    void setVectorField(unsigned int texID, const Vector3& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     void reset();
@@ -90,41 +89,40 @@ private:
      * @brief the normal vector of the NvLIC plane, 
      * the inherited Vector3 location is its center
      */
-    Vector3 normal;
+    Vector3 _normal;
 
-    GLuint disListID;
-
-    int width, height;
-    int size;				// The lic is a square of size, it can
+    int _width, _height;
+    int _size;				// The lic is a square of size, it can
 					// be stretched
-    float *slice_vector;		// Storage for the per slice vectors
+    float *_sliceVector;		// Storage for the per slice vectors
 					// driving the follow.
-    Vector3 scale;			// Scaling factor stretching the lic
+    Vector3 _scale;			// Scaling factor stretching the lic
 					// plane to fit the actual dimensions
-    Vector3 origin;
-    Vector3 offset;			// [0,1] offset could be x, y, or z
+    Vector3 _origin;
+    Vector3 _offset;			// [0,1] offset could be x, y, or z
 					// direction
-    int axis;
+    int _axis;
 
     //some convolve variables. They can pretty much stay fixed
-    int iframe;
-    int Npat;
-    int alpha;
-    float sa;
-    float tmax;
-    float dmax;
-    float max;
+    int _iframe;
+    int _Npat;
+    int _alpha;
+    float _sa;
+    float _tmax;
+    float _dmax;
+    float _max;
 
+    GLuint _disListID;
+
+    NvShader *_renderVelShader;
     //CG shader parameters
-    CGcontext _cgContext;
-    CGparameter _vel_tex_param;
-    CGparameter _vel_tex_param_render_vel;
-    CGparameter _plane_normal_param_render_vel;
-    CGprogram _render_vel_fprog;
-    CGparameter _max_param;
+    CGparameter _velTexParam;
+    CGparameter _velTexParamRenderVel;
+    CGparameter _planeNormalParamRenderVel;
+    CGparameter _maxParam;
  
-    GLuint color_tex, pattern_tex, mag_tex;
-    GLuint fbo, vel_fbo, slice_vector_tex;  // For projecting 3d vector to 2d
+    GLuint _colorTex, _patternTex, _magTex;
+    GLuint _fbo, _velFbo, _sliceVectorTex;  // For projecting 3d vector to 2d
 					    // vector on a plane.
     GLuint _vectorFieldId;
 
