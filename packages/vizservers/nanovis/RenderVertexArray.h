@@ -26,11 +26,11 @@ public:
 
     ~RenderVertexArray();
 
-    void LoadData(void *data);	// load vertex data from memory
+    void loadData(void *data);	// load vertex data from memory
 
-    void Read(/*GLenum buffer,*/ int w, int h);   // read vertex data from
+    void read(/*GLenum buffer,*/ int w, int h);   // read vertex data from
 						  // frame buffer
-    void SetPointer(GLuint index);
+    void setPointer(GLuint index);
 
 private:
     GLenum _usage;     // vbo usage flag
@@ -40,7 +40,7 @@ private:
     GLint _size;       // size of attribute       
     GLenum _format;    // readpixels image format
     GLenum _type;      // FLOAT or HALF_FLOAT
-    int _bytes_per_component;
+    int _bytesPerComponent;
 };
 
 #endif

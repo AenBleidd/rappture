@@ -49,7 +49,7 @@ public:
 
     ~NvParticleRenderer();
 
-    void setVectorField(unsigned int texID, const Vector3& ori,
+    void setVectorField(unsigned int texID, const Vector3& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     void initialize();
@@ -57,8 +57,6 @@ public:
     void advect();
 
     void updateVertexBuffer();
-
-    void displayVertices();
 
     void reset();
 

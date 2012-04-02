@@ -43,16 +43,16 @@
 #include "Trace.h"
 
 RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
-    _usage(GL_STREAM_COPY), 
+    _usage(GL_STREAM_COPY_ARB), 
     _nverts(nverts), 
     _size(size), 
     _type(type)
 {
     switch (_type) {
     case GL_HALF_FLOAT_NV:
-        _bytes_per_component = 2; break;
+        _bytesPerComponent = 2; break;
     case GL_FLOAT:
-        _bytes_per_component = sizeof(float); break;
+        _bytesPerComponent = sizeof(float); break;
     default:
         ERROR("unsupported RenderVertexArray type\n");
         return;
@@ -60,10 +60,11 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
 
     // create the buffer object
     glGenBuffersARB(1, &_buffer);
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, _buffer);
-    glBufferDataARB(GL_PIXEL_PACK_BUFFER_EXT, 
-	_nverts*_size*_bytes_per_component, 0, _usage); // undefined data
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, 0);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, _buffer);
+    glBufferDataARB(GL_PIXEL_PACK_BUFFER_ARB, 
+                    _nverts*_size*_bytesPerComponent,
+                    0, _usage); // undefined data
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
 
     // set equivalent image format
     switch(_size) {
@@ -85,34 +86,35 @@ RenderVertexArray::~RenderVertexArray()
 }
 
 void
-RenderVertexArray::LoadData(void *data)
+RenderVertexArray::loadData(void *data)
 {
     // load data to buffer object
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, _buffer);
-    glBufferDataARB(GL_PIXEL_PACK_BUFFER_EXT, 
-		    _nverts*_size*_bytes_per_component, data, _usage);
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, 0);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, _buffer);
+    glBufferDataARB(GL_PIXEL_PACK_BUFFER_ARB, 
+		    _nverts*_size*_bytesPerComponent,
+                    data, _usage);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
 }
 
 void
-RenderVertexArray::Read(/*GLenum buffer,*/ int w, int h)
+RenderVertexArray::read(int w, int h)
 {
     // bind buffer object to pixel pack buffer
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, _buffer);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, _buffer);
+
     // read from frame buffer to buffer object
-    //glReadBuffer(buffer); //crash
     glReadPixels(0, 0, w, h, _format, _type, 0);
 
-    glBindBufferARB(GL_PIXEL_PACK_BUFFER_EXT, 0);
+    glBindBufferARB(GL_PIXEL_PACK_BUFFER_ARB, 0);
 }
 
 void
-RenderVertexArray::SetPointer(GLuint index)
+RenderVertexArray::setPointer(GLuint index)
 {
     // bind buffer object to vertex array 
-    glBindBufferARB(GL_ARRAY_BUFFER, _buffer);
+    glBindBufferARB(GL_ARRAY_BUFFER_ARB, _buffer);
     //glVertexAttribPointerARB(index, _size, _type, GL_FALSE, 0, 0);          //doesn't work
     glVertexPointer(_size, _type, 0, 0);
 
-    glBindBufferARB(GL_ARRAY_BUFFER, 0);
+    glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 }
