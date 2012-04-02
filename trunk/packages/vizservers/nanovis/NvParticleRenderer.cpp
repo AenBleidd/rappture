@@ -72,6 +72,9 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     glGenFramebuffersEXT(2, _psysFbo);
     glGenTextures(2, _psysTex);
 
+    int fboOrig;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[0]);
 
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
@@ -104,7 +107,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
                               GL_TEXTURE_RECTANGLE_ARB, _psysTex[1], 0);
  
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
     glGenTextures(1, &_initPosTex);
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _initPosTex);
@@ -157,34 +160,34 @@ void NvParticleRenderer::initializeDataArray()
                 //assign any location (x,y,z) in range [0,1]
                 switch (_sliceAxis) {
                 case 0:
-                    p[4*index] = _slicePos;
-                    p[4*index+1]= j/float(_psysHeight);
-                    p[4*index+2]= i/float(_psysWidth);
+                    p[4*index]   = _slicePos;
+                    p[4*index+1] = j/float(_psysHeight);
+                    p[4*index+2] = i/float(_psysWidth);
                     break;
                 case 1:
-                    p[4*index]= j/float(_psysHeight);
+                    p[4*index]   = j/float(_psysHeight);
                     p[4*index+1] = _slicePos;
-                    p[4*index+2]= i/float(_psysWidth);
+                    p[4*index+2] = i/float(_psysWidth);
                     break;
                 case 2:
-                    p[4*index]= j/float(_psysHeight);
-                    p[4*index+1]= i/float(_psysWidth);
+                    p[4*index]   = j/float(_psysHeight);
+                    p[4*index+1] = i/float(_psysWidth);
                     p[4*index+2] = _slicePos;
                     break;
                 default:
-                    p[4*index] = 0;
-                    p[4*index+1]= 0;
-                    p[4*index+2]= 0;
-                    p[4*index+3]= 0;
+                    p[4*index]   = 0;
+                    p[4*index+1] = 0;
+                    p[4*index+2] = 0;
+                    p[4*index+3] = 0;
                 }
 
                 //shorter life span, quicker iterations
-                p[4*index+3]= rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
+                p[4*index+3] = rand() / ((float) RAND_MAX) * 0.5  + 0.5f; 
             } else {
-                p[4*index] = 0;
-                p[4*index+1]= 0;
-                p[4*index+2]= 0;
-                p[4*index+3]= 0;
+                p[4*index]   = 0;
+                p[4*index+1] = 0;
+                p[4*index+2] = 0;
+                p[4*index+3] = 0;
             }
         }
     }
@@ -193,9 +196,6 @@ void NvParticleRenderer::initializeDataArray()
 void NvParticleRenderer::initialize()
 {
     initializeDataArray();
-
-    //also store the data on main memory for next initialization
-    //memcpy(data, p, psys_width*psys_height*sizeof(Particle));
 
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
 #ifdef HAVE_FLOAT_TEXTURES
@@ -245,51 +245,52 @@ NvParticleRenderer::advect()
     if (_reborn) 
         reset();
 
+    glPushAttrib(GL_VIEWPORT_BIT | GL_ENABLE_BIT);
+
+    int fboOrig;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &fboOrig);
+
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 
+    int fbo, tex;
     if (_flip) {
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[1]);
-        glEnable(GL_TEXTURE_RECTANGLE_ARB);
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[0]);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glClear(GL_COLOR_BUFFER_BIT);
-
-        glViewport(0, 0, _psysWidth, _psysHeight);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        //gluOrtho2D(0, _psysWidth, 0, _psysHeight);
-        glOrtho(0, _psysWidth, 0, _psysHeight, -10.0f, 10.0f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        _advectionShader->bind(_psysTex[0], _initPosTex);
-
-        draw_quad(_psysWidth, _psysHeight, _psysWidth, _psysHeight);
-
-        glDisable(GL_TEXTURE_RECTANGLE_ARB);
+        fbo = 1;
+        tex = 0;
     } else {
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[0]);
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[1]);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glClear(GL_COLOR_BUFFER_BIT);
-
-        glViewport(0, 0, _psysWidth, _psysHeight);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        //gluOrtho2D(0, _psysWidth, 0, _psysHeight);
-        glOrtho(0, _psysWidth, 0, _psysHeight, -10.0f, 10.0f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        _advectionShader->bind(_psysTex[1], _initPosTex);
-
-        draw_quad(_psysWidth, _psysHeight, _psysWidth, _psysHeight);
+        fbo = 0;
+        tex = 1;
     }
 
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[fbo]);
+    glEnable(GL_TEXTURE_RECTANGLE_ARB);
+    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _psysTex[tex]);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glViewport(0, 0, _psysWidth, _psysHeight);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    //gluOrtho2D(0, _psysWidth, 0, _psysHeight);
+    glOrtho(0, _psysWidth, 0, _psysHeight, -10.0f, 10.0f);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    _advectionShader->bind(_psysTex[tex], _initPosTex);
+
+    draw_quad(_psysWidth, _psysHeight, _psysWidth, _psysHeight);
+
     _advectionShader->unbind();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glDisable(GL_TEXTURE_RECTANGLE_ARB);
 
     updateVertexBuffer();
 
@@ -300,22 +301,18 @@ NvParticleRenderer::advect()
         _psysFrame = 0;
         //        _reborn = true;
     }
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
+
+    glPopAttrib();
 }
 
 void
 NvParticleRenderer::updateVertexBuffer()
 {
-    _vertexArray->Read(_psysWidth, _psysHeight);
+    _vertexArray->read(_psysWidth, _psysHeight);
 
-    //_vertexArray->LoadData(vert);     //does not work??
+    //_vertexArray->loadData(vert);     //does not work??
     //assert(glGetError()==0);
-}
-
-void
-NvParticleRenderer::render()
-{
-    displayVertices();
 }
 
 void 
@@ -324,14 +321,15 @@ NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
                                     float r, float g, float b, 
                                     float line_width)
 {
-    glPushMatrix();
+    glPushAttrib(GL_ENABLE_BIT);
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
 
     glColor4d(r, g, b, 1.0);
     glLineWidth(line_width);
-    
+
     glBegin(GL_LINE_LOOP); 
     {
         glVertex3d(x0, y0, z0);
@@ -340,7 +338,7 @@ NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
         glVertex3d(x0, y1, z0);
     }
     glEnd();
-    
+
     glBegin(GL_LINE_LOOP);
     {
         glVertex3d(x0, y0, z1);
@@ -349,7 +347,7 @@ NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
         glVertex3d(x0, y1, z1);
     }
     glEnd();
-    
+
     glBegin(GL_LINE_LOOP);
     {
         glVertex3d(x0, y0, z0);
@@ -358,7 +356,7 @@ NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
         glVertex3d(x0, y1, z0);
     }
     glEnd();
-    
+
     glBegin(GL_LINE_LOOP);
     {
         glVertex3d(x1, y0, z0);
@@ -368,21 +366,20 @@ NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
     }
     glEnd();
 
-    glPopMatrix();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
+    glPopAttrib();
 }
 
 void
-NvParticleRenderer::displayVertices()
+NvParticleRenderer::render()
 {
+    glPushAttrib(GL_ENABLE_BIT);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_COLOR_MATERIAL);
 
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
     glTranslatef(_origin.x, _origin.y, _origin.z);
@@ -404,16 +401,15 @@ NvParticleRenderer::displayVertices()
     */
 
     glPointSize(_particleSize);
-    //glColor4f(.2,.2,.8,1.);
     glColor4f(_color.x, _color.y, _color.z, _color.w);
     glEnableClientState(GL_VERTEX_ARRAY);
-    _vertexArray->SetPointer(0);
+    _vertexArray->setPointer(0);
     glDrawArrays(GL_POINTS, 0, _psysWidth * _psysHeight);
     glDisableClientState(GL_VERTEX_ARRAY);
 
     glPopMatrix();
 
-    glDisable(GL_DEPTH_TEST);
+    glPopAttrib();
 
     //assert(glGetError()==0);
 }
