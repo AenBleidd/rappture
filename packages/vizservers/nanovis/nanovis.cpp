@@ -676,7 +676,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     //CHECK_FRAMEBUFFER_STATUS();
     TRACE("change camera\n");
     //change the camera setting
-    cam->set_screen_size(0, 0, winWidth, winHeight);
+    cam->setScreenSize(0, 0, winWidth, winHeight);
     planeRenderer->set_screen_size(winWidth, winHeight);
 
     TRACE("leaving resizeOffscreenBuffer(%d, %d)\n", w, h);

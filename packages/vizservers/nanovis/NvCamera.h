@@ -105,7 +105,7 @@ public:
         return _angle;
     }
 
-    void set_screen_size(int sx, int sy, int w, int h)
+    void setScreenSize(int sx, int sy, int w, int h)
     {
         _width = w;
         _height = h;
