@@ -40,7 +40,7 @@ getline(char **stringPtr, char *endPtr)
 }
 
 int
-Rappture::Unirect2d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+Rappture::Unirect2d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 {
     Tcl_Obj *objPtr;
     objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
@@ -50,7 +50,7 @@ Rappture::Unirect2d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
         return TCL_ERROR;
     }
     int result;
-    result = LoadData(interp, objc, objv);
+    result = loadData(interp, objc, objv);
     Tcl_DecrRefCount(objPtr);
     if ((result != TCL_OK) || (!isInitialized())) {
         return TCL_ERROR;
@@ -59,7 +59,7 @@ Rappture::Unirect2d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 }
 
 int
-Rappture::Unirect3d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
+Rappture::Unirect3d::parseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 {
     Tcl_Obj *objPtr;
     objPtr = Tcl_NewStringObj(buf.bytes(), buf.size());
@@ -69,7 +69,7 @@ Rappture::Unirect3d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
         return TCL_ERROR;
     }
     int result;
-    result = LoadData(interp, objc, objv);
+    result = loadData(interp, objc, objv);
     Tcl_DecrRefCount(objPtr);
     if ((result != TCL_OK) || (!isInitialized())) {
         return TCL_ERROR;
@@ -78,7 +78,7 @@ Rappture::Unirect3d::ParseBuffer(Tcl_Interp *interp, Rappture::Buffer &buf)
 }
 
 int 
-Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc, 
+Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc, 
                               Tcl_Obj *const *objv)
 {
     int num[3], nValues;
@@ -315,7 +315,7 @@ Rappture::Unirect3d::LoadData(Tcl_Interp *interp, int objc,
 }
 
 int 
-Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc, 
+Rappture::Unirect2d::loadData(Tcl_Interp *interp, int objc, 
                               Tcl_Obj *const *objv)
 {
     if ((objc & 0x01) == 0) {
@@ -490,7 +490,7 @@ Rappture::Unirect2d::LoadData(Tcl_Interp *interp, int objc,
 }
 
 bool
-Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
+Rappture::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
                               size_t length, char *string) 
 {
     int nx, ny, nz, npts;
@@ -635,7 +635,7 @@ Rappture::Unirect3d::ImportDx(Rappture::Outcome &result, size_t nComponents,
 }
 
 bool
-Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
+Rappture::Unirect3d::resample(Rappture::Outcome &result, size_t nSamples)
 {
     Rappture::Mesh1D xgrid(_xMin, _xMax, _xNum);
     Rappture::Mesh1D ygrid(_yMin, _yMax, _yNum);
@@ -713,10 +713,9 @@ Rappture::Unirect3d::Resample(Rappture::Outcome &result, size_t nSamples)
 }
 
 void
-Rappture::Unirect3d::GetVectorRange()
+Rappture::Unirect3d::getVectorRange()
 {
     assert(_nComponents == 3);
-    TRACE("GetVectorRange\n");
     _magMax = -DBL_MAX, _magMin = DBL_MAX;
     size_t i;
     for (i = 0; i < _nValues; i += _nComponents) {
@@ -734,10 +733,11 @@ Rappture::Unirect3d::GetVectorRange()
             _magMin = vm;
         }
     }
+    TRACE("GetVectorRange %g %g\n", _magMin, _magMax);
 }
 
 bool 
-Rappture::Unirect3d::Convert(Rappture::Unirect2d *dataPtr)
+Rappture::Unirect3d::convert(Rappture::Unirect2d *dataPtr)
 {
     _initialized = false;
 
