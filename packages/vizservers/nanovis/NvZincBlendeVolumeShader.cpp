@@ -19,19 +19,20 @@ NvZincBlendeVolumeShader::~NvZincBlendeVolumeShader()
 void NvZincBlendeVolumeShader::init()
 {
     loadFragmentProgram("zincblende_volume.cg", "main");
-    _tfParam = cgGetNamedParameter(_cgFP, "tf");
-    _volumeAParam = cgGetNamedParameter(_cgFP, "volumeA");
-    _volumeBParam = cgGetNamedParameter(_cgFP, "volumeB");
-    _cellSizeParam = cgGetNamedParameter(_cgFP, "cellSize");
-    _mviParam = cgGetNamedParameter(_cgFP, "modelViewInv");
-    _renderParam = cgGetNamedParameter(_cgFP, "renderParameters");
-    _optionOneVolumeParam = cgGetNamedParameter(_cgFP, "options");
+    _tfParam = getNamedParameterFromFP("tf");
+    _volumeAParam = getNamedParameterFromFP("volumeA");
+    _volumeBParam = getNamedParameterFromFP("volumeB");
+    _cellSizeParam = getNamedParameterFromFP("cellSize");
+    _mviParam = getNamedParameterFromFP("modelViewInv");
+    _renderParam = getNamedParameterFromFP("renderParameters");
+    _optionOneVolumeParam = getNamedParameterFromFP("options");
 }
 
 void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMode)
 {
     ZincBlendeVolume *vol = (ZincBlendeVolume *)volume;
-    cgGLSetStateMatrixParameter(_mviParam, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
+    cgGLSetStateMatrixParameter(_mviParam, CG_GL_MODELVIEW_MATRIX,
+                                CG_GL_MATRIX_INVERSE);
     cgGLSetTextureParameter(_tfParam, tfID);
     cgGLSetParameter4f(_cellSizeParam,
                        vol->cellSize.x,
@@ -63,8 +64,7 @@ void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, int slice
     cgGLEnableTextureParameter(_volumeAParam);
     cgGLEnableTextureParameter(_volumeBParam);
 
-    cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP40);
+    NvShader::bind();
 }
 
 void NvZincBlendeVolumeShader::unbind() 
@@ -73,5 +73,5 @@ void NvZincBlendeVolumeShader::unbind()
     cgGLDisableTextureParameter(_volumeBParam);
     cgGLDisableTextureParameter(_tfParam);
 
-    cgGLDisableProfile(CG_PROFILE_FP40);
+    NvShader::unbind();
 }

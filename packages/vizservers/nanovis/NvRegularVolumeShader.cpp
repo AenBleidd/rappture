@@ -17,54 +17,55 @@ NvRegularVolumeShader::~NvRegularVolumeShader()
 void NvRegularVolumeShader::init()
 {
     loadFragmentProgram("one_volume.cg", "main");
-    _mvi_one_volume_param = cgGetNamedParameter(_cgFP, "modelViewInv");
-    _mv_one_volume_param = cgGetNamedParameter(_cgFP, "modelView");
+    _mviOneVolumeParam = getNamedParameterFromFP("modelViewInv");
+    _mvOneVolumeParam = getNamedParameterFromFP("modelView");
 
-    _vol_one_volume_param = cgGetNamedParameter(_cgFP, "volume");
-    _tf_one_volume_param = cgGetNamedParameter(_cgFP, "tf");
-    _render_param_one_volume_param = cgGetNamedParameter(_cgFP, "renderParameters");
-    _option_one_volume_param = cgGetNamedParameter(_cgFP, "options");
+    _volOneVolumeParam = getNamedParameterFromFP("volume");
+    _tfOneVolumeParam = getNamedParameterFromFP("tf");
+    _renderParamOneVolumeParam = getNamedParameterFromFP("renderParameters");
+    _optionOneVolumeParam = getNamedParameterFromFP("options");
 }
 
 void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMode)
 {
     //regular cubic volume
-    cgGLSetStateMatrixParameter(_mvi_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_INVERSE);
-    cgGLSetStateMatrixParameter(_mv_one_volume_param, CG_GL_MODELVIEW_MATRIX, CG_GL_MATRIX_IDENTITY);
+    cgGLSetStateMatrixParameter(_mviOneVolumeParam, CG_GL_MODELVIEW_MATRIX,
+                                CG_GL_MATRIX_INVERSE);
+    cgGLSetStateMatrixParameter(_mvOneVolumeParam, CG_GL_MODELVIEW_MATRIX,
+                                CG_GL_MATRIX_IDENTITY);
 
-    cgGLSetTextureParameter(_vol_one_volume_param, volume->id);
-    cgGLSetTextureParameter(_tf_one_volume_param, tfID);
-    cgGLEnableTextureParameter(_vol_one_volume_param);
-    cgGLEnableTextureParameter(_tf_one_volume_param);
+    cgGLSetTextureParameter(_volOneVolumeParam, volume->id);
+    cgGLSetTextureParameter(_tfOneVolumeParam, tfID);
+    cgGLEnableTextureParameter(_volOneVolumeParam);
+    cgGLEnableTextureParameter(_tfOneVolumeParam);
 
     if (!sliceMode) {
-        cgGLSetParameter4f(_render_param_one_volume_param,
-            volume->numSlices(),
-            volume->opacityScale(),
-            volume->diffuse(),
-            volume->specular());
+        cgGLSetParameter4f(_renderParamOneVolumeParam,
+                           volume->numSlices(),
+                           volume->opacityScale(),
+                           volume->diffuse(),
+                           volume->specular());
     } else {
-        cgGLSetParameter4f(_render_param_one_volume_param,
-            0.,
-            volume->opacityScale(),
-            volume->diffuse(),
-            volume->specular());
+        cgGLSetParameter4f(_renderParamOneVolumeParam,
+                           0.,
+                           volume->opacityScale(),
+                           volume->diffuse(),
+                           volume->specular());
     }
 
-    cgGLSetParameter4f(_option_one_volume_param,
-    	0.0f,
-	volume->isosurface(),
-	0.0f,
-	0.0f);
+    cgGLSetParameter4f(_optionOneVolumeParam,
+                       0.0f,
+                       volume->isosurface(),
+                       0.0f,
+                       0.0f);
 
-    cgGLBindProgram(_cgFP);
-    cgGLEnableProfile(CG_PROFILE_FP40);
+    NvShader:: bind();
 }
 
 void NvRegularVolumeShader::unbind()
 {
-    cgGLDisableTextureParameter(_vol_one_volume_param);
-    cgGLDisableTextureParameter(_tf_one_volume_param);
+    cgGLDisableTextureParameter(_volOneVolumeParam);
+    cgGLDisableTextureParameter(_tfOneVolumeParam);
 
-    cgGLDisableProfile(CG_PROFILE_FP40);
+    NvShader::unbind();
 }
