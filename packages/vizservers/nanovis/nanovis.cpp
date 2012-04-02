@@ -1559,7 +1559,7 @@ NanoVis::setHeightmapRanges()
          hPtr = Tcl_NextHashEntry(&iter)) {
         HeightMap *hmPtr;
         hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
-        hmPtr->MapToGrid(grid);
+        hmPtr->mapToGrid(grid);
     }
     HeightMap::updatePending = false;
     TRACE("leaving setHeightmapRanges\n");
@@ -2433,7 +2433,7 @@ NanoVis::render2dContour(HeightMap* heightmap, int width, int height)
 
     //cam->initialize();
 
-    heightmap->render_topview(renderContext, width, height);
+    heightmap->renderTopview(renderContext, width, height);
 
     NanoVis::readScreen();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);

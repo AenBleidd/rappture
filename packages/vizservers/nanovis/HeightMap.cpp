@@ -61,17 +61,20 @@ HeightMap::~HeightMap()
 }
 
 void 
-HeightMap::render(graphics::RenderContext* renderContext)
+HeightMap::render(graphics::RenderContext *renderContext)
 {
+    glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+
     if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
         glDisable(GL_CULL_FACE);
     } else {
         glEnable(GL_CULL_FACE);
-        glCullFace((GLuint) renderContext->getCullMode());
+        glCullFace((GLuint)renderContext->getCullMode());
     }
-    glPolygonMode(GL_FRONT_AND_BACK, (GLuint) renderContext->getPolygonMode());
-    glShadeModel((GLuint) renderContext->getShadingModel());
+    glPolygonMode(GL_FRONT_AND_BACK, (GLuint)renderContext->getPolygonMode());
+    glShadeModel((GLuint)renderContext->getShadingModel());
 
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
 #ifndef notdef
@@ -82,7 +85,7 @@ HeightMap::render(graphics::RenderContext* renderContext)
     glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
 
     if (_contour != NULL) {
-        glDepthRange (0.001, 1.0);
+        glDepthRange(0.001, 1.0);
     }
         
     glEnable(GL_DEPTH_TEST);
@@ -95,62 +98,59 @@ HeightMap::render(graphics::RenderContext* renderContext)
         glDisableClientState(GL_COLOR_ARRAY);
         glDisableClientState(GL_INDEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
-        
+
         if (_tfPtr) {
             // PUT vertex program here
             //
             //
-            
-            cgGLBindProgram(_shader->getFP());
-            cgGLEnableProfile(CG_PROFILE_FP40);
-            
+            _shader->bind();
+ 
             cgGLSetTextureParameter(_tfParam, _tfPtr->id());
             cgGLEnableTextureParameter(_tfParam);
             cgGLSetParameter1f(_opacityParam, _opacity);
-            
+
             glEnable(GL_TEXTURE_1D);
             _tfPtr->getTexture()->activate();
-            
+ 
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
         glVertexPointer(3, GL_FLOAT, 12, 0);
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
-        ::glTexCoordPointer(3, GL_FLOAT, 12, 0);
-        
+        glTexCoordPointer(3, GL_FLOAT, 12, 0);
+
 #define _TRIANGLES_
 #ifdef _TRIANGLES_
         glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
                        _indexBuffer);
-#else                   
+#else
         glDrawElements(GL_QUADS, _indexCount, GL_UNSIGNED_INT, 
                        _indexBuffer);
 #endif
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
         glDisableClientState(GL_VERTEX_ARRAY);
         if (_tfPtr != NULL) {
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            
-            cgGLDisableProfile(CG_PROFILE_FP40);
+
+            _shader->unbind();
         }
     }
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     if (_contour != NULL) {
         if (_contourVisible) {
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
             glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 
-		_opacity /*1.0f*/);
+                      _opacity /*1.0f*/);
             glDepthRange (0.0, 0.999);
             _contour->render();
-            glDepthRange (0.0, 1.0);
         }
 
 #if TOPCONTOUR
@@ -158,14 +158,16 @@ HeightMap::render(graphics::RenderContext* renderContext)
             glDisable(GL_BLEND);
             glDisable(GL_TEXTURE_2D);
             glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 
-		_opacity /*1.0f*/);
+                      _opacity /*1.0f*/);
             //glDepthRange (0.0, 0.999);
             _topContour->render();
-            //glDepthRange (0.0, 1.0);
         }
 #endif
+        glDepthRange (0.0, 1.0);
     }
+
     glPopMatrix();
+    glPopAttrib();
 }
 
 void 
@@ -445,9 +447,11 @@ HeightMap::createHeightVertices(float xMin, float yMin, float xMax,
     return vertices;
 }
 
-// Maps the data coordinates of the surface into the grid's axes.
+/**
+ * \brief Maps the data coordinates of the surface into the grid's axes.
+ */
 void 
-HeightMap::MapToGrid(Grid *gridPtr)
+HeightMap::mapToGrid(Grid *gridPtr)
 {
     int count = _xNum * _yNum;
 
@@ -516,10 +520,10 @@ HeightMap::MapToGrid(Grid *gridPtr)
 }
 
 void 
-HeightMap::render_topview(graphics::RenderContext* renderContext, 
-			  int render_width, int render_height)
+HeightMap::renderTopview(graphics::RenderContext* renderContext, 
+                         int render_width, int render_height)
 {
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
     glPushAttrib(GL_VIEWPORT_BIT);
     glViewport(0, 0, render_width, render_height);
     glMatrixMode(GL_PROJECTION);
@@ -573,50 +577,48 @@ HeightMap::render_topview(graphics::RenderContext* renderContext,
         glDisableClientState(GL_NORMAL_ARRAY);
         
         if (_tfPtr != NULL) {
-            cgGLBindProgram(_shader->getFP());
-            cgGLEnableProfile(CG_PROFILE_FP40);
+            _shader->bind();
             
             cgGLSetTextureParameter(_tfParam, _tfPtr->id());
             cgGLEnableTextureParameter(_tfParam);
-            
+
             glEnable(GL_TEXTURE_1D);
             _tfPtr->getTexture()->activate();
-            
+
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        }
-        else {
+        } else {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
         glVertexPointer(3, GL_FLOAT, 12, 0);
-        
+
         glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
-        ::glTexCoordPointer(3, GL_FLOAT, 12, 0);
-        
+        glTexCoordPointer(3, GL_FLOAT, 12, 0);
+
 #define _TRIANGLES_
 #ifdef _TRIANGLES_
         glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
                        _indexBuffer);
-#else                   
+#else
         glDrawElements(GL_QUADS, _indexCount, GL_UNSIGNED_INT, 
                        _indexBuffer);
 #endif
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
         glDisableClientState(GL_VERTEX_ARRAY);
         if (_tfPtr != NULL) {
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            
-            cgGLDisableProfile(CG_PROFILE_FP40);
+
+            _shader->unbind();
         }
     }
-    
+
     glShadeModel(GL_FLAT);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
     if (_contour != NULL) {
         if (_contourVisible) {
             glDisable(GL_BLEND);
