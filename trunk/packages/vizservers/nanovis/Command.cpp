@@ -469,7 +469,6 @@ GetColor(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv, float *rgbPtr)
     return TCL_OK;
 }
 
-
 /**
  * Read the requested number of bytes from standard input into the given
  * buffer.  The buffer is then decompressed and decoded.
@@ -2218,9 +2217,9 @@ PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec planeOps[] = {
-    {"active",     1, PlaneEnableOp,    3, 3, "planeIdx",},
-    {"add",        1, PlaneAddOp,       5, 5, "planeIdx width height",},
-    {"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfuncIdx",},
+    {"active",     2, PlaneEnableOp,    3, 3, "planeIdx",},
+    {"add",        2, PlaneAddOp,       5, 5, "planeIdx width height",},
+    {"link",       1, PlaneLinkOp,      4, 4, "planeIdx transfunc_name",},
 };
 static int nPlaneOps = NumCmdSpecs(planeOps);
 
