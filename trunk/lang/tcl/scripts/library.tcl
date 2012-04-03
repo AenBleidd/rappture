@@ -19,6 +19,7 @@ namespace eval Rappture {
 
 # load the object system along with the XML library code
 Rappture::objects::init
+encoding system utf-8
 
 # ----------------------------------------------------------------------
 # USAGE: library <file>
@@ -508,13 +509,18 @@ itcl::body Rappture::LibraryObj::get {args} {
     if {$node == ""} {
         return ""
     }
+    set string [$node text]
     # Expat (via tDOM) will always produce utf-8 output, regardless of the
     # encoding of the tool.xml.  We need to convert utf-8 to unicode for
     # Tcl/Tk.  This shouldn't affect ASCII tool.xml files.
-    set string [encoding convertfrom utf-8 [$node text]]
+    #puts stderr "before $path=$string"
+    #set string [encoding convertfrom utf-8 $string]
+    #puts stderr "after $path=$string [string length $string]"
+    #Rappture::encoding::debug $string
     if {$params(-decode) == "yes"} {
-        set string [Rappture::encoding::decode -- $string]
+	set string [Rappture::encoding::decode -- $string]
     }
+    puts stderr "returning $path=$string"
     return [string trim $string]
 }
 
