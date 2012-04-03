@@ -19,6 +19,8 @@ using namespace Rappture;
 
 FieldPrism3D::FieldPrism3D()
   : _valuelist(),
+    _vmin(NAN),
+    _vmax(NAN),
     _meshPtr(NULL),
     _counter(0)
 {
@@ -26,6 +28,8 @@ FieldPrism3D::FieldPrism3D()
 
 FieldPrism3D::FieldPrism3D(const MeshTri2D& xyg, const Mesh1D& zg)
   : _valuelist(),
+    _vmin(NAN),
+    _vmax(NAN),
     _meshPtr(NULL),
     _counter(0)
 {
@@ -36,6 +40,8 @@ FieldPrism3D::FieldPrism3D(const MeshTri2D& xyg, const Mesh1D& zg)
 
 FieldPrism3D::FieldPrism3D(const FieldPrism3D& field)
   : _valuelist(field._valuelist),
+    _vmin(field._vmin),
+    _vmax(field._vmax),
     _meshPtr(field._meshPtr),
     _counter(field._counter)
 {
@@ -45,6 +51,8 @@ FieldPrism3D&
 FieldPrism3D::operator=(const FieldPrism3D& field)
 {
     _valuelist = field._valuelist;
+    _vmin = field._vmin;
+    _vmax = field._vmax;
     _meshPtr = field._meshPtr;
     _counter = field._counter;
     return *this;

@@ -40,8 +40,8 @@ FieldRect3D::FieldRect3D(const Mesh1D& xg, const Mesh1D& yg, const Mesh1D& zg)
 
 FieldRect3D::FieldRect3D(const FieldRect3D& field)
   : _valuelist(field._valuelist),
-    _vmin(NAN),
-    _vmax(NAN),
+    _vmin(field._vmin),
+    _vmax(field._vmax),
     _meshPtr(field._meshPtr),
     _counter(field._counter)
 {
@@ -51,10 +51,10 @@ FieldRect3D&
 FieldRect3D::operator=(const FieldRect3D& field)
 {
     _valuelist = field._valuelist;
-    _meshPtr = field._meshPtr;
-    _counter = field._counter;
     _vmin = field._vmin;
     _vmax = field._vmax;
+    _meshPtr = field._meshPtr;
+    _counter = field._counter;
     return *this;
 }
 
