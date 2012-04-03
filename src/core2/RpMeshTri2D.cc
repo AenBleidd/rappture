@@ -14,8 +14,11 @@
  */
 #include <math.h>
 #include <assert.h>
+#include <float.h>
 #include <iostream>
+
 #include "RpMeshTri2D.h"
+
 using namespace Rappture;
 
 CellTri2D::CellTri2D()
@@ -346,8 +349,11 @@ MeshTri2D::locate(const Node2D& node) const
 
         // compute barycentric coords
         // if all are >= 0, then this tri contains node
+        // Check against -DBL_EPSILON to handle precision issues at boundaries
         cell.barycentrics(node, phi);
-        if (phi[0] >= 0.0 && phi[1] >= 0.0 && phi[2] >= 0.0) {
+        if (phi[0] > -DBL_EPSILON &&
+            phi[1] > -DBL_EPSILON &&
+            phi[2] > -DBL_EPSILON) {
             break;
         }
 
