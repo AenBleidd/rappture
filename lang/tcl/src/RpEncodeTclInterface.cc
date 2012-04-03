@@ -21,6 +21,7 @@ extern Tcl_AppInitProc RpEncoding_Init;
 static Tcl_ObjCmdProc IsCmd;
 static Tcl_ObjCmdProc EncodeCmd;
 static Tcl_ObjCmdProc DecodeCmd;
+static Tcl_ObjCmdProc DebugCmd;
 
 /**********************************************************************/
 // FUNCTION: RpEncoding_Init()
@@ -44,6 +45,9 @@ RpEncoding_Init(Tcl_Interp *interp)
 
     Tcl_CreateObjCommand(interp, "::Rappture::encoding::decode",
         DecodeCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
+
+    Tcl_CreateObjCommand(interp, "::Rappture::encoding::debug",
+	DebugCmd, (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL);
     return TCL_OK;
 }
 
@@ -257,7 +261,7 @@ DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     switches.flags = 0;
     int n;
     n = Rp_ParseSwitches(interp, decodeSwitches, objc - 1, objv + 1, &switches,
-                         SWITCH_OBJV_PARTIAL);
+	SWITCH_OBJV_PARTIAL);
     if (n < 0) {
         return TCL_ERROR;
     }
@@ -269,19 +273,39 @@ DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                 " ?-as z|b64|zb64? ?--? string\"", (char*)NULL);
         return TCL_ERROR;
     }
-    int nBytes;
-    const char* string;
-    string = (const char*)Tcl_GetByteArrayFromObj(objv[last], &nBytes);
-    if (nBytes <= 0) {
-        return TCL_OK;                // Nothing to decode.
-    }
-    Rappture::Buffer buf(string, nBytes); 
+    int numBytes;
+    const char *string;
+
+    string = Tcl_GetStringFromObj(objv[last], &numBytes);
+
+    Rappture::Buffer buf(string, numBytes); 
+
     Rappture::Outcome status;
     if (!Rappture::encoding::decode(status, buf, switches.flags)) {
         Tcl_AppendResult(interp, status.remark(), "\n", status.context(), NULL);
         return TCL_ERROR;
     }
-    Tcl_SetByteArrayObj(Tcl_GetObjResult(interp), 
-                (const unsigned char*)buf.bytes(), buf.size());
+    Tcl_SetStringObj(Tcl_GetObjResult(interp), buf.bytes(), buf.size());
+    return TCL_OK;
+}
+
+static int
+DebugCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    if (objc < 1) {
+        Tcl_AppendResult(interp, "wrong # args: should be \"", 
+                Tcl_GetString(objv[0]), " string\"", (char*)NULL);
+        return TCL_ERROR;
+    }
+    int numBytes;
+    const char* string;
+    int i;
+    string = Tcl_GetStringFromObj(objv[objc-1], &numBytes);
+    fprintf(stderr, "string=%s, bytes=", string);
+    for (i = 0; i < numBytes; i++) {
+	fprintf(stderr, "%02x ", string[i]);
+    }
+    fprintf(stderr, "\n");
     return TCL_OK;
 }
