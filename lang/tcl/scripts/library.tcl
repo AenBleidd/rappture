@@ -520,7 +520,7 @@ itcl::body Rappture::LibraryObj::get {args} {
     if {$params(-decode) == "yes"} {
 	set string [Rappture::encoding::decode -- $string]
     }
-    puts stderr "returning $path=$string"
+    #puts stderr "returning $path=$string"
     return [string trim $string]
 }
 
