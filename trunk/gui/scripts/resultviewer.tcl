@@ -296,10 +296,10 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                             }
                             "points-on-mesh" {
                                 set mesh [$dataobj mesh]
-                                set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}] 
-                                set extents [$dataobj extents] 
+                                set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
+                                set extents [$dataobj extents]
                                 if { $extents > 1 } {
-                                    set fmt "flowvis" 
+                                    set fmt "flowvis"
                                 }
                             }
                             "opendx" - "dx" {
