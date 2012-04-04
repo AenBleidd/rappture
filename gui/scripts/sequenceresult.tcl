@@ -492,12 +492,23 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                     3D {
                         set fmt [$dataobj type]
                         switch -- $fmt {
-                            "opendx" - "dx" - "points-on-mesh" {
+                            "points-on-mesh" {
+                                set mesh [$dataobj mesh]
+                                set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
+                                set extents [$dataobj extents]
+                                if { $extents > 1 } {
+                                    set fmt "flowvis"
+                                }
+                            }
+                            "opendx" - "dx" {
                                 set fmt "nanovis"
                                 set extents [$dataobj extents]
                                 if { $extents > 1 } {
                                     set fmt "flowvis"
                                 }
+                            }
+                            "" {
+                                set fmt "auto" 
                             }
                         }
                         Rappture::Field3DResult $viewer -mode $fmt
