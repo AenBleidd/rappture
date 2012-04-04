@@ -78,7 +78,6 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
         if {$type == "about"} {
             continue
         }
-
         if {$type == "loader"} {
             #
             # Add <loader>'s at the top of the page.
@@ -138,7 +137,7 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
             # Add <drawing>'s as the central element of the page.
             #
             set w "$frame.drawing[incr num]"
-            Rappture::DrawingEntry ::$w $_owner $path.$cname.current
+            Rappture::DrawingEntry ::$w $_owner $path.$cname
             pack $w -expand yes -fill both
             $_owner widgetfor $path.$cname $w
             bind $w <<Value>> [list $_owner changed $path.$cname]

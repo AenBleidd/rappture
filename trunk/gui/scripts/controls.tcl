@@ -137,6 +137,10 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::ChoiceEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
+        drawing {
+            Rappture::DrawingEntry $w $_owner $path
+            bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
         group {
             Rappture::GroupEntry $w $_owner $path
         }
