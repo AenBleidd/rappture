@@ -115,14 +115,25 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                 std::ofstream ftmp(fpts);
                 // save corners of bounding box first, to work around meshing
                 // problems in voronoi utility
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMin(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMax(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
-                ftmp << xymesh.rangeMin(Rappture::xaxis) << " "
-                     << xymesh.rangeMax(Rappture::yaxis) << std::endl;
+                int numBoundaryPoints = 4;
+
+                // Bump out the bounds by an epsilon to avoid problem when
+                // corner points are already nodes
+                double XEPS = (xymesh.rangeMax(Rappture::xaxis) - 
+                               xymesh.rangeMin(Rappture::xaxis)) / 10.0f;
+
+                double YEPS = (xymesh.rangeMax(Rappture::yaxis) - 
+                               xymesh.rangeMin(Rappture::yaxis)) / 10.0f;
+
+                ftmp << xymesh.rangeMin(Rappture::xaxis) - XEPS << " "
+                     << xymesh.rangeMin(Rappture::yaxis) - YEPS << std::endl;
+                ftmp << xymesh.rangeMax(Rappture::xaxis) + XEPS << " "
+                     << xymesh.rangeMin(Rappture::yaxis) - YEPS << std::endl;
+                ftmp << xymesh.rangeMax(Rappture::xaxis) + XEPS << " "
+                     << xymesh.rangeMax(Rappture::yaxis) + YEPS << std::endl;
+                ftmp << xymesh.rangeMin(Rappture::xaxis) - XEPS << " "
+                     << xymesh.rangeMax(Rappture::yaxis) + YEPS << std::endl;
+
                 for (int i = 0; i < nxy; i++) {
                     ftmp << xymesh.atNode(i).x() << " " << xymesh.atNode(i).y() << std::endl;
                 }
@@ -136,9 +147,13 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                     while (!ftri.eof()) {
                         ftri.getline(line,sizeof(line)-1);
                         if (sscanf(line, "%d %d %d", &cx, &cy, &cz) == 3) {
-                            if (cx >= 4 && cy >= 4 && cz >= 4) {
-                                // skip first 4 boundary points
-                                xymesh.addCell(cx-4, cy-4, cz-4);
+                            if (cx >= numBoundaryPoints &&
+                                cy >= numBoundaryPoints &&
+                                cz >= numBoundaryPoints) {
+                                // skip boundary points we added
+                                xymesh.addCell(cx - numBoundaryPoints,
+                                               cy - numBoundaryPoints,
+                                               cz - numBoundaryPoints);
                             }
                         }
                     }
@@ -200,22 +215,24 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     TRACE("found nx=%d ny=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f\n", 
           nx, ny, nz, dx, dy, dz, x0, y0, z0);
 
+    lx = (nx - 1) * dx;
+    ly = (ny - 1) * dy;
+    lz = (nz - 1) * dz;
+
     // read data points
     if (fin.eof()) {
         result.error("data not found in stream");
         return NULL;
     }
     Volume *volPtr = NULL;
-    lx = (nx - 1) * dx;
-    ly = (ny - 1) * dy;
-    lz = (nz - 1) * dz;
+    float *data = NULL;
+    double vmin = DBL_MAX;
+    double nzero_min = DBL_MAX;
+    double vmax = -DBL_MAX;
     if (isrect) {
 #if ISO_TEST
-        float *data = new float[nx *  ny *  nz * 4];
+        data = new float[nx *  ny *  nz * 4];
         memset(data, 0, nx*ny*nz*4);
-        double vmin = DBL_MAX;
-        double nzero_min = DBL_MAX;
-        double vmax = -DBL_MAX;
 #else // !ISO_TEST
         Rappture::Mesh1D xgrid(x0, x0 + lx, nx);
         Rappture::Mesh1D ygrid(y0, y0 + ly, ny);
@@ -316,13 +333,14 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         dy = ly /(double)(ny - 1);
         dz = lz /(double)(nz - 1);
 
-        double vmin = field.valueMin();
-        double vmax = field.valueMax();
+        vmin = field.valueMin();
+        vmax = field.valueMax();
+        nzero_min = DBL_MAX;
         double dv = vmax - vmin;
         if (dv == 0.0) {
             dv = 1.0;
         }
-        double nzero_min = DBL_MAX;
+
         int ngen = 0;
 #if FILTER_GRADIENTS
         // Sobel filter expects a single float at
@@ -333,7 +351,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         // Leave 3 floats of space for gradients
         // to be filled in by computeSimpleGradient()
         const int step = 4;
-        float *data = new float[nx*ny*nz * step];
+        data = new float[nx*ny*nz * step];
 #endif // FILTER_GRADIENTS
 
         for (int iz = 0; iz < nz; iz++) {
@@ -367,9 +385,9 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 #if FILTER_GRADIENTS
         // computeGradient returns a new array with gradients
         // filled in, so data is now 4 floats per node
-        float *data = computeGradient(cdata, nx, ny, nz,
-                                      dx, dy, dz,
-                                      vmin, vmax);
+        data = computeGradient(cdata, nx, ny, nz,
+                               dx, dy, dz,
+                               vmin, vmax);
         delete [] cdata;
 #else // !FILTER_GRADIENTS
         computeSimpleGradient(data, nx, ny, nz,
@@ -377,29 +395,6 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 #endif // FILTER_GRADIENTS
 
 #endif // ISO_TEST
-        TRACE("nx = %i ny = %i nz = %i\n", nx, ny, nz);
-        TRACE("lx = %lg ly = %lg lz = %lg\n", lx, ly, lz);
-        TRACE("dx = %lg dy = %lg dz = %lg\n", dx, dy, dz);
-        TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n",
-              vmin, vmax, nzero_min);
-
-        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
-                                     vmin, vmax, nzero_min);
-        volPtr->xAxis.setRange(x0, x0 + lx);
-        volPtr->yAxis.setRange(y0, y0 + ly);
-        volPtr->zAxis.setRange(z0, z0 + lz); 
-        volPtr->wAxis.setRange(vmin, vmax);
-        volPtr->updatePending = true;
-        // TBD..
-#if 0 && defined(USE_POINTSET_RENDERER)
-        PointSet *pset = new PointSet();
-        pset->initialize(volPtr, (float*)data);
-        pset->setVisible(true);
-        NanoVis::pointSet.push_back(pset);
-        updateColor(pset);
-        volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
-#endif
-        delete [] data;
     } else {
         Rappture::Mesh1D zgrid(z0, z0 + (nz-1)*dz, nz);
         Rappture::FieldPrism3D field(xymesh, zgrid);
@@ -457,10 +452,11 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         dy = ly /(double)(ny - 1);
         dz = lz /(double)(nz - 1);
 
-        float *data = new float[4*nx*ny*nz];
+        data = new float[4*nx*ny*nz];
 
-        double vmin = field.valueMin();
-        double vmax = field.valueMax();
+        vmin = field.valueMin();
+        vmax = field.valueMax();
+        nzero_min = DBL_MAX;
         double dv = vmax - vmin;
         if (dv == 0.0) {
             dv = 1.0;
@@ -468,7 +464,6 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         // generate the uniformly sampled data that we need for a volume
         int ngen = 0;
-        double nzero_min = DBL_MAX;
         for (int iz = 0; iz < nz; iz++) {
             double zval = z0 + iz*dz;
             for (int iy = 0; iy < ny; iy++) {
@@ -491,28 +486,31 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         computeSimpleGradient(data, nx, ny, nz,
                               dx, dy, dz);
+    }
 
-        volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
-                                     vmin, vmax, nzero_min);
-        volPtr->xAxis.setRange(field.rangeMin(Rappture::xaxis),
-                               field.rangeMax(Rappture::xaxis));
-        volPtr->yAxis.setRange(field.rangeMin(Rappture::yaxis),
-                               field.rangeMax(Rappture::yaxis));
-        volPtr->zAxis.setRange(field.rangeMin(Rappture::zaxis),
-                               field.rangeMax(Rappture::zaxis));
-        volPtr->wAxis.setRange(field.valueMin(), field.valueMax());
-        volPtr->updatePending = true;
+    TRACE("nx = %i ny = %i nz = %i\n", nx, ny, nz);
+    TRACE("lx = %lg ly = %lg lz = %lg\n", lx, ly, lz);
+    TRACE("dx = %lg dy = %lg dz = %lg\n", dx, dy, dz);
+    TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n",
+          vmin, vmax, nzero_min);
+
+    volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
+                                 vmin, vmax, nzero_min);
+    volPtr->xAxis.setRange(x0, x0 + lx);
+    volPtr->yAxis.setRange(y0, y0 + ly);
+    volPtr->zAxis.setRange(z0, z0 + lz);
+    volPtr->updatePending = true;
+
         // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
-        PointSet *pset = new PointSet();
-        pset->initialize(volPtr, (float*)data);
-        pset->setVisible(true);
-        NanoVis::pointSet.push_back(pset);
-        updateColor(pset);
-        volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
+    PointSet *pset = new PointSet();
+    pset->initialize(volPtr, (float*)data);
+    pset->setVisible(true);
+    NanoVis::pointSet.push_back(pset);
+    updateColor(pset);
+    volPtr->pointsetIndex = NanoVis::pointSet.size() - 1;
 #endif
-        delete [] data;
-    }
+    delete [] data;
 
     //
     // Center this new volume on the origin.
