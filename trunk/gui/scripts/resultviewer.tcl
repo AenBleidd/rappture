@@ -35,12 +35,14 @@ itcl::class Rappture::ResultViewer {
 
     protected method _plotAdd {xmlobj {settings ""}}
     protected method _fixScale {args}
-    protected proc _xml2data {xmlobj path}
+    protected method _xml2data {xmlobj path}
+    protected method _cleanIndex {index}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _mode ""        ;# current plotting mode (xy, etc.)
     private variable _mode2widget    ;# maps plotting mode => widget
     private variable _dataslots ""   ;# list of all data objects in this widget
+    private variable _xml2data       ;# maps xmlobj => data obj in _dataslots
 }
 
 itk::usual ResultViewer {
@@ -78,6 +80,7 @@ itcl::body Rappture::ResultViewer::destructor {} {
 # Data is taken from the <xmlobj> object at the <path>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::add {index xmlobj path} {
+    set index [_cleanIndex $index]
     set dobj [_xml2data $xmlobj $path]
 
     #
@@ -95,19 +98,45 @@ itcl::body Rappture::ResultViewer::add {index xmlobj path} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: clear ?<index>?
+# USAGE: clear ?<index>|<xmlobj>?
 #
-# Clears one or all results in this result viewer.
+# Clears one or all results in this result viewer.  If a particular
+# <index> is specified, then all data objects at that index are
+# deleted.  If a particular <xmlobj> is specified, then all data
+# objects related to that <xmlobj> are removed--regardless of whether
+# they reside at one or more indices.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::clear {{index ""}} {
-    if {"" != $index} {
+    if {$index ne ""} {
         # clear one result
-        if {$index >= 0 && $index < [llength $_dataslots]} {
-            set slot [lindex $_dataslots $index]
-            foreach dobj $slot {
-                itcl::delete object $dobj
+        if {[catch {_cleanIndex $index} i] == 0} {
+            if {$i >= 0 && $i < [llength $_dataslots]} {
+                set slot [lindex $_dataslots $i]
+                foreach dobj $slot {
+                    itcl::delete object $dobj
+                }
+                set _dataslots [lreplace $_dataslots $i $i ""]
+                $_dispatcher event -idle !scale
             }
-            set _dataslots [lreplace $_dataslots $index $index ""]
+        } else {
+            foreach key [array names _xml2data $index-*] {
+                set dobj $_xml2data($key)
+
+                # search for and remove all references to this data object
+                for {set n 0} {$n < [llength $_dataslots]} {incr n} {
+                    set slot [lindex $_dataslots $n]
+                    set pos [lsearch -exact $slot $dobj]
+                    if {$pos >= 0} {
+                        set slot [lreplace $slot $pos $pos]
+                        set _dataslots [lreplace $_dataslots $n $n $slot]
+                        $_dispatcher event -idle !scale
+                    }
+                }
+
+                # destroy the object and forget it
+                itcl::delete object $dobj
+                unset _xml2data($key)
+            }
         }
     } else {
         # clear all results
@@ -118,6 +147,7 @@ itcl::body Rappture::ResultViewer::clear {{index ""}} {
             }
         }
         set _dataslots ""
+        catch {unset _xml2data}
     }
 }
 
@@ -138,13 +168,14 @@ itcl::body Rappture::ResultViewer::value {xmlobj} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: plot add ?<index> <settings> <index> <settings> ...?
+# USAGE: plot add ?<simnum> <settings> <simnum> <settings> ...?
 # USAGE: plot clear
 #
 # Used to manipulate the contents of this viewer.  The "plot clear"
 # command clears the current viewer.  Data is still stored in the
 # widget, but the results are not shown on screen.  The "plot add"
-# command adds the data at the specified <index> to the plot.  If
+# command adds the data at the specified <simnum> to the plot.  Each
+# <simnum> is the simulation number, like "#1", "#2", "#3", etc.  If
 # the optional <settings> are specified, then they are applied
 # to the plot; otherwise, default settings are used.
 # ----------------------------------------------------------------------
@@ -157,6 +188,8 @@ itcl::body Rappture::ResultViewer::plot {option args} {
                     set params $opts
                     continue
                 }
+
+                set index [_cleanIndex $index]
                 set reset "-color autoreset"
                 set slot [lindex $_dataslots $index]
                 foreach dobj $slot {
@@ -474,49 +507,76 @@ itcl::body Rappture::ResultViewer::download {option args} {
 # specified <path> in the <xmlobj>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
+    if {[info exists _xml2data($xmlobj-$path)]} {
+        return $_xml2data($xmlobj-$path)
+    }
+
     set type [$xmlobj element -as type $path]
     switch -- $type {
         curve {
-            return [Rappture::Curve ::#auto $xmlobj $path]
+            set dobj [Rappture::Curve ::#auto $xmlobj $path]
         }
         datatable {
-            return [Rappture::DataTable ::#auto $xmlobj $path]
+            set dobj [Rappture::DataTable ::#auto $xmlobj $path]
         }
         histogram {
-            return [Rappture::Histogram ::#auto $xmlobj $path]
+            set dobj [Rappture::Histogram ::#auto $xmlobj $path]
         }
         field {
-            return [Rappture::Field ::#auto $xmlobj $path]
+            set dobj [Rappture::Field ::#auto $xmlobj $path]
         }
         mesh {
-            return [Rappture::Mesh ::#auto $xmlobj $path]
+            set dobj [Rappture::Mesh ::#auto $xmlobj $path]
         }
         table {
-            return [Rappture::Table ::#auto $xmlobj $path]
+            set dobj [Rappture::Table ::#auto $xmlobj $path]
         }
         image {
-            return [Rappture::Image ::#auto $xmlobj $path]
+            set dobj [Rappture::Image ::#auto $xmlobj $path]
         }
         sequence {
-            return [Rappture::Sequence ::#auto $xmlobj $path]
+            set dobj [Rappture::Sequence ::#auto $xmlobj $path]
         }
         string - log {
-            return [$xmlobj element -as object $path]
+            set dobj [$xmlobj element -as object $path]
         }
         structure {
-            return [$xmlobj element -as object $path]
+            set dobj [$xmlobj element -as object $path]
         }
         number - integer - boolean - choice {
-            return [$xmlobj element -as object $path]
+            set dobj [$xmlobj element -as object $path]
         }
         drawing3d - drawing {
-            return [Rappture::Drawing ::#auto $xmlobj $path]
+            set dobj [Rappture::Drawing ::#auto $xmlobj $path]
         }
         time - status {
-            return ""
+            set dobj ""
+        }
+        default {
+            error "don't know how to plot <$type> data path=$path"
         }
     }
-    error "don't know how to plot <$type> data path=$path"
+
+    # store the mapping xmlobj=>dobj so we can find this result later
+    if {$dobj ne ""} {
+        set _xml2data($xmlobj-$path) $dobj
+    }
+    return $dobj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _cleanIndex <index>
+#
+# Used internally to create a data object for the data at the
+# specified <path> in the <xmlobj>.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultViewer::_cleanIndex {index} {
+    if {[regexp {^#([0-9]+)} $index match num]} {
+        return [expr {$num-1}]  ;# start from 0 instead of 1
+    } elseif {[string is integer -strict $index]} {
+        return $index
+    }
+    error "bad plot index \"$index\": should be 0,1,2,... or #1,#2,#3,..."
 }
 
 # ----------------------------------------------------------------------

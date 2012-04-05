@@ -248,11 +248,12 @@ itcl::body Rappture::XyLegend::reset {} {
         $_tree delete $node
     }
     foreach elem [$_graph element show] {
-        set label [$_graph element cget $elem -label]
-        if { $label == "" } {
-            set label $elem
+        if {[catch {$_graph element cget $elem -label} label] == 0} {
+            if {$label eq ""} {
+                set label $elem
+            }
+            Add $elem $label
         }
-        Add $elem $label
     }
     $itk_component(legend) open -recurse root
     Check

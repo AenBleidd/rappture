@@ -29,6 +29,7 @@ option add *Balloon.stemLength 16 widgetDefault
 itcl::class Rappture::Balloon {
     inherit itk::Toplevel
 
+    itk_option define -background background Background ""
     itk_option define -deactivatecommand deactivateCommand DeactivateCommand ""
     itk_option define -dismissbutton dismissButton DismissButton "on"
     itk_option define -padx padX Pad 0
@@ -321,7 +322,7 @@ itcl::body Rappture::Balloon::_createStems {} {
 
             set bg $itk_option(-background)
             set rgb [winfo rgb . $bg]
-            set flatbg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
+            set flatbg [format "#%04x%04x%04x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
             switch -- $itk_option(-relief) {
                 raised {
                     set light [Rappture::color::brightness $bg 0.4]
@@ -339,8 +340,7 @@ itcl::body Rappture::Balloon::_createStems {} {
                     set bg $flatbg
                 }
             }
-            set rgb [winfo rgb . $bg]
-            set bg [format "#%03x%03x%03x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
+            set bg [format "#%04x%04x%04x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
 
             $_fills($dir) put $bg -to 0 0 $sw $sh
 
@@ -498,6 +498,13 @@ itcl::body Rappture::Balloon::outside {widget x y} {
              || $x > [winfo rootx $widget]+[winfo width $widget]
              || $y < [winfo rooty $widget]
              || $y > [winfo rooty $widget]+[winfo height $widget]}]
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -background
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Balloon::background {
+    _createStems
 }
 
 # ----------------------------------------------------------------------

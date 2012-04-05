@@ -54,7 +54,7 @@ itcl::class Rappture::Analyzer {
     public method simulate {args}
     public method reset {{when -eventually}}
     public method load {xmlobj}
-    public method clear {}
+    public method clear {{xmlobj ""}}
     public method download {option args}
 
     protected method _plot {args}
@@ -640,39 +640,55 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: clear
+# USAGE: clear ?<xmlobj>?
 #
-# Discards all results previously loaded into the analyzer.
+# Discards one or more results previously loaded into the analyzer.
+# If an <xmlobj> is specified, then that one result is cleared.
+# Otherwise, all results are cleared.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::clear {} {
-    foreach obj $_runs {
-        itcl::delete object $obj
+itcl::body Rappture::Analyzer::clear {{xmlobj ""}} {
+    if {$xmlobj ne ""} {
+        set i [lsearch -exact $_runs $xmlobj]
+        if {$i >= 0} {
+            itcl::delete object $xmlobj
+            set _runs [lreplace $_runs $i $i]
+
+            # delete this result from all viewers
+            foreach label [array names _label2page] {
+                set page $_label2page($label)
+                $page.rviewer clear $xmlobj
+            }
+        }
+    } else {
+        # clear everything
+        foreach obj $_runs {
+            itcl::delete object $obj
+        }
+        set _runs ""
     }
-    set _runs ""
 
-    $itk_component(resultset) clear
+    if {[llength $_runs] == 0} {
+        # reset the size of the controls area
+        set ht [winfo height $itk_component(results)]
+        set cntlht [$itk_component(resultset) size -controlarea]
+        set frac [expr {double($cntlht)/$ht}]
+        $itk_component(results) fraction end $frac
 
-    # reset the size of the controls area
-    set ht [winfo height $itk_component(results)]
-    set cntlht [$itk_component(resultset) size -controlarea]
-    set frac [expr {double($cntlht)/$ht}]
-    $itk_component(results) fraction end $frac
+        foreach label [array names _label2page] {
+            set page $_label2page($label)
+            destroy $page.rviewer
+        }
+        $itk_component(resultselector) value ""
+        $itk_component(resultselector) choices delete 0 end
+        catch {unset _label2page}
+        catch {unset _label2desc}
+        set _plotlist ""
 
-    foreach label [array names _label2page] {
-        set page $_label2page($label)
-        destroy $page.rviewer
-        #$page.rviewer clear
+        $itk_component(resultselector) choices insert end --- "---"
+        $itk_component(resultselector) choices insert end \
+            @download [Rappture::filexfer::label download]
+        set _lastlabel ""
     }
-    $itk_component(resultselector) value ""
-    $itk_component(resultselector) choices delete 0 end
-    catch {unset _label2page}
-    catch {unset _label2desc}
-    set _plotlist ""
-
-    $itk_component(resultselector) choices insert end --- "---"
-    $itk_component(resultselector) choices insert end \
-        @download [Rappture::filexfer::label download]
-    set _lastlabel ""
 
     #
     # HACK ALERT!!

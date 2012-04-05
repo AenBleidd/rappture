@@ -40,7 +40,6 @@ itcl::class Rappture::ResultSet {
     itk_option define -textfont textFont Font ""
     itk_option define -boldfont boldFont Font ""
     itk_option define -foreground foreground Foreground ""
-    itk_option define -missingdata missingData MissingData ""
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -settingscommand settingsCommand SettingsCommand ""
     itk_option define -promptcommand promptCommand PromptCommand ""
@@ -49,28 +48,29 @@ itcl::class Rappture::ResultSet {
     destructor { # defined below }
 
     public method add {xmlobj}
-    public method clear {}
+    public method clear {{xmlobj ""}}
     public method activate {column}
     public method contains {xmlobj}
     public method size {{what -results}}
 
-    protected method _doClear {}
+    protected method _doClear {what}
     protected method _doSettings {{cmd ""}}
-    protected method _doPrompt {state}
     protected method _control {option args}
     protected method _fixControls {args}
     protected method _fixLayout {args}
+    protected method _fixNumResults {}
     protected method _fixSettings {args}
-    protected method _fixExplore {}
     protected method _fixValue {column why}
     protected method _drawValue {column widget wmax}
     protected method _toggleAll {{column "current"}}
     protected method _getValues {column {which ""}}
     protected method _getTooltip {role column}
     protected method _getParamDesc {which {index "current"}}
+    protected method _addOneResult {tuples xmlobj {simnum ""}}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _results ""     ;# tuple of known results
+    private variable _resultnum 0    ;# counter for result #1, #2, etc.
     private variable _recent ""      ;# most recent result in _results
     private variable _active ""      ;# column with active control
     private variable _plotall 0      ;# non-zero => plot all active results
@@ -115,6 +115,7 @@ itcl::body Rappture::ResultSet::constructor {args} {
     # create a list of tuples for data
     set _results [Rappture::Tuples ::#auto]
     $_results column insert end -name xmlobj -label "top-level XML object"
+    $_results column insert end -name simnum -label "simulation number"
 
 
     itk_component add cntls {
@@ -126,11 +127,26 @@ itcl::body Rappture::ResultSet::constructor {args} {
     }
     pack $itk_component(cntls) -fill x -pady {0 2}
 
-    itk_component add clear {
-        button $itk_component(cntls).clear -text "Clear" -state disabled \
+    itk_component add clearall {
+        button $itk_component(cntls).clearall -text "Clear" -state disabled \
             -padx 1 -pady 1 \
             -relief flat -overrelief raised \
-            -command [itcl::code $this _doClear]
+            -command [itcl::code $this _doClear all]
+    } {
+        usual
+        rename -background -controlbarbackground controlbarBackground Background
+        rename -foreground -controlbarforeground controlbarForeground Foreground
+        rename -highlightbackground -controlbarbackground controlbarBackground Background
+    }
+    pack $itk_component(clearall) -side right -padx 2 -pady 1
+    Rappture::Tooltip::for $itk_component(clearall) \
+        "Clears all results collected so far."
+
+    itk_component add clear {
+        button $itk_component(cntls).clear -text "Clear One" -state disabled \
+            -padx 1 -pady 1 \
+            -relief flat -overrelief raised \
+            -command [itcl::code $this _doClear current]
     } {
         usual
         rename -background -controlbarbackground controlbarBackground Background
@@ -139,7 +155,7 @@ itcl::body Rappture::ResultSet::constructor {args} {
     }
     pack $itk_component(clear) -side right -padx 2 -pady 1
     Rappture::Tooltip::for $itk_component(clear) \
-        "Clears all results collected so far."
+        "Clears the result that is currently selected."
 
     itk_component add status {
         label $itk_component(cntls).status -anchor w \
@@ -151,21 +167,6 @@ itcl::body Rappture::ResultSet::constructor {args} {
         rename -highlightbackground -controlbarbackground controlbarBackground Background
     }
     pack $itk_component(status) -side left -padx 2 -pady {2 0}
-
-    itk_component add parameters {
-        button $itk_component(cntls).params -text "Parameters..." \
-            -state disabled -padx 1 -pady 1 \
-            -relief flat -overrelief raised \
-            -command [list $itk_component(hull).popup activate $itk_component(cntls).params above]
-    } {
-        usual
-        rename -background -controlbarbackground controlbarBackground Background
-        rename -foreground -controlbarforeground controlbarForeground Foreground
-        rename -highlightbackground -controlbarbackground controlbarBackground Background
-    }
-    pack $itk_component(parameters) -side left -padx 8 -pady 1
-    Rappture::Tooltip::for $itk_component(parameters) \
-        "Click to access all parameters."
 
     itk_component add dials {
         frame $itk_interior.dials
@@ -191,40 +192,11 @@ itcl::body Rappture::ResultSet::constructor {args} {
     frame $dials.labelmore
     label $dials.labelmore.arrow -bitmap [Rappture::icon empty] -borderwidth 0
     pack $dials.labelmore.arrow -side left -fill y
-    _control bind $dials.labelmore.arrow @more
     label $dials.labelmore.name -text "more parameters..." -font $fn \
         -borderwidth 0 -padx 0 -pady 1
     pack $dials.labelmore.name -side left
     label $dials.labelmore.value
     pack $dials.labelmore.value -side left
-    _control bind $dials.labelmore.name @more
-    Rappture::Tooltip::for $dials.labelmore \
-        "@[itcl::code $this _getTooltip more more]"
-
-    # use this pop-up for access to all controls
-    Rappture::Balloon $itk_component(hull).popup \
-        -title "Change Parameters" -padx 0 -pady 0
-    set inner [$itk_component(hull).popup component inner]
-
-    frame $inner.cntls
-    pack $inner.cntls -side bottom -fill x
-    frame $inner.cntls.sep -height 2 -borderwidth 1 -relief sunken
-    pack $inner.cntls.sep -side top -fill x -padx 4 -pady 4
-    checkbutton $inner.cntls.explore -font $fn \
-        -text "Explore combinations with no results" \
-        -variable [itcl::scope _explore] \
-        -command [itcl::code $this _fixExplore]
-    pack $inner.cntls.explore -side top -anchor w
-    Rappture::Tooltip::for $inner.cntls.explore \
-        "When this option is turned on, you can set parameters to various combinations that have not yet been simulated.  The Simulate button will light up, and you can simulate these missing combinations.\n\nWhen turned off, controls will avoid missing combinations, and automatically snap to the closest available dataset."
-
-    itk_component add options {
-        Rappture::Scroller $inner.scrl -xscrollmode auto -yscrollmode auto
-    }
-    pack $itk_component(options) -expand yes -fill both
-
-    set popup [$itk_component(options) contents frame]
-    frame $popup.bg
 
     eval itk_initialize $args
 }
@@ -241,9 +213,9 @@ itcl::body Rappture::ResultSet::destructor {} {
 #
 # Adds a new result to this result set.  Scans through all existing
 # results to look for a difference compared to previous results.
-# Returns the index of this new result to the caller.  The various
-# data objects for this result set should be added to their result
-# viewers at the same index.
+# Returns the simulation number (#1, #2, #3, etc.) of this new result
+# to the caller.  The various data objects for this result set should
+# be added to their result viewers at the same index.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::add {xmlobj} {
     # make sure we fix up controls at some point
@@ -256,133 +228,182 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
     set xmlobj0 [$_results get -format xmlobj end]
     if {"" == $xmlobj0} {
         # first element -- always add
-        $_results insert end [list $xmlobj]
+        set simnum "#[incr _resultnum]"
+        $_results insert end [list $xmlobj $simnum]
+        _fixNumResults
         set _recent $xmlobj
-        $itk_component(status) configure -text "1 result"
-        $itk_component(clear) configure -state normal
-        if {[$_results size] >= 2} {
-            $itk_component(parameters) configure -state normal
-        } else {
-            $itk_component(parameters) configure -state disabled
-        }
-        return 0
+        return $simnum
     }
 
     #
-    # Compare this new object against the last XML object in the
-    # results set.  If it has a difference, make sure that there
-    # is a column to represent the quantity with the difference.
+    # For all later results, find the diffs and add any new columns
+    # into the results tuple.  The latest result is the most recent.
     #
-    foreach {op vpath oldval newval} [$xmlobj0 diff $xmlobj] {
-        if {[$xmlobj get $vpath.about.diffs] == "ignore"} {
-            continue
-        }
-        if {$op == "+" || $op == "-"} {
-            # ignore differences where parameters come and go
-            # such differences make it hard to work controls
-            continue
-        }
+    set simnum [_addOneResult $_results $xmlobj]
+    set _recent $xmlobj
+    _fixNumResults
 
-        # make sure that these values really are different
-        set oldval [lindex [Rappture::LibraryObj::value $xmlobj0 $vpath] 0]
-        set newval [lindex [Rappture::LibraryObj::value $xmlobj $vpath] 0]
-
-        if {$oldval != $newval && [$_results column names $vpath] == ""} {
-            # no column for this quantity yet
-            $_results column insert end -name $vpath -default $oldval
-        }
-    }
-
-    # build a tuple for this new object
-    set cols ""
-    set tuple ""
-    foreach col [lrange [$_results column names] 1 end] {
-        lappend cols $col
-        set raw [lindex [Rappture::LibraryObj::value $xmlobj $col] 0]
-        lappend tuple $raw  ;# use the "raw" (user-readable) label
-    }
-
-    # find a matching tuple? then replace it -- only need one
-    if {[llength $cols] > 0} {
-        set ilist [$_results find -format $cols -- $tuple]
-    } else {
-        set ilist 0  ;# no diffs -- must match first entry
-    }
-
-    # add all remaining columns for this new entry
-    set tuple [linsert $tuple 0 $xmlobj]
-
-    if {[llength $ilist] > 0} {
-        if {[llength $ilist] > 1} {
-            error "why so many matching results?"
-        }
-
-        # overwrite the first matching entry
-        set index [lindex $ilist 0]
-        $_results put $index $tuple
-        set _recent $xmlobj
-    } else {
-        set index [$_results size]
-        $_results insert end $tuple
-        set _recent $xmlobj
-    }
-
-    if {[$_results size] == 1} {
-        $itk_component(status) configure -text "1 result"
-    } else {
-        $itk_component(status) configure -text "[$_results size] results"
-        $itk_component(parameters) configure -state normal
-    }
-    $itk_component(clear) configure -state normal
-
-    return $index
+    return $simnum
 }
 
 # ----------------------------------------------------------------------
-# USAGE: clear
+# USAGE: clear ?<xmlobj>?
 #
-# Clears all results in this result set.
+# Clears one or all results in this result set.  If no specific
+# result object is specified, then all results are cleared.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::clear {} {
+itcl::body Rappture::ResultSet::clear {{xmlobj ""}} {
+    set shortlist $itk_component(dials)
+    set controlsChanged 0
+
+    # clear any currently highlighted result
     _doSettings
 
-    # delete all adjuster controls
-    set popup [$itk_component(options) contents frame]
-    set shortlist $itk_component(dials)
+    if {$xmlobj ne ""} {
+        #
+        # Delete just one result.  Look for the result among the
+        # tuples and remove it.  Then, rebuild all of the tuples
+        # by scanning back through them and building them back up.
+        # This will rebuild the columns/controls as they should
+        # be now, removing anything that is no longer necessary.
+        #
+        set irun [$_results find -format xmlobj $xmlobj]
+        if {[llength $irun] == 1} {
+            # figure out where we are in the active control, and
+            # what value we should display after this one is deleted
+            set vlist ""
+            foreach {label val} [_getValues $_active all] {
+                lappend vlist $label
+            }
+            set ipos [lsearch $vlist $_cntlInfo($this-$_active-value)]
 
-    foreach col $_cntlInfo($this-all) {
-        set id $_cntlInfo($this-$col-id)
-        destroy $popup.label$id $popup.dial$id $popup.all$id
-        destroy $shortlist.label$id
+            set vcurr ""
+            set vnext ""
+            if {$ipos >= 0} {
+                # try to stay at this value, if we can
+                set vcurr [lindex $vlist $ipos]
+
+                # fall back to this value, if we have to
+                if {$ipos > 0} { incr ipos -1 } else { incr ipos }
+                set vnext [lindex $vlist $ipos]
+            }
+
+            # delete the value from the tuples of all results
+            $_results delete $irun
+
+            set new [Rappture::Tuples ::#auto]
+            $new column insert end -name xmlobj -label "top-level XML object"
+            $new column insert end -name simnum -label "simulation number"
+
+            for {set n 0} {$n < [$_results size]} {incr n} {
+                set rec [lindex [$_results get -format {xmlobj simnum} $n] 0]
+                foreach {obj num} $rec break
+                if {$n == 0} {
+                    $new insert end [list $obj $num]
+                } else {
+                    _addOneResult $new $obj $num
+                }
+            }
+
+            # plug in the new set of rebuilt tuples
+            itcl::delete object $_results
+            set _results $new
+
+            # delete any adjuster controls that disappeared
+            foreach col $_cntlInfo($this-all) {
+                if {[$_results column names $col] eq ""} {
+                    set id $_cntlInfo($this-$col-id)
+                    destroy $shortlist.label$id
+                    array unset _cntlInfo $this-$col*
+
+                    set i [lsearch -exact $_cntlInfo($this-all) $col]
+                    if {$i >= 0} {
+                        set _cntlInfo($this-all) [lreplace $_cntlInfo($this-all) $i $i]
+                    }
+
+                    if {$col == $_active} {
+                        # control is going away -- switch to sim # control
+                        set simnum0 [$_results get -format simnum 0]
+                        set _cntlInfo($this-simnum-value) $simnum0
+                        activate simnum
+                    }
+                    set controlsChanged 1
+                }
+            }
+
+            # can we find a tuple with the desired value for the active col?
+            if {$_active ne "" && $vcurr ne ""} {
+                set found ""
+                if {[$_results find -format $_active $vcurr] ne ""} {
+                    set found $vcurr
+                } elseif {$vnext ne "" && [$_results find -format $_active $vnext] ne ""} {
+                    set found $vnext
+                }
+
+                if {$found ne ""} {
+                    # set the control to a value we were able to find
+                    # this will trigger !settings and other adjustments
+                    set _cntlInfo($this-$_active-value) $found
+                } else {
+                    # if all else fails, show solution #1
+                    set simnum0 [$_results get -format simnum 0]
+                    set _cntlInfo($this-simnum-value) $simnum0
+                    activate simnum
+                }
+            }
+        }
+    } else {
+        #
+        # Delete all results.
+        #
+        $_results delete 0 end
+
+        # delete all adjuster controls
+        foreach col $_cntlInfo($this-all) {
+            set id $_cntlInfo($this-$col-id)
+            destroy $shortlist.label$id
+        }
+        set controlsChanged 1
     }
 
-    array unset _cntlInfo $this-*
-    # clean up control info
-    foreach key [array names _cntlInfo $this-*] {
-        catch {unset _cntlInfo($key)}
+    if {[$_results size] == 0} {
+        #
+        # No results left?  Then clean everything up.
+        #
+
+        array unset _cntlInfo $this-*
+        # clean up control info
+        foreach key [array names _cntlInfo $this-*] {
+            catch {unset _cntlInfo($key)}
+        }
+        set _cntlInfo($this-all) ""
+        set _counter 0
+        set _resultnum 0
+
+        # clear out all results
+        eval $_results column delete [lrange [$_results column names] 2 end]
+        set _recent ""
+        set _active ""
+
+        set _plotall 0
+        $itk_component(dials).all configure -relief raised \
+            -background $itk_option(-background) \
+            -foreground $itk_option(-foreground)
     }
-    set _cntlInfo($this-all) ""
-    set _counter 0
-
-    # clear out all results
-    $_results delete 0 end
-    eval $_results column delete [lrange [$_results column names] 1 end]
-    set _recent ""
-    set _active ""
-
-    set _plotall 0
-    $itk_component(dials).all configure -relief raised \
-        -background $itk_option(-background) \
-        -foreground $itk_option(-foreground)
 
     # update status and Clear button
-    $itk_component(status) configure -text "No results"
-    $itk_component(parameters) configure -state disabled
-    $itk_component(clear) configure -state disabled
+    _fixNumResults
     $_dispatcher event -idle !fixcntls
 
     # let clients know that the number of controls has changed
-    event generate $itk_component(hull) <<Control>>
+    if {$controlsChanged} {
+        event generate $itk_component(hull) <<Control>>
+    }
+
+    # if there's a callback for clearing, invoke it now...
+    if {[string length $itk_option(-clearcommand)] > 0} {
+        uplevel #0 $itk_option(-clearcommand) $xmlobj
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -393,12 +414,6 @@ itcl::body Rappture::ResultSet::clear {} {
 # value has a radiodial in the "short list" area.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::activate {column} {
-    if {$column == "@more"} {
-        $itk_component(hull).popup activate \
-            $itk_component(dials).labelmore.name above
-        return
-    }
-
     set allowed [$_results column names]
     if {[lsearch $allowed $column] < 0} {
         error "bad value \"$column\": should be one of [join $allowed {, }]"
@@ -458,7 +473,7 @@ itcl::body Rappture::ResultSet::contains {xmlobj} {
     #
     set format ""
     set tuple ""
-    foreach col [lrange [$_results column names] 1 end] {
+    foreach col [lrange [$_results column names] 2 end] {
         lappend format $col
         set raw [lindex [Rappture::LibraryObj::value $xmlobj $col] 0]
         lappend tuple $raw  ;# use the "raw" (user-readable) label
@@ -535,15 +550,28 @@ itcl::body Rappture::ResultSet::size {{what -results}} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _doClear
+# USAGE: _doClear all|current
 #
-# Invoked automatically when the user presses the Clear button.
-# Invokes the -clearcommand to clear all data from this resultset
-# and all other resultsets in an Analyzer.
+# Invoked automatically when the user presses the "Clear One" or
+# "Clear All" buttons.  Invokes the -clearcommand to clear all data
+# from this resultset and all other resultsets in an Analyzer.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_doClear {} {
-    if {[string length $itk_option(-clearcommand)] > 0} {
-        uplevel #0 $itk_option(-clearcommand)
+itcl::body Rappture::ResultSet::_doClear {what} {
+    switch -- $what {
+        current {
+            set xmlobj ""
+            # value of xmlobj control is something like "#1" or "#2"
+            set irun [$_results find -format simnum $_cntlInfo($this-simnum-value)]
+            if {$irun ne ""} {
+                # convert index to a real xmlobj object
+                set xmlobj [$_results get -format xmlobj $irun]
+            }
+            clear $xmlobj
+        }
+        all {
+            clear
+        }
+        default { error "bad option \"$what\": should be current or all" }
     }
 }
 
@@ -557,29 +585,6 @@ itcl::body Rappture::ResultSet::_doClear {} {
 itcl::body Rappture::ResultSet::_doSettings {{cmd ""}} {
     if {[string length $itk_option(-settingscommand)] > 0} {
         uplevel #0 $itk_option(-settingscommand) $cmd
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _doPrompt <state>
-#
-# Used internally whenever the current settings represent a point
-# with no data.  Invokes the -promptcommand with an explanation of
-# the missing data, prompting the user to simulate it.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_doPrompt {state} {
-    if {[string length $itk_option(-promptcommand)] > 0} {
-        if {$state} {
-            set message "No data for these settings"
-            set settings ""
-            foreach col [lrange [$_results column names] 1 end] {
-                set val $_cntlInfo($this-$col-value)
-                lappend settings $col $val
-            }
-            uplevel #0 $itk_option(-promptcommand) [list on $message $settings]
-        } else {
-            uplevel #0 $itk_option(-promptcommand) off
-        }
     }
 }
 
@@ -681,10 +686,6 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
         return
     }
 
-    set popup [$itk_component(options) contents frame]
-    grid columnconfigure $popup 0 -minsize 16
-    grid columnconfigure $popup 1 -weight 1
-
     set shortlist $itk_component(dials)
     grid columnconfigure $shortlist 1 -weight 1
 
@@ -703,11 +704,10 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
         # create one.
         #
         if {![info exists _cntlInfo($this-$col-id)]} {
-            set row [lindex [grid size $popup] 1]
-            set row2 [expr {$row+1}]
-
             set tip ""
-            if {$col == "xmlobj"} {
+            if {$col eq "xmlobj"} {
+                continue
+            } elseif {$col eq "simnum"} {
                 set quantity "Simulation"
                 set tip "List of all simulations that you have performed so far."
             } else {
@@ -724,49 +724,10 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
                 }
             }
 
-            #
-            # Build the main control in the pop-up panel.
-            #
-            set fn $itk_option(-textfont)
-            set w $popup.label$_counter
-            frame $w
-            grid $w -row $row -column 2 -sticky ew -padx 4 -pady {4 0}
-            label $w.arrow -bitmap [Rappture::icon empty] -borderwidth 0
-            pack $w.arrow -side left -fill y
-            _control bind $w.arrow $col
-
-            label $w.name -text $quantity -anchor w \
-                -borderwidth 0 -padx 0 -pady 1 -font $fn
-            pack $w.name -side left
-            bind $w.name <Configure> [itcl::code $this _fixValue $col resize]
-            _control bind $w.name $col
-
-            label $w.value -anchor w \
-                -borderwidth 0 -padx 0 -pady 1 -font $fn
-            pack $w.value -side left
-            bind $w.value <Configure> [itcl::code $this _fixValue $col resize]
-            _control bind $w.value $col
-
-            Rappture::Tooltip::for $w \
-                "@[itcl::code $this _getTooltip label $col]"
-
-            set w $popup.dial$_counter
-            Rappture::Radiodial $w -valuewidth 0
-            grid $w -row $row2 -column 2 -sticky ew -padx 4 -pady {0 4}
-            $w configure -variable ::Rappture::ResultSet::_cntlInfo($this-$col-value)
-            Rappture::Tooltip::for $w \
-                "@[itcl::code $this _getTooltip dial $col]"
-
-            set w $popup.all$_counter
-            label $w -text "All" -padx 8 \
-                -borderwidth 1 -relief raised -font $fn
-            grid $w -row $row -rowspan 2 -column 1 -sticky nsew -padx 2 -pady 4
-            Rappture::Tooltip::for $w \
-                "@[itcl::code $this _getTooltip all $col]"
-            bind $w <ButtonRelease> [itcl::code $this _toggleAll $col]
-
             # Create the controls for the "short list" area.
+            set fn $itk_option(-textfont)
             set w $shortlist.label$_counter
+            set row [lindex [grid size $shortlist] 1]
             frame $w
             grid $w -row $row -column 1 -sticky ew
             label $w.arrow -bitmap [Rappture::icon empty] -borderwidth 0
@@ -787,25 +748,6 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
 
             Rappture::Tooltip::for $w \
                 "@[itcl::code $this _getTooltip label $col]"
-
-            # if this is the "Simulation #" control, add a separator
-            if {$col == "xmlobj"} {
-                grid $popup.all$_counter -column 0
-                grid $popup.label$_counter -column 1 -columnspan 2
-                grid $popup.dial$_counter -column 1 -columnspan 2
-
-                if {![winfo exists $popup.sep]} {
-                    frame $popup.sep -height 1 -borderwidth 0 -background black
-                }
-                grid $popup.sep -row [expr {$row+2}] -column 0 \
-                    -columnspan 3 -sticky ew -pady 4
-
-                if {![winfo exists $popup.paraml]} {
-                    label $popup.paraml -text "Parameters:" -font $fn
-                }
-                grid $popup.paraml -row [expr {$row+3}] -column 0 \
-                    -columnspan 3 -sticky w -padx 4 -pady {0 4}
-            }
 
             # create a record for this control
             lappend _cntlInfo($this-all) $col
@@ -836,10 +778,6 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
         # them into the control.
         #
         set id $_cntlInfo($this-$col-id)
-        set popup [$itk_component(options) contents frame]
-        set dial $popup.dial$id
-
-        _control load $popup.dial$id $col
 
         if {$col == $_layout(active)} {
             _control load $shortlist.dial $col
@@ -854,10 +792,10 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
     # since that's the easiest way to page through results.
     #
     if {$nadded > 0} {
-        if {[$_results column names] == 2 || $nadded == 1} {
+        if {[$_results column names] == 3 || $nadded == 1} {
             activate [lindex $_cntlInfo($this-all) end]
         } else {
-            activate xmlobj
+            activate simnum
         }
     }
 
@@ -866,10 +804,10 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
     # Setting the value slot will trigger the !settings event, which
     # will then fix all other controls to match the one that changed.
     #
-    if {"" != $_recent} {
-        set raw [lindex [$_results find -format xmlobj $_recent] 0]
-        set raw "#[expr {$raw+1}]"
-        set _cntlInfo($this-xmlobj-value) $raw
+    set irun [lindex [$_results find -format xmlobj $_recent] 0]
+    if {$irun ne ""} {
+        set simnum [$_results get -format simnum $irun]
+        set _cntlInfo($this-simnum-value) $simnum
     }
 }
 
@@ -880,12 +818,11 @@ itcl::body Rappture::ResultSet::_fixControls {args} {
 # changed, or the size of the window has changed.  Fixes the layout
 # so that the active control is displayed, and other recent controls
 # are shown above and/or below.  At the very least, we must show the
-# "more options..." control, which pops up a panel of all controls.
+# "more options..." control.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::_fixLayout {args} {
     array set eventdata $args
 
-    set popup [$itk_component(options) contents frame]
     set shortlist $itk_component(dials)
 
     # clear out the short list area
@@ -899,14 +836,6 @@ itcl::body Rappture::ResultSet::_fixLayout {args} {
     set fg $itk_option(-foreground)
     foreach col $_cntlInfo($this-all) {
         set id $_cntlInfo($this-$col-id)
-        $popup.label$id configure -background $bg
-        $popup.label$id.arrow configure -background $bg \
-            -bitmap [Rappture::icon empty]
-        $popup.label$id.name configure -font $fn -background $bg
-        $popup.label$id.value configure -background $bg
-        $popup.all$id configure -background $bg -foreground $fg \
-            -relief raised
-        $popup.dial$id configure -background $bg
         $shortlist.label$id configure -background $bg
         $shortlist.label$id.arrow configure -background $bg \
             -bitmap [Rappture::icon empty]
@@ -987,13 +916,6 @@ itcl::body Rappture::ResultSet::_fixLayout {args} {
         grid $shortlist.label$id -row $row -column 1 -sticky ew -padx 4
 
         if {$col == $_active} {
-            # put the background behind the active control in the popup
-            set id $_cntlInfo($this-$_active-id)
-            array set ginfo [grid info $popup.label$id]
-            grid $popup.bg -row $ginfo(-row) -rowspan 2 \
-                -column 0 -columnspan 3 -sticky nsew
-            lower $popup.bg
-
             if {$_layout(mode) == "usual"} {
                 # put the background behind the active control in the shortlist
                 grid $shortlist.bg -row $row -rowspan 2 \
@@ -1026,25 +948,6 @@ itcl::body Rappture::ResultSet::_fixLayout {args} {
         set fg $itk_option(-activecontrolforeground)
         set bg $itk_option(-activecontrolbackground)
 
-        $popup.label$id configure -background $bg
-        $popup.label$id.arrow configure -foreground $fg -background $bg \
-            -bitmap [Rappture::icon rarrow]
-        $popup.label$id.name configure -foreground $fg -background $bg \
-            -font $bf
-        $popup.label$id.value configure -foreground $fg -background $bg
-        $popup.dial$id configure -background $bg
-        $popup.bg configure -background $bg
-
-        if {$_plotall} {
-            $popup.all$id configure -relief sunken \
-                -background $itk_option(-togglebackground) \
-                -foreground $itk_option(-toggleforeground)
-        } else {
-            $popup.all$id configure -relief raised \
-                -background $itk_option(-activecontrolbackground) \
-                -foreground $itk_option(-activecontrolforeground)
-        }
-
         if {$_layout(mode) == "usual"} {
             $shortlist.label$id configure -background $bg
             $shortlist.label$id.arrow configure -foreground $fg \
@@ -1059,6 +962,36 @@ itcl::body Rappture::ResultSet::_fixLayout {args} {
             if {[$shortlist.all cget -relief] == "raised"} {
                 $shortlist.all configure -foreground $fg -background $bg
             }
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _fixNumResults
+#
+# Used internally to update the number of results displayed near the
+# top of this widget.  If there is only 1 result, then there is also
+# a single "Clear" button.  If there are no results, the clear button
+# is diabled.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::_fixNumResults {} {
+    switch [$_results size] {
+        0 {
+            $itk_component(status) configure -text "No results"
+            $itk_component(clearall) configure -state disabled -text "Clear"
+            pack forget $itk_component(clear)
+        }
+        1 {
+            $itk_component(status) configure -text "1 result"
+            $itk_component(clearall) configure -state normal -text "Clear"
+            pack forget $itk_component(clear)
+        }
+        default {
+            $itk_component(status) configure -text "[$_results size] results"
+            $itk_component(clearall) configure -state normal -text "Clear All"
+            $itk_component(clear) configure -state normal
+            pack $itk_component(clear) -side right \
+                -after $itk_component(clearall) -padx {0 6}
         }
     }
 }
@@ -1080,7 +1013,6 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
     } else {
         set changed ""
     }
-    _doPrompt off
 
     if {[info exists _cntlInfo($this-$_active-label)]} {
         lappend params $_cntlInfo($this-$_active-label)
@@ -1099,8 +1031,9 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         }
         1 {
             # only one data set? then plot it
+            set simnum [$_results get -format simnum 0]
             _doSettings [list \
-                0 [list -width 2 \
+                $simnum [list -width 2 \
                         -param [_getValues $_active current] \
                         -description [_getParamDesc all] \
                   ] \
@@ -1115,54 +1048,51 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
     # look at its current value.  Otherwise, search the results
     # for a tuple that matches the current settings.
     #
-    if {$changed == "xmlobj"} {
-        # value is "#2" -- skip # and adjust range starting from 0
-        set irun [string range $_cntlInfo($this-xmlobj-value) 1 end]
-        if {"" != $irun} { set irun [expr {$irun-1}] }
+    if {$changed == "xmlobj" || $changed == "simnum"} {
+        set irun [$_results find -format simnum $_cntlInfo($this-simnum-value)]
     } else {
         set format ""
         set tuple ""
-        foreach col [lrange [$_results column names] 1 end] {
+        foreach col [lrange [$_results column names] 2 end] {
             lappend format $col
             lappend tuple $_cntlInfo($this-$col-value)
         }
         set irun [lindex [$_results find -format $format -- $tuple] 0]
 
-        if {"" == $irun && "" != $changed
-             && $itk_option(-missingdata) == "skip"} {
-            #
-            # No data for these settings.  Try leaving the next
-            # column open, then the next, and so forth, until
-            # we find some data.
-            #
-            # allcols:  foo bar baz qux
-            #               ^^^changed
-            #
-            # search:   baz qux foo
-            #
-            set val $_cntlInfo($this-$changed-value)
-            set allcols [lrange [$_results column names] 1 end]
-            set i [lsearch -exact $allcols $changed]
-            set search [concat \
-                [lrange $allcols [expr {$i+1}] end] \
-                [lrange $allcols 0 [expr {$i-1}]] \
-            ]
-            set nsearch [llength $search]
+	if {"" == $irun && "" != $changed} {
+	    #
+	    # No data for these settings.  Try leaving the next
+	    # column open, then the next, and so forth, until
+	    # we find some data.
+	    #
+	    # allcols:  foo bar baz qux
+	    #               ^^^changed
+	    #
+	    # search:   baz qux foo
+	    #
+	    set val $_cntlInfo($this-$changed-value)
+	    set allcols [lrange [$_results column names] 2 end]
+	    set i [lsearch -exact $allcols $changed]
+	    set search [concat \
+		[lrange $allcols [expr {$i+1}] end] \
+		[lrange $allcols 0 [expr {$i-1}]] \
+	    ]
+	    set nsearch [llength $search]
 
-            for {set i 0} {$i < $nsearch} {incr i} {
-                set format $changed
-                set tuple [list $val]
-                for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
-                    set col [lindex $search $j]
-                    lappend format $col
-                    lappend tuple $_cntlInfo($this-$col-value)
-                }
-                set irun [lindex [$_results find -format $format -- $tuple] 0]
-                if {"" != $irun} {
-                    break
-                }
-            }
-        }
+	    for {set i 0} {$i < $nsearch} {incr i} {
+		set format $changed
+		set tuple [list $val]
+		for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
+		    set col [lindex $search $j]
+		    lappend format $col
+		    lappend tuple $_cntlInfo($this-$col-value)
+		}
+		set irun [lindex [$_results find -format $format -- $tuple] 0]
+		if {"" != $irun} {
+		    break
+		}
+	    }
+	}
     }
 
     #
@@ -1173,7 +1103,7 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         # stop reacting to value changes
         set _settings 1
 
-        set format [lrange [$_results column names] 1 end]
+        set format [lrange [$_results column names] 2 end]
         if {[llength $format] == 1} {
             set data [$_results get -format $format $irun]
         } else {
@@ -1183,7 +1113,8 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         foreach col $format val $data {
             set _cntlInfo($this-$col-value) $val
         }
-        set _cntlInfo($this-xmlobj-value) "#[expr {$irun+1}]"
+        set simnum [$_results get -format simnum $irun]
+        set _cntlInfo($this-simnum-value) $simnum
 
         # okay, react to value changes again
         set _settings 0
@@ -1193,12 +1124,12 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
     # Search for tuples matching the current setting and
     # plot them.
     #
-    if {$_plotall && $_active == "xmlobj"} {
+    if {$_plotall && $_active == "simnum"} {
         set format ""
     } else {
         set format ""
         set tuple ""
-        foreach col [lrange [$_results column names] 1 end] {
+        foreach col [lrange [$_results column names] 2 end] {
             if {!$_plotall || $col != $_active} {
                 lappend format $col
                 lappend tuple $_cntlInfo($this-$col-value)
@@ -1216,22 +1147,18 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         # search for the result for these settings
         set format ""
         set tuple ""
-        foreach col [lrange [$_results column names] 1 end] {
+        foreach col [lrange [$_results column names] 2 end] {
             lappend format $col
             lappend tuple $_cntlInfo($this-$col-value)
         }
         set icurr [$_results find -format $format -- $tuple]
 
-        # no data for these settings? prompt the user to simulate
-        if {"" == $icurr} {
-            _doPrompt on
-        }
-
         if {[llength $ilist] == 1} {
             # single result -- always use active color
             set i [lindex $ilist 0]
+            set simnum [$_results get -format simnum $i]
             set plist [list \
-                $i [list -width 2 \
+                $simnum [list -width 2 \
                          -param [_getValues $_active $i] \
                          -description [_getParamDesc all $i] \
                    ] \
@@ -1244,12 +1171,13 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
             #
             set plist [list params $params]
             foreach i $ilist {
+                set simnum [$_results get -format simnum $i]
                 if {$i == $icurr} {
-                    lappend plist $i [list -width 3 -raise 1 \
+                    lappend plist $simnum [list -width 3 -raise 1 \
                         -param [_getValues $_active $i] \
                         -description [_getParamDesc all $i]]
                 } else {
-                    lappend plist $i [list -brightness 0.7 -width 1 \
+                    lappend plist $simnum [list -brightness 0.7 -width 1 \
                         -param [_getValues $_active $i] \
                         -description [_getParamDesc all $i]]
                 }
@@ -1260,31 +1188,6 @@ itcl::body Rappture::ResultSet::_fixSettings {args} {
         # Load up the matching plots
         #
         _doSettings $plist
-
-    } elseif {$itk_option(-missingdata) == "prompt"} {
-        # prompt the user to simulate these settings
-        _doPrompt on
-        _doSettings  ;# clear plotting area
-
-        # clear the current run selection -- there is no run for this
-        set _settings 1
-        set _cntlInfo($this-xmlobj-value) ""
-        set _settings 0
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixExplore
-#
-# Called automatically whenever the user toggles the "Explore" button
-# on the parameter popup.  Changes the -missingdata option back and
-# forth, to allow for missing data or skip it.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixExplore {} {
-    if {$_explore} {
-        configure -missingdata prompt
-    } else {
-        configure -missingdata skip
     }
 }
 
@@ -1299,11 +1202,6 @@ itcl::body Rappture::ResultSet::_fixExplore {} {
 itcl::body Rappture::ResultSet::_fixValue {col why} {
     if {[info exists _cntlInfo($this-$col-id)]} {
         set id $_cntlInfo($this-$col-id)
-
-        set popup [$itk_component(options) contents frame]
-        set widget $popup.label$id
-        set wmax [winfo width $popup.dial$id]
-        _drawValue $col $widget $wmax
 
         set widget $itk_component(dials).label$id
         set wmax [winfo width $itk_component(dials).dial]
@@ -1424,30 +1322,15 @@ itcl::body Rappture::ResultSet::_toggleAll {{col "current"}} {
         return
     }
     set id $_cntlInfo($this-$col-id)
-    set popup [$itk_component(options) contents frame]
-    set pbutton $popup.all$id
-    set current [$pbutton cget -relief]
     set sbutton $itk_component(dials).all
-
-    foreach c $_cntlInfo($this-all) {
-        set id $_cntlInfo($this-$c-id)
-        $popup.all$id configure -relief raised \
-            -background $itk_option(-background) \
-            -foreground $itk_option(-foreground)
-    }
+    set current [$sbutton cget -relief]
 
     if {$current == "sunken"} {
-        $pbutton configure -relief raised \
-            -background $itk_option(-activecontrolbackground) \
-            -foreground $itk_option(-activecontrolforeground)
         $sbutton configure -relief raised \
             -background $itk_option(-activecontrolbackground) \
             -foreground $itk_option(-activecontrolforeground)
         set _plotall 0
     } else {
-        $pbutton configure -relief sunken \
-            -background $itk_option(-togglebackground) \
-            -foreground $itk_option(-toggleforeground)
         $sbutton configure -relief sunken \
             -background $itk_option(-togglebackground) \
             -foreground $itk_option(-toggleforeground)
@@ -1468,11 +1351,11 @@ itcl::body Rappture::ResultSet::_toggleAll {{col "current"}} {
 # this widget.  Returns the tooltip associated with the control.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
-    if {$col == "xmlobj"} {
+    if {$col == "simnum"} {
         # load the Simulation # control
         set nruns [$_results size]
         for {set n 0} {$n < $nruns} {incr n} {
-            set v "#[expr {$n+1}]"
+            set v [$_results get -format simnum $n]
             set label2val($v) $n
         }
     } else {
@@ -1518,8 +1401,8 @@ itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
         }
         default {
             if {[string is integer $which]} {
-                if {$col == "xmlobj"} {
-                    set val "#[expr {$which+1}]"
+                if {$col == "simnum"} {
+                    set val [$_results get -format simnum $which]
                 } else { 
                     # Be careful giving singleton elements as the "columns"
                     # argument to "Tuples::get". It is expecting a list.
@@ -1576,9 +1459,6 @@ itcl::body Rappture::ResultSet::_getTooltip {role column} {
             }
             append tip "\n\nCurrently, plotting $what.  Click to toggle."
         }
-        more {
-            set tip "Click to access all parameters."
-        }
     }
     return [string trim $tip]
 }
@@ -1595,7 +1475,7 @@ itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
         # search for the result for these settings
         set format ""
         set tuple ""
-        foreach col [lrange [$_results column names] 1 end] {
+        foreach col [lrange [$_results column names] 2 end] {
             lappend format $col
             lappend tuple $_cntlInfo($this-$col-value)
         }
@@ -1618,9 +1498,9 @@ itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
                 # Be careful giving singleton elements as the "columns"
                 # argument to "Tuples::get". It is expecting a list.
                 set val [lindex [$_results get -format [list $col] $index] 0]
-                if {$col == "xmlobj"} {
-                    set num [lindex [$_results find -format xmlobj $val] 0]
-                    set val "#[expr {$num+1}]"
+                if {$col == "simnum"} {
+                    set irun [lindex [$_results find -format xmlobj $val] 0]
+                    set val [$_results get -format simnum $irun]
                 }
                 append desc "$quantity = $val\n"
             }
@@ -1633,14 +1513,78 @@ itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
 }
 
 # ----------------------------------------------------------------------
-# OPTION: -missingdata
+# USAGE: _addOneResult <tuples> <xmlobj> ?<simNum>?
+#
+# Used internally to add one new <xmlobj> to the given <tuples>
+# object.  If the new xmlobj contains different input parameters
+# that are not already columns in the tuple, then this routine
+# creates the new columns.  If the optional <simNum> is specified,
+# then it is added as the simulation number #1, #2, #3, etc.  If
+# not, then the new object is automatically numbered.
 # ----------------------------------------------------------------------
-itcl::configbody Rappture::ResultSet::missingdata {
-    set opts {prompt skip}
-    if {[lsearch -exact $opts $itk_option(-missingdata)] < 0} {
-        error "bad value \"$itk_option(-missingdata)\": should be [join $opts {, }]"
+itcl::body Rappture::ResultSet::_addOneResult {tuples xmlobj {simnum ""}} {
+    #
+    # Compare this new object against the last XML object in the
+    # results set.  If it has a difference, make sure that there
+    # is a column to represent the quantity with the difference.
+    #
+    set xmlobj0 [$tuples get -format xmlobj end]
+    foreach {op vpath oldval newval} [$xmlobj0 diff $xmlobj] {
+        if {[$xmlobj get $vpath.about.diffs] == "ignore"} {
+            continue
+        }
+        if {$op == "+" || $op == "-"} {
+            # ignore differences where parameters come and go
+            # such differences make it hard to work controls
+            continue
+        }
+
+        # make sure that these values really are different
+        set oldval [lindex [Rappture::LibraryObj::value $xmlobj0 $vpath] 0]
+        set newval [lindex [Rappture::LibraryObj::value $xmlobj $vpath] 0]
+
+        if {$oldval != $newval && [$tuples column names $vpath] == ""} {
+            # no column for this quantity yet
+            $tuples column insert end -name $vpath -default $oldval
+        }
     }
-    set _explore [expr {$itk_option(-missingdata) != "skip"}]
+
+    # build a tuple for this new object
+    set cols ""
+    set tuple ""
+    foreach col [lrange [$tuples column names] 2 end] {
+        lappend cols $col
+        set raw [lindex [Rappture::LibraryObj::value $xmlobj $col] 0]
+        lappend tuple $raw  ;# use the "raw" (user-readable) label
+    }
+
+    # find a matching tuple? then replace it -- only need one
+    if {[llength $cols] > 0} {
+        set ilist [$tuples find -format $cols -- $tuple]
+    } else {
+        set ilist 0  ;# no diffs -- must match first entry
+    }
+
+    # add all remaining columns for this new entry
+    set tuple [linsert $tuple 0 $xmlobj]
+    set cols [linsert $cols 0 "xmlobj"]
+
+    if {[llength $ilist] > 0} {
+        if {[llength $ilist] > 1} {
+            error "why so many matching results?"
+        }
+
+        # overwrite the first matching entry
+        set index [lindex $ilist 0]
+        $tuples put -format $cols $index $tuple
+    } else {
+        if {$simnum eq ""} {
+            set simnum "#[incr _resultnum]"
+        }
+        set tuple [linsert $tuple 1 $simnum]
+        $tuples insert end $tuple
+    }
+    return $simnum
 }
 
 # ----------------------------------------------------------------------
