@@ -110,7 +110,7 @@ Ticks::setTicks()
 }
 
 Axis::Axis(const char *axisName) :
-    _name(axisName),
+    _name(strdup(axisName)),
     _flags(AUTOSCALE),
     _title(NULL),
     _units(NULL),
