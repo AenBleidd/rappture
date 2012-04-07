@@ -145,7 +145,6 @@ private:
     NvStdVertexShader *_stdVertexShader;
 
     //standard vertex shader parameters
-    CGprogram _vertStdVprog;
     CGparameter _mvpVertStdParam;
     CGparameter _mviVertStdParam;
     GLuint _fontBase;      ///< The base of the font display list.
