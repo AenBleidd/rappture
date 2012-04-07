@@ -119,7 +119,6 @@ OBJS		= \
 		NvCamera.o \
 		NvColorTableRenderer.o \
 		NvColorTableShader.o \
-		NvDefaultTFData.o \
 		NvEventLog.o \
 		NvFlowVisRenderer.o \
 		NvLIC.o \
@@ -300,7 +299,6 @@ Mat4x4.o: Mat4x4.cpp Mat4x4.h
 NvCamera.o: NvCamera.cpp NvCamera.h config.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
-NvDefaultTFData.o: NvDefaultTFData.cpp
 NvEventLog.o: NvEventLog.cpp NvEventLog.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
 NvLIC.o: NvLIC.cpp NvLIC.h
