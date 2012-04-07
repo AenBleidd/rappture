@@ -76,12 +76,13 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
                 bytes[x+2] = temp;
             }
         } else if (_targetImageFormat == Image::IMG_RGBA) {
-            char *buff = (char*)malloc(width * height * sizeof(unsigned char) * 3);
+            unsigned char *buff = (unsigned char*)malloc(width * height * sizeof(unsigned char) * 3);
             if (fread(buff, width*height*3, 1, f) != 1) {
                 ERROR("can't read BMP image data\n");
             }
             for (x = 0, y = 0; x < width*height*3; x += 3, y += 4) {       //except the format is BGR, grr
                 bytes[y] = buff[x+2];
+                bytes[y+1] = buff[x+1];
                 bytes[y+2] = buff[x];
                 bytes[y+3] = 255;
             }
@@ -100,12 +101,13 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
                 bytes[x+2] = temp;
             }
         } else if (_targetImageFormat == Image::IMG_RGB) {
-            char *buff = (char*)malloc(width * height * sizeof(unsigned char) * 3);
+            unsigned char *buff = (unsigned char*)malloc(width * height * sizeof(unsigned char) * 4);
             if (fread(buff, width*height*4, 1, f) != 1) {
                 ERROR("can't read BMP image data\n");
             }
             for (x = 0, y = 0; x < width*height*4; x += 4, y += 3) {       //except the format is BGR, grr
                 bytes[y] = buff[x+2];
+                bytes[y+1] = buff[x+1];
                 bytes[y+2] = buff[x];
             }
             free(buff);
@@ -124,9 +126,12 @@ Image *BMPImageLoaderImpl::load(const char *fileName)
                 }
                 for (int c = 0; c < 3; ++c) {
                     //bytes[(y*width+x)*3+c] = cols[byte*4+2-c];        //and look up in the table 
-                    bytes[(y*width+x)*_targetImageFormat + c] = cols[byte*4+2-c];       //and look up in the table 
+                    bytes[(y*width+x)*_targetImageFormat + c] = cols[byte*4+2-c];       //and look up in the table
                 }
-            } 
+                if (_targetImageFormat == Image::IMG_RGBA) {
+                    bytes[(y*width+x)*_targetImageFormat + 3] = 255;
+                }
+            }
         }
         break;
     }
