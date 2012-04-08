@@ -26,8 +26,8 @@ public:
         _velocityVolumeID = texID;
         _max = max;
         // FIXME: Is this needed?
-        //if (_max > 100.f)
-        //    _max = 100.0f;
+        if (_max > 100.f)
+            _max = 100.0f;
     }
 
     void setTimeStep(float timeStep)
