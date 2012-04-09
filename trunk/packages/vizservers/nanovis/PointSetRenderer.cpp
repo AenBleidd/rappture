@@ -47,6 +47,10 @@ PointSetRenderer::PointSetRenderer()
     _bucketSort = new PCA::BucketSort(1024);
 }
 
+PointSetRenderer::~PointSetRenderer()
+{
+}
+
 void PointSetRenderer::renderPoints(PCA::Point *points, int length)
 {
     PCA::Point *p = points;
