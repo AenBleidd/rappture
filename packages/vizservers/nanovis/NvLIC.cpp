@@ -29,7 +29,7 @@
 #define SCALE 3.0 //scale for background pattern. small value -> fine texture
 
 NvLIC::NvLIC(int size, int width, int height, int axis, 
-             const Vector3& offset) :
+             float offset) :
     Renderable(Vector3(0.0f, 0.0f, 0.0f)),
     _width(width),
     _height(height),
@@ -264,23 +264,23 @@ NvLIC::getSlice()
         switch (_axis) {
         case 0 :
             // TBD..
-            glTexCoord3f(_offset.x, 0., 0.); glVertex2f(0.,    0.);
-            glTexCoord3f(_offset.x, 1., 0.); glVertex2f(_size, 0.);
-            glTexCoord3f(_offset.x, 1., 1.); glVertex2f(_size, _size);
-            glTexCoord3f(_offset.x, 0., 1.); glVertex2f(0.,    _size);
+            glTexCoord3f(_offset, 0., 0.); glVertex2f(0.,    0.);
+            glTexCoord3f(_offset, 1., 0.); glVertex2f(_size, 0.);
+            glTexCoord3f(_offset, 1., 1.); glVertex2f(_size, _size);
+            glTexCoord3f(_offset, 0., 1.); glVertex2f(0.,    _size);
                 break;
         case 1 :
             // TBD..
-            glTexCoord3f(0., _offset.y, 0.); glVertex2f(0.,    0.);
-            glTexCoord3f(1., _offset.y, 0.); glVertex2f(_size, 0.);
-            glTexCoord3f(1., _offset.y, 1.); glVertex2f(_size, _size);
-            glTexCoord3f(0., _offset.y, 1.); glVertex2f(0.,    _size);
+            glTexCoord3f(0., _offset, 0.); glVertex2f(0.,    0.);
+            glTexCoord3f(1., _offset, 0.); glVertex2f(_size, 0.);
+            glTexCoord3f(1., _offset, 1.); glVertex2f(_size, _size);
+            glTexCoord3f(0., _offset, 1.); glVertex2f(0.,    _size);
                 break;
         case 2 :
-            glTexCoord3f(0., 0., _offset.z); glVertex2f(0.,    0.);
-            glTexCoord3f(1., 0., _offset.z); glVertex2f(_size, 0.);
-            glTexCoord3f(1., 1., _offset.z); glVertex2f(_size, _size);
-            glTexCoord3f(0., 1., _offset.z); glVertex2f(0.,    _size);
+            glTexCoord3f(0., 0., _offset); glVertex2f(0.,    0.);
+            glTexCoord3f(1., 0., _offset); glVertex2f(_size, 0.);
+            glTexCoord3f(1., 1., _offset); glVertex2f(_size, _size);
+            glTexCoord3f(0., 1., _offset); glVertex2f(0.,    _size);
             break;
         }
     }
@@ -458,24 +458,24 @@ NvLIC::render()
     switch (_axis) {
     case 0:
         glNormal3f(1, 0, 0);
-        glTexCoord2f(0, 0); glVertex3f(_offset.x, 0, 0);
-        glTexCoord2f(1, 0); glVertex3f(_offset.x, 1, 0);
-        glTexCoord2f(1, 1); glVertex3f(_offset.x, 1, 1);
-        glTexCoord2f(0, 1); glVertex3f(_offset.x, 0, 1);
+        glTexCoord2f(0, 0); glVertex3f(_offset, 0, 0);
+        glTexCoord2f(1, 0); glVertex3f(_offset, 1, 0);
+        glTexCoord2f(1, 1); glVertex3f(_offset, 1, 1);
+        glTexCoord2f(0, 1); glVertex3f(_offset, 0, 1);
         break;
     case 1:
         glNormal3f(0, 1, 0);
-        glTexCoord2f(0, 0); glVertex3f(0, _offset.y, 0);
-        glTexCoord2f(1, 0); glVertex3f(1, _offset.y, 0);
-        glTexCoord2f(1, 1); glVertex3f(1, _offset.y, 1);
-        glTexCoord2f(0, 1); glVertex3f(0, _offset.y, 1);
+        glTexCoord2f(0, 0); glVertex3f(0, _offset, 0);
+        glTexCoord2f(1, 0); glVertex3f(1, _offset, 0);
+        glTexCoord2f(1, 1); glVertex3f(1, _offset, 1);
+        glTexCoord2f(0, 1); glVertex3f(0, _offset, 1);
         break;
     case 2:
         glNormal3f(0, 0, 1);
-        glTexCoord2f(0, 0); glVertex3f(0, 0, _offset.z);
-        glTexCoord2f(1, 0); glVertex3f(1, 0, _offset.z);
-        glTexCoord2f(1, 1); glVertex3f(1, 1, _offset.z);
-        glTexCoord2f(0, 1); glVertex3f(0, 1, _offset.z);
+        glTexCoord2f(0, 0); glVertex3f(0, 0, _offset);
+        glTexCoord2f(1, 0); glVertex3f(1, 0, _offset);
+        glTexCoord2f(1, 1); glVertex3f(1, 1, _offset);
+        glTexCoord2f(0, 1); glVertex3f(0, 1, _offset);
         break;
     }
     glEnd();
@@ -529,13 +529,9 @@ NvLIC::getVelocity(float x, float y, float *px, float *py)
 }
 
 void 
-NvLIC::setOffset(float v)
+NvLIC::setOffset(float offset)
 {
-    switch (_axis) {
-    case 0 : _offset.x = v; break;
-    case 1 : _offset.y = v; break;
-    case 2 : _offset.z = v; break;
-    }
+    _offset = offset;
     getSlice();
 }
 

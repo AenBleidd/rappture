@@ -31,7 +31,7 @@ class NvLIC : public Renderable
 { 
 public:
     NvLIC(int size, int width, int height, int axis, 
-	  const Vector3& offset);
+	  float offset);
     ~NvLIC();
 
     /// project 3D vectors to a 2D slice for line integral convolution
@@ -99,8 +99,7 @@ private:
     Vector3 _scale;			// Scaling factor stretching the lic
 					// plane to fit the actual dimensions
     Vector3 _origin;
-    Vector3 _offset;			// [0,1] offset could be x, y, or z
-					// direction
+    float _offset;			// [0,1] offset of _axis plane
     int _axis;
 
     //some convolve variables. They can pretty much stay fixed

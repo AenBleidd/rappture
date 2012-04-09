@@ -132,8 +132,9 @@ Texture2D *NanoVis::plane[10];
 #endif
 Texture2D *NanoVis::legendTexture = NULL;
 NvColorTableRenderer *NanoVis::colorTableRenderer = NULL;
-
+#ifdef notdef
 NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
+#endif
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 
 graphics::RenderContext *NanoVis::renderContext = NULL;
@@ -148,7 +149,6 @@ bool NanoVis::axisOn = true;
 bool NanoVis::debugFlag = false;
 
 Tcl_Interp *NanoVis::interp;
-Tcl_DString NanoVis::cmdbuffer;
 
 //frame buffer for final rendering
 GLuint NanoVis::_finalColorTex = 0;
@@ -235,13 +235,11 @@ static bool right_down = false;
 
 // Image based flow visualization slice location
 // FLOW
-float NanoVis::_licSliceX = 0.5f;
-float NanoVis::_licSliceY = 0.5f;
-float NanoVis::_licSliceZ = 0.5f;
+float NanoVis::_licSlice = 0.5f;
 int NanoVis::_licAxis = 2; // z axis
 
-static void
-removeAllData()
+void
+NanoVis::removeAllData()
 {
     //
 }
@@ -364,7 +362,7 @@ static void
 doExit(int code)
 {
     TRACE("in doExit\n");
-    removeAllData();
+    NanoVis::removeAllData();
 
     NvShader::exitCg();
 
@@ -554,8 +552,9 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
     planeRenderer->removePlane(index);
     resizeOffscreenBuffer(old_width, old_height);
 
-    TRACE("leaving renderLegend\n");
     delete legendTexture;
+    legendTexture = NULL;
+    TRACE("leaving renderLegend\n");
     return TCL_OK;
 }
 
@@ -709,12 +708,6 @@ makeTest2DData()
 }
 #endif
 
-void NanoVis::initParticle()
-{
-    flowVisRenderer->initialize();
-    licRenderer->makePatterns();
-}
-
 static
 void cgErrorCallback(void)
 {
@@ -797,13 +790,12 @@ void NanoVis::init(const char* path)
 
     colorTableRenderer = new NvColorTableRenderer();
     colorTableRenderer->setFonts(fonts);
-
+#ifdef notdef
     flowVisRenderer = new NvFlowVisRenderer(NMESH, NMESH);
-
+#endif
     velocityArrowsSlice = new VelocityArrowsSlice;
 
-    licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, 
-                            Vector3(_licSliceX, _licSliceY, _licSliceZ));
+    licRenderer = new NvLIC(NMESH, NPIX, NPIX, _licAxis, _licSlice);
 
     grid = new Grid();
     grid->setFont(fonts);
@@ -1342,8 +1334,8 @@ sortstep()
 }
 #endif
 
-static void 
-draw3dAxis()
+void 
+NanoVis::draw3dAxis()
 {
     glPushAttrib(GL_ENABLE_BIT);
 
@@ -1760,6 +1752,12 @@ NanoVis::updateTrans(int delta_x, int delta_y, int delta_z)
 }
 
 #ifdef notdef
+void NanoVis::initParticle()
+{
+    flowVisRenderer->initialize();
+    licRenderer->makePatterns();
+}
+
 static
 void addVectorField(const char* filename, const char* vf_name, 
                     const char* plane_name1, const char* plane_name2, 
@@ -2116,7 +2114,8 @@ NanoVis::xinetdListen()
     int status = TCL_OK;
 
     //  Read and execute as many commands as we can from stdin...
-
+    Tcl_DString cmdbuffer;
+    Tcl_DStringInit(&cmdbuffer);
     int nCommands = 0;
     bool isComplete = false;
     while ((!feof(NanoVis::stdin)) && (status == TCL_OK)) {
@@ -2372,7 +2371,6 @@ main(int argc, char **argv)
 #ifdef EVENTLOG
     NvInitEventLog();
 #endif
-    Tcl_DStringInit(&NanoVis::cmdbuffer);
     NanoVis::interp = initTcl();
     NanoVis::resizeOffscreenBuffer(NanoVis::winWidth, NanoVis::winHeight);
 
