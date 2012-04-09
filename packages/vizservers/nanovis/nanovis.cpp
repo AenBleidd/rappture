@@ -172,9 +172,6 @@ float NanoVis::zMin = FLT_MAX;
 float NanoVis::zMax = -FLT_MAX;
 float NanoVis::wMin = FLT_MAX;
 float NanoVis::wMax = -FLT_MAX;
-float NanoVis::xOrigin;
-float NanoVis::yOrigin;
-float NanoVis::zOrigin;
 
 /* FIXME: This variable is always true. */
 static bool volumeMode = true; 
@@ -361,7 +358,7 @@ writeStats(const char *who, int code)
 static void
 doExit(int code)
 {
-    TRACE("in doExit\n");
+    TRACE("in doExit: %d\n", code);
     NanoVis::removeAllData();
 
     NvShader::exitCg();
@@ -512,7 +509,7 @@ NanoVis::defineTransferFunction(const char *name, size_t n, float *data)
 
 int
 NanoVis::renderLegend(TransferFunction *tf, double min, double max,
-                      int width, int height, const char* volArg)
+                      int width, int height, const char *volArg)
 {
     TRACE("in renderLegend\n");
 
@@ -543,7 +540,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
         char prefix[200];
         ssize_t nWritten;
 
-        TRACE("ppm legend image");
+        TRACE("Sending ppm legend image %s min:%g max:%g", volArg, min, max);
         sprintf(prefix, "nv>legend %s %g %g", volArg, min, max);
         ppmWrite(prefix);
         nWritten = write(1, "\n", 1);

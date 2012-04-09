@@ -560,10 +560,6 @@ FlowCmd::ScaleVectorField()
     depth  = NanoVis::zMax - NanoVis::zMin;
 
     Vector3 loc = _volPtr->location();
-    /*This is wrong. Need to compute origin. */
-    NanoVis::xOrigin = loc.x;
-    NanoVis::yOrigin = loc.y;
-    NanoVis::zOrigin = loc.z;
 
     _fieldPtr->setVectorField(_volPtr, loc, 
                               1.0f,
@@ -656,8 +652,11 @@ FlowCmd::MakeVolume(float *data)
 {
     Volume *volPtr;
 
-    volPtr = NanoVis::loadVolume(_name, _dataPtr->xNum(), _dataPtr->yNum(), 
-                                 _dataPtr->zNum(), 4, data, 
+    volPtr = NanoVis::loadVolume(_name,
+                                 _dataPtr->xNum(),
+                                 _dataPtr->yNum(), 
+                                 _dataPtr->zNum(),
+                                 4, data, 
                                  NanoVis::magMin, NanoVis::magMax, 0);
     volPtr->xAxis.setRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
@@ -671,12 +670,6 @@ FlowCmd::MakeVolume(float *data)
           NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
           NanoVis::magMin, NanoVis::magMax);
     volPtr->setPhysicalBBox(physicalMin, physicalMax);
-    //volPtr->numSlices(256 - _volIndex);
-    //volPtr->numSlices(512 - _volIndex);
-    //volPtr->numSlices(256 - n);
-    // TBD..
-    /* Don't set the slice number until we're are about to render the
-       volume. */
     volPtr->disableCutplane(0);
     volPtr->disableCutplane(1);
     volPtr->disableCutplane(2);
@@ -688,7 +681,6 @@ FlowCmd::MakeVolume(float *data)
     volPtr->opacityScale(_sv.opacity);
     volPtr->specular(_sv.specular);
     volPtr->diffuse(_sv.diffuse);
-    TRACE("volume is now %d %d\n", _sv.showVolume, volPtr->visible());
     volPtr->visible(_sv.showVolume);
     float dx0 = -0.5;
     float dy0 = -0.5*volPtr->height/volPtr->width;
@@ -1017,8 +1009,7 @@ NanoVis::MapFlows()
         if (!flowPtr->isDataLoaded()) {
             continue;
         }
-        Rappture::Unirect3d *dataPtr;
-        dataPtr = flowPtr->data();
+        Rappture::Unirect3d *dataPtr = flowPtr->data();
         min = dataPtr->magMin();
         max = dataPtr->magMax();
         if (min < magMin) {
@@ -1064,7 +1055,7 @@ NanoVis::MapFlows()
         }
         // FIXME: This doesn't work when there is more than one flow.
         licRenderer->setOffset(flowPtr->GetRelativePosition());
-        NanoVis::velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
+        velocityArrowsSlice->slicePos(flowPtr->GetRelativePosition());
     }
     AdvectFlows();
     return true;

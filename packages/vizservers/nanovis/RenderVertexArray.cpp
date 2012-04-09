@@ -50,9 +50,11 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
 {
     switch (_type) {
     case GL_HALF_FLOAT_NV:
-        _bytesPerComponent = 2; break;
+        _bytesPerComponent = 2;
+        break;
     case GL_FLOAT:
-        _bytesPerComponent = sizeof(float); break;
+        _bytesPerComponent = sizeof(float);
+        break;
     default:
         ERROR("unsupported RenderVertexArray type\n");
         return;
@@ -69,11 +71,14 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
     // set equivalent image format
     switch(_size) {
     case 1:
-        _format = GL_LUMINANCE; break;
+        _format = GL_LUMINANCE;
+        break;
     case 3:
-        _format = GL_RGB; break;
+        _format = GL_RGB;
+        break;
     case 4:
-        _format = GL_RGBA; break;
+        _format = GL_RGBA;
+        break;
     default:
         ERROR("unsupported RenderVertexArray size\n");
         return;

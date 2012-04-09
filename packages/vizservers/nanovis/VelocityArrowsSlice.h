@@ -83,6 +83,10 @@ public:
     }
 
 private:
+    void createRenderTarget();
+
+    void computeSamplingTicks();
+
     unsigned int _vectorFieldGraphicsID;
     float _vfXscale;
     float _vfYscale;
@@ -133,10 +137,6 @@ private:
     Texture2D *_arrowsTex;
 
     RenderMode _renderMode;
-
-    void createRenderTarget();
-
-    void computeSamplingTicks();
 };
 
 #endif

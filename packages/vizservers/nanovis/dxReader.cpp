@@ -212,8 +212,8 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         }
     }
 
-    TRACE("found nx=%d ny=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f\n", 
-          nx, ny, nz, dx, dy, dz, x0, y0, z0);
+    TRACE("found nx=%d ny=%d nxy=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f\n", 
+          nx, ny, nxy, nz, dx, dy, dz, x0, y0, z0);
 
     lx = (nx - 1) * dx;
     ly = (ny - 1) * dy;
@@ -295,20 +295,19 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
 #if ISO_TEST
         double dv = vmax - vmin;
-        int count = nx*ny*nz;
-        int ngen = 0;
-        double v;
         if (dv == 0.0) {
             dv = 1.0;
         }
 
-        for (int i = 0; i < count; ++i) {
-            v = data[ngen];
+        int ngen = 0;
+        const int step = 4;
+        for (int i = 0; i < nx*ny*nz; ++i) {
+            double v = data[ngen];
             // scale all values [0-1], -1 => out of bounds
             v = (isnan(v)) ? -1.0 : (v - vmin)/dv;
 
             data[ngen] = v;
-            ngen += 4;
+            ngen += step;
         }
 
         computeSimpleGradient(data, nx, ny, nz,
@@ -428,14 +427,15 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             return NULL;
         }
 
-        // figure out a good mesh spacing
-        int nsample = 30;
         x0 = field.rangeMin(Rappture::xaxis);
         lx = field.rangeMax(Rappture::xaxis) - field.rangeMin(Rappture::xaxis);
         y0 = field.rangeMin(Rappture::yaxis);
         ly = field.rangeMax(Rappture::yaxis) - field.rangeMin(Rappture::yaxis);
         z0 = field.rangeMin(Rappture::zaxis);
         lz = field.rangeMax(Rappture::zaxis) - field.rangeMin(Rappture::zaxis);
+
+        // figure out a good mesh spacing
+        int nsample = 30;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
         nx = (int)ceil(lx/dmin);
@@ -452,8 +452,6 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         dy = ly /(double)(ny - 1);
         dz = lz /(double)(nz - 1);
 
-        data = new float[4*nx*ny*nz];
-
         vmin = field.valueMin();
         vmax = field.valueMax();
         nzero_min = DBL_MAX;
@@ -462,6 +460,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             dv = 1.0;
         }
 
+        data = new float[4*nx*ny*nz];
         // generate the uniformly sampled data that we need for a volume
         int ngen = 0;
         for (int iz = 0; iz < nz; iz++) {
@@ -489,9 +488,10 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     }
 
     TRACE("nx = %i ny = %i nz = %i\n", nx, ny, nz);
+    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", x0, y0, z0);
     TRACE("lx = %lg ly = %lg lz = %lg\n", lx, ly, lz);
     TRACE("dx = %lg dy = %lg dz = %lg\n", dx, dy, dz);
-    TRACE("dataMin = %lg\tdataMax = %lg\tnzero_min = %lg\n",
+    TRACE("dataMin = %lg dataMax = %lg nzero_min = %lg\n",
           vmin, vmax, nzero_min);
 
     volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
@@ -501,7 +501,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     volPtr->zAxis.setRange(z0, z0 + lz);
     volPtr->updatePending = true;
 
-        // TBD..
+    // TBD..
 #if 0 && defined(USE_POINTSET_RENDERER)
     PointSet *pset = new PointSet();
     pset->initialize(volPtr, (float*)data);

@@ -170,7 +170,6 @@ public:
 
     static double magMin, magMax;
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
-    static float xOrigin, yOrigin, zOrigin;
 
     static NvColorTableRenderer *colorTableRenderer;
     static VolumeRenderer *volRenderer;

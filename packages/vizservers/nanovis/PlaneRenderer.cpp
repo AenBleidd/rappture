@@ -14,6 +14,8 @@
  * ======================================================================
  */
 
+#include <GL/glew.h>
+
 #include "PlaneRenderer.h"
 #include "Trace.h"
 

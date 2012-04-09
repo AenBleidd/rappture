@@ -733,7 +733,7 @@ Rappture::Unirect3d::getVectorRange()
             _magMin = vm;
         }
     }
-    TRACE("GetVectorRange %g %g\n", _magMin, _magMax);
+    TRACE("getVectorRange: %g %g\n", _magMin, _magMax);
 }
 
 bool 

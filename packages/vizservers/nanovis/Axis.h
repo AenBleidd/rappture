@@ -2,6 +2,8 @@
 #ifndef AXIS_H
 #define AXIS_H
 
+#include <stdlib.h>
+
 #include <cmath>
 #include <limits>
 
@@ -44,15 +46,9 @@ private:
     ChainLink *_linkPtr;
 };
 
-/*
- * ----------------------------------------------------------------------
- *
- * Ticks --
- *
- *         Structure containing information where the ticks (major or
- *        minor) will be displayed on the graph.
- *
- * ----------------------------------------------------------------------
+/**
+ * Class containing information where the ticks (major or
+ * minor) will be displayed on the graph.
  */
 class Ticks
 {
@@ -181,7 +177,7 @@ private:
 };
 
 /**
- * Structure contains options controlling how the axis will be
+ * Class contains options controlling how the axis will be
  * displayed.
  */
 class Axis
@@ -211,22 +207,6 @@ public:
         }
     }
 
-    void resetRange();
-
-    void fixRange(double min, double max);
-
-    void setScale(double min, double max);
-
-    double scale()
-    {
-        return _scale;
-    }
-
-    double range()
-    {
-        return _range;
-    }
-
     bool firstMajor(TickIter& iter)
     {
         return _major.firstTick(iter);
@@ -237,9 +217,55 @@ public:
         return _minor.firstTick(iter);
     }
 
+    void resetRange();
+
+    void fixRange(double min, double max);
+
+    void setScale(double min, double max);
+
+    double scale() const
+    {
+        return _scale;
+    }
+
+    double range() const
+    {
+        return _range;
+    }
+
     void getDataLimits(double& min, double& max)
     {
         min = _valueMin, max = _valueMax;
+    }
+
+    double min() const
+    {
+        return _min;
+    }
+
+    void min(double min)
+    {
+        _reqMin = min;
+    }
+
+    double max() const
+    {
+        return _max;
+    }
+
+    void max(double max)
+    {
+        _reqMax = max;
+    }
+
+    void setLimits(double min, double max)
+    {
+        _reqMin = min, _reqMax = max;
+    }
+
+    void unsetLimits()
+    {
+        min(NAN), max(NAN);
     }
 
     double map(double x);
@@ -283,36 +309,6 @@ public:
             free((void *)_title);
         }
         _title = strdup(title);
-    }
-
-    double min()
-    {
-        return _min;
-    }
-
-    void min(double min)
-    {
-        _reqMin = min;
-    }
-
-    double max()
-    {
-        return _max;
-    }
-
-    void max(double max)
-    {
-        _reqMax = max;
-    }
-
-    void setLimits(double min, double max)
-    {
-        _reqMin = min, _reqMax = max;
-    }
-
-    void unsetLimits()
-    {
-        min(NAN), max(NAN);
     }
 
     void setDescendingOption(bool value)

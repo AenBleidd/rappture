@@ -21,12 +21,11 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include "config.h"
-
 #include "Renderable.h"
+#include "NvParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
 #include "Vector3.h"
-#include "NvParticleAdvectionShader.h"
+#include "Vector4.h"
 
 struct Particle {
     float x;

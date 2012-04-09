@@ -35,10 +35,10 @@ public:
 
     /**
      *@brief Create a height map with heigh values
-     *@param startX a x position of the first height value
-     *@param startY a y position of the first height value
-     *@param endX a x position of the last height value
-     *@param endY a y position of the last height value
+     *@param startX x position of the first height value
+     *@param startY y position of the first height value
+     *@param endX x position of the last height value
+     *@param endY y position of the last height value
      *@param xCount the number of columns of height values
      *@param yCount the number of rows of height values
      *@param height a pointer value adrressing xCount * yCount values of heights
@@ -125,10 +125,10 @@ public:
     static double valueMin, valueMax;
 
 private:
-    void createIndexBuffer(int xCount, int zCount, float* heights);
+    void createIndexBuffer(int xCount, int zCount, float *heights);
     Vector3 *createHeightVertices(float startX, float startY,
                                   float endX, float endY,
-                                  int xCount, int yCount, float  *height);
+                                  int xCount, int yCount, float *height);
     void reset();
 
     unsigned int _vertexBufferObjectID;
@@ -144,11 +144,11 @@ private:
     int *_indexBuffer;
     int _indexCount;
     Vector3 _contourColor;
-    
+
     bool _contourVisible;
     bool _topContourVisible;
     bool _visible;
-    
+
     Vector3 _scale;
     Vector3 _centerPoint;
     int _xNum, _yNum;		// Number of elements x and y axes in grid.
