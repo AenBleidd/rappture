@@ -16,15 +16,7 @@
 #ifndef PLANE_RENDERER_H
 #define PLANE_RENDERER_H
 
-#include <math.h>
-#include <stdio.h>
-#include <assert.h>
-#include <float.h>
-
 #include <vector>
-
-#include <GL/glew.h>
-#include <Cg/cgGL.h>
 
 #include "NvColorTableShader.h"
 #include "TransferFunction.h"

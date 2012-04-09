@@ -17,8 +17,12 @@ Grid::Grid() :
     _axisColor(1.0f, 1.0f, 1.0f, 1.0f), 
     _majorColor(1.0f, 1.0f, 1.0f, 1.0f), 
     _minorColor(0.5f, 0.5f, 0.5f, 1.0f), 
-    _font(0), 
+    _font(NULL), 
     _visible(false)
+{
+}
+
+Grid::~Grid()
 {
 }
 

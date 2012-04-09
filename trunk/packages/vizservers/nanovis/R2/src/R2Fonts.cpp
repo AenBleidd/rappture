@@ -72,21 +72,20 @@ R2Fonts::draw(const char *pString, ...) const
 void 
 R2Fonts::begin()
 {
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, _fonts[_fontIndex]. _fontTextureID);
-
     glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, _fonts[_fontIndex]._fontTextureID);
+
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
+    glLoadIdentity();
 
-    glLoadIdentity( );
     gluOrtho2D(0.0f, _screenWidth, _screenHeight, 0.0f);
 
     glMatrixMode(GL_MODELVIEW);
-    glPushMatrix( );
-    glLoadIdentity( );
+    glPushMatrix();
+    glLoadIdentity();
 
-    glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 }
@@ -97,12 +96,12 @@ R2Fonts::end()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glMatrixMode(GL_PROJECTION);
-    glPopMatrix( );
+    glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);
-    glPopMatrix( );
+    glPopMatrix();
 
-    glPopAttrib( );
+    glPopAttrib();
 }
 
 void 
@@ -228,7 +227,7 @@ R2Fonts::loadFont(const char *fontName, const char *fontFileName,
             bSuccess = true;
         }
 
-        fsInput.close( );
+        fsInput.close();
     }
     delete [] path;
     return bSuccess;

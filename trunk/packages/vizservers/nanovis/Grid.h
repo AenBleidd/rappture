@@ -32,6 +32,7 @@ class Grid
 {
 public:
     Grid();
+    virtual ~Grid();
 
     bool isVisible() const
     {

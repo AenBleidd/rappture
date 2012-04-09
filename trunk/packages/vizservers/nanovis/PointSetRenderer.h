@@ -10,7 +10,7 @@
 
 class PointSetRenderer
 {
- public: 
+public:
     PointSetRenderer();
     ~PointSetRenderer();
 

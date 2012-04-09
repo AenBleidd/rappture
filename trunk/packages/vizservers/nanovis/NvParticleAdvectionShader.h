@@ -7,7 +7,7 @@
 
 class NvParticleAdvectionShader : public NvShader
 {
-public: 
+public:
     NvParticleAdvectionShader();
 
     virtual ~NvParticleAdvectionShader();

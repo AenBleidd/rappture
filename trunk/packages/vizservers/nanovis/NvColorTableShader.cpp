@@ -1,5 +1,4 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <R2/R2FilePath.h>
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>

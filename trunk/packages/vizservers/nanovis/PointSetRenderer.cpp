@@ -76,7 +76,7 @@ void PointSetRenderer::renderCluster(PCA::ClusterList** bucket, int size, int le
     bool setSize = false;
     glBegin(GL_POINTS);
 
-    PCA::ClusterList* p;
+    PCA::ClusterList *p;
     for (int i = size - 1; i >= 0; --i) {
         p = bucket[i];
         if (p) {

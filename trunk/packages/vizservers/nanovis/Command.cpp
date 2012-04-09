@@ -77,22 +77,20 @@ static const char def_transfunc[] =
   0.8  0 0 1\n\
   1.0  1 0 1\n\
 } {\n\
-  0.00  1.0\n\
-  0.05  0.0\n\
-  0.15  0.0\n\
-  0.20  1.0\n\
-  0.25  0.0\n\
-  0.35  0.0\n\
-  0.40  1.0\n\
-  0.45  0.0\n\
-  0.55  0.0\n\
-  0.60  1.0\n\
-  0.65  0.0\n\
-  0.75  0.0\n\
-  0.80  1.0\n\
-  0.85  0.0\n\
-  0.95  0.0\n\
-  1.00  1.0\n\
+  0.00000  0.0\n\
+  0.19999  0.0\n\
+  0.20000  1.0\n\
+  0.20001  0.0\n\
+  0.39999  0.0\n\
+  0.40000  1.0\n\
+  0.40001  0.0\n\
+  0.59999  0.0\n\
+  0.60000  1.0\n\
+  0.60001  0.0\n\
+  0.79999  0.0\n\
+  0.80000  1.0\n\
+  0.80001  0.0\n\
+  1.00000  0.0\n\
 }";
 
 static Tcl_ObjCmdProc AxisCmd;
@@ -650,7 +648,7 @@ SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     NanoVis::display();
     NanoVis::readScreen();
 
-    NanoVis::ppmWrite("nv>image -bytes %d -type print");
+    NanoVis::ppmWrite("nv>image -type print -bytes %d");
     NanoVis::resizeOffscreenBuffer(w, h);
 
     return TCL_OK;

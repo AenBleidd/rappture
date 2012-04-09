@@ -29,8 +29,6 @@ public :
 
     double getStartTime() const;
 
-    unsigned int getReferenceVolumeID() const;
-
     Volume *getVolume();
 
 private:
@@ -43,7 +41,6 @@ private:
     unsigned int _numBytes;
     unsigned int _dataCount;
     unsigned int _numComponents;
-    unsigned int _referenceOfVolume;
     double _startTime;
 };
 
@@ -60,11 +57,6 @@ inline double VolumeInterpolator::getStartTime() const
 inline double VolumeInterpolator::getInterval() const
 {
     return _interval;
-}
-
-inline unsigned int VolumeInterpolator::getReferenceVolumeID() const
-{
-    return _referenceOfVolume;
 }
 
 #endif

@@ -14,31 +14,17 @@ public:
 
     void setScale(float scale)
     {
-        cgGLSetParameter4f(_scaleVP, scale, 1.0f, 1.0f, 1.0f);
+        _scale = scale;
     }
 
-    void setNormalTexture(Texture3D *n)
+    void setNormalTexture(Texture3D *normal)
     {
-        _normal = n;
+        _normal = normal;
     }
 
-    virtual void bind()
-    {
-        setParameters();
+    virtual void bind();
 
-        NvShader::bind();
-    }
-
-    virtual  void unbind()
-    {
-        resetParameters();
-
-        NvShader::unbind();
-    }
-
-protected:
-    virtual void setParameters();
-    virtual void resetParameters();
+    virtual  void unbind();
 
 private:
     CGparameter _modelviewVP;
@@ -50,6 +36,7 @@ private:
     CGparameter _scaleVP;
     CGparameter _normalParam;
 
+    float _scale;
     Texture3D *_normal;
 };
 

@@ -2,19 +2,10 @@
 #ifndef NVFLOWVISRENDERER_H
 #define NVFLOWVISRENDERER_H
 
-#include <vector>
 #include <map>
 #include <string>
 
-#include <GL/glew.h>
-#include <Cg/cgGL.h>
-
-#include "config.h"
-
-#include "Renderable.h"
-#include "RenderVertexArray.h"
 #include "Vector3.h"
-#include "NvParticleAdvectionShader.h"
 #include "NvVectorField.h"
 
 class NvParticleRenderer;

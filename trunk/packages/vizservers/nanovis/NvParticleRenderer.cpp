@@ -14,13 +14,9 @@
  * ======================================================================
  */
 
-#include <stdio.h>
 #include <assert.h>
-#include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include <R2/R2FilePath.h>
 
 #include "NvParticleRenderer.h"
 #include "define.h"
@@ -299,7 +295,7 @@ NvParticleRenderer::advect()
     _psysFrame++;
     if (_psysFrame == _maxLife) {
         _psysFrame = 0;
-        //        _reborn = true;
+        // _reborn = true;
     }
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 

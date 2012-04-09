@@ -1,11 +1,4 @@
  /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <memory.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdlib.h>
 
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
@@ -14,8 +7,6 @@
 #include "HeightMap.h"
 #include "ContourLineFilter.h"
 #include "Texture1D.h"
-#include "R2/R2FilePath.h"
-#include "RpField1D.h"
 #include "RenderContext.h"
 
 bool HeightMap::updatePending = false;
@@ -56,7 +47,7 @@ HeightMap::~HeightMap()
         delete _shader;
     }
     if (_heights != NULL) {
-	free(_heights);
+	delete [] _heights;
     }
 }
 

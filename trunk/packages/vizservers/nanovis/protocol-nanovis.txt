@@ -185,6 +185,10 @@ nv>image -type print -bytes <nbytes>
 nv>image -type movie -token <token> -bytes <nbytes>
   (followed by bytes)
 
+nv>data tag <dataobj-tag> min <val> max <val> vmin <val> vmax <val>
+   The min,max data values for the data object and the cumulative volume data
+   min,max over all volumes
+
 ================================================================================
 Error Replies:
 ================================================================================

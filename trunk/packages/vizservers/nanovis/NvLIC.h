@@ -30,8 +30,7 @@
 class NvLIC : public Renderable
 { 
 public:
-    NvLIC(int size, int width, int height, int axis, 
-	  float offset);
+    NvLIC(int size, int width, int height, int axis, float offset);
     ~NvLIC();
 
     /// project 3D vectors to a 2D slice for line integral convolution
@@ -48,7 +47,7 @@ public:
 
     void getSlice();
 
-    void setOffset(float v);
+    void setOffset(float offset);
 
     /** 
      * @brief Specify the perpendicular axis

@@ -1,7 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-#include <string.h>
-
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
