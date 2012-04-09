@@ -78,8 +78,10 @@ public:
     static void resizeOffscreenBuffer(int w, int h);
     static void displayOffscreenBuffer();
     static void display();
+    static void draw3dAxis();
     static void idle();
     static void update();
+    static void removeAllData();
 
     static void pan(float dx, float dy);
     static void zoom(float z);
@@ -88,9 +90,9 @@ public:
 
     static void setVolumeRanges();
     static void setHeightmapRanges();
-
+#ifdef notdef
     static void initParticle();
-
+#endif
     static void ppmWrite(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
                                  size_t dlen);
@@ -154,22 +156,27 @@ public:
     static int winHeight;	//size of the render window
     static int renderWindow;
     static unsigned char *screenBuffer;
+    static Texture2D *legendTexture;
     static Grid *grid;
     static R2Fonts *fonts;
     static int updir;
     static NvCamera *cam;
     static graphics::RenderContext *renderContext;
 
+    static Tcl_HashTable tfTable;
     static Tcl_HashTable volumeTable;
-
-    static std::vector<NvVectorField *> flow;
     static Tcl_HashTable flowTable;
+    static Tcl_HashTable heightmapTable;
+
     static double magMin, magMax;
     static float xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
     static float xOrigin, yOrigin, zOrigin;
 
+    static NvColorTableRenderer *colorTableRenderer;
     static VolumeRenderer *volRenderer;
+#ifdef notdef
     static NvFlowVisRenderer *flowVisRenderer;
+#endif
     static VelocityArrowsSlice *velocityArrowsSlice;
     static NvLIC *licRenderer;
     static PlaneRenderer *planeRenderer;
@@ -182,21 +189,11 @@ public:
     static std::vector<PointSet *> pointSet;
 #endif
 
-    static Tcl_HashTable tfTable;
-    static Texture2D *legendTexture;
-    static NvColorTableRenderer *colorTableRenderer;
-
-    static std::vector<HeightMap *> heightMap;
-    static Tcl_HashTable heightmapTable;
-
     static Tcl_Interp *interp;
-    static Tcl_DString cmdbuffer;
 
 private:
-    static float _licSliceX;
-    static float _licSliceY;
-    static float _licSliceZ;
-    static int _licAxis;     /* 0:x, 1:y, 2:z */
+    static float _licSlice;  ///< Slice position [0,1]
+    static int _licAxis;     ///< Slice axis: 0:x, 1:y, 2:z
 
     //frame buffer for final rendering
     static GLuint _finalFbo, _finalColorTex, _finalDepthRb;

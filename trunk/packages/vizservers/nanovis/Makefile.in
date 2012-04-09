@@ -120,7 +120,6 @@ OBJS		= \
 		NvColorTableRenderer.o \
 		NvColorTableShader.o \
 		NvEventLog.o \
-		NvFlowVisRenderer.o \
 		NvLIC.o \
 		NvParticleAdvectionShader.o \
 		NvParticleRenderer.o \
@@ -178,6 +177,7 @@ shaders		= \
 
 ifdef NOTDEF
 OBJS +=		DataLoader.o \
+		NvFlowVisRenderer.o \
 		ParticleEmitter.o \
 		ParticleSystem.o \
 		ParticleSystemFactory.o \
