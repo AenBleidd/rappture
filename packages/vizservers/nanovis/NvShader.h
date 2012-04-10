@@ -145,7 +145,6 @@ public:
         CGparameter param = getFPParam(name);
         if (param == NULL)
             return;
-        ParameterHashmap::iterator itr = _fpParams.find(name);
         cgGLSetTextureParameter(param, texobj);
         if (enable)
             cgGLEnableTextureParameter(param);
