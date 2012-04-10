@@ -43,14 +43,6 @@ public:
 private:
     void init();
 
-    CGparameter _posTexParam;
-    CGparameter _initPosTexParam;
-    CGparameter _velTexParam;
-    CGparameter _posTimestepParam;
-    CGparameter _maxParam;
-    CGparameter _modeParam;
-    CGparameter _scaleParam;
-
     unsigned int _velocityVolumeID;
     Vector3 _scale;
     float _max;

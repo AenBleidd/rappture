@@ -24,18 +24,10 @@ public:
 
     virtual void bind();
 
-    virtual  void unbind();
+    virtual void unbind();
 
 private:
-    CGparameter _modelviewVP;
-    CGparameter _projectionVP;
-
-    CGparameter _attenVP;
-    CGparameter _posoffsetVP;
-    CGparameter _baseposVP;
-    CGparameter _scaleVP;
-    CGparameter _normalParam;
-
+    float _scale;
     float _scale;
     Texture3D *_normal;
 };
