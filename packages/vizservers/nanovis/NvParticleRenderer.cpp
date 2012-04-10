@@ -18,6 +18,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <GL/glew.h>
+
 #include "NvParticleRenderer.h"
 #include "define.h"
 #include "Trace.h"
