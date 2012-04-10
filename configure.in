@@ -334,7 +334,9 @@ if test "${with_ffmpeg}" != "no"; then
   AC_CHECK_FUNC(avpicture_get_size,,
     AC_MSG_ERROR(oops! no avpicture_get_size ?!?))
   AC_CHECK_FUNC(avpicture_fill,,AC_MSG_ERROR(oops! no avpicture_fill ?!?))
-
+  AC_CHECK_FUNCS(sws_getCachedContext)
+  AC_CHECK_FUNCS(img_convert)
+  AC_CHECK_FUNCS(sws_scale)
   AC_TRY_COMPILE([
 #define __STDC_CONSTANT_MACROS 1
 #include <stdlib.h>
