@@ -89,7 +89,7 @@ NvShader::~NvShader()
 {
     TRACE("In ~NvShader");
     if (_cgContext == NULL) {
-        TRACE("Lost Cg context");
+        TRACE("Lost Cg context: vp: %s, fp: %s", _vpFile.c_str(), _fpFile.c_str());
     } else {
         resetPrograms();
     }
@@ -102,6 +102,7 @@ void NvShader::loadVertexProgram(const char *fileName, const char *entryPoint)
     }
     _cgVP = loadCgSourceProgram(_cgContext, fileName,
                                 _vertexProfile, entryPoint);
+    _vpFile = fileName;
 }
 
 void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
@@ -111,15 +112,18 @@ void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
     }
     _cgFP = loadCgSourceProgram(_cgContext, fileName,
                                 _fragmentProfile, entryPoint);
+    _fpFile = fileName;
 }
 
 void NvShader::resetPrograms()
 {
     if (_cgVP != NULL) {
+        TRACE("Destroying vertex program: %s\n", _vpFile.c_str());
         cgDestroyProgram(_cgVP);
     }
 
     if (_cgFP != NULL) {
+        TRACE("Destroying fragment program: %s\n", _fpFile.c_str());
         cgDestroyProgram(_cgFP);
     }
 }
