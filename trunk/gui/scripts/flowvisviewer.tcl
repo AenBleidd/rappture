@@ -1052,7 +1052,6 @@ itcl::body Rappture::FlowvisViewer::ReceiveImage { args } {
             set _hardcopy($tag) $bytes
         } 
         "movie" {
-            puts stderr "read [string length $bytes] bytes type=$info(-type) token=$info(-token)"
             set tag $this-$info(-token)
             set _hardcopy($tag) $bytes
         }
