@@ -16,6 +16,8 @@
 #ifndef NVPARTICLERENDERER_H
 #define NVPARTICLERENDERER_H
 
+#include <GL/glew.h>
+
 #include "Renderable.h"
 #include "NvParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
