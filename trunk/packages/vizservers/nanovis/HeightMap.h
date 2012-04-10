@@ -2,8 +2,6 @@
 #ifndef HEIGHTMAP_H
 #define HEIGHTMAP_H
 
-#include <Cg/cg.h>
-
 #include <R2/graphics/R2Geometry.h>
 
 #include "TransferFunction.h"
@@ -45,14 +43,14 @@ public:
      */
     void setHeight(float startX, float startY, float endX, float endY, 
 		   int xCount, int yCount, float *height);
-
+#if 0
     /**
      *@brief Create a height map with a set of points
      *@param xCount the number of columns of height values
      *@param yCount the number of rows of height values
      */
     void setHeight(int xCount, int yCount, Vector3 *heights);
-
+#endif
     void mapToGrid(Grid *gridPtr);
 
     /**
@@ -132,10 +130,8 @@ private:
     void reset();
 
     unsigned int _vertexBufferObjectID;
-    unsigned int _textureBufferObjectID;
+    unsigned int _texcoordBufferObjectID;
     int _vertexCount;
-    CGparameter _tfParam;
-    CGparameter _opacityParam;
     R2Geometry *_contour;
     R2Geometry *_topContour;
     TransferFunction *_tfPtr;

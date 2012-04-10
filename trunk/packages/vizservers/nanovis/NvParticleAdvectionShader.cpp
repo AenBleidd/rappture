@@ -1,10 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-
-#include <GL/glew.h>
-#include <Cg/cgGL.h>
-
 #include "NvParticleAdvectionShader.h"
-#include "Trace.h"
 
 NvParticleAdvectionShader::NvParticleAdvectionShader() : 
     _velocityVolumeID(0), 
@@ -23,31 +18,19 @@ NvParticleAdvectionShader::~NvParticleAdvectionShader()
 void NvParticleAdvectionShader::init()
 {
     loadFragmentProgram("update_pos.cg", "main");
-    _posTexParam       = getNamedParameterFromFP("pos_tex");
-    _initPosTexParam   = getNamedParameterFromFP("init_pos_tex");
-    _velTexParam       = getNamedParameterFromFP("vel_tex");
-    _posTimestepParam  = getNamedParameterFromFP("timestep");
-    _maxParam          = getNamedParameterFromFP("max");
-    _modeParam         = getNamedParameterFromFP("mode");
-    _scaleParam        = getNamedParameterFromFP("scale");
 }
 
 void 
 NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 {
-    cgGLSetTextureParameter(_posTexParam, texID);
-    cgGLEnableTextureParameter(_posTexParam);
+    setFPTextureParameter("pos_tex", texID);
+    setFPTextureParameter("init_pos_tex", initPosTexID);
+    setFPTextureParameter("vel_tex", _velocityVolumeID);
 
-    cgGLSetTextureParameter(_initPosTexParam, initPosTexID);
-    cgGLEnableTextureParameter(_initPosTexParam);
-
-    cgGLSetTextureParameter(_velTexParam, _velocityVolumeID);
-    cgGLEnableTextureParameter(_velTexParam);
-
-    cgGLSetParameter1f(_posTimestepParam, _timeStep);
-    cgGLSetParameter1f(_maxParam, _max);
-    cgGLSetParameter1f(_modeParam, _mode);
-    cgGLSetParameter3f(_scaleParam, _scale.x, _scale.y, _scale.z);
+    setFPParameter1f("timestep", _timeStep);
+    setFPParameter1f("max", _max);
+    setFPParameter1f("mode", _mode);
+    setFPParameter3f("scale", _scale.x, _scale.y, _scale.z);
 
     NvShader::bind();
 }
@@ -55,9 +38,9 @@ NvParticleAdvectionShader::bind(unsigned int texID, unsigned int initPosTexID)
 void
 NvParticleAdvectionShader::unbind()
 {
-     cgGLDisableTextureParameter(_posTexParam);
-     cgGLDisableTextureParameter(_initPosTexParam);
-     cgGLDisableTextureParameter(_velTexParam);
+     disableFPTextureParameter("pos_tex");
+     disableFPTextureParameter("init_pos_tex");
+     disableFPTextureParameter("vel_tex");
 
      NvShader::unbind();
 }

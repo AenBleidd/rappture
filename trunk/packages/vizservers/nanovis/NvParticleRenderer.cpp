@@ -87,6 +87,7 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
                               GL_TEXTURE_RECTANGLE_ARB, _psysTex[0], 0);
 
+    CHECK_FRAMEBUFFER_STATUS();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _psysFbo[1]);
 
@@ -103,6 +104,8 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, 
                               GL_TEXTURE_RECTANGLE_ARB, _psysTex[1], 0);
  
+    CHECK_FRAMEBUFFER_STATUS();
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fboOrig);
 
     glGenTextures(1, &_initPosTex);
@@ -116,8 +119,6 @@ NvParticleRenderer::NvParticleRenderer(int w, int h) :
     glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA,
                  _psysWidth, _psysHeight, 0, GL_RGBA, GL_FLOAT, NULL);
 #endif
-
-    CHECK_FRAMEBUFFER_STATUS();
 
     if (_advectionShader == NULL) {
         _advectionShader = new NvParticleAdvectionShader();
@@ -311,60 +312,6 @@ NvParticleRenderer::updateVertexBuffer()
     //assert(glGetError()==0);
 }
 
-void 
-NvParticleRenderer::drawBoundingBox(float x0, float y0, float z0,
-                                    float x1, float y1, float z1,
-                                    float r, float g, float b, 
-                                    float line_width)
-{
-    glPushAttrib(GL_ENABLE_BIT);
-
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-
-    glColor4d(r, g, b, 1.0);
-    glLineWidth(line_width);
-
-    glBegin(GL_LINE_LOOP); 
-    {
-        glVertex3d(x0, y0, z0);
-        glVertex3d(x1, y0, z0);
-        glVertex3d(x1, y1, z0);
-        glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x0, y0, z1);
-        glVertex3d(x1, y0, z1);
-        glVertex3d(x1, y1, z1);
-        glVertex3d(x0, y1, z1);
-    }
-    glEnd();
-
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x0, y0, z0);
-        glVertex3d(x0, y0, z1);
-        glVertex3d(x0, y1, z1);
-        glVertex3d(x0, y1, z0);
-    }
-    glEnd();
-
-    glBegin(GL_LINE_LOOP);
-    {
-        glVertex3d(x1, y0, z0);
-        glVertex3d(x1, y0, z1);
-        glVertex3d(x1, y1, z1);
-        glVertex3d(x1, y1, z0);
-    }
-    glEnd();
-
-    glPopAttrib();
-}
-
 void
 NvParticleRenderer::render()
 {
@@ -381,33 +328,16 @@ NvParticleRenderer::render()
     glTranslatef(_origin.x, _origin.y, _origin.z);
     glScaled(_scale.x, _scale.y, _scale.z);
 
-    // TBD...
-    /*
-      drawBoundingBox(0, 0, 0, 
-      1, 1, 1, 
-      1, 1, 1, 2);
-
-      drawBoundingBox(0, 0.5f / 4.5f, 0.5f / 4.5,
-      1, 4.0f / 4.5f, 4.0f / 4.5,
-      1, 0, 0, 2);
-
-      drawBoundingBox(1/3.0f, 1.0f / 4.5f, 0.5f / 4.5,
-      2/3.0f, 3.5f / 4.5f, 3.5f / 4.5,
-      1, 1, 0, 2);
-    */
-
     glPointSize(_particleSize);
     glColor4f(_color.x, _color.y, _color.z, _color.w);
+
     glEnableClientState(GL_VERTEX_ARRAY);
     _vertexArray->setPointer(0);
     glDrawArrays(GL_POINTS, 0, _psysWidth * _psysHeight);
     glDisableClientState(GL_VERTEX_ARRAY);
 
     glPopMatrix();
-
     glPopAttrib();
-
-    //assert(glGetError()==0);
 }
 
 void 

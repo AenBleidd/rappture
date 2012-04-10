@@ -48,8 +48,8 @@ float4 main(in float2 uv : TEXCOORD0,
 #endif
 
     //reconstruct negative value
-    float4 vel = float4(tex3D(vel_tex, pos.xyz).yzw, 0) - float4(0.5, 0.5, 0.5, 0.0f);
-    vel = vel * (2 * max);
+    float4 vel = float4(tex3D(vel_tex, pos.xyz).yzw, 0.0) * 2.0 - float4(1.0, 1.0, 1.0, 0.0f);
+    vel = vel * max;
     //vel *= float4(scale, 1);
     ret = pos + (vel * timestep);
 

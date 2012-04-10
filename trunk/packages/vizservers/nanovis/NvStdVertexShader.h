@@ -20,12 +20,6 @@ public:
 
 private:
     void init();
-
-    /// A parameter id for ModelViewProjection matrix of Cg program
-    CGparameter _mvpVertStdParam;
-
-    /// A parameter id for ModelViewInverse matrix of Cg program
-    CGparameter _mviVertStdParam;
 };
 
 #endif 

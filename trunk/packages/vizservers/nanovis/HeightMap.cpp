@@ -1,7 +1,5 @@
  /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-
 #include <GL/glew.h>
-#include <Cg/cgGL.h>
 
 #include "Grid.h"
 #include "HeightMap.h"
@@ -17,7 +15,7 @@ double HeightMap::valueMax = 1.0;
 //#define TOPCONTOUR	1
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
-    _textureBufferObjectID(0), 
+    _texcoordBufferObjectID(0), 
     _vertexCount(0), 
     _contour(0), 
     _topContour(0), 
@@ -35,15 +33,13 @@ HeightMap::HeightMap() :
 {
     _shader = new NvShader();
     _shader->loadFragmentProgram("heightcolor.cg", "main");
-    _tfParam      = _shader->getNamedParameterFromFP("tf");
-    _opacityParam = _shader->getNamedParameterFromFP("opacity");
 }
 
 HeightMap::~HeightMap()
 {
     reset();
 
-    if (_shader) {
+    if (_shader != NULL) {
         delete _shader;
     }
     if (_heights != NULL) {
@@ -95,10 +91,8 @@ HeightMap::render(graphics::RenderContext *renderContext)
             //
             //
             _shader->bind();
- 
-            cgGLSetTextureParameter(_tfParam, _tfPtr->id());
-            cgGLEnableTextureParameter(_tfParam);
-            cgGLSetParameter1f(_opacityParam, _opacity);
+            _shader->setFPTextureParameter("tf", _tfPtr->id());
+            _shader->setFPParameter1f("opacity", _opacity);
 
             glEnable(GL_TEXTURE_1D);
             _tfPtr->getTexture()->activate();
@@ -109,7 +103,7 @@ HeightMap::render(graphics::RenderContext *renderContext)
         glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
         glVertexPointer(3, GL_FLOAT, 12, 0);
 
-        glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+        glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
         glTexCoordPointer(3, GL_FLOAT, 12, 0);
 
 #define _TRIANGLES_
@@ -128,6 +122,7 @@ HeightMap::render(graphics::RenderContext *renderContext)
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+            _shader->disableFPTextureParameter("tf");
             _shader->unbind();
         }
     }
@@ -237,9 +232,9 @@ HeightMap::reset()
         glDeleteBuffers(1, &_vertexBufferObjectID);
 	_vertexBufferObjectID = 0;
     }
-    if (_textureBufferObjectID) {
-        glDeleteBuffers(1, &_textureBufferObjectID);
-	_textureBufferObjectID = 0;
+    if (_texcoordBufferObjectID) {
+        glDeleteBuffers(1, &_texcoordBufferObjectID);
+	_texcoordBufferObjectID = 0;
     }
     if (_contour != NULL) {
         delete _contour;
@@ -250,7 +245,7 @@ HeightMap::reset()
 	_indexBuffer = NULL;
     }
 }
-
+#if 0
 void 
 HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
 {
@@ -292,8 +287,8 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3 ), heights, 
 	GL_STATIC_DRAW);
-    glGenBuffers(1, &_textureBufferObjectID);
-    glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+    glGenBuffers(1, &_texcoordBufferObjectID);
+    glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
 	GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -323,7 +318,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
     //ERROR("HeightMap::setHeight\n");
     //}
 }
-
+#endif
 void 
 HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax, 
                      int xNum, int yNum, float *heights)
@@ -384,8 +379,8 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), map, 
         GL_STATIC_DRAW);
-    glGenBuffers(1, &_textureBufferObjectID);
-    glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+    glGenBuffers(1, &_texcoordBufferObjectID);
+    glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
         GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -484,8 +479,8 @@ HeightMap::mapToGrid(Grid *gridPtr)
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), vertices, 
         GL_STATIC_DRAW);
-    glGenBuffers(1, &_textureBufferObjectID);
-    glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+    glGenBuffers(1, &_texcoordBufferObjectID);
+    glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
     glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(float) * 3, texcoord, 
         GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -568,9 +563,8 @@ HeightMap::renderTopview(graphics::RenderContext* renderContext,
         
         if (_tfPtr != NULL) {
             _shader->bind();
-            
-            cgGLSetTextureParameter(_tfParam, _tfPtr->id());
-            cgGLEnableTextureParameter(_tfParam);
+
+            _shader->setFPTextureParameter("tf", _tfPtr->id());
 
             glEnable(GL_TEXTURE_1D);
             _tfPtr->getTexture()->activate();
@@ -583,7 +577,7 @@ HeightMap::renderTopview(graphics::RenderContext* renderContext,
         glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
         glVertexPointer(3, GL_FLOAT, 12, 0);
 
-        glBindBuffer(GL_ARRAY_BUFFER, _textureBufferObjectID);
+        glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
         glTexCoordPointer(3, GL_FLOAT, 12, 0);
 
 #define _TRIANGLES_
@@ -602,6 +596,7 @@ HeightMap::renderTopview(graphics::RenderContext* renderContext,
             _tfPtr->getTexture()->deactivate();
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+            _shader->disableFPTextureParameter("tf");
             _shader->unbind();
         }
     }
