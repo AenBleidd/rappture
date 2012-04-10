@@ -277,13 +277,11 @@ DecodeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *string;
 
     string = Tcl_GetStringFromObj(objv[last], &numBytes);
-    if (switches.flags == 0) {
-	if (strncmp(string, "@@RP-ENC:", 9) != 0) {
-	    /* This string doesn't have a header, so it's not encoded. 
-	     * Just return the string as-is. */
-	    Tcl_SetObjResult(interp, objv[last]);
-	    return TCL_OK;
-	}
+    if ((switches.flags == 0) && (strncmp(string, "@@RP-ENC:", 9) != 0)) {
+	/* This string doesn't have a header, so it's not encoded. 
+	 * Just return the string as-is. */
+	Tcl_SetObjResult(interp, objv[last]);
+	return TCL_OK;
     }
     Rappture::Buffer buf(string, numBytes); 
     Rappture::Outcome status;
