@@ -1,6 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <stdlib.h>
 
+#include <GL/glew.h>
+
 #include <R2/R2Fonts.h>
 
 #include "NvColorTableRenderer.h"
