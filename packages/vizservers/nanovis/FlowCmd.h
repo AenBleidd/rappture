@@ -82,7 +82,7 @@ public:
         return !_sv.isHidden;
     }
 
-    int ParseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
+    int parseSwitches(Tcl_Interp *interp, int objc, Tcl_Obj *const *objv)
     {
         if (Rappture::ParseSwitches(interp, _switches, objc, objv, &_sv, 
                                     SWITCH_DEFAULTS) < 0) {
@@ -91,36 +91,38 @@ public:
         return TCL_OK;
     }
 
-    void Advect()
+    void advect()
     {
         assert(_rendererPtr->active());
         _rendererPtr->advect();
     }
 
-    void Render();
+    void render();
 
-    void Reset()
+    void reset()
     {
         _rendererPtr->reset();
     }
 
-    void Initialize()
+    void initialize()
     {
         _rendererPtr->initialize();
     }
 
-    void SetVectorField(Volume *volPtr)
+    void setVectorField(Volume *volPtr, const Vector3& location,
+                        float scaleX, float scaleY, float scaleZ,
+                        float max)
     {
         _rendererPtr->
-            setVectorField(volPtr->id, 
-                           volPtr->location(),
-                           1.0f,
-                           volPtr->height / (float)volPtr->width,
-                           volPtr->depth  / (float)volPtr->width,
-                           volPtr->wAxis.max());
+            setVectorField(volPtr->id,
+                           location,
+                           scaleX,
+                           scaleY,
+                           scaleZ,
+                           max);
     }
 
-    void Configure();
+    void configure();
 
 private:
     /**

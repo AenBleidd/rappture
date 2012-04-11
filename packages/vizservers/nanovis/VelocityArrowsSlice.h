@@ -4,11 +4,9 @@
 
 #include <vector>
 
-#include <Cg/cg.h>
-#include <Cg/cgGL.h>
-
 #include "Texture2D.h"
 #include "Vector3.h"
+#include "NvShader.h"
 
 class VelocityArrowsSlice
 {
@@ -22,7 +20,8 @@ public:
 
     ~VelocityArrowsSlice();
 
-    void vectorField(unsigned int vfGraphicsID, float xScale, float yScale, float zScale);
+    void setVectorField(unsigned int vfGraphicsID, const Vector3& origin,
+                        float xScale, float yScale, float zScale, float max);
 
     void axis(int axis);
 
@@ -98,9 +97,9 @@ private:
     unsigned int _tex;
     float _maxPointSize;
 
-    CGcontext _context;
-    CGprogram _queryVelocityFP;
-    CGparameter _qvVectorFieldParam;
+    NvShader _queryVelocityFP;
+
+    NvShader _particleShader;
 
     int _renderTargetWidth;
     int _renderTargetHeight;
@@ -124,15 +123,6 @@ private:
     bool _dirtyRenderTarget;
 
     unsigned int _vertexBufferGraphicsID;
-
-    CGprogram _particleVP;
-    CGparameter _mvpParticleParam;
-    CGparameter _mvParticleParam;
-    CGparameter _mvTanHalfFOVParam;
-    CGparameter _mvCurrentTimeParam;
-
-    CGprogram _particleFP;
-    CGparameter _vectorParticleParam;
 
     Texture2D *_arrowsTex;
 

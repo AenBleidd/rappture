@@ -156,7 +156,6 @@ OBJS		= \
 resources	= \
 		$(srcdir)/resources/Font.bmp \
 		$(srcdir)/resources/arrows.bmp \
-		$(srcdir)/resources/arrows_red_bg.bmp \
 		$(srcdir)/resources/particle2.bmp \
 		$(srcdir)/resources/verdana.fnt \
 		$(srcdir)/resources/verdana_bold.fnt

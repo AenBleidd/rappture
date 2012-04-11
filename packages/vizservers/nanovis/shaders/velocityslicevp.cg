@@ -9,7 +9,7 @@ void vpmain(in float4 posin : POSITION,
             out float2 center : TEXCOORD2,
             out float4 rotation : TEXCOORD3,
             out float4 pointSize : PSIZE,
-            uniform sampler3D vfield,
+            uniform sampler3D vfield : TEXUNIT1,
             uniform float tanHalfFOV,
             uniform float4x4 modelview,
             uniform float4x4 mvp)

@@ -145,7 +145,7 @@ FlowParticles::~FlowParticles()
 }
 
 void
-FlowParticles::Render() 
+FlowParticles::render() 
 {
     TRACE("rendering particles %s\n", _name);
     TRACE("rendering particles %s axis=%d\n", _name, _sv.position.axis);
@@ -160,7 +160,7 @@ FlowParticles::Render()
 }
 
 void 
-FlowParticles::Configure() 
+FlowParticles::configure() 
 {
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
     _rendererPtr->setColor(Vector4(_sv.color.r, _sv.color.g, _sv.color.b, 
@@ -342,25 +342,24 @@ void
 FlowCmd::ResetParticles()
 {
     FlowParticlesIterator iter;
-    FlowParticles *particlesPtr;
-    for (particlesPtr = FirstParticles(&iter); particlesPtr != NULL;
+    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+         particlesPtr != NULL;
          particlesPtr = NextParticles(&iter)) {
-        particlesPtr->Reset();
+        particlesPtr->reset();
     }
 }
 
 void
 FlowCmd::Advect()
 {
-    NvVectorField *fieldPtr;
-    fieldPtr = VectorField();
+    NvVectorField *fieldPtr = VectorField();
     fieldPtr->active(true);
     FlowParticlesIterator iter;
-    FlowParticles *particlesPtr;
-    for (particlesPtr = FirstParticles(&iter); particlesPtr != NULL;
+    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+         particlesPtr != NULL;
          particlesPtr = NextParticles(&iter)) {
         if (particlesPtr->visible()) {
-            particlesPtr->Advect();
+            particlesPtr->advect();
         }
     }
 }
@@ -371,11 +370,11 @@ FlowCmd::Render()
     _fieldPtr->active(true);
     _fieldPtr->render();
     FlowParticlesIterator iter;
-    FlowParticles *particlesPtr;
-    for (particlesPtr = FirstParticles(&iter); particlesPtr != NULL; 
+    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+         particlesPtr != NULL; 
          particlesPtr = NextParticles(&iter)) {
         if (particlesPtr->visible()) {
-            particlesPtr->Render();
+            particlesPtr->render();
         }
     }
     TRACE("in Render before boxes %s\n", _name);
@@ -516,11 +515,11 @@ FlowCmd::NextBox(FlowBoxIterator *iterPtr)
 void
 FlowCmd::InitializeParticles()
 {
-    FlowParticles *particlesPtr;
     FlowParticlesIterator iter;
-    for (particlesPtr = FirstParticles(&iter); particlesPtr != NULL;
+    for (FlowParticles *particlesPtr = FirstParticles(&iter);
+         particlesPtr != NULL;
          particlesPtr = NextParticles(&iter)) {
-        particlesPtr->Initialize();
+        particlesPtr->initialize();
     }
 }
 
@@ -581,23 +580,25 @@ FlowCmd::ScaleVectorField()
 
     if (NanoVis::velocityArrowsSlice != NULL) {
         NanoVis::velocityArrowsSlice->
-            vectorField(_volPtr->id,
-                        //*(volPtr->get_location()),
-                        1.0f,
-                        _volPtr->aspectRatioHeight / _volPtr->aspectRatioWidth,
-                        _volPtr->aspectRatioDepth / _volPtr->aspectRatioWidth
-                        //,volPtr->wAxis.max()
-                        );
-        TRACE("Arrows enabled set to %d\n", _sv.showArrows);
+            setVectorField(_volPtr->id, loc,
+                           _volPtr->aspectRatioWidth,
+                           _volPtr->aspectRatioHeight,
+                           _volPtr->aspectRatioDepth,
+                           _volPtr->wAxis.max());
         NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
         NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);
         NanoVis::velocityArrowsSlice->enabled(_sv.showArrows);
     }
-    FlowParticles *particlesPtr;
+
     FlowParticlesIterator partIter;
-    for (particlesPtr = FirstParticles(&partIter); particlesPtr != NULL;
+    for (FlowParticles *particlesPtr = FirstParticles(&partIter);
+         particlesPtr != NULL;
          particlesPtr = NextParticles(&partIter)) {
-        particlesPtr->SetVectorField(_volPtr);
+        particlesPtr->setVectorField(_volPtr, loc,
+                                     _volPtr->aspectRatioWidth,
+                                     _volPtr->aspectRatioHeight,
+                                     _volPtr->aspectRatioDepth,
+                                     _volPtr->wAxis.max());
     }
     return true;
 }
@@ -1356,11 +1357,11 @@ FlowParticlesAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (flowPtr->GetParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (particlesPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+    if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         delete particlesPtr;
         return TCL_ERROR;
     }
-    particlesPtr->Configure();
+    particlesPtr->configure();
     NanoVis::eventuallyRedraw();
     Tcl_SetObjResult(interp, objv[3]);
     return TCL_OK;
@@ -1376,10 +1377,10 @@ FlowParticlesConfigureOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (flowPtr->GetParticles(interp, objv[3], &particlesPtr) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (particlesPtr->ParseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
+    if (particlesPtr->parseSwitches(interp, objc - 4, objv + 4) != TCL_OK) {
         return TCL_ERROR;
     }
-    particlesPtr->Configure();
+    particlesPtr->configure();
     NanoVis::eventuallyRedraw(NanoVis::MAP_FLOWS);
     return TCL_OK;
 }
