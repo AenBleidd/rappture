@@ -741,6 +741,13 @@ void NanoVis::init(const char* path)
         doExit(1);
     }
 
+    // NVIDIA driver may report OpenGL 2.1, but not support PBOs in 
+    // indirect GLX contexts
+    if (!GLEW_ARB_pixel_buffer_object) {
+        ERROR("Pixel buffer objects are not supported by driver, please check that the user running nanovis has permissions to create a direct rendering context (e.g. user has read/write access to /dev/nvidia* device nodes in Linux).\n");
+        doExit(1);
+    }
+
     // Additional extensions not in 2.1 core
 
     // Framebuffer objects were promoted in 3.0
