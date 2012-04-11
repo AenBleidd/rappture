@@ -3,10 +3,10 @@
 #include "particle_common.cg"
 
 float4 fpmain(float2 texCoord : TEXCOORD0,
-              float3 color : COLOR, 
+              float4 color : COLOR0, 
               float2 center : TEXCOORD2,
               float4 rotation : TEXCOORD3,
-              uniform sampler2D arrows : register(s0)) : COLOR
+              uniform sampler2D arrows : TEXUNIT0) : COLOR
 {
     float2 newTexCoord = float2((texCoord.x - 0.5) / NUM_SUBIMAGE_X, (texCoord.y - 0.5) / NUM_SUBIMAGE_Y);
     float2 rotTexCoord;
@@ -16,5 +16,5 @@ float4 fpmain(float2 texCoord : TEXCOORD0,
     rotTexCoord.y = rotTexCoord.y + 0.5 / NUM_SUBIMAGE_Y;
     rotTexCoord = rotTexCoord + center;
 
-    return float4(tex2D(arrows, rotTexCoord.xy).xyz * color, 1.0);
+    return tex2D(arrows, rotTexCoord.xy) * color;
 }

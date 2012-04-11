@@ -283,11 +283,8 @@ ParticleSystem::ParticleSystem(int width, int height,
         _curVectorFieldID = _vectorFieldIDs[0];
     }
 
-#ifdef USE_RGBA_ARROW
-    std::string path = vrFilePath::getInstance()->getPath("arrows_red_bg.bmp");
-#else
     std::string path = vrFilePath::getInstance()->getPath("arrows.bmp");
-#endif
+
     if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
         if (loader != NULL) {
@@ -300,13 +297,6 @@ ParticleSystem::ParticleSystem(int width, int height,
                 unsigned char *bytes = (unsigned char *)image->getImageBuffer();
                 if (bytes != NULL) {
 #ifdef USE_RGBA_ARROW
-                    for (unsigned int y = 0; y < image->getHeight(); ++y) {
-                        for (unsigned int x = 0; x < image->getWidth(); ++x, bytes += 4) {
-                            bytes[3] = (bytes[0] > 127 &&
-                                        bytes[1] < 127 &&
-                                        bytes[2] < 127) ? 0 : 255;
-                        }
-                    }
                     _arrows = new Texture2D(image->getWidth(), image->getHeight(),
                                             GL_UNSIGNED_BYTE, GL_LINEAR, 4, NULL);
 #else
