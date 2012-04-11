@@ -2480,7 +2480,7 @@ itcl::body Rappture::FlowvisViewer::streams { tag name } {
 
 itcl::body Rappture::FlowvisViewer::arrows { tag name } {
     set bool $_settings($this-arrows)
-    SendCmd "$tag configure -arrows no"
+    SendCmd "$tag configure -arrows $bool"
 }
 
 # ----------------------------------------------------------------------
