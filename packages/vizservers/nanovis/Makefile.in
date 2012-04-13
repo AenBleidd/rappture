@@ -133,7 +133,6 @@ OBJS		= \
 		PerfQuery.o \
 		Plane.o \
 		PlaneRenderer.o \
-		Renderable.o \
 		RenderContext.o \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
@@ -180,6 +179,7 @@ OBJS +=		DataLoader.o \
 		ParticleEmitter.o \
 		ParticleSystem.o \
 		ParticleSystemFactory.o \
+		Renderable.o \
 		ScreenSnapper.o \
 		Sphere.o
 

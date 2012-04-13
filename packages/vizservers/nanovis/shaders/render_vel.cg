@@ -11,20 +11,17 @@
  * ======================================================================
  */
 
-// update positions based on velocity
+// Project and sample 3D vector field on a 2D plane
 
 #include "common.cg"
 
 float4 main(in float3 uvw : TEXCOORD0,
             uniform sampler3D vel_tex,
-            uniform float4 plane_normal,
+            uniform float3 projection_vector,
+            uniform float timestep,
             uniform float vmax) : COLOR
 {
-    //float4 vel = float4(tex3D(vel_tex, uvw).xyz, 0) - float4(0.5, 0.5, 0.5, 0.0);
-    float4 vel = float4(tex3D(vel_tex, uvw).yzw, 0) - float4(0.5, 0.5, 0.5, 0.0);
-    vel = vel * (vmax * 2);
-    float4 ret = plane_normal * vel * 0.0005;
-
-    return float4(ret.xyz, 1);
+    float3 velocity = tex3D(vel_tex, uvw).yzw * 2.0 - float3(1.0, 1.0, 1.0);
+    velocity = velocity * projection_vector * vmax * timestep;
+    return float4(velocity, 1);
 }
-

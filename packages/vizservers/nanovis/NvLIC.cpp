@@ -17,11 +17,11 @@
 #include <math.h>
 #include <assert.h>
 
-#include <R2/R2FilePath.h>
+#include "nanovis.h"
+#include "define.h"
 
 #include "NvLIC.h"
 #include "NvShader.h"
-#include "define.h"
 #include "Trace.h"
 
 #define NPN 256   //resolution of background pattern
@@ -30,7 +30,6 @@
 
 NvLIC::NvLIC(int size, int width, int height, int axis, 
              float offset) :
-    Renderable(Vector3(0.0f, 0.0f, 0.0f)),
     _width(width),
     _height(height),
     _size(size),
@@ -57,10 +56,10 @@ NvLIC::NvLIC(int size, int width, int height, int axis,
     //initialize the pattern texture
     glGenTextures(1, &_patternTex);
     glBindTexture(GL_TEXTURE_2D, _patternTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
@@ -110,15 +109,6 @@ NvLIC::NvLIC(int size, int width, int height, int axis,
 
     _renderVelShader = new NvShader();
     _renderVelShader->loadFragmentProgram("render_vel.cg", "main");
-
-    _velTexParamRenderVel =
-        _renderVelShader->getNamedParameterFromFP("vel_tex");
-
-    _planeNormalParamRenderVel =
-        _renderVelShader->getNamedParameterFromFP("plane_normal");
-
-    _maxParam = 
-        _renderVelShader->getNamedParameterFromFP("vmax");
 
     makePatterns();
 }
@@ -252,31 +242,40 @@ NvLIC::getSlice()
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, _vectorFieldId);
 
-    cgGLSetTextureParameter(_velTexParamRenderVel, _vectorFieldId);
-    cgGLEnableTextureParameter(_velTexParamRenderVel);
-    cgGLSetParameter4f(_planeNormalParamRenderVel, 1., 1., 0., 0);
-    cgGLSetParameter1f(_maxParam, _max);
-
     _renderVelShader->bind();
+    _renderVelShader->setFPTextureParameter("vel_tex", _vectorFieldId);
+    _renderVelShader->setFPParameter1f("timestep", 0.0005);
+    _renderVelShader->setFPParameter1f("vmax", _max > 100.0 ? 100.0 : _max);
+
+    switch (_axis) {
+    case 0:
+        _renderVelShader->setFPParameter3f("projection_vector", 0., 1., 1.);
+        break;
+    case 1:
+        _renderVelShader->setFPParameter3f("projection_vector", 1., 0., 1.);
+        break;
+    default:
+    case 2:
+        _renderVelShader->setFPParameter3f("projection_vector", 1., 1., 0.);
+        break;
+    }
 
     glBegin(GL_QUADS);
     {
         switch (_axis) {
-        case 0 :
-            // TBD..
+        case 0:
             glTexCoord3f(_offset, 0., 0.); glVertex2f(0.,    0.);
             glTexCoord3f(_offset, 1., 0.); glVertex2f(_size, 0.);
             glTexCoord3f(_offset, 1., 1.); glVertex2f(_size, _size);
             glTexCoord3f(_offset, 0., 1.); glVertex2f(0.,    _size);
-                break;
-        case 1 :
-            // TBD..
+            break;
+        case 1:
             glTexCoord3f(0., _offset, 0.); glVertex2f(0.,    0.);
             glTexCoord3f(1., _offset, 0.); glVertex2f(_size, 0.);
             glTexCoord3f(1., _offset, 1.); glVertex2f(_size, _size);
             glTexCoord3f(0., _offset, 1.); glVertex2f(0.,    _size);
-                break;
-        case 2 :
+            break;
+        case 2:
             glTexCoord3f(0., 0., _offset); glVertex2f(0.,    0.);
             glTexCoord3f(1., 0., _offset); glVertex2f(_size, 0.);
             glTexCoord3f(1., 1., _offset); glVertex2f(_size, _size);
@@ -286,9 +285,8 @@ NvLIC::getSlice()
     }
     glEnd();
 
+    _renderVelShader->disableFPTextureParameter("vel_tex");
     _renderVelShader->unbind();
-
-    cgGLDisableTextureParameter(_velTexParamRenderVel);
 
     glBindTexture(GL_TEXTURE_3D, 0);
     glDisable(GL_TEXTURE_3D);
@@ -363,12 +361,12 @@ NvLIC::convolve()
         glBegin(GL_QUAD_STRIP);
         for (j = 0; j < NMESH-1; j++) {
             y = DM*j;
-            glTexCoord2f(x1, y); 
+            glTexCoord2f(x1, y);
             getVelocity(x1, y, &px, &py);
             glVertex2f(px, py);
 
-            glTexCoord2f(x2, y); 
-            getVelocity(x2, y, &px, &py); 
+            glTexCoord2f(x2, y);
+            getVelocity(x2, y, &px, &py);
             glVertex2f(px, py);
         }
         glEnd();
@@ -381,14 +379,14 @@ NvLIC::convolve()
 
     glEnable(GL_TEXTURE_2D);
     glCallList(_iframe % _Npat + _disListID);
-    glBegin(GL_QUAD_STRIP);
+    glBegin(GL_QUADS);
     {
         glTexCoord2f(0.0,   0.0);   glVertex2f(0.0, 0.0);
-        glTexCoord2f(0.0,   _tmax); glVertex2f(0.0, 1.0);
         glTexCoord2f(_tmax, 0.0);   glVertex2f(1.0, 0.0);
         glTexCoord2f(_tmax, _tmax); glVertex2f(1.0, 1.0);
-        glEnd();
+        glTexCoord2f(0.0,   _tmax); glVertex2f(0.0, 1.0);
     }
+    glEnd();
     glDisable(GL_TEXTURE_2D);
 
     /*
@@ -449,9 +447,8 @@ NvLIC::render()
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    float w = 1.0f / _scale.x;
     glTranslatef(_origin.x, _origin.y, _origin.z);
-    glScalef(1.0f, 1.0f / _scale.y / w, 1.0f / _scale.z / w);
+    glScalef(_scale.x, _scale.y, _scale.z);
 
     glColor4f(1, 1, 1, 1);
     glBegin(GL_QUADS);
@@ -511,8 +508,21 @@ NvLIC::getVelocity(float x, float y, float *px, float *py)
    int yi = (int)(y*_size);
 
     //TRACE("(xi yi) = (%d %d), ", xi, yi);
-   vx = _sliceVector[4 * (xi+yi*_size)];
-   vy = _sliceVector[4 * (xi+yi*_size)+1];
+   switch (_axis) {
+   case 0:
+       vx = _sliceVector[4 * (xi+yi*_size)+2];
+       vy = _sliceVector[4 * (xi+yi*_size)+1];
+       break;
+   case 1:
+       vx = _sliceVector[4 * (xi+yi*_size)];
+       vy = _sliceVector[4 * (xi+yi*_size)+2];
+       break;
+   case 2:
+   default:
+       vx = _sliceVector[4 * (xi+yi*_size)];
+       vy = _sliceVector[4 * (xi+yi*_size)+1];
+       break;
+   }
    r  = vx*vx + vy*vy;
 
     //TRACE("(vx vx) = (%f %f), r=%f, ", vx, vy, r);
