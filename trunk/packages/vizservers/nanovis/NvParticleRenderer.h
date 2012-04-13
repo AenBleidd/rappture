@@ -18,7 +18,6 @@
 
 #include <GL/glew.h>
 
-#include "Renderable.h"
 #include "NvParticleAdvectionShader.h"
 #include "RenderVertexArray.h"
 #include "Vector3.h"
@@ -38,7 +37,7 @@ struct Particle {
     {}
 };
 
-class NvParticleRenderer : public Renderable
+class NvParticleRenderer
 {
 public:
     NvParticleRenderer(int w, int h);

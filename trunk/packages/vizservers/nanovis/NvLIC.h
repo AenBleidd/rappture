@@ -17,17 +17,12 @@
 #define NV_LIC_H
 
 #include <GL/glew.h>
-#include <Cg/cg.h>
 
-#include "config.h"
-#include "nanovis.h"
-
-#include "Renderable.h"
 #include "Vector3.h"
 #include "Volume.h"
 #include "NvShader.h"
 
-class NvLIC : public Renderable
+class NvLIC
 { 
 public:
     NvLIC(int size, int width, int height, int axis, float offset);
@@ -91,15 +86,15 @@ private:
     Vector3 _normal;
 
     int _width, _height;
-    int _size;				// The lic is a square of size, it can
-					// be stretched
-    float *_sliceVector;		// Storage for the per slice vectors
-					// driving the follow.
-    Vector3 _scale;			// Scaling factor stretching the lic
-					// plane to fit the actual dimensions
+    int _size;			/**< The lic is a square of size, it can
+                                   be stretched */
+    float *_sliceVector;        /**< Storage for the per slice vectors
+                                   driving the flow */
+    Vector3 _scale;             /**< Scaling factor stretching the lic
+                                   plane to fit the actual dimensions */
     Vector3 _origin;
-    float _offset;			// [0,1] offset of _axis plane
-    int _axis;
+    float _offset;            ///< [0,1] offset of slice plane
+    int _axis;                ///< Axis normal to slice plane
 
     //some convolve variables. They can pretty much stay fixed
     int _iframe;
@@ -113,12 +108,7 @@ private:
     GLuint _disListID;
 
     NvShader *_renderVelShader;
-    //CG shader parameters
-    CGparameter _velTexParam;
-    CGparameter _velTexParamRenderVel;
-    CGparameter _planeNormalParamRenderVel;
-    CGparameter _maxParam;
- 
+
     GLuint _colorTex, _patternTex, _magTex;
     GLuint _fbo, _velFbo, _sliceVectorTex;  // For projecting 3d vector to 2d
 					    // vector on a plane.

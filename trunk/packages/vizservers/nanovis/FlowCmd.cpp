@@ -569,9 +569,9 @@ FlowCmd::ScaleVectorField()
     if (NanoVis::licRenderer != NULL) {
         NanoVis::licRenderer->
             setVectorField(_volPtr->id, loc,
-                           1.0f / _volPtr->aspectRatioWidth,
-                           1.0f / _volPtr->aspectRatioHeight,
-                           1.0f / _volPtr->aspectRatioDepth,
+                           _volPtr->aspectRatioWidth,
+                           _volPtr->aspectRatioHeight,
+                           _volPtr->aspectRatioDepth,
                            _volPtr->wAxis.max());
         SetCurrentPosition();
         SetAxis();
