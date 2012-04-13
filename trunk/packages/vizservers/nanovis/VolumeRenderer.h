@@ -17,7 +17,6 @@
 #define _VOLUME_RENDERER_H_
 
 #include <GL/glew.h>
-#include <Cg/cgGL.h>
 
 #include "Mat4x4.h"
 #include "Volume.h"
@@ -144,9 +143,6 @@ private:
      */
     NvStdVertexShader *_stdVertexShader;
 
-    //standard vertex shader parameters
-    CGparameter _mvpVertStdParam;
-    CGparameter _mviVertStdParam;
     GLuint _fontBase;      ///< The base of the font display list.
     GLuint _fontTexture;   ///< The id of the font texture
 };
