@@ -18,14 +18,6 @@ public:
 
 private:
     void init();
-
-    CGparameter _tfParam;
-    CGparameter _volumeAParam;
-    CGparameter _volumeBParam;
-    CGparameter _cellSizeParam;
-    CGparameter _mviParam;
-    CGparameter _renderParam;
-    CGparameter _optionOneVolumeParam;
 };
 
 #endif 
