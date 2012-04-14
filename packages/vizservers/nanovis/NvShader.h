@@ -11,10 +11,6 @@
 
 #include "Trace.h"
 
-extern CGprogram
-LoadCgSourceProgram(CGcontext context, const char *fileName,
-                    CGprofile profile, const char *entryPoint);
-
 class NvShader
 {
 public:
@@ -252,10 +248,6 @@ public:
         return _cgContext;
     }
 
-    static CGprogram
-    loadCgSourceProgram(CGcontext context, const char *filename, 
-                        CGprofile profile, const char *entryPoint);
-
 protected:
     typedef std::tr1::unordered_map<std::string, CGparameter> ParameterHashmap;
 
@@ -315,6 +307,11 @@ protected:
     static CGprofile _defaultVertexProfile;
     static CGprofile _defaultFragmentProfile;
     static CGcontext _cgContext;
+
+private:
+    static CGprogram
+    loadCgSourceProgram(CGcontext context, const char *filename, 
+                        CGprofile profile, const char *entryPoint);
 };
 
 #endif

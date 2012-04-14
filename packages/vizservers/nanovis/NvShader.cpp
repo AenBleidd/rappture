@@ -48,14 +48,6 @@ bool NvShader::printErrorInfo()
 }
 
 CGprogram
-LoadCgSourceProgram(CGcontext context, const char *fileName,
-                    CGprofile profile, const char *entryPoint)
-{
-    return NvShader::loadCgSourceProgram(context, fileName,
-                                         profile, entryPoint);
-}
-
-CGprogram
 NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
                               CGprofile profile, const char *entryPoint)
 {
