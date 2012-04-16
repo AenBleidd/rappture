@@ -398,7 +398,6 @@ AC_OUTPUT([
    nanovis/Makefile \
    nanovis/newmat11/Makefile \
    nanovis/R2/src/Makefile \
-   nanovis/vrutil/Makefile \
    nanovis/vrmath/Makefile \
    nanovis/imgLoaders/Makefile \
    nanovis/transfer-function/Makefile \

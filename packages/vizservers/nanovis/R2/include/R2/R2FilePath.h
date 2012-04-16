@@ -3,8 +3,7 @@
 #define R2_FILE_PATH_H
 
 #include <list>
-
-#include <R2/R2string.h>
+#include <string>
 
 class R2FilePath
 {
@@ -16,7 +15,7 @@ public:
      * @param fileName a file name 
      * @return return full path of the file, but if not found, return ""
      */
-    const char *getPath(const char *fileName);
+    std::string getPath(const char *fileName);
 
     /**
      * @brief set default data paths
@@ -30,17 +29,17 @@ public:
     static R2FilePath *getInstance();
 
 private:
-    typedef std::list<R2string> R2stringList;
-    typedef std::list<R2string>::iterator R2stringListIter;
+    typedef std::list<std::string> StringList;
+    typedef std::list<std::string>::iterator StringListIter;
 
     /// application directory
-    static R2string _curDirectory;
+    static std::string _curDirectory;
 
     /// R2FilePath instance
     static R2FilePath _instance;
 
     /// all default file paths
-    R2stringList _pathList;
+    StringList _pathList;
 };
 
 #endif

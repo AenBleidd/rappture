@@ -47,8 +47,6 @@
 #include <R2/R2FilePath.h>
 #include <R2/R2Fonts.h>
 
-#include <vrutil/vrFilePath.h>
-
 #include <BMPImageLoaderImpl.h>
 #include <ImageLoaderFactory.h>
 
@@ -780,8 +778,6 @@ void NanoVis::init(const char* path)
         ERROR("can't set file path to %s\n", path);
         doExit(1);
     }
-
-    vrFilePath::getInstance()->setPath(path);
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
 
@@ -2358,7 +2354,6 @@ main(int argc, char **argv)
     }
 
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
-    vrFilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef XINETD
 #ifdef notdef

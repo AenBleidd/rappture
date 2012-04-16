@@ -51,21 +51,20 @@ CGprogram
 NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
                               CGprofile profile, const char *entryPoint)
 {
-    const char *path = R2FilePath::getInstance()->getPath(fileName);
-    if (path == NULL) {
+    std::string path = R2FilePath::getInstance()->getPath(fileName);
+    if (path.empty()) {
         ERROR("can't find program \"%s\"\n", fileName);
     }
-    TRACE("cg program compiling: %s\n", path);
+    TRACE("cg program compiling: %s\n", path.c_str());
     CGprogram program;
-    program = cgCreateProgramFromFile(context, CG_SOURCE, path, profile, 
+    program = cgCreateProgramFromFile(context, CG_SOURCE, path.c_str(), profile, 
                                       entryPoint, NULL);
     cgGLLoadProgram(program);
     CGerror LastError = cgGetError();
     if (LastError) {
         ERROR("Error message: %s\n", cgGetLastListing(context));
     }
-    TRACE("successfully compiled program: %s\n", path);
-    delete [] path;
+    TRACE("successfully compiled program: %s\n", path.c_str());
     return program;
 }
 

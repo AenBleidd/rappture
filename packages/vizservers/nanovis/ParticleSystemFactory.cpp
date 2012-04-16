@@ -4,7 +4,7 @@
 
 #include <expat.h>
 
-#include <vrutil/vrFilePath.h>
+#include <R2/R2FilePath.h>
 
 #include "ParticleSystemFactory.h"
 #include "ParticleSystem.h"
@@ -143,7 +143,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
     if (timeVaryingData) {
         char buff[256];
         sprintf(buff, fileName.c_str(), startIndex);
-        std::string path = vrFilePath::getInstance()->getPath(buff);
+        std::string path = R2FilePath::getInstance()->getPath(buff);
         if (path.size()) {
             std::string dir;
             int index = path.rfind('/');
@@ -168,7 +168,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
                                    timeVaryingData, startIndex, endIndex);
         }
     } else {
-        std::string path = vrFilePath::getInstance()->getPath(fileName.c_str());
+        std::string path = R2FilePath::getInstance()->getPath(fileName.c_str());
         _newParticleSystem =
             new ParticleSystem(width, height, path.c_str(),
                                fieldWidth, fieldHeight, fieldDepth,
