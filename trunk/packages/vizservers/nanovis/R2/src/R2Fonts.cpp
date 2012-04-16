@@ -33,7 +33,7 @@ R2Fonts::setFont(const char *fontName)
     if (fontName != NULL) {
         unsigned int i;
         for (i = 0; i < _fonts.size(); ++i) {
-            if (strcmp(_fonts[i]._fontName, fontName) == 0) {
+            if (strcmp(_fonts[i]._fontName.c_str(), fontName) == 0) {
                 _fontIndex = i;
                 break;
             }
@@ -141,14 +141,13 @@ R2Fonts::loadFont(const char *fontName, const char *fontFileName,
 {
     bool bSuccess = false;
 
-    const char *path = R2FilePath::getInstance()->getPath(fontFileName);
-    if (path == NULL) {
+    std::string path = R2FilePath::getInstance()->getPath(fontFileName);
+    if (path.empty()) {
         return false;
     }
-    std::ifstream fsInput(path, std::ios::binary);
+    std::ifstream fsInput(path.c_str(), std::ios::binary);
     if (fsInput) {
-        sFont._fontName = new char [strlen(fontName)+1];
-        strcpy(sFont._fontName, fontName);
+        sFont._fontName = fontName;
 
         // make sure this file is the correct type by checking the header
         unsigned int uiFileId = 0;
@@ -229,7 +228,6 @@ R2Fonts::loadFont(const char *fontName, const char *fontFileName,
 
         fsInput.close();
     }
-    delete [] path;
     return bSuccess;
 }
 

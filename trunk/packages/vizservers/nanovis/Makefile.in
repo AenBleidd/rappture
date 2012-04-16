@@ -43,10 +43,6 @@ VRMATH_DIR	= ./vrmath
 VRMATH_INC_SPEC	= -I$(srcdir)/$(VRMATH_DIR)/include
 VRMATH_LIB	= $(VRMATH_DIR)/vrmath.a
 VRMATH_LIB_SPEC	= $(VRMATH_LIB)
-VRUTIL_DIR	= ./vrutil
-VRUTIL_INC_SPEC	= -I$(srcdir)/$(VRUTIL_DIR)/include
-VRUTIL_LIB	= $(VRUTIL_DIR)/vrutil.a
-VRUTIL_LIB_SPEC	= $(VRUTIL_LIB)
 R2_DIR		= ./R2
 R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
 R2_LIB		= $(R2_DIR)/src/R2.a
@@ -68,7 +64,6 @@ LIBS		= \
 		$(R2_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
 		$(VRMATH_LIB_SPEC) \
-		$(VRUTIL_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
@@ -83,7 +78,6 @@ INCLUDES	= \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC) \
 		$(VRMATH_INC_SPEC) \
-		$(VRUTIL_INC_SPEC) \
 		$(TCL_INC_SPEC) \
 		$(FF_INC_SPEC) \
 		$(CG_INC_SPEC) \
@@ -201,16 +195,15 @@ OBJS += 	BucketSort.o \
 shaders +=      $(srcdir)/shaders/pointsvp.cg
 endif
 
-.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath vrutil transfer-function 
+.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath transfer-function 
 
-all: newmat11 R2 imgloaders vrmath vrutil nanovis 
+all: newmat11 R2 imgloaders vrmath nanovis 
 
 install: install-nanovis install-resources install-shaders
 
 newmat11:		$(MAT_LIB)
 R2:			$(R2_LIB)
 vrmath:			$(VRMATH_LIB)
-vrutil:			$(VRUTIL_LIB)
 imgloaders:		$(IMG_LIB)
 
 $(MAT_LIB):
@@ -219,16 +212,13 @@ $(MAT_LIB):
 $(VRMATH_LIB):
 	$(MAKE) -C $(VRMATH_DIR) all
 
-$(VRUTIL_LIB):
-	$(MAKE) -C $(VRUTIL_DIR) all
-
 $(R2_LIB): 
 	$(MAKE) -C $(R2_DIR)/src all
 
 $(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(VRUTIL_LIB) $(OBJS)
+nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -267,7 +257,6 @@ install-nanovis: nanovis
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
 	$(MAKE) -C $(VRMATH_DIR) clean
-	$(MAKE) -C $(VRUTIL_DIR) clean
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
 	$(RM) nanovis client *.o
@@ -275,7 +264,6 @@ clean:
 distclean: clean
 	$(MAKE) -C $(MAT_DIR) distclean
 	$(MAKE) -C $(VRMATH_DIR) distclean
-	$(MAKE) -C $(VRUTIL_DIR) distclean
 	$(MAKE) -C $(R2_DIR)/src distclean
 	$(MAKE) -C $(IMG_DIR) distclean
 	$(RM) Makefile nvconf.h *~

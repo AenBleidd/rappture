@@ -61,12 +61,11 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
 
     createRenderTarget();
 
-    const char *path = R2FilePath::getInstance()->getPath("arrows.bmp");
-    if (path != NULL) {
+    std::string path = R2FilePath::getInstance()->getPath("arrows.bmp");
+    if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
         if (loader != NULL) {
-            Image *image = loader->load(path, Image::IMG_RGBA);
-            delete [] path;
+            Image *image = loader->load(path.c_str(), Image::IMG_RGBA);
             if (image != NULL) {
                 unsigned char *bytes = (unsigned char *)image->getImageBuffer();
                 if (bytes != NULL) {
@@ -78,15 +77,14 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
                 }
                 delete image;
             } else {
-                ERROR("Failed to load image: arrows.bmp\n");
+                ERROR("Failed to load arrows image\n");
             }
             delete loader;
         } else {
-            delete [] path;
-            ERROR("Couldn't find loader for arrows.bmp\n");
+            ERROR("Couldn't find loader for arrows image\n");
         }
     } else {
-        ERROR("Couldn't find path to arrows.bmp\n");
+        ERROR("Couldn't find arrows image\n");
     }
 
     GLfloat minMax[2];

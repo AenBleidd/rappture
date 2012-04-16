@@ -18,14 +18,13 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include <vector>
+
 #include <GL/glew.h>
 #include <GL/glut.h>
 
 #include <tcl.h>
 
-#include <vector>
-
-#include <R2/R2string.h>
 #include <R2/R2FilePath.h>
 
 #include "nanovis.h"
@@ -44,13 +43,12 @@ VolumeRenderer::VolumeRenderer() :
 {
     initShaders();
 
-    const char *path = R2FilePath::getInstance()->getPath("Font.bmp");
-    if (path == NULL) {
+    std::string path = R2FilePath::getInstance()->getPath("Font.bmp");
+    if (path.empty()) {
         ERROR("can't find Font.bmp\n");
-        assert(path != NULL);
+        assert(!path.empty());
     }
-    initFont(path);
-    delete [] path;
+    initFont(path.c_str());
     _volumeInterpolator = new VolumeInterpolator();
 }
 

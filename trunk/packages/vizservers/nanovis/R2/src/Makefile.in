@@ -43,8 +43,7 @@ OBJS		= \
 		R2Geometry.o \
 		R2IndexBuffer.o \
 		R2Object.o \
-		R2VertexBuffer.o \
-		R2string.o
+		R2VertexBuffer.o
 
 R2LIB		= R2.a
 

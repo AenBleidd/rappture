@@ -3,15 +3,15 @@
 #define R2_FONTS_H
 
 #include <vector>
+#include <string>
 
 #include <R2/R2.h>
 #include <R2/R2Object.h>
-#include <R2/R2string.h>
 
 class R2Fonts : public R2Object
 {
     struct R2FontAttributes {
-        char *_fontName;
+        std::string _fontName;
         int _textureWidth;
         int _textureHeight;
         int _fontHeight;
@@ -28,7 +28,7 @@ class R2Fonts : public R2Object
         };
         R2CharInfo _chars[256];
     };
-    
+
     typedef std::vector<R2FontAttributes>  R2FontVector;
 
 public:

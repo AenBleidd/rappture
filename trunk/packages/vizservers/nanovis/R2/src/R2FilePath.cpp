@@ -12,18 +12,18 @@
 
 #include "Trace.h"
 
-R2string R2FilePath::_curDirectory;
+std::string R2FilePath::_curDirectory;
 R2FilePath R2FilePath::_instance;
 
-char seps[] = ":";
+static char seps[] = ":";
 
 R2FilePath::R2FilePath()
 {
     char buff[BUFSIZ+2];
 #ifdef _WIN32
-    _getcwd(buff, 255);
+    _getcwd(buff, sizeof(buff)-1);
 #else
-    if (getcwd(buff, BUFSIZ) == NULL) {
+    if (getcwd(buff, sizeof(buff)-1) == NULL) {
         ERROR("can't get current working directory\n");
     }
 #endif
@@ -36,7 +36,7 @@ R2FilePath::R2FilePath()
 bool 
 R2FilePath::setPath(const char *filePath)
 {
-    char buff[255];
+    char buff[256];
 
     if (filePath == NULL) {
         return false;
@@ -54,15 +54,15 @@ R2FilePath::setPath(const char *filePath)
         last = p + strlen(p) - 1;
         if (*p == '/') {
             if (*last == '/' || *last == '\\') {
-                _pathList.push_back(R2string(p));
+                _pathList.push_back(std::string(p));
             } else {
-                _pathList.push_back(R2string(p) + "/");
+                _pathList.push_back(std::string(p) + "/");
             }
         } else {
             if (*last == '/' || *last == '\\') {
-                _pathList.push_back(_curDirectory + R2string(p));
+                _pathList.push_back(_curDirectory + std::string(p));
             } else {
-                _pathList.push_back(_curDirectory + R2string(p) + "/");
+                _pathList.push_back(_curDirectory + std::string(p) + "/");
             }
         }
     }
@@ -75,37 +75,34 @@ R2FilePath::getInstance()
     return &_instance;
 }
 
-const char *
+std::string
 R2FilePath::getPath(const char* fileName)
 {
-    R2string path;
+    std::string path;
 
-    R2stringListIter iter;
-    int nameLength = strlen(fileName);
-    for (iter = _pathList.begin(); iter != _pathList.end(); ++iter) {
-        char *path;
+    for (StringListIter iter = _pathList.begin();
+         iter != _pathList.end(); ++iter) {
+        path = *iter + std::string(fileName);
 
-        path = new char[strlen((char *)(*iter)) + 1 + nameLength + 1];
-        //sprintf(path, "%s/%s", (char *)(*iter), fileName);
-        sprintf(path, "%s%s", (char *)(*iter), fileName);
-        if (access(path, R_OK) == 0) {
+        if (access(path.c_str(), R_OK) == 0) {
             return path;
+        } else {
+            path = "";
         }
-        delete [] path;
     }
-    return NULL;
+    return path;
 }
 
 void 
-R2FilePath::setWorkingDirectory(int argc, const char** argv)
+R2FilePath::setWorkingDirectory(int argc, const char **argv)
 {
-    char buff[255];
+    char buff[256];
 
     strcpy(buff, argv[0]);
     for (int i = strlen(buff) - 1; i >= 0; --i) {
         if (buff[i] == '\\' || buff[i] == '/') {
-            buff[i] = '/'; 
-            buff[i + 1] = '\0'; 
+            buff[i] = '/';
+            buff[i + 1] = '\0';
             break;
         }
     }

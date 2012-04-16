@@ -10,7 +10,8 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include <vrutil/vrFilePath.h>
+#include <R2/R2FilePath.h>
+
 #include <Image.h>
 #include <ImageLoader.h>
 #include <ImageLoaderFactory.h>
@@ -82,7 +83,7 @@ void *ParticleSystem::dataLoadMain(void *data)
             int tail = queue.tailIndex();
             if (tail != -1) {
                 sprintf(buff, fileNameFormat, curIndex);
-                //std::string path = vrFilePath::getInstance()->getPath(buff);
+                //std::string path = R2FilePath::getInstance()->getPath(buff);
 #ifdef WANT_TRACE
                 float t = clock() /(float) CLOCKS_PER_SEC;
 #endif
@@ -283,7 +284,7 @@ ParticleSystem::ParticleSystem(int width, int height,
         _curVectorFieldID = _vectorFieldIDs[0];
     }
 
-    std::string path = vrFilePath::getInstance()->getPath("arrows.bmp");
+    std::string path = R2FilePath::getInstance()->getPath("arrows.bmp");
 
     if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
@@ -417,7 +418,7 @@ void ParticleSystem::initShaders()
     // TBD...
     _context = NvShader::getCgContext();
 
-    std::string path = vrFilePath::getInstance()->getPath("distance.cg");
+    std::string path = R2FilePath::getInstance()->getPath("distance.cg");
     _distanceInitFP =  
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "initSortIndex", NULL);
@@ -434,7 +435,7 @@ void ParticleSystem::initShaders()
                                 CG_PROFILE_FP40, "lookupPosition", NULL);
     cgGLLoadProgram(_distanceSortLookupFP);
 
-    path = vrFilePath::getInstance()->getPath("mergesort.cg");
+    path = R2FilePath::getInstance()->getPath("mergesort.cg");
     _sortRecursionFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "mergeSortRecursion", NULL);
@@ -452,7 +453,7 @@ void ParticleSystem::initShaders()
     _seSizeParam = cgGetNamedParameter(_sortEndFP, "size");
     _seStepParam = cgGetNamedParameter(_sortEndFP, "step");
 
-    path = vrFilePath::getInstance()->getPath("passthrough.cg");
+    path = R2FilePath::getInstance()->getPath("passthrough.cg");
     _passthroughFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "main", NULL);
@@ -461,7 +462,7 @@ void ParticleSystem::initShaders()
     _scaleParam = cgGetNamedParameter(_passthroughFP, "scale");
     _biasParam = cgGetNamedParameter(_passthroughFP, "bias");
 
-    path = vrFilePath::getInstance()->getPath("moveparticles.cg");
+    path = R2FilePath::getInstance()->getPath("moveparticles.cg");
     _moveParticlesFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "main", NULL);
@@ -473,7 +474,7 @@ void ParticleSystem::initShaders()
     _mpMaxScale = cgGetNamedParameter(_moveParticlesFP, "maxScale");
     _mpScale= cgGetNamedParameter(_moveParticlesFP, "scale");
 
-    path = vrFilePath::getInstance()->getPath("particlevp.cg");
+    path = R2FilePath::getInstance()->getPath("particlevp.cg");
     _particleVP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_VP40, "vpmain", NULL);
@@ -483,14 +484,14 @@ void ParticleSystem::initShaders()
     _mvTanHalfFOVParam = cgGetNamedParameter(_particleVP, "tanHalfFOV");
     _mvCurrentTimeParam =  cgGetNamedParameter(_particleVP, "currentTime");
 
-    path = vrFilePath::getInstance()->getPath("particlefp.cg");
+    path = R2FilePath::getInstance()->getPath("particlefp.cg");
     _particleFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "fpmain", NULL);
     cgGLLoadProgram(_particleFP);
     _vectorParticleParam = cgGetNamedParameter(_particleVP, "vfield");
 
-    path = vrFilePath::getInstance()->getPath("moveparticles.cg");
+    path = R2FilePath::getInstance()->getPath("moveparticles.cg");
     _initParticlePosFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
 				CG_PROFILE_FP40, "initParticlePosMain", NULL);
@@ -1602,30 +1603,31 @@ void ParticleSystem::render()
         if (_glyphEnabled) {
             if (_drawBBoxEnabled) drawUnitBox();
             glColor3f(1, 1, 1);
+
             glDepthMask(GL_FALSE);
             glEnable(GL_BLEND);
 
 #ifndef USE_RGBA_ARROW
             glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 #else
-            glEnable(GL_ALPHA_TEST);
-            //glAlphaFunc(GL_GEQUAL, 0.5);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER, 0.6);
+
             glEnable(GL_POINT_SPRITE_ARB);
             glPointSize(_pointSize);
 
             glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
 #ifndef TEST
-            _arrows->activate(); //_arrows->bind(0);
+            _arrows->activate();
             glEnable(GL_TEXTURE_2D);
-            //glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 60.0f );
-            glPointParameterfARB( GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f );
+            glPointParameterfARB(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 0.0f);
 
-            glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 1.0f);
-            glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, 100.0f);
-            glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+            glPointParameterfARB(GL_POINT_SIZE_MIN_ARB, 1.0f);
+            glPointParameterfARB(GL_POINT_SIZE_MAX_ARB, 100.0f);
+            glTexEnvf(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 
             cgGLBindProgram(_particleVP);
             cgGLBindProgram(_particleFP);

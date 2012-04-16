@@ -16,15 +16,14 @@
 PointSetRenderer::PointSetRenderer()
 {
     _shader = new PointShader();
-    const char *path = R2FilePath::getInstance()->getPath("particle2.bmp");
-    if (path == NULL) {
-        ERROR("pointset file not found - %s\n", path);
+    std::string path = R2FilePath::getInstance()->getPath("particle2.bmp");
+    if (path.empty()) {
+        ERROR("Particle image not found\n");
         return;
     }
 
     ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
-    Image *image = loader->load(path, Image::IMG_RGBA);
-    delete [] path;
+    Image *image = loader->load(path.c_str(), Image::IMG_RGBA);
     unsigned char *bytes = (unsigned char *)image->getImageBuffer();
     if (bytes) {
         for (unsigned int y = 0; y < image->getHeight(); ++y) {
@@ -39,7 +38,7 @@ PointSetRenderer::PointSetRenderer()
                                       GL_UNSIGNED_BYTE, GL_LINEAR,    
                                       4, image->getImageBuffer());
     } else {
-        ERROR("fail to load image [%s]\n", "particle2.bmp");
+        ERROR("Failed to load particle image\n");
     }
 
     delete loader;
