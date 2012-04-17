@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+#include <float.h>
 
 #include <vector>
 
@@ -162,8 +163,6 @@ VolumeRenderer::renderAll()
         Mat4x4 model_view_no_trans, model_view_trans;
         Mat4x4 model_view_no_trans_inverse, model_view_trans_inverse;
 
-        double zNear, zFar;
-
         //initialize volume plane with world coordinates
         Plane volume_planes[6];
         volume_planes[0].setCoeffs( 1,  0,  0, -x0);
@@ -224,7 +223,11 @@ VolumeRenderer::renderAll()
         for (size_t j = 0; j < 6; j++) {
             volume_planes[j].transform(model_view_no_trans);
         }
-        getNearFarZ(mv_no_trans, zNear, zFar);
+        double eyeMinX, eyeMaxX, eyeMinY, eyeMaxY, zNear, zFar;
+        getEyeSpaceBounds(model_view_no_trans, 
+                          eyeMinX, eyeMaxX,
+                          eyeMinY, eyeMaxY,
+                          zNear, zFar);
 
         //compute actual rendering slices
         float z_step = fabs(zNear-zFar)/n_slices;
@@ -239,6 +242,7 @@ VolumeRenderer::renderAll()
         }
         actual_slices[i] = n_actual_slices;
 
+        // These are object coordinates
         Vector4 vert1 = (Vector4(-10, -10, -0.5, 1));
         Vector4 vert2 = (Vector4(-10, +10, -0.5, 1));
         Vector4 vert3 = (Vector4(+10, +10, -0.5, 1));
@@ -318,10 +322,12 @@ VolumeRenderer::renderAll()
 
         //Now do volume rendering
 
-        vert1 = (Vector4(-10, -10, -0.5, 1));
-        vert2 = (Vector4(-10, +10, -0.5, 1));
-        vert3 = (Vector4(+10, +10, -0.5, 1));
-        vert4 = (Vector4(+10, -10, -0.5, 1));
+        // Initialize view-aligned quads with eye space bounds of
+        // volume
+        vert1 = (Vector4(eyeMinX, eyeMinY, -0.5, 1));
+        vert2 = (Vector4(eyeMaxX, eyeMinY, -0.5, 1));
+        vert3 = (Vector4(eyeMaxX, eyeMaxY, -0.5, 1));
+        vert4 = (Vector4(eyeMinX, eyeMaxY, -0.5, 1));
 
         size_t counter = 0;
 
@@ -337,7 +343,7 @@ VolumeRenderer::renderAll()
             poly->vertices.clear();
             poly->setId(i);
 
-            //Setting Z-coordinate 
+            // Set eye space Z-coordinate of slice
             vert1.z = slice_z;
             vert2.z = slice_z;
             vert3.z = slice_z;
@@ -571,7 +577,10 @@ void VolumeRenderer::deactivateVolumeShader()
     _zincBlendeShader->unbind();
 }
 
-void VolumeRenderer::getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar)
+void VolumeRenderer::getEyeSpaceBounds(const Mat4x4& mv,
+                                       double& xMin, double& xMax,
+                                       double& yMin, double& yMax,
+                                       double& zNear, double& zFar)
 {
     double x0 = 0;
     double y0 = 0;
@@ -581,8 +590,12 @@ void VolumeRenderer::getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar)
     double z1 = 1;
 
     double zMin, zMax;
-    zMin =  10000;
-    zMax = -10000;
+    xMin = DBL_MAX;
+    xMax = -DBL_MAX;
+    yMin = DBL_MAX;
+    yMax = -DBL_MAX;
+    zMin = DBL_MAX;
+    zMax = -DBL_MAX;
 
     double vertex[8][4];
 
@@ -596,11 +609,16 @@ void VolumeRenderer::getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar)
     vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
 
     for (int i = 0; i < 8; i++) {
-        Vector4 tmp = mv.transform(Vector4(vertex[i][0], vertex[i][1], vertex[i][2], vertex[i][3]));
-        tmp.perspectiveDivide();
-        vertex[i][2] = tmp.z;
-        if (vertex[i][2] < zMin) zMin = vertex[i][2];
-        if (vertex[i][2] > zMax) zMax = vertex[i][2];
+        Vector4 eyeVert = mv.transform(Vector4(vertex[i][0],
+                                               vertex[i][1],
+                                               vertex[i][2],
+                                               vertex[i][3]));
+        if (eyeVert.x < xMin) xMin = eyeVert.x;
+        if (eyeVert.x > xMax) xMax = eyeVert.x;
+        if (eyeVert.y < yMin) yMin = eyeVert.y;
+        if (eyeVert.y > yMax) yMax = eyeVert.y;
+        if (eyeVert.z < zMin) zMin = eyeVert.z;
+        if (eyeVert.z > zMax) zMax = eyeVert.z;
     }
 
     zNear = zMax;
