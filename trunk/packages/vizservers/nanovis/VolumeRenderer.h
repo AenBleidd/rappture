@@ -99,7 +99,10 @@ private:
                          float x1, float y1, float z1,
                          float r, float g, float b, float line_width);
 
-    void getNearFarZ(const Mat4x4& mv, double& zNear, double& zFar);
+    void getEyeSpaceBounds(const Mat4x4& mv,
+                           double& xMin, double& xMax,
+                           double& yMin, double& yMax,
+                           double& zNear, double& zFar);
 
     bool initFont(const char *filename);
 
