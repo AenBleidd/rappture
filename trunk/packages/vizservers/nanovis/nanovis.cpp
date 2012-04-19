@@ -1422,27 +1422,28 @@ NanoVis::draw3dAxis()
 
 void NanoVis::update()
 {
-    if (volRenderer->_volumeInterpolator->isStarted()) {
+    VolumeInterpolator *volInterp = volRenderer->getVolumeInterpolator();
+    if (volInterp->isStarted()) {
         struct timeval clock;
         gettimeofday(&clock, NULL);
         double elapsed_time;
 
         elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 -
-            volRenderer->_volumeInterpolator->getStartTime();
+            volInterp->getStartTime();
 
         TRACE("%lf %lf\n", elapsed_time, 
-               volRenderer->_volumeInterpolator->getInterval());
+              volInterp->getInterval());
         float fraction;
         float f;
 
-        f = fmod((float) elapsed_time, (float)volRenderer->_volumeInterpolator->getInterval());
+        f = fmod((float) elapsed_time, (float)volInterp->getInterval());
         if (f == 0.0) {
             fraction = 0.0f;
         } else {
-            fraction = f / volRenderer->_volumeInterpolator->getInterval();
+            fraction = f / volInterp->getInterval();
         }
         TRACE("fraction : %f\n", fraction);
-        volRenderer->_volumeInterpolator->update(fraction);
+        volInterp->update(fraction);
     }
 }
 
