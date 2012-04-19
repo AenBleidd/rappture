@@ -125,7 +125,6 @@ flow video <token> <?switches...?>
            val = [0,100], or %val = [0,1]
           -size <val>
 
-volume axis label <x|y|z> <value> <?names?>
 volume data state <on|off> <?names?>
 volume data follows <size> <tag>
 volume delete <?names?>

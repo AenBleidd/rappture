@@ -16,8 +16,6 @@
 #ifndef _VOLUME_RENDERER_H_
 #define _VOLUME_RENDERER_H_
 
-#include <GL/glew.h>
-
 #include "Mat4x4.h"
 #include "Volume.h"
 #include "VolumeInterpolator.h"
@@ -38,28 +36,6 @@ public:
     void specular(float val);
 
     void diffuse(float val);
-
-    /// control independently
-    void setSliceMode(bool val)
-    {
-        _sliceMode = val;
-    }
-
-    void setVolumeMode(bool val)
-    {
-        _volumeMode = val;
-    }
-
-    /// switch_cutplane_mode
-    void switchSliceMode()
-    {
-        _sliceMode = (!_sliceMode);
-    }
-
-    void switchVolumeMode()
-    {
-        _volumeMode = (!_volumeMode);
-    }
 
     void clearAnimatedVolumeInfo()
     {
@@ -104,21 +80,7 @@ private:
                            double& yMin, double& yMax,
                            double& zNear, double& zFar);
 
-    bool initFont(const char *filename);
-
-    /// there are two sets of font in the texture. 0, 1
-    void glPrint(char *string, int set);
-
-    /// draw label using bitmap texture
-    void drawLabel(Volume *vol);
-
-    /// Register the location of each alphabet in
-    void buildFont();
-
     VolumeInterpolator *_volumeInterpolator;
-
-    bool _sliceMode;  ///< enable cut planes
-    bool _volumeMode; ///< enable full volume rendering
 
     /** 
      * shader parameters for rendering a single cubic volume
@@ -145,9 +107,6 @@ private:
      * standard vertex shader 
      */
     NvStdVertexShader *_stdVertexShader;
-
-    GLuint _fontBase;      ///< The base of the font display list.
-    GLuint _fontTexture;   ///< The id of the font texture
 };
 
 #endif

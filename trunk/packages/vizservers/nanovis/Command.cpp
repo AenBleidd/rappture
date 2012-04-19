@@ -1489,36 +1489,6 @@ VolumeShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
-VolumeAxisOp(ClientData clientData, Tcl_Interp *interp, int objc,
-             Tcl_Obj *const *objv)
-{
-    const char *string = Tcl_GetString(objv[2]);
-    char c;
-    c = string[0];
-    if ((c == 'l') && (strcmp(string, "label") == 0)) {
-        int axis;
-        if (GetAxisFromObj(interp, objv[3], &axis) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        std::vector<Volume *> ivol;
-        if (GetVolumes(interp, objc - 5, objv + 5, &ivol) != TCL_OK) {
-            return TCL_ERROR;
-        }
-        std::vector<Volume *>::iterator iter;
-        const char *label;
-        label = Tcl_GetString(objv[4]);
-        for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-            (*iter)->setLabel(axis, label);
-        }
-    } else {
-        Tcl_AppendResult(interp, "bad option \"", string,
-                         "\": should be label", (char*)NULL);
-        return TCL_ERROR;
-    }
-    return TCL_OK;
-}
-
-static int
 VolumeStateOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
@@ -1556,7 +1526,6 @@ VolumeTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec volumeOps[] = {
     {"animation", 2, VolumeAnimationOp,   3, 0, "oper ?args?",},
-    {"axis",      2, VolumeAxisOp,        4, 0, "label axis value ?indices?",},
     {"data",      2, VolumeDataOp,        3, 0, "oper ?args?",},
     {"delete",    2, VolumeDeleteOp,      3, 0, "?name...?",},
     {"exists",    1, VolumeExistsOp,      3, 3, "name",},
@@ -1571,7 +1540,6 @@ static int nVolumeOps = NumCmdSpecs(volumeOps);
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
- *   volume axis label x|y|z <value> ?<volumeId> ...?
  *   volume data state on|off ?<volumeId> ...?
  *   volume outline state on|off ?<volumeId> ...?
  *   volume outline color on|off ?<volumeId> ...?

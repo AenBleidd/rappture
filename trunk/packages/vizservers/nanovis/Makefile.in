@@ -147,7 +147,6 @@ OBJS		= \
 		nanovis.o
 
 resources	= \
-		$(srcdir)/resources/Font.bmp \
 		$(srcdir)/resources/arrows.bmp \
 		$(srcdir)/resources/particle2.bmp \
 		$(srcdir)/resources/verdana.fnt \
