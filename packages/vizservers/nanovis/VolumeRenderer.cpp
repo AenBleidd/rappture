@@ -14,42 +14,24 @@
  * ======================================================================
  */
 #include <stdlib.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/time.h>
 #include <float.h>
 
 #include <vector>
 
 #include <GL/glew.h>
-#include <GL/glut.h>
 
 #include <tcl.h>
-
-#include <R2/R2FilePath.h>
 
 #include "nanovis.h"
 #include "VolumeRenderer.h"
 #include "ConvexPolygon.h"
-
 #include "NvStdVertexShader.h"
 #include "Trace.h"
-#include "Grid.h"
 
-#define NUMDIGITS	6
-
-VolumeRenderer::VolumeRenderer() :
-    _sliceMode(false),
-    _volumeMode(true)
+VolumeRenderer::VolumeRenderer()
 {
     initShaders();
 
-    std::string path = R2FilePath::getInstance()->getPath("Font.bmp");
-    if (path.empty()) {
-        ERROR("can't find Font.bmp\n");
-        assert(!path.empty());
-    }
-    initFont(path.c_str());
     _volumeInterpolator = new VolumeInterpolator();
 }
 
@@ -208,14 +190,6 @@ VolumeRenderer::renderAll()
             drawBoundingBox(x0, y0, z0, x0+1, y0+1, z0+1,
                 (double)olcolor[0], (double)olcolor[1], (double)olcolor[2],
                 1.5);
-        }
-        glPopMatrix();
-
-        //draw labels
-        glPushMatrix();
-        glTranslatef(shift_4d.x, shift_4d.y, shift_4d.z);
-        if (volPtr->outline()) {
-            //drawLabel(i);
         }
         glPopMatrix();
 
@@ -490,69 +464,6 @@ VolumeRenderer::drawBoundingBox(float x0, float y0, float z0,
     }
     glEnd();
 
-#ifdef notdef
-    /* Rappture doesn't supply axis units yet. So turn labeling off until we
-     * can display the proper units with the distance of each bounding box
-     * dimension.
-     */
-    glColor4f(1.0f, 1.0f, 0.0f, 1.0f); 
-
-    if (NanoVis::fonts != NULL) {
-        double mv[16], prjm[16];
-        int viewport[4];
-        double wx, wy, wz;
-        double dx, dy, dz;
-
-        glGetDoublev(GL_MODELVIEW_MATRIX, mv);
-        glGetDoublev(GL_PROJECTION_MATRIX, prjm);
-        glGetIntegerv(GL_VIEWPORT, viewport);
-
-        NanoVis::fonts->begin();
-        dx = x1 - x0;
-        dy = y1 - y0;
-        dz = z1 - z0;
-        if (gluProject((x0 + x1) * 0.5, y0, z0, mv, prjm, viewport, 
-                       &wx, &wy, &wz)) {
-            char buff[20];
-            double min, max;
-
-            NanoVis::grid->xAxis.GetDataLimits(min, max);
-            glLoadIdentity();
-            glTranslatef((int)wx, viewport[3] - (int) wy, 0.0f);
-            const char *units;
-            units = NanoVis::grid->xAxis.GetUnits();
-            sprintf(buff, "%.*g %s", NUMDIGITS, max - min, units);
-            NanoVis::fonts->draw(buff);
-        }
-        if (gluProject(x0, (y0 + y1) * 0.5, z0, mv, prjm, viewport, &
-                       wx, &wy, &wz)) {
-            char buff[20];
-            double min, max;
-
-            NanoVis::grid->yAxis.GetDataLimits(min, max);
-            glLoadIdentity();
-            glTranslatef((int)wx, viewport[3] - (int) wy, 0.0f);
-            const char *units;
-            units = NanoVis::grid->yAxis.GetUnits();
-            sprintf(buff, "%.*g %s", NUMDIGITS, max - min, units);
-            NanoVis::fonts->draw(buff);
-        }
-        if (gluProject(x0, y0, (z0 + z1) * 0.5, mv, prjm, viewport, 
-                       &wx, &wy, &wz)) {
-            glLoadIdentity();
-            glTranslatef((int)wx, viewport[3] - (int) wy, 0.0f);
-
-            double min, max;
-            NanoVis::grid->zAxis.GetDataLimits(min, max);
-            const char *units;
-            units = NanoVis::grid->zAxis.GetUnits();
-            char buff[20];
-            sprintf(buff, "%.*g %s", NUMDIGITS, max - min, units);
-            NanoVis::fonts->draw(buff);
-        }
-        NanoVis::fonts->end();
-    };
-#endif
     glPopMatrix();
     glPopAttrib();
 }
@@ -623,248 +534,4 @@ void VolumeRenderer::getEyeSpaceBounds(const Mat4x4& mv,
 
     zNear = zMax;
     zFar = zMin;
-}
-
-bool 
-VolumeRenderer::initFont(const char *filename) 
-{
-    FILE *f;
-    unsigned short int bfType;
-    int bfOffBits;
-    short int biPlanes;
-    short int biBitCount;
-    int biSizeImage;
-    int width, height;
-    int i;
-    unsigned char temp;
-    unsigned char* data;
-    /* make sure the file is there and open it read-only (binary) */
-    f = fopen(filename, "rb");
-    if (f == NULL) {
-        ERROR("can't open font file \"%s\"\n", filename);
-        return false;
-    }
-
-    if (fread(&bfType, sizeof(short int), 1, f) != 1) {
-        ERROR("can't read %lu bytes from font file \"%s\"\n", 
-               (unsigned long)sizeof(short int), filename);
-        goto error;
-    }
-
-    /* check if file is a bitmap */
-    if (bfType != 19778) {
-        ERROR("not a bmp file.\n");
-        goto error;
-    }
-
-    /* get the file size */
-    /* skip file size and reserved fields of bitmap file header */
-    fseek(f, 8, SEEK_CUR);
-
-    /* get the position of the actual bitmap data */
-    if (fread(&bfOffBits, sizeof(int), 1, f) != 1) {
-        ERROR("error reading file.\n");
-        goto error;
-    }
-    //TRACE("Data at Offset: %ld\n", bfOffBits);
-
-    /* skip size of bitmap info header */
-    fseek(f, 4, SEEK_CUR);
-
-    /* get the width of the bitmap */
-    if (fread(&width, sizeof(int), 1, f) != 1) {
-        ERROR("error reading file.\n");
-        goto error;
-    }
-    //TRACE("Width of Bitmap: %d\n", texture->width);
-
-    /* get the height of the bitmap */
-    if (fread(&height, sizeof(int), 1, f) != 1) {
-        ERROR("error reading file.\n");
-        goto error;
-    }
-    //TRACE("Height of Bitmap: %d\n", texture->height);
-
-    /* get the number of planes (must be set to 1) */
-    if (fread(&biPlanes, sizeof(short int), 1, f) != 1) {
-        ERROR("error reading file.\n");
-        goto error;
-    }
-    if (biPlanes != 1) {
-        ERROR("number of Planes not 1!\n");
-        goto error;
-    }
-
-    /* get the number of bits per pixel */
-    if (fread(&biBitCount, sizeof(short int), 1, f) != 1) {
-        ERROR("error reading file.\n");
-        goto error;
-    }
-
-    //TRACE("Bits per Pixel: %d\n", biBitCount);
-    if (biBitCount != 24) {
-        ERROR("Bits per Pixel not 24\n");
-        goto error;
-    }
-
-    /* calculate the size of the image in bytes */
-    biSizeImage = width * height * 3 * sizeof(unsigned char);
-    data = (unsigned char*) malloc(biSizeImage);
-    if (data == NULL) {
-        ERROR("Can't allocate memory for image\n");
-        goto error;
-    }
-
-    /* seek to the actual data */
-    fseek(f, bfOffBits, SEEK_SET);
-    if (fread(data, biSizeImage, 1, f) != 1) {
-        ERROR("Error loading file!\n");
-        goto error;
-    }
-    fclose(f);
-
-    /* swap red and blue (bgr -> rgb) */
-    for (i = 0; i < biSizeImage; i += 3) {
-       temp = data[i];
-       data[i] = data[i + 2];
-       data[i + 2] = temp;
-    }
-
-    //insert alpha channel
-    unsigned char* data_with_alpha;
-    data_with_alpha = (unsigned char*)
-        malloc(width*height*4*sizeof(unsigned char));
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            unsigned char r, g, b, a;
-            r = data[3*(i*width+j)];
-            g = data[3*(i*width+j)+1];
-            b = data[3*(i*width+j)+2];
-
-            if (r==0 && g==0 && b==0)
-                a = 0;
-            else
-                a = 255;
-
-            data_with_alpha[4*(i*width+j)] = r;
-            data_with_alpha[4*(i*width+j) + 1] = g;
-            data_with_alpha[4*(i*width+j) + 2] = b;
-            data_with_alpha[4*(i*width+j) + 3] = a;
-        }
-    }
-    free(data);
-
-    //create opengl texture 
-    glGenTextures(1, &_fontTexture);
-    glBindTexture(GL_TEXTURE_2D, _fontTexture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_with_alpha);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-    free(data_with_alpha);
-
-    buildFont();
-    return (glGetError()==0);
-
- error:
-    fclose(f);
-    return false;
-}
-
-void 
-VolumeRenderer::drawLabel(Volume* vol)
-{
-    //glEnable(GL_TEXTURE_2D);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_DEPTH_TEST);
-
-    //x
-    glColor3f(0.5, 0.5, 0.5);
-
-    int length = vol->label[0].size();
-    glPushMatrix();
-
-    glTranslatef(.5 * vol->aspectRatioWidth,
-                 vol->aspectRatioHeight,
-                 -0.1 * vol->aspectRatioDepth);
-    glRotatef(180, 0, 0, 1);
-    glRotatef(90, 1, 0, 0);
-
-    glScalef(0.0008, 0.0008, 0.0008);
-    for (int i = 0; i < length; i++) {
-        glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[0].c_str()[i]);
-        glTranslatef(0.04, 0., 0.);
-    }
-    glPopMatrix();
-
-    //y
-    length = vol->label[1].size();
-    glPushMatrix();
-    glTranslatef(vol->aspectRatioWidth,
-                 0.5*vol->aspectRatioHeight,
-                 -0.1*vol->aspectRatioDepth);
-    glRotatef(90, 0, 1, 0);
-    glRotatef(90, 0, 0, 1);
-
-    glScalef(0.0008, 0.0008, 0.0008);
-    for (int i = 0; i < length; i++) {
-        glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[1].c_str()[i]);
-        glTranslatef(0.04, 0., 0.);
-    }
-    glPopMatrix();
-
-    //z
-    length = vol->label[2].size();
-    glPushMatrix();
-    glTranslatef(0.,
-                 1. * vol->aspectRatioHeight,
-                 0.5 * vol->aspectRatioDepth);
-    glRotatef(90, 0, 1, 0);
-
-    glScalef(0.0008, 0.0008, 0.0008);
-    for (int i = 0; i < length; i++) {
-        glutStrokeCharacter(GLUT_STROKE_ROMAN, vol->label[2].c_str()[i]);
-        glTranslatef(0.04, 0., 0.);
-    }
-    glPopMatrix();
-
-    glDisable(GL_TEXTURE_2D);
-}
-
-void 
-VolumeRenderer::buildFont() 
-{
-    GLfloat cx, cy;         /* the character coordinates in our texture */
-    _fontBase = glGenLists(256);
-    glBindTexture(GL_TEXTURE_2D, _fontTexture);
-    for (int loop = 0; loop < 256; loop++) {
-        cx = (float) (loop % 16) / 16.0f;
-        cy = (float) (loop / 16) / 16.0f;
-        glNewList(_fontBase + loop, GL_COMPILE);
-        glBegin(GL_QUADS);
-        glTexCoord2f(cx, 1 - cy - 0.0625f);
-        glVertex3f(0, 0, 0);
-        glTexCoord2f(cx + 0.0625f, 1 - cy - 0.0625f);
-        glVertex3f(0.04, 0, 0);
-        glTexCoord2f(cx + 0.0625f, 1 - cy);
-        glVertex3f(0.04, 0.04, 0);
-        glTexCoord2f(cx, 1 - cy);
-        glVertex3f(0, 0.04, 0);
-        glEnd();
-        glTranslated(0.04, 0, 0);
-        glEndList();
-    }
-}
-
-void
-VolumeRenderer::glPrint(char* string, int set)
-{
-    if (set > 1) {
-        set = 1;
-    }
-    glBindTexture(GL_TEXTURE_2D, _fontTexture);
-    glListBase(_fontBase - 32 + (128 * set));
-    glCallLists(strlen(string), GL_BYTE, string);
 }
