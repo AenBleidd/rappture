@@ -62,8 +62,6 @@ public:
         return _volumeInterpolator;
     }
 
-    friend class NanoVis;
-
 private:
     void initShaders();
 
