@@ -84,11 +84,6 @@ Volume::Volume(float x, float y, float z,
     addCutplane(2, 0.5f);
     addCutplane(3, 0.5f);
 
-    //initialize the labels  
-    label[0] = "X Label";
-    label[1] = "Y Label";
-    label[2] = "Z Label";
-
     TRACE("End -- Volume constructor\n");
 }
 

@@ -240,9 +240,6 @@ public:
 
     void getOutlineColor(float *rgb);
 
-    /// change the label displayed on an axis
-    void setLabel(int axis, const char *txt);
-
     void setPhysicalBBox(const Vector3& min, const Vector3& max);
 
     const Vector3& getPhysicalBBoxMin() const;
@@ -284,7 +281,6 @@ public:
     int pointsetIndex;
 
     AxisRange xAxis, yAxis, zAxis, wAxis;
-    std::string label[3]; ///< the labels along each axis 0:x, 1:y, 2:z
 
     static bool updatePending;
     static double valueMin, valueMax;
@@ -399,12 +395,6 @@ inline void
 Volume::getOutlineColor(float *rgb) 
 {
     _outlineColor.getRGB(rgb);
-}
-
-inline void 
-Volume::setLabel(int axis, const char* txt)
-{
-    label[axis] = txt;
 }
 
 inline void 
