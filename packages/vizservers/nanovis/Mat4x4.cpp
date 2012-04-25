@@ -109,7 +109,7 @@ Mat4x4::inverse() const
 }
 
 Vector4
-Mat4x4::multiply_row_vector(const Vector4& v) const
+Mat4x4::multiplyRowVector(const Vector4& v) const
 {
     Vector4 ret;
     ret.x = (m[0]  * v.x) + (m[1]  * v.y) + (m[2]  * v.z) + (m[3]  * v.w);
