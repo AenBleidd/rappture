@@ -77,7 +77,6 @@ itcl::class Rappture::ResultSet {
     private variable _layout         ;# info used in _fixLayout
     private variable _counter 0      ;# counter for unique control names
     private variable _settings 0     ;# non-zero => _fixSettings in progress
-    private variable _explore 0      ;# non-zero => explore all parameters
 
     private common _cntlInfo         ;# maps column name => control info
 }

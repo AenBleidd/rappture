@@ -56,7 +56,6 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     }
     array set flags $args
     set servers ""
-    puts stderr modeflags=$flags(-mode)
     switch -- $flags(-mode) {
         "auto" - "heightmap" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]

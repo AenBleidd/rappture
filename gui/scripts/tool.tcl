@@ -214,7 +214,10 @@ itcl::body Rappture::Tool::run {args} {
 		if { $::Rappture::Tool::job(control) != "" } {
 		    set code [lindex $::Rappture::Tool::job(control) 0]
 		    set mesg [lindex $::Rappture::Tool::job(control) 2]
-		    if { $code != "EXITED" } {
+		    if { $code == "EXITED" } {
+			set result "Program returned exit code $status:\n\n"
+			append result $::Rappture::Tool::job(error)
+		    } else  {
 			set result \
 			    "Abnormal program termination \"$code\": $mesg"
 		    }

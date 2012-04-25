@@ -268,7 +268,6 @@ itcl::body Rappture::ControlOwner::load {newobj} {
         }
 
         set type [[tool] xml element -as type $path]
-        #puts stderr type=$type
         if {[info exists _type2curpath($type)]} {
             set currentpath $path.$_type2curpath($type)
         } else {

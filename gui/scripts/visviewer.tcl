@@ -39,6 +39,7 @@ itcl::class ::Rappture::VisViewer {
     private variable _idleTimeout 43200000; # 12 hours
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
+    private variable _logging 0
 
     protected variable _dispatcher "";  # dispatcher for !events
     protected variable _hosts ""    ;   # list of hosts for server
@@ -162,6 +163,11 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     }
     pack $itk_component(plotarea) -fill both -expand yes
     set _image(plot) [image create photo]
+
+    global env
+    if { [info exists env(VISRECORDER)] } {
+	set _logging 1
+    }
     eval itk_initialize $args
 }
 
@@ -420,7 +426,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 }
 
 #
-# ReceiveBytes --
+# StartWaiting --
 #
 #    Read some number of bytes from the visualization server. 
 #
@@ -543,6 +549,11 @@ itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
 #     nothing.
 #
 itcl::body Rappture::VisViewer::SendEcho {channel {data ""}} {
+    if { $_logging }  {
+	set f [open "/tmp/recording.log" "a"]
+	puts $f $data
+	close $f
+    }
     #puts stderr ">>($data)"
     if {[string length $itk_option(-sendcommand)] > 0} {
         uplevel #0 $itk_option(-sendcommand) [list $channel $data]

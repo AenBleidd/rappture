@@ -134,7 +134,7 @@ itcl::body Rappture::XyLegend::constructor { graph args } {
         -onvalue 0 -offvalue 1 \
         -boxcolor grey50 -checkcolor black -activebackground grey90
     $itk_component(legend) column configure "treeView" -justify left \
-        -weight 1.0 -text "" -pad 0 -borderwidth 0 
+        -weight 1.0 -text "" -pad 0 -borderwidth 0 -edit no
     $itk_component(legend) column configure "show" -style "check" -pad {0 0} \
         -edit yes
     itk_component add controls {
