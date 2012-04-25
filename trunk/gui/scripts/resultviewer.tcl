@@ -571,6 +571,7 @@ itcl::body Rappture::ResultViewer::_xml2data {xmlobj path} {
 # specified <path> in the <xmlobj>.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultViewer::_cleanIndex {index} {
+    set index [lindex $index 0]
     if {[regexp {^#([0-9]+)} $index match num]} {
         return [expr {$num-1}]  ;# start from 0 instead of 1
     } elseif {[string is integer -strict $index]} {

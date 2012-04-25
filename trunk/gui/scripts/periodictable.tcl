@@ -560,8 +560,8 @@ itcl::body Rappture::PeriodicTable::value {{value "" }} {
 # the client know that the selection has changed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::PeriodicTable::Redraw {} {
-set sqwidth 24
-set sqheight 24
+    set sqwidth [winfo pixels . 0.22i]
+    set sqheight [winfo pixels . 0.22i]
 set xoffset 4
 set yoffset 4
 set last ""
@@ -623,7 +623,6 @@ itcl::body Rappture::PeriodicTable::FindElement { what } {
 	    return $info(name)
         }
     }
-    parray info
     return ""
 }
                                                                 

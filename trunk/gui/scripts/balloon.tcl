@@ -321,6 +321,8 @@ itcl::body Rappture::Balloon::_createStems {} {
             set _fills($dir) [image create photo -width $sw -height $sh]
 
             set bg $itk_option(-background)
+            set light [Rappture::color::brightness $bg 0.4]
+            set dark [Rappture::color::brightness $bg -0.4]
             set rgb [winfo rgb . $bg]
             set flatbg [format "#%04x%04x%04x" [lindex $rgb 0] [lindex $rgb 1] [lindex $rgb 2]]
             switch -- $itk_option(-relief) {

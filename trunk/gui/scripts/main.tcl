@@ -289,7 +289,12 @@ $tool notify add analyzer * [list $f.analyze reset]
 # ----------------------------------------------------------------------
 # Finalize the arrangement
 # ----------------------------------------------------------------------
-if {[llength [$win.pager page]] == 2} {
+if {[llength [$win.pager page]] > 2} {
+    # We have phases, so we shouldn't allow the "Simulate" button.
+    # If it pops up, there are two ways to push simulate and duplicate
+    # links for "About" and "Questions?".
+    $f.analyze configure -simcontrol off
+} elseif {[llength [$win.pager page]] == 2} {
     set style [$xmlobj get tool.layout]
     set screenw [winfo screenwidth .]
 
@@ -316,18 +321,14 @@ if {[llength [$win.pager page]] == 2} {
         }
     }
     if { $arrangement != "side-by-side" && 
-            ($type == "manual" || $type == "auto" || $style == "wizard") } {
+            ($type == "manual" || $type == "manual-resim" ||
+	     $type == "auto" || $style == "wizard") } {
         # in "auto" mode, we don't need a simulate button
         $f.analyze configure -simcontrol off
     } else {
         # not in "auto" mode but side-by-side, we always need the button
         $f.analyze configure -simcontrol on
     }
-} elseif {[llength [$win.pager page]] > 2} {
-    # We have phases, so we shouldn't allow the "Simulate" button.
-    # If it pops up, there are two ways to push simulate and duplicate
-    # links for "About" and "Questions?".
-    $f.analyze configure -simcontrol off
 }
 
 # load previous xml runfiles
