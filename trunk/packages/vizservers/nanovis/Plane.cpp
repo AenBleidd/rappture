@@ -42,7 +42,7 @@ Plane::transform(const Mat4x4& mat)
     Vector4 coeffs(a, b, c, d);
 
     Mat4x4 inv = mat.inverse();
-    Vector4 new_coeffs = inv.multiply_row_vector(coeffs);
+    Vector4 new_coeffs = inv.multiplyRowVector(coeffs);
     a = new_coeffs.x;
     b = new_coeffs.y;
     c = new_coeffs.z;

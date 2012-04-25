@@ -34,7 +34,7 @@ public:
 
     Mat4x4 transpose() const;
 
-    Vector4 multiply_row_vector(const Vector4& v) const;
+    Vector4 multiplyRowVector(const Vector4& v) const;
 
     Vector4 transform(const Vector4& v) const;
 
