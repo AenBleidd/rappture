@@ -346,6 +346,7 @@ itcl::body Rappture::HTMLviewer::_getImage {fileName} {
             return [list $imh [itcl::code $this _freeImage]]
         }
     }
+    puts stderr "Problem in your html: image \"$fileName\" does not exist"
     # The htmlwidget assumes it owns the image and will delete it.
     # Always create a copy of the image.
     set img [Rappture::icon exclaim]
