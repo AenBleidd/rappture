@@ -460,10 +460,10 @@ main(int argc, char **argv)
 
 		/* Set the screen number in the DISPLAY variable. */
 		display[3] = screenNum + '0';
-		setenv("DISPLAY", display, 0);
+		setenv("DISPLAY", display, 1);
 		/* Set the enviroment, if necessary. */
 		for (i = 0; i < serverPtr->numEnvArgs; i += 2) {
-		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 0);
+		    setenv(serverPtr->envArgs[i], serverPtr->envArgs[i+1], 1);
 		}
 		INFO("Executing %s: client %s, %s on DISPLAY=%s", 
 			serverPtr->name, inet_ntoa(newaddr.sin_addr), 
