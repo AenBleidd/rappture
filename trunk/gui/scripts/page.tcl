@@ -132,33 +132,6 @@ itcl::body Rappture::Page::_buildGroup {frame xmlobj path} {
                 $_owner notify add $this $link \
                     [itcl::code $this _link $xmlobj $link $w $path.$cname]
             }
-        } elseif {$type == "drawing"} {
-            #
-            # Add <drawing>'s as the central element of the page.
-            #
-            set w "$frame.drawing[incr num]"
-            Rappture::DrawingEntry ::$w $_owner $path.$cname
-            pack $w -expand yes -fill both
-            $_owner widgetfor $path.$cname $w
-            bind $w <<Value>> [list $_owner changed $path.$cname]
-
-            # if there's a default value, load it now
-            if {"" != [$xmlobj element -as type $path.$cname.current]} {
-                set elem $path.$cname.current
-            } else {
-                set elem $path.$cname.default
-            }
-            if {"" != [$xmlobj element -as type $elem]} {
-                set val [$xmlobj get $elem]
-                if {[string length $val] > 0} {
-                    $w value $val
-                    $xmlobj put $path.$cname.current $val
-                } else {
-                    set obj [$xmlobj element -as object $elem]
-                    $w value $obj
-                    $xmlobj put $path.$cname.current $obj
-                }
-            }
         } elseif {$type == "tool"} {
             set service [Rappture::Service ::#auto $_owner $path.$cname]
             #
