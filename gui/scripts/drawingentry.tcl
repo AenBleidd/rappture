@@ -334,7 +334,6 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
     set options(-image) $img
     eval $c itemconfigure $id [array get options]
     set _cname2id($cname) $id
-    set _cname2image($cname) $img
     $c bind $id <Enter> [itcl::code $this Activate $cname]
     $c bind $id <Leave> [itcl::code $this Deactivate $cname]
     #$c bind $id <ButtonPress-1> [itcl::code $this Depress $cname]
