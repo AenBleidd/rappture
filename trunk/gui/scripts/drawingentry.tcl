@@ -326,7 +326,7 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 	set coords "0 0 1 1"
     } 
     set c $itk_component(drawing)
-    set img [image create photo -file [Rappture::icon question_mark12]]
+    set img [Rappture::icon question_mark12]
     foreach { x1 y1 } $coords break
     set id [$itk_component(drawing) create image $x1 $y1]
     array unset options -fill
