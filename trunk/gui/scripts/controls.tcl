@@ -137,10 +137,6 @@ itcl::body Rappture::Controls::insert {pos path} {
             Rappture::ChoiceEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
         }
-        drawing {
-            Rappture::DrawingEntry $w $_owner $path
-            bind $w <<Value>> [itcl::code $this _controlChanged $name]
-        }
         group {
             Rappture::GroupEntry $w $_owner $path
         }
@@ -163,6 +159,9 @@ itcl::body Rappture::Controls::insert {pos path} {
         string {
             Rappture::TextEntry $w $_owner $path
             bind $w <<Value>> [itcl::code $this _controlChanged $name]
+        }
+        drawing {
+            Rappture::DrawingEntry $w $_owner $path
         }
         image {
             Rappture::ImageEntry $w $_owner $path
@@ -257,6 +256,10 @@ itcl::body Rappture::Controls::insert {pos path} {
     }
     set _name2info($name-enable) $enable
 
+    set hidden [$_owner xml get $_name2info($name-path).hide]
+    if { $hidden != "" } {
+	set _name2info($name-enable) [expr !$hidden]
+    }
     $_owner widgetfor $path $w
 
     if {[lsearch {control group separator note} $type] < 0} {

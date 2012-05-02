@@ -42,6 +42,7 @@ FILES		= \
 		$(srcdir)/diffview.tcl \
 		$(srcdir)/dispatcher.tcl \
 		$(srcdir)/drawing.tcl \
+		$(srcdir)/drawingcontrols.tcl \
 		$(srcdir)/drawingentry.tcl \
 		$(srcdir)/dropdown.tcl \
 		$(srcdir)/dropdownlist.tcl \
