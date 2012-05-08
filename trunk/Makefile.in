@@ -36,7 +36,7 @@ TARGETS		= src lang lib
 ifneq ($(ENABLE_GUI),)
   TARGETS += gui builder tester examples 
 endif
-ifeq ($(HAVE_FFMEG),)
+ifneq ($(HAVE_FFMPEG),)
   TARGETS += video
 endif
 
