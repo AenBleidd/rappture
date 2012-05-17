@@ -771,6 +771,16 @@ itcl::body Rappture::LibraryObj::value {libobj path} {
             }
             return [list $raw $val]
         }
+        image {
+            set raw ""
+            if {[$libobj element $path.current] ne ""} {
+                set raw [$libobj get $path.current]
+            } elseif {[$libobj element $path.default] ne ""} {
+                set raw [$libobj get $path.default]
+            }
+            set val [string trim $raw]  ;# spaces don't matter in image data
+            return [list $raw $val]
+        }
     }
 
     # for all other types, get the value (current, or maybe default)
