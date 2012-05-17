@@ -956,8 +956,9 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - activate trace
         # - multiple axes? dim other axes
         # - pop up tooltip about data
-
-        $g element deactivate $_hilite(elem)
+        if {$_hilite(elem) ne ""} {
+            $g element deactivate $_hilite(elem)
+        }
         $g crosshairs configure -hide yes
         Rappture::Tooltip::tooltip cancel
 
@@ -1040,7 +1041,9 @@ itcl::body Rappture::NumberResult::Hilite {state x y} {
         # - put all axes back to normal color
         # - take down tooltip
         #
-        $g element deactivate $_hilite(elem)
+        if {$_hilite(elem) ne ""} {
+            $g element deactivate $_hilite(elem)
+        }
 
         set allx [$g x2axis use]
         if {[llength $allx] > 0} {

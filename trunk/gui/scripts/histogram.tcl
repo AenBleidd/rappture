@@ -353,11 +353,13 @@ itcl::body Rappture::Histogram::ParseData { comp } {
     if { $xydata != "" } {
         set count 0
         foreach line [split $xydata \n] {
-            foreach {name value} $line break
-            $_yvalues($comp) append $value
-            $_xvalues($comp) append $count
-            lappend _xlabels($comp) $name
-            incr count
+            if {[llength $line] == 2} {
+                foreach {name value} $line break
+                $_yvalues($comp) append $value
+                $_xvalues($comp) append $count
+                lappend _xlabels($comp) $name
+                incr count
+            }
         }           
         set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
         return
@@ -367,13 +369,15 @@ itcl::body Rappture::Histogram::ParseData { comp } {
         set count 0
         foreach line [split $xhwdata \n] {
             set n [scan $line {%s %s %s} name h w]
-            lappend _xlabels($comp) $name
-            $_xvalues($comp) append $count
-            $_yvalues($comp) append $h
-            if { $n == 3 } {
-                $_widths($comp) append $w
+            if {$n >= 2} {
+                lappend _xlabels($comp) $name
+                $_xvalues($comp) append $count
+                $_yvalues($comp) append $h
+                if { $n == 3 } {
+                    $_widths($comp) append $w
+                }
+                incr count
             }
-            incr count
         }           
         set _comp2hist($comp) [list $_xvalues($comp) $_yvalues($comp)]
         return
