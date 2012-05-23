@@ -1570,8 +1570,12 @@ itcl::body Rappture::HistogramResult::LeaveMarker { g name } {
 itcl::body Rappture::HistogramResult::FormatLabels { w value } {
     # Determine the element name from the value
     set index [expr round($value)]
-    if { [info exists _xlabels($index)] } {
-        return $_xlabels($index)
-    } 
+    set d [expr abs($value - $index)]
+    # Ignore values that aren't close to the integer value
+    if { $d < 0.00000001 } {
+	if { [info exists _xlabels($index)] } {
+	    return $_xlabels($index)
+	} 
+    }
     return " "
 }
