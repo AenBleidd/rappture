@@ -544,10 +544,12 @@ itcl::body Rappture::HistogramResult::download {option args} {
                             }
                             set xv [$dataobj mesh $comp]
                             set yv [$dataobj values $comp]
-                            foreach x [$xv range 0 end] y [$yv range 0 end] {
-                                append csvdata \
-                                    [format "%20.15g, %20.15g\n" $x $y]
-                            }
+			    if { [$xv length] > 0 && [$yv length] > 0 } {
+				foreach x [$xv range 0 end] y [$yv range 0 end] {
+				    append csvdata \
+					[format "%20.15g, %20.15g\n" $x $y]
+				}
+			    }
                             set first 0
                         }
                         append csvdata "\n"
@@ -716,16 +718,26 @@ itcl::body Rappture::HistogramResult::Rebuild {} {
             }
             # Compute default bar width for histogram elements.
             if { [$zv length] == [$xv length] } {
-                foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-                    set elem "elem[incr count]"
-                    set _elem2dataobj($elem) $dataobj
-                    $g element create $elem -x $x -y $y -barwidth $z \
-                        -label $label -foreground $color \
-                        -mapx $mapx -mapy $mapy
-                }
+		if { [$xv length] > 0 && [$yv length] > 0 } {
+		    set xvalues [$xv range 0 end]
+		    set yvalues [$yv range 0 end]
+		    set zvalues [$zv range 0 end] 
+		    foreach x $xvalues y $yvalues z $zvalues {
+			set elem "elem[incr count]"
+			set _elem2dataobj($elem) $dataobj
+			$g element create $elem -x $x -y $y -barwidth $z \
+			    -label $label -foreground $color \
+			    -mapx $mapx -mapy $mapy
+		    }
+		}
             } else {
                 set r [blt::vector expr {max($xv) - min($xv)}]
-                set z [expr {$r / ([$xv length]-1) * 0.8}]
+		set length [$xv length]
+		if { $length > 1 } {
+		    set z [expr {$r / ([$xv length]-1) * 0.8}]
+		} else {
+		    set z 1
+		}
                 set elem "elem[incr count]"
                 set _elem2dataobj($elem) $dataobj
                 $g element create $elem -x $xv -y $yv -barwidth $z \
