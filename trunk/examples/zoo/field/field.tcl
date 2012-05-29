@@ -184,7 +184,7 @@ object 3 class array type double rank 0 items 75 data follows
     puts $fid $dx
     close $fid
 
-    set fid [open "| gzip -c $file | mimencode" r]
+    set fid [open "| gzip -c $file | base64" r]
     $driver put output.field(f3d).component.dx [read $fid]
     close $fid
 
