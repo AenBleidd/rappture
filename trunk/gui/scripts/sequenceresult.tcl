@@ -484,8 +484,14 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                             } else {
                                 set mode "heightmap"
                             }
+                        } elseif { [info exists env(VTKCONTOUR)] } {
+                            set mode "vtkcontour"
                         } else {
                             set mode "vtk"
+                        }
+                        set extents [$dataobj extents]
+                        if { $extents > 1 } {
+                            set resultMode "flowvis"
                         }
                         Rappture::Field2DResult $viewer -mode $mode
                     }
@@ -506,6 +512,12 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                                 if { $extents > 1 } {
                                     set fmt "flowvis"
                                 }
+                            }
+                            "vtkvolume" {
+                                set fmt "vtkvolume"
+                            }
+                            "vtkstreamlines" {
+                                set fmt "vtkstreamlines"
                             }
                             "" {
                                 set fmt "auto" 
