@@ -58,7 +58,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
         "auto" - "nanovis" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "vtkcontour" - "vtkstreamlines" - "vtkvolume" - "vtkviewer"  {
+        "vtkcontour" - "vtkheightmap" - "vtkstreamlines" - "vtkviewer" - "vtkvolume" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -68,7 +68,7 @@ itcl::body Rappture::Field3DResult::constructor {args} {
         default {
             puts stderr "unknown render mode \"$flags(-mode)\""
         }
-    }           
+    }
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
             "auto" - "nanovis" {
@@ -81,17 +81,29 @@ itcl::body Rappture::Field3DResult::constructor {args} {
                     Rappture::FlowvisViewer $itk_interior.ren $servers
                 }
             }
-            "vtkvolume" {
-                catch {
+            "vtkcontour" {
                 itk_component add renderer {
-                    Rappture::VtkVolumeViewer $itk_interior.ren $servers
+                    Rappture::VtkContourViewer $itk_interior.ren $servers
                 }
-                } errs
-                puts stderr errs=$errs
+            }
+            "vtkheightmap" {
+                itk_component add renderer {
+                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers
+                }
             }
             "vtkstreamlines" {
                 itk_component add renderer {
                     Rappture::VtkStreamlinesViewer $itk_interior.ren $servers
+                }
+            }
+            "vtkviewer" {
+                itk_component add renderer {
+                    Rappture::VtkViewer $itk_interior.ren $servers
+                }
+            }
+            "vtkvolume" {
+                itk_component add renderer {
+                    Rappture::VtkVolumeViewer $itk_interior.ren $servers
                 }
             }
             default {

@@ -60,7 +60,7 @@ itcl::body Rappture::Field2DResult::constructor {args} {
         "auto" - "heightmap" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "vtkcontour" - "vtkheightmap" {
+        "vtkcontour" - "vtkheightmap" - "vtkstreamlines" - "vtkviewer" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -77,9 +77,9 @@ itcl::body Rappture::Field2DResult::constructor {args} {
                     Rappture::HeightmapViewer $itk_interior.ren $servers 
                 }
             }
-            "vtkheightmap" {
+            "flowvis" {
                 itk_component add renderer {
-                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers 
+                    Rappture::FlowvisViewer $itk_interior.ren $servers
                 }
             }
             "vtkcontour" {
@@ -87,9 +87,19 @@ itcl::body Rappture::Field2DResult::constructor {args} {
                     Rappture::VtkContourViewer $itk_interior.ren $servers 
                 }
             }
-            "flowvis" {
+            "vtkheightmap" {
                 itk_component add renderer {
-                    Rappture::FlowvisViewer $itk_interior.ren $servers
+                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers 
+                }
+            }
+            "vtkstreamlines" {
+                itk_component add renderer {
+                    Rappture::VtkStreamlinesViewer $itk_interior.ren $servers
+                }
+            }
+            "vtkviewer" {
+                itk_component add renderer {
+                    Rappture::VtkViewer $itk_interior.ren $servers 
                 }
             }
             default {
