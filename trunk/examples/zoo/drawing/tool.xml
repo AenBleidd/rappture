@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <run>
-<tool>
+ <tool>
   <title>drawing</title>
   <about>Example of a Rappture &lt;drawing&gt; object.
 
@@ -12,117 +12,242 @@ When you click the Simulate button, the input strings will be used to generate o
   <command>
     tclsh @tool/drawing.tcl @driver
   </command>
-</tool>
-<input>
+  <layout>wizard</layout>
+ </tool>
+ <input>
   <drawing>
-    <about>
-      <label>Title</label>
-      <description>This text will be used as the title for all plots.</description>
-      <bbox>-.1 0 1.1 1</bbox>
-    </about>
-    <components>
- 	<line>
- 	  <coords>.25 .75 .75 .75</coords>
-  	  <color>black</color>
-  	  <linewidth>2</linewidth>
-  	  <arrow>both</arrow>
-        </line>
- 	<text>
- 	  <coords>.5 .8</coords>
-  	  <color>black</color>
-          <text>Feature Length = 50 nm</text>
-  	  <font>Arial 9</font>
-  	  <anchor>c</anchor>
-        </text>
- 	<line>
- 	  <coords>.78 .4 .78 .7</coords>
-  	  <color>black</color>
-  	  <linewidth>2</linewidth>
-  	  <arrow>both</arrow>
-        </line>
- 	<text>
- 	  <coords>.82 .48</coords>
-  	  <color>black</color>
-          <text>Feature
-Height = 30 nm</text>
-  	  <font>Arial 9</font>
-  	  <anchor>nw</anchor>
-        </text>
- 	<line>
- 	  <coords>0 .9 1 .9</coords>
-  	  <color>black</color>
-  	  <linewidth>2</linewidth>
-  	  <arrow>both</arrow>
-        </line>
- 	<text>
- 	  <coords>.5 .91</coords>
-  	  <color>black</color>
-          <text>Substrate Length = 100 nm</text>
-  	  <font>Arial 9</font>
-  	  <anchor>n</anchor>
-        </text>
- 	<line>
- 	  <coords>.35 .35 .65 .35</coords>
-  	  <color>black</color>
-  	  <linewidth>2</linewidth>
-  	  <arrow>both</arrow>
-        </line>
- 	<text>
- 	  <coords>.5 .30</coords>
-  	  <color>black</color>
-          <text>Length of Trapezoid Top = 30 nm</text>
-  	  <font>Arial 9</font>
-  	  <anchor>s</anchor>
-        </text>
- 	<line id="polyline">
- 	  <coords>0 .7 .25 .7 .35 .4 .65 .4 .75 .7 1 .7</coords>
-  	  <color>red</color>
-  	  <linewidth>2</linewidth>
-        </line>
- 	<grid>
- 	  <xcoords>0 .1 .2 .3 .4 .5 .6 .7 .8 .9 1</xcoords>
- 	  <ycoords>.2 .3 .4 .5 .6 .7</ycoords>
-  	  <color>grey70</color>
-  	  <linewidth>1</linewidth>
-  	  <dash>4 2</dash>
-        </grid>
- 	<string>
-	  <about> 
-	    <label>String:</label>
-          </about>  
- 	  <coords>.1 1.1</coords>
-  	  <color>blue</color>
-  	  <font>Arial 9</font>
-  	  <anchor>nw</anchor>
-	  <default>value</default>
-        </string>
- 	<number>
-	  <about> 
-	    <label>Number:</label>
-          </about>  
- 	  <coords></coords>
-  	  <color>blue</color>
-  	  <font>Arial 12</font>
-  	  <anchor>n</anchor>
-	  <default></default>
-	  <min></min>
-	  <max></max>
-        </number>
-    </components>
+   <about>
+    <label>Title</label>
+    <description>This text will be used as the title for all plots.</description>
+   </about>
+   <background>
+    <color>#FFFCDA</color>
+    <coordinates>-.1 0 1.1 1</coordinates>
+    <width>800</width>
+    <height>500</height>
+   </background>
+   <substitutions>
+    <variable>
+     <name>string</name>
+     <path>input.string(indeck)</path>
+    </variable>
+    <variable>
+     <name>feature_height</name>
+     <path>input.number(feature_height)</path>
+    </variable>
+    <variable>
+     <name>feature_length</name>
+     <path>input.number(feature_length)</path>
+    </variable>
+    <variable>
+     <name>trapezoid_top</name>
+     <path>input.number(trapezoid_top)</path>
+    </variable>
+    <variable>
+     <name>substrate_length</name>
+     <path>input.number(substrate_length)</path>
+    </variable>
+    <variable>
+     <name>analysis</name>
+     <path>input.choice(analysis)</path>
+    </variable>
+   </substitutions>
+   <components>
+    <line id="feature_length">
+     <coords>.25 .72 .75 .72</coords>
+     <color>black</color>
+     <linewidth>2</linewidth>
+     <arrow>both</arrow>
+    </line>
+    <text id="feature_length">
+     <coords>.5 .73</coords>
+     <color>black</color>
+     <text>Feature Length = ${feature_length}</text>
+     <font>Arial 11</font>
+     <anchor>n</anchor>
+    </text>
+    <hotspot id="feature_length">
+     <coords>.625 .743</coords>
+     <controls>input.number(feature_length)</controls>
+    </hotspot>
+    <line id="feature_height">
+     <coords>.76 .4 .76 .7</coords>
+
+     <color>black</color>
+     <linewidth>2</linewidth>
+     <arrow>both</arrow>
+    </line>
+    <text id="feature_height">
+     <coords>.77 .48</coords>
+     <color>black</color>
+     <text>Feature
+Height = ${feature_height}</text>
+     <font>Arial 11</font>
+     <anchor>nw</anchor>
+    </text>
+    <hotspot id="feature_height">
+     <coords>.92 .526</coords>
+     <controls>input.choice(analysis)</controls>
+     <controls>input.number(feature_height)</controls>
+     <controls>input.number(feature_length)</controls>
+     <controls>input.number(substrate_length)</controls>
+    </hotspot>
+    <line id="substrate_length">
+     <coords>0 .8 1 .8</coords>
+     <color>black</color>
+     <linewidth>2</linewidth>
+     <arrow>both</arrow>
+    </line>
+    <text id="substrate_length">
+     <coords>.5 .81</coords>
+     <color>black</color>
+     <text>Substrate Length = ${substrate_length}</text>
+     <font>Arial 11</font>
+     <anchor>n</anchor>
+    </text>
+    <hotspot id="substrate_length">
+     <coords>.64 .825</coords>
+     <controls>input.number(substrate_length)</controls>
+    </hotspot>
+    <line id="trapezoid_top">
+     <coords>.35 .38 .65 .38</coords>
+     <color>black</color>
+     <linewidth>2</linewidth>
+     <arrow>both</arrow>
+    </line>
+    <text id="trapezoid_top">
+     <coords>.5 .35</coords>
+     <color>black</color>
+     <text>Length of Trapezoid Top = ${trapezoid_top}</text>
+     <font>Arial 11</font>
+     <anchor>s</anchor>
+    </text>
+    <hotspot id="trapezoid_top">
+     <coords>.67 .335</coords>
+     <controls>input.number(trapezoid_top)</controls>
+    </hotspot>
+    <line id="polyline">
+     <coords>0 .7 .25 .7 .35 .4 .65 .4 .75 .7 1 .7</coords>
+     <color>red</color>
+     <linewidth>2</linewidth>
+    </line>
+    <grid>
+     <xcoords>0 .1 .2 .3 .4 .5 .6 .7 .8 .9 1</xcoords>
+     <ycoords>.2 .3 .4 .5 .6 .7</ycoords>
+     <color>grey70</color>
+     <linewidth>1</linewidth>
+     <dash>4 2</dash>
+    </grid>
+    <hotspot id="analysis">
+     <coords>.19 .08</coords>
+     <controls>input.choice(analysis)</controls>
+    </hotspot>
+    <picture id="analysis">
+     <coords>-.08 .06 0.17 0.15</coords>
+     <contents>file:images/${analysis}_F-d.png</contents>
+     <anchor>nw</anchor>
+    </picture>
+    <text id="analysis">
+     <coords>.05 .4</coords>
+     <color>black</color>
+     <text>${analysis}</text>
+     <font>Arial 11</font>
+     <anchor>n</anchor>
+    </text>
+    <hotspot id="string">
+     <coords>-.05 .865</coords>
+     <controls>input.string(indeck)</controls>
+    </hotspot>
+    <text id="string">
+     <coords>-.03 .85</coords>
+     <color>black</color>
+     <text>${string}</text>
+     <font>Arial 11</font>
+     <anchor>nw</anchor>
+    </text>
+   </components>
   </drawing>
-
-  <separator/>
-
-  <string id="indeck">
+  <number id="feature_height">
+   <about>
+    <label>Feature Height</label>
+    <description>Height of feature.</description>
+   </about>
+   <units>nm</units>
+   <min>10</min>
+   <max>70</max>
+   <default>30</default>
+  </number>
+  <number id="feature_length">
+   <about>
+    <label>Feature Length</label>
+    <description>Length of feature.</description>
+   </about>
+   <units>nm</units>
+   <min>10</min>
+   <max>100</max>
+   <default>50</default>
+  </number>
+  <number id="substrate_length">
+   <about>
+    <label>Substrate Length</label>
+    <description>Length of substrate.</description>
+   </about>
+   <units>nm</units>
+   <min>10</min>
+   <max>500</max>
+   <default>100</default>
+  </number>
+  <number id="trapezoid_top">
+   <about>
+    <label>Trapezoid Top</label>
+    <description>Width of the Trapezoid Top.</description>
+   </about>
+   <units>nm</units>
+   <min>10</min>
+   <max>70</max>
+   <default>30</default>
+  </number>
+  <choice id="analysis">
+   <about>
+    <label>Type of Analysis</label>
+    <description>Determines the type of analysis to perform.</description>
+   </about>
+   <option>
     <about>
-      <label>Input</label>
-      <description>This is the control file for the program.</description>
-      <hints>EXAMPLE:  .print ac vm(11) mag(i(vcc))</hints>
+     <label>Hertz</label>
+     <description>Hertz analysis</description>
     </about>
-    <size>40x10</size>
-    <default>Enter your SPICE commands
+   </option>
+   <option>
+    <about>
+     <label>LinCon</label>
+     <description>LinCon analysis</description>
+    </about>
+   </option>
+   <option>
+    <about>
+     <label>Chadwick</label>
+     <description>Chadwick analysis</description>
+    </about>
+   </option>
+   <option>
+    <about>
+     <label>DMT</label>
+     <description>DMT analysis</description>
+    </about>
+   </option>
+   <default>Chadwick</default>
+  </choice>
+  <string id="indeck">
+   <about>
+    <label>Input</label>
+    <description>This is the control file for the program.</description>
+    <hints>EXAMPLE:  .print ac vm(11) mag(i(vcc))</hints>
+   </about>
+   <size>40x10</size>
+   <default>Enter your SPICE commands
 in this area.  Right-click
 for a menu of editing options.</default>
   </string>
-</input>
+ </input>
 </run>
