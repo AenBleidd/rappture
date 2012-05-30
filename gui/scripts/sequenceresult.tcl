@@ -491,7 +491,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                         }
                         set extents [$dataobj extents]
                         if { $extents > 1 } {
-                            set resultMode "flowvis"
+                            set mode "flowvis"
                         }
                         Rappture::Field2DResult $viewer -mode $mode
                     }
