@@ -475,8 +475,8 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 }
                 switch -- $dimensions {
                     2D {
+			global env
                         if { [$dataobj isunirect2d] } {
-                            global env
                             if { [$dataobj hints type] == "contour" } {
                                 set mode "vtkcontour" 
                             } elseif { [info exists env(VTKHEIGHTMAP)] } {
