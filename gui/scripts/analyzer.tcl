@@ -54,13 +54,14 @@ itcl::class Rappture::Analyzer {
     public method simulate {args}
     public method reset {{when -eventually}}
     public method load {xmlobj}
-    public method clear {{xmlobj ""}}
+    public method clear {{xmlobj "all"}}
     public method download {option args}
 
     protected method _plot {args}
     protected method _reorder {comps}
     protected method _autoLabel {xmlobj path title cntVar}
     protected method _fixResult {}
+    protected method _fixResultSet {args}
     protected method _fixSize {}
     protected method _fixSimControl {}
     protected method _fixNotebook {}
@@ -76,7 +77,7 @@ itcl::class Rappture::Analyzer {
     private variable _tool ""          ;# belongs to this tool
     private variable _appName ""       ;# Name of application
     private variable _control "manual" ;# start mode
-    private variable _runs ""          ;# list of XML objects with results
+    private variable _resultset ""     ;# ResultSet object with all results
     private variable _pages 0          ;# number of pages for result sets
     private variable _label2page       ;# maps output label => result set
     private variable _label2desc       ;# maps output label => description
@@ -96,6 +97,11 @@ itk::usual Analyzer {
 itcl::body Rappture::Analyzer::constructor {tool args} {
     set _tool $tool
 
+    # use this to store all simulation results
+    set _resultset [Rappture::ResultSet ::#auto]
+    $_resultset notify add $this [itcl::code $this _fixResultSet]
+
+    # widget settings...
     itk_option add hull.width hull.height
     pack propagate $itk_component(hull) no
 
@@ -257,21 +263,21 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     label $w.top.l -text "Result:" -font $itk_option(-font)
     pack $w.top.l -side left
 
-    itk_component add resultselector {
+    itk_component add viewselector {
         Rappture::Combobox $w.top.sel -width 10 -editable no
     } {
         usual
         rename -font -textfont textFont Font
     }
-    pack $itk_component(resultselector) -side left -expand yes -fill x
-    bind $itk_component(resultselector) <<Value>> [itcl::code $this _fixResult]
-    bind $itk_component(resultselector) <Enter> \
+    pack $itk_component(viewselector) -side left -expand yes -fill x
+    bind $itk_component(viewselector) <<Value>> [itcl::code $this _fixResult]
+    bind $itk_component(viewselector) <Enter> \
         [itcl::code $this download coming]
 
-    Rappture::Tooltip::for $itk_component(resultselector) \
+    Rappture::Tooltip::for $itk_component(viewselector) \
         "@[itcl::code $this _resultTooltip]"
 
-    $itk_component(resultselector) choices insert end \
+    $itk_component(viewselector) choices insert end \
         --- "---"
 
     itk_component add download {
@@ -283,7 +289,7 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     bind $itk_component(download) <Enter> \
         [itcl::code $this download coming]
 
-    $itk_component(resultselector) choices insert end \
+    $itk_component(viewselector) choices insert end \
         @download [Rappture::filexfer::label download]
 
     if {[Rappture::filexfer::enabled]} {
@@ -306,14 +312,12 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
     pack $itk_component(resultpages) -expand yes -fill both
 
     set f [$itk_component(results) insert end -fraction 0.1]
-    itk_component add resultset {
-        Rappture::ResultSet $f.rset \
-            -clearcommand [itcl::code $this clear] \
-            -settingscommand [itcl::code $this _plot] \
-            -promptcommand [itcl::code $this _simState]
+    itk_component add resultselector {
+        Rappture::ResultSelector $f.rsel -resultset $_resultset \
+            -settingscommand [itcl::code $this _plot]
     }
-    pack $itk_component(resultset) -expand yes -fill both
-    bind $itk_component(resultset) <<Control>> [itcl::code $this _fixSize]
+    pack $itk_component(resultselector) -expand yes -fill both
+    bind $itk_component(resultselector) <<Layout>> [itcl::code $this _fixSize]
     bind $itk_component(results) <Configure> [itcl::code $this _fixSize]
 
     eval itk_initialize $args
@@ -357,10 +361,8 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::destructor {} {
-    foreach obj $_runs {
-        itcl::delete object $obj
-    }
     after cancel [itcl::code $this simulate]
+    itcl::delete object $_resultset
 }
 
 # ----------------------------------------------------------------------
@@ -377,7 +379,7 @@ itcl::body Rappture::Analyzer::simulate {args} {
     if {$args == "-ifneeded"} {
         # check to see if simulation is really needed
         $_tool sync
-        if {[$itk_component(resultset) contains [$_tool xml object]]
+        if {[$_resultset contains [$_tool xml object]]
               && ![string equal $_control "manual-resim"]} {
             # not needed -- show results and return
             $itk_component(notebook) current analyze
@@ -465,7 +467,7 @@ itcl::body Rappture::Analyzer::reset {{when -eventually}} {
 
     # check to see if simulation is really needed
     $_tool sync
-    if {![$itk_component(resultset) contains [$_tool xml object]]
+    if {![$_resultset contains [$_tool xml object]]
           || [string equal $_control "manual-resim"]} {
         # if control mode is "auto", then simulate right away
         if {[string match auto* $_control]} {
@@ -522,121 +524,11 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
         }
     }
 
-    lappend _runs $xmlobj
+    $_resultset add $xmlobj
 
-    # Detect molecule elements that contain trajectory data and convert
-    # to sequences.
-    _trajToSequence $xmlobj output
-
-    # Go through the analysis and find all result sets.
-    set haveresults 0
-    foreach item [_reorder [$xmlobj children output]] {
-        switch -glob -- $item {
-            log* {
-                _autoLabel $xmlobj output.$item "Output Log" counters
-            }
-            number* {
-                _autoLabel $xmlobj output.$item "Number" counters
-            }
-            integer* {
-                _autoLabel $xmlobj output.$item "Integer" counters
-            }
-            string* {
-                _autoLabel $xmlobj output.$item "String" counters
-            }
-            histogram* - curve* - field* {
-                _autoLabel $xmlobj output.$item "Plot" counters
-            }
-            drawing* {
-                _autoLabel $xmlobj output.$item "Drawing" counters
-            }
-            structure* {
-                _autoLabel $xmlobj output.$item "Structure" counters
-            }
-            table* {
-                _autoLabel $xmlobj output.$item "Energy Levels" counters
-            }
-            sequence* {
-                _autoLabel $xmlobj output.$item "Sequence" counters
-            }
-            default {
-                if 0 {
-                    puts stderr "unknown output $item"
-                }
-            }
-        }
-        set label [$xmlobj get output.$item.about.group]
-        if {"" == $label} {
-            set label [$xmlobj get output.$item.about.label]
-        }
-
-        set hidden [$xmlobj get output.$item.hide]
-        set hidden [expr {"" != $hidden && $hidden}]
-
-        if {"" != $label && !$hidden} {
-            set haveresults 1
-        }
-    }
-    # if there are any valid results, add them to the resultset
-    if {$haveresults} {
-        set index [$itk_component(resultset) add $xmlobj]
-
-        # add each result to a result viewer
-        foreach item [_reorder [$xmlobj children output]] {
-            set label [$xmlobj get output.$item.about.group]
-            if {"" == $label} {
-                set label [$xmlobj get output.$item.about.label]
-            }
-            set hidden [$xmlobj get output.$item.hide]
-            if { $hidden == "" } {
-                set hidden 0
-            }
-            if {"" != $label && !$hidden} {
-                if {![info exists _label2page($label)]} {
-                    set name "page[incr _pages]"
-                    set page [$itk_component(resultpages) insert end $name]
-                    set _label2page($label) $page
-                    set _label2desc($label) \
-                        [$xmlobj get output.$item.about.description]
-                    Rappture::ResultViewer $page.rviewer
-                    pack $page.rviewer -expand yes -fill both -pady 4
-
-                    set end [$itk_component(resultselector) \
-                        choices index -value ---]
-                    if {$end < 0} {
-                        set end "end"
-                    }
-                    $itk_component(resultselector) choices insert $end \
-                        $name $label
-                }
-
-                # add/replace the latest result into this viewer
-                set page $_label2page($label)
-
-                if {![info exists reset($page)]} {
-                    $page.rviewer clear $index
-                    set reset($page) 1
-                }
-                $page.rviewer add $index $xmlobj output.$item
-            }
-        }
-    }
-
-    # show the first page by default
-    set max [$itk_component(resultselector) choices size]
-    for {set i 0} {$i < $max} {incr i} {
-        set first [$itk_component(resultselector) choices get -label $i]
-        if {$first != ""} {
-            set page [$itk_component(resultselector) choices get -value $i]
-            set char [string index $page 0]
-            if {$char != "@" && $char != "-"} {
-                $itk_component(resultpages) current $page
-                $itk_component(resultselector) value $first
-                set _lastlabel $first
-                break
-            }
-        }
-    }
+    # NOTE: Adding will trigger a !change event on the ResultSet
+    # object, which will trigger calls to _fixResultSet to add
+    # the results to display.
 }
 
 # ----------------------------------------------------------------------
@@ -646,62 +538,16 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
 # If an <xmlobj> is specified, then that one result is cleared.
 # Otherwise, all results are cleared.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Analyzer::clear {{xmlobj ""}} {
-    if {$xmlobj ne ""} {
-        set i [lsearch -exact $_runs $xmlobj]
-        if {$i >= 0} {
-            itcl::delete object $xmlobj
-            set _runs [lreplace $_runs $i $i]
-
-            # delete this result from all viewers
-            foreach label [array names _label2page] {
-                set page $_label2page($label)
-                $page.rviewer clear $xmlobj
-            }
-        }
+itcl::body Rappture::Analyzer::clear {{xmlobj "all"}} {
+    if {$xmlobj eq "" || $xmlobj eq "all"} {
+        $_resultset clear
     } else {
-        # clear everything
-        foreach obj $_runs {
-            itcl::delete object $obj
-        }
-        set _runs ""
+        $_resultset clear $xmlobj
     }
 
-    if {[llength $_runs] == 0} {
-        # reset the size of the controls area
-        set ht [winfo height $itk_component(results)]
-        set cntlht [$itk_component(resultset) size -controlarea]
-        set frac [expr {double($cntlht)/$ht}]
-        $itk_component(results) fraction end $frac
-
-        foreach label [array names _label2page] {
-            set page $_label2page($label)
-            destroy $page.rviewer
-        }
-        $itk_component(resultselector) value ""
-        $itk_component(resultselector) choices delete 0 end
-        catch {unset _label2page}
-        catch {unset _label2desc}
-        set _plotlist ""
-
-        $itk_component(resultselector) choices insert end --- "---"
-        $itk_component(resultselector) choices insert end \
-            @download [Rappture::filexfer::label download]
-        set _lastlabel ""
-    }
-
-    #
-    # HACK ALERT!!
-    # The following statement should be in place, but it causes
-    # vtk to dump core.  Leave it out until we can fix the core dump.
-    # In the mean time, we leak memory...
-    #
-    #$itk_component(resultpages) delete -all
-    #set _pages 0
-
-    _simState on
-    _fixSimControl
-    reset
+    # NOTE: Clearing will trigger a !change event on the ResultSet
+    # object, which will trigger calls to _fixResultSet to clean up
+    # the results being displayed.
 }
 
 # ----------------------------------------------------------------------
@@ -713,8 +559,8 @@ itcl::body Rappture::Analyzer::clear {{xmlobj ""}} {
 # Spools the current result so the user can download it.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::download {option args} {
-    set title [$itk_component(resultselector) value]
-    set page [$itk_component(resultselector) translate $title]
+    set title [$itk_component(viewselector) value]
+    set page [$itk_component(viewselector) translate $title]
 
     switch -- $option {
         coming {
@@ -774,7 +620,7 @@ itcl::body Rappture::Analyzer::download {option args} {
             if {$page != ""} {
                 set ext ""
                 set f [$itk_component(resultpages) page $page]
-                set item [$itk_component(resultselector) value]
+                set item [$itk_component(viewselector) value]
                 set result [$f.rviewer download now $widget $_appName $item]
                 if { $result == "" } {
                     return;                # User cancelled the download.
@@ -810,14 +656,14 @@ itcl::body Rappture::Analyzer::download {option args} {
 # USAGE: _plot ?<index> <options> <index> <options>...?
 #
 # Used internally to update the plot shown in the current result
-# viewer whenever the resultset settings have changed.  Causes the
+# viewer whenever the resultselector settings have changed.  Causes the
 # desired results to show up on screen.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_plot {args} {
     set _plotlist $args
 
-    set page [$itk_component(resultselector) value]
-    set page [$itk_component(resultselector) translate $page]
+    set page [$itk_component(viewselector) value]
+    set page [$itk_component(viewselector) translate $page]
     if {"" != $page} {
         set f [$itk_component(resultpages) page $page]
         $f.rviewer plot clear
@@ -896,25 +742,25 @@ itcl::body Rappture::Analyzer::_autoLabel {xmlobj path title cntVar} {
 # the user selects a page from the results combobox.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_fixResult {} {
-    set name [$itk_component(resultselector) value]
+    set name [$itk_component(viewselector) value]
     set page ""
     if {"" != $name} {
-        set page [$itk_component(resultselector) translate $name]
+        set page [$itk_component(viewselector) translate $name]
     }
     if {$page == "@download"} {
         # put the combobox back to its last value
-        $itk_component(resultselector) component entry configure -state normal
-        $itk_component(resultselector) component entry delete 0 end
-        $itk_component(resultselector) component entry insert end $_lastlabel
-        $itk_component(resultselector) component entry configure -state disabled
+        $itk_component(viewselector) component entry configure -state normal
+        $itk_component(viewselector) component entry delete 0 end
+        $itk_component(viewselector) component entry insert end $_lastlabel
+        $itk_component(viewselector) component entry configure -state disabled
         # perform the actual download
         download start $itk_component(download)
     } elseif {$page == "---"} {
         # put the combobox back to its last value
-        $itk_component(resultselector) component entry configure -state normal
-        $itk_component(resultselector) component entry delete 0 end
-        $itk_component(resultselector) component entry insert end $_lastlabel
-        $itk_component(resultselector) component entry configure -state disabled
+        $itk_component(viewselector) component entry configure -state normal
+        $itk_component(viewselector) component entry delete 0 end
+        $itk_component(viewselector) component entry insert end $_lastlabel
+        $itk_component(viewselector) component entry configure -state disabled
     } elseif {$page != ""} {
         set _lastlabel $name
         set win [winfo toplevel $itk_component(hull)]
@@ -929,6 +775,175 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _fixResultSet ?<eventData>...?
+#
+# Used internally to react to changes within the ResultSet.  When a
+# result is added, a new result viewer is created for the object.
+# When all results are cleared, the viewers are deleted.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Analyzer::_fixResultSet {args} {
+    array set eventData $args
+    switch -- $eventData(op) {
+        add {
+            set xmlobj $eventData(what)
+
+            # Detect molecule elements that contain trajectory data
+            # and convert to sequences.
+            _trajToSequence $xmlobj output
+
+            # Go through the analysis and find all result sets.
+            set haveresults 0
+            foreach item [_reorder [$xmlobj children output]] {
+                switch -glob -- $item {
+                    log* {
+                        _autoLabel $xmlobj output.$item "Output Log" counters
+                    }
+                    number* {
+                        _autoLabel $xmlobj output.$item "Number" counters
+                    }
+                    integer* {
+                        _autoLabel $xmlobj output.$item "Integer" counters
+                    }
+                    string* {
+                        _autoLabel $xmlobj output.$item "String" counters
+                    }
+                    histogram* - curve* - field* {
+                        _autoLabel $xmlobj output.$item "Plot" counters
+                    }
+                    drawing* {
+                        _autoLabel $xmlobj output.$item "Drawing" counters
+                    }
+                    structure* {
+                        _autoLabel $xmlobj output.$item "Structure" counters
+                    }
+                    table* {
+                        _autoLabel $xmlobj output.$item "Energy Levels" counters
+                    }
+                    sequence* {
+                        _autoLabel $xmlobj output.$item "Sequence" counters
+                    }
+                }
+                set label [$xmlobj get output.$item.about.group]
+                if {"" == $label} {
+                    set label [$xmlobj get output.$item.about.label]
+                }
+
+                set hidden [$xmlobj get output.$item.hide]
+                set hidden [expr {"" != $hidden && $hidden}]
+
+                if {"" != $label && !$hidden} {
+                    set haveresults 1
+                }
+            }
+
+            # if there are any valid results, add them to the resultset
+            if {$haveresults} {
+                set index [$_resultset get simnum $xmlobj]
+
+                # add each result to a result viewer
+                foreach item [_reorder [$xmlobj children output]] {
+                    set label [$xmlobj get output.$item.about.group]
+                    if {"" == $label} {
+                        set label [$xmlobj get output.$item.about.label]
+                    }
+                    set hidden [$xmlobj get output.$item.hide]
+                    if { $hidden == "" } {
+                        set hidden 0
+                    }
+                    if {"" != $label && !$hidden} {
+                        if {![info exists _label2page($label)]} {
+                            set name "page[incr _pages]"
+                            set page [$itk_component(resultpages) \
+                                insert end $name]
+                            set _label2page($label) $page
+                            set _label2desc($label) \
+                                [$xmlobj get output.$item.about.description]
+                            Rappture::ResultViewer $page.rviewer
+                            pack $page.rviewer -expand yes -fill both -pady 4
+
+                            set end [$itk_component(viewselector) \
+                                choices index -value ---]
+                            if {$end < 0} {
+                                set end "end"
+                            }
+                            $itk_component(viewselector) choices insert $end \
+                                $name $label
+                        }
+
+                        # add/replace the latest result into this viewer
+                        set page $_label2page($label)
+
+                        if {![info exists reset($page)]} {
+                            $page.rviewer clear $index
+                            set reset($page) 1
+                        }
+                        $page.rviewer add $index $xmlobj output.$item
+                    }
+                }
+            }
+
+            # show the first page by default
+            set max [$itk_component(viewselector) choices size]
+            for {set i 0} {$i < $max} {incr i} {
+                set first [$itk_component(viewselector) choices get -label $i]
+                if {$first != ""} {
+                    set page [$itk_component(viewselector) choices get -value $i]
+                    set char [string index $page 0]
+                    if {$char != "@" && $char != "-"} {
+                        $itk_component(resultpages) current $page
+                        $itk_component(viewselector) value $first
+                        set _lastlabel $first
+                        break
+                    }
+                }
+            }
+        }
+        clear {
+            set xmlobj $eventData(what)
+            if {$xmlobj ne "all"} {
+                # delete this result from all viewers
+                foreach label [array names _label2page] {
+                    set page $_label2page($label)
+                    $page.rviewer clear $xmlobj
+                }
+            }
+
+            if {[$_resultset size] == 0} {
+                # reset the size of the controls area
+                set ht [winfo height $itk_component(results)]
+                set cntlht [$itk_component(resultselector) size -controlarea]
+                set frac [expr {double($cntlht)/$ht}]
+                $itk_component(results) fraction end $frac
+
+                foreach label [array names _label2page] {
+                    set page $_label2page($label)
+                    destroy $page.rviewer
+                }
+                $itk_component(resultpages) delete -all
+                set _pages 0
+
+                $itk_component(viewselector) value ""
+                $itk_component(viewselector) choices delete 0 end
+                catch {unset _label2page}
+                catch {unset _label2desc}
+                set _plotlist ""
+
+                $itk_component(viewselector) choices insert end --- "---"
+                $itk_component(viewselector) choices insert end \
+                    @download [Rappture::filexfer::label download]
+                set _lastlabel ""
+            }
+
+            # fix Simulate button state
+            reset
+        }
+        default {
+            error "don't know how to handle op \"$eventData(op)\""
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _fixSize
 #
 # Used internally to change the size of the result set area whenever
@@ -938,7 +953,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
 itcl::body Rappture::Analyzer::_fixSize {} {
     set ht [winfo height $itk_component(results)]
     if {$ht <= 1} { set ht [winfo reqheight $itk_component(results)] }
-    set cntlht [$itk_component(resultset) size -controlarea]
+    set cntlht [$itk_component(resultselector) size -controlarea]
     set frac [expr {double($cntlht)/$ht}]
 
     if {$frac < 0.4} {
@@ -1109,7 +1124,7 @@ itcl::body Rappture::Analyzer::_simOutput {message} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_resultTooltip {} {
     set tip ""
-    set name [$itk_component(resultselector) value]
+    set name [$itk_component(viewselector) value]
     if {[info exists _label2desc($name)] &&
          [string length $_label2desc($name)] > 0} {
         append tip "$_label2desc($name)\n\n"
@@ -1141,7 +1156,7 @@ itcl::body Rappture::Analyzer::_fixSimControl {} {
             # chance of encountering a combination of parameters
             # with no data, requiring simulation.
             #
-            if {[$itk_component(resultset) size -controls] >= 2} {
+            if {[$itk_component(resultselector) size -controls] >= 2} {
                 pack $itk_interior.simol -fill x -before $itk_interior.nb
             } else {
                 pack forget $itk_interior.simol

@@ -564,7 +564,15 @@ itcl::body Rappture::Radiodial::_findLabel {str} {
             return $nv
         }
     }
-    error "bad value \"$str\": should be something matching the raw values \"[join $_values ,]\""
+
+    # didn't match -- build a return string of possible values
+    set labels ""
+    foreach vlist $_values {
+        foreach v $vlist {
+            lappend labels "\"$_val2label($v)\""
+        }
+    }
+    error "bad value \"$str\": should be one of [join $labels ,]"
 }
 
 # ----------------------------------------------------------------------
