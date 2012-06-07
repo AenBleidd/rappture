@@ -1,209 +1,70 @@
-
 # ----------------------------------------------------------------------
-#  COMPONENT: ResultSet - controls for a collection of related results
+#  COMPONENT: ResultSet - set of XML objects for simulated results
 #
-#  This widget stores a collection of results that all represent
-#  the same quantity, but for various ranges of input values.
-#  It also manages the controls to select and visualize the data.
+#  This data structure collects all of the simulated results
+#  produced by a series of tool runs.  It is used by the Analyzer,
+#  ResultSelector, and other widgets to keep track of all known runs
+#  and visualize the result that is currently selected.  Each run
+#  has an index number ("#1", "#2", "#3", etc.) that can be used to
+#  label the run and refer to it later.
 # ======================================================================
 #  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  Copyright (c) 2004-2012  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-package require Itk
-
-option add *ResultSet.width 4i widgetDefault
-option add *ResultSet.height 4i widgetDefault
-option add *ResultSet.missingData skip widgetDefault
-option add *ResultSet.controlbarBackground gray widgetDefault
-option add *ResultSet.controlbarForeground white widgetDefault
-option add *ResultSet.activeControlBackground #ffffcc widgetDefault
-option add *ResultSet.activeControlForeground black widgetDefault
-option add *ResultSet.controlActiveForeground blue widgetDefault
-option add *ResultSet.toggleBackground gray widgetDefault
-option add *ResultSet.toggleForeground white widgetDefault
-option add *ResultSet.textFont \
-    -*-helvetica-medium-r-normal-*-12-* widgetDefault
-option add *ResultSet.boldFont \
-    -*-helvetica-bold-r-normal-*-12-* widgetDefault
+package require Itcl
 
 itcl::class Rappture::ResultSet {
-    inherit itk::Widget
-
-    itk_option define -activecontrolbackground activeControlBackground Background ""
-    itk_option define -activecontrolforeground activeControlForeground Foreground ""
-    itk_option define -controlactiveforeground controlActiveForeground Foreground ""
-    itk_option define -togglebackground toggleBackground Background ""
-    itk_option define -toggleforeground toggleForeground Foreground ""
-    itk_option define -textfont textFont Font ""
-    itk_option define -boldfont boldFont Font ""
-    itk_option define -foreground foreground Foreground ""
-    itk_option define -clearcommand clearCommand ClearCommand ""
-    itk_option define -settingscommand settingsCommand SettingsCommand ""
-    itk_option define -promptcommand promptCommand PromptCommand ""
-
     constructor {args} { # defined below }
     destructor { # defined below }
 
     public method add {xmlobj}
     public method clear {{xmlobj ""}}
-    public method activate {column}
+    public method diff {option args}
+    public method find {collist vallist}
+    public method get {collist xmlobj}
     public method contains {xmlobj}
-    public method size {{what -results}}
+    public method size {}
 
-    protected method _doClear {what}
-    protected method _doSettings {{cmd ""}}
-    protected method _control {option args}
-    protected method _fixControls {args}
-    protected method _fixLayout {args}
-    protected method _fixNumResults {}
-    protected method _fixSettings {args}
-    protected method _fixValue {column why}
-    protected method _drawValue {column widget wmax}
-    protected method _toggleAll {{column "current"}}
-    protected method _getValues {column {which ""}}
-    protected method _getTooltip {role column}
-    protected method _getParamDesc {which {index "current"}}
+    public method notify {option args}
+    protected method _notifyHandler {args}
+
     protected method _addOneResult {tuples xmlobj {simnum ""}}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _results ""     ;# tuple of known results
     private variable _resultnum 0    ;# counter for result #1, #2, etc.
-    private variable _recent ""      ;# most recent result in _results
-    private variable _active ""      ;# column with active control
-    private variable _plotall 0      ;# non-zero => plot all active results
-    private variable _layout         ;# info used in _fixLayout
-    private variable _counter 0      ;# counter for unique control names
-    private variable _settings 0     ;# non-zero => _fixSettings in progress
-
-    private common _cntlInfo         ;# maps column name => control info
+    private variable _notify         ;# info used for notify command
 }
                                                                                 
-itk::usual ResultSet {
-    keep -background -foreground -cursor -font
-}
-
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::constructor {args} {
-    option add hull.width hull.height
-    pack propagate $itk_component(hull) no
-
     # create a dispatcher for events
     Rappture::dispatcher _dispatcher
-    $_dispatcher register !fixcntls
-    $_dispatcher dispatch $this !fixcntls \
-        [itcl::code $this _fixControls]
-    $_dispatcher register !layout
-    $_dispatcher dispatch $this !layout \
-        [itcl::code $this _fixLayout]
-    $_dispatcher register !settings
-    $_dispatcher dispatch $this !settings \
-        [itcl::code $this _fixSettings]
-
-    # initialize controls info
-    set _cntlInfo($this-all) ""
-
-    # initialize layout info
-    set _layout(mode) "usual"
-    set _layout(active) ""
+    $_dispatcher register !change
+    $_dispatcher dispatch $this !change \
+        [itcl::code $this _notifyHandler]
 
     # create a list of tuples for data
     set _results [Rappture::Tuples ::#auto]
     $_results column insert end -name xmlobj -label "top-level XML object"
     $_results column insert end -name simnum -label "simulation number"
 
+    # clear notification info
+    set _notify(ALL) ""
 
-    itk_component add cntls {
-        frame $itk_interior.cntls
-    } {
-        usual
-        rename -background -controlbarbackground controlbarBackground Background
-        rename -highlightbackground -controlbarbackground controlbarBackground Background
-    }
-    pack $itk_component(cntls) -fill x -pady {0 2}
-
-    itk_component add clearall {
-        button $itk_component(cntls).clearall -text "Clear" -state disabled \
-            -padx 1 -pady 1 \
-            -relief flat -overrelief raised \
-            -command [itcl::code $this _doClear all]
-    } {
-        usual
-        rename -background -controlbarbackground controlbarBackground Background
-        rename -foreground -controlbarforeground controlbarForeground Foreground
-        rename -highlightbackground -controlbarbackground controlbarBackground Background
-    }
-    pack $itk_component(clearall) -side right -padx 2 -pady 1
-    Rappture::Tooltip::for $itk_component(clearall) \
-        "Clears all results collected so far."
-
-    itk_component add clear {
-        button $itk_component(cntls).clear -text "Clear One" -state disabled \
-            -padx 1 -pady 1 \
-            -relief flat -overrelief raised \
-            -command [itcl::code $this _doClear current]
-    } {
-        usual
-        rename -background -controlbarbackground controlbarBackground Background
-        rename -foreground -controlbarforeground controlbarForeground Foreground
-        rename -highlightbackground -controlbarbackground controlbarBackground Background
-    }
-    pack $itk_component(clear) -side right -padx 2 -pady 1
-    Rappture::Tooltip::for $itk_component(clear) \
-        "Clears the result that is currently selected."
-
-    itk_component add status {
-        label $itk_component(cntls).status -anchor w \
-            -text "No results" -padx 0 -pady 0
-    } {
-        usual
-        rename -background -controlbarbackground controlbarBackground Background
-        rename -foreground -controlbarforeground controlbarForeground Foreground
-        rename -highlightbackground -controlbarbackground controlbarBackground Background
-    }
-    pack $itk_component(status) -side left -padx 2 -pady {2 0}
-
-    itk_component add dials {
-        frame $itk_interior.dials
-    }
-    pack $itk_component(dials) -expand yes -fill both
-    bind $itk_component(dials) <Configure> \
-        [list $_dispatcher event -after 10 !layout why resize]
-
-    # create the permanent controls in the "short list" area
-    set dials $itk_component(dials)
-    frame $dials.bg
-    Rappture::Radiodial $dials.dial -valuewidth 0
-    Rappture::Tooltip::for $dials.dial \
-        "@[itcl::code $this _getTooltip dial active]"
-
-    set fn [option get $itk_component(hull) textFont Font]
-    label $dials.all -text "All" -padx 8 \
-        -borderwidth 1 -relief raised -font $fn
-    Rappture::Tooltip::for $dials.all \
-        "@[itcl::code $this _getTooltip all active]"
-    bind $dials.all <ButtonRelease> [itcl::code $this _toggleAll]
-
-    frame $dials.labelmore
-    label $dials.labelmore.arrow -bitmap [Rappture::icon empty] -borderwidth 0
-    pack $dials.labelmore.arrow -side left -fill y
-    label $dials.labelmore.name -text "more parameters..." -font $fn \
-        -borderwidth 0 -padx 0 -pady 1
-    pack $dials.labelmore.name -side left
-    label $dials.labelmore.value
-    pack $dials.labelmore.value -side left
-
-    eval itk_initialize $args
+    eval configure $args
 }
 
 # ----------------------------------------------------------------------
 # DESTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::destructor {} {
+    clear
     itcl::delete object $_results
 }
 
@@ -217,30 +78,24 @@ itcl::body Rappture::ResultSet::destructor {} {
 # be added to their result viewers at the same index.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::add {xmlobj} {
-    # make sure we fix up controls at some point
-    $_dispatcher event -idle !fixcntls
-
-    #
-    # If this is the first result, then there are no diffs.
-    # Add it right in.
-    #
     set xmlobj0 [$_results get -format xmlobj end]
-    if {"" == $xmlobj0} {
-        # first element -- always add
+    if {$xmlobj0 eq ""} {
+        #
+        # If this is the first result, then there are no diffs.
+        # Add it right in.
+        #
         set simnum "#[incr _resultnum]"
         $_results insert end [list $xmlobj $simnum]
-        _fixNumResults
-        set _recent $xmlobj
-        return $simnum
+    } else {
+        #
+        # For all later results, find the diffs and add any new columns
+        # into the results tuple.  The latest result is the most recent.
+        #
+        set simnum [_addOneResult $_results $xmlobj]
     }
 
-    #
-    # For all later results, find the diffs and add any new columns
-    # into the results tuple.  The latest result is the most recent.
-    #
-    set simnum [_addOneResult $_results $xmlobj]
-    set _recent $xmlobj
-    _fixNumResults
+    # make sure we fix up associated controls
+    $_dispatcher event -now !change op add what $xmlobj
 
     return $simnum
 }
@@ -252,12 +107,6 @@ itcl::body Rappture::ResultSet::add {xmlobj} {
 # result object is specified, then all results are cleared.
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSet::clear {{xmlobj ""}} {
-    set shortlist $itk_component(dials)
-    set controlsChanged 0
-
-    # clear any currently highlighted result
-    _doSettings
-
     if {$xmlobj ne ""} {
         #
         # Delete just one result.  Look for the result among the
@@ -268,26 +117,15 @@ itcl::body Rappture::ResultSet::clear {{xmlobj ""}} {
         #
         set irun [$_results find -format xmlobj $xmlobj]
         if {[llength $irun] == 1} {
-            # figure out where we are in the active control, and
-            # what value we should display after this one is deleted
-            set vlist ""
-            foreach {label val} [_getValues $_active all] {
-                lappend vlist $label
-            }
-            set ipos [lsearch $vlist $_cntlInfo($this-$_active-value)]
-
-            set vcurr ""
-            set vnext ""
-            if {$ipos >= 0} {
-                # try to stay at this value, if we can
-                set vcurr [lindex $vlist $ipos]
-
-                # fall back to this value, if we have to
-                if {$ipos > 0} { incr ipos -1 } else { incr ipos }
-                set vnext [lindex $vlist $ipos]
+            # grab a description of what we're about to delete
+            set dlist [list simnum [$_results get -format simnum $irun]]
+            foreach col [lrange [$_results column names] 2 end] {
+                set raw [lindex [Rappture::LibraryObj::value $xmlobj $col] 0]
+                lappend dlist $col $raw  ;# use "raw" (user-readable) label
             }
 
-            # delete the value from the tuples of all results
+            # delete this from the tuples of all results
+            itcl::delete object $xmlobj
             $_results delete $irun
 
             set new [Rappture::Tuples ::#auto]
@@ -308,125 +146,155 @@ itcl::body Rappture::ResultSet::clear {{xmlobj ""}} {
             itcl::delete object $_results
             set _results $new
 
-            # delete any adjuster controls that disappeared
-            foreach col $_cntlInfo($this-all) {
-                if {[$_results column names $col] eq ""} {
-                    set id $_cntlInfo($this-$col-id)
-                    destroy $shortlist.label$id
-                    array unset _cntlInfo $this-$col*
-
-                    set i [lsearch -exact $_cntlInfo($this-all) $col]
-                    if {$i >= 0} {
-                        set _cntlInfo($this-all) [lreplace $_cntlInfo($this-all) $i $i]
-                    }
-
-                    if {$col == $_active} {
-                        # control is going away -- switch to sim # control
-                        set simnum0 [$_results get -format simnum 0]
-                        set _cntlInfo($this-simnum-value) $simnum0
-                        activate simnum
-                    }
-                    set controlsChanged 1
-                }
-            }
-
-            # can we find a tuple with the desired value for the active col?
-            if {$_active ne "" && $vcurr ne ""} {
-                set found ""
-                if {[$_results find -format $_active $vcurr] ne ""} {
-                    set found $vcurr
-                } elseif {$vnext ne "" && [$_results find -format $_active $vnext] ne ""} {
-                    set found $vnext
-                }
-
-                if {$found ne ""} {
-                    # set the control to a value we were able to find
-                    # this will trigger !settings and other adjustments
-                    set _cntlInfo($this-$_active-value) $found
-                } else {
-                    # if all else fails, show solution #1
-                    set simnum0 [$_results get -format simnum 0]
-                    set _cntlInfo($this-simnum-value) $simnum0
-                    activate simnum
-                }
-            }
+            # make sure we fix up associated controls at some point
+            $_dispatcher event -now !change op clear what $dlist
         }
     } else {
         #
         # Delete all results.
         #
+        for {set irun 0} {$irun < [$_results size]} {incr irun} {
+            set xo [$_results get -format xmlobj $irun]
+            itcl::delete object $xo
+        }
         $_results delete 0 end
 
-        # delete all adjuster controls
-        foreach col $_cntlInfo($this-all) {
-            set id $_cntlInfo($this-$col-id)
-            destroy $shortlist.label$id
-        }
-        set controlsChanged 1
+        # make sure we fix up associated controls at some point
+        $_dispatcher event -now !change op clear what all
     }
 
     if {[$_results size] == 0} {
-        #
-        # No results left?  Then clean everything up.
-        #
-
-        array unset _cntlInfo $this-*
-        # clean up control info
-        foreach key [array names _cntlInfo $this-*] {
-            catch {unset _cntlInfo($key)}
-        }
-        set _cntlInfo($this-all) ""
-        set _counter 0
-        set _resultnum 0
-
-        # clear out all results
+        # no results left?  then reset to a clean state
         eval $_results column delete [lrange [$_results column names] 2 end]
-        set _recent ""
-        set _active ""
-
-        set _plotall 0
-        $itk_component(dials).all configure -relief raised \
-            -background $itk_option(-background) \
-            -foreground $itk_option(-foreground)
-    }
-
-    # update status and Clear button
-    _fixNumResults
-    $_dispatcher event -idle !fixcntls
-
-    # let clients know that the number of controls has changed
-    if {$controlsChanged} {
-        event generate $itk_component(hull) <<Control>>
-    }
-
-    # if there's a callback for clearing, invoke it now...
-    if {[string length $itk_option(-clearcommand)] > 0} {
-        uplevel #0 $itk_option(-clearcommand) $xmlobj
+        set _resultnum 0
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: activate <column>
+# USAGE: diff names
+# USAGE: diff values <column> ?<which>?
 #
-# Clients use this to activate a particular column in the set of
-# controls.  When a column is active, its label is bold and its
-# value has a radiodial in the "short list" area.
+# Returns information about the diffs in the current set of known
+# results.  The "diff names" returns a list of column names for
+# parameters that have diffs.  (These are the columns in the tuples.)
+#
+# The "diff values" returns the various values associated with a
+# particular <column> name.  If the optional <which> is specified,
+# then it is treated as an index into the list of values--0 for the
+# first value, 1 for the second, etc.  Each value is returned as
+# a list with two words.  The first is the the label associated with
+# the value.  The second is the normalized (numeric) value, which can
+# be sorted to get a particular ordering.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::activate {column} {
-    set allowed [$_results column names]
-    if {[lsearch $allowed $column] < 0} {
-        error "bad value \"$column\": should be one of [join $allowed {, }]"
+itcl::body Rappture::ResultSet::diff {option args} {
+    switch -- $option {
+        names {
+            return [$_results column names]
+        }
+        values {
+            if {[llength $args] < 1} {
+                error "wrong # args: should be \"diff values col ?which?\""
+            }
+            set col [lindex $args 0]
+
+            set which "all"
+            if {[llength $args] > 1} {
+                set which [lindex $args 1]
+            }
+
+            if {$which eq "all"} {
+                set rlist ""
+                # build an array of normalized values and their labels
+                if {$col == "simnum"} {
+                    set nruns [$_results size]
+                    for {set n 0} {$n < $nruns} {incr n} {
+                        set simnum [$_results get -format simnum $n]
+                        lappend rlist $simnum $n
+                    }
+                } else {
+                    set havenums 1
+                    foreach rec [$_results get -format [list xmlobj $col]] {
+                        set xo [lindex $rec 0]
+                        set v [lindex $rec 1]
+                        foreach {raw norm} \
+                            [Rappture::LibraryObj::value $xo $col] break
+
+                        if {![info exists unique($v)]} {
+                            # keep only unique label strings
+                            set unique($v) $norm
+                        }
+                        if {$havenums && ![string is double $norm]} {
+                            set havenums 0
+                        }
+                    }
+
+                    if {!$havenums} {
+                        # don't have normalized nums? then sort and create nums
+                        set rlist ""
+                        set n 0
+                        foreach val [lsort -dictionary [array names unique]] {
+                            lappend rlist $val [incr n]
+                        }
+                    } else {
+                        set rlist [array get unique]
+                    }
+                }
+                return $rlist
+            }
+
+            # treat the "which" parameter as an XML object
+            set irun [lindex [$_results find -format xmlobj $which] 0]
+            if {$irun ne ""} {
+                if {$col == "simnum"} {
+                    set val [$_results get -format simnum $irun]
+                } else {
+                    # Be careful giving singleton elements as the
+                    # "columns" argument to "Tuples::get". It is
+                    # expecting a list.
+                    foreach {raw norm} \
+                        [Rappture::LibraryObj::value $which $col] break
+                    return [list $norm $raw]
+                }
+            }
+        }
+        default {
+            error "bad option \"$option\": should be names or values"
+        }
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: find <columnList> <valueList>
+#
+# Searches through the results for a set of tuple values that match
+# the <valueList> for the given <columnList>.  Returns a list of
+# matching xml objects or "" if there is no match.  If the <valueList>
+# is *, then it returns a list of all xml objects.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::find {collist vallist} {
+    if {$vallist eq "*"} {
+        return [$_results get -format xmlobj]
     }
 
-    # column is now active
-    set _active $column
+    set rlist ""
+    foreach irun [$_results find -format $collist $vallist] {
+        lappend rlist [$_results get -format xmlobj $irun]
+    }
+    return $rlist
+}
 
-    # keep track of usage, so we know which controls are popular
-    incr _cntlInfo($this-$column-usage)
-
-    # fix controls at next idle point
-    $_dispatcher event -idle !layout why data
-    $_dispatcher event -idle !settings column $_active
+# ----------------------------------------------------------------------
+# USAGE: get <columnList> <xmlobj>
+#
+# Returns values for the specified <columnList> for the given <xmlobj>.
+# This is a way of querying associated data for the given object.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::get {collist xmlobj} {
+    set irun [lindex [$_results find -format xmlobj $xmlobj] 0]
+    if {$irun ne ""} {
+        return [lindex [$_results get -format $collist $irun] 0]
+    }
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -498,1015 +366,130 @@ itcl::body Rappture::ResultSet::contains {xmlobj} {
 
 
 # ----------------------------------------------------------------------
-# USAGE: size ?-results|-controls|-controlarea?
+# USAGE: size
 #
-# Returns various measures for the size of this area:
-#   -results ....... number of results loaded
-#   -controls ...... number of distinct control parameters
-#   -controlarea ... minimum size of usable control area, in pixels
+# Returns the number of results currently stored in the set.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::size {{what -results}} {
-    switch -- $what {
-        -results {
-            return [$_results size]
-        }
-        -controls {
-            return [llength $_cntlInfo($this-all)]
-        }
-        -controlarea {
-            set ht [winfo reqheight $itk_component(cntls)]
-            incr ht 2  ;# padding below controls
+itcl::body Rappture::ResultSet::size {} {
+    return [$_results size]
+}
 
-            set normalLine [font metrics $itk_option(-textfont) -linespace]
-            incr normalLine 2  ;# padding
-            set boldLine [font metrics $itk_option(-boldfont) -linespace]
-            incr boldLine 2  ;# padding
+# ----------------------------------------------------------------------
+# USAGE: notify add <client> ?!event !event ...? <command>
+# USAGE: notify get ?<client>? ?!event?
+# USAGE: notify remove <client> ?!event !event ...?
+#
+# Clients use this to add/remove requests for notifications about
+# various events that signal changes to the data in each ResultSet.
+#
+# The "notify add" operation takes a <client> name (any unique string
+# identifying the client), an optional list of events, and the <command>
+# that should be called for the callback.
+#
+# The "notify get" command returns information about clients and their
+# registered callbacks.  With no args, it returns a list of <client>
+# names.  If the <client> is specified, it returns a list of !events.
+# If the <client> and !event is specified, it returns the <command>.
+#
+# The "notify remove" command removes any callback associated with
+# a given <client>.  If no particular !events are specified, then it
+# removes callbacks for all events.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSet::notify {option args} {
+    set allEvents {!change}
+    switch -- $option {
+        add {
+            if {[llength $args] < 2} {
+                error "wrong # args: should be \"notify add caller ?!event !event ...? command"
+            }
+            set caller [lindex $args 0]
+            set command [lindex $args end]
+            if {[llength $args] > 2} {
+                set events [lrange $args 1 end-1]
+            } else {
+                set events $allEvents
+            }
 
-            set numcntls [llength $_cntlInfo($this-all)]
-            switch -- $numcntls {
-                0 - 1 {
-                    # 0 = no controls (no data at all)
-                    # 1 = run control, but only 1 run so far
-                    # add nothing
+            foreach name $events {
+                if {[lsearch -exact $allEvents $name] < 0} {
+                    error "bad event \"$name\": should be [join $allEvents ,]"
+                }
+                if {[lsearch $_notify(ALL) $caller] < 0} {
+                    lappend _notify(ALL) $caller
+                }
+                set _notify($caller-$name) $command
+            }
+        }
+        get {
+            switch -- [llength $args] {
+                0 {
+                    return $_notify(ALL)
+                }
+                1 {
+                    set caller [lindex $args 0]
+                    set rlist ""
+                    foreach key [array names _notify $caller-*] {
+                        lappend rlist [lindex [split $key -] end]
+                    }
+                    return $rlist
+                }
+                2 {
+                    set caller [lindex $args 0]
+                    set name [lindex $args 1]
+                    if {[info exists _notify($caller-$name)]} {
+                        return $_notify($caller-$name)
+                    }
+                    return ""
                 }
                 default {
-                    # non-active controls
-                    incr ht [expr {($numcntls-1)*$normalLine}]
-                    # active control
-                    incr ht $boldLine
-                    # dial for active control
-                    incr ht [winfo reqheight $itk_component(dials).dial]
-                    # padding around active control
-                    incr ht 4
+                    error "wrong # args: should be \"notify get ?caller? ?!event?\""
                 }
             }
-            return $ht
         }
-        default {
-            error "bad option \"$what\": should be -results, -controls, or -controlarea"
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _doClear all|current
-#
-# Invoked automatically when the user presses the "Clear One" or
-# "Clear All" buttons.  Invokes the -clearcommand to clear all data
-# from this resultset and all other resultsets in an Analyzer.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_doClear {what} {
-    switch -- $what {
-        current {
-            set xmlobj ""
-            # value of xmlobj control is something like "#1" or "#2"
-            set irun [$_results find -format simnum $_cntlInfo($this-simnum-value)]
-            if {$irun ne ""} {
-                # convert index to a real xmlobj object
-                set xmlobj [$_results get -format xmlobj $irun]
+        remove {
+            if {[llength $args] < 1} {
+                error "wrong # args: should be \"notify remove caller ?!event !event ...?"
             }
-            clear $xmlobj
-        }
-        all {
-            clear
-        }
-        default { error "bad option \"$what\": should be current or all" }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _doSettings ?<command>?
-#
-# Used internally whenever the result selection changes to invoke
-# the -settingscommand.  This will notify some external widget, which
-# with perform the plotting action specified in the <command>.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_doSettings {{cmd ""}} {
-    if {[string length $itk_option(-settingscommand)] > 0} {
-        uplevel #0 $itk_option(-settingscommand) $cmd
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _control bind <widget> <column>
-# USAGE: _control hilite <state> <column> <panel>
-# USAGE: _control load <widget> <column>
-#
-# Used internally to manage the interactivity of controls.  The "bind"
-# operation sets up bindings on the label/value for each control, so
-# you can mouse over and click on a control to activate it.  The
-# "hilite" operation controls highlighting of the control.  The "load"
-# operation loads data into the specified radiodial <widget>.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_control {option args} {
-    switch -- $option {
-        bind {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be _control bind widget column"
-            }
-            set widget [lindex $args 0]
-            set col [lindex $args 1]
-
-            set panel [winfo parent $widget]
-            if {[string match label* [winfo name $panel]]} {
-                set panel [winfo parent $panel]
-            }
-
-            bind $widget <Enter> \
-                [itcl::code $this _control hilite on $col $panel]
-            bind $widget <Leave> \
-                [itcl::code $this _control hilite off $col $panel]
-            bind $widget <ButtonRelease> [itcl::code $this activate $col]
-        }
-        hilite {
-            if {[llength $args] != 3} {
-                error "wrong # args: should be _control hilite state column panel"
-            }
-            if {$_layout(mode) != "usual"} {
-                # abbreviated controls? then skip highlighting
-                return
-            }
-            set state [lindex $args 0]
-            set col [lindex $args 1]
-            set panel [lindex $args 2]
-
-            if {[string index $col 0] == "@"} {
-                # handle artificial names like "@more"
-                set id [string range $col 1 end]
+            set caller [lindex $args 0]
+            if {[llength $args] > 1} {
+                set events [lrange $args 1 end]
             } else {
-                # get id for ordinary columns
-                set id $_cntlInfo($this-$col-id)
+                set events $allEvents
             }
 
-            # highlight any non-active entries
-            if {$col != $_active} {
-                if {$state} {
-                    set fg $itk_option(-controlactiveforeground)
-                    $panel.label$id.name configure -fg $fg
-                    $panel.label$id.value configure -fg $fg
-                    $panel.label$id.arrow configure -fg $fg \
-                        -bitmap [Rappture::icon rarrow2]
-                } else {
-                    set fg $itk_option(-foreground)
-                    $panel.label$id.name configure -fg $fg
-                    $panel.label$id.value configure -fg $fg
-                    $panel.label$id.arrow configure -fg $fg \
-                        -bitmap [Rappture::icon empty]
+            foreach name $events {
+                catch {unset _notify($caller-$name)}
+            }
+            if {[llength [array names _notify $caller-*]] == 0} {
+                set i [lsearch $_notify(ALL) $caller]
+                if {$i >= 0} {
+                    set _notify(ALL) [lreplace $_notify(ALL) $i $i]
                 }
-            }
-        }
-        load {
-            if {[llength $args] != 2} {
-                error "wrong # args: should be _control load widget column"
-            }
-            set dial [lindex $args 0]
-            set col [lindex $args 1]
-
-            $dial clear
-            foreach {label val} [_getValues $col all] {
-                $dial add $label $val
             }
         }
         default {
-            error "bad option \"$option\": should be bind, hilite, or load"
+            error "wrong # args: should be add, get, remove"
         }
     }
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _fixControls ?<eventArgs...>?
+# USAGE: _notifyHandler ?<eventArgs>...?
 #
-# Called automatically at the idle point after one or more results
-# have been added to this result set.  Scans through all existing
-# data and updates controls used to select the data.
+# Called automatically whenever a !change event is triggered in this
+# object.  Scans through the list of clients that want to receive this
+# event and executes each of their callbacks.
 # ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixControls {args} {
-    if {[$_results size] == 0} {
-        return
-    }
+itcl::body Rappture::ResultSet::_notifyHandler {args} {
+    array set data $args
+    set event $data(event)
 
-    set shortlist $itk_component(dials)
-    grid columnconfigure $shortlist 1 -weight 1
-
-    #
-    # Scan through all columns in the data and create any
-    # controls that just appeared.
-    #
-    $shortlist.dial configure -variable ""
-
-    set nadded 0
-    foreach col [$_results column names] {
-        set xmlobj [$_results get -format xmlobj 0]
-
-        #
-        # If this column doesn't have a control yet, then
-        # create one.
-        #
-        if {![info exists _cntlInfo($this-$col-id)]} {
-            set tip ""
-            if {$col eq "xmlobj"} {
-                continue
-            } elseif {$col eq "simnum"} {
-                set quantity "Simulation"
-                set tip "List of all simulations that you have performed so far."
-            } else {
-                # search for the first XML object with this element defined
-                foreach xmlobj [$_results get -format xmlobj] {
-                    set quantity [$xmlobj get $col.about.label]
-                    set tip [$xmlobj get $col.about.description]
-                    if {"" != $quantity} {
-                        break
-                    }
-                }
-                if {"" == $quantity && "" != $xmlobj} {
-                    set quantity [$xmlobj element -as id $col]
-                }
+    foreach caller $_notify(ALL) {
+        if {[info exists _notify($caller-$event)]} {
+            if {[catch {uplevel #0 $_notify($caller-$event) $args} result]} {
+                # anything go wrong? then throw a background error
+                bgerror "$result\n(while dispatching $event to $caller)"
             }
-
-            # Create the controls for the "short list" area.
-            set fn $itk_option(-textfont)
-            set w $shortlist.label$_counter
-            set row [lindex [grid size $shortlist] 1]
-            frame $w
-            grid $w -row $row -column 1 -sticky ew
-            label $w.arrow -bitmap [Rappture::icon empty] -borderwidth 0
-            pack $w.arrow -side left -fill y
-            _control bind $w.arrow $col
-
-            label $w.name -text $quantity -anchor w \
-                -borderwidth 0 -padx 0 -pady 1 -font $fn
-            pack $w.name -side left
-            bind $w.name <Configure> [itcl::code $this _fixValue $col resize]
-            _control bind $w.name $col
-
-            label $w.value -anchor w \
-                -borderwidth 0 -padx 0 -pady 1 -font $fn
-            pack $w.value -side left
-            bind $w.value <Configure> [itcl::code $this _fixValue $col resize]
-            _control bind $w.value $col
-
-            Rappture::Tooltip::for $w \
-                "@[itcl::code $this _getTooltip label $col]"
-
-            # create a record for this control
-            lappend _cntlInfo($this-all) $col
-            set _cntlInfo($this-$col-id) $_counter
-            set _cntlInfo($this-$col-label) $quantity
-            set _cntlInfo($this-$col-tip) $tip
-            set _cntlInfo($this-$col-value) ""
-            set _cntlInfo($this-$col-usage) 0
-            set _cntlInfo($this-$col) ""
-
-            trace add variable _cntlInfo($this-$col-value) write \
-                "[itcl::code $this _fixValue $col value]; list"
-
-            incr _counter
-
-            # fix the shortlist layout to show as many controls as we can
-            $_dispatcher event -now !layout why data
-
-            # let clients know that a new control appeared
-            # so they can fix the overall size accordingly
-            event generate $itk_component(hull) <<Control>>
-
-            incr nadded
-        }
-
-        #
-        # Determine the unique values for this column and load
-        # them into the control.
-        #
-        set id $_cntlInfo($this-$col-id)
-
-        if {$col == $_layout(active)} {
-            _control load $shortlist.dial $col
-            $shortlist.dial configure -variable \
-                "::Rappture::ResultSet::_cntlInfo($this-$col-value)"
-        }
-    }
-
-    #
-    # Activate the most recent control.  If a bunch of controls
-    # were just added, then activate the "Simulation" control,
-    # since that's the easiest way to page through results.
-    #
-    if {$nadded > 0} {
-        if {[$_results column names] == 3 || $nadded == 1} {
-            activate [lindex $_cntlInfo($this-all) end]
-        } else {
-            activate simnum
-        }
-    }
-
-    #
-    # Set all controls to the settings of the most recent addition.
-    # Setting the value slot will trigger the !settings event, which
-    # will then fix all other controls to match the one that changed.
-    #
-    set irun [lindex [$_results find -format xmlobj $_recent] 0]
-    if {$irun ne ""} {
-        set simnum [$_results get -format simnum $irun]
-        set _cntlInfo($this-simnum-value) $simnum
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixLayout ?<eventArgs...>?
-#
-# Called automatically at the idle point after the controls have
-# changed, or the size of the window has changed.  Fixes the layout
-# so that the active control is displayed, and other recent controls
-# are shown above and/or below.  At the very least, we must show the
-# "more options..." control.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixLayout {args} {
-    array set eventdata $args
-
-    set shortlist $itk_component(dials)
-
-    # clear out the short list area
-    foreach w [grid slaves $shortlist] {
-        grid forget $w
-    }
-
-    # reset all labels back to an ordinary font/background
-    set fn $itk_option(-textfont)
-    set bg $itk_option(-background)
-    set fg $itk_option(-foreground)
-    foreach col $_cntlInfo($this-all) {
-        set id $_cntlInfo($this-$col-id)
-        $shortlist.label$id configure -background $bg
-        $shortlist.label$id.arrow configure -background $bg \
-            -bitmap [Rappture::icon empty]
-        $shortlist.label$id.name configure -font $fn -background $bg
-        $shortlist.label$id.value configure -background $bg
-    }
-
-    # only 1 result? then we don't need any controls
-    if {[$_results size] < 2} {
-        return
-    }
-
-    # compute the number of controls that will fit in the shortlist area
-    set dials $itk_component(dials)
-    set h [winfo height $dials]
-    set normalLine [font metrics $itk_option(-textfont) -linespace]
-    set boldLine [font metrics $itk_option(-boldfont) -linespace]
-    set active [expr {$boldLine+[winfo reqheight $dials.dial]+4}]
-
-    if {$h < $active+$normalLine} {
-        # active control kinda big? then show parameter values only
-        set _layout(mode) abbreviated
-        set ncntls [expr {int(floor(double($h)/$normalLine))}]
-    } else {
-        set _layout(mode) usual
-        set ncntls [expr {int(floor(double($h-$active)/$normalLine))+1}]
-    }
-
-    # find the controls with the most usage
-    set order ""
-    foreach col $_cntlInfo($this-all) {
-        lappend order [list $col $_cntlInfo($this-$col-usage)]
-    }
-    set order [lsort -integer -decreasing -index 1 $order]
-
-    set mostUsed ""
-    if {[llength $order] <= $ncntls} {
-        # plenty of space? then show all controls
-        foreach item $order {
-            lappend mostUsed [lindex $item 0]
-        }
-    } else {
-        # otherwise, limit to the most-used controls
-        foreach item [lrange $order 0 [expr {$ncntls-1}]] {
-            lappend mostUsed [lindex $item 0]
-        }
-
-        # make sure the active control is included
-        if {"" != $_active && [lsearch -exact $mostUsed $_active] < 0} {
-            set mostUsed [lreplace [linsert $mostUsed 0 $_active] end end]
-        }
-
-        # if there are more controls, add the "more parameters..." entry
-        if {$ncntls > 2} {
-            set mostUsed [lreplace $mostUsed end end @more]
-            set rest [expr {[llength $order]-($ncntls-1)}]
-            if {$rest == 1} {
-                $dials.labelmore.name configure -text "1 more parameter..."
-            } else {
-                $dials.labelmore.name configure -text "$rest more parameters..."
-            }
-        }
-    }
-
-    # draw the active control
-    set row 0
-    foreach col [concat $_cntlInfo($this-all) @more] {
-        # this control not on the short list? then ignore it
-        if {[lsearch $mostUsed $col] < 0} {
-            continue
-        }
-
-        if {[string index $col 0] == "@"} {
-            set id [string range $col 1 end]
-        } else {
-            set id $_cntlInfo($this-$col-id)
-        }
-        grid $shortlist.label$id -row $row -column 1 -sticky ew -padx 4
-
-        if {$col == $_active} {
-            if {$_layout(mode) == "usual"} {
-                # put the background behind the active control in the shortlist
-                grid $shortlist.bg -row $row -rowspan 2 \
-                    -column 0 -columnspan 2 -sticky nsew
-                lower $shortlist.bg
-
-                # place the All and dial in the shortlist area
-                grid $shortlist.all -row $row -rowspan 2 -column 0 \
-                    -sticky nsew -padx 2 -pady 2
-                grid $shortlist.dial -row [expr {$row+1}] -column 1 \
-                    -sticky ew -padx 4
-                incr row
-
-                if {$_layout(active) != $_active} {
-                    $shortlist.dial configure -variable ""
-                    _control load $shortlist.dial $col
-                    $shortlist.dial configure -variable \
-                        "::Rappture::ResultSet::_cntlInfo($this-$col-value)"
-                    set _layout(active) $_active
-                }
-            }
-        }
-        incr row
-    }
-
-    # highlight the active control
-    if {[info exists _cntlInfo($this-$_active-id)]} {
-        set id $_cntlInfo($this-$_active-id)
-        set bf $itk_option(-boldfont)
-        set fg $itk_option(-activecontrolforeground)
-        set bg $itk_option(-activecontrolbackground)
-
-        if {$_layout(mode) == "usual"} {
-            $shortlist.label$id configure -background $bg
-            $shortlist.label$id.arrow configure -foreground $fg \
-                -background $bg -bitmap [Rappture::icon rarrow]
-            $shortlist.label$id.name configure -foreground $fg \
-                -background $bg -font $bf
-            $shortlist.label$id.value configure -foreground $fg \
-                -background $bg
-            $shortlist.dial configure -background $bg
-            $shortlist.bg configure -background $bg
-
-            if {[$shortlist.all cget -relief] == "raised"} {
-                $shortlist.all configure -foreground $fg -background $bg
-            }
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixNumResults
-#
-# Used internally to update the number of results displayed near the
-# top of this widget.  If there is only 1 result, then there is also
-# a single "Clear" button.  If there are no results, the clear button
-# is diabled.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixNumResults {} {
-    switch [$_results size] {
-        0 {
-            $itk_component(status) configure -text "No results"
-            $itk_component(clearall) configure -state disabled -text "Clear"
-            pack forget $itk_component(clear)
-        }
-        1 {
-            $itk_component(status) configure -text "1 result"
-            $itk_component(clearall) configure -state normal -text "Clear"
-            pack forget $itk_component(clear)
-        }
-        default {
-            $itk_component(status) configure -text "[$_results size] results"
-            $itk_component(clearall) configure -state normal -text "Clear All"
-            $itk_component(clear) configure -state normal
-            pack $itk_component(clear) -side right \
-                -after $itk_component(clearall) -padx {0 6}
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixSettings ?<eventArgs...>?
-#
-# Called automatically at the idle point after a control has changed
-# to load new data into the plotting area at the top of this result
-# set.  Extracts the current tuple of control values from the control
-# area, then finds the corresponding data values.  Loads the data
-# by invoking a -settingscommand callback with parameters that
-# describe what data should be plotted.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixSettings {args} {
-    array set eventdata $args
-    if {[info exists eventdata(column)]} {
-        set changed $eventdata(column)
-    } else {
-        set changed ""
-    }
-
-    if {[info exists _cntlInfo($this-$_active-label)]} {
-        lappend params $_cntlInfo($this-$_active-label)
-    } else {
-        lappend params "???"
-    }
-    if { $_active == "" } {
-        return;                         # Nothing active. Don't do anything.
-    }
-    eval lappend params [_getValues $_active all]
-
-    switch -- [$_results size] {
-        0 {
-            # no data? then do nothing
-            return
-        }
-        1 {
-            # only one data set? then plot it
-            set simnum [$_results get -format simnum 0]
-            _doSettings [list \
-                $simnum [list -width 2 \
-                        -param [_getValues $_active current] \
-                        -description [_getParamDesc all] \
-                  ] \
-                params $params \
-            ]
-            return
-        }
-    }
-
-    #
-    # Find the selected run.  If the run setting changed, then
-    # look at its current value.  Otherwise, search the results
-    # for a tuple that matches the current settings.
-    #
-    if {$changed == "xmlobj" || $changed == "simnum"} {
-        set irun [$_results find -format simnum $_cntlInfo($this-simnum-value)]
-    } else {
-        set format ""
-        set tuple ""
-        foreach col [lrange [$_results column names] 2 end] {
-            lappend format $col
-            lappend tuple $_cntlInfo($this-$col-value)
-        }
-        set irun [lindex [$_results find -format $format -- $tuple] 0]
-
-	if {"" == $irun && "" != $changed} {
-	    #
-	    # No data for these settings.  Try leaving the next
-	    # column open, then the next, and so forth, until
-	    # we find some data.
-	    #
-	    # allcols:  foo bar baz qux
-	    #               ^^^changed
-	    #
-	    # search:   baz qux foo
-	    #
-	    set val $_cntlInfo($this-$changed-value)
-	    set allcols [lrange [$_results column names] 2 end]
-	    set i [lsearch -exact $allcols $changed]
-	    set search [concat \
-		[lrange $allcols [expr {$i+1}] end] \
-		[lrange $allcols 0 [expr {$i-1}]] \
-	    ]
-	    set nsearch [llength $search]
-
-	    for {set i 0} {$i < $nsearch} {incr i} {
-		set format $changed
-		set tuple [list $val]
-		for {set j [expr {$i+1}]} {$j < $nsearch} {incr j} {
-		    set col [lindex $search $j]
-		    lappend format $col
-		    lappend tuple $_cntlInfo($this-$col-value)
-		}
-		set irun [lindex [$_results find -format $format -- $tuple] 0]
-		if {"" != $irun} {
-		    break
-		}
-	    }
-	}
-    }
-
-    #
-    # If we found a particular run, then load its values into all
-    # controls.
-    #
-    if {"" != $irun} {
-        # stop reacting to value changes
-        set _settings 1
-
-        set format [lrange [$_results column names] 2 end]
-        if {[llength $format] == 1} {
-            set data [$_results get -format $format $irun]
-        } else {
-            set data [lindex [$_results get -format $format $irun] 0]
-        }
-
-        foreach col $format val $data {
-            set _cntlInfo($this-$col-value) $val
-        }
-        set simnum [$_results get -format simnum $irun]
-        set _cntlInfo($this-simnum-value) $simnum
-
-        # okay, react to value changes again
-        set _settings 0
-    }
-
-    #
-    # Search for tuples matching the current setting and
-    # plot them.
-    #
-    if {$_plotall && $_active == "simnum"} {
-        set format ""
-    } else {
-        set format ""
-        set tuple ""
-        foreach col [lrange [$_results column names] 2 end] {
-            if {!$_plotall || $col != $_active} {
-                lappend format $col
-                lappend tuple $_cntlInfo($this-$col-value)
-            }
-        }
-    }
-
-    if {"" != $format} {
-        set ilist [$_results find -format $format -- $tuple]
-    } else {
-        set ilist [$_results find]
-    }
-
-    if {[llength $ilist] > 0} {
-        # search for the result for these settings
-        set format ""
-        set tuple ""
-        foreach col [lrange [$_results column names] 2 end] {
-            lappend format $col
-            lappend tuple $_cntlInfo($this-$col-value)
-        }
-        set icurr [$_results find -format $format -- $tuple]
-
-        if {[llength $ilist] == 1} {
-            # single result -- always use active color
-            set i [lindex $ilist 0]
-            set simnum [$_results get -format simnum $i]
-            set plist [list \
-                $simnum [list -width 2 \
-                         -param [_getValues $_active $i] \
-                         -description [_getParamDesc all $i] \
-                   ] \
-                params $params \
-            ]
-        } else {
-            #
-            # Get the color for all points according to
-            # the color spectrum.
-            #
-            set plist [list params $params]
-            foreach i $ilist {
-                set simnum [$_results get -format simnum $i]
-                if {$i == $icurr} {
-                    lappend plist $simnum [list -width 3 -raise 1 \
-                        -param [_getValues $_active $i] \
-                        -description [_getParamDesc all $i]]
-                } else {
-                    lappend plist $simnum [list -brightness 0.7 -width 1 \
-                        -param [_getValues $_active $i] \
-                        -description [_getParamDesc all $i]]
-                }
-            }
-        }
-
-        #
-        # Load up the matching plots
-        #
-        _doSettings $plist
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _fixValue <columnName> <why>
-#
-# Called automatically whenver a value for a parameter dial changes.
-# Updates the interface to display the new value.  The <why> is a
-# reason for the change, which may be "resize" (draw old value in
-# new size) or "value" (value changed).
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_fixValue {col why} {
-    if {[info exists _cntlInfo($this-$col-id)]} {
-        set id $_cntlInfo($this-$col-id)
-
-        set widget $itk_component(dials).label$id
-        set wmax [winfo width $itk_component(dials).dial]
-        if {$wmax <= 1} {
-            set wmax [expr {round(0.9*[winfo width $itk_component(cntls)])}]
-        }
-        _drawValue $col $widget $wmax
-
-        if {$why == "value" && !$_settings} {
-            # keep track of usage, so we know which controls are popular
-            incr _cntlInfo($this-$col-usage)
-
-            # adjust the settings according to the value in the column
-            $_dispatcher event -idle !settings column $col
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _drawValue <columnName> <widget> <widthMax>
-#
-# Used internally to fix the rendering of a "quantity = value" display.
-# If the name/value in <widget> are smaller than <widthMax>, then the
-# full "quantity = value" string is displayed.  Otherwise, an
-# abbreviated form is displayed.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_drawValue {col widget wmax} {
-    set quantity $_cntlInfo($this-$col-label)
-    regsub -all {\n} $quantity " " quantity  ;# take out newlines
-
-    set newval $_cntlInfo($this-$col-value)
-    regsub -all {\n} $newval " " newval  ;# take out newlines
-
-    set lfont [$widget.name cget -font]
-    set vfont [$widget.value cget -font]
-
-    set wn [font measure $lfont $quantity]
-    set wv [font measure $lfont " = $newval"]
-    set w [expr {$wn + $wv}]
-
-    if {$w <= $wmax} {
-        # if the text fits, then shown "quantity = value"
-        $widget.name configure -text $quantity
-        $widget.value configure -text " = $newval"
-    } else {
-        # Otherwise, we'll have to appreviate.
-        # If the value is really long, then just show a little bit
-        # of it.  Otherwise, show as much of the value as we can.
-        if {[string length $newval] > 30} {
-            set frac 0.8
-        } else {
-            set frac 0.2
-        }
-        set wNameSpace [expr {round($frac*$wmax)}]
-        set wValueSpace [expr {$wmax-$wNameSpace}]
-
-        # fit as much of the "quantity" label in the space available
-        if {$wn < $wNameSpace} {
-            $widget.name configure -text $quantity
-            set wValueSpace [expr {$wmax-$wn}]
-        } else {
-            set wDots [font measure $lfont "..."]
-            set wchar [expr {double($wn)/[string length $quantity]}]
-            while {1} {
-                # figure out a good size for the abbreviated string
-                set cmax [expr {round(($wNameSpace-$wDots)/$wchar)}]
-                if {$cmax < 0} {set cmax 0}
-                set str "[string range $quantity 0 $cmax]..."
-                if {[font measure $lfont $str] <= $wNameSpace
-                      || $wDots >= $wNameSpace} {
-                    break
-                }
-                # we're measuring with average chars, so we may have
-                # to shave a little off and do this again
-                set wDots [expr {$wDots+2*$wchar}]
-            }
-            $widget.name configure -text $str
-            set wValueSpace [expr {$wmax-[font measure $lfont $str]}]
-        }
-
-        if {$wv < $wValueSpace} {
-            $widget.value configure -text " = $newval"
-        } else {
-            set wDots [font measure $vfont "..."]
-            set wEq [font measure $vfont " = "]
-            set wchar [expr {double($wv)/[string length " = $newval"]}]
-            while {1} {
-                # figure out a good size for the abbreviated string
-                set cmax [expr {round(($wValueSpace-$wDots-$wEq)/$wchar)}]
-                if {$cmax < 0} {set cmax 0}
-                set str " = [string range $newval 0 $cmax]..."
-                if {[font measure $vfont $str] <= $wValueSpace
-                      || $wDots >= $wValueSpace} {
-                    break
-                }
-                # we're measuring with average chars, so we may have
-                # to shave a little off and do this again
-                set wDots [expr {$wDots+2*$wchar}]
-            }
-            $widget.value configure -text $str
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _toggleAll ?<columnName>?
-#
-# Called automatically whenever the user clicks on an "All" button.
-# Toggles the button between its on/off states.  In the "on" state,
-# all results associated with the current control are sent to the
-# result viewer.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_toggleAll {{col "current"}} {
-    if {$col == "current"} {
-        set col $_active
-    }
-    if {![info exists _cntlInfo($this-$col-id)]} {
-        return
-    }
-    set id $_cntlInfo($this-$col-id)
-    set sbutton $itk_component(dials).all
-    set current [$sbutton cget -relief]
-
-    if {$current == "sunken"} {
-        $sbutton configure -relief raised \
-            -background $itk_option(-activecontrolbackground) \
-            -foreground $itk_option(-activecontrolforeground)
-        set _plotall 0
-    } else {
-        $sbutton configure -relief sunken \
-            -background $itk_option(-togglebackground) \
-            -foreground $itk_option(-toggleforeground)
-        set _plotall 1
-
-        if {$col != $_active} {
-            # clicked on an inactive "All" button? then activate that column
-            activate $col
-        }
-    }
-    $_dispatcher event -idle !settings
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getValues <column> ?<which>?
-#
-# Called automatically whenever the user hovers a control within
-# this widget.  Returns the tooltip associated with the control.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_getValues {col {which ""}} {
-    if {$col == "simnum"} {
-        # load the Simulation # control
-        set nruns [$_results size]
-        for {set n 0} {$n < $nruns} {incr n} {
-            set v [$_results get -format simnum $n]
-            set label2val($v) $n
-        }
-    } else {
-        set havenums 1
-        set vlist ""
-        foreach rec [$_results get -format [list xmlobj $col]] {
-            set xo [lindex $rec 0]
-            set v [lindex $rec 1]
-
-            if {![info exists label2val($v)]} {
-                lappend vlist $v
-                foreach {raw norm} [Rappture::LibraryObj::value $xo $col] break
-                set label2val($v) $norm
-
-                if {$havenums && ![string is double $norm]} {
-                    set havenums 0
-                }
-            }
-        }
-
-        if {!$havenums} {
-            # don't have normalized nums? then sort and create nums
-            catch {unset label2val}
-
-            set n 0
-            foreach v [lsort $vlist] {
-                incr n
-                set label2val($v) $n
-            }
-        }
-    }
-
-    switch -- $which {
-        current {
-            set curr $_cntlInfo($this-$col-value)
-            if {[info exists label2val($curr)]} {
-                return [list $curr $label2val($curr)]
-            }
-            return ""
-        }
-        all {
-            return [array get label2val]
-        }
-        default {
-            if {[string is integer $which]} {
-                if {$col == "simnum"} {
-                    set val [$_results get -format simnum $which]
-                } else { 
-                    # Be careful giving singleton elements as the "columns"
-                    # argument to "Tuples::get". It is expecting a list.
-                    set val [lindex [$_results get -format [list $col] $which] 0]
-                }
-                if {[info exists label2val($val)]} {
-                    return [list $val $label2val($val)]
-                }
-                return ""
-            }
-            error "bad option \"$which\": should be all, current, or an integer index"
-        }
-    }
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getTooltip <role> <column>
-#
-# Called automatically whenever the user hovers a control within
-# this widget.  Returns the tooltip associated with the control.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_getTooltip {role column} {
-    set label ""
-    set tip ""
-    if {$column == "active"} {
-        set column $_active
-    }
-    if {[info exists _cntlInfo($this-$column-label)]} {
-        set label $_cntlInfo($this-$column-label)
-    }
-    if {[info exists _cntlInfo($this-$column-tip)]} {
-        set tip $_cntlInfo($this-$column-tip)
-    }
-
-    switch -- $role {
-        label {
-            if {$column != $_active} {
-                append tip "\n\nClick to activate this control."
-            }
-        }
-        dial {
-            append tip "\n\nClick to change the value of this parameter."
-        }
-        all {
-            if {$label == ""} {
-                set tip "Plot all values for this quantity."
-            } else {
-                set tip "Plot all values for $label."
-            }
-            if {$_plotall} {
-                set what "all values"
-            } else {
-                set what "one value"
-            }
-            append tip "\n\nCurrently, plotting $what.  Click to toggle."
-        }
-    }
-    return [string trim $tip]
-}
-
-# ----------------------------------------------------------------------
-# USAGE: _getParamDesc <which> ?<index>?
-#
-# Used internally to build a descripton of parameters for the data
-# tuple at the specified <index>.  This is passed on to the underlying
-# results viewer, so it will know what data is being viewed.
-# ----------------------------------------------------------------------
-itcl::body Rappture::ResultSet::_getParamDesc {which {index "current"}} {
-    if {$index == "current"} {
-        # search for the result for these settings
-        set format ""
-        set tuple ""
-        foreach col [lrange [$_results column names] 2 end] {
-            lappend format $col
-            lappend tuple $_cntlInfo($this-$col-value)
-        }
-        set index [$_results find -format $format -- $tuple]
-        if {"" == $index} {
-            return ""  ;# somethings wrong -- bail out!
-        }
-    }
-
-    switch -- $which {
-        active {
-            if {"" == $_active} {
-                return ""
-            }
-        }
-        all {
-            set desc ""
-            foreach col $_cntlInfo($this-all) {
-                set quantity $_cntlInfo($this-$col-label)
-                # Be careful giving singleton elements as the "columns"
-                # argument to "Tuples::get". It is expecting a list.
-                set val [lindex [$_results get -format [list $col] $index] 0]
-                if {$col == "simnum"} {
-                    set irun [lindex [$_results find -format xmlobj $val] 0]
-                    set val [$_results get -format simnum $irun]
-                }
-                append desc "$quantity = $val\n"
-            }
-            return [string trim $desc]
-        }
-        default {
-            error "bad value \"$which\": should be active or all"
         }
     }
 }
@@ -1574,8 +557,14 @@ itcl::body Rappture::ResultSet::_addOneResult {tuples xmlobj {simnum ""}} {
         }
 
         # overwrite the first matching entry
+        # start by freeing the old result
         set index [lindex $ilist 0]
+        set xo [$tuples get -format xmlobj $index]
+        itcl::delete object $xo
+
+        # put this new result in its place
         $tuples put -format $cols $index $tuple
+        set simnum [$tuples get -format simnum $index]
     } else {
         if {$simnum eq ""} {
             set simnum "#[incr _resultnum]"
@@ -1585,18 +574,3 @@ itcl::body Rappture::ResultSet::_addOneResult {tuples xmlobj {simnum ""}} {
     }
     return $simnum
 }
-
-# ----------------------------------------------------------------------
-# OPTION: -activecontrolbackground
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::ResultSet::activecontrolbackground {
-    $_dispatcher event -idle !layout
-}
-
-# ----------------------------------------------------------------------
-# OPTION: -activecontrolforeground
-# ----------------------------------------------------------------------
-itcl::configbody Rappture::ResultSet::activecontrolforeground {
-    $_dispatcher event -idle !layout
-}
-

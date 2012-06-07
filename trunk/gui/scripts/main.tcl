@@ -54,10 +54,10 @@ option add *Balloon.titleForeground white
 option add *Balloon*Label.font -*-helvetica-medium-r-normal-*-12-*
 option add *Balloon*Radiobutton.font -*-helvetica-medium-r-normal-*-12-*
 option add *Balloon*Checkbutton.font -*-helvetica-medium-r-normal-*-12-*
-option add *ResultSet.controlbarBackground #6666cc
-option add *ResultSet.controlbarForeground white
-option add *ResultSet.activeControlBackground #ccccff
-option add *ResultSet.activeControlForeground black
+option add *ResultSelector.controlbarBackground #6666cc
+option add *ResultSelector.controlbarForeground white
+option add *ResultSelector.activeControlBackground #ccccff
+option add *ResultSelector.activeControlForeground black
 option add *Radiodial.length 3i
 option add *BugReport*banner*foreground white
 option add *BugReport*banner*background #a9a9a9
