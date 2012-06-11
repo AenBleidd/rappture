@@ -50,6 +50,7 @@ itcl::class Rappture::Field {
     private variable _comp2xy    ;# maps component name => x,y vectors
     private variable _comp2vtk   ;# maps component name => vtkFloatArray
     private variable _comp2vtkstreamlines   ;# maps component name => vtkFloatArray
+    private variable _comp2vtkcontour   ;# maps component name => vtkFloatArray
     private variable _comp2vtkvolume   ;# maps component name => vtkFloatArray
     private variable _comp2volume   ;# maps component name => vtkFloatArray
     private variable _comp2dx    ;# maps component name => OpenDX data
@@ -58,9 +59,15 @@ itcl::class Rappture::Field {
     private variable _comp2style ;# maps component name => style settings
     private variable _comp2cntls ;# maps component name => x,y control points
     private variable _comp2extents 
+    private variable _comp2limits 
     private variable _type "" 
     private variable _comp2flowhints 
     private common _counter 0    ;# counter for unique vector names
+
+    private method ConvertToVtkData { cname } 
+    private method ReadVtkDataSet { cname contents } 
+    private variable _fields {}
+    private variable _isVtk
 }
 
 # ----------------------------------------------------------------------
@@ -196,6 +203,9 @@ itcl::body Rappture::Field::mesh {{what -overall}} {
         error "mesh: not implemented for streamlines"
         return [$mobj mesh]
     }
+    if { [info exists _comp2vtkcontour($what)] } {
+        error "method \"mesh\" is not implemented for vtkcontour"
+    }
     if { [info exists _comp2vtk($what)] } {
         set mobj [lindex $_comp2vtk($what) 0]
         return [$mobj mesh]
@@ -230,6 +240,9 @@ itcl::body Rappture::Field::values {{what -overall}} {
     }
     if {[info exists _comp2xy($what)]} {
         return [lindex $_comp2xy($what) 1]  ;# return yv
+    }
+    if { [info exists _comp2vtkcontour($what)] } {
+        error "method \"values\" is not implemented for vtkcontour"
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
         # FIXME: Need to process the vtk file data to pull out the field's
@@ -269,6 +282,9 @@ itcl::body Rappture::Field::blob {{what -overall}} {
     }
     if { [info exists _comp2vtkvolume($what)] } {
         return $_comp2vtkvolume($what)
+    }
+    if { [info exists _comp2vtkcontour($what)] } {
+        return $_comp2vtkcontour($what)
     }
     if { [info exists _comp2vtkstreamlines($what)] } {
         # Return the contents of the vtk file.
@@ -588,6 +604,7 @@ itcl::body Rappture::Field::_build {} {
     catch {unset _comp2style}
     array unset _comp2volume
     array unset _comp2vtkstreamlines
+    array unset _comp2vtkcontour
     array unset _comp2unirect2d
     array unset _comp2unirect3d
     array unset _comp2extents
@@ -606,8 +623,11 @@ itcl::body Rappture::Field::_build {} {
             [$_field element $cname.values] != ""} {
             set type "points-on-mesh"
         } elseif {[$_field element $cname.vtk] != ""} {
+	    set _isVtkData($cname) 1
             if { [$_field get "about.view"] == "streamlines" } {
                 set type "vtkstreamlines"
+            } elseif { [$_field get "about.view"] == "contour" } {
+		set type "vtkcontour"
             } else {
                 set type "vtk"
             }
@@ -799,20 +819,16 @@ itcl::body Rappture::Field::_build {} {
             set _comp2dims($cname) "3D"
             # Allow redirects to another element.
             set vtkdata [$_field get $cname.vtk]
-            if { ![string match "!*" $vtkdata] } {
-                set _comp2vtkstreamlines($cname) $vtkdata
-            } else {
-                set path [string range $vtkdata 1 end]
-                if { [$_xmlobj element $path] == "" } {
-                    error "bad redirection path \"$path\""
-                }
-                puts stderr path=$path
-                set element [$_xmlobj element -as type $path]
-                if { $element != "vtk" } {
-                    error "bad path \"$path\": must redirect to a vtk element"
-                }
-                set _comp2vtkstreamlines($cname) [$_xmlobj get $path]
-            }
+	    set _comp2vtkstreamlines($cname) $vtkdata
+            set _comp2style($cname) [$_field get $cname.style]
+            incr _counter
+        } elseif {$type == "vtkcontour"} {
+            set _comp2dims($cname) "2D"
+            # Allow redirects to another element.
+
+            set data [$_field get $cname.vtk]
+	    ReadVtkDataSet $cname $data
+	    set _comp2vtkcontour($cname) $data
             set _comp2style($cname) [$_field get $cname.style]
             incr _counter
         } elseif {$type == "vtkvolume"} {
@@ -1023,12 +1039,13 @@ itcl::body Rappture::Field::vtkdata {{what -overall}} {
     if { [info exists _comp2vtk($what)] } {
         return ""
     }
+    if { [info exists _comp2vtkcontour($what)] } {
+        return $_comp2contour($what)
+    }
     if { [info exists _comp2vtkstreamlines($what)] } {
-        # Return the contents of the vtk file.
         return $_comp2vtkstreamlines($what)
     }
     if { [info exists _comp2vtkvolume($what)] } {
-        # Return the contents of the vtk file.
         return $_comp2vtkvolume($what)
     }
     if {[info exists _comp2dx($what)]} {
@@ -1042,3 +1059,133 @@ itcl::body Rappture::Field::vtkdata {{what -overall}} {
     }
     error "bad option \"$what\": should be [join [lsort [array names _comp2dims]] {, }]"
 }
+
+itcl::body Rappture::Field::ConvertToVtkData { comp } {
+    set ds ""
+    switch -- [typeof $comp] {
+	"unirect2d" {
+	    foreach { x1 x2 xN y1 y2 yN } [$dataobj mesh $comp] break
+	    set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+	    set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+	    
+	    set ds [vtkImageData $this-grdataTemp]
+	    $ds SetDimensions $xN $yN 1
+	    $ds SetOrigin $x1 $y1 0
+	    $ds SetSpacing $spacingX $spacingY 0
+	    set arr [vtkDoubleArray $this-arrTemp]
+	    foreach {val} [$dataobj values $comp] {
+		$arr InsertNextValue $val
+	    }
+	    [$ds GetPointData] SetScalars $arr
+	}
+	"unirect3d" {
+	    foreach { x1 x2 xN y1 y2 yN z1 z2 zN } [$dataobj mesh $comp] break
+	    set spacingX [expr {double($x2 - $x1)/double($xN - 1)}]
+	    set spacingY [expr {double($y2 - $y1)/double($yN - 1)}]
+	    set spacingZ [expr {double($z2 - $z1)/double($zN - 1)}]
+	    
+	    set ds [vtkImageData $this-grdataTemp]
+	    $ds SetDimensions $xN $yN $zN
+	    $ds SetOrigin $x1 $y1 $z1
+	    $ds SetSpacing $spacingX $spacingY $spacingZ
+	    set arr [vtkDoubleArray $this-arrTemp]
+	    foreach {val} [$dataobj values $comp] {
+		$arr InsertNextValue $val
+	    }
+	    [$ds GetPointData] SetScalars $val
+	}
+	"vtkcontour" {
+	    return [$dataobj blob $comp]
+	}
+	"dx" {
+            return [Rappture::ConvertDxToVtk $_comp2dx($what)]
+	}
+	default {
+	    set mesh [$dataobj mesh $comp]
+	    switch -- [$mesh GetClassName] {
+		vtkPoints {
+		    # handle cloud of points
+		    set ds [vtkPolyData $this-polydataTemp]
+		    $ds SetPoints $mesh
+		    [$ds GetPointData] SetScalars [$dataobj values $comp]
+		}
+		vtkPolyData {
+		    set ds [vtkPolyData $this-polydataTemp]
+		    $ds ShallowCopy $mesh
+		    [$ds GetPointData] SetScalars [$dataobj values $comp]
+		}
+		vtkUnstructuredGrid {
+		    # handle 3D grid with connectivity
+		    set ds [vtkUnstructuredGrid $this-grdataTemp]
+		    $ds ShallowCopy $mesh
+		    [$ds GetPointData] SetScalars [$dataobj values $comp]
+		}
+		vtkRectilinearGrid {
+		    # handle 3D grid with connectivity
+		    set ds [vtkRectilinearGrid $this-grdataTemp]
+		    $ds ShallowCopy $mesh
+		    [$ds GetPointData] SetScalars [$dataobj values $comp]
+		}
+		default {
+		    error "don't know how to handle [$mesh GetClassName] data"
+		}
+	    }
+	}
+    }
+
+    if {"" != $ds} {
+        set writer [vtkDataSetWriter $this-dsWriterTmp]
+        $writer SetInput $ds
+        $writer SetFileTypeToASCII
+        $writer WriteToOutputStringOn
+        $writer Write
+        set out [$writer GetOutputString]
+        $ds Delete
+        $writer Delete
+    } else {
+        set out ""
+        error "No DataSet to write"
+    }
+
+    append out "\n"
+    return $out
+}
+
+itcl::body Rappture::Field::ReadVtkDataSet { comp contents } {
+    package require vtk
+
+    set reader $this-datasetreader
+    vtkDataSetReader $reader
+
+    # Write the contents to a file just in case it's binary.
+    set tmpfile file[pid].vtk
+    set f [open "$tmpfile" "w"]
+    fconfigure $f -translation binary -encoding binary
+    puts $f $contents 
+    close $f
+    $reader SetFileName $tmpfile
+    $reader ReadAllScalarsOn
+    $reader ReadAllVectorsOn
+    $reader ReadAllFieldsOn
+    $reader Update
+    set dataset [$reader GetOutput]
+    set limits {}
+    foreach {xmin xmax ymin ymax zmin zmax} [$dataset GetBounds] break
+    lappend limits xmin $xmin xmax $xmax ymin $ymin ymax $ymax  
+    set dataAttrs [$dataset GetPointData]
+    if { $dataAttrs == ""} {
+	puts stderr "No point data"
+    }
+    for {set i 0} {$i < [$dataAttrs GetNumberOfArrays] } {incr i} {
+	set array [$dataAttrs GetArray $i]
+	set name  [$dataAttrs GetArrayName $i]
+	foreach {min max} [$array GetRange] break
+	lappend limits $name-min $min $name-max $max
+	lappend _fields $name
+    }
+    set _comp2limits($comp) $limits
+    puts stderr limits=$limits
+    $reader Delete
+    file delete $tmpfile
+}
+

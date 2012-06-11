@@ -167,6 +167,9 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     global env
     if { [info exists env(VISRECORDER)] } {
 	set _logging 1
+	if { [file exists /tmp/recording.log] } {
+	    file delete /tmp/recording.log
+	}
     }
     eval itk_initialize $args
 }

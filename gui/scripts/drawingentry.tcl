@@ -498,7 +498,7 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     } else {
 	set width [expr [image width $img] / 4]
 	set height [expr [image height $img] / 4]
-	set dst [image create photo -width $width -height $height]
+ 	set dst [image create photo -width $width -height $height]
 	blt::winop resample $img $dst
 	image delete $img
 	set img $dst
