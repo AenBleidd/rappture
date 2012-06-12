@@ -211,15 +211,26 @@ itcl::body Rappture::Tool::run {args} {
 	    } result]
 
             if { $status != 0 } {
+		# We're here because the exec-ed program failed 
 		if { $::Rappture::Tool::job(control) != "" } {
-		    set code [lindex $::Rappture::Tool::job(control) 0]
-		    set mesg [lindex $::Rappture::Tool::job(control) 2]
-		    if { $code == "EXITED" } {
-			set result "Program returned exit code $status:\n\n"
+		    foreach { token pid code mesg } \
+			$::Rappture::Tool::job(control) break
+		    if { $token == "EXITED" } {
+			# This means that the program exited normally but
+			# returned a non-zero exitcode.  Consider this an
+			# invalid result from the program.  Append the stderr
+			# from the program to the message.
+			append result \
+			    "\nProgram exited normally: exit code is $code\n\n"
 			append result $::Rappture::Tool::job(error)
-		    } else  {
-			set result \
-			    "Abnormal program termination \"$code\": $mesg"
+		    } elseif { $token == "abort" }  {
+			# The user pressed the abort button.
+			set result "Program terminated by user.\n\n"
+			append result $::Rappture::Tool::job(output)
+		    } else {
+			# Abnormal termination
+			set result "Abnormal program termination: $mesg\n\n"
+			append result $::Rappture::Tool::job(output)
 		    }
 		}
 		return [list $status $result]

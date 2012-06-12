@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkheightmapviewer - Vtk heightmap viewer
 #

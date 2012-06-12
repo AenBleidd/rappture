@@ -60,7 +60,7 @@ AC_CHECK_HEADERS(sys/sysinfo.h)
 
 AC_CHECK_LIB(m, main,,AC_MSG_ERROR(librappture requires libm))
 
-AC_CHECK_LIB(ncurses, clrtoeol,,AC_MSG_ERROR([ncursers library missing?]))
+AC_CHECK_LIB(ncurses, clrtoeol,,AC_MSG_ERROR([ncurses library missing?]))
 AC_CHECK_HEADERS(ncurses.h,,AC_MSG_WARN(ncurses headers missing ?))
 
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(librappture requires libstdc++))

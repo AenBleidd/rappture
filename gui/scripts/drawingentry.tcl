@@ -909,3 +909,51 @@ itcl::body Rappture::DrawingEntry::XmlGet { path } {
     return [$_parser eval [list subst -nocommands $value]]
 }
 
+#
+# Rewrite --
+#
+#	Rewrite string into list of text and substitution variables.
+#	Also break on new lines.
+#
+itcl::body Rappture::DrawingEntry::ApplySubstitutions { string } {
+    set cursor 0
+    set list {}
+    set lines [split $string \n]
+    foreach line $lines {
+	while 1 {
+	    set index [string first \$ $line $cursor]
+	    if { $index == -1 } {
+		# Take the rest of the line
+		lappend list "text" [string range $line $cursor end]
+		break
+	    }
+	    # Find the end of the variable 
+	    incr cursor 
+	    set c [string index $line $cursor]
+	    if { $c != "{" } {
+		lappend list "text" "\$" 
+		continue
+	    }
+	    set index [string first "\}" $string $cursor]
+	    if { $index == -1 } {
+		error "missing } character in variable substitution."
+	    }
+	    set varName [string range $string $cursor [expr $index - 1]]
+	    set cursor [expr $index  + 1]
+	    # Check that it's a substitution variable
+	    if { ![info exists _name2path($varName)] } {
+		error "no substitution \"$varName\" found"
+	    }
+	    set path $_name2path($name)
+	    set w [$_owner widgetfor $path]
+	    if { $w != "" } {
+		set value [$w value]
+	    } else {
+		set value ""
+	    }
+	    lappend list "subst" $value
+	}
+	lappend list "text" "\n"
+    }
+    return $list
+}
