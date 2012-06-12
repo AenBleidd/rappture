@@ -31,6 +31,7 @@ itcl::class Rappture::Tester::StringDiffs {
     method show {v1 v2}
 
     protected method _yview {args}
+    protected method _ysbar {args}
 }
 
 # ----------------------------------------------------------------------
@@ -127,9 +128,10 @@ itcl::body Rappture::Tester::StringDiffs::constructor {args} {
     }
     $itk_component(body1) configure \
         -xscrollcommand [list $itk_component(xsbar1) set] \
-        -yscrollcommand [list $itk_component(ysbar) set]
+        -yscrollcommand [itcl::code $this _ysbar body1]
     $itk_component(body2) configure \
-        -xscrollcommand [list $itk_component(xsbar2) set]
+        -xscrollcommand [list $itk_component(xsbar2) set] \
+        -yscrollcommand [itcl::code $this _ysbar body2]
 
     grid $itk_component(title1) -row 0 -column 0 -sticky nsew
     grid $itk_component(body1) -row 1 -column 0 -sticky nsew
@@ -204,13 +206,33 @@ itcl::body Rappture::Tester::StringDiffs::show {v1 v2} {
 # ----------------------------------------------------------------------
 # USAGE: _yview <arg> <arg>...
 #
-# Loads two values into the viewer and shows their differences.
-# If the strings are short, the diffs are shown inline.  Otherwise,
-# they are show with side-by-side viewers.
+# Called whenever the scrollbar changes the y-view of the diffs.
+# Sends the new command along to both views so they are aligned.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tester::StringDiffs::_yview {args} {
     eval $itk_component(body1) yview $args
     eval $itk_component(body2) yview $args
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _ysbar <whichChanged> <arg> <arg>...
+#
+# Called whenever the y-view of one widget changes.  Copies the 
+# current view from the <whichChanged> widget to the other side,
+# and updates the bubble to display the correct view.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Tester::StringDiffs::_ysbar {which args} {
+    switch -- $which {
+        body1 {
+            set pos [lindex [$itk_component(body1) yview] 0]
+            $itk_component(body2) yview moveto $pos
+        }
+        body2 {
+            set pos [lindex [$itk_component(body2) yview] 0]
+            $itk_component(body1) yview moveto $pos
+        }
+    }
+    eval $itk_component(ysbar) set $args
 }
 
 # ----------------------------------------------------------------------

@@ -362,6 +362,7 @@ NOTE:  Your web browser must allow pop-ups from this site.  If your output does 
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::destructor {} {
     after cancel [itcl::code $this simulate]
+    $_resultset notify remove $this
     itcl::delete object $_resultset
 }
 
