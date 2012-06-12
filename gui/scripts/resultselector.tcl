@@ -409,6 +409,11 @@ itcl::body Rappture::ResultSelector::_control {option args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::ResultSelector::_fixControls {args} {
     array set eventData $args
+    if {![info exists itk_component(dials)]} {
+        # no controls? then nothing to fix
+        # this happens when the widget is being destroyed
+        return
+    }
     set shortlist $itk_component(dials)
 
     # added or cleared something -- update number of results

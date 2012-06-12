@@ -288,6 +288,9 @@ itcl::body Rappture::Tester::StatusList::_redraw {} {
 itcl::body Rappture::Tester::StatusList::_motion {y} {
     set c $itk_component(listview)
 
+    # translate the screen y to the canvas y (may be scrolled down)
+    set y [$c canvasy $y]
+
     set index ""
     foreach id [$c find overlapping 10 $y 10 $y] {
         foreach tag [$c gettags $id] {
