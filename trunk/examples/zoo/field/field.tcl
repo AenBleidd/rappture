@@ -179,16 +179,8 @@ object 3 class array type double rank 0 items 75 data follows
     component "connections" value 2
     component "data" value 3}
 
-    set file "/tmp/dx[clock seconds]"
-    set fid [open $file w]
-    puts $fid $dx
-    close $fid
-
-    set fid [open "| gzip -c $file | base64" r]
-    $driver put output.field(f3d).component.dx [read $fid]
-    close $fid
-
-    file delete -force $file
+    set data [Rappture::encoding::encode -as zb64 $dx]
+    $driver put output.field(f3d).component.dx $data
 }
 
 #

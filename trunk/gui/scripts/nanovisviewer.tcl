@@ -116,6 +116,7 @@ itcl::class Rappture::NanovisViewer {
     private method ParseMarkersOption { tf markers }
     private method volume { tag name }
     private method GetVolumeInfo { w }
+    private method SetOrientation {}
 
     private variable _outbuf       ;# buffer for outgoing commands
 
@@ -1087,7 +1088,7 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                 set _settings($this-theta) $_view(theta)
                 set _settings($this-phi)   $_view(phi)
                 set _settings($this-psi)   $_view(psi)
-                SendCmd "camera angle $xyz"
+<                SendCmd "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1872,6 +1873,21 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         blt::table configure $inner r$row -resize none
         incr row
     }
+
+    itk_component add orientation {
+        Rappture::Combobox $inner.orientation -width 10 -editable no
+    }
+    $inner.mode choices insert end \
+        "front"    "lines" \
+        "back"   "ribbons" \
+        "top"     "0 0 0"  \
+        "bottom"     "0 180 0"  \
+        "left"     "270 0 0 "  \
+        "right"     "90 0 0"  \
+	"default"  "45 45 0"
+    $itk_component(orientation) value "default"
+    bind $inner.mode <<Value>> [itcl::code $this SetOrientation]
+
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
@@ -2036,3 +2052,12 @@ itcl::body Rappture::NanovisViewer::volume { tag name } {
     SendCmd "volume statue $bool $name"
 }
 
+
+itcl::body Rappture::NanovisViewer::SetOrientation {} {
+    set angles [$itk_component(orientation) value]
+    foreach name { theta phi psi } angle $angles {
+	set _view($name) $angle
+    }
+    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+    SendCmd "camera angle $xyz"
+}
