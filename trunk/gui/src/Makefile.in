@@ -50,6 +50,7 @@ LIBS		= \
 
 OBJS 		= \
 		RapptureGUI_Init.o \
+		RpCanvHotspot.o \
 		RpCanvPlacard.o \
 		RpDiffview.o \
 		RpConvertDxToVtk.o
