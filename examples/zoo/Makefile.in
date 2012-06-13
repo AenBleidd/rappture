@@ -27,7 +27,6 @@ examples	= \
 		integer \
 		integer2 \
 		loader \
-		loadrun \
 		log \
 		note \
 		number \

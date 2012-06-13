@@ -69,6 +69,7 @@ itcl::class Rappture::DrawingEntry {
     private method ScreenX { x } 
     private method ScreenY { y } 
     private method XmlGet { path } 
+    private method XmlGetSubst { path } 
     private method Withdraw {} 
 }
 
@@ -226,9 +227,9 @@ itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
 	-dash		""
     }
     # Coords
-    set xcoords [XmlGet $cpath.xcoords]
+    set xcoords [XmlGetSubst $cpath.xcoords]
     set xcoords [string trim $xcoords]
-    set ycoords [XmlGet $cpath.ycoords]
+    set ycoords [XmlGetSubst $cpath.ycoords]
     set ycoords [string trim $ycoords]
     if { $ycoords == "" } {
 	set ycoords "0 1"
@@ -275,7 +276,7 @@ itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
@@ -311,16 +312,16 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	} elseif { [string match "controls*" $attr] } {
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    lappend _cname2controls($cname) $value
 	    $_owner xml put $value.hide 1
 	}
     }
     # Coordinates
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [ScreenCoords $coords]
     if { $coords == "" } {
 	set coords "0 0 1 1"
@@ -359,7 +360,7 @@ itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
     }
     # Coords
     set coords {}
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [string trim $coords]
     if { $coords == "" } {
 	set coords "0 0"
@@ -371,7 +372,7 @@ itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
@@ -401,13 +402,13 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
     # Coordinates
     set coords {}
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [string trim $coords]
     if { $coords == "" } {
 	set coords "0 0 1 1"
@@ -432,11 +433,11 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
-    set contents [XmlGet $cpath.contents]
+    set contents [XmlGetSubst $cpath.contents]
     set img ""
     if { [string compare -length 5 $contents "file:"] == 0 } {
 	set fileName [string range $contents 5 end]
@@ -453,17 +454,17 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 	return
     }
     # Coordinates
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [ScreenCoords $coords]
     if { [llength $coords] == 2 } {
 	foreach { x1 y1 } $coords break
-	set w [XmlGet $cpath.width]
+	set w [XmlGetSubst $cpath.width]
 	if { $w == "" || ![string is number $w] || $w <= 0.0 } {
 	    set width [expr [image width $img] / 4]
 	} else {
 	    set width [expr [ScreenX $w] - [ScreenX 0]]
 	}
-	set h [XmlGet $cpath.height]
+	set h [XmlGetSubst $cpath.height]
 	if { $h == "" || ![string is number $h] || $h <= 0.0 } {
 	    set height [expr [image height $img] / 4]
 	} else {
@@ -527,7 +528,7 @@ itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
 	-fill		black
     }
     # Coords
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [string trim $coords]
     if { $coords == "" } {
 	set coords "0 0"
@@ -542,7 +543,7 @@ itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
@@ -572,12 +573,12 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    set value [XmlGetSubst $cpath.$attr]
 	    set options($option) $value
 	}
     }
     # Coordinates
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [string trim $coords]
     if { $coords == "" } {
 	set coords "0 0 1 1"
@@ -593,7 +594,7 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
 itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     array set attr2option {
 	"font"		"-font"
-	"color"		"-fill"
+	"color"		"-foreground"
 	"text"		"-text"
 	"anchor"	"-anchor"
     }
@@ -603,18 +604,22 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     array set options {
 	-font {Arial 8}
 	-text {}
-	-fill black
+	-fill {}
 	-anchor c
     }
     foreach attr [$_owner xml children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
-	    set value [XmlGet $cpath.$attr]
+	    if { $attr == "text" } {
+		set value [XmlGet $cpath.$attr]
+	    } else {
+		set value [XmlGetSubst $cpath.$attr]
+	    }
 	    set options($option) $value
 	}
     }
     # Coords
-    set coords [XmlGet $cpath.coords]
+    set coords [XmlGetSubst $cpath.coords]
     set coords [string trim $coords]
     if { $coords == "" } {
 	set coords "0 0"
@@ -622,7 +627,11 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 	set coords [ScreenCoords $coords]
     }
     set options(-tags) $cname
-    set id [eval $itk_component(drawing) create text $coords]
+    set img [Rappture::icon hotspot_normal]
+    set options(-image) $img
+    set img [Rappture::icon hotspot_active]
+    set options(-activeimage) $img
+    set id [eval $itk_component(drawing) create hotspot $coords]
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
 }
@@ -898,6 +907,7 @@ itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
 	    set value ""
 	}
 	$_parser eval [list set $name $value]
+	set ::$name $value
     }
 }
 
@@ -906,54 +916,13 @@ itcl::body Rappture::DrawingEntry::XmlGet { path } {
     if { $_parser == "" } {
 	return $value
     }
-    return [$_parser eval [list subst -nocommands $value]]
+    return $value
 }
 
-#
-# Rewrite --
-#
-#	Rewrite string into list of text and substitution variables.
-#	Also break on new lines.
-#
-itcl::body Rappture::DrawingEntry::ApplySubstitutions { string } {
-    set cursor 0
-    set list {}
-    set lines [split $string \n]
-    foreach line $lines {
-	while 1 {
-	    set index [string first \$ $line $cursor]
-	    if { $index == -1 } {
-		# Take the rest of the line
-		lappend list "text" [string range $line $cursor end]
-		break
-	    }
-	    # Find the end of the variable 
-	    incr cursor 
-	    set c [string index $line $cursor]
-	    if { $c != "{" } {
-		lappend list "text" "\$" 
-		continue
-	    }
-	    set index [string first "\}" $string $cursor]
-	    if { $index == -1 } {
-		error "missing } character in variable substitution."
-	    }
-	    set varName [string range $string $cursor [expr $index - 1]]
-	    set cursor [expr $index  + 1]
-	    # Check that it's a substitution variable
-	    if { ![info exists _name2path($varName)] } {
-		error "no substitution \"$varName\" found"
-	    }
-	    set path $_name2path($name)
-	    set w [$_owner widgetfor $path]
-	    if { $w != "" } {
-		set value [$w value]
-	    } else {
-		set value ""
-	    }
-	    lappend list "subst" $value
-	}
-	lappend list "text" "\n"
+itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
+    set value [$_owner xml get $path]
+    if { $_parser == "" } {
+	return $value
     }
-    return $list
+    return [$_parser eval [list subst -nocommands $value]]
 }
