@@ -497,34 +497,6 @@ itcl::body Rappture::Analyzer::load {xmlobj} {
         clear
     }
 
-    # look for all output.load children and load them first
-    # each run.xml is loaded as a previous simulation.
-    foreach item [$xmlobj children -type run output.load] {
-        set loadfile [$xmlobj get output.load.$item]
-        set loadobj [Rappture::library $loadfile]
-        load $loadobj
-    }
-
-    foreach item [$xmlobj children -type run output.include] {
-        set id [$xmlobj element -as id output.include.$item]
-        set inclfile [$xmlobj get output.include.$item]
-        set inclobj [Rappture::library $inclfile]
-        foreach c [$inclobj children output] {
-            switch -glob -- $c {
-                # We don't want to include these tags.
-                include* - time* - status* - user* {
-                    continue
-                }
-                default {
-                    set oldid [$inclobj element -as id output.$c]
-                    set oldtype [$inclobj element -as type output.$c]
-                    set newcomp "$oldtype\($id-$oldid\)"
-                    $xmlobj copy output.$newcomp from $inclobj output.$c
-                }
-            }
-        }
-    }
-
     $_resultset add $xmlobj
 
     # NOTE: Adding will trigger a !change event on the ResultSet
