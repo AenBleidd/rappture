@@ -40,7 +40,7 @@
 
 #define REDRAW_PENDING		(1<<0)
 #define LAYOUT_PENDING		(1<<1)
-#define SUBST_PENDING		(1<<2)
+#define SUBSTITUTIONS_PENDING	(1<<2)
 
 #undef ROUND
 #define ROUND(x) 	((int)(((double)(x)) + (((x)<0.0) ? -0.5 : 0.5)))
@@ -58,14 +58,14 @@ struct _ItemSegment {
     HotspotItem *itemPtr;
     ItemSegment *nextPtr;
     int type;				/* Image, normal text, or substituted
-					 * text. */
+					 * value. */
     short int x, y;			/* Location of segment on canvas. */
     short int width, height;		/* Dimension of segment. */
     Tk_TextLayout layout;		/* Layout of normal or substituted 
-					 * text */
+					 * value */
     int length;				/* # of bytes in below string. */
     int lineNum;			/* Line where segment if located. */
-    char *subst;			/* Substitututed text. */
+    char *value;			/* Substitututed value. */
     char text[1];
 };
 
@@ -94,22 +94,28 @@ struct _HotspotItem  {
     /*
      * Configuration settings that are updated by Tk_ConfigureWidget:
      */
-    Tcl_Interp *substInterp;		/* If non-NULL, interpreter containing
+    Tcl_Interp *valueInterp;		/* If non-NULL, interpreter containing
 					 * substituted variables.   */
     const char *text;			/* Text to be displayed */
     Tk_Anchor anchor;			/* Where to anchor text relative to
 					 * (x,y) */
     XColor *textColor;			/* Color for normal text */
-    XColor *substColor;			/* Color for substitututed text */
+    XColor *valueColor;			/* Color for substitututed values. */
+    XColor *activeValueColor;		/* Color for active substitututed
+					 * values */
     XColor *outlineColor;		/* Color for outline of rectangle */
     Tk_3DBorder border;			/* If non-NULL, background color of
-					 * rectangle. */
-    int borderWidth;			/* supports 3D border (drawn under
+					 * rectangle enclosing the entire
+					 * hotspot item. */
+    Tk_3DBorder activeValueBorder;	/* If non-NULL, background color of
+					 * active substituted values. */
+    int borderWidth;			/* 3D border width (drawn under
 					 * -outline) */
     int relief;				/* Indicates whether hotspot as a
 					 * whole is raised, sunken, or flat */
     Tk_Font font;			/* Font for drawing normal text. */
-    Tk_Font substFont;			/* Font for drawing substituted text. */
+    Tk_Font valueFont;			/* Font for drawing substituted
+					 * values. */
 
     const char *imageName;		/* Name of normal hotspot image. */
     const char *activeImageName;	/* Name of active hotspot image. */
@@ -123,7 +129,9 @@ struct _HotspotItem  {
      */
     GC normalGC;			/* Graphics context for drawing
 					 * text. */
-    GC substGC;				/* GC for substituted text. */
+    GC valueGC;				/* GC for substituted values. */
+    GC activeGC;			/* Gc for active substituted
+					 * values. */
     GC outlineGC;			/* GC for outline? */
     ItemSegment *firstPtr, *lastPtr;	/* List of hotspot segments. */
     int width, height;			/* Dimension of bounding box. */
@@ -156,10 +164,12 @@ static Tk_ConfigSpec configSpecs[] = {
         "helvetica -12", Tk_Offset(HotspotItem, font), 0},
     {TK_CONFIG_COLOR, "-foreground", "foreground", (char*)NULL,
         "black", Tk_Offset(HotspotItem, textColor), 0},
-    {TK_CONFIG_FONT, "-substitutionfont", (char*)NULL, (char*)NULL,
-        "courier -12", Tk_Offset(HotspotItem, substFont), 0},
-    {TK_CONFIG_COLOR, "-substitutionforeground", (char*)NULL, (char*)NULL,
-        "blue", Tk_Offset(HotspotItem, substColor), 0},
+    {TK_CONFIG_COLOR, "-activevaluebackground", (char*)NULL, (char*)NULL,
+        "blue", Tk_Offset(HotspotItem, activeValueBorder), 0},
+    {TK_CONFIG_FONT, "-valuefont", (char*)NULL, (char*)NULL,
+        "courier -12", Tk_Offset(HotspotItem, valueFont), 0},
+    {TK_CONFIG_COLOR, "-valueforeground", (char*)NULL, (char*)NULL,
+        "blue", Tk_Offset(HotspotItem, valueColor), 0},
     {TK_CONFIG_STRING, "-image", (char*)NULL, (char*)NULL, (char*)NULL, 
 	Tk_Offset(HotspotItem, imageName), 0},
     {TK_CONFIG_COLOR, "-outline", (char*)NULL, (char*)NULL,
@@ -483,7 +493,7 @@ TraceVarProc(
 	    Tcl_TraceVar(interp, name1, VAR_FLAGS, TraceVarProc, itemPtr);
 	}
     }
-    itemPtr->flags |= SUBST_PENDING;
+    itemPtr->flags |= SUBSTITUTIONS_PENDING;
     EventuallyRedraw(itemPtr);
     return NULL;			/* Done. */
 }
@@ -561,12 +571,12 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
     memcpy(segPtr->text, varName, length);
     segPtr->text[length] = '\0';
     segPtr->length = length;
-    interp = itemPtr->substInterp;
+    interp = itemPtr->valueInterp;
     if (interp == NULL) {
 	interp = itemPtr->interp;
     }
     Tcl_TraceVar(interp, varName, VAR_FLAGS, TraceVarProc, itemPtr);
-    segPtr->subst = NULL;
+    segPtr->value = NULL;
     segPtr->x = segPtr->y = 0;
     segPtr->nextPtr = NULL;
     if (itemPtr->firstPtr == NULL) {
@@ -618,8 +628,8 @@ DestroySegment(ItemSegment *segPtr)
 	Tcl_UntraceVar(itemPtr->interp, segPtr->text, VAR_FLAGS, TraceVarProc, 
 		itemPtr);
     }
-    if (segPtr->subst != NULL) {
-	Tcl_Free((char *)segPtr->subst);
+    if (segPtr->value != NULL) {
+	Tcl_Free((char *)segPtr->value);
     }
     Tcl_Free((char *)segPtr);
 }
@@ -637,13 +647,13 @@ DestroySegments(HotspotItem *itemPtr)
 }
 
 static void
-DoSubst(HotspotItem *itemPtr)
+DoSubstitutions(HotspotItem *itemPtr)
 {
     ItemSegment *segPtr;
     Tcl_Interp *interp;
 
-    itemPtr->flags &= ~SUBST_PENDING;
-    interp = itemPtr->substInterp;
+    itemPtr->flags &= ~SUBSTITUTIONS_PENDING;
+    interp = itemPtr->valueInterp;
     if (interp == NULL) {
 	interp = itemPtr->interp;
     }
@@ -657,11 +667,11 @@ DoSubst(HotspotItem *itemPtr)
 	if (value == NULL) {
 	    value = "???";
 	}
-	if (segPtr->subst != NULL) {
-	    Tcl_Free((char *)segPtr->subst);
+	if (segPtr->value != NULL) {
+	    Tcl_Free((char *)segPtr->value);
 	}
-	segPtr->subst = Tcl_Alloc(strlen(value) + 1);
-	strcpy(segPtr->subst, value);
+	segPtr->value = Tcl_Alloc(strlen(value) + 1);
+	strcpy(segPtr->value, value);
     }
     itemPtr->flags |= LAYOUT_PENDING;
 }
@@ -693,9 +703,9 @@ ComputeGeometry(HotspotItem *itemPtr)
 	    w = imgWidth, h = imgHeight;
 	    break;
 	case SEGMENT_TYPE_VARIABLE:
-	    tkFont = (itemPtr->substFont != NULL) ? 
-		itemPtr->substFont : itemPtr->font;
-	    segPtr->layout = Tk_ComputeTextLayout(tkFont, segPtr->subst, 
+	    tkFont = (itemPtr->valueFont != NULL) ? 
+		itemPtr->valueFont : itemPtr->font;
+	    segPtr->layout = Tk_ComputeTextLayout(tkFont, segPtr->value, 
 		-1, wrapLength, justify, flags, &w, &h);
 	    break;
 	case SEGMENT_TYPE_TEXT:
@@ -796,7 +806,7 @@ ParseDescription(Tcl_Interp *interp, HotspotItem *itemPtr,
 	/* Save the trailing text. */
 	AddTextSegment(itemPtr, start, p - start);
     }
-    itemPtr->flags |= SUBST_PENDING;
+    itemPtr->flags |= SUBSTITUTIONS_PENDING;
     return TCL_OK;
 }
 
@@ -860,10 +870,11 @@ CreateProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
     itemPtr->outlineColor = NULL;
     itemPtr->outlineGC = None;
     itemPtr->relief = TK_RELIEF_FLAT;
-    itemPtr->substColor = NULL;
-    itemPtr->substFont = NULL;
-    itemPtr->substGC = None;
-    itemPtr->substInterp = interp;
+    itemPtr->valueColor = NULL;
+    itemPtr->valueFont = NULL;
+    itemPtr->valueGC = None;
+    itemPtr->activeGC = None;
+    itemPtr->valueInterp = interp;
     itemPtr->text = NULL;
     itemPtr->textColor = NULL;
     itemPtr->tkwin = tkwin;
@@ -1006,23 +1017,23 @@ ConfigureProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
 	itemPtr->outlineGC = newGC;
     }
 
-    /* Substituted text GC. */
+    /* Substituted value GC. */
     mask = GCFont | GCForeground;
-    if (itemPtr->substFont != NULL) {
-	gcValues.font = Tk_FontId(itemPtr->substFont);
+    if (itemPtr->valueFont != NULL) {
+	gcValues.font = Tk_FontId(itemPtr->valueFont);
     } else {
 	gcValues.font = Tk_FontId(itemPtr->font);
     }
-    if (itemPtr->substColor != NULL) {
-	gcValues.foreground = itemPtr->substColor->pixel;
+    if (itemPtr->valueColor != NULL) {
+	gcValues.foreground = itemPtr->valueColor->pixel;
     } else {
 	gcValues.foreground = itemPtr->textColor->pixel;
     }
     newGC = Tk_GetGC(tkwin, mask, &gcValues);
-    if (itemPtr->substGC != None) {
-        Tk_FreeGC(Tk_Display(tkwin), itemPtr->substGC);
+    if (itemPtr->valueGC != None) {
+        Tk_FreeGC(Tk_Display(tkwin), itemPtr->valueGC);
     }
-    itemPtr->substGC = newGC;
+    itemPtr->valueGC = newGC;
 
     itemPtr->maxImageWidth = itemPtr->maxImageHeight = 0;
     /* Normal hotspot image. */
@@ -1105,8 +1116,8 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
     if (itemPtr->textColor != NULL) {
         Tk_FreeColor(itemPtr->textColor);
     }
-    if (itemPtr->substColor != NULL) {
-        Tk_FreeColor(itemPtr->substColor);
+    if (itemPtr->valueColor != NULL) {
+        Tk_FreeColor(itemPtr->valueColor);
     }
     if (itemPtr->outlineColor != NULL) {
         Tk_FreeColor(itemPtr->outlineColor);
@@ -1129,8 +1140,8 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
     if (itemPtr->font != NULL) {
 	Tk_FreeFont(itemPtr->font);
     }
-    if (itemPtr->substFont != NULL) {
-	Tk_FreeFont(itemPtr->substFont);
+    if (itemPtr->valueFont != NULL) {
+	Tk_FreeFont(itemPtr->valueFont);
     }
     if (itemPtr->normalGC != None) {
         Tk_FreeGC(display, itemPtr->normalGC);
@@ -1138,8 +1149,8 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
     if (itemPtr->outlineGC != None) {
         Tk_FreeGC(display, itemPtr->outlineGC);
     }
-    if (itemPtr->substGC != None) {
-        Tk_FreeGC(display, itemPtr->substGC);
+    if (itemPtr->valueGC != None) {
+        Tk_FreeGC(display, itemPtr->valueGC);
     }
     DestroySegments(itemPtr);
 }
@@ -1265,7 +1276,7 @@ DrawSegment(ItemSegment *segPtr, Drawable drawable, int x, int y)
 	GC gc;
 
 	gc = (segPtr->type == SEGMENT_TYPE_VARIABLE) ? 
-	    itemPtr->substGC : itemPtr->normalGC;
+	    itemPtr->valueGC : itemPtr->normalGC;
 	Tk_DrawTextLayout(Tk_Display(itemPtr->tkwin), drawable, gc,
 		segPtr->layout, x + segPtr->x, y + segPtr->y, 0, -1);
     }
@@ -1296,8 +1307,8 @@ DisplayProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display,
     short int cx, cy;
 
     itemPtr->flags &= ~REDRAW_PENDING;
-    if (itemPtr->flags & SUBST_PENDING) {
-	DoSubst(itemPtr);
+    if (itemPtr->flags & SUBSTITUTIONS_PENDING) {
+	DoSubstitutions(itemPtr);
     }
     if (itemPtr->flags & LAYOUT_PENDING) {
 	ComputeGeometry(itemPtr);
@@ -1316,9 +1327,6 @@ DisplayProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display,
 		itemPtr->width, itemPtr->height);
     }
     for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
-	fprintf(stderr, "Display: segment=(%s) type=%d x=%d y=%d (x=%d y=%d w=%d h=%d) lineNum=%d nextPtr=%x\n",
-		segPtr->text, segPtr->type, x, y, segPtr->x, segPtr->y,
-		segPtr->width, segPtr->height, segPtr->lineNum, segPtr->nextPtr);
 	DrawSegment(segPtr, drawable, x, y);
     }
 }
@@ -1483,10 +1491,10 @@ static int
 PostscriptProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr, 
 	       int prepass)
 {
+#ifdef notdef
     HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
     Tk_Window canvasWin = Tk_CanvasTkwin(canvas);
 
-#ifdef notdef
     int x, y;
     double xpos;
     Tk_FontMetrics fm;
@@ -1588,6 +1596,99 @@ PostscriptProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
             "false" /* stipple */);
     Tcl_AppendResult(interp, buffer, (char *) NULL);
 #endif
+    return TCL_OK;
+}
+
+static HotspotItem *
+GetHotspotItem(Tcl_Interp *interp, Tcl_Obj *canvasObjPtr, Tcl_Obj *itemObjPtr)
+{
+    const char *string;
+    Tk_Item *canvItemPtr;
+    HotspotItem *itemPtr;
+    Tcl_CmdInfo cmdInfo;
+    TkCanvas *canvasPtr;
+    int id;
+    Tcl_HashEntry *hPtr;
+    Tk_Window tkwin;
+
+    /* See if we can find the canvas window associated by the name. */
+    string = Tcl_GetString(canvasObjPtr);
+    tkwin = Tk_NameToWindow(interp, string, Tk_MainWindow(interp));
+    if (tkwin == NULL) {
+	Tcl_AppendResult(interp, "can't find canvas \"", string, "\"",
+			 (char *)NULL);
+	return NULL;
+    }
+    if (strcmp(Tk_Class(tkwin), "Canvas") != 0) {
+	Tcl_AppendResult(interp, "window \"", string, "\" isn't a canvas.",
+			 (char *)NULL);
+	return NULL;
+    }
+    /* If we're this far, then we can try to get the clientData. If the widget
+    * command was renamed, we're out of luck. */
+    if (!Tcl_GetCommandInfo(interp, string, &cmdInfo)) {
+	Tcl_AppendResult(interp, "can't find canvas \"", string, "\"",
+			 (char *)NULL);
+	return NULL;
+    }
+    canvasPtr = cmdInfo.objClientData;
+    if (Tcl_GetIntFromObj(interp, itemObjPtr, &id) != TCL_OK) {
+	return NULL;
+    }
+    string = Tcl_GetString(itemObjPtr);
+    hPtr = Tcl_FindHashEntry(&canvasPtr->idTable, (char *)id);
+    if (hPtr == NULL) {
+	Tcl_AppendResult(interp, "can't find canvas item \"", string,
+		"\"", (char *)NULL);
+	return NULL;
+
+    }
+    canvItemPtr = Tcl_GetHashValue(hPtr);
+    /* The canvas item we find has to be a hotspot. */
+    if (canvItemPtr->typePtr != &hotspotType) {
+	Tcl_AppendResult(interp, "bad canvas item \"", string, 
+		"\": must be a hotspot", (char *)NULL);
+	return NULL;
+
+    }
+    return itemPtr = (HotspotItem *)canvItemPtr;
+}
+
+static int
+HotspotCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+	   Tcl_Obj *const *objv)
+{
+    const char *string;
+    HotspotItem *itemPtr;
+    int length;
+    char c;
+
+    if (objc < 3) {
+	return TCL_ERROR;
+    }
+    itemPtr = GetHotspotItem(interp, objv[2], objv[3]);
+    if (itemPtr == NULL) {
+	return TCL_ERROR;
+    }
+    string = Tcl_GetStringFromObj(objv[1], &length);
+    c = string[0];
+    if ((c == 'a') && (strncmp(string, "activate", length) == 0)) {
+	/* hotspot activate .c 0 varName */
+    } else if ((c == 'd') && (strncmp(string, "deactivate", length) == 0)) {
+	/* hotspot deactivate .c 0 */
+	itemPtr->activePtr = NULL;
+    } else if ((c == 'i') && (strncmp(string, "identify", length) == 0)) {
+	/* hotspot identify .c 0 x y */
+	/* Return name of variable identified by x,y coordinate. */
+    } else if ((c == 'v') && (strncmp(string, "variables", length) == 0)) {
+	/* hotspot variables .c 0 */
+	/* Return list of variable names. */
+    } else {
+	Tcl_AppendResult(interp, "unknown hotspot option \"", string, 
+		"\": should be either activate, deactivate, identity, ",
+		"or variables", (char *)NULL);
+	return TCL_ERROR;
+    }
     return TCL_OK;
 }
 
