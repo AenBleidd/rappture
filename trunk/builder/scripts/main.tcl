@@ -1526,12 +1526,14 @@ set LastToolXmlFile ""
 set ToolPreview ""
 set ErrFocusAttr ""
 
-if {"" != $params(-tool)} {
+if {$params(-tool) ne ""} {
     if {![file exists $params(-tool)]} {
         puts stderr "can't find tool \"$params(-tool)\""
         exit 1
     }
     main_open $params(-tool)
+} elseif {[file exists tool.xml]} {
+    main_open tool.xml
 } else {
     main_open -new
 }
