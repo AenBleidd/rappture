@@ -86,7 +86,15 @@ option add *saveas*progv*Button.padX 2
 option add *saveas*progv*Button.padY 2
 
 switch $tcl_platform(platform) {
-    unix - windows {
+    unix {
+        event add <<PopupMenu>> <ButtonPress-3>
+
+        # make Ctrl-V binding work:
+        # not strict Motif, and remove conflicting binding in Tk library
+        set tk_strictMotif 0
+        bind Text <Control-v> ""
+    }
+    windows {
         event add <<PopupMenu>> <ButtonPress-3>
     }
     macintosh {
