@@ -370,9 +370,13 @@ itcl::body Rappture::Hierlist::_redrawChildren {node indent yposVar} {
 # the source type and reject the data.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Hierlist::dd_get_source {widget x y} {
+    # convert from screen coords to canvas coords (for scrollbars)
+    set x [$widget canvasx $x]
+    set y [$widget canvasy $y]
+
     set data ""
-    foreach id [$itk_component(area) find overlapping $x $y $x $y] {
-        foreach tag [$itk_component(area) gettags $id] {
+    foreach id [$widget find overlapping $x $y $x $y] {
+        foreach tag [$widget gettags $id] {
             # search for a tag like item:NNN and make sure it's selected
             if {[regexp {^item:([0-9]+)$} $tag match node]
                   && $node == $_current} {
