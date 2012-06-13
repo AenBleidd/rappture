@@ -33,24 +33,25 @@
 #include <math.h>
 #include "tk.h"
 
-/* used for text within the hotspot that needs to be truncated */
-#define ellipsis_width 9
-#define ellipsis_height 1
-static unsigned char ellipsis_bits[] = {
-   0x92, 0x00};
+#define SEGMENT_TYPE_TEXT	0
+#define SEGMENT_TYPE_VARIABLE	1
+#define SEGMENT_TYPE_HOTSPOT	2
+#define VAR_FLAGS (TCL_GLOBAL_ONLY|TCL_TRACE_WRITES|TCL_TRACE_UNSETS)
 
-typedef struct _HotspotSegment HotspotSegment;
+typedef struct _ItemSegment ItemSegment;
 
 /*
- * HotspotSegment 
+ * ItemSegment 
  *
  */
-struct _HotspotSegment {
-    HotspotSegment *nextPtr;
+struct _ItemSegment {
+    ItemSegment *nextPtr;
     int type;				/* Image, normal text, or substituted
 					 * text. */
     short int x, y;			/* Location of image or text on
 					 * canvas. */
+    Tk_TextLayout layout;		/* Layout of normal or substituted 
+					 * text */
     int length;				/* # of bytes in below string. */
     int lineNum;			/* Line where segment if located. */
     const char *subst;			/* Substitututed text. */
@@ -68,7 +69,6 @@ typedef struct HotspotItem  {
     Tk_Window tkwin;			/* Window that represents this
 					 * canvas */
     Tk_Canvas canvas;			/* Canvas that owns this item */
-    Pixmap dots;			/* ellipsis used for truncated text */
 
     /*
      * Fields that are set by widget commands other than "configure":
@@ -81,56 +81,48 @@ typedef struct HotspotItem  {
     /*
      * Configuration settings that are updated by Tk_ConfigureWidget:
      */
+    Tcl_Interp *substInterp;		/* If non-NULL, interpreter containing
+					 * substituted variables.   */
     const char *text;			/* Text to be displayed */
     Tk_Anchor anchor;			/* Where to anchor text relative to
 					 * (x,y) */
-    XColor *textColor;			/* Color for text */
-    XColor *lineColor;			/* Color for outline of rectangle */
-    Tk_3DBorder bgBorder;		/* used for drawing background
-					 * rectangle */
-    Tk_Font tkfont;			/* Font for drawing text */
-    int width;				/* Fixed width for hotspot (0 = not
-					 * set) */
-    int maxWidth;			/* Maximum overall width for
-					 * hotspot */
+    XColor *textColor;			/* Color for normal text */
+    XColor *substTextColor;		/* Color for substitututed text */
+    XColor *outlineColor;		/* Color for outline of rectangle */
+    Tk_3DBorder border;			/* If non-NULL, background color of
+					 * rectangle. */
     int borderWidth;			/* supports 3D border (drawn under
 					 * -outline) */
     int relief;				/* Indicates whether hotspot as a
 					 * whole is raised, sunken, or flat */
+    Tk_Font font;			/* Font for drawing normal text. */
+    Tk_Font substFont;			/* Font for drawing substituted text. */
+
+    int width;				/* Fixed width for hotspot (0 = not
+					 * set) */
+    int maxWidth;			/* Maximum overall width for
+					 * hotspot */
     int padding;			/* Padding around text and images */
 
-    char *imageLeftString;		/* Name of image displayed on the
-					 * left */
-    char *imageRightString;		/* Name of image displayed on the
-					 * right */
+    const char *imageName;		/* Name of normal hotspot image. */
+    const char *activeImageName;	/* Name of active hotspot image. */
   
+    Tk_Image image;			/* The normal icon for a hotspot. */
+    Tk_Image activeImage;		/* If non-NULL, active icon. */
+
     /*
      * Fields whose values are derived from the current values of the
      * configuration settings above:
      */
-    int textNumChars;           /* Length of text in characters. */
-    int textNumBytes;           /* Length of text in bytes. */
-    int textDrawChars;          /* Same as textNumChars or shorter, if
-                                 * text is too long for -maxwidth */
-    int textWidth;              /* Overall width of text (perhaps truncated)
-                                 * in pixels */
-    Tk_TextLayout textLayout;   /* Cached text layout information for value */
-
-    Tk_Image imageLeft;         /* icon drawn to left of text */
-    int imageLeftW;             /* width of image (if image is not NULL) */
-    int imageLeftH;             /* height of image (if image is not NULL) */
-
-    Tk_Image imageRight;        /* icon drawn to right of text */
-    int imageRightW;            /* width of image (if image is not NULL) */
-    int imageRightH;            /* height of image (if image is not NULL) */
-
-    int leftEdge;               /* Pixel location of the left edge of the
-                                 * item. (Where the left border of the
-                                 * text layout is drawn.) */
-    int rightEdge;              /* Pixel just to right of right edge of
-                                 * area of text item. */
-    GC gcText;                  /* Graphics context for drawing text. */
-    GC gcLineRect;              /* Graphics context for rectangle outline. */
+    Tk_Image image;			/* Normal hotspot icon. */
+    Tk_Image activeImage;		/* Active hotspot icon. */
+    GC normalGC;			/* Graphics context for drawing
+					 * text. */
+    GC rectGC;				/* Graphics context for rectangle
+					 * outline. */
+    GC substGC;				/* GC for substituted text. */
+    ItemSegment *firstPtr, *lastPtr;	/* List of hotspot segments. */
+    int width, height;			/* Dimension of bounding box. */
 } HotspotItem;
 
 /*
@@ -142,37 +134,35 @@ static Tk_CustomOption tagsOption = {
 };
 
 static Tk_ConfigSpec configSpecs[] = {
-    {TK_CONFIG_ANCHOR, "-anchor", (char*)NULL, (char*)NULL,
+    {TK_CONFIG_STRING, "-activeimage", "activeImage", (char*)NULL, (char*)NULL, 
+	Tk_Offset(HotspotItem, activeImage), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_ANCHOR, "-anchor", "anchor", (char*)NULL,
         "center", Tk_Offset(HotspotItem, anchor),
         TK_CONFIG_DONT_SET_DEFAULT},
-    {TK_CONFIG_BORDER, "-background", (char*)NULL, (char*)NULL,
-        "", Tk_Offset(HotspotItem, bgBorder), TK_CONFIG_NULL_OK},
-    {TK_CONFIG_PIXELS, "-borderwidth", (char*)NULL, (char*)NULL,
+    {TK_CONFIG_BORDER, "-background", "background", (char*)NULL,
+        "", Tk_Offset(HotspotItem, border), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_PIXELS, "-borderwidth", "borderWidth", (char*)NULL,
         "0", Tk_Offset(HotspotItem, borderWidth), 0},
-    {TK_CONFIG_FONT, "-font", (char*)NULL, (char*)NULL,
+    {TK_CONFIG_SYNONYM, "-fill", "background", (char *) NULL, (char *) NULL, 
+	0, 0},
+    {TK_CONFIG_FONT, "-font", "font", (char*)NULL,
         "helvetica -12", Tk_Offset(HotspotItem, tkfont), 0},
-    {TK_CONFIG_COLOR, "-foreground", (char*)NULL, (char*)NULL,
-        "black", Tk_Offset(HotspotItem, textColor), TK_CONFIG_NULL_OK},
-    {TK_CONFIG_STRING, "-imageleft", (char*)NULL, (char*)NULL,
-        (char*)NULL, Tk_Offset(HotspotItem, imageLeftString),
-        TK_CONFIG_NULL_OK},
-    {TK_CONFIG_STRING, "-imageright", (char*)NULL, (char*)NULL,
-        (char*)NULL, Tk_Offset(HotspotItem, imageRightString),
-        TK_CONFIG_NULL_OK},
-    {TK_CONFIG_PIXELS, "-maxwidth", (char*)NULL, (char*)NULL,
-        "0", Tk_Offset(HotspotItem, maxWidth), 0},
+    {TK_CONFIG_COLOR, "-foreground", "foreground", (char*)NULL,
+        "black", Tk_Offset(HotspotItem, textColor), 0},
+    {TK_CONFIG_FONT, "-substitutionfont", (char*)NULL, (char*)NULL,
+        "helvetica -12", Tk_Offset(HotspotItem, substFont), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_COLOR, "-substitutionforeground", (char*)NULL, (char*)NULL,
+        "black", Tk_Offset(HotspotItem, substTextColor), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_STRING, "-image", (char*)NULL, (char*)NULL, (char*)NULL, 
+	Tk_Offset(HotspotItem, image), 0},
     {TK_CONFIG_COLOR, "-outline", (char*)NULL, (char*)NULL,
-        "", Tk_Offset(HotspotItem, lineColor), TK_CONFIG_NULL_OK},
-    {TK_CONFIG_PIXELS, "-padding", (char*)NULL, (char*)NULL,
-        "4", Tk_Offset(HotspotItem, padding), 0},
+        "", Tk_Offset(HotspotItem, outlineColor), TK_CONFIG_NULL_OK},
     {TK_CONFIG_RELIEF, "-relief", (char*)NULL, (char*)NULL,
         "flat", Tk_Offset(HotspotItem, relief), 0},
     {TK_CONFIG_CUSTOM, "-tags", (char*)NULL, (char*)NULL,
         (char*)NULL, 0, TK_CONFIG_NULL_OK, &tagsOption},
     {TK_CONFIG_STRING, "-text", (char*)NULL, (char*)NULL,
         "", Tk_Offset(HotspotItem, text), 0},
-    {TK_CONFIG_PIXELS, "-width", (char*)NULL, (char*)NULL,
-        "0", Tk_Offset(HotspotItem, width), 0},
     {TK_CONFIG_END, (char*)NULL, (char*)NULL, (char*)NULL,
         (char*)NULL, 0, 0}
 };
@@ -245,7 +235,7 @@ typedef struct TkCanvas {
      */
 
     int borderWidth;		/* Width of 3-D border around window. */
-    Tk_3DBorder bgBorder;	/* Used for canvas background. */
+    Tk_3DBorder border;		/* Used for canvas background. */
     int relief;			/* Indicates whether window as a whole is
 				 * raised, sunken, or flat. */
     int highlightWidth;		/* Width in pixels of highlight to draw
@@ -424,29 +414,6 @@ typedef struct TkCanvas {
 
 /*
  * ------------------------------------------------------------------------
- *  RpCanvHotspot_Init --
- *
- *  Invoked when the Rappture GUI library is being initialized
- *  to install the "hotspot" item on the Tk canvas widget.
- *
- *  Returns TCL_OK if successful, or TCL_ERROR (along with an error
- *  message in the interp) if anything goes wrong.
- * ------------------------------------------------------------------------
- */
-int
-RpCanvHotspot_Init(interp)
-    Tcl_Interp *interp;         /* interpreter being initialized */
-{
-    Tk_CreateItemType(&rpHotspotType);
-
-    Tk_DefineBitmap(interp, Tk_GetUid("rp_ellipsis"),
-        (char*)ellipsis_bits, ellipsis_width, ellipsis_height);
-
-    return TCL_OK;
-}
-
-/*
- * ------------------------------------------------------------------------
  *
  *  CreateProc --
  *
@@ -484,35 +451,28 @@ CreateProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
      * Carry out initialization that is needed in order to clean up after
      * errors during the the remainder of this procedure.
      */
-    itemPtr->interp = interp;
-    itemPtr->display = Tk_Display(tkwin);
-    itemPtr->tkwin = Tk_CanvasTkwin(canvas);
-    itemPtr->canvas = canvas;
+    itemPtr->activeImage = NULL;
+    itemPtr->activeImageName = NULL;
     itemPtr->anchor = TK_ANCHOR_CENTER;
-    itemPtr->textColor = NULL;
     itemPtr->border = NULL;
-    itemPtr->outlineColor = NULL;
-    itemPtr->textFont = NULL;
-    itemPtr->substFont = NULL;
-    itemPtr->width = 0;
-    itemPtr->maxWidth = 0;
     itemPtr->borderWidth = 0;
-    itemPtr->relief = TK_RELIEF_FLAT;
-    itemPtr->padding = 0;
-    itemPtr->imageLeftString  = NULL;
-    itemPtr->imageRightString = NULL;
-    itemPtr->imageLeft        = NULL;
-    itemPtr->imageRight       = NULL;
-    itemPtr->textNumChars     = 0;
-    itemPtr->textNumBytes     = 0;
-    itemPtr->textDrawChars    = 0;
-    itemPtr->textWidth        = 0;
-    itemPtr->textLayout       = NULL;
-    itemPtr->leftEdge         = 0;
-    itemPtr->rightEdge        = 0;
-    itemPtr->textGC = None;
-    itemPtr->substGC = None;
+    itemPtr->canvas = canvas;
+    itemPtr->display = Tk_Display(tkwin);
+    itemPtr->font = NULL;
+    itemPtr->image = NULL;
+    itemPtr->imageName  = NULL;
+    itemPtr->interp = interp;
+    itemPtr->normalGC = None;
+    itemPtr->outlineColor = NULL;
     itemPtr->outlineGC = None;
+    itemPtr->relief = TK_RELIEF_FLAT;
+    itemPtr->substFont = NULL;
+    itemPtr->substGC = None;
+    itemPtr->substInterp = interp;
+    itemPtr->substTextColor = NULL;
+    itemPtr->textColor = NULL;
+    itemPtr->tkwin = tkwin;
+    itemPtr->width = 0;
 
     /* Process the arguments to fill in the item record. */
     if ((Tk_CanvasGetCoord(interp, canvas, objv[0], &x) != TCL_OK) ||
@@ -613,99 +573,113 @@ static int
 ConfigureProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
 	      int objc, Tcl_Obj *CONST *objv, int flags)
 {
-    HotspotItem *itemPtr = (HotspotItem *) canvItemPtr;
+    HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
     XGCValues gcValues;
     GC newGC;
     unsigned long mask;
     Tk_Window tkwin;
-    XColor *color;
-    Tk_Image image;
+    Tk_Image tkImage;
 
     tkwin = Tk_CanvasTkwin(canvas);
-    if (Tk_ConfigureWidget(interp, tkwin, configSpecs,
-            objc, (CONST char **) objv,
-            (char*)itemPtr, flags|TK_CONFIG_OBJS) != TCL_OK) {
+    if (Tk_ConfigureWidget(interp, tkwin, configSpecs, objc, 
+	(CONST char **)objv, (char*)itemPtr, flags|TK_CONFIG_OBJS) != TCL_OK) {
         return TCL_ERROR;
     }
 
-    /*
-     * A few of the options require additional processing, such as
-     * graphics contexts.
-     */
-    color = itemPtr->textColor;
-    newGC = None;
-    if (itemPtr->tkfont != NULL) {
-        gcValues.font = Tk_FontId(itemPtr->tkfont);
-        mask = GCFont;
-        if (color != NULL) {
-            gcValues.foreground = color->pixel;
-            mask |= GCForeground;
-            newGC = Tk_GetGC(tkwin, mask, &gcValues);
-        }
+    /* Normal text GC. */
+    mask = GCFont | GCForeground;
+    gcValues.font = Tk_FontId(itemPtr->font);
+    gcValues.foreground = itemPtr->textColor->pixel;
+    newGC = Tk_GetGC(tkwin, mask, &gcValues);
+    if (itemPtr->normalGC != None) {
+        Tk_FreeGC(Tk_Display(tkwin), itemPtr->normalGC);
     }
-    if (itemPtr->gcText != None) {
-        Tk_FreeGC(Tk_Display(tkwin), itemPtr->gcText);
+    itemPtr->normalGC = newGC;
+
+    /* Rectangle GC */
+    mask = GCLineWidth | GCForeground;
+    gcValues.foreground = itemPtr->lineColor->pixel;
+    gcValues.line_width = 1;
+    newGC = Tk_GetGC(tkwin, mask, &gcValues);
+    if (itemPtr->rectGC != None) {
+        Tk_FreeGC(Tk_Display(tkwin), itemPtr->rectGC);
     }
-    itemPtr->gcText = newGC;
+    itemPtr->rectGC = newGC;
 
-
-    newGC = None;
-    if (itemPtr->lineColor != NULL) {
-        gcValues.foreground = itemPtr->lineColor->pixel;
-        gcValues.line_width = 1;
-        mask = GCForeground | GCLineWidth;
-        newGC = Tk_GetGC(tkwin, mask, &gcValues);
+    /* Substituted text GC. */
+    mask = GCFont | GCForeground;
+    if (itemPtr->substFont != NULL) {
+	gcValues.font = Tk_FontId(itemPtr->substFont);
+    } else {
+	gcValues.font = Tk_FontId(itemPtr->font);
     }
-    if (itemPtr->gcLineRect != None) {
-        Tk_FreeGC(Tk_Display(tkwin), itemPtr->gcLineRect);
+    if (itemPtr->substTextColor != NULL) {
+	gcValues.foreground = itemPtr->substTextColor->pixel;
+    } else {
+	gcValues.foreground = itemPtr->textColor->pixel;
     }
-    itemPtr->gcLineRect = newGC;
+    newGC = Tk_GetGC(tkwin, mask, &gcValues);
+    if (itemPtr->normalGC != None) {
+        Tk_FreeGC(Tk_Display(tkwin), itemPtr->substGC);
+    }
+    itemPtr->substGC = newGC;
 
+    itemPtr->maxImageWidth = itemPtr->maxImageHeight = 0;
+    /* Normal hotspot image. */
+    if (itemPtr->imageName != NULL) {
+	int iw, ih;
 
-    if (itemPtr->imageLeftString != NULL) {
-        image = Tk_GetImage(interp, tkwin, itemPtr->imageLeftString,
+        tkImage = Tk_GetImage(interp, tkwin, itemPtr->imageName,
                 ImageChangedProc, (ClientData)itemPtr);
-        if (image == NULL) {
+        if (tkImage == NULL) {
             return TCL_ERROR;
         }
+	Tk_SizeOfImage(tkImage, &iw, &ih);
+	if (iw > itemPtr->maxImageWidth) {
+	    itemPtr->maxImageWidth = iw;
+	}
+	if (ih > itemPtr->maxImageHeight) {
+	    itemPtr->maxImageHeight = ih;
+	}
     } else {
-        image = NULL;
+	tkImage = NULL;
     }
-    if (itemPtr->imageLeft != NULL) {
-        Tk_FreeImage(itemPtr->imageLeft);
+	
+    if (itemPtr->image != NULL) {
+        Tk_FreeImage(itemPtr->image);
     }
-    itemPtr->imageLeft = image;
+    itemPtr->image = tkImage;
 
-    if (image != NULL) {
-        Tk_SizeOfImage(image,&itemPtr->imageLeftW, &itemPtr->imageLeftH);
-    }
-
-
-    if (itemPtr->imageRightString != NULL) {
-        image = Tk_GetImage(interp, tkwin, itemPtr->imageRightString,
+    /* Active hotspot image. */
+    if (itemPtr->activeImageName != NULL) {
+	int iw, ih;
+	
+        tkImage = Tk_GetImage(interp, tkwin, itemPtr->activeImageName,
                 ImageChangedProc, (ClientData)itemPtr);
-        if (image == NULL) {
+        if (tkImage == NULL) {
             return TCL_ERROR;
         }
+	Tk_SizeOfImage(tkImage, &iw, &ih);
+	if (iw > itemPtr->maxImageWidth) {
+	    itemPtr->maxImageWidth = iw;
+	}
+	if (ih > itemPtr->maxImageHeight) {
+	    itemPtr->maxImageHeight = ih;
+	}
     } else {
-        image = NULL;
+	tkImage = NULL;
+    } 
+    if (itemPtr->activeImage != NULL) {
+        Tk_FreeImage(itemPtr->activeImage);
     }
-    if (itemPtr->imageRight != NULL) {
-        Tk_FreeImage(itemPtr->imageRight);
-    }
-    itemPtr->imageRight = image;
+    itemPtr->activeImage = tkImage;
 
-    if (image != NULL) {
-        Tk_SizeOfImage(image,&itemPtr->imageRightW, &itemPtr->imageRightH);
-    }
-
+    Tk_SizeOfImage(itemPtr->image, &imgWidth, &ingHeight);
 
     if (itemPtr->text != NULL) {
-        itemPtr->textNumBytes = strlen(itemPtr->text);
-        itemPtr->textNumChars = Tcl_NumUtfChars(itemPtr->text, itemPtr->textNumBytes);
-    };
-
-    ComputeHotspotBbox(canvas, itemPtr);
+	ParseDescription(itemPtr, itemPtr->text);
+    }
+    ComputeBbox(canvas, itemPtr);
     return TCL_OK;
 }
 
@@ -731,37 +705,49 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
     if (itemPtr->textColor != NULL) {
         Tk_FreeColor(itemPtr->textColor);
     }
-    if (itemPtr->lineColor != NULL) {
-        Tk_FreeColor(itemPtr->lineColor);
+    if (itemPtr->substTextColor != NULL) {
+        Tk_FreeColor(itemPtr->substTextColor);
+    }
+    if (itemPtr->outlineColor != NULL) {
+        Tk_FreeColor(itemPtr->outlineColor);
     }
     if (itemPtr->text != NULL) {
-        ckfree(itemPtr->text);
+        Tcl_Free(itemPtr->text);
     }
-
-
-    if (itemPtr->imageLeftString != NULL) {
-        ckfree(itemPtr->imageLeftString);
+    if (itemPtr->substText != NULL) {
+        Tcl_Free(itemPtr->substText);
     }
-    if (itemPtr->imageLeft != NULL ) {
-        Tk_FreeImage(itemPtr->imageLeft);
+    if (itemPtr->imageName != NULL) {
+        Tcl_Free(itemPtr->imageName);
     }
-    if (itemPtr->imageRightString != NULL) {
-        ckfree(itemPtr->imageRightString);
+    if (itemPtr->activeImageName != NULL) {
+        Tcl_Free(itemPtr->activeImageName);
     }
-    if (itemPtr->imageRight != NULL ) {
-        Tk_FreeImage(itemPtr->imageRight);
+    if (itemPtr->image != NULL ) {
+        Tk_FreeImage(itemPtr->image);
     }
-
-    Tk_FreeTextLayout(itemPtr->textLayout);
-
-    Tk_FreeFont(itemPtr->tkfont);
-
-    if (itemPtr->gcText != None) {
-        Tk_FreeGC(display, itemPtr->gcText);
+    if (itemPtr->activeImage != NULL ) {
+        Tk_FreeImage(itemPtr->activeImage);
     }
-    if (itemPtr->gcLineRect != None) {
-        Tk_FreeGC(display, itemPtr->gcLineRect);
+    if (itemPtr->font != NULL) {
+	Tk_FreeFont(itemPtr->font);
     }
+    if (itemPtr->substFont != NULL) {
+	Tk_FreeFont(itemPtr->substFont);
+    }
+    if (itemPtr->normalGC != None) {
+        Tk_FreeGC(display, itemPtr->normalGC);
+    }
+    if (itemPtr->rectGC != None) {
+        Tk_FreeGC(display, itemPtr->rectGC);
+    }
+    if (itemPtr->rectGC != None) {
+        Tk_FreeGC(display, itemPtr->rectGC);
+    }
+    if (itemPtr->substGC != None) {
+        Tk_FreeGC(display, itemPtr->substGC);
+    }
+    DestroySegments(itemPtr);
 }
 
 /*
@@ -1070,51 +1056,27 @@ static double
 PointProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double *pointPtr)
 {
     HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
-    double value, x0, y0, x1, y1, xDiff, yDiff;
+    double value, x1, y1, x2, y2, dx, dy;
 
-    if (itemPtr->bgBorder || itemPtr->lineColor) {
-        /* have a rectangle -- compare directly against that */
-        x0 = itemPtr->leftEdge;
-        y0 = itemPtr->header.y1;
-        x1 = itemPtr->rightEdge;
-        y1 = itemPtr->header.y2;
-    }
-    else if (itemPtr->imageLeft || itemPtr->imageRight) {
-        /* have images -- compare against a rectangle around image/text */
-        x0 = itemPtr->leftEdge + itemPtr->padding + itemPtr->borderWidth;
-        y0 = itemPtr->header.y1 + itemPtr->padding + itemPtr->borderWidth;
-        x1 = itemPtr->rightEdge - itemPtr->padding - itemPtr->borderWidth;
-        y1 = itemPtr->header.y2 - itemPtr->padding - itemPtr->borderWidth;
-    }
-    else {
-        value = (double) Tk_DistanceToTextLayout(itemPtr->textLayout,
-                    (int) pointPtr[0] - itemPtr->leftEdge,
-                    (int) pointPtr[1] - itemPtr->header.y1);
-
-        if ((itemPtr->textColor == NULL) || (itemPtr->text == NULL)
-              || (*itemPtr->text == 0)) {
-            value = 1.0e36;
-        }
-        return value;
-    }
-
+    x1 = itemPtr->header.x1;
+    y1 = itemPtr->header.y1;
+    x2 = itemPtr->header.x2;
+    y2 = itemPtr->header.y2;
     if (pointPtr[0] < x0) {
-        xDiff = x0 - pointPtr[0];
+        dx = x0 - pointPtr[0];
     } else if (pointPtr[0] >= x1)  {
-        xDiff = pointPtr[0] + 1 - x1;
+        dx = pointPtr[0] + 1 - x1;
     } else {
-        xDiff = 0;
+        dx = 0;
     }
-
     if (pointPtr[1] < y0) {
-        yDiff = y0 - pointPtr[1];
+        dy = y0 - pointPtr[1];
     } else if (pointPtr[1] >= y1)  {
-        yDiff = pointPtr[1] + 1 - y1;
+        dy = pointPtr[1] + 1 - y1;
     } else {
-        yDiff = 0;
+        dy = 0;
     }
-
-    return hypot(xDiff, yDiff);
+    return hypot(dx, dy);
 }
 
 /*
@@ -1142,7 +1104,7 @@ AreaProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double *rectPtr)
     HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
     int x0, y0, x1, y1;
 
-    if (itemPtr->bgBorder || itemPtr->lineColor) {
+    if ((itemPtr->border != NULL) || itemPtr->lineColor) {
         /* have a rectangle -- compare directly against that */
         x0 = itemPtr->leftEdge;
         y0 = itemPtr->header.y1;
@@ -1166,15 +1128,15 @@ AreaProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double *rectPtr)
     }
 
     /* compare against rectangle... */
-    if (rectPtr[0] > x1 || rectPtr[1] > y1
-          || rectPtr[2] < x0 || rectPtr[3] < y0) {
-        return -1;  /* completely outside */
+    if ((rectPtr[0] > x1) || (rectPtr[1] > y1) || 
+	(rectPtr[2] < x0) || (rectPtr[3] < y0)) {
+        return -1;			/* completely outside */
     }
-    if (rectPtr[0] >= x0 && rectPtr[1] >= y0
-          && rectPtr[2] <= x1 && rectPtr[3] <= y1) {
-        return 1;  /* completely inside */
+    if ((rectPtr[0] >= x0) && (rectPtr[1] >= y0) && 
+	(rectPtr[2] <= x1) && (rectPtr[3] <= y1)) {
+        return 1;			/* completely inside */
     }
-    return 0;  /* must be overlapping */
+    return 0;				/* must be overlapping */
 }
 
 /*
@@ -1228,7 +1190,7 @@ TranslateProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double dx,  double dy)
 
     itemPtr->x += dx;
     itemPtr->y += dy;
-    ComputeHotspotBbox(canvas, itemPtr);
+    ComputeBbox(canvas, itemPtr);
 }
 
 /*
@@ -1387,18 +1349,18 @@ ImageChangedProc(clientData, x, y, width, height, imgWidth, imgHeight)
 {      
     HotspotItem *itemPtr = (HotspotItem *) clientData;
     
-    itemPtr->imageLeftW = imgWidth;
-    itemPtr->imageLeftH = imgHeight;
-    ComputeBbox(plPtr->canvas, itemPtr);
+    ComputeGeometry(itemPtr);
+    Tk_CanvasEventuallyRedraw(itemPtr->canvas, itemPtr->header.x1, 
+	itemPtr->header.y1, itemPtr->header.x2, itemPtr->header.y2);
     return;
 }
 
 static int
 AddTextSegment(HotspotItem *itemPtr, const char *text, int length)
 {
-    HotspotSegment *segPtr;
+    ItemSegment *segPtr;
 
-    segPtr = Tcl_Alloc(sizeof(HotspotSegment) + length + 1);
+    segPtr = Tcl_Alloc(sizeof(ItemSegment) + length + 1);
     if (segPtr == NULL) {
 	Tcl_Panic("can't allocate text segent for hotspot");
     }
@@ -1423,9 +1385,10 @@ AddTextSegment(HotspotItem *itemPtr, const char *text, int length)
 static int
 AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
 {
-    HotspotSegment *segPtr;
+    ItemSegment *segPtr;
+    Tcl_Interp *interp;
 
-    segPtr = Tcl_Alloc(sizeof(HotspotSegment) + length + 1);
+    segPtr = Tcl_Alloc(sizeof(ItemSegment) + length + 1);
     if (segPtr == NULL) {
 	Tcl_Panic("can't allocate variable segent for hotspot");
     }
@@ -1435,8 +1398,11 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
     memcpy(segPtr->text, varName, length);
     segPtr->text[length] = '\0';
     segPtr->length = length;
-    Tcl_TraceVar(itemPtr->substInterp, varName, VAR_FLAGS, ItemVarTraceProc, 
-	segPtr);
+    interp = itemPtr->substInterp;
+    if (interp == NULL) {
+	interp = itemPtr->interp;
+    }
+    Tcl_TraceVar(interp, varName, VAR_FLAGS, TraceVarProc, itemPtr);
     segPtr->subst = NULL;
     segPtr->x = segPtr->y = 0;
     segPtr->nextPtr = NULL;
@@ -1453,9 +1419,9 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
 static int
 AddHotspotSegment(HotspotItem *itemPtr)
 {
-    HotspotSegment *segPtr;
+    ItemSegment *segPtr;
 
-    segPtr = Tcl_Alloc(sizeof(HotspotSegment));
+    segPtr = Tcl_Alloc(sizeof(ItemSegment));
     if (segPtr == NULL) {
 	Tcl_Panic("can't allocate hotspot segent for hotspot");
     }
@@ -1476,11 +1442,185 @@ AddHotspotSegment(HotspotItem *itemPtr)
     }
 }
 
+static void
+DestroySegment(HotspotItem *itemPtr, ItemSegment *segPtr)
+{
+    if (segPtr->layout != NULL) {
+	Tk_FreeLayout(segPtr->layout);
+    }
+    if (segPtr->type == SEGMENT_TYPE_VARIABLE) {
+	Tcl_UntraceVar(itemPtr->interp, segPtr->text, flags, TraceVarProc, 
+		itemPtr);
+    }
+    if (segPtr->substText != NULL) {
+	Tcl_Free(segPtr->substText);
+    }
+    Tcl_Free(segPtr);
+}
+
+static void
+DestroySegments(HotspotItem *itemPtr)
+{
+    ItemSegment *segPtr, nextPtr;
+
+    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = nextPtr) {
+	nextPtr = segPtr->nextPtr;
+	DestroySegment(segPtr);
+    }
+    itemPtr->firstPtr = itemPtr->lastPtr = NULL;
+}
+
+static int
+DoSubst(HotspotItem *itemPtr, const char *varName)
+{
+    ItemSegment *segptr;
+
+    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
+	const char *value;
+
+	if (segPtr->type != SEGMENT_TYPE_VARIABLE) {
+	    continue;
+	}
+	if ((varName != NULL) && (strcmp(segPtr->text, varName) != 0)) {
+	    continue;
+	}
+
+	value = Tcl_GetVar(itemPtr->substInterp, segPtr->text, TCL_GLOBAL_ONLY);
+	if (value == NULL) {
+	    value = "???";
+	}
+	if (segPtr->subst != NULL) {
+	    Tcl_Free(segPtr->subst);
+	}
+	segPtr->subst = Tcl_Alloc(strlen(value) + 1);
+	strcpy(segPtr->subst, value);
+    }
+}
+
+static int
+ComputeGeometry(HotspotItem *itemPtr)
+{
+    int x, y, w, h;
+    ItemSegment *segPtr;
+    int imgWidth, imgHeight;
+    int maxWidth, maxHeight;
+
+    /* Collect the individual segment sizes. */
+    imgWidth = itemPtr->maxImageWidth + 2 * IMAGE_PAD;
+    imgHeight = itemPtr->maxImageHeight + 2 * IMAGE_PAD;
+    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
+	if (segPtr->layout != NULL) {
+	    Tk_FreeTextLayout(segPtr->layout);
+	}
+	switch (segPtr->type) {
+	case SEGMENT_TYPE_HOTSPOT:
+	    w = imgWidth, h = imgHeight;
+	    break;
+	case SEGMENT_TYPE_VARIABLE:
+	    segPtr->layout = Tk_ComputeTextLayout(segPtr->substFont, 
+		segPtr->subst, segPtr->length, wrapLength, justify, flags, 
+		&w, &h);
+	    break;
+	case SEGMENT_TYPE_TEXT:
+	    segPtr->layout = Tk_ComputeTextLayout(segPtr->textFont, 
+		segPtr->text, segPtr->length, wrapLength, justify, flags, 
+		&w, &h);
+	    break;
+	default:
+	    Tcl_Panic("unknown hotspot segment type");
+	}
+	segPtr->width = w;
+	segPtr->height = h;
+    }
+    /* Compute the relative positions of the segments. */
+    x = y = 0;
+    maxWidth = maxHeight = 0;
+    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
+	int maxHeight, lineNum;
+	ItemSegment *startPtr;
+
+	maxHeight = 0;
+	lineNum = segPtr->lineNum;
+	startPtr = segPtr;
+	x = 0;
+	while ((segPtr->lineNum == lineNum) && (segPtr != NULL)) {
+	    if (segPtr->height > segPtr->maxHeight) {
+		segPtr->maxHeight = segPtr->height;
+	    }
+	    segPtr = segPtr->nextPtr;
+	    segPtr->x = x;
+	    x += segPtr->width;
+	}
+	if (x > maxWidth) {
+	    maxWidth = x;
+	}
+	segPtr = startPtr;
+	while ((segPtr->lineNum == lineNum) && (segPtr != NULL)) {
+	    segPtr->y = (maxHeight - segPtr->height) / 2;
+	}
+	y += maxHeight;
+    }
+    itemPtr->width = maxWidth;
+    itemPtr->height = y;
+}
+
+/*
+ *---------------------------------------------------------------------------
+ * 
+ * TraceVarProc --
+ *
+ *	This procedure is invoked when someone changes the state variable
+ *	associated with a radiobutton or checkbutton entry.  The entry's
+ *	selected state is set to match the value of the variable.
+ *
+ * Results:
+ *	NULL is always returned.
+ *
+ * Side effects:
+ *	The combobox entry may become selected or deselected.
+ *
+ *---------------------------------------------------------------------------
+ */
+static char *
+TraceVarProc(
+    ClientData clientData,		/* Information about the item. */
+    Tcl_Interp *interp,			/* Interpreter containing variable. */
+    const char *name1,			/* First part of variable's name. */
+    const char *name2,			/* Second part of variable's name. */
+    int flags)				/* Describes what just happened. */
+{
+    HotspotItem *itemPtr = clientData;
+    Tcl_Obj *objPtr;
+    int bool;
+
+    if (flags & TCL_INTERP_DESTROYED) {
+    	return NULL;			/* Interpreter is going away. */
+
+    }
+    /*
+     * If the variable is being unset, then re-establish the trace.
+     */
+    if (flags & TCL_TRACE_UNSETS) {
+	if (flags & TCL_TRACE_DESTROYED) {
+	    Tcl_TraceVar(interp, name1, VAR_FLAGS, TraceVarProc, itemPtr);
+	}
+	goto done;
+    }
+    DoSubst(itemPtr, name1);
+    ComputeGeometry(itemPtr);
+    Tk_CanvasEventuallyRedraw(itemPtr->canvas, itemPtr->header.x1, 
+	itemPtr->header.y1, itemPtr->header.x2, itemPtr->header.y2);
+    return NULL;			/* Done. */
+}
+
 static int
 ParseDescription(HotspotItem *itemPtr, const char *description, int length)
 {
     const char *p, *pend, *start;
 
+    if (itemPtr->firstPtr != NULL) {
+	DestroySegments(itemPtr);
+    }
     start = description;
     itemPtr->numLines = 1;
     for (p = description, pend = p + length; p < pend; p++) {
@@ -1513,102 +1653,33 @@ ParseDescription(HotspotItem *itemPtr, const char *description, int length)
 		itemPtr->numLines++;
 	    }
 	}
-    }
     next:
     }
     if (p > start) {
 	/* Save the trailing text. */
 	AddTextSegment(itemPtr, start, p - start);
     }
+    DoSubst(itemPtr, NULL);
+    ComputeGeometry(itemPtr);
     return TCL_OK;
 }
 
-static int
-DoSubst(HotspotItem *itemPtr)
+/*
+ * ------------------------------------------------------------------------
+ *  RpCanvHotspot_Init --
+ *
+ *  Invoked when the Rappture GUI library is being initialized
+ *  to install the "hotspot" item on the Tk canvas widget.
+ *
+ *  Returns TCL_OK if successful, or TCL_ERROR (along with an error
+ *  message in the interp) if anything goes wrong.
+ * ------------------------------------------------------------------------
+ */
+int
+RpCanvHotspot_Init(interp)
+    Tcl_Interp *interp;         /* interpreter being initialized */
 {
-    HotspotSegment *segptr;
-
-    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
-	if (segPtr->type == SEGMENT_TYPE_VARIABLE) {
-	    const char *value;
-
-	    value = Tcl_GetVar(itemPtr->substInterp, segPtr->text, NULL, 
-		TCL_GLOBAL_ONLY);
-	    if (value == NULL) {
-		value = "???";
-	    }
-	    if (segPtr->subst != NULL) {
-		Tcl_Free(segPtr->subst);
-	    }
-	    segPtr->subst = Tcl_Alloc(strlen(value) + 1);
-	    strcpy(segPtr->subst, value);
-	}
-    }
+    Tk_CreateItemType(&rpHotspotType);
+    return TCL_OK;
 }
 
-static int
-ComputeItemGeometry(HotspotItem *itemPtr)
-{
-    int imgWidth, imgHeight;
-    int w, h;
-    HotspotSegment *segPtr;
-
-    /* Collect the individual segment sizes. */
-    Tk_SizeOfImage(itemPtr->image, &imgWidth, &ingHeight);
-    imgWidth += 2 * IMAGE_PAD;
-    imgHeight += 2 * IMAGE_PAD;
-    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
-	if (segPtr->layout != NULL) {
-	    Tk_FreeTextLayout(segPtr->layout);
-	}
-	switch (segPtr->type) {
-	case SEGMENT_TYPE_HOTSPOT:
-	    w = imgWidth, h = imgHeight;
-	    break;
-	case SEGMENT_TYPE_VARIABLE:
-	    segPtr->layout = Tk_ComputeTextLayout(segPtr->substFont, 
-		segPtr->subst, segPtr->length, wrapLength, justify, flags, 
-		&w, &h);
-	    break;
-	case SEGMENT_TYPE_TEXT:
-	    segPtr->layout = Tk_ComputeTextLayout(segPtr->textFont, 
-		segPtr->text, segPtr->length, wrapLength, justify, flags, 
-		&w, &h);
-	    break;
-	default:
-	    Tcl_Panic("unknown hotspot segment type");
-	}
-	segPtr->width = w;
-	segPtr->height = h;
-    }
-    /* Compute the relative positions of the segments. */
-    x = y = 0;
-    maxWidth = maxHeight = 0;
-    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
-	int maxHeight, lineNum;
-	HotspotSegment *startPtr;
-
-	maxHeight = 0;
-	lineNum = segPtr->lineNum;
-	startPtr = segPtr;
-	x = 0;
-	while ((segPtr->lineNum == lineNum) && (segPtr != NULL)) {
-	    if (segPtr->height > segPtr->maxHeight) {
-		segPtr->maxHeight = segPtr->height;
-	    }
-	    segPtr = segPtr->nextPtr;
-	    segPtr->x = x;
-	    x += segPtr->width;
-	}
-	if (x > maxWidth) {
-	    maxWidth = x;
-	}
-	segPtr = startPtr;
-	while ((segPtr->lineNum == lineNum) && (segPtr != NULL)) {
-	    segPtr->y = (maxHeight - segPtr->height) / 2;
-	}
-	y += maxHeight;
-    }
-    itemPtr->width = maxWidth;
-    itemPtr->height = y;
-}
