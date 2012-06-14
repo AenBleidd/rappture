@@ -71,6 +71,7 @@ itcl::class Rappture::DrawingEntry {
     private method XmlGet { path } 
     private method XmlGetSubst { path } 
     private method Withdraw {} 
+    private method WatchHotspot { w item x y } 
 }
 
 itk::usual DrawingEntry {
@@ -595,6 +596,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     array set attr2option {
 	"font"		"-font"
 	"color"		"-foreground"
+	"valuecolor"	"-valueforeground"
 	"text"		"-text"
 	"anchor"	"-anchor"
     }
@@ -603,6 +605,8 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     # Set default options first and then let tool.xml override them.
     array set options {
 	-font {Arial 8}
+	-valuefont {Arial 8 bold}
+	-valueforeground blue3
 	-text {}
 	-fill {}
 	-anchor c
@@ -634,6 +638,25 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     set id [eval $itk_component(drawing) create hotspot $coords]
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
+    foreach varName [Rappture::hotspot variables $itk_component(drawing) $id] {
+	if { [info exists _name2path($varName)] } {
+	    set path $_name2path($varName)
+	    $_owner xml put $path.hide 1
+	} else {
+	    puts stderr "unknown varName=$varName"
+	}
+    }
+    $itk_component(drawing) bind $id <Motion> \
+	[itcl::code $this WatchHotspot %W $id %x %y]
+}
+
+
+itcl::body Rappture::DrawingEntry::WatchHotspot { w item x y } {
+    set x [$w canvasx $x]
+    set y [$w canvasy $y]
+    set varName  [Rappture::hotspot identify $w $item $x $y]
+    puts stderr "x=$x y=$y [$w itemcget $item -text] varName=$varName"
+    $w itemconfigure $item -activevalue $varName
 }
 
 
@@ -913,10 +936,7 @@ itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
 
 itcl::body Rappture::DrawingEntry::XmlGet { path } {
     set value [$_owner xml get $path]
-    if { $_parser == "" } {
-	return $value
-    }
-    return $value
+    return [string trim $value]
 }
 
 itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
@@ -924,5 +944,5 @@ itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
     if { $_parser == "" } {
 	return $value
     }
-    return [$_parser eval [list subst -nocommands $value]]
+    return [string trim [$_parser eval [list subst -nocommands $value]]]
 }

@@ -90,7 +90,7 @@ struct _HotspotItem  {
 					 * conjunction with -anchor determine
 					 * where the item is drawn on the
 					 * canvas. */
-
+    double x1, y1, x2, y2;
     /*
      * Configuration settings that are updated by Tk_ConfigureWidget:
      */
@@ -135,7 +135,7 @@ struct _HotspotItem  {
     GC outlineGC;			/* GC for outline? */
     ItemSegment *firstPtr, *lastPtr;	/* List of hotspot segments. */
     int width, height;			/* Dimension of bounding box. */
-    ItemSegment *activePtr;		/* Active segment. */
+    const char *activeValue;		/* Active segment. */
     short int maxImageWidth, maxImageHeight;
     int numLines;
 };
@@ -151,6 +151,8 @@ static Tk_CustomOption tagsOption = {
 static Tk_ConfigSpec configSpecs[] = {
     {TK_CONFIG_STRING, "-activeimage", "activeImage", (char*)NULL, (char*)NULL, 
 	Tk_Offset(HotspotItem, activeImageName), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_STRING, "-activevalue", "activeValue", (char*)NULL, (char*)NULL, 
+	Tk_Offset(HotspotItem, activeValue), TK_CONFIG_NULL_OK},
     {TK_CONFIG_ANCHOR, "-anchor", "anchor", (char*)NULL,
         "center", Tk_Offset(HotspotItem, anchor),
         TK_CONFIG_DONT_SET_DEFAULT},
@@ -167,7 +169,7 @@ static Tk_ConfigSpec configSpecs[] = {
     {TK_CONFIG_COLOR, "-activevaluebackground", (char*)NULL, (char*)NULL,
         "blue", Tk_Offset(HotspotItem, activeValueBorder), 0},
     {TK_CONFIG_FONT, "-valuefont", (char*)NULL, (char*)NULL,
-        "courier -12", Tk_Offset(HotspotItem, valueFont), 0},
+        "helvetica -12 bold", Tk_Offset(HotspotItem, valueFont), 0},
     {TK_CONFIG_COLOR, "-valueforeground", (char*)NULL, (char*)NULL,
         "blue", Tk_Offset(HotspotItem, valueColor), 0},
     {TK_CONFIG_STRING, "-image", (char*)NULL, (char*)NULL, (char*)NULL, 
@@ -568,7 +570,7 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
     segPtr->itemPtr = itemPtr;
     segPtr->lineNum = itemPtr->numLines;
     segPtr->type = SEGMENT_TYPE_VARIABLE;
-    memcpy(segPtr->text, varName, length);
+    strncpy(segPtr->text, varName, length);
     segPtr->text[length] = '\0';
     segPtr->length = length;
     interp = itemPtr->valueInterp;
@@ -591,17 +593,18 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
 }
 
 static void
-AddHotspotSegment(HotspotItem *itemPtr)
+AddHotspotSegment(HotspotItem *itemPtr, const char *varName, int length)
 {
     ItemSegment *segPtr;
 
-    segPtr = (ItemSegment *)Tcl_Alloc(sizeof(ItemSegment));
+    segPtr = (ItemSegment *)Tcl_Alloc(sizeof(ItemSegment) + length + 1);
     memset(segPtr, 0, sizeof(ItemSegment));
     segPtr->itemPtr = itemPtr;
     segPtr->lineNum = itemPtr->numLines;
     segPtr->type = SEGMENT_TYPE_HOTSPOT;
-    segPtr->text[0] = '\0';
-    segPtr->length = 0;
+    strncpy(segPtr->text, varName, length);
+    segPtr->text[length] = '\0';
+    segPtr->length = length;
     segPtr->x = segPtr->y = 0;
     segPtr->nextPtr = NULL;
     if (itemPtr->firstPtr == NULL) {
@@ -755,6 +758,7 @@ ComputeGeometry(HotspotItem *itemPtr)
     }
     itemPtr->width = maxWidth;
     itemPtr->height = y;
+    ComputeBbox(itemPtr);
 }
 
 static int
@@ -783,7 +787,7 @@ ParseDescription(Tcl_Interp *interp, HotspotItem *itemPtr,
 	    for (q = varName; q != '\0'; q++) {
 		if (*q == '}') {
 		    AddVariableSegment(itemPtr, varName, q - varName);
-		    AddHotspotSegment(itemPtr);
+		    AddHotspotSegment(itemPtr, varName, q- varName);
 		    p = q;
 		    start = p + 1;
 		    goto next;
@@ -845,41 +849,20 @@ CreateProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
 	return TCL_ERROR;
     }
 
+    memset((char *)itemPtr + sizeof(Tk_Item), 0, sizeof(HotspotItem) - sizeof(Tk_Item));
     /*
      * Carry out initialization that is needed in order to clean up after
      * errors during the the remainder of this procedure.
      */
-    itemPtr->activeImage = NULL;
-    itemPtr->activeImageName = NULL;
-    itemPtr->activePtr = NULL;
     itemPtr->anchor = TK_ANCHOR_CENTER;
-    itemPtr->border = NULL;
-    itemPtr->borderWidth = 0;
     itemPtr->canvas = canvas;
     itemPtr->display = Tk_Display(tkwin);
-    itemPtr->firstPtr = NULL;
-    itemPtr->font = NULL;
-    itemPtr->height = 0;
-    itemPtr->image = NULL;
-    itemPtr->imageName  = NULL;
     itemPtr->interp = interp;
-    itemPtr->lastPtr = NULL;
-    itemPtr->maxImageWidth = itemPtr->maxImageHeight = 0;
-    itemPtr->normalGC = None;
-    itemPtr->numLines = 0;
-    itemPtr->outlineColor = NULL;
-    itemPtr->outlineGC = None;
     itemPtr->relief = TK_RELIEF_FLAT;
-    itemPtr->valueColor = NULL;
-    itemPtr->valueFont = NULL;
-    itemPtr->valueGC = None;
-    itemPtr->activeGC = None;
-    itemPtr->valueInterp = interp;
-    itemPtr->text = NULL;
-    itemPtr->textColor = NULL;
     itemPtr->tkwin = tkwin;
-    itemPtr->width = 0;
-    itemPtr->x = itemPtr->y = 0.0;
+    itemPtr->valueInterp = interp;
+    itemPtr->border = NULL;
+    itemPtr->activeValueBorder = NULL;
 
     /* Process the arguments to fill in the item record. */
     if ((GetCoordFromObj(interp, itemPtr, objv[0], &x) != TCL_OK) ||
@@ -1177,29 +1160,29 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
  *---------------------------------------------------------------------------
  */
 static void
-TranslateAnchor(HotspotItem *itemPtr, int *xPtr, int *yPtr)
+TranslateAnchor(HotspotItem *itemPtr, double *xPtr, double *yPtr)
 {
-    int x, y;
+    double x, y;
 
     x = *xPtr, y = *yPtr;
     switch (itemPtr->anchor) {
     case TK_ANCHOR_NW:		/* Upper left corner */
 	break;
     case TK_ANCHOR_W:		/* Left center */
-	y -= (itemPtr->height / 2);
+	y -= (itemPtr->height * 0.5);
 	break;
     case TK_ANCHOR_SW:		/* Lower left corner */
 	y -= itemPtr->height;
 	break;
     case TK_ANCHOR_N:		/* Top center */
-	x -= (itemPtr->width / 2);
+	x -= (itemPtr->width * 0.5);
 	break;
     case TK_ANCHOR_CENTER:	/* Centered */
-	x -= (itemPtr->width / 2);
-	y -= (itemPtr->height / 2);
+	x -= (itemPtr->width * 0.5);
+	y -= (itemPtr->height * 0.5);
 	break;
     case TK_ANCHOR_S:		/* Bottom center */
-	x -= (itemPtr->width / 2);
+	x -= (itemPtr->width * 0.5);
 	y -= itemPtr->height;
 	break;
     case TK_ANCHOR_NE:		/* Upper right corner */
@@ -1207,7 +1190,7 @@ TranslateAnchor(HotspotItem *itemPtr, int *xPtr, int *yPtr)
 	break;
     case TK_ANCHOR_E:		/* Right center */
 	x -= itemPtr->width;
-	y -= (itemPtr->height / 2);
+	y -= (itemPtr->height * 0.5);
 	break;
     case TK_ANCHOR_SE:		/* Lower right corner */
 	x -= itemPtr->width;
@@ -1241,15 +1224,18 @@ TranslateAnchor(HotspotItem *itemPtr, int *xPtr, int *yPtr)
 static void
 ComputeBbox(HotspotItem *itemPtr)
 {
-    int x, y;
+    double x, y;
 
-    x = ROUND(itemPtr->x);
-    y = ROUND(itemPtr->y);
-    TranslateAnchor(itemPtr,&x, &y);
-    itemPtr->base.x1 = x;
-    itemPtr->base.y1 = y;
-    itemPtr->base.x2 = x + itemPtr->width;
-    itemPtr->base.y2 = y + itemPtr->height;
+    x = itemPtr->x, y = itemPtr->y;
+    TranslateAnchor(itemPtr, &x, &y);
+    itemPtr->x1 = x;
+    itemPtr->x2 = x + itemPtr->width;
+    itemPtr->y1 = y;
+    itemPtr->y2 = y + itemPtr->height;
+    itemPtr->base.x1 = ROUND(itemPtr->x1);
+    itemPtr->base.y1 = ROUND(itemPtr->y1);
+    itemPtr->base.x2 = ROUND(itemPtr->x2);
+    itemPtr->base.y2 = ROUND(itemPtr->y2);
 }
 
 static void 
@@ -1263,7 +1249,8 @@ DrawSegment(ItemSegment *segPtr, Drawable drawable, int x, int y)
 	int w, h;
 
 	tkImage = NULL;
-	if (itemPtr->activePtr == segPtr) {
+	if ((itemPtr->activeValue != NULL) &&
+	    (strcmp(itemPtr->activeValue, segPtr->text) == 0)) {
 	    tkImage = itemPtr->activeImage;
 	}
 	if (tkImage == NULL) {
@@ -1304,7 +1291,8 @@ DisplayProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display,
 {
     HotspotItem *itemPtr = (HotspotItem *) canvItemPtr;
     ItemSegment *segPtr;
-    short int cx, cy;
+    short int drawX, drawY;
+    double tx, ty;
 
     itemPtr->flags &= ~REDRAW_PENDING;
     if (itemPtr->flags & SUBSTITUTIONS_PENDING) {
@@ -1313,9 +1301,12 @@ DisplayProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display,
     if (itemPtr->flags & LAYOUT_PENDING) {
 	ComputeGeometry(itemPtr);
     }
-    Tk_CanvasDrawableCoords(canvas, itemPtr->x, itemPtr->y, &cx, &cy);
-    x = cx, y = cy;
-    TranslateAnchor(itemPtr, &x, &y);
+    tx = itemPtr->x, ty = itemPtr->y;
+    TranslateAnchor(itemPtr, &tx, &ty);
+
+    /* Convert canvas coordinates to drawable coordinates. */
+    Tk_CanvasDrawableCoords(canvas, tx, ty, &drawX, &drawY);
+    x = drawX, y = drawY;
 
     if (itemPtr->border != NULL) {
         Tk_Fill3DRectangle(itemPtr->tkwin, drawable, itemPtr->border, x, y, 
@@ -1401,16 +1392,19 @@ AreaProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double *rectPtr)
 {
     HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
 
-    /* Compare against bounding box... */
-    if ((rectPtr[0] > itemPtr->base.x2) || (rectPtr[1] > itemPtr->base.y2) || 
-	(rectPtr[2] < itemPtr->base.x1) || (rectPtr[3] < itemPtr->base.y1)) {
-        return -1;			/* Completely outside. */
+    if ((rectPtr[2] <= itemPtr->base.x1) || 
+	(rectPtr[0] >= itemPtr->base.x2) || 
+	(rectPtr[3] <= itemPtr->base.y1) || 
+	(rectPtr[1] >= itemPtr->base.y2)) {
+	return -1;
     }
-    if ((rectPtr[0] >= itemPtr->base.x1) && (rectPtr[1] >= itemPtr->base.y1) && 
-	(rectPtr[2] <= itemPtr->base.x2) && (rectPtr[3] <= itemPtr->base.y2)) {
-        return 1;			/* Completely inside. */
+    if ((rectPtr[0] <= itemPtr->base.x1) && 
+	(rectPtr[1] <= itemPtr->base.y1) && 
+	(rectPtr[2] >= itemPtr->base.x2) && 
+	(rectPtr[3] >= itemPtr->base.y2)) {
+	return 1;
     }
-    return 0;				/* Must be overlapping */
+    return 0;
 }
 
 /*
@@ -1436,8 +1430,8 @@ ScaleProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, double x, double y,
 {
     HotspotItem *itemPtr = (HotspotItem *)canvItemPtr;
 
-    itemPtr->x += scaleX * (itemPtr->x - x);
-    itemPtr->y += scaleY * (itemPtr->y - y);
+    itemPtr->x = x + scaleX * (itemPtr->x - x);
+    itemPtr->y = y + scaleY * (itemPtr->y - y);
     ComputeBbox(itemPtr);
     return;
 }
@@ -1654,6 +1648,40 @@ GetHotspotItem(Tcl_Interp *interp, Tcl_Obj *canvasObjPtr, Tcl_Obj *itemObjPtr)
     return itemPtr = (HotspotItem *)canvItemPtr;
 }
 
+static const char *
+Identify(Tcl_Interp *interp, HotspotItem *itemPtr, double x, double y)
+{
+    double tx, ty;
+    short drawX, drawY;
+    ItemSegment *segPtr;
+    int xOffset, yOffset;
+
+    tx = itemPtr->x, ty = itemPtr->y;
+    TranslateAnchor(itemPtr, &tx, &ty);
+
+    /* Convert canvas coordinates to drawable coordinates. */
+    Tk_CanvasDrawableCoords(itemPtr->canvas, tx, ty, &drawX, &drawY);
+    xOffset = ROUND(tx), yOffset = ROUND(ty);
+    
+    for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
+	int x1, x2, y1, y2;
+
+	if (segPtr->type == SEGMENT_TYPE_TEXT) {
+	    continue;
+	}
+	x1 = xOffset + segPtr->x;
+	x2 = xOffset + segPtr->x + segPtr->width;
+	y1 = yOffset + segPtr->y;
+	y2 = yOffset + segPtr->y + segPtr->height;
+	fprintf(stderr, "x=%g y=%g x1=%d x2=%d y1=%d y2=%d xOff=%d yOff=%d ix=%g iy=%g tx=%g ty=%g\n", 
+		x, y, x1, x2, y1, y2, xOffset, yOffset, itemPtr->x, itemPtr->y, tx, ty);
+	if ((x >= x1) && (x < x2) && (y >= y1) && (y < y2)) {
+	    return segPtr->text;
+	}
+    }
+    return "";
+}
+
 static int
 HotspotCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv)
@@ -1676,13 +1704,36 @@ HotspotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	/* hotspot activate .c 0 varName */
     } else if ((c == 'd') && (strncmp(string, "deactivate", length) == 0)) {
 	/* hotspot deactivate .c 0 */
-	itemPtr->activePtr = NULL;
+	itemPtr->activeValue = NULL;
     } else if ((c == 'i') && (strncmp(string, "identify", length) == 0)) {
+	double x, y;
+	const char *token;
+	Tcl_Obj *objPtr;
+
 	/* hotspot identify .c 0 x y */
-	/* Return name of variable identified by x,y coordinate. */
+	if ((Tcl_GetDoubleFromObj(interp, objv[4], &x) != TCL_OK) ||
+	    (Tcl_GetDoubleFromObj(interp, objv[5], &y) != TCL_OK)) {
+	    return TCL_ERROR;
+	}
+	token = Identify(interp, itemPtr, x, y);
+	objPtr = Tcl_NewStringObj(token, -1);
+        Tcl_SetObjResult(interp, objPtr);
     } else if ((c == 'v') && (strncmp(string, "variables", length) == 0)) {
+        Tcl_Obj *listObjPtr;
+	ItemSegment *segPtr;
+
 	/* hotspot variables .c 0 */
-	/* Return list of variable names. */
+	listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
+	for (segPtr = itemPtr->firstPtr; segPtr != NULL; 
+	     segPtr = segPtr->nextPtr) {
+	    if (segPtr->type == SEGMENT_TYPE_VARIABLE) {
+		Tcl_Obj *objPtr;
+
+		objPtr = Tcl_NewStringObj(segPtr->text, -1);
+		Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+	    }
+	}
+        Tcl_SetObjResult(interp, listObjPtr);
     } else {
 	Tcl_AppendResult(interp, "unknown hotspot option \"", string, 
 		"\": should be either activate, deactivate, identity, ",
@@ -1708,6 +1759,7 @@ RpCanvHotspot_Init(interp)
     Tcl_Interp *interp;         /* interpreter being initialized */
 {
     Tk_CreateItemType(&hotspotType);
+    Tcl_CreateObjCommand(interp, "Rappture::hotspot", HotspotCmd, NULL, NULL);
     return TCL_OK;
 }
 
