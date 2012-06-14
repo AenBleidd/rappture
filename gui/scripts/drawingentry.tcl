@@ -71,7 +71,7 @@ itcl::class Rappture::DrawingEntry {
     private method XmlGet { path } 
     private method XmlGetSubst { path } 
     private method Withdraw {} 
-    private method WatchHotspot { w item x y } 
+    private method Hotspot { option cname item args } 
 }
 
 itk::usual DrawingEntry {
@@ -604,8 +604,8 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-font {Arial 8}
-	-valuefont {Arial 8 bold}
+	-font {Arial 10}
+	-valuefont {Courier 10 bold}
 	-valueforeground blue3
 	-text {}
 	-fill {}
@@ -638,25 +638,55 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     set id [eval $itk_component(drawing) create hotspot $coords]
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
+    array unset _cname2controls $cname
     foreach varName [Rappture::hotspot variables $itk_component(drawing) $id] {
 	if { [info exists _name2path($varName)] } {
 	    set path $_name2path($varName)
 	    $_owner xml put $path.hide 1
+	    lappend _cname2controls($cname) $path
 	} else {
 	    puts stderr "unknown varName=$varName"
 	}
     }
     $itk_component(drawing) bind $id <Motion> \
-	[itcl::code $this WatchHotspot %W $id %x %y]
+	[itcl::code $this Hotspot watch $cname $id %x %y]
+    $itk_component(drawing) bind $id <Leave> \
+	[itcl::code $this Hotspot deactivate $cname $id]
+    $itk_component(drawing) bind $id <Enter> \
+	[itcl::code $this Hotspot activate $cname $id %x %y]
+    $itk_component(drawing) bind $id <ButtonRelease-1> \
+	[itcl::code $this Hotspot invoke $cname $id %x %y]
 }
 
 
-itcl::body Rappture::DrawingEntry::WatchHotspot { w item x y } {
-    set x [$w canvasx $x]
-    set y [$w canvasy $y]
-    set varName  [Rappture::hotspot identify $w $item $x $y]
-    puts stderr "x=$x y=$y [$w itemcget $item -text] varName=$varName"
-    $w itemconfigure $item -activevalue $varName
+itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
+    set c $itk_component(drawing)
+    switch -- $option {
+	"activate" {
+	    foreach { x y } $args break
+	    set varName  [Rappture::hotspot identify $c $item $x $y]
+	    $c itemconfigure $item -activevalue $varName
+	}
+	"deactivate" {
+	    $c itemconfigure $item -activevalue ""
+	}
+	"watch" {
+	    foreach { x y } $args break
+	    set active [$c itemcget $item -activevalue]
+	    set varName  [Rappture::hotspot identify $c $item $x $y]
+	    if { $varName != $active  } {
+		$c itemconfigure $item -activevalue $varName
+	    }
+	}
+	"invoke" {
+	    foreach { x y } $args break
+	    set active [$c itemcget $item -activevalue]
+	    set varName  [Rappture::hotspot identify $c $item $x $y]
+	    if { $varName != "" } {
+		Invoke $cname $x $y
+	    }
+	}
+    }
 }
 
 
