@@ -35,7 +35,6 @@
 
 #define SEGMENT_TEXT	0
 #define SEGMENT_VALUE	1
-#define SEGMENT_ICON	2
 #define VAR_FLAGS (TCL_GLOBAL_ONLY|TCL_TRACE_WRITES|TCL_TRACE_UNSETS)
 
 #define REDRAW_PENDING		(1<<0)
@@ -44,11 +43,15 @@
 
 #define TRUE		1
 #define FALSE		0
+#undef MAX
+#define MAX(a,b)	(((a)>(b))?(a):(b))
 
 #undef ROUND
 #define ROUND(x) 	((int)(((double)(x)) + (((x)<0.0) ? -0.5 : 0.5)))
 
 #define IMAGE_PAD	3
+#define TEXT_PADX	3
+#define TEXT_PADY	1
 
 typedef struct _ItemSegment ItemSegment;
 typedef struct _HotspotItem HotspotItem;
@@ -104,8 +107,10 @@ struct _HotspotItem  {
 					 * (x,y) */
     XColor *textColor;			/* Color for normal text */
     XColor *valueColor;			/* Color for substitututed values. */
-    XColor *activeValueColor;		/* Color for active substitututed
+    XColor *activeColor;		/* Color for active substitututed
 					 * values */
+    Tk_3DBorder activeBorder;		/* Background color for active
+					 * substitututed values */
     XColor *outlineColor;		/* Color for outline of rectangle */
     Tk_3DBorder border;			/* If non-NULL, background color of
 					 * rectangle enclosing the entire
@@ -151,6 +156,10 @@ static Tk_CustomOption tagsOption = {
 };
 
 static Tk_ConfigSpec configSpecs[] = {
+    {TK_CONFIG_BORDER, "-activebackground", (char *)NULL, (char*)NULL,
+        "white", Tk_Offset(HotspotItem, activeBorder), TK_CONFIG_NULL_OK},
+    {TK_CONFIG_COLOR, "-activeforeground", (char*)NULL, (char*)NULL,
+        "cyan4", Tk_Offset(HotspotItem, activeColor), 0},
     {TK_CONFIG_STRING, "-activeimage", "activeImage", (char*)NULL, (char*)NULL, 
 	Tk_Offset(HotspotItem, activeImageName), TK_CONFIG_NULL_OK},
     {TK_CONFIG_STRING, "-activevalue", "activeValue", (char*)NULL, (char*)NULL, 
@@ -167,8 +176,6 @@ static Tk_ConfigSpec configSpecs[] = {
         "helvetica -12", Tk_Offset(HotspotItem, font), 0},
     {TK_CONFIG_COLOR, "-foreground", "foreground", (char*)NULL,
         "black", Tk_Offset(HotspotItem, textColor), 0},
-    {TK_CONFIG_COLOR, "-activevalueforeground", (char*)NULL, (char*)NULL,
-        "red3", Tk_Offset(HotspotItem, activeValueColor), 0},
     {TK_CONFIG_FONT, "-valuefont", (char*)NULL, (char*)NULL,
         "helvetica -12 bold", Tk_Offset(HotspotItem, valueFont), 0},
     {TK_CONFIG_COLOR, "-valueforeground", (char*)NULL, (char*)NULL,
@@ -180,7 +187,7 @@ static Tk_ConfigSpec configSpecs[] = {
     {TK_CONFIG_RELIEF, "-relief", (char*)NULL, (char*)NULL,
         "flat", Tk_Offset(HotspotItem, relief), TK_CONFIG_DONT_SET_DEFAULT},
     {TK_CONFIG_BOOLEAN, "-showicons", (char*)NULL, (char*)NULL,
-        "", Tk_Offset(HotspotItem, showIcons), TK_CONFIG_DONT_SET_DEFAULT},
+        "0", Tk_Offset(HotspotItem, showIcons), TK_CONFIG_DONT_SET_DEFAULT},
     {TK_CONFIG_CUSTOM, "-tags", (char*)NULL, (char*)NULL,
         (char*)NULL, 0, TK_CONFIG_NULL_OK, &tagsOption},
     {TK_CONFIG_STRING, "-text", (char*)NULL, (char*)NULL,
@@ -563,7 +570,7 @@ AddTextSegment(HotspotItem *itemPtr, const char *text, int length)
 }
 
 static void
-AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
+AddValueSegment(HotspotItem *itemPtr, const char *varName, int length)
 {
     ItemSegment *segPtr;
     Tcl_Interp *interp;
@@ -582,32 +589,6 @@ AddVariableSegment(HotspotItem *itemPtr, const char *varName, int length)
     }
     Tcl_TraceVar(interp, varName, VAR_FLAGS, TraceVarProc, itemPtr);
     segPtr->value = NULL;
-    segPtr->x = segPtr->y = 0;
-    segPtr->nextPtr = NULL;
-    if (itemPtr->firstPtr == NULL) {
-	itemPtr->firstPtr = segPtr;
-    }
-    if (itemPtr->lastPtr == NULL) {
-	itemPtr->lastPtr = segPtr;
-    } else {
-	itemPtr->lastPtr->nextPtr = segPtr;
-	itemPtr->lastPtr = segPtr;
-    }
-}
-
-static void
-AddHotspotSegment(HotspotItem *itemPtr, const char *varName, int length)
-{
-    ItemSegment *segPtr;
-
-    segPtr = (ItemSegment *)Tcl_Alloc(sizeof(ItemSegment) + length + 1);
-    memset(segPtr, 0, sizeof(ItemSegment));
-    segPtr->itemPtr = itemPtr;
-    segPtr->lineNum = itemPtr->numLines;
-    segPtr->type = SEGMENT_ICON;
-    strncpy(segPtr->text, varName, length);
-    segPtr->text[length] = '\0';
-    segPtr->length = length;
     segPtr->x = segPtr->y = 0;
     segPtr->nextPtr = NULL;
     if (itemPtr->firstPtr == NULL) {
@@ -689,7 +670,6 @@ ComputeGeometry(HotspotItem *itemPtr)
     ItemSegment *segPtr;
     int imgWidth, imgHeight;
     int maxWidth, maxHeight;
-    Tk_Font tkFont;
     int justify;
     int wrapLength;
     int flags;
@@ -698,7 +678,7 @@ ComputeGeometry(HotspotItem *itemPtr)
     wrapLength = 0;
     flags = 0;
     /* Collect the individual segment sizes. */
-    imgWidth = itemPtr->maxImageWidth + 2 * IMAGE_PAD;
+    imgWidth = itemPtr->maxImageWidth + IMAGE_PAD;
     imgHeight = itemPtr->maxImageHeight + 2 * IMAGE_PAD;
     for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
 	if (segPtr->layout != NULL) {
@@ -706,21 +686,20 @@ ComputeGeometry(HotspotItem *itemPtr)
 	}
 	w = h = 0;
 	switch (segPtr->type) {
-	case SEGMENT_ICON:
+	case SEGMENT_VALUE:
+	    segPtr->layout = Tk_ComputeTextLayout(itemPtr->valueFont, 
+			segPtr->value, -1, wrapLength, justify, flags, &w, &h);
+	    w += TEXT_PADX * 2;
+	    h += TEXT_PADY * 2;
 	    if (itemPtr->showIcons) {
-		w = imgWidth, h = imgHeight;
+		w += imgWidth, h = MAX(h, imgHeight);
 	    }
 	    break;
-	case SEGMENT_VALUE:
-	    tkFont = (itemPtr->valueFont != NULL) ? 
-		itemPtr->valueFont : itemPtr->font;
-	    segPtr->layout = Tk_ComputeTextLayout(tkFont, segPtr->value, 
-		-1, wrapLength, justify, flags, &w, &h);
-	    break;
 	case SEGMENT_TEXT:
-	    segPtr->layout = Tk_ComputeTextLayout(itemPtr->font, 
-		segPtr->text, -1, wrapLength, justify, flags, 
-		&w, &h);
+	    segPtr->layout = Tk_ComputeTextLayout(itemPtr->font, segPtr->text, 
+			-1, wrapLength, justify, flags, &w, &h);
+	    w += TEXT_PADX * 2;
+	    h += TEXT_PADY * 2;
 	    break;
 	default:
 	    Tcl_Panic("unknown hotspot segment type");
@@ -744,6 +723,7 @@ ComputeGeometry(HotspotItem *itemPtr)
 	lineNum = segPtr->lineNum;
 	startPtr = segPtr;
 	x = 0;
+
 	while ((segPtr != NULL) && (segPtr->lineNum == lineNum)) {
 	    if (segPtr->height > maxHeight) {
 		maxHeight = segPtr->height;
@@ -792,8 +772,7 @@ ParseDescription(Tcl_Interp *interp, HotspotItem *itemPtr,
 	    varName = p + 2;
 	    for (q = varName; q != '\0'; q++) {
 		if (*q == '}') {
-		    AddHotspotSegment(itemPtr, varName, q- varName);
-		    AddVariableSegment(itemPtr, varName, q - varName);
+		    AddValueSegment(itemPtr, varName, q - varName);
 		    p = q;
 		    start = p + 1;
 		    goto next;
@@ -869,7 +848,7 @@ CreateProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
     itemPtr->relief = TK_RELIEF_FLAT;
     itemPtr->tkwin = tkwin;
     itemPtr->valueInterp = interp;
-    itemPtr->showIcons = TRUE;
+    itemPtr->showIcons = FALSE;
 
     /* Process the arguments to fill in the item record. */
     if ((GetCoordFromObj(interp, itemPtr, objv[0], &x) != TCL_OK) ||
@@ -1009,16 +988,8 @@ ConfigureProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
 
     /* Substituted value GC. */
     mask = GCFont | GCForeground;
-    if (itemPtr->valueFont != NULL) {
-	gcValues.font = Tk_FontId(itemPtr->valueFont);
-    } else {
-	gcValues.font = Tk_FontId(itemPtr->font);
-    }
-    if (itemPtr->valueColor != NULL) {
-	gcValues.foreground = itemPtr->valueColor->pixel;
-    } else {
-	gcValues.foreground = itemPtr->textColor->pixel;
-    }
+    gcValues.font = Tk_FontId(itemPtr->valueFont);
+    gcValues.foreground = itemPtr->valueColor->pixel;
     newGC = Tk_GetGC(tkwin, mask, &gcValues);
     if (itemPtr->valueGC != None) {
         Tk_FreeGC(Tk_Display(tkwin), itemPtr->valueGC);
@@ -1027,12 +998,8 @@ ConfigureProc(Tcl_Interp *interp, Tk_Canvas canvas, Tk_Item *canvItemPtr,
 
     /* Active substituted value GC. */
     mask = GCFont | GCForeground;
-    if (itemPtr->valueFont != NULL) {
-	gcValues.font = Tk_FontId(itemPtr->valueFont);
-    } else {
-	gcValues.font = Tk_FontId(itemPtr->font);
-    }
-    gcValues.foreground = itemPtr->activeValueColor->pixel;
+    gcValues.font = Tk_FontId(itemPtr->valueFont);
+    gcValues.foreground = itemPtr->activeColor->pixel;
     newGC = Tk_GetGC(tkwin, mask, &gcValues);
     if (itemPtr->activeGC != None) {
         Tk_FreeGC(Tk_Display(tkwin), itemPtr->activeGC);
@@ -1123,8 +1090,17 @@ DeleteProc(Tk_Canvas canvas, Tk_Item *canvItemPtr, Display *display)
     if (itemPtr->valueColor != NULL) {
         Tk_FreeColor(itemPtr->valueColor);
     }
+    if (itemPtr->activeColor != NULL) {
+        Tk_FreeColor(itemPtr->activeColor);
+    }
     if (itemPtr->outlineColor != NULL) {
         Tk_FreeColor(itemPtr->outlineColor);
+    }
+    if (itemPtr->border != NULL) {
+        Tk_Free3DBorder(itemPtr->border);
+    }
+    if (itemPtr->activeBorder != NULL) {
+        Tk_Free3DBorder(itemPtr->activeBorder);
     }
     if (itemPtr->text != NULL) {
         Tcl_Free((char *)itemPtr->text);
@@ -1266,43 +1242,44 @@ static void
 DrawSegment(ItemSegment *segPtr, Drawable drawable, int x, int y)
 {
     HotspotItem *itemPtr;
+    GC gc;
+    int isActive;
 
     itemPtr = segPtr->itemPtr;
-    if (segPtr->type == SEGMENT_ICON) {
+    if (segPtr->type == SEGMENT_TEXT) {
+	Tk_DrawTextLayout(Tk_Display(itemPtr->tkwin), drawable, 
+		itemPtr->normalGC, segPtr->layout, x + segPtr->x + TEXT_PADX, 
+		y + segPtr->y + TEXT_PADY, 0, -1);
+	return;
+    } 
+    isActive = ((itemPtr->activeValue != NULL) &&
+		(strcmp(itemPtr->activeValue, segPtr->text) == 0));
+	
+    if ((itemPtr->activeBorder != NULL) && (isActive)) {
+	Tk_Fill3DRectangle(itemPtr->tkwin, drawable, itemPtr->activeBorder, 
+		x + segPtr->x, y + segPtr->y, segPtr->width, segPtr->height, 
+		1, TK_RELIEF_SOLID);
+    }
+    if (itemPtr->showIcons) {
 	Tk_Image tkImage;
 	int w, h;
+	int ix, iy, ih, iw;
 
-	if (!itemPtr->showIcons) {
-	    return;
+	ih = itemPtr->maxImageHeight * 2 * IMAGE_PAD;
+	iw = itemPtr->maxImageWidth + IMAGE_PAD;
+	ix = x + segPtr->x + IMAGE_PAD;
+	iy = y + segPtr->y + IMAGE_PAD;
+	if (segPtr->height > ih) {
+	    iy += (segPtr->height - ih) / 2;
 	}
-	tkImage = NULL;
-	if ((itemPtr->activeValue != NULL) &&
-	    (strcmp(itemPtr->activeValue, segPtr->text) == 0)) {
-	    tkImage = itemPtr->activeImage;
-	}
-	if (tkImage == NULL) {
-	    tkImage = itemPtr->image;
-	}
+	tkImage = (isActive) ? itemPtr->activeImage : itemPtr->image;
 	Tk_SizeOfImage(tkImage, &w, &h);
-	Tk_RedrawImage(tkImage, 0, 0, w, h, drawable, x + segPtr->x + IMAGE_PAD,
-		y + segPtr->y + IMAGE_PAD);
-    } else if (segPtr->type == SEGMENT_VALUE) {
-	GC gc;
-	
-	gc = itemPtr->valueGC;
-	if ((itemPtr->activeValue != NULL) &&
-	    (strcmp(itemPtr->activeValue, segPtr->text) == 0)) {
-	    gc = itemPtr->activeGC;
-	    Tk_UnderlineTextLayout(Tk_Display(itemPtr->tkwin), drawable, gc,
-		segPtr->layout, x + segPtr->x, y + segPtr->y, -1);
-	}
-	Tk_DrawTextLayout(Tk_Display(itemPtr->tkwin), drawable, gc,
-		segPtr->layout, x + segPtr->x, y + segPtr->y, 0, -1);
-    } else {
-	Tk_DrawTextLayout(Tk_Display(itemPtr->tkwin), drawable, 
-		itemPtr->normalGC, segPtr->layout, x + segPtr->x, 
-		y + segPtr->y, 0, -1);
+	Tk_RedrawImage(tkImage, 0, 0, w, h, drawable, ix, iy);
+	x += iw;
     }
+    gc = (isActive) ? itemPtr->activeGC : itemPtr->valueGC;
+    Tk_DrawTextLayout(Tk_Display(itemPtr->tkwin), drawable, gc, segPtr->layout,
+	 x + segPtr->x + TEXT_PADX, y + segPtr->y + TEXT_PADY, 0, -1);
 }
 
 /*
@@ -1686,9 +1663,6 @@ Identify(Tcl_Interp *interp, HotspotItem *itemPtr, double x, double y)
     for (segPtr = itemPtr->firstPtr; segPtr != NULL; segPtr = segPtr->nextPtr) {
 	if (segPtr->type == SEGMENT_TEXT) {
 	    continue;			/* Ignore text segments. */
-	}
-	if ((segPtr->type == SEGMENT_ICON) && (!itemPtr->showIcons)) {
-	    continue;
 	}
 	if ((x >= segPtr->x) && (x < (segPtr->x + segPtr->width)) && 
 	    (y >= segPtr->y) && (y < (segPtr->y + segPtr->height))) {

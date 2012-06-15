@@ -328,7 +328,7 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 	set coords "0 0 1 1"
     } 
     set c $itk_component(drawing)
-    set img [Rappture::icon question_mark12]
+    set img [Rappture::icon hotspot_normal]
     foreach { x1 y1 } $coords break
     set id [$itk_component(drawing) create image $x1 $y1]
     array unset options -fill
@@ -339,7 +339,9 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
     $c bind $id <Enter> [itcl::code $this Activate $cname]
     $c bind $id <Leave> [itcl::code $this Deactivate $cname]
     #$c bind $id <ButtonPress-1> [itcl::code $this Depress $cname]
-    $c bind $id <ButtonRelease-1> [itcl::code $this Invoke $cname $x1 $y1]
+    set bbox [$c bbox $id]
+    set y1 [lindex $bbox 1]
+    $c bind $id <ButtonPress-1> [itcl::code $this Invoke $cname $x1 $y1]
 }
 
 #
@@ -604,8 +606,8 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 
     # Set default options first and then let tool.xml override them.
     array set options {
-	-font {Arial 10}
-	-valuefont {Courier 10 bold}
+	-font {Arial 12}
+	-valuefont {Arial 12}
 	-valueforeground blue3
 	-text {}
 	-fill {}
@@ -630,32 +632,39 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     } else {
 	set coords [ScreenCoords $coords]
     }
+    set hotspot [XmlGetSubst $cpath.hotspot]
+    if { $hotspot == "inline" } {
+	set options(-showicons) 1 
+    }
+    set c $itk_component(drawing)
     set options(-tags) $cname
     set img [Rappture::icon hotspot_normal]
     set options(-image) $img
     set img [Rappture::icon hotspot_active]
     set options(-activeimage) $img
-    set id [eval $itk_component(drawing) create hotspot $coords]
+    set id [eval $c create hotspot $coords]
     set _cname2id($cname) $id
-    eval $itk_component(drawing) itemconfigure $id [array get options]
-    array unset _cname2controls $cname
-    foreach varName [Rappture::hotspot variables $itk_component(drawing) $id] {
-	if { [info exists _name2path($varName)] } {
-	    set path $_name2path($varName)
-	    $_owner xml put $path.hide 1
-	    lappend _cname2controls($cname) $path
-	} else {
-	    puts stderr "unknown varName=$varName"
+    eval $c itemconfigure $id [array get options]
+    if { $hotspot == "inline" } {
+	array unset _cname2controls $cname
+	foreach varName [Rappture::hotspot variables $c $id] {
+	    if { [info exists _name2path($varName)] } {
+		set path $_name2path($varName)
+		$_owner xml put $path.hide 1
+		lappend _cname2controls($cname) $path
+	    } else {
+		puts stderr "unknown varName=$varName"
+	    }
 	}
+	$c bind $id <Motion> \
+	    [itcl::code $this Hotspot watch $cname $id %x %y]
+	$c bind $id <Leave> \
+	    [itcl::code $this Hotspot deactivate $cname $id]
+	$c bind $id <Enter> \
+	    [itcl::code $this Hotspot activate $cname $id %x %y]
+	$c bind $id <ButtonRelease-1> \
+	    [itcl::code $this Hotspot invoke $cname $id %x %y]
     }
-    $itk_component(drawing) bind $id <Motion> \
-	[itcl::code $this Hotspot watch $cname $id %x %y]
-    $itk_component(drawing) bind $id <Leave> \
-	[itcl::code $this Hotspot deactivate $cname $id]
-    $itk_component(drawing) bind $id <Enter> \
-	[itcl::code $this Hotspot activate $cname $id %x %y]
-    $itk_component(drawing) bind $id <ButtonRelease-1> \
-	[itcl::code $this Hotspot invoke $cname $id %x %y]
 }
 
 
@@ -683,7 +692,8 @@ itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
 	    set active [$c itemcget $item -activevalue]
 	    set varName  [Rappture::hotspot identify $c $item $x $y]
 	    if { $varName != "" } {
-		Invoke $cname $x $y
+		set bbox [$c bbox $item]
+		Invoke $cname $x [lindex $bbox 1]
 	    }
 	}
     }
@@ -905,7 +915,6 @@ itcl::body Rappture::DrawingEntry::Invoke { cname x y } {
     # Activate the popup and call for the output.
     incr x [winfo rootx $itk_component(drawing)]
     incr y [winfo rooty $itk_component(drawing)]
-    
     $popup activate @$x,$y above
 }
 
@@ -913,14 +922,18 @@ itcl::body Rappture::DrawingEntry::Invoke { cname x y } {
 # Activate -- 
 #
 itcl::body Rappture::DrawingEntry::Activate { cname } {
-    $itk_component(drawing) configure -cursor center_ptr
+    $itk_component(drawing) configure -cursor center_ptr 
+    $itk_component(drawing) itemconfigure $_cname2id($cname) \
+	-image [Rappture::icon hotspot_active]
 }
 
 #
 # Deactivate -- 
 #
 itcl::body Rappture::DrawingEntry::Deactivate { cname } {
-    $itk_component(drawing) configure -cursor left_ptr
+    $itk_component(drawing) configure -cursor left_ptr 
+    $itk_component(drawing) itemconfigure $_cname2id($cname) \
+	-image [Rappture::icon hotspot_normal]
 }
 
 #
