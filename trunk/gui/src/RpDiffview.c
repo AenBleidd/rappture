@@ -2773,6 +2773,7 @@ DiffviewLayoutClear(layoutPtr)
         ckfree((char*)layoutPtr->lines);
         layoutPtr->lines = (DiffviewLayoutLine*)ckalloc(
             (unsigned)(layoutPtr->numLines * sizeof(DiffviewLayoutLine)));
+        layoutPtr->maxLines = layoutPtr->numLines;
     }
     layoutPtr->numLines = 0;
 }
