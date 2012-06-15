@@ -558,10 +558,8 @@ itcl::body Rappture::Radiodial::_findLabel {str} {
     if {"" == $str} {
         return -1
     }
- puts stderr "_values=$_values"
     for {set nv 0} {$nv < [llength $_values]} {incr nv} {
         set v [lindex $_values $nv]
- puts stderr "val2label($v)=$_val2label($v) str=$str"
         if {[lsearch -exact $_val2label($v) $str] >= 0} {
             return $nv
         }

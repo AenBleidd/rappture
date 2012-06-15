@@ -38,13 +38,14 @@ itcl::class Rappture::DrawingControls {
     private method Rebuild {}
     private method FormatLabel {str}
     private method Monitor {name state}
-
+    
     private variable _dispatcher ""
     private variable _controls ""
     private variable _name2info
     private variable _counter 0
     private variable _owner ""
     private variable _frame ""
+    private variable _closeOnChange 0
 }
 
 # ----------------------------------------------------------------------
@@ -291,6 +292,7 @@ itcl::body Rappture::DrawingControls::ControlChanged {name} {
     if {"" != $_owner} {
         $_owner changed $path
     }
+    eval $deactivatecommand
 }
 
 # ----------------------------------------------------------------------
@@ -457,6 +459,12 @@ itcl::body Rappture::DrawingControls::Rebuild {} {
 	grid rowconfigure $_frame 99 -weight 1
     } else {
 	grid rowconfigure $_frame 99 -weight 0
+    }
+    set _closeOnChange 0
+    set slaves [grid slaves $_frame] 
+    if { [llength $slaves] == 1 } {
+	set slave [lindex $slaves 0]
+	set _closeOnChange 1 
     }
 }
 
