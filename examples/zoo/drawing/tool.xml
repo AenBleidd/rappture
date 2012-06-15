@@ -65,14 +65,10 @@ When you click the Simulate button, the input strings will be used to generate o
      <text>Feature Length = ${feature_length}</text>
      <font>Arial 11</font>
      <anchor>n</anchor>
+     <hotspot>inline</hotspot>
     </text>
-    <hotspot id="feature_length">
-     <coords>.625 .743</coords>
-     <controls>input.number(feature_length)</controls>
-    </hotspot>
     <line id="feature_height">
      <coords>.76 .4 .76 .7</coords>
-
      <color>black</color>
      <linewidth>2</linewidth>
      <arrow>both</arrow>
@@ -86,7 +82,7 @@ Height = ${feature_height}</text>
      <anchor>nw</anchor>
     </text>
     <hotspot id="feature_height">
-     <coords>.92 .526</coords>
+     <coords>.95 .53</coords>
      <controls>input.choice(analysis)</controls>
      <controls>input.number(feature_height)</controls>
      <controls>input.number(feature_length)</controls>
@@ -103,12 +99,9 @@ Height = ${feature_height}</text>
      <color>black</color>
      <text>Substrate Length = ${substrate_length}</text>
      <font>Arial 11</font>
+     <hotspot>inline</hotspot>
      <anchor>n</anchor>
     </text>
-    <hotspot id="substrate_length">
-     <coords>.64 .825</coords>
-     <controls>input.number(substrate_length)</controls>
-    </hotspot>
     <line id="trapezoid_top">
      <coords>.35 .38 .65 .38</coords>
      <color>black</color>
@@ -121,11 +114,8 @@ Height = ${feature_height}</text>
      <text>Length of Trapezoid Top = ${trapezoid_top}</text>
      <font>Arial 11</font>
      <anchor>s</anchor>
+     <hotspot>inline</hotspot>
     </text>
-    <hotspot id="trapezoid_top">
-     <coords>.67 .335</coords>
-     <controls>input.number(trapezoid_top)</controls>
-    </hotspot>
     <line id="polyline">
      <coords>0 .7 .25 .7 .35 .4 .65 .4 .75 .7 1 .7</coords>
      <color>red</color>
@@ -138,10 +128,6 @@ Height = ${feature_height}</text>
      <linewidth>1</linewidth>
      <dash>4 2</dash>
     </grid>
-    <hotspot id="analysis">
-     <coords>.19 .08</coords>
-     <controls>input.choice(analysis)</controls>
-    </hotspot>
     <picture id="analysis">
      <coords>-.08 .06 0.17 0.15</coords>
      <contents>file:images/${analysis}_F-d.png</contents>
@@ -153,17 +139,15 @@ Height = ${feature_height}</text>
      <text>${analysis}</text>
      <font>Arial 11</font>
      <anchor>n</anchor>
+     <hotspot>inline</hotspot>
     </text>
-    <hotspot id="string">
-     <coords>-.05 .865</coords>
-     <controls>input.string(indeck)</controls>
-    </hotspot>
     <text id="string">
      <coords>-.03 .85</coords>
      <color>black</color>
      <text>${string}</text>
      <font>Arial 11</font>
      <anchor>nw</anchor>
+     <hotspot>inline</hotspot>
     </text>
    </components>
   </drawing>
