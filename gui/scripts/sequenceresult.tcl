@@ -447,6 +447,10 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                 Rappture::XyResult $viewer
                 pack $viewer -expand yes -fill both
             }
+            ::Rappture::Histogram {
+                Rappture::HistogramResult $viewer
+                pack $viewer -expand yes -fill both
+            }
             ::Rappture::DataTable {
                 Rappture::DataTable $viewer
                 pack $viewer -expand yes -fill both
