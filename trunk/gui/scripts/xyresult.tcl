@@ -282,6 +282,9 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         -description ""
         -param ""
     }
+    # Override the defaults with first the <style> specified and then the
+    # settings list passed into this routoue.
+    array set params [$dataobj hints style]
     foreach {opt val} $settings {
         if {![info exists params($opt)]} {
             error "bad setting \"$opt\": should be [join [lsort [array names params]] {, }]"
@@ -298,7 +301,7 @@ itcl::body Rappture::XyResult::add {dataobj {settings ""}} {
         if {$params(-color) == "autoreset"} {
             set _autoColorI 0
         }
-        set color [lindex $itk_option(-autocolors) $_autoColorI]
+	set color [lindex $itk_option(-autocolors) $_autoColorI]
         if { "" == $color} { 
             set color black 
         }
@@ -693,23 +696,18 @@ itcl::body Rappture::XyResult::Rebuild {} {
             if {[info exists _dataobj2color($dataobj)]} {
                 set color $_dataobj2color($dataobj)
             } else {
-                set color [$dataobj hints color]
-                if {"" == $color} {
-                    set color black
-                }
+		set color black
             }
             if {[info exists _dataobj2width($dataobj)]} {
                 set lwidth $_dataobj2width($dataobj)
             } else {
                 set lwidth 2
             }
-
             if {[info exists _dataobj2dashes($dataobj)]} {
                 set dashes $_dataobj2dashes($dataobj)
             } else {
                 set dashes ""
             }
-
             if {([$xv length] <= 1) || ($lwidth == 0)} {
                 set sym square
                 set pixels 2
