@@ -238,9 +238,13 @@ itcl::body Rappture::Gauge::value {args} {
                 }
             }
             real {
-                if {[string length $nv] <= 0
-                      || ![string is double $nv]
-                      || [regexp -nocase {^(inf|nan)$} $nv]} {
+		# "scan" will reject the number if the string is "NaN" or
+		# "Inf" or the empty string.  It also is accepts large numbers
+		# (e.g. 111111111111111111111) that "string is double"
+		# rejects.  The problem with "scan" is that it doesn't care if
+		# there are extra characters trailing the number (eg. "123a").
+		# The extra %s substitution is used to detect this case.
+                if { [scan $nv "%g%s" dummy1 dummy2] != 1 } {
                     error "bad value \"$nv\": should be a real number"
                 }
             }
