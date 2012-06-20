@@ -104,7 +104,7 @@ itcl::body Rappture::Unirect3d::constructor {xmlobj field cname {extents 1}} {
     $_values set [$field get "$cname.values"]
     set n [expr $_xNum * $_yNum * $_zNum * $_compNum]
     if { [$_values length] != $n } {
-        error "wrong \# of values in \"$cname.values\": expected $n values"
+        error "wrong \# of values in \"$cname.values\": expected $n values, got [$_values length]"
     }
 }
 
