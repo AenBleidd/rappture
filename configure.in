@@ -543,6 +543,7 @@ AC_CONFIG_FILES([
     examples/zoo/cloud/Makefile
     examples/zoo/cloud/matlab/Makefile
     examples/zoo/curve/Makefile
+    examples/zoo/drawing/Makefile
     examples/zoo/enable/Makefile
     examples/zoo/field/Makefile
     examples/zoo/group/Makefile
