@@ -936,6 +936,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             }
         }
     }
+    SendCmd "dataset maprange visible"
         
     set _buffering 0;                        # Turn off buffering.
 
@@ -1340,8 +1341,12 @@ itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
     }
     set clist [split $style(-color) :]
     set cmap {}
-    for {set i 0} {$i < [llength $clist]} {incr i} {
-        set x [expr {double($i)/([llength $clist]-1)}]
+    set numColors [llength $clist]
+    for {set i 0} {$i < $numColors} {incr i} {
+	set x 0
+	if { $numColors > 1 } {
+	    set x [expr {double($i)/($numColors-1)}]
+	}
         set color [lindex $clist $i]
         append cmap "$x [Color2RGB $color] "
     }
