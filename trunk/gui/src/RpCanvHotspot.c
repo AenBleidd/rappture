@@ -159,7 +159,7 @@ static Tk_ConfigSpec configSpecs[] = {
     {TK_CONFIG_BORDER, "-activebackground", (char *)NULL, (char*)NULL,
         "white", Tk_Offset(HotspotItem, activeBorder), TK_CONFIG_NULL_OK},
     {TK_CONFIG_COLOR, "-activeforeground", (char*)NULL, (char*)NULL,
-        "cyan4", Tk_Offset(HotspotItem, activeColor), 0},
+        "black", Tk_Offset(HotspotItem, activeColor), 0},
     {TK_CONFIG_STRING, "-activeimage", "activeImage", (char*)NULL, (char*)NULL, 
 	Tk_Offset(HotspotItem, activeImageName), TK_CONFIG_NULL_OK},
     {TK_CONFIG_STRING, "-activevalue", "activeValue", (char*)NULL, (char*)NULL, 
