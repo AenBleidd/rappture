@@ -53,6 +53,13 @@ When you click the Simulate button, the input strings will be used to generate o
     </variable>
    </substitutions>
    <components>
+    <grid>
+     <xcoords>0 .1 .2 .3 .4 .5 .6 .7 .8 .9 1</xcoords>
+     <ycoords>.2 .3 .4 .5 .6 .7</ycoords>
+     <color>grey70</color>
+     <linewidth>1</linewidth>
+     <dash>4 2</dash>
+    </grid>
     <line id="feature_length">
      <coords>.25 .72 .75 .72</coords>
      <color>black</color>
@@ -121,13 +128,6 @@ Height = ${feature_height}</text>
      <color>red</color>
      <linewidth>2</linewidth>
     </line>
-    <grid>
-     <xcoords>0 .1 .2 .3 .4 .5 .6 .7 .8 .9 1</xcoords>
-     <ycoords>.2 .3 .4 .5 .6 .7</ycoords>
-     <color>grey70</color>
-     <linewidth>1</linewidth>
-     <dash>4 2</dash>
-    </grid>
     <picture id="analysis">
      <coords>-.08 .06 0.17 0.15</coords>
      <contents>file:images/${analysis}_F-d.png</contents>
