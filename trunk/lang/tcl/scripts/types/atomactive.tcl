@@ -94,6 +94,8 @@ itcl::class AttrAtomactive {
             set val "active: [join $aval ,]"
         } elseif {$ival ne ""} {
             set val "inactive: [join $ival ,]"
+        } else {
+            set val ""
         }
         return $val
     }
