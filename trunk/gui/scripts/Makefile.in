@@ -29,6 +29,7 @@ FILES		= \
 		$(srcdir)/cloud.tcl \
 		$(srcdir)/color.tcl \
 		$(srcdir)/combobox.tcl \
+		$(srcdir)/combochecks.tcl \
 		$(srcdir)/contourresult.tcl \
 		$(srcdir)/controlOwner.tcl \
 		$(srcdir)/controls.tcl \
@@ -45,6 +46,7 @@ FILES		= \
 		$(srcdir)/drawingcontrols.tcl \
 		$(srcdir)/drawingentry.tcl \
 		$(srcdir)/dropdown.tcl \
+		$(srcdir)/dropdownchecks.tcl \
 		$(srcdir)/dropdownlist.tcl \
 		$(srcdir)/editor.tcl \
 		$(srcdir)/energyLevels.tcl \

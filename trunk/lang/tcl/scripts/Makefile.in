@@ -60,6 +60,9 @@ OBJECTS		= \
 		string
 
 TYPEFILES	= \
+		$(srcdir)/types/atomactive.tcl \
+		$(srcdir)/types/atomelem.tcl \
+		$(srcdir)/types/atomprops.tcl \
 		$(srcdir)/types/boolean.tcl \
 		$(srcdir)/types/choices.tcl \
 		$(srcdir)/types/color.tcl \
