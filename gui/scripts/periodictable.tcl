@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: periodictable - drop-down list of items
 #
@@ -6,8 +5,8 @@
 #  with a combobox.
 #
 # ======================================================================
-#  AUTHOR:  Michael McLennan, Purdue University
-#  Copyright (c) 2004-2005  Purdue Research Foundation
+#  AUTHOR:  George Howlett, Purdue University
+#  Copyright (c) 2004-2012  Purdue Research Foundation
 #
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -31,7 +30,9 @@ itcl::class Rappture::PeriodicTable {
     public method select {name}
     public method value { {name ""} }
 
-    private variable _table
+    public proc FindElement { string }
+    public proc ElementIsType { string args }
+
     private variable _dispatcher ""
     private variable _current ""
     private variable _state
@@ -42,7 +43,6 @@ itcl::class Rappture::PeriodicTable {
     protected method Redraw {}
     protected method Activate { widget id x y }
     protected method Deactivate { widget id }
-    protected method FindElement { string }
     private common _colors
     array set _colors {
         actinoid-activebackground                       \#cd679a 
@@ -241,6 +241,13 @@ itcl::class Rappture::PeriodicTable {
         Nobelium        102 No [259.101] 9 16   actinoid
         Lawrencium      103 Lr [262.110] 9 17   actinoid
     }
+
+    private common _table
+    foreach { name number symbol weight row column type } $_tableData {
+        set _table($name) [list name $name number $number symbol $symbol \
+                weight $weight row $row column $column type $type]
+    }
+
     private common _types
     array set _types {
         actinoid {
@@ -301,11 +308,11 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
     Rappture::dispatcher _dispatcher
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Redraw]; list"
-    foreach { name number symbol weight row column type } $_tableData {
-        set _table($name) [list name $name number $number symbol $symbol \
-                weight $weight row $row column $column type $type]
+
+    foreach name [array names _table] {
         set _state($name) "normal"
     }
+
     itk_component add scroller {
         Rappture::Scroller $itk_interior.sc \
             -xscrollmode off -yscrollmode auto
@@ -496,6 +503,43 @@ itcl::body Rappture::PeriodicTable::select { what } {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: FindElement <what>
+#
+# Checks to see if the given string <what> is recognized as an element
+# name, symbol, or number.  Returns the corresponding element name
+# or "" if the element is not recognized.
+# ----------------------------------------------------------------------
+itcl::body Rappture::PeriodicTable::FindElement { what } {
+    foreach name [array names _table] { 
+        array unset info
+        array set info $_table($name)
+        if { $what eq $info(name) || $what eq $info(number) || 
+             $what eq $info(symbol) } {
+	    return $info(name)
+        }
+    }
+    return ""
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ElementIsType <name> <type> <type>...
+#
+# Checks to see if the given element <name> is one of the specified
+# <type> values.  Returns true if the element is one of the types
+# (logical or), or false if it is not.
+# ----------------------------------------------------------------------
+itcl::body Rappture::PeriodicTable::ElementIsType { name args } {
+    foreach type $args {
+        if {[info exists _types($type)]} {
+            if {[lsearch -exact $_types($type) $name] >= 0} {
+                return 1
+            }
+        }
+    }
+    return 0
+}
+
+# ----------------------------------------------------------------------
 # USAGE: _adjust ?<widget>?
 #
 # This method is invoked each time the dropdown is posted to adjust
@@ -607,22 +651,3 @@ set last ""
     set height [expr $y2-$y1+$yoffset*2]
     $c configure -height $height -width $width -background white
 }
-
-# ----------------------------------------------------------------------
-# USAGE: FindElement
-#
-# Used to manipulate the selection in the table.
-#
-# ----------------------------------------------------------------------
-itcl::body Rappture::PeriodicTable::FindElement { what } {
-    foreach name [array names _table] { 
-        array unset info
-        array set info $_table($name)
-        if { $what == $info(name) || $what == $info(number) || 
-             $what == $info(symbol) } {
-	    return $info(name)
-        }
-    }
-    return ""
-}
-                                                                

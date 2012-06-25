@@ -666,7 +666,7 @@ proc main_generate_xml {} {
 # the save file, and then saves the data--unless the user cancels.
 # ----------------------------------------------------------------------
 proc main_saveas {{option "start"}} {
-    global SaveAs ToolXml LastToolXmlFile LastToolXmlLoaded
+    global tcl_platform SaveAs ToolXml LastToolXmlFile LastToolXmlLoaded
 
     switch -- $option {
         start {
@@ -853,6 +853,7 @@ proc main_saveas {{option "start"}} {
                 if {$pfile eq "select a file"} {
                     set pfile "main$SaveAs(ext)"
                 }
+                set fname [file tail $pfile]
                 set mfile [file join [file dirname $pfile] Makefile]
                 if {[file exists $mfile]} {
                     set choice [tk_messageBox -icon warning -type yesno -title "Rappture: Confirm" -message "File \"$mfile\" already exists.\n\nOverwrite?"]
@@ -865,8 +866,19 @@ proc main_saveas {{option "start"}} {
                     }
                 }
 
-                set fname [file tail $pfile]
-                set dir [file dirname [file dirname $::Rappture::installdir]]
+                # /apps/rappture/current for 32-bit systems
+                # /apps/share64/rappture/current for 64-bit systems
+                if {$tcl_platform(wordSize) == 8
+                      && [file isdirectory /apps/share64/rappture/current]} {
+                    set dir /apps/share64/rappture/current
+                } else {
+                    set dir /apps/rappture/current
+                }
+                if {![file isdirectory $dir]} {
+                    # if all else fails, ask the current Rappture for its install dir
+                    set dir [file dirname [file dirname $::Rappture::installdir]]
+                }
+
                 set macros [list @@RAPPTUREDIR@@ $dir]
                 lappend macros @@FILENAME@@ $fname
                 lappend macros @@FILEROOT@@ [file rootname $fname]
@@ -1090,10 +1102,10 @@ proc main_preview {} {
 
     # turn off download options and clear button
     $f.analyze component download configure -state disabled
-    $f.analyze component resultset component clear configure -state disabled
-    # remove the "---" and "Download..." options from the result selector
-    $f.analyze component resultselector choices delete end
-    $f.analyze component resultselector choices delete end
+    $f.analyze component resultselector component clear configure -state disabled
+    # remove the "---" and "Download..." options from the view selector
+    $f.analyze component viewselector choices delete end
+    $f.analyze component viewselector choices delete end
 }
 
 # ----------------------------------------------------------------------
