@@ -1877,16 +1877,16 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
     itk_component add orientation {
         Rappture::Combobox $inner.orientation -width 10 -editable no
     }
-    $inner.mode choices insert end \
-        "front"    "lines" \
-        "back"   "ribbons" \
+    $inner.orientation choices insert end \
+        "front"    "0 90 0" \
+        "back"   "180 90 0" \
         "top"     "0 0 0"  \
         "bottom"     "0 180 0"  \
-        "left"     "270 0 0 "  \
-        "right"     "90 0 0"  \
+        "left"     "270 90 0 "  \
+        "right"     "90 90 0"  \
 	"default"  "45 45 0"
     $itk_component(orientation) value "default"
-    bind $inner.mode <<Value>> [itcl::code $this SetOrientation]
+    bind $inner.orientation <<Value>> [itcl::code $this SetOrientation]
 
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
