@@ -658,7 +658,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
         puts stderr "first not set"
         return
     }
-    # Insure that the global opacity and thickness settings (in the slider
+    # Ensure that the global opacity and thickness settings (in the slider
     # settings widgets) are used for the active transfer-function.  Update
     # the values in the _settings varible.
     set opacity [expr { double($_settings($this-opacity)) * 0.01 }]
@@ -1088,7 +1088,7 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                 set _settings($this-theta) $_view(theta)
                 set _settings($this-phi)   $_view(phi)
                 set _settings($this-psi)   $_view(psi)
-<                SendCmd "camera angle $xyz"
+                SendCmd "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
             }
