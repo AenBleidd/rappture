@@ -247,7 +247,7 @@ itcl::body Rappture::Field::values {{what -overall}} {
     if { [info exists _comp2vtkstreamlines($what)] } {
         # FIXME: Need to process the vtk file data to pull out the field's
         # values.
-        error "vtkstreamlines: values not implements"
+        error "vtkstreamlines: values not implemented"
         return [lindex $_comp2vtkstreamlines($what) 1] 
     }
     if { [info exists _comp2vtk($what)] } {
