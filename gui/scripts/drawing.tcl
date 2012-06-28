@@ -183,9 +183,19 @@ itcl::body Rappture::Drawing::style { elem } {
 #       Returns the shape of the glyphs in the drawing element.
 #
 itcl::body Rappture::Drawing::shape { elem } {
+    set shape ""
     if { [info exists _shapes($elem)] } {
         return $_shapes($elem)
     } 
+    switch -- $shape { 
+	arrow - cone - cube - cylinder - dodecahedron - 
+	icosahedron - line - octahedron - sphere - tetrahedron  {
+	    return $shape
+	}
+	default {
+	    puts stderr "unknown glyph shape \"$shape\""
+	}
+    }
     return ""
 }
 
