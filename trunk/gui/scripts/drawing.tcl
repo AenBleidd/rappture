@@ -26,6 +26,7 @@ itcl::class Rappture::Drawing {
     public method label { elem }
     public method type { elem }
     public method style { elem }
+    public method shape { elem }
     public method values { elem }
     public method data { elem }
     public method hints {{keyword ""}} 
@@ -35,6 +36,7 @@ itcl::class Rappture::Drawing {
     private variable _xmlobj 
     private variable _actors 
     private variable _styles 
+    private variable _shapes 
     private variable _labels 
     private variable _types 
     private variable _data 
@@ -72,21 +74,25 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
         switch -glob -- $elem {
             polygon* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
+		set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _types($elem) polydata
             }
             streamlines* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
+		set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
                 set _types($elem) streamlines
             }
-            spheres* {
+            glyphs* {
                 set _data($elem) [$_xmlobj get $path.$elem.vtk]
+		set _data($elem) [string trim $_data($elem)]
                 set _styles($elem) [$_xmlobj get $path.$elem.about.style]
                 set _labels($elem) [$_xmlobj get $path.$elem.about.label]
-                set _types($elem) spheres
+                set _shapes($elem) [$_xmlobj get $path.$elem.about.shape]
+                set _types($elem) glyphs
             }
         }
     }
@@ -167,6 +173,18 @@ itcl::body Rappture::Drawing::type { elem } {
 itcl::body Rappture::Drawing::style { elem } {
     if { [info exists _styles($elem)] } {
         return $_styles($elem)
+    } 
+    return ""
+}
+
+# 
+# shape -- 
+# 
+#       Returns the shape of the glyphs in the drawing element.
+#
+itcl::body Rappture::Drawing::shape { elem } {
+    if { [info exists _shapes($elem)] } {
+        return $_shapes($elem)
     } 
     return ""
 }
