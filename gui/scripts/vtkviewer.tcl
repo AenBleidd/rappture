@@ -127,7 +127,7 @@ itcl::class Rappture::VtkViewer {
     private variable _axis
     private variable _reset 1      ;# indicates if camera needs to be reset
                                     # to starting position.
-    private variable _haveSpheres 0
+    private variable _haveGlyphs 0
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -293,14 +293,11 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    if { [catch {
     BuildVolumeTab
     BuildAxisTab
     BuildCutawayTab
     BuildCameraTab
-    } errs] != 0 } {
-        puts stderr errs=$errs
-    }
+
     # Legend
 
     set _image(legend) [image create photo]
@@ -404,9 +401,7 @@ itcl::body Rappture::VtkViewer::DoResize {} {
     if { $_height < 2 } {
         set _height 500
     }
-    #puts stderr "DoResize screen size $_width $_height"
     set _start [clock clicks -milliseconds]
-    #puts stderr "screen size request width=$_width height=$_height"
     SendCmd "screen size $_width $_height"
     #SendCmd "imgflush"
 
@@ -423,7 +418,6 @@ itcl::body Rappture::VtkViewer::DoRotate {} {
 }
 
 itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
-    #puts stderr "EventuallyResize $w $h"
     set _width $w
     set _height $h
     $_arcball resize $w $h
@@ -436,7 +430,6 @@ itcl::body Rappture::VtkViewer::EventuallyResize { w h } {
 set rotate_delay 150
 
 itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
-    #puts stderr "EventuallyRotate $w $h"
     foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
     if { !$_rotatePending } {
         set _rotatePending 1
@@ -694,14 +687,12 @@ itcl::body Rappture::VtkViewer::download {option args} {
 # Any existing connection is automatically closed.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::Connect {} {
-    #puts stderr "Enter Connect: [info level -1]"
     set _hosts [GetServerList "vtkvis"]
     if { "" == $_hosts } {
         return 0
     }
     set result [VisViewer::Connect $_hosts]
     if { $result } {
-        #puts stderr "Connected to $_hostname sid=$_sid"
         set w [winfo width $itk_component(view)]
         set h [winfo height $itk_component(view)]
         EventuallyResize $w $h
@@ -788,10 +779,8 @@ itcl::body Rappture::VtkViewer::ReceiveImage { args } {
         $_image(plot) configure -data $bytes
         set time [clock seconds]
         set date [clock format $time]
-        #puts stderr "$date: received image [image width $_image(plot)]x[image height $_image(plot)] image>"        
         if { $_start > 0 } {
             set finish [clock clicks -milliseconds]
-            #puts stderr "round trip time [expr $finish -$_start] milliseconds"
             set _start 0
         }
     } elseif { $info(type) == "print" } {
@@ -906,7 +895,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-                if { [$dataobj type $comp] != "spheres" } {
+                if { [$dataobj type $comp] != "glyphs" } {
                 }
                 set _datasets($tag) 1
             }
@@ -1269,8 +1258,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 #       to be vertical when drawn.
 #
 itcl::body Rappture::VtkViewer::RequestLegend {} {
-    #puts stderr "RequestLegend _first=$_first"
-    #puts stderr "RequestLegend width=$_width height=$_height"
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     set c $itk_component(legend)
@@ -1283,7 +1270,6 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            #puts stderr "RequestLegend w=$w h=$h"
             SendCmd "legend $_dataset2style($dataset) vmag {} {} $w $h 0"
             break;
         }
@@ -1303,7 +1289,6 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style [$dataobj style $comp]
     set colormap "$style(-color):$style(-levels):$style(-opacity)"
     if { [info exists _colormaps($colormap)] } {
-        puts stderr "Colormap $colormap already built"
         return $colormap
     }
     if { ![info exists _dataset2style($tag)] } {
@@ -1319,7 +1304,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
         "polygon" {
             SendCmd "pseudocolor colormap $colormap $tag"
         }
-        "spheres" {
+        "glyphs" {
             #SendCmd "glyphs colormap $colormap $tag"
         }
     }
@@ -1405,22 +1390,23 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
             set output [$reader GetOutput]
             set _limits($tag) [$output GetBounds]
             set pointData [$output GetPointData]
-            puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-            puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
-            puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
-            puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
-            puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-            puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
             set fieldData [$output GetFieldData]
-            set pointData [$output GetPointData]
-            puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-            puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
-            puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-            puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-            puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
-            puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-            puts stderr "point \#scalars=[$pointData GetScalars]"
-            puts stderr vectors=[$pointData GetVectors]
+	    if 0 {
+		puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
+		puts stderr "\#vectors=[$reader GetNumberOfVectorsInFile]"
+		puts stderr "\#tensors=[$reader GetNumberOfTensorsInFile]"
+		puts stderr "\#normals=[$reader GetNumberOfNormalsInFile]"
+		puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
+		puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
+		puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
+		puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
+		puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
+		puts stderr "point \#components=[$pointData GetNumberOfComponents]"
+		puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
+		puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
+		puts stderr "point \#scalars=[$pointData GetScalars]"
+		puts stderr vectors=[$pointData GetVectors]
+	    }
             rename $output ""
             rename $reader ""
             file delete $tmpfile
@@ -1874,7 +1860,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
     if { $dataobj != $_first } {
         set settings(-wireframe) 1
     }
-    if { $type == "spheres" } {
+    if { $type == "glyphs" } {
         array set settings {
             -color \#808080
             -gscale 1
@@ -1886,8 +1872,9 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -lighting 1
             -visible 1
         }
+	set shape [$dataobj shape $comp]
         array set settings $style
-        SendCmd "glyphs add sphere $tag"
+        SendCmd "glyphs add $shape $tag"
         SendCmd "glyphs normscale 0 $tag"
         SendCmd "glyphs gscale $settings(-gscale) $tag"
         SendCmd "glyphs wireframe $settings(-wireframe) $tag"
@@ -1896,7 +1883,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "glyphs smode vcomp {} $tag"
         SendCmd "glyphs opacity $settings(-opacity) $tag"
         SendCmd "glyphs visible $settings(-visible) $tag"
-        set _haveSpheres 1
+        set _haveGlyphs 1
     } else {
         array set settings {
             -color \#6666FF
@@ -1913,7 +1900,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "polydata visible $settings(-visible) $tag"
         set _volume(visible) $settings(-visible)
     } 
-    if { $type != "spheres" } {
+    if { $type != "glyphs" } {
         SendCmd "polydata edges $settings(-edges) $tag"
         set _volume(edges) $settings(-edges)
         SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
@@ -1945,7 +1932,6 @@ itcl::body Rappture::VtkViewer::IsValidObject { dataobj } {
 # specified <size> will follow.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } {
-    #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
     set _title $title
@@ -1955,7 +1941,6 @@ itcl::body Rappture::VtkViewer::ReceiveLegend { colormap title vmin vmax size } 
             set _image(legend) [image create photo]
         }
         $_image(legend) configure -data $bytes
-        #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
         DrawLegend
     }
 }
@@ -2045,7 +2030,6 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
 
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
-        #puts stderr "out of range: $imgY"
         return
     }
     if { ![info exists _image(swatch)] } {
@@ -2058,11 +2042,9 @@ itcl::body Rappture::VtkViewer::SetLegendTip { x y } {
 
     # Compute the value of the point
     set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
-    #puts stderr "t=$t x=$x y=$y imgY=$imgY"
     set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
-    #puts stderr "tipx=$tipx tipy=$tipy x=$x y=$y"
     Rappture::Tooltip::text $c "$_title $value"
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
