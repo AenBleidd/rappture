@@ -20,7 +20,7 @@ TCLSH           = @TCLSH@
 PYTHON          = @PYTHON_DISTUTILS@
 MEX             = @MEX@
 OCTAVE          = @OCTAVE_VERSION@
-JAVAC           = @JAVAC@
+JAVA_INC_DIR    = @JAVA_INC_DIR@
 R               = @R@
 
 # Rappture requires it. We always build a Tcl language API.
@@ -41,7 +41,7 @@ endif
 ifneq ($(OCTAVE),)
   LANGS += octave
 endif
-ifneq ($(JAVAC),)
+ifneq ($(JAVA_INC_DIR),)
   LANGS += java
 endif
 ifneq ($(R),)
