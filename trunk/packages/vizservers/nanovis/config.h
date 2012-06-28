@@ -68,7 +68,7 @@
  * [In the future, we'll use the OpenDX library reader and determine at
  * runtime if mesh decimation is required]
  */
-#define ISO_TEST                0
+#define ISO_TEST                1
 
 /*
  * Determines if Sobel filter is applied to gradients when loading a 
