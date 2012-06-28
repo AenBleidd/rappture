@@ -101,6 +101,9 @@ itcl::class visData {
     public method type {args} {
         return $_type
     }
+    public method shape {args} {
+	return "sphere"
+    }
 
     private variable _data ""
     private variable _type ""
@@ -149,22 +152,22 @@ proc send_streamlines_file {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: send_spheres_file
+# USAGE: send_glyphs_file
 #
 # Prompts the user for a text file, and then sends the text within
 # that file along to the rendering widget.
 # ----------------------------------------------------------------------
-proc send_spheres_file {} {
+proc send_glyphs_file {} {
     global widgets
 
-    set file [tk_getOpenFile -title "Open VTK File as Spheres"]
+    set file [tk_getOpenFile -title "Open VTK File as Glyphs"]
     if {"" != $file && [catch {
             set fid [open $file r]
             fconfigure $fid -translation binary
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info "spheres"]
+        set obj [visData #auto $info "glyphs"]
         $widgets(vtkviewer) add $obj
     }
 }
@@ -366,7 +369,7 @@ menu .mbar
 menu .mbar.file
 .mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
 .mbar.file add command -label "Send VTK File as Streamlines..." -underline 0 -command send_streamlines_file
-.mbar.file add command -label "Send VTK File as Spheres..." -underline 0 -command send_spheres_file
+.mbar.file add command -label "Send VTK File as Glyphs..." -underline 0 -command send_glyphs_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
