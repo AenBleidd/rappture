@@ -1171,29 +1171,44 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
                 SendCmd "polydata opacity $sval $dataset"
+		if { $_haveGlyphs } {
+		    SendCmd "glyphs opacity $sval $dataset"
+		}
             }
         }
         "volume-wireframe" {
             set bool $_volume(wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
                 SendCmd "polydata wireframe $bool $dataset"
+		if { $_haveGlyphs } {
+		    SendCmd "glyphs wireframe $bool $dataset"
+		}
             }
         }
         "volume-visible" {
             set bool $_volume(visible)
             foreach dataset [CurrentDatasets -visible $_first] {
+		if { $_haveGlyphs } {
+		    SendCmd "glyphs visible $bool $dataset"
+		}
                 SendCmd "polydata visible $bool $dataset"
             }
         }
         "volume-lighting" {
             set bool $_volume(lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
+		if { $_haveGlyphs } {
+		    SendCmd "glyphs lighting $bool $dataset"
+		}
                 SendCmd "polydata lighting $bool $dataset"
             }
         }
         "volume-edges" {
             set bool $_volume(edges)
             foreach dataset [CurrentDatasets -visible $_first] {
+		if { $_haveGlyphs } {
+		    SendCmd "glyphs edges $bool $dataset"
+		}
                 SendCmd "polydata edges $bool $dataset"
             }
         }

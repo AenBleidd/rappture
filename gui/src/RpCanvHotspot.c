@@ -155,6 +155,13 @@ static Tk_CustomOption tagsOption = {
     Tk_CanvasTagsPrintProc, (ClientData) NULL
 };
 
+static Tk_OptionParseProc ValueInterpParseProc;
+static Tk_OptionPrintProc ValueInterpPrintProc;
+static Tk_CustomOption interpOption = {
+    (Tk_OptionParseProc *)ValueInterpParseProc, ValueInterpPrintProc, 
+    (ClientData) NULL
+};
+
 static Tk_ConfigSpec configSpecs[] = {
     {TK_CONFIG_BORDER, "-activebackground", (char *)NULL, (char*)NULL,
         "white", Tk_Offset(HotspotItem, activeBorder), TK_CONFIG_NULL_OK},
@@ -176,6 +183,8 @@ static Tk_ConfigSpec configSpecs[] = {
         "helvetica -12", Tk_Offset(HotspotItem, font), 0},
     {TK_CONFIG_COLOR, "-foreground", "foreground", (char*)NULL,
         "black", Tk_Offset(HotspotItem, textColor), 0},
+    {TK_CONFIG_CUSTOM, "-interp", (char*)NULL, (char*)NULL, (char*)NULL, 
+	Tk_Offset(HotspotItem, valueInterp), TK_CONFIG_NULL_OK, &interpOption},
     {TK_CONFIG_FONT, "-valuefont", (char*)NULL, (char*)NULL,
         "helvetica -12 bold", Tk_Offset(HotspotItem, valueFont), 0},
     {TK_CONFIG_COLOR, "-valueforeground", (char*)NULL, (char*)NULL,
@@ -465,6 +474,66 @@ GetCoordFromObj(Tcl_Interp *interp, HotspotItem *itemPtr, Tcl_Obj *objPtr,
 }
 
 
+/*
+ *----------------------------------------------------------------------
+ *
+ * ValueInterpParseProc --
+ *
+ *	Converts the name of an axis to a pointer to its axis structure.
+ *
+ * Results:
+ *	The return value is a standard Tcl result.  The axis flags are
+ *	written into the widget record.
+ *
+ *----------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static int
+ValueInterpParseProc(ClientData clientData, Tcl_Interp *interp, Tk_Window tkwin,
+		     CONST84 char *string, char *widgRec, int offset)
+{
+    HotspotItem *itemPtr = (HotspotItem *)widgRec;
+
+    if (string[0] == '\0') {
+	itemPtr->valueInterp = NULL;
+	return TCL_OK;
+    }
+    itemPtr->valueInterp = Tcl_GetSlave(interp, string);
+    if (itemPtr->valueInterp == NULL) {
+	return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * ValueInterpParseProc --
+ *
+ *	Convert the window coordinates into a string.
+ *
+ * Results:
+ *	The string representing the coordinate position is returned.
+ *
+ *----------------------------------------------------------------------
+ */
+/*ARGSUSED*/
+static char *
+ValueInterpPrintProc(ClientData clientData, Tk_Window tkwin, char *widgRec,
+		     int offset, Tcl_FreeProc **freeProcPtr)
+{
+    HotspotItem *itemPtr = (HotspotItem *)widgRec;
+
+    if (itemPtr->valueInterp != NULL) {
+	Tcl_Obj *objPtr;
+
+	Tcl_GetInterpPath(itemPtr->interp, itemPtr->valueInterp);
+	objPtr = Tcl_GetObjResult(itemPtr->interp);
+	*freeProcPtr = TCL_VOLATILE;
+	return Tcl_GetString(objPtr);
+    }
+    return "";
+}
 
 /*
  *---------------------------------------------------------------------------
