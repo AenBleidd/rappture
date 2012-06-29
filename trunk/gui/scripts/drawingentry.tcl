@@ -27,7 +27,8 @@ itcl::class Rappture::DrawingEntry {
     private variable _drawingHeight 0
     private variable _drawingWidth 0
     private variable _owner
-    private variable _parser ""
+    private variable _parser "";	# Slave interpreter where all 
+					# substituted variables are stored.
     private variable _path
     private variable _showing ""
     private variable _xAspect 0
@@ -40,8 +41,12 @@ itcl::class Rappture::DrawingEntry {
     private variable _yScale 1.0
     private variable _cursor ""
 
-    constructor {owner path args} { # defined below }
-
+    constructor {owner path args} { 
+	# defined below 
+    }
+    destructor {} {
+	# defined below
+    }
     public method value { args }
     public method label {}
     public method tooltip {}
@@ -101,10 +106,16 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     }
     pack $itk_component(drawing) -expand yes -fill both
     bind $itk_component(drawing) <Configure> [itcl::code $this Redraw]
+    set _parser [interp create -safe]
     Redraw
     eval itk_initialize $args
 }
 
+itcl::body Rappture::DrawingEntry::destructor {} {
+    if { $_parser != "" } {
+	$_parser delete 
+    }
+}
 # ----------------------------------------------------------------------
 # USAGE: label
 #
@@ -644,6 +655,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
     set options(-activeimage) $img
     set id [eval $c create hotspot $coords]
     set _cname2id($cname) $id
+    set options(-interp) $_parser
     eval $c itemconfigure $id [array get options]
     if { $hotspot == "inline" } {
 	array unset _cname2controls $cname
@@ -963,7 +975,6 @@ itcl::body Rappture::DrawingEntry::value {args} {
 #
 itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
     # Load a new parser with the variables representing the substitution
-    set _parser [interp create -safe]
     foreach name [array names _name2path] {
 	set path $_name2path($name)
 	set w [$_owner widgetfor $path]
@@ -973,7 +984,6 @@ itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
 	    set value ""
 	}
 	$_parser eval [list set $name $value]
-	set ::$name $value
     }
 }
 
