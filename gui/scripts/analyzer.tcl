@@ -872,12 +872,12 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
             }
         }
         clear {
-            set xmlobj $eventData(what)
-            if {$xmlobj ne "all"} {
+            if {$eventData(what) ne "all"} {
                 # delete this result from all viewers
+                array set params $eventData(what)
                 foreach label [array names _label2page] {
                     set page $_label2page($label)
-                    $page.rviewer clear $xmlobj
+                    $page.rviewer clear $params(simnum)
                 }
             }
 
