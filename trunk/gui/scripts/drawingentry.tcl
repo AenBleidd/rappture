@@ -44,7 +44,7 @@ itcl::class Rappture::DrawingEntry {
     constructor {owner path args} { 
 	# defined below 
     }
-    destructor {} {
+    destructor {
 	# defined below
     }
     public method value { args }
@@ -77,6 +77,7 @@ itcl::class Rappture::DrawingEntry {
     private method XmlGetSubst { path } 
     private method Withdraw {} 
     private method Hotspot { option cname item args } 
+    private method IsEnabled { path } 
 }
 
 itk::usual DrawingEntry {
@@ -920,8 +921,15 @@ itcl::body Rappture::DrawingEntry::Invoke { cname x y } {
 	set inner [$popup component inner]
 	$inner.controls delete all
     }
+    set count 0
     foreach path $controls {
-	$inner.controls add $path
+	if { [IsEnabled $path] } {
+	    $inner.controls add $path
+	    incr count
+	}
+    }
+    if { $count == 0 } {
+	return
     }
     update
     # Activate the popup and call for the output.
@@ -998,4 +1006,56 @@ itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
 	return $value
     }
     return [string trim [$_parser eval [list subst -nocommands $value]]]
+}
+
+itcl::body Rappture::DrawingEntry::IsEnabled { path } {
+    set enable [string trim [$_owner xml get $path.about.enable]]
+    if {"" == $enable} {
+        return 1
+    }
+    if {![string is boolean $enable]} {
+        set re {([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\))(\.([a-zA-Z_]+[0-9]*|\([^\(\)]+\)|[a-zA-Z_]+[0-9]*\([^\(\)]+\)))*(:[-a-zA-Z0-9/]+)?}
+        set rest $enable
+        set enable ""
+        set deps ""
+        while {1} {
+            if {[regexp -indices $re $rest match]} {
+                foreach {s0 s1} $match break
+
+                if {[string index $rest [expr {$s0-1}]] == "\""
+                      && [string index $rest [expr {$s1+1}]] == "\""} {
+                    # string in ""'s? then leave it alone
+                    append enable [string range $rest 0 $s1]
+                    set rest [string range $rest [expr {$s1+1}] end]
+                } else {
+                    #
+                    # This is a symbol which should be substituted
+                    # it can be either:
+                    #   input.foo.bar
+                    #   input.foo.bar:units
+                    #
+                    set cpath [string range $rest $s0 $s1]
+                    set parts [split $cpath :]
+                    set ccpath [lindex $parts 0]
+                    set units [lindex $parts 1]
+
+                    # make sure we have the standard path notation
+                    set stdpath [$_owner regularize $ccpath]
+                    if {"" == $stdpath} {
+                        puts stderr "WARNING: don't recognize parameter $cpath in <enable> expression for $path.  This may be buried in a structure that is not yet loaded."
+                        set stdpath $ccpath
+                    }
+                    # substitute [_controlValue ...] call in place of path
+                    append enable [string range $rest 0 [expr {$s0-1}]]
+                    append enable [format {[_controlValue %s %s]} $stdpath $units]
+                    lappend deps $stdpath
+                    set rest [string range $rest [expr {$s1+1}] end]
+                }
+            } else {
+                append enable $rest
+                break
+            }
+        }
+    }
+    return $enable
 }

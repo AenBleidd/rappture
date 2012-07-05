@@ -38,7 +38,6 @@ itcl::class Rappture::DrawingControls {
     private method Rebuild {}
     private method FormatLabel {str}
     private method Monitor {name state}
-    
     private variable _dispatcher ""
     private variable _controls ""
     private variable _name2info
@@ -180,6 +179,8 @@ itcl::body Rappture::DrawingControls::add { path } {
     if { $disablestyle != "" } {
 	set _name2info($name-disablestyle) $disablestyle
     }
+
+    if 0 {
     #
     # If this element has an <enable> expression, then register
     # its controlling widget here.
@@ -231,12 +232,12 @@ itcl::body Rappture::DrawingControls::add { path } {
                 break
             }
         }
-
         foreach cpath $deps {
             $_owner dependenciesfor $cpath $path
         }
     }
-    set _name2info($name-enable) $enable
+    }
+    set _name2info($name-enable) yes
 
     #set wid [$_owner widgetfor $path]
 
@@ -533,3 +534,4 @@ itcl::body Rappture::DrawingControls::Monitor {name state} {
 itcl::configbody Rappture::DrawingControls::padding {
     $_dispatcher event -idle !layout
 }
+
