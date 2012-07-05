@@ -1488,7 +1488,7 @@ itcl::body Rappture::NumberResult::GetAxes {dataobj} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::NumberResult::GetValue {dataobj {which both}} {
     if {[info exists _dataobj2param($dataobj)]} {
-        set x [lindex $_dataobj2param($dataobj) 1]
+        set x [lindex $_dataobj2param($dataobj) 0]
     } else {
         set x 0
     }
