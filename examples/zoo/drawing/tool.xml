@@ -15,6 +15,10 @@ When you click the Simulate button, the input strings will be used to generate o
   <layout>wizard</layout>
  </tool>
  <input>
+    <boolean id="trapezoid_top">
+      <about> <label>Enable trapezoid top</label> </about>
+      <default>off</default>
+    </boolean>
   <drawing>
    <about>
     <label>Title</label>
@@ -185,6 +189,7 @@ Height = ${feature_height}</text>
    <about>
     <label>Trapezoid Top</label>
     <description>Width of the Trapezoid Top.</description>
+    <enable>input.boolean(trapezoid_top)</enable>
    </about>
    <units>nm</units>
    <min>10</min>

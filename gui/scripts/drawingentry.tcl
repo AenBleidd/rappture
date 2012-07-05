@@ -53,6 +53,7 @@ itcl::class Rappture::DrawingEntry {
 
     private method Activate { tag } 
     private method AdjustDrawingArea { xAspect yAspect } 
+    private method ControlValue {path {units ""}}
     private method Deactivate { tag } 
     private method Highlight { tag } 
     private method InitSubstitutions {} 
@@ -78,6 +79,7 @@ itcl::class Rappture::DrawingEntry {
     private method Withdraw {} 
     private method Hotspot { option cname item args } 
     private method IsEnabled { path } 
+    private method NumEnabledControls { cname } 
 }
 
 itk::usual DrawingEntry {
@@ -682,6 +684,9 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 
 
 itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
+    if { [NumEnabledControls $cname] == 0 } {
+	return
+    }
     set c $itk_component(drawing)
     switch -- $option {
 	"activate" {
@@ -1047,7 +1052,7 @@ itcl::body Rappture::DrawingEntry::IsEnabled { path } {
                     }
                     # substitute [_controlValue ...] call in place of path
                     append enable [string range $rest 0 [expr {$s0-1}]]
-                    append enable [format {[_controlValue %s %s]} $stdpath $units]
+                    append enable [format {[ControlValue %s %s]} $stdpath $units]
                     lappend deps $stdpath
                     set rest [string range $rest [expr {$s1+1}] end]
                 }
@@ -1057,5 +1062,33 @@ itcl::body Rappture::DrawingEntry::IsEnabled { path } {
             }
         }
     }
-    return $enable
+    return [expr $enable]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: ControlValue <path> ?<units>?
+#
+# Used internally to get the value of a control with the specified
+# <path>.  Returns the current value for the control.
+# ----------------------------------------------------------------------
+itcl::body Rappture::DrawingEntry::ControlValue {path {units ""}} {
+    if {"" != $_owner} {
+        set val [$_owner valuefor $path]
+        if {"" != $units} {
+            set val [Rappture::Units::convert $val -to $units -units off]
+        }
+        return $val
+    }
+    return ""
+}
+
+itcl::body Rappture::DrawingEntry::NumEnabledControls { cname } {
+    set controls $_cname2controls($cname)
+    set count 0
+    foreach path $controls {
+	if { [IsEnabled $path] } {
+	    incr count
+	}
+    }
+    return $count
 }
