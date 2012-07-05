@@ -247,6 +247,7 @@ itcl::body Rappture::ResultSet::diff {option args} {
             if {$irun ne ""} {
                 if {$col == "simnum"} {
                     set val [$_results get -format simnum $irun]
+                    return [list $irun $val]
                 } else {
                     # Be careful giving singleton elements as the
                     # "columns" argument to "Tuples::get". It is
