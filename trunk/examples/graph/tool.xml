@@ -12,6 +12,7 @@
                 <hints>Example: 2*x + 1</hints>
             </about>
             <size>30x5</size>
+	    <default>2*x+1</default>
         </string>
         <number id="min">
             <about> <label>From x</label> </about>

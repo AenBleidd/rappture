@@ -11,53 +11,58 @@
 #
 
 ZOO="\
- ./zoo/log \
- ./zoo/note \
- ./zoo/cloud \
- ./zoo/cloud \
- ./zoo/curve \
- ./zoo/field \
- ./zoo/group \
- ./zoo/image \
- ./zoo/phase \
- ./zoo/table \
- ./zoo/structure \
- ./zoo/loadrun \
- ./zoo/unirect2d \
- ./zoo/binary \
- ./zoo/choice \
- ./zoo/enable \
- ./zoo/loader \
- ./zoo/number \
- ./zoo/string \
- ./zoo/number2 \
- ./zoo/sequence \
- ./zoo/boolean \
- ./zoo/integer \
- ./zoo/integer2 \
+	./zoo/binary
+	./zoo/boolean
+	./zoo/choice
+	./zoo/cloud/matlab
+	./zoo/cloud
+	./zoo/curve
+	./zoo/drawing
+	./zoo/enable
+	./zoo/field
+	./zoo/group
+	./zoo/histogram
+	./zoo/image
+	./zoo/integer
+	./zoo/integer2
+	./zoo/loader
+	./zoo/log
+	./zoo/note
+	./zoo/number
+	./zoo/number2
+	./zoo/parallelepiped
+	./zoo/periodicelement
+	./zoo/phase
+	./zoo/sequence
+	./zoo/string
+	./zoo/structure
+	./zoo/table
+	./zoo/unirect2d
 "
 
 FLOW=" \
- ./flow/demo1 \
- ./flow/demo2 \
- ./flow/demo3 \
- ./flow"
-
+	./flow/demo1
+	./flow/demo2
+	./flow/demo3
+	./flow
+"
 FERMI=" \
-  ./app-fermi/cee \
-  ./app-fermi/tcl \
-  ./app-fermi/java \
-  ./app-fermi/perl \
-  ./app-fermi/ruby \
-  ./app-fermi/fortran \
-  ./app-fermi/matlab \
-  ./app-fermi/matlab \
-  ./app-fermi/octave/2 \
-  ./app-fermi/octave/3 \
-  ./app-fermi/python \
-  ./app-fermi/wrapper/cee \
-  ./app-fermi/wrapper/tcl \
-  ./app-fermi/wrapper/python \
+	./app-fermi/cee
+	./app-fermi/fortran
+	./app-fermi/tcl
+	./app-fermi/perl
+	./app-fermi/python
+	./app-fermi/ruby
+	./app-fermi/java
+	./app-fermi/R
+	./app-fermi/matlab/uncompiled
+	./app-fermi/matlab/compiled
+	./app-fermi/octave/octave2
+	./app-fermi/octave/octave3
+	./app-fermi/wrapper/cee
+	./app-fermi/wrapper/tcl
+	./app-fermi/wrapper/perl
+	./app-fermi/wrapper/python
 "
 
 MISC=" \
