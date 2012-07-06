@@ -1927,7 +1927,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "molecule add $tag"
         SendCmd "molecule opacity $settings(-opacity) $tag"
         SendCmd "molecule visible $settings(-visible) $tag"
-        SendCmd "molecule rscale van_der_walls $tag"
+        SendCmd "molecule rscale van_der_waals $tag"
         SendCmd "molecule 2 2 2 $tag"
         set _haveGlyphs 1
     } else {
