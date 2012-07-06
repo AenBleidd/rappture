@@ -36,7 +36,9 @@ itcl::class Rappture::TextEntry {
     itk_option define -width width Width 0
     itk_option define -height height Height 0
 
-    constructor {owner path args} { # defined below }
+    constructor {owner path args} { 
+	# defined below 
+    }
 
     public method value {args}
 
@@ -308,10 +310,15 @@ itcl::body Rappture::TextEntry::_layout {} {
                     -font $itk_option(-codefont)
                 $itk_component(scrollbars) contents $itk_component(text)
 
-                bind $itk_component(text) <KeyPress> \
+		# Make sure these event bindings occur after the class bindings.
+		# Otherwise you'll always get the text value before the edit.
+                bind textentry <KeyPress> \
                     [itcl::code $this _newValue]
-                bind $itk_component(text) <Control-KeyPress-a> \
+                bind textentry <Control-KeyPress-a> \
                     "[list $itk_component(text) tag add sel 1.0 end]; break"
+		set bindtags [bindtags $itk_component(text)]
+		lappend bindtags textentry
+		bindtags $itk_component(text) $bindtags
 
                 itk_component add tmenu {
                     menu $itk_component(text).menu -tearoff 0
@@ -336,7 +343,7 @@ itcl::body Rappture::TextEntry::_layout {} {
                 $itk_component(tmenu) add command \
                     -label [Rappture::filexfer::label download] \
                     -command [itcl::code $this _downloadValue]
-
+		
                 bind $itk_component(text) <<PopupMenu>> \
                     [itcl::code $this _edit menu tmenu %X %Y]
             }
