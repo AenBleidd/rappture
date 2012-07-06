@@ -255,10 +255,15 @@ itcl::body Rappture::TextEntry::_layout {} {
                     -background $itk_option(-textbackground) \
                     -foreground $itk_option(-textforeground)
 
-                bind $itk_component(entry) <KeyPress> \
+		# Make sure these event bindings occur after the class bindings.
+		# Otherwise you'll always get the entry value before the edit.
+                bind textentry <KeyPress> \
                     [itcl::code $this _newValue]
-                bind $itk_component(entry) <Control-KeyPress-a> \
+                bind textentry <Control-KeyPress-a> \
                     "[list $itk_component(entry) selection range 0 end]; break"
+		set bindtags [bindtags $itk_component(entry)]
+		lappend bindtags textentry
+		bindtags $itk_component(entry) $bindtags
 
                 itk_component add emenu {
                     menu $itk_component(entry).menu -tearoff 0
