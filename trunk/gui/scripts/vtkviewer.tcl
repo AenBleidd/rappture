@@ -128,6 +128,7 @@ itcl::class Rappture::VtkViewer {
     private variable _reset 1      ;# indicates if camera needs to be reset
                                     # to starting position.
     private variable _haveGlyphs 0
+    private variable _haveMolecules 0
 
     private variable _first ""     ;# This is the topmost dataset.
     private variable _start 0
@@ -895,8 +896,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
-                if { [$dataobj type $comp] != "glyphs" } {
-                }
                 set _datasets($tag) 1
             }
             lappend _obj2datasets($dataobj) $tag
@@ -1171,8 +1170,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
                 SendCmd "polydata opacity $sval $dataset"
-		if { $_haveGlyphs } {
-		    SendCmd "glyphs opacity $sval $dataset"
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type != "" } {
+		    SendCmd "$type opacity $sval $dataset"
 		}
             }
         }
@@ -1180,16 +1181,20 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set bool $_volume(wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
                 SendCmd "polydata wireframe $bool $dataset"
-		if { $_haveGlyphs } {
-		    SendCmd "glyphs wireframe $bool $dataset"
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type != "" } {
+		    SendCmd "$type wireframe $bool $dataset"
 		}
             }
         }
         "volume-visible" {
             set bool $_volume(visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-		if { $_haveGlyphs } {
-		    SendCmd "glyphs visible $bool $dataset"
+		foreach { dataobj comp } split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type != "" } {
+		    SendCmd "$type visible $bool $dataset"
 		}
                 SendCmd "polydata visible $bool $dataset"
             }
@@ -1197,8 +1202,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "volume-lighting" {
             set bool $_volume(lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
-		if { $_haveGlyphs } {
-		    SendCmd "glyphs lighting $bool $dataset"
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type != "" } {
+		    SendCmd "$type lighting $bool $dataset"
 		}
                 SendCmd "polydata lighting $bool $dataset"
             }
@@ -1206,8 +1213,10 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "volume-edges" {
             set bool $_volume(edges)
             foreach dataset [CurrentDatasets -visible $_first] {
-		if { $_haveGlyphs } {
-		    SendCmd "glyphs edges $bool $dataset"
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type != "" } {
+		    SendCmd "$type edges $bool $dataset"
 		}
                 SendCmd "polydata edges $bool $dataset"
             }
@@ -1320,6 +1329,9 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
             SendCmd "pseudocolor colormap $colormap $tag"
         }
         "glyphs" {
+            #SendCmd "glyphs colormap $colormap $tag"
+        }
+        "molecule" {
             #SendCmd "glyphs colormap $colormap $tag"
         }
     }
@@ -1898,6 +1910,25 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "glyphs smode vcomp {} $tag"
         SendCmd "glyphs opacity $settings(-opacity) $tag"
         SendCmd "glyphs visible $settings(-visible) $tag"
+        set _haveGlyphs 1
+    } elseif { $type == "molecule" } {
+        array set settings {
+            -color \#808080
+            -gscale 1
+            -edges 0
+            -edgecolor black
+            -linewidth 1.0
+            -opacity 1.0
+            -wireframe 0
+            -lighting 1
+            -visible 1
+        }
+        array set settings $style
+        SendCmd "molecule add $tag"
+        SendCmd "molecule opacity $settings(-opacity) $tag"
+        SendCmd "molecule visible $settings(-visible) $tag"
+        SendCmd "molecule rscale van_der_walls $tag"
+        SendCmd "molecule 2 2 2 $tag"
         set _haveGlyphs 1
     } else {
         array set settings {

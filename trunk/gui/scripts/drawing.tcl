@@ -94,6 +94,13 @@ itcl::body Rappture::Drawing::constructor {xmlobj path} {
                 set _shapes($elem) [$_xmlobj get $path.$elem.about.shape]
                 set _types($elem) glyphs
             }
+            molecule* {
+                set _data($elem) [$_xmlobj get $path.$elem.vtk]
+		set _data($elem) [string trim $_data($elem)]
+                set _styles($elem) [$_xmlobj get $path.$elem.about.style]
+                set _labels($elem) [$_xmlobj get $path.$elem.about.label]
+                set _types($elem) molecule
+            }
         }
     }
     foreach {key path} {
