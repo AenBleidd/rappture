@@ -173,6 +173,27 @@ proc send_glyphs_file {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: send_molecule_file
+#
+# Prompts the user for a text file, and then sends the text within
+# that file along to the rendering widget.
+# ----------------------------------------------------------------------
+proc send_molecule_file {} {
+    global widgets
+
+    set file [tk_getOpenFile -title "Open VTK File as Molecule"]
+    if {"" != $file && [catch {
+            set fid [open $file r]
+            fconfigure $fid -translation binary
+            set info [read $fid]
+            close $fid
+          }] == 0} {
+        set obj [visData #auto $info "molecule"]
+        $widgets(vtkviewer) add $obj
+    }
+}
+
+# ----------------------------------------------------------------------
 # USAGE: load_script
 #
 # Prompts the user for a text file, and then sends the text within
@@ -370,6 +391,7 @@ menu .mbar.file
 .mbar.file add command -label "Send VTK File..." -underline 0 -command send_file
 .mbar.file add command -label "Send VTK File as Streamlines..." -underline 0 -command send_streamlines_file
 .mbar.file add command -label "Send VTK File as Glyphs..." -underline 0 -command send_glyphs_file
+.mbar.file add command -label "Send VTK File as Molecule..." -underline 0 -command send_molecule_file
 .mbar.file add command -label "Load script..." -underline 0 -command load_script
 .mbar.file add command -label "Reset" -underline 0 -command reset
 .mbar.file add separator
