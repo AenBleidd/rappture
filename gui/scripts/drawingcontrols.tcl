@@ -293,6 +293,9 @@ itcl::body Rappture::DrawingControls::ControlChanged {name} {
     if {"" != $_owner} {
         $_owner changed $path
     }
+    if { [winfo class $wid] == "TextEntry" } {
+	return
+    }
     eval $deactivatecommand
 }
 

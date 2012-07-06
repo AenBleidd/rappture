@@ -76,10 +76,10 @@ itcl::class Rappture::DrawingEntry {
     private method ScreenY { y } 
     private method XmlGet { path } 
     private method XmlGetSubst { path } 
-    private method Withdraw {} 
+    private method Withdraw { cname } 
     private method Hotspot { option cname item args } 
     private method IsEnabled { path } 
-    private method NumEnabledControls { cname } 
+    private method NumControlsEnabled { cname } 
 }
 
 itk::usual DrawingEntry {
@@ -684,7 +684,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 
 
 itcl::body Rappture::DrawingEntry::Hotspot { option cname item args } {
-    if { [NumEnabledControls $cname] == 0 } {
+    if { [NumControlsEnabled $cname] == 0 } {
 	return
     }
     set c $itk_component(drawing)
@@ -915,9 +915,9 @@ itcl::body Rappture::DrawingEntry::Invoke { cname x y } {
     # Build a popup with the designated controls
     set popup .drawingentrypopup
     if { ![winfo exists $popup] } {
-	# Create a popup for the print dialog
+	# Create a popup for the controls dialog
 	Rappture::Balloon $popup -title "Change values..." \
-	    -deactivatecommand [itcl::code $this Withdraw]
+	    -deactivatecommand [itcl::code $this Withdraw $cname]
 	set inner [$popup component inner]
 	Rappture::DrawingControls $inner.controls $_owner \
 	    -deactivatecommand [list $popup deactivate]
@@ -962,9 +962,9 @@ itcl::body Rappture::DrawingEntry::Deactivate { cname } {
 }
 
 #
-# Invoke -- 
+# Withdraw -- 
 #
-itcl::body Rappture::DrawingEntry::Withdraw {} {
+itcl::body Rappture::DrawingEntry::Withdraw { cname } {
     Redraw
 }
 
@@ -1074,7 +1074,7 @@ itcl::body Rappture::DrawingEntry::IsEnabled { path } {
 itcl::body Rappture::DrawingEntry::ControlValue {path {units ""}} {
     if {"" != $_owner} {
         set val [$_owner valuefor $path]
-        if {"" != $units} {
+         if {"" != $units} {
             set val [Rappture::Units::convert $val -to $units -units off]
         }
         return $val
@@ -1082,7 +1082,7 @@ itcl::body Rappture::DrawingEntry::ControlValue {path {units ""}} {
     return ""
 }
 
-itcl::body Rappture::DrawingEntry::NumEnabledControls { cname } {
+itcl::body Rappture::DrawingEntry::NumControlsEnabled { cname } {
     set controls $_cname2controls($cname)
     set count 0
     foreach path $controls {
