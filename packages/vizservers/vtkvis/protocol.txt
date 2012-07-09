@@ -283,7 +283,7 @@ molecule orient <qw> <qx> <qy> <qz> <?dataSetName?>
 molecule pos <x> <y> <z> <?dataSetName?>
 molecule rscale <val> <?dataSetName?>
          Atom radius scaling
-         val = van_der_walls|covalent|atomic|none
+         val = van_der_waals|covalent|atomic|none
 molecule scale <sx> <sy> <sz> <?dataSetName?>
 molecule visible <bool> <?datasetName?>
 molecule wireframe <bool> <?datasetName?>
