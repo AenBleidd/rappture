@@ -1191,7 +1191,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "volume-visible" {
             set bool $_volume(visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } [split $dataset -] break
+		foreach { dataobj comp } split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type != "" } {
 		    SendCmd "$type visible $bool $dataset"
@@ -1921,13 +1921,14 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -opacity 1.0
             -wireframe 0
             -lighting 1
+	    -radiiscale van_der_waals
             -visible 1
         }
         array set settings $style
         SendCmd "molecule add $tag"
         SendCmd "molecule opacity $settings(-opacity) $tag"
         SendCmd "molecule visible $settings(-visible) $tag"
-        SendCmd "molecule rscale van_der_waals $tag"
+        SendCmd "molecule rscale $settings(-radiiscale) $tag"
         set _haveMolecules 1
     } else {
         array set settings {

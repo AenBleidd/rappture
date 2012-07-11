@@ -15,4 +15,4 @@
 # ======================================================================
 dir=`dirname $0`
 . $dir/rappture.env
-exec tclsh $dir/launcher.tcl "$@"
+exec tclsh $dir/launcher.tcl -- "$@"
