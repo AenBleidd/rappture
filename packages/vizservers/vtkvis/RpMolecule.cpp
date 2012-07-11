@@ -26,6 +26,7 @@ using namespace Rappture::VtkVis;
 
 Molecule::Molecule() :
     VtkGraphicsObject(),
+    _radiusScale(1.0),
     _atomScaling(NO_ATOM_SCALING),
     _colorMap(NULL)
 {
@@ -111,7 +112,7 @@ void Molecule::update()
 
     initProp();
 
-    addRadiusArray(ds, _atomScaling);
+    addRadiusArray(ds, _atomScaling, _radiusScale);
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
     if (pd) {
@@ -270,7 +271,7 @@ void Molecule::setAtomScaling(AtomScaling state)
     _atomScaling = state;
     if (_dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
-        addRadiusArray(ds, _atomScaling);
+        addRadiusArray(ds, _atomScaling, _radiusScale);
         if (_glypher != NULL) {
             if (_atomScaling != NO_ATOM_SCALING &&
                 ds->GetPointData() != NULL &&
@@ -286,10 +287,23 @@ void Molecule::setAtomScaling(AtomScaling state)
 }
 
 /**
+ * \brief Set the constant radius scaling factor for atoms.  This
+ * can be used to convert from Angstroms to atom coordinates units.
+ */
+void Molecule::setAtomRadiusScale(double scale)
+{
+    _radiusScale = scale;
+    if (_dataSet != NULL) {
+        vtkDataSet *ds = _dataSet->getVtkDataSet();
+        addRadiusArray(ds, _atomScaling, _radiusScale);
+    }
+}
+
+/**
  * \brief Add a scalar array to dataSet with sizes for the elements
  * specified in the "element" scalar array
  */
-void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling)
+void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor)
 {
     if (dataSet->GetPointData() == NULL ||
         dataSet->GetPointData()->GetScalars() == NULL) {
@@ -320,7 +334,7 @@ void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling)
     for (int i = 0; i < elements->GetNumberOfTuples(); i++) {
         int elt = (int)elements->GetComponent(i, 0);
         float tuple[3];
-        tuple[0] = radiusSource[elt];
+        tuple[0] = radiusSource[elt] * scaleFactor;
         tuple[1] = 0;
         tuple[2] = 0;
         radii->InsertNextTupleValue(tuple);

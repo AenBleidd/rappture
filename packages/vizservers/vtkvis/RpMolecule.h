@@ -67,6 +67,8 @@ public:
 
     void setAtomScaling(AtomScaling state);
 
+    void setAtomRadiusScale(double scale);
+
     void setAtomVisibility(bool state);
 
     void setBondVisibility(bool state);
@@ -77,8 +79,9 @@ private:
     virtual void initProp();
     virtual void update();
 
-    static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling);
+    static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
 
+    double _radiusScale;
     AtomScaling _atomScaling;
     ColorMap *_colorMap;
 
