@@ -1169,7 +1169,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set val $_volume(opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "polydata opacity $sval $dataset"
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type != "" } {
@@ -1180,7 +1179,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "volume-wireframe" {
             set bool $_volume(wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
-                SendCmd "polydata wireframe $bool $dataset"
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type != "" } {
@@ -1196,7 +1194,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		if { $type != "" } {
 		    SendCmd "$type visible $bool $dataset"
 		}
-                SendCmd "polydata visible $bool $dataset"
             }
         }
         "volume-lighting" {
@@ -1207,7 +1204,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		if { $type != "" } {
 		    SendCmd "$type lighting $bool $dataset"
 		}
-                SendCmd "polydata lighting $bool $dataset"
             }
         }
         "volume-edges" {
@@ -1218,7 +1214,6 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		if { $type != "" } {
 		    SendCmd "$type edges $bool $dataset"
 		}
-                SendCmd "polydata edges $bool $dataset"
             }
         }
         "axis-visible" {
@@ -1945,8 +1940,6 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "polydata add $tag"
         SendCmd "polydata visible $settings(-visible) $tag"
         set _volume(visible) $settings(-visible)
-    } 
-    if { $type != "glyphs" } {
         SendCmd "polydata edges $settings(-edges) $tag"
         set _volume(edges) $settings(-edges)
         SendCmd "polydata color [Color2RGB $settings(-color)] $tag"

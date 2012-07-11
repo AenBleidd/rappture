@@ -118,14 +118,14 @@ itcl::class visData {
 proc send_file {} {
     global widgets
 
-    set file [tk_getOpenFile -title "Open VTK File"]
+    set file [tk_getOpenFile -title "Open VTK File as PolyData"]
     if {"" != $file && [catch {
             set fid [open $file r]
             fconfigure $fid -translation binary -encoding binary
             set info [read $fid]
             close $fid
           }] == 0} {
-        set obj [visData #auto $info ""]
+        set obj [visData #auto $info "polydata"]
         $widgets(vtkviewer) add $obj
     }
 }
