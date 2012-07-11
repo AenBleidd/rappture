@@ -1191,7 +1191,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         "volume-visible" {
             set bool $_volume(visible)
             foreach dataset [CurrentDatasets -visible $_first] {
-		foreach { dataobj comp } split $dataset -] break
+		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type != "" } {
 		    SendCmd "$type visible $bool $dataset"
