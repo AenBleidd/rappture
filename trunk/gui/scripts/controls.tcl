@@ -215,11 +215,19 @@ itcl::body Rappture::Controls::insert {pos path} {
             if {[regexp -indices $re $rest match]} {
                 foreach {s0 s1} $match break
 
-                if {[string index $rest [expr {$s0-1}]] == "\""
-                      && [string index $rest [expr {$s1+1}]] == "\""} {
+                if {[string index $rest [expr {$s0-1}]] == "\""} {
                     # string in ""'s? then leave it alone
-                    append enable [string range $rest 0 $s1]
-                    set rest [string range $rest [expr {$s1+1}] end]
+                    append enable [string range $rest 0 [expr {$s0-1}]]
+                    set rest [string range $rest $s0 end]
+                    if {[regexp -indices {[^\"]+\"} $rest match]} {
+                        foreach {s0 s1} $match break
+                        append enable [string range $rest $s0 $s1]
+                        set rest [string range $rest [expr {$s1+1}] end]
+                    } else {
+                        puts stderr "WARNING: mismatched quote in enable condition for $path"
+                        puts stderr "   expr: [string trim [$_owner xml get $path.about.enable]]"
+                        set rest ""
+                    }
                 } else {
                     #
                     # This is a symbol which should be substituted
