@@ -697,6 +697,35 @@ void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
 }
 
 /**
+ * \brief Controls if glyphs are oriented from a vector field for the 
+ * given DataSet
+ */
+void Renderer::setGlyphsOrient(const DataSetId& id, bool state)
+{
+    GlyphsHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _glyphs.begin();
+        doAll = true;
+    } else {
+        itr = _glyphs.find(id);
+    }
+    if (itr == _glyphs.end()) {
+        ERROR("Glyphs not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setOrient(state);
+    } while (doAll && ++itr != _glyphs.end());
+
+    _renderer->ResetCameraClippingRange();
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the shape of Glyphs for the given DataSet
  */
 void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)

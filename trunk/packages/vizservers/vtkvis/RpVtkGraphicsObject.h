@@ -657,7 +657,7 @@ public:
             return;
         if (getActor() != NULL) {
             setCulling(getActor()->GetProperty(), state);
-         } else if (getAssembly() != NULL) {
+        } else if (getAssembly() != NULL) {
             vtkProp3DCollection *props = getAssembly()->GetParts();
             vtkProp3D *prop;
             props->InitTraversal();

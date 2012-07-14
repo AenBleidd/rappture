@@ -637,6 +637,22 @@ void Glyphs::setColorMode(ColorMode mode)
 #endif
 
 /**
+ * \brief Turn on/off orienting glyphs from a vector field
+ */
+void Glyphs::setOrient(bool state)
+{
+#ifdef HAVE_GLYPH3D_MAPPER
+    if (_glyphMapper != NULL) {
+        _glyphMapper->SetOrient(state ? 1 : 0);
+    }
+#else
+    if (_glyphGenerator != NULL) {
+        _glyphGenerator->SetOrient(state ? 1 : 0);
+    }
+#endif
+}
+
+/**
  * \brief Controls relative scaling of glyphs
  */
 void Glyphs::setScaleFactor(double scale)
