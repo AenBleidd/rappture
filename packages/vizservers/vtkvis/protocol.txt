@@ -203,6 +203,7 @@ glyphs colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?dataSetName?>
        or ccolor for constant color
 glyphs delete <?dataSetName?>
 glyphs edges <bool> <?datasetName?>
+glyphs gorient <bool> <?datasetName?>
 glyphs gscale <scaleFactor> <?datasetName?>
        Set glyph scaling factor
 glyphs lighting <bool> <?datasetName?>

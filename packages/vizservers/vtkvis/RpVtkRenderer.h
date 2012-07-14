@@ -393,6 +393,8 @@ public:
 
     void setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape);
 
+    void setGlyphsOrient(const DataSetId& id, bool state);
+
     void setGlyphsColorMode(const DataSetId& id,
                             Glyphs::ColorMode mode,
                             const char *name,
