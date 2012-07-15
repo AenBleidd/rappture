@@ -83,7 +83,7 @@ itcl::class Rappture::VtkViewer {
     # The following methods are only used by this class.
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { colormap dataobj comp }
+    private method BuildColormap { name styles }
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildVolumeTab {}
@@ -100,29 +100,32 @@ itcl::class Rappture::VtkViewer {
     private method PanCamera {}
     private method RequestLegend {}
     private method SetColormap { dataobj comp }
+    private method ChangeColormap { dataobj comp color }
+    private method ColorsToColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
 
     private variable _arcball ""
-    private variable _outbuf       ;# buffer for outgoing commands
+    private variable _outbuf;		# buffer for outgoing commands
 
-    private variable _dlist ""     ;# list of data objects
+    private variable _dlist "";		# list of data objects
     private variable _allDataObjs
     private variable _obj2datasets
-    private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _datasets     ;# contains all the dataobj-component 
-                                   ;# datasets in the server
-    private variable _colormaps    ;# contains all the colormaps
-                                   ;# in the server.
-    private variable _dataset2style    ;# maps dataobj-component to transfunc
-    private variable _style2datasets   ;# maps tf back to list of 
-                                    # dataobj-components using the tf.
-
-    private variable _click        ;# info used for rotate operations
-    private variable _limits       ;# autoscale min/max for all axes
-    private variable _view         ;# view params for 3D view
+    private variable _obj2ovride;	# maps dataobj => style override
+    private variable _datasets;		# contains all the dataobj-component 
+                                   	# datasets in the server
+    private variable _colormaps;	# contains all the colormaps
+                                  	# in the server.
+    private variable _dataset2style;	# maps dataobj-component to transfunc
+    private variable _style2datasets;	# maps tf back to list of 
+					# dataobj-components using the tf.
+    private variable _click        ;	# info used for rotate operations
+    private variable _limits       ;	# autoscale min/max for all axes
+    private variable _view         ;	# view params for 3D view
     private variable _settings
+    private variable _style;            # Array of current component styles.
+    private variable _initialStyle;     # Array of initial component styles.
     private variable _volume
     private variable _axis
     private variable _reset 1      ;# indicates if camera needs to be reset
@@ -220,11 +223,12 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         labels          1
     }]
     array set _volume [subst {
-        edges           1
+        edges           0
         lighting        1
         opacity         40
         visible         1
         wireframe       0
+	palette		rainbow
     }]
     array set _settings [subst {
         legend          1
@@ -268,7 +272,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         ignore -highlightthickness
     }
     pack $itk_component(reset) -side top -padx 2 -pady 2
-    Rappture::Tooltip::for $itk_component(reset) "Reset the view to the default zoom level"
+    Rappture::Tooltip::for $itk_component(reset) \
+	"Reset the view to the default zoom level"
 
     itk_component add zoomin {
         button $f.zin -borderwidth 1 -padx 1 -pady 1 \
@@ -294,7 +299,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    BuildVolumeTab
+    puts stderr "BuildVolumeTab"
+    if { [catch { BuildVolumeTab } errs ]  != 0 } {
+	puts stderr "errs=$errs"
+    }
     BuildAxisTab
     BuildCutawayTab
     BuildCameraTab
@@ -1171,7 +1179,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" } {
+		if { $type != "" && $type != "glyphs" } {
 		    SendCmd "$type opacity $sval $dataset"
 		}
             }
@@ -1215,6 +1223,15 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    SendCmd "$type edges $bool $dataset"
 		}
             }
+        }
+        "volume-palette" {
+            set palette [$itk_component(palette) value]
+            set _settings(volume-palette) $palette
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+                ChangeColormap $dataobj $comp $palette
+            }
+            set _legendPending 1
         }
         "axis-visible" {
             set bool $_axis(visible)
@@ -1296,78 +1313,296 @@ itcl::body Rappture::VtkViewer::RequestLegend {} {
 }
 
 #
+# ChangeColormap --
+#
+itcl::body Rappture::VtkViewer::ChangeColormap {dataobj comp color} {
+    set tag $dataobj-$comp
+    if { ![info exist _style($tag)] } {
+        error "no initial colormap"
+    }
+    array set style $_style($tag)
+    set style(-color) $color
+    set _style($tag) [array get style]
+    SetColormap $dataobj $comp
+}
+
+#
 # SetColormap --
 #
 itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     array set style {
-        -color rainbow
+        -color BCGYR
         -levels 6
         -opacity 1.0
     }
     set tag $dataobj-$comp
-    array set style [$dataobj style $comp]
-    set colormap "$style(-color):$style(-levels):$style(-opacity)"
-    if { [info exists _colormaps($colormap)] } {
-        return $colormap
+    if { ![info exists _initialStyle($tag)] } {
+        # Save the initial component style.
+        set _initialStyle($tag) [$dataobj style $comp]
     }
-    if { ![info exists _dataset2style($tag)] } {
-        set _dataset2style($tag) $colormap
-        lappend _style2datasets($colormap) $tag
+
+    # Override defaults with initial style defined in xml.
+    array set style $_initialStyle($tag)
+
+    if { ![info exists _style($tag)] } {
+        set _style($tag) [array get style]
     }
-    if { ![info exists _colormaps($colormap)] } {
-        # Build the pseudo colormap if it doesn't exist.
-        BuildColormap $colormap $dataobj $comp
-        set _colormaps($colormap) 1
+    # Override initial style with current style.
+    array set style $_style($tag)
+
+    set name "$style(-color):$style(-levels):$style(-opacity)"
+    if { ![info exists _colormaps($name)] } {
+        BuildColormap $name [array get style]
+        set _colormaps($name) 1
     }
-    switch -- [$dataobj type $comp] {
-        "polygon" {
-            SendCmd "pseudocolor colormap $colormap $tag"
+    if { ![info exists _dataset2style($tag)] ||
+         $_dataset2style($tag) != $name } {
+        SendCmd "cutplane colormap $name $tag"
+        set _dataset2style($tag) $name
+	switch -- [$dataobj type $comp] {
+	    "polygon" {
+		SendCmd "pseudocolor colormap $name $tag"
+	    }
+	    "glyphs" {
+		SendCmd "glyphs colormap $name $tag"
+	    }
+	    "molecule" {
+		#SendCmd "molecule colormap $name $tag"
+	    }
+	}
+    }
+}
+
+itcl::body Rappture::VtkViewer::ColorsToColormap { colors } {
+    switch -- $colors {
+        "grey-to-blue" {
+            return {
+                0.0                      0.200 0.200 0.200
+                0.14285714285714285      0.400 0.400 0.400
+                0.2857142857142857       0.600 0.600 0.600
+                0.42857142857142855      0.900 0.900 0.900
+                0.5714285714285714       0.800 1.000 1.000
+                0.7142857142857143       0.600 1.000 1.000
+                0.8571428571428571       0.400 0.900 1.000
+                1.0                      0.000 0.600 0.800
+            }
         }
-        "glyphs" {
-            #SendCmd "glyphs colormap $colormap $tag"
+        "blue-to-grey" {
+            return {
+                0.0                     0.000 0.600 0.800 
+                0.14285714285714285     0.400 0.900 1.000 
+                0.2857142857142857      0.600 1.000 1.000 
+                0.42857142857142855     0.800 1.000 1.000 
+                0.5714285714285714      0.900 0.900 0.900 
+                0.7142857142857143      0.600 0.600 0.600 
+                0.8571428571428571      0.400 0.400 0.400 
+                1.0                     0.200 0.200 0.200
+            }
         }
-        "molecule" {
-            #SendCmd "glyphs colormap $colormap $tag"
+        "blue" {
+            return { 
+                0.0                     0.900 1.000 1.000 
+                0.1111111111111111      0.800 0.983 1.000 
+                0.2222222222222222      0.700 0.950 1.000 
+                0.3333333333333333      0.600 0.900 1.000 
+                0.4444444444444444      0.500 0.833 1.000 
+                0.5555555555555556      0.400 0.750 1.000 
+                0.6666666666666666      0.300 0.650 1.000 
+                0.7777777777777778      0.200 0.533 1.000 
+                0.8888888888888888      0.100 0.400 1.000 
+                1.0                     0.000 0.250 1.000
+            }
+        }
+        "brown-to-blue" {
+            return {
+                0.0                             0.200   0.100   0.000 
+                0.09090909090909091             0.400   0.187   0.000 
+                0.18181818181818182             0.600   0.379   0.210 
+                0.2727272727272727              0.800   0.608   0.480 
+                0.36363636363636365             0.850   0.688   0.595 
+                0.45454545454545453             0.950   0.855   0.808 
+                0.5454545454545454              0.800   0.993   1.000 
+                0.6363636363636364              0.600   0.973   1.000 
+                0.7272727272727273              0.400   0.940   1.000 
+                0.8181818181818182              0.200   0.893   1.000 
+                0.9090909090909091              0.000   0.667   0.800 
+                1.0                             0.000   0.480   0.600 
+            }
+        }
+        "blue-to-brown" {
+            return {
+                0.0                             0.000   0.480   0.600 
+                0.09090909090909091             0.000   0.667   0.800 
+                0.18181818181818182             0.200   0.893   1.000 
+                0.2727272727272727              0.400   0.940   1.000 
+                0.36363636363636365             0.600   0.973   1.000 
+                0.45454545454545453             0.800   0.993   1.000 
+                0.5454545454545454              0.950   0.855   0.808 
+                0.6363636363636364              0.850   0.688   0.595 
+                0.7272727272727273              0.800   0.608   0.480 
+                0.8181818181818182              0.600   0.379   0.210 
+                0.9090909090909091              0.400   0.187   0.000 
+                1.0                             0.200   0.100   0.000 
+            }
+        }
+        "blue-to-orange" {
+            return {
+                0.0                             0.000   0.167   1.000
+                0.09090909090909091             0.100   0.400   1.000
+                0.18181818181818182             0.200   0.600   1.000
+                0.2727272727272727              0.400   0.800   1.000
+                0.36363636363636365             0.600   0.933   1.000
+                0.45454545454545453             0.800   1.000   1.000
+                0.5454545454545454              1.000   1.000   0.800
+                0.6363636363636364              1.000   0.933   0.600
+                0.7272727272727273              1.000   0.800   0.400
+                0.8181818181818182              1.000   0.600   0.200
+                0.9090909090909091              1.000   0.400   0.100
+                1.0                             1.000   0.167   0.000
+            }
+        }
+        "orange-to-blue" {
+            return {
+                0.0                             1.000   0.167   0.000
+                0.09090909090909091             1.000   0.400   0.100
+                0.18181818181818182             1.000   0.600   0.200
+                0.2727272727272727              1.000   0.800   0.400
+                0.36363636363636365             1.000   0.933   0.600
+                0.45454545454545453             1.000   1.000   0.800
+                0.5454545454545454              0.800   1.000   1.000
+                0.6363636363636364              0.600   0.933   1.000
+                0.7272727272727273              0.400   0.800   1.000
+                0.8181818181818182              0.200   0.600   1.000
+                0.9090909090909091              0.100   0.400   1.000
+                1.0                             0.000   0.167   1.000
+            }
+        }
+        "rainbow" {
+            set clist {
+                "#EE82EE"
+                "#4B0082" 
+                "blue" 
+                "#008000" 
+                "yellow" 
+                "#FFA500" 
+                "red" 
+            }
+        }
+        "BGYOR" {
+            set clist {
+                "blue" 
+                "#008000" 
+                "yellow" 
+                "#FFA500" 
+                "red" 
+            }
+        }
+        "ROYGB" {
+            set clist {
+                "red" 
+                "#FFA500" 
+                "yellow" 
+                "#008000" 
+                "blue" 
+            }
+        }
+        "RYGCB" {
+            set clist {
+                "red" 
+                "yellow" 
+                "green"
+                "cyan"
+                "blue"
+            }
+        }
+        "BCGYR" {
+            set clist {
+                "blue" 
+                "cyan"
+                "green"
+                "yellow" 
+                "red" 
+            }
+        }
+        "spectral" {
+            return {
+                0.0 0.150 0.300 1.000 
+                0.1 0.250 0.630 1.000 
+                0.2 0.450 0.850 1.000 
+                0.3 0.670 0.970 1.000 
+                0.4 0.880 1.000 1.000 
+                0.5 1.000 1.000 0.750 
+                0.6 1.000 0.880 0.600 
+                0.7 1.000 0.680 0.450 
+                0.8 0.970 0.430 0.370 
+                0.9 0.850 0.150 0.196 
+                1.0 0.650 0.000 0.130
+            }
+        }
+        "green-to-magenta" {
+            return {
+                0.0 0.000 0.316 0.000 
+                0.06666666666666667 0.000 0.526 0.000 
+                0.13333333333333333 0.000 0.737 0.000 
+                0.2 0.000 0.947 0.000 
+                0.26666666666666666 0.316 1.000 0.316 
+                0.3333333333333333 0.526 1.000 0.526 
+                0.4 0.737 1.000 0.737 
+                0.4666666666666667 1.000 1.000 1.000 
+                0.5333333333333333 1.000 0.947 1.000 
+                0.6 1.000 0.737 1.000 
+                0.6666666666666666 1.000 0.526 1.000 
+                0.7333333333333333 1.000 0.316 1.000 
+                0.8 0.947 0.000 0.947 
+                0.8666666666666667 0.737 0.000 0.737 
+                0.9333333333333333 0.526 0.000 0.526 
+                1.0 0.316 0.000 0.316
+            }
+        }
+        "greyscale" {
+            return { 
+                0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
+            }
+        }
+        "nanohub" {
+            set clist "white yellow green cyan blue magenta"
+        }
+        default {
+            set clist $colors
         }
     }
-    return $colormap
+    set cmap {}
+    set numColors [llength $clist]
+    for {set i 0} {$i < $numColors} {incr i} {
+	if { $numColors > 1 } {
+	    set x [expr {double($i)/($numColors-1)}]
+	} else {
+	    set x [expr double($i)]
+	}
+        set color [lindex $clist $i]
+        append cmap "$x [Color2RGB $color] "
+    }
+    return $cmap
 }
 
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkViewer::BuildColormap { colormap dataobj comp } {
-    array set style {
-        -color rainbow
-        -levels 6
-        -opacity 1.0
-    }
-    array set style [$dataobj style $comp]
-    if {$style(-color) == "rainbow"} {
-        set style(-color) "white:yellow:green:cyan:blue:magenta"
-    }
-    set clist [split $style(-color) :]
-    set cmap {}
-    set numColors [llength $clist]
-    for {set i 0} {$i < $numColors} {incr i} {
-	set x 0
-	if { $numColors > 1 } {
-	    set x [expr {double($i)/($numColors-1)}]
-	}
-        set color [lindex $clist $i]
-        append cmap "$x [Color2RGB $color] "
-    }
+itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
+    array set style $styles
+    set cmap [ColorsToColormap $style(-color)]
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _volume(opacity)] } {
-        set _volume(opacity) $style(-opacity)
+    if { ![info exists _settings(volume-opacity)] } {
+        set _settings(volume-opacity) $style(-opacity)
     }
-    set max $_volume(opacity)
+    set max $_settings(volume-opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
-    SendCmd "colormap add $colormap { $cmap } { $wmap }"
+    SendCmd "colormap add $name { $cmap } { $wmap }"
 }
+
 
 # ----------------------------------------------------------------------
 # CONFIGURATION OPTION: -plotbackground
@@ -1490,6 +1725,32 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
         -command [itcl::code $this AdjustSetting volume-edges] \
         -font "Arial 9"
 
+    label $inner.palette_l -text "Palette" -font "Arial 9" 
+    itk_component add palette {
+        Rappture::Combobox $inner.palette -width 10 -editable no
+    }
+    $inner.palette choices insert end \
+        "BCGYR"              "BCGYR"            \
+        "BGYOR"              "BGYOR"            \
+        "blue"               "blue"             \
+        "blue-to-brown"      "blue-to-brown"    \
+        "blue-to-orange"     "blue-to-orange"   \
+        "blue-to-grey"       "blue-to-grey"     \
+        "green-to-magenta"   "green-to-magenta" \
+        "greyscale"          "greyscale"        \
+        "nanohub"            "nanohub"          \
+        "rainbow"            "rainbow"          \
+        "spectral"           "spectral"         \
+        "ROYGB"              "ROYGB"            \
+        "RYGCB"              "RYGCB"            \
+        "brown-to-blue"      "brown-to-blue"    \
+        "grey-to-blue"       "grey-to-blue"     \
+        "orange-to-blue"     "orange-to-blue"   
+
+    $itk_component(palette) value "BCGYR"
+    bind $inner.palette <<Value>> \
+        [itcl::code $this AdjustSetting volume-palette]
+
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _volume(opacity)] \
@@ -1498,15 +1759,17 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
         -command [itcl::code $this AdjustSetting volume-opacity]
 
     blt::table $inner \
-        0,0 $inner.volume    -anchor w -pady 2 \
-        1,0 $inner.wireframe -anchor w -pady 2 \
-        2,0 $inner.lighting  -anchor w -pady 2 \
-        3,0 $inner.edges     -anchor w -pady 2 \
+        0,0 $inner.volume    -cspan 2 -anchor w -pady 2 \
+        1,0 $inner.wireframe -cspan 2 -anchor w -pady 2 \
+        2,0 $inner.lighting  -cspan 2 -anchor w -pady 2 \
+        3,0 $inner.edges     -cspan 2 -anchor w -pady 2 \
         4,0 $inner.opacity_l -anchor w -pady 2 \
-        5,0 $inner.opacity   -fill x   -pady 2 
+        4,1 $inner.opacity   -fill x   -pady 2 \
+        5,0 $inner.palette_l -anchor w -pady 2 \
+        5,1 $inner.palette   -fill x   -pady 2  
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r6 c1 -resize expand
+    blt::table configure $inner r7 c1 -resize expand
 }
 
 itcl::body Rappture::VtkViewer::BuildAxisTab {} {
