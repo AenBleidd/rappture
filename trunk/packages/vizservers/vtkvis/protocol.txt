@@ -203,7 +203,9 @@ glyphs colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?dataSetName?>
        or ccolor for constant color
 glyphs delete <?dataSetName?>
 glyphs edges <bool> <?datasetName?>
-glyphs gorient <bool> <?datasetName?>
+glyphs gorient <bool> <fieldName> <?datasetName?>
+       Set the glyph orientation mode: orient glyphs by
+       a named vector field, or set to default orientation (off)
 glyphs gscale <scaleFactor> <?datasetName?>
        Set glyph scaling factor
 glyphs lighting <bool> <?datasetName?>
