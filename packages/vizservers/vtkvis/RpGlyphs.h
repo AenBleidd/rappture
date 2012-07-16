@@ -79,6 +79,8 @@ public:
     void setOrient(bool state);
 
 #ifdef HAVE_GLYPH3D_MAPPER
+    void setOrientMode(bool mode, const char *name);
+
     void setScalingMode(ScalingMode mode, const char *name, double range[2]);
 
     void setColorMode(ColorMode mode, const char *name, double range[2]);
