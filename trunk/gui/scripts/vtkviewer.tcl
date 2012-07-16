@@ -2165,6 +2165,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "glyphs wireframe $settings(-wireframe) $tag"
         #SendCmd "glyphs ccolor [Color2RGB $settings(-color)] $tag"
         #SendCmd "glyphs colormode ccolor {} $tag"
+        SendCmd "glyphs gorient 0 $tag"
         SendCmd "glyphs smode vcomp {} $tag"
         SendCmd "glyphs opacity $settings(-opacity) $tag"
         SendCmd "glyphs visible $settings(-visible) $tag"
