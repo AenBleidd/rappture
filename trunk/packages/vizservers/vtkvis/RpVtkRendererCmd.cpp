@@ -2367,11 +2367,12 @@ GlyphsOrientGlyphsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (objc == 4) {
-        const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setGlyphsOrient(name, state);
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setGlyphsOrientMode(name, state, fieldName);
     } else {
-        g_renderer->setGlyphsOrient("all", state);
+        g_renderer->setGlyphsOrientMode("all", state, fieldName);
     }
     return TCL_OK;
 }
@@ -2543,7 +2544,7 @@ static Rappture::CmdSpec glyphsOps[] = {
     {"colormode", 7, GlyphsColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, GlyphsDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, GlyphsEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"gorient",   2, GlyphsOrientGlyphsOp, 3, 4, "bool ?dataSetName?"},
+    {"gorient",   2, GlyphsOrientGlyphsOp, 4, 5, "bool fieldName ?dataSetName?"},
     {"gscale",    2, GlyphsScaleFactorOp, 3, 4, "scaleFactor ?dataSetName?"},
     {"lighting",  3, GlyphsLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, GlyphsLineColorOp, 5, 6, "r g b ?dataSetName?"},

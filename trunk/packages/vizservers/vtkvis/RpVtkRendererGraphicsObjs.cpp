@@ -700,7 +700,8 @@ void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
  * \brief Controls if glyphs are oriented from a vector field for the 
  * given DataSet
  */
-void Renderer::setGlyphsOrient(const DataSetId& id, bool state)
+void Renderer::setGlyphsOrientMode(const DataSetId& id, bool state,
+                                   const char *name)
 {
     GlyphsHashmap::iterator itr;
 
@@ -718,7 +719,14 @@ void Renderer::setGlyphsOrient(const DataSetId& id, bool state)
     }
 
     do {
+#ifdef HAVE_GLYPH3D_MAPPER
+        itr->second->setOrientMode(state, name);
+#else
+        if (name != NULL && strlen(name) > 0) {
+            WARN("Glyphs orient mode doesn't support named fields for VTK < 5.8.0");
+        }
         itr->second->setOrient(state);
+#endif
     } while (doAll && ++itr != _glyphs.end());
 
     _renderer->ResetCameraClippingRange();
@@ -903,7 +911,8 @@ void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
         itr->second->setHeightScale(scale);
      } while (doAll && ++itr != _heightMaps.end());
 
-    initCamera();
+    _renderer->ResetCameraClippingRange();
+    resetAxes();
     _needsRedraw = true;
 }
 

@@ -298,6 +298,21 @@ void Glyphs::setNormalizeScale(bool normalize)
 
 #ifdef HAVE_GLYPH3D_MAPPER
 /**
+ * \brief Turn on/off orienting glyphs from a vector field
+ */
+void Glyphs::setOrientMode(bool mode, const char *name)
+{
+    if (_glyphMapper != NULL) {
+        _glyphMapper->SetOrient(mode ? 1 : 0);
+        if (name != NULL && strlen(name) > 0) {
+            _glyphMapper->SetOrientationArray(name);
+        } else {
+            _glyphMapper->SetOrientationArray(vtkDataSetAttributes::VECTORS);
+        }
+    }
+}
+
+/**
  * \brief Control how glyphs are scaled
  */
 void Glyphs::setScalingMode(ScalingMode mode, const char *name, double range[2])
