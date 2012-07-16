@@ -518,8 +518,7 @@ itcl::body Rappture::Controls::_layout {} {
                 set label "Group #$gn"
             }
             set _name2info($name-label) $label
-
-            $_tabs insert end $label \
+            $_tabs insert end $name -text $label \
                 -activebackground $itk_option(-background)
 
             incr gn
