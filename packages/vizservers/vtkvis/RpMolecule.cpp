@@ -126,7 +126,7 @@ void Molecule::update()
             // Bonds
             vtkSmartPointer<vtkTubeFilter> tuber = vtkSmartPointer<vtkTubeFilter>::New();
             tuber->SetInput(pd);
-            tuber->SetNumberOfSides(6);
+            tuber->SetNumberOfSides(12);
             tuber->CappingOff();
             tuber->SetRadius(.03);
             tuber->SetVaryRadiusToVaryRadiusOff();
@@ -138,6 +138,8 @@ void Molecule::update()
             // Atoms
             vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
             sphereSource->SetRadius(.08);
+            sphereSource->SetThetaResolution(14);
+            sphereSource->SetPhiResolution(14);
             if (_glypher == NULL)
                 _glypher = vtkSmartPointer<vtkGlyph3D>::New();
             _glypher->SetSourceConnection(sphereSource->GetOutputPort());
