@@ -202,59 +202,54 @@ itcl::body Rappture::ResultSet::diff {option args} {
                 set which [lindex $args 1]
             }
 
-            if {$which eq "all"} {
-                set rlist ""
-                # build an array of normalized values and their labels
-                if {$col == "simnum"} {
-                    set nruns [$_results size]
-                    for {set n 0} {$n < $nruns} {incr n} {
-                        set simnum [$_results get -format simnum $n]
-                        lappend rlist $simnum $n
-                    }
-                } else {
-                    set havenums 1
-                    foreach rec [$_results get -format [list xmlobj $col]] {
-                        set xo [lindex $rec 0]
-                        set v [lindex $rec 1]
-                        foreach {raw norm} \
-                            [Rappture::LibraryObj::value $xo $col] break
+            set rlist ""
+            # build an array of normalized values and their labels
+            if {$col == "simnum"} {
+                set nruns [$_results size]
+                for {set n 0} {$n < $nruns} {incr n} {
+                    set simnum [$_results get -format simnum $n]
+                    lappend rlist $simnum $n
+                }
+            } else {
+                set havenums 1
+                foreach rec [$_results get -format [list xmlobj $col]] {
+                    set xo [lindex $rec 0]
+                    set v [lindex $rec 1]
+                    foreach {raw norm} \
+                        [Rappture::LibraryObj::value $xo $col] break
 
-                        if {![info exists unique($v)]} {
-                            # keep only unique label strings
-                            set unique($v) $norm
-                        }
-                        if {$havenums && ![string is double $norm]} {
-                            set havenums 0
-                        }
+                    if {![info exists unique($v)]} {
+                        # keep only unique label strings
+                        set unique($v) $norm
                     }
-
-                    if {!$havenums} {
-                        # don't have normalized nums? then sort and create nums
-                        set rlist ""
-                        set n 0
-                        foreach val [lsort -dictionary [array names unique]] {
-                            lappend rlist $val [incr n]
-                        }
-                    } else {
-                        set rlist [array get unique]
+                    if {$havenums && ![string is double $norm]} {
+                        set havenums 0
                     }
                 }
+
+                if {!$havenums} {
+                    # don't have normalized nums? then sort and create nums
+                    set rlist ""
+                    set n 0
+                    foreach val [lsort -dictionary [array names unique]] {
+                        lappend rlist $val [incr n]
+                    }
+                } else {
+                    set rlist [array get unique]
+                }
+            }
+
+            if {$which eq "all"} {
                 return $rlist
             }
 
             # treat the "which" parameter as an XML object
             set irun [lindex [$_results find -format xmlobj $which] 0]
             if {$irun ne ""} {
-                if {$col == "simnum"} {
-                    set val [$_results get -format simnum $irun]
-                    return [list $irun $val]
-                } else {
-                    # Be careful giving singleton elements as the
-                    # "columns" argument to "Tuples::get". It is
-                    # expecting a list.
-                    foreach {raw norm} \
-                        [Rappture::LibraryObj::value $which $col] break
-                    return [list $norm $raw]
+                set val [$_results get -format $col $irun]
+                array set val2norm $rlist
+                if {[info exists val2norm($val)]} {
+                    return [list $val $val2norm($val)]
                 }
             }
         }
@@ -278,7 +273,7 @@ itcl::body Rappture::ResultSet::find {collist vallist} {
     }
 
     set rlist ""
-    foreach irun [$_results find -format $collist $vallist] {
+    foreach irun [$_results find -format $collist -- $vallist] {
         lappend rlist [$_results get -format xmlobj $irun]
     }
     return $rlist
