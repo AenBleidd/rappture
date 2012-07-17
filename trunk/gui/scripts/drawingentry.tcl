@@ -603,7 +603,6 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
     set id [$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2]
-puts stderr "$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2"
     set _cname2id($cname) $id
     eval $itk_component(drawing) itemconfigure $id [array get options]
 }
