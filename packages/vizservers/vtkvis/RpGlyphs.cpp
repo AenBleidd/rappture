@@ -106,11 +106,18 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     case LINE:
         _glyphSource = vtkSmartPointer<vtkLineSource>::New();
         break;
-    case ARROW:
+    case ARROW: {
         _glyphSource = vtkSmartPointer<vtkArrowSource>::New();
+        vtkSmartPointer<vtkArrowSource> arrow = vtkArrowSource::SafeDownCast(_glyphSource);
+        arrow->SetTipResolution(8);
+        arrow->SetShaftResolution(8);
+    }
         break;
-    case CONE:
+    case CONE: {
         _glyphSource = vtkSmartPointer<vtkConeSource>::New();
+        vtkSmartPointer<vtkConeSource> cone = vtkConeSource::SafeDownCast(_glyphSource);
+        cone->SetResolution(8);
+    }
         break;
     case CUBE:
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
@@ -118,7 +125,7 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         break;
     case CYLINDER: {
         vtkSmartPointer<vtkCylinderSource> csource = vtkSmartPointer<vtkCylinderSource>::New();
-        vtkCylinderSource::SafeDownCast(csource)->SetResolution(6);
+        csource->SetResolution(8);
         _glyphSource = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
         _glyphSource->SetInputConnection(csource->GetOutputPort());
         vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
@@ -138,8 +145,12 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         _glyphSource = vtkSmartPointer<vtkPlatonicSolidSource>::New();
         vtkPlatonicSolidSource::SafeDownCast(_glyphSource)->SetSolidTypeToOctahedron();
         break;
-    case SPHERE:
+    case SPHERE: {
         _glyphSource = vtkSmartPointer<vtkSphereSource>::New();
+        vtkSmartPointer<vtkSphereSource> sphere = vtkSphereSource::SafeDownCast(_glyphSource);
+        sphere->SetThetaResolution(14);
+        sphere->SetPhiResolution(14);
+    }
         break;
     case TETRAHEDRON:
         // FIXME: need to rotate inital orientation
@@ -168,6 +179,7 @@ void Glyphs::setGlyphShape(GlyphShape shape)
         _glyphGenerator->SetSourceConnection(_glyphSource->GetOutputPort());
     }
 #endif
+
 }
 
 /**
