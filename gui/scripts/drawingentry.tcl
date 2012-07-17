@@ -406,14 +406,14 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
     array set attr2option {
 	"outline"	"-outline"
 	"fill"		"-fill"
-	"linewidth"	"-linewidth"
+	"linewidth"	"-width"
     }
     #puts stderr "ParseOval owner=$_owner cpath=$cpath"
 
     # Set default options first and then let tool.xml override them.
     array set options {
 	-fill blue
-	-linewidth 1 
+	-width 1 
 	-outline black
     }
     foreach attr [$_owner xml children $cpath] {
@@ -431,8 +431,9 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
 	set coords "0 0 1 1"
     }
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
-    set id [eval $itk_component(drawing) create oval $coords]
+    set id [$itk_component(drawing) create oval $x1 $y1 $x2 $y2]
     set _cname2id($cname) $id
+    eval $itk_component(drawing) itemconfigure $id [array get options]
 }
 
 #
@@ -535,14 +536,13 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
 itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
     array set attr2option {
 	"linewidth"	"-width"
-	"arrow"		"-arrow"
 	"color"		"-fill"
     }
     # Set default options first and then let tool.xml override them.
     array set options {
-	-arrow		none
-	-width		0
-	-fill		black
+	-width		1
+	-fill		blue
+	-outline	black
     }
     # Coords
     set coords [XmlGetSubst $cpath.coords]
@@ -577,14 +577,14 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
     array set attr2option {
 	"outline"	"-outline"
 	"fill"		"-fill"
-	"linewidth"	"-linewidth"
+	"linewidth"	"-width"
     }
     #puts stderr "ParseRectangle owner=$_owner cpath=$cpath"
 
     # Set default options first and then let tool.xml override them.
     array set options {
 	-fill blue
-	-linewidth 1 
+	-width 1 
 	-outline black
     }
     foreach attr [$_owner xml children $cpath] {
@@ -601,8 +601,11 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
 	set coords "0 0 1 1"
     }
     foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
-    set id [eval $itk_component(drawing) create rectangle $coords]
+    foreach { x1 y1 x2 y2 } [ScreenCoords $coords] break
+    set id [$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2]
+puts stderr "$itk_component(drawing) create rectangle $x1 $y1 $x2 $y2"
     set _cname2id($cname) $id
+    eval $itk_component(drawing) itemconfigure $id [array get options]
 }
 
 #
