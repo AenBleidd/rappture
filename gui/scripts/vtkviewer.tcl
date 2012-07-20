@@ -1357,7 +1357,6 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     }
     if { ![info exists _dataset2style($tag)] ||
          $_dataset2style($tag) != $name } {
-        SendCmd "cutplane colormap $name $tag"
         set _dataset2style($tag) $name
 	switch -- [$dataobj type $comp] {
 	    "polygon" {
