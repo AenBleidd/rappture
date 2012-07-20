@@ -443,6 +443,10 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
             set type [$dataobj info class]
         }
         switch -- $type {
+            ::Rappture::Drawing {
+                Rappture::VtkViewer $viewer
+                pack $viewer -expand yes -fill both
+            }
             ::Rappture::Curve {
                 Rappture::XyResult $viewer
                 pack $viewer -expand yes -fill both
