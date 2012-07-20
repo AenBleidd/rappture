@@ -71,7 +71,10 @@ ResponseQueue::dequeue()
 {
     Response *response = NULL;
 
-    if (sem_wait(&_ready) < 0) {
+    int ret;
+    while ((ret = sem_wait(&_ready)) < 0 && errno == EINTR)
+        continue;
+    if (ret < 0) {
         ERROR("can't wait on semaphore: %s", strerror(errno));
     }
     if (pthread_mutex_lock(&_idle) != 0) {
