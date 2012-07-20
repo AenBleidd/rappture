@@ -219,9 +219,9 @@ void Glyphs::update()
 
     if (ds->GetPointData() == NULL ||
         ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
         if (ds->GetCellData() != NULL &&
             ds->GetCellData()->GetScalars() != NULL) {
+            TRACE("Generating point data scalars from cell data for: %s", _dataSet->getName().c_str());
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
             cellToPtData->SetInput(ds);
@@ -229,7 +229,7 @@ void Glyphs::update()
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
         } else {
-            ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+            TRACE("No scalar data in dataset %s", _dataSet->getName().c_str());
         }
     }
 
