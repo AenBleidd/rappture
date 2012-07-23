@@ -431,6 +431,10 @@ public:
 
     // Molecules
 
+    void setMoleculeAtomRadiusScale(const DataSetId& id, double scale);
+
+    void setMoleculeBondRadiusScale(const DataSetId& id, double scale);
+
     void setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling);
 
     void setMoleculeAtomVisibility(const DataSetId& id, bool state);
