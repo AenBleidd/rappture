@@ -26,8 +26,8 @@ using namespace Rappture::VtkVis;
 
 Molecule::Molecule() :
     VtkGraphicsObject(),
-    _radiusScale(1.0),
-    _atomScaling(NO_ATOM_SCALING),
+    _radiusScale(0.3),
+    _atomScaling(VAN_DER_WAALS_RADIUS),
     _colorMap(NULL)
 {
     _faceCulling = true;
@@ -104,6 +104,8 @@ void Molecule::update()
             strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
             WARN("No element array in dataset %s", _dataSet->getName().c_str());
             setColorMap(ColorMap::getDefault());
+            if (_atomScaling != NO_ATOM_SCALING)
+                _atomScaling = NO_ATOM_SCALING;
         } else {
             TRACE("Using element default colormap");
             setColorMap(ColorMap::getElementDefault());
@@ -124,20 +126,21 @@ void Molecule::update()
         // DataSet is a vtkPolyData
         if (pd->GetNumberOfLines() > 0) {
             // Bonds
-            vtkSmartPointer<vtkTubeFilter> tuber = vtkSmartPointer<vtkTubeFilter>::New();
-            tuber->SetInput(pd);
-            tuber->SetNumberOfSides(12);
-            tuber->CappingOff();
-            tuber->SetRadius(.03);
-            tuber->SetVaryRadiusToVaryRadiusOff();
-            _bondMapper->SetInputConnection(tuber->GetOutputPort());
+            if (_tuber == NULL)
+                _tuber = vtkSmartPointer<vtkTubeFilter>::New();
+            _tuber->SetInput(pd);
+            _tuber->SetNumberOfSides(12);
+            _tuber->CappingOff();
+            _tuber->SetRadius(0.075);
+            _tuber->SetVaryRadiusToVaryRadiusOff();
+            _bondMapper->SetInputConnection(_tuber->GetOutputPort());
             _bondProp->SetMapper(_bondMapper);
             getAssembly()->AddPart(_bondProp);
         }
         if (pd->GetNumberOfVerts() > 0) {
             // Atoms
             vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-            sphereSource->SetRadius(.08);
+            sphereSource->SetRadius(1.0);
             sphereSource->SetThetaResolution(14);
             sphereSource->SetPhiResolution(14);
             if (_glypher == NULL)
@@ -275,15 +278,10 @@ void Molecule::setAtomScaling(AtomScaling state)
         vtkDataSet *ds = _dataSet->getVtkDataSet();
         addRadiusArray(ds, _atomScaling, _radiusScale);
         if (_glypher != NULL) {
-            if (_atomScaling != NO_ATOM_SCALING &&
-                ds->GetPointData() != NULL &&
-                ds->GetPointData()->GetVectors() != NULL) {
-                _glypher->SetScaleModeToScaleByVector();
-                _glypher->ScalingOn();
-            } else {
-                _glypher->SetScaleModeToDataScalingOff();
-                _glypher->ScalingOff();
-            }
+            assert(ds->GetPointData() != NULL &&
+                   ds->GetPointData()->GetVectors() != NULL);
+            _glypher->SetScaleModeToScaleByVector();
+            _glypher->ScalingOn();
         }
     }
 }
@@ -302,18 +300,27 @@ void Molecule::setAtomRadiusScale(double scale)
 }
 
 /**
+ * \brief Set the constant radius scaling factor for bonds.
+ */
+void Molecule::setBondRadiusScale(double scale)
+{
+    if (_tuber != NULL)
+        _tuber->SetRadius(scale);
+}
+
+/**
  * \brief Add a scalar array to dataSet with sizes for the elements
  * specified in the "element" scalar array
  */
 void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor)
 {
-    if (dataSet->GetPointData() == NULL ||
-        dataSet->GetPointData()->GetScalars() == NULL) {
-        return;
-    }
-    vtkDataArray *elements = dataSet->GetPointData()->GetScalars();
-    if (strcmp(elements->GetName(), "element") != 0) {
-        return;
+    vtkDataArray *elements = NULL;
+    if (dataSet->GetPointData() != NULL &&
+        dataSet->GetPointData()->GetScalars() != NULL &&
+        strcmp(dataSet->GetPointData()->GetScalars()->GetName(), "element") == 0) {
+        elements = dataSet->GetPointData()->GetScalars();
+    } else if (scaling != NO_ATOM_SCALING) {
+        WARN("Can't use non-constant scaling without an element array");
     }
     const float *radiusSource = NULL;
     switch (scaling) {
@@ -328,17 +335,25 @@ void Molecule::addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double s
         break;
     case NO_ATOM_SCALING:
     default:
-        return;
+        ;
     }
     vtkSmartPointer<vtkFloatArray> radii = vtkSmartPointer<vtkFloatArray>::New();
     radii->SetName("radius");
     radii->SetNumberOfComponents(3);
-    for (int i = 0; i < elements->GetNumberOfTuples(); i++) {
-        int elt = (int)elements->GetComponent(i, 0);
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
+    if (pd == NULL) {
+        ERROR("DataSet not a PolyData");
+        return;
+    }
+    for (int i = 0; i < pd->GetNumberOfVerts(); i++) {
         float tuple[3];
-        tuple[0] = radiusSource[elt] * scaleFactor;
-        tuple[1] = 0;
-        tuple[2] = 0;
+        tuple[1] = tuple[2] = 0;
+        if (elements != NULL && radiusSource != NULL) {
+            int elt = (int)elements->GetComponent(i, 0);
+            tuple[0] = radiusSource[elt] * scaleFactor;
+        } else {
+            tuple[0] = scaleFactor;
+        }
         radii->InsertNextTupleValue(tuple);
     }
     dataSet->GetPointData()->SetVectors(radii);
