@@ -13,6 +13,7 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkAssembly.h>
+#include <vtkTubeFilter.h>
 #include <vtkGlyph3D.h>
 
 #include "ColorMap.h"
@@ -69,6 +70,8 @@ public:
 
     void setAtomRadiusScale(double scale);
 
+    void setBondRadiusScale(double scale);
+
     void setAtomVisibility(bool state);
 
     void setBondVisibility(bool state);
@@ -89,6 +92,7 @@ private:
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
     vtkSmartPointer<vtkGlyph3D> _glypher;
+    vtkSmartPointer<vtkTubeFilter> _tuber;
     vtkSmartPointer<vtkPolyDataMapper> _atomMapper;
     vtkSmartPointer<vtkPolyDataMapper> _bondMapper;
 };
