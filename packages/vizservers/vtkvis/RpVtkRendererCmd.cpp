@@ -551,15 +551,15 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    {"get", 1, CameraGetOp, 2, 2, ""},
-    {"mode", 1, CameraModeOp, 3, 3, "mode"},
+    {"get",    1, CameraGetOp, 2, 2, ""},
+    {"mode",   1, CameraModeOp, 3, 3, "mode"},
     {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
-    {"ortho", 1, CameraOrthoOp, 7, 7, "coordMode x y width height"},
-    {"pan", 1, CameraPanOp, 4, 4, "panX panY"},
-    {"reset", 2, CameraResetOp, 2, 3, "?all?"},
+    {"ortho",  1, CameraOrthoOp, 7, 7, "coordMode x y width height"},
+    {"pan",    1, CameraPanOp, 4, 4, "panX panY"},
+    {"reset",  2, CameraResetOp, 2, 3, "?all?"},
     {"rotate", 2, CameraRotateOp, 5, 5, "angle angle angle"},
-    {"set", 1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
-    {"zoom", 1, CameraZoomOp, 3, 3, "zoomAmount"}
+    {"set",    1, CameraSetOp, 11, 11, "posX posY posZ focalPtX focalPtY focalPtZ viewUpX viewUpY viewUpZ"},
+    {"zoom",   1, CameraZoomOp, 3, 3, "zoomAmount"}
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
@@ -3487,6 +3487,23 @@ MoleculeAtomVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeAtomScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeAtomRadiusScale(name, scale);
+    } else {
+        g_renderer->setMoleculeAtomRadiusScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeAtomScalingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                       Tcl_Obj *const *objv)
 {
@@ -3510,6 +3527,23 @@ MoleculeAtomScalingOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setMoleculeAtomScaling(name, scaling);
     } else {
         g_renderer->setMoleculeAtomScaling("all", scaling);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeBondScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeBondRadiusScale(name, scale);
+    } else {
+        g_renderer->setMoleculeBondRadiusScale("all", scale);
     }
     return TCL_OK;
 }
@@ -3739,8 +3773,10 @@ MoleculeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec moleculeOps[] = {
     {"add",        2, MoleculeAddOp, 2, 3, "?dataSetName?"},
+    {"ascale",     2, MoleculeAtomScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"atoms",      2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bscale",     2, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"colormap",   1, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",     1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",      1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},

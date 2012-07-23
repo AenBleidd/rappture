@@ -273,8 +273,12 @@ lic visible <bool> <?datasetName?>
 molecule add <?datasetName?>
 molecule atoms <bool> <?datasetName?>
          Toggle rendering of atoms
+molecule ascale <val> <?datasetName?>
+         Set atom scale factor
 molecule bonds <bool> <?datasetName?>
          Toggle rendering of bonds
+molecule bscale <val> <?datasetName?>
+         Set bond scale factor
 molecule colormap <colormapName> <?datasetName?>
 molecule delete <?datasetName?>
 molecule edges <bool> <?datasetName?>

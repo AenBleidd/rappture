@@ -1082,6 +1082,33 @@ void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth
 }
 
 /**
+ * \brief Set radius scale factor for atoms
+ */
+void Renderer::setMoleculeAtomRadiusScale(const DataSetId& id, double scale)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAtomRadiusScale(scale);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set radius standard for scaling atoms
  */
 void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling scaling)
@@ -1130,6 +1157,33 @@ void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
 
     do {
         itr->second->setAtomVisibility(state);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set radius scale factor for atoms
+ */
+void Renderer::setMoleculeBondRadiusScale(const DataSetId& id, double scale)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondRadiusScale(scale);
     } while (doAll && ++itr != _molecules.end());
 
     _needsRedraw = true;
