@@ -1105,6 +1105,8 @@ void Renderer::setMoleculeAtomRadiusScale(const DataSetId& id, double scale)
         itr->second->setAtomRadiusScale(scale);
     } while (doAll && ++itr != _molecules.end());
 
+    _renderer->ResetCameraClippingRange();
+    resetAxes();
     _needsRedraw = true;
 }
 
@@ -1132,6 +1134,8 @@ void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling
         itr->second->setAtomScaling(scaling);
     } while (doAll && ++itr != _molecules.end());
 
+    _renderer->ResetCameraClippingRange();
+    resetAxes();
     _needsRedraw = true;
 }
 
@@ -1186,6 +1190,8 @@ void Renderer::setMoleculeBondRadiusScale(const DataSetId& id, double scale)
         itr->second->setBondRadiusScale(scale);
     } while (doAll && ++itr != _molecules.end());
 
+    _renderer->ResetCameraClippingRange();
+    resetAxes();
     _needsRedraw = true;
 }
 
