@@ -3532,6 +3532,49 @@ MoleculeAtomScalingOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeBondColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    Molecule::BondColorMode mode;
+    const char *colorMode = Tcl_GetString(objv[2]);
+    if (colorMode[0] == 'c' && strcmp(colorMode, "constant") == 0) {
+        mode = Molecule::BOND_COLOR_CONSTANT;
+    } else if (colorMode[0] == 'b' && strcmp(colorMode, "by_elements") == 0) {
+        mode = Molecule::BOND_COLOR_BY_ELEMENTS;
+    } else {
+        Tcl_AppendResult(interp, "bad bcmode option \"", colorMode,
+                         "\": should be constant or by_elements", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeBondColorMode(name, mode);
+    } else {
+        g_renderer->setMoleculeBondColorMode("all", mode);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeBondColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setMoleculeBondColor(name, color);
+    } else {
+        g_renderer->setMoleculeBondColor("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeBondScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                           Tcl_Obj *const *objv)
 {
@@ -3775,6 +3818,8 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"add",        2, MoleculeAddOp, 2, 3, "?dataSetName?"},
     {"ascale",     2, MoleculeAtomScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"atoms",      2, MoleculeAtomVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"bcmode",     3, MoleculeBondColorModeOp, 3, 4, "mode ?dataSetName?"},
+    {"bcolor",     3, MoleculeBondColorOp, 5, 6, "r g b ?dataSetName?"},
     {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"bscale",     2, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"colormap",   1, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},

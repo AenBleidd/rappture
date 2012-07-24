@@ -441,6 +441,10 @@ public:
 
     void setMoleculeBondVisibility(const DataSetId& id, bool state);
 
+    void setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode);
+
+    void setMoleculeBondColor(const DataSetId& id, float color[3]);
+
     // Color-mapped surfaces
 
     void setPseudoColorColorMode(const DataSetId& id,

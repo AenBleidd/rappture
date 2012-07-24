@@ -1222,6 +1222,54 @@ void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+void Renderer::setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondColorMode(mode);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+void Renderer::setMoleculeBondColor(const DataSetId& id, float color[3])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondColor(color);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Set the color mode for the specified DataSet
  */

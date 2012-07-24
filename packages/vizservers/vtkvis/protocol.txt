@@ -275,6 +275,11 @@ molecule atoms <bool> <?datasetName?>
          Toggle rendering of atoms
 molecule ascale <val> <?datasetName?>
          Set atom scale factor
+molecule bcmode <mode> <?datasetName?>
+         Set bond color mode
+         mode = constant|by_elements
+molecule bcolor <r> <g> <b> <?datasetName?>
+         Set constant bond color
 molecule bonds <bool> <?datasetName?>
          Toggle rendering of bonds
 molecule bscale <val> <?datasetName?>

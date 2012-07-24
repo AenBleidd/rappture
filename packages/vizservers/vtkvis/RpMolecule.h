@@ -41,6 +41,10 @@ public:
         COVALENT_RADIUS,
         ATOMIC_RADIUS
     };
+    enum BondColorMode {
+        BOND_COLOR_BY_ELEMENTS,
+        BOND_COLOR_CONSTANT
+    };
 
     Molecule();
     virtual ~Molecule();
@@ -76,6 +80,10 @@ public:
 
     void setBondVisibility(bool state);
 
+    void setBondColor(float color[3]);
+
+    void setBondColorMode(BondColorMode mode);
+
     static ColorMap *createElementColorMap();
 
 private:
@@ -84,6 +92,7 @@ private:
 
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
 
+    float _bondColor[3];
     double _radiusScale;
     AtomScaling _atomScaling;
     ColorMap *_colorMap;
