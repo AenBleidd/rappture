@@ -30,6 +30,7 @@ Molecule::Molecule() :
     _atomScaling(VAN_DER_WAALS_RADIUS),
     _colorMap(NULL)
 {
+    _bondColor[0] = _bondColor[1] = _bondColor[2] = 1.0f;
     _faceCulling = true;
 }
 
@@ -65,6 +66,7 @@ void Molecule::initProp()
         if (_faceCulling && _opacity == 1.0)
             setCulling(_bondProp->GetProperty(), true);
         _bondProp->GetProperty()->EdgeVisibilityOff();
+        _bondProp->GetProperty()->SetColor(_bondColor[0], _bondColor[1], _bondColor[2]);
         _bondProp->GetProperty()->SetEdgeColor(_edgeColor[0], _edgeColor[1], _edgeColor[2]);
         _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
         _bondProp->GetProperty()->SetOpacity(_opacity);
@@ -250,6 +252,38 @@ void Molecule::setBondVisibility(bool state)
 {
     if (_bondProp != NULL) {
         _bondProp->SetVisibility((state ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Set constant bond color
+ */
+void Molecule::setBondColor(float color[3])
+{
+    _bondColor[0] = color[0];
+    _bondColor[1] = color[1];
+    _bondColor[2] = color[2];
+    if (_bondProp != NULL) {
+        _bondProp->GetProperty()->SetColor(_bondColor[0], _bondColor[1], _bondColor[2]);
+    }
+}
+
+/**
+ * \brief Set mode to determine how bonds are colored
+ */
+void Molecule::setBondColorMode(BondColorMode mode)
+{
+    if (_bondMapper == NULL) return;
+
+    switch (mode) {
+    case BOND_COLOR_BY_ELEMENTS:
+        _bondMapper->ScalarVisibilityOn();
+        break;
+    case BOND_COLOR_CONSTANT:
+        _bondMapper->ScalarVisibilityOff();
+        break;
+    default:
+        WARN("Unknown bond color mode");
     }
 }
 
