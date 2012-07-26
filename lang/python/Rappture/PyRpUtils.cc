@@ -24,31 +24,25 @@ graphical user interface's progress bar.");
 static PyObject*
 RpUtils_progress(PyObject *self, PyObject *args, PyObject *keywds)
 {
-    int percent = 0;
-    char* message = NULL;
-    int result = -1;
-
-    static char *kwlist[] = {
-	(char *)"percent", 
-	(char *)"message", 
-	NULL
+    double pct;
+    char *msg;
+    static char *kwlist[] = { 
+	(char *)"percent", (char *)"message", NULL 
     };
     if (PyTuple_Size(args) != 2) {
-        PyErr_SetString(PyExc_TypeError,"progress() takes exactly 2 arguments");
+        PyErr_Format(PyExc_ValueError,
+		"progress() takes exactly 2 arguments, got %ld", 
+		PyTuple_Size(args));
         return NULL;
     }
-
-    if (!PyArg_ParseTupleAndKeywords(args, keywds, "is",
-            kwlist, &percent, &message)) {
-        PyErr_SetString(PyExc_TypeError,"progress() takes exactly 2 arguments");
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "ds", kwlist, 
+		&pct, &msg)) {
         return NULL;
     }
-
-    result = Rappture::Utils::progress(percent,message);
-    if (result != 0) {
-        PyErr_SetString(PyExc_RuntimeError,"Error while writing to stdout");
+    if (Rappture::Utils::progress((int)pct, msg) != 0) {
+        PyErr_SetString(PyExc_RuntimeError, "Error while writing to stdout");
+	return NULL;
     }
-
     Py_INCREF(Py_None);
     return Py_None;
 }
