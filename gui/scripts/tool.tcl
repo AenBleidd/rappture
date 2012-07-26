@@ -220,8 +220,8 @@ itcl::body Rappture::Tool::run {args} {
 			# returned a non-zero exitcode.  Consider this an
 			# invalid result from the program.  Append the stderr
 			# from the program to the message.
-			append result \
-			    "\nProgram exited normally: exit code is $code\n\n"
+			set result \
+			    "Program finished: exit code is $code\n\n"
 			append result $::Rappture::Tool::job(error)
 		    } elseif { $token == "abort" }  {
 			# The user pressed the abort button.
