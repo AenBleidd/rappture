@@ -41,7 +41,7 @@ build/tmp:
 	$(MKDIR_P) -m 0755 build/tmp
 	$(LN_S) $(srcdir2)/Rappture/*.cc build/tmp
 
-install:
+install: all
 	$(MKDIR_P) -m 0755 $(pythonlib)
 	$(PYTHON) setup.py install --install-lib=$(pythonlib)
 
