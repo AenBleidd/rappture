@@ -260,7 +260,6 @@ RpLibraryObject_element(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     RpLibrary* retlib = NULL;
     PyObject* retVal = NULL;
     int argc = 0;
-    int status = 0;
 
     static char *kwlist[] = {
         (char *)"path",
@@ -352,7 +351,6 @@ RpLibraryObject_get(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     Rappture::Buffer retValBuf;
 
     int argc = 0;
-    int status = 0;
 
     static char *kwlist[] = {
         (char *)"path",
@@ -435,7 +433,6 @@ RpLibraryObject_parent(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     RpLibrary* retlib = NULL;
     PyObject* retVal = NULL;
     int argc = 0;
-    int status = 0;
 
     static char *kwlist[] = {
         (char *)"path",
@@ -869,7 +866,6 @@ RpLibraryObject_FromLibrary(RpLibrary *lib)
 static int
 boolAsInt(const char *string, int *resultPtr)
 {
-    int len, i;
     char c;
 
     if ((string == NULL) || (resultPtr == NULL) ) {
@@ -908,6 +904,7 @@ boolIntFromPyObject (PyObject *objPtr, const char *defValue,
 {
     int value;
 
+    value = FALSE;			// Suppress compiler warning.
     if ((defValue == NULL) || (argName == NULL) || (resultPtr == NULL)) {
         // incorrect use of function
         PyErr_Format(PyExc_ValueError,
