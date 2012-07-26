@@ -614,7 +614,7 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 
         if (   ( type == NULL )
             || ( (*type == 's') && (strcmp("string", type) == 0) ) ) {
-            if (compress == 0) {
+            if (compressInt == 0) {
                 // tested with PutTests.testArgumentsCheckAppend()
                 // tested with PutTests.testArgumentsCheckAppendYes()
                 self->lib->put( std::string(path),
@@ -632,7 +632,7 @@ RpLibraryObject_put(RpLibraryObject *self, PyObject *args, PyObject *keywds)
             // tested with PutTests.testArgumentsCheckTypeFileCompressTrueNoDecode()
             self->lib->putFile( std::string(path),
                                 std::string(PyString_AsString(valueStrObj)),
-                                compressInt,appendInt);
+                                compressInt, appendInt);
         }
         else {
             // tested with PutTests.testArgumentsCheckTypeError()
@@ -926,6 +926,11 @@ boolIntFromPyObject (PyObject *objPtr, const char *defValue,
 
 	l = PyLong_AsLong(objPtr);
 	value = (l == 0) ? FALSE : TRUE;
+    } else if (PyInt_Check(objPtr)) {
+	long l;
+
+	l = PyInt_AsLong(objPtr);
+	value = (l == 0) ? FALSE : TRUE;
     } else if (PyFloat_Check(objPtr)) {
 	double d;
 
@@ -941,6 +946,10 @@ boolIntFromPyObject (PyObject *objPtr, const char *defValue,
             return RP_ERROR;
         }
         return boolAsInt(string, resultPtr);
+    } else {
+	PyErr_Format(PyExc_TypeError,
+		"unknown python type for %s", argName);
+	return RP_ERROR;
     }
     *resultPtr = value;
     return RP_OK;
