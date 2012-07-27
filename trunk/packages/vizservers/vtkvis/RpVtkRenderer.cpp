@@ -2770,7 +2770,7 @@ bool Renderer::is2D(const double bounds[6],
 /**
  * \brief Initialize the camera zoom region to include the bounding volume given
  */
-void Renderer::initCamera()
+void Renderer::initCamera(bool initCameraMode)
 {
 #ifdef WANT_TRACE
     switch (_cameraMode) {
@@ -2791,7 +2791,10 @@ void Renderer::initCamera()
     collectBounds(bounds, false);
     bool twod = is2D(bounds, &_imgCameraPlane, &_imgCameraOffset);
     if (twod) {
-        _cameraMode = IMAGE;
+        if (initCameraMode) {
+            TRACE("Changing camera mode to image");
+            _cameraMode = IMAGE;
+        }
         if (_imgCameraPlane == PLANE_ZY) {
             _imgWorldOrigin[0] = bounds[4];
             _imgWorldOrigin[1] = bounds[2];
