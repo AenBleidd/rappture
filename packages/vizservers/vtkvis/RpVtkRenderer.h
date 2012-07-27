@@ -567,7 +567,7 @@ private:
     bool is2D(const double bounds[6],
               PrincipalPlane *plane,
               double *offset) const;
-    void initCamera();
+    void initCamera(bool initCameraMode = false);
     void initAxes();
     void resetAxes(double bounds[6] = NULL);
     void setCameraClippingPlanes();
