@@ -68,6 +68,7 @@ itcl::class Rappture::VtkViewer {
     protected method Disconnect {}
     protected method DoResize {}
     protected method DoRotate {}
+    private method DoUpdate {} 
     protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
     protected method Pan {option x y}
@@ -87,11 +88,13 @@ itcl::class Rappture::VtkViewer {
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildVolumeTab {}
+    private method BuildMoleculeTab {}
     private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
+    private method EventuallyChangeSettings { args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method IsValidObject { dataobj } 
@@ -126,7 +129,6 @@ itcl::class Rappture::VtkViewer {
     private variable _settings
     private variable _style;            # Array of current component styles.
     private variable _initialStyle;     # Array of initial component styles.
-    private variable _volume
     private variable _axis
     private variable _reset 1      ;# indicates if camera needs to be reset
                                     # to starting position.
@@ -144,6 +146,7 @@ itcl::class Rappture::VtkViewer {
     private variable _height 0
     private variable _resizePending 0
     private variable _rotatePending 0
+    private variable _updatePending 0;
     private variable _outline
 }
 
@@ -166,6 +169,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
+
+    # Update state event
+    $_dispatcher register !update
+    $_dispatcher dispatch $this !update "[itcl::code $this DoUpdate]; list"
 
     # Rotate event
     $_dispatcher register !rotate
@@ -222,16 +229,24 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         visible         1
         labels          1
     }]
-    array set _volume [subst {
-        edges           0
-        lighting        1
-        opacity         40
-        visible         1
-        wireframe       0
-	palette		rainbow
-    }]
     array set _settings [subst {
         legend          1
+	molecule-atomscale	0.5
+	molecule-bondscale	0.2
+	molecule-atomradius	"Van der Waals"
+	molecule-representation  "ball and stick"
+        molecule-edges           0
+        molecule-lighting        1
+        molecule-opacity         40
+        molecule-visible         1
+        molecule-wireframe       0
+	molecule-palette	rainbow
+        volume-edges           0
+        volume-lighting        1
+        volume-opacity         40
+        volume-visible         1
+        volume-wireframe       0
+	volume-palette		rainbow
     }]
 
     itk_component add view {
@@ -303,8 +318,13 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     if { [catch { BuildVolumeTab } errs ]  != 0 } {
 	puts stderr "errs=$errs"
     }
+    puts stderr "BuildMoleculeTab"
+    if { [catch { BuildMoleculeTab } errs ]  != 0 } {
+	global errorInfo
+	puts stderr "errs=$errs\nerrorInfo=$errorInfo"
+    }
     BuildAxisTab
-    BuildCutawayTab
+    #BuildCutawayTab
     BuildCameraTab
 
     # Legend
@@ -444,6 +464,27 @@ itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
         set _rotatePending 1
         global rotate_delay 
         $_dispatcher event -after $rotate_delay !rotate
+    }
+}
+
+itcl::body Rappture::VtkViewer::DoUpdate { } {
+    foreach dataset [CurrentDatasets -visible $_first] {
+	foreach { dataobj comp } [split $dataset -] break
+	set type [$dataobj type $comp]
+	if { $type == "molecule" } {
+	    set val [expr $_settings(molecule-atomscale) * 0.1]
+	    SendCmd "molecule ascale $val $dataset"
+	    set val [expr $_settings(molecule-bondscale) * 0.1]
+	    SendCmd "molecule bscale $val $dataset"
+	}
+    }
+    set _updatePending 0
+}
+
+itcl::body Rappture::VtkViewer::EventuallyChangeSettings { args } {
+    if { !$_updatePending } {
+        $_dispatcher event -after 250 !update
+        set _updatePending 1
     }
 }
 
@@ -875,6 +916,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     } else {
         SendCmd "camera mode persp"
     }
+
     DoRotate
     PanCamera
     set _first [lindex [get -objects] 0] 
@@ -934,6 +976,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
                 SendCmd "axis units $axis $units"
             }
         }
+    }
+    if { $_haveMolecules } {
+	FixSettings molecule-radius molecule-representation 
     }
     SendCmd "dataset maprange visible"
         
@@ -1177,52 +1222,52 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
     }
     switch -- $what {
         "volume-opacity" {
-            set val $_volume(opacity)
+            set val $_settings(volume-opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" && $type != "glyphs" } {
+		if { $type == "polydata" } {
 		    SendCmd "$type opacity $sval $dataset"
 		}
             }
         }
         "volume-wireframe" {
-            set bool $_volume(wireframe)
+            set bool $_settings(volume-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" } {
+		if { $type == "polydata" } {
 		    SendCmd "$type wireframe $bool $dataset"
 		}
             }
         }
         "volume-visible" {
-            set bool $_volume(visible)
+            set bool $_settings(volume-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" } {
+		if { $type == "polydata" } {
 		    SendCmd "$type visible $bool $dataset"
 		}
             }
         }
         "volume-lighting" {
-            set bool $_volume(lighting)
+            set bool $_settings(volume-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" } {
+		if { $type == "polydata" } {
 		    SendCmd "$type lighting $bool $dataset"
 		}
             }
         }
         "volume-edges" {
-            set bool $_volume(edges)
+            set bool $_settings(volume-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
-		if { $type != "" } {
+		if { $type == "polydata" } {
 		    SendCmd "$type edges $bool $dataset"
 		}
             }
@@ -1232,10 +1277,114 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             set _settings(volume-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
-                ChangeColormap $dataobj $comp $palette
+		set type [$dataobj type $comp]
+		if { $type == "polydata" } {
+		    ChangeColormap $dataobj $comp $palette
+		}
             }
             set _legendPending 1
         }
+        "molecule-opacity" {
+            set val $_settings(molecule-opacity)
+            set sval [expr { 0.01 * double($val) }]
+            foreach dataset [CurrentDatasets -visible $_first] {
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule opacity $sval $dataset"
+		}
+            }
+        }
+        "molecule-wireframe" {
+            set bool $_settings(molecule-wireframe)
+            foreach dataset [CurrentDatasets -visible $_first] {
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule wireframe $bool $dataset"
+		}
+            }
+        }
+        "molecule-visible" {
+            set bool $_settings(molecule-visible)
+            foreach dataset [CurrentDatasets -visible $_first] {
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule visible $bool $dataset"
+		}
+            }
+        }
+        "molecule-lighting" {
+            set bool $_settings(molecule-lighting)
+            foreach dataset [CurrentDatasets -visible $_first] {
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule lighting $bool $dataset"
+		}
+            }
+        }
+        "molecule-edges" {
+            set bool $_settings(molecule-edges)
+            foreach dataset [CurrentDatasets -visible $_first] {
+		foreach { dataobj comp } [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule edges $bool $dataset"
+		}
+            }
+        }
+        "molecule-palette" {
+            set palette [$itk_component(moleculepalette) value]
+            set _settings(molecule-palette) $palette
+            foreach dataset [CurrentDatasets -visible $_first] {
+                foreach {dataobj comp} [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    ChangeColormap $dataobj $comp $palette
+		}
+            }
+            set _legendPending 1
+        }
+	"molecule-radius" {
+	    set value [$itk_component(atomradius) value]
+	    set value [$itk_component(atomradius) translate $value]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    SendCmd "molecule rscale $value $dataset"
+		}
+	    }
+	}
+	"molecule-representation" {
+	    set value [$itk_component(representation) value]
+	    set value [$itk_component(representation) translate $value]
+	    foreach dataset [CurrentDatasets -visible $_first] {
+		foreach {dataobj comp} [split $dataset -] break
+		set type [$dataobj type $comp]
+		if { $type == "molecule" } {
+		    switch -- $value {
+			"ballandstick" {
+			    SendCmd "molecule atoms 1 $dataset"
+			    SendCmd "molecule bonds 1 $dataset"
+			}
+			"spheres" {
+			    SendCmd "molecule atoms 1 $dataset"
+			    SendCmd "molecule bonds 0 $dataset"
+			}
+			"sticks" - "lines" {
+			    SendCmd "molecule atoms 0 $dataset"
+			    SendCmd "molecule bonds 1 $dataset"
+			}
+			default {
+			    error "unknown representation $value"
+			}
+		    }
+		}
+	    }
+	}
         "axis-visible" {
             set bool $_axis(visible)
             SendCmd "axis visible all $bool"
@@ -1369,7 +1518,7 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
 		SendCmd "glyphs colormap $name $tag"
 	    }
 	    "molecule" {
-		#SendCmd "molecule colormap $name $tag"
+		SendCmd "molecule colormap $name $tag"
 	    }
 	}
     }
@@ -1708,30 +1857,30 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
 
     checkbutton $inner.volume \
         -text "Show Volume" \
-        -variable [itcl::scope _volume(visible)] \
+        -variable [itcl::scope _settings(volume-visible)] \
         -command [itcl::code $this AdjustSetting volume-visible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _volume(wireframe)] \
+        -variable [itcl::scope _settings(volume-wireframe)] \
         -command [itcl::code $this AdjustSetting volume-wireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _volume(lighting)] \
+        -variable [itcl::scope _settings(volume-lighting)] \
         -command [itcl::code $this AdjustSetting volume-lighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _volume(edges)] \
+        -variable [itcl::scope _settings(volume-edges)] \
         -command [itcl::code $this AdjustSetting volume-edges] \
         -font "Arial 9"
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
-    itk_component add palette {
+    itk_component add volumepalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
@@ -1752,13 +1901,13 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(palette) value "BCGYR"
+    $itk_component(volumepalette) value "BCGYR"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting volume-palette]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _volume(opacity)] \
+        -variable [itcl::scope _settings(volume-opacity)] \
         -width 10 \
         -showvalue off \
         -command [itcl::code $this AdjustSetting volume-opacity]
@@ -2019,7 +2168,150 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
     blt::table configure $inner r1 c3 -resize expand
 }
 
+itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
+    set fg [option get $itk_component(hull) font Font]
 
+    set inner [$itk_component(main) insert end \
+        -title "Molecule Settings" \
+        -icon [Rappture::icon molecule]]
+    $inner configure -borderwidth 4
+
+    checkbutton $inner.molecule \
+        -text "Show Molecule" \
+        -variable [itcl::scope _settings(molecule-visible)] \
+        -command [itcl::code $this AdjustSetting molecule-visible] \
+        -font "Arial 9"
+
+    checkbutton $inner.label \
+        -text "Show Atom Labels" \
+        -variable [itcl::scope _settings(molecule-labels)] \
+        -font "Arial 9"
+
+    checkbutton $inner.wireframe \
+        -text "Show Wireframe" \
+        -variable [itcl::scope _settings(molecule-wireframe)] \
+        -command [itcl::code $this AdjustSetting molecule-wireframe] \
+        -font "Arial 9"
+
+    checkbutton $inner.lighting \
+        -text "Enable Lighting" \
+        -variable [itcl::scope _settings(molecule-lighting)] \
+        -command [itcl::code $this AdjustSetting molecule-lighting] \
+        -font "Arial 9"
+
+    checkbutton $inner.edges \
+        -text "Show Edges" \
+        -variable [itcl::scope _settings(molecule-edges)] \
+        -command [itcl::code $this AdjustSetting molecule-edges] \
+        -font "Arial 9"
+
+    label $inner.rep_l -text "Molecule Representation" \
+        -font "Arial 9"
+
+    itk_component add representation {
+        Rappture::Combobox $inner.rep -width 20 -editable no
+    }
+    $inner.rep choices insert end \
+        "ballandstick"  "ball and stick" \
+        "spheres"	"spheres"         \
+        "sticks"	"sticks"          \
+        "lines"		"lines"           
+
+    bind $inner.rep <<Value>> \
+	[itcl::code $this AdjustSetting molecule-representation]
+    $inner.rep value "ball and stick"
+
+    label $inner.palette_l -text "Palette" -font "Arial 9" 
+    itk_component add moleculepalette {
+        Rappture::Combobox $inner.palette -width 10 -editable no
+    }
+    $inner.palette choices insert end \
+        "BCGYR"              "BCGYR"            \
+        "BGYOR"              "BGYOR"            \
+        "blue"               "blue"             \
+        "blue-to-brown"      "blue-to-brown"    \
+        "blue-to-orange"     "blue-to-orange"   \
+        "blue-to-grey"       "blue-to-grey"     \
+        "green-to-magenta"   "green-to-magenta" \
+        "greyscale"          "greyscale"        \
+        "nanohub"            "nanohub"          \
+        "rainbow"            "rainbow"          \
+        "spectral"           "spectral"         \
+        "ROYGB"              "ROYGB"            \
+        "RYGCB"              "RYGCB"            \
+        "brown-to-blue"      "brown-to-blue"    \
+        "grey-to-blue"       "grey-to-blue"     \
+        "orange-to-blue"     "orange-to-blue"   
+
+    $itk_component(moleculepalette) value "BCGYR"
+    bind $inner.palette <<Value>> \
+        [itcl::code $this AdjustSetting molecule-palette]
+
+    ::scale $inner.atomscale -width 10 -font "Arial 9" \
+        -from 0.1 -to 2.0 -resolution 0.005 -label "Atom Scale" \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this EventuallyChangeSettings] \
+        -variable [itcl::scope _settings(molecule-atomscale)]
+    $inner.atomscale set $_settings(molecule-atomscale)
+    Rappture::Tooltip::for $inner.atomscale \
+        "Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
+
+    ::scale $inner.bondscale -width 10 -font "Arial 9" \
+        -from 0.1 -to 1.0 -resolution 0.0025 -label "Bond Scale" \
+        -showvalue true -orient horizontal \
+        -command [itcl::code $this EventuallyChangeSettings] \
+        -variable [itcl::scope _settings(molecule-bondscale)]
+    Rappture::Tooltip::for $inner.bondscale \
+        "Adjust scale of bonds (sticks)."
+    $inner.bondscale set $_settings(molecule-bondscale)
+
+    checkbutton $inner.labels -text "Show labels on atoms" \
+        -command [itcl::code $this labels update] \
+        -variable [itcl::scope _settings(molecule-labels)] \
+        -font "Arial 9"
+    Rappture::Tooltip::for $inner.labels \
+        "Display atom symbol and serial number."
+
+    checkbutton $inner.rock -text "Rock molecule back and forth" \
+        -variable [itcl::scope _settings(molecule-rock)] \
+        -font "Arial 9"
+    Rappture::Tooltip::for $inner.rock \
+        "Rotate the object back and forth around the y-axis."
+
+    checkbutton $inner.cell -text "Parallelepiped" \
+        -font "Arial 9"
+    $inner.cell select
+
+    label $inner.atomradius_l -text "Radius Scaling Method" \
+	-font "Arial 9" 
+    itk_component add atomradius {
+        Rappture::Combobox $inner.atomradius -width 20 -editable no
+    }
+    $inner.atomradius choices insert end \
+	"van_der_waals"  "Van der Waals" \
+	"covalent"	"Covalent"	\
+	"atomic"	"Atomic"	\
+	"none"		"None"		
+    bind $inner.atomradius <<Value>> \
+	[itcl::code $this AdjustSetting molecule-radius]
+    $inner.atomradius value "Van der Waals"
+    label $inner.spacer
+    blt::table $inner \
+        0,0 $inner.molecule -anchor w -pady {1 0} \
+        2,0 $inner.wireframe -anchor w -pady {1 0} \
+        4,0 $inner.edges -anchor w -pady {1 0} \
+        6,0 $inner.atomradius_l -anchor w -pady 2 \
+        7,0 $inner.atomradius -anchor w -pady {1 0} \
+        9,0 $inner.rep_l -anchor w -pady { 2 0 } \
+        10,0 $inner.rep -anchor w  \
+        11,0 $inner.atomscale -fill x -pady {3 0} \
+        12,0 $inner.bondscale -fill x -pady {1 0} \
+        13,0 $inner.palette_l -anchor w -pady 2 \
+        14,0 $inner.palette   -fill x   -pady 2  
+
+    blt::table configure $inner r* -resize none
+    blt::table configure $inner r15 -resize expand
+}
 
 #
 #  camera -- 
@@ -2185,14 +2477,17 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
             -opacity 1.0
             -wireframe 0
             -lighting 1
-	    -radiiscale van_der_waals
             -visible 1
         }
         array set settings $style
         SendCmd "molecule add $tag"
         SendCmd "molecule opacity $settings(-opacity) $tag"
         SendCmd "molecule visible $settings(-visible) $tag"
-        SendCmd "molecule rscale $settings(-radiiscale) $tag"
+        SendCmd "molecule rscale $_settings(molecule-atomradius) $tag"
+	set val [expr $_settings(molecule-atomscale) * 0.1]
+	SendCmd "molecule ascale $val $tag"
+	set val [expr $_settings(molecule-bondscale) * 0.1]
+	SendCmd "molecule bscale $val $tag"
         set _haveMolecules 1
     } else {
         array set settings {
@@ -2208,20 +2503,20 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         array set settings $style
         SendCmd "polydata add $tag"
         SendCmd "polydata visible $settings(-visible) $tag"
-        set _volume(visible) $settings(-visible)
+        set _settings(volume-visible) $settings(-visible)
         SendCmd "polydata edges $settings(-edges) $tag"
-        set _volume(edges) $settings(-edges)
+        set _settings(volume-edges) $settings(-edges)
         SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
         SendCmd "polydata lighting $settings(-lighting) $tag"
-        set _volume(lighting) $settings(-lighting)
+        set _settings(volume-lighting) $settings(-lighting)
         SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
         SendCmd "polydata linewidth $settings(-linewidth) $tag"
         SendCmd "polydata opacity $settings(-opacity) $tag"
-        set _volume(opacity) $settings(-opacity)
+        set _settings(volume-opacity) $settings(-opacity)
         SendCmd "polydata wireframe $settings(-wireframe) $tag"
-        set _volume(wireframe) $settings(-wireframe)
+        set _settings(volume-wireframe) $settings(-wireframe)
     }
-    set _volume(opacity) [expr $settings(-opacity) * 100.0]
+    set _settings(volume-opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
 }
 
@@ -2388,3 +2683,4 @@ itcl::body Rappture::VtkViewer::Slice {option args} {
         }
     }
 }
+
