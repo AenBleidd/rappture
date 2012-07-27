@@ -901,6 +901,9 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj data $comp]
+		if { $bytes == "" } {
+		    continue
+		}
                 set length [string length $bytes]
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
@@ -1631,6 +1634,9 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
         set tag $dataobj-$comp
         if { ![info exists _limits($tag)] } {
             set data [$dataobj data $comp]
+	    if { $data == "" } {
+		continue
+	    }
             set tmpfile file[pid].vtk
             set f [open "$tmpfile" "w"]
             fconfigure $f -translation binary -encoding binary
