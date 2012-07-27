@@ -95,21 +95,15 @@ StringToBoolean(const char *string, int *resultPtr)
         return RP_ERROR;
     }
     c = tolower(string[0]);
-    if ((c == 'y') && (strcasecmp(string, "yes") == 0)) {
+    if (((c == 'y') && (strcasecmp(string, "yes") == 0)) ||
+	((c == 'o') && (strcasecmp(string, "on") == 0)) ||
+	((c == 't') && (strcasecmp(string, "true") == 0)) ||
+	((c == '1') && (strcasecmp(string, "1") == 0))) {
 	*resultPtr = TRUE;
-    } else if ((c == 'n') && (strcasecmp(string, "no") == 0)) {
-	*resultPtr = FALSE;
-    } else if ((c == 'o') && (strcasecmp(string, "on") == 0)) {
-	*resultPtr = TRUE;
-    } else if ((c == 'o') && (strcasecmp(string, "off") == 0)) {
-	*resultPtr = FALSE;
-    } else if ((c == 't') && (strcasecmp(string, "true") == 0)) {
-	*resultPtr = TRUE;
-    } else if ((c == 'f') && (strcasecmp(string, "false") == 0)) {
-	*resultPtr = FALSE;
-    } else if ((c == '1') && (strcasecmp(string, "1") == 0)) {
-	*resultPtr = TRUE;
-    } else if ((c == '0') && (strcasecmp(string, "0") == 0)) {
+    } else if (((c == 'n') && (strcasecmp(string, "no") == 0)) ||
+	       ((c == 'o') && (strcasecmp(string, "off") == 0)) ||
+	       ((c == 'f') && (strcasecmp(string, "false") == 0)) ||
+	       ((c == '0') && (strcasecmp(string, "0") == 0))) {
 	*resultPtr = FALSE;
     } else {
         PyErr_Format(PyExc_ValueError,
