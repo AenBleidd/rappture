@@ -87,7 +87,7 @@ itcl::class Rappture::VtkViewer {
     private method BuildColormap { name styles }
     private method BuildCutawayTab {}
     private method BuildDownloadPopup { widget command } 
-    private method BuildVolumeTab {}
+    private method BuildMeshTab {}
     private method BuildMoleculeTab {}
     private method ConvertToVtkData { dataobj comp } 
     private method DrawLegend {}
@@ -241,12 +241,12 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-visible         1
         molecule-wireframe       0
 	molecule-palette	rainbow
-        volume-edges           0
-        volume-lighting        1
-        volume-opacity         40
-        volume-visible         1
-        volume-wireframe       0
-	volume-palette		rainbow
+        mesh-edges           0
+        mesh-lighting        1
+        mesh-opacity         40
+        mesh-visible         1
+        mesh-wireframe       0
+	mesh-palette		rainbow
     }]
 
     itk_component add view {
@@ -314,8 +314,8 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     pack $itk_component(zoomout) -side top -padx 2 -pady 2
     Rappture::Tooltip::for $itk_component(zoomout) "Zoom out"
 
-    puts stderr "BuildVolumeTab"
-    if { [catch { BuildVolumeTab } errs ]  != 0 } {
+    puts stderr "BuildMeshTab"
+    if { [catch { BuildMeshTab } errs ]  != 0 } {
 	puts stderr "errs=$errs"
     }
     puts stderr "BuildMoleculeTab"
@@ -926,8 +926,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     }
     FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
         axis-visible axis-labels \
-        volume-edges volume-lighting volume-opacity volume-visible \
-        volume-wireframe 
+        mesh-edges mesh-lighting mesh-opacity mesh-visible \
+        mesh-wireframe 
 
     #SendCmd "imgflush"
 
@@ -1221,8 +1221,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "volume-opacity" {
-            set val $_settings(volume-opacity)
+        "mesh-opacity" {
+            set val $_settings(mesh-opacity)
             set sval [expr { 0.01 * double($val) }]
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
@@ -1232,8 +1232,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
-        "volume-wireframe" {
-            set bool $_settings(volume-wireframe)
+        "mesh-wireframe" {
+            set bool $_settings(mesh-wireframe)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
@@ -1242,8 +1242,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
-        "volume-visible" {
-            set bool $_settings(volume-visible)
+        "mesh-visible" {
+            set bool $_settings(mesh-visible)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
@@ -1252,8 +1252,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
-        "volume-lighting" {
-            set bool $_settings(volume-lighting)
+        "mesh-lighting" {
+            set bool $_settings(mesh-lighting)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
@@ -1262,8 +1262,8 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
-        "volume-edges" {
-            set bool $_settings(volume-edges)
+        "mesh-edges" {
+            set bool $_settings(mesh-edges)
             foreach dataset [CurrentDatasets -visible $_first] {
 		foreach { dataobj comp } [split $dataset -] break
 		set type [$dataobj type $comp]
@@ -1272,9 +1272,9 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
             }
         }
-        "volume-palette" {
-            set palette [$itk_component(palette) value]
-            set _settings(volume-palette) $palette
+        "mesh-palette" {
+            set palette [$itk_component(meshpalette) value]
+            set _settings(mesh-palette) $palette
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
 		set type [$dataobj type $comp]
@@ -1745,10 +1745,10 @@ itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(volume-opacity)] } {
-        set _settings(volume-opacity) $style(-opacity)
+    if { ![info exists _settings(mesh-opacity)] } {
+        set _settings(mesh-opacity) $style(-opacity)
     }
-    set max $_settings(volume-opacity)
+    set max $_settings(mesh-opacity)
 
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
@@ -1845,42 +1845,42 @@ itcl::body Rappture::VtkViewer::limits { dataobj } {
     return [array get limits]
 }
 
-itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
+itcl::body Rappture::VtkViewer::BuildMeshTab {} {
 
     set fg [option get $itk_component(hull) font Font]
     #set bfg [option get $itk_component(hull) boldFont Font]
 
     set inner [$itk_component(main) insert end \
-        -title "Volume Settings" \
-        -icon [Rappture::icon volume-on]]
+        -title "Mesh Settings" \
+        -icon [Rappture::icon mesh]]
     $inner configure -borderwidth 4
 
-    checkbutton $inner.volume \
-        -text "Show Volume" \
-        -variable [itcl::scope _settings(volume-visible)] \
-        -command [itcl::code $this AdjustSetting volume-visible] \
+    checkbutton $inner.mesh \
+        -text "Show Mesh" \
+        -variable [itcl::scope _settings(mesh-visible)] \
+        -command [itcl::code $this AdjustSetting mesh-visible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(volume-wireframe)] \
-        -command [itcl::code $this AdjustSetting volume-wireframe] \
+        -variable [itcl::scope _settings(mesh-wireframe)] \
+        -command [itcl::code $this AdjustSetting mesh-wireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(volume-lighting)] \
-        -command [itcl::code $this AdjustSetting volume-lighting] \
+        -variable [itcl::scope _settings(mesh-lighting)] \
+        -command [itcl::code $this AdjustSetting mesh-lighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(volume-edges)] \
-        -command [itcl::code $this AdjustSetting volume-edges] \
+        -variable [itcl::scope _settings(mesh-edges)] \
+        -command [itcl::code $this AdjustSetting mesh-edges] \
         -font "Arial 9"
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
-    itk_component add volumepalette {
+    itk_component add meshpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
@@ -1901,19 +1901,19 @@ itcl::body Rappture::VtkViewer::BuildVolumeTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(volumepalette) value "BCGYR"
+    $itk_component(meshpalette) value "BCGYR"
     bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting volume-palette]
+        [itcl::code $this AdjustSetting mesh-palette]
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
-        -variable [itcl::scope _settings(volume-opacity)] \
+        -variable [itcl::scope _settings(mesh-opacity)] \
         -width 10 \
         -showvalue off \
-        -command [itcl::code $this AdjustSetting volume-opacity]
+        -command [itcl::code $this AdjustSetting mesh-opacity]
 
     blt::table $inner \
-        0,0 $inner.volume    -cspan 2 -anchor w -pady 2 \
+        0,0 $inner.mesh    -cspan 2 -anchor w -pady 2 \
         1,0 $inner.wireframe -cspan 2 -anchor w -pady 2 \
         2,0 $inner.lighting  -cspan 2 -anchor w -pady 2 \
         3,0 $inner.edges     -cspan 2 -anchor w -pady 2 \
@@ -2296,6 +2296,14 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 	[itcl::code $this AdjustSetting molecule-radius]
     $inner.atomradius value "Van der Waals"
     label $inner.spacer
+
+    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
+        -variable [itcl::scope _settings(molecule-opacity)] \
+        -width 10 \
+        -showvalue off \
+        -command [itcl::code $this AdjustSetting molecule-opacity]
+
     blt::table $inner \
         0,0 $inner.molecule -anchor w -pady {1 0} \
         2,0 $inner.wireframe -anchor w -pady {1 0} \
@@ -2307,10 +2315,12 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         11,0 $inner.atomscale -fill x -pady {3 0} \
         12,0 $inner.bondscale -fill x -pady {1 0} \
         13,0 $inner.palette_l -anchor w -pady 2 \
-        14,0 $inner.palette   -fill x   -pady 2  
-
+        14,0 $inner.palette   -fill x   -pady 2  \
+        15,0 $inner.opacity_l -anchor w -pady 2 \
+        16,0 $inner.opacity   -fill x   -pady 2 
+    
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r15 -resize expand
+    blt::table configure $inner r17 -resize expand
 }
 
 #
@@ -2503,20 +2513,20 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         array set settings $style
         SendCmd "polydata add $tag"
         SendCmd "polydata visible $settings(-visible) $tag"
-        set _settings(volume-visible) $settings(-visible)
+        set _settings(mesh-visible) $settings(-visible)
         SendCmd "polydata edges $settings(-edges) $tag"
-        set _settings(volume-edges) $settings(-edges)
+        set _settings(mesh-edges) $settings(-edges)
         SendCmd "polydata color [Color2RGB $settings(-color)] $tag"
         SendCmd "polydata lighting $settings(-lighting) $tag"
-        set _settings(volume-lighting) $settings(-lighting)
+        set _settings(mesh-lighting) $settings(-lighting)
         SendCmd "polydata linecolor [Color2RGB $settings(-edgecolor)] $tag"
         SendCmd "polydata linewidth $settings(-linewidth) $tag"
         SendCmd "polydata opacity $settings(-opacity) $tag"
-        set _settings(volume-opacity) $settings(-opacity)
+        set _settings(mesh-opacity) $settings(-opacity)
         SendCmd "polydata wireframe $settings(-wireframe) $tag"
-        set _settings(volume-wireframe) $settings(-wireframe)
+        set _settings(mesh-wireframe) $settings(-wireframe)
     }
-    set _settings(volume-opacity) [expr $settings(-opacity) * 100.0]
+    set _settings(mesh-opacity) [expr $settings(-opacity) * 100.0]
     SetColormap $dataobj $comp
 }
 
