@@ -221,10 +221,10 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     }
     # Initialize the view to some default parameters.
     array set _view {
-        qw              1
-        qx              0
-        qy              0
-        qz              0
+        qw              0.853553
+        qx              -0.353553
+        qy              0.353553
+        qz              0.146447
         zoom            1.0 
         xpan            0
         ypan            0
@@ -1184,10 +1184,10 @@ itcl::body Rappture::VtkVolumeViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw      1
-                qx      0
-                qy      0
-                qz      0
+                qw      0.853553
+                qx      -0.353553
+                qy      0.353553
+                qz      0.146447
                 zoom    1.0
                 xpan   0
                 ypan   0
