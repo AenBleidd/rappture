@@ -99,6 +99,7 @@ SERVER_SRCS	= \
 		RpVtkRendererCmd.cpp \
 		RpVtkRendererGraphicsObjs.cpp \
 		RpVtkRenderServer.cpp \
+		RpWarp.cpp \
 		TGAWriter.cpp \
 		Trace.cpp
 
@@ -165,6 +166,7 @@ RpVtkRenderer.o: RpVtkRenderer.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h 
 RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RpVtkRendererGraphicsObjs.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
 RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpAxisActor.h vtkRpCubeAxesActor.h vtkRpAxisActor2D.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
+RpWarp.o: RpWarp.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h ResponseQueue.h Trace.h
 vtkRpAxisActor.o: vtkRpAxisActor.h
