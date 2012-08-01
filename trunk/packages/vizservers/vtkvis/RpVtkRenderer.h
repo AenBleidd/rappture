@@ -40,6 +40,7 @@
 #include "RpPseudoColor.h"
 #include "RpStreamlines.h"
 #include "RpVolume.h"
+#include "RpWarp.h"
 #include "Trace.h"
 
 // Controls if TGA format is sent to client
@@ -515,6 +516,10 @@ public:
 
     void setVolumeSampleDistance(const DataSetId& id, double distance);
 
+    // Warps
+
+    void setWarpWarpScale(const DataSetId& id, double scale);
+
 private:
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
     typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
@@ -530,6 +535,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Warp *> WarpHashmap;
 
     static void printCameraInfo(vtkCamera *camera);
 
@@ -606,6 +612,7 @@ private:
     PseudoColorHashmap _pseudoColors;
     StreamlinesHashmap _streamlines;
     VolumeHashmap _volumes;
+    WarpHashmap _warps;
 
     CameraMode _cameraMode;
 
