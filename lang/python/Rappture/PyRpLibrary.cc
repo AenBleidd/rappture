@@ -235,8 +235,7 @@ NewProc(PyTypeObject *type, PyObject *args, PyObject *kwds)
     self = (RpLibraryObject *)type->tp_alloc(type,0);
     if (self != NULL) {
         self->lib = NULL;
-    }
-    else {
+    } else {
         PyErr_SetString(PyExc_RuntimeError,
 		"trouble creating new RpLibraryObject");
     }
@@ -257,26 +256,22 @@ InitProc(RpLibraryObject *self, PyObject *args, PyObject *kwds)
 
     if (objPtr != NULL) {
         if (PyString_Check(objPtr)) {
-	    char *filename = NULL;
+	    char *filename;
 
             filename = PyString_AsString(objPtr);
             if (filename == NULL) {
                 PyErr_Format(PyExc_ValueError,"a file name is required");
             }
             self->lib = new RpLibrary(std::string(filename));
-        }
-        else if (RpLibraryObject_IsValid(objPtr)) {
+        } else if (RpLibraryObject_IsValid(objPtr)) {
             self->lib = new RpLibrary( *(RpLibraryObject_AsLibrary(objPtr)) );
-        }
-        else if (RpLibraryObject_Check(objPtr)) {
+        } else if (RpLibraryObject_Check(objPtr)) {
             self->lib = new RpLibrary();
-        }
-        else {
+        } else {
             PyErr_Format(PyExc_TypeError,"unrecognized object type");
             return -1;
         }
-    }
-    else {
+    } else {
         self->lib = new RpLibrary();
     }
 
