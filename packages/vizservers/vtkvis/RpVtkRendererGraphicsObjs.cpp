@@ -88,6 +88,11 @@ Renderer::VolumeHashmap &
 Renderer::getGraphicsObjectHashmap<Volume>()
 { return _volumes; }
 
+template<>
+Renderer::WarpHashmap &
+Renderer::getGraphicsObjectHashmap<Warp>()
+{ return _warps; }
+
 /**
  * \brief Set the volume slice used for mapping volumetric data
  */
@@ -1883,5 +1888,36 @@ void Renderer::setVolumeSampleDistance(const DataSetId& id, double distance)
         itr->second->setSampleDistance((float)distance);
     } while (doAll && ++itr != _volumes.end());
 
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set amount to scale vector magnitudes when warping
+ * a mesh
+ */
+void Renderer::setWarpWarpScale(const DataSetId& id, double scale)
+{
+    WarpHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _warps.begin();
+        doAll = true;
+    } else {
+        itr = _warps.find(id);
+    }
+
+    if (itr == _warps.end()) {
+        ERROR("Warp not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setWarpScale(scale);
+     } while (doAll && ++itr != _warps.end());
+
+    _renderer->ResetCameraClippingRange();
+    resetAxes();
     _needsRedraw = true;
 }

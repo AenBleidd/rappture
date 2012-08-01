@@ -206,6 +206,12 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _volumes.clear();
+    TRACE("Deleting Warps");
+    for (WarpHashmap::iterator itr = _warps.begin();
+         itr != _warps.end(); ++itr) {
+        delete itr->second;
+    }
+    _warps.clear();
     TRACE("Deleting ColorMaps");
     // Delete color maps and data sets last in case references still
     // exist
@@ -279,6 +285,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
         deleteGraphicsObject<PseudoColor>(itr->second->getName());
         deleteGraphicsObject<Streamlines>(itr->second->getName());
         deleteGraphicsObject<Volume>(itr->second->getName());
+        deleteGraphicsObject<Warp>(itr->second->getName());
  
         if (itr->second->getProp() != NULL) {
             _renderer->RemoveViewProp(itr->second->getProp());
@@ -940,6 +947,13 @@ void Renderer::updateColorMap(ColorMap *cmap)
             _needsRedraw = true;
         }
     }
+    for (WarpHashmap::iterator itr = _warps.begin();
+         itr != _warps.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
 }
 
 /**
@@ -989,6 +1003,11 @@ bool Renderer::colorMapUsed(ColorMap *cmap)
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    for (WarpHashmap::iterator itr = _warps.begin();
+         itr != _warps.end(); ++itr) {
         if (itr->second->getColorMap() == cmap)
             return true;
     }
@@ -2340,6 +2359,12 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (WarpHashmap::iterator itr = _warps.begin();
+             itr != _warps.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
 
     for (int i = 0; i < 6; i += 2) {
         if (bounds[i+1] < bounds[i]) {
@@ -2417,6 +2442,10 @@ void Renderer::updateFieldRanges()
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
+        itr->second->updateRanges(this);
+    }
+    for (WarpHashmap::iterator itr = _warps.begin();
+         itr != _warps.end(); ++itr) {
         itr->second->updateRanges(this);
     }
 }
@@ -2930,6 +2959,8 @@ void Renderer::setDataSetOpacity(const DataSetId& id, double opacity)
         setGraphicsObjectOpacity<Streamlines>(id, opacity);
     if (id.compare("all") == 0 || getGraphicsObject<Volume>(id) != NULL)
         setGraphicsObjectOpacity<Volume>(id, opacity);
+    if (id.compare("all") == 0 || getGraphicsObject<Warp>(id) != NULL)
+        setGraphicsObjectOpacity<Warp>(id, opacity);
 
     _needsRedraw = true;
 }
@@ -2980,6 +3011,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
         setGraphicsObjectVisibility<Streamlines>(id, state);
     if (id.compare("all") == 0 || getGraphicsObject<Volume>(id) != NULL)
         setGraphicsObjectVisibility<Volume>(id, state);
+    if (id.compare("all") == 0 || getGraphicsObject<Warp>(id) != NULL)
+        setGraphicsObjectVisibility<Warp>(id, state);
 
     _needsRedraw = true;
 }
@@ -3206,6 +3239,10 @@ void Renderer::setCameraClippingPlanes()
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
          itr != _volumes.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (WarpHashmap::iterator itr = _warps.begin();
+         itr != _warps.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
 }

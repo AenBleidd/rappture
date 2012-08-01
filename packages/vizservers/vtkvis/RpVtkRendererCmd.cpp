@@ -5586,6 +5586,280 @@ VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
+static int
+WarpAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        if (!g_renderer->addGraphicsObject<Warp>(name)) {
+            Tcl_AppendResult(interp, "Failed to create warp", (char*)NULL);
+            return TCL_ERROR;
+        }
+    } else {
+        if (!g_renderer->addGraphicsObject<Warp>("all")) {
+            Tcl_AppendResult(interp, "Failed to create warp for one or more data sets", (char*)NULL);
+            return TCL_ERROR;
+        }
+    }
+    return TCL_OK;
+}
+
+static int
+WarpColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectColorMap<Warp>(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGraphicsObjectColorMap<Warp>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Warp>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Warp>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+WarpEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Warp>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Warp>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Warp>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Warp>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Warp>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Warp>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Warp>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Warp>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Warp>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Warp>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Warp>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Warp>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Warp>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Warp>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Warp>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Warp>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Warp>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Warp>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpWarpScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setWarpWarpScale(name, scale);
+    } else {
+        g_renderer->setWarpWarpScale("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Warp>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Warp>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec warpOps[] = {
+    {"add",          1, WarpAddOp, 2, 3, "?dataSetName?"},
+    {"colormap",     1, WarpColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"delete",       1, WarpDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, WarpEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, WarpLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, WarpLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, WarpLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"opacity",      2, WarpOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, WarpOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, WarpPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        2, WarpScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, WarpVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"warpscale",    2, WarpWarpScaleOp, 3, 4, "value ?dataSetName?"},
+    {"wireframe",    2, WarpWireframeOp, 3, 4, "bool ?dataSetName?"}
+};
+static int nWarpOps = NumCmdSpecs(warpOps);
+
+static int
+WarpCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nWarpOps, warpOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
 /**
  * \brief Execute commands from client in Tcl interpreter
  * 
@@ -5702,6 +5976,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "streamlines", StreamlinesCmd, clientData, NULL);
     Tcl_CreateObjCommand(interp, "volume",      VolumeCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "warp",        WarpCmd,        clientData, NULL);
 }
 
 /**
@@ -5729,6 +6004,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "screen");
     Tcl_DeleteCommand(interp, "streamlines");
     Tcl_DeleteCommand(interp, "volume");
+    Tcl_DeleteCommand(interp, "warp");
 
     Tcl_DeleteInterp(interp);
 }
