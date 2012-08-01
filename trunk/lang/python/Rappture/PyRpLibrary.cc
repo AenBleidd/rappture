@@ -46,24 +46,38 @@ typedef struct {
     RpLibrary *lib;
 } RpLibraryObject;
 
-/*
- * Check to see if this object is a Rappture.library object.
- * This does not check to see if the object is correctly
- * initialized. To check for correct object type and
- * correct initialization, use RpLibraryObject_IsValid.
- */
-static int
-RpLibraryObject_Check(PyObject *objPtr)
-{
-    if (objPtr == NULL) {
-	return FALSE;
-    }
-    if (strcmp(objPtr->ob_type->tp_name, "Rappture.library") != 0) {
-	return FALSE;
-    }
-    return TRUE;
-}
 
+static int 
+getArgCount(PyObject *args, PyObject *keywds, int *argc)
+{
+    int args_cnt = 0;
+    int keywds_cnt = 0;
+
+    if (argc == NULL) {
+        // incorrect use of function
+        // argc cannot be null
+        PyErr_Format(PyExc_ValueError,"getArgCount(): argc is NULL");
+        return RP_ERROR;
+    }
+    if (args != NULL) {
+        if (!PyTuple_Check(args)) {
+            PyErr_Format(PyExc_TypeError,
+                "getArgCount(): \'args\' should be a PyTuple");
+            return RP_ERROR;
+        }
+        args_cnt = PyTuple_Size(args);
+    }
+    if (keywds != NULL) {
+        if (!PyDict_Check(keywds)) {
+            PyErr_Format(PyExc_TypeError,
+                "getArgCount(): \'keywds\' should be a PyDict");
+            return RP_ERROR;
+        }
+        keywds_cnt = PyDict_Size(keywds);
+    }
+    *argc = args_cnt + keywds_cnt;
+    return RP_OK;
+}
 
 /*
  *  StringToBoolean --
@@ -170,36 +184,22 @@ PyObjectToBoolean(PyObject *objPtr, const char *defValue, const char *argName,
     return RP_OK;
 }
 
-static int 
-getArgCount (PyObject *args, PyObject *keywds, int *argc)
+/*
+ * Check to see if this object is a Rappture.library object.
+ * This does not check to see if the object is correctly
+ * initialized. To check for correct object type and
+ * correct initialization, use RpLibraryObject_IsValid.
+ */
+static int
+RpLibraryObject_Check(PyObject *objPtr)
 {
-    int args_cnt = 0;
-    int keywds_cnt = 0;
-
-    if (argc == NULL) {
-        // incorrect use of function
-        // argc cannot be null
-        PyErr_Format(PyExc_ValueError,"getArgCount(): argc is NULL");
-        return RP_ERROR;
+    if (objPtr == NULL) {
+	return FALSE;
     }
-    if (args != NULL) {
-        if (!PyTuple_Check(args)) {
-            PyErr_Format(PyExc_TypeError,
-                "getArgCount(): \'args\' should be a PyTuple");
-            return RP_ERROR;
-        }
-        args_cnt = PyTuple_Size(args);
+    if (strcmp(objPtr->ob_type->tp_name, "Rappture.library") != 0) {
+	return FALSE;
     }
-    if (keywds != NULL) {
-        if (!PyDict_Check(keywds)) {
-            PyErr_Format(PyExc_TypeError,
-                "getArgCount(): \'keywds\' should be a PyDict");
-            return RP_ERROR;
-        }
-        keywds_cnt = PyDict_Size(keywds);
-    }
-    *argc = args_cnt + keywds_cnt;
-    return RP_OK;
+    return TRUE;
 }
 
 /*
@@ -248,33 +248,39 @@ InitProc(RpLibraryObject *self, PyObject *args, PyObject *kwds)
 {
     PyObject *objPtr;
 
+    objPtr = NULL;
     if (!PyArg_ParseTuple(args, "|O", &objPtr)) {
         PyErr_Format(PyExc_TypeError,
             "library() takes at most 1 argument, a file name or a Rappture Library Object");
         return -1;
     }
+
     if (objPtr != NULL) {
         if (PyString_Check(objPtr)) {
-	    const char *filename;
+	    char *filename = NULL;
 
             filename = PyString_AsString(objPtr);
             if (filename == NULL) {
                 PyErr_Format(PyExc_ValueError,"a file name is required");
             }
             self->lib = new RpLibrary(std::string(filename));
-        } else if (RpLibraryObject_IsValid(objPtr)) {
+        }
+        else if (RpLibraryObject_IsValid(objPtr)) {
             self->lib = new RpLibrary( *(RpLibraryObject_AsLibrary(objPtr)) );
-        } else if (RpLibraryObject_Check(objPtr)) {
+        }
+        else if (RpLibraryObject_Check(objPtr)) {
             self->lib = new RpLibrary();
-        } else {
+        }
+        else {
             PyErr_Format(PyExc_TypeError,"unrecognized object type");
             return -1;
-        } 
-    } else {
+        }
+    }
+    else {
         self->lib = new RpLibrary();
     }
 
-    return -1;
+    return 1;
 }
 
 static void
@@ -407,15 +413,20 @@ ElementProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
     }
 
     if (getArgCount(args,keywds,&argc) != RP_OK) {
+        // trouble ensues
+        // error message was set in getArgCount()
         return NULL;
     }
+
     if (argc > 2) {
+        // tested with ElementTests.testArguments_TooManyArgs()
         PyErr_Format(PyExc_TypeError,
             "element() takes at most 2 arguments (%i given)", argc);
         return retVal;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, keywds, "|ss", kwlist, &path, &as)) {
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "|ss",
+                kwlist, &path, &as)) {
         /* incorrect input values */
         // tested with ElementTests.testArguments_ArgsWrongType2()
         PyErr_Format(PyExc_TypeError,"element ([path=\'\'][, as=\'object\'])");
@@ -446,6 +457,7 @@ ElementProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
                 "element() \'as\' arg must be \'object\' or \'component\' or \'id\' or \'type\' or \'path\'");
         }
     }
+
     return (PyObject *)retVal;
 }
 
@@ -625,10 +637,11 @@ will be compressed.\n\
 static PyObject *
 PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 {
-    char *path;
-    PyObject *compressObjPtr, *appendObjPtr, *valueObjPtr, *strObjPtr;
-    int appendFlag, compressFlag;
+    char *path = (char *)"";
+
+    PyObject *valueObjPtr, *compressObjPtr, *appendObjPtr, *strObjPtr;
     char *id = NULL;
+    int appendFlag, compressFlag;
     char *type = (char *)"string";
     int argc = 0;
 
@@ -641,42 +654,46 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
         (char *)"compress",
         NULL
     };
-
+    appendFlag = compressFlag = FALSE;
+    strObjPtr = appendObjPtr = valueObjPtr = compressObjPtr = NULL;
     if (self->lib == NULL) {
         PyErr_Format(PyExc_RuntimeError,
             "self uninitialized Rappture Library Object");
         return NULL;
     }
+
     if (getArgCount(args,keywds,&argc) != RP_OK) {
         return NULL;
     }
     if (argc > 6) {
         PyErr_Format(PyExc_TypeError,
-            "put() takes at most 6 arguments (%i given)", argc);
+            "put() takes at most 6 arguments (%i given)",argc);
         return NULL;
     }
     if (argc < 2) {
         PyErr_Format(PyExc_TypeError,
-            "put() takes at least 2 arguments (%i given)", argc);
+            "put() takes at least 2 arguments (%i given)",argc);
         return NULL;
     }
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "sO|sOsO", kwlist, &path, 
-		&valueObjPtr, &id, &appendObjPtr, &type, &compressObjPtr)) {
+	&valueObjPtr, &id, &appendObjPtr, &type, &compressObjPtr)) {
         return NULL;
     }
+
     if (valueObjPtr == NULL) {
         PyErr_Format(PyExc_ValueError, "put()'s \'value\' arg is required");
         return NULL;
     }
-    strObjPtr = PyObject_Str(valueObjPtr);
 
-    if (PyObjectToBoolean(appendObjPtr, "no", "append", &appendFlag) != RP_OK) {
+    if (PyObjectToBoolean(appendObjPtr, "no"," append", &appendFlag) != RP_OK){
         return NULL;
     }
-    if (PyObjectToBoolean(compressObjPtr, "no", "compress", &compressFlag) 
+    if (PyObjectToBoolean(compressObjPtr, "no", "compress", &compressFlag)
 	!= RP_OK) {
         return NULL;
     }
+
+    strObjPtr = PyObject_Str(valueObjPtr);
     if (RpLibraryObject_IsValid(valueObjPtr)) {
         self->lib->put( std::string(path), 
 		RpLibraryObject_AsLibrary(valueObjPtr), "", appendFlag);
@@ -685,19 +702,17 @@ PutProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
 	Py_ssize_t length;
 
         if (PyString_AsStringAndSize(strObjPtr, &string, &length) == -1) {
-            // user passed in an improper string
-            // exception raised within fxn
             return NULL;
         }
-        if ((type == NULL) || ((*type=='s') && (strcmp("string", type) == 0))) {
+        if ((type == NULL) || ((*type=='s') && (strcmp("string", type) == 0))){
             if (compressFlag == 0) {
                 self->lib->put( std::string(path),
                                 std::string(string), "", appendFlag);
             } else {
-                self->lib->putData(std::string(path), string, length, 
+                self->lib->putData( std::string(path), string, length, 
 			appendFlag);
             }
-        } else if ((*type == 'f') && (strcmp("file",type) == 0) ) {
+        } else if ((*type == 'f') && (strcmp("file",type) == 0)) {
             self->lib->putFile( std::string(path),
                                 std::string(PyString_AsString(strObjPtr)),
                                 compressFlag, appendFlag);
@@ -724,16 +739,11 @@ object.\n\
 static PyObject*
 XmlProc(RpLibraryObject *self)
 {
-    PyObject *retStr = NULL;
-
     if (self->lib == NULL) {
         PyErr_Format(PyExc_RuntimeError,
             "self uninitialized Rappture Library Object");
     }
-
-    retStr = PyString_FromString(self->lib->xml().c_str());
-
-    return (PyObject *)retStr;
+    return PyString_FromString(self->lib->xml().c_str());
 }
 
 PyDoc_STRVAR(ResultProcDoc,
@@ -759,6 +769,7 @@ ResultProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
             "self uninitialized Rappture Library Object");
         return NULL;
     }
+
     if (getArgCount(args,keywds,&argc) != RP_OK) {
         // trouble ensues
         // error message was set in getArgCount()
@@ -770,12 +781,14 @@ ResultProc(RpLibraryObject *self, PyObject *args, PyObject *keywds)
             "result() takes at most 1 argument (%i given)",argc);
         return NULL;
     }
+
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|i", kwlist, &status)) {
         // tested with ResultTests.testArguments_InvalidStatusArg()
         PyErr_Format(PyExc_TypeError, "an integer is required");
         return NULL;
     }
-    self->lib->put("tool.version.rappture.language", "python");
+
+    self->lib->put("tool.version.rappture.language","python");
     self->lib->result(status);
 
     Py_RETURN_NONE;
@@ -785,34 +798,35 @@ static PyMethodDef RpLibraryObject_methods[] = {
 
     {"copy", (PyCFunction)CopyProc, METH_VARARGS|METH_KEYWORDS, CopyProcDoc},
 
-/*
+#ifdef notdef
     {"children", (PyCFunction)ChildrenProc, METH_VARARGS|METH_KEYWORDS,
         ChildrenProcDoc},
-*/
+#endif
 
     {"element", (PyCFunction)ElementProc, METH_VARARGS|METH_KEYWORDS,
         ElementProcDoc},
 
-    {"get", (PyCFunction)GetProc, METH_VARARGS|METH_KEYWORDS, GetProcDoc},
+    {"get", (PyCFunction)GetProc, METH_VARARGS|METH_KEYWORDS,
+        GetProcDoc},
 
-/*
+#ifdef notdef
     {"parent", (PyCFunction)ParentProc, METH_VARARGS|METH_KEYWORDS,
-         ParentProcDoc},
-*/
+		ParentProcDoc},
+#endif
 
     {"put", (PyCFunction)PutProc, METH_VARARGS|METH_KEYWORDS, PutProcDoc},
 
-/*
+#ifdef notdef
     {"remove", (PyCFunction)RemoveProc, METH_VARARGS|METH_KEYWORDS,
         RemoveProcDoc},
-*/
+#endif
 
     {"xml", (PyCFunction)XmlProc, METH_NOARGS, XmlProcDoc},
 
-    {"result", (PyCFunction)ResultProc, METH_VARARGS|METH_KEYWORDS, 
+    {"result", (PyCFunction)ResultProc, METH_VARARGS|METH_KEYWORDS,
         ResultProcDoc},
 
-    {NULL,        NULL}			/* sentinel */
+    {NULL,        NULL}        /* sentinel */
 };
 
 static PyTypeObject RpLibraryObjectType = {
@@ -824,7 +838,7 @@ static PyTypeObject RpLibraryObjectType = {
     sizeof(RpLibraryObject),              /*tp_basicsize*/
     0,                                    /*tp_itemsize*/
     /* methods */
-    (destructor)FreeProc,		  /*tp_dealloc*/
+    (destructor)FreeProc,		/*tp_dealloc*/
     0,                                    /*tp_print*/
     0,                                    /*tp_getattr*/
     0,                                    /*tp_setattr*/
@@ -855,9 +869,9 @@ static PyTypeObject RpLibraryObjectType = {
     0,                                    /*tp_descr_get*/
     0,                                    /*tp_descr_set*/
     0,                                    /*tp_dictoffset*/
-    (initproc)InitProc,			  /*tp_init*/
+    (initproc)InitProc,			/*tp_init*/
     0,                                    /*tp_alloc*/
-    NewProc,				  /*tp_new*/
+    NewProc,				/*tp_new*/
     0,                                    /*tp_new*/
 };
 
@@ -889,14 +903,12 @@ RpLibraryObject_FromLibrary(RpLibrary *lib)
         self = PyObject_New(RpLibraryObject, &RpLibraryObjectType);
         if (self != NULL) {
             self->lib = lib;
-        }
-        else {
+        } else {
             // raise error
             PyErr_SetString(PyExc_RuntimeError,
-                            "trouble creating new RpLibraryObject");
+		"trouble creating new RpLibraryObject");
         }
     }
-
     return (PyObject *)self;
 }
 
