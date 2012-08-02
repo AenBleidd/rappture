@@ -430,7 +430,6 @@ void Molecule::addLabelArray(vtkDataSet *dataSet)
             sprintf(buf, "%s%d", g_elementNames[elt], i);
         } else {
             sprintf(buf, "%d", i);
-            labelArray->InsertNextValue(buf);
         }
         labelArray->InsertNextValue(buf);
     }
