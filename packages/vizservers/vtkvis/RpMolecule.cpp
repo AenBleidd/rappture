@@ -5,11 +5,13 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
+#include <cstdio>
 #include <cassert>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkFloatArray.h>
+#include <vtkStringArray.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
@@ -17,6 +19,9 @@
 #include <vtkTubeFilter.h>
 #include <vtkSphereSource.h>
 #include <vtkGlyph3D.h>
+#include <vtkPointSetToLabelHierarchy.h>
+#include <vtkLabelPlacementMapper.h>
+#include <vtkTextProperty.h>
 
 #include "RpMolecule.h"
 #include "RpMoleculeData.h"
@@ -28,7 +33,8 @@ Molecule::Molecule() :
     VtkGraphicsObject(),
     _radiusScale(0.3),
     _atomScaling(VAN_DER_WAALS_RADIUS),
-    _colorMap(NULL)
+    _colorMap(NULL),
+    _labelsOn(false)
 {
     _bondColor[0] = _bondColor[1] = _bondColor[2] = 1.0f;
     _faceCulling = true;
@@ -74,6 +80,9 @@ void Molecule::initProp()
         if (!_lighting)
             _bondProp->GetProperty()->LightingOff();
     }
+    if (_labelProp == NULL) {
+        _labelProp = vtkSmartPointer<vtkActor2D>::New();
+    }
     if (_prop == NULL) {
         _prop = vtkSmartPointer<vtkAssembly>::New();
     }
@@ -99,6 +108,13 @@ void Molecule::update()
         _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _bondMapper->ScalarVisibilityOn();
     }
+    if (_labelMapper == NULL) {
+        _labelMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
+        _labelMapper->SetShapeToRoundedRect();
+        _labelMapper->SetBackgroundColor(1.0, 1.0, 0.7);
+        _labelMapper->SetBackgroundOpacity(0.8);
+        _labelMapper->SetMargin(3);
+    }
 
     if (_lut == NULL) {
         if (ds->GetPointData() == NULL ||
@@ -116,6 +132,7 @@ void Molecule::update()
 
     initProp();
 
+    addLabelArray(ds);
     addRadiusArray(ds, _atomScaling, _radiusScale);
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
@@ -140,6 +157,13 @@ void Molecule::update()
             getAssembly()->AddPart(_bondProp);
         }
         if (pd->GetNumberOfVerts() > 0) {
+            vtkSmartPointer<vtkPointSetToLabelHierarchy> hier = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
+            hier->SetInput(pd);
+            hier->SetLabelArrayName("labels");
+            hier->GetTextProperty()->SetColor(0, 0, 0);
+            _labelMapper->SetInputConnection(hier->GetOutputPort());
+            _labelProp->SetMapper(_labelMapper);
+
             // Atoms
             vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
             sphereSource->SetRadius(1.0);
@@ -170,8 +194,11 @@ void Molecule::update()
         return;
     }
 
+    setAtomLabelVisibility(_labelsOn);
+
     _atomMapper->Update();
     _bondMapper->Update();
+    _labelMapper->Update();
 }
 
 void Molecule::updateRanges(Renderer *renderer)
@@ -236,6 +263,17 @@ void Molecule::setColorMap(ColorMap *cmap)
 }
 
 /**
+ * \brief Turn on/off rendering of atom labels
+ */
+void Molecule::setAtomLabelVisibility(bool state)
+{
+    _labelsOn = state;
+    if (_labelProp != NULL) {
+        _labelProp->SetVisibility((state ? 1 : 0));
+    }
+}
+
+/**
  * \brief Turn on/off rendering of the atoms
  */
 void Molecule::setAtomVisibility(bool state)
@@ -252,6 +290,31 @@ void Molecule::setBondVisibility(bool state)
 {
     if (_bondProp != NULL) {
         _bondProp->SetVisibility((state ? 1 : 0));
+    }
+}
+
+/**
+ * \brief Toggle visibility of the prop
+ */
+void Molecule::setVisibility(bool state)
+{
+    VtkGraphicsObject::setVisibility(state);
+    if (_labelProp != NULL) {
+        if (!state)
+            _labelProp->SetVisibility(0);
+        else
+            setAtomLabelVisibility(_labelsOn);
+    }
+}
+
+/**
+ * \brief Set opacity of molecule
+ */
+void Molecule::setOpacity(double opacity)
+{
+    VtkGraphicsObject::setOpacity(opacity);
+    if (_labelMapper != NULL) {
+        _labelMapper->SetBackgroundOpacity(opacity);
     }
 }
 
@@ -340,6 +403,38 @@ void Molecule::setBondRadiusScale(double scale)
 {
     if (_tuber != NULL)
         _tuber->SetRadius(scale);
+}
+
+void Molecule::addLabelArray(vtkDataSet *dataSet)
+{
+    vtkDataArray *elements = NULL;
+    if (dataSet->GetPointData() != NULL &&
+        dataSet->GetPointData()->GetScalars() != NULL &&
+        strcmp(dataSet->GetPointData()->GetScalars()->GetName(), "element") == 0) {
+        elements = dataSet->GetPointData()->GetScalars();
+    } else {
+        WARN("Can't label atoms without an element array");
+    }
+
+    vtkSmartPointer<vtkStringArray> labelArray = vtkSmartPointer<vtkStringArray>::New();
+    labelArray->SetName("labels");
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(dataSet);
+    if (pd == NULL) {
+        ERROR("DataSet not a PolyData");
+        return;
+    }
+    for (int i = 0; i < pd->GetNumberOfVerts(); i++) {
+        char buf[32];
+        if (elements != NULL) {
+            int elt = (int)elements->GetComponent(i, 0);
+            sprintf(buf, "%s%d", g_elementNames[elt], i);
+        } else {
+            sprintf(buf, "%d", i);
+            labelArray->InsertNextValue(buf);
+        }
+        labelArray->InsertNextValue(buf);
+    }
+    dataSet->GetPointData()->AddArray(labelArray);
 }
 
 /**
