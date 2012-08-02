@@ -12,9 +12,11 @@
 #include <vtkLookupTable.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
+#include <vtkActor2D.h>
 #include <vtkAssembly.h>
 #include <vtkTubeFilter.h>
 #include <vtkGlyph3D.h>
+#include <vtkLabelPlacementMapper.h>
 
 #include "ColorMap.h"
 #include "RpVtkGraphicsObject.h"
@@ -54,6 +56,11 @@ public:
         return "Molecule";
     }
 
+    virtual vtkProp *getOverlayProp()
+    {
+        return _labelProp;
+    }
+
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setColorMap(ColorMap *colorMap);
@@ -76,7 +83,13 @@ public:
 
     void setBondRadiusScale(double scale);
 
+    virtual void setVisibility(bool state);
+
+    virtual void setOpacity(double opacity);
+
     void setAtomVisibility(bool state);
+
+    void setAtomLabelVisibility(bool state);
 
     void setBondVisibility(bool state);
 
@@ -90,20 +103,25 @@ private:
     virtual void initProp();
     virtual void update();
 
+    static void addLabelArray(vtkDataSet *dataSet);
+
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
 
     float _bondColor[3];
     double _radiusScale;
     AtomScaling _atomScaling;
     ColorMap *_colorMap;
+    bool _labelsOn;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
+    vtkSmartPointer<vtkActor2D> _labelProp;
     vtkSmartPointer<vtkGlyph3D> _glypher;
     vtkSmartPointer<vtkTubeFilter> _tuber;
     vtkSmartPointer<vtkPolyDataMapper> _atomMapper;
     vtkSmartPointer<vtkPolyDataMapper> _bondMapper;
+    vtkSmartPointer<vtkLabelPlacementMapper> _labelMapper;
 };
 
 }

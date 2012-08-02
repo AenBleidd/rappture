@@ -59,6 +59,8 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
         GraphicsObject *gobj = itr->second;
         if (gobj->getProp())
             _renderer->RemoveViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->RemoveViewProp(gobj->getOverlayProp());
         delete gobj;
 
         itr = hashmap.erase(itr);
@@ -99,11 +101,15 @@ bool Renderer::addGraphicsObject(const DataSetId& id)
  
         gobj->setDataSet(ds, this);
 
-        if (gobj->getProp() == NULL) {
+        if (gobj->getProp() == NULL &&
+            gobj->getOverlayProp() == NULL) {
             delete gobj;
             return false;
         } else {
-            _renderer->AddViewProp(gobj->getProp());
+            if (gobj->getProp())
+                _renderer->AddViewProp(gobj->getProp());
+            if (gobj->getOverlayProp())
+                _renderer->AddViewProp(gobj->getOverlayProp());
         }
 
         getGraphicsObjectHashmap<GraphicsObject>()[dsID] = gobj;
@@ -232,6 +238,37 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
 
     do {
         itr->second->setPosition(pos);
+    } while (doAll && ++itr != hashmap.end());
+
+    resetAxes();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the prop scaling by 2D aspect ratio
+ */
+template<class GraphicsObject>
+void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = hashmap.begin();
+        doAll = true;
+    } else {
+        itr = hashmap.find(id);
+    }
+    if (itr == hashmap.end()) {
+        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setAspect(aspect);
     } while (doAll && ++itr != hashmap.end());
 
     resetAxes();

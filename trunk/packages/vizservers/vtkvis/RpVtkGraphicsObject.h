@@ -164,6 +164,11 @@ public:
         return vtkAssembly::SafeDownCast(_prop);
     }
 
+    virtual vtkProp *getOverlayProp()
+    {
+        return NULL;
+    }
+
     /**
      * \brief Set an additional transform on the prop
      * 
@@ -241,6 +246,17 @@ public:
     }
 
     /**
+     * \brief Set 2D aspect ratio scaling
+     *
+     * \param aspect 0=no scaling, otherwise aspect
+     * is horiz/vertical ratio
+     */
+    virtual void setAspect(double aspect)
+    {
+        ;
+    }
+
+    /**
      * \brief Set the prop scaling
      *
      * \param[in] scale Scaling in x,y,z
@@ -250,6 +266,48 @@ public:
         if (getProp3D() != NULL) {
             getProp3D()->SetScale(scale);
         }
+    }
+
+    /**
+     * \brief Get the physical bounds of the prop
+     *
+     * If the prop is scaled, these bounds will be
+     * scaled as well
+     */
+    virtual double *getBounds()
+    {
+        if (getProp() != NULL)
+            return getProp()->GetBounds();
+        else
+            return NULL;
+    }
+
+    /**
+     * \brief Get the data bounds of the prop
+     *
+     * If the prop is scaled, these bounds will NOT
+     * be scaled, they will reflect the unscaled data
+     * bounds.
+     */
+    virtual double *getUnscaledBounds()
+    {
+        if (getProp3D() != NULL) {
+            double scale[3];
+            getProp3D()->GetScale(scale);
+            if (scale[0] == scale[1] && scale[1] == scale[2] &&
+                scale[0] == 1.0) {
+                return getBounds();
+            } else if (getBounds() != NULL) {
+                _unscaledBounds[0] = getBounds()[0] / scale[0];
+                _unscaledBounds[1] = getBounds()[1] / scale[0];
+                _unscaledBounds[2] = getBounds()[2] / scale[1];
+                _unscaledBounds[3] = getBounds()[3] / scale[1];
+                _unscaledBounds[4] = getBounds()[4] / scale[2];
+                _unscaledBounds[5] = getBounds()[5] / scale[2];
+                return _unscaledBounds;
+            }
+        }
+        return getBounds();
     }
 
     /**
@@ -742,6 +800,7 @@ protected:
 
     DataSet *_dataSet;
     double _dataRange[2];
+    double _unscaledBounds[6];
     double _opacity;
     float _color[3];
     float _edgeColor[3];
