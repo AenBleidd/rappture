@@ -197,10 +197,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }
     # Initialize the view to some default parameters.
     array set _view {
-        qw              1
-        qx              0
-        qy              0
-        qz              0
+        qw              0.853553
+        qx              -0.353553
+        qy              0.353553
+        qz              0.146447
         zoom            1.0 
         xpan            0
         ypan            0
@@ -236,8 +236,9 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
 	molecule-atomradius	"Van der Waals"
 	molecule-representation  "ball and stick"
         molecule-edges           0
+        molecule-labels          0
         molecule-lighting        1
-        molecule-opacity         40
+        molecule-opacity         100
         molecule-visible         1
         molecule-wireframe       0
 	molecule-palette	rainbow
@@ -1057,10 +1058,10 @@ itcl::body Rappture::VtkViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw      1
-                qx      0
-                qy      0
-                qz      0
+                qw      0.853553
+                qx      -0.353553
+                qy      0.353553
+                qz      0.146447
                 zoom    1.0
                 xpan   0
                 ypan   0
@@ -1385,6 +1386,16 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		}
 	    }
 	}
+        "molecule-labels" {
+            set bool $_settings(molecule-labels)
+            foreach dataset [CurrentDatasets -visible $_first] {
+               foreach { dataobj comp } [split $dataset -] break
+               set type [$dataobj type $comp]
+               if { $type == "molecule" } {
+                   SendCmd "molecule labels $bool $dataset"
+               }
+            }
+        }
         "axis-visible" {
             set bool $_axis(visible)
             SendCmd "axis visible all $bool"
@@ -2185,6 +2196,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     checkbutton $inner.label \
         -text "Show Atom Labels" \
         -variable [itcl::scope _settings(molecule-labels)] \
+        -command [itcl::code $this AdjustSetting molecule-labels] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
@@ -2306,6 +2318,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
 
     blt::table $inner \
         0,0 $inner.molecule -anchor w -pady {1 0} \
+        1,0 $inner.label -anchor w -pady {1 0} \
         2,0 $inner.wireframe -anchor w -pady {1 0} \
         4,0 $inner.edges -anchor w -pady {1 0} \
         6,0 $inner.atomradius_l -anchor w -pady 2 \
