@@ -443,6 +443,8 @@ public:
 
     void setMoleculeAtomVisibility(const DataSetId& id, bool state);
 
+    void setMoleculeAtomLabelVisibility(const DataSetId& id, bool state);
+
     void setMoleculeBondVisibility(const DataSetId& id, bool state);
 
     void setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode);

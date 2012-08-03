@@ -287,6 +287,7 @@ molecule bscale <val> <?datasetName?>
 molecule colormap <colormapName> <?datasetName?>
 molecule delete <?datasetName?>
 molecule edges <bool> <?datasetName?>
+molecule labels <bool> <?datasetName?>
 molecule lighting <bool> <?datasetName?>
 molecule linecolor <r> <g> <b> <?datasetName?>
 molecule linewidth <val> <?datasetName?>
