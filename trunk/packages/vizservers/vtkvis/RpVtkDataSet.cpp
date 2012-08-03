@@ -714,7 +714,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetPointData() != NULL) {
             for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    (_dataSet->GetPointData()->GetArray(i) != NULL &&
+                     _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetPointData()->GetArrayName(i));
                 }
             }
@@ -724,7 +725,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetCellData() != NULL) {
             for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    (_dataSet->GetCellData()->GetArray(i) != NULL &&
+                     _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetCellData()->GetArrayName(i));
                 }
             }
@@ -734,7 +736,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetFieldData() != NULL) {
             for (int i = 0; i < _dataSet->GetFieldData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents() == numComponents) {
+                    (_dataSet->GetFieldData()->GetArray(i) != NULL &&
+                     _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetFieldData()->GetArrayName(i));
                 }
             }
