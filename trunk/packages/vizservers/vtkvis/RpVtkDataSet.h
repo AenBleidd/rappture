@@ -37,6 +37,8 @@ public:
     DataSet(const std::string& name);
     virtual ~DataSet();
 
+    void writeDataFile(const char *filename);
+
     bool setDataFile(const char *filename);
 
     bool setData(char *data, int nbytes);
