@@ -12,6 +12,7 @@
 
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
+#include <vtkDataSetWriter.h>
 #include <vtkPolyData.h>
 #include <vtkStructuredPoints.h>
 #include <vtkStructuredGrid.h>
@@ -139,6 +140,18 @@ bool DataSet::getVisibility() const
     return _visible;
 }
 
+void DataSet::writeDataFile(const char *filename)
+{
+    if (_dataSet == NULL)
+        return;
+    
+    vtkSmartPointer<vtkDataSetWriter> writer = vtkSmartPointer<vtkDataSetWriter>::New();
+
+    writer->SetFileName(filename);
+    writer->SetInput(_dataSet);
+    writer->Write();
+}
+
 /**
  * \brief Read a VTK data file
  */
@@ -209,32 +222,51 @@ void DataSet::print() const
     if (_dataSet->GetPointData() != NULL) {
         TRACE("PointData arrays: %d", _dataSet->GetPointData()->GetNumberOfArrays());
         for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
-            _dataSet->GetPointData()->GetArray(i)->GetRange(dataRange, -1);
-            TRACE("PointData[%d]: '%s' comp:%d, (%g,%g)", i,
-                  _dataSet->GetPointData()->GetArrayName(i),
-                  _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents(),
-                  dataRange[0], dataRange[1]);
+            if (_dataSet->GetPointData()->GetArray(i) != NULL) {
+                _dataSet->GetPointData()->GetArray(i)->GetRange(dataRange, -1);
+                TRACE("PointData[%d]: '%s' comp:%d, (%g,%g)", i,
+                      _dataSet->GetPointData()->GetArrayName(i),
+                      _dataSet->GetPointData()->GetAbstractArray(i)->GetNumberOfComponents(),
+                      dataRange[0], dataRange[1]);
+            } else {
+                TRACE("PointData[%d]: '%s' comp:%d", i,
+                      _dataSet->GetPointData()->GetArrayName(i),
+                      _dataSet->GetPointData()->GetAbstractArray(i)->GetNumberOfComponents());
+            }
         }
     }
     if (_dataSet->GetCellData() != NULL) {
         TRACE("CellData arrays: %d", _dataSet->GetCellData()->GetNumberOfArrays());
         for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
-            _dataSet->GetCellData()->GetArray(i)->GetRange(dataRange, -1);
-            TRACE("CellData[%d]: '%s' comp:%d, (%g,%g)", i,
-                  _dataSet->GetCellData()->GetArrayName(i),
-                  _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents(),
-                  dataRange[0], dataRange[1]);
+            if (_dataSet->GetCellData()->GetArray(i) != NULL) {
+                _dataSet->GetCellData()->GetArray(i)->GetRange(dataRange, -1);
+                TRACE("CellData[%d]: '%s' comp:%d, (%g,%g)", i,
+                      _dataSet->GetCellData()->GetArrayName(i),
+                      _dataSet->GetCellData()->GetAbstractArray(i)->GetNumberOfComponents(),
+                      dataRange[0], dataRange[1]);
+            } else {
+                TRACE("CellData[%d]: '%s' comp:%d", i,
+                      _dataSet->GetCellData()->GetArrayName(i),
+                      _dataSet->GetCellData()->GetAbstractArray(i)->GetNumberOfComponents());
+            }
         }
     }
     if (_dataSet->GetFieldData() != NULL) {
         TRACE("FieldData arrays: %d", _dataSet->GetFieldData()->GetNumberOfArrays());
         for (int i = 0; i < _dataSet->GetFieldData()->GetNumberOfArrays(); i++) {
-            _dataSet->GetFieldData()->GetArray(i)->GetRange(dataRange, -1);
-            TRACE("FieldData[%d]: '%s' comp:%d, tuples:%d (%g,%g)", i,
-                  _dataSet->GetFieldData()->GetArrayName(i),
-                  _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents(),
-                  _dataSet->GetFieldData()->GetArray(i)->GetNumberOfTuples(),
-                  dataRange[0], dataRange[1]);
+            if (_dataSet->GetFieldData()->GetArray(i) != NULL) {
+                _dataSet->GetFieldData()->GetArray(i)->GetRange(dataRange, -1);
+                TRACE("FieldData[%d]: '%s' comp:%d, tuples:%d (%g,%g)", i,
+                      _dataSet->GetFieldData()->GetArrayName(i),
+                      _dataSet->GetFieldData()->GetAbstractArray(i)->GetNumberOfComponents(),
+                      _dataSet->GetFieldData()->GetAbstractArray(i)->GetNumberOfTuples(),
+                      dataRange[0], dataRange[1]);
+            } else {
+                TRACE("FieldData[%d]: '%s' comp:%d, tuples:%d", i,
+                      _dataSet->GetFieldData()->GetArrayName(i),
+                      _dataSet->GetFieldData()->GetAbstractArray(i)->GetNumberOfComponents(),
+                      _dataSet->GetFieldData()->GetAbstractArray(i)->GetNumberOfTuples());
+            }
         }
     }
 }
@@ -245,7 +277,8 @@ void DataSet::setDefaultArrays()
         _dataSet->GetPointData()->GetScalars() == NULL &&
         _dataSet->GetPointData()->GetNumberOfArrays() > 0) {
         for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
-            if (_dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 1) {
+            if (_dataSet->GetPointData()->GetArray(i) != NULL &&
+                _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 1) {
                 TRACE("Setting point scalars to '%s'", _dataSet->GetPointData()->GetArrayName(i));
                 _dataSet->GetPointData()->SetActiveScalars(_dataSet->GetPointData()->GetArrayName(i));
                 break;
@@ -256,7 +289,8 @@ void DataSet::setDefaultArrays()
         _dataSet->GetPointData()->GetVectors() == NULL &&
         _dataSet->GetPointData()->GetNumberOfArrays() > 0) {
         for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
-            if (_dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 3) {
+            if (_dataSet->GetPointData()->GetArray(i) != NULL &&
+                _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == 3) {
                 TRACE("Setting point vectors to '%s'", _dataSet->GetPointData()->GetArrayName(i));
                 _dataSet->GetPointData()->SetActiveVectors(_dataSet->GetPointData()->GetArrayName(i));
                 break;
@@ -267,7 +301,8 @@ void DataSet::setDefaultArrays()
         _dataSet->GetCellData()->GetScalars() == NULL &&
         _dataSet->GetCellData()->GetNumberOfArrays() > 0) {
         for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
-            if (_dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 1) {
+            if (_dataSet->GetCellData()->GetArray(i) != NULL &&
+                _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 1) {
                 TRACE("Setting cell scalars to '%s'", _dataSet->GetCellData()->GetArrayName(i));
                 _dataSet->GetCellData()->SetActiveScalars(_dataSet->GetCellData()->GetArrayName(i));
                 break;
@@ -278,7 +313,8 @@ void DataSet::setDefaultArrays()
         _dataSet->GetCellData()->GetVectors() == NULL &&
         _dataSet->GetCellData()->GetNumberOfArrays() > 0) {
         for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
-            if (_dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 3) {
+            if (_dataSet->GetCellData()->GetArray(i) != NULL &&
+                _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == 3) {
                 TRACE("Setting cell vectors to '%s'", _dataSet->GetCellData()->GetArrayName(i));
                 _dataSet->GetCellData()->SetActiveVectors(_dataSet->GetCellData()->GetArrayName(i));
                 break;
@@ -634,25 +670,25 @@ bool DataSet::getFieldInfo(const char *fieldName,
                            int *numComponents) const
 {
     if (_dataSet->GetPointData() != NULL &&
-        _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+        _dataSet->GetPointData()->GetAbstractArray(fieldName) != NULL) {
         if (type != NULL)
             *type = POINT_DATA;
         if (numComponents != NULL)
-            *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
+            *numComponents = _dataSet->GetPointData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
         return true;
     } else if (_dataSet->GetCellData() != NULL &&
-               _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+               _dataSet->GetCellData()->GetAbstractArray(fieldName) != NULL) {
         if (type != NULL)
             *type = CELL_DATA;
         if (numComponents != NULL)
-            *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
+            *numComponents = _dataSet->GetCellData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
         return true;
     } else if (_dataSet->GetFieldData() != NULL &&
-               _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+               _dataSet->GetFieldData()->GetAbstractArray(fieldName) != NULL) {
         if (type != NULL)
             *type = FIELD_DATA;
         if (numComponents != NULL)
-            *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+            *numComponents = _dataSet->GetFieldData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
         return true;
     }
     return false;
@@ -665,27 +701,27 @@ bool DataSet::getFieldInfo(const char *fieldName,
     switch (type) {
     case POINT_DATA:
         if (_dataSet->GetPointData() != NULL &&
-            _dataSet->GetPointData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetPointData()->GetAbstractArray(fieldName) != NULL) {
             if (numComponents != NULL)
-                *numComponents = _dataSet->GetPointData()->GetArray(fieldName)->GetNumberOfComponents();
+                *numComponents = _dataSet->GetPointData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
         break;
     case CELL_DATA:
         if (_dataSet->GetCellData() != NULL &&
-            _dataSet->GetCellData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetCellData()->GetAbstractArray(fieldName) != NULL) {
             if (numComponents != NULL)
-                *numComponents = _dataSet->GetCellData()->GetArray(fieldName)->GetNumberOfComponents();
+                *numComponents = _dataSet->GetCellData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
         break;
     case FIELD_DATA:
         if (_dataSet->GetFieldData() != NULL &&
-            _dataSet->GetFieldData()->GetArray(fieldName) != NULL) {
+            _dataSet->GetFieldData()->GetAbstractArray(fieldName) != NULL) {
             if (numComponents != NULL)
-                *numComponents = _dataSet->GetFieldData()->GetArray(fieldName)->GetNumberOfComponents();
+                *numComponents = _dataSet->GetFieldData()->GetAbstractArray(fieldName)->GetNumberOfComponents();
             return true;
         } else
             return false;
@@ -714,8 +750,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetPointData() != NULL) {
             for (int i = 0; i < _dataSet->GetPointData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    (_dataSet->GetPointData()->GetArray(i) != NULL &&
-                     _dataSet->GetPointData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
+                    (_dataSet->GetPointData()->GetAbstractArray(i) != NULL &&
+                     _dataSet->GetPointData()->GetAbstractArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetPointData()->GetArrayName(i));
                 }
             }
@@ -725,8 +761,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetCellData() != NULL) {
             for (int i = 0; i < _dataSet->GetCellData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    (_dataSet->GetCellData()->GetArray(i) != NULL &&
-                     _dataSet->GetCellData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
+                    (_dataSet->GetCellData()->GetAbstractArray(i) != NULL &&
+                     _dataSet->GetCellData()->GetAbstractArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetCellData()->GetArrayName(i));
                 }
             }
@@ -736,8 +772,8 @@ void DataSet::getFieldNames(std::vector<std::string>& names,
         if (_dataSet->GetFieldData() != NULL) {
             for (int i = 0; i < _dataSet->GetFieldData()->GetNumberOfArrays(); i++) {
                 if (numComponents == -1 ||
-                    (_dataSet->GetFieldData()->GetArray(i) != NULL &&
-                     _dataSet->GetFieldData()->GetArray(i)->GetNumberOfComponents() == numComponents)) {
+                    (_dataSet->GetFieldData()->GetAbstractArray(i) != NULL &&
+                     _dataSet->GetFieldData()->GetAbstractArray(i)->GetNumberOfComponents() == numComponents)) {
                     names.push_back(_dataSet->GetFieldData()->GetArrayName(i));
                 }
             }

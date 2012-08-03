@@ -2470,6 +2470,8 @@ void Renderer::collectDataRanges(double *range, const char *name,
          itr != _dataSets.end(); ++itr) {
         if (!onlyVisible || itr->second->getVisibility()) {
             double r[2];
+            r[0] = DBL_MAX;
+            r[1] = -DBL_MAX;
             itr->second->getDataRange(r, name, type, component);
             range[0] = min2(range[0], r[0]);
             range[1] = max2(range[1], r[1]);
