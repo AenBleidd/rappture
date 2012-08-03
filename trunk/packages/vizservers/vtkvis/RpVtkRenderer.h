@@ -310,6 +310,9 @@ public:
     void setGraphicsObjectPosition(const DataSetId& id, double pos[3]);
 
     template<class GraphicsObject>
+    void setGraphicsObjectAspect(const DataSetId& id, double aspect);
+
+    template<class GraphicsObject>
     void setGraphicsObjectScale(const DataSetId& id, double scale[3]);
 
     template<class GraphicsObject>
