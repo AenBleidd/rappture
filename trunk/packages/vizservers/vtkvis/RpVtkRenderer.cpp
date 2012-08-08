@@ -2297,73 +2297,198 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
              itr != _contour2Ds.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
              itr != _contour3Ds.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (CutplaneHashmap::iterator itr = _cutplanes.begin();
              itr != _cutplanes.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (GlyphsHashmap::iterator itr = _glyphs.begin();
              itr != _glyphs.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (HeightMapHashmap::iterator itr = _heightMaps.begin();
              itr != _heightMaps.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (LICHashmap::iterator itr = _lics.begin();
              itr != _lics.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (MoleculeHashmap::iterator itr = _molecules.begin();
              itr != _molecules.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (PolyDataHashmap::iterator itr = _polyDatas.begin();
              itr != _polyDatas.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
              itr != _streamlines.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (VolumeHashmap::iterator itr = _volumes.begin();
              itr != _volumes.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            mergeBounds(bounds, bounds, itr->second->getBounds());
     }
     for (WarpHashmap::iterator itr = _warps.begin();
              itr != _warps.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getBounds());
+    }
+
+    for (int i = 0; i < 6; i += 2) {
+        if (bounds[i+1] < bounds[i]) {
+            bounds[i] = -0.5;
+            bounds[i+1] = 0.5;
+        }
+    }
+
+    int numDims = 0;
+    if (bounds[0] != bounds[1])
+        numDims++;
+    if (bounds[2] != bounds[3])
+        numDims++;
+    if (bounds[4] != bounds[5])
+        numDims++;
+
+    if (numDims == 0) {
+        bounds[0] -= .5;
+        bounds[1] += .5;
+        bounds[2] -= .5;
+        bounds[3] += .5;
+    }
+
+    TRACE("Bounds: %g %g %g %g %g %g",
+          bounds[0],
+          bounds[1],
+          bounds[2],
+          bounds[3],
+          bounds[4],
+          bounds[5]);
+}
+
+/**
+ * \brief Collect bounds of all graphics objects
+ *
+ * \param[out] bounds Bounds of all scene objects
+ * \param[in] onlyVisible Only collect bounds of visible objects
+ */
+void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
+{
+    bounds[0] = DBL_MAX;
+    bounds[1] = -DBL_MAX;
+    bounds[2] = DBL_MAX;
+    bounds[3] = -DBL_MAX;
+    bounds[4] = DBL_MAX;
+    bounds[5] = -DBL_MAX;
+
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+             itr != _dataSets.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+    }
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+             itr != _contour2Ds.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
+             itr != _contour3Ds.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
+             itr != _cutplanes.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (GlyphsHashmap::iterator itr = _glyphs.begin();
+             itr != _glyphs.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
+             itr != _heightMaps.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (LICHashmap::iterator itr = _lics.begin();
+             itr != _lics.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (MoleculeHashmap::iterator itr = _molecules.begin();
+             itr != _molecules.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
+             itr != _polyDatas.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
+             itr != _pseudoColors.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
+             itr != _streamlines.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (VolumeHashmap::iterator itr = _volumes.begin();
+             itr != _volumes.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (WarpHashmap::iterator itr = _warps.begin();
+             itr != _warps.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
     }
 
     for (int i = 0; i < 6; i += 2) {
