@@ -553,6 +553,8 @@ private:
 
     void collectBounds(double *bounds, bool onlyVisible);
 
+    void collectUnscaledBounds(double *bounds, bool onlyVisible);
+
     void collectDataRanges();
 
     void collectDataRanges(double *range, const char *name,
