@@ -239,7 +239,7 @@ itcl::body Rappture::ChoiceEntry::_rebuild {} {
     #
     # Assign the default value to this widget, if there is one.
     #
-    set defval [$_owner xml get $_path.default]
+    set defval [string trim [$_owner xml get $_path.default]]
     if {"" != $defval} {
         if {[info exists _str2val($defval)]} {
             $itk_component(choice) value $defval

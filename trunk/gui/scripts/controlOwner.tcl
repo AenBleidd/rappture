@@ -58,7 +58,7 @@ itcl::body Rappture::ControlOwner::constructor {owner} {
     # we are adding this so notes can be used
     # in coordination with loaders inside the load function
     array set _type2curpath {
-        drawing components
+        drawing all
         choice current
         boolean current
         image current
@@ -269,7 +269,11 @@ itcl::body Rappture::ControlOwner::load {newobj} {
 
         set type [[tool] xml element -as type $path]
         if {[info exists _type2curpath($type)]} {
-            set currentpath $path.$_type2curpath($type)
+	    if { $_type2curpath($type) == "all" } {
+		set currentpath $path
+	    } else {
+		set currentpath $path.$_type2curpath($type)
+	    }
         } else {
             # default incase i forgot an input type in _type2curpath
             set currentpath $path.current
