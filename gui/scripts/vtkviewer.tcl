@@ -68,7 +68,6 @@ itcl::class Rappture::VtkViewer {
     protected method Disconnect {}
     protected method DoResize {}
     protected method DoRotate {}
-    private method DoUpdate {} 
     protected method AdjustSetting {what {value ""}}
     protected method FixSettings { args  }
     protected method Pan {option x y}
@@ -94,7 +93,6 @@ itcl::class Rappture::VtkViewer {
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
     private method EventuallyRotate { q } 
-    private method EventuallyChangeSettings { args } 
     private method GetImage { args } 
     private method GetVtkData { args } 
     private method IsValidObject { dataobj } 
@@ -231,10 +229,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     }]
     array set _settings [subst {
         legend          1
-	molecule-atomscale	0.5
-	molecule-bondscale	0.2
-	molecule-atomradius	"Van der Waals"
-	molecule-representation  "ball and stick"
+	molecule-representation  "Ball and Stick"
         molecule-edges           0
         molecule-labels          0
         molecule-lighting        1
@@ -465,27 +460,6 @@ itcl::body Rappture::VtkViewer::EventuallyRotate { q } {
         set _rotatePending 1
         global rotate_delay 
         $_dispatcher event -after $rotate_delay !rotate
-    }
-}
-
-itcl::body Rappture::VtkViewer::DoUpdate { } {
-    foreach dataset [CurrentDatasets -visible $_first] {
-	foreach { dataobj comp } [split $dataset -] break
-	set type [$dataobj type $comp]
-	if { $type == "molecule" } {
-	    set val [expr $_settings(molecule-atomscale) * 0.1]
-	    SendCmd "molecule ascale $val $dataset"
-	    set val [expr $_settings(molecule-bondscale) * 0.1]
-	    SendCmd "molecule bscale $val $dataset"
-	}
-    }
-    set _updatePending 0
-}
-
-itcl::body Rappture::VtkViewer::EventuallyChangeSettings { args } {
-    if { !$_updatePending } {
-        $_dispatcher event -after 250 !update
-        set _updatePending 1
     }
 }
 
@@ -978,9 +952,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             }
         }
     }
-    if { $_haveMolecules } {
-	FixSettings molecule-radius molecule-representation 
-    }
+    FixSettings molecule-representation 
+
     SendCmd "dataset maprange visible"
         
     set _buffering 0;                        # Turn off buffering.
@@ -1348,41 +1321,62 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
             }
             set _legendPending 1
         }
-	"molecule-radius" {
-	    set value [$itk_component(atomradius) value]
-	    set value [$itk_component(atomradius) translate $value]
-	    foreach dataset [CurrentDatasets -visible $_first] {
-		foreach {dataobj comp} [split $dataset -] break
-		set type [$dataobj type $comp]
-		if { $type == "molecule" } {
-		    SendCmd "molecule rscale $value $dataset"
-		}
-	    }
-	}
 	"molecule-representation" {
 	    set value [$itk_component(representation) value]
 	    set value [$itk_component(representation) translate $value]
+	    switch -- $value {
+		"ballandstick" {
+		    set ashow 1
+		    set bshow 1
+		    set ascale 0.5
+		    set bscale 0.15
+		}
+		"balls" - "spheres" {
+		    set ashow 1
+		    set bshow 0
+		    set ascale 0.5
+		    set bscale 0.15
+		}
+		"sticks" {
+		    set ashow 0
+		    set bshow 1
+		    set ascale 0.5
+		    set bscale 0.15
+		}
+		"spacefilling" {
+		    set ashow 1
+		    set bshow 0
+		    set ascale 1.0
+		    set bscale 0.15
+		}
+		"rods"  {
+		    set ashow 0
+		    set bshow 1
+		    set ascale 0.5
+		    set bscale 0.25
+		}
+		"wireframe" - "lines" {
+		    set ashow 0
+		    set bshow 1
+		    set ascale 0.5
+		    set bscale 0.05
+		}
+		default {
+		    error "unknown representation $value"
+		}
+	    }
+	    set ascale [expr $ascale * 0.1]
+	    set bscale [expr $bscale * 0.1]
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		foreach {dataobj comp} [split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type == "molecule" } {
-		    switch -- $value {
-			"ballandstick" {
-			    SendCmd "molecule atoms 1 $dataset"
-			    SendCmd "molecule bonds 1 $dataset"
-			}
-			"spheres" {
-			    SendCmd "molecule atoms 1 $dataset"
-			    SendCmd "molecule bonds 0 $dataset"
-			}
-			"sticks" - "lines" {
-			    SendCmd "molecule atoms 0 $dataset"
-			    SendCmd "molecule bonds 1 $dataset"
-			}
-			default {
-			    error "unknown representation $value"
-			}
-		    }
+		    SendCmd [subst {
+			molecule atoms $ashow $dataset
+			molecule bonds $bshow $dataset
+			molecule ascale $ascale $dataset
+			molecule bscale $bscale $dataset
+		    }]
 		}
 	    }
 	}
@@ -1513,7 +1507,11 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
     # Override initial style with current style.
     array set style $_style($tag)
 
-    set name "$style(-color):$style(-levels):$style(-opacity)"
+    if { $style(-color) == "elementDefault" } {
+	set name "$style(-color)"
+    } else {
+	set name "$style(-color):$style(-levels):$style(-opacity)"
+    }
     if { ![info exists _colormaps($name)] } {
         BuildColormap $name [array get style]
         set _colormaps($name) 1
@@ -1751,6 +1749,10 @@ itcl::body Rappture::VtkViewer::ColorsToColormap { colors } {
 # BuildColormap --
 #
 itcl::body Rappture::VtkViewer::BuildColormap { name styles } {
+    puts stderr name=$name
+    if { $name ==  "elementDefault" } {
+	return
+    }
     array set style $styles
     set cmap [ColorsToColormap $style(-color)]
     if { [llength $cmap] == 0 } {
@@ -2224,20 +2226,23 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         Rappture::Combobox $inner.rep -width 20 -editable no
     }
     $inner.rep choices insert end \
-        "ballandstick"  "ball and stick" \
-        "spheres"	"spheres"         \
-        "sticks"	"sticks"          \
-        "lines"		"lines"           
+        "ballandstick"  "Ball and Stick" \
+        "spheres"	"Spheres"	\
+        "sticks"	"Sticks"	\
+        "rods"		"Rods"          \
+        "wireframe"     "Wireframe"	\
+        "spacefilling"  "Space Filling" 
 
     bind $inner.rep <<Value>> \
 	[itcl::code $this AdjustSetting molecule-representation]
-    $inner.rep value "ball and stick"
+    $inner.rep value "Ball and Stick"
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
     itk_component add moleculepalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
     $inner.palette choices insert end \
+	"elementDefault"	     "elementDefault" \
         "BCGYR"              "BCGYR"            \
         "BGYOR"              "BGYOR"            \
         "blue"               "blue"             \
@@ -2259,24 +2264,6 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting molecule-palette]
 
-    ::scale $inner.atomscale -width 10 -font "Arial 9" \
-        -from 0.1 -to 2.0 -resolution 0.005 -label "Atom Scale" \
-        -showvalue true -orient horizontal \
-        -command [itcl::code $this EventuallyChangeSettings] \
-        -variable [itcl::scope _settings(molecule-atomscale)]
-    $inner.atomscale set $_settings(molecule-atomscale)
-    Rappture::Tooltip::for $inner.atomscale \
-        "Adjust scale of atoms (spheres or balls). 1.0 is the full VDW radius."
-
-    ::scale $inner.bondscale -width 10 -font "Arial 9" \
-        -from 0.1 -to 1.0 -resolution 0.0025 -label "Bond Scale" \
-        -showvalue true -orient horizontal \
-        -command [itcl::code $this EventuallyChangeSettings] \
-        -variable [itcl::scope _settings(molecule-bondscale)]
-    Rappture::Tooltip::for $inner.bondscale \
-        "Adjust scale of bonds (sticks)."
-    $inner.bondscale set $_settings(molecule-bondscale)
-
     checkbutton $inner.labels -text "Show labels on atoms" \
         -command [itcl::code $this labels update] \
         -variable [itcl::scope _settings(molecule-labels)] \
@@ -2294,21 +2281,6 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         -font "Arial 9"
     $inner.cell select
 
-    label $inner.atomradius_l -text "Radius Scaling Method" \
-	-font "Arial 9" 
-    itk_component add atomradius {
-        Rappture::Combobox $inner.atomradius -width 20 -editable no
-    }
-    $inner.atomradius choices insert end \
-	"van_der_waals"  "Van der Waals" \
-	"covalent"	"Covalent"	\
-	"atomic"	"Atomic"	\
-	"none"		"None"		
-    bind $inner.atomradius <<Value>> \
-	[itcl::code $this AdjustSetting molecule-radius]
-    $inner.atomradius value "Van der Waals"
-    label $inner.spacer
-
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(molecule-opacity)] \
@@ -2319,21 +2291,16 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
     blt::table $inner \
         0,0 $inner.molecule -anchor w -pady {1 0} \
         1,0 $inner.label -anchor w -pady {1 0} \
-        2,0 $inner.wireframe -anchor w -pady {1 0} \
-        4,0 $inner.edges -anchor w -pady {1 0} \
-        6,0 $inner.atomradius_l -anchor w -pady 2 \
-        7,0 $inner.atomradius -anchor w -pady {1 0} \
-        9,0 $inner.rep_l -anchor w -pady { 2 0 } \
-        10,0 $inner.rep -anchor w  \
-        11,0 $inner.atomscale -fill x -pady {3 0} \
-        12,0 $inner.bondscale -fill x -pady {1 0} \
-        13,0 $inner.palette_l -anchor w -pady 2 \
-        14,0 $inner.palette   -fill x   -pady 2  \
-        15,0 $inner.opacity_l -anchor w -pady 2 \
-        16,0 $inner.opacity   -fill x   -pady 2 
+        2,0 $inner.edges -anchor w -pady {1 0} \
+        3,0 $inner.rep_l -anchor w -pady { 2 0 } \
+        4,0 $inner.rep -anchor w  \
+        5,0 $inner.palette_l -anchor w -pady 2 \
+        6,0 $inner.palette   -fill x   -pady 2  \
+        7,0 $inner.opacity_l -anchor w -pady 2 \
+        8,0 $inner.opacity   -fill x   -pady 2 
     
     blt::table configure $inner r* -resize none
-    blt::table configure $inner r17 -resize expand
+    blt::table configure $inner r9 -resize expand
 }
 
 #
@@ -2489,6 +2456,7 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "glyphs smode vcomp {} $tag"
         SendCmd "glyphs opacity $settings(-opacity) $tag"
         SendCmd "glyphs visible $settings(-visible) $tag"
+        set _settings(glyphs-wireframe) $settings(-wireframe)
         set _haveGlyphs 1
     } elseif { $type == "molecule" } {
         array set settings {
@@ -2506,11 +2474,8 @@ itcl::body Rappture::VtkViewer::SetObjectStyle { dataobj comp } {
         SendCmd "molecule add $tag"
         SendCmd "molecule opacity $settings(-opacity) $tag"
         SendCmd "molecule visible $settings(-visible) $tag"
-        SendCmd "molecule rscale $_settings(molecule-atomradius) $tag"
-	set val [expr $_settings(molecule-atomscale) * 0.1]
-	SendCmd "molecule ascale $val $tag"
-	set val [expr $_settings(molecule-bondscale) * 0.1]
-	SendCmd "molecule bscale $val $tag"
+        SendCmd "molecule rscale van_der_waals $tag"
+        set _settings(molecule-wireframe) $settings(-wireframe)
         set _haveMolecules 1
     } else {
         array set settings {

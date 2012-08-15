@@ -27,6 +27,7 @@ itcl::class Rappture::DrawingEntry {
     private variable _drawingHeight 0
     private variable _drawingWidth 0
     private variable _owner
+    private variable _xmlobj ""
     private variable _parser "";	# Slave interpreter where all 
 					# substituted variables are stored.
     private variable _path
@@ -98,6 +99,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     }
     set _path $path
     set _owner $owner
+    set _xmlobj [$_owner xml object]
     #
     # Display the current drawing.
     #
@@ -127,7 +129,7 @@ itcl::body Rappture::DrawingEntry::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::label {} {
 return ""
-    set label [$_owner xml get $_path.about.label]
+    set label [$_xmlobj get $_path.about.label]
     if {"" == $label} {
         set label "Drawing"
     }
@@ -144,7 +146,7 @@ return ""
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::tooltip {} {
 return ""
-    set str [$_owner xml get $_path.about.description]
+    set str [$_xmlobj get $_path.about.description]
     return [string trim $str]
 }
 
@@ -193,7 +195,7 @@ itcl::body Rappture::DrawingEntry::ParseDescription {} {
     #puts stderr "ParseDescription owner=$_owner path=$_path"
     ParseBackground
     ParseSubstitutions
-    foreach cname [$_owner xml children $_path.components] {
+    foreach cname [$_xmlobj children $_path.components] {
 	switch -glob -- $cname {
 	    "line*" {
 		ParseLine $_path.components.$cname $cname 
@@ -288,7 +290,7 @@ itcl::body Rappture::DrawingEntry::ParseGrid { cpath cname } {
     }
     #puts stderr "ParseGrid owner=$_owner cpath=$cpath xcoords=$xcoords ycoords=$ycoords"
     set list {}
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -324,7 +326,7 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 	-anchor c
     }
     array unset _cname2controls $cname
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -332,7 +334,7 @@ itcl::body Rappture::DrawingEntry::ParseHotspot { cpath cname } {
 	} elseif { [string match "controls*" $attr] } {
 	    set value [XmlGetSubst $cpath.$attr]
 	    lappend _cname2controls($cname) $value
-	    $_owner xml put $value.hide 1
+	    $_xmlobj put $value.hide 1
 	}
     }
     # Coordinates
@@ -386,7 +388,7 @@ itcl::body Rappture::DrawingEntry::ParseLine { cpath cname } {
     }
     #puts stderr "ParseLine owner=$_owner cpath=$cpath coords=$coords"
     set list {}
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -416,7 +418,7 @@ itcl::body Rappture::DrawingEntry::ParseOval { cpath cname } {
 	-width 1 
 	-outline black
     }
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -448,7 +450,7 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     array set options {
 	-anchor nw
     }
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -557,7 +559,7 @@ itcl::body Rappture::DrawingEntry::ParsePolygon { cpath cname } {
     lappend coords $x1 $y1
     #puts stderr "ParsePolygon owner=$_owner cpath=$cpath coords=$coords"
     set list {}
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -587,7 +589,7 @@ itcl::body Rappture::DrawingEntry::ParseRectangle { cpath cname } {
 	-width 1 
 	-outline black
     }
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    set value [XmlGetSubst $cpath.$attr]
@@ -629,7 +631,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 	-fill {}
 	-anchor c
     }
-    foreach attr [$_owner xml children $cpath] {
+    foreach attr [$_xmlobj children $cpath] {
 	if { [info exists attr2option($attr)] } {
 	    set option $attr2option($attr)
 	    if { $attr == "text" } {
@@ -667,7 +669,7 @@ itcl::body Rappture::DrawingEntry::ParseText { cpath cname } {
 	foreach varName [Rappture::hotspot variables $c $id] {
 	    if { [info exists _name2path($varName)] } {
 		set path $_name2path($varName)
-		$_owner xml put $path.hide 1
+		$_xmlobj put $path.hide 1
 		lappend _cname2controls($cname) $path
 	    } else {
 		puts stderr "unknown varName=$varName"
@@ -829,7 +831,7 @@ itcl::body Rappture::DrawingEntry::ParseScreenCoordinates { values } {
 }
 
 itcl::body Rappture::DrawingEntry::ParseBackground {} {
-    foreach elem [$_owner xml children $_path.background] {
+    foreach elem [$_xmlobj children $_path.background] {
 	switch -glob -- $elem {
 	    "color*" {
 		#  Background color of the drawing canvas (default white)
@@ -858,7 +860,7 @@ itcl::body Rappture::DrawingEntry::ParseBackground {} {
 }
 
 itcl::body Rappture::DrawingEntry::ParseSubstitutions {} {
-    foreach var [$_owner xml children $_path.substitutions] {
+    foreach var [$_xmlobj children $_path.substitutions] {
 	if { ![string match "variable*" $var] } {
 	    continue
 	}
@@ -866,7 +868,7 @@ itcl::body Rappture::DrawingEntry::ParseSubstitutions {} {
 	set map ""
 	set name ""
 	set path ""
-	foreach elem [$_owner xml children $varPath] {
+	foreach elem [$_xmlobj children $varPath] {
 	    switch -glob -- $elem {
 		"name*" {
 		    set name [XmlGet $varPath.$elem]
@@ -980,7 +982,13 @@ itcl::body Rappture::DrawingEntry::Withdraw { cname } {
 # new value is not actually applied, but just checked for correctness.
 # ----------------------------------------------------------------------
 itcl::body Rappture::DrawingEntry::value {args} {
-    # drawing entries have no value
+    # Redraw if there's a new library object.
+    if { [llength $args] > 0 } {
+	set libobj [lindex $args 0]
+	if { $libobj != "" } { 
+	    Redraw
+	}
+    }
     return ""
 }
 
@@ -1003,12 +1011,12 @@ itcl::body Rappture::DrawingEntry::InitSubstitutions {} {
 }
 
 itcl::body Rappture::DrawingEntry::XmlGet { path } {
-    set value [$_owner xml get $path]
+    set value [$_xmlobj get $path]
     return [string trim $value]
 }
 
 itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
-    set value [$_owner xml get $path]
+    set value [$_xmlobj get $path]
     if { $_parser == "" } {
 	return $value
     }
@@ -1016,7 +1024,7 @@ itcl::body Rappture::DrawingEntry::XmlGetSubst { path } {
 }
 
 itcl::body Rappture::DrawingEntry::IsEnabled { path } {
-    set enable [string trim [$_owner xml get $path.about.enable]]
+    set enable [string trim [$_xmlobj get $path.about.enable]]
     if {"" == $enable} {
         return 1
     }
