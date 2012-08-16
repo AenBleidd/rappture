@@ -236,13 +236,13 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
         molecule-opacity         100
         molecule-visible         1
         molecule-wireframe       0
-	molecule-palette	rainbow
+	molecule-palette         elementDefault
         mesh-edges           0
         mesh-lighting        1
         mesh-opacity         40
         mesh-visible         1
         mesh-wireframe       0
-	mesh-palette		rainbow
+	mesh-palette         rainbow
     }]
 
     itk_component add view {
@@ -1326,57 +1326,60 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 	    set value [$itk_component(representation) translate $value]
 	    switch -- $value {
 		"ballandstick" {
+		    set rscale covalent
 		    set ashow 1
 		    set bshow 1
-		    set ascale 0.5
-		    set bscale 0.15
+		    set ascale 0.3
+		    set bscale 0.075
 		}
 		"balls" - "spheres" {
+		    set rscale covalent
 		    set ashow 1
 		    set bshow 0
-		    set ascale 0.5
-		    set bscale 0.15
+		    set ascale 0.3
+		    set bscale 0.075
 		}
 		"sticks" {
-		    set ashow 0
+		    set rscale none
+		    set ashow 1
 		    set bshow 1
-		    set ascale 0.5
-		    set bscale 0.15
+		    set ascale 0.075
+		    set bscale 0.075
 		}
 		"spacefilling" {
+		    set rscale van_der_waals
 		    set ashow 1
 		    set bshow 0
 		    set ascale 1.0
-		    set bscale 0.15
+		    set bscale 0.075
 		}
 		"rods"  {
-		    set ashow 0
+		    set rscale none
+		    set ashow 1
 		    set bshow 1
-		    set ascale 0.5
-		    set bscale 0.25
+		    set ascale 0.1
+		    set bscale 0.1
 		}
 		"wireframe" - "lines" {
+		    set rscale van_der_waals
 		    set ashow 0
 		    set bshow 1
-		    set ascale 0.5
-		    set bscale 0.05
+		    set ascale 0.3
+		    set bscale 0.005
 		}
 		default {
 		    error "unknown representation $value"
 		}
 	    }
-	    set ascale [expr $ascale * 0.1]
-	    set bscale [expr $bscale * 0.1]
 	    foreach dataset [CurrentDatasets -visible $_first] {
 		foreach {dataobj comp} [split $dataset -] break
 		set type [$dataobj type $comp]
 		if { $type == "molecule" } {
-		    SendCmd [subst {
-			molecule atoms $ashow $dataset
-			molecule bonds $bshow $dataset
-			molecule ascale $ascale $dataset
-			molecule bscale $bscale $dataset
-		    }]
+		    SendCmd [subst {molecule rscale $rscale $dataset
+molecule atoms $ashow $dataset
+molecule bonds $bshow $dataset
+molecule ascale $ascale $dataset
+molecule bscale $bscale $dataset}]
 		}
 	    }
 	}
@@ -1491,6 +1494,9 @@ itcl::body Rappture::VtkViewer::SetColormap { dataobj comp } {
         -color BCGYR
         -levels 6
         -opacity 1.0
+    }
+    if {[$dataobj type $comp] == "molecule"} {
+        set style(-color) elementDefault
     }
     set tag $dataobj-$comp
     if { ![info exists _initialStyle($tag)] } {
@@ -2260,7 +2266,7 @@ itcl::body Rappture::VtkViewer::BuildMoleculeTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(moleculepalette) value "BCGYR"
+    $itk_component(moleculepalette) value "elementDefault"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting molecule-palette]
 
