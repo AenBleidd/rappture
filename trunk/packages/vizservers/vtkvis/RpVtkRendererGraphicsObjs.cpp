@@ -1326,6 +1326,67 @@ void Renderer::setMoleculeBondColor(const DataSetId& id, float color[3])
     _needsRedraw = true;
 }
 
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setMoleculeColorMode(const DataSetId& id,
+                                    Molecule::ColorMode mode,
+                                    DataSet::DataAttributeType type,
+                                    const char *name, double range[2])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setMoleculeColorMode(const DataSetId& id,
+                                    Molecule::ColorMode mode,
+                                    const char *name, double range[2])
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
+
 /**
  * \brief Set the color mode for the specified DataSet
  */

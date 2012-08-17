@@ -453,6 +453,15 @@ public:
 
     void setMoleculeBondColor(const DataSetId& id, float color[3]);
 
+    void setMoleculeColorMode(const DataSetId& id,
+                              Molecule::ColorMode mode,
+                              const char *name, double range[2] = NULL);
+
+    void setMoleculeColorMode(const DataSetId& id,
+                              Molecule::ColorMode mode,
+                              DataSet::DataAttributeType type,
+                              const char *name, double range[2] = NULL);
+
     // Color-mapped surfaces
 
     void setPseudoColorColorMode(const DataSetId& id,

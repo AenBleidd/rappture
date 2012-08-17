@@ -275,9 +275,8 @@ molecule atoms <bool> <?datasetName?>
          Toggle rendering of atoms
 molecule ascale <val> <?datasetName?>
          Set atom scale factor
-molecule bcmode <mode> <?datasetName?>
+molecule bcmode <by_elements|constant> <?datasetName?>
          Set bond color mode
-         mode = constant|by_elements
 molecule bcolor <r> <g> <b> <?datasetName?>
          Set constant bond color
 molecule bonds <bool> <?datasetName?>
@@ -286,7 +285,14 @@ molecule bscale <val> <?datasetName?>
          Set bond scale factor
 molecule bstyle <cylinder|line> <?datasetName?>
          Set bond render style
+molecule ccolor r g b <?datasetName?>
 molecule colormap <colormapName> <?datasetName?>
+molecule colormode <by_elements|scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+         Set the field used to color the object.  'ccolor' means to use
+         the constant color defined by the ccolor subcommand.  'scalar' uses
+         the active scalar field.  'vmag' uses the magnitude of the current
+         vector field, and 'vx','vy','vz' use the corresponding component of
+         the active vector field.
 molecule delete <?datasetName?>
 molecule edges <bool> <?datasetName?>
 molecule labels <bool> <?datasetName?>
