@@ -39,7 +39,7 @@ using namespace Rappture::VtkVis;
 Molecule::Molecule() :
     VtkGraphicsObject(),
     _radiusScale(0.3),
-    _atomScaling(VAN_DER_WAALS_RADIUS),
+    _atomScaling(COVALENT_RADIUS),
     _labelsOn(false),
     _colorMap(NULL)
 {
@@ -215,20 +215,25 @@ void Molecule::update()
                 _cylinderSource->SetHeight(1.0);
                 _cylinderSource->SetResolution(12);
                 _cylinderSource->CappingOff();
+                _cylinderTrans = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+                _cylinderTrans->SetInputConnection(_cylinderSource->GetOutputPort());
+                vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                trans->RotateZ(-90.0);
+                _cylinderTrans->SetTransform(trans);
             }
-            vtkSmartPointer<vtkTransformPolyDataFilter> transPD = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
-            transPD->SetInputConnection(_cylinderSource->GetOutputPort());
-            vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-            trans->RotateZ(-90.0);
-            transPD->SetTransform(trans);
+            if (_lineSource == NULL) {
+                _lineSource = vtkSmartPointer<vtkLineSource>::New();
+                _lineSource->SetPoint1(-0.5, 0, 0);
+                _lineSource->SetPoint2(0.5, 0, 0);
+            }
 
-            _bondMapper->SetSourceConnection(transPD->GetOutputPort());
+            _bondMapper->SetSourceConnection(_cylinderTrans->GetOutputPort());
             _bondMapper->SetInputConnection(_bondPD->GetProducerPort());
-            _bondMapper->SetOrientationArray(vtkDataSetAttributes::VECTORS);
+            _bondMapper->SetOrientationArray("bond_orientations");
             _bondMapper->SetOrientationModeToDirection();
             _bondMapper->OrientOn();
-            _bondMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
-            _bondMapper->SetScaleModeToScaleByMagnitude();
+            _bondMapper->SetScaleArray("bond_scales");
+            _bondMapper->SetScaleModeToScaleByVectorComponents();
             _bondMapper->ScalingOn();
             _bondMapper->ClampingOff();
 #endif
@@ -613,6 +618,37 @@ void Molecule::setOpacity(double opacity)
     }
 }
 
+void Molecule::setBondStyle(BondStyle style)
+{
+#ifdef MOLECULE_USE_GLYPH3D_MAPPER
+    switch (style) {
+    case BOND_STYLE_CYLINDER:
+        if (_bondProp != NULL) {
+            _bondProp->GetProperty()->SetLineWidth(_edgeWidth);
+            _bondProp->GetProperty()->SetLighting(_lighting ? 1 : 0);
+        }
+        if (_bondMapper != NULL && _cylinderTrans != NULL) {
+            _cylinderTrans->Modified();
+            _bondMapper->SetSourceConnection(_cylinderTrans->GetOutputPort());
+            _bondMapper->Modified();
+        }
+        break;
+    case BOND_STYLE_LINE:
+        if (_bondProp != NULL) {
+            _bondProp->GetProperty()->LightingOff();
+        }
+        if (_bondMapper != NULL && _lineSource != NULL) {
+            _lineSource->Modified();
+            _bondMapper->SetSourceConnection(_lineSource->GetOutputPort());
+            _bondMapper->Modified();
+        }
+         break;
+    default:
+        WARN("Unknown bond style");    
+    }
+#endif
+}
+
 /**
  * \brief Set constant bond color
  */
@@ -679,7 +715,7 @@ void Molecule::setAtomScaling(AtomScaling state)
 #else
         if (_atomMapper != NULL) {
              assert(ds->GetPointData() != NULL &&
-                   ds->GetPointData()->GetVectors() != NULL);
+                    ds->GetPointData()->GetVectors() != NULL);
             _atomMapper->SetScaleModeToScaleByMagnitude();
             _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
             _atomMapper->ScalingOn();
@@ -707,11 +743,18 @@ void Molecule::setAtomRadiusScale(double scale)
 void Molecule::setBondRadiusScale(double scale)
 {
 #ifndef MOLECULE_USE_GLYPH3D_MAPPER
-    if (_tuber != NULL)
+    if (_tuber != NULL) {
         _tuber->SetRadius(scale);
+    }
 #else
-    if (_cylinderSource != NULL)
+    if (_cylinderSource != NULL) {
         _cylinderSource->SetRadius(scale);
+        // Workaround bug with source modification not causing
+        // mapper to be updated
+        if (_bondMapper != NULL) {
+            _bondMapper->Modified();
+        }
+    }
 #endif
 }
 
@@ -734,9 +777,12 @@ void Molecule::setupBondPolyData()
     vtkSmartPointer<vtkPoints> bondPoints = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkIntArray> bondElements = vtkSmartPointer<vtkIntArray>::New();
     vtkSmartPointer<vtkDoubleArray> bondVectors = vtkSmartPointer<vtkDoubleArray>::New();
+    vtkSmartPointer<vtkDoubleArray> bondScales = vtkSmartPointer<vtkDoubleArray>::New();
     bondElements->SetName("element");
-    bondVectors->SetName("bonds");
+    bondVectors->SetName("bond_orientations");
     bondVectors->SetNumberOfComponents(3);
+    bondScales->SetName("bond_scales");
+    bondScales->SetNumberOfComponents(3);
     vtkDataArray *elements = NULL;
     if (pd->GetPointData() != NULL &&
         pd->GetPointData()->GetScalars() != NULL &&
@@ -776,6 +822,14 @@ void Molecule::setupBondPolyData()
         bondVectors->InsertNextTupleValue(vec);
         TRACE("Bond %d, vec: %g,%g,%g", i, vec[0], vec[1], vec[2]);
 
+        double scale[3];
+        scale[0] = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+        scale[1] = 1.0;
+        scale[2] = 1.0;
+
+        bondScales->InsertNextTupleValue(scale);
+        bondScales->InsertNextTupleValue(scale);
+
         if (elements != NULL) {
             int element = (int)elements->GetComponent(pts[0], 0);
             TRACE("Bond %d, elt 0: %d", i, element);
@@ -786,8 +840,10 @@ void Molecule::setupBondPolyData()
         }
     }
     _bondPD->SetPoints(bondPoints);
-    _bondPD->GetPointData()->SetScalars(bondElements);
-    _bondPD->GetPointData()->SetVectors(bondVectors);
+    if (elements != NULL)
+        _bondPD->GetPointData()->SetScalars(bondElements);
+    _bondPD->GetPointData()->AddArray(bondVectors);
+    _bondPD->GetPointData()->AddArray(bondScales);
 }
 #endif
 
