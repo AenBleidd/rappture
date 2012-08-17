@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkRpAxisActor2D.cxx
+  Module:    vtkRpAxisActor2D.cpp
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.

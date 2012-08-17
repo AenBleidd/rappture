@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkRpAxisActor.cxx
+  Module:    vtkRpAxisActor.cpp
   Thanks:    Kathleen Bonnell, B Division, Lawrence Livermore Nat'l Laboratory
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen

@@ -284,6 +284,8 @@ molecule bonds <bool> <?datasetName?>
          Toggle rendering of bonds
 molecule bscale <val> <?datasetName?>
          Set bond scale factor
+molecule bstyle <cylinder|line> <?datasetName?>
+         Set bond render style
 molecule colormap <colormapName> <?datasetName?>
 molecule delete <?datasetName?>
 molecule edges <bool> <?datasetName?>

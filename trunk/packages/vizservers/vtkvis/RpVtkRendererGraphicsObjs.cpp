@@ -1254,6 +1254,30 @@ void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
     _needsRedraw = true;
 }
 
+void Renderer::setMoleculeBondStyle(const DataSetId& id, Molecule::BondStyle style)
+{
+    MoleculeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _molecules.begin();
+        doAll = true;
+    } else {
+        itr = _molecules.find(id);
+    }
+    if (itr == _molecules.end()) {
+        ERROR("Molecule not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setBondStyle(style);
+    } while (doAll && ++itr != _molecules.end());
+
+    _needsRedraw = true;
+}
+
 void Renderer::setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode)
 {
     MoleculeHashmap::iterator itr;
