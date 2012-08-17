@@ -1329,6 +1329,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    set rscale covalent
 		    set ashow 1
 		    set bshow 1
+		    set bstyle cylinder
 		    set ascale 0.3
 		    set bscale 0.075
 		}
@@ -1336,6 +1337,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    set rscale covalent
 		    set ashow 1
 		    set bshow 0
+		    set bstyle cylinder
 		    set ascale 0.3
 		    set bscale 0.075
 		}
@@ -1343,6 +1345,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    set rscale none
 		    set ashow 1
 		    set bshow 1
+		    set bstyle cylinder
 		    set ascale 0.075
 		    set bscale 0.075
 		}
@@ -1350,6 +1353,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    set rscale van_der_waals
 		    set ashow 1
 		    set bshow 0
+		    set bstyle cylinder
 		    set ascale 1.0
 		    set bscale 0.075
 		}
@@ -1357,15 +1361,17 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    set rscale none
 		    set ashow 1
 		    set bshow 1
+		    set bstyle cylinder
 		    set ascale 0.1
 		    set bscale 0.1
 		}
 		"wireframe" - "lines" {
-		    set rscale van_der_waals
+		    set rscale none
 		    set ashow 0
 		    set bshow 1
-		    set ascale 0.3
-		    set bscale 0.005
+		    set bstyle line
+		    set ascale 1.0
+		    set bscale 1.0
 		}
 		default {
 		    error "unknown representation $value"
@@ -1378,6 +1384,7 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		    SendCmd [subst {molecule rscale $rscale $dataset
 molecule atoms $ashow $dataset
 molecule bonds $bshow $dataset
+molecule bstyle $bstyle $dataset
 molecule ascale $ascale $dataset
 molecule bscale $bscale $dataset}]
 		}
