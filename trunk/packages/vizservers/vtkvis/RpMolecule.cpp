@@ -9,8 +9,11 @@
 #include <cassert>
 
 #include <vtkDataSet.h>
+#include <vtkCellArray.h>
 #include <vtkPointData.h>
 #include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
+#include <vtkIntArray.h>
 #include <vtkStringArray.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -18,6 +21,9 @@
 #include <vtkProperty.h>
 #include <vtkTubeFilter.h>
 #include <vtkSphereSource.h>
+#include <vtkCylinderSource.h>
+#include <vtkTransform.h>
+#include <vtkTransformPolyDataFilter.h>
 #include <vtkGlyph3D.h>
 #include <vtkPointSetToLabelHierarchy.h>
 #include <vtkLabelPlacementMapper.h>
@@ -25,6 +31,7 @@
 
 #include "RpMolecule.h"
 #include "RpMoleculeData.h"
+#include "RpVtkRenderer.h"
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
@@ -33,8 +40,8 @@ Molecule::Molecule() :
     VtkGraphicsObject(),
     _radiusScale(0.3),
     _atomScaling(VAN_DER_WAALS_RADIUS),
-    _colorMap(NULL),
-    _labelsOn(false)
+    _labelsOn(false),
+    _colorMap(NULL)
 {
     _bondColor[0] = _bondColor[1] = _bondColor[2] = 1.0f;
     _faceCulling = true;
@@ -48,6 +55,38 @@ Molecule::~Molecule()
     else
         TRACE("Deleting Molecule with NULL DataSet");
 #endif
+}
+
+void Molecule::setDataSet(DataSet *dataSet,
+                          Renderer *renderer)
+{
+    if (_dataSet != dataSet) {
+        _dataSet = dataSet;
+
+        _renderer = renderer;
+
+        if (renderer->getUseCumulativeRange()) {
+            renderer->getCumulativeDataRange(_dataRange,
+                                             _dataSet->getActiveScalarsName(),
+                                             1);
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             _dataSet->getActiveVectorsName(),
+                                             3);
+            for (int i = 0; i < 3; i++) {
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
+            }
+        } else {
+            _dataSet->getScalarRange(_dataRange);
+            _dataSet->getVectorRange(_vectorMagnitudeRange);
+            for (int i = 0; i < 3; i++) {
+                _dataSet->getVectorRange(_vectorComponentRange[i], i);
+            }
+        }
+
+        update();
+    }
 }
 
 /**
@@ -98,6 +137,7 @@ void Molecule::update()
     }
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
     if (_atomMapper == NULL) {
         _atomMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _atomMapper->SetResolveCoincidentTopologyToPolygonOffset();
@@ -108,6 +148,18 @@ void Molecule::update()
         _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _bondMapper->ScalarVisibilityOn();
     }
+#else
+    if (_atomMapper == NULL) {
+        _atomMapper = vtkSmartPointer<vtkGlyph3DMapper>::New();
+        _atomMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _atomMapper->ScalarVisibilityOn();
+    }
+    if (_bondMapper == NULL) {
+        _bondMapper = vtkSmartPointer<vtkGlyph3DMapper>::New();
+        _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _bondMapper->ScalarVisibilityOn();
+    }
+#endif
     if (_labelMapper == NULL) {
         _labelMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
         _labelMapper->SetShapeToRoundedRect();
@@ -145,6 +197,7 @@ void Molecule::update()
         // DataSet is a vtkPolyData
         if (pd->GetNumberOfLines() > 0) {
             // Bonds
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
             if (_tuber == NULL)
                 _tuber = vtkSmartPointer<vtkTubeFilter>::New();
             _tuber->SetInput(pd);
@@ -153,6 +206,32 @@ void Molecule::update()
             _tuber->SetRadius(0.075);
             _tuber->SetVaryRadiusToVaryRadiusOff();
             _bondMapper->SetInputConnection(_tuber->GetOutputPort());
+#else
+            setupBondPolyData();
+
+            if (_cylinderSource == NULL) {
+                _cylinderSource = vtkSmartPointer<vtkCylinderSource>::New();
+                _cylinderSource->SetRadius(0.075);
+                _cylinderSource->SetHeight(1.0);
+                _cylinderSource->SetResolution(12);
+                _cylinderSource->CappingOff();
+            }
+            vtkSmartPointer<vtkTransformPolyDataFilter> transPD = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+            transPD->SetInputConnection(_cylinderSource->GetOutputPort());
+            vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+            trans->RotateZ(-90.0);
+            transPD->SetTransform(trans);
+
+            _bondMapper->SetSourceConnection(transPD->GetOutputPort());
+            _bondMapper->SetInputConnection(_bondPD->GetProducerPort());
+            _bondMapper->SetOrientationArray(vtkDataSetAttributes::VECTORS);
+            _bondMapper->SetOrientationModeToDirection();
+            _bondMapper->OrientOn();
+            _bondMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+            _bondMapper->SetScaleModeToScaleByMagnitude();
+            _bondMapper->ScalingOn();
+            _bondMapper->ClampingOff();
+#endif
             _bondProp->SetMapper(_bondMapper);
             getAssembly()->AddPart(_bondProp);
         }
@@ -169,12 +248,12 @@ void Molecule::update()
             sphereSource->SetRadius(1.0);
             sphereSource->SetThetaResolution(14);
             sphereSource->SetPhiResolution(14);
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
             if (_glypher == NULL)
                 _glypher = vtkSmartPointer<vtkGlyph3D>::New();
             _glypher->SetSourceConnection(sphereSource->GetOutputPort());
             _glypher->SetInput(pd);
-            if (_atomScaling != NO_ATOM_SCALING &&
-                ds->GetPointData() != NULL &&
+            if (ds->GetPointData() != NULL &&
                 ds->GetPointData()->GetVectors() != NULL) {
                 _glypher->SetScaleModeToScaleByVector();
                 _glypher->ScalingOn();
@@ -185,6 +264,20 @@ void Molecule::update()
             _glypher->SetColorModeToColorByScalar();
             _glypher->OrientOff();
             _atomMapper->SetInputConnection(_glypher->GetOutputPort());
+#else
+            _atomMapper->SetSourceConnection(sphereSource->GetOutputPort());
+            _atomMapper->SetInputConnection(pd->GetProducerPort());
+            if (ds->GetPointData() != NULL &&
+                ds->GetPointData()->GetVectors() != NULL) {
+                _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+                _atomMapper->SetScaleModeToScaleByMagnitude();
+                _atomMapper->ScalingOn();
+            } else {
+                _atomMapper->SetScaleModeToNoDataScaling();
+                _atomMapper->ScalingOff();
+            }
+            _atomMapper->OrientOff();
+#endif
             _atomProp->SetMapper(_atomMapper);
             getAssembly()->AddPart(_atomProp);
         }
@@ -214,6 +307,208 @@ void Molecule::updateRanges(Renderer *renderer)
             strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
             _lut->SetRange(_dataRange);
         }
+    }
+}
+
+void Molecule::setColorMode(ColorMode mode)
+{
+    _colorMode = mode;
+    if (_dataSet == NULL)
+        return;
+
+    switch (mode) {
+    case COLOR_BY_ELEMENTS: // Assume default scalar is "element" array
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsType(),
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    case COLOR_CONSTANT:
+    default:
+        setColorMode(mode, DataSet::POINT_DATA, NULL, NULL);
+        break;
+    }
+}
+
+void Molecule::setColorMode(ColorMode mode,
+                            const char *name, double range[2])
+{
+    if (_dataSet == NULL)
+        return;
+    DataSet::DataAttributeType type = DataSet::POINT_DATA;
+    int numComponents = 1;
+    if (name != NULL && strlen(name) > 0 &&
+        !_dataSet->getFieldInfo(name, &type, &numComponents)) {
+        ERROR("Field not found: %s", name);
+        return;
+    }
+    setColorMode(mode, type, name, range);
+}
+
+void Molecule::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                            const char *name, double range[2])
+{
+    _colorMode = mode;
+    _colorFieldType = type;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
+    if (_dataSet == NULL || (_atomMapper == NULL && _bondMapper == NULL))
+        return;
+
+    switch (type) {
+    case DataSet::POINT_DATA:
+        if (_atomMapper != NULL)
+            _atomMapper->SetScalarModeToUsePointFieldData();
+        if (_bondMapper != NULL)
+            _bondMapper->SetScalarModeToUsePointFieldData();
+        break;
+    case DataSet::CELL_DATA:
+        if (_atomMapper != NULL)
+            _atomMapper->SetScalarModeToUseCellFieldData();
+        if (_bondMapper != NULL)
+            _bondMapper->SetScalarModeToUseCellFieldData();
+        break;
+    default:
+        ERROR("Unsupported DataAttributeType: %d", type);
+        return;
+    }
+
+    if (name != NULL && strlen(name) > 0) {
+        if (_atomMapper != NULL)
+            _atomMapper->SelectColorArray(name);
+        if (_bondMapper != NULL)
+            _bondMapper->SelectColorArray(name);
+    } else {
+        if (_atomMapper != NULL)
+            _atomMapper->SetScalarModeToDefault();
+        if (_bondMapper != NULL)
+            _bondMapper->SetScalarModeToDefault();
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (name != NULL && strlen(name) > 0) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            _lut->SetRange(r);
+        }
+    }
+
+    switch (mode) {
+    case COLOR_BY_ELEMENTS:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        break;
+    case COLOR_BY_SCALAR:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToMagnitude();
+        }
+        break;
+    case COLOR_BY_VECTOR_X:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(0);
+        }
+        break;
+    case COLOR_BY_VECTOR_Y:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(1);
+        }
+        break;
+    case COLOR_BY_VECTOR_Z:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOn();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(2);
+        }
+        break;
+    case COLOR_CONSTANT:
+    default:
+        if (_atomMapper != NULL)
+            _atomMapper->ScalarVisibilityOff();
+        if (_bondMapper != NULL)
+            _bondMapper->ScalarVisibilityOff();
+        break;
     }
 }
 
@@ -374,12 +669,22 @@ void Molecule::setAtomScaling(AtomScaling state)
     if (_dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
         addRadiusArray(ds, _atomScaling, _radiusScale);
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
         if (_glypher != NULL) {
             assert(ds->GetPointData() != NULL &&
                    ds->GetPointData()->GetVectors() != NULL);
             _glypher->SetScaleModeToScaleByVector();
             _glypher->ScalingOn();
         }
+#else
+        if (_atomMapper != NULL) {
+             assert(ds->GetPointData() != NULL &&
+                   ds->GetPointData()->GetVectors() != NULL);
+            _atomMapper->SetScaleModeToScaleByMagnitude();
+            _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
+            _atomMapper->ScalingOn();
+        }
+#endif
     }
 }
 
@@ -401,9 +706,90 @@ void Molecule::setAtomRadiusScale(double scale)
  */
 void Molecule::setBondRadiusScale(double scale)
 {
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
     if (_tuber != NULL)
         _tuber->SetRadius(scale);
+#else
+    if (_cylinderSource != NULL)
+        _cylinderSource->SetRadius(scale);
+#endif
 }
+
+#ifdef MOLECULE_USE_GLYPH3D_MAPPER
+void Molecule::setupBondPolyData()
+{
+    if (_dataSet == NULL)
+        return;
+    if (_bondPD == NULL) {
+        _bondPD = vtkSmartPointer<vtkPolyData>::New();
+    } else {
+        _bondPD->Initialize();
+    }
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(_dataSet->getVtkDataSet());
+    if (pd == NULL)
+        return;
+    vtkCellArray *lines = pd->GetLines();
+    lines->InitTraversal();
+    vtkIdType npts, *pts;
+    vtkSmartPointer<vtkPoints> bondPoints = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkIntArray> bondElements = vtkSmartPointer<vtkIntArray>::New();
+    vtkSmartPointer<vtkDoubleArray> bondVectors = vtkSmartPointer<vtkDoubleArray>::New();
+    bondElements->SetName("element");
+    bondVectors->SetName("bonds");
+    bondVectors->SetNumberOfComponents(3);
+    vtkDataArray *elements = NULL;
+    if (pd->GetPointData() != NULL &&
+        pd->GetPointData()->GetScalars() != NULL &&
+        strcmp(pd->GetPointData()->GetScalars()->GetName(), "element") == 0) {
+        elements = pd->GetPointData()->GetScalars();
+    }
+    for (int i = 0; lines->GetNextCell(npts, pts); i++) {
+        assert(npts == 2);
+        double pt0[3], pt1[3];
+        double newPt0[3], newPt1[3];
+        //double *pt0 = pd->GetPoint(pts[0]);
+        //double *pt1 = pd->GetPoint(pts[1]);
+        pd->GetPoint(pts[0], pt0);
+        pd->GetPoint(pts[1], pt1);
+        double center[3];
+
+        for (int j = 0; j < 3; j++)
+            center[j] = pt0[j] + (pt1[j] - pt0[j]) * 0.5;
+        for (int j = 0; j < 3; j++)
+            newPt0[j] = pt0[j] + (pt1[j] - pt0[j]) * 0.25;
+        for (int j = 0; j < 3; j++)
+            newPt1[j] = pt0[j] + (pt1[j] - pt0[j]) * 0.75;
+
+        bondPoints->InsertNextPoint(newPt0);
+        bondPoints->InsertNextPoint(newPt1);
+
+        TRACE("Bond %d: (%g,%g,%g)-(%g,%g,%g)-(%g,%g,%g)", i,
+              pt0[0], pt0[1], pt0[2], 
+              center[0], center[1], center[2],
+              pt1[0], pt1[1], pt1[2]);
+
+        double vec[3];
+        for (int j = 0; j < 3; j++)
+            vec[j] = center[j] - pt0[j];
+
+        bondVectors->InsertNextTupleValue(vec);
+        bondVectors->InsertNextTupleValue(vec);
+        TRACE("Bond %d, vec: %g,%g,%g", i, vec[0], vec[1], vec[2]);
+
+        if (elements != NULL) {
+            int element = (int)elements->GetComponent(pts[0], 0);
+            TRACE("Bond %d, elt 0: %d", i, element);
+            bondElements->InsertNextValue(element);
+            element = (int)elements->GetComponent(pts[1], 0);
+            TRACE("Bond %d, elt 1: %d", i, element);
+            bondElements->InsertNextValue(element);
+        }
+    }
+    _bondPD->SetPoints(bondPoints);
+    _bondPD->GetPointData()->SetScalars(bondElements);
+    _bondPD->GetPointData()->SetVectors(bondVectors);
+}
+#endif
 
 void Molecule::addLabelArray(vtkDataSet *dataSet)
 {

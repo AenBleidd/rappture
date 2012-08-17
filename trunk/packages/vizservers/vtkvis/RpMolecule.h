@@ -14,8 +14,14 @@
 #include <vtkActor.h>
 #include <vtkActor2D.h>
 #include <vtkAssembly.h>
-#include <vtkTubeFilter.h>
+#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
+#define MOLECULE_USE_GLYPH3D_MAPPER
+#include <vtkGlyph3DMapper.h>
+#include <vtkCylinderSource.h>
+#else
 #include <vtkGlyph3D.h>
+#include <vtkTubeFilter.h>
+#endif
 #include <vtkLabelPlacementMapper.h>
 
 #include "ColorMap.h"
@@ -43,6 +49,15 @@ public:
         COVALENT_RADIUS,
         ATOMIC_RADIUS
     };
+    enum ColorMode {
+        COLOR_BY_ELEMENTS,
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
+        COLOR_CONSTANT
+    };
     enum BondColorMode {
         BOND_COLOR_BY_ELEMENTS,
         BOND_COLOR_CONSTANT
@@ -61,7 +76,18 @@ public:
         return _labelProp;
     }
 
+    virtual void setDataSet(DataSet *dataSet,
+                            Renderer *renderer);
+
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
 
@@ -103,6 +129,10 @@ private:
     virtual void initProp();
     virtual void update();
 
+#ifdef MOLECULE_USE_GLYPH3D_MAPPER
+    void setupBondPolyData();
+#endif
+
     static void addLabelArray(vtkDataSet *dataSet);
 
     static void addRadiusArray(vtkDataSet *dataSet, AtomScaling scaling, double scaleFactor);
@@ -110,17 +140,31 @@ private:
     float _bondColor[3];
     double _radiusScale;
     AtomScaling _atomScaling;
-    ColorMap *_colorMap;
     bool _labelsOn;
+    ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
+    Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
     vtkSmartPointer<vtkActor2D> _labelProp;
+#ifndef MOLECULE_USE_GLYPH3D_MAPPER
     vtkSmartPointer<vtkGlyph3D> _glypher;
     vtkSmartPointer<vtkTubeFilter> _tuber;
     vtkSmartPointer<vtkPolyDataMapper> _atomMapper;
     vtkSmartPointer<vtkPolyDataMapper> _bondMapper;
+#else
+    vtkSmartPointer<vtkPolyData> _bondPD;
+    vtkSmartPointer<vtkCylinderSource> _cylinderSource;
+    vtkSmartPointer<vtkGlyph3DMapper> _atomMapper;
+    vtkSmartPointer<vtkGlyph3DMapper> _bondMapper;
+#endif
     vtkSmartPointer<vtkLabelPlacementMapper> _labelMapper;
 };
 
