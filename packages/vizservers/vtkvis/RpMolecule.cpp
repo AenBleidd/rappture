@@ -41,7 +41,9 @@ Molecule::Molecule() :
     _radiusScale(0.3),
     _atomScaling(COVALENT_RADIUS),
     _labelsOn(false),
-    _colorMap(NULL)
+    _colorMap(NULL),
+    _colorMode(COLOR_BY_ELEMENTS),
+    _colorFieldType(DataSet::POINT_DATA)
 {
     _bondColor[0] = _bondColor[1] = _bondColor[2] = 1.0f;
     _faceCulling = true;
@@ -301,18 +303,37 @@ void Molecule::update()
 
 void Molecule::updateRanges(Renderer *renderer)
 {
-    VtkGraphicsObject::updateRanges(renderer);
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
 
-    if (_lut != NULL && _dataSet != NULL) {
-        vtkDataSet *ds = _dataSet->getVtkDataSet();
-        if (ds == NULL)
-            return;
-        if (ds->GetPointData() == NULL ||
-            ds->GetPointData()->GetScalars() == NULL ||
-            strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
-            _lut->SetRange(_dataRange);
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                         _dataSet->getActiveVectorsName(),
+                                         3);
+        for (int i = 0; i < 3; i++) {
+            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                             _dataSet->getActiveVectorsName(),
+                                             3, i);
+        }
+    } else {
+        _dataSet->getScalarRange(_dataRange);
+        _dataSet->getVectorRange(_vectorMagnitudeRange);
+        for (int i = 0; i < 3; i++) {
+            _dataSet->getVectorRange(_vectorComponentRange[i], i);
         }
     }
+
+    // Need to update color map ranges
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
 }
 
 void Molecule::setColorMode(ColorMode mode)
@@ -323,6 +344,10 @@ void Molecule::setColorMode(ColorMode mode)
 
     switch (mode) {
     case COLOR_BY_ELEMENTS: // Assume default scalar is "element" array
+        setColorMode(mode,
+                     DataSet::POINT_DATA,
+                     "element");
+        break;
     case COLOR_BY_SCALAR:
         setColorMode(mode,
                      _dataSet->getActiveScalarsType(),
@@ -426,6 +451,11 @@ void Molecule::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
 
     if (_lut != NULL) {
         if (range != NULL) {
+            _lut->SetRange(range);
+        } else if (mode == COLOR_BY_ELEMENTS) {
+            double range[2];
+            range[0] = 0;
+            range[1] = NUM_ELEMENTS;
             _lut->SetRange(range);
         } else if (name != NULL && strlen(name) > 0) {
             double r[2];
@@ -545,20 +575,39 @@ void Molecule::setColorMap(ColorMap *cmap)
             _bondMapper->UseLookupTableScalarRangeOn();
             _bondMapper->SetLookupTable(_lut);
         }
-    }
-
-    _lut->DeepCopy(cmap->getLookupTable());
-    _lut->Modified();
-
-    // Element color maps need to retain their range
-    // Only set LUT range if we are not coloring by element
-    vtkDataSet *ds = _dataSet->getVtkDataSet();
-    if (ds == NULL)
-        return;
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL ||
-        strcmp(ds->GetPointData()->GetScalars()->GetName(), "element") != 0) {
-        _lut->SetRange(_dataRange);
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_BY_ELEMENTS: {
+            double range[2];
+            range[0] = 0;
+            range[1] = NUM_ELEMENTS;
+            _lut->SetRange(range);
+        }
+            break;
+        case COLOR_CONSTANT:
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
     }
 }
 
@@ -939,7 +988,7 @@ ColorMap *Molecule::createElementColorMap()
 
     elementCmap->setNumberOfTableEntries(NUM_ELEMENTS+1);
     for (int i = 0; i <= NUM_ELEMENTS; i++) {
-        cp[i].value = i/((double)(NUM_ELEMENTS+1));
+        cp[i].value = i/((double)NUM_ELEMENTS);
         for (int c = 0; c < 3; c++) {
             cp[i].color[c] = ((double)g_elementColors[i][c])/255.;
         }
@@ -955,7 +1004,7 @@ ColorMap *Molecule::createElementColorMap()
     elementCmap->build();
     double range[2];
     range[0] = 0;
-    range[1] = NUM_ELEMENTS+1;
+    range[1] = NUM_ELEMENTS;
     elementCmap->getLookupTable()->SetRange(range);
 
     return elementCmap;

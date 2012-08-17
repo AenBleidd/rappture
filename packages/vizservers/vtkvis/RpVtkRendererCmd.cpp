@@ -3650,6 +3650,25 @@ MoleculeBondVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Molecule>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Molecule>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -3659,6 +3678,49 @@ MoleculeColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectColorMap<Molecule>(dataSetName, colorMapName);
     } else {
         g_renderer->setGraphicsObjectColorMap<Molecule>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+MoleculeColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    Molecule::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'b' && strcmp(str, "by_elements") == 0) {
+        mode = Molecule::COLOR_BY_ELEMENTS;
+    } else if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Molecule::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Molecule::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Molecule::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Molecule::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Molecule::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Molecule::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'by_elements', 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Molecule::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+#if 0
+    else if (mode == Molecule::COLOR_BY_ELEMENTS) {
+        fieldName = "element";
+    }
+#endif
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setMoleculeColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setMoleculeColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -3864,7 +3926,9 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"bscale",     3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
     {"bstyle",     3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
-    {"colormap",   1, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"ccolor",     2, MoleculeColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",   7, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",  7, MoleculeColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",     1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",      1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"labels",     2, MoleculeAtomLabelVisibilityOp, 3, 4, "bool ?dataSetName?"},
