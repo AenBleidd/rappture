@@ -17,7 +17,9 @@
 #if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
 #define MOLECULE_USE_GLYPH3D_MAPPER
 #include <vtkGlyph3DMapper.h>
+#include <vtkTransformPolyDataFilter.h>
 #include <vtkCylinderSource.h>
+#include <vtkLineSource.h>
 #else
 #include <vtkGlyph3D.h>
 #include <vtkTubeFilter.h>
@@ -48,6 +50,10 @@ public:
         VAN_DER_WAALS_RADIUS,
         COVALENT_RADIUS,
         ATOMIC_RADIUS
+    };
+    enum BondStyle {
+        BOND_STYLE_CYLINDER,
+        BOND_STYLE_LINE
     };
     enum ColorMode {
         COLOR_BY_ELEMENTS,
@@ -119,6 +125,8 @@ public:
 
     void setBondVisibility(bool state);
 
+    void setBondStyle(BondStyle style);
+
     void setBondColor(float color[3]);
 
     void setBondColorMode(BondColorMode mode);
@@ -162,6 +170,8 @@ private:
 #else
     vtkSmartPointer<vtkPolyData> _bondPD;
     vtkSmartPointer<vtkCylinderSource> _cylinderSource;
+    vtkSmartPointer<vtkTransformPolyDataFilter>_cylinderTrans;
+    vtkSmartPointer<vtkLineSource> _lineSource;
     vtkSmartPointer<vtkGlyph3DMapper> _atomMapper;
     vtkSmartPointer<vtkGlyph3DMapper> _bondMapper;
 #endif
