@@ -3609,6 +3609,30 @@ MoleculeBondScaleFactorOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+MoleculeBondStyleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    Molecule::BondStyle style;
+    const char *styleStr = Tcl_GetString(objv[2]);
+    if (styleStr[0] == 'c' && strcmp(styleStr, "cylinder") == 0) {
+        style = Molecule::BOND_STYLE_CYLINDER;
+    } else if (styleStr[0] == 'l' && strcmp(styleStr, "line") == 0) {
+        style = Molecule::BOND_STYLE_LINE;
+    } else {
+        Tcl_AppendResult(interp, "bad bstyle option \"", styleStr,
+                         "\": should be cylinder or line", (char*)NULL);
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setMoleculeBondStyle(name, style);
+    } else {
+        g_renderer->setMoleculeBondStyle("all", style);
+    }
+    return TCL_OK;
+}
+
+static int
 MoleculeBondVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                          Tcl_Obj *const *objv)
 {
@@ -3838,7 +3862,8 @@ static Rappture::CmdSpec moleculeOps[] = {
     {"bcmode",     3, MoleculeBondColorModeOp, 3, 4, "mode ?dataSetName?"},
     {"bcolor",     3, MoleculeBondColorOp, 5, 6, "r g b ?dataSetName?"},
     {"bonds",      2, MoleculeBondVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"bscale",     2, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
+    {"bscale",     3, MoleculeBondScaleFactorOp, 3, 4, "value ?dataSetName?"},
+    {"bstyle",     3, MoleculeBondStyleOp, 3, 4, "value ?dataSetName?"},
     {"colormap",   1, MoleculeColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"delete",     1, MoleculeDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",      1, MoleculeEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},

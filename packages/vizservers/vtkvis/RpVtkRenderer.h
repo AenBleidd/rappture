@@ -447,6 +447,8 @@ public:
 
     void setMoleculeBondVisibility(const DataSetId& id, bool state);
 
+    void setMoleculeBondStyle(const DataSetId& id, Molecule::BondStyle style);
+
     void setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode);
 
     void setMoleculeBondColor(const DataSetId& id, float color[3]);
