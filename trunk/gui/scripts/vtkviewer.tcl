@@ -1317,6 +1317,12 @@ itcl::body Rappture::VtkViewer::AdjustSetting {what {value ""}} {
 		set type [$dataobj type $comp]
 		if { $type == "molecule" } {
 		    ChangeColormap $dataobj $comp $palette
+		    if { $palette == "elementDefault" } {
+			SendCmd "molecule colormode by_element element $dataset"
+		    } else {
+			# FIXME: Set the chosen scalar field name here
+			SendCmd "molecule colormode scalar {} $dataset"
+		    }
 		}
             }
             set _legendPending 1
