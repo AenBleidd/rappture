@@ -26,9 +26,6 @@ using namespace Rappture::VtkVis;
 PolyData::PolyData() :
     VtkGraphicsObject()
 {
-    _color[0] = 0.0f;
-    _color[1] = 0.0f;
-    _color[2] = 1.0f;
 }
 
 PolyData::~PolyData()

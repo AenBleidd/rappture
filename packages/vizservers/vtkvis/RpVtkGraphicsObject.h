@@ -71,22 +71,6 @@ public:
     virtual const char *getClassName() const = 0;
 
     /**
-     * \brief Specify input DataSet
-     *
-     * Default implementation calls update()
-     *
-     * \param[in] dataSet DataSet to use in rendering
-     */
-    virtual void setDataSet(DataSet *dataSet)
-    {
-        if (_dataSet != dataSet) {
-            _dataSet = dataSet;
-
-            update();
-        }
-    }
-
-    /**
      * \brief Specify input DataSet and information on cumulative data ranges
      *
      * Default implementation calls update() and stores scalarRange to

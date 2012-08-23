@@ -76,6 +76,8 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
+    void setQuality(double quality);
+
     void setOrient(bool state);
 
 #ifdef HAVE_GLYPH3D_MAPPER
