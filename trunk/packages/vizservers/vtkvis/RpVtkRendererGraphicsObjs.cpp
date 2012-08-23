@@ -1521,6 +1521,66 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
 }
 
 /**
+ * \brief Set Sphere resolution
+ */
+void Renderer::setSphereResolution(const DataSetId& id, int thetaRes, int phiRes)
+{
+    SphereHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _spheres.begin();
+        doAll = true;
+    } else {
+        itr = _spheres.find(id);
+    }
+    if (itr == _spheres.end()) {
+        ERROR("Sphere not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setThetaResolution(thetaRes);
+        itr->second->setPhiResolution(phiRes);
+    } while (doAll && ++itr != _spheres.end());
+
+    _needsRedraw = true;
+}
+
+
+/**
+ * \brief Set Sphere section
+ */
+void Renderer::setSphereSection(const DataSetId& id, double thetaStart, double thetaEnd,
+                                double phiStart, double phiEnd)
+{
+    SphereHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _spheres.begin();
+        doAll = true;
+    } else {
+        itr = _spheres.find(id);
+    }
+    if (itr == _spheres.end()) {
+        ERROR("Sphere not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setStartTheta(thetaStart);
+        itr->second->setEndTheta(thetaEnd);
+        itr->second->setStartPhi(phiStart);
+        itr->second->setEndPhi(phiEnd);
+    } while (doAll && ++itr != _spheres.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set the streamlines seed to points of the streamlines DataSet
  */
 void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints)
