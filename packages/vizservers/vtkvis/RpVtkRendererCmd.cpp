@@ -5188,6 +5188,24 @@ SpherePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+SphereResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    int theta, phi;
+    if (Tcl_GetIntFromObj(interp, objv[2], &theta) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &phi) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setSphereResolution(name, theta, phi);
+    } else {
+        g_renderer->setSphereResolution("all", theta, phi);
+    }
+    return TCL_OK;
+}
+
+static int
 SphereScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -5202,6 +5220,26 @@ SphereScaleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectScale<Sphere>(name, scale);
     } else {
         g_renderer->setGraphicsObjectScale<Sphere>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+SphereSectionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double thetaStart, thetaEnd, phiStart, phiEnd;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &thetaStart) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &thetaEnd) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &phiStart) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &phiEnd) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setSphereSection(name, thetaStart, thetaEnd, phiStart, phiEnd);
+    } else {
+        g_renderer->setSphereSection("all", thetaStart, thetaEnd, phiStart, phiEnd);
     }
     return TCL_OK;
 }
@@ -5252,7 +5290,9 @@ static Rappture::CmdSpec sphereOps[] = {
     {"opacity",   2, SphereOpacityOp, 3, 4, "value ?name?"},
     {"orient",    2, SphereOrientOp, 6, 7, "qw qx qy qz ?name?"},
     {"pos",       2, SpherePositionOp, 5, 6, "x y z ?name?"},
-    {"scale",     1, SphereScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"resolution",1, SphereResolutionOp, 4, 5, "thetaRes phiRes ?name?"},
+    {"scale",     2, SphereScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"section",   2, SphereSectionOp, 6, 7, "thetaStart thetaEnd phiStart phiEnd ?name?"},
     {"visible",   1, SphereVisibleOp, 3, 4, "bool ?name?"},
     {"wireframe", 1, SphereWireframeOp, 3, 4, "bool ?name?"}
 };

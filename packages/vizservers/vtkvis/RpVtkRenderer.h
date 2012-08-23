@@ -475,6 +475,13 @@ public:
                                  DataSet::DataAttributeType type,
                                  const char *name, double range[2] = NULL);
 
+    // Spheres
+
+    void setSphereSection(const DataSetId& id, double thetaStart, double thetaEnd,
+                          double phiStart, double phiEnd);
+
+    void setSphereResolution(const DataSetId& id, int thetaRes, int phiRes);
+
     // Streamlines
 
     void setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoints);

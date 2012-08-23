@@ -372,7 +372,10 @@ sphere material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp>
 sphere opacity <val> <?datasetName?>
 sphere orient <qw> <qx> <qy> <qz> <?name?>
 sphere pos <x> <y> <z> <?name?>
+sphere resolution <thetaRes> <phiRes> <?name?>
 sphere scale <sx> <sy> <sz> <?name?>
+sphere section <thetaStart> <thetaEnd> <phiStart> <phiEnd>
+       Angles are in degrees
 sphere visible <bool> <?name?>
 sphere wireframe <bool> <?name?>
 
