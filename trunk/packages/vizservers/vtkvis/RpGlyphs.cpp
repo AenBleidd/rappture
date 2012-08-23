@@ -180,6 +180,48 @@ void Glyphs::setGlyphShape(GlyphShape shape)
     }
 #endif
 
+    //setQuality(0.8);
+}
+
+void Glyphs::setQuality(double quality)
+{
+    switch (_glyphShape) {
+    case ARROW: {
+        vtkSmartPointer<vtkArrowSource> arrow = vtkArrowSource::SafeDownCast(_glyphSource);
+        int res = (int)(quality * 25);
+        if (res < 5) res = 5;
+        arrow->SetTipResolution(res);
+        arrow->SetShaftResolution(res);
+    }
+        break;
+    case CONE: {
+        vtkSmartPointer<vtkConeSource> cone = vtkConeSource::SafeDownCast(_glyphSource);
+        int res = (int)(quality * 25);
+        if (res < 5) res = 5;
+        cone->SetResolution(res);
+    }
+        break;
+    case SPHERE: {
+        vtkSmartPointer<vtkSphereSource> sphere = vtkSphereSource::SafeDownCast(_glyphSource);
+        int res = (int)(quality * 50);
+        if (res < 5) res = 5;
+        sphere->SetThetaResolution(res);
+        sphere->SetPhiResolution(res);
+    }
+        break;
+    case CYLINDER: {
+        assert (vtkTransformPolyDataFilter::SafeDownCast(_glyphSource) != NULL);
+        assert (vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput() != NULL);
+        TRACE("gsource input: %s", vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput()->GetClassName());
+        vtkSmartPointer<vtkCylinderSource> csource = vtkCylinderSource::SafeDownCast(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput()->GetProducerPort());
+        int res = (int)(quality * 25);
+        if (res < 5) res = 5;
+        csource->SetResolution(res);
+    }
+        break;
+    default:
+        break;
+    }
 }
 
 /**

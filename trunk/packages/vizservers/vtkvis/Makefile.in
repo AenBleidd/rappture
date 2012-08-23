@@ -82,6 +82,7 @@ SERVER_SRCS	= \
 		ColorMap.cpp \
 		PPMWriter.cpp \
 		ReadBuffer.cpp \
+		RpBox.cpp \
 		RpContour2D.cpp \
 		RpContour3D.cpp \
 		RpCutplane.cpp \
@@ -91,6 +92,8 @@ SERVER_SRCS	= \
 		RpMolecule.cpp \
 		RpPolyData.cpp \
 		RpPseudoColor.cpp \
+		RpShape.cpp \
+		RpSphere.cpp \
 		RpStreamlines.cpp \
 		RpVolume.cpp \
 		RpVtkDataSet.cpp \
@@ -149,6 +152,7 @@ ColorMap.o: ColorMap.h RpMolecule.h Trace.h
 PPMWriter.o: PPMWriter.h ResponseQueue.h Trace.h
 ReadBuffer.o: ReadBuffer.h Trace.h
 ResponseQueue.o: ResponseQueue.h Trace.h
+RpBox.o: RpBox.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
 RpContour2D.o: RpContour2D.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
 RpContour3D.o: RpContour3D.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 RpCutplane.o: RpCutplane.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
@@ -158,12 +162,14 @@ RpLIC.o: RpLIC.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h
 RpMolecule.o: RpMolecule.h RpMoleculeData.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 RpPolyData.o: RpPolyData.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
 RpPseudoColor.o: RpPseudoColor.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
+RpShape.o: RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
+RpSphere.o: RpSphere.h RpShape.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h Trace.h
 RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
-RpVtkGraphicsObject.o: RpVtkGraphicsObject.h RpVtkRenderer.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpVtkGraphicsObject.o: RpVtkGraphicsObject.h RpVtkRenderer.h RpVtkDataSet.h ColorMap.h Trace.h
+RpVtkRenderer.o: RpVtkRenderer.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpBox.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpBox.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RpVtkRendererGraphicsObjs.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpVtkDataSet.h RpContour2D.h RpContour3D.h RpCutplane.h RpGlyphs.h RpHeightMap.h RpLIC.h RpMolecule.h RpPolyData.h RpPseudoColor.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
 RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpAxisActor.h vtkRpCubeAxesActor.h vtkRpAxisActor2D.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 RpWarp.o: RpWarp.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h

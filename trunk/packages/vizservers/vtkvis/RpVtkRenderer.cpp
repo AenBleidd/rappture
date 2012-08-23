@@ -140,6 +140,12 @@ Renderer::Renderer() :
 Renderer::~Renderer()
 {
     TRACE("Enter");
+    TRACE("Deleting Boxes");
+    for (BoxHashmap::iterator itr = _boxes.begin();
+         itr != _boxes.end(); ++itr) {
+        delete itr->second;
+    }
+    _boxes.clear();
     TRACE("Deleting Contour2Ds");
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
          itr != _contour2Ds.end(); ++itr) {
@@ -194,6 +200,12 @@ Renderer::~Renderer()
         delete itr->second;
     }
     _pseudoColors.clear();
+    TRACE("Deleting Spheres");
+    for (SphereHashmap::iterator itr = _spheres.begin();
+         itr != _spheres.end(); ++itr) {
+        delete itr->second;
+    }
+    _spheres.clear();
     TRACE("Deleting Streamlines");
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();
          itr != _streamlines.end(); ++itr) {
@@ -552,7 +564,7 @@ void Renderer::initAxes()
     _cubeAxesActor2D->SetFlyModeToClosestTriad();
 
     _cubeAxesActor2D->ScalingOff();
-    //_cubeAxesActor2D->SetShowActualBounds(0);
+    _cubeAxesActor2D->SetShowActualBounds(1);
     _cubeAxesActor2D->SetFontFactor(1.25);
     // Use "nice" range and number of ticks/labels
     _cubeAxesActor2D->GetXAxisActor2D()->AdjustLabelsOn();
@@ -2023,6 +2035,8 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 
     double offsetX = pxOffsetX * pxToWorld;
     double offsetY = pxOffsetY * pxToWorld;
+    double plotWidthWorld = imgWidthPx * pxToWorld;
+    double plotHeightWorld = imgHeightPx * pxToWorld;
 
     TRACE("Window: %d %d", _windowWidth, _windowHeight);
     TRACE("ZoomRegion: %g %g %g %g", x, y, width, height);
@@ -2057,13 +2071,13 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + plotHeightWorld, 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
-        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
                                     _imgCameraOffset, _imgCameraOffset);
         _cubeAxesActor2D->XAxisVisibilityOn();
         _cubeAxesActor2D->YAxisVisibilityOn();
@@ -2080,14 +2094,14 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(0, 0, _imgWorldOrigin[0]);
         _cameraClipPlanes[1]->SetNormal(0, 0, 1);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + plotHeightWorld, 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + _imgWorldDims[0]);
+        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + plotWidthWorld);
         _cameraClipPlanes[3]->SetNormal(0, 0, -1);
         _cubeAxesActor2D->SetBounds(_imgCameraOffset, _imgCameraOffset, 
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
-                                    _imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0]);
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
+                                    _imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld);
         _cubeAxesActor2D->XAxisVisibilityOff();
         _cubeAxesActor2D->YAxisVisibilityOn();
         _cubeAxesActor2D->ZAxisVisibilityOn();
@@ -2103,14 +2117,14 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + _imgWorldDims[1]);
+        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + plotHeightWorld);
         _cameraClipPlanes[2]->SetNormal(0, 0, -1);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
-        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
+        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
                                     _imgCameraOffset, _imgCameraOffset,
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1]);
+                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld);
         _cubeAxesActor2D->XAxisVisibilityOn();
         _cubeAxesActor2D->YAxisVisibilityOff();
         _cubeAxesActor2D->ZAxisVisibilityOn();
@@ -2293,6 +2307,12 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (BoxHashmap::iterator itr = _boxes.begin();
+             itr != _boxes.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getBounds());
+    }
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
              itr != _contour2Ds.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
@@ -2343,6 +2363,12 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getBounds());
+    }
+    for (SphereHashmap::iterator itr = _spheres.begin();
+             itr != _spheres.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getBounds());
@@ -2418,6 +2444,12 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
+    for (BoxHashmap::iterator itr = _boxes.begin();
+             itr != _boxes.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
              itr != _contour2Ds.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
@@ -2468,6 +2500,12 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
              itr != _pseudoColors.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+    for (SphereHashmap::iterator itr = _spheres.begin();
+             itr != _spheres.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
@@ -3324,6 +3362,10 @@ void Renderer::setCameraClippingPlanes()
      * This will not change the state or timestamp of 
      * Mappers already using the PlaneCollection
      */
+    for (BoxHashmap::iterator itr = _boxes.begin();
+         itr != _boxes.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
     for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
          itr != _contour2Ds.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
@@ -3358,6 +3400,10 @@ void Renderer::setCameraClippingPlanes()
     }
     for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
          itr != _pseudoColors.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+    for (SphereHashmap::iterator itr = _spheres.begin();
+         itr != _spheres.end(); ++itr) {
         itr->second->setClippingPlanes(_activeClipPlanes);
     }
     for (StreamlinesHashmap::iterator itr = _streamlines.begin();

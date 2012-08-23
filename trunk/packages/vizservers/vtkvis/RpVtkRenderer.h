@@ -29,6 +29,7 @@
 #include "ColorMap.h"
 #include "RpTypes.h"
 #include "RpVtkDataSet.h"
+#include "RpBox.h"
 #include "RpContour2D.h"
 #include "RpContour3D.h"
 #include "RpCutplane.h"
@@ -38,6 +39,7 @@
 #include "RpMolecule.h"
 #include "RpPolyData.h"
 #include "RpPseudoColor.h"
+#include "RpSphere.h"
 #include "RpStreamlines.h"
 #include "RpVolume.h"
 #include "RpWarp.h"
@@ -540,6 +542,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
     typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Box *> BoxHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Cutplane *> CutplaneHashmap;
@@ -549,6 +552,7 @@ private:
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Sphere *> SphereHashmap;
     typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
     typedef std::tr1::unordered_map<DataSetId, Warp *> WarpHashmap;
@@ -619,6 +623,7 @@ private:
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
+    BoxHashmap _boxes;
     Contour2DHashmap _contour2Ds;
     Contour3DHashmap _contour3Ds;
     CutplaneHashmap _cutplanes;
@@ -628,6 +633,7 @@ private:
     MoleculeHashmap _molecules;
     PolyDataHashmap _polyDatas;
     PseudoColorHashmap _pseudoColors;
+    SphereHashmap _spheres;
     StreamlinesHashmap _streamlines;
     VolumeHashmap _volumes;
     WarpHashmap _warps;

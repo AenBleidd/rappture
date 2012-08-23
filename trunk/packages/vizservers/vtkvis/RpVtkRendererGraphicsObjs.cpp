@@ -15,6 +15,7 @@
 
 #include "RpVtkRenderer.h"
 #include "RpVtkDataSet.h"
+#include "RpBox.h"
 #include "RpContour2D.h"
 #include "RpContour3D.h"
 #include "RpCutplane.h"
@@ -24,6 +25,7 @@
 #include "RpMolecule.h"
 #include "RpPolyData.h"
 #include "RpPseudoColor.h"
+#include "RpSphere.h"
 #include "RpStreamlines.h"
 #include "RpVolume.h"
 #include "ColorMap.h"
@@ -32,6 +34,11 @@
 // Template specializations
 namespace Rappture {
 namespace VtkVis {
+
+template<>
+Renderer::BoxHashmap &
+Renderer::getGraphicsObjectHashmap<Box>()
+{ return _boxes; }
 
 template<>
 Renderer::Contour2DHashmap &
@@ -79,6 +86,11 @@ Renderer::getGraphicsObjectHashmap<PseudoColor>()
 { return _pseudoColors; }
 
 template<>
+Renderer::SphereHashmap &
+Renderer::getGraphicsObjectHashmap<Sphere>()
+{ return _spheres; }
+
+template<>
 Renderer::StreamlinesHashmap &
 Renderer::getGraphicsObjectHashmap<Streamlines>()
 { return _streamlines; }
@@ -92,6 +104,68 @@ template<>
 Renderer::WarpHashmap &
 Renderer::getGraphicsObjectHashmap<Warp>()
 { return _warps; }
+
+template <>
+bool Renderer::addGraphicsObject<Box>(const DataSetId& id)
+{
+    Box *gobj;
+    if ((gobj = getGraphicsObject<Box>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Box>(id);
+    }
+
+    gobj = new Box();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    getGraphicsObjectHashmap<Box>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+template <>
+bool Renderer::addGraphicsObject<Sphere>(const DataSetId& id)
+{
+    Sphere *gobj;
+    if ((gobj = getGraphicsObject<Sphere>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Sphere>(id);
+    }
+
+    gobj = new Sphere();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    getGraphicsObjectHashmap<Sphere>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
 
 /**
  * \brief Set the volume slice used for mapping volumetric data
