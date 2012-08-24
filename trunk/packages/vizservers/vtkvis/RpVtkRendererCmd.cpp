@@ -1063,6 +1063,56 @@ Contour2DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour2DColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    const char *colorMapName = Tcl_GetString(objv[2]);
+    if (objc == 4) {
+        const char *dataSetName = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectColorMap<Contour2D>(dataSetName, colorMapName);
+    } else {
+        g_renderer->setGraphicsObjectColorMap<Contour2D>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour2DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    Contour2D::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Contour2D::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Contour2D::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Contour2D::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Contour2D::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Contour2D::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Contour2D::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Contour2D::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setContour2DColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setContour2DColorMode("all", mode, fieldName);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
@@ -1209,7 +1259,9 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec contour2dOps[] = {
     {"add",       1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"color",     1, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"ccolor",    2, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",  7, Contour2DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, Contour2DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
     {"lighting",  3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
     {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},

@@ -368,6 +368,15 @@ public:
 
     void setContour2DContourList(const DataSetId& id, const std::vector<double>& contours);
 
+    void setContour2DColorMode(const DataSetId& id,
+                               Contour2D::ColorMode mode,
+                               const char *name, double range[2] = NULL);
+
+    void setContour2DColorMode(const DataSetId& id,
+                               Contour2D::ColorMode mode,
+                               DataSet::DataAttributeType type,
+                               const char *name, double range[2] = NULL);
+
     // 3D Contour (isosurface) plots
 
     bool addContour3D(const DataSetId& id, int numContours);
