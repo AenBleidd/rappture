@@ -145,10 +145,8 @@ if {![file exists $params(-tool)]} {
 
 set xmlobj [Rappture::library $params(-tool)]
 
-set installdir [file dirname $params(-tool)]
-if {"." == $installdir} {
-    set installdir [pwd]
-}
+set installdir [file normalize [file dirname $params(-tool)]]
+$xmlobj put tool.version.application.directory(tool) $installdir
 
 set tool [Rappture::Tool ::#auto $xmlobj $installdir]
 
