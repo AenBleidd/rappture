@@ -360,6 +360,66 @@ void Renderer::setContour2DContourList(const DataSetId& id, const std::vector<do
      _needsRedraw = true;
 }
 
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setContour2DColorMode(const DataSetId& id,
+                                     Contour2D::ColorMode mode,
+                                     DataSet::DataAttributeType type,
+                                     const char *name, double range[2])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setContour2DColorMode(const DataSetId& id,
+                                     Contour2D::ColorMode mode,
+                                     const char *name, double range[2])
+{
+    Contour2DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour2Ds.begin();
+        doAll = true;
+    } else {
+        itr = _contour2Ds.find(id);
+    }
+    if (itr == _contour2Ds.end()) {
+        ERROR("Contour2D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
+    } while (doAll && ++itr != _contour2Ds.end());
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Create a new Contour3D and associate it with the named DataSet
  */
@@ -1463,7 +1523,6 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
 
     _needsRedraw = true;
 }
-
 
 /**
  * \brief Set the color mode for the specified DataSet

@@ -896,6 +896,13 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
  */
 void Renderer::updateColorMap(ColorMap *cmap)
 {
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+         itr != _contour2Ds.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
         if (itr->second->getColorMap() == cmap) {
@@ -973,6 +980,11 @@ void Renderer::updateColorMap(ColorMap *cmap)
  */
 bool Renderer::colorMapUsed(ColorMap *cmap)
 {
+    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
+         itr != _contour2Ds.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
     for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
          itr != _contour3Ds.end(); ++itr) {
         if (itr->second->getColorMap() == cmap)

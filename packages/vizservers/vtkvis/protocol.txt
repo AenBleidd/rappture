@@ -148,8 +148,15 @@ contour2d add numcontours <n> <?datasetName?>
           'dataset maprange' command.
 contour2d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
-contour2d color <r> <g> <b> <?datasetName?>
+contour2d ccolor <r> <g> <b> <?datasetName?>
           synonym for linecolor
+contour2d colormap <colormapName> <?datasetName?>
+contour2d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'ccolor' means to use
+          the constant color defined by the ccolor subcommand.  'scalar' uses
+          the active scalar field.  'vmag' uses the magnitude of the current
+          vector field, and 'vx','vy','vz' use the corresponding component of
+          the active vector field.
 contour2d delete <?datasetName?>
 contour2d lighting <bool> <?datasetName?>
 contour2d linecolor <r> <g> <b> <?datasetName?>
@@ -341,7 +348,7 @@ polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 
 pseudocolor add <?datasetName?>
-pseudocolor ccolor r g b <?datasetName?>
+pseudocolor ccolor <r> <g> <b> <?datasetName?>
 pseudocolor colormap <colormapName> <?datasetName?>
 pseudocolor colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
             Set the field used to color the object.  'ccolor' means to use
