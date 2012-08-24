@@ -13,6 +13,7 @@
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
 
+#include "RpVtkRendererGraphicsObjs.h"
 #include "RpVtkRenderer.h"
 #include "RpVtkDataSet.h"
 #include "RpBox.h"
@@ -104,6 +105,9 @@ template<>
 Renderer::WarpHashmap &
 Renderer::getGraphicsObjectHashmap<Warp>()
 { return _warps; }
+
+template Box *Renderer::getGraphicsObject(const DataSetId&);
+template Sphere *Renderer::getGraphicsObject(const DataSetId&);
 
 template <>
 bool Renderer::addGraphicsObject<Box>(const DataSetId& id)
