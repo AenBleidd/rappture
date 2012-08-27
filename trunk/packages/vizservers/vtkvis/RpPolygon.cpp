@@ -1,0 +1,45 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2012, Purdue Research Foundation
+ *
+ * Author: Leif Delgass <ldelgass@purdue.edu>
+ */
+
+#include <vtkPolyDataMapper.h>
+#include <vtkActor.h>
+#include <vtkRegularPolygonSource.h>
+
+#include "RpPolygon.h"
+#include "Trace.h"
+
+using namespace Rappture::VtkVis;
+
+Polygon::Polygon() :
+    Shape()
+{
+}
+
+Polygon::~Polygon()
+{
+    TRACE("Deleting Polygon");
+}
+
+void Polygon::update()
+{
+    if (_polygon == NULL) {
+	_polygon = vtkSmartPointer<vtkRegularPolygonSource>::New();
+    }
+
+    if (_pdMapper == NULL) {
+        _pdMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        _pdMapper->SetResolveCoincidentTopologyToPolygonOffset();
+        _pdMapper->ScalarVisibilityOff();
+    }
+
+    _pdMapper->SetInputConnection(_polygon->GetOutputPort());
+
+    initProp();
+
+    getActor()->SetMapper(_pdMapper);
+    _pdMapper->Update();
+}
