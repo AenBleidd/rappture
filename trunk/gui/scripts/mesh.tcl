@@ -365,6 +365,10 @@ itcl::body Rappture::Mesh::_buildRectMesh {xmlobj path} {
 itcl::body Rappture::Mesh::_getVtkElement {npts} {
     if {![info exists _pts2elem($npts)]} {
         switch -- $npts {
+            3 {
+                set _pts2elem($npts) $this-elem3
+                vtkTriangle $_pts2elem($npts)
+            }
             4 {
                 set _pts2elem($npts) $this-elem4
                 vtkTetra $_pts2elem($npts)

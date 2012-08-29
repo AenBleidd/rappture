@@ -259,7 +259,6 @@ itcl::body Rappture::ControlOwner::load {newobj} {
     if {![Rappture::library isvalid $newobj]} {
         error "\"$newobj\" is not a Rappture::library"
     }
-
     foreach path [array names _path2widget] {
         # the following elements do not accept "current" tags, skip them
         set type [[tool] xml element -as type $path]
