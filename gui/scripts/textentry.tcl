@@ -348,7 +348,7 @@ itcl::body Rappture::TextEntry::_layout {} {
                 $itk_component(tmenu) add command \
                     -label [Rappture::filexfer::label download] \
                     -command [itcl::code $this _downloadValue]
-		
+
                 bind $itk_component(text) <<PopupMenu>> \
                     [itcl::code $this _edit menu tmenu %X %Y]
             }
