@@ -5,7 +5,7 @@
  * Author: Leif Delgass <ldelgass@purdue.edu>
  */
 
-#include <cassert>
+#include <cfloat>
 
 #include <vtkDataSet.h>
 #include <vtkPointData.h>

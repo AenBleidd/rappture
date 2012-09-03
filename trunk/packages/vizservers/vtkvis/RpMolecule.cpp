@@ -6,6 +6,7 @@
  */
 
 #include <cstdio>
+#include <cfloat>
 #include <cassert>
 
 #include <vtkDataSet.h>
