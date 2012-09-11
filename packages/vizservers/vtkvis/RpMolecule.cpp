@@ -47,6 +47,8 @@ Molecule::Molecule() :
     _colorFieldType(DataSet::POINT_DATA)
 {
     _bondColor[0] = _bondColor[1] = _bondColor[2] = 1.0f;
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
     _faceCulling = true;
 }
 
