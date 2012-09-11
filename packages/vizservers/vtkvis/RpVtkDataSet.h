@@ -136,6 +136,8 @@ public:
         return _prop;
     }
 
+    static void print(vtkDataSet *ds);
+
 private:
     DataSet();
 
