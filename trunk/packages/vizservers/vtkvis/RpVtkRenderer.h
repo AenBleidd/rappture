@@ -390,6 +390,12 @@ public:
     template<class GraphicsObject>
     void setGraphicsObjectWireframe(const DataSetId& id, bool state);
 
+    // Arcs
+
+    bool addArc(const DataSetId& id, double pt1[3], double pt2[3]);
+
+    void setArcResolution(const DataSetId& id, int res);
+
     // 2D Contour plots
 
     bool addContour2D(const DataSetId& id, int numContours);
@@ -433,6 +439,12 @@ public:
                               Cutplane::ColorMode mode,
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
+
+    // Disks
+
+    bool addDisk(const DataSetId& id, double innerRadisu, double outerRadius);
+
+    void setDiskResolution(const DataSetId& id, int resRadial, int resCircum);
 
     // Glyphs
 

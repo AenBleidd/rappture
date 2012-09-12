@@ -128,6 +128,18 @@ dataset vector <vectorName> <?datasetName?>
         Set the active vector field to plot
 dataset visible <bool> <?datasetName?>
 
+arc add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
+arc color <r> <g> <b> <?name?>
+arc delete <?name?>
+arc linecolor <r> <g> <b> <?name?>
+arc linewidth <val> <?name?>
+arc opacity <val> <?name?>
+arc orient <qw> <qx> <qy> <qz> <?name?>
+arc pos <x> <y> <z> <?name?>
+arc resolution <res> <?name?>
+arc scale <sx> <sy> <sz> <?name?>
+arc visible <bool> <?name?>
+
 box add <name>
 box color <r> <g> <b> <?name?>
 box delete <?name?>
@@ -214,6 +226,22 @@ cutplane slice axis ratio <?dataSetName?>
          ratio is [0,1]
 cutplane visible <bool> <?dataSetName?>
 cutplane wireframe <bool> <?datasetName?>
+
+disk add <innerRadius> <outerRadius> <name>
+disk color <r> <g> <b> <?name?>
+disk delete <?name?>
+disk edges <bool> <?name?>
+disk lighting <bool> <?name?>
+disk linecolor <r> <g> <b> <?name?>
+disk linewidth <val> <?name?>
+disk material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+disk opacity <val> <?name?>
+disk orient <qw> <qx> <qy> <qz> <?name?>
+disk pos <x> <y> <z> <?name?>
+disk resolution <resRadial> <resCircum> <?name?>
+disk scale <sx> <sy> <sz> <?name?>
+disk visible <bool> <?name?>
+disk wireframe <bool> <?name?>
 
 glyphs add <shape> <?dataSetName?>
        See 'glyphs shape' for list of shapes

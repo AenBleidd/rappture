@@ -262,6 +262,68 @@ void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis
 using namespace Rappture::VtkVis;
 
 /**
+ * \brief Create a new Arc and associate it with an ID
+ */
+bool Renderer::addArc(const DataSetId& id, double pt1[3], double pt2[3])
+{
+    Arc *gobj;
+    if ((gobj = getGraphicsObject<Arc>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Arc>(id);
+    }
+
+    gobj = new Arc();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setEndPoints(pt1, pt2);
+
+    getGraphicsObjectHashmap<Arc>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set Arc resolution
+ */
+void Renderer::setArcResolution(const DataSetId& id, int res)
+{
+    ArcHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _arcs.begin();
+        doAll = true;
+    } else {
+        itr = _arcs.find(id);
+    }
+    if (itr == _arcs.end()) {
+        ERROR("Arc not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setResolution(res);
+    } while (doAll && ++itr != _arcs.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
 bool Renderer::addContour2D(const DataSetId& id, int numContours)
@@ -734,6 +796,68 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
     do {
         itr->second->setColorMode(mode, name, range);
     } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Disk and associate it with an ID
+ */
+bool Renderer::addDisk(const DataSetId& id, double innerRadius, double outerRadius)
+{
+    Disk *gobj;
+    if ((gobj = getGraphicsObject<Disk>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Disk>(id);
+    }
+
+    gobj = new Disk();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setRadii(innerRadius, outerRadius);
+
+    getGraphicsObjectHashmap<Disk>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set Disk resolution
+ */
+void Renderer::setDiskResolution(const DataSetId& id, int resRadial, int resCircum)
+{
+    DiskHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _disks.begin();
+        doAll = true;
+    } else {
+        itr = _disks.find(id);
+    }
+    if (itr == _disks.end()) {
+        ERROR("Disk not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setResolution(resRadial, resCircum);
+    } while (doAll && ++itr != _disks.end());
 
     _needsRedraw = true;
 }
@@ -1723,7 +1847,6 @@ void Renderer::setSphereResolution(const DataSetId& id, int thetaRes, int phiRes
 
     _needsRedraw = true;
 }
-
 
 /**
  * \brief Set Sphere section

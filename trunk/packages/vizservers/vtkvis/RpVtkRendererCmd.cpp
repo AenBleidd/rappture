@@ -120,6 +120,215 @@ GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 }
 
 static int
+ArcAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+         Tcl_Obj *const *objv)
+{
+    double pt1[3];
+    double pt2[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pt1[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pt1[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pt1[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &pt2[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[6], &pt2[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[7], &pt2[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[8]);
+    if (!g_renderer->addArc(name, pt1, pt2)) {
+        Tcl_AppendResult(interp, "Failed to create arc", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+ArcDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Arc>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Arc>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ArcColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Arc>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Arc>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Arc>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Arc>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Arc>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Arc>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Arc>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Arc>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Arc>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Arc>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    int res;
+    if (Tcl_GetIntFromObj(interp, objv[2], &res) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setArcResolution(name, res);
+    } else {
+        g_renderer->setArcResolution("all", res);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Arc>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Arc>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ArcVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Arc>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Arc>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec arcOps[] = {
+    {"add",       1, ArcAddOp, 9, 9, "x1 y1 z1 x2 y2 z2 name"},
+    {"color",     1, ArcColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, ArcDeleteOp, 2, 3, "?name?"},
+    {"linecolor", 5, ArcColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, ArcLineWidthOp, 3, 4, "width ?name?"},
+    {"opacity",   2, ArcOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, ArcOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, ArcPositionOp, 5, 6, "x y z ?name?"},
+    {"resolution",1, ArcResolutionOp, 3, 4, "res ?name?"},
+    {"scale",     2, ArcScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, ArcVisibleOp, 3, 4, "bool ?name?"}
+};
+static int nArcOps = NumCmdSpecs(arcOps);
+
+static int
+ArcCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nArcOps, arcOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 AxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -2430,6 +2639,310 @@ DataSetCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nDataSetOps, dataSetOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+DiskAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    double innerRadius, outerRadius;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &innerRadius) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &outerRadius) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[4]);
+    if (!g_renderer->addDisk(name, innerRadius, outerRadius)) {
+        Tcl_AppendResult(interp, "Failed to create disk", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+DiskDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Disk>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Disk>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+DiskColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Disk>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Disk>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Disk>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Disk>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Disk>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Disk>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Disk>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Disk>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Disk>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Disk>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Disk>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Disk>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Disk>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Disk>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Disk>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Disk>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Disk>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Disk>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Disk>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Disk>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Disk>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Disk>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    int radial, circum;
+    if (Tcl_GetIntFromObj(interp, objv[2], &radial) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &circum) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setDiskResolution(name, radial, circum);
+    } else {
+        g_renderer->setDiskResolution("all", radial, circum);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Disk>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Disk>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Disk>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Disk>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+DiskWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Disk>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Disk>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec diskOps[] = {
+    {"add",       1, DiskAddOp, 5, 5, "innerRadius outerRadius name"},
+    {"color",     1, DiskColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, DiskDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, DiskEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, DiskLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, DiskLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, DiskLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, DiskMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, DiskOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, DiskOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, DiskPositionOp, 5, 6, "x y z ?name?"},
+    {"resolution",1, DiskResolutionOp, 4, 5, "resRadial resCircum ?name?"},
+    {"scale",     1, DiskScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, DiskVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, DiskWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nDiskOps = NumCmdSpecs(diskOps);
+
+static int
+DiskCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+        Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nDiskOps, diskOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -5525,7 +6038,7 @@ SphereAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     const char *name = Tcl_GetString(objv[2]);
     if (!g_renderer->addGraphicsObject<Sphere>(name)) {
-        Tcl_AppendResult(interp, "Failed to create box", (char*)NULL);
+        Tcl_AppendResult(interp, "Failed to create sphere", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -7217,6 +7730,7 @@ void
 Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
     Tcl_MakeSafe(interp);
+    Tcl_CreateObjCommand(interp, "arc",         ArcCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "box",         BoxCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
@@ -7225,6 +7739,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   clientData, NULL);
     Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     clientData, NULL);
+    Tcl_CreateObjCommand(interp, "disk",        DiskCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   clientData, NULL);
     Tcl_CreateObjCommand(interp, "imgflush",    ImageFlushCmd,  clientData, NULL);
@@ -7248,6 +7763,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
  */
 void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
 {
+    Tcl_DeleteCommand(interp, "arc");
     Tcl_DeleteCommand(interp, "axis");
     Tcl_DeleteCommand(interp, "box");
     Tcl_DeleteCommand(interp, "camera");
@@ -7256,6 +7772,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "contour3d");
     Tcl_DeleteCommand(interp, "cutplane");
     Tcl_DeleteCommand(interp, "dataset");
+    Tcl_DeleteCommand(interp, "disk");
     Tcl_DeleteCommand(interp, "glyphs");
     Tcl_DeleteCommand(interp, "heightmap");
     Tcl_DeleteCommand(interp, "imgflush");
