@@ -292,6 +292,17 @@ lic slice <axis> <ratio> <?datasetName?>
     ratio is [0,1]
 lic visible <bool> <?datasetName?>
 
+line add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
+line color <r> <g> <b> <?name?>
+line delete <?name?>
+line linecolor <r> <g> <b> <?name?>
+line linewidth <val> <?name?>
+line opacity <val> <?datasetName?>
+line orient <qw> <qx> <qy> <qz> <?name?>
+line pos <x> <y> <z> <?name?>
+line scale <sx> <sy> <sz> <?name?>
+line visible <bool> <?name?>
+
 molecule add <?datasetName?>
 molecule atoms <bool> <?datasetName?>
          Toggle rendering of atoms
