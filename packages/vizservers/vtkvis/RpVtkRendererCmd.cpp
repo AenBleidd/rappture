@@ -4788,6 +4788,290 @@ PolyDataCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PolygonAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    int numSides;
+    if (Tcl_GetIntFromObj(interp, objv[2], &numSides) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[3]);
+    if (!g_renderer->addPolygon(name, numSides)) {
+        Tcl_AppendResult(interp, "Failed to create polygon", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Polygon>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Polygon>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Polygon>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Polygon>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Polygon>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Polygon>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Polygon>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Polygon>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Polygon>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Polygon>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Polygon>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Polygon>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Polygon>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Polygon>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Polygon>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Polygon>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Polygon>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Polygon>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Polygon>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Polygon>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Polygon>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Polygon>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Polygon>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Polygon>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Polygon>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Polygon>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Polygon>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Polygon>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+PolygonWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Polygon>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Polygon>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec polygonOps[] = {
+    {"add",       1, PolygonAddOp, 4, 4, "numSides name"},
+    {"color",     1, PolygonColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, PolygonDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, PolygonEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, PolygonLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, PolygonLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, PolygonLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, PolygonMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, PolygonOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, PolygonOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, PolygonPositionOp, 5, 6, "x y z ?name?"},
+    {"scale",     1, PolygonScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, PolygonVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, PolygonWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nPolygonOps = NumCmdSpecs(polygonOps);
+
+static int
+PolygonCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nPolygonOps, polygonOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 PseudoColorAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -6949,6 +7233,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "line",        LineCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "molecule",    MoleculeCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "polydata",    PolyDataCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "polygon",     PolygonCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "pseudocolor", PseudoColorCmd, clientData, NULL);
     Tcl_CreateObjCommand(interp, "renderer",    RendererCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      clientData, NULL);
@@ -6979,6 +7264,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "line");
     Tcl_DeleteCommand(interp, "molecule");
     Tcl_DeleteCommand(interp, "polydata");
+    Tcl_DeleteCommand(interp, "polygon");
     Tcl_DeleteCommand(interp, "pseudocolor");
     Tcl_DeleteCommand(interp, "renderer");
     Tcl_DeleteCommand(interp, "screen");

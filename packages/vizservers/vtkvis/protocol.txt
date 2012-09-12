@@ -135,8 +135,8 @@ box edges <bool> <?name?>
 box lighting <bool> <?name?>
 box linecolor <r> <g> <b> <?name?>
 box linewidth <val> <?name?>
-box material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp>
-box opacity <val> <?datasetName?>
+box material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+box opacity <val> <?name?>
 box orient <qw> <qx> <qy> <qz> <?name?>
 box pos <x> <y> <z> <?name?>
 box scale <sx> <sy> <sz> <?name?>
@@ -297,7 +297,7 @@ line color <r> <g> <b> <?name?>
 line delete <?name?>
 line linecolor <r> <g> <b> <?name?>
 line linewidth <val> <?name?>
-line opacity <val> <?datasetName?>
+line opacity <val> <?name?>
 line orient <qw> <qx> <qy> <qz> <?name?>
 line pos <x> <y> <z> <?name?>
 line scale <sx> <sy> <sz> <?name?>
@@ -358,6 +358,21 @@ polydata scale <sx> <sy> <sz> <?dataSetName?>
 polydata visible <bool> <?datasetName?>
 polydata wireframe <bool> <?datasetName?>
 
+polygon add <numSides> <name>
+polygon color <r> <g> <b> <?name?>
+polygon delete <?name?>
+polygon edges <bool> <?name?>
+polygon lighting <bool> <?name?>
+polygon linecolor <r> <g> <b> <?name?>
+polygon linewidth <val> <?name?>
+polygon material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+polygon opacity <val> <?name?>
+polygon orient <qw> <qx> <qy> <qz> <?name?>
+polygon pos <x> <y> <z> <?name?>
+polygon scale <sx> <sy> <sz> <?name?>
+polygon visible <bool> <?name?>
+polygon wireframe <bool> <?name?>
+
 pseudocolor add <?datasetName?>
 pseudocolor ccolor <r> <g> <b> <?datasetName?>
 pseudocolor colormap <colormapName> <?datasetName?>
@@ -386,13 +401,13 @@ sphere edges <bool> <?name?>
 sphere lighting <bool> <?name?>
 sphere linecolor <r> <g> <b> <?name?>
 sphere linewidth <val> <?name?>
-sphere material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp>
-sphere opacity <val> <?datasetName?>
+sphere material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+sphere opacity <val> <?name?>
 sphere orient <qw> <qx> <qy> <qz> <?name?>
 sphere pos <x> <y> <z> <?name?>
 sphere resolution <thetaRes> <phiRes> <?name?>
 sphere scale <sx> <sy> <sz> <?name?>
-sphere section <thetaStart> <thetaEnd> <phiStart> <phiEnd>
+sphere section <thetaStart> <thetaEnd> <phiStart> <phiEnd> <?name?>
        Angles are in degrees
 sphere visible <bool> <?name?>
 sphere wireframe <bool> <?name?>
