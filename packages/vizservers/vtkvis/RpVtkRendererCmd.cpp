@@ -329,6 +329,311 @@ ArcCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+ArrowAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+           Tcl_Obj *const *objv)
+{
+    double tipRadius, shaftRadius, tipLength;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &tipRadius) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &shaftRadius) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &tipLength) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[5]);
+    if (!g_renderer->addArrow(name, tipRadius, shaftRadius, tipLength)) {
+        Tcl_AppendResult(interp, "Failed to create arrow", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Arrow>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Arrow>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Arrow>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Arrow>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                      Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Arrow>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Arrow>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Arrow>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Arrow>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Arrow>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Arrow>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Arrow>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Arrow>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Arrow>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Arrow>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Arrow>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Arrow>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Arrow>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Arrow>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Arrow>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Arrow>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Arrow>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Arrow>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Arrow>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Arrow>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    int tipRes, shaftRes;
+    if (Tcl_GetIntFromObj(interp, objv[2], &tipRes) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &shaftRes) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setArrowResolution(name, tipRes, shaftRes);
+    } else {
+        g_renderer->setArrowResolution("all", tipRes, shaftRes);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Arrow>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Arrow>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Arrow>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Arrow>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ArrowWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Arrow>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Arrow>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec arrowOps[] = {
+    {"add",       1, ArrowAddOp, 6, 6, "tipRadius shaftRadius tipLength name"},
+    {"color",     1, ArrowColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, ArrowDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, ArrowEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, ArrowLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, ArrowLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, ArrowLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, ArrowMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, ArrowOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, ArrowOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, ArrowPositionOp, 5, 6, "x y z ?name?"},
+    {"resolution",1, ArrowResolutionOp, 4, 5, "tipRes shaftRes ?name?"},
+    {"scale",     1, ArrowScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, ArrowVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, ArrowWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nArrowOps = NumCmdSpecs(arrowOps);
+
+static int
+ArrowCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nArrowOps, arrowOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
 AxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
@@ -1172,6 +1477,311 @@ ColorMapCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nColorMapOps, colorMapOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+ConeAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    double radius, height;
+    bool cap;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &radius) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &height) != TCL_OK ||
+        GetBooleanFromObj(interp, objv[4], &cap) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[5]);
+    if (!g_renderer->addCone(name, radius, height, cap)) {
+        Tcl_AppendResult(interp, "Failed to create cone", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+ConeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Cone>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Cone>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+ConeColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Cone>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Cone>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Cone>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Cone>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Cone>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Cone>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Cone>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Cone>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Cone>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Cone>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Cone>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Cone>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Cone>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Cone>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Cone>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Cone>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Cone>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Cone>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Cone>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Cone>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+ConePositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Cone>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Cone>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    int res;
+    if (Tcl_GetIntFromObj(interp, objv[2], &res) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setConeResolution(name, res);
+    } else {
+        g_renderer->setConeResolution("all", res);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Cone>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Cone>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Cone>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Cone>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+ConeWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Cone>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Cone>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec coneOps[] = {
+    {"add",       1, ConeAddOp, 6, 6, "radius height cap name"},
+    {"color",     1, ConeColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, ConeDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, ConeEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, ConeLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, ConeLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, ConeLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, ConeMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, ConeOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, ConeOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, ConePositionOp, 5, 6, "x y z ?name?"},
+    {"resolution",1, ConeResolutionOp, 3, 4, "res ?name?"},
+    {"scale",     1, ConeScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, ConeVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, ConeWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nConeOps = NumCmdSpecs(coneOps);
+
+static int
+ConeCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nConeOps, coneOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -2216,6 +2826,311 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nCutplaneOps, cutplaneOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+CylinderAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    double radius, height;
+    bool cap = true;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &radius) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &height) != TCL_OK ||
+        GetBooleanFromObj(interp, objv[4], &cap) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *name = Tcl_GetString(objv[5]);
+    if (!g_renderer->addCylinder(name, radius, height, cap)) {
+        Tcl_AppendResult(interp, "Failed to create cylinder", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    if (objc == 3) {
+        const char *name = Tcl_GetString(objv[2]);
+        g_renderer->deleteGraphicsObject<Cylinder>(name);
+    } else {
+        g_renderer->deleteGraphicsObject<Cylinder>("all");
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Cylinder>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Cylinder>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderEdgeVisibilityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                         Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeVisibility<Cylinder>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectEdgeVisibility<Cylinder>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectLighting<Cylinder>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectLighting<Cylinder>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectEdgeColor<Cylinder>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectEdgeColor<Cylinder>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    float width;
+    if (GetFloatFromObj(interp, objv[2], &width) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectEdgeWidth<Cylinder>(name, width);
+    } else {
+        g_renderer->setGraphicsObjectEdgeWidth<Cylinder>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderMaterialOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double ambient, diffuse, specCoeff, specPower;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &ambient) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &diffuse) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &specCoeff) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &specPower) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectAmbient<Cylinder>(name, ambient);
+        g_renderer->setGraphicsObjectDiffuse<Cylinder>(name, diffuse);
+        g_renderer->setGraphicsObjectSpecular<Cylinder>(name, specCoeff, specPower);
+    } else {
+        g_renderer->setGraphicsObjectAmbient<Cylinder>("all", ambient);
+        g_renderer->setGraphicsObjectDiffuse<Cylinder>("all", diffuse);
+        g_renderer->setGraphicsObjectSpecular<Cylinder>("all", specCoeff, specPower);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double opacity;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &opacity) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectOpacity<Cylinder>(name, opacity);
+    } else {
+        g_renderer->setGraphicsObjectOpacity<Cylinder>("all", opacity);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderOrientOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double quat[4];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &quat[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &quat[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &quat[2]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &quat[3]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 7) {
+        const char *name = Tcl_GetString(objv[6]);
+        g_renderer->setGraphicsObjectOrientation<Cylinder>(name, quat);
+    } else {
+        g_renderer->setGraphicsObjectOrientation<Cylinder>("all", quat);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                   Tcl_Obj *const *objv)
+{
+    double pos[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &pos[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &pos[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &pos[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectPosition<Cylinder>(name, pos);
+    } else {
+        g_renderer->setGraphicsObjectPosition<Cylinder>("all", pos);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderResolutionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    int res;
+    if (Tcl_GetIntFromObj(interp, objv[2], &res) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCylinderResolution(name, res);
+    } else {
+        g_renderer->setCylinderResolution("all", res);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double scale[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &scale[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &scale[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &scale[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectScale<Cylinder>(name, scale);
+    } else {
+        g_renderer->setGraphicsObjectScale<Cylinder>("all", scale);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectVisibility<Cylinder>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectVisibility<Cylinder>("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
+CylinderWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectWireframe<Cylinder>(name, state);
+    } else {
+        g_renderer->setGraphicsObjectWireframe<Cylinder>("all", state);
+    }
+    return TCL_OK;
+}
+
+static Rappture::CmdSpec cylinderOps[] = {
+    {"add",       1, CylinderAddOp, 6, 6, " radius height cap name"},
+    {"color",     1, CylinderColorOp, 5, 6, "r g b ?name?"},
+    {"delete",    1, CylinderDeleteOp, 2, 3, "?name?"},
+    {"edges",     1, CylinderEdgeVisibilityOp, 3, 4, "bool ?name?"},
+    {"lighting",  3, CylinderLightingOp, 3, 4, "bool ?name?"},
+    {"linecolor", 5, CylinderLineColorOp, 5, 6, "r g b ?name?"},
+    {"linewidth", 5, CylinderLineWidthOp, 3, 4, "width ?name?"},
+    {"material",  1, CylinderMaterialOp, 6, 7, "ambientCoeff diffuseCoeff specularCoeff specularPower ?name?"},
+    {"opacity",   2, CylinderOpacityOp, 3, 4, "value ?name?"},
+    {"orient",    2, CylinderOrientOp, 6, 7, "qw qx qy qz ?name?"},
+    {"pos",       2, CylinderPositionOp, 5, 6, "x y z ?name?"},
+    {"resolution",1, CylinderResolutionOp, 3, 4, "res ?name?"},
+    {"scale",     1, CylinderScaleOp, 5, 6, "sx sy sz ?name?"},
+    {"visible",   1, CylinderVisibleOp, 3, 4, "bool ?name?"},
+    {"wireframe", 1, CylinderWireframeOp, 3, 4, "bool ?name?"}
+};
+static int nCylinderOps = NumCmdSpecs(cylinderOps);
+
+static int
+CylinderCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+       Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nCylinderOps, cylinderOps,
                                   Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
@@ -7731,13 +8646,16 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 {
     Tcl_MakeSafe(interp);
     Tcl_CreateObjCommand(interp, "arc",         ArcCmd,         clientData, NULL);
+    Tcl_CreateObjCommand(interp, "arrow",       ArrowCmd,       clientData, NULL);
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "box",         BoxCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cone",        ConeCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   clientData, NULL);
     Tcl_CreateObjCommand(interp, "contour3d",   Contour3DCmd,   clientData, NULL);
     Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    clientData, NULL);
+    Tcl_CreateObjCommand(interp, "cylinder",    CylinderCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "dataset",     DataSetCmd,     clientData, NULL);
     Tcl_CreateObjCommand(interp, "disk",        DiskCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "glyphs",      GlyphsCmd,      clientData, NULL);
@@ -7764,13 +8682,16 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
 void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
 {
     Tcl_DeleteCommand(interp, "arc");
+    Tcl_DeleteCommand(interp, "arrow");
     Tcl_DeleteCommand(interp, "axis");
     Tcl_DeleteCommand(interp, "box");
     Tcl_DeleteCommand(interp, "camera");
     Tcl_DeleteCommand(interp, "colormap");
+    Tcl_DeleteCommand(interp, "cone");
     Tcl_DeleteCommand(interp, "contour2d");
     Tcl_DeleteCommand(interp, "contour3d");
     Tcl_DeleteCommand(interp, "cutplane");
+    Tcl_DeleteCommand(interp, "cylinder");
     Tcl_DeleteCommand(interp, "dataset");
     Tcl_DeleteCommand(interp, "disk");
     Tcl_DeleteCommand(interp, "glyphs");

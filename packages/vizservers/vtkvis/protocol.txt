@@ -140,6 +140,23 @@ arc resolution <res> <?name?>
 arc scale <sx> <sy> <sz> <?name?>
 arc visible <bool> <?name?>
 
+arrow add <tipRadius> <shaftRadius> <tipLength> <name>
+      Arrow will have base at 0,0,0 and tip at 1, 0, 0
+arrow color <r> <g> <b> <?name?>
+arrow delete <?name?>
+arrow edges <bool> <?name?>
+arrow lighting <bool> <?name?>
+arrow linecolor <r> <g> <b> <?name?>
+arrow linewidth <val> <?name?>
+arrow material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+arrow opacity <val> <?name?>
+arrow orient <qw> <qx> <qy> <qz> <?name?>
+arrow pos <x> <y> <z> <?name?>
+arrow resolution <tipRes> <shaftRes> <?name?>
+arrow scale <sx> <sy> <sz> <?name?>
+arrow visible <bool> <?name?>
+arrow wireframe <bool> <?name?>
+
 box add <name>
 box color <r> <g> <b> <?name?>
 box delete <?name?>
@@ -154,6 +171,23 @@ box pos <x> <y> <z> <?name?>
 box scale <sx> <sy> <sz> <?name?>
 box visible <bool> <?name?>
 box wireframe <bool> <?name?>
+
+cone add <radius> <height> <cap> <name>
+     <cap> = boolean flag for cap disks
+cone color <r> <g> <b> <?name?>
+cone delete <?name?>
+cone edges <bool> <?name?>
+cone lighting <bool> <?name?>
+cone linecolor <r> <g> <b> <?name?>
+cone linewidth <val> <?name?>
+cone material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+cone opacity <val> <?name?>
+cone orient <qw> <qx> <qy> <qz> <?name?>
+cone pos <x> <y> <z> <?name?>
+cone resolution <res> <?name?>
+cone scale <sx> <sy> <sz> <?name?>
+cone visible <bool> <?name?>
+cone wireframe <bool> <?name?>
 
 contour2d add numcontours <n> <?datasetName?>
           Generate evenly spaced contours including range endpoints.  See also
@@ -226,6 +260,23 @@ cutplane slice axis ratio <?dataSetName?>
          ratio is [0,1]
 cutplane visible <bool> <?dataSetName?>
 cutplane wireframe <bool> <?datasetName?>
+
+cylinder add <radius> <height> <cap> <name>
+         <cap> = boolean flag for cap disks
+cylinder color <r> <g> <b> <?name?>
+cylinder delete <?name?>
+cylinder edges <bool> <?name?>
+cylinder lighting <bool> <?name?>
+cylinder linecolor <r> <g> <b> <?name?>
+cylinder linewidth <val> <?name?>
+cylinder material <ambientCoeff> <diffuseCoeff> <specularCoeff> <specularExp> <?name?>
+cylinder opacity <val> <?name?>
+cylinder orient <qw> <qx> <qy> <qz> <?name?>
+cylinder pos <x> <y> <z> <?name?>
+cylinder resolution <res> <?name?>
+cylinder scale <sx> <sy> <sz> <?name?>
+cylinder visible <bool> <?name?>
+cylinder wireframe <bool> <?name?>
 
 disk add <innerRadius> <outerRadius> <name>
 disk color <r> <g> <b> <?name?>

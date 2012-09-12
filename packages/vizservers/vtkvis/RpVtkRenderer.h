@@ -396,6 +396,18 @@ public:
 
     void setArcResolution(const DataSetId& id, int res);
 
+    // Arrows
+
+    bool addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength);
+
+    void setArrowResolution(const DataSetId& id, int resTip, int resShaft);
+
+    // Cones
+
+    bool addCone(const DataSetId& id, double radius, double height, bool cap);
+
+    void setConeResolution(const DataSetId& id, int res);
+
     // 2D Contour plots
 
     bool addContour2D(const DataSetId& id, int numContours);
@@ -440,9 +452,15 @@ public:
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
 
+    // Cylinders
+
+    bool addCylinder(const DataSetId& id, double radius, double height, bool cap);
+
+    void setCylinderResolution(const DataSetId& id, int res);
+
     // Disks
 
-    bool addDisk(const DataSetId& id, double innerRadisu, double outerRadius);
+    bool addDisk(const DataSetId& id, double innerRadius, double outerRadius);
 
     void setDiskResolution(const DataSetId& id, int resRadial, int resCircum);
 
