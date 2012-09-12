@@ -324,6 +324,133 @@ void Renderer::setArcResolution(const DataSetId& id, int res)
 }
 
 /**
+ * \brief Create a new Arrow and associate it with an ID
+ */
+bool Renderer::addArrow(const DataSetId& id, double tipRadius, double shaftRadius, double tipLength)
+{
+    Arrow *gobj;
+    if ((gobj = getGraphicsObject<Arrow>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Arrow>(id);
+    }
+
+    gobj = new Arrow();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setRadii(tipRadius, shaftRadius);
+    gobj->setTipLength(tipLength);
+
+    getGraphicsObjectHashmap<Arrow>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set Arrow resolution
+ */
+void Renderer::setArrowResolution(const DataSetId& id, int tipRes, int shaftRes)
+{
+    ArrowHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _arrows.begin();
+        doAll = true;
+    } else {
+        itr = _arrows.find(id);
+    }
+    if (itr == _arrows.end()) {
+        ERROR("Arrow not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setResolution(tipRes, shaftRes);
+    } while (doAll && ++itr != _arrows.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Cone and associate it with an ID
+ */
+bool Renderer::addCone(const DataSetId& id, double radius, double height, bool cap)
+{
+    Cone *gobj;
+    if ((gobj = getGraphicsObject<Cone>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Cone>(id);
+    }
+
+    gobj = new Cone();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setRadius(radius);
+    gobj->setHeight(height);
+    gobj->setCapping(cap);
+
+    getGraphicsObjectHashmap<Cone>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set Cone resolution
+ */
+void Renderer::setConeResolution(const DataSetId& id, int res)
+{
+    ConeHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cones.begin();
+        doAll = true;
+    } else {
+        itr = _cones.find(id);
+    }
+    if (itr == _cones.end()) {
+        ERROR("Cone not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setResolution(res);
+    } while (doAll && ++itr != _cones.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Create a new Contour2D and associate it with the named DataSet
  */
 bool Renderer::addContour2D(const DataSetId& id, int numContours)
@@ -796,6 +923,70 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
     do {
         itr->second->setColorMode(mode, name, range);
     } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Create a new Cylinder and associate it with an ID
+ */
+bool Renderer::addCylinder(const DataSetId& id, double radius, double height, bool cap)
+{
+    Cylinder *gobj;
+    if ((gobj = getGraphicsObject<Cylinder>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Cylinder>(id);
+    }
+
+    gobj = new Cylinder();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setRadius(radius);
+    gobj->setHeight(height);
+    gobj->setCapping(cap);
+
+    getGraphicsObjectHashmap<Cylinder>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
+
+/**
+ * \brief Set Cylinder resolution
+ */
+void Renderer::setCylinderResolution(const DataSetId& id, int res)
+{
+    CylinderHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cylinders.begin();
+        doAll = true;
+    } else {
+        itr = _cylinders.find(id);
+    }
+    if (itr == _cylinders.end()) {
+        ERROR("Cylinder not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setResolution(res);
+    } while (doAll && ++itr != _cylinders.end());
 
     _needsRedraw = true;
 }
@@ -1397,6 +1588,9 @@ void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth
     _needsRedraw = true;
 }
 
+/**
+ * \brief Create a new Line and associate it with an ID
+ */
 bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
 {
     Line *gobj;
@@ -1729,6 +1923,9 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
     _needsRedraw = true;
 }
 
+/**
+ * \brief Create a new n-sided regular Polygon and associate it with an ID
+ */
 bool Renderer::addPolygon(const DataSetId& id, int numSides)
 {
     Polygon *gobj;
