@@ -29,15 +29,23 @@
 #include "ColorMap.h"
 #include "RpTypes.h"
 #include "RpVtkDataSet.h"
+#include "RpArc.h"
+#include "RpArrow.h"
 #include "RpBox.h"
+#include "RpCone.h"
 #include "RpContour2D.h"
 #include "RpContour3D.h"
 #include "RpCutplane.h"
+#include "RpCylinder.h"
+#include "RpDisk.h"
 #include "RpGlyphs.h"
+#include "RpGroup.h"
 #include "RpHeightMap.h"
 #include "RpLIC.h"
+#include "RpLine.h"
 #include "RpMolecule.h"
 #include "RpPolyData.h"
+#include "RpPolygon.h"
 #include "RpPseudoColor.h"
 #include "RpSphere.h"
 #include "RpStreamlines.h"
@@ -295,7 +303,31 @@ public:
     void deleteGraphicsObject(const DataSetId& id);
 
     template<class GraphicsObject>
+    void deleteAllGraphicsObjects();
+
+    template<class GraphicsObject>
+    void mergeGraphicsObjectBounds(double *bounds, bool onlyVisible);
+
+    template<class GraphicsObject>
+    void mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisible);
+
+    template<class GraphicsObject>
+    void updateGraphicsObjectFieldRanges();
+
+    template<class GraphicsObject>
+    void setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes);
+
+    template<class GraphicsObject>
+    void setGraphicsObjectAspect(double aspectRatio);
+
+    template<class GraphicsObject>
     void setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& colorMapId);
+
+    template<class GraphicsObject>
+    void updateGraphicsObjectColorMap(ColorMap *cmap);
+
+    template<class GraphicsObject>
+    bool graphicsObjectColorMapUsed(ColorMap *cmap);
 
     template<class GraphicsObject>
     void setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, double ratio);
@@ -444,6 +476,10 @@ public:
 
     void setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth);
 
+    // Lines
+
+    bool addLine(const DataSetId& id, double pt1[3], double pt2[3]);
+
     // Molecules
 
     void setMoleculeAtomRadiusScale(const DataSetId& id, double scale);
@@ -558,15 +594,24 @@ private:
     typedef std::tr1::unordered_map<DataSetId, DataSet *> DataSetHashmap;
     typedef std::tr1::unordered_map<FieldId, double *> FieldRangeHashmap;
     typedef std::tr1::unordered_map<ColorMapId, ColorMap *> ColorMapHashmap;
+
+    typedef std::tr1::unordered_map<DataSetId, Arc *> ArcHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Arrow *> ArrowHashmap;
     typedef std::tr1::unordered_map<DataSetId, Box *> BoxHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Cone *> ConeHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour2D *> Contour2DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Contour3D *> Contour3DHashmap;
     typedef std::tr1::unordered_map<DataSetId, Cutplane *> CutplaneHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Cylinder *> CylinderHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Disk *> DiskHashmap;
     typedef std::tr1::unordered_map<DataSetId, Glyphs *> GlyphsHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Group *> GroupHashmap;
     typedef std::tr1::unordered_map<DataSetId, HeightMap *> HeightMapHashmap;
     typedef std::tr1::unordered_map<DataSetId, LIC *> LICHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Line *> LineHashmap;
     typedef std::tr1::unordered_map<DataSetId, Molecule *> MoleculeHashmap;
     typedef std::tr1::unordered_map<DataSetId, PolyData *> PolyDataHashmap;
+    typedef std::tr1::unordered_map<DataSetId, Polygon *> PolygonHashmap;
     typedef std::tr1::unordered_map<DataSetId, PseudoColor *> PseudoColorHashmap;
     typedef std::tr1::unordered_map<DataSetId, Sphere *> SphereHashmap;
     typedef std::tr1::unordered_map<DataSetId, Streamlines *> StreamlinesHashmap;
@@ -581,6 +626,8 @@ private:
 
     template<class GraphicsObject>
     std::tr1::unordered_map<DataSetId, GraphicsObject *>&getGraphicsObjectHashmap();
+
+    void setObjectAspects(double aspectRatio);
 
     void collectBounds(double *bounds, bool onlyVisible);
 
@@ -618,6 +665,7 @@ private:
 
     bool _needsRedraw;
     int _windowWidth, _windowHeight;
+    CameraMode _cameraMode;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
     PrincipalPlane _imgCameraPlane;
@@ -639,22 +687,28 @@ private:
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
+    ArcHashmap _arcs;
+    ArrowHashmap _arrows;
     BoxHashmap _boxes;
+    ConeHashmap _cones;
     Contour2DHashmap _contour2Ds;
     Contour3DHashmap _contour3Ds;
     CutplaneHashmap _cutplanes;
+    CylinderHashmap _cylinders;
+    DiskHashmap _disks;
     GlyphsHashmap _glyphs;
+    GroupHashmap _groups;
     HeightMapHashmap _heightMaps;
     LICHashmap _lics;
+    LineHashmap _lines;
     MoleculeHashmap _molecules;
     PolyDataHashmap _polyDatas;
+    PolygonHashmap _polygons;
     PseudoColorHashmap _pseudoColors;
     SphereHashmap _spheres;
     StreamlinesHashmap _streamlines;
     VolumeHashmap _volumes;
     WarpHashmap _warps;
-
-    CameraMode _cameraMode;
 
     vtkSmartPointer<vtkPlane> _cameraClipPlanes[4];
     vtkSmartPointer<vtkPlane> _userClipPlanes[6];

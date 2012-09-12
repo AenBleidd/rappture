@@ -71,6 +71,25 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
 }
 
 template<class GraphicsObject>
+void Renderer::deleteAllGraphicsObjects()
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap =
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    itr = hashmap.begin();
+    if (itr == hashmap.end())
+        return;
+
+    TRACE("Deleting all %s objects", itr->second->getClassName());
+
+    for (; itr != hashmap.end(); ++itr) {
+        delete itr->second;
+    }
+    hashmap.clear();
+}
+
+template<class GraphicsObject>
 bool Renderer::addGraphicsObject(const DataSetId& id)
 {
     DataSetHashmap::iterator itr;
@@ -743,6 +762,99 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     } while (doAll && ++itr != hashmap.end());
 
     _needsRedraw = true;
+}
+
+template<class GraphicsObject>
+void Renderer::updateGraphicsObjectColorMap(ColorMap *cmap)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap) {
+            itr->second->updateColorMap();
+            _needsRedraw = true;
+        }
+    }
+}
+
+template<class GraphicsObject>
+bool Renderer::graphicsObjectColorMapUsed(ColorMap *cmap)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        if (itr->second->getColorMap() == cmap)
+            return true;
+    }
+    return false;
+}
+
+template<class GraphicsObject>
+void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getBounds());
+    }
+}
+
+template<class GraphicsObject>
+void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisible)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        if ((!onlyVisible || itr->second->getVisibility()) &&
+            itr->second->getProp() != NULL)
+            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+    }
+}
+
+template<class GraphicsObject>
+void Renderer::updateGraphicsObjectFieldRanges()
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        itr->second->updateRanges(this);
+    }
+}
+
+template<class GraphicsObject>
+void Renderer::setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        itr->second->setClippingPlanes(planes);
+    }
+}
+
+template<class GraphicsObject>
+void Renderer::setGraphicsObjectAspect(double aspectRatio)
+{
+    std::tr1::unordered_map<DataSetId, GraphicsObject *>& hashmap = 
+        getGraphicsObjectHashmap<GraphicsObject>();
+    typename std::tr1::unordered_map<DataSetId, GraphicsObject *>::iterator itr;
+
+    for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
+        itr->second->setAspect(aspectRatio);
+    }
 }
 
 }

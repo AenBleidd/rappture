@@ -23,6 +23,7 @@
 #include "RpGlyphs.h"
 #include "RpHeightMap.h"
 #include "RpLIC.h"
+#include "RpLine.h"
 #include "RpMolecule.h"
 #include "RpPolyData.h"
 #include "RpPseudoColor.h"
@@ -37,9 +38,24 @@ namespace Rappture {
 namespace VtkVis {
 
 template<>
+Renderer::ArcHashmap &
+Renderer::getGraphicsObjectHashmap<Arc>()
+{ return _arcs; }
+
+template<>
+Renderer::ArrowHashmap &
+Renderer::getGraphicsObjectHashmap<Arrow>()
+{ return _arrows; }
+
+template<>
 Renderer::BoxHashmap &
 Renderer::getGraphicsObjectHashmap<Box>()
 { return _boxes; }
+
+template<>
+Renderer::ConeHashmap &
+Renderer::getGraphicsObjectHashmap<Cone>()
+{ return _cones; }
 
 template<>
 Renderer::Contour2DHashmap &
@@ -57,9 +73,24 @@ Renderer::getGraphicsObjectHashmap<Cutplane>()
 { return _cutplanes; }
 
 template<>
+Renderer::CylinderHashmap &
+Renderer::getGraphicsObjectHashmap<Cylinder>()
+{ return _cylinders; }
+
+template<>
+Renderer::DiskHashmap &
+Renderer::getGraphicsObjectHashmap<Disk>()
+{ return _disks; }
+
+template<>
 Renderer::GlyphsHashmap &
 Renderer::getGraphicsObjectHashmap<Glyphs>()
 { return _glyphs; }
+
+template<>
+Renderer::GroupHashmap &
+Renderer::getGraphicsObjectHashmap<Group>()
+{ return _groups; }
 
 template<>
 Renderer::HeightMapHashmap &
@@ -72,6 +103,11 @@ Renderer::getGraphicsObjectHashmap<LIC>()
 { return _lics; }
 
 template<>
+Renderer::LineHashmap &
+Renderer::getGraphicsObjectHashmap<Line>()
+{ return _lines; }
+
+template<>
 Renderer::MoleculeHashmap &
 Renderer::getGraphicsObjectHashmap<Molecule>()
 { return _molecules; }
@@ -80,6 +116,11 @@ template<>
 Renderer::PolyDataHashmap &
 Renderer::getGraphicsObjectHashmap<PolyData>()
 { return _polyDatas; }
+
+template<>
+Renderer::PolygonHashmap &
+Renderer::getGraphicsObjectHashmap<Polygon>()
+{ return _polygons; }
 
 template<>
 Renderer::PseudoColorHashmap &
@@ -106,7 +147,15 @@ Renderer::WarpHashmap &
 Renderer::getGraphicsObjectHashmap<Warp>()
 { return _warps; }
 
+template Arc *Renderer::getGraphicsObject(const DataSetId&);
+template Arrow *Renderer::getGraphicsObject(const DataSetId&);
 template Box *Renderer::getGraphicsObject(const DataSetId&);
+template Cone *Renderer::getGraphicsObject(const DataSetId&);
+template Cylinder *Renderer::getGraphicsObject(const DataSetId&);
+template Disk *Renderer::getGraphicsObject(const DataSetId&);
+template Group *Renderer::getGraphicsObject(const DataSetId&);
+template Line *Renderer::getGraphicsObject(const DataSetId&);
+template Polygon *Renderer::getGraphicsObject(const DataSetId&);
 template Sphere *Renderer::getGraphicsObject(const DataSetId&);
 
 template <>
@@ -1224,6 +1273,37 @@ void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth
     _needsRedraw = true;
 }
 
+bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
+{
+    Line *gobj;
+    if ((gobj = getGraphicsObject<Line>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Line>(id);
+    }
+
+    gobj = new Line();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setEndPoints(pt1, pt2);
+
+    getGraphicsObjectHashmap<Line>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
+}
 /**
  * \brief Set radius scale factor for atoms
  */

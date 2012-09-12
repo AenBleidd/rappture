@@ -23,10 +23,11 @@
 #include <vtkTransform.h>
 #include <vtkCharArray.h>
 #include <vtkAxisActor2D.h>
-#include <vtkCubeAxesActor.h>
 #ifdef USE_CUSTOM_AXES
+#include "vtkRpCubeAxesActor.h"
 #include "vtkRpCubeAxesActor2D.h"
 #else
+#include <vtkCubeAxesActor.h>
 #include <vtkCubeAxesActor2D.h>
 #endif
 #include <vtkDataSetReader.h>
@@ -57,12 +58,12 @@ Renderer::Renderer() :
     _needsRedraw(true),
     _windowWidth(500),
     _windowHeight(500),
+    _cameraMode(PERSPECTIVE),
     _imgCameraPlane(PLANE_XY),
     _imgCameraOffset(0),
     _cameraZoomRatio(1),
     _useCumulativeRange(true),
-    _cumulativeRangeOnlyVisible(false),
-    _cameraMode(PERSPECTIVE)
+    _cumulativeRangeOnlyVisible(false)
 {
     _bgColor[0] = 0;
     _bgColor[1] = 0;
@@ -140,90 +141,30 @@ Renderer::Renderer() :
 Renderer::~Renderer()
 {
     TRACE("Enter");
-    TRACE("Deleting Boxes");
-    for (BoxHashmap::iterator itr = _boxes.begin();
-         itr != _boxes.end(); ++itr) {
-        delete itr->second;
-    }
-    _boxes.clear();
-    TRACE("Deleting Contour2Ds");
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-         itr != _contour2Ds.end(); ++itr) {
-        delete itr->second;
-    }
-    _contour2Ds.clear();
-    TRACE("Deleting Contour3Ds");
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-         itr != _contour3Ds.end(); ++itr) {
-        delete itr->second;
-    }
-    _contour3Ds.clear();
-    TRACE("Deleting Cutplanes");
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-         itr != _cutplanes.end(); ++itr) {
-        delete itr->second;
-    }
-    _cutplanes.clear();
-    TRACE("Deleting Glyphs");
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-         itr != _glyphs.end(); ++itr) {
-        delete itr->second;
-    }
-    _glyphs.clear();
-    TRACE("Deleting HeightMaps");
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-         itr != _heightMaps.end(); ++itr) {
-        delete itr->second;
-    }
-    _heightMaps.clear();
-    TRACE("Deleting LICs");
-    for (LICHashmap::iterator itr = _lics.begin();
-         itr != _lics.end(); ++itr) {
-        delete itr->second;
-    }
-    _lics.clear();
-    TRACE("Deleting Molecules");
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-         itr != _molecules.end(); ++itr) {
-        delete itr->second;
-    }
-    _molecules.clear();
-    TRACE("Deleting PolyDatas");
-    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-         itr != _polyDatas.end(); ++itr) {
-        delete itr->second;
-    }
-    _polyDatas.clear();
-    TRACE("Deleting PseudoColors");
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
-        delete itr->second;
-    }
-    _pseudoColors.clear();
-    TRACE("Deleting Spheres");
-    for (SphereHashmap::iterator itr = _spheres.begin();
-         itr != _spheres.end(); ++itr) {
-        delete itr->second;
-    }
-    _spheres.clear();
-    TRACE("Deleting Streamlines");
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-         itr != _streamlines.end(); ++itr) {
-        delete itr->second;
-    }
-    _streamlines.clear();
-    TRACE("Deleting Volumes");
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-         itr != _volumes.end(); ++itr) {
-        delete itr->second;
-    }
-    _volumes.clear();
-    TRACE("Deleting Warps");
-    for (WarpHashmap::iterator itr = _warps.begin();
-         itr != _warps.end(); ++itr) {
-        delete itr->second;
-    }
-    _warps.clear();
+
+    deleteAllGraphicsObjects<Arc>();
+    deleteAllGraphicsObjects<Arrow>();
+    deleteAllGraphicsObjects<Box>();
+    deleteAllGraphicsObjects<Cone>();
+    deleteAllGraphicsObjects<Contour2D>();
+    deleteAllGraphicsObjects<Contour3D>();
+    deleteAllGraphicsObjects<Cutplane>();
+    deleteAllGraphicsObjects<Cylinder>();
+    deleteAllGraphicsObjects<Disk>();
+    deleteAllGraphicsObjects<Glyphs>();
+    deleteAllGraphicsObjects<Group>();
+    deleteAllGraphicsObjects<HeightMap>();
+    deleteAllGraphicsObjects<LIC>();
+    deleteAllGraphicsObjects<Line>();
+    deleteAllGraphicsObjects<Molecule>();
+    deleteAllGraphicsObjects<PolyData>();
+    deleteAllGraphicsObjects<Polygon>();
+    deleteAllGraphicsObjects<PseudoColor>();
+    deleteAllGraphicsObjects<Sphere>();
+    deleteAllGraphicsObjects<Streamlines>();
+    deleteAllGraphicsObjects<Volume>();
+    deleteAllGraphicsObjects<Warp>();
+
     TRACE("Deleting ColorMaps");
     // Delete color maps and data sets last in case references still
     // exist
@@ -896,83 +837,17 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
  */
 void Renderer::updateColorMap(ColorMap *cmap)
 {
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-         itr != _contour2Ds.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-         itr != _contour3Ds.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-         itr != _cutplanes.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-         itr != _glyphs.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-         itr != _heightMaps.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-         itr != _lics.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-         itr != _molecules.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-         itr != _streamlines.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-         itr != _volumes.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-         itr != _warps.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap) {
-            itr->second->updateColorMap();
-            _needsRedraw = true;
-        }
-    }
+    updateGraphicsObjectColorMap<Contour2D>(cmap);
+    updateGraphicsObjectColorMap<Contour3D>(cmap);
+    updateGraphicsObjectColorMap<Cutplane>(cmap);
+    updateGraphicsObjectColorMap<Glyphs>(cmap);
+    updateGraphicsObjectColorMap<HeightMap>(cmap);
+    updateGraphicsObjectColorMap<LIC>(cmap);
+    updateGraphicsObjectColorMap<Molecule>(cmap);
+    updateGraphicsObjectColorMap<PseudoColor>(cmap);
+    updateGraphicsObjectColorMap<Streamlines>(cmap);
+    updateGraphicsObjectColorMap<Volume>(cmap);
+    updateGraphicsObjectColorMap<Warp>(cmap);
 }
 
 /**
@@ -980,61 +855,29 @@ void Renderer::updateColorMap(ColorMap *cmap)
  */
 bool Renderer::colorMapUsed(ColorMap *cmap)
 {
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-         itr != _contour2Ds.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-         itr != _contour3Ds.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-         itr != _cutplanes.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-         itr != _glyphs.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-         itr != _heightMaps.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-         itr != _lics.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-         itr != _molecules.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-         itr != _streamlines.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-         itr != _volumes.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-         itr != _warps.end(); ++itr) {
-        if (itr->second->getColorMap() == cmap)
-            return true;
-    }
+    if (graphicsObjectColorMapUsed<Contour2D>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Contour3D>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Cutplane>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Glyphs>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<HeightMap>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<LIC>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Molecule>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<PseudoColor>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Streamlines>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Volume>(cmap))
+        return true;
+    if (graphicsObjectColorMapUsed<Warp>(cmap))
+        return true;
+
     return false;
 }
 
@@ -1584,6 +1427,31 @@ void Renderer::setWindowSize(int width, int height)
                             _imgWorldDims[0], _imgWorldDims[1]);
     }
     _needsRedraw = true;
+}
+
+void Renderer::setObjectAspects(double aspectRatio)
+{
+    setGraphicsObjectAspect<Arc>(aspectRatio);
+    setGraphicsObjectAspect<Arrow>(aspectRatio);
+    setGraphicsObjectAspect<Box>(aspectRatio);
+    setGraphicsObjectAspect<Cone>(aspectRatio);
+    setGraphicsObjectAspect<Contour2D>(aspectRatio);
+    setGraphicsObjectAspect<Contour3D>(aspectRatio);
+    setGraphicsObjectAspect<Cutplane>(aspectRatio);
+    setGraphicsObjectAspect<Cylinder>(aspectRatio);
+    setGraphicsObjectAspect<Disk>(aspectRatio);
+    setGraphicsObjectAspect<Glyphs>(aspectRatio);
+    setGraphicsObjectAspect<HeightMap>(aspectRatio);
+    setGraphicsObjectAspect<LIC>(aspectRatio);
+    setGraphicsObjectAspect<Line>(aspectRatio);
+    setGraphicsObjectAspect<Molecule>(aspectRatio);
+    setGraphicsObjectAspect<PolyData>(aspectRatio);
+    setGraphicsObjectAspect<Polygon>(aspectRatio);
+    setGraphicsObjectAspect<PseudoColor>(aspectRatio);
+    setGraphicsObjectAspect<Sphere>(aspectRatio);
+    setGraphicsObjectAspect<Streamlines>(aspectRatio);
+    setGraphicsObjectAspect<Volume>(aspectRatio);
+    setGraphicsObjectAspect<Warp>(aspectRatio);
 }
 
 /**
@@ -2319,90 +2187,28 @@ void Renderer::collectBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
-    for (BoxHashmap::iterator itr = _boxes.begin();
-             itr != _boxes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-             itr != _contour2Ds.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-             itr != _contour3Ds.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-             itr != _cutplanes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-             itr != _glyphs.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-             itr != _heightMaps.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-             itr != _lics.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-             itr != _molecules.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-             itr != _polyDatas.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-             itr != _pseudoColors.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (SphereHashmap::iterator itr = _spheres.begin();
-             itr != _spheres.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-             itr != _streamlines.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-             itr != _volumes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-             itr != _warps.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getBounds());
-    }
+
+    mergeGraphicsObjectBounds<Arc>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Arrow>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Box>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Cone>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Contour2D>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Contour3D>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Cutplane>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Cylinder>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Disk>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Glyphs>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<HeightMap>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<LIC>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Line>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Molecule>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<PolyData>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Polygon>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<PseudoColor>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Sphere>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Streamlines>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Volume>(bounds, onlyVisible);
+    mergeGraphicsObjectBounds<Warp>(bounds, onlyVisible);
 
     for (int i = 0; i < 6; i += 2) {
         if (bounds[i+1] < bounds[i]) {
@@ -2456,90 +2262,28 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
     }
-    for (BoxHashmap::iterator itr = _boxes.begin();
-             itr != _boxes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-             itr != _contour2Ds.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-             itr != _contour3Ds.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-             itr != _cutplanes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-             itr != _glyphs.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-             itr != _heightMaps.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-             itr != _lics.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-             itr != _molecules.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-             itr != _polyDatas.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-             itr != _pseudoColors.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (SphereHashmap::iterator itr = _spheres.begin();
-             itr != _spheres.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-             itr != _streamlines.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-             itr != _volumes.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-             itr != _warps.end(); ++itr) {
-        if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
-    }
+
+    mergeGraphicsObjectUnscaledBounds<Arc>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Arrow>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Box>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Cone>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Contour2D>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Contour3D>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Cutplane>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Cylinder>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Disk>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Glyphs>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<HeightMap>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<LIC>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Line>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Molecule>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<PolyData>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Polygon>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<PseudoColor>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Sphere>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Streamlines>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Volume>(bounds, onlyVisible);
+    mergeGraphicsObjectUnscaledBounds<Warp>(bounds, onlyVisible);
 
     for (int i = 0; i < 6; i += 2) {
         if (bounds[i+1] < bounds[i]) {
@@ -2579,50 +2323,17 @@ void Renderer::updateFieldRanges()
 {
     collectDataRanges();
 
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-         itr != _contour2Ds.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-         itr != _contour3Ds.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-         itr != _cutplanes.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-         itr != _glyphs.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-         itr != _heightMaps.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-         itr != _lics.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-         itr != _molecules.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-         itr != _streamlines.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-         itr != _volumes.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-         itr != _warps.end(); ++itr) {
-        itr->second->updateRanges(this);
-    }
+    updateGraphicsObjectFieldRanges<Contour2D>();
+    updateGraphicsObjectFieldRanges<Contour3D>();
+    updateGraphicsObjectFieldRanges<Cutplane>();
+    updateGraphicsObjectFieldRanges<Glyphs>();
+    updateGraphicsObjectFieldRanges<HeightMap>();
+    updateGraphicsObjectFieldRanges<LIC>();
+    updateGraphicsObjectFieldRanges<Molecule>();
+    updateGraphicsObjectFieldRanges<PseudoColor>();
+    updateGraphicsObjectFieldRanges<Streamlines>();
+    updateGraphicsObjectFieldRanges<Volume>();
+    updateGraphicsObjectFieldRanges<Warp>();
 }
 
 /**
@@ -3374,62 +3085,28 @@ void Renderer::setCameraClippingPlanes()
      * This will not change the state or timestamp of 
      * Mappers already using the PlaneCollection
      */
-    for (BoxHashmap::iterator itr = _boxes.begin();
-         itr != _boxes.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (Contour2DHashmap::iterator itr = _contour2Ds.begin();
-         itr != _contour2Ds.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (Contour3DHashmap::iterator itr = _contour3Ds.begin();
-         itr != _contour3Ds.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (CutplaneHashmap::iterator itr = _cutplanes.begin();
-         itr != _cutplanes.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (GlyphsHashmap::iterator itr = _glyphs.begin();
-         itr != _glyphs.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (HeightMapHashmap::iterator itr = _heightMaps.begin();
-         itr != _heightMaps.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (LICHashmap::iterator itr = _lics.begin();
-         itr != _lics.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (MoleculeHashmap::iterator itr = _molecules.begin();
-         itr != _molecules.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (PolyDataHashmap::iterator itr = _polyDatas.begin();
-         itr != _polyDatas.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (PseudoColorHashmap::iterator itr = _pseudoColors.begin();
-         itr != _pseudoColors.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (SphereHashmap::iterator itr = _spheres.begin();
-         itr != _spheres.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (StreamlinesHashmap::iterator itr = _streamlines.begin();
-         itr != _streamlines.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (VolumeHashmap::iterator itr = _volumes.begin();
-         itr != _volumes.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
-    for (WarpHashmap::iterator itr = _warps.begin();
-         itr != _warps.end(); ++itr) {
-        itr->second->setClippingPlanes(_activeClipPlanes);
-    }
+    setGraphicsObjectClippingPlanes<Arc>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Arrow>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Box>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Cone>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Contour2D>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Contour3D>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Cutplane>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Cylinder>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Disk>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Glyphs>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Group>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<HeightMap>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<LIC>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Line>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Molecule>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<PolyData>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Polygon>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<PseudoColor>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Sphere>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Streamlines>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Volume>(_activeClipPlanes);
+    setGraphicsObjectClippingPlanes<Warp>(_activeClipPlanes);
 }
 
 /**
