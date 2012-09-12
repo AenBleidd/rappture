@@ -509,6 +509,10 @@ public:
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
 
+    // N-sided Regular Polygons
+
+    bool addPolygon(const DataSetId& id, int numSides);
+
     // Color-mapped surfaces
 
     void setPseudoColorColorMode(const DataSetId& id,

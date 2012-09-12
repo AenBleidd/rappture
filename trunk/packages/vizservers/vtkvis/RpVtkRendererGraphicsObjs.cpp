@@ -1304,6 +1304,7 @@ bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
     _needsRedraw = true;
     return true;
 }
+
 /**
  * \brief Set radius scale factor for atoms
  */
@@ -1602,6 +1603,38 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
     } while (doAll && ++itr != _molecules.end());
 
     _needsRedraw = true;
+}
+
+bool Renderer::addPolygon(const DataSetId& id, int numSides)
+{
+    Polygon *gobj;
+    if ((gobj = getGraphicsObject<Polygon>(id)) != NULL) {
+        WARN("Replacing existing %s %s", gobj->getClassName(), id.c_str());
+        deleteGraphicsObject<Polygon>(id);
+    }
+
+    gobj = new Polygon();
+ 
+    gobj->setDataSet(NULL, this);
+
+    if (gobj->getProp() == NULL &&
+        gobj->getOverlayProp() == NULL) {
+        delete gobj;
+        return false;
+    } else {
+        if (gobj->getProp())
+            _renderer->AddViewProp(gobj->getProp());
+        if (gobj->getOverlayProp())
+            _renderer->AddViewProp(gobj->getOverlayProp());
+    }
+
+    gobj->setNumberOfSides(numSides);
+
+    getGraphicsObjectHashmap<Polygon>()[id] = gobj;
+
+    initCamera();
+    _needsRedraw = true;
+    return true;
 }
 
 /**
