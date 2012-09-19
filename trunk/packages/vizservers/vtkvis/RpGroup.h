@@ -25,7 +25,7 @@ public:
     typedef std::string NodeId;
     typedef std::tr1::unordered_map<NodeId, VtkGraphicsObject *> NodeHashmap;
 
-    Group(const NodeId& name);
+    Group();
     virtual ~Group();
 
     virtual const char *getClassName() const 
@@ -33,15 +33,30 @@ public:
         return "Group";
     }
 
+    virtual void setDataSet(DataSet *dataSet,
+                            Renderer *renderer)
+    {
+        assert(dataSet == NULL);
+        update();
+    }
+
+    virtual void setClippingPlanes(vtkPlaneCollection *planes);
+
     void addChild(const NodeId& name, VtkGraphicsObject *obj);
 
     VtkGraphicsObject *getChild(const NodeId& name);
 
+    void getChildren(std::vector<VtkGraphicsObject *>& children)
+    {
+        for (NodeHashmap::iterator itr = _nodes.begin();
+             itr != _nodes.end(); ++itr) {
+            children.push_back(itr->second);
+        }
+    }
+
     void removeChild(const NodeId& name);
 
 private:
-    Group();
-
     virtual void initProp();
 
     virtual void update();
