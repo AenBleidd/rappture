@@ -66,3 +66,16 @@ void Group::removeChild(const NodeId& name)
     }
     _nodes.erase(itr);
 }
+
+/**
+ * \brief Set a group of world coordinate planes to clip rendering
+ *
+ * Passing NULL for planes will remove all cliping planes
+ */
+void Group::setClippingPlanes(vtkPlaneCollection *planes)
+{
+    for (NodeHashmap::iterator itr = _nodes.begin();
+         itr != _nodes.end(); ++itr) {
+        itr->second->setClippingPlanes(planes);
+    }
+}
