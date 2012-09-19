@@ -3,53 +3,80 @@
 # ======================================================================
 #  AUTHOR:  Derrick S. Kearney, Purdue University
 #  AUTHOR:  Steve Clark, Purdue University
-#  Copyright (c) 2005-2007  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2005-2012  Purdue Research Foundation, West Lafayette, IN
 # ======================================================================
 
-import sys, os, re, subprocess, select
+import sys
+import os
+import re
+import subprocess
+import select
+import signal
 
-# getCommandOutput function written by Steve Clark
+commandPid = 0
+
+def sig_handler(signalType, frame):
+    global commandPid
+    if commandPid:
+        os.kill(commandPid,signal.SIGTERM)
+
 
 def getCommandOutput(command,
                      streamOutput=False):
     global commandPid
 
+    sig_INT_handler = signal.signal(signal.SIGINT,sig_handler)
+    sig_HUP_handler = signal.signal(signal.SIGHUP,sig_handler)
+    sig_TERM_handler = signal.signal(signal.SIGTERM,sig_handler)
+
     BUFSIZ = 4096
-    child      = subprocess.Popen(command,shell=True,bufsize=BUFSIZ, \
-                                  stdout=subprocess.PIPE, \
-                                  stderr=subprocess.PIPE, \
-                                  close_fds=True)
+    if isinstance(command,list):
+       child = subprocess.Popen(command,bufsize=BUFSIZ, \
+                                stdout=subprocess.PIPE, \
+                                stderr=subprocess.PIPE, \
+                                close_fds=True)
+    else:
+       child = subprocess.Popen(command,shell=True,bufsize=BUFSIZ, \
+                                stdout=subprocess.PIPE, \
+                                stderr=subprocess.PIPE, \
+                                close_fds=True)
     commandPid = child.pid
     childout   = child.stdout
     childoutFd = childout.fileno()
     childerr   = child.stderr
     childerrFd = childerr.fileno()
 
-    outEOF = errEOF = 0
+    outEOF = False
+    errEOF = False
 
     outData = []
     errData = []
 
-    while 1:
+    while True:
         toCheck = []
         if not outEOF:
             toCheck.append(childoutFd)
         if not errEOF:
             toCheck.append(childerrFd)
-        ready = select.select(toCheck,[],[]) # wait for input
-        if childoutFd in ready[0]:
+        try:
+            readyRead,readyWrite,readyException = select.select(toCheck,[],[]) # wait for input
+        except select.error,err:
+            readyRead = []
+            readyWrite = []
+            readyException = []
+        if childoutFd in readyRead:
             outChunk = os.read(childoutFd,BUFSIZ)
             if outChunk == '':
-                outEOF = 1
+                outEOF = True
             outData.append(outChunk)
             if streamOutput:
                 sys.stdout.write(outChunk)
                 sys.stdout.flush()
 
-        if childerrFd in ready[0]:
+        if childerrFd in readyRead:
             errChunk = os.read(childerrFd,BUFSIZ)
             if errChunk == '':
-                errEOF = 1
+                errEOF = True
             errData.append(errChunk)
             if streamOutput:
                 sys.stderr.write(errChunk)
@@ -58,12 +85,22 @@ def getCommandOutput(command,
         if outEOF and errEOF:
             break
 
-    err = child.wait()
+    pid,err = os.waitpid(commandPid,0)
     commandPid = 0
+
+    signal.signal(signal.SIGINT,sig_INT_handler)
+    signal.signal(signal.SIGHUP,sig_HUP_handler)
+    signal.signal(signal.SIGTERM,sig_TERM_handler)
+
     if err != 0:
-        sys.stderr.write("%s failed w/ exit code %d\n" % (command,err))
+        if   os.WIFSIGNALED(err):
+           sys.stderr.write("%s failed w/ signal %d\n" % (command,os.WTERMSIG(err)))
+        else:
+           if os.WIFEXITED(err):
+               err = os.WEXITSTATUS(err)
+           sys.stderr.write("%s failed w/ exit code %d\n" % (command,err))
         if not streamOutput:
-            sys.stderr.write("%s\n" % ("".join(errData)))
+           sys.stderr.write("%s\n" % ("".join(errData)))
 
     return err,"".join(outData),"".join(errData)
 
