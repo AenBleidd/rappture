@@ -37,6 +37,7 @@ itcl::class Rappture::SidebarFrame {
     itk_option define -sashpadding sashPadding SashPadding 0
     itk_option define -sashcursor sashCursor Cursor ""
 
+    public variable resizeframe 1
     constructor {args} { # defined below }
 
     public method insert {pos args}
@@ -568,7 +569,12 @@ itcl::body Rappture::SidebarFrame::_fixLayout {args} {
 
     set x1 [expr {$w - $sbarw - $sashw}]
     set x2 [expr {$w - $sbarw}]
-    place $itk_component(frame) -x 0 -y 0 -anchor nw -width $x1 -height $h
+    if { $resizeframe } {
+	set framew $x1
+    } else {
+	set framew [expr $w - $ctrlw]
+    }
+    place $itk_component(frame) -x 0 -y 0 -anchor nw -width $framew -height $h
     place $itk_component(sashbg) -x $x1 -y 0 -anchor nw -width $sashw -height $h
     place $itk_component(sidebar) -x $x2 -y 0 -anchor nw -width $sbarw -height $h
 }

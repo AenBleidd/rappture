@@ -151,7 +151,7 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     pack propagate $itk_component(hull) no
 
     itk_component add main {
-        Rappture::SidebarFrame $itk_interior.main
+        Rappture::SidebarFrame $itk_interior.main -resizeframe 0
     }
     pack $itk_component(main) -expand yes -fill both
     set f [$itk_component(main) component frame]

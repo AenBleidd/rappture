@@ -1,3 +1,4 @@
+
 # ----------------------------------------------------------------------
 #  COMPONENT: Note - widget for displaying HTML notes
 #
@@ -67,7 +68,16 @@ itcl::body Rappture::Note::constructor {owner path args} {
     eval itk_initialize $args
 
     _setContents [$_owner xml get $_path.contents]
+    set w [$_owner xml get $_path.width]
+    if { $w != "" } {
+	$itk_component(html) configure -width $w
+    }
+    set h [$_owner xml get $_path.width]
+    if { $h != "" } {
+	$itk_component(html) configure -width $h
+    }	
 }
+
 
 # ----------------------------------------------------------------------
 # USAGE: value ?-check? ?<newval>?
