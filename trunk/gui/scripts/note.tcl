@@ -72,9 +72,9 @@ itcl::body Rappture::Note::constructor {owner path args} {
     if { $w != "" } {
 	$itk_component(html) configure -width $w
     }
-    set h [$_owner xml get $_path.width]
+    set h [$_owner xml get $_path.height]
     if { $h != "" } {
-	$itk_component(html) configure -width $h
+	$itk_component(html) configure -height $h
     }	
 }
 
