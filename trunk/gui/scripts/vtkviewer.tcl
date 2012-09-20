@@ -1891,27 +1891,27 @@ itcl::body Rappture::VtkViewer::BuildMeshTab {} {
         -text "Show Mesh" \
         -variable [itcl::scope _settings(mesh-visible)] \
         -command [itcl::code $this AdjustSetting mesh-visible] \
-        -font "Arial 9"
+        -font "Arial 9" -anchor w 
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
         -variable [itcl::scope _settings(mesh-wireframe)] \
         -command [itcl::code $this AdjustSetting mesh-wireframe] \
-        -font "Arial 9"
+        -font "Arial 9" -anchor w 
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
         -variable [itcl::scope _settings(mesh-lighting)] \
         -command [itcl::code $this AdjustSetting mesh-lighting] \
-        -font "Arial 9"
+        -font "Arial 9" -anchor w
 
     checkbutton $inner.edges \
         -text "Show Edges" \
         -variable [itcl::scope _settings(mesh-edges)] \
         -command [itcl::code $this AdjustSetting mesh-edges] \
-        -font "Arial 9"
+        -font "Arial 9" -anchor w
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" 
+    label $inner.palette_l -text "Palette" -font "Arial 9" -anchor w 
     itk_component add meshpalette {
         Rappture::Combobox $inner.palette -width 10 -editable no
     }
@@ -1937,7 +1937,7 @@ itcl::body Rappture::VtkViewer::BuildMeshTab {} {
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting mesh-palette]
 
-    label $inner.opacity_l -text "Opacity" -font "Arial 9"
+    label $inner.opacity_l -text "Opacity" -font "Arial 9" -anchor w 
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings(mesh-opacity)] \
         -width 10 \
@@ -1945,10 +1945,10 @@ itcl::body Rappture::VtkViewer::BuildMeshTab {} {
         -command [itcl::code $this AdjustSetting mesh-opacity]
 
     blt::table $inner \
-        0,0 $inner.mesh    -cspan 2 -anchor w -pady 2 \
-        1,0 $inner.wireframe -cspan 2 -anchor w -pady 2 \
-        2,0 $inner.lighting  -cspan 2 -anchor w -pady 2 \
-        3,0 $inner.edges     -cspan 2 -anchor w -pady 2 \
+        0,0 $inner.mesh      -cspan 2  -anchor w -pady 2 \
+        1,0 $inner.wireframe -cspan 2  -anchor w -pady 2 \
+        2,0 $inner.lighting  -cspan 2  -anchor w -pady 2 \
+        3,0 $inner.edges     -cspan 2  -anchor w -pady 2 \
         4,0 $inner.opacity_l -anchor w -pady 2 \
         4,1 $inner.opacity   -fill x   -pady 2 \
         5,0 $inner.palette_l -anchor w -pady 2 \
