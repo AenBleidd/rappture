@@ -2385,8 +2385,9 @@ itcl::body Rappture::VtkViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            set contents [ConvertToVtkData $dataobj $comp]
-            append bytes "$contents\n\n"
+            set contents [$dataobj data $comp]
+            append bytes "$contents\n"
+	    append bytes "\# End of VTK file\n\n"
         }
     }
     return [list .txt $bytes]
