@@ -11,7 +11,7 @@
  *      commands and send to the molvisviewer widget. For example, resulting
  *      image rendered offscreen is returned as ppm-formatted image data.
  *
- *  Copyright (c) 2004-2006  Purdue Research Foundation
+ *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -1,16 +1,17 @@
-// ----------------------------------------------------------------------
-//  EXAMPLE: Fermi-Dirac function in Python.
-//
-//  This simple example shows how to use Rappture within a simulator
-//  written in C.
-// ======================================================================
-//  AUTHOR:  Derrick Kearney, Purdue University
-//  Copyright (c) 2004-2008  Purdue Research Foundation
-//
-//  See the file "license.terms" for information on usage and
-//  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-// ======================================================================
-
+/*
+ * ----------------------------------------------------------------------
+ *  EXAMPLE: Fermi-Dirac function in Python.
+ *
+ *  This simple example shows how to use Rappture within a simulator
+ *  written in C.
+ * ======================================================================
+ *  AUTHOR:  Derrick Kearney, Purdue University
+ *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
+ *
+ *  See the file "license.terms" for information on usage and
+ *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ * ======================================================================
+ */
 #include "rappture.h"
 
 #include <stdlib.h>
@@ -36,11 +37,11 @@ int main(int argc, char * argv[]) {
 
     int err           = 0;
 
-    // create a rappture library from the file filePath
+    /* create a rappture library from the file filePath */
     lib = rpLibrary(argv[1]);
 
     if (lib == NULL) {
-        // cannot open file or out of memory
+        /* cannot open file or out of memory */
         printf("FAILED creating Rappture Library\n");
         return(1);
     }

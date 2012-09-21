@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /*
- * Copyright (C) 2011, Purdue Research Foundation
+ * Copyright (C) 2004-2012  HUBzero Foundation, LLC
  *
  * Author: George A. Howlett <gah@purdue.edu>
  */
