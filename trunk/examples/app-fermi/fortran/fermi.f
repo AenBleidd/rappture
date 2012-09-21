@@ -7,7 +7,7 @@ c
 c ======================================================================
 c  AUTHOR:  Michael McLennan, Purdue University
 c  AUTHOR:  Derrick Kearney, Purdue University
-c  Copyright (c) 2004-2008  Purdue Research Foundation
+c  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 c
 c  See the file "license.terms" for information on usage and
 c  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.

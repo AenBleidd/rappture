@@ -6,7 +6,7 @@ c https://developer.nanohub.org/projects/rappture/wiki/rappture_fortran_api
 c
 c ======================================================================
 c  AUTHOR:  Derrick S. Kearney, Purdue University
-c  Copyright (c) 2004-2005  Purdue Research Foundation
+c  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 c
 c  See the file "license.terms" for information on usage and
 c  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.

@@ -5,7 +5,7 @@
  *
  *  AUTHOR:  Derrick Kearney, Purdue University
  *
- *  Copyright (c) 2004-2008  Purdue Research Foundation
+ *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
  * ----------------------------------------------------------------------
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -48,7 +48,7 @@
  *
  *  GOVERNMENT USE: If you are acquiring this software on behalf of the
  *  U.S. government, the Government shall have only "Restricted Rights"
- *  in the software and related documentation as defined in the Federal·
+ *  in the software and related documentation as defined in the Federal
  *  Acquisition Regulations (FARs) in Clause 52.227.19 (c) (2).  If you
  *  are acquiring the software on behalf of the Department of Defense, the
  *  software shall be classified as "Commercial Computer Software" and the
@@ -56,7 +56,7 @@
  *  252.227-7013 (c) (1) of DFARs.  Notwithstanding the foregoing, the
  *  authors grant the U.S. Government and others acting in its behalf
  *  permission to use and distribute the software in accordance with the
- *  terms specified in this license.·
+ *  terms specified in this license.
  *
  * ======================================================================
  */

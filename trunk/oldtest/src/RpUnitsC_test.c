@@ -1,16 +1,17 @@
-//----------------------------------------------------------------------
-// TEST: Cee's interface to RpUnits.
-//
-// Basic units conversion tests for the RpUnits portion of Rappture
-// written in Cee.
-//======================================================================
-// AUTHOR:  Derrick Kearney, Purdue University
-// Copyright (c) 2004-2005  Purdue Research Foundation
-//
-// See the file "license.terms" for information on usage and
-// redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//======================================================================
-//
+/*
+ *----------------------------------------------------------------------
+ * TEST: Cee's interface to RpUnits.
+ *
+ * Basic units conversion tests for the RpUnits portion of Rappture
+ * written in Cee.
+ *======================================================================
+ * AUTHOR:  Derrick Kearney, Purdue University
+ * Copyright (c) 2004-2012  HUBzero Foundation, LLC
+ *
+ * See the file "license.terms" for information on usage and
+ * redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ *======================================================================
+ */
 #include "RpUnitsCInterface.h"
 #include <stdio.h>
 

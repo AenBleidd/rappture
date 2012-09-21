@@ -6,7 +6,7 @@
  *  It allows you to grab image frames from mpeg movies using ffmpeg.
  * ======================================================================
  *  AUTHOR:  Derrick Kearney, Purdue University
- *  Copyright (c) 2005-2010  Purdue Research Foundation
+ *  Copyright (c) 2004-2012  HUBzero Foundation, LLC
  *
  *  See the file "license.terms" for information on usage and
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.

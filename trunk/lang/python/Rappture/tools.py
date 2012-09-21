@@ -3,7 +3,7 @@
 # ======================================================================
 #  AUTHOR:  Derrick S. Kearney, Purdue University
 #  AUTHOR:  Steve Clark, Purdue University
-#  Copyright (c) 2005-2012  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 # ======================================================================
 
 import sys

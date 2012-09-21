@@ -2,7 +2,7 @@
 #
 # ======================================================================
 #  AUTHOR:  Derrick Kearney, Purdue University
-#  Copyright (c) 2005  Purdue Research Foundation, West Lafayette, IN
+#  Copyright (c) 2004-2012  HUBzero Foundation, LLC
 # ======================================================================
 
 import sys
