@@ -774,5 +774,8 @@ void Cutplane::setClippingPlanes(vtkPlaneCollection *planes)
         if (_mapper[i] != NULL) {
             _mapper[i]->SetClippingPlanes(planes);
         }
+        if (_borderMapper[i] != NULL) {
+            _borderMapper[i]->SetClippingPlanes(planes);
+        }
     }
 }

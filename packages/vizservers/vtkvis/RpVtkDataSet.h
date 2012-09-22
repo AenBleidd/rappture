@@ -128,6 +128,13 @@ public:
 
     void setOutlineColor(float color[3]);
 
+    void setClippingPlanes(vtkPlaneCollection *planes)
+    {
+        if (_outlineMapper != NULL) {
+            _outlineMapper->SetClippingPlanes(planes);
+        }
+    }
+
     /**
      * \brief Return the VTK prop object for the outline
      */
