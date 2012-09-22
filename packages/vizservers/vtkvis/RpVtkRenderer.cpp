@@ -3085,6 +3085,12 @@ void Renderer::setCameraClippingPlanes()
      * This will not change the state or timestamp of 
      * Mappers already using the PlaneCollection
      */
+    // First set clip planes for DataSet bounding boxes
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        itr->second->setClippingPlanes(_activeClipPlanes);
+    }
+
     setGraphicsObjectClippingPlanes<Arc>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Arrow>(_activeClipPlanes);
     setGraphicsObjectClippingPlanes<Box>(_activeClipPlanes);
