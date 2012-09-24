@@ -88,6 +88,6 @@ exit 0
   }
   output * {
     code "\n# save output value for $path"
-    code "\$io put $path.current \$id"
+    code "\$io put $path.current \$$id"
   }
 }
