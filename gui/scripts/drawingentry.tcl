@@ -105,7 +105,7 @@ itcl::body Rappture::DrawingEntry::constructor {owner path args} {
     #
     itk_component add drawing {
 	canvas $itk_interior.canvas -background white -relief sunken -bd 1 \
-	    -width 800 -height 600
+	    -width 400 -height 300
     } {
 	ignore -background
     }
@@ -459,12 +459,12 @@ itcl::body Rappture::DrawingEntry::ParsePicture { cpath cname } {
     }
     set contents [XmlGetSubst $cpath.contents]
     set img ""
-    if { [string compare -length 5 $contents "file:"] == 0 } {
+    if { [string compare -length 7 $contents "file://"] == 0 } {
 	set fileName [string range $contents 5 end]
 	if { [file exists $fileName] } {
 	    set img [image create photo -file $fileName]
 	}
-    } elseif { [string compare -length 5 $contents "http:"] == 0 } {
+    } elseif { [string compare -length 7 $contents "http://"] == 0 } {
 	puts stderr  "don't know how to handle http"
 	return
     } else {
@@ -757,7 +757,7 @@ itcl::body Rappture::DrawingEntry::AdjustDrawingArea { xAspect yAspect } {
 	set _xOffset [expr $_canvasWidth - $sw]
 	set _drawingWidth $sw
     } else {
-	set sh [expr int($_canvaseHeight / $wanted)]
+	set sh [expr int($_canvasHeight / $wanted)]
 	if { $sh < 1 }  {
 	    set sh 1
 	}
