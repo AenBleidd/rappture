@@ -10,6 +10,7 @@ import sys
 import os
 import re
 import subprocess
+import shlex
 import select
 import signal
 
@@ -36,7 +37,8 @@ def getCommandOutput(command,
                                 stderr=subprocess.PIPE, \
                                 close_fds=True)
     else:
-       child = subprocess.Popen(command,shell=True,bufsize=BUFSIZ, \
+       commandArgs = shlex.split(command)
+       child = subprocess.Popen(commandArgs,bufsize=BUFSIZ, \
                                 stdout=subprocess.PIPE, \
                                 stderr=subprocess.PIPE, \
                                 close_fds=True)
@@ -119,3 +121,4 @@ def writeFile(fileName,text):
         file_object.close()
     else:
         raise RuntimeError, 'could not open %s for writing' % (fileName)
+
