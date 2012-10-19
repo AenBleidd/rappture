@@ -35,6 +35,7 @@ itcl::class Rappture::Combobox {
     itk_option define -width width Width 0
     itk_option define -disabledbackground disabledBackground DisabledBackground ""
     itk_option define -disabledforeground disabledForeground DisabledForeground ""
+    itk_option define -interactcommand interactCommand InteractCommand ""
 
     constructor {args} { # defined below }
 
@@ -151,7 +152,7 @@ itcl::body Rappture::Combobox::value {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Combobox::translate {value {defValue ""}} {
     foreach {val label} [choices get -both] {
-        if {$label == $value} {
+        if {$label eq $value} {
             return $val
         }
     }
@@ -180,7 +181,7 @@ itcl::body Rappture::Combobox::label { myValue } {
 itcl::body Rappture::Combobox::current {} {
     set raw [$itk_component(entry) get]
     set value [translate $raw "badValue"]
-    if { $value != "badValue" } {
+    if { $value ne "badValue" } {
         return $value
     }
     return $raw
@@ -217,6 +218,9 @@ itcl::body Rappture::Combobox::_entry {option} {
         apply {
             if {$itk_option(-editable) && $itk_option(-state) == "normal"} {
                 event generate $itk_component(hull) <<Value>>
+                if {[string length $itk_option(-interactcommand)] > 0} {
+                    uplevel #0 $itk_option(-interactcommand)
+                }
             }
         }
         click {
@@ -261,9 +265,13 @@ itcl::body Rappture::Combobox::_dropdown {option} {
             }
         }
         select {
-            set val [$itk_component(ddlist) current -label]
-            if {"" != $val} {
-                value $val
+            set newval [$itk_component(ddlist) current -label]
+            set val [$itk_component(entry) get]
+            if {$newval ne "" && $newval ne $val} {
+                value $newval
+                if {[string length $itk_option(-interactcommand)] > 0} {
+                    uplevel #0 $itk_option(-interactcommand)
+                }
             }
         }
         default {

@@ -28,6 +28,7 @@ itcl::class Rappture::ChoiceEntry {
     protected method _rebuild {}
     protected method _newValue {}
     protected method _tooltip {}
+    protected method _log {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
@@ -56,7 +57,8 @@ itcl::body Rappture::ChoiceEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add choice {
-        Rappture::Combobox $itk_interior.choice -editable no
+        Rappture::Combobox $itk_interior.choice -editable no \
+            -interactcommand [itcl::code $this _log]
     }
     pack $itk_component(choice) -expand yes -fill both
     bind $itk_component(choice) <<Value>> [itcl::code $this _newValue]
@@ -103,7 +105,7 @@ itcl::body Rappture::ChoiceEntry::value {args} {
         } else {
             # this is a value -- search for corresponding label
             foreach str [array names _str2val] {
-                if {$_str2val($str) == $newval} {
+                if {$_str2val($str) eq $newval} {
                     $itk_component(choice) value $str
                     break
                 }
@@ -286,6 +288,16 @@ itcl::body Rappture::ChoiceEntry::_tooltip {} {
         append tip "\n\n$str:\n$desc"
     }
     return $tip
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _log
+#
+# Used internally to send info to the logging mechanism.  Calls the
+# Rappture::Logger mechanism to log the change to this input.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ChoiceEntry::_log {} {
+    Rappture::Logger::log input $_path [$itk_component(choice) value]
 }
 
 # ----------------------------------------------------------------------

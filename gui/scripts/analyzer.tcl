@@ -129,6 +129,13 @@ itcl::body Rappture::Analyzer::constructor {tool args} {
     }
     pack $itk_component(simulate) -side left -padx 4 -pady 4
 
+    # BE CAREFUL: Shift focus when we click on "Simulate".
+    #   This shifts focus away from input widgets and causes them to
+    #   finalize and log any pending changes.  A better way would be
+    #   to have the "sync" operation finalize/sync, but this works
+    #   for now.
+    bind $itk_component(simulate) <ButtonPress> {focus %W}
+
     # if there's a hub url, then add "About" and "Questions" links
     set _appName [$_tool xml get tool.id]
     set url [Rappture::Tool::resources -huburl]
@@ -614,6 +621,7 @@ itcl::body Rappture::Analyzer::download {option args} {
                 set data "<h1>Not Found</h1>There is no result selected."
             }
 
+            Rappture::Logger::log download [$itk_component(viewselector) value]
             set mesg [Rappture::filexfer::download $data $file]
             if {[string length $mesg] > 0} {
                 Rappture::Tooltip::cue $widget $mesg
@@ -744,6 +752,7 @@ itcl::body Rappture::Analyzer::_fixResult {} {
         $f.rviewer plot clear
         eval $f.rviewer plot add $_plotlist
         blt::busy release [winfo toplevel $itk_component(hull)]
+        Rappture::Logger::log output $name
     }
 }
 

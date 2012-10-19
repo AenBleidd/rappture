@@ -19,10 +19,12 @@ itcl::class Rappture::Switch {
     itk_option define -state state State "normal"
     itk_option define -showimage showimage Showimage "true"
     itk_option define -showtext showtext Showtext "true"
+    itk_option define -interactcommand interactCommand InteractCommand ""
 
     constructor {args} { # defined below }
     public method value {args}
-    public method updateText {}
+
+    private method _updateText {}
     private method _toggle {args}
     private variable _value 0  ;# value for this widget
 }
@@ -75,7 +77,7 @@ itcl::body Rappture::Switch::value {args} {
         }
         set _value $newval
         event generate $itk_component(hull) <<Value>>
-        updateText
+        _updateText
     } elseif {[llength $args] != 0} {
         error "wrong # args: should be \"value ?-check? ?newval?\""
     }
@@ -94,24 +96,29 @@ itcl::body Rappture::Switch::value {args} {
 #
 # ----------------------------------------------------------------------
 itcl::body Rappture::Switch::_toggle {} {
-    set _value [expr ($_value==0) ]
-    event generate $itk_component(hull) <<Value>>
-    updateText
+    if {$_value} {
+        value off
+    } else {
+        value on
+    }
+    if {[string length $itk_option(-interactcommand)] > 0} {
+        uplevel #0 $itk_option(-interactcommand)
+    }
 }
 
-itcl::body Rappture::Switch::updateText {} {
+itcl::body Rappture::Switch::_updateText {} {
     set image ""
     set text ""
     if { $_value } {
         if {$itk_option(-showimage)} {
-            set image "[Rappture::icon cbon]"
+            set image [Rappture::icon cbon]
         }
         if {$itk_option(-showtext)} {
             set text "yes"
         }
     } else {
         if {$itk_option(-showimage)} {
-            set image "[Rappture::icon cboff]"
+            set image [Rappture::icon cboff]
         }
         if {$itk_option(-showtext)} {
             set text "no"
@@ -125,7 +132,7 @@ itcl::body Rappture::Switch::updateText {} {
 # CONFIGURATION OPTION: -oncolor
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Switch::oncolor {
-    #$itk_component(button) configure -selectcolor $itk_option(-oncolor) 
+    # does nothing now, but may come back soon
 }
 
 # ----------------------------------------------------------------------
@@ -146,7 +153,7 @@ itcl::configbody Rappture::Switch::showimage {
     if {[string is boolean $itk_option(-showimage)] != 1} {
         error "bad value \"$itk_option(-showimage)\": should be a boolean"
     }
-    updateText
+    _updateText
 }
 
 # ----------------------------------------------------------------------
@@ -156,5 +163,5 @@ itcl::configbody Rappture::Switch::showtext {
     if {[string is boolean $itk_option(-showtext)] != 1} {
         error "bad value \"$itk_option(-showtext)\": should be a boolean"
     }
-    updateText
+    _updateText
 }

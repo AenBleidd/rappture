@@ -257,12 +257,14 @@ itcl::body Rappture::TextEntry::_layout {} {
 
 		# Make sure these event bindings occur after the class bindings.
 		# Otherwise you'll always get the entry value before the edit.
-                bind textentry <KeyPress> \
+                bind textentry-$this <KeyPress> \
                     [itcl::code $this _newValue]
-                bind textentry <Control-KeyPress-a> \
+                bind textentry-$this <Control-KeyPress-a> \
                     "[list $itk_component(entry) selection range 0 end]; break"
+                bind textentry-$this <FocusOut> \
+                    [itcl::code $this _edit log]
 		set bindtags [bindtags $itk_component(entry)]
-		lappend bindtags textentry
+		lappend bindtags textentry-$this
 		bindtags $itk_component(entry) $bindtags
 
                 itk_component add emenu {
@@ -270,16 +272,16 @@ itcl::body Rappture::TextEntry::_layout {} {
                 }
                 $itk_component(emenu) add command \
                     -label "Cut" -accelerator "^X" \
-                    -command [list event generate $itk_component(entry) <<Cut>>]
+                    -command [itcl::code $this _edit action entry cut]
                 $itk_component(emenu) add command \
                     -label "Copy" -accelerator "^C" \
-                    -command [list event generate $itk_component(entry) <<Copy>>]
+                    -command [itcl::code $this _edit action entry copy]
                 $itk_component(emenu) add command \
                     -label "Paste" -accelerator "^V" \
-                    -command [list event generate $itk_component(entry) <<Paste>>]
+                    -command [itcl::code $this _edit action entry paste]
                 $itk_component(emenu) add command \
                     -label "Select All" -accelerator "^A" \
-                    -command [list $itk_component(entry) selection range 0 end]
+                    -command [itcl::code $this _edit action entry selectall]
                 bind $itk_component(entry) <<PopupMenu>> \
                     [itcl::code $this _edit menu emenu %X %Y]
             }
@@ -317,12 +319,14 @@ itcl::body Rappture::TextEntry::_layout {} {
 
 		# Make sure these event bindings occur after the class bindings.
 		# Otherwise you'll always get the text value before the edit.
-                bind textentry <KeyPress> \
+                bind textentry-$this <KeyPress> \
                     [itcl::code $this _newValue]
-                bind textentry <Control-KeyPress-a> \
+                bind textentry-$this <Control-KeyPress-a> \
                     "[list $itk_component(text) tag add sel 1.0 end]; break"
+                bind textentry-$this <FocusOut> \
+                    [itcl::code $this _edit log]
 		set bindtags [bindtags $itk_component(text)]
-		lappend bindtags textentry
+		lappend bindtags textentry-$this
 		bindtags $itk_component(text) $bindtags
 
                 itk_component add tmenu {
@@ -330,16 +334,16 @@ itcl::body Rappture::TextEntry::_layout {} {
                 }
                 $itk_component(tmenu) add command \
                     -label "Cut" -accelerator "^X" \
-                    -command [list event generate $itk_component(text) <<Cut>>]
+                    -command [itcl::code $this _edit action text cut]
                 $itk_component(tmenu) add command \
                     -label "Copy" -accelerator "^C" \
-                    -command [list event generate $itk_component(text) <<Copy>>]
+                    -command [itcl::code $this _edit action text copy]
                 $itk_component(tmenu) add command \
                     -label "Paste" -accelerator "^V" \
-                    -command [list event generate $itk_component(text) <<Paste>>]
+                    -command [itcl::code $this _edit action text paste]
                 $itk_component(tmenu) add command \
                     -label "Select All" -accelerator "^A" \
-                    -command [list $itk_component(text) tag add sel 1.0 end]
+                    -command [itcl::code $this _edit action text selectall]
                 $itk_component(tmenu) add separator
 
                 $itk_component(tmenu) add command \
@@ -477,15 +481,42 @@ itcl::body Rappture::TextEntry::_newValue {} {
 }
 
 # ----------------------------------------------------------------------
+# USAGE: _edit action <which> <action>
 # USAGE: _edit menu <which> <X> <Y>
+# USAGE: _edit log
 #
 # Used internally to manage edit operations.
 # ----------------------------------------------------------------------
 itcl::body Rappture::TextEntry::_edit {option args} {
+puts "_edit $option $args"
     if {$itk_option(-state) == "disabled"} {
         return  ;# disabled? then bail out here!
     }
     switch -- $option {
+        action {
+            if {[llength $args] != 2} {
+                error "wrong # args: should be \"_edit $option which action\""
+            }
+            set widget [lindex $args 0]
+            set action [lindex $args 1]
+            switch -- $action {
+                cut - copy - paste {
+                    set event "<<[string totitle $action]>>"
+                    event generate $itk_component($widget) $event
+                }
+                selectall {
+                    switch -- $widget {
+                      entry { $itk_component(entry) selection range 0 end }
+                      text  { $itk_component(text) tag add sel 1.0 end }
+                      default { error "don't know how to select for $widget" }
+                    }
+                }
+                default {
+                    error "don't know how to handle action $action"
+                }
+            }
+            Rappture::Logger::log input $_path -action $action
+        }
         menu {
             if {[llength $args] != 3} {
                 error "wrong # args: should be \"_edit $option which x y\""
@@ -495,8 +526,15 @@ itcl::body Rappture::TextEntry::_edit {option args} {
             set y [lindex $args 2]
             tk_popup $itk_component($mname) $x $y
         }
+        log {
+            set newval [value]
+            if {$newval ne $_value} {
+                Rappture::Logger::log input $_path $newval
+                set _value $newval
+            }
+        }
         default {
-            error "bad option \"$option\": should be menu"
+            error "bad option \"$option\": should be action, menu, log"
         }
     }
 }
@@ -527,11 +565,13 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
             array set data [lrange $args 1 end] ;# skip option
             if {[info exists data(error)]} {
                 Rappture::Tooltip::cue $widget $data(error)
+                Rappture::Logger::log warning $_path $data(error)
             }
             if {[info exists data(data)]} {
                 Rappture::Tooltip::cue hide  ;# take down note about the popup
                 _setValue $data(data)
                 _newValue
+                Rappture::Logger::log upload $_path $data(data)
             }
         }
         default {
@@ -549,13 +589,16 @@ itcl::body Rappture::TextEntry::_uploadValue {args} {
 itcl::body Rappture::TextEntry::_downloadValue {} {
     set mesg [Rappture::filexfer::download [value] input.txt]
 
-    if {"" != $mesg} {
+    if {$mesg ne ""} {
         switch -- $_layout {
             entry   { set widget $itk_component(entry) }
             text    { set widget $itk_component(text) }
             default { set widget $itk_component(hull) }
         }
         Rappture::Tooltip::cue $widget $mesg
+        Rappture::Logger::log warning $_path $mesg
+    } else {
+        Rappture::Logger::log download $_path
     }
 }
 

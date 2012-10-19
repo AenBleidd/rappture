@@ -42,8 +42,8 @@ itcl::class Rappture::SequenceResult {
     }
     public method download {option args}
 
-    public method play {}
-    public method pause {}
+    public method play {{why -program}}
+    public method pause {{why -program}}
     public method goto {{newval ""}}
 
     protected method _rebuild {args}
@@ -86,7 +86,7 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     itk_component add play {
         button $itk_component(player).play \
             -bitmap [Rappture::icon play] \
-            -command [itcl::code $this play]
+            -command [itcl::code $this play -user]
     }
     grid $itk_component(play) -row 0 -rowspan 2 -column 0 \
         -ipadx 2 -padx {0 4} -pady 4 -sticky nsew
@@ -102,6 +102,10 @@ itcl::body Rappture::SequenceResult::constructor {args} {
     }
     grid $itk_component(dial) -row 1 -column 1 -sticky ew
     bind $itk_component(dial) <<Value>> [itcl::code $this _fixValue]
+
+    # use this command for logging "goto" interactions
+    $itk_component(dial) configure -interactcommand \
+        [format {Rappture::Logger::log sequence goto [%s get -format label current]} $itk_component(dial)]
 
     itk_component add info {
         frame $itk_component(player).info
@@ -337,15 +341,20 @@ itcl::body Rappture::SequenceResult::download {option args} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: play
+# USAGE: play ?-user|-program?
 #
 # Invoked when the user hits the "play" button to play the current
 # sequence of frames as a movie.
 # ----------------------------------------------------------------------
-itcl::body Rappture::SequenceResult::play {} {
+itcl::body Rappture::SequenceResult::play {{why -program}} {
     if { [llength $_indices] == 0 } {
         return;                         # No frames (i.e. no data).
     }
+
+    if {$why eq "-user"} {
+        Rappture::Logger::log sequence play -loop $_play(loop) -speed $_play(speed)
+    }
+
     # Stop any existing animation.
     pause
 
@@ -357,7 +366,7 @@ itcl::body Rappture::SequenceResult::play {} {
     # Toggle the button to "pause" mode
     $itk_component(play) configure \
         -bitmap [Rappture::icon pause] \
-        -command [itcl::code $this pause]
+        -command [itcl::code $this pause -user]
 
     global readyForNextFrame 
     set readyForNextFrame 1;            # By default, always ready
@@ -367,12 +376,16 @@ itcl::body Rappture::SequenceResult::play {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: pause
+# USAGE: pause ?-user|-program?
 #
 # Invoked when the user hits the "pause" button to stop playing the
 # current sequence of frames as a movie.
 # ----------------------------------------------------------------------
-itcl::body Rappture::SequenceResult::pause {} {
+itcl::body Rappture::SequenceResult::pause {{why -program}} {
+    if {$why eq "-user"} {
+        Rappture::Logger::log sequence pause
+    }
+
     if {"" != $_afterId} {
         catch {after cancel $_afterId}
         set _afterId ""
@@ -386,7 +399,7 @@ itcl::body Rappture::SequenceResult::pause {} {
         # toggle the button to "play" mode
         $itk_component(play) configure \
             -bitmap [Rappture::icon play] \
-            -command [itcl::code $this play]
+            -command [itcl::code $this play -user]
     }
 }
 

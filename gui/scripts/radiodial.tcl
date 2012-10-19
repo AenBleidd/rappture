@@ -52,6 +52,8 @@ itcl::class Rappture::Radiodial {
     itk_option define -valuewidth valueWidth ValueWidth 0
     itk_option define -valuepadding valuePadding ValuePadding 0
 
+    itk_option define -interactcommand interactCommand InteractCommand ""
+
 
     constructor {args} { # defined below }
     destructor { # defined below }
@@ -70,6 +72,7 @@ itcl::class Rappture::Radiodial {
     protected method _findLabel {str}
     protected method _fixSize {}
     protected method _fixValue {args}
+    protected method _doInteract {}
 
     private variable _values ""       ;# list of all values on the dial
     private variable _val2label       ;# maps value => string label(s)
@@ -481,6 +484,7 @@ itcl::body Rappture::Radiodial::_click {x y} {
             _redraw
 
             event generate $itk_component(hull) <<Value>>
+            _doInteract
         }
     }
 }
@@ -509,6 +513,7 @@ itcl::body Rappture::Radiodial::_navigate {offset} {
             _redraw
 
             event generate $itk_component(hull) <<Value>>
+            _doInteract
         }
     }
 }
@@ -648,6 +653,21 @@ itcl::body Rappture::Radiodial::_fixValue {args} {
     after cancel [itcl::code $this _redraw]
     after idle [itcl::code $this _redraw]
     event generate $itk_component(hull) <<Value>>
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _doInteract
+#
+# Used internally to call the -interactcommand code whenever the user
+# changes the value of the widget.  This is different from the <<Value>>
+# event, which gets invoked whenever the value changes for any reason,
+# including programmatic changes.  If there is no command code, then
+# this does nothing.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Radiodial::_doInteract {} {
+    if {[string length $itk_option(-interactcommand)] > 0} {
+        uplevel #0 $itk_option(-interactcommand)
+    }
 }
 
 # ----------------------------------------------------------------------

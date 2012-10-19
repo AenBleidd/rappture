@@ -25,6 +25,7 @@ itcl::class Rappture::BooleanEntry {
     public method tooltip {}
 
     protected method _newValue {}
+    protected method _log {}
 
     private variable _owner ""    ;# thing managing this control
     private variable _path ""     ;# path in XML to this number
@@ -74,12 +75,12 @@ itcl::body Rappture::BooleanEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add switch {
-        set color [$_owner xml get $path.about.color]
-        if {$color != ""} {
-            Rappture::Switch $itk_component(vframe).switch -oncolor $color
-        } else {
-            Rappture::Switch $itk_component(vframe).switch
-        }
+        Rappture::Switch $itk_component(vframe).switch \
+            -interactcommand [itcl::code $this _log]
+    }
+    set color [$_owner xml get $path.about.color]
+    if {$color != ""} {
+        $itk_component(switch) configure -oncolor $color
     }
 
     bind $itk_component(switch) <<Value>> [itcl::code $this _newValue]
@@ -171,6 +172,16 @@ itcl::body Rappture::BooleanEntry::tooltip {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::BooleanEntry::_newValue {} {
     event generate $itk_component(hull) <<Value>>
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _log
+#
+# Used internally to send info to the logging mechanism.  Calls the
+# Rappture::Logger mechanism to log the change to this input.
+# ----------------------------------------------------------------------
+itcl::body Rappture::BooleanEntry::_log {} {
+    Rappture::Logger::log input $_path [$itk_component(switch) value]
 }
 
 # ----------------------------------------------------------------------

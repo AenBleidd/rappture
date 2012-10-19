@@ -37,6 +37,7 @@ itcl::class Rappture::Gauge {
     itk_option define -image image Image ""
     itk_option define -samplewidth sampleWidth SampleWidth 0
     itk_option define -sampleheight sampleHeight SampleHeight 0
+    itk_option define -log log Log ""
 
     constructor {args} { # defined below }
 
@@ -50,6 +51,7 @@ itcl::class Rappture::Gauge {
     protected method _editor {option args}
     protected method _presets {option}
     protected method _layout {}
+    protected method _log {event args}
 
     private variable _value 0  ;# value for this widget
 
@@ -365,8 +367,10 @@ itcl::body Rappture::Gauge::bump {delta} {
         }
         bell
         Rappture::Tooltip::cue $itk_component(value) $result
+        _log warning $result
         return 0
     }
+    _log input [value]
 }
 
 # ----------------------------------------------------------------------
@@ -511,6 +515,7 @@ itcl::body Rappture::Gauge::_editor {option args} {
                 }
                 bell
                 Rappture::Tooltip::cue $itk_component(editor) $result
+                _log warning $result
                 return 0
             }
         }
@@ -518,7 +523,9 @@ itcl::body Rappture::Gauge::_editor {option args} {
             if {[llength $args] != 1} {
                 error "wrong # args: should be \"_editor apply val\""
             }
-            value [lindex $args 0]
+            set newval [lindex $args 0]
+            value $newval
+            _log input $newval
         }
         menu {
             eval tk_popup $itk_component(emenu) $args
@@ -557,6 +564,7 @@ itcl::body Rappture::Gauge::_presets {option} {
             set val [$itk_component(presetlist) current]
             if {"" != $val} {
                 value $val
+                _log input $val
             }
         }
         default {
@@ -591,6 +599,20 @@ itcl::body Rappture::Gauge::_layout {} {
 
     if {"" != $itk_option(-image) || "" != $itk_option(-spectrum)} {
         pack $itk_component(icon) -side $pos
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _log event ?arg arg...?
+#
+# Used internally to send info to the logging mechanism.  If the -log
+# argument is set, then this calls the Rappture::Logger mechanism to
+# log the rest of the arguments as an action.  Otherwise, it does
+# nothing.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Gauge::_log {event args} {
+    if {$itk_option(-log) ne ""} {
+        eval Rappture::Logger::log $event [list $itk_option(-log)] $args
     }
 }
 

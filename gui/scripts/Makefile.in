@@ -73,6 +73,7 @@ FILES		= \
 		$(srcdir)/integerentry.tcl \
 		$(srcdir)/isomarker.tcl \
 		$(srcdir)/loader.tcl \
+		$(srcdir)/logger.tcl \
 		$(srcdir)/main.tcl \
 		$(srcdir)/mainwin.tcl \
 		$(srcdir)/mesh.tcl \
