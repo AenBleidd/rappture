@@ -42,7 +42,7 @@ itcl::class Rappture::DeviceViewer1D {
                                                                                 
     protected method _loadDevice {}
     protected method _loadParameters {frame path}
-    protected method _changeTabs {}
+    protected method _changeTabs {{why -program}}
     protected method _fixSize {}
     protected method _fixAxes {}
     protected method _align {}
@@ -76,7 +76,7 @@ itcl::body Rappture::DeviceViewer1D::constructor {owner args} {
     itk_component add tabs {
         blt::tabset $itk_interior.tabs -borderwidth 0 -relief flat \
             -side bottom -tearoff 0 \
-            -selectcommand [itcl::code $this _changeTabs]
+            -selectcommand [itcl::code $this _changeTabs -user]
     } {
         keep -activebackground -activeforeground
         keep -background -cursor -font
@@ -455,12 +455,12 @@ itcl::body Rappture::DeviceViewer1D::_loadParameters {frame path} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _changeTabs
+# USAGE: _changeTabs ?-user|-program?
 #
 # Used internally to change the field being displayed whenever a new
 # tab is selected.
 # ----------------------------------------------------------------------
-itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
+itcl::body Rappture::DeviceViewer1D::_changeTabs {{why -program}} {
     set graph $itk_component(graph)
 
     #
@@ -474,6 +474,10 @@ itcl::body Rappture::DeviceViewer1D::_changeTabs {} {
             -window $itk_component(inner) -fill both
     } else {
         set name [lindex [array names _tab2fields] 0]
+    }
+
+    if {$why eq "-user"} {
+        Rappture::Logger::log device1D -field $name
     }
 
     #
@@ -739,12 +743,14 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
                     }
                     bell
                     Rappture::Tooltip::cue $itk_component(geditor) $result
+                    Rappture::Logger::log warning $_marker(path) $result
                     return 0
                 }
             }
             if {[catch {$_marker(fobj) controls validate $_marker(path) $name} result]} {
                 bell
                 Rappture::Tooltip::cue $itk_component(geditor) $result
+                Rappture::Logger::log warning $_marker(path) $result
                 return 0
             }
             return 1
@@ -760,6 +766,7 @@ itcl::body Rappture::DeviceViewer1D::_marker {option {name ""} {path ""}} {
             $_marker(fobj) controls put $_marker(path) $value
             $_owner changed $_marker(path)
             event generate $itk_component(hull) <<Edit>>
+            Rappture::Logger::log input $_marker(path) $value
 
             _changeTabs
         }
@@ -797,7 +804,7 @@ itcl::body Rappture::DeviceViewer1D::_controlCreate {container libObj path} {
     }
 
     # create the widget
-    $type $w -units $units -presets $presets
+    $type $w -units $units -presets $presets -log $path
     pack $w -side top -anchor w
     bind $w <<Value>> [itcl::code $this _controlSet $w $libObj $path]
 

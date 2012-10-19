@@ -846,6 +846,7 @@ itcl::body Rappture::HistogramResult::Zoom {option args} {
     switch -- $option {
         reset {
             ResetLimits
+            Rappture::Logger::log histogram zoom -reset
         }
     }
 }
@@ -1033,6 +1034,7 @@ itcl::body Rappture::HistogramResult::Hilite {state x y} {
             }
             Rappture::Tooltip::text $g $tip
             Rappture::Tooltip::tooltip show $g $tipx,$tipy
+            Rappture::Logger::log tooltip -for "histogram probe -- [string map [list \n " // "] $tip]"
         }
     } else {
         #
@@ -1219,11 +1221,16 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
                 set dy [expr {abs($y-$_axis(click-y))}]
                 if {$dx < 2 && $dy < 2} {
                     Axis edit $axis
+                    return
                 }
-            } else {
-                # one last movement
-                Axis drag $axis $x $y
             }
+            # one last movement
+            Axis drag $axis $x $y
+
+            # log this change
+            Rappture::Logger::log histogram axis $axis \
+                -drag [$itk_component(plot) axis limits $axis]
+
             catch {unset _axis}
         }
         edit {
@@ -1340,6 +1347,7 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
                 label {
                     set val [$inner.label get]
                     $itk_component(plot) axis configure $axis -title $val
+                    Rappture::Logger::log histogram axis $axis -title $val
                 }
                 min {
                     set val [$inner.min get]
@@ -1358,6 +1366,7 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
                     catch {
                         # can fail in log mode
                         $itk_component(plot) axis configure $axis -min $val
+                        Rappture::Logger::log histogram axis $axis -min $val
                     }
                     foreach {min max} [$itk_component(plot) axis limits $axis] break
                     $inner.min delete 0 end
@@ -1380,6 +1389,7 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
                     catch {
                         # can fail in log mode
                         $itk_component(plot) axis configure $axis -max $val
+                        Rappture::Logger::log histogram axis $axis -max $val
                     }
                     foreach {min max} [$itk_component(plot) axis limits $axis] break
                     $inner.max delete 0 end
@@ -1395,6 +1405,7 @@ itcl::body Rappture::HistogramResult::Axis {option args} {
                 }
                 scale {
                     Axis scale $axis $_axisPopup(scale)
+                    Rappture::Logger::log histogram axis $axis -scale $_axisPopup(scale)
 
                     if {$_axisPopup(scale) == "log"} {
                         $inner.format configure -state disabled

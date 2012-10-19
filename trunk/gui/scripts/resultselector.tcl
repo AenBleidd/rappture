@@ -60,6 +60,7 @@ itcl::class Rappture::ResultSelector {
     protected method _getValues {column {which "all"}}
     protected method _getTooltip {role column}
     protected method _getParamDesc {which {index "current"}}
+    protected method _log {col}
 
     private variable _dispatcher ""  ;# dispatchers for !events
     private variable _resultset ""   ;# object containing results
@@ -288,9 +289,11 @@ itcl::body Rappture::ResultSelector::_doClear {what} {
                 foreach xmlobj [$_resultset find simnum $simnum] {
                     $_resultset clear $xmlobj
                 }
+                Rappture::Logger::log result -clear one
             }
             all {
                 $_resultset clear
+                Rappture::Logger::log result -clear all
             }
             default { error "bad option \"$what\": should be current or all" }
         }
@@ -339,7 +342,10 @@ itcl::body Rappture::ResultSelector::_control {option args} {
                 [itcl::code $this _control hilite on $col $panel]
             bind $widget <Leave> \
                 [itcl::code $this _control hilite off $col $panel]
-            bind $widget <ButtonRelease> [itcl::code $this activate $col]
+            bind $widget <ButtonRelease> "
+                [itcl::code $this activate $col]
+                [list Rappture::Logger::log result -active $col]
+            "
         }
         hilite {
             if {[llength $args] != 3} {
@@ -392,7 +398,8 @@ itcl::body Rappture::ResultSelector::_control {option args} {
                 $dial add $label $val
             }
             $shortlist.dial configure -variable \
-                "::Rappture::ResultSelector::_cntlInfo($this-$col-value)"
+                "::Rappture::ResultSelector::_cntlInfo($this-$col-value)" \
+                -interactcommand [itcl::code $this _log $col]
         }
         default {
             error "bad option \"$option\": should be bind, hilite, or load"
@@ -1160,11 +1167,13 @@ itcl::body Rappture::ResultSelector::_toggleAll {{col "current"}} {
             -background $itk_option(-activecontrolbackground) \
             -foreground $itk_option(-activecontrolforeground)
         set _plotall 0
+        Rappture::Logger::log result -all off
     } else {
         $sbutton configure -relief sunken \
             -background $itk_option(-togglebackground) \
             -foreground $itk_option(-toggleforeground)
         set _plotall 1
+        Rappture::Logger::log result -all on
 
         if {$col != $_active} {
             # clicked on an inactive "All" button? then activate that column
@@ -1292,6 +1301,16 @@ itcl::body Rappture::ResultSelector::_getParamDesc {which {xmlobj "current"}} {
             error "bad value \"$which\": should be active or all"
         }
     }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _log <col>
+#
+# Used internally to log the event when a user switches to a different
+# result in the result selector.
+# ----------------------------------------------------------------------
+itcl::body Rappture::ResultSelector::_log {col} {
+    Rappture::Logger::log result -select $col $_cntlInfo($this-$col-value)
 }
 
 # ----------------------------------------------------------------------

@@ -33,6 +33,7 @@ itcl::class Rappture::Loader {
     protected method _uploadValue {path args}
     protected method _downloadValues {}
     protected method _tooltip {}
+    protected method _log {}
 
     private method SetDefaultValue { value } 
 
@@ -66,7 +67,8 @@ itcl::body Rappture::Loader::constructor {owner path args} {
     set _path $path
 
     itk_component add combo {
-        Rappture::Combobox $itk_interior.combo -editable no
+        Rappture::Combobox $itk_interior.combo -editable no \
+            -interactcommand [itcl::code $this _log]
     } {
         usual
         keep -width
@@ -423,6 +425,16 @@ itcl::body Rappture::Loader::_tooltip {} {
         }
     }
     return [string trim $str]
+}
+
+# ----------------------------------------------------------------------
+# USAGE: _log
+#
+# Used internally to send info to the logging mechanism.  Calls the
+# Rappture::Logger mechanism to log the change to this input.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Loader::_log {} {
+    Rappture::Logger::log input $_path [$itk_component(combo) value]
 }
 
 # ----------------------------------------------------------------------

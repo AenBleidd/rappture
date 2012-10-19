@@ -37,7 +37,7 @@ itcl::class Rappture::Controls {
     protected method _controlChanged {name}
     protected method _controlValue {path {units ""}}
     protected method _formatLabel {str}
-    protected method _changeTabs {}
+    protected method _changeTabs {{why -program}}
     protected method _resize {}
 
     private variable _owner ""       ;# controls belong to this owner
@@ -73,7 +73,7 @@ itcl::body Rappture::Controls::constructor {owner args} {
     set _tabs [blt::tabset $f.tabs -borderwidth 0 -relief flat \
         -side top -tearoff 0 -highlightthickness 0 \
         -selectbackground $itk_option(-background) \
-        -selectcommand [itcl::code $this _changeTabs]]
+        -selectcommand [itcl::code $this _changeTabs -user]]
 
     set _frame [frame $f.inner]
     pack $_frame -expand yes -fill both
@@ -283,11 +283,11 @@ itcl::body Rappture::Controls::insert {pos path} {
         # register the tooltip for this control
         set tip [$w tooltip]
         if {"" != $tip} {
-            Rappture::Tooltip::for $w $tip
+            Rappture::Tooltip::for $w $tip -log $path
 
             # add the tooltip to the label too, if there is one
             if {$_name2info($name-label) != ""} {
-                Rappture::Tooltip::for $_name2info($name-label) $tip
+                Rappture::Tooltip::for $_name2info($name-label) $tip -log $path
             }
         }
     }
@@ -710,26 +710,30 @@ itcl::body Rappture::Controls::_formatLabel {str} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: _changeTabs
+# USAGE: _changeTabs ?-user|-program?
 #
 # Used internally to change tabs when the user clicks on a tab
 # in the "tabs" layout mode.  This mode is used when the widget
 # contains nothing but groups, as a compact way of representing
 # the groups.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Controls::_changeTabs {} {
+itcl::body Rappture::Controls::_changeTabs {{why -program}} {
     set i [$_tabs index select]
     # we use _showing here instead of _controls because sometimes tabs
     # are disabled, and the index of the choosen tab always matches
     # _showing, even if tabs are disabled.
     set name [lindex $_showing $i]
-    if {"" != $name} {
+    if {$name ne ""} {
         foreach w [grid slaves $_frame] {
             grid forget $w
         }
 
         set wv $_name2info($name-value)
         grid $wv -row 0 -column 0 -sticky new
+
+        if {$why eq "-user"} {
+            Rappture::Logger::log group $_name2info($name-path)
+        }
     }
 }
 

@@ -501,10 +501,12 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
             set _scale(default) 1
             set _scale(x) 0.5
             set _scale(y) 0.5
+            Rappture::Logger::log image zoom -reset
         }
         in {
             set _scale(current) [expr {$_scale(current)*0.8}]
             set _scale(default) 0
+            Rappture::Logger::log image zoom -in
         }
         out {
             set w [winfo width $itk_component(image)]
@@ -529,6 +531,8 @@ itcl::body Rappture::ImageResult::_zoom {option args} {
 
             # keep this zoom setting now that we've zoomed out
             set _scale(default) 0
+
+            Rappture::Logger::log image zoom -out
         }
     }
     $_dispatcher event -idle !rebuild
@@ -589,6 +593,8 @@ itcl::body Rappture::ImageResult::_move {option args} {
             $itk_component(image) configure -cursor ""
             catch {unset _scale(xclick)}
             catch {unset _scale(yclick)}
+
+            Rappture::Logger::log image moveto $_scale(x),$_scale(y)
         }
         default {
             error "bad option \"$option\": should be click, drag, release"

@@ -174,6 +174,14 @@ if { "" != $val} {
 Rappture::resources::load
 
 # ----------------------------------------------------------------------
+# START LOGGING
+#
+# If the $RAPPTURE_LOG directory is set to a directory used for
+# logging, then open a log file and start logging.
+# ----------------------------------------------------------------------
+Rappture::Logger::init
+
+# ----------------------------------------------------------------------
 # INITIALIZE THE DESKTOP CONNECTION
 #
 # If there's a SESSION ID, then this must be running within the

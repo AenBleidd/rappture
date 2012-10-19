@@ -418,10 +418,12 @@ itcl::body Rappture::TextResult::find {option} {
         up {
             set start [$t index $t0-1char]
             set next [$t search -backwards -nocase -- $pattern $start]
+            Rappture::Logger::log text find -up $pattern
         }
         down {
             set start [$t index $t1+1char]
             set next [$t search -forwards -nocase -- $pattern $start]
+            Rappture::Logger::log text find -down $pattern
         }
     }
 

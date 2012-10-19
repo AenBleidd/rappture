@@ -71,18 +71,18 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add gauge {
-        $class $itk_interior.gauge -units $units -presets $presets
+        $class $itk_interior.gauge -units $units -presets $presets -log $path
     }
     pack $itk_component(gauge) -expand yes -fill both
     bind $itk_component(gauge) <<Value>> [itcl::code $this _newValue]
 
     set min [$_owner xml get $path.min]
-    if {"" != $min} { $itk_component(gauge) configure -minvalue $min }
+    if {$min ne ""} { $itk_component(gauge) configure -minvalue $min }
 
     set max [$_owner xml get $path.max]
-    if {"" != $max} { $itk_component(gauge) configure -maxvalue $max }
+    if {$max ne ""} { $itk_component(gauge) configure -maxvalue $max }
 
-    if {$class == "Rappture::Gauge" && "" != $min && "" != $max} {
+    if {$class == "Rappture::Gauge" && $min ne "" && $max ne ""} {
         set color [$_owner xml get $path.about.color]
         if {$color == ""} {
             # deprecated.  Color should be in "about"
@@ -104,7 +104,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
 
     # if the control has an icon, plug it in
     set str [$_owner xml get $path.about.icon]
-    if {$str != ""} {
+    if {$str ne ""} {
         $itk_component(gauge) configure -image [image create photo -data $str]
     }
 
@@ -114,7 +114,7 @@ itcl::body Rappture::NumberEntry::constructor {owner path args} {
     # Assign the default value to this widget, if there is one.
     #
     set str [$_owner xml get $path.default]
-    if {"" != $str != ""} { $itk_component(gauge) value $str }
+    if {$str ne ""} { $itk_component(gauge) value $str }
 }
 
 # ----------------------------------------------------------------------

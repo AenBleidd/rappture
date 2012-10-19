@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  COMPONENT: tooltip - help information that pops up beneath a widget
 #
@@ -36,15 +35,18 @@ itcl::class Rappture::Tooltip {
     itk_option define -outline outline Outline ""
     itk_option define -icon icon Icon ""
     itk_option define -message message Message ""
+    itk_option define -log log Log ""
 
     constructor {args} { # defined below }
 
     public method show {where}
     public method hide {}
 
-    public proc for {widget args}
+    private variable _showing 0  ;# time when tooltip popped up on screen
+
+    public proc for {widget text args}
     public proc text {widget args}
-    private common catalog    ;# maps widget => message
+    private common catalog    ;# maps widget => -message and -log
 
     public proc tooltip {option args}
     private common pending "" ;# after ID for pending "tooltip show"
@@ -104,6 +106,8 @@ itcl::body Rappture::Tooltip::constructor {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::show {where} {
     set hull $itk_component(hull)
+    set _showing 0
+
     set signx "+"
     set signy "+"
 
@@ -212,6 +216,14 @@ itcl::body Rappture::Tooltip::show {where} {
 
     wm deiconify $hull
     raise $hull
+
+    #
+    # If logging is enabled, grab the start time.  We'll need this
+    # info later during the "hide" step to log activity.
+    #
+    if {$itk_option(-log) ne ""} {
+        set _showing [clock seconds]
+    }
 }
 
 # ----------------------------------------------------------------------
@@ -221,10 +233,22 @@ itcl::body Rappture::Tooltip::show {where} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::hide {} {
     wm withdraw $itk_component(hull)
+
+    #
+    # If logging is enabled and the time is non-zero, then log
+    # the activity on this tooltip.
+    #
+    if {$itk_option(-log) ne "" && $_showing > 0} {
+        set dt [expr {[clock seconds] - $_showing}]
+        if {$dt > 0} {
+            Rappture::Logger::log tooltip -for $itk_option(-log) -time $dt
+        }
+    }
+    set _showing 0
 }
 
 # ----------------------------------------------------------------------
-# USAGE: for <widget> <text>
+# USAGE: for <widget> <text> ?-log <name>?
 #
 # Used to register the tooltip <text> for a particular <widget>.
 # This sets up bindings on the widget so that, when the mouse pointer
@@ -234,9 +258,23 @@ itcl::body Rappture::Tooltip::hide {} {
 #
 # If the <text> has the form "@command", then the command is executed
 # just before the tip pops up to build the message on-the-fly.
+#
+# The -log option turns logging on/off for this tooltip.  Logging is
+# useful when you want to keep track of whether the user is looking at
+# tooltips and for how long.  If the <name> is specified, then any
+# activity on the tooltip is reported with that name on the log line.
+# If the name is not specified or "", then the activity is not logged.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Tooltip::for {widget text} {
-    set catalog($widget) $text
+itcl::body Rappture::Tooltip::for {widget text args} {
+    Rappture::getopts args params {
+        value -log ""
+    }
+    if {[llength $args] > 0} {
+        error "wrong # args: should be \"for widget text ?-log name?\""
+    }
+
+    set catalog($widget-message) $text
+    set catalog($widget-log) $params(-log)
 
     set btags [bindtags $widget]
     set i [lsearch $btags RapptureTooltip]
@@ -249,7 +287,7 @@ itcl::body Rappture::Tooltip::for {widget text} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: text <widget> ?<text>?
+# USAGE: text <widget> ?<text>? ?-log name?
 #
 # Used to query or set the text used for the tooltip for a widget.
 # This is done automatically when you call the "for" proc, but it
@@ -257,16 +295,25 @@ itcl::body Rappture::Tooltip::for {widget text} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tooltip::text {widget args} {
     if {[llength $args] == 0} {
-        if {[info exists catalog($widget)]} {
-            return $catalog($widget)
+        if {[info exists catalog($widget-message)]} {
+            return $catalog($widget-message)
         }
         return ""
-    } elseif {[llength $args] == 1} {
-        set str [lindex $args 0]
-        set catalog($widget) $str
-    } else {
-        error "wrong # args: should be \"text widget ?str?\""
     }
+
+    # set the text for the tooltip
+    set str [lindex $args 0]
+    set args [lrange $args 1 end]
+
+    Rappture::getopts args params {
+        value -log ""
+    }
+    if {[llength $args] > 0} {
+        error "wrong # args: should be \"text widget ?str? ?-log name?\""
+    }
+
+    set catalog($widget-message) $str
+    set catalog($widget-log) $params(-log)
 }
 
 # ----------------------------------------------------------------------
@@ -289,7 +336,7 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
             set widget [lindex $args 0]
             set loc [lindex $args 1]
 
-            if {![info exists catalog($widget)]} {
+            if {![info exists catalog($widget-message)]} {
                 return;                        # No tooltip for widget.
             }
             if {$pending != ""} {
@@ -310,8 +357,11 @@ itcl::body Rappture::Tooltip::tooltip {option args} {
                 set widget $wname
             }
 
-            if {[winfo exists $widget] && [info exists catalog($tag)]} {
-                .rappturetooltip configure -message $catalog($tag)
+            if {[winfo exists $widget] && [info exists catalog($tag-message)]} {
+                .rappturetooltip configure \
+                    -message $catalog($tag-message) \
+                    -log $catalog($tag-log)
+
                 if {[string index $loc 0] == "@"} {
                     .rappturetooltip show $loc
                 } elseif {[regexp {^[-+]} $loc]} {
@@ -401,6 +451,14 @@ itcl::configbody Rappture::Tooltip::icon {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::Tooltip::outline {
     component hull configure -background $itk_option(-outline)
+}
+
+# ----------------------------------------------------------------------
+# CONFIGURATION OPTION: -log
+# ----------------------------------------------------------------------
+itcl::configbody Rappture::Tooltip::log {
+    # logging options changed -- reset showing time
+    set _showing 0
 }
 
 # create a tooltip widget to show tool tips

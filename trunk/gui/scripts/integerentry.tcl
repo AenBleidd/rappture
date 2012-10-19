@@ -52,7 +52,7 @@ itcl::body Rappture::IntegerEntry::constructor {owner path args} {
     # hints in the XML.
     #
     itk_component add spinner {
-        Rappture::Gauge $itk_interior.spinner -type integer
+        Rappture::Gauge $itk_interior.spinner -type integer -log $path
     }
     pack $itk_component(spinner) -expand yes -fill both
     bind $itk_component(spinner) <<Value>> [itcl::code $this _newValue]

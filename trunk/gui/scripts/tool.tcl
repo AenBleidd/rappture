@@ -193,6 +193,7 @@ itcl::body Rappture::Tool::run {args} {
         }
 
         # starting job...
+        Rappture::Logger::log run started
         Rappture::rusage mark
 
         if {0 == [string compare -nocase -length 5 $cmd "ECHO "] } {
@@ -220,19 +221,19 @@ itcl::body Rappture::Tool::run {args} {
 			# returned a non-zero exitcode.  Consider this an
 			# invalid result from the program.  Append the stderr
 			# from the program to the message.
-			set result \
-			    "Program finished: exit code is $code\n\n"
-			append result $::Rappture::Tool::job(error)
+                        set logmesg "Program finished: exit code is $code"
+			set result "$logmesg\n\n$::Rappture::Tool::job(error)"
 		    } elseif { $token == "abort" }  {
 			# The user pressed the abort button.
-			set result "Program terminated by user.\n\n"
-			append result $::Rappture::Tool::job(output)
+                        set logmesg "Program terminated by user."
+			set result "$logmesg\n\n$::Rappture::Tool::job(output)"
 		    } else {
 			# Abnormal termination
-			set result "Abnormal program termination: $mesg\n\n"
-			append result $::Rappture::Tool::job(output)
+			set logmesg "Abnormal program termination: $mesg"
+			set result "$logmesg\n\n$::Rappture::Tool::job(output)"
 		    }
 		}
+                Rappture::Logger::log run failed [list $logmesg]
 		return [list $status $result]
             }
         }
@@ -306,6 +307,7 @@ itcl::body Rappture::Tool::run {args} {
 
     # see if the job was aborted
     if {[regexp {^KILLED} $job(control)]} {
+        Rappture::Logger::log run aborted
         return [list 0 "ABORT"]
     }
 
@@ -338,10 +340,17 @@ itcl::body Rappture::Tool::run {args} {
             set result "Can't find result file in output.\nDid you call Rappture
 ::result in your simulator?"
         }
-        return [list $status $result]
-    } elseif {"" != $job(output) || "" != $job(error)} {
-        return [list $status [string trim "$job(output)\n$job(error)"]]
+    } elseif {$job(output) ne "" || $job(error) ne ""} {
+        set result [string trim "$job(output)\n$job(error)"]
     }
+
+    # log final status for the run
+    if {$status == 0} {
+        Rappture::Logger::log run finished
+    } else {
+        Rappture::Logger::log run failed [list $result]
+    }
+
     return [list $status $result]
 }
 
@@ -369,6 +378,7 @@ itcl::body Rappture::Tool::_mkdir {dir} {
 # Kills the job and forces the "run" method to return.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Tool::abort {} {
+    Rappture::Logger::log run abort
     set job(control) "abort"
 }
 
