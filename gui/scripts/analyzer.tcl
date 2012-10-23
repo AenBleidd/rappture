@@ -81,6 +81,7 @@ itcl::class Rappture::Analyzer {
     private variable _pages 0          ;# number of pages for result sets
     private variable _label2page       ;# maps output label => result set
     private variable _label2desc       ;# maps output label => description
+    private variable _label2item       ;# maps output label => output.xxx item
     private variable _lastlabel ""     ;# label of last example loaded
     private variable _plotlist ""      ;# items currently being plotted
 
@@ -752,7 +753,9 @@ itcl::body Rappture::Analyzer::_fixResult {} {
         $f.rviewer plot clear
         eval $f.rviewer plot add $_plotlist
         blt::busy release [winfo toplevel $itk_component(hull)]
-        Rappture::Logger::log output $name
+        Rappture::Logger::log output $_label2item($name)
+        Rappture::Tooltip::for $itk_component(viewselector) \
+            "@[itcl::code $this _resultTooltip]" -log $_label2item($name)
     }
 }
 
@@ -838,6 +841,7 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                             set page [$itk_component(resultpages) \
                                 insert end $name]
                             set _label2page($label) $page
+                            set _label2item($label) output.$item
                             set _label2desc($label) \
                                 [$xmlobj get output.$item.about.description]
                             Rappture::ResultViewer $page.rviewer
@@ -907,6 +911,7 @@ itcl::body Rappture::Analyzer::_fixResultSet {args} {
                 $itk_component(viewselector) value ""
                 $itk_component(viewselector) choices delete 0 end
                 catch {unset _label2page}
+                catch {unset _label2item}
                 catch {unset _label2desc}
                 set _plotlist ""
 

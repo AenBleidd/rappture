@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  Component: heightmapviewer - 3D surface rendering
 #
@@ -91,7 +90,7 @@ itcl::class Rappture::HeightmapViewer {
     protected method Rotate {option x y}
 
     protected method State {comp}
-    protected method FixSettings {what {value ""}}
+    protected method FixSettings {what {value ""} {why -program}}
     protected method GetTransfuncData {dataobj comp}
     protected method Resize {}
     private method EventuallyResize { w h } 
@@ -241,7 +240,7 @@ itcl::body Rappture::HeightmapViewer::constructor {hostlist args} {
         Rappture::PushButton $f.surface \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -command [itcl::code $this FixSettings surface] \
+            -command [itcl::code $this FixSettings surface -user] \
             -variable [itcl::scope _settings($this-surface)]
     }
     $itk_component(surface) select
@@ -856,10 +855,12 @@ itcl::body Rappture::HeightmapViewer::Zoom {option} {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
             set _settings($this-zoom) $_view(zoom)
+            Rappture::Logger::log heightmap zoom -in
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
             set _settings($this-zoom) $_view(zoom)
+            Rappture::Logger::log heightmap zoom -out
         }
         "reset" {
             array set _view {
@@ -885,6 +886,7 @@ itcl::body Rappture::HeightmapViewer::Zoom {option} {
             set _settings($this-pan-x) $_view(pan-x)
             set _settings($this-pan-y) $_view(pan-y)
             set _settings($this-zoom) $_view(zoom)
+            Rappture::Logger::log heightmap zoom -reset
         }
     }
     SendCmd "camera zoom $_view(zoom)"
@@ -927,6 +929,7 @@ itcl::body Rappture::HeightmapViewer::Pan {option x y} {
         PanCamera
         set _settings($this-pan-x) $_view(pan-x)
         set _settings($this-pan-y) $_view(pan-y)
+        Rappture::Logger::log heightmap pan $dx $dy
     }
     if { $option == "release" } {
         $itk_component(3dview) configure -cursor ""
@@ -1010,6 +1013,7 @@ itcl::body Rappture::HeightmapViewer::Rotate {option x y} {
                 set _click(x) $x
                 set _click(y) $y
             }
+            Rappture::Logger::log heightmap rotate $dx $dy
         }
         release {
             Rotate drag $x $y
@@ -1037,13 +1041,13 @@ itcl::body Rappture::HeightmapViewer::State {comp} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: FixSettings <what> ?<value>? ?-user|-program?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
+itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} {why -program} } {
     switch -- $what {
         "legend" {
             if { !$_settings($this-legend) } {
@@ -1064,26 +1068,31 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
             } else {
                 #$itk_component(legend) delete all
             }
+            Rappture::Logger::log heightmap legend $_settings($this-legend)
         }
         "surface" {
             if { [isconnected] } {
                 SendCmd "heightmap data visible $_settings($this-surface)"
             }
+            Rappture::Logger::log heightmap surface $_settings($this-surface)
         }
         "grid" {
             if { [IsConnected] } {
                 SendCmd "grid visible $_settings($this-grid)"
             }
+            Rappture::Logger::log heightmap grid $_settings($this-grid)
         }
         "axes" {
             if { [IsConnected] } {
                 SendCmd "axis visible $_settings($this-axes)"
             }
+            Rappture::Logger::log heightmap axes $_settings($this-axes)
         }
         "wireframe" {
             if { [IsConnected] } {
                 SendCmd "heightmap polygon $_settings($this-wireframe)"
             }
+            Rappture::Logger::log heightmap wireframe $_settings($this-wireframe)
         }
         "contourlines" {
             if {[IsConnected]} {
@@ -1096,6 +1105,7 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} } {
                     }
                 }
             }
+            Rappture::Logger::log heightmap contourlines $_settings($this-contourlines)
         }
         default {
             error "don't know how to fix $what: should be grid, axes, contourlines, or legend"
@@ -1248,33 +1258,33 @@ itcl::body Rappture::HeightmapViewer::BuildViewTab {} {
     checkbutton $inner.surface \
         -text "surface" \
         -variable [itcl::scope _settings($this-surface)] \
-        -command [itcl::code $this FixSettings surface] \
+        -command [itcl::code $this FixSettings surface -user] \
         -font "Arial 9"
     checkbutton $inner.grid \
         -text "grid" \
         -variable [itcl::scope _settings($this-grid)] \
-        -command [itcl::code $this FixSettings grid] \
+        -command [itcl::code $this FixSettings grid -user] \
         -font "Arial 9"
     checkbutton $inner.axes \
         -text "axes" \
         -variable ::Rappture::HeightmapViewer::_settings($this-axes) \
-        -command [itcl::code $this FixSettings axes] \
+        -command [itcl::code $this FixSettings axes -user] \
         -font "Arial 9"
     checkbutton $inner.contourlines \
         -text "contour lines" \
         -variable ::Rappture::HeightmapViewer::_settings($this-contourlines) \
-        -command [itcl::code $this FixSettings contourlines]\
+        -command [itcl::code $this FixSettings contourlines -user]\
         -font "Arial 9"
     checkbutton $inner.wireframe \
         -text "wireframe" \
         -onvalue "wireframe" -offvalue "fill" \
         -variable ::Rappture::HeightmapViewer::_settings($this-wireframe) \
-        -command [itcl::code $this FixSettings wireframe]\
+        -command [itcl::code $this FixSettings wireframe -user]\
         -font "Arial 9"
     checkbutton $inner.legend \
         -text "legend" \
         -variable ::Rappture::HeightmapViewer::_settings($this-legend) \
-        -command [itcl::code $this FixSettings legend]\
+        -command [itcl::code $this FixSettings legend -user]\
         -font "Arial 9"
 
     blt::table $inner \

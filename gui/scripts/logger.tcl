@@ -95,7 +95,8 @@ proc Rappture::Logger::init {{state "auto"}} {
         set dir [clock format [clock seconds] -format "%Y-%m-%d"]
         set dir [file join $env(RAPPTURE_LOG) $dir]
         if {![file isdirectory $dir]} {
-            file mkdir $dir
+            puts stderr "WARNING: log directory \"$dir\" doesn't exist"
+            return
         }
 
         # generate a unique random file name for the log
@@ -168,6 +169,14 @@ proc Rappture::Logger::init {{state "auto"}} {
         # null out the logging proc -- this is faster than checking "enabled"
         proc ::Rappture::Logger::log {event args} { # do nothing }
     }
+
+    # catch signals that kill the program and clean up logging
+    package require Rappture
+    Rappture::signal SIGHUP RapptureLogger ::Rappture::Logger::cleanup
+    Rappture::signal SIGINT RapptureLogger ::Rappture::Logger::cleanup
+    Rappture::signal SIGQUIT RapptureLogger ::Rappture::Logger::cleanup
+    Rappture::signal SIGTERM RapptureLogger ::Rappture::Logger::cleanup
+    Rappture::signal SIGKILL RapptureLogger ::Rappture::Logger::cleanup
 }
 
 # ----------------------------------------------------------------------
@@ -180,4 +189,25 @@ proc Rappture::Logger::init {{state "auto"}} {
 # ----------------------------------------------------------------------
 proc Rappture::Logger::log {event args} {
     # do nothing by default until turned on by init
+}
+
+# ----------------------------------------------------------------------
+# USAGE: cleanup
+#
+# Called when the program receives a signal that would normally kill
+# the program.  Flushes the buffer and closes the log file cleanly
+# before dying.
+# ----------------------------------------------------------------------
+proc Rappture::Logger::cleanup {} {
+    variable enabled
+    variable fid
+
+    if {$enabled && $fid ne ""} {
+        log finished
+        catch {flush $fid}
+        catch {close $fid}
+        set fid ""
+        set enabled 0
+    }
+    after idle exit
 }
