@@ -196,6 +196,7 @@ Rappture::filexfer::init
 Rappture::MainWin .main -borderwidth 0
 .main configure -title [$tool xml get tool.title]
 wm withdraw .main
+wm protocol .main WM_DELETE_WINDOW {Rappture::Logger::cleanup; exit}
 
 # if the FULLSCREEN variable is set, then nanoHUB wants us to go full screen
 if {[info exists env(FULLSCREEN)]} {
@@ -226,11 +227,15 @@ if {"" != $url && "" != $app} {
     pack $f.hubcntls -side right -padx 4
     label $f.hubcntls.icon -image [Rappture::icon ask] -highlightthickness 0
     pack $f.hubcntls.icon -side left
-    button $f.hubcntls.about -text "About this tool" \
-        -command [list Rappture::filexfer::webpage "$url/tools/$app"]
+    button $f.hubcntls.about -text "About this tool" -command "
+        [list Rappture::filexfer::webpage $url/tools/$app]
+        Rappture::Logger::log help about
+    "
     pack $f.hubcntls.about -side top -anchor w
-    button $f.hubcntls.questions -text Questions? \
-        -command [list Rappture::filexfer::webpage "$url/resources/$app/questions"]
+    button $f.hubcntls.questions -text Questions? -command "
+        [list Rappture::filexfer::webpage $url/resources/$app/questions]
+        Rappture::Logger::log help questions
+    "
     pack $f.hubcntls.questions -side top -anchor w
 }
 
