@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------
 #  UTILITY: bugreport
 #
@@ -431,6 +430,8 @@ proc Rappture::bugreport::register {err} {
     set details(session) [Rappture::Tool::resources -session]
     set details(referrer) [Rappture::Tool::resources -appname]
     set details(platform) [array get tcl_platform]
+
+    Rappture::Logger::log oops! $summary
 }
 
 # ----------------------------------------------------------------------
