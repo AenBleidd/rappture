@@ -90,7 +90,7 @@ itcl::class Rappture::HeightmapViewer {
     protected method Rotate {option x y}
 
     protected method State {comp}
-    protected method FixSettings {what {value ""} {why -program}}
+    protected method FixSettings {what {why -program}}
     protected method GetTransfuncData {dataobj comp}
     protected method Resize {}
     private method EventuallyResize { w h } 
@@ -1041,13 +1041,13 @@ itcl::body Rappture::HeightmapViewer::State {comp} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>? ?-user|-program?
+# USAGE: FixSettings <what> ?-user|-program?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} {why -program} } {
+itcl::body Rappture::HeightmapViewer::FixSettings {what {why -program}} {
     switch -- $what {
         "legend" {
             if { !$_settings($this-legend) } {
@@ -1068,31 +1068,41 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} {why -progra
             } else {
                 #$itk_component(legend) delete all
             }
-            Rappture::Logger::log heightmap legend $_settings($this-legend)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap legend $_settings($this-legend)
+            }
         }
         "surface" {
             if { [isconnected] } {
                 SendCmd "heightmap data visible $_settings($this-surface)"
             }
-            Rappture::Logger::log heightmap surface $_settings($this-surface)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap surface $_settings($this-surface)
+            }
         }
         "grid" {
             if { [IsConnected] } {
                 SendCmd "grid visible $_settings($this-grid)"
             }
-            Rappture::Logger::log heightmap grid $_settings($this-grid)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap grid $_settings($this-grid)
+            }
         }
         "axes" {
             if { [IsConnected] } {
                 SendCmd "axis visible $_settings($this-axes)"
             }
-            Rappture::Logger::log heightmap axes $_settings($this-axes)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap axes $_settings($this-axes)
+            }
         }
         "wireframe" {
             if { [IsConnected] } {
                 SendCmd "heightmap polygon $_settings($this-wireframe)"
             }
-            Rappture::Logger::log heightmap wireframe $_settings($this-wireframe)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap wireframe $_settings($this-wireframe)
+            }
         }
         "contourlines" {
             if {[IsConnected]} {
@@ -1105,7 +1115,9 @@ itcl::body Rappture::HeightmapViewer::FixSettings { what {value ""} {why -progra
                     }
                 }
             }
-            Rappture::Logger::log heightmap contourlines $_settings($this-contourlines)
+            if {$why eq "-user"} {
+                Rappture::Logger::log heightmap contourlines $_settings($this-contourlines)
+            }
         }
         default {
             error "don't know how to fix $what: should be grid, axes, contourlines, or legend"
