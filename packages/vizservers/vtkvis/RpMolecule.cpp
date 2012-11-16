@@ -244,7 +244,7 @@ void Molecule::update()
 #ifdef USE_VTK6
             _bondMapper->SetInputData(_bondPD);
 #else
-            _bondMapper->SetInput(_bondPD);
+            _bondMapper->SetInputConnection(_bondPD->GetProducerPort());
 #endif
             _bondMapper->SetOrientationArray("bond_orientations");
             _bondMapper->SetOrientationModeToDirection();
@@ -299,7 +299,7 @@ void Molecule::update()
 #ifdef USE_VTK6
             _atomMapper->SetInputData(pd);
 #else
-            _atomMapper->SetInput(pd);
+            _atomMapper->SetInputConnection(pd->GetProducerPort());
 #endif
             if (ds->GetPointData() != NULL &&
                 ds->GetPointData()->GetVectors() != NULL) {
