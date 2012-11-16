@@ -8,6 +8,10 @@
 #include <cstring>
 #include <cfloat>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -210,10 +214,9 @@ void Glyphs::setQuality(double quality)
     }
         break;
     case CYLINDER: {
-        assert (vtkTransformPolyDataFilter::SafeDownCast(_glyphSource) != NULL);
-        assert (vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput() != NULL);
-        TRACE("gsource input: %s", vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput()->GetClassName());
-        vtkSmartPointer<vtkCylinderSource> csource = vtkCylinderSource::SafeDownCast(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInput()->GetProducerPort());
+        assert(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource) != NULL);
+        assert(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInputConnection(0, 0) != NULL);
+        vtkSmartPointer<vtkCylinderSource> csource = vtkCylinderSource::SafeDownCast(vtkTransformPolyDataFilter::SafeDownCast(_glyphSource)->GetInputConnection(0, 0));
         int res = (int)(quality * 25);
         if (res < 5) res = 5;
         csource->SetResolution(res);
@@ -266,7 +269,11 @@ void Glyphs::update()
             TRACE("Generating point data scalars from cell data for: %s", _dataSet->getName().c_str());
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+            cellToPtData->SetInputData(ds);
+#else
             cellToPtData->SetInput(ds);
+#endif
             //cellToPtData->PassCellDataOn();
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
@@ -276,7 +283,11 @@ void Glyphs::update()
     }
 
 #ifdef HAVE_GLYPH3D_MAPPER
-    _glyphMapper->SetInputConnection(ds->GetProducerPort());
+#ifdef USE_VTK6
+    _glyphMapper->SetInputData(ds);
+#else
+    _glyphMapper->SetInput(ds);
+#endif
 #else
     _glyphGenerator->SetInput(ds);
 #endif

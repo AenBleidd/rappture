@@ -9,6 +9,10 @@
 #include <cfloat>
 #include <cstring>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -225,7 +229,11 @@ void Cutplane::update()
                 _actor[0]->VisibilityOff();
                 _actor[1]->VisibilityOff();
             }
+#ifdef USE_VTK6
+            mesher->SetInputData(pd);
+#else
             mesher->SetInput(pd);
+#endif
             for (int i = 0; i < 3; i++) {
                 _mapper[i]->SetInputConnection(mesher->GetOutputPort());
             }
@@ -233,7 +241,11 @@ void Cutplane::update()
             if (_splatter == NULL) {
                 _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
             }
+#ifdef USE_VTK6
+            _splatter->SetInputData(pd);
+#else
             _splatter->SetInput(pd);
+#endif
             int dims[3];
             _splatter->GetSampleDimensions(dims);
             TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
@@ -258,7 +270,11 @@ void Cutplane::update()
             // Data Set is a 3D point cloud
             // Result of Delaunay3D mesher is unstructured grid
             vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+            mesher->SetInputData(pd);
+#else
             mesher->SetInput(pd);
+#endif
             // Sample a plane within the grid bounding box
             for (int i = 0; i < 3; i++) {
                 _cutter[i]->SetInputConnection(mesher->GetOutputPort());
@@ -271,7 +287,11 @@ void Cutplane::update()
             if (_splatter == NULL) {
                 _splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
             }
+#ifdef USE_VTK6
+            _splatter->SetInputData(pd);
+#else
             _splatter->SetInput(pd);
+#endif
             int dims[3];
             dims[0] = dims[1] = dims[2] = 64;
             TRACE("Generating volume with dims (%d,%d,%d) from point cloud",
@@ -294,7 +314,11 @@ void Cutplane::update()
         if (!_dataSet->is2D(&plane, &offset)) {
             // Sample a plane within the grid bounding box
             for (int i = 0; i < 3; i++) {
+#ifdef USE_VTK6
+                _cutter[i]->SetInputData(ds);
+#else
                 _cutter[i]->SetInput(ds);
+#endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
                 gf->SetInputConnection(_cutter[i]->GetOutputPort());
@@ -316,7 +340,11 @@ void Cutplane::update()
             for (int i = 0; i < 3; i++) {
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
+#ifdef USE_VTK6
+                gf->SetInputData(ds);
+#else
                 gf->SetInput(ds);
+#endif
                 _mapper[i]->SetInputConnection(gf->GetOutputPort());
             }
         }

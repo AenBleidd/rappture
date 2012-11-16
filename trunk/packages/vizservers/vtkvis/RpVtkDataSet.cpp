@@ -10,6 +10,10 @@
 #include <cfloat>
 #include <cmath>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
 #include <vtkDataSetWriter.h>
@@ -67,7 +71,11 @@ void DataSet::showOutline(bool state)
     if (state) {
         if (_outlineFilter == NULL) {
             _outlineFilter = vtkSmartPointer<vtkOutlineFilter>::New();
+#ifdef USE_VTK6
+            _outlineFilter->SetInputData(_dataSet);
+#else
             _outlineFilter->SetInput(_dataSet);
+#endif
         }
         if (_outlineMapper == NULL) {
             _outlineMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -148,7 +156,11 @@ void DataSet::writeDataFile(const char *filename)
     vtkSmartPointer<vtkDataSetWriter> writer = vtkSmartPointer<vtkDataSetWriter>::New();
 
     writer->SetFileName(filename);
+#ifdef USE_VTK6
+    writer->SetInputData(_dataSet);
+#else
     writer->SetInput(_dataSet);
+#endif
     writer->Write();
 }
 
@@ -346,8 +358,9 @@ bool DataSet::setData(vtkDataSetReader *reader)
     reader->Update();
 
     _dataSet = reader->GetOutput();
+#ifndef USE_VTK6
     _dataSet->SetPipelineInformation(NULL);
-
+#endif
     if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetScalars() != NULL &&
         _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
@@ -371,7 +384,9 @@ bool DataSet::setData(vtkDataSetReader *reader)
 bool DataSet::setData(vtkDataSet *ds)
 {
     _dataSet = ds;
+#ifndef USE_VTK6
     _dataSet->SetPipelineInformation(NULL);
+#endif
 
     if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetScalars() != NULL &&

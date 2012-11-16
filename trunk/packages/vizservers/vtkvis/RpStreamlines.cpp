@@ -11,6 +11,10 @@
 #include <cmath>
 #include <cstring>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkMath.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
@@ -483,7 +487,11 @@ void Streamlines::update()
         } else {
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+            cellToPtData->SetInputData(ds);
+#else
             cellToPtData->SetInput(ds);
+#endif
             //cellToPtData->PassCellDataOn();
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
@@ -494,7 +502,11 @@ void Streamlines::update()
         _streamTracer = vtkSmartPointer<vtkStreamTracer>::New();
     }
 
+#ifdef USE_VTK6
+    _streamTracer->SetInputData(ds);
+#else
     _streamTracer->SetInput(ds);
+#endif
     _streamTracer->SetMaximumPropagation(xLen + yLen + zLen);
     _streamTracer->SetIntegratorTypeToRungeKutta45();
 
@@ -541,14 +553,21 @@ void Streamlines::update()
         ERROR("Unknown LineType: %d", _lineType);
     }
 
-#if defined(DEBUG) && defined(WANT_TRACE)
+#if 1 && defined(WANT_TRACE)
     _streamTracer->Update();
     vtkPolyData *pd = _streamTracer->GetOutput();
     TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",
-                  pd->GetNumberOfVerts(),
-                  pd->GetNumberOfLines(),
-                  pd->GetNumberOfPolys(),
-                  pd->GetNumberOfStrips());
+          pd->GetNumberOfVerts(),
+          pd->GetNumberOfLines(),
+          pd->GetNumberOfPolys(),
+          pd->GetNumberOfStrips());
+    vtkCellArray *arr = pd->GetLines();
+    arr->InitTraversal();
+    vtkIdType npts, *pts;
+    arr->GetNextCell(npts, pts);
+    for (int i = 0; i < npts; i++) {
+        TRACE("Pt: %d", pts[i]);
+    }
 #endif
 
     initProp();
@@ -629,16 +648,28 @@ void Streamlines::setSeedToMeshPoints(vtkDataSet *seed)
             oldSeed = _streamTracer->GetSource();
         }
 
+#ifdef USE_VTK6
+        _streamTracer->SetSourceData(seed);
+#else
         _streamTracer->SetSource(seed);
+
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
-
+#endif
         if (vtkPolyData::SafeDownCast(seed) != NULL) {
+#ifdef USE_VTK6
+            _seedMapper->SetInputData(vtkPolyData::SafeDownCast(seed));
+#else
             _seedMapper->SetInput(vtkPolyData::SafeDownCast(seed));
+#endif
         } else {
             vtkSmartPointer<vtkVertexGlyphFilter> vertFilter = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+#ifdef USE_VTK6
+            vertFilter->SetInputData(seed);
+#else
             vertFilter->SetInput(seed);
+#endif
             _seedMapper->SetInputConnection(vertFilter->GetOutputPort());
         }
     }
@@ -660,6 +691,9 @@ void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
     if (ds != _dataSet->getVtkDataSet()) {
         _seedMesh = ds;
         _seedType = FILLED_MESH;
+#ifdef DEBUG
+        DataSet::print(ds);
+#endif
     } else {
         _seedMesh = NULL;
     }
@@ -691,12 +725,17 @@ void Streamlines::setSeedToFilledMesh(vtkDataSet *ds, int numPoints)
             oldSeed = _streamTracer->GetSource();
         }
 
+#ifdef USE_VTK6
+        _streamTracer->SetSourceData(seed);
+        _seedMapper->SetInputData(seed);
+#else
         _streamTracer->SetSource(seed);
+
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
-
         _seedMapper->SetInput(seed);
+#endif
     }
 }
 
@@ -745,13 +784,17 @@ void Streamlines::setSeedToRake(double start[3], double end[3], int numPoints)
         if (_streamTracer->GetSource() != NULL) {
             oldSeed = _streamTracer->GetSource();
         }
-
+#ifdef USE_VTK6
+        _streamTracer->SetSourceData(seed);
+        _seedMapper->SetInputData(seed);
+#else
         _streamTracer->SetSource(seed);
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
 
         _seedMapper->SetInput(seed);
+#endif
     }
 }
 
@@ -818,7 +861,11 @@ void Streamlines::setSeedToDisk(double center[3],
         double minSquared = (innerRadius*innerRadius)/(radius*radius);
         for (int j = 0; j < numPoints; j++) {
             // Get random sweep angle and radius
+#ifdef USE_VTK6
+            double angle = getRandomNum(0, 2.0 * vtkMath::Pi());
+#else
             double angle = getRandomNum(0, 2.0 * vtkMath::DoublePi());
+#endif
             // Need sqrt to get uniform distribution
             double r = sqrt(getRandomNum(minSquared, 1)) * radius;
             double pt[3];
@@ -839,13 +886,17 @@ void Streamlines::setSeedToDisk(double center[3],
         if (_streamTracer->GetSource() != NULL) {
             oldSeed = _streamTracer->GetSource();
         }
-
+#ifdef USE_VTK6
+        _streamTracer->SetSourceData(seed);
+        _seedMapper->SetInputData(seed);
+#else
         _streamTracer->SetSource(seed);
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
 
         _seedMapper->SetInput(seed);
+#endif
     }
 }
 
@@ -907,9 +958,11 @@ void Streamlines::setSeedToPolygon(double center[3],
             _seedMapper->SetInputConnection(seed->GetOutputPort());
         }
 
+#ifndef USE_VTK6
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
+#endif
     }
 }
 
@@ -976,7 +1029,11 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
         vtkMath::Cross(px, normal, py);
 
         double verts[numSides][3];
+#ifdef USE_VTK6
+        double sliceTheta = 2.0 * vtkMath::Pi() / (double)numSides;
+#else
         double sliceTheta = 2.0 * vtkMath::DoublePi() / (double)numSides;
+#endif
         angle = vtkMath::RadiansFromDegrees(angle);
         for (int j = 0; j < numSides; j++) {
             for (int i = 0; i < 3; i++) {
@@ -1020,12 +1077,17 @@ void Streamlines::setSeedToFilledPolygon(double center[3],
             oldSeed = _streamTracer->GetSource();
         }
 
+#ifdef USE_VTK6
+        _streamTracer->SetSourceData(seed);
+        _seedMapper->SetInputData(seed);
+#else
         _streamTracer->SetSource(seed);
         if (oldSeed != NULL) {
             oldSeed->SetPipelineInformation(NULL);
         }
 
         _seedMapper->SetInput(seed);
+#endif
     }
 }
 

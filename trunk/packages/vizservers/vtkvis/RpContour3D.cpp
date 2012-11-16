@@ -7,6 +7,10 @@
 
 #include <cassert>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -116,7 +120,11 @@ void Contour3D::update()
             ds->GetCellData()->GetScalars() != NULL) {
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+            cellToPtData->SetInputData(ds);
+#else
             cellToPtData->SetInput(ds);
+#endif
             //cellToPtData->PassCellDataOn();
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
@@ -134,7 +142,11 @@ void Contour3D::update()
             // DataSet is a point cloud
             // Generate a 3D unstructured grid
             vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+            mesher->SetInputData(pd);
+#else
             mesher->SetInput(pd);
+#endif
             _contourFilter->SetInputConnection(mesher->GetOutputPort());
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
@@ -143,7 +155,11 @@ void Contour3D::update()
         }
     } else {
          // DataSet is NOT a vtkPolyData
+#ifdef USE_VTK6
+         _contourFilter->SetInputData(ds);
+#else
          _contourFilter->SetInput(ds);
+#endif
     }
 
     _contourFilter->ComputeNormalsOn();

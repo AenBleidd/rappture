@@ -9,6 +9,10 @@
 #include <cfloat>
 #include <cassert>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkCellArray.h>
 #include <vtkPointData.h>
@@ -205,7 +209,11 @@ void Molecule::update()
 #ifndef MOLECULE_USE_GLYPH3D_MAPPER
             if (_tuber == NULL)
                 _tuber = vtkSmartPointer<vtkTubeFilter>::New();
+#ifdef USE_VTK6
+            _tuber->SetInputData(pd);
+#else
             _tuber->SetInput(pd);
+#endif
             _tuber->SetNumberOfSides(12);
             _tuber->CappingOff();
             _tuber->SetRadius(0.075);
@@ -233,7 +241,11 @@ void Molecule::update()
             }
 
             _bondMapper->SetSourceConnection(_cylinderTrans->GetOutputPort());
-            _bondMapper->SetInputConnection(_bondPD->GetProducerPort());
+#ifdef USE_VTK6
+            _bondMapper->SetInputData(_bondPD);
+#else
+            _bondMapper->SetInput(_bondPD);
+#endif
             _bondMapper->SetOrientationArray("bond_orientations");
             _bondMapper->SetOrientationModeToDirection();
             _bondMapper->OrientOn();
@@ -247,7 +259,11 @@ void Molecule::update()
         }
         if (pd->GetNumberOfVerts() > 0) {
             vtkSmartPointer<vtkPointSetToLabelHierarchy> hier = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
+#ifdef USE_VTK6
+            hier->SetInputData(pd);
+#else
             hier->SetInput(pd);
+#endif
             hier->SetLabelArrayName("labels");
             hier->GetTextProperty()->SetColor(0, 0, 0);
             _labelMapper->SetInputConnection(hier->GetOutputPort());
@@ -262,7 +278,11 @@ void Molecule::update()
             if (_glypher == NULL)
                 _glypher = vtkSmartPointer<vtkGlyph3D>::New();
             _glypher->SetSourceConnection(sphereSource->GetOutputPort());
+#ifdef USE_VTK6
+            _glypher->SetInputData(pd);
+#else
             _glypher->SetInput(pd);
+#endif
             if (ds->GetPointData() != NULL &&
                 ds->GetPointData()->GetVectors() != NULL) {
                 _glypher->SetScaleModeToScaleByVector();
@@ -276,7 +296,11 @@ void Molecule::update()
             _atomMapper->SetInputConnection(_glypher->GetOutputPort());
 #else
             _atomMapper->SetSourceConnection(sphereSource->GetOutputPort());
-            _atomMapper->SetInputConnection(pd->GetProducerPort());
+#ifdef USE_VTK6
+            _atomMapper->SetInputData(pd);
+#else
+            _atomMapper->SetInput(pd);
+#endif
             if (ds->GetPointData() != NULL &&
                 ds->GetPointData()->GetVectors() != NULL) {
                 _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);

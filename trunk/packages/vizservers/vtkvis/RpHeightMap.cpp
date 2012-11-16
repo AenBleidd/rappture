@@ -7,6 +7,10 @@
 
 #include <cassert>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -188,7 +192,11 @@ void HeightMap::update()
                 ds->GetCellData()->GetScalars() != NULL) {
                 cellToPtData = 
                     vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+                cellToPtData->SetInputData(ds);
+#else
                 cellToPtData->SetInput(ds);
+#endif
                 //cellToPtData->PassCellDataOn();
                 cellToPtData->Update();
                 ds = cellToPtData->GetOutput();
@@ -233,7 +241,11 @@ void HeightMap::update()
                         trans->Translate(0, 0, -offset);
                         mesher->SetTransform(trans);
                     }
+#ifdef USE_VTK6
+                    mesher->SetInputData(pd);
+#else
                     mesher->SetInput(pd);
+#endif
                     vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
                     _dsMapper->SetInputConnection(warpOutput);
                     _contourFilter->SetInputConnection(warpOutput);
@@ -242,7 +254,11 @@ void HeightMap::update()
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                     if (_volumeSlicer == NULL)
                         _volumeSlicer = vtkSmartPointer<vtkExtractVOI>::New();
+#ifdef USE_VTK6
+                    _pointSplatter->SetInputData(pd);
+#else
                     _pointSplatter->SetInput(pd);
+#endif
                     int dims[3];
                     _pointSplatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
@@ -280,7 +296,11 @@ void HeightMap::update()
                     // Data Set is a 3D point cloud
                     // Result of Delaunay3D mesher is unstructured grid
                     vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                    mesher->SetInputData(pd);
+#else
                     mesher->SetInput(pd);
+#endif
                     // Run the mesher
                     mesher->Update();
                     // Get bounds of resulting grid
@@ -303,7 +323,11 @@ void HeightMap::update()
 #else
                     if (_pointSplatter == NULL)
                         _pointSplatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+#ifdef USE_VTK6
+                    _pointSplatter->SetInputData(pd);
+#else
                     _pointSplatter->SetInput(pd);
+#endif
                     int dims[3];
                     _pointSplatter->GetSampleDimensions(dims);
                     TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
@@ -336,8 +360,14 @@ void HeightMap::update()
                     _dsMapper->SetInputConnection(warpOutput);
                     _contourFilter->SetInputConnection(warpOutput);
                 } else {
+#ifdef USE_VTK6
+                    _dsMapper->SetInputData(pd);
+                    _contourFilter->SetInputData(pd);
+#else
                     _dsMapper->SetInput(pd);
                     _contourFilter->SetInput(pd);
+#endif
+
                 }
             }
         } else {
@@ -353,7 +383,11 @@ void HeightMap::update()
                 int dims[3];
                 imageData->GetDimensions(dims);
                 TRACE("Image data dimensions: %d %d %d", dims[0], dims[1], dims[2]);
+#ifdef USE_VTK6
+                _volumeSlicer->SetInputData(ds);
+#else
                 _volumeSlicer->SetInput(ds);
+#endif
                 _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
                 _volumeSlicer->SetSampleRate(1, 1, 1);
                 gf->SetInputConnection(_volumeSlicer->GetOutputPort());
@@ -363,7 +397,11 @@ void HeightMap::update()
                 ds->GetBounds(bounds);
                 // Sample a plane within the grid bounding box
                 vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+#ifdef USE_VTK6
+                cutter->SetInputData(ds);
+#else
                 cutter->SetInput(ds);
+#endif
                 if (_cutPlane == NULL) {
                     _cutPlane = vtkSmartPointer<vtkPlane>::New();
                 }
@@ -375,7 +413,11 @@ void HeightMap::update()
                 gf->SetInputConnection(cutter->GetOutputPort());
             } else {
                 // 2D data
+#ifdef USE_VTK6
+                gf->SetInputData(ds);
+#else
                 gf->SetInput(ds);
+#endif
             }
             vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
             _dsMapper->SetInputConnection(warpOutput);
@@ -423,10 +465,110 @@ void HeightMap::update()
         _contourActor->SetMapper(_contourMapper);
     }
 
+    //setAspect(1.0);
+
     _dsActor->SetMapper(_dsMapper);
 
     _dsMapper->Update();
     _contourMapper->Update();
+}
+
+void HeightMap::setAspect(double aspect)
+{
+    double bounds[6];
+    vtkDataSet *ds = _dataSet->getVtkDataSet();
+    ds->GetBounds(bounds);
+    double size[3];
+    size[0] = bounds[1] - bounds[0];
+    size[1] = bounds[3] - bounds[2];
+    size[2] = bounds[5] - bounds[4];
+    double scale[3];
+    scale[0] = scale[1] = scale[2] = 1.;
+
+    if (aspect == 1.0) {
+        // Square
+        switch (_sliceAxis) {
+        case X_AXIS: {
+            if (size[1] > size[2] && size[2] > 1.0e-6) {
+                scale[2] = size[1] / size[2];
+            } else if (size[2] > size[1] && size[1] > 1.0e-6) {
+                scale[1] = size[2] / size[1];
+            }
+        }
+            break;
+        case Y_AXIS: {
+            if (size[0] > size[2] && size[2] > 1.0e-6) {
+                scale[2] = size[0] / size[2];
+            } else if (size[2] > size[0] && size[0] > 1.0e-6) {
+                scale[0] = size[2] / size[0];
+            }
+        }
+            break;
+        case Z_AXIS: {
+            if (size[0] > size[1] && size[1] > 1.0e-6) {
+                scale[1] = size[0] / size[1];
+            } else if (size[1] > size[0] && size[0] > 1.0e-6) {
+                scale[0] = size[1] / size[0];
+            }
+        }
+            break;
+        }
+    } else if (aspect != 0.0) {
+        switch (_sliceAxis) {
+        case X_AXIS: {
+            if (aspect > 1.0) {
+                if (size[2] > size[1]) {
+                    scale[1] = (size[2] / aspect) / size[1];
+                } else {
+                    scale[2] = (size[1] * aspect) / size[2];
+                }
+            } else {
+                if (size[1] > size[2]) {
+                    scale[2] = (size[1] * aspect) / size[2];
+                } else {
+                    scale[1] = (size[2] / aspect) / size[1];
+                }
+            }
+        }
+            break;
+        case Y_AXIS: {
+            if (aspect > 1.0) {
+                if (size[0] > size[2]) {
+                    scale[2] = (size[0] / aspect) / size[2];
+                } else {
+                    scale[0] = (size[2] * aspect) / size[0];
+                }
+            } else {
+                if (size[2] > size[0]) {
+                    scale[0] = (size[2] * aspect) / size[0];
+                } else {
+                    scale[2] = (size[0] / aspect) / size[2];
+                }
+            }
+        }
+            break;
+        case Z_AXIS: {
+            if (aspect > 1.0) {
+                if (size[0] > size[1]) {
+                    scale[1] = (size[0] / aspect) / size[1];
+                } else {
+                    scale[0] = (size[1] * aspect) / size[0];
+                }
+            } else {
+                if (size[1] > size[0]) {
+                    scale[0] = (size[1] * aspect) / size[0];
+                } else {
+                    scale[1] = (size[0] / aspect) / size[1];
+                }
+            }
+        }
+            break;
+        }
+    }
+
+    TRACE("obj %g,%g,%g", size[0], size[1], size[2]);
+    TRACE("Setting scale to %g,%g,%g", scale[0], scale[1], scale[2]);
+    setScale(scale);
 }
 
 vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
@@ -482,7 +624,11 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
         }
         _warp->UseNormalOn();
         _warp->SetScaleFactor(_warpScale * _dataScale);
+#ifdef USE_VTK6
+        _warp->SetInputData(pdInput);
+#else
         _warp->SetInput(pdInput);
+#endif
         return _warp->GetOutputPort();
     }
 }

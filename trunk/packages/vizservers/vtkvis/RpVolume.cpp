@@ -7,6 +7,10 @@
 
 #include <cassert>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkImageData.h>
@@ -108,7 +112,15 @@ void Volume::update()
 #else
         _volumeMapper = vtkSmartPointer<vtkVolumeTextureMapper3D>::New();
 #endif
+#ifdef USE_VTK6
+#ifdef USE_GPU_RAYCAST_MAPPER
+        vtkGPUVolumeRayCastMapper::SafeDownCast(_volumeMapper)->SetInputData(ds);
+#else
+        vtkVolumeTextureMapper3D::SafeDownCast(_volumeMapper)->SetInputData(ds);
+#endif
+#else
         _volumeMapper->SetInput(ds);
+#endif
         vtkVolumeMapper::SafeDownCast(_volumeMapper)->SetBlendModeToComposite();
     } else if (vtkUnstructuredGrid::SafeDownCast(ds) != NULL) {
         vtkUnstructuredGrid *ugrid = vtkUnstructuredGrid::SafeDownCast(ds);
@@ -119,12 +131,20 @@ void Volume::update()
         //_volumeMapper = vtkSmartPointer<vtkUnstructuredGridVolumeRayCastMapper>::New();
         if (ugrid->GetCellType(0) == VTK_TETRA &&
             ugrid->IsHomogeneous()) {
+#ifdef USE_VTK6
+            vtkProjectedTetrahedraMapper::SafeDownCast(_volumeMapper)->SetInputData(ds);
+#else
             _volumeMapper->SetInput(ds);
+#endif
         } else {
             // Decompose to tetrahedra
             vtkSmartPointer<vtkDataSetTriangleFilter> filter = 
                 vtkSmartPointer<vtkDataSetTriangleFilter>::New();
+#ifdef USE_VTK6
+            filter->SetInputData(ugrid);
+#else
             filter->SetInput(ugrid);
+#endif
             filter->TetrahedraOnlyOn();
             _volumeMapper->SetInputConnection(filter->GetOutputPort());
         }
@@ -137,7 +157,11 @@ void Volume::update()
                vtkPolyData::SafeDownCast(ds)->GetNumberOfStrips() == 0 ) {
         // DataSet is a 3D point cloud
         vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
+#ifdef USE_VTK6
+        splatter->SetInputData(ds);
+#else
         splatter->SetInput(ds);
+#endif
         int dims[3];
         dims[0] = dims[1] = dims[2] = 64;
         TRACE("Generating volume with dims (%d,%d,%d) from point cloud",

@@ -9,6 +9,10 @@
 #include <cfloat>
 #include <cstring>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -135,12 +139,20 @@ void PseudoColor::update()
                     trans->Translate(0, 0, -offset);
                     mesher->SetTransform(trans);
                 }
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
+#endif
                 _dsMapper->SetInputConnection(mesher->GetOutputPort());
 #else
                 vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                 vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
+#ifdef USE_VTK6
+                splatter->SetInputData(pd);
+#else
                 splatter->SetInput(pd);
+#endif
                 int dims[3];
                 splatter->GetSampleDimensions(dims);
                 TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
@@ -171,20 +183,32 @@ void PseudoColor::update()
 #endif
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
+#endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->SetInputConnection(mesher->GetOutputPort());
                 _dsMapper->SetInputConnection(gf->GetOutputPort());
              }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
+#ifdef USE_VTK6
+            _dsMapper->SetInputData(ds);
+#else
             _dsMapper->SetInput(ds);
+#endif
         }
     } else {
         TRACE("Generating surface for data set");
         // DataSet is NOT a vtkPolyData
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+#ifdef USE_VTK6
+        gf->SetInputData(ds);
+#else
         gf->SetInput(ds);
+#endif
         _dsMapper->SetInputConnection(gf->GetOutputPort());
     }
 

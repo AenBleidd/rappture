@@ -60,6 +60,8 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
+    virtual void setAspect(double aspect);
+
     void selectVolumeSlice(Axis axis, double ratio);
 
     void setHeightScale(double scale);
