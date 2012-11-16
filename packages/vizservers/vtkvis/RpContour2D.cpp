@@ -7,6 +7,10 @@
 
 #include <cfloat>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -126,7 +130,11 @@ void Contour2D::update()
             ds->GetCellData()->GetScalars() != NULL) {
             cellToPtData = 
                 vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+            cellToPtData->SetInputData(ds);
+#else
             cellToPtData->SetInput(ds);
+#endif
             //cellToPtData->PassCellDataOn();
             cellToPtData->Update();
             ds = cellToPtData->GetOutput();
@@ -166,24 +174,40 @@ void Contour2D::update()
                     trans->Translate(0, 0, -offset);
                     mesher->SetTransform(trans);
                 }
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
+#endif
                 _contourFilter->SetInputConnection(mesher->GetOutputPort());
             } else {
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
+#endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->SetInputConnection(mesher->GetOutputPort());
                 _contourFilter->SetInputConnection(gf->GetOutputPort());
             }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
+#ifdef USE_VTK6
+            _contourFilter->SetInputData(ds);
+#else
             _contourFilter->SetInput(ds);
+#endif
         }
     } else {
         TRACE("Generating surface for data set");
         // DataSet is NOT a vtkPolyData
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+#ifdef USE_VTK6
+        gf->SetInputData(ds);
+#else
         gf->SetInput(ds);
+#endif
         _contourFilter->SetInputConnection(gf->GetOutputPort());
     }
 

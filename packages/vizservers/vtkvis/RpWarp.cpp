@@ -9,6 +9,10 @@
 #include <cfloat>
 #include <cstring>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -56,7 +60,7 @@ Warp::~Warp()
 }
 
 void Warp::setDataSet(DataSet *dataSet,
-		      Renderer *renderer)
+                      Renderer *renderer)
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
@@ -98,7 +102,7 @@ void Warp::update()
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
     if (_warp == NULL) {
-	_warp = vtkSmartPointer<vtkWarpVector>::New();
+        _warp = vtkSmartPointer<vtkWarpVector>::New();
     }
 
     // Mapper, actor to render color-mapped data set
@@ -111,20 +115,24 @@ void Warp::update()
 
     vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
     if (ds->GetPointData() == NULL ||
-	ds->GetPointData()->GetVectors() == NULL) {
-	TRACE("No vector point data in dataset %s", _dataSet->getName().c_str());
-	if (ds->GetCellData() != NULL &&
-	    ds->GetCellData()->GetVectors() != NULL) {
-	    cellToPtData = 
-		vtkSmartPointer<vtkCellDataToPointData>::New();
-	    cellToPtData->SetInput(ds);
-	    //cellToPtData->PassCellDataOn();
-	    cellToPtData->Update();
-	    ds = cellToPtData->GetOutput();
-	} else {
-	    ERROR("No vector data in dataset %s", _dataSet->getName().c_str());
-	    return;
-	}
+        ds->GetPointData()->GetVectors() == NULL) {
+        TRACE("No vector point data in dataset %s", _dataSet->getName().c_str());
+        if (ds->GetCellData() != NULL &&
+            ds->GetCellData()->GetVectors() != NULL) {
+            cellToPtData = 
+                vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+            cellToPtData->SetInputData(ds);
+#else
+            cellToPtData->SetInput(ds);
+#endif
+            //cellToPtData->PassCellDataOn();
+            cellToPtData->Update();
+            ds = cellToPtData->GetOutput();
+        } else {
+            ERROR("No vector data in dataset %s", _dataSet->getName().c_str());
+            return;
+        }
     }
 
     vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
@@ -159,13 +167,21 @@ void Warp::update()
                     trans->Translate(0, 0, -offset);
                     mesher->SetTransform(trans);
                 }
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
-		vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
+#endif
+                vtkAlgorithmOutput *warpOutput = initWarp(mesher->GetOutputPort());
                 _dsMapper->SetInputConnection(warpOutput);
 #else
                 vtkSmartPointer<vtkGaussianSplatter> splatter = vtkSmartPointer<vtkGaussianSplatter>::New();
                 vtkSmartPointer<vtkExtractVOI> slicer = vtkSmartPointer<vtkExtractVOI>::New();
+#ifdef USE_VTK6
+                splatter->SetInputData(pd);
+#else
                 splatter->SetInput(pd);
+#endif
                 int dims[3];
                 splatter->GetSampleDimensions(dims);
                 TRACE("Sample dims: %d %d %d", dims[0], dims[1], dims[2]);
@@ -192,34 +208,45 @@ void Warp::update()
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
                 gf->UseStripsOn();
                 gf->SetInputConnection(slicer->GetOutputPort());
-		vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+                vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
                 _dsMapper->SetInputConnection(warpOutput);
 #endif
             } else {
-		// Data Set is a 3D point cloud
+                // Data Set is a 3D point cloud
                 vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
                 mesher->SetInput(pd);
+#endif
                 vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-		gf->SetInputConnection(mesher->GetOutputPort());
-		vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+                gf->SetInputConnection(mesher->GetOutputPort());
+                vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
                 _dsMapper->SetInputConnection(warpOutput);
              }
         } else {
             // DataSet is a vtkPolyData with lines and/or polygons
-	    vtkAlgorithmOutput *warpOutput = initWarp(pd);
-            _dsMapper->SetInput(ds);
-	    if (warpOutput != NULL) {
-		_dsMapper->SetInputConnection(warpOutput);
-	    } else {
-		_dsMapper->SetInput(pd);
-	    }
+            vtkAlgorithmOutput *warpOutput = initWarp(pd);
+            if (warpOutput != NULL) {
+                _dsMapper->SetInputConnection(warpOutput);
+            } else {
+#ifdef USE_VTK6
+                _dsMapper->SetInputData(pd);
+#else
+                _dsMapper->SetInput(pd);
+#endif
+            }
         }
     } else {
         TRACE("Generating surface for data set");
         // DataSet is NOT a vtkPolyData
         vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+#ifdef USE_VTK6
+        gf->SetInputData(ds);
+#else
         gf->SetInput(ds);
-	vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
+#endif
+        vtkAlgorithmOutput *warpOutput = initWarp(gf->GetOutputPort());
         _dsMapper->SetInputConnection(warpOutput);
     }
 
@@ -265,7 +292,11 @@ vtkAlgorithmOutput *Warp::initWarp(vtkDataSet *ds)
         if (_warp == NULL)
             _warp = vtkSmartPointer<vtkWarpVector>::New();
         _warp->SetScaleFactor(_warpScale);
+#ifdef USE_VTK6
+        _warp->SetInputData(ds);
+#else
         _warp->SetInput(ds);
+#endif
         return _warp->GetOutputPort();
     }
 }
@@ -374,7 +405,7 @@ void Warp::setColorMode(ColorMode mode)
 }
 
 void Warp::setColorMode(ColorMode mode,
-			const char *name, double range[2])
+                        const char *name, double range[2])
 {
     if (_dataSet == NULL)
         return;
@@ -389,7 +420,7 @@ void Warp::setColorMode(ColorMode mode,
 }
 
 void Warp::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
-			const char *name, double range[2])
+                        const char *name, double range[2])
 {
     _colorMode = mode;
     _colorFieldType = type;

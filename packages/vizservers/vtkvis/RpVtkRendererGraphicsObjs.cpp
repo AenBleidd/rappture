@@ -8,6 +8,10 @@
 #include <cstring>
 #include <typeinfo>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkSmartPointer.h>
 #include <vtkDataSet.h>
 #include <vtkCharArray.h>
@@ -2182,8 +2186,9 @@ bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
     if (dataSet == NULL) {
         return false;
     }
+#ifndef USE_VTK6
     dataSet->SetPipelineInformation(NULL);
-
+#endif
     StreamlinesHashmap::iterator itr;
 
     bool doAll = false;
@@ -2234,8 +2239,9 @@ bool Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id,
     if (dataSet == NULL) {
         return false;
     }
+#ifndef USE_VTK6
     dataSet->SetPipelineInformation(NULL);
-
+#endif
     StreamlinesHashmap::iterator itr;
 
     bool doAll = false;

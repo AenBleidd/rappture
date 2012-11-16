@@ -7,6 +7,10 @@
 
 #include <cassert>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkActor.h>
 #include <vtkProperty.h>
 #include <vtkPointData.h>
@@ -73,7 +77,11 @@ void LIC::update()
              ds->GetCellData()->GetVectors() != NULL) {
              cellToPtData = 
                  vtkSmartPointer<vtkCellDataToPointData>::New();
+#ifdef USE_VTK6
+             cellToPtData->SetInputData(ds);
+#else
              cellToPtData->SetInput(ds);
+#endif
              //cellToPtData->PassCellDataOn();
              cellToPtData->Update();
              ds = cellToPtData->GetOutput();
@@ -95,13 +103,21 @@ void LIC::update()
             int dims[3];
             imageData->GetDimensions(dims);
             TRACE("Image data dimensions: %d %d %d", dims[0], dims[1], dims[2]);
+#ifdef USE_VTK6
+            _volumeSlicer->SetInputData(ds);
+#else
             _volumeSlicer->SetInput(ds);
+#endif
             _volumeSlicer->SetVOI(0, dims[0]-1, 0, dims[1]-1, (dims[2]-1)/2, (dims[2]-1)/2);
             _volumeSlicer->SetSampleRate(1, 1, 1);
             _lic->SetInputConnection(_volumeSlicer->GetOutputPort());
         } else {
             // 2D image/volume/uniform grid
+#ifdef USE_VTK6
+            _lic->SetInputData(ds);
+#else
             _lic->SetInput(ds);
+#endif
         }
         if (_mapper == NULL) {
             _mapper = vtkSmartPointer<vtkDataSetMapper>::New();
@@ -149,11 +165,19 @@ void LIC::update()
                                      0,
                                      bounds[4] + (bounds[5]-bounds[4])/2.);
             }
+#ifdef USE_VTK6
+            cutter->SetInputData(ds);
+#else
             cutter->SetInput(ds);
+#endif
             cutter->SetCutFunction(_cutPlane);
             _probeFilter->SetSourceConnection(cutter->GetOutputPort());
         } else {
+#ifdef USE_VTK6
+            _probeFilter->SetSourceData(ds);
+#else
             _probeFilter->SetSource(ds);
+#endif
         }
 
         vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
@@ -196,7 +220,11 @@ void LIC::update()
         imageData->SetDimensions(xdim, ydim, zdim);
         imageData->SetOrigin(origin);
         imageData->SetSpacing(spacing);
+#ifdef USE_VTK6
+        _probeFilter->SetInputData(imageData);
+#else
         _probeFilter->SetInput(imageData);
+#endif
         _lic->SetInputConnection(_probeFilter->GetOutputPort());
 
         if (_mapper == NULL) {
@@ -227,7 +255,11 @@ void LIC::update()
             _painter->SetDelegatePainter(ppdmapper->GetPainter());
          }
         ppdmapper->SetPainter(_painter);
+#ifdef USE_VTK6
+        ppdmapper->SetInputData(pd);
+#else
         ppdmapper->SetInput(pd);
+#endif
     }
 
     if (_lut == NULL) {
