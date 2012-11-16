@@ -286,7 +286,7 @@ void Glyphs::update()
 #ifdef USE_VTK6
     _glyphMapper->SetInputData(ds);
 #else
-    _glyphMapper->SetInput(ds);
+    _glyphMapper->SetInputConnection(ds->GetProducerPort());
 #endif
 #else
     _glyphGenerator->SetInput(ds);
