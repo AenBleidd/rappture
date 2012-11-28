@@ -496,6 +496,8 @@ void Renderer::initAxes()
     _cubeAxesActor->SetFlyModeToStaticTriad();
 #if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
     _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+    _cubeAxesActor->SetEnableDistanceLOD(0);
+    _cubeAxesActor->SetEnableViewAngleLOD(0);
 #endif
 
 #ifdef USE_CUSTOM_AXES
