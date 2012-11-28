@@ -16,6 +16,10 @@
 #include <sys/time.h>
 #endif
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkLight.h>
@@ -490,6 +494,9 @@ void Renderer::initAxes()
     // Don't offset labels at origin
     _cubeAxesActor->SetCornerOffset(0);
     _cubeAxesActor->SetFlyModeToStaticTriad();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+    _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+#endif
 
 #ifdef USE_CUSTOM_AXES
     if (_cubeAxesActor2D == NULL)
@@ -566,19 +573,34 @@ void Renderer::setAxesFlyMode(AxesFlyMode mode)
     switch (mode) {
     case FLY_STATIC_EDGES:
         _cubeAxesActor->SetFlyModeToStaticEdges();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+#endif
         break;
     case FLY_STATIC_TRIAD:
         _cubeAxesActor->SetFlyModeToStaticTriad();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+#endif
         break;
     case FLY_OUTER_EDGES:
         _cubeAxesActor->SetFlyModeToOuterEdges();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+#endif
         break;
     case FLY_FURTHEST_TRIAD:
         _cubeAxesActor->SetFlyModeToFurthestTriad();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
+#endif
         break;
     case FLY_CLOSEST_TRIAD:
     default:
         _cubeAxesActor->SetFlyModeToClosestTriad();
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_CLOSEST);
+#endif
         break;
     }
     _needsRedraw = true;
@@ -591,6 +613,18 @@ void Renderer::setAxesColor(double color[3])
 {
     if (_cubeAxesActor != NULL) {
         _cubeAxesActor->GetProperty()->SetColor(color);
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        for (int i = 0; i < 3; i++) {
+            _cubeAxesActor->GetTitleTextProperty(i)->SetColor(color);
+            _cubeAxesActor->GetLabelTextProperty(i)->SetColor(color);
+        }
+        _cubeAxesActor->GetXAxesLinesProperty()->SetColor(color);
+        _cubeAxesActor->GetXAxesGridlinesProperty()->SetColor(color);
+        _cubeAxesActor->GetYAxesLinesProperty()->SetColor(color);
+        _cubeAxesActor->GetYAxesGridlinesProperty()->SetColor(color);
+        _cubeAxesActor->GetZAxesLinesProperty()->SetColor(color);
+        _cubeAxesActor->GetZAxesGridlinesProperty()->SetColor(color);
+#endif
         _needsRedraw = true;
     }
     if (_cubeAxesActor2D != NULL) {
