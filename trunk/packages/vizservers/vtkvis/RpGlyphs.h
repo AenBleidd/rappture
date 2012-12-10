@@ -14,12 +14,7 @@
 #include <vtkProp.h>
 #include <vtkActor.h>
 #include <vtkVersion.h>
-#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
-#define HAVE_GLYPH3D_MAPPER
 #include <vtkGlyph3DMapper.h>
-#else
-#include <vtkGlyph3D.h>
-#endif
 #include <vtkLookupTable.h>
 #include <vtkPlaneCollection.h>
 
@@ -80,13 +75,11 @@ public:
 
     void setOrient(bool state);
 
-#ifdef HAVE_GLYPH3D_MAPPER
     void setOrientMode(bool mode, const char *name);
 
     void setScalingMode(ScalingMode mode, const char *name, double range[2]);
 
     void setColorMode(ColorMode mode, const char *name, double range[2]);
-#endif
 
     void setScalingMode(ScalingMode mode);
 
@@ -141,12 +134,7 @@ private:
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkPolyDataAlgorithm> _glyphSource;
-#ifdef HAVE_GLYPH3D_MAPPER
     vtkSmartPointer<vtkGlyph3DMapper> _glyphMapper;
-#else
-    vtkSmartPointer<vtkGlyph3D> _glyphGenerator;
-    vtkSmartPointer<vtkPolyDataMapper> _pdMapper;
-#endif
 };
 
 }

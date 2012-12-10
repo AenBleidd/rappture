@@ -24,12 +24,11 @@
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
-#include <vtkTubeFilter.h>
 #include <vtkSphereSource.h>
 #include <vtkCylinderSource.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
-#include <vtkGlyph3D.h>
+#include <vtkGlyph3DMapper.h>
 #include <vtkPointSetToLabelHierarchy.h>
 #include <vtkLabelPlacementMapper.h>
 #include <vtkTextProperty.h>
@@ -146,18 +145,6 @@ void Molecule::update()
     }
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-    if (_atomMapper == NULL) {
-        _atomMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _atomMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _atomMapper->ScalarVisibilityOn();
-    }
-    if (_bondMapper == NULL) {
-        _bondMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-        _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
-        _bondMapper->ScalarVisibilityOn();
-    }
-#else
     if (_atomMapper == NULL) {
         _atomMapper = vtkSmartPointer<vtkGlyph3DMapper>::New();
         _atomMapper->SetResolveCoincidentTopologyToPolygonOffset();
@@ -168,7 +155,6 @@ void Molecule::update()
         _bondMapper->SetResolveCoincidentTopologyToPolygonOffset();
         _bondMapper->ScalarVisibilityOn();
     }
-#endif
     if (_labelMapper == NULL) {
         _labelMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
         _labelMapper->SetShapeToRoundedRect();
@@ -206,20 +192,6 @@ void Molecule::update()
         // DataSet is a vtkPolyData
         if (pd->GetNumberOfLines() > 0) {
             // Bonds
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-            if (_tuber == NULL)
-                _tuber = vtkSmartPointer<vtkTubeFilter>::New();
-#ifdef USE_VTK6
-            _tuber->SetInputData(pd);
-#else
-            _tuber->SetInput(pd);
-#endif
-            _tuber->SetNumberOfSides(12);
-            _tuber->CappingOff();
-            _tuber->SetRadius(0.075);
-            _tuber->SetVaryRadiusToVaryRadiusOff();
-            _bondMapper->SetInputConnection(_tuber->GetOutputPort());
-#else
             setupBondPolyData();
 
             if (_cylinderSource == NULL) {
@@ -253,7 +225,7 @@ void Molecule::update()
             _bondMapper->SetScaleModeToScaleByVectorComponents();
             _bondMapper->ScalingOn();
             _bondMapper->ClampingOff();
-#endif
+
             _bondProp->SetMapper(_bondMapper);
             getAssembly()->AddPart(_bondProp);
         }
@@ -274,27 +246,7 @@ void Molecule::update()
             sphereSource->SetRadius(1.0);
             sphereSource->SetThetaResolution(14);
             sphereSource->SetPhiResolution(14);
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-            if (_glypher == NULL)
-                _glypher = vtkSmartPointer<vtkGlyph3D>::New();
-            _glypher->SetSourceConnection(sphereSource->GetOutputPort());
-#ifdef USE_VTK6
-            _glypher->SetInputData(pd);
-#else
-            _glypher->SetInput(pd);
-#endif
-            if (ds->GetPointData() != NULL &&
-                ds->GetPointData()->GetVectors() != NULL) {
-                _glypher->SetScaleModeToScaleByVector();
-                _glypher->ScalingOn();
-            } else {
-                _glypher->SetScaleModeToDataScalingOff();
-                _glypher->ScalingOff();
-            }
-            _glypher->SetColorModeToColorByScalar();
-            _glypher->OrientOff();
-            _atomMapper->SetInputConnection(_glypher->GetOutputPort());
-#else
+
             _atomMapper->SetSourceConnection(sphereSource->GetOutputPort());
 #ifdef USE_VTK6
             _atomMapper->SetInputData(pd);
@@ -311,7 +263,7 @@ void Molecule::update()
                 _atomMapper->ScalingOff();
             }
             _atomMapper->OrientOff();
-#endif
+
             _atomProp->SetMapper(_atomMapper);
             getAssembly()->AddPart(_atomProp);
         }
@@ -696,7 +648,6 @@ void Molecule::setOpacity(double opacity)
 
 void Molecule::setBondStyle(BondStyle style)
 {
-#ifdef MOLECULE_USE_GLYPH3D_MAPPER
     switch (style) {
     case BOND_STYLE_CYLINDER:
         if (_bondProp != NULL) {
@@ -722,7 +673,6 @@ void Molecule::setBondStyle(BondStyle style)
     default:
         WARN("Unknown bond style");    
     }
-#endif
 }
 
 /**
@@ -781,14 +731,6 @@ void Molecule::setAtomScaling(AtomScaling state)
     if (_dataSet != NULL) {
         vtkDataSet *ds = _dataSet->getVtkDataSet();
         addRadiusArray(ds, _atomScaling, _radiusScale);
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-        if (_glypher != NULL) {
-            assert(ds->GetPointData() != NULL &&
-                   ds->GetPointData()->GetVectors() != NULL);
-            _glypher->SetScaleModeToScaleByVector();
-            _glypher->ScalingOn();
-        }
-#else
         if (_atomMapper != NULL) {
              assert(ds->GetPointData() != NULL &&
                     ds->GetPointData()->GetVectors() != NULL);
@@ -796,7 +738,6 @@ void Molecule::setAtomScaling(AtomScaling state)
             _atomMapper->SetScaleArray(vtkDataSetAttributes::VECTORS);
             _atomMapper->ScalingOn();
         }
-#endif
     }
 }
 
@@ -818,11 +759,6 @@ void Molecule::setAtomRadiusScale(double scale)
  */
 void Molecule::setBondRadiusScale(double scale)
 {
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-    if (_tuber != NULL) {
-        _tuber->SetRadius(scale);
-    }
-#else
     if (_cylinderSource != NULL) {
         _cylinderSource->SetRadius(scale);
         // Workaround bug with source modification not causing
@@ -831,10 +767,8 @@ void Molecule::setBondRadiusScale(double scale)
             _bondMapper->Modified();
         }
     }
-#endif
 }
 
-#ifdef MOLECULE_USE_GLYPH3D_MAPPER
 void Molecule::setupBondPolyData()
 {
     if (_dataSet == NULL)
@@ -921,7 +855,6 @@ void Molecule::setupBondPolyData()
     _bondPD->GetPointData()->AddArray(bondVectors);
     _bondPD->GetPointData()->AddArray(bondScales);
 }
-#endif
 
 void Molecule::addLabelArray(vtkDataSet *dataSet)
 {
