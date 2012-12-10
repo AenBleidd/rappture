@@ -4796,7 +4796,7 @@ HeightMapWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightmapOps[] = {
-    {"add",          1, HeightMapAddOp, 5, 6, "oper value ?dataSetName?"},
+    {"add",          1, HeightMapAddOp, 5, 6, "oper value heightscale ?dataSetName?"},
     {"colormap",     3, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
     {"contourlist",  3, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
