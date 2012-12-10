@@ -14,16 +14,10 @@
 #include <vtkActor.h>
 #include <vtkActor2D.h>
 #include <vtkAssembly.h>
-#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
-#define MOLECULE_USE_GLYPH3D_MAPPER
 #include <vtkGlyph3DMapper.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkCylinderSource.h>
 #include <vtkLineSource.h>
-#else
-#include <vtkGlyph3D.h>
-#include <vtkTubeFilter.h>
-#endif
 #include <vtkLabelPlacementMapper.h>
 
 #include "ColorMap.h"
@@ -137,9 +131,7 @@ private:
     virtual void initProp();
     virtual void update();
 
-#ifdef MOLECULE_USE_GLYPH3D_MAPPER
     void setupBondPolyData();
-#endif
 
     static void addLabelArray(vtkDataSet *dataSet);
 
@@ -162,19 +154,12 @@ private:
     vtkSmartPointer<vtkActor> _atomProp;
     vtkSmartPointer<vtkActor> _bondProp;
     vtkSmartPointer<vtkActor2D> _labelProp;
-#ifndef MOLECULE_USE_GLYPH3D_MAPPER
-    vtkSmartPointer<vtkGlyph3D> _glypher;
-    vtkSmartPointer<vtkTubeFilter> _tuber;
-    vtkSmartPointer<vtkPolyDataMapper> _atomMapper;
-    vtkSmartPointer<vtkPolyDataMapper> _bondMapper;
-#else
     vtkSmartPointer<vtkPolyData> _bondPD;
     vtkSmartPointer<vtkCylinderSource> _cylinderSource;
     vtkSmartPointer<vtkTransformPolyDataFilter>_cylinderTrans;
     vtkSmartPointer<vtkLineSource> _lineSource;
     vtkSmartPointer<vtkGlyph3DMapper> _atomMapper;
     vtkSmartPointer<vtkGlyph3DMapper> _bondMapper;
-#endif
     vtkSmartPointer<vtkLabelPlacementMapper> _labelMapper;
 };
 
