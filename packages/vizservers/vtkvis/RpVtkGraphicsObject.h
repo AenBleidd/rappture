@@ -148,6 +148,11 @@ public:
         return vtkAssembly::SafeDownCast(_prop);
     }
 
+    /**
+     * \brief If the object has a 2D overlay prop, return it
+     *
+     * \return NULL or a vtkProp pointer
+     */
     virtual vtkProp *getOverlayProp()
     {
         return NULL;
@@ -237,7 +242,120 @@ public:
      */
     virtual void setAspect(double aspect)
     {
-        ;
+        double scale[3];
+        scale[0] = scale[1] = scale[2] = 1.;
+
+        if (aspect == 0.0) {
+            setScale(scale);
+            return;
+        }
+        if (_dataSet == NULL ||
+            _dataSet->getVtkDataSet() == NULL) {
+            TRACE("Not setting aspect for object with no data set");
+            return;
+        }
+
+        PrincipalPlane plane;
+        if (!_dataSet->is2D(&plane)) {
+            TRACE("Not setting aspect for 3D object");
+            return;
+        }
+
+        double bounds[6];
+        vtkDataSet *ds = _dataSet->getVtkDataSet();
+        ds->GetBounds(bounds);
+        double size[3];
+        size[0] = bounds[1] - bounds[0];
+        size[1] = bounds[3] - bounds[2];
+        size[2] = bounds[5] - bounds[4];
+
+        if (aspect == 1.0) {
+            // Square
+            switch (plane) {
+            case PLANE_XY: {
+                if (size[0] > size[1] && size[1] > 1.0e-6) {
+                    scale[1] = size[0] / size[1];
+                } else if (size[1] > size[0] && size[0] > 1.0e-6) {
+                    scale[0] = size[1] / size[0];
+                }
+            }
+                break;
+            case PLANE_ZY: {
+                if (size[1] > size[2] && size[2] > 1.0e-6) {
+                    scale[2] = size[1] / size[2];
+                } else if (size[2] > size[1] && size[1] > 1.0e-6) {
+                    scale[1] = size[2] / size[1];
+                }
+            }
+                break;
+            case PLANE_XZ: {
+                if (size[0] > size[2] && size[2] > 1.0e-6) {
+                    scale[2] = size[0] / size[2];
+                } else if (size[2] > size[0] && size[0] > 1.0e-6) {
+                    scale[0] = size[2] / size[0];
+                }
+            }
+                break;
+            default:
+                break;
+            }
+        } else {
+            switch (plane) {
+            case PLANE_XY: {
+                if (aspect > 1.0) {
+                    if (size[0] > size[1]) {
+                        scale[1] = (size[0] / aspect) / size[1];
+                    } else {
+                        scale[0] = (size[1] * aspect) / size[0];
+                    }
+                } else {
+                    if (size[1] > size[0]) {
+                        scale[0] = (size[1] * aspect) / size[0];
+                    } else {
+                        scale[1] = (size[0] / aspect) / size[1];
+                    }
+                }
+            }
+                break;
+            case PLANE_ZY: {
+                if (aspect > 1.0) {
+                    if (size[2] > size[1]) {
+                        scale[1] = (size[2] / aspect) / size[1];
+                    } else {
+                        scale[2] = (size[1] * aspect) / size[2];
+                    }
+                } else {
+                    if (size[1] > size[2]) {
+                        scale[2] = (size[1] * aspect) / size[2];
+                    } else {
+                        scale[1] = (size[2] / aspect) / size[1];
+                    }
+                }
+            }
+                break;
+            case PLANE_XZ: {
+                if (aspect > 1.0) {
+                    if (size[0] > size[2]) {
+                        scale[2] = (size[0] / aspect) / size[2];
+                    } else {
+                        scale[0] = (size[2] * aspect) / size[0];
+                    }
+                } else {
+                    if (size[2] > size[0]) {
+                        scale[0] = (size[2] * aspect) / size[0];
+                    } else {
+                        scale[2] = (size[0] / aspect) / size[2];
+                    }
+                }
+            }
+            default:
+                break;
+            }
+        }
+
+        TRACE("obj %g,%g,%g", size[0], size[1], size[2]);
+        TRACE("Setting scale to %g,%g,%g", scale[0], scale[1], scale[2]);
+        setScale(scale);
     }
 
     /**
