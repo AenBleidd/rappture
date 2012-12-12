@@ -462,7 +462,6 @@ void Renderer::resetAxes(double bounds[6])
     if (bounds == NULL) {
         double newBounds[6];
         collectBounds(newBounds, false);
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         double unscaledBounds[6];
         collectUnscaledBounds(unscaledBounds, false);
         _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
@@ -475,7 +474,6 @@ void Renderer::resetAxes(double bounds[6])
               unscaledBounds[3],
               unscaledBounds[4],
               unscaledBounds[5]);
-#endif
         _cubeAxesActor->SetBounds(newBounds);
         TRACE("Bounds (computed): %g %g %g %g %g %g",
               newBounds[0],
@@ -485,7 +483,6 @@ void Renderer::resetAxes(double bounds[6])
               newBounds[4],
               newBounds[5]);
     } else {
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         double unscaledBounds[6];
         collectUnscaledBounds(unscaledBounds, false);
         _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
@@ -498,7 +495,6 @@ void Renderer::resetAxes(double bounds[6])
               unscaledBounds[3],
               unscaledBounds[4],
               unscaledBounds[5]);
-#endif
         _cubeAxesActor->SetBounds(bounds);
         TRACE("Bounds (supplied): %g %g %g %g %g %g",
               bounds[0],
@@ -530,8 +526,6 @@ void Renderer::initAxes()
     _cubeAxesActor->SetFlyModeToStaticTriad();
 #if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
     _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
-#endif
-#if !defined(USE_CUSTOM_AXES)
     _cubeAxesActor->SetDrawXInnerGridlines(0);
     _cubeAxesActor->SetDrawYInnerGridlines(0);
     _cubeAxesActor->SetDrawZInnerGridlines(0);
@@ -545,11 +539,9 @@ void Renderer::initAxes()
     _cubeAxesActor->SetScreenSize(12.0);
 #endif
     _cubeAxesActor->SetBounds(0, 1, 0, 1, 0, 1);
-#if !defined(USE_CUSTOM_AXES)
     _cubeAxesActor->SetXAxisRange(0, 1);
     _cubeAxesActor->SetYAxisRange(0, 1);
     _cubeAxesActor->SetZAxisRange(0, 1);
-#endif
 
 #ifdef USE_CUSTOM_AXES
     if (_cubeAxesActor2D == NULL)
