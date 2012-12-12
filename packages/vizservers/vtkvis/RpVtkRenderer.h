@@ -13,6 +13,10 @@
 #include <tr1/unordered_map>
 #include <typeinfo>
 
+#include <vtkVersion.h>
+#if (VTK_MAJOR_VERSION >= 6)
+#define USE_VTK6
+#endif
 #include <vtkSmartPointer.h>
 #ifdef USE_CUSTOM_AXES
 #include "vtkRpCubeAxesActor.h"
@@ -752,7 +756,9 @@ private:
     vtkSmartPointer<vtkRpCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
 #else
     vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
+#ifndef USE_VTK6
     vtkSmartPointer<vtkCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
+#endif
 #endif
     vtkSmartPointer<vtkScalarBarActor> _scalarBarActor;
     vtkSmartPointer<vtkRenderer> _renderer;
