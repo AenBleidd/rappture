@@ -420,11 +420,17 @@ void Renderer::setUseCumulativeDataRange(bool state, bool onlyVisible)
 void Renderer::resetAxes(double bounds[6])
 {
     TRACE("Resetting axes");
-    if (_cubeAxesActor == NULL ||
-        _cubeAxesActor2D == NULL) {
+    if (_cubeAxesActor == NULL
+#ifndef USE_VTK6
+        || _cubeAxesActor2D == NULL
+#endif
+       ) {
         initAxes();
     }
     if (_cameraMode == IMAGE) {
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetUse2DMode(1);
+#else
         if (_renderer->HasViewProp(_cubeAxesActor)) {
             TRACE("Removing 3D axes");
             _renderer->RemoveViewProp(_cubeAxesActor);
@@ -433,7 +439,11 @@ void Renderer::resetAxes(double bounds[6])
             TRACE("Adding 2D axes");
             _renderer->AddViewProp(_cubeAxesActor2D);
         }
+#endif
     } else {
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetUse2DMode(0);
+#else
         if (_renderer->HasViewProp(_cubeAxesActor2D)) {
             TRACE("Removing 2D axes");
             _renderer->RemoveViewProp(_cubeAxesActor2D);
@@ -442,37 +452,61 @@ void Renderer::resetAxes(double bounds[6])
             TRACE("Adding 3D axes");
             _renderer->AddViewProp(_cubeAxesActor);
         }
-        if (bounds == NULL) {
-            double newBounds[6];
-            collectBounds(newBounds, false);
-#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
-            _cubeAxesActor->SetXAxisRange(newBounds[0], newBounds[1]);
-            _cubeAxesActor->SetYAxisRange(newBounds[2], newBounds[3]);
-            _cubeAxesActor->SetZAxisRange(newBounds[4], newBounds[5]);
 #endif
-            _cubeAxesActor->SetBounds(newBounds);
-            TRACE("Bounds (computed): %g %g %g %g %g %g",
-                  newBounds[0],
-                  newBounds[1],
-                  newBounds[2],
-                  newBounds[3],
-                  newBounds[4],
-                  newBounds[5]);
-        } else {
-#if ((VTK_MAJOR_VERSION > 5) || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION >= 8))
-            _cubeAxesActor->SetXAxisRange(bounds[0], bounds[1]);
-            _cubeAxesActor->SetYAxisRange(bounds[2], bounds[3]);
-            _cubeAxesActor->SetZAxisRange(bounds[4], bounds[5]);
+    }
+
+    if (_cameraMode == IMAGE) {
+        return;
+    }
+
+    if (bounds == NULL) {
+        double newBounds[6];
+        collectBounds(newBounds, false);
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        double unscaledBounds[6];
+        collectUnscaledBounds(unscaledBounds, false);
+        _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
+        _cubeAxesActor->SetYAxisRange(unscaledBounds[2], unscaledBounds[3]);
+        _cubeAxesActor->SetZAxisRange(unscaledBounds[4], unscaledBounds[5]);
+        TRACE("Axis ranges: %g %g %g %g %g %g",
+              unscaledBounds[0],
+              unscaledBounds[1],
+              unscaledBounds[2],
+              unscaledBounds[3],
+              unscaledBounds[4],
+              unscaledBounds[5]);
 #endif
-            _cubeAxesActor->SetBounds(bounds);
-            TRACE("Bounds (supplied): %g %g %g %g %g %g",
-                  bounds[0],
-                  bounds[1],
-                  bounds[2],
-                  bounds[3],
-                  bounds[4],
-                  bounds[5]);
-        }
+        _cubeAxesActor->SetBounds(newBounds);
+        TRACE("Bounds (computed): %g %g %g %g %g %g",
+              newBounds[0],
+              newBounds[1],
+              newBounds[2],
+              newBounds[3],
+              newBounds[4],
+              newBounds[5]);
+    } else {
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        double unscaledBounds[6];
+        collectUnscaledBounds(unscaledBounds, false);
+        _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
+        _cubeAxesActor->SetYAxisRange(unscaledBounds[2], unscaledBounds[3]);
+        _cubeAxesActor->SetZAxisRange(unscaledBounds[4], unscaledBounds[5]);
+        TRACE("Axis ranges: %g %g %g %g %g %g",
+              unscaledBounds[0],
+              unscaledBounds[1],
+              unscaledBounds[2],
+              unscaledBounds[3],
+              unscaledBounds[4],
+              unscaledBounds[5]);
+#endif
+        _cubeAxesActor->SetBounds(bounds);
+        TRACE("Bounds (supplied): %g %g %g %g %g %g",
+              bounds[0],
+              bounds[1],
+              bounds[2],
+              bounds[3],
+              bounds[4],
+              bounds[5]);
     }
 }
 
@@ -496,18 +530,48 @@ void Renderer::initAxes()
     _cubeAxesActor->SetFlyModeToStaticTriad();
 #if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
     _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
+#endif
+#if !defined(USE_CUSTOM_AXES)
+    _cubeAxesActor->SetDrawXInnerGridlines(0);
+    _cubeAxesActor->SetDrawYInnerGridlines(0);
+    _cubeAxesActor->SetDrawZInnerGridlines(0);
+    _cubeAxesActor->SetDrawXGridpolys(0);
+    _cubeAxesActor->SetDrawYGridpolys(0);
+    _cubeAxesActor->SetDrawZGridpolys(0);
+    _cubeAxesActor->SetDistanceLODThreshold(1);
     _cubeAxesActor->SetEnableDistanceLOD(0);
+    _cubeAxesActor->SetViewAngleLODThreshold(0);
     _cubeAxesActor->SetEnableViewAngleLOD(0);
+    _cubeAxesActor->SetScreenSize(12.0);
+#endif
+    _cubeAxesActor->SetBounds(0, 1, 0, 1, 0, 1);
+#if !defined(USE_CUSTOM_AXES)
+    _cubeAxesActor->SetXAxisRange(0, 1);
+    _cubeAxesActor->SetYAxisRange(0, 1);
+    _cubeAxesActor->SetZAxisRange(0, 1);
 #endif
 
 #ifdef USE_CUSTOM_AXES
     if (_cubeAxesActor2D == NULL)
         _cubeAxesActor2D = vtkSmartPointer<vtkRpCubeAxesActor2D>::New();
-#else
+#elif !defined(USE_VTK6)
     if (_cubeAxesActor2D == NULL)
         _cubeAxesActor2D = vtkSmartPointer<vtkCubeAxesActor2D>::New();
 #endif
 
+    double axesColor[] = {1,1,1};
+    setAxesColor(axesColor);
+
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+    if (!_renderer->HasViewProp(_cubeAxesActor))
+        _renderer->AddViewProp(_cubeAxesActor);
+
+    if (_cameraMode == IMAGE) {
+        _cubeAxesActor->SetUse2DMode(1);
+    } else {
+        _cubeAxesActor->SetUse2DMode(0);
+    }
+#else
     _cubeAxesActor2D->SetCamera(_renderer->GetActiveCamera());
     _cubeAxesActor2D->ZAxisVisibilityOff();
     _cubeAxesActor2D->SetCornerOffset(0);
@@ -563,6 +627,7 @@ void Renderer::initAxes()
         if (!_renderer->HasViewProp(_cubeAxesActor))
             _renderer->AddViewProp(_cubeAxesActor);
     }
+#endif
 }
 
 /**
@@ -571,7 +636,8 @@ void Renderer::initAxes()
 void Renderer::setAxesFlyMode(AxesFlyMode mode)
 {
     if (_cubeAxesActor == NULL)
-        initAxes();
+        return;
+
     switch (mode) {
     case FLY_STATIC_EDGES:
         _cubeAxesActor->SetFlyModeToStaticEdges();
@@ -619,6 +685,7 @@ void Renderer::setAxesColor(double color[3])
         for (int i = 0; i < 3; i++) {
             _cubeAxesActor->GetTitleTextProperty(i)->SetColor(color);
             _cubeAxesActor->GetLabelTextProperty(i)->SetColor(color);
+            _cubeAxesActor->GetLabelTextProperty(i)->SetOpacity(1.0);
         }
         _cubeAxesActor->GetXAxesLinesProperty()->SetColor(color);
         _cubeAxesActor->GetXAxesGridlinesProperty()->SetColor(color);
@@ -629,6 +696,7 @@ void Renderer::setAxesColor(double color[3])
 #endif
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         _cubeAxesActor2D->GetProperty()->SetColor(color);
 #ifdef USE_CUSTOM_AXES
@@ -644,6 +712,7 @@ void Renderer::setAxesColor(double color[3])
 #endif
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -655,10 +724,12 @@ void Renderer::setAxesVisibility(bool state)
         _cubeAxesActor->SetVisibility((state ? 1 : 0));
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         _cubeAxesActor2D->SetVisibility((state ? 1 : 0));
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -729,6 +800,7 @@ void Renderer::setAxisVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         if (axis == X_AXIS) {
             _cubeAxesActor2D->SetXAxisVisibility((state ? 1 : 0));
@@ -739,6 +811,7 @@ void Renderer::setAxisVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -773,6 +846,7 @@ void Renderer::setAxisLabelVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         if (axis == X_AXIS) {
             _cubeAxesActor2D->GetXAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
@@ -783,6 +857,7 @@ void Renderer::setAxisLabelVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -800,6 +875,7 @@ void Renderer::setAxisTickVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         if (axis == X_AXIS) {
             _cubeAxesActor2D->GetXAxisActor2D()->SetTickVisibility((state ? 1 : 0));
@@ -810,6 +886,7 @@ void Renderer::setAxisTickVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -827,6 +904,7 @@ void Renderer::setAxisTitle(Axis axis, const char *title)
         }
         _needsRedraw = true;
     }
+#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
     if (_cubeAxesActor2D != NULL) {
         if (axis == X_AXIS) {
             _cubeAxesActor2D->SetXLabel(title);
@@ -837,6 +915,7 @@ void Renderer::setAxisTitle(Axis axis, const char *title)
         }
         _needsRedraw = true;
     }
+#endif
 }
 
 /**
@@ -1951,6 +2030,8 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 
     double offsetX = pxOffsetX * pxToWorld;
     double offsetY = pxOffsetY * pxToWorld;
+    double winWidthWorld = _windowWidth * pxToWorld;
+    double winHeightWorld = _windowHeight * pxToWorld;
     double plotWidthWorld = imgWidthPx * pxToWorld;
     double plotHeightWorld = imgHeightPx * pxToWorld;
 
@@ -1966,14 +2047,14 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     _imgWorldDims[0] = width;
     _imgWorldDims[1] = height;
 
-    camPos[0] = _imgWorldOrigin[0] - offsetX + (_windowWidth * pxToWorld)/2.0;
-    camPos[1] = _imgWorldOrigin[1] - offsetY + (_windowHeight * pxToWorld)/2.0;
+    camPos[0] = _imgWorldOrigin[0] - offsetX + winWidthWorld / 2.0;
+    camPos[1] = _imgWorldOrigin[1] - offsetY + winHeightWorld / 2.0;
 
     vtkSmartPointer<vtkCamera> camera = _renderer->GetActiveCamera();
     camera->ParallelProjectionOn();
     camera->SetClippingRange(1, 2);
     // Half of world coordinate height of viewport (Documentation is wrong)
-    camera->SetParallelScale(_windowHeight * pxToWorld / 2.0);
+    camera->SetParallelScale(winHeightWorld / 2.0);
 
     if (_imgCameraPlane == PLANE_XY) {
         // XY plane
@@ -1992,12 +2073,22 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         // right
         _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
+                                  _imgCameraOffset, _imgCameraOffset);
+
+        _cubeAxesActor->XAxisVisibilityOn();
+        _cubeAxesActor->YAxisVisibilityOn();
+        _cubeAxesActor->ZAxisVisibilityOff();
+#else
         _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
                                     _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
                                     _imgCameraOffset, _imgCameraOffset);
         _cubeAxesActor2D->XAxisVisibilityOn();
         _cubeAxesActor2D->YAxisVisibilityOn();
         _cubeAxesActor2D->ZAxisVisibilityOff();
+#endif
     } else if (_imgCameraPlane == PLANE_ZY) {
         // ZY plane
         camera->SetPosition(_imgCameraOffset - 1., camPos[1], camPos[0]);
@@ -2015,12 +2106,21 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         // right
         _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + plotWidthWorld);
         _cameraClipPlanes[3]->SetNormal(0, 0, -1);
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetBounds(_imgCameraOffset, _imgCameraOffset, 
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
+                                  _imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld);
+        _cubeAxesActor->XAxisVisibilityOff();
+        _cubeAxesActor->YAxisVisibilityOn();
+        _cubeAxesActor->ZAxisVisibilityOn();
+#else
         _cubeAxesActor2D->SetBounds(_imgCameraOffset, _imgCameraOffset, 
                                     _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
                                     _imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld);
         _cubeAxesActor2D->XAxisVisibilityOff();
         _cubeAxesActor2D->YAxisVisibilityOn();
         _cubeAxesActor2D->ZAxisVisibilityOn();
+#endif
     } else {
         // XZ plane
         camera->SetPosition(camPos[0], _imgCameraOffset - 1., camPos[1]);
@@ -2038,13 +2138,30 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         // right
         _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
+#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
+                                  _imgCameraOffset, _imgCameraOffset,
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld);
+        _cubeAxesActor->XAxisVisibilityOn();
+        _cubeAxesActor->YAxisVisibilityOff();
+        _cubeAxesActor->ZAxisVisibilityOn();
+#else
         _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
                                     _imgCameraOffset, _imgCameraOffset,
                                     _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld);
         _cubeAxesActor2D->XAxisVisibilityOn();
         _cubeAxesActor2D->YAxisVisibilityOff();
         _cubeAxesActor2D->ZAxisVisibilityOn();
+#endif
     }
+
+#if !defined(USE_CUSTOM_AXES)
+    double xmin, xmax, ymin, ymax, zmin, zmax;
+    _cubeAxesActor->GetBounds(xmin, xmax, ymin, ymax, zmin, zmax);
+    _cubeAxesActor->SetXAxisRange(xmin, xmax);
+    _cubeAxesActor->SetYAxisRange(ymin, ymax);
+    _cubeAxesActor->SetZAxisRange(zmin, zmax);
+#endif
 
     // Compute screen world coordinates
     computeScreenWorldCoords();
@@ -2780,7 +2897,7 @@ void Renderer::initCamera(bool initCameraMode)
         _renderer->ResetCamera(bounds);
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
-        resetAxes();
+        resetAxes(bounds);
         break;
     case ORTHO:
         _renderer->GetActiveCamera()->ParallelProjectionOn();
