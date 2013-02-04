@@ -201,6 +201,7 @@ itcl::body Rappture::Tool::run {args} {
             set job(output) [string range $cmd 5 end] 
         } else {
             set status [catch {
+		set ::Rappture::Tool::job(control) ""
 		eval blt::bgexec \
 		    ::Rappture::Tool::job(control) \
 		    -keepnewline yes \
@@ -213,6 +214,7 @@ itcl::body Rappture::Tool::run {args} {
 
             if { $status != 0 } {
 		# We're here because the exec-ed program failed 
+		set logmesg $result
 		if { $::Rappture::Tool::job(control) != "" } {
 		    foreach { token pid code mesg } \
 			$::Rappture::Tool::job(control) break

@@ -29,14 +29,12 @@ if test "x${JAVA}" != "x" ; then
    ${with_java} \
    ${JAVA_HOME} \
    /apps/java/jdk1.6* \
-   /usr/lib/jvm/java-6-openjdk \
-   /usr/lib/jvm/icedtea-6 \
-   /usr/lib/jvm/*sun-1.6* \
    /opt/sun-jdk-1.6* \
-   /usr/lib/jvm/icedtea-7 \
    /opt/icedtea6-* \
    /opt/sun-jdk-1.5* \
-   /usr/lib/jvm/*sun-1.5* 
+   /usr/lib/jvm/*sun* \
+   /usr/lib/jvm/*icedtea* \
+   /usr/lib/jvm/*openjdk*
   do
     if test -r "${d}/include/jni.h" ; then
       JDK=${d}
