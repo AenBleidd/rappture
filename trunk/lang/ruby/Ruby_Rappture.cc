@@ -45,7 +45,7 @@ GetStdString(VALUE value)
     VALUE strValue;
 
     strValue = StringValue(value);
-    return std::string(RSTRING(strValue)->ptr, RSTRING(strValue)->len);
+    return std::string(RSTRING_PTR(strValue), RSTRING_LEN(strValue));
 }
 
 static const char *
@@ -216,7 +216,7 @@ RbRp_PutData(VALUE self, VALUE path, VALUE value, VALUE append)
 
        strValue = StringValue(value);
        lib->putData(GetStdString(path), 
-		    RSTRING(strValue)->ptr, RSTRING(strValue)->len, 
+		    RSTRING_PTR(strValue), RSTRING_LEN(strValue), 
 		    NUM2INT(append));
    }
 #ifdef RAISE_EXCEPTIONS
