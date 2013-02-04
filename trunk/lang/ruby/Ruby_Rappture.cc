@@ -212,10 +212,12 @@ RbRp_PutData(VALUE self, VALUE path, VALUE value, VALUE append)
 
    if (T_STRING == TYPE(value))
    {
-      long int nbytes;
-      char *bytes = rb_str2cstr(value, &nbytes);
+       VALUE strValue;
 
-      lib->putData(GetStdString(path), bytes, nbytes, NUM2INT(append));
+       strValue = StringValue(value);
+       lib->putData(GetStdString(path), 
+		    RSTRING(strValue)->ptr, RSTRING(strValue)->len, 
+		    NUM2INT(append));
    }
 #ifdef RAISE_EXCEPTIONS
    else
