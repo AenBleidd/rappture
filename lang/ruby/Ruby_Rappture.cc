@@ -26,7 +26,7 @@
 #include "RpUtils.h"     /* Rappture::Utils::progress() */
 #include "RpUnits.h"     /* RpUnits::convert() */
 #include "ruby.h"        /* VALUE, rb_*(), Data_*_Struct(), NUM2INT(), 
-                            INT2NUM(), NUM2DBL(), STR2CSTR(), ANYARGS */
+                            INT2NUM(), NUM2DBL(), Str2Cstr(), ANYARGS */
 
 /******************************************************************************
  * File scope variables
@@ -38,6 +38,21 @@ VALUE classRappture;
 
 
 extern "C" void Init_Rappture(void);
+
+static std::string
+GetStdString(VALUE value)
+{
+    VALUE strValue;
+
+    strValue = StringValue(value);
+    return std::string(RSTRING(strValue)->ptr, RSTRING(strValue)->len);
+}
+
+static const char *
+GetString(VALUE value)
+{
+    return StringValuePtr(value);
+}
 
 /******************************************************************************
  * RbRp_GetString()
@@ -59,17 +74,18 @@ static VALUE
 RbRp_GetString(VALUE self, VALUE path)
 {
    RpLibrary *lib;
-   std::string str;
+   std::string result;
 
    /* Extract the pointer to the Rappture object, lib, from the Ruby object, 
       self */
    Data_Get_Struct(self, RpLibrary, lib);
 
+
    /* Read the data from path in lib as a C++ std::string. */
-   str = lib->getString(STR2CSTR(path));
+   result = lib->getString(GetStdString(path));
       
    /* Return a Ruby VALUE */
-   return rb_str_new2(str.c_str());
+   return rb_str_new2(result.c_str());
 
 }  /* end RbRp_GetString */
 
@@ -92,7 +108,7 @@ RbRp_GetData(VALUE self, VALUE path)
    Data_Get_Struct(self, RpLibrary, lib);
 
    /* Read the data from path in lib as a C++ std::string. */
-   buf = lib->getData(STR2CSTR(path));
+   buf = lib->getData(GetStdString(path));
       
    /* Return a Ruby VALUE */
    return rb_str_new2(buf.bytes());
@@ -138,21 +154,23 @@ RbRp_PutObject(VALUE self, VALUE path, VALUE value, VALUE append)
    switch (TYPE(value))
    {
       case T_STRING:
-         lib->put(STR2CSTR(path), STR2CSTR(value), "", NUM2INT(append));
+	  /* Read the data from path in lib as a C++ std::string. */
+	  lib->put(GetStdString(path), GetStdString(value), "", 
+		NUM2INT(append));
          break;
       case T_FIXNUM:
          intVal = NUM2INT(value);
-         lib->putData(STR2CSTR(path), (const char *)&intVal, sizeof(int),
+         lib->putData(GetStdString(path), (const char *)&intVal, sizeof(int),
                       NUM2INT(append));
          break;
       case T_FLOAT:
-         lib->put(STR2CSTR(path), NUM2DBL(value), "", NUM2INT(append));
+         lib->put(GetStdString(path), NUM2DBL(value), "", NUM2INT(append));
          break;
       default:
 #ifdef RAISE_EXCEPTIONS
          rb_raise(rb_eRuntimeError, 
                   "Unable to put object %s to Rappture: unknown type", 
-                  STR2CSTR(rbStrName));
+                  GetString(rbStrName));
 #endif
          break;
    }  /* end switch */
@@ -197,14 +215,14 @@ RbRp_PutData(VALUE self, VALUE path, VALUE value, VALUE append)
       long int nbytes;
       char *bytes = rb_str2cstr(value, &nbytes);
 
-      lib->putData(STR2CSTR(path), bytes, nbytes, NUM2INT(append));
+      lib->putData(GetStdString(path), bytes, nbytes, NUM2INT(append));
    }
 #ifdef RAISE_EXCEPTIONS
    else
    {
       rb_raise(rb_eRuntimeError, 
                "Unable to put data \"%s\" to Rappture: unknown type", 
-               STR2CSTR(rbStrName));
+               GetString(rbStrName));
    }
 #endif
 
@@ -251,20 +269,21 @@ RbRp_PutFile(VALUE self, VALUE path, VALUE filename, VALUE append,
 
       if (Qtrue == rb_funcall(ft, id_filetest, 1, filename))  /* valid filename */
       {
-         lib->putFile(STR2CSTR(path), STR2CSTR(filename), NUM2INT(compress), 
-                      NUM2INT(append));
+         lib->putFile(GetStdString(path), GetStdString(filename), 
+		NUM2INT(compress), NUM2INT(append));
       }
 #ifdef RAISE_EXCEPTIONS
       else
       {
          rb_raise(rb_eRuntimeError, "%s is not a valid file", 
-                  STR2CSTR(rbStrName));
+                  GetString(rbStrName));
       }
 #endif
    }
 #ifdef RAISE_EXCEPTIONS
    else
-      rb_raise(rb_eRuntimeError, "Bad file name: %s", STR2CSTR(rbStrName));
+       rb_raise(rb_eRuntimeError, "Bad file name: %s", 
+		GetString(rbStrName));
 #endif
 
    /* Return a Ruby VALUE */
@@ -351,7 +370,8 @@ RbRp_Progress(VALUE self, VALUE percent, VALUE message)
    /* Note: self is a dummy here */
 
    /* Write the message */
-   (void)Rappture::Utils::progress(NUM2INT(percent), STR2CSTR(message));
+    (void)Rappture::Utils::progress(NUM2INT(percent), 
+				    GetString(message));
 
    /* Return a Ruby VALUE */
    return Qnil;
@@ -375,17 +395,12 @@ static VALUE
 RbRp_Convert(VALUE self, VALUE fromVal, VALUE toUnitsName, VALUE showUnits) 
 {
    VALUE retVal = Qnil;
-   RpLibrary *lib;
    std::string strRetVal;
    int result;
 
-   /* Extract the pointer to the Rappture object, lib, from the Ruby 
-      object, self */
-   Data_Get_Struct(self, RpLibrary, lib);
-
    /* Convert */
-   strRetVal = RpUnits::convert(STR2CSTR(fromVal), STR2CSTR(toUnitsName), 
-                                NUM2INT(showUnits), &result);
+   strRetVal = RpUnits::convert(GetStdString(fromVal), 
+		GetStdString(toUnitsName), NUM2INT(showUnits), &result);
    /* Return value */
    if (0 == result)
    {
@@ -399,7 +414,7 @@ RbRp_Convert(VALUE self, VALUE fromVal, VALUE toUnitsName, VALUE showUnits)
 #ifdef RAISE_EXCEPTIONS
    else
       rb_raise(rb_eRuntimeError, "Unable to convert \"%s\" to \"%s\"", 
-               STR2CSTR(fromVal), STR2CSTR(toUnitsName));
+               GetString(fromVal), GetString(toUnitsName));
 #endif
    return retVal;
 
@@ -460,7 +475,7 @@ VALUE
 RbRp_New(VALUE classval, VALUE driver)
 {
    /* Create the Rappture object from the XML driver file. */
-   RpLibrary *lib = new RpLibrary(STR2CSTR(driver));
+   RpLibrary *lib = new RpLibrary(GetStdString(driver));
       
    /* Data_Wrap_Struct() creates a new Ruby object which associates the
       Rappture object, lib, with the class type classval, and registers 0
