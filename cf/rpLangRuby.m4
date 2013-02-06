@@ -90,27 +90,24 @@ CPPFLAGS_save="${CPPFLAGS}"
 CPPFLAGS="${CPPFLAGS} ${RUBY_CPPFLAGS}"
 CXXFLAGS="${CPPFLAGS}"
 AC_CHECK_HEADERS(ruby.h)
-if test "x${ac_cv_header_ruby_h}" != "x" ; then
-  HAVE_RUBY_H=yes
-  AC_CHECK_HEADERS(node.h,,,[
-#include <ruby.h>
-  ])
-  AC_CHECK_HEADERS(ruby/node.h,
-    [ AC_DEFINE(REALLY_HAVE_RUBY_NODE_H, [],
-    [ Define this macro to use ruby/node.h ]) ],
-                             ,[
-			     #include <ruby.h>
-  ])
-  AC_CHECK_HEADERS(version.h,,,[
-#include <ruby.h>
-  ])
-  AC_CHECK_HEADERS(env.h,,,[
-  #include <ruby.h>
-  ])
-else 
-  HAVE_RUBY_H=no
-fi
+HAVE_RUBY_H=${ac_cv_header_ruby_h}
 AC_SUBST(HAVE_RUBY_H)
+
+AC_CHECK_HEADERS(node.h,,,[
+#include <ruby.h>
+])
+AC_CHECK_HEADERS(ruby/node.h,
+[ AC_DEFINE(REALLY_HAVE_RUBY_NODE_H, [],
+[ Define this macro to use ruby/node.h ]) ],
+                            ,[
+			     #include <ruby.h>
+])
+AC_CHECK_HEADERS(version.h,,,[
+#include <ruby.h>
+])
+AC_CHECK_HEADERS(env.h,,,[
+#include <ruby.h>
+])
 
 CPPFLAGS="${CPPFLAGS_save}"
 

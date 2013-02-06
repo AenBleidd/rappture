@@ -33,8 +33,10 @@ endif
 ifeq ($(PYTHON),yes)
   LANGS += python
 endif
-ifeq ($(HAVE_RUBY_H),yes)
-  LANGS += ruby
+ifeq ($(RUBY),yes)
+  ifeq ($(HAVE_RUBY_H),yes)
+    LANGS += ruby
+  endif
 endif
 ifneq ($(MEX),)
   LANGS += matlab
