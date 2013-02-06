@@ -14,7 +14,8 @@ SHELL           = @SHELL@
 F77             = @F77@
 CC              = @CC@
 CXX             = @CXX@
-RUBY_CPPFLAGS   = @RUBY_CPPFLAGS@
+HAVE_RUBY_H     = @HAVE_RUBY_H@
+RUBY		= @RUBY@
 PERL            = @PERL@
 TCLSH           = @TCLSH@
 PYTHON          = @PYTHON_DISTUTILS@
@@ -32,7 +33,7 @@ endif
 ifeq ($(PYTHON),yes)
   LANGS += python
 endif
-ifneq ($(RUBY_CPP_FLAGS),)
+ifeq ($(HAVE_RUBY_H),yes)
   LANGS += ruby
 endif
 ifneq ($(MEX),)

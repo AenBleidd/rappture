@@ -690,6 +690,7 @@ build_os
 build_vendor
 build_cpu
 build
+HAVE_RUBY_H
 RUBY_SITELIBDIR
 RUBY_LIBRUBYARG_STATIC
 RUBY_LIBRUBYARG
@@ -8923,20 +8924,19 @@ CPPFLAGS="${CPPFLAGS} ${RUBY_CPPFLAGS}"
 CXXFLAGS="${CPPFLAGS}"
 for ac_header in ruby.h
 do :
-  ac_fn_cxx_check_header_compile "$LINENO" "ruby.h" "ac_cv_header_ruby_h" "
-"
+  ac_fn_cxx_check_header_mongrel "$LINENO" "ruby.h" "ac_cv_header_ruby_h" "$ac_includes_default"
 if test "x$ac_cv_header_ruby_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_RUBY_H 1
 _ACEOF
 
-else
-  as_fn_error $? "could not find ruby.h (check config.log)" "$LINENO" 5
 fi
 
 done
 
-for ac_header in node.h
+if test "x${ac_cv_header_ruby_h}" != "x" ; then
+  HAVE_RUBY_H=yes
+  for ac_header in node.h
 do :
   ac_fn_cxx_check_header_compile "$LINENO" "node.h" "ac_cv_header_node_h" "
 #include <ruby.h>
@@ -8951,10 +8951,10 @@ fi
 
 done
 
-for ac_header in ruby/node.h
+  for ac_header in ruby/node.h
 do :
   ac_fn_cxx_check_header_compile "$LINENO" "ruby/node.h" "ac_cv_header_ruby_node_h" "
-#include <ruby.h>
+			     #include <ruby.h>
 
 "
 if test "x$ac_cv_header_ruby_node_h" = xyes; then :
@@ -8968,7 +8968,7 @@ fi
 
 done
 
-for ac_header in version.h
+  for ac_header in version.h
 do :
   ac_fn_cxx_check_header_compile "$LINENO" "version.h" "ac_cv_header_version_h" "
 #include <ruby.h>
@@ -8983,10 +8983,10 @@ fi
 
 done
 
-for ac_header in env.h
+  for ac_header in env.h
 do :
   ac_fn_cxx_check_header_compile "$LINENO" "env.h" "ac_cv_header_env_h" "
-#include <ruby.h>
+  #include <ruby.h>
 
 "
 if test "x$ac_cv_header_env_h" = xyes; then :
@@ -8997,6 +8997,10 @@ _ACEOF
 fi
 
 done
+
+else
+  HAVE_RUBY_H=no
+fi
 
 
 CPPFLAGS="${CPPFLAGS_save}"
