@@ -213,7 +213,8 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         rename -background -controlbackground controlBackground \
             Background
     }
-    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} -fill y
+    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} \
+        -fill y
 
     eval itk_initialize $args
 

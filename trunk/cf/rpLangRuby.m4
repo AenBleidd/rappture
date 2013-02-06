@@ -89,23 +89,28 @@ dnl searching for standard header files as a side-effect (which we want)
 CPPFLAGS_save="${CPPFLAGS}"
 CPPFLAGS="${CPPFLAGS} ${RUBY_CPPFLAGS}"
 CXXFLAGS="${CPPFLAGS}"
-AC_CHECK_HEADERS(ruby.h,,AC_MSG_ERROR(
-                could not find ruby.h (check config.log)),[ ])
-AC_CHECK_HEADERS(node.h,,,[
+AC_CHECK_HEADERS(ruby.h)
+if test "x${ac_cv_header_ruby_h}" != "x" ; then
+  HAVE_RUBY_H=yes
+  AC_CHECK_HEADERS(node.h,,,[
 #include <ruby.h>
-])
-AC_CHECK_HEADERS(ruby/node.h,
-                 [ AC_DEFINE(REALLY_HAVE_RUBY_NODE_H, [],
-                             [ Define this macro to use ruby/node.h ]) ],
+  ])
+  AC_CHECK_HEADERS(ruby/node.h,
+    [ AC_DEFINE(REALLY_HAVE_RUBY_NODE_H, [],
+    [ Define this macro to use ruby/node.h ]) ],
                              ,[
+			     #include <ruby.h>
+  ])
+  AC_CHECK_HEADERS(version.h,,,[
 #include <ruby.h>
-])
-AC_CHECK_HEADERS(version.h,,,[
-#include <ruby.h>
-])
-AC_CHECK_HEADERS(env.h,,,[
-#include <ruby.h>
-])
+  ])
+  AC_CHECK_HEADERS(env.h,,,[
+  #include <ruby.h>
+  ])
+else 
+  HAVE_RUBY_H=no
+fi
+AC_SUBST(HAVE_RUBY_H)
 
 CPPFLAGS="${CPPFLAGS_save}"
 
