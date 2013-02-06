@@ -213,8 +213,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         rename -background -controlbackground controlBackground \
             Background
     }
-    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} \
-        -fill y
+    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} -fill y
 
     eval itk_initialize $args
 
@@ -573,11 +572,12 @@ itcl::body Rappture::SidebarFrame::_fixLayout {args} {
     if { $resizeframe } {
 	set framew $x1
     } else {
-	set framew [expr $w - $ctrlw]
+	set framew [expr $w - $ctrlw - $sashw]
     }
     place $itk_component(frame) -x 0 -y 0 -anchor nw -width $framew -height $h
     place $itk_component(sashbg) -x $x1 -y 0 -anchor nw -width $sashw -height $h
-    place $itk_component(sidebar) -x $x2 -y 0 -anchor nw -width $sbarw -height $h
+    place $itk_component(sidebar) -x $x2 -y 0 -anchor nw \
+	-width $sbarw -height $h
 }
 
 # ----------------------------------------------------------------------
