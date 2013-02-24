@@ -26,6 +26,7 @@ extern Tcl_AppInitProc RpCanvHotspot_Init;
 extern Tcl_AppInitProc RpCanvPlacard_Init;
 extern Tcl_AppInitProc RpConvertDxToVtk_Init;
 extern Tcl_AppInitProc RpDiffview_Init;
+extern Tcl_AppInitProc RpReadPoints_Init;
 
 #ifdef BUILD_Rappture
 __declspec( dllexport )
@@ -47,6 +48,9 @@ Rappturegui_Init( Tcl_Interp * interp)
         return TCL_ERROR;
     }
     if (RpConvertDxToVtk_Init(interp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (RpReadPoints_Init(interp) != TCL_OK) {
         return TCL_ERROR;
     }
     if (RpCanvHotspot_Init(interp) != TCL_OK) {

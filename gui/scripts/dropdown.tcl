@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: dropdown - base class for drop-down panels
 #

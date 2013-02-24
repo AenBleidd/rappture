@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: htmlviewer - easy way to display HTML text
 #

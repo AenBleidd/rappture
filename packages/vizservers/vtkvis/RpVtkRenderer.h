@@ -13,17 +13,11 @@
 #include <tr1/unordered_map>
 #include <typeinfo>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkSmartPointer.h>
 #ifdef USE_CUSTOM_AXES
 #include "vtkRpCubeAxesActor.h"
-#include "vtkRpCubeAxesActor2D.h"
 #else
 #include <vtkCubeAxesActor.h>
-#include <vtkCubeAxesActor2D.h>
 #endif
 #include <vtkScalarBarActor.h>
 #include <vtkRenderer.h>
@@ -73,6 +67,12 @@ public:
     Renderer();
     virtual ~Renderer();
 
+    enum AxisRangeMode {
+        RANGE_AUTO = 0,
+        RANGE_SCALE_BOUNDS,
+        RANGE_EXPLICIT
+    };
+
     enum AxesFlyMode {
         FLY_OUTER_EDGES = 0,
         FLY_CLOSEST_TRIAD,
@@ -91,6 +91,12 @@ public:
         PERSPECTIVE,
         ORTHO,
         IMAGE
+    };
+
+    enum Aspect {
+        ASPECT_NATIVE,
+        ASPECT_SQUARE,
+        ASPECT_WINDOW
     };
 
     enum LegendType {
@@ -143,6 +149,11 @@ public:
 
     bool getUseCumulativeRange();
 
+    bool setCumulativeDataRange(double *range, const char *name,
+                                DataSet::DataAttributeType type,
+                                int numComponents,
+                                int component = -1);
+
     bool getCumulativeDataRange(double *range, const char *name,
                                 int numComponents,
                                 int component = -1);
@@ -170,6 +181,7 @@ public:
 
     void setViewAngle(int height);
 
+    /// Return the VTK camera object this Renderer uses
     vtkCamera *getVtkCamera()
     {
         if (_renderer != NULL)
@@ -181,6 +193,8 @@ public:
     void setCameraMode(CameraMode mode);
 
     CameraMode getCameraMode() const;
+
+    void setCameraAspect(Aspect aspect);
 
     void resetCamera(bool resetOrientation = true);
 
@@ -228,31 +242,125 @@ public:
 
     // Axes
 
+    void setAxesOrigin(double x, double y, double z, bool useCustom = true);
+
+    void setAxesAutoBounds(bool state);
+
+    void setAxesBounds(double min, double max);
+
+    void setAxesAutoRange(bool state);
+
+    void setAxisBounds(Axis axis, double min, double max);
+
+    void setAxesScale(double scale);
+
+    void setAxesRange(double min, double max);
+
+    void setAxesLabelPowerScaling(int xPow, int yPow, int zPow, bool useCustom = true);
+
+    void setAxisAutoBounds(Axis axis, bool state);
+
+    void setAxisAutoRange(Axis axis, bool state);
+
+    void setAxisScale(Axis axis, double scale);
+
+    void setAxisRange(Axis axis, double min, double max);
+
     void setAxesFlyMode(AxesFlyMode mode);
 
     void setAxesVisibility(bool state);
 
     void setAxesGridVisibility(bool state);
 
+    void setAxesInnerGridVisibility(bool state);
+
+    void setAxesGridpolysVisibility(bool state);
+
     void setAxesLabelVisibility(bool state);
 
     void setAxesTickVisibility(bool state);
 
+    void setAxesMinorTickVisibility(bool state);
+
     void setAxesTickPosition(AxesTickPosition pos);
 
-    void setAxesColor(double color[3]);
+    void setAxesColor(double color[3], double opacity = 1.0);
+
+    void setAxesTitleColor(double color[3], double opacity = 1.0);
+
+    void setAxesLabelColor(double color[3], double opacity = 1.0);
+
+    void setAxesLinesColor(double color[3], double opacity = 1.0);
+
+    void setAxesGridlinesColor(double color[3], double opacity = 1.0);
+
+    void setAxesInnerGridlinesColor(double color[3], double opacity = 1.0);
+
+    void setAxesGridpolysColor(double color[3], double opacity = 1.0);
+
+    void setAxesLabelScaling(bool autoScale, int xpow, int ypow, int zpow);
+
+    void setAxesPixelFontSize(double screenSize);
+
+    void setAxesTitleFont(const char *fontName);
+
+    void setAxesTitleFontSize(int sz);
+
+    void setAxesTitleOrientation(double orientation);
+
+    void setAxesLabelFont(const char *fontName);
+
+    void setAxesLabelFontSize(int sz);
+
+    void setAxesLabelOrientation(double orientation);
+
+    void setAxesLabelFormat(const char *format);
 
     void setAxisVisibility(Axis axis, bool state);
 
     void setAxisGridVisibility(Axis axis, bool state);
 
+    void setAxisInnerGridVisibility(Axis axis, bool state);
+
+    void setAxisGridpolysVisibility(Axis axis, bool state);
+
     void setAxisLabelVisibility(Axis axis, bool state);
 
     void setAxisTickVisibility(Axis axis, bool state);
 
+    void setAxisMinorTickVisibility(Axis axis, bool state);
+
+    void setAxisColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisTitleColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisLabelColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisLinesColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisGridlinesColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisInnerGridlinesColor(Axis axis, double color[3], double opacity = 1.0);
+
+    void setAxisGridpolysColor(Axis axis, double color[3], double opacity = 1.0);
+
     void setAxisTitle(Axis axis, const char *title);
 
     void setAxisUnits(Axis axis, const char *units);
+
+    void setAxisTitleFont(Axis axis, const char *fontName);
+
+    void setAxisTitleFontSize(Axis axis, int sz);
+
+    void setAxisTitleOrientation(Axis axis, double orientation);
+
+    void setAxisLabelFont(Axis axis, const char *fontName);
+
+    void setAxisLabelFontSize(Axis axis, int sz);
+
+    void setAxisLabelOrientation(Axis axis, double orientation);
+
+    void setAxisLabelFormat(Axis axis, const char *format);
 
     // Colormaps
 
@@ -261,6 +369,8 @@ public:
     void deleteColorMap(const ColorMapId& id);
 
     ColorMap *getColorMap(const ColorMapId& id);
+
+    void setColorMapNumberOfTableEntries(const ColorMapId& id, int numEntries);
 
     bool renderColorMap(const ColorMapId& id, 
                         const DataSetId& dataSetID,
@@ -441,6 +551,15 @@ public:
 
     void setContour3DContourList(const DataSetId& id, const std::vector<double>& contours);
 
+    void setContour3DColorMode(const DataSetId& id,
+                               Contour3D::ColorMode mode,
+                               const char *name, double range[2] = NULL);
+
+    void setContour3DColorMode(const DataSetId& id,
+                               Contour3D::ColorMode mode,
+                               DataSet::DataAttributeType type,
+                               const char *name, double range[2] = NULL);
+
     // Cutplanes
 
     void setCutplaneOutlineVisibility(const DataSetId& id, bool state);
@@ -455,6 +574,8 @@ public:
                               Cutplane::ColorMode mode,
                               DataSet::DataAttributeType type,
                               const char *name, double range[2] = NULL);
+
+    void setCutplaneInterpolateBeforeMapping(const DataSetId& id, bool state);
 
     // Cylinders
 
@@ -502,13 +623,27 @@ public:
 
     void setHeightMapContourList(const DataSetId& id, const std::vector<double>& contours);
 
+    void setHeightMapInterpolateBeforeMapping(const DataSetId& id, bool state);
+
     void setHeightMapContourSurfaceVisibility(const DataSetId& id, bool state);
 
     void setHeightMapContourLineVisibility(const DataSetId& id, bool state);
 
+    void setHeightMapContourLineColorMapEnabled(const DataSetId& id, bool mode);
+
     void setHeightMapContourEdgeColor(const DataSetId& id, float color[3]);
 
     void setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth);
+
+    void setHeightMapColorMode(const DataSetId& id,
+                               HeightMap::ColorMode mode,
+                               const char *name, double range[2] = NULL);
+
+    void setHeightMapColorMode(const DataSetId& id,
+                               HeightMap::ColorMode mode,
+                               DataSet::DataAttributeType type,
+                               const char *name, double range[2] = NULL);
+
 
     // Lines
 
@@ -557,6 +692,8 @@ public:
                                  PseudoColor::ColorMode mode,
                                  DataSet::DataAttributeType type,
                                  const char *name, double range[2] = NULL);
+
+    void setPseudoColorInterpolateBeforeMapping(const DataSetId& id, bool state);
 
     // Spheres
 
@@ -626,6 +763,16 @@ public:
 
     // Warps
 
+    void setWarpColorMode(const DataSetId& id,
+                          Warp::ColorMode mode,
+                          const char *name, double range[2] = NULL);
+
+    void setWarpColorMode(const DataSetId& id,
+                          Warp::ColorMode mode,
+                          DataSet::DataAttributeType type,
+                          const char *name, double range[2] = NULL);
+
+
     void setWarpWarpScale(const DataSetId& id, double scale);
 
 private:
@@ -679,6 +826,8 @@ private:
 
     void clearFieldRanges();
 
+    void clearUserFieldRanges();
+
     void initFieldRanges();
 
     void updateFieldRanges();
@@ -696,14 +845,31 @@ private:
     bool is2D(const double bounds[6],
               PrincipalPlane *plane,
               double *offset) const;
+
     void initCamera(bool initCameraMode = false);
+
+    void sceneBoundsChanged();
+
     void initAxes();
+
     void resetAxes(double bounds[6] = NULL);
+
+    void setAxesBounds(double bounds[6] = NULL);
+
+    void setAxesRanges();
+
+    void computeAxesScale();
+
     void setCameraClippingPlanes();
 
     bool _needsRedraw;
+    bool _needsAxesReset;
+    bool _needsCameraClippingRangeReset;
+    bool _needsCameraReset;
+
     int _windowWidth, _windowHeight;
     CameraMode _cameraMode;
+    Aspect _cameraAspect;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
     PrincipalPlane _imgCameraPlane;
@@ -722,6 +888,18 @@ private:
     FieldRangeHashmap _scalarCellDataRange;
     FieldRangeHashmap _vectorCellDataRange;
     FieldRangeHashmap _vectorCompCellDataRange[3];
+
+    FieldRangeHashmap _userScalarPointDataRange;
+    FieldRangeHashmap _userVectorPointDataRange;
+    FieldRangeHashmap _userVectorCompPointDataRange[3];
+    FieldRangeHashmap _userScalarCellDataRange;
+    FieldRangeHashmap _userVectorCellDataRange;
+    FieldRangeHashmap _userVectorCompCellDataRange[3];
+
+    bool _axesAutoBounds[3];
+    double _axesUserBounds[6];
+    AxisRangeMode _axesRangeMode[3];
+    double _axesScale[3];
 
     ColorMapHashmap _colorMaps;
     DataSetHashmap _dataSets;
@@ -752,13 +930,9 @@ private:
     vtkSmartPointer<vtkPlane> _userClipPlanes[6];
     vtkSmartPointer<vtkPlaneCollection> _activeClipPlanes;
 #ifdef USE_CUSTOM_AXES
-    vtkSmartPointer<vtkRpCubeAxesActor> _cubeAxesActor; // For 3D view
-    vtkSmartPointer<vtkRpCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
+    vtkSmartPointer<vtkRpCubeAxesActor> _cubeAxesActor;
 #else
-    vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor; // For 3D view
-#ifndef USE_VTK6
-    vtkSmartPointer<vtkCubeAxesActor2D> _cubeAxesActor2D; // For 2D view
-#endif
+    vtkSmartPointer<vtkCubeAxesActor> _cubeAxesActor;
 #endif
     vtkSmartPointer<vtkScalarBarActor> _scalarBarActor;
     vtkSmartPointer<vtkRenderer> _renderer;

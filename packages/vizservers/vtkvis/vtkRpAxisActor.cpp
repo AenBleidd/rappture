@@ -13,7 +13,6 @@
      PURPOSE.  See the above copyright notice for more information.
 =========================================================================*/
 #include "vtkRpAxisActor.h"
-
 #include "vtkCamera.h"
 #include "vtkCellArray.h"
 #include "vtkCoordinate.h"
@@ -90,7 +89,11 @@ vtkRpAxisActor::vtkRpAxisActor()
 
   this->TitleVector = vtkVectorText::New();
   this->TitleMapper = vtkPolyDataMapper::New();
+#ifdef USE_VTK6
+  this->TitleMapper->SetInputData(this->TitleVector->GetOutput());
+#else
   this->TitleMapper->SetInput(this->TitleVector->GetOutput());
+#endif
   this->TitleActor = vtkFollower::New();
   this->TitleActor->SetMapper(this->TitleMapper);
 
@@ -102,7 +105,11 @@ vtkRpAxisActor::vtkRpAxisActor()
 
   this->Axis = vtkPolyData::New();
   this->AxisMapper = vtkPolyDataMapper::New();
+#ifdef USE_VTK6
+  this->AxisMapper->SetInputData(this->Axis);
+#else
   this->AxisMapper->SetInput(this->Axis);
+#endif
   this->AxisActor = vtkActor::New();
   this->AxisActor->SetMapper(this->AxisMapper);
 
@@ -859,7 +866,11 @@ void vtkRpAxisActor::SetLabels(vtkStringArray *labels)
       {
       this->LabelVectors[i] = vtkVectorText::New();
       this->LabelMappers[i] = vtkPolyDataMapper::New();
+#ifdef USE_VTK6
+      this->LabelMappers[i]->SetInputData(this->LabelVectors[i]->GetOutput());
+#else
       this->LabelMappers[i]->SetInput(this->LabelVectors[i]->GetOutput());
+#endif
       this->LabelActors[i] = vtkFollower::New();
       this->LabelActors[i]->SetMapper(this->LabelMappers[i]);
       }

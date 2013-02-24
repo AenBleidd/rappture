@@ -359,6 +359,20 @@ public:
     }
 
     /**
+     * \brief Get the prop scaling
+     *
+     * \param[out] scale Scaling in x,y,z
+     */
+    virtual void getScale(double scale[3])
+    {
+        if (getProp3D() != NULL) {
+            getProp3D()->GetScale(scale);
+        } else {
+            scale[0] = scale[1] = scale[2] = 1.0;
+        }
+    }
+
+    /**
      * \brief Set the prop scaling
      *
      * \param[in] scale Scaling in x,y,z

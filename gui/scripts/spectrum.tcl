@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: spectrum - maps a range of real values onto a color
 #

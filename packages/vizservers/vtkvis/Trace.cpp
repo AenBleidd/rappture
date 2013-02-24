@@ -61,5 +61,5 @@ Rappture::VtkVis::logMessage(int priority, const char *funcname,
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
 
-    syslog(priority, message, length);
+    syslog(priority, "%s", message);
 }

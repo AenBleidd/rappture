@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: Balloon - toplevel popup window, like a cartoon balloon
 #

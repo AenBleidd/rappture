@@ -53,6 +53,7 @@ OBJS 		= \
 		RpCanvHotspot.o \
 		RpCanvPlacard.o \
 		RpDiffview.o \
+		RpReadPoints.o \
 		RpConvertDxToVtk.o
 
 name		= RapptureGUI$(version)

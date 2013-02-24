@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: page - single page of widgets
 #

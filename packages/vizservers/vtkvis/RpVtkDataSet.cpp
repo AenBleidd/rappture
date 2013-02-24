@@ -10,10 +10,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkCharArray.h>
 #include <vtkDataSetReader.h>
 #include <vtkDataSetWriter.h>
@@ -41,6 +37,7 @@ DataSet::DataSet(const std::string& name) :
 {
     _cellSizeRange[0] = -1;
     _cellSizeRange[1] = -1;
+    initProp();
 }
 
 DataSet::~DataSet()

@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: Note - widget for displaying HTML notes

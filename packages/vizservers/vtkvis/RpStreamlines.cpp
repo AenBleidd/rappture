@@ -11,10 +11,6 @@
 #include <cmath>
 #include <cstring>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkMath.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
@@ -1557,6 +1553,7 @@ void Streamlines::setColorMap(ColorMap *cmap)
         _lut->GetTableRange(range);
         _lut->DeepCopy(cmap->getLookupTable());
         _lut->SetRange(range);
+        _lut->Modified();
     }
 
     switch (_colorMode) {

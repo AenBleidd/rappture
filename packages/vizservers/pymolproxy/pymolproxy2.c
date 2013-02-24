@@ -112,14 +112,16 @@ static int pymolIsAlive = TRUE;
 #define VIEWPORT_PENDING	(1<<10)
 
 #define IO_TIMEOUT (30000)
-#define KEEPSTATS	1
+#define STATSDIR	"/var/tmp/visservers"
+#define STATSFILE	STATSDIR "/" "pymol_log.tcl"
+#define LOCKFILE	STATSDIR "/" "LCK..pymol"
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
 typedef struct {
     pid_t pid;				/* Child process. */
-    size_t nFrames;			/* # of frames sent to client. */
-    size_t nBytes;			/* # of bytes for all frames. */
-    size_t nCommands;			/* # of commands executed */
+    size_t numFrames;			/* # of frames sent to client. */
+    size_t numBytes;			/* # of bytes for all frames. */
+    size_t numCommands;			/* # of commands executed */
     double cmdTime;			/* Elapsed time spend executing
 					 * commands. */
     struct timeval start;		/* Start of elapsed time. */
@@ -137,7 +139,7 @@ typedef struct Image {
 					 * most recently received image from
 					 * the pymol server to the least. */
     int id;
-    ssize_t nWritten;			/* Number of bytes of image data
+    ssize_t numWritten;			/* Number of bytes of image data
 					 * already delivered.*/
     size_t bytesLeft;			/* Number of bytes of image data left
 					 * to delivered to the client. */
@@ -269,12 +271,12 @@ Record TCL_VARARGS_DEF(const char *, arg1)
 }
 
 static int
-SendCmd(PymolProxy *proxyPtr, const char *format, ...)
+SendToPymol(PymolProxy *proxyPtr, const char *format, ...)
 {
     va_list ap;
     char buffer[BUFSIZ];
     int result;
-    ssize_t nWritten;
+    ssize_t numWritten;
     size_t length;
 
     if (proxyPtr->error) {
@@ -294,11 +296,12 @@ SendCmd(PymolProxy *proxyPtr, const char *format, ...)
     
     /* Write the command out to the server. */
     length = strlen(buffer);
-    nWritten = write(proxyPtr->sin, buffer, length);
-    if (nWritten != length) {
+    numWritten = write(proxyPtr->sin, buffer, length);
+    if (numWritten != length) {
 	ERROR("short write to pymol (wrote=%d, should have been %d): %s",
-	      nWritten, length, strerror(errno));
+	      numWritten, length, strerror(errno));
     }
+    proxyPtr->status = result;
     return  proxyPtr->status;
 }
 
@@ -542,6 +545,179 @@ clear_error(PymolProxy *proxyPtr)
     proxyPtr->status = TCL_OK;
 }
 
+static int
+GetFileLock()
+{
+    int numTries;
+
+    for (numTries = 0; numTries < 10; numTries++) {
+	int f;
+
+	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
+	if (f >= 0) {
+	    char buf[200];
+	    ssize_t numWritten;
+	    size_t numBytes;
+
+	    sprintf(buf, "%d\n", getpid());
+	    numBytes = strlen(buf);
+	    numWritten = write(f, buf, numBytes);
+	    if (numWritten != (ssize_t)numBytes) {
+                ERROR("Wrote short lock file");
+	    }
+	    close(f);
+	    return 0;
+	}
+	sleep(1);			/* Wait for lock to release. */
+    }
+    ERROR("Failed to open lock file");
+    return -1;
+}
+
+static void
+ReleaseFileLock()
+{
+    unlink(LOCKFILE);
+}
+
+static int
+WriteToStatsFile(const char *s, size_t length)
+{
+    int f;
+
+    if (access(STATSDIR, X_OK) != 0) {
+	mkdir(STATSDIR, 0770);
+    }
+    if (GetFileLock() < 0) {
+	return -1;
+    }
+    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
+    ReleaseFileLock();
+    if (f < 0) {
+	return -1;
+    }
+    if (write(f, s, length) != (ssize_t)length) {
+	close(f);
+	return -1;
+    }
+    close(f);
+    return 0;
+}
+
+static int
+ServerStats(int code) 
+{
+    double start, finish;
+    char buf[BUFSIZ];
+    Tcl_DString ds;
+    int result;
+
+    {
+	struct timeval tv;
+
+	/* Get ending time.  */
+	gettimeofday(&tv, NULL);
+	finish = CVT2SECS(tv);
+	tv = stats.start;
+	start = CVT2SECS(tv);
+    }
+    /* 
+     * Session information:
+     *   - Name of render server
+     *   - Process ID
+     *   - Hostname where server is running
+     *   - Start date of session
+     *   - Start date of session in seconds
+     *   - Number of frames returned
+     *   - Number of bytes total returned (in frames)
+     *   - Number of commands received
+     *   - Total elapsed time of all commands
+     *   - Total elapsed time of session
+     *   - Exit code of vizserver
+     *   - User time 
+     *   - System time
+     *   - User time of children 
+     *   - System time of children 
+     */ 
+
+    Tcl_DStringInit(&ds);
+    
+    Tcl_DStringAppendElement(&ds, "render_stop");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "pymol");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&stats.start.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_frames */
+    Tcl_DStringAppendElement(&ds, "num_frames");
+    sprintf(buf, "%lu", (unsigned long int)stats.numFrames);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* frame_bytes */
+    Tcl_DStringAppendElement(&ds, "frame_bytes");
+    sprintf(buf, "%lu", (unsigned long int)stats.numBytes);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_commands */
+    Tcl_DStringAppendElement(&ds, "num_commands");
+    sprintf(buf, "%lu", (unsigned long int)stats.numCommands);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* cmd_time */
+    Tcl_DStringAppendElement(&ds, "cmd_time");
+    sprintf(buf, "%g", stats.cmdTime);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* session_time */
+    Tcl_DStringAppendElement(&ds, "session_time");
+    sprintf(buf, "%g", finish - start);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* status */
+    Tcl_DStringAppendElement(&ds, "status");
+    sprintf(buf, "%d", code);
+    Tcl_DStringAppendElement(&ds, buf);
+    {
+	long clocksPerSec = sysconf(_SC_CLK_TCK);
+	double clockRes = 1.0 / clocksPerSec;
+	struct tms tms;
+
+	memset(&tms, 0, sizeof(tms));
+	times(&tms);
+	/* utime */
+	Tcl_DStringAppendElement(&ds, "utime");
+	sprintf(buf, "%g", tms.tms_utime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* stime */
+	Tcl_DStringAppendElement(&ds, "stime");
+	sprintf(buf, "%g", tms.tms_stime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cutime */
+	Tcl_DStringAppendElement(&ds, "cutime");
+	sprintf(buf, "%g", tms.tms_cutime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cstime */
+	Tcl_DStringAppendElement(&ds, "cstime");
+	sprintf(buf, "%g", tms.tms_cstime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+    }
+    Tcl_DStringAppend(&ds, "\n", -1);
+    result = WriteToStatsFile(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
+}
+
 
 static int
 CartoonCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
@@ -578,9 +754,9 @@ CartoonCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	p->flags |= FORCE_UPDATE;
     }
     if (bool) {
-	SendCmd(p, "show cartoon,%s\n", model);
+	SendToPymol(p, "show cartoon,%s\n", model);
     } else {
-	SendCmd(p, "hide cartoon,%s\n", model);
+	SendToPymol(p, "hide cartoon,%s\n", model);
     }
     return p->status;
 }
@@ -618,7 +794,7 @@ CartoonTraceCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "set cartoon_trace,%d,%s\n", bool, model);
+    SendToPymol(p, "set cartoon_trace,%d,%s\n", bool, model);
     return p->status;
 }
 
@@ -648,7 +824,7 @@ DisableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "disable %s\n", model);
+    SendToPymol(p, "disable %s\n", model);
     return p->status;
 }
 
@@ -680,7 +856,7 @@ EnableCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "enable %s\n", model);
+    SendToPymol(p, "enable %s\n", model);
     return p->status;
 }
 
@@ -713,10 +889,57 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 
     /* Does not invalidate cache? */
 
-    SendCmd(p,"frame %d\n", frame);
+    SendToPymol(p,"frame %d\n", frame);
     return p->status;
 }
 
+/* 
+ * ClientInfoCmd --
+ *
+ *	info "hub" value "session" value "date" value name value name value 
+ *	  
+ */
+static int
+ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
+	      const char *argv[])
+{
+    Tcl_DString ds;
+    int result;
+    int i;
+    char buf[BUFSIZ];
+
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppendElement(&ds, "render_start");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "nanovis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&stats.start.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* Client arguments. */
+    for (i = 1; i < argc; i++) {
+	Tcl_DStringAppendElement(&ds, argv[i]);
+    }
+    Tcl_DStringAppend(&ds, "\n", 1);
+    result = WriteToStatsFile(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
+}
 
 static int
 LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
@@ -755,12 +978,12 @@ LabelCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "set label_color,white,%s\nset label_size,%d,%s\n", 
+    SendToPymol(p, "set label_color,white,%s\nset label_size,%d,%s\n", 
 	    model, size, model);
     if (bool) {
-        SendCmd(p, "label %s,\"%%s%%s\" %% (ID,name)\n", model);
+        SendToPymol(p, "label %s,\"%%s%%s\" %% (ID,name)\n", model);
     } else {
-        SendCmd(p, "label %s\n", model);
+        SendToPymol(p, "label %s\n", model);
     }
     return p->status;
 }
@@ -808,7 +1031,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     argc = j;
     if (argc < 4) {
 	Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
-			 " <data>|follows <model> <state> ?<nBytes>?\"",
+			 " <data>|follows <model> <state> ?<numBytes>?\"",
 			 (char *)NULL);
 	return TCL_ERROR;
     }
@@ -824,7 +1047,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 
 	if (argc != 5) {
 	    Tcl_AppendResult(interp, "wrong # arguments: should be \"", argv[0],
-			 " follows <model> <state> <nBytes>\"", (char *)NULL);
+			 " follows <model> <state> <numBytes>\"", (char *)NULL);
 	    return TCL_ERROR;
 	}
 	if (Tcl_GetInt(interp, argv[4], &n) != TCL_OK) {
@@ -864,7 +1087,7 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     string = (const char *)allocated;
     {
 	int f;
-	ssize_t nWritten;
+	ssize_t numWritten;
 	char fileName[200];
 
 	strcpy(fileName, "/tmp/pdb.XXXXXX");
@@ -875,15 +1098,16 @@ LoadPDBCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 		fileName, "\":", Tcl_PosixError(interp), (char *)NULL);
 	    goto error;
 	} 
-	nWritten = write(f, string, numBytes);
-	if (numBytes != nWritten) {
+	numWritten = write(f, string, numBytes);
+	if (numBytes != numWritten) {
 	    Tcl_AppendResult(interp, "can't write PDB data to \"",
 		fileName, "\": ", Tcl_PosixError(interp), (char *)NULL);
 	    close(f);
 	    goto error;
 	}
 	close(f);
-	SendCmd(p, "loadandremovepdbfile %s,%s,%d\n", fileName, name, state);
+	SendToPymol(p, "loadandremovepdbfile %s,%s,%d\n", fileName, name, 
+		    state);
 	p->status = TCL_OK;
     }
  error:
@@ -921,7 +1145,7 @@ OrthoscopicCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "set orthoscopic=%d\n", bool);
+    SendToPymol(p, "set orthoscopic=%d\n", bool);
     return p->status;
 }
 
@@ -984,7 +1208,7 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     clear_error(p);
 
     /* Force pymol to update the current scene. */
-    SendCmd(p, "refresh\n");
+    SendToPymol(p, "refresh\n");
     /* This is a hack. We're encoding the filename to pass extra information
      * to the MyPNGWrite routine inside of pymol. Ideally these would be
      * parameters of a new "molvispng" command that would be passed all the
@@ -992,7 +1216,7 @@ PngCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
      *
      * The extra information is contained in the token we get from the
      * molvisviewer client, the frame number, and rock offset. */
-    SendCmd(p, "png -:%d:%d:%d\n", p->cacheId, p->frame, p->rockOffset);
+    SendToPymol(p, "png -:%d:%d:%d\n", p->cacheId, p->frame, p->rockOffset);
     return p->status;
 }
 
@@ -1005,7 +1229,7 @@ PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     clear_error(p);
 
     /* Force pymol to update the current scene. */
-    SendCmd(p, "refresh\n");
+    SendToPymol(p, "refresh\n");
     /* This is a hack. We're encoding the filename to pass extra information
      * to the MyPNGWrite routine inside of pymol. Ideally these would be
      * parameters of a new "molvispng" command that would be passed all the
@@ -1013,7 +1237,7 @@ PpmCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
      *
      * The extra information is contained in the token we get from the
      * molvisviewer client, the frame number, and rock offset. */
-    SendCmd(p, "png -:%d:%d:%d,format=1\n", p->cacheId, p->frame, 
+    SendToPymol(p, "png -:%d:%d:%d,format=1\n", p->cacheId, p->frame, 
 	    p->rockOffset);
     p->flags &= ~(UPDATE_PENDING|FORCE_UPDATE);
     return p->status;
@@ -1045,11 +1269,11 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     bgcolor = argv[4];
     /* Force pymol to update the current scene. */
     if (strcmp(bgcolor, "none") == 0) {
-	SendCmd(p, "set ray_opaque_background,off\n");
-	SendCmd(p, "refresh\n", bgcolor);
+	SendToPymol(p, "set ray_opaque_background,off\n");
+	SendToPymol(p, "refresh\n", bgcolor);
     } else {
-	SendCmd(p, "set ray_opaque_background,on\n");
-	SendCmd(p, "bg_color %s\nrefresh\n", bgcolor);
+	SendToPymol(p, "set ray_opaque_background,on\n");
+	SendToPymol(p, "bg_color %s\nrefresh\n", bgcolor);
     }
     /* This is a hack. We're encoding the filename to pass extra information
      * to the MyPNGWrite routine inside of pymol. Ideally these would be
@@ -1059,9 +1283,9 @@ PrintCmd(ClientData clientData, Tcl_Interp *interp, int argc,
      * The extra information is contained in the token we get from the
      * molvisviewer client, the frame number, and rock offset.
      */
-    SendCmd(p, "png -:%s:0:0,width=%d,height=%d,ray=1,dpi=300\n", 
+    SendToPymol(p, "png -:%s:0:0,width=%d,height=%d,ray=1,dpi=300\n", 
 	    token, width, height);
-    SendCmd(p, "bg_color black\n");
+    SendToPymol(p, "bg_color black\n");
     return p->status;
 }
 
@@ -1092,7 +1316,7 @@ RawCmd(ClientData clientData, Tcl_Interp *interp, int argc, const char *argv[])
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p,"%s\n", cmd);
+    SendToPymol(p,"%s\n", cmd);
     return p->status;
 }
 
@@ -1119,7 +1343,7 @@ ResetCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "reset\nzoom complete=1\n");
+    SendToPymol(p, "reset\nzoom complete=1\n");
     return p->status;
 }
 
@@ -1151,7 +1375,7 @@ RockCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p,"turn y, %f\n", y - p->rockOffset);
+    SendToPymol(p,"turn y, %f\n", y - p->rockOffset);
     p->rockOffset = y;
     return p->status;
 }
@@ -1196,7 +1420,7 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	p->flags |= FORCE_UPDATE;
     }
     if (strcmp(rep, "ballnstick") == 0) { /* Ball 'n Stick */
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "set stick_color,white,%s\n"
 	      "show sticks,%s\n"
 	      "show spheres,%s\n"
@@ -1204,7 +1428,7 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	      "hide cartoon,%s\n",
 	      model, model, model, model, model);
     } else if (strcmp(rep, "spheres") == 0) { /* spheres */    
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "hide sticks,%s\n"
 	      "show spheres,%s\n"
 	      "hide lines,%s\n"
@@ -1213,14 +1437,14 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	      "set ambient,.2,%s\n", 
 	      model, model, model, model, model, model);
     } else if (strcmp(rep, "none") == 0) { /* nothing */    
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "hide sticks,%s\n", 
 	      "hide spheres,%s\n"
 	      "hide lines,%s\n"
 	      "hide cartoon,%s\n",
 	      model, model, model, model);
     } else if (strcmp(rep, "sticks") == 0) { /* sticks */    
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "set stick_color,white,%s\n"
 	      "show sticks,%s\n"
 	      "hide spheres,%s\n"
@@ -1228,14 +1452,14 @@ RepresentationCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	      "hide cartoon,%s\n",
 	      model, model, model, model, model);
     } else if (strcmp(rep, "lines") == 0) { /* lines */    
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "hide sticks,%s\n"
 	      "hide spheres,%s\n"
 	      "show lines,%s\n"
 	      "hide cartoon,%s\n",
 	      model, model, model, model);
     } else if (strcmp(rep, "cartoon") == 0) { /* cartoon */    
-	SendCmd(p, 
+	SendToPymol(p, 
 	      "hide sticks,%s\n"
 	      "hide spheres,%s\n"
 	      "hide lines,%s\n"
@@ -1391,7 +1615,7 @@ SphereScaleCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	p->flags |= ATOM_SCALE_PENDING;
 	p->sphereScale = scale;
     } else {
-	SendCmd(p, "set sphere_scale,%f,%s\n", scale, model);
+	SendToPymol(p, "set sphere_scale,%f,%s\n", scale, model);
     }
     return p->status;
 }
@@ -1433,7 +1657,7 @@ StickRadiusCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 	p->flags |= STICK_RADIUS_PENDING;
 	p->stickRadius = scale;
     } else {
-	SendCmd(p, "set stick_radius,%f,%s\n", scale, model);
+	SendToPymol(p, "set stick_radius,%f,%s\n", scale, model);
     }
     return p->status;
 }
@@ -1472,7 +1696,7 @@ TransparencyCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     } 
-    SendCmd(p, 
+    SendToPymol(p, 
 	  "set sphere_transparency,%g,%s\n"
 	  "set stick_transparency,%g,%s\n"
 	  "set cartoon_transparency,%g,%s\n",
@@ -1521,7 +1745,7 @@ VMouseCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     if (push) {
 	p->flags |= FORCE_UPDATE;
     }
-    SendCmd(p, "vmouse %d,%d,%d,%d,%d\n", arg1, arg2, arg3, arg4, arg5);
+    SendToPymol(p, "vmouse %d,%d,%d,%d,%d\n", arg1, arg2, arg3, arg4, arg5);
     return p->status;
 }
 
@@ -1600,7 +1824,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     finish = CVT2SECS(tv);
 
     stats.cmdTime += finish - start;
-    stats.nCommands++;
+    stats.numCommands++;
     Tcl_DStringSetLength(dsPtr, 0);
     return result;
 }
@@ -1609,8 +1833,8 @@ static void
 SetViewport(PymolProxy *p)
 {
     if (p->flags & VIEWPORT_PENDING) {
-	SendCmd(p, "viewport %d,%d\n", p->width, p->height);
-	SendCmd(p, "refresh\n");
+	SendToPymol(p, "viewport %d,%d\n", p->width, p->height);
+	SendToPymol(p, "refresh\n");
 	p->flags &= ~VIEWPORT_PENDING;
     }
 }
@@ -1619,7 +1843,7 @@ static void
 SetZoom(PymolProxy *p)
 {
     if (p->flags & ZOOM_PENDING) {
-        SendCmd(p, "move z,%f\n", p->zoom);
+        SendToPymol(p, "move z,%f\n", p->zoom);
 	p->flags &= ~ZOOM_PENDING;
     }
 }
@@ -1628,7 +1852,7 @@ static void
 SetPan(PymolProxy *p)
 {
     if (p->flags & PAN_PENDING) {
-	SendCmd(p, "move x,%f\nmove y,%f\n", p->xPan, p->yPan);
+	SendToPymol(p, "move x,%f\nmove y,%f\n", p->xPan, p->yPan);
 	p->flags &= ~PAN_PENDING;
     }
 }
@@ -1639,7 +1863,7 @@ SetRotation(PymolProxy *p)
     if (p->flags & ROTATE_PENDING) {
 	/* Every pymol command line generates a new rendering. Execute all
 	 * three turns as a single command line. */
-	SendCmd(p,"turn x,%f\nturn y,%f\nturn z,%f\n", p->xAngle, p->yAngle, 
+	SendToPymol(p,"turn x,%f\nturn y,%f\nturn z,%f\n", p->xAngle, p->yAngle, 
 		p->zAngle);
 	p->xAngle = p->yAngle = p->zAngle = 0.0f;
 	p->flags &= ~ROTATE_PENDING;
@@ -1650,7 +1874,7 @@ static void
 SetSphereScale(PymolProxy *p)
 {
     if (p->flags & ATOM_SCALE_PENDING) {
-	SendCmd(p, "set sphere_scale,%f,all\n", p->sphereScale);
+	SendToPymol(p, "set sphere_scale,%f,all\n", p->sphereScale);
 	p->flags &= ~ATOM_SCALE_PENDING;
     }
 }
@@ -1659,7 +1883,7 @@ static void
 SetStickRadius(PymolProxy *p)
 {
     if (p->flags & STICK_RADIUS_PENDING) {
-	SendCmd(p, "set stick_radius,%f,all\n", p->stickRadius);
+	SendToPymol(p, "set stick_radius,%f,all\n", p->stickRadius);
 	p->flags &= ~STICK_RADIUS_PENDING;
     }
 }
@@ -1714,7 +1938,7 @@ NewImage(ImageList *listPtr, size_t dataLength)
 	listPtr->tailPtr = imgPtr;
     }
     listPtr->headPtr = imgPtr;
-    imgPtr->nWritten = 0;
+    imgPtr->numWritten = 0;
     return imgPtr;
 }
 
@@ -1748,36 +1972,36 @@ WriteImages(ImageList *listPtr, int fd)
 	      imgPtr->bytesLeft);
 #endif
 	for (bytesLeft = imgPtr->bytesLeft; bytesLeft > 0; /*empty*/) {
-	    ssize_t nWritten;
+	    ssize_t numWritten;
 #if WRITE_DEBUG
 	    DEBUG("image %d: bytesLeft=%d", imgPtr->id, bytesLeft);
 #endif
-	    nWritten = write(fd, imgPtr->data + imgPtr->nWritten, bytesLeft);
+	    numWritten = write(fd, imgPtr->data + imgPtr->numWritten, bytesLeft);
 #if WRITE_DEBUG
-	    DEBUG("image %d: wrote %d bytes.", imgPtr->id, nWritten);
+	    DEBUG("image %d: wrote %d bytes.", imgPtr->id, numWritten);
 #endif
-	    if (nWritten < 0) {
+	    if (numWritten < 0) {
 	        ERROR("Error writing fd=%d, %s", fd, strerror(errno));
 #if WRITE_DEBUG
 		DEBUG("Abnormal exit WriteImages");
 #endif
 		return;
 	    }
-	    bytesLeft -= nWritten;
+	    bytesLeft -= numWritten;
 	    if (bytesLeft > 0) {
 #if WRITE_DEBUG
 		DEBUG("image %d, wrote a short buffer, %d bytes left.", 
 		      imgPtr->id, bytesLeft);
 #endif
 		/* Wrote a short buffer, means we would block. */
-		imgPtr->nWritten += nWritten;
+		imgPtr->numWritten += numWritten;
 		imgPtr->bytesLeft = bytesLeft;
 #if WRITE_DEBUG
 		DEBUG("Abnormal exit WriteImages");
 #endif
 		return;
 	    }
-	    imgPtr->nWritten += nWritten;
+	    imgPtr->numWritten += numWritten;
 	}
 	/* Check if image is on the head.  */
 	listPtr->tailPtr = prevPtr;
@@ -1792,115 +2016,6 @@ WriteImages(ImageList *listPtr, int fd)
 #endif
 }
 
-#if KEEPSTATS
-
-static int
-WriteStats(const char *who, int code) 
-{
-    double start, finish;
-    pid_t pid;
-    char buf[BUFSIZ];
-    Tcl_DString ds;
-
-    {
-	struct timeval tv;
-
-	/* Get ending time.  */
-	gettimeofday(&tv, NULL);
-	finish = CVT2SECS(tv);
-	tv = stats.start;
-	start = CVT2SECS(tv);
-    }
-    /* 
-     * Session information:
-     *   1. Start date of session in seconds.
-     *   2. Process ID
-     *	 3. Number of frames returned.
-     *	 4. Number of bytes total returned (in frames).
-     *	 5. Total elapsed time of all commands.
-     *   6. Total elapsed time of session.
-     *	 7. Exit code of pymol server.
-     *   8. User time.  
-     *	 9. System time.
-     *  10. Maximum resident size.
-     */ 
-    pid = getpid();
-    Tcl_DStringInit(&ds);
-    
-    sprintf(buf, "<session server=\"%s\" ", who);
-    Tcl_DStringAppend(&ds, buf, -1);
-
-    strcpy(buf, ctime(&stats.start.tv_sec));
-
-    buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppend(&ds, "date=\"", -1);
-    Tcl_DStringAppend(&ds, buf, -1);
-    Tcl_DStringAppend(&ds, "\" ", -1);
-
-    sprintf(buf, "date_secs=\"%ld\" ", stats.start.tv_sec);
-    Tcl_DStringAppend(&ds, buf, -1);
-
-    sprintf(buf, "pid=\"%d\" ", pid);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_frames=\"%lu\" ", (unsigned long int)stats.nFrames);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "frame_bytes=\"%lu\" ", (unsigned long int)stats.nBytes);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_commands=\"%lu\" ", (unsigned long int)stats.nCommands);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "cmd_time=\"%g\" ", stats.cmdTime);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "session_time=\"%g\" ", finish - start);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "status=\"%d\" ", code);
-    Tcl_DStringAppend(&ds, buf, -1);
-    {
-	long clocksPerSec = sysconf(_SC_CLK_TCK);
-	double clockRes = 1.0 / clocksPerSec;
-	struct tms tms;
-
-	memset(&tms, 0, sizeof(tms));
-	times(&tms);
-	sprintf(buf, "utime=\"%g\" ", tms.tms_utime * clockRes);
-	Tcl_DStringAppend(&ds, buf, -1);
-	sprintf(buf, "stime=\"%g\" ", tms.tms_stime * clockRes);
-	Tcl_DStringAppend(&ds, buf, -1);
-	sprintf(buf, "cutime=\"%g\" ", tms.tms_cutime * clockRes);
-	Tcl_DStringAppend(&ds, buf, -1);
-	sprintf(buf, "cstime=\"%g\" ", tms.tms_cstime * clockRes);
-	Tcl_DStringAppend(&ds, buf, -1);
-    }
-    Tcl_DStringAppend(&ds, "/>\n", -1);
-
-    {
-	int f;
-	ssize_t length;
-	int result;
-
-#define STATSDIR	"/var/tmp/visservers"
-#define STATSFILE	STATSDIR "/" "data.xml"
-	if (access(STATSDIR, X_OK) != 0) {
-	    mkdir(STATSDIR, 0770);
-	}
-	length = Tcl_DStringLength(&ds);
-	f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-	result = FALSE;
-	if (f < 0) {
-	    goto error;
-	}
-	if (write(f, Tcl_DStringValue(&ds), length) != length) {
-	    goto error;
-	}
-	result = TRUE;
- error:
-	if (f >= 0) {
-	    close(f);
-	}
-	Tcl_DStringFree(&ds);
-	return result;
-    }
-}
-#endif
 
 static void
 ChildHandler(int sigNum) 
@@ -1918,6 +2033,7 @@ typedef struct {
 static CmdProc cmdProcs[] = {
     { "cartoon",        CartoonCmd	  },       
     { "cartoontrace",   CartoonTraceCmd	  },  
+    { "clientinfo",     ClientInfoCmd     }, 
     { "disable",        DisableCmd	  },       
     { "enable",         EnableCmd	  },        
     { "frame",          FrameCmd          },         
@@ -2061,9 +2177,7 @@ FreeProxy(PymolProxy *p)
     close(p->sin);
 
     Tcl_DeleteInterp(p->interp);
-#if KEEPSTATS
-    WriteStats("pymolproxy", 0);
-#endif
+    ServerStats(0);
 
 #if DEBUG
     DEBUG("Waiting for pymol server to exit");
@@ -2133,7 +2247,7 @@ ClientToServer(void *clientData)
 
 	    status = GetLine(&p->client, &numBytes, &line);
 	    if (status != BUFFER_OK) {
-		ERROR("can't read client stdout (nBytes=%d): %s\n", numBytes,
+		ERROR("can't read client stdout (numBytes=%d): %s\n", numBytes,
 		      strerror(errno));
 		goto done;
 	    }
@@ -2249,8 +2363,8 @@ ServerToClient(void *clientData)
 #endif
 		return NULL;
 	    }
-	    stats.nFrames++;
-	    stats.nBytes += numBytes;
+	    stats.numFrames++;
+	    stats.numBytes += numBytes;
 	    {
 		struct timeval tv;
 		fd_set writeFds;

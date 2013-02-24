@@ -161,20 +161,16 @@ else
   AC_MSG_RESULT([$with_rappture])
 fi
 
+# This could be temporary. We are assuming that we're using VTK 6+.
+# Since VTK 6 hasn't been released, we will look it only in the
+# Rappture build directories. 
+VTK_LIB_DIR=${libdir}
 dnl Prefer our VTK installation over systems. --with-vtk overrides.
 if test "$with_vtk" != "no" ; then
   if test "$with_vtk" = "yes" ; then
-    for dir in vtk-5.{10,9,8,7,6,5,4,3,2,1} ; do 
-      if test -d "${libdir}/$dir" -a -d "${incdir}/$dir"; then
-	VTK_LIB_SPEC="-L${libdir}/$dir"
-	VTK_LIB_DIR="${libdir}/$dir"
+    for dir in vtk-6.{10,9,8,7,6,5,4,3,2,1,0} ; do 
+      if test -d "${incdir}/$dir"; then
 	VTK_INC_SPEC="-I${incdir}/$dir"
-	break
-      fi
-      if test -d "/usr/lib/$dir" -a -d "/usr/include/$dir"; then
-	VTK_LIB_SPEC=-L/usr/lib/$dir
-	VTK_LIB_DIR=/usr/lib/$dir
-	VTK_INC_SPEC=-I/usr/include/$dir
 	break
       fi
     done
@@ -344,14 +340,29 @@ done
 AC_MSG_RESULT([${CG_DIR}])
 
 CG_INC_SPEC="-I${CG_DIR}/include"
-CG_LIB_DIR="${CG_DIR}/lib"
 
 save_CPPFLAGS=$CPPFLAGS
 CPPFLAGS="${CG_INC_SPEC} $CPPFLAGS"
 AC_CHECK_HEADERS([Cg/cgGL.h], [], AC_MSG_WARN([cannot find nVidia Cg headers]))
 CPPFLAGS=$save_CPPFLAGS
 
-if test "${CG_DIR}" = "/usr" ; then
+CG_LIB_DIR=""
+for dir in \
+ /opt/nvidia-cg-toolkit \
+ /usr/cg \
+ /usr
+do
+  if test -r "$dir/lib" ; then
+    CG_LIB_DIR=$dir/lib
+    break
+  fi
+  if test -r "$dir/lib64" ; then
+    CG_LIB_DIR=$dir/lib64
+    break
+  fi
+done
+
+if test "${CG_LIB_DIR}" = "/usr/lib" ; then
   CG_INC_SPEC=""
   CG_LIB_SPEC="-lCg -lCgGL"
 else 

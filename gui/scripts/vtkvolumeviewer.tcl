@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: VtkVolumeViewer - Vtk volume viewer
@@ -210,6 +211,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     array set _outline {
         id -1
@@ -292,6 +294,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
     bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
     bind $c <Enter> "focus %W"
+    bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
     # Fixes the scrollregion in case we go off screen
     $c configure -scrollregion [$c bbox all]
@@ -1033,7 +1036,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             array set view $location
         }
 
-        if 0 {
+        if 1 {
             # Tell the server the name of the tool, the version, and dataset
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
@@ -1041,7 +1044,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             lappend args tool [$_first hints toolId]
             lappend args version [$_first hints toolRevision]
             lappend args dataset [$_first hints label]
-            SendCmd "clientinfo $args"
+            SendCmd "clientinfo [list $args]"
         }
 
         foreach axis { x y z } {
@@ -2168,7 +2171,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         "Toggle the X-axis cutplane on/off"
 
     itk_component add xCutScale {
-        ::scale $inner.xval -from 100 -to 1 \
+        ::scale $inner.xval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
@@ -2195,7 +2198,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         "Toggle the Y-axis cutplane on/off"
 
     itk_component add yCutScale {
-        ::scale $inner.yval -from 100 -to 1 \
+        ::scale $inner.yval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane y] \
@@ -2222,7 +2225,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
         "Toggle the Z-axis cutplane on/off"
 
     itk_component add zCutScale {
-        ::scale $inner.zval -from 100 -to 1 \
+        ::scale $inner.zval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane z] \

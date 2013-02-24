@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: field3dresult - plot a field in a ResultSet
 #
@@ -53,12 +54,12 @@ itcl::body Rappture::Field3DResult::constructor {args} {
     array set flags {
         -mode auto
     }
-    array set flags $args
-    switch -- $flags(-mode) {
+    array set flags $args 
+   switch -- $flags(-mode) {
         "auto" - "nanovis" - "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "vtkcontour" - "vtkheightmap" - "vtkstreamlines" - "vtkviewer" - "vtkvolume" {
+        "isosurface" - "heightmap" - "streamlines" - "vtkviewer" - "vtkvolume" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -81,17 +82,17 @@ itcl::body Rappture::Field3DResult::constructor {args} {
                     Rappture::FlowvisViewer $itk_interior.ren $servers
                 }
             }
-            "vtkcontour" {
-                itk_component add renderer {
-                    Rappture::VtkContourViewer $itk_interior.ren $servers
-                }
-            }
-            "vtkheightmap" {
+            "contour" - "heightmap" {
                 itk_component add renderer {
                     Rappture::VtkHeightmapViewer $itk_interior.ren $servers
                 }
             }
-            "vtkstreamlines" {
+            "isosurface" {
+                itk_component add renderer {
+                    Rappture::VtkIsosurfaceViewer $itk_interior.ren $servers
+                }
+            }
+            "streamlines" {
                 itk_component add renderer {
                     Rappture::VtkStreamlinesViewer $itk_interior.ren $servers
                 }
@@ -124,7 +125,6 @@ itcl::body Rappture::Field3DResult::constructor {args} {
         }
         pack $itk_component(renderer) -expand yes -fill both
     }
-
     eval itk_initialize $args
 }
 

@@ -18,6 +18,7 @@
 #include <vtkGaussianSplatter.h>
 #include <vtkExtractVOI.h>
 #include <vtkWarpScalar.h>
+#include <vtkPolyDataNormals.h>
 #include <vtkAssembly.h>
 #include <vtkPolyData.h>
 #include <vtkPlane.h>
@@ -36,6 +37,15 @@ namespace VtkVis {
  */
 class HeightMap : public VtkGraphicsObject {
 public:
+    enum ColorMode {
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
+        COLOR_CONSTANT
+    };
+
     HeightMap(int numContours, double heightScale = 1.0);
 
     HeightMap(const std::vector<double>& contours, double heightScale = 1.0);
@@ -51,6 +61,8 @@ public:
                             Renderer *renderer);
 
     virtual void setLighting(bool state);
+
+    virtual void setColor(float color[3]);
 
     virtual void setEdgeVisibility(bool state);
 
@@ -71,6 +83,8 @@ public:
         return _warpScale;
     }
 
+    void setInterpolateBeforeMapping(bool state);
+
     void setNumContours(int numContours);
 
     void setContourList(const std::vector<double>& contours);
@@ -78,6 +92,16 @@ public:
     int getNumContours() const;
 
     const std::vector<double>& getContourList() const;
+
+    void setContourLineColorMapEnabled(bool mode);
+
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
 
@@ -107,19 +131,30 @@ private:
     virtual void initProp();
     virtual void update();
 
+    void computeDataScale();
+
     vtkAlgorithmOutput *initWarp(vtkAlgorithmOutput *input);
     vtkAlgorithmOutput *initWarp(vtkPolyData *input);
 
     int _numContours;
     std::vector<double> _contours;
-    ColorMap *_colorMap;
 
+    bool _contourColorMap;
     float _contourEdgeColor[3];
     float _contourEdgeWidth;
     double _warpScale;
     double _dataScale;
     Axis _sliceAxis;
     bool _pipelineInitialized;
+
+    ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
+    Renderer *_renderer;
 
     vtkSmartPointer<vtkLookupTable> _lut;
     vtkSmartPointer<vtkDataSetMapper> _dsMapper;
@@ -129,6 +164,7 @@ private:
     vtkSmartPointer<vtkExtractVOI> _volumeSlicer;
     vtkSmartPointer<vtkPlane> _cutPlane;
     vtkSmartPointer<vtkWarpScalar> _warp;
+    vtkSmartPointer<vtkPolyDataNormals> _normalsGenerator;
     vtkSmartPointer<vtkActor> _dsActor;
     vtkSmartPointer<vtkActor> _contourActor;
 };

@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 #!/bin/sh
 # ----------------------------------------------------------------------
 #  USER INTERFACE DRIVER

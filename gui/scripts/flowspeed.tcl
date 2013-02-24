@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: spinint - spinner for integer values

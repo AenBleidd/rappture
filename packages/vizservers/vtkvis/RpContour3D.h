@@ -10,6 +10,7 @@
 
 #include <vtkSmartPointer.h>
 #include <vtkContourFilter.h>
+#include <vtkPolyDataNormals.h>
 #include <vtkLookupTable.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkActor.h>
@@ -28,6 +29,15 @@ namespace VtkVis {
  */
 class Contour3D : public VtkGraphicsObject {
 public:
+    enum ColorMode {
+        COLOR_BY_SCALAR,
+        COLOR_BY_VECTOR_MAGNITUDE,
+        COLOR_BY_VECTOR_X,
+        COLOR_BY_VECTOR_Y,
+        COLOR_BY_VECTOR_Z,
+        COLOR_CONSTANT
+    };
+
     Contour3D(int numContours);
 
     Contour3D(const std::vector<double>& contours);
@@ -39,6 +49,9 @@ public:
         return "Contour3D";
     }
 
+    virtual void setDataSet(DataSet *dataSet,
+                            Renderer *renderer);
+
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
     void setContours(int numContours);
@@ -48,6 +61,14 @@ public:
     int getNumContours() const;
 
     const std::vector<double>& getContourList() const;
+
+    void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode,
+                      const char *name, double range[2] = NULL);
+
+    void setColorMode(ColorMode mode);
 
     void setColorMap(ColorMap *colorMap);
 
@@ -70,11 +91,20 @@ private:
 
     int _numContours;
     std::vector<double> _contours;
-    ColorMap *_colorMap;
 
-    vtkSmartPointer<vtkContourFilter> _contourFilter;
+    ColorMap *_colorMap;
+    ColorMode _colorMode;
+    std::string _colorFieldName;
+    DataSet::DataAttributeType _colorFieldType;
+    double _colorFieldRange[2];
+    double _vectorMagnitudeRange[2];
+    double _vectorComponentRange[3][2];
+    Renderer *_renderer;
+
     vtkSmartPointer<vtkLookupTable> _lut;
-    vtkSmartPointer<vtkPolyDataMapper> _contourMapper;
+    vtkSmartPointer<vtkContourFilter> _contourFilter;
+    vtkSmartPointer<vtkPolyDataNormals> _normalsGenerator;
+    vtkSmartPointer<vtkPolyDataMapper> _dsMapper;
 };
 
 }

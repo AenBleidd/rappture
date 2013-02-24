@@ -101,16 +101,19 @@ enum AxisDirections {
 
 typedef struct {
     pid_t pid;
-    size_t nFrames;		/* # of frames sent to client. */
-    size_t nBytes;		/* # of bytes for all frames. */
-    size_t nCommands;		/* # of commands executed */
-    double cmdTime;		/* Elasped time spend executing commands. */
-    struct timeval start;	/* Start of elapsed time. */
+    size_t nFrames;                     /* # of frames sent to client. */
+    size_t nBytes;                      /* # of bytes for all frames. */
+    size_t nCommands;                   /* # of commands executed */
+    double cmdTime;                     /* Elasped time spend executing
+                                         * commands. */
+    struct timeval start;               /* Start of elapsed time. */
 } Stats;
+
 
 static Stats stats;
 
 // STATIC MEMBER DATA
+struct timeval NanoVis::startTime;      /* Start of elapsed time. */
 Grid *NanoVis::grid = NULL;
 int NanoVis::updir = Y_POS;
 NvCamera *NanoVis::cam = NULL;
@@ -251,107 +254,184 @@ NanoVis::eventuallyRedraw(unsigned int flag)
     }
 }
 
-#if KEEPSTATS
+#define STATSDIR	"/var/tmp/visservers"
+#define STATSFILE	STATSDIR "/" "nanovis_log.tcl"
+#define LOCKFILE	STATSDIR "/" "LCK..nanovis"
 
 static int
-writeStats(const char *who, int code) 
+GetFileLock()
+{
+    int numTries;
+
+    for (numTries = 0; numTries < 10; numTries++) {
+	int f;
+
+	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
+	if (f >= 0) {
+	    char buf[200];
+	    ssize_t numWritten;
+	    size_t numBytes;
+
+	    sprintf(buf, "%d\n", getpid());
+	    numBytes = strlen(buf);
+	    numWritten = write(f, buf, numBytes);
+	    if (numWritten != (ssize_t)numBytes) {
+                ERROR("Wrote short lock file");
+	    }
+	    close(f);
+	    return 0;
+	}
+	sleep(1);			/* Wait for lock to release. */
+    }
+    ERROR("Failed to open lock file");
+    return -1;
+}
+
+static void
+ReleaseFileLock()
+{
+    unlink(LOCKFILE);
+}
+
+int
+NanoVis::WriteToStatsFile(const char *s, size_t length)
+{
+    int f;
+    ssize_t numWritten;
+    if (access(STATSDIR, X_OK) != 0) {
+	mkdir(STATSDIR, 0770);
+    }
+    if (GetFileLock() < 0) {
+	return -1;
+    }
+    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
+    ReleaseFileLock();
+    if (f < 0) {
+	return -1;
+    }
+    numWritten = write(f, s, length);
+    if (numWritten != (ssize_t)length) {
+	close(f);
+	return -1;
+    }
+    close(f);
+    return 0;
+}
+
+static int
+ServerStats(int code) 
 {
     double start, finish;
-    pid_t pid;
     char buf[BUFSIZ];
     Tcl_DString ds;
+    int result;
 
     {
-        struct timeval tv;
+	struct timeval tv;
 
-        /* Get ending time.  */
-        gettimeofday(&tv, NULL);
-        finish = CVT2SECS(tv);
-        tv = stats.start;
-        start = CVT2SECS(tv);
+	/* Get ending time.  */
+	gettimeofday(&tv, NULL);
+	finish = CVT2SECS(tv);
+	tv = stats.start;
+	start = CVT2SECS(tv);
     }
-    pid = getpid();
+    /* 
+     * Session information:
+     *   - Name of render server
+     *   - Process ID
+     *   - Hostname where server is running
+     *   - Start date of session
+     *   - Start date of session in seconds
+     *   - Number of frames returned
+     *   - Number of bytes total returned (in frames)
+     *   - Number of commands received
+     *   - Total elapsed time of all commands
+     *   - Total elapsed time of session
+     *   - Exit code of vizserver
+     *   - User time 
+     *   - System time
+     *   - User time of children 
+     *   - System time of children
+     */ 
+
     Tcl_DStringInit(&ds);
-
-    sprintf(buf, "<session server=\"%s\" ", who);
-    Tcl_DStringAppend(&ds, buf, -1);
-
+    
+    Tcl_DStringAppendElement(&ds, "render_stop");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "nanovis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
     gethostname(buf, BUFSIZ-1);
     buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppend(&ds, "host=\"", -1);
-    Tcl_DStringAppend(&ds, buf, -1);
-    Tcl_DStringAppend(&ds, "\" ", -1);
-
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
     strcpy(buf, ctime(&stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppend(&ds, "date=\"", -1);
-    Tcl_DStringAppend(&ds, buf, -1);
-    Tcl_DStringAppend(&ds, "\" ", -1);
-
-    sprintf(buf, "date_secs=\"%ld\" ", stats.start.tv_sec);
-    Tcl_DStringAppend(&ds, buf, -1);
-
-    sprintf(buf, "pid=\"%d\" ", pid);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_frames=\"%lu\" ", (unsigned long int)stats.nFrames);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "frame_bytes=\"%lu\" ", (unsigned long int)stats.nBytes);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "num_commands=\"%lu\" ", (unsigned long int)stats.nCommands);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "cmd_time=\"%g\" ", stats.cmdTime);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "session_time=\"%g\" ", finish - start);
-    Tcl_DStringAppend(&ds, buf, -1);
-    sprintf(buf, "status=\"%d\" ", code);
-    Tcl_DStringAppend(&ds, buf, -1);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_frames */
+    Tcl_DStringAppendElement(&ds, "num_frames");
+    sprintf(buf, "%lu", (unsigned long int)stats.nFrames);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* frame_bytes */
+    Tcl_DStringAppendElement(&ds, "frame_bytes");
+    sprintf(buf, "%lu", (unsigned long int)stats.nBytes);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_commands */
+    Tcl_DStringAppendElement(&ds, "num_commands");
+    sprintf(buf, "%lu", (unsigned long int)stats.nCommands);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* cmd_time */
+    Tcl_DStringAppendElement(&ds, "cmd_time");
+    sprintf(buf, "%g", stats.cmdTime);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* session_time */
+    Tcl_DStringAppendElement(&ds, "session_time");
+    sprintf(buf, "%g", finish - start);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* status */
+    Tcl_DStringAppendElement(&ds, "status");
+    sprintf(buf, "%d", code);
+    Tcl_DStringAppendElement(&ds, buf);
     {
-        long clocksPerSec = sysconf(_SC_CLK_TCK);
-        double clockRes = 1.0 / clocksPerSec;
-        struct tms tms;
+	long clocksPerSec = sysconf(_SC_CLK_TCK);
+	double clockRes = 1.0 / clocksPerSec;
+	struct tms tms;
 
-        memset(&tms, 0, sizeof(tms));
-        times(&tms);
-        sprintf(buf, "utime=\"%g\" ", tms.tms_utime * clockRes);
-        Tcl_DStringAppend(&ds, buf, -1);
-        sprintf(buf, "stime=\"%g\" ", tms.tms_stime * clockRes);
-        Tcl_DStringAppend(&ds, buf, -1);
-        sprintf(buf, "cutime=\"%g\" ", tms.tms_cutime * clockRes);
-        Tcl_DStringAppend(&ds, buf, -1);
-        sprintf(buf, "cstime=\"%g\" ", tms.tms_cstime * clockRes);
-        Tcl_DStringAppend(&ds, buf, -1);
+	memset(&tms, 0, sizeof(tms));
+	times(&tms);
+	/* utime */
+	Tcl_DStringAppendElement(&ds, "utime");
+	sprintf(buf, "%g", tms.tms_utime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* stime */
+	Tcl_DStringAppendElement(&ds, "stime");
+	sprintf(buf, "%g", tms.tms_stime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cutime */
+	Tcl_DStringAppendElement(&ds, "cutime");
+	sprintf(buf, "%g", tms.tms_cutime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cstime */
+	Tcl_DStringAppendElement(&ds, "cstime");
+	sprintf(buf, "%g", tms.tms_cstime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
     }
-    Tcl_DStringAppend(&ds, "/>\n", -1);
-
-    {
-        int f;
-        ssize_t length;
-        int result;
-
-#define STATSDIR	"/var/tmp/visservers"
-#define STATSFILE	STATSDIR "/" "data.xml"
-        if (access(STATSDIR, X_OK) != 0) {
-            mkdir(STATSDIR, 0770);
-        }
-        length = Tcl_DStringLength(&ds);
-        f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-        result = FALSE;
-        if (f < 0) {
-            goto error;
-        }
-        if (write(f, Tcl_DStringValue(&ds), length) != length) {
-            goto error;
-        }
-        result = TRUE;
-    error:
-        if (f >= 0) {
-            close(f);
-        }
-        Tcl_DStringFree(&ds);
-        return result;
-    }
+    Tcl_DStringAppend(&ds, "\n", -1);
+    result = NanoVis::WriteToStatsFile(Tcl_DStringValue(&ds), 
+                                       Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
 }
-#endif
 
 static void
 doExit(int code)
@@ -369,9 +449,7 @@ doExit(int code)
     NvExitService();
 #endif
 
-#if KEEPSTATS
-    writeStats("nanovis", code);
-#endif
+    ServerStats(code);
     closelog();
     exit(code);
 }
@@ -2166,21 +2244,26 @@ NanoVis::xinetdListen()
     fcntl(0, F_SETFL, flags);
 
     if (status != TCL_OK) {
-        const char *string;
-        int nBytes;
+        char *msg;
+        char hdr[200];
+        int msgSize, hdrSize;
+        Tcl_Obj *objPtr;
 
-        string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
-        TRACE("errorInfo=(%s)\n", string);
-        nBytes = strlen(string);
-        struct iovec iov[3];
-        iov[0].iov_base = (char *)"NanoVis Server Error: ";
-        iov[0].iov_len = strlen((char *)iov[0].iov_base);
-        iov[1].iov_base = (char *)string;
-        iov[1].iov_len = nBytes;
-        iov[2].iov_len = 1;
-        iov[2].iov_base = (char *)'\n';
-        if (writev(1, iov, 3) < 0) {
-            ERROR("write failed: %s\n", strerror(errno));
+        objPtr = Tcl_GetObjResult(interp);
+        msg = Tcl_GetStringFromObj(objPtr, &msgSize);
+        hdrSize = sprintf(hdr, "nv>viserror -bytes %d -type error\n", msgSize);
+        {
+            struct iovec iov[3];
+
+            iov[0].iov_base = hdr;
+            iov[0].iov_len = hdrSize;
+            iov[1].iov_base = msg;
+            iov[1].iov_len = msgSize;
+            iov[2].iov_len = 1;
+            iov[2].iov_base = (char *)'\n';
+            if (writev(1, iov, 3) < 0) {
+                ERROR("write failed: %s\n", strerror(errno));
+            }
         }
         TRACE("Leaving xinetd_listen on ERROR\n");
         return;
@@ -2224,7 +2307,6 @@ main(int argc, char **argv)
 {
     const char *path;
     char *newPath;
-    struct timeval tv;
 
     newPath = NULL;
     path = NULL;
@@ -2234,8 +2316,8 @@ main(int argc, char **argv)
     fflush(stdout);
 
     openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID, LOG_USER);
-    gettimeofday(&tv, NULL);
-    stats.start = tv;
+    gettimeofday(&NanoVis::startTime, NULL);
+    stats.start = NanoVis::startTime;
 
     /* Initialize GLUT here so it can parse and remove GLUT-specific 
      * command-line options before we parse the command-line below. */

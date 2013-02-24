@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: drawingcontrols - Print X-Y plot.

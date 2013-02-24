@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: ResultViewer - plots a collection of related results
 #
@@ -23,9 +24,12 @@ itcl::class Rappture::ResultViewer {
     itk_option define -clearcommand clearCommand ClearCommand ""
     itk_option define -simulatecommand simulateCommand SimulateCommand ""
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
-
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
     public method add {index xmlobj path}
     public method clear {{index ""}}
     public method value {xmlobj}
@@ -293,64 +297,29 @@ itcl::body Rappture::ResultViewer::_plotAdd {dataobj {settings ""}} {
                     }
                 }
                 2D {
-                    set mode "contour"
+		    set mode "field2d"
+		    set viewer [$dataobj viewer]
+		    set extents [$dataobj extents]
+		    if { $extents > 1 } {
+			set mode "flowvis"
+		    }
                     if {![info exists _mode2widget($mode)]} {
-                        global env
-                        if { [$dataobj isunirect2d] } {
-                            if { [$dataobj hints type] == "contour" } {
-                                set resultMode "vtkcontour" 
-                            } elseif { [info exists env(VTKHEIGHTMAP)] } {
-                                set resultMode "vtkheightmap"
-                            } else {
-                                set resultMode "heightmap"
-                            }
-                        } elseif { [info exists env(VTKCONTOUR)] } {
-                            set resultMode "vtkcontour"
-                        } else {
-                            set resultMode "vtk"
-                        }
-                        set extents [$dataobj extents]
-                        if { $extents > 1 } {
-                            set resultMode "flowvis"
-                        }
-                        set w $itk_interior.contour
+	                set w $itk_interior.$mode
                         if { ![winfo exists $w] } {
-                            Rappture::Field2DResult $w -mode $resultMode
-                        }
-                        set _mode2widget($mode) $w
+                            Rappture::Field2DResult $w -mode $viewer
+			    set _mode2widget($mode) $w
+			}
                     }
                 }
                 3D {
-                    set mode "field3D"
+		    set mode [$dataobj viewer]
+		    set extents [$dataobj extents]
+		    if { $extents > 1 } {
+			set mode "flowvis"
+		    }
                     if {![info exists _mode2widget($mode)]} {
-                        switch -- [$dataobj type] {
-                            "vtk" {
-                                set fmt "vtk"
-                            }
-                            "points-on-mesh" {
-                                set mesh [$dataobj mesh]
-                                set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
-                                set extents [$dataobj extents]
-                                if { $extents > 1 } {
-                                    set fmt "flowvis"
-                                }
-                            }
-                            "opendx" - "dx" {
-                                set fmt "nanovis"
-                                set extents [$dataobj extents]
-                                if { $extents > 1 } {
-                                    set fmt "flowvis"
-                                }
-                            }
-                            "vtkvolume" {
-                                set fmt "vtkvolume"
-                            }
-                            "vtkstreamlines" {
-                                set fmt "vtkstreamlines"
-                            }
-                        }
-                        set w $itk_interior.field3D
-                        Rappture::Field3DResult $w -mode $fmt
+                        set w $itk_interior.$mode
+                        Rappture::Field3DResult $w -mode $mode
                         set _mode2widget($mode) $w
                     }
                 }

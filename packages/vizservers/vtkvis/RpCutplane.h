@@ -16,6 +16,7 @@
 #include <vtkCutter.h>
 #include <vtkPlane.h>
 #include <vtkOutlineFilter.h>
+#include <vtkOutlineSource.h>
 #include <vtkGaussianSplatter.h>
 
 #include "ColorMap.h"
@@ -24,6 +25,8 @@
 
 namespace Rappture {
 namespace VtkVis {
+
+//#define CUTPLANE_TIGHT_OUTLINE
 
 /**
  * \brief Color-mapped plot of slice through a data set
@@ -64,6 +67,8 @@ public:
     void selectVolumeSlice(Axis axis, double ratio);
 
     void setSliceVisibility(Axis axis, bool state);
+
+    void setInterpolateBeforeMapping(bool state);
 
     void setColorMode(ColorMode mode, DataSet::DataAttributeType type,
                       const char *name, double range[2] = NULL);
@@ -107,7 +112,11 @@ private:
     vtkSmartPointer<vtkPolyDataMapper> _borderMapper[3];
     vtkSmartPointer<vtkCutter> _cutter[3];
     vtkSmartPointer<vtkPlane> _cutPlane[3];
+#ifdef CUTPLANE_TIGHT_OUTLINE
     vtkSmartPointer<vtkOutlineFilter> _outlineFilter[3];
+#else
+    vtkSmartPointer<vtkOutlineSource> _outlineSource[3];
+#endif
     vtkSmartPointer<vtkGaussianSplatter> _splatter;
 };
 

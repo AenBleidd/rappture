@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: xyresult - X/Y plot in a ResultSet
 #
@@ -432,10 +433,10 @@ itcl::body Rappture::XyResult::scale {args} {
 
     catch {unset _limits}
     foreach dataobj $args {
-        # find the axes for this dataobj (e.g., {x y2})
+        # Find the axes for this dataobj (e.g., {x y2})
         foreach {map(x) map(y)} [GetAxes $dataobj] break
         foreach axis {x y} {
-            # get defaults for both linear and log scales
+            # Get defaults for both linear and log scales
             foreach type {lin log} {
                 # store results -- ex: _limits(x2log-min)
                 set id $map($axis)$type
@@ -748,46 +749,50 @@ itcl::body Rappture::XyResult::Rebuild {} {
         # 
         # Create text/line markers for each *axis.marker specified. 
         # 
-        foreach m [$dataobj xmarkers] {
-            foreach {at label style} $m break
-            set id [$g marker create line -coords [list $at $ymin $at $ymax]]
-            $g marker bind $id <Enter> \
-                [itcl::code $this EnterMarker $g x-$label $at $ymin $at]
-            $g marker bind $id <Leave> \
-                [itcl::code $this LeaveMarker $g x-$label]
-            set options [GetLineMarkerOptions $style]
-            if { $options != "" } {
-                eval $g marker configure $id $options
-            }
-            if { $label != "" } {
-                set id [$g marker create text -anchor nw \
-                            -text $label -coords [list $at $ymax]]
-                set options [GetTextMarkerOptions $style]
-                if { $options != "" } {
-                    eval $g marker configure $id $options
-                }
-            }
-        }
-        foreach m [$dataobj ymarkers] {
-            foreach {at label style} $m break
-            set id [$g marker create line -coords [list $xmin $at $xmax $at]]
-            $g marker bind $id <Enter> \
-                [itcl::code $this EnterMarker $g y-$label $at $xmin $at]
-            $g marker bind $id <Leave> \
-                [itcl::code $this LeaveMarker $g y-$label]
-            set options [GetLineMarkerOptions $style]
-            if { $options != "" } {
-                eval $g marker configure $id $options
-            }
-            if { $label != "" } {
-                set id [$g marker create text -anchor se \
-                        -text $label -coords [list $xmax $at]]
-                set options [GetTextMarkerOptions $style]
-                if { $options != "" } {
-                    eval $g marker configure $id $options
-                }
-            }
-        }
+	if { [$dataobj info class] == "Rappture::Curve" } {
+	    foreach m [$dataobj xmarkers] {
+		foreach {at label style} $m break
+		set id [$g marker create line \
+			    -coords [list $at $ymin $at $ymax]]
+		$g marker bind $id <Enter> \
+		    [itcl::code $this EnterMarker $g x-$label $at $ymin $at]
+		$g marker bind $id <Leave> \
+		    [itcl::code $this LeaveMarker $g x-$label]
+		set options [GetLineMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+		if { $label != "" } {
+		    set id [$g marker create text -anchor nw \
+				-text $label -coords [list $at $ymax]]
+		    set options [GetTextMarkerOptions $style]
+		    if { $options != "" } {
+			eval $g marker configure $id $options
+		    }
+		}
+	    }
+	    foreach m [$dataobj ymarkers] {
+		foreach {at label style} $m break
+		set id [$g marker create line \
+			    -coords [list $xmin $at $xmax $at]]
+		$g marker bind $id <Enter> \
+		    [itcl::code $this EnterMarker $g y-$label $at $xmin $at]
+		$g marker bind $id <Leave> \
+		    [itcl::code $this LeaveMarker $g y-$label]
+		set options [GetLineMarkerOptions $style]
+		if { $options != "" } {
+		    eval $g marker configure $id $options
+		}
+		if { $label != "" } {
+		    set id [$g marker create text -anchor se \
+				-text $label -coords [list $xmax $at]]
+		    set options [GetTextMarkerOptions $style]
+		    if { $options != "" } {
+			eval $g marker configure $id $options
+		    }
+		}
+	    }
+	}
     }
     $itk_component(legend) reset 
 }

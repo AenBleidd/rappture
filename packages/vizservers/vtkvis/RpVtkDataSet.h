@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "RpTypes.h"
+#include "Trace.h"
 
 namespace Rappture {
 namespace VtkVis {
@@ -141,6 +142,155 @@ public:
     inline vtkProp *getProp()
     {
         return _prop;
+    }
+
+    /**
+     * \brief Set 2D aspect ratio scaling
+     *
+     * \param aspect 0=no scaling, otherwise aspect
+     * is horiz/vertical ratio
+     */
+    void setAspect(double aspect)
+    {
+        double scale[3];
+        scale[0] = scale[1] = scale[2] = 1.;
+
+        if (aspect == 0.0) {
+            setScale(scale);
+            return;
+        }
+        if (_dataSet == NULL) {
+            TRACE("Not setting aspect for empty data set");
+            return;
+        }
+
+        PrincipalPlane plane;
+        if (!is2D(&plane)) {
+            TRACE("Not setting aspect for 3D data set");
+            return;
+        }
+
+        double bounds[6];
+        getBounds(bounds);
+
+        double size[3];
+        size[0] = bounds[1] - bounds[0];
+        size[1] = bounds[3] - bounds[2];
+        size[2] = bounds[5] - bounds[4];
+
+        if (aspect == 1.0) {
+            // Square
+            switch (plane) {
+            case PLANE_XY: {
+                if (size[0] > size[1] && size[1] > 1.0e-6) {
+                    scale[1] = size[0] / size[1];
+                } else if (size[1] > size[0] && size[0] > 1.0e-6) {
+                    scale[0] = size[1] / size[0];
+                }
+            }
+                break;
+            case PLANE_ZY: {
+                if (size[1] > size[2] && size[2] > 1.0e-6) {
+                    scale[2] = size[1] / size[2];
+                } else if (size[2] > size[1] && size[1] > 1.0e-6) {
+                    scale[1] = size[2] / size[1];
+                }
+            }
+                break;
+            case PLANE_XZ: {
+                if (size[0] > size[2] && size[2] > 1.0e-6) {
+                    scale[2] = size[0] / size[2];
+                } else if (size[2] > size[0] && size[0] > 1.0e-6) {
+                    scale[0] = size[2] / size[0];
+                }
+            }
+                break;
+            default:
+                break;
+            }
+        } else {
+            switch (plane) {
+            case PLANE_XY: {
+                if (aspect > 1.0) {
+                    if (size[0] > size[1]) {
+                        scale[1] = (size[0] / aspect) / size[1];
+                    } else {
+                        scale[0] = (size[1] * aspect) / size[0];
+                    }
+                } else {
+                    if (size[1] > size[0]) {
+                        scale[0] = (size[1] * aspect) / size[0];
+                    } else {
+                        scale[1] = (size[0] / aspect) / size[1];
+                    }
+                }
+            }
+                break;
+            case PLANE_ZY: {
+                if (aspect > 1.0) {
+                    if (size[2] > size[1]) {
+                        scale[1] = (size[2] / aspect) / size[1];
+                    } else {
+                        scale[2] = (size[1] * aspect) / size[2];
+                    }
+                } else {
+                    if (size[1] > size[2]) {
+                        scale[2] = (size[1] * aspect) / size[2];
+                    } else {
+                        scale[1] = (size[2] / aspect) / size[1];
+                    }
+                }
+            }
+                break;
+            case PLANE_XZ: {
+                if (aspect > 1.0) {
+                    if (size[0] > size[2]) {
+                        scale[2] = (size[0] / aspect) / size[2];
+                    } else {
+                        scale[0] = (size[2] * aspect) / size[0];
+                    }
+                } else {
+                    if (size[2] > size[0]) {
+                        scale[0] = (size[2] * aspect) / size[0];
+                    } else {
+                        scale[2] = (size[0] / aspect) / size[2];
+                    }
+                }
+            }
+            default:
+                break;
+            }
+        }
+
+        TRACE("obj %g,%g,%g", size[0], size[1], size[2]);
+        TRACE("Setting scale to %g,%g,%g", scale[0], scale[1], scale[2]);
+        setScale(scale);
+    }
+
+    /**
+     * \brief Get the prop scaling
+     *
+     * \param[out] scale Scaling in x,y,z
+     */
+    void getScale(double scale[3])
+    {
+        if (_prop != NULL) {
+            _prop->GetScale(scale);
+        } else {
+            scale[0] = scale[1] = scale[2] = 1.0;
+        }
+    }
+
+    /**
+     * \brief Set the prop scaling
+     *
+     * \param[in] scale Scaling in x,y,z
+     */
+    void setScale(double scale[3])
+    {
+        if (_prop != NULL) {
+            _prop->SetScale(scale);
+        }
     }
 
     static void print(vtkDataSet *ds);

@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: molvisviewer - view a molecule in 3D
@@ -64,6 +65,7 @@ itcl::class Rappture::MolvisViewer {
     private variable _labels  "default"
     private variable _cacheid ""
     private variable _cacheimage ""
+    private variable _first	""
 
     private common _settings  ;         # Array of settings for all known 
                                         # widgets
@@ -80,12 +82,11 @@ itcl::class Rappture::MolvisViewer {
     private variable _rotatePending 0;
     private variable _width
     private variable _height
-    private variable _reset 1;  # Restore camera settings
+    private variable _reset 1;		# Restore camera settings
     private variable _cell 0;           # Restore camera settings
-    private variable _flush 1
 
-    constructor { hostlist args } {
-        Rappture::VisViewer::constructor $hostlist
+    constructor { servers args } {
+        Rappture::VisViewer::constructor $servers
     } {
         # defined below
     }
@@ -157,7 +158,7 @@ itk::usual MolvisViewer {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
+itcl::body Rappture::MolvisViewer::constructor {servers args} {
     set _serverType "pymol"
 
     # Register events to the dispatcher.  Base class expects !rebuild
@@ -195,6 +196,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     # Populate the slave interpreter with commands to handle responses from
     # the visualization server.
     $_parser alias image [itcl::code $this ReceiveImage]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     set _rocker(dir) 1
     set _rocker(client) 0
@@ -202,7 +204,6 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
     set _rocker(on) 0
     set _state(server) 1
     set _state(client) 1
-    set _hostlist $hostlist
     set _reset 1
 
     array set _view {
@@ -245,6 +246,7 @@ itcl::body Rappture::MolvisViewer::constructor {hostlist args} {
         usual
         ignore -highlightthickness -borderwidth  -background
     }
+    bind $itk_component(3dview) <Control-F1> [itcl::code $this ToggleConsole]
 
     set f [$itk_component(main) component controls]
     itk_component add reset {
@@ -500,7 +502,6 @@ itcl::body Rappture::MolvisViewer::delete { args } {
 
     # delete all specified dataobjs
     set changed 0
-    set _flush 1
     foreach dataobj $args {
         set pos [lsearch -exact $_dlist $dataobj]
         if {$pos >= 0} {
@@ -711,6 +712,7 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
     set _outbuf ""
     global readyForNextFrame
     set readyForNextFrame 1
+    set _reset 1
 }
 
 itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
@@ -892,8 +894,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         SendCmd "raw -defer {set auto_color,0}"
         SendCmd "raw -defer {set auto_show_lines,0}"
     }
+    set _first ""
     set dlist [get]
     foreach dataobj $dlist {
+	if { $_first == "" } {
+	    set _first $dataobj
+	}
         set model [$dataobj get components.molecule.model]
         if {"" == $model } {
             set model "molecule"
@@ -1095,6 +1101,33 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set flush 0
     }
     if { $_reset } {
+        if 1 {
+            # Tell the server the name of the tool, the version, and dataset
+            # that we are rendering.  Have to do it here because we don't know
+            # what data objects are using the renderer until be get here.
+	    global env
+	    lappend out "hub" [exec hostname]
+	    lappend out "viewer" "molvisviewer"
+	    if { [info exists env(USER)] } {
+		lappend out "user" $env(USER)
+	    }
+	    if { [info exists env(SESSION)] } {
+		lappend out "session" $env(SESSION)
+	    }
+	    set parent [$_first parent -as object]
+	    while { $parent != "" } {
+		set xmlobj $parent
+		set parent [$parent parent -as object]
+	    }
+	    lappend out "tool_id" [$xmlobj get tool.id]
+	    lappend out "tool_name" [$xmlobj get tool.name]
+	    lappend out "tool_title" [$xmlobj get tool.title]
+	    lappend out "tool_command" [$xmlobj get tool.execute]
+	    lappend out "tool_revision" \
+		[$xmlobj get tool.version.application.revision]
+            SendCmd "clientinfo $out"
+        }
+
         # Set or restore viewing parameters.  We do this for the first
         # model and assume this works for everything else.
         set w  [winfo width $itk_component(3dview)] 
@@ -1133,7 +1166,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set readyForNextFrame 0;        # Don't advance to the next frame
                                         # until we get an image.
         #SendCmd "ppm";                 # Flush the results.
-        set _flush 0
     }
     set _buffering 0;                   # Turn off buffering.
 

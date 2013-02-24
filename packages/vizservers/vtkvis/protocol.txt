@@ -25,38 +25,131 @@ that indicates incoming data including a byte count argument.
 ================================================================================
 Requests:
 ================================================================================
-screen bgcolor <r> <g> <b>
-screen size <width> <height>
 
-renderer clipplane <axis> <ratio> <direction>
-         Set a user clipping plane, ratio is [0,1] and is always interpreted as
-         0 = min_bound, 1 = max_bound, regardless of direction.  Sign of 
-         direction determines normal of clipping plane.  User clip planes do not
-         apply if camera mode is image.
-renderer depthpeel <bool>
-         Set use of depth peeling algorithm for transparency
-renderer light2side <bool>
-         Toggle use of two-sided lighting (controls if backfaces are lit with a
-         flipped normal)
-renderer render
-         Force a new image to be rendered - use for advancing animation
+== General dataset, scene and renderer commands ==
 
-axis color <r> <g> <b>
+axis autobounds <axis> <bool>
+     Toggle between automatic and explicit bounds settings.  To set an explicit
+     range use the 'axis bounds...' command.
+     <axis> = x|y|z|all
+axis autorange <axis> <bool>
+     Toggle between automatic and explicit range settings.  To set an explicit
+     range use the 'axis range...' command.  For scaling based on axis bounds,
+     see 'axis scale...'
+     <axis> = x|y|z|all
+axis bounds <axis> <min> <max>
+     Explicitly specify bounds to use for an axis.
+     <axis> = x|y|z|all
+axis color <axis> <r> <g> <b> <?opacity?>
      Set color of axis lines, labels, titles, ticks
+     <axis> = x|y|z|all
+axis exp <xPower> <yPower> <zPower> <?useCustom?>
+     Control power scaling of labels.  When an exponent is set, the labels
+     are adjusted to show mantissa and the exponent is indicated in the title.
+     <xPower> = Base 10 exponent for X axis
+     <yPower> = Base 10 exponent for Y axis
+     <zPower> = Base 10 exponent for Z axis
+     <useCustom> = Flag to control if custom/manual powers are used.  Setting
+     this to off will re-enable automatic power scaling.
 axis flymode <mode>
      <mode> = static_edges|static_triad|outer_edges|furthest_triad|closest_triad
+axis fontsz <fontPixelSize>
+     Controls size of labels and text in 3D mode
+axis gpcolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of inner grid polygons
+     <axis> = x|y|z|all
+axis gpolys <axis> <bool>
+     Turn on/off inner grid polygons/planes
+     <axis> = x|y|z|all
+axis grcolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of gridlines
+     <axis> = x|y|z|all
 axis grid <axis> <bool>
+     Turn on/off outer gridlines
+     <axis> = x|y|z|all
+axis igcolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of inner gridlines
+     <axis> = x|y|z|all
+axis igrid <axis> <bool>
+     Turn on/off inner gridlines
      <axis> = x|y|z|all
 axis labels <axis> <bool>
      Toggle visibility of axis labels
      <axis> = x|y|z|all
+axis lcolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of tick labels
+     <axis> = x|y|z|all
+axis lfont <axis> <fontName>
+     Set label font family
+     <axis> = x|y|z|all
+     <fontName> = Arial|Courier|Times
+axis lformat <axis> <formatString>
+     <axis> = x|y|z|all
+     <formatString> = printf style format string
+axis lfsize <axis> <fontSizePts>
+     Set font size of labels in 2D mode - currently relies on patched VTK in 
+     runtime
+     <axis> = x|y|z|all
+     <fontSizePts> = Font size in points
+axis linecolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of main axis lines
+     <axis> = x|y|z|all
+axis lrot <axis> <rotation>
+     <axis> = x|y|z|all
+     <rotation> = rotation angle in degrees
+axis lscale <axis> <boolAuto> <xpow> <ypow> <zpow>
+     Control (auto-)scaling of labels with powers of 10
+     <axis> = x|y|z|all
+     <boolAuto> = Enable/disable automatic scaling with powers of 10
+     <xpow> = Explicitly set power on X axis
+     <ypow> = Explicitly set power on Y axis
+     <zpow> = Explicitly set power on Z axis
+axis minticks <axis> <bool>
+     Toggle visibility of axis minor tick marks
+     <axis> = x|y|z|all
 axis name <axis> <title>
+     <axis> = x|y|z|all
+     <title> = Title of axis
+axis origin <x> <y> <z> <?useCustom?>
+     <x>,<y>,<z> = point inside world coordinate bounds of axes box where axes 
+     should intersect
+     <useCustom> = Set to false to disable use of custom origin and re-enable 
+     automatic origin
+axis range <axis> <min> <max>
+     Explicitly set min,max range of axis labels.  Note that the min and max 
+     values themselves may not be given labels if they don't fall on tick 
+     divisions -- the min/max determine the value of the axis endpoints.  This
+     setting allows labeling axes independently of the world coordinate bounds.
+     <axis> = x|y|z|all
+     <min> = minimum value of axis for labels
+     <max> = maximum value of axis for labels
+axis scale <axis> <scale>
+     Set axis range to be computed based on scaling the axis bounds by the
+     given scale factor.
+     <axis> = x|y|z|all
+     <scale> = scale factor where range = bounds * scale
+axis tcolor <axis> <r> <g> <b> <?opacity?>
+     Set color/opacity of axis title
+     <axis> = x|y|z|all
 axis tickpos <position>
      Set position of ticks on 3D axes (not implemented for 2D axes)
      <position> = inside|outside|both
 axis ticks <axis> <bool>
      Toggle visibility of axis tick marks
      <axis> = x|y|z|all
+axis tfont <axis> <fontName>
+     Set title font family
+     <axis> = x|y|z|all
+     <fontName> = Arial|Courier|Times
+axis tfsize <axis> <fontSizePts>
+     Set font size of title in 2D mode - currently relies on patched VTK in 
+     runtime
+     <axis> = x|y|z|all
+     <fontSizePts> = Font size in points
+axis trot <axis> <rotation>
+     Currently a no-op -- needs a fix in vtkCubeAxesActor
+     <axis> = x|y|z|all
+     <rotation> = rotation angle in degrees
 axis units <axis> <units>
      Currently only supported when camera mode is not image mode
 axis visible <axis> <bool>
@@ -65,6 +158,9 @@ axis visible <axis> <bool>
      individually -- however, it is best to let the server determine which of 
      the individual axes are enabled based on the dataset bounds.
 
+camera aspect <aspectMode>
+       Set 2D aspect ratio mode
+       <aspectMode> = native|square|window
 camera get
        Request current camera parameters
 camera mode <mode>
@@ -93,6 +189,45 @@ colormap add <colorMapName> <colorMap> <opacityMap>
 	 colorMap = Tcl list of {value r g b} control points
          opacityMap = Tcl list of {value alpha} control points
 colormap delete <?colorMapName?>
+colormap res <numberOfTableEntries>
+         Set the "resolution" or number of lookup table entries in the colormap
+         <numberOfTableEntries> = integer or "default"
+
+dataset add <datasetName> data follows <nbytes>
+dataset color <r> <g> <b> <?datasetName?>
+        Set color of outline bounding box
+dataset delete <?datasetName?>
+dataset getscalar world <x> <y> <z> <datasetName>
+dataset getscalar pixel <x> <y> <datasetName>
+dataset getvector world <x> <y> <z> <datasetName>
+dataset getvector pixel <x> <y> <datasetName>
+        Use pixel for image camera mode
+dataset maprange <val> <?min?> <?max?> <?fieldName?> <?fieldType?> <?numComp?> <?component?>
+        Controls if data range for colormapping and contours is based on
+        cumulative range of all datasets ("all"), only visible datasets
+        ("visible") or each individual dataset ("separate").  Defaults to
+        "all"
+        <val> = all|explicit|visible|separate
+        The following arguments are only used for 'explicit' mode:
+        <min>,<max> = Required in explicit mode, specify the range to use
+        <fieldName> = Required in explicit mode, specify the field to which the
+        range should be applied
+        <fieldType> = point_data|cell_data|field_data, optional (defaults to 
+        point_data)
+        <numComp> = Number of components (1 = scalar, 3 = vector), optional (1
+        is default)
+        <component> = Component index for vector fields, required if numComp is
+        3, otherwise unused.
+dataset names
+        Returns a list of the loaded data sets
+dataset opacity <val> <?datasetName?>
+dataset outline <bool> <?datasetName?>
+        Toggle wireframe outline of dataset's bounding box
+dataset scalar <scalarName> <?datasetName?>
+        Set the active scalar field to plot
+dataset vector <vectorName> <?datasetName?>
+        Set the active vector field to plot
+dataset visible <bool> <?datasetName?>
 
 legend <colormapName> <legendType> <fieldName> <legendTitle> <width> <height> <numLabels> <?datasetName?>
        Causes legend to be rendered and written back with labels and title
@@ -104,29 +239,23 @@ legend <colormapName> <legendType> <fieldName> <legendTitle> <width> <height> <n
        'dataset maprange' will be used to determine if the individual dataset
        range or cumulative range will be used.
 
-dataset add <datasetName> data follows <nbytes>
-dataset color <r> <g> <b> <?datasetName?>
-        Set color of outline bounding box
-dataset delete <?datasetName?>
-dataset getscalar world <x> <y> <z> <datasetName>
-dataset getscalar pixel <x> <y> <datasetName>
-dataset getvector world <x> <y> <z> <datasetName>
-dataset getvector pixel <x> <y> <datasetName>
-        Use pixel for image camera mode
-dataset maprange <val>
-        <val> = all|visible|separate
-        Controls if data range for colormapping and contours is based on
-        cumulative range of all datasets ("all"), only visible datasets
-        ("visible") or each individual dataset ("separate").  Defaults to
-        "all"
-dataset opacity <val> <?datasetName?>
-dataset outline <bool> <?datasetName?>
-        Toggle wireframe outline of dataset's bounding box
-dataset scalar <scalarName> <?datasetName?>
-        Set the active scalar field to plot
-dataset vector <vectorName> <?datasetName?>
-        Set the active vector field to plot
-dataset visible <bool> <?datasetName?>
+renderer clipplane <axis> <ratio> <direction>
+         Set a user clipping plane, ratio is [0,1] and is always interpreted as
+         0 = min_bound, 1 = max_bound, regardless of direction.  Sign of 
+         direction determines normal of clipping plane.  User clip planes do not
+         apply if camera mode is image.
+renderer depthpeel <bool>
+         Set use of depth peeling algorithm for transparency
+renderer light2side <bool>
+         Toggle use of two-sided lighting (controls if backfaces are lit with a
+         flipped normal)
+renderer render
+         Force a new image to be rendered - use for advancing animation
+
+screen bgcolor <r> <g> <b>
+screen size <width> <height>
+
+== Graphics objects ==
 
 arc add <pt1X> <pt1Y> <pt1Z> <pt2X> <pt2Y> <pt2Z> <name>
 arc color <r> <g> <b> <?name?>
@@ -221,6 +350,12 @@ contour3d add contourlist <list> <?datasetName?>
 	  list = {isoval1 isoval2 isoval3...}
 contour3d ccolor r g b <?datasetName?>
 contour3d colormap <colorMapName> <?dataSetName?>
+contour3d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'ccolor' means to use
+          the constant color defined by the ccolor subcommand.  'scalar' uses
+          the active scalar field.  'vmag' uses the magnitude of the current
+          vector field, and 'vx','vy','vz' use the corresponding component of
+          the active vector field.
 contour3d delete <?datasetName?>
 contour3d edges <bool> <?datasetName?>
 contour3d lighting <bool> <?datasetName?>
@@ -331,11 +466,22 @@ heightmap add numcontours <n> <heightScale> <?dataSetName?>
           'dataset maprange' command.
 heightmap add contourlist <list> <heightScale> <?dataSetName?>
 	  list = {isoval1 isoval2 isoval3...}
+heightmap aspect <aspectRatio>
+          Set scaling by aspect ratio
+          <aspectRatio> = width/height or 0 for native aspect
 heightmap colormap <colorMapName> <?dataSetName?>
+heightmap colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+          Set the field used to color the object.  'ccolor' means to use
+          the constant color defined by the ccolor subcommand.  'scalar' uses
+          the active scalar field.  'vmag' uses the magnitude of the current
+          vector field, and 'vx','vy','vz' use the corresponding component of
+          the active vector field.
 heightmap contourlist <list> <?dataSetName?>
 heightmap delete <?dataSetName?>
 heightmap edges <bool> <?dataSetName?>
 heightmap heightscale <value> <?dataSetName?>
+heightmap isolinecmap <bool> <?dataSetName?>
+          Toggle colormapping of isolines (false means to use constant color)
 heightmap isolinecolor <r> <g> <b> <?dataSetName?>
 heightmap isolines <bool> <?dataSetName?>
 heightmap isolinewidth <width> <?dataSetName?>
@@ -509,7 +655,8 @@ streamlines length <?datasetName?>
             Set maximum length in world coordinates of streamlines
 streamlines lighting <bool> <?datasetName?>
 streamlines linecolor <r> <g> <b> <?datasetName?>
-            Set color of edges for tubes, ribbons (lines are colored by colormap)
+            Set color of edges for tubes, ribbons (lines are colored by
+            colormap)
 streamlines lines <?datasetName?>
             Set rendering type to polylines
 streamlines linewidth <val> <?datasetName?>
@@ -563,7 +710,14 @@ volume shading specular <coeff> <power> <?datasetName?>
 volume visible <bool> <?datasetName?>
 
 warp add <?dataSetName?>
-warp colormap <colorMapName> <?dataSetName?>
+warp ccolor <r> <g> <b> <?datasetName?>
+warp colormap <colormapName> <?datasetName?>
+warp colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
+     Set the field used to color the object.  'ccolor' means to use
+     the constant color defined by the ccolor subcommand.  'scalar' uses
+     the active scalar field.  'vmag' uses the magnitude of the current
+     vector field, and 'vx','vy','vz' use the corresponding component of
+     the active vector field.
 warp delete <?dataSetName?>
 warp edges <bool> <?dataSetName?>
 warp lighting <bool> <?dataSetName?>
@@ -589,10 +743,11 @@ nv>image -type image -bbox {x y w h} -bytes <nbytes>
   <binary RGB data>
   The bounding box of the 2D image camera zoom region is supplied
   Note: The bbox coordinates are in the form used by 'camera ortho world ...':
-  x,y - world coordinate of lower left corner, w,h - width height in world coords
+  x,y - world coord. of lower left corner, w,h - width height in world coords
   This form is currently used only if the camera mode is set to 'image'.
 nv>legend <colormapName> <title> <rmin> <rmax> <nbytes>
   <binary RGB data>
+nv>dataset names <Tcl list of names>
 nv>dataset scalar world <x> <y> <z> <value> <dataSetName>
 nv>dataset scalar pixel <x> <y> <value> <dataSetName>
 nv>dataset vector world <x> <y> <z> <valueX> <valueY> <valueZ> <dataSetName>
@@ -601,6 +756,6 @@ nv>dataset vector pixel <x> <y> <valueX> <valueY> <valueZ> <dataSetName>
 ================================================================================
 Error Replies:
 ================================================================================
-Prefixed with "VtkVis Server Error: "
-Currently not guaranteed to be on a single line
+nv>viserror -bytes <nbytes>
+   <multi-line error string of nbytes>
 ================================================================================

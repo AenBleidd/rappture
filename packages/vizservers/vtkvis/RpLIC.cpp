@@ -7,10 +7,6 @@
 
 #include <cassert>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkActor.h>
 #include <vtkProperty.h>
 #include <vtkPointData.h>
@@ -430,6 +426,7 @@ void LIC::setColorMap(ColorMap *cmap)
 
     _lut->DeepCopy(cmap->getLookupTable());
     _lut->SetRange(_dataRange);
+    _lut->Modified();
 }
 
 void LIC::updateRanges(Renderer *renderer)

@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: vtkviewer - Vtk drawing object viewer
@@ -181,9 +182,10 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     #
     # Populate parser with commands handle incoming requests
     #
-    $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias dataset [itcl::code $this ReceiveDataset]
-    $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias image    [itcl::code $this ReceiveImage]
+    $_parser alias dataset  [itcl::code $this ReceiveDataset]
+    $_parser alias legend   [itcl::code $this ReceiveLegend]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     array set _outline {
         id -1
@@ -262,6 +264,7 @@ itcl::body Rappture::VtkViewer::constructor {hostlist args} {
     bind $c <KeyPress-Up>    [list %W yview scroll 10 units]
     bind $c <KeyPress-Down>  [list %W yview scroll -10 units]
     bind $c <Enter> "focus %W"
+    bind $c <Control-F1> [itcl::code $this ToggleConsole]
 
     # Fix the scrollregion in case we go off screen
     $c configure -scrollregion [$c bbox all]
@@ -939,6 +942,25 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         set location [$_first hints camera]
         if { $location != "" } {
             array set view $location
+        }
+
+        if 1 {
+            # Tell the server the name of the tool, the version, and dataset
+            # that we are rendering.  Have to do it here because we don't know
+            # what data objects are using the renderer until be get here.
+	    global env
+            set args ""
+	    if { [info exists env(USER)] } {
+		lappend args hub [exec hostname]
+		lappend args user $env(USER)
+	    }
+	    if { [info exists env(SESSION)] } {
+		lappend args session $env(SESSION)
+	    }
+            lappend args tool [$_first hints toolId]
+            lappend args version [$_first hints toolRevision]
+            lappend args dataset [$_first hints label]
+            SendCmd "clientinfo [list $args]"
         }
 
         foreach axis { x y z } {
@@ -2080,7 +2102,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
         "Toggle the X-axis cutaway on/off"
 
     itk_component add xCutScale {
-        ::scale $inner.xval -from 100 -to 1 \
+        ::scale $inner.xval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move x] \
@@ -2120,7 +2142,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
         "Toggle the Y-axis cutaway on/off"
 
     itk_component add yCutScale {
-        ::scale $inner.yval -from 100 -to 1 \
+        ::scale $inner.yval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move y] \
@@ -2160,7 +2182,7 @@ itcl::body Rappture::VtkViewer::BuildCutawayTab {} {
         "Toggle the Z-axis cutaway on/off"
 
     itk_component add zCutScale {
-        ::scale $inner.zval -from 100 -to 1 \
+        ::scale $inner.zval -from 100 -to 0 \
             -width 10 -orient vertical -showvalue yes \
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this Slice move z] \

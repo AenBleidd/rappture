@@ -9,10 +9,6 @@
 #include <cfloat>
 #include <cassert>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkCellArray.h>
 #include <vtkPointData.h>
@@ -587,6 +583,7 @@ void Molecule::setColorMap(ColorMap *cmap)
         _lut->GetTableRange(range);
         _lut->DeepCopy(cmap->getLookupTable());
         _lut->SetRange(range);
+        _lut->Modified();
     }
 }
 

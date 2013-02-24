@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
  
 # ----------------------------------------------------------------------
 #  COMPONENT: histogram - extracts data from an XML description of a field

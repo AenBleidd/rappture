@@ -182,6 +182,8 @@ void ColorMap::build()
     if (!_needsBuild)
 	return;
 
+    TRACE("%s", _name.c_str());
+
     if (_lookupTable == NULL) {
 	_lookupTable = vtkSmartPointer<vtkLookupTable>::New();
     }
@@ -212,11 +214,11 @@ void ColorMap::build()
     for (int i = 0; i < _numTableEntries; i++) {
 	double value = ((double)i)/(_numTableEntries-1);
         double color[4];
-	if (itr2 != _controlPoints.end() && value > itr2->value) {
+	while (itr2 != _controlPoints.end() && value > itr2->value) {
 	    itr = itr2;
 	    itr2++;
 	}
-	if (oitr2 != _opacityControlPoints.end() && value > oitr2->value) {
+	while (oitr2 != _opacityControlPoints.end() && value > oitr2->value) {
 	    oitr = oitr2;
 	    oitr2++;
 	}
@@ -253,6 +255,7 @@ void ColorMap::build()
         _lookupTable->SetTableValue(i, color);
     }
     _needsBuild = false;
+    TRACE("Leave");
 }
 
 /**

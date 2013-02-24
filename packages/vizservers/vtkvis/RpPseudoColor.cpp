@@ -9,10 +9,6 @@
 #include <cfloat>
 #include <cstring>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -221,6 +217,13 @@ void PseudoColor::update()
     initProp();
     getActor()->SetMapper(_dsMapper);
     _dsMapper->Update();
+}
+
+void PseudoColor::setInterpolateBeforeMapping(bool state)
+{
+    if (_dsMapper != NULL) {
+        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    }
 }
 
 void PseudoColor::updateRanges(Renderer *renderer)
@@ -473,6 +476,7 @@ void PseudoColor::setColorMap(ColorMap *cmap)
         _lut->GetTableRange(range);
         _lut->DeepCopy(cmap->getLookupTable());
         _lut->SetRange(range);
+        _lut->Modified();
     }
 
     switch (_colorMode) {

@@ -7,10 +7,6 @@
 
 #include <cassert>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -45,30 +41,42 @@ using namespace Rappture::VtkVis;
 HeightMap::HeightMap(int numContours, double heightScale) :
     VtkGraphicsObject(),
     _numContours(numContours),
-    _colorMap(NULL),
+    _contourColorMap(false),
     _contourEdgeWidth(1.0),
     _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
-    _pipelineInitialized(false)
+    _pipelineInitialized(false),
+    _colorMap(NULL),
+    _colorMode(COLOR_BY_SCALAR),
+    _colorFieldType(DataSet::POINT_DATA),
+    _renderer(NULL)
 {
     _contourEdgeColor[0] = 1.0f;
     _contourEdgeColor[1] = 0.0f;
     _contourEdgeColor[2] = 0.0f;
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
 }
 
 HeightMap::HeightMap(const std::vector<double>& contours, double heightScale) :
     VtkGraphicsObject(),
     _numContours(contours.size()),
     _contours(contours),
-    _colorMap(NULL),
+    _contourColorMap(false),
     _contourEdgeWidth(1.0),
     _warpScale(heightScale),
     _sliceAxis(Z_AXIS),
-    _pipelineInitialized(false)
+    _pipelineInitialized(false),
+    _colorMap(NULL),
+    _colorMode(COLOR_BY_SCALAR),
+    _colorFieldType(DataSet::POINT_DATA),
+    _renderer(NULL)
 {
     _contourEdgeColor[0] = 1.0f;
     _contourEdgeColor[1] = 0.0f;
     _contourEdgeColor[2] = 0.0f;
+    _colorFieldRange[0] = DBL_MAX;
+    _colorFieldRange[1] = -DBL_MAX;
 }
 
 HeightMap::~HeightMap()
@@ -86,39 +94,66 @@ void HeightMap::setDataSet(DataSet *dataSet,
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
+        _renderer = renderer;
+
+        TRACE("DataSet name: '%s' type: %s",
+              _dataSet->getName().c_str(),
+              _dataSet->getVtkType());
 
         if (_dataSet != NULL) {
             if (renderer->getUseCumulativeRange()) {
                 renderer->getCumulativeDataRange(_dataRange,
                                                  _dataSet->getActiveScalarsName(),
                                                  1);
+                const char *activeVectors = _dataSet->getActiveVectorsName();
+                if (activeVectors != NULL) {
+                    renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                                     activeVectors,
+                                                     3);
+                    for (int i = 0; i < 3; i++) {
+                        renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                         activeVectors,
+                                                         3, i);
+                    }
+                }
             } else {
                 _dataSet->getScalarRange(_dataRange);
+                _dataSet->getVectorRange(_vectorMagnitudeRange);
+                for (int i = 0; i < 3; i++) {
+                    _dataSet->getVectorRange(_vectorComponentRange[i], i);
+                }
             }
-
-            // Compute a data scaling factor to make maximum
-            // height (at default _warpScale) equivalent to 
-            // largest dimension of data set
-            double bounds[6];
-            double boundsRange = 0.0;
-            _dataSet->getBounds(bounds);
-            for (int i = 0; i < 6; i+=2) {
-                double r = bounds[i+1] - bounds[i];
-                if (r > boundsRange)
-                    boundsRange = r;
-            }
-            double datRange = _dataRange[1] - _dataRange[0];
-            if (datRange < 1.0e-10) {
-                _dataScale = 1.0;
-            } else {
-                _dataScale = boundsRange / datRange;
-            }
-            TRACE("Bounds range: %g data range: %g scaling: %g",
-                  boundsRange, datRange, _dataScale);
         }
 
         update();
     }
+}
+
+/**
+ * Compute a data scaling factor to make maximum height (at default _warpScale) 
+ * equivalent to largest dimension of data set
+ */
+void HeightMap::computeDataScale()
+{
+    if (_dataSet == NULL)
+        return;
+
+    double bounds[6];
+    double boundsRange = 0.0;
+    _dataSet->getBounds(bounds);
+    for (int i = 0; i < 6; i+=2) {
+        double r = bounds[i+1] - bounds[i];
+        if (r > boundsRange)
+            boundsRange = r;
+    }
+    double datRange = _dataRange[1] - _dataRange[0];
+    if (datRange < 1.0e-10) {
+        _dataScale = 1.0;
+    } else {
+        _dataScale = boundsRange / datRange;
+    }
+    TRACE("Bounds range: %g data range: %g scaling: %g",
+          boundsRange, datRange, _dataScale);
 }
 
 /**
@@ -129,12 +164,15 @@ void HeightMap::initProp()
     if (_dsActor == NULL) {
         _dsActor = vtkSmartPointer<vtkActor>::New();
         _dsActor->GetProperty()->SetOpacity(_opacity);
+        _dsActor->GetProperty()->SetColor(_color[0],
+                                          _color[1],
+                                          _color[2]);
         _dsActor->GetProperty()->SetEdgeColor(_edgeColor[0],
                                               _edgeColor[1],
                                               _edgeColor[2]);
         _dsActor->GetProperty()->SetLineWidth(_edgeWidth);
         _dsActor->GetProperty()->EdgeVisibilityOff();
-        _dsActor->GetProperty()->SetAmbient(.2);
+        _dsActor->GetProperty()->SetAmbient(0.2);
         _dsActor->GetProperty()->LightingOn();
     }
     if (_contourActor == NULL) {
@@ -148,13 +186,15 @@ void HeightMap::initProp()
                                                    _contourEdgeColor[2]);
         _contourActor->GetProperty()->SetLineWidth(_contourEdgeWidth);
         _contourActor->GetProperty()->EdgeVisibilityOff();
-        _contourActor->GetProperty()->SetAmbient(.2);
+        _contourActor->GetProperty()->SetAmbient(1.0);
         _contourActor->GetProperty()->LightingOff();
     }
+    // Contour actor is added in update() if contours are produced
     if (_prop == NULL) {
         _prop = vtkSmartPointer<vtkAssembly>::New();
         getAssembly()->AddPart(_dsActor);
-        getAssembly()->AddPart(_contourActor);
+    } else {
+        getAssembly()->RemovePart(_contourActor);
     }
 }
 
@@ -166,9 +206,11 @@ void HeightMap::update()
     if (_dataSet == NULL)
         return;
 
+    TRACE("DataSet: %s", _dataSet->getName().c_str());
+
     vtkDataSet *ds = _dataSet->getVtkDataSet();
 
-    TRACE("DataSet type: %s", _dataSet->getVtkType());
+    computeDataScale();
 
     // Contour filter to generate isolines
     if (_contourFilter == NULL) {
@@ -427,13 +469,6 @@ void HeightMap::update()
 
     _pipelineInitialized = true;
 
-    if (_lut == NULL) {
-        setColorMap(ColorMap::getDefault());
-    }
-    //_dsMapper->InterpolateScalarsBeforeMappingOn();
-
-    initProp();
-
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
 
@@ -455,6 +490,9 @@ void HeightMap::update()
             _contourFilter->SetValue(i, _contours[i]);
         }
     }
+
+    initProp();
+
     if (_contourMapper == NULL) {
         _contourMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         _contourMapper->ScalarVisibilityOff();
@@ -463,14 +501,41 @@ void HeightMap::update()
         stripper->SetInputConnection(_contourFilter->GetOutputPort());
         _contourMapper->SetInputConnection(stripper->GetOutputPort());
         _contourActor->SetMapper(_contourMapper);
+        //_contourActor->InterpolateScalarsBeforeMappingOn();
+    }
+
+    //_dsMapper->InterpolateScalarsBeforeMappingOn();
+    if (_lut == NULL) {
+        setColorMap(ColorMap::getDefault());
+        setColorMode(_colorMode);
     }
 
     //setAspect(1.0);
+
+    // Ensure updated dataScale is applied
+    if (_warp != NULL) {
+        _warp->SetScaleFactor(_warpScale * _dataScale);
+    }
 
     _dsActor->SetMapper(_dsMapper);
 
     _dsMapper->Update();
     _contourMapper->Update();
+
+    // Only add contour actor to assembly if contours were
+    // produced, in order to prevent messing up assembly bounds
+    double bounds[6];
+    _contourActor->GetBounds(bounds);
+    if (bounds[0] <= bounds[1]) {
+        getAssembly()->AddPart(_contourActor);
+    }
+}
+
+void HeightMap::setInterpolateBeforeMapping(bool state)
+{
+    if (_dsMapper != NULL) {
+        _dsMapper->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
+    }
 }
 
 void HeightMap::setAspect(double aspect)
@@ -566,7 +631,8 @@ void HeightMap::setAspect(double aspect)
         }
     }
 
-    TRACE("obj %g,%g,%g", size[0], size[1], size[2]);
+    TRACE("%s dims %g,%g,%g", _dataSet->getName().c_str(),
+          size[0], size[1], size[2]);
     TRACE("Setting scale to %g,%g,%g", scale[0], scale[1], scale[2]);
     setScale(scale);
 }
@@ -576,6 +642,7 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
     TRACE("Warp scale: %g", _warpScale);
     if (_warpScale == 0.0) {
         _warp = NULL;
+        _normalsGenerator = NULL;
         return input;
     } else if (input == NULL) {
         ERROR("NULL input");
@@ -583,6 +650,8 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
     } else {
         if (_warp == NULL)
             _warp = vtkSmartPointer<vtkWarpScalar>::New();
+        if (_normalsGenerator == NULL)
+            _normalsGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
         switch (_sliceAxis) {
         case X_AXIS:
             _warp->SetNormal(1, 0, 0);
@@ -596,7 +665,12 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkAlgorithmOutput *input)
         _warp->UseNormalOn();
         _warp->SetScaleFactor(_warpScale * _dataScale);
         _warp->SetInputConnection(input);
-        return _warp->GetOutputPort();
+        _normalsGenerator->SetInputConnection(_warp->GetOutputPort());
+        _normalsGenerator->SetFeatureAngle(90.);
+        _normalsGenerator->AutoOrientNormalsOff();
+        _normalsGenerator->ComputePointNormalsOn();
+        return _normalsGenerator->GetOutputPort();
+        //return _warp->GetOutputPort();
     }
 }
 
@@ -605,6 +679,7 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
     TRACE("Warp scale: %g", _warpScale);
     if (_warpScale == 0.0) {
         _warp = NULL;
+        _normalsGenerator = NULL;
         return NULL;
     } else if (pdInput == NULL) {
         ERROR("NULL input");
@@ -612,6 +687,8 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
     } else {
         if (_warp == NULL)
             _warp = vtkSmartPointer<vtkWarpScalar>::New();
+        if (_normalsGenerator == NULL)
+            _normalsGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
         switch (_sliceAxis) {
         case X_AXIS:
             _warp->SetNormal(1, 0, 0);
@@ -629,7 +706,12 @@ vtkAlgorithmOutput *HeightMap::initWarp(vtkPolyData *pdInput)
 #else
         _warp->SetInput(pdInput);
 #endif
-        return _warp->GetOutputPort();
+        _normalsGenerator->SetInputConnection(_warp->GetOutputPort());
+        _normalsGenerator->SetFeatureAngle(90.);
+        _normalsGenerator->AutoOrientNormalsOff();
+        _normalsGenerator->ComputePointNormalsOn();
+        return _normalsGenerator->GetOutputPort();
+        //return _warp->GetOutputPort();
     }
 }
 
@@ -774,6 +856,243 @@ void HeightMap::selectVolumeSlice(Axis axis, double ratio)
         _contourMapper->Update();
 }
 
+void HeightMap::updateRanges(Renderer *renderer)
+{
+    TRACE("Enter");
+
+    if (_dataSet == NULL) {
+        ERROR("called before setDataSet");
+        return;
+    }
+
+    if (renderer->getUseCumulativeRange()) {
+        renderer->getCumulativeDataRange(_dataRange,
+                                         _dataSet->getActiveScalarsName(),
+                                         1);
+        const char *activeVectors = _dataSet->getActiveVectorsName();
+        if (activeVectors != NULL) {
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
+                                             activeVectors,
+                                             3);
+            for (int i = 0; i < 3; i++) {
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 activeVectors,
+                                                 3, i);
+            }
+        }
+    } else {
+        _dataSet->getScalarRange(_dataRange);
+        _dataSet->getVectorRange(_vectorMagnitudeRange);
+        for (int i = 0; i < 3; i++) {
+            _dataSet->getVectorRange(_vectorComponentRange[i], i);
+        }
+    }
+ 
+    // Need to update color map ranges
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
+
+    if ((_contours.empty() && _numContours > 0) ||
+        _warpScale > 0.0) {
+        // Contour isovalues and/or warp need to be recomputed
+        update();
+    }
+
+    TRACE("Leave");
+}
+
+void HeightMap::setContourLineColorMapEnabled(bool mode)
+{
+    _contourColorMap = mode;
+
+    double *rangePtr = _colorFieldRange;
+    if (_colorFieldRange[0] > _colorFieldRange[1]) {
+        rangePtr = NULL;
+    }
+    setColorMode(_colorMode, _colorFieldType, _colorFieldName.c_str(), rangePtr);
+}
+
+void HeightMap::setColorMode(ColorMode mode)
+{
+    _colorMode = mode;
+    if (_dataSet == NULL)
+        return;
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        setColorMode(mode,
+                     _dataSet->getActiveScalarsType(),
+                     _dataSet->getActiveScalarsName(),
+                     _dataRange);
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorMagnitudeRange);
+        break;
+    case COLOR_BY_VECTOR_X:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[0]);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[1]);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        setColorMode(mode,
+                     _dataSet->getActiveVectorsType(),
+                     _dataSet->getActiveVectorsName(),
+                     _vectorComponentRange[2]);
+        break;
+    case COLOR_CONSTANT:
+    default:
+        setColorMode(mode, DataSet::POINT_DATA, NULL, NULL);
+        break;
+    }
+}
+
+void HeightMap::setColorMode(ColorMode mode,
+                             const char *name, double range[2])
+{
+    if (_dataSet == NULL)
+        return;
+    DataSet::DataAttributeType type = DataSet::POINT_DATA;
+    int numComponents = 1;
+    if (name != NULL && strlen(name) > 0 &&
+        !_dataSet->getFieldInfo(name, &type, &numComponents)) {
+        ERROR("Field not found: %s", name);
+        return;
+    }
+    setColorMode(mode, type, name, range);
+}
+
+void HeightMap::setColorMode(ColorMode mode, DataSet::DataAttributeType type,
+                             const char *name, double range[2])
+{
+    _colorMode = mode;
+    _colorFieldType = type;
+    if (name == NULL)
+        _colorFieldName.clear();
+    else
+        _colorFieldName = name;
+    if (range == NULL) {
+        _colorFieldRange[0] = DBL_MAX;
+        _colorFieldRange[1] = -DBL_MAX;
+    } else {
+        memcpy(_colorFieldRange, range, sizeof(double)*2);
+    }
+
+    if (_dataSet == NULL || _dsMapper == NULL)
+        return;
+
+    switch (type) {
+    case DataSet::POINT_DATA:
+        _dsMapper->SetScalarModeToUsePointFieldData();
+        _contourMapper->SetScalarModeToUsePointFieldData();
+        break;
+    case DataSet::CELL_DATA:
+        _dsMapper->SetScalarModeToUseCellFieldData();
+        _contourMapper->SetScalarModeToUseCellFieldData();
+        break;
+    default:
+        ERROR("Unsupported DataAttributeType: %d", type);
+        return;
+    }
+
+    if (name != NULL && strlen(name) > 0) {
+        _dsMapper->SelectColorArray(name);
+        _contourMapper->SelectColorArray(name);
+    } else {
+        _dsMapper->SetScalarModeToDefault();
+        _contourMapper->SetScalarModeToDefault();
+    }
+
+    if (_lut != NULL) {
+        if (range != NULL) {
+            _lut->SetRange(range);
+            TRACE("range %g, %g", range[0], range[1]);
+        } else if (name != NULL && strlen(name) > 0) {
+            double r[2];
+            int comp = -1;
+            if (mode == COLOR_BY_VECTOR_X)
+                comp = 0;
+            else if (mode == COLOR_BY_VECTOR_Y)
+                comp = 1;
+            else if (mode == COLOR_BY_VECTOR_Z)
+                comp = 2;
+
+            if (_renderer->getUseCumulativeRange()) {
+                int numComponents;
+                if  (!_dataSet->getFieldInfo(name, type, &numComponents)) {
+                    ERROR("Field not found: %s, type: %d", name, type);
+                    return;
+                } else if (numComponents < comp+1) {
+                    ERROR("Request for component %d in field with %d components",
+                          comp, numComponents);
+                    return;
+                }
+                _renderer->getCumulativeDataRange(r, name, type, numComponents, comp);
+            } else {
+                _dataSet->getDataRange(r, name, type, comp);
+            }
+            _lut->SetRange(r);
+            TRACE("%s range %g, %g", name, r[0], r[1]);
+        }
+        _lut->Modified();
+    }
+
+    if (_contourColorMap) {
+        _contourMapper->ScalarVisibilityOn();
+    } else {
+        _contourMapper->ScalarVisibilityOff();
+    }
+
+    switch (mode) {
+    case COLOR_BY_SCALAR:
+        _dsMapper->ScalarVisibilityOn();
+        break;
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        _dsMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToMagnitude();
+        }
+        break;
+    case COLOR_BY_VECTOR_X:
+        _dsMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(0);
+        }
+        break;
+    case COLOR_BY_VECTOR_Y:
+        _dsMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(1);
+        }
+        break;
+    case COLOR_BY_VECTOR_Z:
+        _dsMapper->ScalarVisibilityOn();
+        if (_lut != NULL) {
+            _lut->SetVectorModeToComponent();
+            _lut->SetVectorComponent(2);
+        }
+        break;
+    case COLOR_CONSTANT:
+    default:
+        _dsMapper->ScalarVisibilityOff();
+        break;
+    }
+}
+
 /**
  * \brief Called when the color map has been edited
  */
@@ -791,30 +1110,64 @@ void HeightMap::setColorMap(ColorMap *cmap)
         return;
 
     _colorMap = cmap;
- 
+
     if (_lut == NULL) {
         _lut = vtkSmartPointer<vtkLookupTable>::New();
         if (_dsMapper != NULL) {
             _dsMapper->UseLookupTableScalarRangeOn();
             _dsMapper->SetLookupTable(_lut);
         }
+        if (_contourMapper != NULL) {
+            _contourMapper->UseLookupTableScalarRangeOn();
+            _contourMapper->SetLookupTable(_lut);
+        }
+        _lut->DeepCopy(cmap->getLookupTable());
+        switch (_colorMode) {
+        case COLOR_CONSTANT:
+        case COLOR_BY_SCALAR:
+            _lut->SetRange(_dataRange);
+            break;
+        case COLOR_BY_VECTOR_MAGNITUDE:
+            _lut->SetRange(_vectorMagnitudeRange);
+            break;
+        case COLOR_BY_VECTOR_X:
+            _lut->SetRange(_vectorComponentRange[0]);
+            break;
+        case COLOR_BY_VECTOR_Y:
+            _lut->SetRange(_vectorComponentRange[1]);
+            break;
+        case COLOR_BY_VECTOR_Z:
+            _lut->SetRange(_vectorComponentRange[2]);
+            break;
+        default:
+            break;
+        }
+    } else {
+        double range[2];
+        _lut->GetTableRange(range);
+        _lut->DeepCopy(cmap->getLookupTable());
+        _lut->SetRange(range);
+        _lut->Modified();
     }
 
-    _lut->DeepCopy(cmap->getLookupTable());
-    _lut->SetRange(_dataRange);
-}
-
-void HeightMap::updateRanges(Renderer *renderer)
-{
-    VtkGraphicsObject::updateRanges(renderer);
-
-    if (_lut != NULL) {
-        _lut->SetRange(_dataRange);
-    }
-
-    if (_contours.empty() && _numContours > 0) {
-        // Need to recompute isovalues
-        update();
+    switch (_colorMode) {
+    case COLOR_BY_VECTOR_MAGNITUDE:
+        _lut->SetVectorModeToMagnitude();
+        break;
+    case COLOR_BY_VECTOR_X:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(0);
+        break;
+    case COLOR_BY_VECTOR_Y:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(1);
+        break;
+    case COLOR_BY_VECTOR_Z:
+        _lut->SetVectorModeToComponent();
+        _lut->SetVectorComponent(2);
+        break;
+    default:
+         break;
     }
 }
 
@@ -899,6 +1252,18 @@ void HeightMap::setContourLineVisibility(bool state)
     if (_contourActor != NULL) {
         _contourActor->SetVisibility((state ? 1 : 0));
     }
+}
+
+/**
+ * \brief Set RGB color of mesh
+ */
+void HeightMap::setColor(float color[3])
+{
+    _color[0] = color[0];
+    _color[1] = color[1];
+    _color[2] = color[2];
+    if (_dsActor != NULL)
+        _dsActor->GetProperty()->SetColor(_color[0], _color[1], _color[2]);
 }
 
 /**

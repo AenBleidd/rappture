@@ -1,10 +1,10 @@
 DEBUG			= #yes
 TRACE			= #yes
-USE_CUSTOM_AXES		= yes
+USE_CUSTOM_AXES		= #yes
 USE_GPU_RAYCASTING	= yes
 USE_OFFSCREEN_RENDERING	= #yes
 USE_THREADS		= yes
-USE_VTK6                = #yes
+USE_VTK6                = yes
 
 bindir          = @bindir@
 datadir         = @datadir@
@@ -36,14 +36,50 @@ TCL_LIB_SPEC    = @TCL_LIB_SPEC@
 TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 VTK_LIB_DIR	= @VTK_LIB_DIR@
-VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) -lvtkIO -lvtkWidgets -lvtkFiltering -lvtkVolumeRendering -lvtkRendering -lvtkHybrid -lvtkGraphics -lvtkImaging -lvtkCommon
+VTK_LIB_SPEC	= -L$(VTK_LIB_DIR) \
+		-lvtkChemistry \
+		-lvtkIO \
+		-lvtkWidgets \
+		-lvtkFiltering \
+		-lvtkVolumeRendering \
+		-lvtkRendering \
+		-lvtkHybrid \
+		-lvtkGraphics \
+		-lvtkImaging \
+		-lvtkCommon
 VTK_INC_SPEC	= @VTK_INC_SPEC@
-VTK6_LIB_SPEC   = -lvtkDomainsChemistry-6.0 -lvtkIOCore-6.0 -lvtkFiltersModeling-6.0 -lvtkFiltersFlowPaths-6.0 -lvtkFiltersCore-6.0 -lvtkInteractionStyle-6.0 -lvtkInteractionWidgets-6.0 -lvtkRenderingOpenGL-6.0 -lvtkRenderingHybridOpenGL-6.0 -lvtkRenderingFreeTypeOpenGL-6.0 -lvtkRenderingVolumeOpenGL-6.0 -lvtkRenderingVolume-6.0 -lvtkRenderingLabel-6.0 -lvtkRenderingAnnotation-6.0 -lvtkRenderingCore-6.0 -lvtkCommonCore-6.0
-VTK6_INC_SPEC	= -DvtkRenderingCore_AUTOINIT="3(vtkInteractionStyle,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)" @VTK_INC_SPEC@
+VTK6_LIB_SPEC   = \
+		-lvtkDomainsChemistry-6.0 \
+		-lvtkIOCore-6.0 \
+		-lvtkIOLegacy-6.0 \
+		-lvtkFiltersModeling-6.0 \
+		-lvtkFiltersFlowPaths-6.0 \
+		-lvtkFiltersGeometry-6.0 \
+		-lvtkFiltersSources-6.0 \
+		-lvtkFiltersGeneral-6.0 \
+		-lvtkFiltersCore-6.0 \
+		-lvtkImagingHybrid-6.0 \
+		-lvtkImagingCore-6.0 \
+		-lvtkInteractionStyle-6.0 \
+		-lvtkInteractionWidgets-6.0 \
+		-lvtkRenderingOpenGL-6.0 \
+		-lvtkRenderingHybridOpenGL-6.0 \
+		-lvtkRenderingFreeTypeOpenGL-6.0 \
+		-lvtkRenderingFreeType-6.0  \
+		-lvtkRenderingVolumeOpenGL-6.0 \
+		-lvtkRenderingVolume-6.0 \
+		-lvtkRenderingLabel-6.0 \
+		-lvtkRenderingAnnotation-6.0 \
+		-lvtkRenderingCore-6.0 \
+		-lvtkCommonCore-6.0 \
+		-lvtkCommonDataModel-6.0 \
+		-lvtkCommonExecutionModel-6.0  \
+		-lvtkCommonMisc-6.0  \
+		-lvtkCommonTransforms-6.0 \
+		-lvtkCommonMath-6.0
 
 ifdef USE_VTK6
 VTK_LIB_SPEC	= $(VTK6_LIB_SPEC)
-VTK_INC_SPEC	= $(VTK6_INC_SPEC)
 endif
 
 ifdef USE_VTK6
@@ -57,7 +93,8 @@ LIBS		= \
 		$(VTK_LIB_SPEC) \
 		$(GL_LIB_SPEC) \
 		$(PTHREAD_LIB_SPEC) \
-		-Wl,-rpath,$(LD_RUN_PATH)
+		-Wl,-rpath,$(LD_RUN_PATH) \
+		-Wl,--enable-new-dtags
 
 INCLUDES	= \
 		-I. \
@@ -86,6 +123,13 @@ endif
 ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
+ifdef USE_VTK6
+# As of 2013-01-27, use the following defs for VTK head
+#VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
+VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="3(vtkInteractionStyle,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
+DEFINES         += -DUSE_VTK6 -DVTK_HYBRID_EXPORT="" -DVTK_RENDERING_EXPORT="" $(VTK_MOD_DEFS)
+endif
+
 CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
@@ -129,8 +173,7 @@ ifdef USE_CUSTOM_AXES
 SERVER_SRCS+= \
 	vtkRpAxisActor.cpp \
 	vtkRpAxisActor2D.cpp \
-	vtkRpCubeAxesActor.cpp \
-	vtkRpCubeAxesActor2D.cpp
+	vtkRpCubeAxesActor.cpp
 endif
 ifdef USE_THREADS
 SERVER_SRCS+=ResponseQueue.cpp
@@ -196,14 +239,13 @@ RpStreamlines.o: RpStreamlines.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRende
 RpVolume.o: RpVolume.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 RpVtkDataSet.o: RpVtkDataSet.h Trace.h
 RpVtkGraphicsObject.o: RpVtkGraphicsObject.h RpVtkRenderer.h RpVtkDataSet.h ColorMap.h Trace.h
-RpVtkRenderer.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpMath.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor2D.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
+RpVtkRenderer.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisActor.h vtkRpAxisActor2D.h RpMath.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
+RpVtkRendererCmd.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h vtkRpCubeAxesActor.h vtkRpAxisActor.h vtkRpAxisActor2D.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h ReadBuffer.h ResponseQueue.h Trace.h CmdProc.h PPMWriter.h TGAWriter.h
 RpVtkRendererGraphicsObjs.o: RpVtkRenderer.h RpVtkRendererGraphicsObjs.h RpVtkDataSet.h RpArc.h RpArrow.h RpBox.h RpCone.h RpContour2D.h RpContour3D.h RpCutplane.h RpCylinder.h RpDisk.h RpGlyphs.h RpGroup.h RpHeightMap.h RpLIC.h RpLine.h RpMolecule.h RpPolyData.h RpPolygon.h RpPseudoColor.h RpSphere.h RpStreamlines.h RpVolume.h ColorMap.h Trace.h
-RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpAxisActor.h vtkRpCubeAxesActor.h vtkRpAxisActor2D.h vtkRpCubeAxesActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
+RpVtkRenderServer.o: RpVtkRenderServer.h RpVtkRendererCmd.h RpVtkRenderer.h vtkRpCubeAxesActor.h vtkRpAxisActor.h vtkRpAxisActor2D.h ReadBuffer.h ResponseQueue.h Trace.h PPMWriter.h TGAWriter.h
 RpWarp.o: RpWarp.h RpVtkGraphicsObject.h RpVtkDataSet.h RpVtkRenderer.h ColorMap.h Trace.h
 Trace.o: Trace.h
 TGAWriter.o: TGAWriter.h ResponseQueue.h Trace.h
 vtkRpAxisActor.o: vtkRpAxisActor.h
 vtkRpAxisActor2D.o: vtkRpAxisActor2D.h
-vtkRpCubeAxesActor.o: vtkRpCubeAxesActor.h 
-vtkRpCubeAxesActor2D.o: vtkRpCubeAxesActor2D.h
+vtkRpCubeAxesActor.o: vtkRpCubeAxesActor.h vtkRpAxisActor.h vtkRpAxisActor2D.h
