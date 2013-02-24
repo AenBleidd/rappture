@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: field2dresult - plot a field in a ResultSet
 #
@@ -20,8 +21,8 @@ option add *Field2DResult.height 4i widgetDefault
 option add *Field2DResult.foreground black widgetDefault
 option add *Field2DResult.controlBackground gray widgetDefault
 option add *Field2DResult.controlDarkBackground #999999 widgetDefault
-option add *Field2DResult.plotBackground black widgetDefault
-option add *Field2DResult.plotForeground white widgetDefault
+option add *Field2DResult.plotBackground white widgetDefault
+option add *Field2DResult.plotForeground black widgetDefault
 option add *Field2DResult.font \
     -*-helvetica-medium-r-normal-*-12-* widgetDefault
 
@@ -30,15 +31,21 @@ itcl::class Rappture::Field2DResult {
 
     itk_option define -mode mode Mode "auto"
 
-    constructor {args} { # defined below }
-    destructor { # defined below }
+    constructor {args} { 
+	# defined below 
+    }
+    destructor { 
+	# defined below 
+    }
 
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}
     public method scale {args}
     public method snap {w h}
-    public method parameters {title args} { # do nothing }
+    public method parameters {title args} { 
+	# do nothing 
+    }
     public method download {option args}
 }
 
@@ -57,10 +64,10 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     array set flags $args
     set servers ""
     switch -- $flags(-mode) {
-        "auto" - "heightmap" - "flowvis" {
+        "flowvis" {
             set servers [Rappture::VisViewer::GetServerList "nanovis"]
         }
-        "vtkcontour" - "vtkheightmap" - "vtkstreamlines" - "vtkviewer" {
+        "auto" - "contour" - "heightmap" - "streamlines" - "vtkviewer" {
             set servers [Rappture::VisViewer::GetServerList "vtkvis"]
         }
         "vtk" {
@@ -72,34 +79,26 @@ itcl::body Rappture::Field2DResult::constructor {args} {
     }
     if {"" != $servers && $flags(-mode) != "vtk"} {
         switch -- $flags(-mode) {
-            "auto" - "heightmap" {
+            "contour" - "heightmap" {
                 itk_component add renderer {
-                    Rappture::HeightmapViewer $itk_interior.ren $servers 
+                    Rappture::VtkHeightmapViewer $itk_interior.heightmap \
+			$servers -mode $flags(-mode)
                 }
             }
             "flowvis" {
                 itk_component add renderer {
-                    Rappture::FlowvisViewer $itk_interior.ren $servers
+                    Rappture::FlowvisViewer $itk_interior.flow $servers
                 }
             }
-            "vtkcontour" {
+            "streamlines" {
                 itk_component add renderer {
-                    Rappture::VtkContourViewer $itk_interior.ren $servers 
-                }
-            }
-            "vtkheightmap" {
-                itk_component add renderer {
-                    Rappture::VtkHeightmapViewer $itk_interior.ren $servers 
-                }
-            }
-            "vtkstreamlines" {
-                itk_component add renderer {
-                    Rappture::VtkStreamlinesViewer $itk_interior.ren $servers
+                    Rappture::VtkStreamlinesViewer $itk_interior.streamlines \
+			$servers
                 }
             }
             "vtkviewer" {
                 itk_component add renderer {
-                    Rappture::VtkViewer $itk_interior.ren $servers 
+                    Rappture::VtkViewer $itk_interior.viewer $servers 
                 }
             }
             default {
@@ -112,14 +111,14 @@ itcl::body Rappture::Field2DResult::constructor {args} {
             #destroy $itk_component(renderer)
         }
     }
-
     if {![info exists itk_component(renderer)]} {
         itk_component add renderer {
-            Rappture::ContourResult $itk_interior.ren
+            Rappture::ContourResult $itk_interior.oldcontour
         }
         pack $itk_component(renderer) -expand yes -fill both
     }
     eval itk_initialize $args
+    update
 }
 
 # ----------------------------------------------------------------------

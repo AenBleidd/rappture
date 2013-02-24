@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: nanovisviewer - 3D volume rendering
@@ -132,6 +133,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _style2vols   ;# maps tf back to list of 
                                     # dataobj-components using the tf.
 
+    private variable _reset 1;		# Connection to server has been reset 
     private variable _click        ;# info used for rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
@@ -192,6 +194,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias data [itcl::code $this ReceiveData]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -204,6 +207,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     }
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
+    set _reset 1
 
     array set _settings [subst {
         $this-pan-x             $_view(pan-x)
@@ -228,6 +232,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         usual
         ignore -highlightthickness -borderwidth  -background
     }
+    bind $itk_component(3dview) <Control-F1> [itcl::code $this ToggleConsole]
 
     set f [$itk_component(main) component controls]
     itk_component add reset {
@@ -585,6 +590,7 @@ itcl::body Rappture::NanovisViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1 
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         set w [winfo width $itk_component(3dview)]
@@ -882,54 +888,79 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             NameTransferFunc $dataobj $comp
         }
     }
-    #
-    # Reset the camera and other view parameters
-    #
+    if { $_reset } {
+	#
+	# Reset the camera and other view parameters
+	#
+	
+	set _settings($this-theta) $_view(theta)
+	set _settings($this-phi)   $_view(phi)
+	set _settings($this-psi)   $_view(psi)
+	set _settings($this-pan-x) $_view(pan-x)
+	set _settings($this-pan-y) $_view(pan-y)
+	set _settings($this-zoom)  $_view(zoom)
+	
+	set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+	SendCmd "camera angle $xyz"
+	PanCamera
+	SendCmd "camera zoom $_view(zoom)"
+	FixSettings light
+	FixSettings transp
+	FixSettings isosurface
+	FixSettings grid
+	FixSettings axes
+	FixSettings outline
+	
+	# nothing to send -- activate the proper ivol
+	SendCmd "volume state 0"
+	set _first [lindex [get] 0]
+	if {"" != $_first} {
+	    set axis [$_first hints updir]
+	    if { "" != $axis } {
+		SendCmd "up $axis"
+	    }
+	    set location [$_first hints camera]
+	    if { $location != "" } {
+		array set _view $location
+	    }
+	    set vols [array names _serverVols $_first-*] 
+	    if { $vols != "" } {
+		SendCmd "volume state 1 $vols"
+	    }
+	    if 1 {
+		# Tell the server the name of the tool, the version, and dataset
+		# that we are rendering.  Have to do it here because we don't know
+		# what data objects are using the renderer until be get here.
+		global env
 
-    set _settings($this-theta) $_view(theta)
-    set _settings($this-phi)   $_view(phi)
-    set _settings($this-psi)   $_view(psi)
-    set _settings($this-pan-x) $_view(pan-x)
-    set _settings($this-pan-y) $_view(pan-y)
-    set _settings($this-zoom)  $_view(zoom)
+		lappend out "hub" [exec hostname]
+		lappend out "viewer" "nanovisviewer"
+		if { [info exists env(USER)] } {
+		    lappend out "user" $env(USER)
+		}
+		if { [info exists env(SESSION)] } {
+		    lappend out "session" $env(SESSION)
+		}
+		lappend out "tool_id"      [$_first hints toolId]
+		lappend out "tool_name"    [$_first hints toolName]
+		lappend out "tool_version" [$_first hints toolRevision]
+		lappend out "tool_title"   [$_first hints toolTitle]
+		lappend out "tool_dataset" [$_first hints label]
+		SendCmd "clientinfo [list $out]"
+	    }
 
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
-    PanCamera
-    SendCmd "camera zoom $_view(zoom)"
-    FixSettings light
-    FixSettings transp
-    FixSettings isosurface
-    FixSettings grid
-    FixSettings axes
-    FixSettings outline
-
-    # nothing to send -- activate the proper ivol
-    SendCmd "volume state 0"
-    set _first [lindex [get] 0]
-    if {"" != $_first} {
-        set axis [$_first hints updir]
-        if { "" != $axis } {
-            SendCmd "up $axis"
-        }
-        set location [$_first hints camera]
-        if { $location != "" } {
-            array set _view $location
-        }
-        set vols [array names _serverVols $_first-*] 
-        if { $vols != "" } {
-            SendCmd "volume state 1 $vols"
-        }
-    }
-    # If the first volume already exists on the server, then make sure we
-    # display the proper transfer function in the legend.
-    set comp [lindex [$_first components] 0]
-    if { [info exists _serverVols($_first-$comp)] } {
-        updatetransferfuncs
-    }
-    foreach axis {x y z} {
-        # Turn off cutplanes for all volumes
-        SendCmd "cutplane state 0 $axis"
+	    foreach axis {x y z} {
+		# Turn off cutplanes for all volumes
+		SendCmd "cutplane state 0 $axis"
+	    }
+	    
+	    # If the first volume already exists on the server, then make sure
+	    # we display the proper transfer function in the legend.
+	    set comp [lindex [$_first components] 0]
+	    if { [info exists _serverVols($_first-$comp)] } {
+		updatetransferfuncs
+	    }
+	}
     }
     set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -937,6 +968,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     blt::busy hold $itk_component(hull)
     SendBytes $_outbuf;                        
     blt::busy release $itk_component(hull)
+    set _reset 0
     set _outbuf "";                        # Clear the buffer.                
 }
 

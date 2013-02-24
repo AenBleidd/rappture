@@ -93,6 +93,7 @@ public:
 #ifdef notdef
     static void initParticle();
 #endif
+    static int WriteToStatsFile(const char *s, size_t length);
     static void ppmWrite(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
                                  size_t dlen);
@@ -181,7 +182,7 @@ public:
     static PlaneRenderer *planeRenderer;
 #if PLANE_CMD
     static int numPlanes;
-    static Texture2D *plane[]; ///< Pointers to 2D planes
+    static Texture2D *plane[];          ///< Pointers to 2D planes
 #endif
 #ifdef USE_POINTSET_RENDERER
     static PointSetRenderer *pointSetRenderer;
@@ -189,10 +190,10 @@ public:
 #endif
 
     static Tcl_Interp *interp;
-
+    static struct timeval startTime;           /* Start of elapsed time. */
 private:
-    static float _licSlice;  ///< Slice position [0,1]
-    static int _licAxis;     ///< Slice axis: 0:x, 1:y, 2:z
+    static float _licSlice;             ///< Slice position [0,1]
+    static int _licAxis;                ///< Slice axis: 0:x, 1:y, 2:z
 
     //frame buffer for final rendering
     static GLuint _finalFbo, _finalColorTex, _finalDepthRb;

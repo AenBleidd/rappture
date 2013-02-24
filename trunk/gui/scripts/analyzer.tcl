@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: analyzer - output area for Rappture
 #
@@ -1184,7 +1185,7 @@ itcl::body Rappture::Analyzer::_fixNotebook {} {
 # trajectory rather than a single frame
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
-    if { [llength $data]  == 0 } {
+    if { [llength $data] == 0 } {
         return 0
     }
     set nModels 0
@@ -1208,7 +1209,7 @@ itcl::body Rappture::Analyzer::_isPdbTrajectory {data} {
 # trajectory rather than a single frame
 # ----------------------------------------------------------------------
 itcl::body Rappture::Analyzer::_isLammpsTrajectory { data } {
-    if { [llength $data]  == 0 } {
+    if { [llength $data] == 0 } {
         return 0
     }
     set nModels 0

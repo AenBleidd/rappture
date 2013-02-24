@@ -17,9 +17,7 @@ octave_version=@OCTAVE_VERSION_MAJOR@
 
 prepend PATH ${bindir}
 
-prepend LD_LIBRARY_PATH ${vtkdir}
 prepend LD_LIBRARY_PATH ${libdir}
-prepend DYLD_LIBRARY_PATH ${vtkdir}
 prepend DYLD_LIBRARY_PATH ${libdir}
 
 prepend MATLABPATH ${libdir}/matlab

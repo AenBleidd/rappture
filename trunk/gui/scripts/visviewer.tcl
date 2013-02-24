@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  VisViewer - 
@@ -33,12 +34,13 @@ itcl::class ::Rappture::VisViewer {
     private variable _afterId -1
     private variable _icon 0
 
-    # Number of milliseconds to wait before idle timeout.
-    # If greater than 0, automatically disconnect from the visualization
-    # server when idle timeout is reached.
+    # Number of milliseconds to wait before idle timeout.  If greater than 0,
+    # automatically disconnect from the visualization server when idle timeout
+    # is reached.
     private variable _idleTimeout 43200000; # 12 hours
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
+
     private variable _logging 0
 
     protected variable _dispatcher "";  # dispatcher for !events
@@ -46,32 +48,42 @@ itcl::class ::Rappture::VisViewer {
     protected variable _parser ""   ;   # interpreter for incoming commands
     protected variable _image
     protected variable _hostname
+    protected variable _errorCount 0
+    protected variable _debugConsole 0
 
-    constructor { hostlist args } {
+    constructor { servers args } {
         # defined below
     }
     destructor {
         # defined below
     }
     # Used internally only.
-    private method Shuffle { hostlist }
+    private method Shuffle { servers }
     private method ReceiveHelper {}
     private method ServerDown {}
     private method SendHelper {}
     private method SendHelper.old {}
-    private method CheckConnection {}
     private method SplashScreen { state } 
 
-    protected method SendEcho { channel {data ""} }
-    protected method ReceiveEcho { channel {data ""} }
-    protected method Connect { hostlist }
-    protected method Disconnect {}
-    protected method IsConnected {}
-    protected method SendBytes { bytes }
-    protected method ReceiveBytes { nbytes }
-    protected method Flush {}
+    protected method ToggleConsole {} 
+    private method DebugConsole {} 
+    private method BuildConsole {} 
+    private method HideConsole {} 
+    private method TraceComm { channel {data {}} } 
+    private method SendDebugCommand {} 
+
     protected method Color2RGB { color }
+    protected method Connect { servers }
+    protected method CheckConnection {}
+    protected method Disconnect {}
     protected method Euler2XYZ { theta phi psi }
+    protected method Flush {}
+    protected method IsConnected {}
+    protected method ReceiveBytes { nbytes }
+    protected method ReceiveEcho { channel {data ""} }
+    protected method ReceiveError { args }
+    protected method SendBytes { bytes }
+    protected method SendEcho { channel {data ""} }
     protected method StartWaiting {} 
     protected method StopWaiting {} 
 
@@ -123,7 +135,7 @@ itk::usual Panedwindow {
 # ----------------------------------------------------------------------
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
-itcl::body Rappture::VisViewer::constructor { hostlist args } {
+itcl::body Rappture::VisViewer::constructor { servers args } {
 
     Rappture::dispatcher _dispatcher
     $_dispatcher register !serverDown
@@ -133,8 +145,7 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
 
     $_dispatcher register !waiting
 
-    CheckNameList $hostlist
-    set _hostlist $hostlist
+    CheckNameList $servers
     set _buffer(in) ""
     set _buffer(out) ""
     #
@@ -151,7 +162,7 @@ itcl::body Rappture::VisViewer::constructor { hostlist args } {
     pack propagate $itk_component(hull) no
 
     itk_component add main {
-        Rappture::SidebarFrame $itk_interior.main -resizeframe 0
+        Rappture::SidebarFrame $itk_interior.main -resizeframe 1
     }
     pack $itk_component(main) -expand yes -fill both
     set f [$itk_component(main) component frame]
@@ -225,16 +236,13 @@ itcl::body Rappture::VisViewer::ServerDown {} {
 #
 #    Connect to the visualization server (e.g. nanovis, pymolproxy).
 #    Creates an event callback that is triggered when we are idle
-#    (no I/O with the server) for some specified time. Sends the server
-#    some estimate of the size of our job [soon to be deprecated].
-#    If it's too busy, that server may forward us to another [this
-#    was been turned off in nanoscale].
+#    (no I/O with the server) for some specified time. 
 #
-itcl::body Rappture::VisViewer::Connect { hostlist } {
+itcl::body Rappture::VisViewer::Connect { servers } {
     blt::busy hold $itk_component(hull) -cursor watch
 
     puts stderr "server type is $_serverType"
-    foreach server [Shuffle $hostlist] {
+    foreach server [Shuffle $servers] {
         puts stderr "connecting to $server..."
         foreach {hostname port} [split $server ":"] break
         if { [catch {socket $hostname $port} _sid] != 0 } {
@@ -435,7 +443,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 itcl::body Rappture::VisViewer::StartWaiting {} {
     after cancel $_afterId 
-    set _afterId [after 500 [itcl::code $this SplashScreen on]]
+    set _afterId [after 2000 [itcl::code $this SplashScreen on]]
 }
 
 itcl::body Rappture::VisViewer::StopWaiting {} { 
@@ -626,3 +634,184 @@ itcl::body Rappture::VisViewer::Waiting { option widget } {
         }
     }
 }
+
+#
+# HideConsole --
+#
+#    Hide the debug console by withdrawing its toplevel window.
+#
+itcl::body Rappture::VisViewer::HideConsole {} {
+    set _debugConsole 0
+    DebugConsole
+}
+
+#
+# BuildConsole --
+#
+#    Create and pack the widgets that make up the debug console: a text
+#    widget to display the communication and an entry widget to type
+#    in commands to send to the render server.
+#
+itcl::body Rappture::VisViewer::BuildConsole {} {
+    toplevel .renderconsole
+    wm protocol .renderconsole WM_DELETE_WINDOW [itcl::code $this HideConsole]
+    set f .renderconsole
+    frame $f.send
+    pack $f.send -side bottom -fill x
+    label $f.send.l -text "Send:"
+    pack $f.send.l -side left
+    itk_component add command {
+	entry $f.send.e -background white
+    } {
+	ignore -background
+    }
+    pack $f.send.e -side left -expand yes -fill x
+    bind $f.send.e <KeyPress-Return> [itcl::code $this SendDebugCommand]
+    
+    scrollbar $f.sb -orient vertical -command "$f.comm yview"
+    pack $f.sb -side right -fill y
+    itk_component add trace {
+	text $f.comm -wrap char -yscrollcommand "$f.sb set" -background white
+    } {
+	ignore -background
+    }
+    pack $f.comm -expand yes -fill both
+
+    $itk_component(trace) tag configure error -foreground red \
+	-font -*-courier-medium-o-normal-*-*-120-*
+    $itk_component(trace) tag configure incoming -foreground blue
+}
+
+#
+# ToggleConsole --
+#
+#    This is used by derived classes to turn on/off debuging.  It's
+#    up the to derived class to decide how to turn on/off debugging.
+#
+itcl::body Rappture::VisViewer::ToggleConsole {} {
+    if { $_debugConsole } {
+	set _debugConsole 0
+    } else {
+	set _debugConsole 1
+    }
+    DebugConsole
+}
+
+#
+# DebugConsole --
+#
+#    Based on the value of the variable _debugConsole, turns on/off 
+#    debugging. This is done by setting/unsetting a procedure that 
+#    is called whenever new characters are received or sent on the 
+#    socket to the render server.  Additionally, the debug console
+#    is created if necessary and hidden/shown.
+#
+itcl::body Rappture::VisViewer::DebugConsole {} {
+    if { ![winfo exists .renderconsole] } {
+	BuildConsole
+    }
+    if { $_debugConsole } {
+	$this configure -sendcommand [itcl::code $this TraceComm]
+	$this configure -receivecommand [itcl::code $this TraceComm]
+	wm deiconify .renderconsole
+    } else {
+	$this configure -sendcommand ""
+	$this configure -receivecommand ""
+	wm withdraw .renderconsole
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: TraceComm <channel> <data>
+#
+# Invoked automatically whenever there is communication between
+# the rendering widget and the server.  Eavesdrops on the communication
+# and posts the commands in a text viewer.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VisViewer::TraceComm {channel {data ""}} {
+    $itk_component(trace) configure -state normal
+    switch -- $channel {
+        closed {
+            $itk_component(trace) insert end "--CLOSED--\n" error
+        }
+        <<line {
+            $itk_component(trace) insert end $data incoming "\n" incoming
+        }
+        >>line {
+            $itk_component(trace) insert end $data outgoing "\n" outgoing
+        }
+        error {
+            $itk_component(trace) insert end $data error "\n" error
+        }
+        default {
+            $itk_component(trace) insert end "$data\n"
+        }
+    }
+    $itk_component(trace) configure -state disabled
+    $itk_component(trace) see end
+}
+
+# ----------------------------------------------------------------------
+# USAGE: SendDebugCommand
+#
+# Invoked automatically whenever the user enters a command and
+# presses <Return>.  Sends the command along to the rendering
+# widget.
+# ----------------------------------------------------------------------
+itcl::body Rappture::VisViewer::SendDebugCommand {} {
+    set cmd [$itk_component(command) get]
+    SendBytes "$cmd\n"
+    $itk_component(command) delete 0 end
+}
+
+
+#
+# ReceiveError -bytes <size> -type <type> -token <token>
+#
+itcl::body Rappture::VisViewer::ReceiveError { args } {
+    array set info {
+        -token "???"
+        -bytes 0
+        -type "???"
+    }
+    array set info $args
+    set bytes [ReceiveBytes $info(-bytes)]
+    if { $info(-type) == "error" } {
+        set popup $itk_component(hull).error
+        if { ![winfo exists $popup] } {
+            Rappture::Balloon $popup \
+                -title "Render Server Error"
+            set inner [$popup component inner]
+            label $inner.summary -text "" -anchor w 
+
+            Rappture::Scroller $inner.scrl \
+                -xscrollmode auto -yscrollmode auto 
+            text $inner.scrl.text \
+                -font "Arial 9 " -background white -relief sunken -bd 1 \
+                -height 5 -wrap word -width 60
+            $inner.scrl contents $inner.scrl.text
+            button $inner.ok -text "Dismiss" -command [list $popup deactivate] \
+                -font "Arial 9"
+            incr _errorCount
+            blt::table $inner \
+                0,0 $inner.scrl -fill both \
+                1,0 $inner.ok 
+            $inner.scrl.text tag configure normal -font "Arial 9" 
+            $inner.scrl.text tag configure italic -font "Arial 9 italic" 
+            $inner.scrl.text tag configure bold -font "Arial 10 bold"
+            $inner.scrl.text tag configure code -font "Courier 10 bold"
+        } else {
+            $popup deactivate
+        }
+        update
+        set inner [$popup component inner]
+        $inner.scrl.text delete 0.0 end
+        
+        $inner.scrl.text insert end "The following error was reported by the render server:\n\n" bold
+        $inner.scrl.text insert end $bytes code
+        update
+        $popup activate $itk_component(hull) below
+    }
+    
+}
+

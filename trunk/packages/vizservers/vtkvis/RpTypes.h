@@ -12,13 +12,13 @@ namespace Rappture {
 namespace VtkVis {
 
     enum Axis {
-        X_AXIS,
+        X_AXIS = 0,
         Y_AXIS,
         Z_AXIS
     };
 
     enum PrincipalPlane {
-        PLANE_XY,
+        PLANE_XY = 0,
         PLANE_ZY,
         PLANE_XZ
     };

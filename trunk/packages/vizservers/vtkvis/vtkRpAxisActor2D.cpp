@@ -93,7 +93,11 @@ vtkRpAxisActor2D::vtkRpAxisActor2D()
 
   this->Axis = vtkPolyData::New();
   this->AxisMapper = vtkPolyDataMapper2D::New();
+#ifdef USE_VTK6
+  this->AxisMapper->SetInputData(this->Axis);
+#else
   this->AxisMapper->SetInput(this->Axis);
+#endif
   this->AxisActor = vtkActor2D::New();
   this->AxisActor->SetMapper(this->AxisMapper);
 

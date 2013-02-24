@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: unirect2d - represents a uniform rectangular 2-D mesh.
@@ -18,19 +19,30 @@ package require BLT
 namespace eval Rappture { # forward declaration }
 
 itcl::class Rappture::Unirect2d {
-    constructor {xmlobj field cname {extents 1}} { # defined below }
+    constructor {xmlobj path} { 
+	# defined below 
+    }
     destructor { # defined below }
 
+    public proc fetch {xmlobj path}
+    public proc release {obj}
     public method limits {axis}
     public method blob {}
-    public method mesh.old {}
     public method mesh {}
-    public method values {}
+    public method dimensions {} {
+	return 2
+    }
+    public method numpoints {} {
+	return $_numPoints
+    }
+    public method vtkdata {} {
+	return $_vtkdata
+    }
     public method hints {{keyword ""}} 
     private method GetString { obj path varName }
     private method GetValue { obj path varName }
     private method GetSize { obj path varName }
-
+    
     private variable _axisOrder "x y"
     private variable _xMax      0
     private variable _xMin      0
@@ -38,20 +50,66 @@ itcl::class Rappture::Unirect2d {
     private variable _yMax      0
     private variable _yMin      0
     private variable _yNum      0
-    private variable _compNum   1
-    private variable _values    "";     # BLT vector containing the z-values 
     private variable _hints
+    private variable _vtkdata ""
+    private variable _numPoints 0
+
+    private common _xp2obj       ;	# used for fetch/release ref counting
+    private common _obj2ref      ;	# used for fetch/release ref counting
+}
+
+#
+# fetch <xmlobj> <path>
+#
+#    Clients use this instead of a constructor to fetch the Mesh for a
+#    particular <path> in the <xmlobj>.  When the client is done with the mesh,
+#    he calls "release" to decrement the reference count.  When the mesh is no
+#    longer needed, it is cleaned up automatically.
+#
+itcl::body Rappture::Unirect2d::fetch {xmlobj path} {
+    set handle "$xmlobj|$path"
+    if {[info exists _xp2obj($handle)]} {
+        set obj $_xp2obj($handle)
+        incr _obj2ref($obj)
+        return $obj
+    }
+    set obj [Rappture::Unirect2d ::#auto $xmlobj $path]
+    set _xp2obj($handle) $obj
+    set _obj2ref($obj) 1
+    return $obj
+}
+
+# ----------------------------------------------------------------------
+# USAGE: Rappture::Mesh::release <obj>
+#
+# Clients call this when they're no longer using a Mesh fetched
+# previously by the "fetch" proc.  This decrements the reference
+# count for the mesh and destroys the object when it is no longer
+# in use.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Unirect2d::release { obj } {
+    if { ![info exists _obj2ref($obj)] } {
+        error "can't find reference count for $obj"
+    }
+    incr _obj2ref($obj) -1
+    if {$_obj2ref($obj) <= 0} {
+	unset _obj2ref($obj)
+	foreach handle [array names _xp2obj] {
+	    if {$_xp2obj($handle) == $obj} {
+		unset _xp2obj($handle)
+	    }
+	}
+	itcl::delete object $obj
+    }
 }
 
 # ----------------------------------------------------------------------
 # Constructor
 # ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
+itcl::body Rappture::Unirect2d::constructor {xmlobj path} {
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
-    set path [$field get $cname.mesh]
-
     set m [$xmlobj element -as object $path]
     GetValue $m "xaxis.min" _xMin
     GetValue $m "xaxis.max" _xMax
@@ -59,7 +117,6 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
     GetValue $m "yaxis.min" _yMin
     GetValue $m "yaxis.max" _yMax
     GetSize $m "yaxis.numpoints" _yNum
-    set _compNum $extents
     foreach {key path} {
         group   about.group
         label   about.label
@@ -85,33 +142,26 @@ itcl::body Rappture::Unirect2d::constructor {xmlobj field cname {extents 1}} {
             set _hints($key) $str
         }
     }
-    foreach {key} { axisorder } {
-        set str [$field get $cname.$key]
-        if {"" != $str} {
-            set _hints($key) $str
-        }
-    }
     itcl::delete object $m
-    
-    set _values [blt::vector create \#auto]
-    set values [$field get "$cname.values"]
-    if { $values == "" } {
-        set values [$field get "$cname.zvalues"]
+    set _numPoints [expr $_xNum * $_yNum]
+    if { $_numPoints == 0 } {
+	set _vtkdata ""
+	return 
     }
-    $_values set $values
-    set n [expr $_xNum * $_yNum * $_compNum]
-    if { [$_values length] != $n } {
-        error "wrong \# of values in \"$cname.values\": expected $n values, got [$_values length]"
-    }
+    append out "DATASET STRUCTURED_POINTS\n"
+    append out "DIMENSIONS $_xNum $_yNum 1"
+    set xSpace [expr ($_xMax - $_xMin) / double($_xNum - 1)]
+    set ySpace [expr ($_yMax - $_yMin) / double($_yNum - 1)]
+    append out "SPACING $xSpace $ySpace 0\n"
+    append out "ORIGIN 0 0 0\n"
+    set _vtkdata $out
 }
 
 # ----------------------------------------------------------------------
 # Destructor
 # ----------------------------------------------------------------------
 itcl::body Rappture::Unirect2d::destructor {} {
-    if { $_values != "" } {
-        blt::vector destroy $_values
-    }
+    # empty
 }
 
 # ----------------------------------------------------------------------
@@ -125,35 +175,6 @@ itcl::body Rappture::Unirect2d::blob {} {
     lappend data "xmin" $_xMin "xmax" $_xMax "xnum" $_xNum
     lappend data "ymin" $_yMin "ymax" $_yMax "ynum" $_yNum
     lappend data "xmin" $_xMin "ymin" $_yMin "xmax" $_xMax "ymax" $_yMax
-    foreach key { axisorder xunits yunits units } {
-        set hint [hints $key]
-        if { $hint != "" } {
-            lappend data $key $hint
-        }
-    }
-    if { [$_values length] > 0 } {
-        lappend data "values" [$_values range 0 end]
-    }
-    return [Rappture::encoding::encode -as zb64 "$data"]
-}
-
-# ----------------------------------------------------------------------
-# method mesh.old 
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::mesh.old {} {
-    set dx [expr {($_xMax - $_xMin) / double($_xNum)}]
-    set dy [expr {($_yMax - $_yMin) / double($_yNum)}]
-    foreach {a b} $_axisOrder break
-    for { set i 0 } { $i < [set _${a}Num] } { incr i } {
-        set x [expr {$_xMin + (double($i) * $dx)}]
-        for { set j 0 } { $j < [set _${b}Num] } { incr j } {
-            set y [expr {$_yMin + (double($i) * $dy)}]
-            lappend data $x $y
-        }
-    }
     return $data
 }
 
@@ -169,19 +190,6 @@ itcl::body Rappture::Unirect2d::mesh {} {
 }
 
 # ----------------------------------------------------------------------
-# method values 
-#       Returns a base64 encoded, gzipped Tcl list that represents the
-#       Tcl command and data to recreate the uniform rectangular grid 
-#       on the nanovis server.
-# ----------------------------------------------------------------------
-itcl::body Rappture::Unirect2d::values {} {
-    if { [$_values length] > 0 } {
-        return [$_values range 0 end]
-    }
-    return ""
-}
-
-# ----------------------------------------------------------------------
 # method limits <axis>
 #       Returns a list {min max} representing the limits for the 
 #       specified axis.
@@ -189,7 +197,6 @@ itcl::body Rappture::Unirect2d::values {} {
 itcl::body Rappture::Unirect2d::limits {which} {
     set min ""
     set max ""
-
     switch -- $which {
         x - xlin - xlog {
             set min $_xMin
@@ -201,35 +208,10 @@ itcl::body Rappture::Unirect2d::limits {which} {
             set max $_yMax
             set axis "yaxis"
         }
-        v - vlin - vlog - z - zlin - zlog {
-            if { [$_values length] > 0 } {
-               set min [blt::vector expr min($_values)]
-               set max [blt::vector expr max($_values)]
-            } else {
-                set min 0.0
-                set max 1.0
-            }
-            set axis "zaxis"
-        }
         default {
             error "unknown axis description \"$which\""
         }
     }
-#     set val [$_field get $axis.min]
-#     if {"" != $val && "" != $min} {
-#         if {$val > $min} {
-#             # tool specified this min -- don't go any lower
-#             set min $val
-#         }
-#     }
-#     set val [$_field get $axis.max]
-#     if {"" != $val && "" != $max} {
-#         if {$val < $max} {
-#             # tool specified this max -- don't go any higher
-#             set max $val
-#         }
-#     }
-
     return [list $min $max]
 }
 
@@ -293,3 +275,5 @@ itcl::body Rappture::Unirect2d::GetString { obj path varName } {
     upvar $varName str
     set str $string
 }
+
+

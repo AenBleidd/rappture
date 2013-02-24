@@ -11,13 +11,16 @@
 #include <cerrno>
 #include <unistd.h>
 #include <signal.h>
-
-#ifdef WANT_TRACE
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/time.h>
-#endif
+#include <sys/times.h>
 
 #include <string>
 #include <sstream>
+
+#include <tcl.h>
 
 #include "Trace.h"
 #include "ReadBuffer.h"
@@ -33,16 +36,14 @@
 
 using namespace Rappture::VtkVis;
 
+Stats Rappture::VtkVis::g_stats;
+
 int Rappture::VtkVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
 int Rappture::VtkVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
 FILE *Rappture::VtkVis::g_fOut = stdout; ///< Output file handle
 FILE *Rappture::VtkVis::g_fLog = NULL; ///< Trace logging file handle
 Renderer *Rappture::VtkVis::g_renderer = NULL; ///< Main render worker
 ReadBuffer *Rappture::VtkVis::g_inBufPtr = NULL; ///< Socket read buffer
-
-#define ELAPSED_TIME(t1, t2) \
-    ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3f) : \
-     (((t2).tv_sec - (t1).tv_sec))*1.0e+3f + (float)((t2).tv_usec - (t1).tv_usec)/1.0e+3f)
 
 #ifdef USE_THREADS
 static void
@@ -192,6 +193,191 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 }
 #endif /*USE_THREADS*/
 
+static int
+getFileLock()
+{
+    int numTries;
+
+    for (numTries = 0; numTries < 10; numTries++) {
+	int f;
+
+	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
+	if (f >= 0) {
+	    char buf[200];
+	    ssize_t numWritten;
+	    size_t numBytes;
+
+	    sprintf(buf, "%d\n", getpid());
+	    numBytes = strlen(buf);
+	    numWritten = write(f, buf, numBytes);
+	    if (numWritten != (ssize_t)numBytes) {
+                ERROR("Wrote short lock file");
+	    }
+	    close(f);
+	    return 0;
+	}
+	sleep(1);			/* Wait for lock to release. */
+    }
+    ERROR("Failed to open lock file");
+    return -1;
+}
+
+static void
+releaseFileLock()
+{
+    unlink(LOCKFILE);
+}
+
+int
+Rappture::VtkVis::writeToStatsFile(const char *s, size_t length)
+{
+    int f;
+    ssize_t numWritten;
+    if (access(STATSDIR, X_OK) != 0) {
+	mkdir(STATSDIR, 0770);
+    }
+    if (getFileLock() < 0) {
+	return -1;
+    }
+    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
+    releaseFileLock();
+    if (f < 0) {
+	return -1;
+    }
+    numWritten = write(f, s, length);
+    if (numWritten != (ssize_t)length) {
+	close(f);
+	return -1;
+    }
+    close(f);
+    return 0;
+}
+
+static int
+serverStats(int code) 
+{
+    double start, finish;
+    char buf[BUFSIZ];
+    Tcl_DString ds;
+    int result;
+
+    {
+	struct timeval tv;
+
+	/* Get ending time.  */
+	gettimeofday(&tv, NULL);
+	finish = CVT2SECS(tv);
+	tv = g_stats.start;
+	start = CVT2SECS(tv);
+    }
+    /* 
+     * Session information:
+     *   - Name of render server
+     *   - Process ID
+     *   - Hostname where server is running
+     *   - Start date of session
+     *   - Start date of session in seconds
+     *   - Number of data sets loaded from client
+     *   - Number of data bytes total loaded from client
+     *   - Number of frames returned
+     *   - Number of bytes total returned (in frames)
+     *   - Number of commands received
+     *   - Total elapsed time of all commands
+     *   - Total elapsed time of session
+     *   - Exit code of vizserver
+     *   - User time 
+     *   - System time
+     *   - User time of children 
+     *   - System time of children 
+     */
+
+    Tcl_DStringInit(&ds);
+    
+    Tcl_DStringAppendElement(&ds, "render_stop");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "vtkvis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&g_stats.start.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", g_stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_data_sets */
+    Tcl_DStringAppendElement(&ds, "num_data_sets");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nDataSets);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* data_set_bytes */
+    Tcl_DStringAppendElement(&ds, "data_set_bytes");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nDataBytes);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_frames */
+    Tcl_DStringAppendElement(&ds, "num_frames");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrames);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* frame_bytes */
+    Tcl_DStringAppendElement(&ds, "frame_bytes");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nFrameBytes);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* num_commands */
+    Tcl_DStringAppendElement(&ds, "num_commands");
+    sprintf(buf, "%lu", (unsigned long int)g_stats.nCommands);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* cmd_time */
+    Tcl_DStringAppendElement(&ds, "cmd_time");
+    sprintf(buf, "%g", g_stats.cmdTime);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* session_time */
+    Tcl_DStringAppendElement(&ds, "session_time");
+    sprintf(buf, "%g", finish - start);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* status */
+    Tcl_DStringAppendElement(&ds, "status");
+    sprintf(buf, "%d", code);
+    Tcl_DStringAppendElement(&ds, buf);
+    {
+	long clocksPerSec = sysconf(_SC_CLK_TCK);
+	double clockRes = 1.0 / clocksPerSec;
+	struct tms tms;
+
+	memset(&tms, 0, sizeof(tms));
+	times(&tms);
+	/* utime */
+	Tcl_DStringAppendElement(&ds, "utime");
+	sprintf(buf, "%g", tms.tms_utime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* stime */
+	Tcl_DStringAppendElement(&ds, "stime");
+	sprintf(buf, "%g", tms.tms_stime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cutime */
+	Tcl_DStringAppendElement(&ds, "cutime");
+	sprintf(buf, "%g", tms.tms_cutime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+	/* cstime */
+	Tcl_DStringAppendElement(&ds, "cstime");
+	sprintf(buf, "%g", tms.tms_cstime * clockRes);
+	Tcl_DStringAppendElement(&ds, buf);
+    }
+    Tcl_DStringAppend(&ds, "\n", -1);
+    result = writeToStatsFile(Tcl_DStringValue(&ds), 
+                              Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
+}
+
 static void
 initService()
 {
@@ -228,6 +414,8 @@ initService()
 static void
 exitService()
 {
+    serverStats(0);
+
     // close log file
     if (g_fLog != NULL) {
         fclose(g_fLog);
@@ -247,13 +435,15 @@ readerThread(void *clientData)
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
     for (;;) {
-        if (processCommands(interp, g_inBufPtr, g_fdOut) < 0)
+        if (processCommands(interp, (ClientData)clientData, g_inBufPtr, g_fdOut) < 0)
             break;
 
         if (g_renderer->render()) {
             TRACE("Rendering new frame");
             g_renderer->getRenderedFrame(imgData);
             queueFrame(queue, imgData);
+            g_stats.nFrames++;
+            g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
         } else {
             TRACE("No render required");
         }
@@ -271,9 +461,7 @@ writerThread(void *clientData)
 
     TRACE("Starting writer thread");
     for (;;) {
-        Response *response;
-
-        response = queue->dequeue();
+        Response *response = queue->dequeue();
         if (response == NULL)
             continue;
         if (fwrite(response->message(), sizeof(char), response->length(),
@@ -282,6 +470,7 @@ writerThread(void *clientData)
                   response->length());
         }
         fflush(g_fOut);
+        TRACE("Wrote response of type %d", response->type());
         delete response;
         if (feof(g_fOut))
             break;
@@ -298,6 +487,9 @@ main(int argc, char *argv[])
     signal(SIGPIPE, SIG_IGN);
     initService();
     initLog();
+
+    memset(&g_stats, 0, sizeof(g_stats));
+    gettimeofday(&g_stats.start, NULL);
 
     TRACE("Starting VTKVis Server");
 
@@ -346,13 +538,15 @@ main(int argc, char *argv[])
     vtkSmartPointer<vtkUnsignedCharArray> imgData = 
         vtkSmartPointer<vtkUnsignedCharArray>::New();
     for (;;) {
-        if (processCommands(interp, g_inBufPtr, g_fdOut) < 0)
+        if (processCommands(interp, (ClientData)NULL, g_inBufPtr, g_fdOut) < 0)
             break;
 
         if (g_renderer->render()) {
             TRACE("Rendering new frame");
             g_renderer->getRenderedFrame(imgData);
             writeFrame(g_fdOut, imgData);
+            g_stats.nFrames++;
+            g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
         } else {
             TRACE("No render required");
         }

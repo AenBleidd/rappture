@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: tool - represents an entire tool
 #
@@ -191,6 +192,7 @@ itcl::body Rappture::Tool::run {args} {
         if {[resources -jobprotocol] == "submit"} {
             set cmd [linsert $cmd 0 submit --local]
         }
+	$_xmlobj put tool.execute $cmd
 
         # starting job...
         Rappture::Logger::log run started

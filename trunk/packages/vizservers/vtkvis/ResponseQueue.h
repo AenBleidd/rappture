@@ -30,7 +30,8 @@ public:
     enum ResponseType {
         IMAGE,          /**< Image to be displayed. */
         LEGEND,         /**< Legend to be displayed. */
-        DATA            /**< Any other type of message. */
+        DATA,           /**< Any other type of non-error message. */
+        ERROR           /**< Error message. */
     };
 
     Response(ResponseType type) :

@@ -38,13 +38,12 @@ static int lastCmdStatus;
 #ifdef USE_THREADS
 static void
 QueueResponse(ClientData clientData, const void *bytes, size_t len, 
-              Response::AllocationType allocType)
+              Response::AllocationType allocType,
+              Response::ResponseType type = Response::DATA)
 {
     ResponseQueue *queue = (ResponseQueue *)clientData;
 
-    Response *response;
-
-    response = new Response(Response::DATA);
+    Response *response = new Response(type);
     response->setMessage((unsigned char *)bytes, len, allocType);
     queue->enqueue(response);
 }
@@ -92,6 +91,9 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
         return TCL_BREAK;
     }
     lastCmdStatus = result;
+    if (result != TCL_OK) {
+        TRACE("Error: %d", result);
+    }
     return result;
 }
 
@@ -634,16 +636,137 @@ ArrowCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+AxisAutoBoundsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool enableAuto;
+    if (GetBooleanFromObj(interp, objv[3], &enableAuto) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisAutoBounds(X_AXIS, enableAuto);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisAutoBounds(Y_AXIS, enableAuto);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisAutoBounds(Z_AXIS, enableAuto);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesAutoBounds(enableAuto);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisAutoRangeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool enableAuto;
+    if (GetBooleanFromObj(interp, objv[3], &enableAuto) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisAutoRange(X_AXIS, enableAuto);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisAutoRange(Y_AXIS, enableAuto);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisAutoRange(Z_AXIS, enableAuto);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesAutoRange(enableAuto);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
 AxisColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
             Tcl_Obj *const *objv)
 {
     double color[3];
-    if (Tcl_GetDoubleFromObj(interp, objv[2], &color[0]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[3], &color[1]) != TCL_OK ||
-        Tcl_GetDoubleFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
         return TCL_ERROR;
     }
-    g_renderer->setAxesColor(color);
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisBoundsOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double min, max;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &min) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &max) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisBounds(X_AXIS, min, max);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisBounds(Y_AXIS, min, max);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisBounds(Z_AXIS, min, max);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesBounds(min, max);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisExponentOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    int xPow, yPow, zPow;
+    bool useCustom = true;
+    if (Tcl_GetIntFromObj(interp, objv[2], &xPow) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[3], &yPow) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[4], &zPow) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc > 5) {
+        if (GetBooleanFromObj(interp, objv[5], &useCustom) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setAxesLabelPowerScaling(xPow, yPow, zPow, useCustom);
+    } else {
+        g_renderer->setAxesLabelPowerScaling(xPow, yPow, zPow);
+    }
     return TCL_OK;
 }
 
@@ -674,6 +797,19 @@ AxisFlyModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+AxisFontSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    double screenSize;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &screenSize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setAxesPixelFontSize(screenSize);
+    return TCL_OK;
+}
+
+static int
 AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc, 
            Tcl_Obj *const *objv)
 {
@@ -693,9 +829,315 @@ AxisGridOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxesGridVisibility(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName visible", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
+    return TCL_OK;
+}
+
+static int
+AxisGridColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisGridlinesColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisGridlinesColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisGridlinesColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesGridlinesColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisGridpolysOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisGridpolysVisibility(X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisGridpolysVisibility(Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisGridpolysVisibility(Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesGridpolysVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisGridpolysColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisGridpolysColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisGridpolysColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisGridpolysColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesGridpolysColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisInnerGridOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisInnerGridVisibility(X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisInnerGridVisibility(Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisInnerGridVisibility(Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesInnerGridVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisInnerGridColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisInnerGridlinesColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisInnerGridlinesColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisInnerGridlinesColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesInnerGridlinesColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelFontOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    const char *fontName = Tcl_GetString(objv[3]);
+
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelFont(X_AXIS, fontName);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelFont(Y_AXIS, fontName);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelFont(Z_AXIS, fontName);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelFont(fontName);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelFormatOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    const char *format = Tcl_GetString(objv[3]);
+
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelFormat(X_AXIS, format);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelFormat(Y_AXIS, format);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelFormat(Z_AXIS, format);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelFormat(format);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelFontSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    int fontSize;
+    if (Tcl_GetIntFromObj(interp, objv[3], &fontSize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelFontSize(X_AXIS, fontSize);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelFontSize(Y_AXIS, fontSize);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelFontSize(Z_AXIS, fontSize);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelFontSize(fontSize);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double rot;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &rot) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLabelOrientation(X_AXIS, rot);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLabelOrientation(Y_AXIS, rot);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLabelOrientation(Z_AXIS, rot);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLabelOrientation(rot);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLabelScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    bool autoScale;
+    int xpow, ypow, zpow;
+    if (GetBooleanFromObj(interp, objv[3], &autoScale) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[4], &xpow) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[5], &ypow) != TCL_OK ||
+        Tcl_GetIntFromObj(interp, objv[6], &zpow) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    g_renderer->setAxesLabelScaling(autoScale, xpow, ypow, zpow);
     return TCL_OK;
 }
 
@@ -719,7 +1161,41 @@ AxisLabelsVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxesLabelVisibility(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName visible", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisLineColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisLinesColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisLinesColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisLinesColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesLinesColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -745,7 +1221,82 @@ AxisNameOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxisTitle(Z_AXIS, title);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName title", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisOriginOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
+{
+    double x, y, z;
+    bool useCustom = true;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &x) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[3], &y) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &z) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc > 5) {
+        if (GetBooleanFromObj(interp, objv[5], &useCustom) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        g_renderer->setAxesOrigin(x, y, z, useCustom);
+    } else {
+        g_renderer->setAxesOrigin(x, y, z);
+    }
+    return TCL_OK;
+}
+
+static int
+AxisRangeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double min, max;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &min) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &max) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisRange(X_AXIS, min, max);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisRange(Y_AXIS, min, max);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisRange(Z_AXIS, min, max);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesRange(min, max);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    double scale;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &scale) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisScale(X_AXIS, scale);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisScale(Y_AXIS, scale);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisScale(Z_AXIS, scale);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesScale(scale);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -771,7 +1322,33 @@ AxisTicksVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxesTickVisibility(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName visible", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisMinorTicksVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                        Tcl_Obj *const *objv)
+{
+    bool visible;
+    if (GetBooleanFromObj(interp, objv[3], &visible) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisMinorTickVisibility(X_AXIS, visible);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisMinorTickVisibility(Y_AXIS, visible);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisMinorTickVisibility(Z_AXIS, visible);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesMinorTickVisibility(visible);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -792,6 +1369,117 @@ AxisTickPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
                          "\": should be inside, outside or both", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisTitleColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    double color[3];
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &color[0]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[4], &color[1]) != TCL_OK ||
+        Tcl_GetDoubleFromObj(interp, objv[5], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    double opacity = 1.0;
+    if (objc > 6) {
+        if (Tcl_GetDoubleFromObj(interp, objv[6], &opacity) != TCL_OK) {
+            return TCL_ERROR;
+        }
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTitleColor(X_AXIS, color, opacity);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTitleColor(Y_AXIS, color, opacity);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTitleColor(Z_AXIS, color, opacity);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesTitleColor(color, opacity);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisTitleFontOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    const char *fontName = Tcl_GetString(objv[3]);
+
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTitleFont(X_AXIS, fontName);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTitleFont(Y_AXIS, fontName);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTitleFont(Z_AXIS, fontName);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesTitleFont(fontName);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisTitleFontSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    int fontSize;
+    if (Tcl_GetIntFromObj(interp, objv[3], &fontSize) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTitleFontSize(X_AXIS, fontSize);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTitleFontSize(Y_AXIS, fontSize);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTitleFontSize(Z_AXIS, fontSize);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesTitleFontSize(fontSize);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
+static int
+AxisTitleOrientationOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    double rot;
+    if (Tcl_GetDoubleFromObj(interp, objv[3], &rot) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    const char *string = Tcl_GetString(objv[2]);
+    char c = string[0];
+    if ((c == 'x') && (strcmp(string, "x") == 0)) {
+        g_renderer->setAxisTitleOrientation(X_AXIS, rot);
+    } else if ((c == 'y') && (strcmp(string, "y") == 0)) {
+        g_renderer->setAxisTitleOrientation(Y_AXIS, rot);
+    } else if ((c == 'z') && (strcmp(string, "z") == 0)) {
+        g_renderer->setAxisTitleOrientation(Z_AXIS, rot);
+    } else if ((c == 'a') && (strcmp(string, "all") == 0)) {
+        g_renderer->setAxesTitleOrientation(rot);
+    } else {
+        Tcl_AppendResult(interp, "bad axis option \"", string,
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -821,7 +1509,7 @@ AxisUnitsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxisUnits(Z_AXIS, units);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName units", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -847,22 +1535,47 @@ AxisVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setAxesVisibility(visible);
     } else {
         Tcl_AppendResult(interp, "bad axis option \"", string,
-                         "\": should be axisName visible", (char*)NULL);
+                         "\": should be axisName", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
 }
 
 static Rappture::CmdSpec axisOps[] = {
-    {"color",   1, AxisColorOp, 5, 5, "r g b"},
-    {"flymode", 1, AxisFlyModeOp, 3, 3, "mode"},
-    {"grid",    1, AxisGridOp, 4, 4, "axis bool"},
-    {"labels",  1, AxisLabelsVisibleOp, 4, 4, "axis bool"},
-    {"name",    1, AxisNameOp, 4, 4, "axis title"},
-    {"tickpos", 2, AxisTickPositionOp, 3, 3, "position"},
-    {"ticks",   2, AxisTicksVisibleOp, 4, 4, "axis bool"},
-    {"units",   1, AxisUnitsOp, 4, 4, "axis units"},
-    {"visible", 1, AxisVisibleOp, 4, 4, "axis bool"}
+    {"autobounds", 5, AxisAutoBoundsOp, 4, 4, "axis bool"},
+    {"autorange",  5, AxisAutoRangeOp, 4, 4, "axis bool"},
+    {"bounds",     1, AxisBoundsOp, 5, 5, "axis min max"},
+    {"color",      1, AxisColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"exp",        1, AxisExponentOp, 5, 6, "xPow yPow zPow ?useCustom?"},
+    {"flymode",    2, AxisFlyModeOp, 3, 3, "mode"},
+    {"fontsz",     2, AxisFontSizeOp, 3, 3, "fontPixelSize"},
+    {"gpcolor",    3, AxisGridpolysColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"gpolys",     3, AxisGridpolysOp, 4, 4, "axis bool"},
+    {"grcolor",    3, AxisGridColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"grid",       3, AxisGridOp, 4, 4, "axis bool"},
+    {"igcolor",    3, AxisInnerGridColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"igrid",      3, AxisInnerGridOp, 4, 4, "axis bool"},
+    {"labels",     2, AxisLabelsVisibleOp, 4, 4, "axis bool"},
+    {"lcolor",     2, AxisLabelColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"lfont",      4, AxisLabelFontOp, 4, 4, "axis font"},
+    {"lformat",    4, AxisLabelFormatOp, 4, 4, "axis format"},
+    {"lfsize",     3, AxisLabelFontSizeOp, 4, 4, "axis fontSize"},
+    {"linecolor",  2, AxisLineColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"lrot",       2, AxisLabelOrientationOp, 4, 4, "axis rot"},
+    {"lscale",     2, AxisLabelScaleOp, 7, 7, "axis bool xpow ypow zpow"},
+    {"minticks",   1, AxisMinorTicksVisibleOp, 4, 4, "axis bool"},
+    {"name",       1, AxisNameOp, 4, 4, "axis title"},
+    {"origin",     1, AxisOriginOp, 5, 6, "x y z ?useCustom?"},
+    {"range",      1, AxisRangeOp, 5, 5, "axis min max"},
+    {"scale",      1, AxisScaleOp, 4, 4, "axis scale"},
+    {"tcolor",     2, AxisTitleColorOp, 6, 7, "axis r g b ?opacity?"},
+    {"tfont",      3, AxisTitleFontOp, 4, 4, "axis font"},
+    {"tfsize",     3, AxisTitleFontSizeOp, 4, 4, "axis fontSize"},
+    {"tickpos",    5, AxisTickPositionOp, 3, 3, "position"},
+    {"ticks",      5, AxisTicksVisibleOp, 4, 4, "axis bool"},
+    {"trot",       2, AxisTitleOrientationOp, 4, 4, "axis rot"},
+    {"units",      1, AxisUnitsOp, 4, 4, "axis units"},
+    {"visible",    1, AxisVisibleOp, 4, 4, "axis bool"}
 };
 static int nAxisOps = NumCmdSpecs(axisOps);
 
@@ -1161,6 +1874,27 @@ BoxCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraAspectOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+               Tcl_Obj *const *objv)
+{
+    Renderer::Aspect aspect;
+    const char *string = Tcl_GetString(objv[2]);
+    if ((strcmp(string, "native") == 0)) {
+        aspect = Renderer::ASPECT_NATIVE;
+    } else if ((strcmp(string, "square") == 0)) {
+        aspect = Renderer::ASPECT_SQUARE;
+    } else if ((strcmp(string, "window") == 0)) {
+        aspect = Renderer::ASPECT_WINDOW;
+    } else {
+        Tcl_AppendResult(interp, "bad camera aspect option \"", string,
+                         "\": should be native, square or window", (char*)NULL);
+        return TCL_ERROR;
+    }
+    g_renderer->setCameraAspect(aspect);
+    return TCL_OK;
+}
+
+static int
 CameraModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -1345,6 +2079,7 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
+    {"aspect", 1, CameraAspectOp, 3, 3, "aspect"},
     {"get",    1, CameraGetOp, 2, 2, ""},
     {"mode",   1, CameraModeOp, 3, 3, "mode"},
     {"orient", 3, CameraOrientOp, 6, 6, "qw qx qy qz"},
@@ -1369,6 +2104,49 @@ CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     return (*proc) (clientData, interp, objc, objv);
+}
+
+static int
+ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+              Tcl_Obj *const *objv)
+{
+    Tcl_DString ds;
+    int result;
+    int i;
+    char buf[BUFSIZ];
+
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppendElement(&ds, "render_start");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "vtkvis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&Rappture::VtkVis::g_stats.start.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", Rappture::VtkVis::g_stats.start.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* Client arguments. */
+    for (i = 1; i < objc; i++) {
+        Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
+    }
+    Tcl_DStringAppend(&ds, "\n", 1);
+    result = Rappture::VtkVis::writeToStatsFile(Tcl_DStringValue(&ds), 
+                                                Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
 }
 
 static int
@@ -1464,9 +2242,33 @@ ColorMapDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                          Tcl_Obj *const *objv)
+{
+    int numEntries;
+    if (Tcl_GetIntFromObj(interp, objv[2], &numEntries) != TCL_OK) {
+        const char *str = Tcl_GetString(objv[2]);
+        if (strcmp(str, "default") == 0) {
+            numEntries = -1;
+        } else {
+            return TCL_ERROR;
+        }
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+
+        g_renderer->setColorMapNumberOfTableEntries(name, numEntries);
+    } else {
+        g_renderer->setColorMapNumberOfTableEntries("all", numEntries);
+    }
+    return TCL_OK;
+}
+
 static Rappture::CmdSpec colorMapOps[] = {
-    { "add",    1, ColorMapAddOp,    5, 5, "colorMapName colormap alphamap"},
-    { "delete", 1, ColorMapDeleteOp, 2, 3, "?colorMapName?"}
+    {"add",    1, ColorMapAddOp,             5, 5, "colorMapName colormap alphamap"},
+    {"delete", 1, ColorMapDeleteOp,          2, 3, "?colorMapName?"},
+    {"res",    1, ColorMapNumTableEntriesOp, 3, 4, "numTableEntries ?colorMapName?"}
 };
 static int nColorMapOps = NumCmdSpecs(colorMapOps);
 
@@ -2220,6 +3022,42 @@ Contour3DColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour3DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    Contour3D::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Contour3D::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Contour3D::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Contour3D::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Contour3D::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Contour3D::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Contour3D::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Contour3D::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setContour3DColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setContour3DColorMode("all", mode, fieldName);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour3DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -2414,7 +3252,8 @@ Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 static Rappture::CmdSpec contour3dOps[] = {
     {"add",       1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
     {"ccolor",    2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  2, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormap",  7, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode", 7, Contour3DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",    1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",     1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",  3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -2683,6 +3522,23 @@ CutplanePositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CutplanePreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                    Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setCutplaneInterpolateBeforeMapping(name, state);
+    } else {
+        g_renderer->setCutplaneInterpolateBeforeMapping("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 CutplaneScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                 Tcl_Obj *const *objv)
 {
@@ -2811,7 +3667,8 @@ static Rappture::CmdSpec cutplaneOps[] = {
     {"opacity",      2, CutplaneOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, CutplaneOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
     {"outline",      2, CutplaneOutlineOp, 3, 4, "bool ?dataSetName?"},
-    {"pos",          1, CutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",          2, CutplanePositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp",    2, CutplanePreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"scale",        2, CutplaneScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"slice",        2, CutplaneVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
     {"visible",      1, CutplaneVisibleOp, 3, 4, "bool ?dataSetName?"},
@@ -3213,6 +4070,8 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     g_renderer->addDataSet(name);
     g_renderer->setData(name, data, nbytes);
+    g_stats.nDataSets++;
+    g_stats.nDataBytes += nbytes;
     free(data);
     return TCL_OK;
 }
@@ -3417,13 +4276,53 @@ DataSetMapRangeOp(ClientData clientData, Tcl_Interp *interp, int objc,
     const char *value = Tcl_GetString(objv[2]);
     if (strcmp(value, "all") == 0) {
         g_renderer->setUseCumulativeDataRange(true);
-    } else if (strcmp(value, "visible") == 0) {
-        g_renderer->setUseCumulativeDataRange(true, true);
+    } else if (strcmp(value, "explicit") == 0) {
+        if (objc < 6 || objc > 9) {
+            Tcl_AppendResult(interp, "wrong number of arguments for explicit maprange", (char*)NULL);
+            return TCL_ERROR;
+        }
+        double range[2];
+        if (Tcl_GetDoubleFromObj(interp, objv[3], &range[0]) != TCL_OK ||
+            Tcl_GetDoubleFromObj(interp, objv[4], &range[1]) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        const char *fieldName = Tcl_GetString(objv[5]);
+
+        DataSet::DataAttributeType type = DataSet::POINT_DATA;
+        int numComponents = 1;
+        int component = -1;
+        if (objc > 6) {
+            const char *fieldType = Tcl_GetString(objv[6]);
+            if (strcmp(fieldType, "point_data") == 0) {
+                type = DataSet::POINT_DATA;
+            } else if (strcmp(fieldType, "cell_data") == 0) {
+                type = DataSet::CELL_DATA;
+            } else if (strcmp(fieldType, "field_data") == 0) {
+                type = DataSet::FIELD_DATA;
+            } else {
+                Tcl_AppendResult(interp, "bad field type option \"", fieldType,
+                                 "\": should be point_data, cell_data or field_data", (char*)NULL);
+                return TCL_ERROR;
+            }
+            if (objc > 7) {
+                if (Tcl_GetIntFromObj(interp, objv[7], &numComponents) != TCL_OK) {
+                    return TCL_ERROR;
+                }
+                if (objc == 9) {
+                    if (Tcl_GetIntFromObj(interp, objv[8], &component) != TCL_OK) {
+                        return TCL_ERROR;
+                    }
+                }
+            }
+        }
+        g_renderer->setCumulativeDataRange(range, fieldName, type, numComponents, component);
     } else if (strcmp(value, "separate") == 0) {
         g_renderer->setUseCumulativeDataRange(false);
+    } else if (strcmp(value, "visible") == 0) {
+        g_renderer->setUseCumulativeDataRange(true, true);
     } else {
         Tcl_AppendResult(interp, "bad maprange option \"", value,
-                         "\": should be all, visible, or separate", (char*)NULL);
+                         "\": should be all, explicit, separate or visible", (char*)NULL);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -3537,7 +4436,7 @@ static Rappture::CmdSpec dataSetOps[] = {
     {"delete",    1, DataSetDeleteOp, 2, 3, "?name?"},
     {"getscalar", 4, DataSetGetScalarOp, 6, 7, "oper x y ?z? name"},
     {"getvector", 4, DataSetGetVectorOp, 6, 7, "oper x y ?z? name"},
-    {"maprange",  1, DataSetMapRangeOp, 3, 3, "value"},
+    {"maprange",  1, DataSetMapRangeOp, 3, 9, "value ?min? ?max? ?fieldName? ?fieldType? ?fieldNumComp? ?compIdx?"},
     {"names",     1, DataSetNamesOp, 2, 2, ""},
     {"opacity",   2, DataSetOpacityOp, 3, 4, "value ?name?"},
     {"outline",   2, DataSetOutlineOp, 3, 4, "bool ?name?"},
@@ -4424,6 +5323,42 @@ HeightMapAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapAspectOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                  Tcl_Obj *const *objv)
+{
+    double aspect;
+    if (Tcl_GetDoubleFromObj(interp, objv[2], &aspect) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setGraphicsObjectAspect<HeightMap>(name, aspect);
+    } else {
+        g_renderer->setGraphicsObjectAspect<HeightMap>("all", aspect);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<HeightMap>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<HeightMap>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 HeightMapColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
@@ -4433,6 +5368,59 @@ HeightMapColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectColorMap<HeightMap>(dataSetName, colorMapName);
     } else {
         g_renderer->setGraphicsObjectColorMap<HeightMap>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    HeightMap::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = HeightMap::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = HeightMap::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = HeightMap::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == HeightMap::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setHeightMapColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setHeightMapColorMode("all", mode, fieldName);
+    }
+    return TCL_OK;
+}
+
+static int
+HeightMapContourLineColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                               Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapContourLineColorMapEnabled(name, state);
+    } else {
+        g_renderer->setHeightMapContourLineColorMapEnabled("all", state);
     }
     return TCL_OK;
 }
@@ -4712,6 +5700,23 @@ HeightMapPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+HeightMapPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                     Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setHeightMapInterpolateBeforeMapping(name, state);
+    } else {
+        g_renderer->setHeightMapInterpolateBeforeMapping("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 HeightMapScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                  Tcl_Obj *const *objv)
 {
@@ -4796,13 +5801,17 @@ HeightMapWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec heightmapOps[] = {
-    {"add",          1, HeightMapAddOp, 5, 6, "oper value heightscale ?dataSetName?"},
-    {"colormap",     3, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"add",          2, HeightMapAddOp, 5, 6, "oper value heightscale ?dataSetName?"},
+    {"aspect",       2, HeightMapAspectOp, 3, 4, "aspect ?dataSetName?"},
+    {"ccolor",       2, HeightMapColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, HeightMapColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, HeightMapColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"contourlist",  3, HeightMapContourListOp, 3, 4, "contourList ?dataSetName?"},
     {"delete",       1, HeightMapDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, HeightMapEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"heightscale",  1, HeightMapHeightScaleOp, 3, 4, "value ?dataSetName?"},
-    {"isolinecolor", 8, HeightMapContourLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"isolinecmap",  9, HeightMapContourLineColorMapOp, 3, 4, "bool ?dataSetName?"},
+    {"isolinecolor", 9, HeightMapContourLineColorOp, 5, 6, "r g b ?dataSetName?"},
     {"isolines",     8, HeightMapContourLineVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"isolinewidth", 8, HeightMapContourLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"lighting",     3, HeightMapLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -4811,7 +5820,8 @@ static Rappture::CmdSpec heightmapOps[] = {
     {"numcontours",  1, HeightMapNumContoursOp, 3, 4, "numContours ?dataSetName?"},
     {"opacity",      2, HeightMapOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",       2, HeightMapOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",          1, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",          2, HeightMapPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp",    2, HeightMapPreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"scale",        2, HeightMapScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"slice",        2, HeightMapVolumeSliceOp, 4, 5, "axis ratio ?dataSetName?"},
     {"surface",      2, HeightMapContourSurfaceVisibleOp, 3, 4, "bool ?dataSetName?"},
@@ -6727,6 +7737,23 @@ PseudoColorPositionOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+PseudoColorPreInterpOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    bool state;
+    if (GetBooleanFromObj(interp, objv[2], &state) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setPseudoColorInterpolateBeforeMapping(name, state);
+    } else {
+        g_renderer->setPseudoColorInterpolateBeforeMapping("all", state);
+    }
+    return TCL_OK;
+}
+
+static int
 PseudoColorScaleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                    Tcl_Obj *const *objv)
 {
@@ -6791,7 +7818,8 @@ static Rappture::CmdSpec pseudoColorOps[] = {
     {"linewidth", 5, PseudoColorLineWidthOp, 3, 4, "width ?dataSetName?"},
     {"opacity",   2, PseudoColorOpacityOp, 3, 4, "value ?dataSetName?"},
     {"orient",    2, PseudoColorOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"pos",       2, PseudoColorPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"preinterp", 2, PseudoColorPreInterpOp, 3, 4, "bool ?dataSetName?"},
     {"scale",     1, PseudoColorScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
     {"visible",   1, PseudoColorVisibleOp, 3, 4, "bool ?dataSetName?"},
     {"wireframe", 1, PseudoColorWireframeOp, 3, 4, "bool ?dataSetName?"}
@@ -8294,6 +9322,25 @@ WarpAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+WarpColorOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const *objv)
+{
+    float color[3];
+    if (GetFloatFromObj(interp, objv[2], &color[0]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[3], &color[1]) != TCL_OK ||
+        GetFloatFromObj(interp, objv[4], &color[2]) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 6) {
+        const char *name = Tcl_GetString(objv[5]);
+        g_renderer->setGraphicsObjectColor<Warp>(name, color);
+    } else {
+        g_renderer->setGraphicsObjectColor<Warp>("all", color);
+    }
+    return TCL_OK;
+}
+
+static int
 WarpColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                Tcl_Obj *const *objv)
 {
@@ -8303,6 +9350,42 @@ WarpColorMapOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectColorMap<Warp>(dataSetName, colorMapName);
     } else {
         g_renderer->setGraphicsObjectColorMap<Warp>("all", colorMapName);
+    }
+    return TCL_OK;
+}
+
+static int
+WarpColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                Tcl_Obj *const *objv)
+{
+    Warp::ColorMode mode;
+    const char *str = Tcl_GetString(objv[2]);
+    if (str[0] == 'c' && strcmp(str, "ccolor") == 0) {
+        mode = Warp::COLOR_CONSTANT;
+    } else if (str[0] == 's' && strcmp(str, "scalar") == 0) {
+        mode = Warp::COLOR_BY_SCALAR;
+    } else if (str[0] == 'v' && strcmp(str, "vmag") == 0) {
+        mode = Warp::COLOR_BY_VECTOR_MAGNITUDE;
+    } else if (str[0] == 'v' && strcmp(str, "vx") == 0) {
+        mode = Warp::COLOR_BY_VECTOR_X;
+    } else if (str[0] == 'v' && strcmp(str, "vy") == 0) {
+        mode = Warp::COLOR_BY_VECTOR_Y;
+    } else if (str[0] == 'v' && strcmp(str, "vz") == 0) {
+        mode = Warp::COLOR_BY_VECTOR_Z;
+    } else {
+        Tcl_AppendResult(interp, "bad color mode option \"", str,
+                         "\": should be one of: 'scalar', 'vmag', 'vx', 'vy', 'vz', 'ccolor'", (char*)NULL);
+        return TCL_ERROR;
+    }
+    const char *fieldName = Tcl_GetString(objv[3]);
+    if (mode == Warp::COLOR_CONSTANT) {
+        fieldName = NULL;
+    }
+    if (objc == 5) {
+        const char *name = Tcl_GetString(objv[4]);
+        g_renderer->setWarpColorMode(name, mode, fieldName);
+    } else {
+        g_renderer->setWarpColorMode("all", mode, fieldName);
     }
     return TCL_OK;
 }
@@ -8518,7 +9601,9 @@ WarpWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static Rappture::CmdSpec warpOps[] = {
     {"add",          1, WarpAddOp, 2, 3, "?dataSetName?"},
-    {"colormap",     1, WarpColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"ccolor",       2, WarpColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, WarpColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, WarpColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
     {"delete",       1, WarpDeleteOp, 2, 3, "?dataSetName?"},
     {"edges",        1, WarpEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
     {"lighting",     3, WarpLightingOp, 3, 4, "bool ?dataSetName?"},
@@ -8561,9 +9646,12 @@ WarpCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  * read loop.
  */
 int
-Rappture::VtkVis::processCommands(Tcl_Interp *interp, ReadBuffer *inBufPtr, 
+Rappture::VtkVis::processCommands(Tcl_Interp *interp,
+                                  ClientData clientData,
+                                  ReadBuffer *inBufPtr, 
                                   int fdOut)
 {
+    int ret = 1;
     int status = TCL_OK;
 
     Tcl_DString command;
@@ -8597,43 +9685,68 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp, ReadBuffer *inBufPtr,
         }
         Tcl_DStringAppend(&command, (char *)buffer, numBytes);
         if (Tcl_CommandComplete(Tcl_DStringValue(&command))) {
+            struct timeval start, finish;
+            gettimeofday(&start, NULL);
             status = ExecuteCommand(interp, &command);
+            gettimeofday(&finish, NULL);
+            g_stats.cmdTime += (MSECS_ELAPSED(start, finish) / 1.0e+3);
+            g_stats.nCommands++;
             if (status == TCL_BREAK) {
                 return 1;               /* This was caused by a "imgflush"
                                          * command. Break out of the read loop
                                          * and allow a new image to be
                                          * rendered. */
+            } else if (status != TCL_OK) {
+                ret = 0;
+                if (handleError(interp, clientData, status, fdOut) < 0) {
+                    return -1;
+                }
             }
         }
+
         tv.tv_sec = tv.tv_usec = 0L;    /* On successive reads, we break out
                                          * if no data is available. */
         FD_SET(inBufPtr->file(), &readFds);
         tvPtr = &tv;
     }
 
-    if (status != TCL_OK) {
-        const char *string;
-        int nBytes;
+    return ret;
+}
 
-        string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
-        TRACE("%s: status=%d ERROR errorInfo=(%s)", Tcl_DStringValue(&command),
-              status, string);
-        nBytes = strlen(string);
-        struct iovec iov[3];
-        iov[0].iov_base = (char *)"VtkVis Server Error: ";
-        iov[0].iov_len = strlen((char *)iov[0].iov_base);
-        iov[1].iov_base = (char *)string;
-        iov[1].iov_len = nBytes;
-        iov[2].iov_base = (char *)"\n";
-        iov[2].iov_len = strlen((char *)iov[2].iov_base);
-        if (writev(fdOut, iov, 3) < 0) {
-            ERROR("write failed: %s", strerror(errno));
-            return -1;
-	}
-        return 0;
+/**
+ * \brief Send error message to client socket
+ */
+int
+Rappture::VtkVis::handleError(Tcl_Interp *interp,
+                              ClientData clientData,
+                              int status, int fdOut)
+{
+    const char *string;
+    int nBytes;
+
+    string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
+    TRACE("status=%d errorInfo=(%s)", status, string);
+    nBytes = strlen(string);
+
+    std::ostringstream oss;
+#ifdef OLD_ERRORS
+    oss << "VtkVis Server Error: " << string << "\n";
+    nBytes += 22;
+#else
+    oss << "nv>viserror -type error -bytes " << nBytes << "\n" << string;
+    nBytes = oss.str().length();
+#endif
+
+#ifdef USE_THREADS
+    QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+#else
+    if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+        ERROR("write failed: %s", strerror(errno));
+        return -1;
     }
+#endif
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -8650,6 +9763,7 @@ Rappture::VtkVis::initTcl(Tcl_Interp *interp, ClientData clientData)
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "box",         BoxCmd,         clientData, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      clientData, NULL);
+    Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  clientData, NULL);
     Tcl_CreateObjCommand(interp, "colormap",    ColorMapCmd,    clientData, NULL);
     Tcl_CreateObjCommand(interp, "cone",        ConeCmd,        clientData, NULL);
     Tcl_CreateObjCommand(interp, "contour2d",   Contour2DCmd,   clientData, NULL);
@@ -8686,6 +9800,7 @@ void Rappture::VtkVis::exitTcl(Tcl_Interp *interp)
     Tcl_DeleteCommand(interp, "axis");
     Tcl_DeleteCommand(interp, "box");
     Tcl_DeleteCommand(interp, "camera");
+    Tcl_DeleteCommand(interp, "clientinfo");
     Tcl_DeleteCommand(interp, "colormap");
     Tcl_DeleteCommand(interp, "cone");
     Tcl_DeleteCommand(interp, "contour2d");

@@ -8,9 +8,6 @@
 #include <cfloat>
 
 #include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -35,7 +32,7 @@ Contour2D::Contour2D(int numContours) :
     VtkGraphicsObject(),
     _numContours(numContours),
     _colorMap(NULL),
-    _colorMode(COLOR_CONSTANT),
+    _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
     _renderer(NULL)
 {
@@ -52,7 +49,7 @@ Contour2D::Contour2D(const std::vector<double>& contours) :
     _numContours(contours.size()),
     _contours(contours),
     _colorMap(NULL),
-    _colorMode(COLOR_CONSTANT),
+    _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
     _renderer(NULL)
 {
@@ -509,6 +506,7 @@ void Contour2D::setColorMap(ColorMap *cmap)
         _lut->GetTableRange(range);
         _lut->DeepCopy(cmap->getLookupTable());
         _lut->SetRange(range);
+        _lut->Modified();
     }
 
     switch (_colorMode) {

@@ -9,10 +9,6 @@
 #include <cfloat>
 #include <cstring>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -161,7 +157,7 @@ void Cutplane::update()
             _mapper[i] = vtkSmartPointer<vtkDataSetMapper>::New();
             // Map scalars through lookup table regardless of type
             _mapper[i]->SetColorModeToMapScalars();
-            //_mapper->InterpolateScalarsBeforeMappingOn();
+            //_mapper[i]->InterpolateScalarsBeforeMappingOn();
         }
         _cutPlane[i] = vtkSmartPointer<vtkPlane>::New();
         switch (i) {
@@ -353,9 +349,36 @@ void Cutplane::update()
     for (int i = 0; i < 3; i++) {
         if (_mapper[i] != NULL) {
             _borderMapper[i] = vtkSmartPointer<vtkPolyDataMapper>::New();
+#ifdef CUTPLANE_TIGHT_OUTLINE
             _outlineFilter[i] = vtkSmartPointer<vtkOutlineFilter>::New();
             _outlineFilter[i]->SetInputConnection(_mapper[i]->GetInputConnection(0, 0));
             _borderMapper[i]->SetInputConnection(_outlineFilter[i]->GetOutputPort());
+#else
+            _outlineSource[i] = vtkSmartPointer<vtkOutlineSource>::New();
+            switch (i) {
+            case 0:
+                _outlineSource[i]->SetBounds(bounds[0] + (bounds[1]-bounds[0])/2.,
+                                             bounds[0] + (bounds[1]-bounds[0])/2.,
+                                             bounds[2], bounds[3],
+                                             bounds[4], bounds[5]);
+                break;
+            case 1:
+                _outlineSource[i]->SetBounds(bounds[0], bounds[1],
+                                             bounds[2] + (bounds[3]-bounds[2])/2.,
+                                             bounds[2] + (bounds[3]-bounds[2])/2.,
+                                             bounds[4], bounds[5]);
+                break;
+            case 2:
+                _outlineSource[i]->SetBounds(bounds[0], bounds[1],
+                                             bounds[2], bounds[3],
+                                             bounds[4] + (bounds[5]-bounds[4])/2.,
+                                             bounds[4] + (bounds[5]-bounds[4])/2.);
+                break;
+            default:
+                ;
+            }
+            _borderMapper[i]->SetInputConnection(_outlineSource[i]->GetOutputPort());
+#endif
             _borderMapper[i]->SetResolveCoincidentTopologyToPolygonOffset();
         }
     }
@@ -374,6 +397,15 @@ void Cutplane::update()
         if (_borderMapper[i] != NULL) {
             _borderActor[i]->SetMapper(_borderMapper[i]);
             _borderMapper[i]->Update();
+        }
+    }
+}
+
+void Cutplane::setInterpolateBeforeMapping(bool state)
+{
+    for (int i = 0; i < 3; i++) {
+        if (_mapper[i] != NULL) {
+            _mapper[i]->SetInterpolateScalarsBeforeMapping((state ? 1 : 0));
         }
     }
 }
@@ -400,11 +432,23 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
 
     double bounds[6];
     _dataSet->getBounds(bounds);
+#if 0
+    if (ratio == 0.0)
+        ratio = 0.001;
+    if (ratio == 1.0)
+        ratio = 0.999;
+#endif
     switch (axis) {
     case X_AXIS:
         _cutPlane[0]->SetOrigin(bounds[0] + (bounds[1]-bounds[0]) * ratio,
                                 0,
                                 0);
+#ifndef CUTPLANE_TIGHT_OUTLINE
+        _outlineSource[0]->SetBounds(bounds[0] + (bounds[1]-bounds[0]) * ratio,
+                                     bounds[0] + (bounds[1]-bounds[0]) * ratio,
+                                     bounds[2], bounds[3],
+                                     bounds[4], bounds[5]);
+#endif
         if (_mapper[0] != NULL)
             _mapper[0]->Update();
         break;
@@ -412,6 +456,12 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
         _cutPlane[1]->SetOrigin(0,
                                 bounds[2] + (bounds[3]-bounds[2]) * ratio,
                                 0);
+#ifndef CUTPLANE_TIGHT_OUTLINE
+        _outlineSource[1]->SetBounds(bounds[0], bounds[1],
+                                     bounds[2] + (bounds[3]-bounds[2]) * ratio,
+                                     bounds[2] + (bounds[3]-bounds[2]) * ratio,
+                                     bounds[4], bounds[5]);
+#endif
         if (_mapper[1] != NULL)
             _mapper[1]->Update();
         break;
@@ -419,6 +469,12 @@ void Cutplane::selectVolumeSlice(Axis axis, double ratio)
         _cutPlane[2]->SetOrigin(0,
                                 0,
                                 bounds[4] + (bounds[5]-bounds[4]) * ratio);
+#ifndef CUTPLANE_TIGHT_OUTLINE
+        _outlineSource[2]->SetBounds(bounds[0], bounds[1],
+                                     bounds[2], bounds[3],
+                                     bounds[4] + (bounds[5]-bounds[4]) * ratio,
+                                     bounds[4] + (bounds[5]-bounds[4]) * ratio);
+#endif
         if (_mapper[2] != NULL)
             _mapper[2]->Update();
         break;
@@ -704,6 +760,7 @@ void Cutplane::setColorMap(ColorMap *cmap)
         _lut->GetTableRange(range);
         _lut->DeepCopy(cmap->getLookupTable());
         _lut->SetRange(range);
+        _lut->Modified();
     }
 
     switch (_colorMode) {

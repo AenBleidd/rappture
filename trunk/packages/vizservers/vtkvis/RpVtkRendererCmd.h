@@ -15,9 +15,19 @@
 namespace Rappture {
 namespace VtkVis {
 
-extern int processCommands(Tcl_Interp *interp, ReadBuffer *inBufPtr, 
+extern int processCommands(Tcl_Interp *interp,
+                           ClientData clientData,
+                           ReadBuffer *inBufPtr,
                            int fdOut);
-extern void initTcl(Tcl_Interp *interp, ClientData clientData);
+
+extern int handleError(Tcl_Interp *interp,
+                       ClientData clientData,
+                       int status,
+                       int fdOut);
+
+extern void initTcl(Tcl_Interp *interp,
+                    ClientData clientData);
+
 extern void exitTcl(Tcl_Interp *interp);
 
 }

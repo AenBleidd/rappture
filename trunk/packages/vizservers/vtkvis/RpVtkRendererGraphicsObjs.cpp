@@ -9,9 +9,6 @@
 #include <typeinfo>
 
 #include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkSmartPointer.h>
 #include <vtkDataSet.h>
 #include <vtkCharArray.h>
@@ -188,7 +185,7 @@ bool Renderer::addGraphicsObject<Box>(const DataSetId& id)
 
     getGraphicsObjectHashmap<Box>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -219,7 +216,7 @@ bool Renderer::addGraphicsObject<Sphere>(const DataSetId& id)
 
     getGraphicsObjectHashmap<Sphere>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -236,6 +233,8 @@ void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -246,17 +245,11 @@ void Renderer::setGraphicsObjectVolumeSlice<HeightMap>(const DataSetId& id, Axis
         return;
     }
 
-    bool initCam = false;
     do {
         itr->second->selectVolumeSlice(axis, ratio);
-        if (itr->second->getHeightScale() > 0.0)
-            initCam = true;
      } while (doAll && ++itr != _heightMaps.end());
 
-    if (initCam)
-        initCamera();
-    else
-        _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -295,7 +288,7 @@ bool Renderer::addArc(const DataSetId& id, double pt1[3], double pt2[3])
 
     getGraphicsObjectHashmap<Arc>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -311,6 +304,8 @@ void Renderer::setArcResolution(const DataSetId& id, int res)
 
     if (id.compare("all") == 0) {
         itr = _arcs.begin();
+        if (itr == _arcs.end())
+            return;
         doAll = true;
     } else {
         itr = _arcs.find(id);
@@ -324,6 +319,7 @@ void Renderer::setArcResolution(const DataSetId& id, int res)
         itr->second->setResolution(res);
     } while (doAll && ++itr != _arcs.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -358,7 +354,7 @@ bool Renderer::addArrow(const DataSetId& id, double tipRadius, double shaftRadiu
 
     getGraphicsObjectHashmap<Arrow>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -374,6 +370,8 @@ void Renderer::setArrowResolution(const DataSetId& id, int tipRes, int shaftRes)
 
     if (id.compare("all") == 0) {
         itr = _arrows.begin();
+        if (itr == _arrows.end())
+            return;
         doAll = true;
     } else {
         itr = _arrows.find(id);
@@ -387,6 +385,7 @@ void Renderer::setArrowResolution(const DataSetId& id, int tipRes, int shaftRes)
         itr->second->setResolution(tipRes, shaftRes);
     } while (doAll && ++itr != _arrows.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -422,7 +421,7 @@ bool Renderer::addCone(const DataSetId& id, double radius, double height, bool c
 
     getGraphicsObjectHashmap<Cone>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -438,6 +437,8 @@ void Renderer::setConeResolution(const DataSetId& id, int res)
 
     if (id.compare("all") == 0) {
         itr = _cones.begin();
+        if (itr == _cones.end())
+            return;
         doAll = true;
     } else {
         itr = _cones.find(id);
@@ -451,6 +452,7 @@ void Renderer::setConeResolution(const DataSetId& id, int res)
         itr->second->setResolution(res);
     } while (doAll && ++itr != _cones.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -496,7 +498,7 @@ bool Renderer::addContour2D(const DataSetId& id, int numContours)
         _contour2Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -543,7 +545,7 @@ bool Renderer::addContour2D(const DataSetId& id, const std::vector<double>& cont
         _contour2Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -572,6 +574,7 @@ void Renderer::setContour2DContours(const DataSetId& id, int numContours)
         itr->second->setContours(numContours);
     } while (doAll && ++itr != _contour2Ds.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -599,9 +602,9 @@ void Renderer::setContour2DContourList(const DataSetId& id, const std::vector<do
         itr->second->setContourList(contours);
     } while (doAll && ++itr != _contour2Ds.end());
 
+    sceneBoundsChanged();
      _needsRedraw = true;
 }
-
 
 /**
  * \brief Set the color mode for the specified DataSet
@@ -617,6 +620,8 @@ void Renderer::setContour2DColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _contour2Ds.begin();
+        if (itr == _contour2Ds.end())
+            return;
         doAll = true;
     } else {
         itr = _contour2Ds.find(id);
@@ -646,6 +651,8 @@ void Renderer::setContour2DColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _contour2Ds.begin();
+        if (itr == _contour2Ds.end())
+            return;
         doAll = true;
     } else {
         itr = _contour2Ds.find(id);
@@ -704,9 +711,7 @@ bool Renderer::addContour3D(const DataSetId& id, int numContours)
         _contour3Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
-    if (_cameraMode == IMAGE)
-        setCameraMode(PERSPECTIVE);
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -753,7 +758,7 @@ bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
         _contour3Ds[dsID] = contour;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -782,7 +787,7 @@ void Renderer::setContour3DContours(const DataSetId& id, int numContours)
         itr->second->setContours(numContours);
      } while (doAll && ++itr != _contour3Ds.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -810,8 +815,71 @@ void Renderer::setContour3DContourList(const DataSetId& id, const std::vector<do
         itr->second->setContourList(contours);
     } while (doAll && ++itr != _contour3Ds.end());
 
-    initCamera();
-     _needsRedraw = true;
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setContour3DColorMode(const DataSetId& id,
+                                     Contour3D::ColorMode mode,
+                                     DataSet::DataAttributeType type,
+                                     const char *name, double range[2])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        if (itr == _contour3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setContour3DColorMode(const DataSetId& id,
+                                     Contour3D::ColorMode mode,
+                                     const char *name, double range[2])
+{
+    Contour3DHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _contour3Ds.begin();
+        if (itr == _contour3Ds.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _contour3Ds.find(id);
+    }
+    if (itr == _contour3Ds.end()) {
+        ERROR("Contour3D not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
+    } while (doAll && ++itr != _contour3Ds.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -825,6 +893,8 @@ void Renderer::setCutplaneOutlineVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
         doAll = true;
     } else {
         itr = _cutplanes.find(id);
@@ -839,7 +909,7 @@ void Renderer::setCutplaneOutlineVisibility(const DataSetId& id, bool state)
         itr->second->setOutlineVisibility(state);
      } while (doAll && ++itr != _cutplanes.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -854,6 +924,8 @@ void Renderer::setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool s
 
     if (id.compare("all") == 0) {
         itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
         doAll = true;
     } else {
         itr = _cutplanes.find(id);
@@ -868,7 +940,7 @@ void Renderer::setCutplaneSliceVisibility(const DataSetId& id, Axis axis, bool s
         itr->second->setSliceVisibility(axis, state);
      } while (doAll && ++itr != _cutplanes.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -886,6 +958,8 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
         doAll = true;
     } else {
         itr = _cutplanes.find(id);
@@ -915,6 +989,8 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
         doAll = true;
     } else {
         itr = _cutplanes.find(id);
@@ -927,6 +1003,36 @@ void Renderer::setCutplaneColorMode(const DataSetId& id,
     do {
         itr->second->setColorMode(mode, name, range);
     } while (doAll && ++itr != _cutplanes.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set scalar interpolation mode for the specified DataSet
+ */
+void Renderer::setCutplaneInterpolateBeforeMapping(const DataSetId& id, bool state)
+{
+    CutplaneHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _cutplanes.begin();
+        if (itr == _cutplanes.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _cutplanes.find(id);
+    }
+
+    if (itr == _cutplanes.end()) {
+        ERROR("Cutplane not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setInterpolateBeforeMapping(state);
+     } while (doAll && ++itr != _cutplanes.end());
 
     _needsRedraw = true;
 }
@@ -963,7 +1069,7 @@ bool Renderer::addCylinder(const DataSetId& id, double radius, double height, bo
 
     getGraphicsObjectHashmap<Cylinder>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -979,6 +1085,8 @@ void Renderer::setCylinderResolution(const DataSetId& id, int res)
 
     if (id.compare("all") == 0) {
         itr = _cylinders.begin();
+        if (itr == _cylinders.end())
+            return;
         doAll = true;
     } else {
         itr = _cylinders.find(id);
@@ -992,6 +1100,7 @@ void Renderer::setCylinderResolution(const DataSetId& id, int res)
         itr->second->setResolution(res);
     } while (doAll && ++itr != _cylinders.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1025,7 +1134,7 @@ bool Renderer::addDisk(const DataSetId& id, double innerRadius, double outerRadi
 
     getGraphicsObjectHashmap<Disk>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1041,6 +1150,8 @@ void Renderer::setDiskResolution(const DataSetId& id, int resRadial, int resCirc
 
     if (id.compare("all") == 0) {
         itr = _disks.begin();
+        if (itr == _disks.end())
+            return;
         doAll = true;
     } else {
         itr = _disks.find(id);
@@ -1054,6 +1165,7 @@ void Renderer::setDiskResolution(const DataSetId& id, int resRadial, int resCirc
         itr->second->setResolution(resRadial, resCircum);
     } while (doAll && ++itr != _disks.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1099,8 +1211,7 @@ bool Renderer::addGlyphs(const DataSetId& id, Glyphs::GlyphShape shape)
         _glyphs[dsID] = glyphs;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
-
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1118,6 +1229,8 @@ void Renderer::setGlyphsColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1128,14 +1241,7 @@ void Renderer::setGlyphsColorMode(const DataSetId& id,
     }
 
     do {
-#ifdef HAVE_GLYPH3D_MAPPER
         itr->second->setColorMode(mode, name, range);
-#else
-        if (name != NULL && strlen(name) > 0) {
-            WARN("Glyphs color mode doesn't support named fields for VTK < 5.8.0");
-        }
-        itr->second->setColorMode(mode);
-#endif
     } while (doAll && ++itr != _glyphs.end());
 
     _needsRedraw = true;
@@ -1154,6 +1260,8 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1164,17 +1272,10 @@ void Renderer::setGlyphsScalingMode(const DataSetId& id,
     }
 
     do {
-#ifdef HAVE_GLYPH3D_MAPPER
         itr->second->setScalingMode(mode, name, range);
-#else
-        if (name != NULL && strlen(name) > 0) {
-            WARN("Glyphs scaling mode doesn't support named fields for VTK < 5.8.0");
-        }
-        itr->second->setScalingMode(mode);
-#endif
     } while (doAll && ++itr != _glyphs.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1190,6 +1291,8 @@ void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1203,7 +1306,7 @@ void Renderer::setGlyphsNormalizeScale(const DataSetId& id, bool normalize)
         itr->second->setNormalizeScale(normalize);
     } while (doAll && ++itr != _glyphs.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1220,6 +1323,8 @@ void Renderer::setGlyphsOrientMode(const DataSetId& id, bool state,
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1230,17 +1335,10 @@ void Renderer::setGlyphsOrientMode(const DataSetId& id, bool state,
     }
 
     do {
-#ifdef HAVE_GLYPH3D_MAPPER
         itr->second->setOrientMode(state, name);
-#else
-        if (name != NULL && strlen(name) > 0) {
-            WARN("Glyphs orient mode doesn't support named fields for VTK < 5.8.0");
-        }
-        itr->second->setOrient(state);
-#endif
     } while (doAll && ++itr != _glyphs.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1255,6 +1353,8 @@ void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1268,7 +1368,7 @@ void Renderer::setGlyphsShape(const DataSetId& id, Glyphs::GlyphShape shape)
         itr->second->setGlyphShape(shape);
     } while (doAll && ++itr != _glyphs.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1283,6 +1383,8 @@ void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
 
     if (id.compare("all") == 0) {
         itr = _glyphs.begin();
+        if (itr == _glyphs.end())
+            return;
         doAll = true;
     } else {
         itr = _glyphs.find(id);
@@ -1296,7 +1398,7 @@ void Renderer::setGlyphsScaleFactor(const DataSetId& id, double scale)
         itr->second->setScaleFactor(scale);
     } while (doAll && ++itr != _glyphs.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1342,8 +1444,7 @@ bool Renderer::addHeightMap(const DataSetId& id, int numContours, double heightS
         _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
-
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1390,8 +1491,7 @@ bool Renderer::addHeightMap(const DataSetId& id, const std::vector<double>& cont
         _heightMaps[dsID] = hmap;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
-
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1408,6 +1508,8 @@ void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -1422,8 +1524,7 @@ void Renderer::setHeightMapHeightScale(const DataSetId& id, double scale)
         itr->second->setHeightScale(scale);
      } while (doAll && ++itr != _heightMaps.end());
 
-    _renderer->ResetCameraClippingRange();
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1451,6 +1552,7 @@ void Renderer::setHeightMapNumContours(const DataSetId& id, int numContours)
         itr->second->setNumContours(numContours);
     } while (doAll && ++itr != _heightMaps.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1478,7 +1580,37 @@ void Renderer::setHeightMapContourList(const DataSetId& id, const std::vector<do
         itr->second->setContourList(contours);
     } while (doAll && ++itr != _heightMaps.end());
 
+    sceneBoundsChanged();
      _needsRedraw = true;
+}
+
+/**
+ * \brief Set scalar interpolation mode for the specified DataSet
+ */
+void Renderer::setHeightMapInterpolateBeforeMapping(const DataSetId& id, bool state)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setInterpolateBeforeMapping(state);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1492,6 +1624,8 @@ void Renderer::setHeightMapContourLineVisibility(const DataSetId& id, bool state
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -1505,6 +1639,7 @@ void Renderer::setHeightMapContourLineVisibility(const DataSetId& id, bool state
         itr->second->setContourLineVisibility(state);
     } while (doAll && ++itr != _heightMaps.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1519,6 +1654,8 @@ void Renderer::setHeightMapContourSurfaceVisibility(const DataSetId& id, bool st
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -1532,6 +1669,7 @@ void Renderer::setHeightMapContourSurfaceVisibility(const DataSetId& id, bool st
         itr->second->setContourSurfaceVisibility(state);
     } while (doAll && ++itr != _heightMaps.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1546,6 +1684,8 @@ void Renderer::setHeightMapContourEdgeColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -1576,6 +1716,8 @@ void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth
 
     if (id.compare("all") == 0) {
         itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
         doAll = true;
     } else {
         itr = _heightMaps.find(id);
@@ -1587,6 +1729,99 @@ void Renderer::setHeightMapContourEdgeWidth(const DataSetId& id, float edgeWidth
 
     do {
         itr->second->setContourEdgeWidth(edgeWidth);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Toggle colormapping of contour lines
+ */
+void Renderer::setHeightMapContourLineColorMapEnabled(const DataSetId& id, bool mode)
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setContourLineColorMapEnabled(mode);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;    
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setHeightMapColorMode(const DataSetId& id,
+                                     HeightMap::ColorMode mode,
+                                     DataSet::DataAttributeType type,
+                                     const char *name, double range[2])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _heightMaps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setHeightMapColorMode(const DataSetId& id,
+                                     HeightMap::ColorMode mode,
+                                     const char *name, double range[2])
+{
+    HeightMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _heightMaps.begin();
+        if (itr == _heightMaps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _heightMaps.find(id);
+    }
+    if (itr == _heightMaps.end()) {
+        ERROR("HeightMap not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
     } while (doAll && ++itr != _heightMaps.end());
 
     _needsRedraw = true;
@@ -1622,7 +1857,7 @@ bool Renderer::addLine(const DataSetId& id, double pt1[3], double pt2[3])
 
     getGraphicsObjectHashmap<Line>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1638,6 +1873,8 @@ void Renderer::setMoleculeAtomRadiusScale(const DataSetId& id, double scale)
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1651,8 +1888,7 @@ void Renderer::setMoleculeAtomRadiusScale(const DataSetId& id, double scale)
         itr->second->setAtomRadiusScale(scale);
     } while (doAll && ++itr != _molecules.end());
 
-    _renderer->ResetCameraClippingRange();
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1667,6 +1903,8 @@ void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1680,8 +1918,7 @@ void Renderer::setMoleculeAtomScaling(const DataSetId& id, Molecule::AtomScaling
         itr->second->setAtomScaling(scaling);
     } while (doAll && ++itr != _molecules.end());
 
-    _renderer->ResetCameraClippingRange();
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1696,6 +1933,8 @@ void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1709,6 +1948,7 @@ void Renderer::setMoleculeAtomVisibility(const DataSetId& id, bool state)
         itr->second->setAtomVisibility(state);
     } while (doAll && ++itr != _molecules.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1723,6 +1963,8 @@ void Renderer::setMoleculeAtomLabelVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1736,6 +1978,7 @@ void Renderer::setMoleculeAtomLabelVisibility(const DataSetId& id, bool state)
         itr->second->setAtomLabelVisibility(state);
     } while (doAll && ++itr != _molecules.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1750,6 +1993,8 @@ void Renderer::setMoleculeBondRadiusScale(const DataSetId& id, double scale)
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1763,8 +2008,7 @@ void Renderer::setMoleculeBondRadiusScale(const DataSetId& id, double scale)
         itr->second->setBondRadiusScale(scale);
     } while (doAll && ++itr != _molecules.end());
 
-    _renderer->ResetCameraClippingRange();
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -1779,6 +2023,8 @@ void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1792,9 +2038,13 @@ void Renderer::setMoleculeBondVisibility(const DataSetId& id, bool state)
         itr->second->setBondVisibility(state);
     } while (doAll && ++itr != _molecules.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set render style of the Molecule bonds for the given DataSet
+ */
 void Renderer::setMoleculeBondStyle(const DataSetId& id, Molecule::BondStyle style)
 {
     MoleculeHashmap::iterator itr;
@@ -1803,6 +2053,8 @@ void Renderer::setMoleculeBondStyle(const DataSetId& id, Molecule::BondStyle sty
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1816,9 +2068,13 @@ void Renderer::setMoleculeBondStyle(const DataSetId& id, Molecule::BondStyle sty
         itr->second->setBondStyle(style);
     } while (doAll && ++itr != _molecules.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set coloring mode of the Molecule bonds for the given DataSet
+ */
 void Renderer::setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColorMode mode)
 {
     MoleculeHashmap::iterator itr;
@@ -1827,6 +2083,8 @@ void Renderer::setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColor
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1843,6 +2101,9 @@ void Renderer::setMoleculeBondColorMode(const DataSetId& id, Molecule::BondColor
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set constant color of the Molecule bonds for the given DataSet
+ */
 void Renderer::setMoleculeBondColor(const DataSetId& id, float color[3])
 {
     MoleculeHashmap::iterator itr;
@@ -1851,6 +2112,8 @@ void Renderer::setMoleculeBondColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1867,7 +2130,6 @@ void Renderer::setMoleculeBondColor(const DataSetId& id, float color[3])
     _needsRedraw = true;
 }
 
-
 /**
  * \brief Set the color mode for the specified DataSet
  */
@@ -1882,6 +2144,8 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1911,6 +2175,8 @@ void Renderer::setMoleculeColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _molecules.begin();
+        if (itr == _molecules.end())
+            return;
         doAll = true;
     } else {
         itr = _molecules.find(id);
@@ -1957,7 +2223,7 @@ bool Renderer::addPolygon(const DataSetId& id, int numSides)
 
     getGraphicsObjectHashmap<Polygon>()[id] = gobj;
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -1976,6 +2242,8 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _pseudoColors.begin();
+        if (itr == _pseudoColors.end())
+            return;
         doAll = true;
     } else {
         itr = _pseudoColors.find(id);
@@ -2005,6 +2273,8 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _pseudoColors.begin();
+        if (itr == _pseudoColors.end())
+            return;
         doAll = true;
     } else {
         itr = _pseudoColors.find(id);
@@ -2022,6 +2292,35 @@ void Renderer::setPseudoColorColorMode(const DataSetId& id,
 }
 
 /**
+ * \brief Set scalar interpolation mode for the specified DataSet
+ */
+void Renderer::setPseudoColorInterpolateBeforeMapping(const DataSetId& id, bool state)
+{
+    PseudoColorHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _pseudoColors.begin();
+        if (itr == _pseudoColors.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _pseudoColors.find(id);
+    }
+    if (itr == _pseudoColors.end()) {
+        ERROR("PseudoColor not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setInterpolateBeforeMapping(state);
+    } while (doAll && ++itr != _pseudoColors.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set Sphere resolution
  */
 void Renderer::setSphereResolution(const DataSetId& id, int thetaRes, int phiRes)
@@ -2032,6 +2331,8 @@ void Renderer::setSphereResolution(const DataSetId& id, int thetaRes, int phiRes
 
     if (id.compare("all") == 0) {
         itr = _spheres.begin();
+        if (itr == _spheres.end())
+            return;
         doAll = true;
     } else {
         itr = _spheres.find(id);
@@ -2046,6 +2347,7 @@ void Renderer::setSphereResolution(const DataSetId& id, int thetaRes, int phiRes
         itr->second->setPhiResolution(phiRes);
     } while (doAll && ++itr != _spheres.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2061,6 +2363,8 @@ void Renderer::setSphereSection(const DataSetId& id, double thetaStart, double t
 
     if (id.compare("all") == 0) {
         itr = _spheres.begin();
+        if (itr == _spheres.end())
+            return;
         doAll = true;
     } else {
         itr = _spheres.find(id);
@@ -2077,6 +2381,7 @@ void Renderer::setSphereSection(const DataSetId& id, double thetaStart, double t
         itr->second->setEndPhi(phiEnd);
     } while (doAll && ++itr != _spheres.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2091,6 +2396,8 @@ void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoin
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2104,6 +2411,7 @@ void Renderer::setStreamlinesNumberOfSeedPoints(const DataSetId& id, int numPoin
         itr->second->setNumberOfSeedPoints(numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2118,6 +2426,8 @@ void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2131,6 +2441,7 @@ void Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id)
         itr->second->setSeedToMeshPoints();
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2146,6 +2457,8 @@ void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2159,6 +2472,7 @@ void Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id, int numPoints
         itr->second->setSeedToFilledMesh(numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2208,6 +2522,7 @@ bool Renderer::setStreamlinesSeedToMeshPoints(const DataSetId& id,
         itr->second->setSeedToMeshPoints(dataSet);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -2261,6 +2576,7 @@ bool Renderer::setStreamlinesSeedToFilledMesh(const DataSetId& id,
         itr->second->setSeedToFilledMesh(dataSet, numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -2278,6 +2594,8 @@ void Renderer::setStreamlinesSeedToRake(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2291,6 +2609,7 @@ void Renderer::setStreamlinesSeedToRake(const DataSetId& id,
         itr->second->setSeedToRake(start, end, numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2309,6 +2628,8 @@ void Renderer::setStreamlinesSeedToDisk(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2322,6 +2643,7 @@ void Renderer::setStreamlinesSeedToDisk(const DataSetId& id,
         itr->second->setSeedToDisk(center, normal, radius, innerRadius, numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2339,6 +2661,8 @@ void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2352,6 +2676,7 @@ void Renderer::setStreamlinesSeedToPolygon(const DataSetId& id,
         itr->second->setSeedToPolygon(center, normal, angle, radius, numSides);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2370,6 +2695,8 @@ void Renderer::setStreamlinesSeedToFilledPolygon(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2384,6 +2711,7 @@ void Renderer::setStreamlinesSeedToFilledPolygon(const DataSetId& id,
                                             radius, numSides, numPoints);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2398,6 +2726,8 @@ void Renderer::setStreamlinesTypeToLines(const DataSetId& id)
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2411,6 +2741,7 @@ void Renderer::setStreamlinesTypeToLines(const DataSetId& id)
         itr->second->setLineTypeToLines();
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2425,6 +2756,8 @@ void Renderer::setStreamlinesTypeToTubes(const DataSetId& id, int numSides, doub
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2438,6 +2771,7 @@ void Renderer::setStreamlinesTypeToTubes(const DataSetId& id, int numSides, doub
         itr->second->setLineTypeToTubes(numSides, radius);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2452,6 +2786,8 @@ void Renderer::setStreamlinesTypeToRibbons(const DataSetId& id, double width, do
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2465,6 +2801,7 @@ void Renderer::setStreamlinesTypeToRibbons(const DataSetId& id, double width, do
         itr->second->setLineTypeToRibbons(width, angle);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2479,6 +2816,8 @@ void Renderer::setStreamlinesLength(const DataSetId& id, double length)
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2492,6 +2831,7 @@ void Renderer::setStreamlinesLength(const DataSetId& id, double length)
         itr->second->setMaxPropagation(length);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2506,6 +2846,8 @@ void Renderer::setStreamlinesSeedVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2519,6 +2861,7 @@ void Renderer::setStreamlinesSeedVisibility(const DataSetId& id, bool state)
         itr->second->setSeedVisibility(state);
     } while (doAll && ++itr != _streamlines.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -2536,6 +2879,8 @@ void Renderer::setStreamlinesColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2565,6 +2910,8 @@ void Renderer::setStreamlinesColorMode(const DataSetId& id,
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2592,6 +2939,8 @@ void Renderer::setStreamlinesSeedColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = _streamlines.begin();
+        if (itr == _streamlines.end())
+            return;
         doAll = true;
     } else {
         itr = _streamlines.find(id);
@@ -2622,6 +2971,8 @@ void Renderer::setVolumeSampleDistance(const DataSetId& id, double distance)
 
     if (id.compare("all") == 0) {
         itr = _volumes.begin();
+        if (itr == _volumes.end())
+            return;
         doAll = true;
     } else {
         itr = _volumes.find(id);
@@ -2640,6 +2991,69 @@ void Renderer::setVolumeSampleDistance(const DataSetId& id, double distance)
 }
 
 /**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setWarpColorMode(const DataSetId& id,
+                                Warp::ColorMode mode,
+                                DataSet::DataAttributeType type,
+                                const char *name, double range[2])
+{
+    WarpHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _warps.begin();
+        if (itr == _warps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _warps.find(id);
+    }
+    if (itr == _warps.end()) {
+        ERROR("Warp not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, type, name, range);
+    } while (doAll && ++itr != _warps.end());
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set the color mode for the specified DataSet
+ */
+void Renderer::setWarpColorMode(const DataSetId& id,
+                                Warp::ColorMode mode,
+                                const char *name, double range[2])
+{
+    WarpHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _warps.begin();
+        if (itr == _warps.end())
+            return;
+        doAll = true;
+    } else {
+        itr = _warps.find(id);
+    }
+    if (itr == _warps.end()) {
+        ERROR("Warp not found: %s", id.c_str());
+        return;
+    }
+
+    do {
+        itr->second->setColorMode(mode, name, range);
+    } while (doAll && ++itr != _warps.end());
+
+    _needsRedraw = true;
+}
+
+/**
  * \brief Set amount to scale vector magnitudes when warping
  * a mesh
  */
@@ -2651,6 +3065,8 @@ void Renderer::setWarpWarpScale(const DataSetId& id, double scale)
 
     if (id.compare("all") == 0) {
         itr = _warps.begin();
+        if (itr == _warps.end())
+            return;
         doAll = true;
     } else {
         itr = _warps.find(id);
@@ -2665,7 +3081,6 @@ void Renderer::setWarpWarpScale(const DataSetId& id, double scale)
         itr->second->setWarpScale(scale);
      } while (doAll && ++itr != _warps.end());
 
-    _renderer->ResetCameraClippingRange();
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }

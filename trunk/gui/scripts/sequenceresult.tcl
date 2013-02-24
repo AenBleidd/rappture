@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 #  COMPONENT: sequenceresult - series of results forming an animation
@@ -92,7 +93,7 @@ itcl::body Rappture::SequenceResult::constructor {args} {
         -ipadx 2 -padx {0 4} -pady 4 -sticky nsew
 
     itk_component add dial {
-        Rappture::Radiodial $itk_component(player).dial \
+        Rappture::SequenceDial $itk_component(player).dial \
             -length 10 -valuewidth 0 -valuepadding 0 -padding 6 \
             -linecolor "" -activelinecolor "" \
             -knobimage [Rappture::icon knob2] -knobposition center@middle
@@ -435,14 +436,14 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     # If we have any data, then show the viewer.
     # Otherwise, hide it.
     #
-    set viewer $itk_component(area).viewer
-    if {[winfo exists $viewer]} {
+    set w $itk_component(area).viewer
+    if {[winfo exists $w]} {
         if {"" == $_topmost} {
-            pack forget $viewer
+            pack forget $w
             pack forget $itk_component(player)
             return
         } else {
-            pack $viewer -expand yes -fill both
+            pack $w -expand yes -fill both
             pack $itk_component(player) -side bottom -fill x
         }
     } else {
@@ -457,24 +458,24 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
         }
         switch -- $type {
             ::Rappture::Drawing {
-                Rappture::VtkViewer $viewer
-                pack $viewer -expand yes -fill both
+                Rappture::VtkViewer $w
+                pack $w -expand yes -fill both
             }
             ::Rappture::Curve {
-                Rappture::XyResult $viewer
-                pack $viewer -expand yes -fill both
+                Rappture::XyResult $w
+                pack $w -expand yes -fill both
             }
             ::Rappture::Histogram {
-                Rappture::HistogramResult $viewer
-                pack $viewer -expand yes -fill both
+                Rappture::HistogramResult $w
+                pack $w -expand yes -fill both
             }
             ::Rappture::DataTable {
-                Rappture::DataTable $viewer
-                pack $viewer -expand yes -fill both
+                Rappture::DataTable $w
+                pack $w -expand yes -fill both
             }
             ::Rappture::Image {
-                Rappture::ImageResult $viewer
-                pack $viewer -expand yes -fill both
+                Rappture::ImageResult $w
+                pack $w -expand yes -fill both
             }
             ::Rappture::Field {
                 set dimensions ""
@@ -494,70 +495,26 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
                         set dimensions $dim
                     }
                 }
+		set mode [$dataobj viewer]
                 switch -- $dimensions {
                     2D {
-			global env
-                        if { [$dataobj isunirect2d] } {
-                            if { [$dataobj hints type] == "contour" } {
-                                set mode "vtkcontour" 
-                            } elseif { [info exists env(VTKHEIGHTMAP)] } {
-                                set mode "vtkheightmap"
-                            } else {
-                                set mode "heightmap"
-                            }
-                        } elseif { [info exists env(VTKCONTOUR)] } {
-                            set mode "vtkcontour"
-                        } else {
-                            set mode "vtk"
-                        }
-                        set extents [$dataobj extents]
-                        if { $extents > 1 } {
-                            set mode "flowvis"
-                        }
-                        Rappture::Field2DResult $viewer -mode $mode
+			Rappture::Field2DResult $w -mode $mode
                     }
                     3D {
-                        set fmt [$dataobj type]
-                        switch -- $fmt {
-                            "points-on-mesh" {
-                                set mesh [$dataobj mesh]
-                                set fmt [expr {("" != $mesh) ? "vtk" : "nanovis"}]
-                                set extents [$dataobj extents]
-                                if { $extents > 1 } {
-                                    set fmt "flowvis"
-                                }
-                            }
-                            "opendx" - "dx" {
-                                set fmt "nanovis"
-                                set extents [$dataobj extents]
-                                if { $extents > 1 } {
-                                    set fmt "flowvis"
-                                }
-                            }
-                            "vtkvolume" {
-                                set fmt "vtkvolume"
-                            }
-                            "vtkstreamlines" {
-                                set fmt "vtkstreamlines"
-                            }
-                            "" {
-                                set fmt "auto" 
-                            }
-                        }
-                        Rappture::Field3DResult $viewer -mode $fmt
+			Rappture::Field3DResult $w -mode $mode
                     }
                     default {
                         error "don't know how to view sequences of $type\
-                            with $dimensions dimensions"
+                            with \"$dimensions\" dimensions dim=[$dataobj components -dimensions]"
                     }
                 }
-                pack $viewer -expand yes -fill both
+                pack $w -expand yes -fill both
             }
             ::Rappture::LibraryObj {
                 switch -- [$dataobj element -as type] {
                     structure {
-                        Rappture::DeviceResult $viewer
-                        pack $viewer -expand yes -fill both
+                        Rappture::DeviceResult $w
+                        pack $w -expand yes -fill both
                     }
                     default {
                         error "don't know how to view sequences of [$dataobj element -as type]"
@@ -571,13 +528,12 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
             }
         }
     }
-
     #
     # Load the current sequence info the viewer.
     #
     $itk_component(indexLabel) configure -text [$_topmost hints indexlabel]
-
-    $viewer delete
+    
+    $w delete
     $itk_component(dial) clear
 
     set max [$_topmost size]
@@ -585,7 +541,7 @@ itcl::body Rappture::SequenceResult::_rebuild {args} {
     for {set i 0} {$i < $max} {incr i} {
         eval lappend all [$_topmost value $i]
     }
-    eval $viewer scale $all
+    eval $w scale $all
 
     set _indices ""
     for {set i 0} {$i < $max} {incr i} {
@@ -633,16 +589,17 @@ itcl::body Rappture::SequenceResult::_playFrame {} {
 # Updates the viewer to display the value for the selected result.
 # ----------------------------------------------------------------------
 itcl::body Rappture::SequenceResult::_fixValue {} {
-    set viewer $itk_component(area).viewer
-    if {![winfo exists $viewer]} {
+    set w $itk_component(area).viewer
+    if {![winfo exists $w]} {
         return
     }
-    $viewer delete
+    $w delete
     if { $_topmost == "" } {
         return
     }
     set val [$itk_component(dial) get -format label current]
     set _pos [lsearch -glob $_indices $val*]
+
     # populate the label for this element
     if { "" != [$_topmost hints indexlabel] } {
         $itk_component(indexValue) configure -text "= $val"
@@ -658,6 +615,6 @@ itcl::body Rappture::SequenceResult::_fixValue {} {
                 lappend settings -type $type
             }
         }
-        $viewer add $dataobj $settings
+        $w add $dataobj $settings
     }
 }

@@ -62,7 +62,6 @@ FILES		= \
 		$(srcdir)/getopts.tcl \
 		$(srcdir)/grab.tcl \
 		$(srcdir)/groupentry.tcl \
-		$(srcdir)/heightmapviewer.tcl \
 		$(srcdir)/histogram.tcl \
 		$(srcdir)/histogramresult.tcl \
 		$(srcdir)/htmlviewer.tcl \
@@ -101,6 +100,7 @@ FILES		= \
 		$(srcdir)/resultviewer.tcl \
 		$(srcdir)/scroller.tcl \
 		$(srcdir)/sequence.tcl \
+		$(srcdir)/sequencedial.tcl \
 		$(srcdir)/sequenceresult.tcl \
 		$(srcdir)/service.tcl \
 		$(srcdir)/sidebarframe.tcl \
@@ -131,7 +131,7 @@ FILES		= \
 		$(srcdir)/videopreview.tcl \
 		$(srcdir)/visviewer.tcl \
 		$(srcdir)/vtkviewer.tcl \
-		$(srcdir)/vtkcontourviewer.tcl \
+		$(srcdir)/vtkisosurfaceviewer.tcl \
 		$(srcdir)/vtkstreamlinesviewer.tcl \
 		$(srcdir)/vtkvolumeviewer.tcl \
 		$(srcdir)/vtkheightmapviewer.tcl \

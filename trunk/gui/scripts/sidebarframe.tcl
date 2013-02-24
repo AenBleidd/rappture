@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: SidebarFrame - pop-out controls for visualization widgets
 #
@@ -50,7 +51,7 @@ itcl::class Rappture::SidebarFrame {
     public method enable { which }
     public method disable { which }
 
-    protected method _toggleTab { which }
+    protected method _toggleTab {which}
     protected method _sash {op x}
     protected method _fixLayout {args}
     protected method TabIndex { which }
@@ -213,8 +214,7 @@ itcl::body Rappture::SidebarFrame::constructor {args} {
         rename -background -controlbackground controlBackground \
             Background
     }
-    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} \
-        -fill y
+    pack $itk_component(tabs) -side top -expand yes -anchor e -padx {4 0} -fill y
 
     eval itk_initialize $args
 

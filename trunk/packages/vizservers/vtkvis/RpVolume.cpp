@@ -7,10 +7,6 @@
 
 #include <cassert>
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkDataSet.h>
 #include <vtkPointData.h>
 #include <vtkImageData.h>

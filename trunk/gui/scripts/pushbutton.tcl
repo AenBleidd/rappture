@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 
 # ----------------------------------------------------------------------
 
@@ -27,6 +28,8 @@ itcl::class Rappture::PushButton {
     itk_option define -height height Height "normal"
     itk_option define -onvalue onValue OnValue "normal"
     itk_option define -offvalue offValue OffValue "normal"
+    itk_option define -onbackground onBackground OnBackground "white"
+    itk_option define -offbackground offBackground OffBackground "grey85"
 
     constructor {args} { 
         # defined below 
@@ -53,6 +56,8 @@ itcl::class Rappture::PushButton {
     public variable disabledimage "";   # Image displayed when deselected.
     public variable onvalue "1";        # Value set when selected.
     public variable offvalue "0";       # Value set when deselected.
+    public variable onbackground "white"
+    public variable offbackground "grey85"
 }
 
 itk::usual PushButton {
@@ -132,11 +137,11 @@ itcl::body Rappture::PushButton::_fixValue {args} {
     if { $var == $onvalue } {
         set _state 1
         $itk_component(button) configure -relief sunken \
-            -image $onimage -bg white
+            -image $onimage -bg $onbackground
     } else {
         set _state 0
         $itk_component(button) configure -relief raise \
-            -image $offimage -bg grey85
+            -image $offimage -bg $offbackground
     }
 }
 

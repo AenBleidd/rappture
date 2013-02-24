@@ -1,3 +1,4 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
 # ----------------------------------------------------------------------
 #  COMPONENT: cloud - represents the mesh for a cloud of points
 #
@@ -21,11 +22,14 @@ itcl::class Rappture::Cloud {
 
     public method points {}
     public method mesh {}
+    public method vtkdata {}
     public method size {}
     public method dimensions {}
     public method limits {which}
     public method hints {{key ""}}
-
+    public method numpoints {} {
+	return $_numPoints
+    }
     public proc fetch {xmlobj path}
     public proc release {obj}
 
@@ -37,6 +41,11 @@ itcl::class Rappture::Cloud {
 
     private common _xp2obj       ;# used for fetch/release ref counting
     private common _obj2ref      ;# used for fetch/release ref counting
+    private variable _numPoints 0
+    private variable _vtkdata ""
+    private variable _vtkpoints ""
+    private variable _points ""
+    private variable _dim 0
 }
 
 # ----------------------------------------------------------------------
@@ -105,13 +114,14 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         set _units $u
     }
 
-    # create the vtk object containing points
-    vtkPoints $this-points
+    set data [$xmlobj get $path.points]
+    Rappture::ReadPoints $data _dim values
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
         set _limits($lim) ""
     }
-
+    set _numPoints 0
+    set _points {}
     foreach line [split [$xmlobj get $path.points] \n] {
         if {"" == [string trim $line]} {
             continue
@@ -138,8 +148,19 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
                 if {$v > $_limits(${dim}max)} { set _limits(${dim}max) $v }
             }
         }
-        $this-points InsertNextPoint $x $y $z
+        append _points "$x $y $z\n"
+	incr _numPoints
     }
+    if { $_dim == 3 } {
+	set _vtkpoints [vtkPoints $this-vtkpoints]
+	foreach { x y z } $_points {
+	    $_vtkpoints InsertNextPoint $x $y $z
+	}
+    }
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints float\n"
+    append out $_points
+    set _vtkdata $out
 }
 
 # ----------------------------------------------------------------------
@@ -148,7 +169,6 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
 itcl::body Rappture::Cloud::destructor {} {
     # don't destroy the _xmlobj! we don't own it!
     itcl::delete object $_cloud
-    rename $this-points ""
 }
 
 # ----------------------------------------------------------------------
@@ -157,7 +177,7 @@ itcl::body Rappture::Cloud::destructor {} {
 # Returns the vtk object containing the points for this mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::points {} {
-    return $this-points
+    return $_points
 }
 
 # ----------------------------------------------------------------------
@@ -166,7 +186,10 @@ itcl::body Rappture::Cloud::points {} {
 # Returns the vtk object representing the mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::mesh {} {
-    return $this-points
+    if { $_dim == 3 } {
+	return $_vtkpoints
+    }
+    return $_points
 }
 
 # ----------------------------------------------------------------------
@@ -175,7 +198,7 @@ itcl::body Rappture::Cloud::mesh {} {
 # Returns the number of points in this cloud.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::size {} {
-    return [$this-points GetNumberOfPoints]
+    return $_numPOints
 }
 
 # ----------------------------------------------------------------------
@@ -184,6 +207,7 @@ itcl::body Rappture::Cloud::size {} {
 # Returns the number of dimensions for this object: 1, 2, or 3.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::dimensions {} {
+    return $_dim
     # count the dimensions with real limits
     set dims 0
     foreach d {x y z} {
@@ -228,4 +252,8 @@ itcl::body Rappture::Cloud::hints {{keyword ""}} {
         return ""
     }
     return [array get hints]
+}
+
+itcl::body Rappture::Cloud::vtkdata {} {
+    return $_vtkdata
 }

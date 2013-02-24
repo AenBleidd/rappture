@@ -756,6 +756,55 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
+/* 
+ * ClientInfoCmd --
+ *
+ *      Log initial values to stats file.
+ *	  
+ */
+static int
+ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+        Tcl_Obj *const *objv)
+{
+    Tcl_DString ds;
+    int result;
+    int i;
+    char buf[BUFSIZ];
+
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppendElement(&ds, "render_start");
+    /* renderer */
+    Tcl_DStringAppendElement(&ds, "renderer");
+    Tcl_DStringAppendElement(&ds, "nanovis");
+    /* pid */
+    Tcl_DStringAppendElement(&ds, "pid");
+    sprintf(buf, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, buf);
+    /* host */
+    Tcl_DStringAppendElement(&ds, "host");
+    gethostname(buf, BUFSIZ-1);
+    buf[BUFSIZ-1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date */
+    Tcl_DStringAppendElement(&ds, "date");
+    strcpy(buf, ctime(&NanoVis::startTime.tv_sec));
+    buf[strlen(buf) - 1] = '\0';
+    Tcl_DStringAppendElement(&ds, buf);
+    /* date_secs */
+    Tcl_DStringAppendElement(&ds, "date_secs");
+    sprintf(buf, "%ld", NanoVis::startTime.tv_sec);
+    Tcl_DStringAppendElement(&ds, buf);
+    /* Client arguments. */
+    for (i = 1; i < objc; i++) {
+        Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
+    }
+    Tcl_DStringAppend(&ds, "\n", 1);
+    result = NanoVis::WriteToStatsFile(Tcl_DStringValue(&ds), 
+                                       Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return result;
+}
+
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
@@ -2263,6 +2312,7 @@ initTcl()
     */
     Tcl_CreateObjCommand(interp, "axis",        AxisCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "camera",      CameraCmd,      NULL, NULL);
+    Tcl_CreateObjCommand(interp, "clientinfo",  ClientInfoCmd,  NULL, NULL);
     Tcl_CreateObjCommand(interp, "cutplane",    CutplaneCmd,    NULL, NULL);
     if (FlowCmdInitProc(interp) != TCL_OK) {
 	return NULL;

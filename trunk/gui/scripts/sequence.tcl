@@ -1,3 +1,5 @@
+# -*- mode: tcl; indent-tabs-mode: nil -*- 
+
 # ----------------------------------------------------------------------
 #  COMPONENT: sequence - represents a sequence of output results
 #
@@ -70,19 +72,19 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
                     continue
                 }
                 curve {
-                    set obj [Rappture::Curve ::#auto $xmlobj $path.$name.$cname]
+                    set obj [Rappture::Curve ::\#auto $xmlobj $path.$name.$cname]
                 }
                 datatable {
-                    set obj [Rappture::DataTable ::#auto $xmlobj $path.$name.$cname]
+                    set obj [Rappture::DataTable ::\#auto $xmlobj $path.$name.$cname]
                 }
                 histogram {
-                    set obj [Rappture::Histogram ::#auto $xmlobj $path.$name.$cname]
+                    set obj [Rappture::Histogram ::\#auto $xmlobj $path.$name.$cname]
                 }
                 field {
-                    set obj [Rappture::Field ::#auto $xmlobj $path.$name.$cname]
+                    set obj [Rappture::Field ::\#auto $xmlobj $path.$name.$cname]
                 }
                 image {
-                    set obj [Rappture::Image ::#auto $xmlobj $path.$name.$cname]
+                    set obj [Rappture::Image ::\#auto $xmlobj $path.$name.$cname]
                 }
                 structure {
                     # extract unique result set prefix
@@ -118,7 +120,6 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
             }
         }
     }
-
     #
     # Generate a list of sorted index values.
     #
@@ -133,7 +134,6 @@ itcl::body Rappture::Sequence::constructor {xmlobj path} {
 
         # sort according to raw values; store both values
         set _indices [lsort -real -index 1 $vals]
-
     } else {
         # are the indices integers, reals, or strings?
         set how -integer
@@ -181,6 +181,14 @@ itcl::body Rappture::Sequence::destructor {} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Sequence::value {pos} {
     set i [lindex [lindex $_indices $pos] 0]
+
+    # FIXME:  This is a bandaid on what appears to be a timing problem.
+    # This "dataobjs" method is now called before any sequence frames
+    # have been added. 
+    if { ![info exists _dataobjs($i)] } {
+	return ""
+    }
+
     return $_dataobjs($i)
 }
 
@@ -192,6 +200,14 @@ itcl::body Rappture::Sequence::value {pos} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::Sequence::label {pos} {
     set i [lindex [lindex $_indices $pos] 0]
+
+    # FIXME:  This is a bandaid on what appears to be a timing problem.
+    # This "label" method is now called before any sequence frames
+    # have been added. 
+    if { ![info exists _labels($i)] } {
+	return ""
+    }
+
     return $_labels($i)
 }
 

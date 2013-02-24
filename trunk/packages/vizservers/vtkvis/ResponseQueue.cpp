@@ -47,17 +47,29 @@ ResponseQueue::enqueue(Response *response)
         ERROR("can't lock mutex: %s", strerror(errno));
     }	
     /* Examine the list and remove any queued responses of the same type. */
-    TRACE("before # of elements is %d\n", _list.size());
+    TRACE("Before # of elements is %d", _list.size());
     for (std::list<Response *>::iterator itr = _list.begin();
-         itr != _list.end(); ++itr) {
-        /* Remove any responses of the same type. There should be no more than
-         * one. */
-        if ((*itr)->type() == response->type()) {
-            _list.erase(itr);
+         itr != _list.end();) {
+        /* Remove any duplicate image or legend responses. There should be no 
+         * more than one.  Note that if the client starts using multiple legends 
+         * for different fields, this optimization should be disabled for legends.
+         * We may also need to differentiate between screen images and "hardcopy"
+         * images.
+         */
+        if ((response->type() == Response::IMAGE ||
+             response->type() == Response::LEGEND) &&
+            (*itr)->type() == response->type()) {
+            TRACE("Removing duplicate response of type: %d", (*itr)->type());
+            delete *itr;
+            itr = _list.erase(itr);
+        } else {
+            TRACE("Found queued response of type %d", (*itr)->type());
+            ++itr;
         }
     }
     /* Add the new response to the end of the list. */
     _list.push_back(response);
+    TRACE("After # of elements is %d", _list.size());
     if (sem_post(&_ready) < 0) {
         ERROR("can't post semaphore: %s", strerror(errno));
     }
@@ -80,11 +92,16 @@ ResponseQueue::dequeue()
     if (pthread_mutex_lock(&_idle) != 0) {
         ERROR("can't lock mutex: %s", strerror(errno));
     }
+    /* List may be empty if semaphore value was incremented beyond list
+     * size in the case of an enqueue operation deleting from the queue
+     * This is not an error, so just unlock and return to wait loop
+     */
     if (_list.empty()) {
-        ERROR("Empty queue");
+        TRACE("Empty queue");
     } else {
         response = _list.front();
         _list.pop_front();
+        TRACE("Dequeued response of type %d", response->type());
     }
     if (pthread_mutex_unlock(&_idle) != 0) {
         ERROR("can't unlock mutex: %s", strerror(errno));

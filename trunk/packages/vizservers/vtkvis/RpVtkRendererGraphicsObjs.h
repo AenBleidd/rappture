@@ -11,11 +11,40 @@
 #include <tr1/unordered_map>
 #include <typeinfo>
 
+// Use GCC/G++ specific name demangling
+#define DEMANGLE
+
+#ifdef DEMANGLE
+#include <cstdlib>
+#include <cxxabi.h>
+#define GO_TRACE(go, format, ...)                                            \
+do {                                                                         \
+    int status;                                                              \
+    char * typeName = abi::__cxa_demangle(typeid(go).name(), 0, 0, &status); \
+    TRACE("%s " format, typeName, __VA_ARGS__);                              \
+    free(typeName);                                                          \
+} while (0)
+
+#define GO_ERROR(go, format, ...)                                            \
+do {                                                                         \
+    int status;                                                              \
+    char * typeName = abi::__cxa_demangle(typeid(go).name(), 0, 0, &status); \
+    ERROR("%s " format, typeName, __VA_ARGS__);                              \
+    free(typeName);                                                          \
+} while (0)
+#else
+#define GO_TRACE(go, format, ...) TRACE("%s " format, typeid(go).name(), __VA_ARGS__);
+#define GO_ERROR(go, format, ...) ERROR("%s " format, typeid(go).name(), __VA_ARGS__);
+#endif
+
 #include "RpVtkRenderer.h"
 
 namespace Rappture {
 namespace VtkVis {
 
+/**
+ * \brief Look up graphics object by name
+ */
 template<class GraphicsObject>
 GraphicsObject *Renderer::getGraphicsObject(const DataSetId& id)
 {
@@ -26,13 +55,16 @@ GraphicsObject *Renderer::getGraphicsObject(const DataSetId& id)
 
     if (itr == hashmap.end()) {
 #ifdef DEBUG
-        TRACE("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_TRACE(GraphicsObject, "not found: %s", id.c_str());
 #endif
         return NULL;
     } else
         return itr->second;
 }
 
+/**
+ * \brief Delete graphics object by name
+ */
 template<class GraphicsObject>
 void Renderer::deleteGraphicsObject(const DataSetId& id)
 {
@@ -49,7 +81,7 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -66,10 +98,13 @@ void Renderer::deleteGraphicsObject(const DataSetId& id)
         itr = hashmap.erase(itr);
     } while (doAll && itr != hashmap.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
+/**
+ * \brief Delete all graphics objects from renderer
+ */
 template<class GraphicsObject>
 void Renderer::deleteAllGraphicsObjects()
 {
@@ -89,6 +124,9 @@ void Renderer::deleteAllGraphicsObjects()
     hashmap.clear();
 }
 
+/**
+ * \brief Add a graphics objects to the renderer's scene
+ */
 template<class GraphicsObject>
 bool Renderer::addGraphicsObject(const DataSetId& id)
 {
@@ -134,7 +172,7 @@ bool Renderer::addGraphicsObject(const DataSetId& id)
         getGraphicsObjectHashmap<GraphicsObject>()[dsID] = gobj;
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
     return true;
 }
@@ -153,12 +191,14 @@ void Renderer::setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *tra
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -166,7 +206,7 @@ void Renderer::setGraphicsObjectTransform(const DataSetId& id, vtkMatrix4x4 *tra
         itr->second->setTransform(trans);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -184,12 +224,14 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double quat[4])
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -197,7 +239,7 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double quat[4])
         itr->second->setOrientation(quat);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -215,12 +257,14 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, d
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -228,7 +272,7 @@ void Renderer::setGraphicsObjectOrientation(const DataSetId& id, double angle, d
         itr->second->setOrientation(angle, axis);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -246,12 +290,14 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -259,12 +305,14 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
         itr->second->setPosition(pos);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
 /**
- * \brief Set the prop scaling by 2D aspect ratio
+ * \brief Set the prop scaling based on a 2D aspect ratio
+ *
+ * \param aspectRatio The aspect ratio (width/height), zero means native aspect
  */
 template<class GraphicsObject>
 void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
@@ -277,12 +325,14 @@ void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -290,7 +340,7 @@ void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
         itr->second->setAspect(aspect);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -308,12 +358,14 @@ void Renderer::setGraphicsObjectScale(const DataSetId& id, double scale[3])
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -321,7 +373,7 @@ void Renderer::setGraphicsObjectScale(const DataSetId& id, double scale[3])
         itr->second->setScale(scale);
     } while (doAll && ++itr != hashmap.end());
 
-    resetAxes();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -339,12 +391,14 @@ void Renderer::setGraphicsObjectVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -352,6 +406,7 @@ void Renderer::setGraphicsObjectVisibility(const DataSetId& id, bool state)
         itr->second->setVisibility(state);
     } while (doAll && ++itr != hashmap.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -369,13 +424,15 @@ void Renderer::setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, doub
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
 
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -383,7 +440,7 @@ void Renderer::setGraphicsObjectVolumeSlice(const DataSetId& id, Axis axis, doub
         itr->second->selectVolumeSlice(axis, ratio);
      } while (doAll && ++itr != hashmap.end());
 
-    _renderer->ResetCameraClippingRange();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -402,18 +459,21 @@ void Renderer::setGraphicsObjectColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setColor(color);
     } while (doAll && ++itr != hashmap.end());
+
     _needsRedraw = true;
 }
 
@@ -431,12 +491,14 @@ void Renderer::setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -444,6 +506,7 @@ void Renderer::setGraphicsObjectEdgeVisibility(const DataSetId& id, bool state)
         itr->second->setEdgeVisibility(state);
     } while (doAll && ++itr != hashmap.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -461,12 +524,14 @@ void Renderer::setGraphicsObjectEdgeColor(const DataSetId& id, float color[3])
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -494,12 +559,14 @@ void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -507,6 +574,7 @@ void Renderer::setGraphicsObjectEdgeWidth(const DataSetId& id, float edgeWidth)
         itr->second->setEdgeWidth(edgeWidth);
     } while (doAll && ++itr != hashmap.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -524,12 +592,14 @@ void Renderer::setGraphicsObjectAmbient(const DataSetId& id, double coeff)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -554,12 +624,14 @@ void Renderer::setGraphicsObjectDiffuse(const DataSetId& id, double coeff)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -584,12 +656,14 @@ void Renderer::setGraphicsObjectSpecular(const DataSetId& id, double coeff, doub
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -614,18 +688,21 @@ void Renderer::setGraphicsObjectLighting(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
     do {
         itr->second->setLighting(state);
     } while (doAll && ++itr != hashmap.end());
+
     _needsRedraw = true;
 }
 
@@ -643,12 +720,14 @@ void Renderer::setGraphicsObjectOpacity(const DataSetId& id, double opacity)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -676,12 +755,14 @@ void Renderer::setGraphicsObjectPointSize(const DataSetId& id, float size)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -689,6 +770,7 @@ void Renderer::setGraphicsObjectPointSize(const DataSetId& id, float size)
         itr->second->setPointSize(size);
     } while (doAll && ++itr != hashmap.end());
 
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -706,12 +788,14 @@ void Renderer::setGraphicsObjectWireframe(const DataSetId& id, bool state)
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -736,13 +820,15 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
 
     if (id.compare("all") == 0) {
         itr = hashmap.begin();
+        if (itr == hashmap.end())
+            return;
         doAll = true;
     } else {
         itr = hashmap.find(id);
     }
 
     if (itr == hashmap.end()) {
-        ERROR("%s not found: %s", typeid(GraphicsObject).name(), id.c_str());
+        GO_ERROR(GraphicsObject, "not found: %s", id.c_str());
         return;
     }
 
@@ -753,10 +839,9 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     }
 
     do {
-        TRACE("Set %s color map: %s for dataset %s",
-              typeid(GraphicsObject).name(), 
-              colorMapId.c_str(),
-              itr->second->getDataSet()->getName().c_str());
+        GO_TRACE(GraphicsObject, "Set color map: %s for dataset %s",
+                 colorMapId.c_str(),
+                 itr->second->getDataSet()->getName().c_str());
 
         itr->second->setColorMap(cmap);
     } while (doAll && ++itr != hashmap.end());
@@ -764,6 +849,9 @@ void Renderer::setGraphicsObjectColorMap(const DataSetId& id, const ColorMapId& 
     _needsRedraw = true;
 }
 
+/**
+ * \brief Notify graphics object that color map has changed
+ */
 template<class GraphicsObject>
 void Renderer::updateGraphicsObjectColorMap(ColorMap *cmap)
 {
@@ -779,6 +867,9 @@ void Renderer::updateGraphicsObjectColorMap(ColorMap *cmap)
     }
 }
 
+/**
+ * \brief Check if a color map is in use by a graphics object
+ */
 template<class GraphicsObject>
 bool Renderer::graphicsObjectColorMapUsed(ColorMap *cmap)
 {
@@ -793,6 +884,9 @@ bool Renderer::graphicsObjectColorMapUsed(ColorMap *cmap)
     return false;
 }
 
+/**
+ * \brief Compute union of bounds and GO's bounds
+ */
 template<class GraphicsObject>
 void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
 {
@@ -804,9 +898,23 @@ void Renderer::mergeGraphicsObjectBounds(double *bounds, bool onlyVisible)
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getBounds());
+#ifdef DEBUG
+        double *bPtr = itr->second->getBounds();
+        assert(bPtr != NULL);
+        GO_TRACE(GraphicsObject,
+                 "%s bounds: %g %g %g %g %g %g",
+                 itr->first.c_str(),
+                 bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
+#endif
     }
 }
 
+/**
+ * \brief Compute union of bounds and GO's unscaled bounds
+ *
+ * Unscaled bounds are the bounds of the object before any actor scaling is
+ * applied
+ */
 template<class GraphicsObject>
 void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisible)
 {
@@ -818,9 +926,20 @@ void Renderer::mergeGraphicsObjectUnscaledBounds(double *bounds, bool onlyVisibl
         if ((!onlyVisible || itr->second->getVisibility()) &&
             itr->second->getProp() != NULL)
             mergeBounds(bounds, bounds, itr->second->getUnscaledBounds());
+#ifdef DEBUG
+        double *bPtr = itr->second->getUnscaledBounds();
+        assert(bPtr != NULL);
+        GO_TRACE(GraphicsObject,
+                 "%s bounds: %g %g %g %g %g %g",
+                 itr->first.c_str(),
+                 bPtr[0], bPtr[1], bPtr[2], bPtr[3], bPtr[4], bPtr[5]);
+#endif
     }
 }
 
+/**
+ * \brief Notify object that field value ranges have changed
+ */
 template<class GraphicsObject>
 void Renderer::updateGraphicsObjectFieldRanges()
 {
@@ -833,6 +952,9 @@ void Renderer::updateGraphicsObjectFieldRanges()
     }
 }
 
+/**
+ * \brief Pass global clip planes to graphics object
+ */
 template<class GraphicsObject>
 void Renderer::setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes)
 {
@@ -845,6 +967,13 @@ void Renderer::setGraphicsObjectClippingPlanes(vtkPlaneCollection *planes)
     }
 }
 
+/**
+ * \brief Set the prop scaling based on a 2D aspect ratio
+ *
+ * This method sets the aspect on all graphics objects of a given type
+ *
+ * \param aspectRatio The aspect ratio (width/height), zero means native aspect
+ */
 template<class GraphicsObject>
 void Renderer::setGraphicsObjectAspect(double aspectRatio)
 {
@@ -855,6 +984,9 @@ void Renderer::setGraphicsObjectAspect(double aspectRatio)
     for (itr = hashmap.begin(); itr != hashmap.end(); ++itr) {
         itr->second->setAspect(aspectRatio);
     }
+
+    sceneBoundsChanged();
+    _needsRedraw = true;
 }
 
 }

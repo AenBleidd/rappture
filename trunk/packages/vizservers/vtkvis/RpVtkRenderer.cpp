@@ -16,10 +16,6 @@
 #include <sys/time.h>
 #endif
 
-#include <vtkVersion.h>
-#if (VTK_MAJOR_VERSION >= 6)
-#define USE_VTK6
-#endif
 #include <vtkMath.h>
 #include <vtkCamera.h>
 #include <vtkLight.h>
@@ -29,10 +25,8 @@
 #include <vtkAxisActor2D.h>
 #ifdef USE_CUSTOM_AXES
 #include "vtkRpCubeAxesActor.h"
-#include "vtkRpCubeAxesActor2D.h"
 #else
 #include <vtkCubeAxesActor.h>
-#include <vtkCubeAxesActor2D.h>
 #endif
 #include <vtkDataSetReader.h>
 #include <vtkDataSetMapper.h>
@@ -52,17 +46,21 @@
 #include "ColorMap.h"
 #include "Trace.h"
 
-#define ELAPSED_TIME(t1, t2) \
-    ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3f) : \
-     (((t2).tv_sec - (t1).tv_sec))*1.0e+3f + (float)((t2).tv_usec - (t1).tv_usec)/1.0e+3f)
+#define MSECS_ELAPSED(t1, t2) \
+    ((t1).tv_sec == (t2).tv_sec ? (((t2).tv_usec - (t1).tv_usec)/1.0e+3) : \
+     (((t2).tv_sec - (t1).tv_sec))*1.0e+3 + (double)((t2).tv_usec - (t1).tv_usec)/1.0e+3)
 
 using namespace Rappture::VtkVis;
 
 Renderer::Renderer() :
     _needsRedraw(true),
+    _needsAxesReset(false),
+    _needsCameraClippingRangeReset(false),
+    _needsCameraReset(false),
     _windowWidth(500),
     _windowHeight(500),
     _cameraMode(PERSPECTIVE),
+    _cameraAspect(ASPECT_NATIVE),
     _imgCameraPlane(PLANE_XY),
     _imgCameraOffset(0),
     _cameraZoomRatio(1),
@@ -105,17 +103,22 @@ Renderer::Renderer() :
     if (_cameraMode == IMAGE)
         _activeClipPlanes->AddItem(_cameraClipPlanes[3]);
     _renderer = vtkSmartPointer<vtkRenderer>::New();
+
+    // Global ambient (defaults to 1,1,1)
+    //_renderer->SetAmbient(.2, .2, .2);
+
     vtkSmartPointer<vtkLight> headlight = vtkSmartPointer<vtkLight>::New();
     headlight->SetLightTypeToHeadlight();
     headlight->PositionalOff();
+    // Light ambient color defaults to 0,0,0
     //headlight->SetAmbientColor(1, 1, 1);
-    _renderer->SetAmbient(.2, .2, .2);
     _renderer->AddLight(headlight);
     vtkSmartPointer<vtkLight> skylight = vtkSmartPointer<vtkLight>::New();
     skylight->SetLightTypeToCameraLight();
     skylight->SetPosition(0, 1, 0);
     skylight->SetFocalPoint(0, 0, 0);
     skylight->PositionalOff();
+    // Light ambient color defaults to 0,0,0
     //skylight->SetAmbientColor(1, 1, 1);
     _renderer->AddLight(skylight);
     _renderer->LightFollowCameraOn();
@@ -132,6 +135,7 @@ Renderer::Renderer() :
     _renderWindow->SetMultiSamples(0);
     _renderer->SetMaximumNumberOfPeels(100);
     _renderer->SetUseDepthPeeling(1);
+    _renderer->SetTwoSidedLighting(1);
     _renderWindow->AddRenderer(_renderer);
     setViewAngle(_windowHeight);
     initAxes();
@@ -185,6 +189,7 @@ Renderer::~Renderer()
     _dataSets.clear();
 
     clearFieldRanges();
+    clearUserFieldRanges();
 
     TRACE("Leave");
 }
@@ -258,7 +263,7 @@ void Renderer::deleteDataSet(const DataSetId& id)
     initFieldRanges();
     updateFieldRanges();
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -406,104 +411,372 @@ bool Renderer::setDataSetActiveVectors(const DataSetId& id, const char *vectorNa
 /**
  * \brief Control whether the cumulative data range of datasets is used for 
  * colormapping and contours
+ *
+ * NOTE: If using explicit range(s), setting cumulative ranges on will
+ * remove explicit ranges on all fields
  */
 void Renderer::setUseCumulativeDataRange(bool state, bool onlyVisible)
 {
-    if (state != _useCumulativeRange) {
-        _useCumulativeRange = state;
-        _cumulativeRangeOnlyVisible = onlyVisible;
-        updateFieldRanges();
-        _needsRedraw = true;
-    }
+    TRACE("use cumulative: %d, only visible: %d", (state ? 1 : 0), (onlyVisible ? 1 : 0));
+    _useCumulativeRange = state;
+    _cumulativeRangeOnlyVisible = onlyVisible;
+    clearUserFieldRanges();
+    updateFieldRanges();
+    resetAxes();
+    _needsRedraw = true;
 }
 
 void Renderer::resetAxes(double bounds[6])
 {
     TRACE("Resetting axes");
-    if (_cubeAxesActor == NULL
-#ifndef USE_VTK6
-        || _cubeAxesActor2D == NULL
-#endif
-       ) {
+
+    if (_cubeAxesActor == NULL) {
         initAxes();
     }
+
     if (_cameraMode == IMAGE) {
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetUse2DMode(1);
-#else
-        if (_renderer->HasViewProp(_cubeAxesActor)) {
-            TRACE("Removing 3D axes");
-            _renderer->RemoveViewProp(_cubeAxesActor);
-        }
-        if (!_renderer->HasViewProp(_cubeAxesActor2D)) {
-            TRACE("Adding 2D axes");
-            _renderer->AddViewProp(_cubeAxesActor2D);
-        }
-#endif
     } else {
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetUse2DMode(0);
-#else
-        if (_renderer->HasViewProp(_cubeAxesActor2D)) {
-            TRACE("Removing 2D axes");
-            _renderer->RemoveViewProp(_cubeAxesActor2D);
-        }
-        if (!_renderer->HasViewProp(_cubeAxesActor)) {
-            TRACE("Adding 3D axes");
-            _renderer->AddViewProp(_cubeAxesActor);
-        }
-#endif
     }
 
     if (_cameraMode == IMAGE) {
         return;
     }
 
-    if (bounds == NULL) {
-        double newBounds[6];
-        collectBounds(newBounds, false);
-        double unscaledBounds[6];
-        collectUnscaledBounds(unscaledBounds, false);
-        _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
-        _cubeAxesActor->SetYAxisRange(unscaledBounds[2], unscaledBounds[3]);
-        _cubeAxesActor->SetZAxisRange(unscaledBounds[4], unscaledBounds[5]);
-        TRACE("Axis ranges: %g %g %g %g %g %g",
-              unscaledBounds[0],
-              unscaledBounds[1],
-              unscaledBounds[2],
-              unscaledBounds[3],
-              unscaledBounds[4],
-              unscaledBounds[5]);
-        _cubeAxesActor->SetBounds(newBounds);
-        TRACE("Bounds (computed): %g %g %g %g %g %g",
-              newBounds[0],
-              newBounds[1],
-              newBounds[2],
-              newBounds[3],
-              newBounds[4],
-              newBounds[5]);
+    setAxesBounds(bounds);
+    setAxesRanges();
+}
+
+/**
+ * \brief Explicitly set world coordinate bounds of axes
+ *
+ * This determines the region in world coordinates around which
+ * the axes are drawn
+ */
+void Renderer::setAxesBounds(double min, double max)
+{
+    setAxisBounds(X_AXIS, min, max);
+    setAxisBounds(Y_AXIS, min, max);
+    setAxisBounds(Z_AXIS, min, max);
+}
+
+/**
+ * \brief Set axes bounds based on auto/explicit settings
+ */
+void Renderer::setAxesBounds(double boundsIn[6])
+{
+    double newBounds[6];
+    if (boundsIn != NULL) { 
+        memcpy(&newBounds[0], &boundsIn[0], sizeof(double)*6);
     } else {
-        double unscaledBounds[6];
-        collectUnscaledBounds(unscaledBounds, false);
-        _cubeAxesActor->SetXAxisRange(unscaledBounds[0], unscaledBounds[1]);
-        _cubeAxesActor->SetYAxisRange(unscaledBounds[2], unscaledBounds[3]);
-        _cubeAxesActor->SetZAxisRange(unscaledBounds[4], unscaledBounds[5]);
-        TRACE("Axis ranges: %g %g %g %g %g %g",
-              unscaledBounds[0],
-              unscaledBounds[1],
-              unscaledBounds[2],
-              unscaledBounds[3],
-              unscaledBounds[4],
-              unscaledBounds[5]);
-        _cubeAxesActor->SetBounds(bounds);
-        TRACE("Bounds (supplied): %g %g %g %g %g %g",
+        if (_axesAutoBounds[X_AXIS] ||
+            _axesAutoBounds[Y_AXIS] ||
+            _axesAutoBounds[Z_AXIS]) {
+            collectBounds(newBounds, false);
+        }
+    }
+
+    double bounds[6];
+    if (_axesAutoBounds[X_AXIS]) {
+        memcpy(&bounds[0], &newBounds[0], sizeof(double)*2);
+    } else {
+        memcpy(&bounds[0], &_axesUserBounds[0], sizeof(double)*2);
+    }
+    if (_axesAutoBounds[Y_AXIS]) {
+        memcpy(&bounds[2], &newBounds[2], sizeof(double)*2);
+    } else {
+        memcpy(&bounds[2], &_axesUserBounds[2], sizeof(double)*2);
+    }
+    if (_axesAutoBounds[Z_AXIS]) {
+        memcpy(&bounds[4], &newBounds[4], sizeof(double)*2);
+    } else {
+        memcpy(&bounds[4], &_axesUserBounds[4], sizeof(double)*2);
+    }
+
+    _cubeAxesActor->SetBounds(bounds);
+
+    TRACE("Axis bounds: %g %g %g %g %g %g",
               bounds[0],
               bounds[1],
               bounds[2],
               bounds[3],
               bounds[4],
               bounds[5]);
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Toggle automatic vs. explicit range setting on all axes
+ */
+void Renderer::setAxesAutoBounds(bool state)
+{
+    _axesAutoBounds[X_AXIS] = state;
+    _axesAutoBounds[Y_AXIS] = state;
+    _axesAutoBounds[Z_AXIS] = state;
+
+    TRACE("Set axes bounds to %s", (state ? "auto" : "explicit"));
+
+    setAxesBounds();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Toggle automatic vs. explicit range setting on all axes
+ */
+void Renderer::setAxisAutoBounds(Axis axis, bool state)
+{
+    _axesAutoBounds[axis] = state;
+
+    TRACE("Set axis %d bounds to %s", axis, (state ? "auto" : "explicit"));
+
+    setAxesBounds();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Toggle automatic vs. explicit range setting on all axes
+ */
+void Renderer::setAxesAutoRange(bool state)
+{
+    _axesRangeMode[X_AXIS] = state ? RANGE_AUTO : RANGE_EXPLICIT;
+    _axesRangeMode[Y_AXIS] = state ? RANGE_AUTO : RANGE_EXPLICIT;
+    _axesRangeMode[Z_AXIS] = state ? RANGE_AUTO : RANGE_EXPLICIT;
+
+    TRACE("Set axes range to %s", (state ? "auto" : "explicit"));
+
+    setAxesRanges();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Explicitly set world coordinate bounds of axis
+ *
+ * This determines the region in world coordinates around which
+ * the axes are drawn
+ */
+void Renderer::setAxisBounds(Axis axis, double min, double max)
+{
+    double bounds[6];
+    _cubeAxesActor->GetBounds(bounds);
+
+    bounds[axis*2  ] = _axesUserBounds[axis*2  ] = min;
+    bounds[axis*2+1] = _axesUserBounds[axis*2+1] = max;
+
+    _cubeAxesActor->SetBounds(bounds);
+
+    _axesAutoBounds[axis] = false;
+
+    TRACE("Axis bounds: %g %g %g %g %g %g",
+              bounds[0],
+              bounds[1],
+              bounds[2],
+              bounds[3],
+              bounds[4],
+              bounds[5]);
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Toggle automatic vs. explicit range setting on specific axis
+ */
+void Renderer::setAxisAutoRange(Axis axis, bool state)
+{
+    _axesRangeMode[axis] = state ? RANGE_AUTO : RANGE_EXPLICIT;
+
+    TRACE("Set axis %d range to %s", axis, (state ? "auto" : "explicit"));
+
+    setAxesRanges();
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set explicit range on axes and disable auto range
+ */
+void Renderer::setAxesRange(double min, double max)
+{
+    setAxisRange(X_AXIS, min, max);
+    setAxisRange(Y_AXIS, min, max);
+    setAxisRange(Z_AXIS, min, max);
+}
+
+/**
+ * \brief Explicitly set power multiplier for axes labels
+ *
+ * The exponent will appear in the axis title and be omitted from labels
+ */
+void Renderer::setAxesLabelPowerScaling(int xPow, int yPow, int zPow, bool useCustom)
+{
+    _cubeAxesActor->SetLabelScaling(!useCustom, xPow, yPow, zPow);
+
+    TRACE("Set axis label scaling: custom: %d, powers: %d,%d,%d", (int)useCustom, xPow, yPow, zPow);
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Set explicit range on axis and disable auto range
+ */
+void Renderer::setAxisRange(Axis axis, double min, double max)
+{
+    switch (axis) {
+    case X_AXIS:
+        _axesRangeMode[X_AXIS] = RANGE_EXPLICIT;
+        _cubeAxesActor->SetXAxisRange(min, max);
+        break;
+    case Y_AXIS:
+        _axesRangeMode[Y_AXIS] = RANGE_EXPLICIT;
+        _cubeAxesActor->SetYAxisRange(min, max);
+        break;
+    case Z_AXIS:
+        _axesRangeMode[Z_AXIS] = RANGE_EXPLICIT;
+        _cubeAxesActor->SetZAxisRange(min, max);
+        break;
+    default:
+        break;
     }
+
+    TRACE("Set axis %d range to: %g, %g", axis, min, max);
+
+     _needsRedraw = true;
+}
+
+/**
+ * \brief Set axes ranges based on bounds and range modes
+ */
+void Renderer::setAxesRanges()
+{
+    computeAxesScale();
+
+    double bounds[6];
+    _cubeAxesActor->GetBounds(bounds);
+
+    double ranges[6];
+    if (_axesRangeMode[X_AXIS] != RANGE_EXPLICIT) {
+        ranges[0] = bounds[0] * _axesScale[X_AXIS];
+        ranges[1] = bounds[1] * _axesScale[X_AXIS];
+        _cubeAxesActor->SetXAxisRange(&ranges[0]);
+    } else {
+        _cubeAxesActor->GetXAxisRange(&ranges[0]);
+    }
+    if (_axesRangeMode[Y_AXIS] != RANGE_EXPLICIT) {
+        ranges[2] = bounds[2] * _axesScale[Y_AXIS];
+        ranges[3] = bounds[3] * _axesScale[Y_AXIS];
+        _cubeAxesActor->SetYAxisRange(&ranges[2]);
+    } else {
+        _cubeAxesActor->GetYAxisRange(&ranges[2]);
+    }
+
+    if (_axesRangeMode[Z_AXIS] != RANGE_EXPLICIT) {
+        ranges[4] = bounds[4] * _axesScale[Z_AXIS];
+        ranges[5] = bounds[5] * _axesScale[Z_AXIS];
+        _cubeAxesActor->SetZAxisRange(&ranges[4]);
+    } else {
+        _cubeAxesActor->GetZAxisRange(&ranges[4]);
+    }
+
+    TRACE("Axis ranges: %g %g %g %g %g %g",
+          ranges[0],
+          ranges[1],
+          ranges[2],
+          ranges[3],
+          ranges[4],
+          ranges[5]);
+
+    _needsRedraw = true;
+}
+
+/**
+ * \brief Compute scaling from axes bounds to ranges
+ *
+ * Uses actor scaling to determine if world coordinates
+ * need to be scaled to undo actor scaling in range labels
+ */
+void Renderer::computeAxesScale()
+{
+    if (_axesRangeMode[X_AXIS] != RANGE_AUTO &&
+        _axesRangeMode[Y_AXIS] != RANGE_AUTO &&
+        _axesRangeMode[Z_AXIS] != RANGE_AUTO)
+        return;
+
+    double bounds[6];
+    if (_cameraMode == IMAGE) {
+        collectBounds(bounds, false);
+    } else
+        _cubeAxesActor->GetBounds(bounds);
+
+    double unscaledBounds[6];
+    collectUnscaledBounds(unscaledBounds, false);
+
+    if (_axesRangeMode[X_AXIS] == RANGE_AUTO) {
+        double sx = (bounds[1] == bounds[0]) ? 1.0 : (unscaledBounds[1] - unscaledBounds[0]) / (bounds[1] - bounds[0]);
+        _axesScale[X_AXIS] = sx;
+        TRACE("Setting X axis scale to: %g", sx);
+    }
+    if (_axesRangeMode[Y_AXIS] == RANGE_AUTO) {
+        double sy = (bounds[3] == bounds[2]) ? 1.0 : (unscaledBounds[3] - unscaledBounds[2]) / (bounds[3] - bounds[2]);
+        _axesScale[Y_AXIS] = sy;
+        TRACE("Setting Y axis scale to: %g", sy);
+    }
+    if (_axesRangeMode[Y_AXIS] == RANGE_AUTO) {
+        double sz = (bounds[5] == bounds[4]) ? 1.0 : (unscaledBounds[5] - unscaledBounds[4]) / (bounds[5] - bounds[4]);
+        _axesScale[Z_AXIS] = sz;
+        TRACE("Setting Z axis scale to: %g", sz);
+    }
+}
+
+/**
+ * \brief Set scaling factor to convert world coordinates to axis 
+ * label values in X, Y, Z
+ */
+void Renderer::setAxesScale(double scale)
+{
+    _axesRangeMode[X_AXIS] = RANGE_SCALE_BOUNDS;
+    _axesRangeMode[Y_AXIS] = RANGE_SCALE_BOUNDS;
+    _axesRangeMode[Z_AXIS] = RANGE_SCALE_BOUNDS;
+
+    _axesScale[X_AXIS] = scale;
+    _axesScale[Y_AXIS] = scale;
+    _axesScale[Z_AXIS] = scale;
+
+    TRACE("Setting axes scale to: %g", scale);
+
+    setAxesRanges();
+}
+
+/**
+ * \brief Set scaling factor to convert world coordinates to axis label values
+ */
+void Renderer::setAxisScale(Axis axis, double scale)
+{
+    _axesRangeMode[axis] = RANGE_SCALE_BOUNDS;
+    _axesScale[axis] = scale;
+
+    TRACE("Setting axis %d scale to: %g", axis, scale);
+
+    setAxesRanges();
+}
+
+/**
+ * \brief Set an origin point within the axes bounds where the axes will intersect
+ *
+ * \param x X coordinate of origin
+ * \param y Y coordinate of origin
+ * \param z Z coordinate of origin
+ * \param useCustom Flag indicating if custom origin is to be used/enabled
+ */
+void Renderer::setAxesOrigin(double x, double y, double z, bool useCustom)
+{
+    _cubeAxesActor->SetAxisOrigin(x, y, z);
+    _cubeAxesActor->SetUseAxisOrigin((useCustom ? 1 : 0));
+
+    _needsRedraw = true;
 }
 
 /**
@@ -524,7 +797,7 @@ void Renderer::initAxes()
     // Don't offset labels at origin
     _cubeAxesActor->SetCornerOffset(0);
     _cubeAxesActor->SetFlyModeToStaticTriad();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+
     _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
     _cubeAxesActor->SetDrawXInnerGridlines(0);
     _cubeAxesActor->SetDrawYInnerGridlines(0);
@@ -536,25 +809,27 @@ void Renderer::initAxes()
     _cubeAxesActor->SetEnableDistanceLOD(0);
     _cubeAxesActor->SetViewAngleLODThreshold(0);
     _cubeAxesActor->SetEnableViewAngleLOD(0);
-    _cubeAxesActor->SetScreenSize(12.0);
-#endif
+    // Attempt to set font sizes for 2D (this currently doesn't work)
+    for (int i = 0; i < 3; i++) {
+        _cubeAxesActor->GetTitleTextProperty(i)->SetFontSize(14);
+        _cubeAxesActor->GetLabelTextProperty(i)->SetFontSize(12);
+    }
+    // Set font pixel size for 3D
+    _cubeAxesActor->SetScreenSize(8.0);
+
     _cubeAxesActor->SetBounds(0, 1, 0, 1, 0, 1);
     _cubeAxesActor->SetXAxisRange(0, 1);
     _cubeAxesActor->SetYAxisRange(0, 1);
     _cubeAxesActor->SetZAxisRange(0, 1);
-
-#ifdef USE_CUSTOM_AXES
-    if (_cubeAxesActor2D == NULL)
-        _cubeAxesActor2D = vtkSmartPointer<vtkRpCubeAxesActor2D>::New();
-#elif !defined(USE_VTK6)
-    if (_cubeAxesActor2D == NULL)
-        _cubeAxesActor2D = vtkSmartPointer<vtkCubeAxesActor2D>::New();
-#endif
+    for (int axis = 0; axis < 3; axis++) {
+        _axesAutoBounds[axis] = true;
+        _axesRangeMode[axis] = RANGE_AUTO;
+        _axesScale[axis] = 1.0;
+    }
 
     double axesColor[] = {1,1,1};
     setAxesColor(axesColor);
 
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
     if (!_renderer->HasViewProp(_cubeAxesActor))
         _renderer->AddViewProp(_cubeAxesActor);
 
@@ -563,63 +838,6 @@ void Renderer::initAxes()
     } else {
         _cubeAxesActor->SetUse2DMode(0);
     }
-#else
-    _cubeAxesActor2D->SetCamera(_renderer->GetActiveCamera());
-    _cubeAxesActor2D->ZAxisVisibilityOff();
-    _cubeAxesActor2D->SetCornerOffset(0);
-    _cubeAxesActor2D->SetFlyModeToClosestTriad();
-
-    _cubeAxesActor2D->ScalingOff();
-    _cubeAxesActor2D->SetShowActualBounds(1);
-    _cubeAxesActor2D->SetFontFactor(1.25);
-    // Use "nice" range and number of ticks/labels
-    _cubeAxesActor2D->GetXAxisActor2D()->AdjustLabelsOn();
-    _cubeAxesActor2D->GetYAxisActor2D()->AdjustLabelsOn();
-    _cubeAxesActor2D->GetZAxisActor2D()->AdjustLabelsOn();
-
-#ifdef USE_CUSTOM_AXES
-    _cubeAxesActor2D->SetAxisTitleTextProperty(NULL);
-    _cubeAxesActor2D->SetAxisLabelTextProperty(NULL);
-    //_cubeAxesActor2D->GetXAxisActor2D()->SizeFontRelativeToAxisOn();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetTitleTextProperty()->BoldOn();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetTitleTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetTitleTextProperty()->ShadowOn();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->BoldOff();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->ShadowOff();
-
-    //_cubeAxesActor2D->GetYAxisActor2D()->SizeFontRelativeToAxisOn();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->BoldOn();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->ShadowOn();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->BoldOff();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->ShadowOff();
-
-    //_cubeAxesActor2D->GetZAxisActor2D()->SizeFontRelativeToAxisOn();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->BoldOn();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->ShadowOn();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->BoldOff();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->ShadowOff();
-#else
-    _cubeAxesActor2D->GetAxisTitleTextProperty()->BoldOn();
-    _cubeAxesActor2D->GetAxisTitleTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetAxisTitleTextProperty()->ShadowOn();
-    _cubeAxesActor2D->GetAxisLabelTextProperty()->BoldOff();
-    _cubeAxesActor2D->GetAxisLabelTextProperty()->ItalicOff();
-    _cubeAxesActor2D->GetAxisLabelTextProperty()->ShadowOff();
-#endif
-
-    if (_cameraMode == IMAGE) {
-        if (!_renderer->HasViewProp(_cubeAxesActor2D))
-            _renderer->AddViewProp(_cubeAxesActor2D);
-    } else {
-        if (!_renderer->HasViewProp(_cubeAxesActor))
-            _renderer->AddViewProp(_cubeAxesActor);
-    }
-#endif
 }
 
 /**
@@ -633,34 +851,24 @@ void Renderer::setAxesFlyMode(AxesFlyMode mode)
     switch (mode) {
     case FLY_STATIC_EDGES:
         _cubeAxesActor->SetFlyModeToStaticEdges();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
-#endif
         break;
     case FLY_STATIC_TRIAD:
         _cubeAxesActor->SetFlyModeToStaticTriad();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
-#endif
         break;
     case FLY_OUTER_EDGES:
         _cubeAxesActor->SetFlyModeToOuterEdges();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_ALL);
-#endif
         break;
     case FLY_FURTHEST_TRIAD:
         _cubeAxesActor->SetFlyModeToFurthestTriad();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_FURTHEST);
-#endif
         break;
     case FLY_CLOSEST_TRIAD:
     default:
         _cubeAxesActor->SetFlyModeToClosestTriad();
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
         _cubeAxesActor->SetGridLineLocation(VTK_GRID_LINES_CLOSEST);
-#endif
         break;
     }
     _needsRedraw = true;
@@ -669,42 +877,74 @@ void Renderer::setAxesFlyMode(AxesFlyMode mode)
 /**
  * \brief Set color of axes, ticks, labels, titles
  */
-void Renderer::setAxesColor(double color[3])
+void Renderer::setAxesColor(double color[3], double opacity)
 {
-    if (_cubeAxesActor != NULL) {
-        _cubeAxesActor->GetProperty()->SetColor(color);
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
-        for (int i = 0; i < 3; i++) {
-            _cubeAxesActor->GetTitleTextProperty(i)->SetColor(color);
-            _cubeAxesActor->GetLabelTextProperty(i)->SetColor(color);
-            _cubeAxesActor->GetLabelTextProperty(i)->SetOpacity(1.0);
-        }
-        _cubeAxesActor->GetXAxesLinesProperty()->SetColor(color);
-        _cubeAxesActor->GetXAxesGridlinesProperty()->SetColor(color);
-        _cubeAxesActor->GetYAxesLinesProperty()->SetColor(color);
-        _cubeAxesActor->GetYAxesGridlinesProperty()->SetColor(color);
-        _cubeAxesActor->GetZAxesLinesProperty()->SetColor(color);
-        _cubeAxesActor->GetZAxesGridlinesProperty()->SetColor(color);
-#endif
-        _needsRedraw = true;
-    }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
-        _cubeAxesActor2D->GetProperty()->SetColor(color);
-#ifdef USE_CUSTOM_AXES
-        _cubeAxesActor2D->GetXAxisActor2D()->GetTitleTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetXAxisActor2D()->GetLabelTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetYAxisActor2D()->GetTitleTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetYAxisActor2D()->GetLabelTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetZAxisActor2D()->GetTitleTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetZAxisActor2D()->GetLabelTextProperty()->SetColor(color);
-#else
-        _cubeAxesActor2D->GetAxisTitleTextProperty()->SetColor(color);
-        _cubeAxesActor2D->GetAxisLabelTextProperty()->SetColor(color);
-#endif
-        _needsRedraw = true;
-    }
-#endif
+    setAxesTitleColor(color, opacity);
+    setAxesLabelColor(color, opacity);
+    setAxesLinesColor(color, opacity);
+    setAxesGridlinesColor(color, opacity);
+    setAxesInnerGridlinesColor(color, opacity);
+    setAxesGridpolysColor(color, opacity);
+}
+
+/**
+ * \brief Set color of axes title text
+ */
+void Renderer::setAxesTitleColor(double color[3], double opacity)
+{
+    setAxisTitleColor(X_AXIS, color, opacity);
+    setAxisTitleColor(Y_AXIS, color, opacity);
+    setAxisTitleColor(Z_AXIS, color, opacity);
+}
+
+/**
+ * \brief Set color of axes label text
+ */
+void Renderer::setAxesLabelColor(double color[3], double opacity)
+{
+    setAxisLabelColor(X_AXIS, color, opacity);
+    setAxisLabelColor(Y_AXIS, color, opacity);
+    setAxisLabelColor(Z_AXIS, color, opacity);
+}
+
+/**
+ * \brief Set color of main axes lines
+ */
+void Renderer::setAxesLinesColor(double color[3], double opacity)
+{
+    setAxisLinesColor(X_AXIS, color, opacity);
+    setAxisLinesColor(Y_AXIS, color, opacity);
+    setAxisLinesColor(Z_AXIS, color, opacity);
+}
+
+/**
+ * \brief Set color of axis gridlines
+ */
+void Renderer::setAxesGridlinesColor(double color[3], double opacity)
+{
+    setAxisGridlinesColor(X_AXIS, color, opacity);
+    setAxisGridlinesColor(Y_AXIS, color, opacity);
+    setAxisGridlinesColor(Z_AXIS, color, opacity);
+}
+
+/**
+ * \brief Set color of axes inner gridlines
+ */
+void Renderer::setAxesInnerGridlinesColor(double color[3], double opacity)
+{
+    setAxisInnerGridlinesColor(X_AXIS, color, opacity);
+    setAxisInnerGridlinesColor(Y_AXIS, color, opacity);
+    setAxisInnerGridlinesColor(Z_AXIS, color, opacity);
+}
+
+/**
+ * \brief Set color of axes inner grid polygons
+ */
+void Renderer::setAxesGridpolysColor(double color[3], double opacity)
+{
+    setAxisGridpolysColor(X_AXIS, color, opacity);
+    setAxisGridpolysColor(Y_AXIS, color, opacity);
+    setAxisGridpolysColor(Z_AXIS, color, opacity);
 }
 
 /**
@@ -716,12 +956,6 @@ void Renderer::setAxesVisibility(bool state)
         _cubeAxesActor->SetVisibility((state ? 1 : 0));
         _needsRedraw = true;
     }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
-        _cubeAxesActor2D->SetVisibility((state ? 1 : 0));
-        _needsRedraw = true;
-    }
-#endif
 }
 
 /**
@@ -732,6 +966,26 @@ void Renderer::setAxesGridVisibility(bool state)
     setAxisGridVisibility(X_AXIS, state);
     setAxisGridVisibility(Y_AXIS, state);
     setAxisGridVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axes inner gridlines
+ */
+void Renderer::setAxesInnerGridVisibility(bool state)
+{
+    setAxisInnerGridVisibility(X_AXIS, state);
+    setAxisInnerGridVisibility(Y_AXIS, state);
+    setAxisInnerGridVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axes inner grid polygons
+ */
+void Renderer::setAxesGridpolysVisibility(bool state)
+{
+    setAxisGridpolysVisibility(X_AXIS, state);
+    setAxisGridpolysVisibility(Y_AXIS, state);
+    setAxisGridpolysVisibility(Z_AXIS, state);
 }
 
 /**
@@ -752,6 +1006,16 @@ void Renderer::setAxesTickVisibility(bool state)
     setAxisTickVisibility(X_AXIS, state);
     setAxisTickVisibility(Y_AXIS, state);
     setAxisTickVisibility(Z_AXIS, state);
+}
+
+/**
+ * \brief Turn on/off rendering of all axis ticks
+ */
+void Renderer::setAxesMinorTickVisibility(bool state)
+{
+    setAxisMinorTickVisibility(X_AXIS, state);
+    setAxisMinorTickVisibility(Y_AXIS, state);
+    setAxisMinorTickVisibility(Z_AXIS, state);
 }
 
 /**
@@ -778,6 +1042,99 @@ void Renderer::setAxesTickPosition(AxesTickPosition pos)
 }
 
 /**
+ * \brief Controls label scaling by power of 10
+ */
+void Renderer::setAxesLabelScaling(bool autoScale, int xpow, int ypow, int zpow)
+{
+    if (_cubeAxesActor != NULL) {
+        _cubeAxesActor->SetLabelScaling(autoScale, xpow, ypow, zpow);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set axes title/label font size in pixels
+ */
+void Renderer::setAxesPixelFontSize(double screenSize)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axes font size to: %g px", screenSize);
+        _cubeAxesActor->SetScreenSize(screenSize);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set axis title font family
+ */
+void Renderer::setAxesTitleFont(const char *fontName)
+{
+    setAxisTitleFont(X_AXIS, fontName);
+    setAxisTitleFont(Y_AXIS, fontName);
+    setAxisTitleFont(Z_AXIS, fontName);
+}
+
+/**
+ * \brief Set axis title font size
+ */
+void Renderer::setAxesTitleFontSize(int sz)
+{
+    setAxisTitleFontSize(X_AXIS, sz);
+    setAxisTitleFontSize(Y_AXIS, sz);
+    setAxisTitleFontSize(Z_AXIS, sz);
+}
+
+/**
+ * \brief Set orientation (as rotation in degrees) of axis title
+ */
+void Renderer::setAxesTitleOrientation(double orientation)
+{
+    setAxisTitleOrientation(X_AXIS, orientation);
+    setAxisTitleOrientation(Y_AXIS, orientation);
+    setAxisTitleOrientation(Z_AXIS, orientation);
+}
+
+/**
+ * \brief Set axis label font family
+ */
+void Renderer::setAxesLabelFont(const char *fontName)
+{
+    setAxisLabelFont(X_AXIS, fontName);
+    setAxisLabelFont(Y_AXIS, fontName);
+    setAxisLabelFont(Z_AXIS, fontName);
+}
+
+/**
+ * \brief Set axis label font size
+ */
+void Renderer::setAxesLabelFontSize(int sz)
+{
+    setAxisLabelFontSize(X_AXIS, sz);
+    setAxisLabelFontSize(Y_AXIS, sz);
+    setAxisLabelFontSize(Z_AXIS, sz);
+}
+
+/**
+ * \brief Set orientation (as rotation in degrees) of axis labels
+ */
+void Renderer::setAxesLabelOrientation(double orientation)
+{
+    setAxisLabelOrientation(X_AXIS, orientation);
+    setAxisLabelOrientation(Y_AXIS, orientation);
+    setAxisLabelOrientation(Z_AXIS, orientation);
+}
+
+/**
+ * \brief Set printf style label format string
+ */
+void Renderer::setAxesLabelFormat(const char *format)
+{
+    setAxisLabelFormat(X_AXIS, format);
+    setAxisLabelFormat(Y_AXIS, format);
+    setAxisLabelFormat(Z_AXIS, format);
+}
+
+/**
  * \brief Turn on/off rendering of the specified axis
  */
 void Renderer::setAxisVisibility(Axis axis, bool state)
@@ -792,18 +1149,6 @@ void Renderer::setAxisVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
-        if (axis == X_AXIS) {
-            _cubeAxesActor2D->SetXAxisVisibility((state ? 1 : 0));
-        } else if (axis == Y_AXIS) {
-            _cubeAxesActor2D->SetYAxisVisibility((state ? 1 : 0));
-        } else if (axis == Z_AXIS) {
-            _cubeAxesActor2D->SetZAxisVisibility((state ? 1 : 0));
-        }
-        _needsRedraw = true;
-    }
-#endif
 }
 
 /**
@@ -824,6 +1169,40 @@ void Renderer::setAxisGridVisibility(Axis axis, bool state)
 }
 
 /**
+ * \brief Turn on/off rendering of single axis gridlines
+ */
+void Renderer::setAxisInnerGridVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor->SetDrawXInnerGridlines((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor->SetDrawYInnerGridlines((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor->SetDrawZInnerGridlines((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Turn on/off rendering of single axis gridlines
+ */
+void Renderer::setAxisGridpolysVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
+        if (axis == X_AXIS) {
+            _cubeAxesActor->SetDrawXGridpolys((state ? 1 : 0));
+        } else if (axis == Y_AXIS) {
+            _cubeAxesActor->SetDrawYGridpolys((state ? 1 : 0));
+        } else if (axis == Z_AXIS) {
+            _cubeAxesActor->SetDrawZGridpolys((state ? 1 : 0));
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
  * \brief Toggle label visibility for the specified axis
  */
 void Renderer::setAxisLabelVisibility(Axis axis, bool state)
@@ -838,18 +1217,6 @@ void Renderer::setAxisLabelVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
-        if (axis == X_AXIS) {
-            _cubeAxesActor2D->GetXAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
-        } else if (axis == Y_AXIS) {
-            _cubeAxesActor2D->GetYAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
-        } else if (axis == Z_AXIS) {
-            _cubeAxesActor2D->GetZAxisActor2D()->SetLabelVisibility((state ? 1 : 0));
-        }
-        _needsRedraw = true;
-    }
-#endif
 }
 
 /**
@@ -867,18 +1234,166 @@ void Renderer::setAxisTickVisibility(Axis axis, bool state)
         }
         _needsRedraw = true;
     }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
+}
+
+/**
+ * \brief Toggle tick visibility for the specified axis
+ */
+void Renderer::setAxisMinorTickVisibility(Axis axis, bool state)
+{
+    if (_cubeAxesActor != NULL) {
         if (axis == X_AXIS) {
-            _cubeAxesActor2D->GetXAxisActor2D()->SetTickVisibility((state ? 1 : 0));
+            _cubeAxesActor->SetXAxisMinorTickVisibility((state ? 1 : 0));
         } else if (axis == Y_AXIS) {
-            _cubeAxesActor2D->GetYAxisActor2D()->SetTickVisibility((state ? 1 : 0));
+            _cubeAxesActor->SetYAxisMinorTickVisibility((state ? 1 : 0));
         } else if (axis == Z_AXIS) {
-            _cubeAxesActor2D->GetZAxisActor2D()->SetTickVisibility((state ? 1 : 0));
+            _cubeAxesActor->SetZAxisMinorTickVisibility((state ? 1 : 0));
         }
         _needsRedraw = true;
     }
-#endif
+}
+
+/**
+ * \brief Set color of axis lines, ticks, labels, titles
+ */
+void Renderer::setAxisColor(Axis axis, double color[3], double opacity)
+{
+    setAxisTitleColor(axis, color, opacity);
+    setAxisLabelColor(axis, color, opacity);
+    setAxisLinesColor(axis, color, opacity);
+    setAxisGridlinesColor(axis, color, opacity);
+    setAxisInnerGridlinesColor(axis, color, opacity);
+    setAxisGridpolysColor(axis, color, opacity);
+}
+
+/**
+ * \brief Set color of axis title text
+ */
+void Renderer::setAxisTitleColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        _cubeAxesActor->GetTitleTextProperty(axis)->SetColor(color);
+        _cubeAxesActor->GetTitleTextProperty(axis)->SetOpacity(opacity);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set color of axis label text
+ */
+void Renderer::setAxisLabelColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        _cubeAxesActor->GetLabelTextProperty(axis)->SetColor(color);
+        _cubeAxesActor->GetLabelTextProperty(axis)->SetOpacity(opacity);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set color of main axis line
+ */
+void Renderer::setAxisLinesColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        switch (axis) {
+        case X_AXIS:
+            _cubeAxesActor->GetXAxesLinesProperty()->SetColor(color);
+            _cubeAxesActor->GetXAxesLinesProperty()->SetOpacity(opacity);
+            break;
+        case Y_AXIS:
+            _cubeAxesActor->GetYAxesLinesProperty()->SetColor(color);
+            _cubeAxesActor->GetYAxesLinesProperty()->SetOpacity(opacity);
+            break;
+        case Z_AXIS:
+            _cubeAxesActor->GetZAxesLinesProperty()->SetColor(color);
+            _cubeAxesActor->GetZAxesLinesProperty()->SetOpacity(opacity);
+            break;
+        default:
+            ;
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set color of axis gridlines
+ */
+void Renderer::setAxisGridlinesColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        switch (axis) {
+        case X_AXIS:
+            _cubeAxesActor->GetXAxesGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetXAxesGridlinesProperty()->SetOpacity(opacity);
+            break;
+        case Y_AXIS:
+            _cubeAxesActor->GetYAxesGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetYAxesGridlinesProperty()->SetOpacity(opacity);
+            break;
+        case Z_AXIS:
+            _cubeAxesActor->GetZAxesGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetZAxesGridlinesProperty()->SetOpacity(opacity);
+            break;
+        default:
+            ;
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set color of axis inner gridlines
+ */
+void Renderer::setAxisInnerGridlinesColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        switch (axis) {
+        case X_AXIS:
+            _cubeAxesActor->GetXAxesInnerGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetXAxesInnerGridlinesProperty()->SetOpacity(opacity);
+            break;
+        case Y_AXIS:
+            _cubeAxesActor->GetYAxesInnerGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetYAxesInnerGridlinesProperty()->SetOpacity(opacity);
+            break;
+        case Z_AXIS:
+            _cubeAxesActor->GetZAxesInnerGridlinesProperty()->SetColor(color);
+            _cubeAxesActor->GetZAxesInnerGridlinesProperty()->SetOpacity(opacity);
+            break;
+        default:
+            ;
+        }
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set color of axis inner grid polygons
+ *
+ * Default opacity is 0.6
+ */
+void Renderer::setAxisGridpolysColor(Axis axis, double color[3], double opacity)
+{
+    if (_cubeAxesActor != NULL) {
+        switch (axis) {
+        case X_AXIS:
+            _cubeAxesActor->GetXAxesGridpolysProperty()->SetColor(color);
+            _cubeAxesActor->GetXAxesGridpolysProperty()->SetOpacity(opacity);
+            break;
+        case Y_AXIS:
+            _cubeAxesActor->GetYAxesGridpolysProperty()->SetColor(color);
+            _cubeAxesActor->GetYAxesGridpolysProperty()->SetOpacity(opacity);
+            break;
+        case Z_AXIS:
+            _cubeAxesActor->GetZAxesGridpolysProperty()->SetColor(color);
+            _cubeAxesActor->GetZAxesGridpolysProperty()->SetOpacity(opacity);
+            break;
+        default:
+            ;
+        }
+        _needsRedraw = true;
+    }
 }
 
 /**
@@ -896,18 +1411,6 @@ void Renderer::setAxisTitle(Axis axis, const char *title)
         }
         _needsRedraw = true;
     }
-#if !defined(USE_VTK6) || defined(USE_CUSTOM_AXES)
-    if (_cubeAxesActor2D != NULL) {
-        if (axis == X_AXIS) {
-            _cubeAxesActor2D->SetXLabel(title);
-        } else if (axis == Y_AXIS) {
-            _cubeAxesActor2D->SetYLabel(title);
-        } else if (axis == Z_AXIS) {
-            _cubeAxesActor2D->SetZLabel(title);
-        }
-        _needsRedraw = true;
-    }
-#endif
 }
 
 /**
@@ -925,18 +1428,96 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
         }
         _needsRedraw = true;
     }
-#ifdef notdef
-    if (_cubeAxesActor2D != NULL) {
+}
+
+/**
+ * \brief Set axis title font family
+ */
+void Renderer::setAxisTitleFont(Axis axis, const char *fontName)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d title font to: '%s'", axis, fontName);
+        _cubeAxesActor->GetTitleTextProperty(axis)->SetFontFamilyAsString(fontName);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set axis title font size (and optionally pixel size)
+ */
+void Renderer::setAxisTitleFontSize(Axis axis, int sz)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d title font size to: %d", axis, sz);
+        _cubeAxesActor->GetTitleTextProperty(axis)->SetFontSize(sz);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set orientation (as rotation in degrees) of axis titles
+ */
+void Renderer::setAxisTitleOrientation(Axis axis, double orientation)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d title orientation to: %g", axis, orientation);
+        _cubeAxesActor->GetTitleTextProperty(axis)->SetOrientation(orientation);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set axis label font family
+ */
+void Renderer::setAxisLabelFont(Axis axis, const char *fontName)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d label font to: '%s'", axis, fontName);
+        _cubeAxesActor->GetLabelTextProperty(axis)->SetFontFamilyAsString(fontName);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set axis label font size (and optionally pixel size)
+ */
+void Renderer::setAxisLabelFontSize(Axis axis, int sz)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d label font size to: %d", axis, sz);
+        _cubeAxesActor->GetLabelTextProperty(axis)->SetFontSize(sz);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set orientation (as rotation in degrees) of axis labels
+ */
+void Renderer::setAxisLabelOrientation(Axis axis, double orientation)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d label orientation to: %g", axis, orientation);
+        _cubeAxesActor->GetLabelTextProperty(axis)->SetOrientation(orientation);
+        _needsRedraw = true;
+    }
+}
+
+/**
+ * \brief Set printf style label format string
+ */
+void Renderer::setAxisLabelFormat(Axis axis, const char *format)
+{
+    if (_cubeAxesActor != NULL) {
+        TRACE("Setting axis %d label format to: '%s'", axis, format);
         if (axis == X_AXIS) {
-            _cubeAxesActor2D->SetXUnits(units);
+            _cubeAxesActor->SetXLabelFormat(format);
         } else if (axis == Y_AXIS) {
-            _cubeAxesActor2D->SetYUnits(units);
+            _cubeAxesActor->SetYLabelFormat(format);
         } else if (axis == Z_AXIS) {
-            _cubeAxesActor2D->SetZUnits(units);
+            _cubeAxesActor->SetZLabelFormat(format);
         }
         _needsRedraw = true;
     }
-#endif
 }
 
 /**
@@ -944,6 +1525,7 @@ void Renderer::setAxisUnits(Axis axis, const char *units)
  */
 void Renderer::updateColorMap(ColorMap *cmap)
 {
+    TRACE("%s", cmap->getName().c_str());
     updateGraphicsObjectColorMap<Contour2D>(cmap);
     updateGraphicsObjectColorMap<Contour3D>(cmap);
     updateGraphicsObjectColorMap<Cutplane>(cmap);
@@ -955,6 +1537,7 @@ void Renderer::updateColorMap(ColorMap *cmap)
     updateGraphicsObjectColorMap<Streamlines>(cmap);
     updateGraphicsObjectColorMap<Volume>(cmap);
     updateGraphicsObjectColorMap<Warp>(cmap);
+    TRACE("Leave");
 }
 
 /**
@@ -1066,6 +1649,47 @@ void Renderer::deleteColorMap(const ColorMapId& id)
         delete itr->second;
         itr = _colorMaps.erase(itr);
     } while (doAll && itr != _colorMaps.end());
+}
+
+/**
+ * \brief Set the number of discrete colors used in the colormap's lookup table
+ *
+ * Note that the number of table entries is independent of the number of 
+ * control points in the color/alpha ramp
+ */
+void Renderer::setColorMapNumberOfTableEntries(const ColorMapId& id, int numEntries)
+{
+    ColorMapHashmap::iterator itr;
+
+    bool doAll = false;
+
+    if (id.compare("all") == 0) {
+        itr = _colorMaps.begin();
+        doAll = true;
+    } else {
+        itr = _colorMaps.find(id);
+    }
+
+    if (itr == _colorMaps.end()) {
+        ERROR("Unknown ColorMap %s", id.c_str());
+        return;
+    }
+
+    if (numEntries < 0) {
+        numEntries = 256;
+        TRACE("Setting numEntries to default value of %d", numEntries);
+    }
+
+    do {
+        if (itr->second->getName() == "elementDefault") {
+            TRACE("Can't change number of table entries for default element color map");
+        } else {
+            itr->second->setNumberOfTableEntries(numEntries);
+            updateColorMap(itr->second);
+        }
+    } while (doAll && ++itr != _colorMaps.end());
+
+    _needsRedraw = true;
 }
 
 /**
@@ -1538,6 +2162,11 @@ void Renderer::setWindowSize(int width, int height)
 
 void Renderer::setObjectAspects(double aspectRatio)
 {
+    for (DataSetHashmap::iterator itr = _dataSets.begin();
+         itr != _dataSets.end(); ++itr) {
+        itr->second->setAspect(aspectRatio);
+    }
+
     setGraphicsObjectAspect<Arc>(aspectRatio);
     setGraphicsObjectAspect<Arrow>(aspectRatio);
     setGraphicsObjectAspect<Box>(aspectRatio);
@@ -1559,6 +2188,36 @@ void Renderer::setObjectAspects(double aspectRatio)
     setGraphicsObjectAspect<Streamlines>(aspectRatio);
     setGraphicsObjectAspect<Volume>(aspectRatio);
     setGraphicsObjectAspect<Warp>(aspectRatio);
+}
+
+void Renderer::setCameraAspect(Aspect aspect)
+{
+    //if (_cameraAspect == aspect)
+    //    return;
+
+    _cameraAspect = aspect;
+
+    double aspectRatio = 0.0;
+    switch (aspect) {
+    case ASPECT_SQUARE:
+        aspectRatio = 1.0;
+        break;
+    case ASPECT_WINDOW:
+        aspectRatio = 1.0;
+        if (_cameraMode == IMAGE) {
+            aspectRatio = _imgWorldDims[0] / _imgWorldDims[1];
+        }
+        break;
+    case ASPECT_NATIVE:
+    default:
+        aspectRatio = 0.0;
+    }
+
+    setObjectAspects(aspectRatio);
+
+    if (_cameraMode == IMAGE)
+        _needsCameraReset = true;
+    _needsRedraw = true;
 }
 
 /**
@@ -1748,6 +2407,18 @@ void Renderer::getCameraOrientationAndPosition(double position[3],
     camera->GetViewUp(viewUp);
 }
 
+void Renderer::sceneBoundsChanged()
+{
+#ifdef RESET_CAMERA_ON_SCENE_CHANGE
+    _needsCameraReset = true;
+#else
+    _needsAxesReset = true;
+    _needsCameraClippingRangeReset = true;
+#endif
+
+    _needsRedraw = true;
+}
+
 /**
  * \brief Reset pan, zoom, clipping planes and optionally rotation
  *
@@ -1769,9 +2440,10 @@ void Renderer::resetCamera(bool resetOrientation)
             _cameraOrientation[3] = 0.0;
         }
         //setViewAngle(_windowHeight);
-        double bounds[6];
-        collectBounds(bounds, false);
-        _renderer->ResetCamera(bounds);
+        //double bounds[6];
+        //collectBounds(bounds, false);
+        //_renderer->ResetCamera(bounds);
+        _renderer->ResetCamera();
         _renderer->ResetCameraClippingRange();
         //computeScreenWorldCoords();
     }
@@ -1785,6 +2457,9 @@ void Renderer::resetCamera(bool resetOrientation)
     _needsRedraw = true;
 }
 
+/**
+ * \brief Set the camera near/far clipping range based on current scene bounds
+ */
 void Renderer::resetCameraClippingRange()
 {
     _renderer->ResetCameraClippingRange();
@@ -2024,8 +2699,8 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
     double offsetY = pxOffsetY * pxToWorld;
     double winWidthWorld = _windowWidth * pxToWorld;
     double winHeightWorld = _windowHeight * pxToWorld;
-    double plotWidthWorld = imgWidthPx * pxToWorld;
-    double plotHeightWorld = imgHeightPx * pxToWorld;
+    double imgWidthWorld = imgWidthPx * pxToWorld;
+    double imgHeightWorld = imgHeightPx * pxToWorld;
 
     TRACE("Window: %d %d", _windowWidth, _windowHeight);
     TRACE("ZoomRegion: %g %g %g %g", x, y, width, height);
@@ -2036,8 +2711,8 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
 
     _imgWorldOrigin[0] = x;
     _imgWorldOrigin[1] = y;
-    _imgWorldDims[0] = width;
-    _imgWorldDims[1] = height;
+    _imgWorldDims[0] = imgWidthWorld;
+    _imgWorldDims[1] = imgHeightWorld;
 
     camPos[0] = _imgWorldOrigin[0] - offsetX + winWidthWorld / 2.0;
     camPos[1] = _imgWorldOrigin[1] - offsetY + winHeightWorld / 2.0;
@@ -2060,27 +2735,18 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + plotHeightWorld, 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
-        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
-                                  _imgCameraOffset, _imgCameraOffset);
 
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+                                  _imgCameraOffset, _imgCameraOffset);
         _cubeAxesActor->XAxisVisibilityOn();
         _cubeAxesActor->YAxisVisibilityOn();
         _cubeAxesActor->ZAxisVisibilityOff();
-#else
-        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
-                                    _imgCameraOffset, _imgCameraOffset);
-        _cubeAxesActor2D->XAxisVisibilityOn();
-        _cubeAxesActor2D->YAxisVisibilityOn();
-        _cubeAxesActor2D->ZAxisVisibilityOff();
-#endif
     } else if (_imgCameraPlane == PLANE_ZY) {
         // ZY plane
         camera->SetPosition(_imgCameraOffset - 1., camPos[1], camPos[0]);
@@ -2093,26 +2759,18 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(0, 0, _imgWorldOrigin[0]);
         _cameraClipPlanes[1]->SetNormal(0, 0, 1);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + plotHeightWorld, 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + plotWidthWorld);
+        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + _imgWorldDims[0]);
         _cameraClipPlanes[3]->SetNormal(0, 0, -1);
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
+
         _cubeAxesActor->SetBounds(_imgCameraOffset, _imgCameraOffset, 
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
-                                  _imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld);
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+                                  _imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0]);
         _cubeAxesActor->XAxisVisibilityOff();
         _cubeAxesActor->YAxisVisibilityOn();
         _cubeAxesActor->ZAxisVisibilityOn();
-#else
-        _cubeAxesActor2D->SetBounds(_imgCameraOffset, _imgCameraOffset, 
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld,
-                                    _imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld);
-        _cubeAxesActor2D->XAxisVisibilityOff();
-        _cubeAxesActor2D->YAxisVisibilityOn();
-        _cubeAxesActor2D->ZAxisVisibilityOn();
-#endif
     } else {
         // XZ plane
         camera->SetPosition(camPos[0], _imgCameraOffset - 1., camPos[1]);
@@ -2125,35 +2783,28 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + plotHeightWorld);
+        _cameraClipPlanes[2]->SetOrigin(0, 0, _imgWorldOrigin[1] + _imgWorldDims[1]);
         _cameraClipPlanes[2]->SetNormal(0, 0, -1);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + plotWidthWorld, 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
-#if defined(USE_VTK6) && !defined(USE_CUSTOM_AXES)
-        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
+
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
                                   _imgCameraOffset, _imgCameraOffset,
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld);
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1]);
         _cubeAxesActor->XAxisVisibilityOn();
         _cubeAxesActor->YAxisVisibilityOff();
         _cubeAxesActor->ZAxisVisibilityOn();
-#else
-        _cubeAxesActor2D->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + plotWidthWorld,
-                                    _imgCameraOffset, _imgCameraOffset,
-                                    _imgWorldOrigin[1], _imgWorldOrigin[1] + plotHeightWorld);
-        _cubeAxesActor2D->XAxisVisibilityOn();
-        _cubeAxesActor2D->YAxisVisibilityOff();
-        _cubeAxesActor2D->ZAxisVisibilityOn();
-#endif
     }
 
-#if !defined(USE_CUSTOM_AXES)
-    double xmin, xmax, ymin, ymax, zmin, zmax;
-    _cubeAxesActor->GetBounds(xmin, xmax, ymin, ymax, zmin, zmax);
-    _cubeAxesActor->SetXAxisRange(xmin, xmax);
-    _cubeAxesActor->SetYAxisRange(ymin, ymax);
-    _cubeAxesActor->SetZAxisRange(zmin, zmax);
-#endif
+    if (_cameraAspect == ASPECT_WINDOW) {
+        double aspectRatio = _imgWorldDims[0] / _imgWorldDims[1];
+        TRACE("Setting object aspect to %g", aspectRatio);
+        setObjectAspects(aspectRatio);
+    }
+
+    // Fix up axis ranges based on new bounds
+    setAxesRanges();
 
     // Compute screen world coordinates
     computeScreenWorldCoords();
@@ -2303,6 +2954,19 @@ void Renderer::mergeBounds(double *boundsDest,
         WARN("NULL bounds2 array");
         return;
     }
+    bool b1empty = (bounds1[0] > bounds1[1]);
+    bool b2empty = (bounds2[0] > bounds2[1]);
+
+    if (b1empty && b2empty)
+        return;
+    if (b1empty) {
+        memcpy(boundsDest, bounds2, sizeof(double) * 6);
+        return;
+    } else if (b2empty) {
+        memcpy(boundsDest, bounds1, sizeof(double) * 6);
+        return;
+    }
+
     for (int i = 0; i < 6; i++) {
         if (i % 2 == 0)
             boundsDest[i] = min2(bounds1[i], bounds2[i]);
@@ -2404,8 +3068,11 @@ void Renderer::collectUnscaledBounds(double *bounds, bool onlyVisible)
     for (DataSetHashmap::iterator itr = _dataSets.begin();
              itr != _dataSets.end(); ++itr) {
         if ((!onlyVisible || itr->second->getVisibility()) &&
-            itr->second->getProp() != NULL)
-            mergeBounds(bounds, bounds, itr->second->getProp()->GetBounds());
+            itr->second->getProp() != NULL) {
+            double dsBounds[6];
+            itr->second->getBounds(dsBounds);
+            mergeBounds(bounds, bounds, dsBounds);
+        }
     }
 
     mergeGraphicsObjectUnscaledBounds<Arc>(bounds, onlyVisible);
@@ -2559,6 +3226,55 @@ void Renderer::clearFieldRanges()
     }
 }
 
+/**
+ * \brief Clear user-defined field range hashtables and free memory
+ */
+void Renderer::clearUserFieldRanges()
+{
+    TRACE("Deleting User Field Ranges");
+    for (FieldRangeHashmap::iterator itr = _userScalarPointDataRange.begin();
+         itr != _userScalarPointDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userScalarPointDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _userScalarCellDataRange.begin();
+         itr != _userScalarCellDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userScalarCellDataRange.clear();
+    for (FieldRangeHashmap::iterator itr = _userVectorPointDataRange.begin();
+         itr != _userVectorPointDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userVectorPointDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _userVectorCompPointDataRange[i].begin();
+             itr != _userVectorCompPointDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _userVectorCompPointDataRange[i].clear();
+    }
+    for (FieldRangeHashmap::iterator itr = _userVectorCellDataRange.begin();
+         itr != _userVectorCellDataRange.end(); ++itr) {
+        delete [] itr->second;
+    }
+    _userVectorCellDataRange.clear();
+    for (int i = 0; i < 3; i++) {
+        for (FieldRangeHashmap::iterator itr = _userVectorCompCellDataRange[i].begin();
+             itr != _userVectorCompCellDataRange[i].end(); ++itr) {
+            delete [] itr->second;
+        }
+        _userVectorCompCellDataRange[i].clear();
+    }
+}
+
+/**
+ * \brief Set up hashtables for min/max values of all fields from loaded 
+ * datasets
+ *
+ * Note that this method does not set the ranges, it just creates the table 
+ * entries
+ */
 void Renderer::initFieldRanges()
 {
     clearFieldRanges();
@@ -2643,6 +3359,104 @@ bool Renderer::getUseCumulativeRange()
 }
 
 /**
+ * \brief Set explicit range to use for mapping fields
+ */
+bool Renderer::setCumulativeDataRange(double *range, const char *name,
+                                      DataSet::DataAttributeType type,
+                                      int numComponents,
+                                      int component)
+{
+    if (range == NULL || name == NULL)
+        return false;
+
+    _useCumulativeRange = true;
+    bool found = false;
+
+    switch (type) {
+    case DataSet::POINT_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _userScalarPointDataRange.find(name);
+            if (itr == _userScalarPointDataRange.end()) {
+                _userScalarPointDataRange[name] = new double[2];
+                memcpy(_userScalarPointDataRange[name], range, sizeof(double)*2);
+            } else {
+                found = true;
+                memcpy(itr->second, range, sizeof(double)*2);
+            }
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _userVectorPointDataRange.find(name);
+                if (itr == _userVectorPointDataRange.end()) {
+                    _userVectorPointDataRange[name] = new double[2];
+                    memcpy(itr->second, _userVectorPointDataRange[name], sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+                return found;
+            } else if (component >= 0 && component <= 3) {
+                itr = _userVectorCompPointDataRange[component].find(name);
+                if (itr == _userVectorCompPointDataRange[component].end()) {
+                    _userVectorCompPointDataRange[component][name] = new double[2];
+                    memcpy(_userVectorCompPointDataRange[component][name], range, sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+            }
+        }
+    }
+        break;
+    case DataSet::CELL_DATA: {
+        FieldRangeHashmap::iterator itr;
+        if (numComponents == 1) {
+            itr = _userScalarCellDataRange.find(name);
+            if (itr == _userScalarCellDataRange.end()) {
+                _userScalarCellDataRange[name] = new double[2];
+                memcpy(_userScalarCellDataRange[name], range, sizeof(double)*2);
+            } else {
+                found = true;
+                memcpy(itr->second, range, sizeof(double)*2);
+            }
+        } else if (numComponents == 3) {
+            if (component == -1) {
+                itr = _userVectorCellDataRange.find(name);
+                if (itr == _userVectorCellDataRange.end()) {
+                    _userVectorCellDataRange[name] = new double[2];
+                    memcpy(_userVectorCellDataRange[name], range, sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+            } else if (component >= 0 && component <= 3) {
+                itr = _userVectorCompCellDataRange[component].find(name);
+                if (itr == _userVectorCompCellDataRange[component].end()) {
+                    _userVectorCompCellDataRange[component][name] = new double[2];
+                    memcpy(_userVectorCompCellDataRange[component][name], range, sizeof(double)*2);
+                } else {
+                    found = true;
+                    memcpy(itr->second, range, sizeof(double)*2);
+                }
+            }
+        }
+    }
+        break;
+    default:
+        ERROR("Bad Field Type");
+    }
+
+    // Notify graphics objects of new ranges
+    updateFieldRanges();
+    // Bounds may have changed
+    sceneBoundsChanged();
+    _needsRedraw = true;
+
+    TRACE("Field: %s found: %d range: %g %g", name, (found ? 1 : 0), range[0], range[1]);
+    return found;
+}
+
+/**
  * \brief Get the cumulative range across all DataSets for a point
  * data field if it exists, otherwise a cell data field if it exists
  *
@@ -2679,36 +3493,43 @@ bool Renderer::getCumulativeDataRange(double *range, const char *name,
                                       int numComponents,
                                       int component)
 {
-    if (name == NULL)
+    if (range == NULL || name == NULL)
         return false;
+
     switch (type) {
     case DataSet::POINT_DATA: {
         FieldRangeHashmap::iterator itr;
         if (numComponents == 1) {
-            itr = _scalarPointDataRange.find(name);
-            if (itr == _scalarPointDataRange.end()) {
-                return false;
-            } else {
-                memcpy(range, itr->second, sizeof(double)*2);
-                return true;
+            itr = _userScalarPointDataRange.find(name);
+            if (itr == _userScalarPointDataRange.end()) {
+                itr = _scalarPointDataRange.find(name);
+                if (itr == _scalarPointDataRange.end()) {
+                    return false;
+                }
             }
+            memcpy(range, itr->second, sizeof(double)*2);
+            return true;
         } else if (numComponents == 3) {
             if (component == -1) {
-                itr = _vectorPointDataRange.find(name);
-                if (itr == _vectorPointDataRange.end()) {
-                    return false;
-                } else {
-                    memcpy(range, itr->second, sizeof(double)*2);
-                    return true;
+                itr = _userVectorPointDataRange.find(name);
+                if (itr == _userVectorPointDataRange.end()) {
+                    itr = _vectorPointDataRange.find(name);
+                    if (itr == _vectorPointDataRange.end()) {
+                        return false;
+                    }
                 }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
             } else if (component >= 0 && component <= 3) {
-                itr = _vectorCompPointDataRange[component].find(name);
-                if (itr == _vectorCompPointDataRange[component].end()) {
-                    return false;
-                } else {
-                    memcpy(range, itr->second, sizeof(double)*2);
-                    return true;
+                itr = _userVectorCompPointDataRange[component].find(name);
+                if (itr == _userVectorCompPointDataRange[component].end()) {
+                    itr = _vectorCompPointDataRange[component].find(name);
+                    if (itr == _vectorCompPointDataRange[component].end()) {
+                        return false;
+                    }
                 }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
             }
         }
     }
@@ -2716,30 +3537,36 @@ bool Renderer::getCumulativeDataRange(double *range, const char *name,
     case DataSet::CELL_DATA: {
         FieldRangeHashmap::iterator itr;
         if (numComponents == 1) {
-            itr = _scalarCellDataRange.find(name);
-            if (itr == _scalarCellDataRange.end()) {
-                return false;
-            } else {
-                memcpy(range, itr->second, sizeof(double)*2);
-                return true;
+            itr = _userScalarCellDataRange.find(name);
+            if (itr == _userScalarCellDataRange.end()) {
+                itr = _scalarCellDataRange.find(name);
+                if (itr == _scalarCellDataRange.end()) {
+                    return false;
+                }
             }
+            memcpy(range, itr->second, sizeof(double)*2);
+            return true;
         } else if (numComponents == 3) {
             if (component == -1) {
-                itr = _vectorCellDataRange.find(name);
-                if (itr == _vectorCellDataRange.end()) {
-                    return false;
-                } else {
-                    memcpy(range, itr->second, sizeof(double)*2);
-                    return true;
+                itr = _userVectorCellDataRange.find(name);
+                if (itr == _userVectorCellDataRange.end()) {
+                    itr = _vectorCellDataRange.find(name);
+                    if (itr == _vectorCellDataRange.end()) {
+                        return false;
+                    }
                 }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
             } else if (component >= 0 && component <= 3) {
-                itr = _vectorCompCellDataRange[component].find(name);
-                if (itr == _vectorCompCellDataRange[component].end()) {
-                    return false;
-                } else {
-                    memcpy(range, itr->second, sizeof(double)*2);
-                    return true;
+                itr = _userVectorCompCellDataRange[component].find(name);
+                if (itr == _userVectorCompCellDataRange[component].end()) {
+                    itr = _vectorCompCellDataRange[component].find(name);
+                    if (itr == _vectorCompCellDataRange[component].end()) {
+                        return false;
+                    }
                 }
+                memcpy(range, itr->second, sizeof(double)*2);
+                return true;
             }
         }
     }
@@ -2886,7 +3713,7 @@ void Renderer::initCamera(bool initCameraMode)
 
     switch (_cameraMode) {
     case IMAGE:
-        _renderer->ResetCamera(bounds);
+        //_renderer->ResetCamera(bounds);
         setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
                             _imgWorldDims[0], _imgWorldDims[1]);
         resetAxes(bounds);
@@ -2894,13 +3721,17 @@ void Renderer::initCamera(bool initCameraMode)
     case ORTHO:
         _renderer->GetActiveCamera()->ParallelProjectionOn();
         resetAxes(bounds);
-        _renderer->ResetCamera(bounds);
+        //_renderer->ResetCamera(bounds);
+        _renderer->ResetCamera();
+        _renderer->ResetCameraClippingRange();
         //computeScreenWorldCoords();
         break;
     case PERSPECTIVE:
         _renderer->GetActiveCamera()->ParallelProjectionOff();
         resetAxes(bounds);
-        _renderer->ResetCamera(bounds);
+        //_renderer->ResetCamera(bounds);
+        _renderer->ResetCamera();
+        _renderer->ResetCameraClippingRange();
         //computeScreenWorldCoords();
         break;
     default:
@@ -3010,6 +3841,8 @@ void Renderer::setDataSetVisibility(const DataSetId& id, bool state)
     if (id.compare("all") == 0) {
         itr = _dataSets.begin();
         doAll = true;
+        if (itr == _dataSets.end())
+            return;
     } else {
         itr = _dataSets.find(id);
     }
@@ -3082,7 +3915,7 @@ void Renderer::setDataSetShowBounds(const DataSetId& id, bool state)
         }
     } while (doAll && ++itr != _dataSets.end());
 
-    initCamera();
+    sceneBoundsChanged();
     _needsRedraw = true;
 }
 
@@ -3295,6 +4128,18 @@ void Renderer::eventuallyRender()
 bool Renderer::render()
 {
     if (_needsRedraw) {
+         if (_needsAxesReset) {
+            resetAxes();
+            _needsAxesReset = false;
+        }
+        if (_needsCameraReset) {
+            initCamera();
+            _needsCameraReset = false;
+            _needsCameraClippingRangeReset = false;
+        } else if (_needsCameraClippingRangeReset && _cameraMode != IMAGE) {
+            resetCameraClippingRange();
+            _needsCameraClippingRangeReset = false;
+        }
         setCameraClippingPlanes();
         _renderWindow->Render();
         _needsRedraw = false;
@@ -3358,9 +4203,9 @@ void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
     static unsigned int numFrames = 0;
     static double accum = 0;
     numFrames++;
-    accum += ELAPSED_TIME(t1, t2);
+    accum += MSECS_ELAPSED(t1, t2);
 #endif
-    TRACE("Readback time: %g ms", ELAPSED_TIME(t1, t2));
+    TRACE("Readback time: %g ms", MSECS_ELAPSED(t1, t2));
     TRACE("Readback avg: %g ms", accum/numFrames);
     if (glGetError() != GL_NO_ERROR) {
         ERROR("glReadPixels");
