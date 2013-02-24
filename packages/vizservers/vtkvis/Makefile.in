@@ -2,7 +2,7 @@ DEBUG			= #yes
 TRACE			= #yes
 USE_CUSTOM_AXES		= #yes
 USE_GPU_RAYCASTING	= yes
-USE_OFFSCREEN_RENDERING	= #yes
+USE_OFFSCREEN_RENDERING	= yes
 USE_THREADS		= yes
 USE_VTK6                = yes
 
@@ -124,9 +124,7 @@ ifdef USE_THREADS
 DEFINES         += -DUSE_THREADS
 endif
 ifdef USE_VTK6
-# As of 2013-01-27, use the following defs for VTK head
-#VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
-VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="3(vtkInteractionStyle,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
+VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)" -DvtkRenderingVolume_AUTOINIT"1(vtkRenderingVolumeOpenGL)"
 DEFINES         += -DUSE_VTK6 -DVTK_HYBRID_EXPORT="" -DVTK_RENDERING_EXPORT="" $(VTK_MOD_DEFS)
 endif
 
