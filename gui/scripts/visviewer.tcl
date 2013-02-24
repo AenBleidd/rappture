@@ -811,7 +811,9 @@ itcl::body Rappture::VisViewer::ReceiveError { args } {
         $inner.scrl.text insert end $bytes code
         update
         $popup activate $itk_component(hull) below
+    } else {
+        ReceiveEcho <<error $bytes
+        puts stderr "Render server error:\n$bytes"
     }
-    
 }
 
