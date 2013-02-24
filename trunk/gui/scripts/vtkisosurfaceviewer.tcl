@@ -2105,7 +2105,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCutplaneTab {} {
             -borderwidth 1 -highlightthickness 0 \
             -command [itcl::code $this EventuallySetCutplane x] \
             -variable [itcl::scope _settings(cutplaneXPosition)] \
-	    -foreground red2 -font "Arial 9 bold" -background white
+	    -foreground red2 -font "Arial 9 bold"
     } {
         usual
         ignore -borderwidth -highlightthickness -foreground -font -background
