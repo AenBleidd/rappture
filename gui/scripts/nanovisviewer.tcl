@@ -85,7 +85,7 @@ itcl::class Rappture::NanovisViewer {
     public method updatetransferfuncs {}
 
     protected method Connect {}
-    protected method CurrentVolumes {{what -all}}
+    protected method CurrentDatasets {{what -all}}
     protected method Disconnect {}
     protected method DoResize {}
     protected method FixLegend {}
@@ -124,13 +124,13 @@ itcl::class Rappture::NanovisViewer {
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
-    private variable _serverVols   ;# contains all the dataobj-component 
+    private variable _serverDatasets   ;# contains all the dataobj-component 
                                    ;# to volumes in the server
     private variable _serverTfs    ;# contains all the transfer functions 
                                    ;# in the server.
-    private variable _recvdVols    ;# list of data objs to send to server
+    private variable _recvdDatasets    ;# list of data objs to send to server
     private variable _vol2style    ;# maps dataobj-component to transfunc
-    private variable _style2vols   ;# maps tf back to list of 
+    private variable _style2datasets   ;# maps tf back to list of 
                                     # dataobj-components using the tf.
 
     private variable _reset 1;		# Connection to server has been reset 
@@ -138,7 +138,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
     private variable _isomarkers    ;# array of isosurface level values 0..1
-    private common   _settings
+    private variable  _settings
     # Array of transfer functions in server.  If 0 the transfer has been
     # defined but not loaded.  If 1 the transfer function has been named
     # and loaded.
@@ -627,7 +627,7 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
 
     # disconnected -- no more data sitting on server
     set _outbuf ""
-    array unset _serverVols
+    array unset _serverDatasets
 }
 
 #
@@ -671,17 +671,17 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
     # Scale values between 0.00001 and 0.01000
     set thickness [expr {double($_settings($this-thickness)) * 0.0001}]
 
-    foreach vol [CurrentVolumes] {
-        if { ![info exists _serverVols($vol)] || !$_serverVols($vol) } {
+    foreach tag [CurrentDatasets] {
+        if { ![info exists _serverDatasets($tag)] || !$_serverDatasets($tag) } {
             # The volume hasn't reached the server yet.  How did we get 
             # here?
             continue
         }
-        if { ![info exists _vol2style($vol)] } {
-            puts stderr "unknown volume $vol"
+        if { ![info exists _vol2style($tag)] } {
+            puts stderr "unknown volume $tag"
             continue;                        # How does this happen?
         }
-        set tf $_vol2style($vol)
+        set tf $_vol2style($tag)
         set _settings($this-$tf-opacity) $opacity
         set _settings($this-$tf-thickness) $thickness
         ComputeTransferFunc $tf
@@ -692,7 +692,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
         if { ![info exists _activeTfs($tf)] || !$_activeTfs($tf) } {
             set _activeTfs($tf) 1
         }
-        SendCmd "volume shading transfunc $tf $vol"
+        SendCmd "volume shading transfunc $tf $tag"
     }
     FixLegend
 }
@@ -775,20 +775,20 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
     }
 
     # The colormap may have changed. Resync the slicers with the colormap.
-    set vols [CurrentVolumes -cutplanes]
-    SendCmd "volume data state $_settings($this-volume) $vols"
+    set datasets [CurrentDatasets -cutplanes]
+    SendCmd "volume data state $_settings($this-volume) $datasets"
 
     # Adjust the cutplane for only the first component in the topmost volume
     # (i.e. the first volume designated in the field).
-    set vol [lindex $vols 0]
+    set tag [lindex $datasets 0]
     foreach axis {x y z} {
         # Turn off cutplanes for all volumes
         SendCmd "cutplane state 0 $axis"
         if { $_settings($this-${axis}cutplane) } {
             # Turn on cutplane for this particular volume and set the position
-            SendCmd "cutplane state 1 $axis $vol"
+            SendCmd "cutplane state 1 $axis $tag"
             set pos [expr {0.01*$_settings($this-${axis}cutposition)}]
-            SendCmd "cutplane position $pos $axis $vol"
+            SendCmd "cutplane position $pos $axis $tag"
         }
     }
 }
@@ -802,7 +802,7 @@ itcl::body Rappture::NanovisViewer::ReceiveLegend { tf vmin vmax size } {
 #       volume sent to the render server.  Since the client (nanovisviewer)
 #       doesn't parse 3D data formats, we rely on the server (nanovis) to
 #       tell us what the limits are.  Once we've received the limits to all
-#       the data we've sent (tracked by _recvdVols) we can then determine
+#       the data we've sent (tracked by _recvdDatasets) we can then determine
 #       what the transfer functions are for these volumes.
 #
 #
@@ -828,7 +828,7 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     # Volumes don't exist until we're told about them.
     #
     set dataobj [lindex $parts 0]
-    set _serverVols($tag) 1
+    set _serverDatasets($tag) 1
     if { $_settings($this-volume) && $dataobj == $_first } {
         SendCmd "volume state 1 $tag"
     }
@@ -837,8 +837,8 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     set _limits(vmin)      $info(vmin); # Overall minimum value.
     set _limits(vmax)      $info(vmax); # Overall maximum value.
 
-    unset _recvdVols($tag)
-    if { [array size _recvdVols] == 0 } {
+    unset _recvdDatasets($tag)
+    if { [array size _recvdDatasets] == 0 } {
         # The active transfer function is by default the first component of
         # the first data object.  This assumes that the data is always
         # successfully transferred.
@@ -874,20 +874,21 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     EventuallyResize $w $h
 
     foreach dataobj [get] {
-        foreach comp [$dataobj components] {
-            set vol $dataobj-$comp
-            if { ![info exists _serverVols($vol)] } {
+        foreach cname [$dataobj components] {
+            set tag $dataobj-$cname
+            if { ![info exists _serverDatasets($tag)] } {
                 # Send the data as one huge base64-encoded mess -- yuck!
-                set data [$dataobj values $comp]
+                set data [$dataobj values $cname]
                 set nbytes [string length $data]
-                append _outbuf "volume data follows $nbytes $vol\n"
+                append _outbuf "volume data follows $nbytes $tag\n"
                 append _outbuf $data
-                set _recvdVols($vol) 1
-                set _serverVols($vol) 0
+                set _recvdDatasets($tag) 1
+                set _serverDatasets($tag) 0
             }
-            NameTransferFunc $dataobj $comp
+            NameTransferFunc $dataobj $cname
         }
     }
+    set _first [lindex [get] 0]
     if { $_reset } {
 	#
 	# Reset the camera and other view parameters
@@ -911,9 +912,10 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	FixSettings axes
 	FixSettings outline
 	
-	# nothing to send -- activate the proper ivol
-	SendCmd "volume state 0"
-	set _first [lindex [get] 0]
+        foreach axis {x y z} {
+            # Turn off cutplanes for all volumes
+            SendCmd "cutplane state 0 $axis"
+        }
 	if {"" != $_first} {
 	    set axis [$_first hints updir]
 	    if { "" != $axis } {
@@ -923,14 +925,11 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    if { $location != "" } {
 		array set _view $location
 	    }
-	    set vols [array names _serverVols $_first-*] 
-	    if { $vols != "" } {
-		SendCmd "volume state 1 $vols"
-	    }
 	    if 1 {
-		# Tell the server the name of the tool, the version, and dataset
-		# that we are rendering.  Have to do it here because we don't know
-		# what data objects are using the renderer until be get here.
+		# Tell the server the name of the tool, the version, and
+		# dataset that we are rendering.  Have to do it here because
+		# we don't know what data objects are using the renderer until
+		# be get here.
 		global env
 
 		lappend out "hub" [exec hostname]
@@ -948,19 +947,21 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 		lappend out "tool_dataset" [$_first hints label]
 		SendCmd "clientinfo [list $out]"
 	    }
-
-	    foreach axis {x y z} {
-		# Turn off cutplanes for all volumes
-		SendCmd "cutplane state 0 $axis"
-	    }
-	    
-	    # If the first volume already exists on the server, then make sure
-	    # we display the proper transfer function in the legend.
-	    set comp [lindex [$_first components] 0]
-	    if { [info exists _serverVols($_first-$comp)] } {
-		updatetransferfuncs
-	    }
 	}
+    }
+    # nothing to send -- activate the proper ivol
+    SendCmd "volume state 0"
+    if {"" != $_first} {
+        set datasets [array names _serverDatasets $_first-*] 
+        if { $datasets != "" } {
+            SendCmd "volume state 1 $datasets"
+        }
+        # If the first volume already exists on the server, then make sure
+        # we display the proper transfer function in the legend.
+        set cname [lindex [$_first components] 0]
+        if { [info exists _serverDatasets($_first-$cname)] } {
+            updatetransferfuncs
+        }
     }
     set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
@@ -973,26 +974,26 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: CurrentVolumes ?-cutplanes?
+# USAGE: CurrentDatasets ?-cutplanes?
 #
 # Returns a list of volume server IDs for the current volume being
 # displayed.  This is normally a single ID, but it might be a list
 # of IDs if the current data object has multiple components.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::CurrentVolumes {{what -all}} {
+itcl::body Rappture::NanovisViewer::CurrentDatasets {{what -all}} {
     set rlist ""
     if { $_first == "" } {
         return
     }
-    foreach comp [$_first components] {
-        set vol $_first-$comp
-        if { [info exists _serverVols($vol)] && $_serverVols($vol) } {
+    foreach cname [$_first components] {
+        set tag $_first-$cname
+        if { [info exists _serverDatasets($tag)] && $_serverDatasets($tag) } {
             array set style {
                 -cutplanes 1
             }
-            array set style [lindex [$_first components -style $comp] 0]
+            array set style [lindex [$_first components -style $cname] 0]
             if { $what != "-cutplanes" || $style(-cutplanes) } {
-                lappend rlist $vol
+                lappend rlist $tag
             }
         }
     }
@@ -1260,17 +1261,17 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
         }
         "volume" {
             if { [isconnected] } {
-                set vols [CurrentVolumes -cutplanes] 
-                SendCmd "volume data state $_settings($this-volume) $vols"
+                set datasets [CurrentDatasets -cutplanes] 
+                SendCmd "volume data state $_settings($this-volume) $datasets"
             }
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
             set axis [string range $what 0 0]
             set bool $_settings($this-$what)
             if { [isconnected] } {
-                set vols [CurrentVolumes -cutplanes] 
-                set vol [lindex $vols 0]
-                SendCmd "cutplane state $bool $axis $vol"
+                set datasets [CurrentDatasets -cutplanes] 
+                set tag [lindex $datasets 0]
+                SendCmd "cutplane state $bool $axis $tag"
             }
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
@@ -1299,9 +1300,9 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
     set w [expr {$_width-20}]
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
     if {$w > 0 && $h > 0 && [array names _activeTfs] > 0 && $_first != "" } {
-        set vol [lindex [CurrentVolumes] 0]
-        if { [info exists _vol2style($vol)] } {
-            SendCmd "legend $_vol2style($vol) $w $h"
+        set tag [lindex [CurrentDatasets] 0]
+        if { [info exists _vol2style($tag)] } {
+            SendCmd "legend $_vol2style($tag) $w $h"
         }
     } else {
         # Can't do this as this will remove the items associated with the
@@ -1326,16 +1327,17 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #              color, levels, marker, opacity.  I think we're stuck doing it
 #              now.
 #
-itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj comp } {
+itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     array set style {
         -color rainbow
         -levels 6
         -opacity 1.0
     }
-    array set style [lindex [$dataobj components -style $comp] 0]
+    set tag $dataobj-$cname
+    array set style [lindex [$dataobj components -style $cname] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
-    set _vol2style($dataobj-$comp) $tf
-    lappend _style2vols($tf) $dataobj-$comp
+    set _vol2style($tag) $tf
+    lappend _style2datasets($tf) $tag
     return $tf
 }
 
@@ -1354,8 +1356,8 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
         -levels 6
         -opacity 1.0
     }
-    foreach {dataobj comp} [split [lindex $_style2vols($tf) 0] -] break
-    array set style [lindex [$dataobj components -style $comp] 0]
+    foreach {dataobj cname} [split [lindex $_style2datasets($tf) 0] -] break
+    array set style [lindex [$dataobj components -style $cname] 0]
 
 
     # We have to parse the style attributes for a volume using this
@@ -1559,8 +1561,8 @@ itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
     if { $_first == "" } {
         error "active transfer function isn't set"
     }
-    set vol [lindex [CurrentVolumes] 0]
-    set tf $_vol2style($vol)
+    set tag [lindex [CurrentDatasets] 0]
+    set tf $_vol2style($tag)
     set c $itk_component(legend)
     set m [Rappture::IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
@@ -1613,22 +1615,22 @@ itcl::body Rappture::NanovisViewer::overmarker { marker x } {
 itcl::body Rappture::NanovisViewer::limits { tf } {
     set _limits(min) 0.0
     set _limits(max) 1.0
-    if { ![info exists _style2vols($tf)] } {
+    if { ![info exists _style2datasets($tf)] } {
         return [array get _limits]
     }
     set min ""; set max ""
-    foreach vol $_style2vols($tf) {
-        if { ![info exists _serverVols($vol)] } {
+    foreach tag $_style2datasets($tf) {
+        if { ![info exists _serverDatasets($tag)] } {
             continue
         }
-        if { ![info exists _limits($vol-min)] } {
+        if { ![info exists _limits($tag-min)] } {
             continue
         }
-        if { $min == "" || $min > $_limits($vol-min) } {
-            set min $_limits($vol-min)
+        if { $min == "" || $min > $_limits($tag-min) } {
+            set min $_limits($tag-min)
         }
-        if { $max == "" || $max < $_limits($vol-max) } {
-            set max $_limits($vol-max)
+        if { $max == "" || $max < $_limits($tag-max) } {
+            set max $_limits($tag-max)
         }
     }
     if { $min != "" } {
@@ -1944,9 +1946,9 @@ itcl::body Rappture::NanovisViewer::Slice {option args} {
             set newval [lindex $args 1]
 
             set newpos [expr {0.01*$newval}]
-            set vols [CurrentVolumes -cutplanes]
-            set vol [lindex $vols 0]
-            SendCmd "cutplane position $newpos $axis $vol"
+            set datasets [CurrentDatasets -cutplanes]
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane position $newpos $axis $tag"
         }
         default {
             error "bad option \"$option\": should be axis, move, or volume"
