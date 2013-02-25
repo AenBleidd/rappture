@@ -15,8 +15,29 @@
 /* Define to 1 if you have the `avcodec_decode_video2' function. */
 #undef HAVE_AVCODEC_DECODE_VIDEO2
 
+/* Define to 1 if you have the `avcodec_encode_video' function. */
+#undef HAVE_AVCODEC_ENCODE_VIDEO
+
+/* Define to 1 if you have the `avcodec_encode_video2' function. */
+#undef HAVE_AVCODEC_ENCODE_VIDEO2
+
+/* Define to 1 if you have the `avcodec_init' function. */
+#undef HAVE_AVCODEC_INIT
+
+/* Define to 1 if you have the `avcodec_open' function. */
+#undef HAVE_AVCODEC_OPEN
+
+/* Define to 1 if you have the `avcodec_open2' function. */
+#undef HAVE_AVCODEC_OPEN2
+
+/* Define to 1 if you have the `avcodec_register_all' function. */
+#undef HAVE_AVCODEC_REGISTER_ALL
+
 /* Define to 1 if you have the `avformat_alloc_context' function. */
 #undef HAVE_AVFORMAT_ALLOC_CONTEXT
+
+/* Define to 1 if you have the `avformat_new_stream' function. */
+#undef HAVE_AVFORMAT_NEW_STREAM
 
 /* Define to 1 if you have the `avformat_open_input' function. */
 #undef HAVE_AVFORMAT_OPEN_INPUT
@@ -41,6 +62,9 @@
 
 /* Define to 1 if you have the `av_guess_format' function. */
 #undef HAVE_AV_GUESS_FORMAT
+
+/* Define to 1 if you have the `av_new_stream' function. */
+#undef HAVE_AV_NEW_STREAM
 
 /* Define to 1 if you have the `av_open_input_file' function. */
 #undef HAVE_AV_OPEN_INPUT_FILE
@@ -164,6 +188,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

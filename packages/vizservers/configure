@@ -8661,6 +8661,72 @@ _ACEOF
 
 fi
 
+for ac_func in avcodec_register_all
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_register_all" "ac_cv_func_avcodec_register_all"
+if test "x$ac_cv_func_avcodec_register_all" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_REGISTER_ALL 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_init
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_init" "ac_cv_func_avcodec_init"
+if test "x$ac_cv_func_avcodec_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_INIT 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avformat_new_stream
+do :
+  ac_fn_cxx_check_func "$LINENO" "avformat_new_stream" "ac_cv_func_avformat_new_stream"
+if test "x$ac_cv_func_avformat_new_stream" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVFORMAT_NEW_STREAM 1
+_ACEOF
+
+fi
+done
+
+for ac_func in av_new_stream
+do :
+  ac_fn_cxx_check_func "$LINENO" "av_new_stream" "ac_cv_func_av_new_stream"
+if test "x$ac_cv_func_av_new_stream" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AV_NEW_STREAM 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_open
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_open" "ac_cv_func_avcodec_open"
+if test "x$ac_cv_func_avcodec_open" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_OPEN 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_open2
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_open2" "ac_cv_func_avcodec_open2"
+if test "x$ac_cv_func_avcodec_open2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_OPEN2 1
+_ACEOF
+
+fi
+done
+
 for ac_func in avcodec_decode_video2
 do :
   ac_fn_cxx_check_func "$LINENO" "avcodec_decode_video2" "ac_cv_func_avcodec_decode_video2"
@@ -8678,6 +8744,28 @@ do :
 if test "x$ac_cv_func_avcodec_decode_video" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_AVCODEC_DECODE_VIDEO 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_encode_video2
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_encode_video2" "ac_cv_func_avcodec_encode_video2"
+if test "x$ac_cv_func_avcodec_encode_video2" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_ENCODE_VIDEO2 1
+_ACEOF
+
+fi
+done
+
+for ac_func in avcodec_encode_video
+do :
+  ac_fn_cxx_check_func "$LINENO" "avcodec_encode_video" "ac_cv_func_avcodec_encode_video"
+if test "x$ac_cv_func_avcodec_encode_video" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_AVCODEC_ENCODE_VIDEO 1
 _ACEOF
 
 fi
