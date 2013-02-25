@@ -383,7 +383,7 @@ AVTranslate::openVideo(Outcome &status)
 #ifdef HAVE_AVCODEC_OPEN2
     result = avcodec_open2(c, codec, NULL);
 #else 
-    result = avcodec_open2(c, codec);
+    result = avcodec_open(c, codec);
 #endif
     /* open the codec */
     if (result < 0) {
