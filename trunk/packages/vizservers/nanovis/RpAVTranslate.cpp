@@ -58,6 +58,18 @@ extern "C" {
 #define avio_close		url_fclose	
 #endif	/*HAVE_AVIO_CLOSE*/
 
+#ifndef AVIO_FLAG_WRITE
+#define AVIO_FLAG_WRITE         URL_WRONLY
+#endif
+
+#ifndef HAVE_AVFORMAT_NEW_STREAM
+#define avformat_new_stream     av_new_stream
+#endif
+
+#ifndef HAVE_AVCODEC_OPEN2
+#define avcodec_open(context, codec, options)   avcodec_open2(contex, codec, NULL)
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -119,8 +131,11 @@ AVTranslate::init(Outcome &status, const char *filename)
 {
     status.addContext("Rappture::AVTranslate::init()");
     /* Initialize libavcodec, and register all codecs and formats */
-    avcodec_init();
+#ifdef HAVE_AVCODEC_REGISTER_ALL
     avcodec_register_all();
+#else
+    avcodec_init();
+#endif
     av_register_all();
 
     /* Auto detect the output format from the name. default is mpeg. */
@@ -178,7 +193,7 @@ AVTranslate::init(Outcome &status, const char *filename)
 
     /* Open the output file, if needed. */
     if (!(_fmtPtr->flags & AVFMT_NOFILE)) {
-        if (avio_open(&_ocPtr->pb, filename, URL_WRONLY) < 0) {
+        if (avio_open(&_ocPtr->pb, filename, AVIO_FLAG_WRITE) < 0) {
             status.addError("Could not open '%s'", filename);
             return false;
         }
@@ -276,7 +291,7 @@ AVTranslate::addVideoStream(Outcome &status, CodecID codec_id,
     }
 
     AVStream *streamPtr;
-    streamPtr = av_new_stream(_ocPtr, 0);
+    streamPtr = avformat_new_stream(_ocPtr, 0);
     if (streamPtr == NULL) {
         status.addError("Could not alloc stream");
         return false;
@@ -358,6 +373,7 @@ AVTranslate::openVideo(Outcome &status)
 {
     AVCodec *codec;
     AVCodecContext *c;
+    int result;
 
     status.addContext("Rappture::AVTranslate::openVideo()");
     c = _avStreamPtr->codec;
@@ -368,9 +384,13 @@ AVTranslate::openVideo(Outcome &status)
         status.addError("can't find codec %d\n", c->codec->id);
         return false;
     }
-
+#ifdef HAVE_AVCODEC_OPEN2
+    result = avcodec_open2(c, codec, NULL);
+#else 
+    result = avcodec_open2(c, codec);
+#endif
     /* open the codec */
-    if (avcodec_open(c, codec) < 0) {
+    if (result < 0) {
         status.addError("can't open codec %d", c->codec->id);
         return false;
     }
@@ -399,14 +419,14 @@ AVTranslate::openVideo(Outcome &status)
 bool
 AVTranslate::writeVideoFrame(Outcome &status)
 {
-    AVCodecContext *codecPtr;
+    AVCodecContext *contextPtr;
 
     status.addContext("Rappture::AVTranslate::writeVideoframe()");
-    codecPtr = _avStreamPtr->codec;
+    contextPtr = _avStreamPtr->codec;
 
     /* encode the image */
     int size;
-    size = avcodec_encode_video(codecPtr, _videoOutbuf, _videoOutbufSize, 
+    size = avcodec_encode_video(contextPtr, _videoOutbuf, _videoOutbufSize, 
 	_pictPtr);
     if (size < 0) {
         status.addError("Error while writing video frame");
@@ -418,9 +438,9 @@ AVTranslate::writeVideoFrame(Outcome &status)
     AVPacket pkt;
     av_init_packet(&pkt);
 
-    pkt.pts = av_rescale_q(codecPtr->coded_frame->pts, codecPtr->time_base,
+    pkt.pts = av_rescale_q(contextPtr->coded_frame->pts, contextPtr->time_base,
 			   _avStreamPtr->time_base);
-    if (codecPtr->coded_frame->key_frame) {
+    if (contextPtr->coded_frame->key_frame) {
 	pkt.flags |= AV_PKT_FLAG_KEY;
     }
     pkt.stream_index = _avStreamPtr->index;
