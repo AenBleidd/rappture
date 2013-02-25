@@ -1918,7 +1918,8 @@ itcl::configbody Rappture::VtkHeightmapViewer::mode {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
     if { [isconnected] } {
-        SendCmd "screen bgcolor [Color2RGB $itk_option(-plotbackground)]"
+        set rgb [Color2RGB $itk_option(-plotbackground)]
+        SendCmd "screen bgcolor $rgb"
 	$itk_component(view) configure -background $itk_option(-plotbackground)
     }
 }
@@ -1928,7 +1929,10 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     if { [isconnected] } {
-	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
+        set rgb [Color2RGB $itk_option(-plotforeground)]
+        SendCmd "dataset color $rgb"
+        SendCmd "cutplane ccolor $rgb"
+	SendCmd "axis color all $rgb"
     }
 }
 
