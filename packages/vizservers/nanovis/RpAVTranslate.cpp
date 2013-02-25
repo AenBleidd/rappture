@@ -66,10 +66,6 @@ extern "C" {
 #define avformat_new_stream     av_new_stream
 #endif
 
-#ifndef HAVE_AVCODEC_OPEN2
-#define avcodec_open(context, codec, options)   avcodec_open2(contex, codec, NULL)
-#endif
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
