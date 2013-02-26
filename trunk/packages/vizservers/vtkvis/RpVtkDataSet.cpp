@@ -355,13 +355,15 @@ bool DataSet::setData(vtkDataSetReader *reader)
     reader->Update();
 
     _dataSet = reader->GetOutput();
+    if (_dataSet == NULL)
+        return false;
 #ifndef USE_VTK6
     _dataSet->SetPipelineInformation(NULL);
 #endif
     if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetScalars() != NULL &&
         _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
-        ERROR("No lookup table should be specified in DataSets");
+        USER_ERROR("No lookup table should be specified in VTK data sets");
     }
 
     setDefaultArrays();
@@ -388,7 +390,7 @@ bool DataSet::setData(vtkDataSet *ds)
     if (_dataSet->GetPointData() != NULL &&
         _dataSet->GetPointData()->GetScalars() != NULL &&
         _dataSet->GetPointData()->GetScalars()->GetLookupTable() != NULL) {
-        ERROR("No lookup table should be specified in DataSets");
+        USER_ERROR("No lookup table should be specified in VTK data sets");
     }
 
     setDefaultArrays();

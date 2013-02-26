@@ -81,7 +81,7 @@ ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 {
     int result;
 
-    TRACE("command: '%s'", Tcl_DStringValue(dsPtr));
+    TRACE("command %lu: '%s'", g_stats.nCommands+1, Tcl_DStringValue(dsPtr));
     lastCmdStatus = TCL_OK;
     result = Tcl_EvalEx(interp, Tcl_DStringValue(dsPtr), 
                         Tcl_DStringLength(dsPtr), 
@@ -4069,7 +4069,11 @@ DataSetAddOp(ClientData clientData, Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     g_renderer->addDataSet(name);
-    g_renderer->setData(name, data, nbytes);
+    if (!g_renderer->setData(name, data, nbytes)) {
+        USER_ERROR("Failed to load data for dataset \"%s\"", name);
+        free(data);
+        return TCL_ERROR;
+    }
     g_stats.nDataSets++;
     g_stats.nDataBytes += nbytes;
     free(data);
@@ -9696,7 +9700,7 @@ Rappture::VtkVis::processCommands(Tcl_Interp *interp,
                                          * command. Break out of the read loop
                                          * and allow a new image to be
                                          * rendered. */
-            } else if (status != TCL_OK) {
+            } else { //if (status != TCL_OK) {
                 ret = 0;
                 if (handleError(interp, clientData, status, fdOut) < 0) {
                     return -1;
@@ -9724,27 +9728,62 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
     const char *string;
     int nBytes;
 
-    string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
-    TRACE("status=%d errorInfo=(%s)", status, string);
-    nBytes = strlen(string);
+    TRACE("Enter");
 
-    std::ostringstream oss;
+    if (status != TCL_OK) {
+        string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
+        nBytes = strlen(string);
+        if (nBytes > 0) {
+            TRACE("status=%d errorInfo=(%s)", status, string);
+
+            std::ostringstream oss;
 #ifdef OLD_ERRORS
-    oss << "VtkVis Server Error: " << string << "\n";
-    nBytes += 22;
+            oss << "VtkVis Server Error: " << string << "\n";
+            nBytes += 22;
 #else
-    oss << "nv>viserror -type error -bytes " << nBytes << "\n" << string;
-    nBytes = oss.str().length();
+            oss << "nv>viserror -type internal_error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
+            nBytes = oss.str().length();
 #endif
 
 #ifdef USE_THREADS
-    QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+            QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
 #else
-    if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
-        ERROR("write failed: %s", strerror(errno));
-        return -1;
-    }
+            if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+                ERROR("write failed: %s", strerror(errno));
+                return -1;
+            }
 #endif
+        }
+    }
+
+    TRACE("Before user error");
+
+    string = getUserMessages();
+    nBytes = strlen(string);
+    if (nBytes > 0) {
+        TRACE("userError=(%s)", string);
+
+        std::ostringstream oss;
+#ifdef OLD_ERRORS
+        oss << "VtkVis Server Error: " << string << "\n";
+        nBytes += 22;
+#else
+        oss << "nv>viserror -type error -token " << g_stats.nCommands << " -bytes " << nBytes << "\n" << string;
+        nBytes = oss.str().length();
+#endif
+
+#ifdef USE_THREADS
+        QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+#else
+        if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+            ERROR("write failed: %s", strerror(errno));
+            return -1;
+        }
+#endif
+        clearUserMessages();
+    }
+
+    TRACE("Leave");
 
     return 0;
 }

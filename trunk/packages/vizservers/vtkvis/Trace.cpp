@@ -10,9 +10,14 @@
 #include <cstring>
 #include <syslog.h>
 
+#include <string>
+#include <sstream>
+
 #include "Trace.h"
 
 using namespace Rappture::VtkVis;
+
+static std::ostringstream g_UserErrorString;
 
 #define MSG_LEN	2047
 
@@ -62,4 +67,34 @@ Rappture::VtkVis::logMessage(int priority, const char *funcname,
     message[MSG_LEN] = '\0';
 
     syslog(priority, "%s", message);
+}
+
+/**
+ * \brief Write a user message to buffer
+ */
+void 
+Rappture::VtkVis::logUserMessage(const char* fmt, ...)
+{
+    char message[MSG_LEN + 1];
+    int length = 0;
+    va_list lst;
+
+    va_start(lst, fmt);
+
+    length += vsnprintf(message, MSG_LEN, fmt, lst);
+    message[MSG_LEN] = '\0';
+
+    g_UserErrorString << message << "\n";
+}
+
+const char *
+Rappture::VtkVis::getUserMessages()
+{
+    return g_UserErrorString.str().c_str();
+}
+
+void 
+Rappture::VtkVis::clearUserMessages()
+{
+    g_UserErrorString.str(std::string());
 }
