@@ -1777,8 +1777,8 @@ parray style
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkIsosurfaceViewer::plotbackground {
     if { [isconnected] } {
-        foreach {r g b} [Color2RGB $itk_option(-plotbackground)] break
-        SendCmd "screen bgcolor $r $g $b"
+        set rgb [Color2RGB $itk_option(-plotbackground)]
+        SendCmd "screen bgcolor $rgb"
     }
 }
 
@@ -1787,7 +1787,10 @@ itcl::configbody Rappture::VtkIsosurfaceViewer::plotbackground {
 # ----------------------------------------------------------------------
 itcl::configbody Rappture::VtkIsosurfaceViewer::plotforeground {
     if { [isconnected] } {
-	SendCmd "axis color all [Color2RGB $itk_option(-plotforeground)]"
+        set rgb [Color2RGB $itk_option(-plotforeground)]
+	SendCmd "axis color all $rgb"
+        SendCmd "dataset color $rgb"
+        SendCmd "cutplane ccolor $rgb"
     }
 }
 
