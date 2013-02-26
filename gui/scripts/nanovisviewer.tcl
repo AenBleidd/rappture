@@ -1616,7 +1616,7 @@ itcl::body Rappture::NanovisViewer::ColorsToColormap { colors } {
             set clist "white yellow green cyan blue magenta"
         }
         default {
-            set clist $colors
+            set clist [split $colors ":"]
         }
     }
     set cmap {}
