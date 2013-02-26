@@ -89,7 +89,8 @@ itcl::class Rappture::NanovisViewer {
     protected method Disconnect {}
     protected method DoResize {}
     protected method FixLegend {}
-    protected method FixSettings {what {value ""}}
+    protected method AdjustSetting {what}
+    protected method InitSettings { args }
     protected method Pan {option x y}
     protected method Rebuild {}
     protected method ReceiveData { args }
@@ -108,6 +109,8 @@ itcl::class Rappture::NanovisViewer {
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
     private method BuildVolumeTab {}
+    private method ColorsToColormap { colors }
+    private method ResetColormap { color }
     private method ComputeTransferFunc { tf }
     private method EventuallyResize { w h } 
     private method EventuallyResizeLegend { } 
@@ -289,7 +292,7 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -command [itcl::code $this FixSettings volume] \
+            -command [itcl::code $this AdjustSetting volume] \
             -variable [itcl::scope _settings($this-volume)]
     }
     $itk_component(volume) select
@@ -835,8 +838,6 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
         return
     }
 
-    puts stderr "Received volume info: '$args'"
-
     # Arguments from server are name value pairs. Stuff them in an array.
     array set info $args
 
@@ -888,10 +889,9 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         }
     }
 
-    set w [winfo width $itk_component(3dview)]
-    set h [winfo height $itk_component(3dview)]
-    $_arcball resize $w $h
-    EventuallyResize $w $h
+    set _width [winfo width $itk_component(3dview)]
+    set _height [winfo height $itk_component(3dview)]
+    DoResize
 
     foreach dataobj [get] {
         foreach cname [$dataobj components] {
@@ -935,13 +935,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 
 	PanCamera
 	SendCmd "camera zoom $_view(zoom)"
-        FixSettings light2side
-	FixSettings light
-	FixSettings transp
-	FixSettings isosurface
-	FixSettings grid
-	FixSettings axes
-	FixSettings outline
+        InitSettings light2side light transp isosurface grid axes outline
 	
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
@@ -1238,13 +1232,26 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: AdjustSetting <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
+itcl::body Rappture::NanovisViewer::InitSettings { args } {
+    foreach arg $args {
+        AdjustSetting $arg
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: AdjustSetting <what> ?<value>?
+#
+# Used internally to update rendering settings whenever parameters
+# change in the popup settings panel.  Sends the new settings off
+# to the back end.
+# ----------------------------------------------------------------------
+itcl::body Rappture::NanovisViewer::AdjustSetting {what} {
     switch -- $what {
         light {
             if {[isconnected]} {
@@ -1304,6 +1311,11 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
             if {[isconnected]} {
                 SendCmd "volume shading isosurface $_settings($this-isosurface)"
             }
+        }
+        "colormap" {
+            set color [$itk_component(colormap) value]
+            set _settings(colormap) $color
+            #ResetColormap $color
         }
         "grid" {
             if { [isconnected] } {
@@ -1395,7 +1407,7 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #
 itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     array set style {
-        -color rainbow
+        -color nanovis
         -levels 6
         -opacity 1.0
         -markers ""
@@ -1406,6 +1418,219 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     set _dataset2style($tag) $tf
     lappend _style2datasets($tf) $tag
     return $tf
+}
+
+
+itcl::body Rappture::NanovisViewer::ColorsToColormap { colors } {
+    switch -- $colors {
+        "grey-to-blue" {
+            return {
+                0.0                      0.200 0.200 0.200
+                0.14285714285714285      0.400 0.400 0.400
+                0.2857142857142857       0.600 0.600 0.600
+                0.42857142857142855      0.900 0.900 0.900
+                0.5714285714285714       0.800 1.000 1.000
+                0.7142857142857143       0.600 1.000 1.000
+                0.8571428571428571       0.400 0.900 1.000
+                1.0                      0.000 0.600 0.800
+            }
+        }
+        "blue-to-grey" {
+            return {
+                0.0                     0.000 0.600 0.800 
+                0.14285714285714285     0.400 0.900 1.000 
+                0.2857142857142857      0.600 1.000 1.000 
+                0.42857142857142855     0.800 1.000 1.000 
+                0.5714285714285714      0.900 0.900 0.900 
+                0.7142857142857143      0.600 0.600 0.600 
+                0.8571428571428571      0.400 0.400 0.400 
+                1.0                     0.200 0.200 0.200
+            }
+        }
+        "blue" {
+            return { 
+                0.0                     0.900 1.000 1.000 
+                0.1111111111111111      0.800 0.983 1.000 
+                0.2222222222222222      0.700 0.950 1.000 
+                0.3333333333333333      0.600 0.900 1.000 
+                0.4444444444444444      0.500 0.833 1.000 
+                0.5555555555555556      0.400 0.750 1.000 
+                0.6666666666666666      0.300 0.650 1.000 
+                0.7777777777777778      0.200 0.533 1.000 
+                0.8888888888888888      0.100 0.400 1.000 
+                1.0                     0.000 0.250 1.000
+            }
+        }
+        "brown-to-blue" {
+            return {
+                0.0                             0.200   0.100   0.000 
+                0.09090909090909091             0.400   0.187   0.000 
+                0.18181818181818182             0.600   0.379   0.210 
+                0.2727272727272727              0.800   0.608   0.480 
+                0.36363636363636365             0.850   0.688   0.595 
+                0.45454545454545453             0.950   0.855   0.808 
+                0.5454545454545454              0.800   0.993   1.000 
+                0.6363636363636364              0.600   0.973   1.000 
+                0.7272727272727273              0.400   0.940   1.000 
+                0.8181818181818182              0.200   0.893   1.000 
+                0.9090909090909091              0.000   0.667   0.800 
+                1.0                             0.000   0.480   0.600 
+            }
+        }
+        "blue-to-brown" {
+            return {
+                0.0                             0.000   0.480   0.600 
+                0.09090909090909091             0.000   0.667   0.800 
+                0.18181818181818182             0.200   0.893   1.000 
+                0.2727272727272727              0.400   0.940   1.000 
+                0.36363636363636365             0.600   0.973   1.000 
+                0.45454545454545453             0.800   0.993   1.000 
+                0.5454545454545454              0.950   0.855   0.808 
+                0.6363636363636364              0.850   0.688   0.595 
+                0.7272727272727273              0.800   0.608   0.480 
+                0.8181818181818182              0.600   0.379   0.210 
+                0.9090909090909091              0.400   0.187   0.000 
+                1.0                             0.200   0.100   0.000 
+            }
+        }
+        "blue-to-orange" {
+            return {
+                0.0                             0.000   0.167   1.000
+                0.09090909090909091             0.100   0.400   1.000
+                0.18181818181818182             0.200   0.600   1.000
+                0.2727272727272727              0.400   0.800   1.000
+                0.36363636363636365             0.600   0.933   1.000
+                0.45454545454545453             0.800   1.000   1.000
+                0.5454545454545454              1.000   1.000   0.800
+                0.6363636363636364              1.000   0.933   0.600
+                0.7272727272727273              1.000   0.800   0.400
+                0.8181818181818182              1.000   0.600   0.200
+                0.9090909090909091              1.000   0.400   0.100
+                1.0                             1.000   0.167   0.000
+            }
+        }
+        "orange-to-blue" {
+            return {
+                0.0                             1.000   0.167   0.000
+                0.09090909090909091             1.000   0.400   0.100
+                0.18181818181818182             1.000   0.600   0.200
+                0.2727272727272727              1.000   0.800   0.400
+                0.36363636363636365             1.000   0.933   0.600
+                0.45454545454545453             1.000   1.000   0.800
+                0.5454545454545454              0.800   1.000   1.000
+                0.6363636363636364              0.600   0.933   1.000
+                0.7272727272727273              0.400   0.800   1.000
+                0.8181818181818182              0.200   0.600   1.000
+                0.9090909090909091              0.100   0.400   1.000
+                1.0                             0.000   0.167   1.000
+            }
+        }
+        "rainbow" {
+            set clist {
+                "#EE82EE"
+                "#4B0082" 
+                "blue" 
+                "#008000" 
+                "yellow" 
+                "#FFA500" 
+                "red" 
+            }
+        }
+        "BGYOR" {
+            set clist {
+                "blue" 
+                "#008000" 
+                "yellow" 
+                "#FFA500" 
+                "red" 
+            }
+        }
+        "ROYGB" {
+            set clist {
+                "red" 
+                "#FFA500" 
+                "yellow" 
+                "#008000" 
+                "blue" 
+            }
+        }
+        "RYGCB" {
+            set clist {
+                "red" 
+                "yellow" 
+                "green"
+                "cyan"
+                "blue"
+            }
+        }
+        "BCGYR" {
+            set clist {
+                "blue" 
+                "cyan"
+                "green"
+                "yellow" 
+                "red" 
+            }
+        }
+        "spectral" {
+            return {
+                0.0 0.150 0.300 1.000 
+                0.1 0.250 0.630 1.000 
+                0.2 0.450 0.850 1.000 
+                0.3 0.670 0.970 1.000 
+                0.4 0.880 1.000 1.000 
+                0.5 1.000 1.000 0.750 
+                0.6 1.000 0.880 0.600 
+                0.7 1.000 0.680 0.450 
+                0.8 0.970 0.430 0.370 
+                0.9 0.850 0.150 0.196 
+                1.0 0.650 0.000 0.130
+            }
+        }
+        "green-to-magenta" {
+            return {
+                0.0 0.000 0.316 0.000 
+                0.06666666666666667 0.000 0.526 0.000 
+                0.13333333333333333 0.000 0.737 0.000 
+                0.2 0.000 0.947 0.000 
+                0.26666666666666666 0.316 1.000 0.316 
+                0.3333333333333333 0.526 1.000 0.526 
+                0.4 0.737 1.000 0.737 
+                0.4666666666666667 1.000 1.000 1.000 
+                0.5333333333333333 1.000 0.947 1.000 
+                0.6 1.000 0.737 1.000 
+                0.6666666666666666 1.000 0.526 1.000 
+                0.7333333333333333 1.000 0.316 1.000 
+                0.8 0.947 0.000 0.947 
+                0.8666666666666667 0.737 0.000 0.737 
+                0.9333333333333333 0.526 0.000 0.526 
+                1.0 0.316 0.000 0.316
+            }
+        }
+        "greyscale" {
+            return { 
+                0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
+            }
+        }
+        "nanohub" {
+            set clist "white yellow green cyan blue magenta"
+        }
+        default {
+            set clist $colors
+        }
+    }
+    set cmap {}
+    if { [llength $clist] == 1 } {
+        set rgb [Color2RGB $clist]
+        append cmap "0.0 $rgb 1.0 $rgb"
+    } else {
+        for {set i 0} {$i < [llength $clist]} {incr i} {
+            set x [expr {double($i)/([llength $clist]-1)}]
+            set color [lindex $clist $i]
+            append cmap "$x [Color2RGB $color] "
+        }
+    }
+    return $cmap
 }
 
 #
@@ -1427,8 +1652,6 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     foreach {dataobj cname} [split [lindex $_style2datasets($tf) 0] -] break
     array set style [lindex [$dataobj components -style $cname] 0]
 
-    puts stderr "$tf: $style(-color), $style(-levels), $style(-opacity), $style(-markers)"
-
     # We have to parse the style attributes for a volume using this
     # transfer-function *once*.  This sets up the initial isomarkers for the
     # transfer function.  The user may add/delete markers, so we have to
@@ -1447,24 +1670,11 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
         if { [info exists style(-markers)] &&
              [llength $style(-markers)] > 0 } {
             ParseMarkersOption $tf $style(-markers)
-            puts stderr "Found markers option"
         } else {
             ParseLevelsOption $tf $style(-levels)
         }
     }
-    if {$style(-color) == "rainbow"} {
-        set style(-color) "white:yellow:green:cyan:blue:magenta"
-    }
-    set clist [split $style(-color) :]
-    if {[llength $clist] == 1} {
-        lappend clist [lindex $clist 0]
-    }
-    for {set i 0} {$i < [llength $clist]} {incr i} {
-        set x [expr {double($i)/([llength $clist]-1)}]
-        set color [lindex $clist $i]
-        append cmap "$x [Color2RGB $color] "
-    }
-
+    set cmap [ColorsToColormap $style(-color)]
     set tag $this-$tf
     if { ![info exists _settings($tag-opacity)] } {
         set _settings($tag-opacity) $style(-opacity)
@@ -1719,7 +1929,7 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
     foreach { key value } {
         grid            0
         axes            1
-        outline         1
+        outline         0
         volume          1
         legend          1
         particles       1
@@ -1740,37 +1950,37 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
     checkbutton $inner.isosurface \
         -text "Isosurface shading" \
         -variable [itcl::scope _settings($this-isosurface)] \
-        -command [itcl::code $this FixSettings isosurface] \
+        -command [itcl::code $this AdjustSetting isosurface] \
         -font "Arial 9"
 
     checkbutton $inner.axes \
         -text "Axes" \
         -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this FixSettings axes] \
+        -command [itcl::code $this AdjustSetting axes] \
         -font "Arial 9"
 
     checkbutton $inner.grid \
         -text "Grid" \
         -variable [itcl::scope _settings($this-grid)] \
-        -command [itcl::code $this FixSettings grid] \
+        -command [itcl::code $this AdjustSetting grid] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
         -variable [itcl::scope _settings($this-outline)] \
-        -command [itcl::code $this FixSettings outline] \
+        -command [itcl::code $this AdjustSetting outline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
         -variable [itcl::scope _settings($this-legend)] \
-        -command [itcl::code $this FixSettings legend] \
+        -command [itcl::code $this AdjustSetting legend] \
         -font "Arial 9"
 
     checkbutton $inner.volume \
         -text "Volume" \
         -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
+        -command [itcl::code $this AdjustSetting volume] \
         -font "Arial 9"
 
     blt::table $inner \
@@ -1808,43 +2018,71 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
 
     checkbutton $inner.vol -text "Show volume" -font $fg \
         -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume]
+        -command [itcl::code $this AdjustSetting volume]
     label $inner.shading -text "Shading:" -font $fg
 
     checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
         -variable [itcl::scope _settings($this-light2side)] \
-        -command [itcl::code $this FixSettings light2side]
+        -command [itcl::code $this AdjustSetting light2side]
 
     label $inner.dim -text "Glow" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-light)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings light]
+        -showvalue off -command [itcl::code $this AdjustSetting light]
     label $inner.bright -text "Surface" -font $fg
 
     label $inner.fog -text "Clear" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings transp]
+        -showvalue off -command [itcl::code $this AdjustSetting transp]
     label $inner.plastic -text "Opaque" -font $fg
 
     label $inner.clear -text "Clear" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings opacity]
+        -showvalue off -command [itcl::code $this AdjustSetting opacity]
     label $inner.opaque -text "Opaque" -font $fg
 
     label $inner.thin -text "Thin" -font $fg
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
         -variable [itcl::scope _settings($this-thickness)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings thickness]
+        -showvalue off -command [itcl::code $this AdjustSetting thickness]
     label $inner.thick -text "Thick" -font $fg
 
+    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    itk_component add colormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable no
+    }
+
+    $inner.colormap choices insert end \
+        "BCGYR"              "BCGYR"            \
+        "BGYOR"              "BGYOR"            \
+        "blue"               "blue"             \
+        "blue-to-brown"      "blue-to-brown"    \
+        "blue-to-orange"     "blue-to-orange"   \
+        "blue-to-grey"       "blue-to-grey"     \
+        "green-to-magenta"   "green-to-magenta" \
+        "greyscale"          "greyscale"        \
+        "nanohub"            "nanohub"          \
+        "rainbow"            "rainbow"          \
+        "spectral"           "spectral"         \
+        "ROYGB"              "ROYGB"            \
+        "RYGCB"              "RYGCB"            \
+        "brown-to-blue"      "brown-to-blue"    \
+        "grey-to-blue"       "grey-to-blue"     \
+        "orange-to-blue"     "orange-to-blue"   \
+	"none"		     "none"
+
+    $itk_component(colormap) value "BCGYR"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting colormap]
+
     blt::table $inner \
-        0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
+        0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
         1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
         2,0 $inner.light2side -columnspan 4 -anchor w -pady 2 \
         3,0 $inner.dim -anchor e -pady 2 \
@@ -1877,7 +2115,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this FixSettings xcutplane] \
+            -command [itcl::code $this AdjustSetting xcutplane] \
             -variable [itcl::scope _settings($this-xcutplane)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
@@ -1904,7 +2142,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this FixSettings ycutplane] \
+            -command [itcl::code $this AdjustSetting ycutplane] \
             -variable [itcl::scope _settings($this-ycutplane)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
@@ -1931,7 +2169,7 @@ itcl::body Rappture::NanovisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this FixSettings zcutplane] \
+            -command [itcl::code $this AdjustSetting zcutplane] \
             -variable [itcl::scope _settings($this-zcutplane)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
@@ -2194,3 +2432,4 @@ itcl::body Rappture::NanovisViewer::SetOrientation {} {
     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
     SendCmd "camera angle $xyz"
 }
+
