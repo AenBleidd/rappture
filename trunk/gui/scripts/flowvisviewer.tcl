@@ -338,7 +338,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     # Legend
     set _image(legend) [image create photo]
     itk_component add legend {
-        canvas $itk_component(plotarea).legend -height 50 -highlightthickness 0
+        canvas $itk_component(plotarea).legend \
+            -height 50 -highlightthickness 0 -background black
     } {
         usual
         ignore -highlightthickness
@@ -728,11 +729,11 @@ itcl::body Rappture::FlowvisViewer::delete {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::FlowvisViewer::scale {args} {
-    foreach val {xmin xmax ymin ymax zmin zmax vmin vmax} {
+    foreach val {xmin xmax ymin ymax vmin vmax} {
         set _limits($val) ""
     }
     foreach obj $args {
-        foreach axis {x y z v} {
+        foreach axis {x y v} {
 
             foreach { min max } [$obj limits $axis] break
 
@@ -1104,6 +1105,11 @@ itcl::body Rappture::FlowvisViewer::ReceiveLegend { tag vmin vmax size } {
     set w [winfo width $c]
     set h [winfo height $c]
     set lx 10
+    # FIXME:  I don't know what I have to do this for the 2D flow
+    #         example.  Otherwise the canvas background is white.
+    #         I'll get to this when we add background changes into
+    #         nanvis.
+    $c configure -background black
     set ly [expr {$h - 1}]
     if {"" == [$c find withtag transfunc]} {
         $c create image 10 10 -anchor nw \

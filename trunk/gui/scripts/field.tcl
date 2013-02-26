@@ -321,7 +321,9 @@ itcl::body Rappture::Field::blob {{cname -overall}} {
         return $_comp2dx($cname)  ;# return gzipped, base64-encoded DX data
     }
     if {[info exists _comp2unirect2d($cname)]} {
-        return [$_comp2unirect2d($cname) blob]
+        set blob [$_comp2unirect2d($cname) blob]
+        lappend blob "values" $_values
+        return $blob
     }
     if {[info exists _comp2unirect3d($cname)]} {
         return [$_comp2unirect3d($cname) blob]
@@ -390,11 +392,7 @@ itcl::body Rappture::Field::limits {which} {
                 }
             }
             2D - 3D {
-                if {[info exists _comp2unirect2d($cname)]} {
-                    set limits [$_comp2unirect2d($cname) limits $which]
-                    foreach {axisMin axisMax} $limits break
-                    set axis v
-                } elseif {[info exists _comp2unirect3d($cname)]} {
+                if {[info exists _comp2unirect3d($cname)]} {
                     set limits [$_comp2unirect3d($cname) limits $which]
                     foreach {axisMin axisMax} $limits break
                     set axis v
@@ -1192,7 +1190,16 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	set _comp2style($cname) [$_field get $cname.style]
 	set _comp2flowhints($cname) \
 	    [Rappture::FlowHints ::\#auto $_field $cname $_units]
-	set _values [$_field element $cname.values]
+	set _values [$_field get $cname.values]
+        set limits {}
+        foreach axis { x y } {
+            lappend limits $axis [$_comp2unirect2d($cname) limits $axis]
+        }
+        set xv [blt::vector create \#auto]
+        $xv set $_values
+        lappend limits "v" [$xv limits]
+        blt::vector destroy $xv
+        set _comp2limits($cname) $limits
 	incr _counter
 	return
     }
