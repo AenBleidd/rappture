@@ -690,7 +690,7 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
         if { ![info exists _serverDatasets($tag)] || !$_serverDatasets($tag) } {
             # The volume hasn't reached the server yet.  How did we get 
             # here?
-            puts stderr "Don't have $vol in _serverVols"
+            puts stderr "Don't have $tag in _serverDatasets"
             continue
         }
         if { ![info exists _dataset2style($tag)] } {
