@@ -114,7 +114,7 @@ public:
                         float max)
     {
         _rendererPtr->
-            setVectorField(volPtr->id,
+            setVectorField(volPtr->textureID(),
                            location,
                            scaleX,
                            scaleY,
@@ -206,9 +206,11 @@ struct FlowValues {
     int showVolume;
     int showOutline;
     int isHidden;
-    float diffuse;  ///< Diffuse volume shading
-    float specular; ///< Specular volume shading
-    float opacity;  ///< Volume opacity
+    float ambient;     ///< Ambient volume shading
+    float diffuse;     ///< Diffuse volume shading
+    float specular;    ///< Specular level volume shading
+    float specularExp; ///< Specular exponent volume shading
+    float opacity;     ///< Volume opacity scaling
 };
 
 struct FlowIterator {

@@ -31,7 +31,7 @@
 
 #include "config.h"
 
-#define NANOVIS_VERSION		"1.0"
+#define NANOVIS_VERSION		"1.1"
 
 //defines for the image based flow visualization
 #define NMESH 256	//resolution of flow mesh
@@ -83,6 +83,10 @@ public:
     static void update();
     static void removeAllData();
 
+    static const NvCamera *getCamera()
+    {
+        return cam;
+    }
     static void pan(float dx, float dy);
     static void zoom(float z);
 
@@ -90,10 +94,10 @@ public:
 
     static void setVolumeRanges();
     static void setHeightmapRanges();
-#ifdef notdef
-    static void initParticle();
+
+#ifdef KEEPSTATS
+    static int writeToStatsFile(const char *s, size_t length);
 #endif
-    static int WriteToStatsFile(const char *s, size_t length);
     static void ppmWrite(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,
                                  size_t dlen);
@@ -103,8 +107,6 @@ public:
     static TransferFunction *getTransfunc(const char *name);
     static TransferFunction *defineTransferFunction(const char *name, 
                                                     size_t n, float *data);
-
-    static int render2dContour(HeightMap *heightmap, int width, int height);
 
     static int renderLegend(TransferFunction *tf, double min, double max, 
                             int width, int height, const char *volArg);
@@ -182,7 +184,7 @@ public:
     static PlaneRenderer *planeRenderer;
 #if PLANE_CMD
     static int numPlanes;
-    static Texture2D *plane[];          ///< Pointers to 2D planes
+    static Texture2D *plane[]; ///< Pointers to 2D planes
 #endif
 #ifdef USE_POINTSET_RENDERER
     static PointSetRenderer *pointSetRenderer;
@@ -192,8 +194,8 @@ public:
     static Tcl_Interp *interp;
     static struct timeval startTime;           /* Start of elapsed time. */
 private:
-    static float _licSlice;             ///< Slice position [0,1]
-    static int _licAxis;                ///< Slice axis: 0:x, 1:y, 2:z
+    static float _licSlice;  ///< Slice position [0,1]
+    static int _licAxis;     ///< Slice axis: 0:x, 1:y, 2:z
 
     //frame buffer for final rendering
     static GLuint _finalFbo, _finalColorTex, _finalDepthRb;

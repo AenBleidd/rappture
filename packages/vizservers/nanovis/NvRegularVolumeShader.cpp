@@ -16,7 +16,8 @@ void NvRegularVolumeShader::init()
     loadFragmentProgram("one_volume.cg", "main");
 }
 
-void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMode)
+void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume,
+                                 int sliceMode, float sampleRatio)
 {
     //regular cubic volume
     setGLStateMatrixFPParameter("modelViewInv", MODELVIEW_MATRIX,
@@ -24,28 +25,20 @@ void NvRegularVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMod
     setGLStateMatrixFPParameter("modelView", MODELVIEW_MATRIX,
                                 MATRIX_IDENTITY);
 
-    setFPTextureParameter("volume", volume->id);
+    setFPTextureParameter("volume", volume->textureID());
     setFPTextureParameter("tf", tfID);
 
-    if (!sliceMode) {
-        setFPParameter4f("renderParameters",
-                         volume->numSlices(),
-                         volume->opacityScale(),
-                         volume->diffuse(),
-                         volume->specular());
-    } else {
-        setFPParameter4f("renderParameters",
-                         0.,
-                         volume->opacityScale(),
-                         volume->diffuse(),
-                         volume->specular());
-    }
+    setFPParameter4f("material",
+                     volume->ambient(),
+                     volume->diffuse(),
+                     volume->specularLevel(),
+                     volume->specularExponent());
 
-    setFPParameter4f("options",
-                     0.0f,
+    setFPParameter4f("renderParams",
+                     (sliceMode ? 0.0f : sampleRatio),
                      volume->isosurface(),
-                     0.0f,
-                     0.0f);
+                     volume->opacityScale(),
+                     (volume->twoSidedLighting() ? 1.0f : 0.0f));
 
     NvShader:: bind();
 }

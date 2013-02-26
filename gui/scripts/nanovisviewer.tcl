@@ -119,6 +119,8 @@ itcl::class Rappture::NanovisViewer {
     private method GetVolumeInfo { w }
     private method SetOrientation {}
 
+    private variable _arcball ""
+    private variable _useArcball 1
     private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
@@ -129,7 +131,7 @@ itcl::class Rappture::NanovisViewer {
     private variable _serverTfs    ;# contains all the transfer functions 
                                    ;# in the server.
     private variable _recvdDatasets    ;# list of data objs to send to server
-    private variable _vol2style    ;# maps dataobj-component to transfunc
+    private variable _dataset2style    ;# maps dataobj-component to transfunc
     private variable _style2datasets   ;# maps tf back to list of 
                                     # dataobj-components using the tf.
 
@@ -198,6 +200,10 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
+        qw      0.853553
+        qx      -0.353553
+        qy      0.353553
+        qz      0.146447
         theta   45
         phi     45
         psi     0
@@ -205,16 +211,25 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         pan-x   0
         pan-y   0
     }
+    set _arcball [blt::arcball create 100 100]
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
     set _reset 1
 
     array set _settings [subst {
-        $this-pan-x             $_view(pan-x)
-        $this-pan-y             $_view(pan-y)
+        $this-qw                $_view(qw)
+        $this-qx                $_view(qx)
+        $this-qy                $_view(qy)
+        $this-qz                $_view(qz)
+        $this-theta             $_view(theta)
         $this-phi               $_view(phi)
         $this-psi               $_view(psi)
-        $this-theta             $_view(theta)
+        $this-zoom              $_view(zoom)    
+        $this-pan-x             $_view(pan-x)
+        $this-pan-y             $_view(pan-y)
         $this-volume            1
         $this-xcutplane         0
         $this-xcutposition      0
@@ -222,7 +237,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-ycutposition      0
         $this-zcutplane         0
         $this-zcutposition      0
-        $this-zoom              $_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -378,6 +392,7 @@ itcl::body Rappture::NanovisViewer::destructor {} {
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
+    catch { blt::arcball destroy $_arcball }
     array unset _settings $this-*
 }
 
@@ -490,7 +505,7 @@ itcl::body Rappture::NanovisViewer::delete {args} {
             set _dlist [lreplace $_dlist $pos $pos]
             array unset _limits $dataobj*
             array unset _obj2ovride $dataobj-*
-            array unset _vol2style $dataobj-*
+            array unset _dataset2style $dataobj-*
             set changed 1
         }
     }
@@ -675,13 +690,14 @@ itcl::body Rappture::NanovisViewer::SendTransferFuncs {} {
         if { ![info exists _serverDatasets($tag)] || !$_serverDatasets($tag) } {
             # The volume hasn't reached the server yet.  How did we get 
             # here?
+            puts stderr "Don't have $vol in _serverVols"
             continue
         }
-        if { ![info exists _vol2style($tag)] } {
-            puts stderr "unknown volume $tag"
+        if { ![info exists _dataset2style($tag)] } {
+            puts stderr "Don't have style for volume $tag"
             continue;                        # How does this happen?
         }
-        set tf $_vol2style($tag)
+        set tf $_dataset2style($tag)
         set _settings($this-$tf-opacity) $opacity
         set _settings($this-$tf-thickness) $thickness
         ComputeTransferFunc $tf
@@ -818,6 +834,9 @@ itcl::body Rappture::NanovisViewer::ReceiveData { args } {
     if { ![isconnected] } {
         return
     }
+
+    puts stderr "Received volume info: '$args'"
+
     # Arguments from server are name value pairs. Stuff them in an array.
     array set info $args
 
@@ -871,6 +890,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
+    $_arcball resize $w $h
     EventuallyResize $w $h
 
     foreach dataobj [get] {
@@ -893,18 +913,29 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	#
 	# Reset the camera and other view parameters
 	#
-	
+        set _settings($this-qw)    $_view(qw)
+        set _settings($this-qx)    $_view(qx)
+        set _settings($this-qy)    $_view(qy)
+        set _settings($this-qz)    $_view(qz)
 	set _settings($this-theta) $_view(theta)
 	set _settings($this-phi)   $_view(phi)
 	set _settings($this-psi)   $_view(psi)
 	set _settings($this-pan-x) $_view(pan-x)
 	set _settings($this-pan-y) $_view(pan-y)
 	set _settings($this-zoom)  $_view(zoom)
-	
-	set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-	SendCmd "camera angle $xyz"
+
+        if {$_useArcball} {
+            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+            $_arcball quaternion $q
+            SendCmd "camera orient $q"
+        } else {
+            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+            SendCmd "camera angle $xyz"
+        }
+
 	PanCamera
 	SendCmd "camera zoom $_view(zoom)"
+        FixSettings light2side
 	FixSettings light
 	FixSettings transp
 	FixSettings isosurface
@@ -1020,6 +1051,10 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
+                qw      0.853553
+                qx      -0.353553
+                qy      0.353553
+                qz      0.146447
                 theta   45
                 phi     45
                 psi     0
@@ -1033,9 +1068,20 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            SendCmd "camera angle $xyz"
+            if {$_useArcball} {
+                set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                $_arcball quaternion $q
+                SendCmd "camera orient $q"
+            } else {
+                set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+                SendCmd "camera angle $xyz"
+            }
+
             PanCamera
+            set _settings($this-qw)    $_view(qw)
+            set _settings($this-qx)    $_view(qx)
+            set _settings($this-qy)    $_view(qy)
+            set _settings($this-qz)    $_view(qz)
             set _settings($this-theta) $_view(theta)
             set _settings($this-phi)   $_view(phi)
             set _settings($this-psi)   $_view(psi)
@@ -1091,37 +1137,48 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                     return
                 }
 
-                #
-                # Rotate the camera in 3D
-                #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$_view(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
-
-                if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
+                if {$_useArcball} {
+                    set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+                    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                    set _settings($this-qw) $_view(qw)
+                    set _settings($this-qx) $_view(qx)
+                    set _settings($this-qy) $_view(qy)
+                    set _settings($this-qz) $_view(qz)
+                    SendCmd "camera orient $q"
                 } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
+                    #
+                    # Rotate the camera in 3D
+                    #
+                    if {$_view(psi) > 90 || $_view(psi) < -90} {
+                        # when psi is flipped around, theta moves backwards
+                        set dy [expr {-$dy}]
+                    }
+                    set theta [expr {$_view(theta) - $dy*180}]
+                    while {$theta < 0} { set theta [expr {$theta+180}] }
+                    while {$theta > 180} { set theta [expr {$theta-180}] }
+
+                    if {abs($theta) >= 30 && abs($theta) <= 160} {
+                        set phi [expr {$_view(phi) - $dx*360}]
+                        while {$phi < 0} { set phi [expr {$phi+360}] }
+                        while {$phi > 360} { set phi [expr {$phi-360}] }
+                        set psi $_view(psi)
+                    } else {
+                        set phi $_view(phi)
+                        set psi [expr {$_view(psi) - $dx*360}]
+                        while {$psi < -180} { set psi [expr {$psi+360}] }
+                        while {$psi > 180} { set psi [expr {$psi-360}] }
+                    }
+
+                    set _view(theta)        $theta
+                    set _view(phi)          $phi
+                    set _view(psi)          $psi
+                    set xyz [Euler2XYZ $theta $phi $psi]
+                    set _settings($this-theta) $_view(theta)
+                    set _settings($this-phi)   $_view(phi)
+                    set _settings($this-psi)   $_view(psi)
+                    SendCmd "camera angle $xyz"
                 }
 
-                set _view(theta)        $theta
-                set _view(phi)          $phi
-                set _view(psi)          $psi
-                set xyz [Euler2XYZ $theta $phi $psi]
-                set _settings($this-theta) $_view(theta)
-                set _settings($this-phi)   $_view(phi)
-                set _settings($this-psi)   $_view(psi)
-                SendCmd "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1192,16 +1249,26 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
         light {
             if {[isconnected]} {
                 set val $_settings($this-light)
-                set sval [expr {0.01*$val}]
-                SendCmd "volume shading diffuse $sval"
-                set sval [expr {sqrt($val+1.0)}]
-                SendCmd "volume shading specular $sval"
+                set diffuse [expr {0.01*$val}]
+                set ambient [expr {1.0-$diffuse}]
+                set specularLevel 0.3
+                set specularExp 90.0
+                SendCmd "volume shading ambient $ambient"
+                SendCmd "volume shading diffuse $diffuse"
+                SendCmd "volume shading specularLevel $specularLevel"
+                SendCmd "volume shading specularExp $specularExp"
+            }
+        }
+        light2side {
+            if {[isconnected]} {
+                set val $_settings($this-light2side)
+                SendCmd "volume shading light2side $val"
             }
         }
         transp {
             if {[isconnected]} {
                 set val $_settings($this-transp)
-                set sval [expr {0.2*$val+1}]
+                set sval [expr { 0.01 * double($val) }]
                 SendCmd "volume shading opacity $sval"
             }
         }
@@ -1216,7 +1283,6 @@ itcl::body Rappture::NanovisViewer::FixSettings {what {value ""}} {
                 updatetransferfuncs
             }
         }
-
         thickness {
             if {[isconnected] && [array names _activeTfs] > 0 } {
                 set val $_settings($this-thickness)
@@ -1301,8 +1367,8 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
     set h [expr {[winfo height $itk_component(legend)]-20-$lineht}]
     if {$w > 0 && $h > 0 && [array names _activeTfs] > 0 && $_first != "" } {
         set tag [lindex [CurrentDatasets] 0]
-        if { [info exists _vol2style($tag)] } {
-            SendCmd "legend $_vol2style($tag) $w $h"
+        if { [info exists _dataset2style($tag)] } {
+            SendCmd "legend $_dataset2style($tag) $w $h"
         }
     } else {
         # Can't do this as this will remove the items associated with the
@@ -1332,11 +1398,12 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
         -color rainbow
         -levels 6
         -opacity 1.0
+        -markers ""
     }
     set tag $dataobj-$cname
     array set style [lindex [$dataobj components -style $cname] 0]
     set tf "$style(-color):$style(-levels):$style(-opacity)"
-    set _vol2style($tag) $tf
+    set _dataset2style($tag) $tf
     lappend _style2datasets($tf) $tag
     return $tf
 }
@@ -1355,10 +1422,12 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
         -color rainbow
         -levels 6
         -opacity 1.0
+        -markers ""
     }
     foreach {dataobj cname} [split [lindex $_style2datasets($tf) 0] -] break
     array set style [lindex [$dataobj components -style $cname] 0]
 
+    puts stderr "$tf: $style(-color), $style(-levels), $style(-opacity), $style(-markers)"
 
     # We have to parse the style attributes for a volume using this
     # transfer-function *once*.  This sets up the initial isomarkers for the
@@ -1375,8 +1444,10 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
 
     if { ![info exists _isomarkers($tf)] } {
         # Have to defer creation of isomarkers until we have data limits
-        if { [info exists style(-markers)] } {
+        if { [info exists style(-markers)] &&
+             [llength $style(-markers)] > 0 } {
             ParseMarkersOption $tf $style(-markers)
+            puts stderr "Found markers option"
         } else {
             ParseLevelsOption $tf $style(-levels)
         }
@@ -1385,19 +1456,20 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
         set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
     set clist [split $style(-color) :]
-    set cmap "0.0 [Color2RGB white] "
+    if {[llength $clist] == 1} {
+        lappend clist [lindex $clist 0]
+    }
     for {set i 0} {$i < [llength $clist]} {incr i} {
-        set x [expr {double($i+1)/([llength $clist]+1)}]
+        set x [expr {double($i)/([llength $clist]-1)}]
         set color [lindex $clist $i]
         append cmap "$x [Color2RGB $color] "
     }
-    append cmap "1.0 [Color2RGB $color]"
 
     set tag $this-$tf
     if { ![info exists _settings($tag-opacity)] } {
         set _settings($tag-opacity) $style(-opacity)
     }
-    set max $_settings($tag-opacity)
+    set max 1.0 ;#$_settings($tag-opacity)
 
     set isovalues {}
     foreach m $_isomarkers($tf) {
@@ -1407,7 +1479,7 @@ itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     set isovalues [lsort -real $isovalues]
 
     if { ![info exists _settings($tag-thickness)]} {
-        set _settings($tag-thickness) 0.05
+        set _settings($tag-thickness) 0.005
     }
     set delta $_settings($tag-thickness)
 
@@ -1562,7 +1634,7 @@ itcl::body Rappture::NanovisViewer::AddIsoMarker { x y } {
         error "active transfer function isn't set"
     }
     set tag [lindex [CurrentDatasets] 0]
-    set tf $_vol2style($tag)
+    set tf $_dataset2style($tag)
     set c $itk_component(legend)
     set m [Rappture::IsoMarker \#auto $c $this $tf]
     set w [winfo width $c]
@@ -1717,6 +1789,7 @@ itcl::body Rappture::NanovisViewer::BuildViewTab {} {
 
 itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     foreach { key value } {
+        light2side      0
         light           40
         transp          50
         opacity         100
@@ -1738,19 +1811,23 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         -command [itcl::code $this FixSettings volume]
     label $inner.shading -text "Shading:" -font $fg
 
-    label $inner.dim -text "Dim" -font $fg
+    checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
+        -variable [itcl::scope _settings($this-light2side)] \
+        -command [itcl::code $this FixSettings light2side]
+
+    label $inner.dim -text "Glow" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-light)] \
         -width 10 \
         -showvalue off -command [itcl::code $this FixSettings light]
-    label $inner.bright -text "Bright" -font $fg
+    label $inner.bright -text "Surface" -font $fg
 
-    label $inner.fog -text "Fog" -font $fg
+    label $inner.fog -text "Clear" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -width 10 \
         -showvalue off -command [itcl::code $this FixSettings transp]
-    label $inner.plastic -text "Plastic" -font $fg
+    label $inner.plastic -text "Opaque" -font $fg
 
     label $inner.clear -text "Clear" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
@@ -1769,18 +1846,21 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
     blt::table $inner \
         0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
         1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
-        2,0 $inner.dim -anchor e -pady 2 \
-        2,1 $inner.light -columnspan 2 -pady 2 -fill x \
-        2,3 $inner.bright -anchor w -pady 2 \
-        3,0 $inner.fog -anchor e -pady 2 \
-        3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
-        3,3 $inner.plastic -anchor w -pady 2 \
-        4,0 $inner.clear -anchor e -pady 2 \
-        4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-        4,3 $inner.opaque -anchor w -pady 2 \
+        2,0 $inner.light2side -columnspan 4 -anchor w -pady 2 \
+        3,0 $inner.dim -anchor e -pady 2 \
+        3,1 $inner.light -columnspan 2 -pady 2 -fill x \
+        3,3 $inner.bright -anchor w -pady 2 \
+        4,0 $inner.fog -anchor e -pady 2 \
+        4,1 $inner.transp -columnspan 2 -pady 2 -fill x \
+        4,3 $inner.plastic -anchor w -pady 2 \
         5,0 $inner.thin -anchor e -pady 2 \
         5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
         5,3 $inner.thick -anchor w -pady 2
+
+#        4,0 $inner.clear -anchor e -pady 2 \
+#        4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
+#        4,3 $inner.opaque -anchor w -pady 2 \
+
 
     blt::table configure $inner c0 c1 c3 r* -resize none
     blt::table configure $inner r6 -resize expand
@@ -1893,7 +1973,11 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set labels { phi theta psi pan-x pan-y zoom }
+    if {$_useArcball} {
+        set labels { qw qx qy qz pan-x pan-y zoom }
+    } else {
+        set labels { phi theta psi pan-x pan-y zoom }
+    }
     set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
@@ -1979,6 +2063,7 @@ itcl::body Rappture::NanovisViewer::DoResize {} {
 itcl::body Rappture::NanovisViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
+    $_arcball resize $w $h
     if { !$_resizePending } {
         $_dispatcher event -idle !resize
         set _resizePending 1
@@ -2017,6 +2102,20 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
                     set _view($who) $_settings($this-$who)
                     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
                     SendCmd "camera angle $xyz"
+                    if {$_useArcball} {
+                        $_arcball euler [list [expr {-[lindex $xyz 2]}] [expr {-[lindex $xyz 1]}] [expr {-[lindex $xyz 0]}]]
+                        set q [$_arcball quaternion]
+                        foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                        set _settings($this-qw) $_view(qw)
+                        set _settings($this-qx) $_view(qx)
+                        set _settings($this-qy) $_view(qy)
+                        set _settings($this-qz) $_view(qz)
+                    }
+                }
+                "qx" - "qy" - "qz" - "qw" {
+                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                    $_arcball quaternion $q
+                    SendCmd "camera orient $q"
                 }
                 "zoom" {
                     set _view($who) $_settings($this-$who)

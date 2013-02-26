@@ -24,22 +24,20 @@ double Volume::valueMin = 0.0;
 double Volume::valueMax = 1.0;
 
 Volume::Volume(float x, float y, float z,
-               int w, int h, int d, float s, 
+               int w, int h, int d,
                int n, float *data,
                double v0, double v1, double nonZeroMin) :
-    aspectRatioWidth(1),
-    aspectRatioHeight(1),
-    aspectRatioDepth(1),
-    id(0),
-    width(w),
-    height(h),
-    depth(d),
-    size(s),
-    pointsetIndex(-1),
+    _id(0),
+    _width(w),
+    _height(h),
+    _depth(d),
     _tfPtr(NULL),
-    _specular(6.),
-    _diffuse(3.),
-    _opacityScale(10.),
+    _ambient(0.6f),
+    _diffuse(0.4f),
+    _specular(0.3f),
+    _specularExp(90.0f),
+    _lightTwoSide(false),
+    _opacityScale(0.5f),
     _name(NULL),
     _data(NULL),
     _numComponents(n),
@@ -54,8 +52,10 @@ Volume::Volume(float x, float y, float z,
     _volumeType(CUBIC),
     _isosurface(0)
 {
-    _tex = new Texture3D(w, h, d, GL_FLOAT, GL_LINEAR, n);
-    int fcount = width * height * depth * _numComponents;
+    TRACE("Enter Volume(): %dx%dx%d\n", _width, _height, _depth);
+
+    _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, n);
+    int fcount = _width * _height * _depth * _numComponents;
     _data = new float[fcount];
     if (data != NULL) {
         TRACE("data is copied\n");
@@ -63,19 +63,14 @@ Volume::Volume(float x, float y, float z,
         _tex->initialize(_data);
     } else {
         TRACE("data is null\n");
-        memset(_data, 0, sizeof(width * height * depth * _numComponents * 
+        memset(_data, 0, sizeof(_width * _height * _depth * _numComponents * 
 				sizeof(float)));
         _tex->initialize(_data);
     }
 
-    id = _tex->id();
+    _id = _tex->id();
 
     wAxis.setRange(v0, v1);
-
-    // VOLUME
-    aspectRatioWidth  = s * _tex->aspectRatioWidth();
-    aspectRatioHeight = s * _tex->aspectRatioHeight();
-    aspectRatioDepth =  s * _tex->aspectRatioDepth();
 
     //Add cut planes. We create 3 default cut planes facing x, y, z directions.
     //The default location of cut plane is in the middle of the data.
@@ -84,14 +79,12 @@ Volume::Volume(float x, float y, float z,
     addCutplane(2, 0.5f);
     addCutplane(3, 0.5f);
 
-    TRACE("End -- Volume constructor\n");
+    TRACE("Leave Volume()\n");
 }
 
 Volume::~Volume()
-{ 
-    if (pointsetIndex != -1) {
-        // TBD...
-    }
+{
+    TRACE("In ~Volume()");
 
     delete [] _data;
     delete _tex;

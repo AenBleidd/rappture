@@ -11,9 +11,13 @@ class NvVolumeShader : public NvShader
 public :
     virtual ~NvVolumeShader();
 
-    virtual void bind(unsigned int tfID, Volume *volume, int sliceMode) = 0;
+    virtual void bind(unsigned int tfID, Volume *volume,
+                      int sliceMode, float sampleRatio) = 0;
 
-    virtual void unbind() = 0;
+    virtual void unbind()
+    {
+        NvShader::unbind();
+    }
 
 protected :
     NvVolumeShader();

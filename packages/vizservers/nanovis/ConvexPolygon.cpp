@@ -25,55 +25,6 @@ ConvexPolygon::ConvexPolygon(VertexVector newvertices)
     vertices.insert(vertices.begin(), newvertices.begin(), newvertices.end());
 }
 
-// Finds the intersection of the line through 
-// p1 and p2 with the given plane, putting the
-// result in intersect.
-//
-// If the line lies in the plane, an arbitrary 
-// point on the line is returned.
-//
-// http://astronomy.swin.edu.au/pbourke/geometry/planeline/
-bool 
-findIntersection(const Vector4& pt1, const Vector4& pt2, const Vector4& plane, Vector4& ret)
-{
-    float a = plane.x;
-    float b = plane.y;
-    float c = plane.z;
-    float d = plane.w;
-
-    Vector4 p1 = pt1;
-    p1.perspectiveDivide();
-    float x1 = p1.x;
-    float y1 = p1.y;
-    float z1 = p1.z;
-
-    Vector4 p2 = pt2;
-    p2.perspectiveDivide();
-    float x2 = p2.x;
-    float y2 = p2.y;
-    float z2 = p2.z;
-
-    float uDenom = a * (x1 - x2) + b * (y1 - y2) + c * (z1 - z2);
-    float uNumer = a * x1 + b * y1 + c * z1 + d;
-
-    if (uDenom == 0){ 
-        //plane parallel to line
-        ERROR("Unexpected code path: ConvexPolygon.cpp\n");
-        if (uNumer == 0){
-            ret = p1;
-            return true;
-        }
-        return false;
-    }
-
-    float u = uNumer / uDenom;
-    ret.x = x1 + u * (x2 - x1);
-    ret.y = y1 + u * (y2 - y1);
-    ret.z = z1 + u * (z2 - z1);
-    ret.w = 1;
-    return true;
-}
-
 void
 ConvexPolygon::transform(const Mat4x4& mat)
 {
@@ -98,64 +49,76 @@ ConvexPolygon::translate(const Vector4& shift)
     }
 }
 
-void
+#define SIGN_DIFFERS(x, y) \
+    ( ((x) < 0.0 && (y) > 0.0) || ((x) > 0.0 && (y) < 0.0) )
+
+bool
 ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
 {
     if (vertices.size() == 0) {
-        //ERROR("ConvexPolygon: polygon has no vertices\n");  
-        return;
+        ERROR("polygon has no vertices\n");
+        return false;
     }
-    
+
     VertexVector clippedVerts;
     clippedVerts.reserve(2 * vertices.size());
 
     // The algorithm is as follows: for each vertex
     // in the current poly, check to see which 
-    // half space it is in: clipped or retained.
+    // half space it is in: clipped (outside) or inside.
     // If the previous vertex was in the other
-    // half space, find the intersect of that edge
-    // with the clip plane and add that intersect
+    // half space, find the intersection of that edge
+    // with the clip plane and add that intersection
     // point to the new list of vertices.  If the 
-    // current vertex is in the retained half-space,
+    // current vertex is in the inside half-space,
     // add it to the new list as well.
 
-    Vector4 intersect;
     Vector4 plane = clipPlane.getCoeffs();
 
-    bool prevRetained = isRetained(vertices[0], plane);
-    if (prevRetained) 
-        clippedVerts.push_back(vertices[0]);
-
-    for (unsigned int i = 1; i < vertices.size(); i++) {
-        bool retained = isRetained(vertices[i], plane);
-        if (retained != prevRetained) {
-            bool found = findIntersection(vertices[i - 1], vertices[i], 
-                                          plane, intersect);
-            assert(found);
-            clippedVerts.push_back(intersect);
+    // This implementation is based on the Mesa 3D library (MIT license)
+    int v1 = 0;
+    // dot product >= 0 on/inside half-space, < 0 outside half-space
+    float dot1 = vertices[v1] * plane;
+    for (unsigned int i = 1; i <= vertices.size(); i++) {
+        int v2 = (i == vertices.size()) ? 0 : i;
+        float dot2 = vertices[v2] * plane;
+        if (dot1 >= 0.0) {
+            // on/inside
+            clippedVerts.push_back(vertices[v1]);
         }
-        if (retained) {
-            clippedVerts.push_back(vertices[i]);
+        if (SIGN_DIFFERS(dot1, dot2)) {
+            if (dot1 < 0.0) {
+                // outside -> inside
+                double t = dot1 / (dot1 - dot2);
+                clippedVerts.push_back(vlerp(vertices[v1], vertices[v2], t));
+            } else {
+                // inside -> outside
+                double t = dot2 / (dot2 - dot1);
+                clippedVerts.push_back(vlerp(vertices[v2], vertices[v1], t));
+            }
         }
-        prevRetained = retained;
-    }
-
-    bool retained = isRetained(vertices[0], plane);
-    if (retained != prevRetained) {
-        bool found = findIntersection(vertices[vertices.size() - 1], 
-				      vertices[0], plane, intersect);
-        assert(found);
-        clippedVerts.push_back(intersect);
+        dot1 = dot2;
+        v1 = v2;
     }
 
     vertices.clear();
-    vertices.insert(vertices.begin(), 
-                    clippedVerts.begin(),
-                    clippedVerts.end());
 
-    if (copyToTexcoord)
-        copyVerticesToTexcoords();
+    if (clippedVerts.size() < 3) {
+        texcoords.clear();
+        return false;
+    } else {
+        vertices.insert(vertices.begin(), 
+                        clippedVerts.begin(),
+                        clippedVerts.end());
+
+        if (copyToTexcoord)
+            copyVerticesToTexcoords();
+
+        return true;
+    }
 }
+
+#undef SIGN_DIFFERS
 
 void
 ConvexPolygon::copyVerticesToTexcoords()
@@ -179,7 +142,9 @@ ConvexPolygon::emit(bool useTexture)
 	    }
 	    glVertex4fv((float *)&(vertices[i]));
 	}
-    } 
+    } else {
+        WARN("No polygons to render\n");
+    }
 }
 
 void 
@@ -198,5 +163,7 @@ ConvexPolygon::emit(bool useTexture, const Vector3& shift, const Vector3& scale)
 	    tmp.z = tmp.z * scale.z;
 	    glVertex4fv((float *)(&tmp));
 	}
+    } else {
+        WARN("No polygons to render\n");
     }
 }

@@ -13,24 +13,29 @@
 
 #include "common.cg"
 
+//#define LIGHT_TWO_SIDE
+
 /*
  * render one volume 
  *
- * renderParameters:
- *   x: number of slices
- *   y: opacity scale (1-21)
- *   z: diffuse coefficient
+ * material:
+ *   x: ambient coefficient
+ *   y: diffuse coefficient
+ *   z: specular level/coefficient
  *   w: specular exponent
- * options:
- *   y = isosurface flag (opacity scaling on/off)
+ * renderParams:
+ *   x: sample distance ratio (0 = single slice)
+ *   y: isosurface flag (opacity scaling on/off)
+ *   z: opacity scale
+ *   w: two-sided lighting
  */
 PixelOut main(v2f IN,
               uniform sampler3D volume,
               uniform sampler1D tf,
               uniform float4x4 modelViewInv,
               uniform float4x4 modelView,
-              uniform float4 renderParameters,
-              uniform float4 options)
+              uniform float4 material,
+              uniform float4 renderParams)
 {
     PixelOut OUT;
     float4 tex_coord = mul(modelViewInv, IN.TexCoord);
@@ -39,13 +44,12 @@ PixelOut main(v2f IN,
     //sample the transfer function texture
     float4 color = tex1D(tf, sample.x);
 
-    if (renderParameters.x < 0.5) {
+    if (renderParams.x == 0.0) {
         //If single slice render, only flat shading, completely opaque.
         color.w = 1;
     } else {
         //regular volume rendering, we do PHONG SHADING 
         //lighting parameters
-#if 1
         float3 normal;
         float diffuse, specular;
         if (dot(sample.yzw, sample.yzw) < 5.0e-5) {
@@ -59,47 +63,38 @@ PixelOut main(v2f IN,
 
             //lighting computation
 #ifndef LIGHT_TWO_SIDE
-            float normal_dot_light = max(dot(normal, light_vector), 0);
-            float normal_dot_half = max(dot(normal, half_vector), 0);
-#else
             float normal_dot_light = dot(normal, light_vector);
-            if (normal_dot_light < 0.0) {
-                normal_dot_light = dot(-normal, light_vector);
-            }
             float normal_dot_half = dot(normal, half_vector);
-            if (normal_dot_half < 0.0) {
-                normal_dot_half = dot(-normal, half_vector);
+            if (renderParams.w > 0.5) {
+                normal_dot_light = abs(normal_dot_light);
+                normal_dot_half = abs(normal_dot_half);
+            } else {
+                normal_dot_light = max(normal_dot_light, 0);
+                normal_dot_half = max(normal_dot_half, 0);
             }
+#else
+            float normal_dot_light = abs(dot(normal, light_vector));
+            float normal_dot_half = abs(dot(normal, half_vector));
 #endif
-            diffuse = normal_dot_light * renderParameters.z;
-            //specular = pow(normal_dot_half, renderParameters.w)*(1-ambient-diffuse);
+            diffuse = normal_dot_light * material.y;
             if (diffuse > 1.0e-6) 
-                specular = pow(normal_dot_half, 90.)*0.3;
+                specular = pow(normal_dot_half, material.w) * material.z;
             else
                 specular = 0.0;
         }
-        float ambient = max(.2, 1.0 - renderParameters.z);
+        float ambient = material.x;
 
-        float lighting = ambient + diffuse + specular;
-        color.xyz = color.xyz * ambient + color.xyz * diffuse + float3(specular);
-#else
-        if (dot(sample.yzw, sample.yzw) < 5.0e-5) {
-            color.xyz = float3(0);
-        } else {
-            color.xyz = normalize(sample.yzw);
-        }
-#endif
+        color.xyz = color.xyz * (ambient + diffuse) + float3(specular);
 
-        if (options.y < 0.5) {
-            //opacity is modulated by the number of total slices
-            //to avoid very opaque volume when number of slices is high
-            // renderParameters.x = number of slices
-            // renderParameters.y = opacity scale (1-21)
-            color.w = color.w * renderParameters.y/renderParameters.x;
+        if (renderParams.y < 0.5) {
+            // Opacity scaling: equivalent to scaling transfer function
+            color.w = color.w * renderParams.z;
+            // Apply opacity correction for ratio of current sample distance
+            // to data set sample distance
+            color.w = (1.0 - pow((1.0 - color.w), renderParams.x));
         }
     }
 
-  OUT.Color = min(max(color, 0.0), 1.0);
-
-  return OUT;
+    OUT.Color = min(max(color, 0.0), 1.0);
+    return OUT;
 }

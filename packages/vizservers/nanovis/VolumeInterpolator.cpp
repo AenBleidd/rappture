@@ -120,34 +120,38 @@ void
 VolumeInterpolator::addVolume(Volume *refPtr)
 {
     if (_volumes.size() != 0) {
-        if (_volumes[0]->width != refPtr->width || 
-            _volumes[0]->height != refPtr->height ||   
-            _volumes[0]->depth != refPtr->depth || 
+        if (_volumes[0]->width() != refPtr->width() || 
+            _volumes[0]->height() != refPtr->height() ||   
+            _volumes[0]->depth() != refPtr->depth() || 
             _volumes[0]->numComponents() != refPtr->numComponents()) {
             TRACE("The volume should be the same width, height, number of components\n");
             return;
         }
     } else {
-        _dataCount = refPtr->width * refPtr->height * refPtr->depth;
+        _dataCount = refPtr->width() * refPtr->height() * refPtr->depth();
         _numComponents = refPtr->numComponents();
         _numBytes = _dataCount * _numComponents * sizeof(float);
         Vector3 loc = refPtr->location();
         _volume = new Volume(loc.x, loc.y, loc.z,
-                             refPtr->width, refPtr->height, refPtr->depth, 
-                             refPtr->size,
+                             refPtr->width(),
+                             refPtr->height(),
+                             refPtr->depth(), 
                              refPtr->numComponents(), 
                              refPtr->data(), 
                              refPtr->wAxis.min(), 
                              refPtr->wAxis.max(), 
                              refPtr->nonZeroMin());
+
         _volume->numSlices(256-1);
         _volume->disableCutplane(0);
         _volume->disableCutplane(1);
         _volume->disableCutplane(2);
         _volume->visible(true);
         _volume->dataEnabled(true);
-        _volume->specular(refPtr->specular());
+        _volume->ambient(refPtr->ambient());
         _volume->diffuse(refPtr->diffuse());
+        _volume->specularLevel(refPtr->specularLevel());
+        _volume->specularExponent(refPtr->specularExponent());
         _volume->opacityScale(refPtr->opacityScale());
         _volume->isosurface(0);
         TRACE("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 

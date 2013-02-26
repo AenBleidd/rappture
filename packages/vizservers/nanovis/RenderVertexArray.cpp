@@ -43,7 +43,7 @@
 #include "Trace.h"
 
 RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
-    _usage(GL_STREAM_COPY_ARB), 
+    _usage(GL_STREAM_COPY_ARB),
     _nverts(nverts), 
     _size(size), 
     _type(type)

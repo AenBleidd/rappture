@@ -11,21 +11,17 @@ bool HeightMap::updatePending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
-#define TOPCONTOUR	0
-//#define TOPCONTOUR	1
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _texcoordBufferObjectID(0), 
     _vertexCount(0), 
     _contour(0), 
-    _topContour(0), 
     _tfPtr(0), 
     _opacity(0.5f),
     _indexBuffer(0), 
     _indexCount(0), 
     _contourColor(1.0f, 0.0f, 0.0f), 
     _contourVisible(false), 
-    _topContourVisible(true),
     _visible(false),
     _scale(1.0f, 1.0f, 1.0f), 
     _centerPoint(0.0f, 0.0f, 0.0f),
@@ -139,16 +135,6 @@ HeightMap::render(graphics::RenderContext *renderContext)
             _contour->render();
         }
 
-#if TOPCONTOUR
-        if (_topContourVisible) {
-            glDisable(GL_BLEND);
-            glDisable(GL_TEXTURE_2D);
-            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 
-                      _opacity /*1.0f*/);
-            //glDepthRange (0.0, 0.999);
-            _topContour->render();
-        }
-#endif
         glDepthRange (0.0, 1.0);
     }
 
@@ -302,12 +288,6 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
     ContourLineFilter lineFilter;
     _contour = lineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
 
-#if TOPCONTOUR
-    ContourLineFilter topLineFilter;
-    topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, heights, xCount, yCount);
-#endif
-
     //if (heightMap)
     //{
     //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
@@ -395,12 +375,7 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     ContourLineFilter lineFilter;
     //lineFilter.transferFunction(_tfPtr);
     _contour = lineFilter.create(0.0f, 1.0f, 10, map, xNum, yNum);
-    
-#if TOPCONTOUR
-    ContourLineFilter topLineFilter;
-    topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, map, xNum, yNum);
-#endif
+
     this->createIndexBuffer(xNum, yNum, heights);
     delete [] map;
 #endif
@@ -494,144 +469,7 @@ HeightMap::mapToGrid(Grid *gridPtr)
     //lineFilter.transferFunction(_tfPtr);
     _contour = lineFilter.create(0.0f, 1.0f, 10, vertices, _xNum, _yNum);
     
-#if TOPCONTOUR
-    ContourLineFilter topLineFilter;
-    topLineFilter.setHeightTop(true);
-    _topContour = topLineFilter.create(0.0f, 1.0f, 10, vertices, _xNum, _yNum);
-#endif
     this->createIndexBuffer(_xNum, _yNum, normHeights);
     delete [] normHeights;
     delete [] vertices;
-}
-
-void 
-HeightMap::renderTopview(graphics::RenderContext* renderContext, 
-                         int render_width, int render_height)
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-    glPushAttrib(GL_VIEWPORT_BIT);
-    glViewport(0, 0, render_width, render_height);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    //gluOrtho2D(0, render_width, 0, render_height);
-    glOrtho(-.5, .5, -.5, .5, -50, 50);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glTranslatef(0.0, 0.0, -10.0);
-
-    // put camera rotation and translation
-    //glScalef(1 / _scale.x, 1 / _scale.y , 1 / _scale.z);
-
-    if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
-        glDisable(GL_CULL_FACE);
-    } else {
-        glEnable(GL_CULL_FACE);
-        glCullFace((GLuint) renderContext->getCullMode());
-    }
-
-    glPolygonMode(GL_FRONT_AND_BACK, (GLuint) renderContext->getPolygonMode());
-    glShadeModel((GLuint) renderContext->getShadingModel());
-
-    glPushMatrix();
-
-    //glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
-
-    //glScalef(0.01, 0.01, 0.01f);
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-    glTranslatef(-_centerPoint.x, -_centerPoint.y, -_centerPoint.z);
-    if (_contour != NULL) {
-        glDepthRange (0.001, 1.0);
-    }
-        
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
-    if (_vertexBufferObjectID) 
-    {
-        TRACE("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glShadeModel(GL_SMOOTH);
-        glEnable(GL_BLEND);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_COLOR_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        
-        if (_tfPtr != NULL) {
-            _shader->bind();
-
-            _shader->setFPTextureParameter("tf", _tfPtr->id());
-
-            glEnable(GL_TEXTURE_1D);
-            _tfPtr->getTexture()->activate();
-
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        } else {
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-        }
-
-        glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-        glVertexPointer(3, GL_FLOAT, 12, 0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
-        glTexCoordPointer(3, GL_FLOAT, 12, 0);
-
-#define _TRIANGLES_
-#ifdef _TRIANGLES_
-        glDrawElements(GL_TRIANGLES, _indexCount, GL_UNSIGNED_INT, 
-                       _indexBuffer);
-#else
-        glDrawElements(GL_QUADS, _indexCount, GL_UNSIGNED_INT, 
-                       _indexBuffer);
-#endif
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glDisableClientState(GL_VERTEX_ARRAY);
-        if (_tfPtr != NULL) {
-            _tfPtr->getTexture()->deactivate();
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-            _shader->disableFPTextureParameter("tf");
-            _shader->unbind();
-        }
-    }
-
-    glShadeModel(GL_FLAT);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    if (_contour != NULL) {
-        if (_contourVisible) {
-            glDisable(GL_BLEND);
-            glDisable(GL_TEXTURE_2D);
-            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
-            glDepthRange (0.0, 0.999);
-            _contour->render();
-            glDepthRange (0.0, 1.0);
-        }
-
-#if TOPCONTOUR
-        if (_topContourVisible) {
-            glDisable(GL_BLEND);
-            glDisable(GL_TEXTURE_2D);
-            glColor4f(_contourColor.x, _contourColor.y, _contourColor.z, 1.0f);
-            //glDepthRange (0.0, 0.999);
-            _topContour->render();
-            //glDepthRange (0.0, 1.0);
-        }
-#endif
-    }
-    
-    glPopMatrix();
-    glPopMatrix();
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glMatrixMode(GL_MODELVIEW);
-
-    glPopAttrib();
 }

@@ -126,6 +126,22 @@ public:
         cgSetParameter4f(param, val1, val2, val3, val4);
     }
 
+    void setVPMatrixParameterf(const char *name, float *mat)
+    {
+        CGparameter param = getVPParam(name);
+        if (param == NULL)
+            return;
+        cgSetMatrixParameterfc(param, mat);
+    }
+
+    void setFPMatrixParameterf(const char *name, float *mat)
+    {
+        CGparameter param = getFPParam(name);
+        if (param == NULL)
+            return;
+        cgSetMatrixParameterfc(param, mat);
+    }
+
     void setVPTextureParameter(const char *name, GLuint texobj, bool enable = true)
     {
         CGparameter param = getVPParam(name);
@@ -178,7 +194,8 @@ public:
         cgGLDisableTextureParameter(param);
     }
 
-    void setGLStateMatrixVPParameter(const char *name, NvGLMatrix matrix, NvGLMatrixType type)
+    void setGLStateMatrixVPParameter(const char *name, NvGLMatrix matrix,
+                                     NvGLMatrixType type = MATRIX_IDENTITY)
     {
         CGparameter param = getVPParam(name);
         if (param == NULL)
@@ -186,7 +203,8 @@ public:
         cgGLSetStateMatrixParameter(param, (CGGLenum)matrix, (CGGLenum)type);
     }
 
-    void setGLStateMatrixFPParameter(const char *name, NvGLMatrix matrix, NvGLMatrixType type)
+    void setGLStateMatrixFPParameter(const char *name, NvGLMatrix matrix,
+                                     NvGLMatrixType type = MATRIX_IDENTITY)
     {
         CGparameter param = getFPParam(name);
         if (param == NULL)

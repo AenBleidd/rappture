@@ -65,7 +65,7 @@ public:
 private:
     void initShaders();
 
-    void activateVolumeShader(Volume *vol, bool slice_mode);
+    void activateVolumeShader(Volume *vol, bool sliceMode, float sampleRatio);
 
     void deactivateVolumeShader();
 
@@ -80,13 +80,18 @@ private:
 
     VolumeInterpolator *_volumeInterpolator;
 
-    /** 
-     * shader parameters for rendering a single cubic volume
+    /**
+     * Shader for single slice cutplane render
+     */
+    NvShader *_cutplaneShader;
+
+    /**
+     * Shader for rendering a single cubic volume
      */
     NvRegularVolumeShader *_regularVolumeShader;
 
     /**
-     * Shader parameters for rendering a single zincblende orbital.  A
+     * Shader for rendering a single zincblende orbital.  A
      * simulation contains S, P, D and SS, total of 4 orbitals. A full
      * rendering requires 4 zincblende orbital volumes.  A zincblende orbital
      * volume is decomposed into two "interlocking" cubic volumes and passed

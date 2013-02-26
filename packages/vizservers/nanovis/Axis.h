@@ -234,9 +234,14 @@ public:
         return _range;
     }
 
-    void getDataLimits(double& min, double& max)
+    double dataMin() const
     {
-        min = _valueMin, max = _valueMax;
+        return _valueMin;
+    }
+
+    double dataMax() const
+    {
+        return _valueMax;
     }
 
     double min() const
@@ -244,19 +249,9 @@ public:
         return _min;
     }
 
-    void min(double min)
-    {
-        _reqMin = min;
-    }
-
     double max() const
     {
         return _max;
-    }
-
-    void max(double max)
-    {
-        _reqMax = max;
     }
 
     void setLimits(double min, double max)
@@ -266,7 +261,7 @@ public:
 
     void unsetLimits()
     {
-        min(NAN), max(NAN);
+        setLimits(NAN, NAN);
     }
 
     double map(double x);

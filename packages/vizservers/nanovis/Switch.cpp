@@ -377,7 +377,6 @@ ParseSwitches(
  *
  *---------------------------------------------------------------------------
  */
-/* ARGSUSED */
 void
 FreeSwitches(
     SwitchSpec *specs,		/* Describes legal switches. */

@@ -25,8 +25,6 @@
 class Vector3
 {
 public:
-    float x, y, z;
-
     Vector3()
     {}
 
@@ -43,6 +41,11 @@ public:
     void print() const
     {
         TRACE("(x:%f, y:%f, z:%f)\n", x, y, z);
+    }
+
+    bool operator==(const Vector3& op2) const
+    {
+        return (x == op2.x && y == op2.y && z == op2.z);
     }
 
     Vector3 operator -() const
@@ -171,6 +174,8 @@ public:
         return v;
     }
 
+    float x, y, z;
+
 private:
     float radians(float degree) const
     {
@@ -179,5 +184,15 @@ private:
 };
 
 typedef std::vector<Vector3> Vector3Array;
+
+/**
+ * \brief Linear interpolation of 2 vectors
+ */
+inline Vector3 vlerp(const Vector3& v1, const Vector3& v2, double t)
+{
+    return Vector3(v1.x * (1.0-t) + v2.x * t,
+                   v1.y * (1.0-t) + v2.y * t,
+                   v1.z * (1.0-t) + v2.z * t);
+}
 
 #endif
