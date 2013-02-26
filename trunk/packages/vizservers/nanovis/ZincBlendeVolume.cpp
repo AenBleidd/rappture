@@ -20,11 +20,11 @@
 #include "ZincBlendeVolume.h"
 
 ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
-                                   int w, int h, int d, float s, int n, 
+                                   int w, int h, int d, int n, 
                                    float *dataVolumeA, float *dataVolumeB,
                                    double v0, double v1, double non_zeromin,
                                    const Vector3& cellSz) :
-    Volume(x, y, z, w, h, d, s, n, dataVolumeA, v0, v1, non_zeromin),
+    Volume(x, y, z, w, h, d, n, dataVolumeA, v0, v1, non_zeromin),
     cellSize(cellSz)
 {
     //label it as zincblende

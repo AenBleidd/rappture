@@ -14,17 +14,20 @@
 #include "common.cg"
 
 /*
- * zincblende shading fragment program:
+ * zincblende shading fragment program
+ * 
+ * renderParams:
+ *   x: sample distance ratio (0 = single slice)
+ *   y: isosurface flag (opacity scaling on/off)
+ *   z: opacity scale
  */
-
 PixelOut main(v2f IN, 
               uniform sampler1D tf,
               uniform sampler3D volumeA, 
               uniform sampler3D volumeB, 
               uniform float4 cellSize,
               uniform float4x4 modelViewInv,
-              uniform float4 renderParameters,
-              uniform float4 options)
+              uniform float4 renderParams)
 
 {
     PixelOut OUT;
@@ -56,10 +59,10 @@ PixelOut main(v2f IN,
       float sample = (voxel_corner.x + voxel_face_center_a.y + voxel_face_center_b.z + voxel_face_center_c.w) * 0.125;
     */
 
-    //sample transfor function texture
+    //sample transfer function texture
     float4 color = f4tex1D(tf, sample);
 
-    if (renderParameters.x < 0.5) {
+    if (renderParams.x == 0.0) {
         //If single slice render, only flat shading, completely opaque.
         color.w = 1;
     } else {
@@ -68,9 +71,11 @@ PixelOut main(v2f IN,
         //there is no room to store normal vector. If we really need PHONG shading we have to pass more volumes to
         //the shader. We might add this later.
 
-        //opacity is modulated by the number of total slices
-        //to avoid very opaque volume when number of slices is high
-        color.w = renderParameters.y * color.w / renderParameters.x;
+        // Opacity scaling: equivalent to scaling transfer function
+        color.w = color.w * renderParams.z;
+        // Apply opacity correction for ratio of current sample distance
+        // to data set sample distance
+        color.w = (1.0 - pow((1.0 - color.w), renderParams.x));
     }
 
     OUT.Color = color;

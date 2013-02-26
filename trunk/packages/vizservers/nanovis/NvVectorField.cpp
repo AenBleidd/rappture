@@ -9,8 +9,6 @@ NvVectorField::NvVectorField() :
     _volPtr(NULL),
     _activated(true),
     _origin(0, 0, 0),
-    _physicalMin(0, 0, 0),
-    _physicalSize(1, 1, 1),
     _scaleX(1),
     _scaleY(1),
     _scaleZ(1),
@@ -39,12 +37,7 @@ NvVectorField::setVectorField(Volume *volPtr, const Vector3& origin,
     _scaleY = scaleY;
     _scaleZ = scaleZ;
     _max = max;
-    _vectorFieldId = volPtr->id;
-    _physicalMin = volPtr->getPhysicalBBoxMin();
-    TRACE("_physicalMin %f %f %f\n", _physicalMin.x, _physicalMin.y, _physicalMin.z);
-    _physicalSize = volPtr->getPhysicalBBoxMax() - _physicalMin;
-    TRACE("_physicalSize %f %f %f\n", 
-	   _physicalSize.x, _physicalSize.y, _physicalSize.z);
+    _vectorFieldId = volPtr->textureID();
 }
 
 void 
@@ -186,41 +179,54 @@ NvVectorField::drawDeviceShape()
 {
     glPushAttrib(GL_ENABLE_BIT);
 
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
+    Vector3 origin = _volPtr->location();
+    glTranslatef(origin.x, origin.y, origin.z);
 
-    float x0, y0, z0, x1, y1, z1;
+    Vector3 scale = _volPtr->getPhysicalScaling();
+    glScaled(scale.x, scale.y, scale.z);
+
+    Vector3 min, max;
+    min.x = _volPtr->xAxis.min();
+    min.y = _volPtr->yAxis.min();
+    min.z = _volPtr->zAxis.min();
+    max.x = _volPtr->xAxis.max();
+    max.y = _volPtr->yAxis.max();
+    max.z = _volPtr->zAxis.max();
+
     std::map<std::string, NvDeviceShape>::iterator iterShape;
 
-    glTranslatef(_origin.x, _origin.y, _origin.z);
-    glScaled(_scaleX, _scaleY, _scaleZ);
     for (iterShape = _shapeMap.begin(); iterShape != _shapeMap.end(); 
 	 ++iterShape) {
 	NvDeviceShape& shape = (*iterShape).second;
-	
+
 	if (!shape.visible) continue;
-	
-	
+
+        float x0, y0, z0, x1, y1, z1;
+        x0 = y0 = z0 = 0.0f;
+        x1 = y1 = z1 = 0.0f;
+        if (max.x > min.x) {
+            x0 = (shape.min.x - min.x) / (max.x - min.x);
+            x1 = (shape.max.x - min.x) / (max.x - min.x);
+        }
+        if (max.y > min.y) {
+            y0 = (shape.min.y - min.y) / (max.y - min.y);
+            y1 = (shape.max.y - min.y) / (max.y - min.y);
+        }
+        if (max.z > min.z) {
+            z0 = (shape.min.z - min.z) / (max.z - min.z);
+            z1 = (shape.max.z - min.z) / (max.z - min.z);
+        }
+
+        TRACE("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
+
 	glColor4d(shape.color.x, shape.color.y, shape.color.z, shape.color.w);
-#if 0
-	x0 = _physicalMin.x + (shape.min.x - _physicalMin.x) / _physicalSize.x;
-	y0 = _physicalMin.y + (shape.min.y - _physicalMin.y) / _physicalSize.y;
-	z0 = _physicalMin.z + (shape.min.z - _physicalMin.z) / _physicalSize.z;
-	x1 = _physicalMin.x + (shape.max.x - _physicalMin.x) / _physicalSize.x;
-	y1 = _physicalMin.y + (shape.max.y - _physicalMin.y) / _physicalSize.y;
-	z1 = _physicalMin.z + (shape.max.z - _physicalMin.z) / _physicalSize.z;
-#endif
-	x0 = (shape.min.x - _physicalMin.x) / _physicalSize.x;
-	y0 = (shape.min.y - _physicalMin.y) / _physicalSize.y;
-	z0 = (shape.min.z - _physicalMin.z) / _physicalSize.z;
-	x1 = (shape.max.x - _physicalMin.x) / _physicalSize.x;
-	y1 = (shape.max.y - _physicalMin.y) / _physicalSize.y;
-	z1 = (shape.max.z - _physicalMin.z) / _physicalSize.z;
-	
 	glLineWidth(1.2);
 	glBegin(GL_LINE_LOOP); 
 	{

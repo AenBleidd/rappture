@@ -12,7 +12,8 @@ public:
 
     virtual ~NvZincBlendeVolumeShader();
 
-    virtual void bind(unsigned int tfID, Volume *volume, int sliceMode);
+    virtual void bind(unsigned int tfID, Volume *volume,
+                      int sliceMode, float sampleRatio);
 
     virtual void unbind();
 

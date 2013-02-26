@@ -38,7 +38,7 @@ public:
     void translate(const Vector4& shift);
 
     // Clips the polygon, retaining the portion where ax + by + cz + d >= 0
-    void clip(Plane& clipPlane, bool copyToTexcoords);
+    bool clip(Plane& clipPlane, bool copyToTexcoords);
 
     void emit(bool useTexture);
 
@@ -60,11 +60,6 @@ public:
     {
         assert(index < vertices.size());
         vertices.insert(vertices.begin() + index, vert);
-    }
-
-    bool isRetained(const Vector4& point, const Vector4& plane)
-    {
-        return ((point * plane) >= 0);  
     }
 
     VertexVector vertices;

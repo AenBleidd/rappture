@@ -11,7 +11,7 @@ public:
 
     virtual ~NvStdVertexShader();
 
-    virtual void bind();
+    virtual void bind(float *mvp = NULL, float *mvInv = NULL);
 
     virtual void unbind()
     {

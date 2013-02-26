@@ -254,7 +254,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
     cellSize.z = 0.25 / depth;
 
     zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
-                                            width, height, depth, 1, 4,
+                                            width, height, depth, 4,
                                             fourAnionVolume, fourCationVolume,
                                             vmin, vmax, nzero_min, cellSize);
 
@@ -332,7 +332,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
     cellSize.z = 0.25 / depth;
 
     zincBlendeVolume = new ZincBlendeVolume(origin.x, origin.y, origin.z,
-                                            width, height, depth, 1, 4,
+                                            width, height, depth, 4,
                                             fourAnionVolume, fourCationVolume,
                                             vmin, vmax, nzero_min, cellSize);
 

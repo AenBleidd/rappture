@@ -53,8 +53,6 @@ public :
 	_deviceVisible = false;
     }
 
-    /////////////////////////////
-    // DEVICE
     void addDeviceShape(const std::string& name, const NvDeviceShape& shape);
 
     void removeDeviceShape(const std::string& name);
@@ -62,7 +60,7 @@ public :
     void activateDeviceShape(const std::string& name);
 
     void deactivateDeviceShape(const std::string& name);
-    
+
     void initialize();
 
     void reset();
@@ -101,8 +99,6 @@ private:
     bool _activated;
 
     Vector3 _origin;
-    Vector3 _physicalMin;
-    Vector3 _physicalSize;
     float _scaleX;
     float _scaleY;
     float _scaleZ;

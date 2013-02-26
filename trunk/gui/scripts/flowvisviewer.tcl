@@ -124,6 +124,8 @@ itcl::class Rappture::FlowvisViewer {
     private method streams { tag name } 
     private method arrows { tag name } 
 
+    private variable _arcball ""
+    private variable _useArcball 1
     private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
@@ -219,9 +221,14 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias data [itcl::code $this ReceiveData]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     # Initialize the view to some default parameters.
     array set _view {
+        qw      0.853553
+        qx      -0.353553
+        qy      0.353553
+        qz      0.146447
         theta   45
         phi     45
         psi     0
@@ -229,23 +236,32 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         pan-x   0
         pan-y   0
     }
+    set _arcball [blt::arcball create 100 100]
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
 
     array set _settings [subst {
+        $this-qw                $_view(qw)
+        $this-qx                $_view(qx)
+        $this-qy                $_view(qy)
+        $this-qz                $_view(qz)
+        $this-theta             $_view(theta)
+        $this-phi               $_view(phi)
+        $this-psi               $_view(psi)
+        $this-zoom              $_view(zoom)    
+        $this-pan-x             $_view(pan-x)
+        $this-pan-y             $_view(pan-y)
         $this-arrows            0
         $this-currenttime       0
         $this-duration          1:00
         $this-loop              0
-        $this-pan-x             $_view(pan-x)
-        $this-pan-y             $_view(pan-y)
-        $this-phi               $_view(phi)
         $this-play              0
-        $this-psi               $_view(psi)
         $this-speed             500
         $this-step              0
         $this-streams           0
-        $this-theta             $_view(theta)
         $this-volume            1
         $this-xcutplane         0
         $this-xcutposition      0
@@ -253,7 +269,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         $this-ycutposition      0
         $this-zcutplane         0
         $this-zcutposition      0
-        $this-zoom              $_view(zoom)
     }]
 
     itk_component add 3dview {
@@ -553,6 +568,7 @@ itcl::body Rappture::FlowvisViewer::destructor {} {
     image delete $_image(plot)
     image delete $_image(legend)
     image delete $_image(download)
+    catch { blt::arcball destroy $_arcball }
     array unset _settings $this-*
 }
 
@@ -1006,7 +1022,7 @@ itcl::body Rappture::FlowvisViewer::SendTransferFuncs {} {
         return
     }
 
-    # Insure that the global opacity and thickness settings (in the slider
+    # Ensure that the global opacity and thickness settings (in the slider
     # settings widgets) are used for the active transfer-function.  Update the
     # values in the _settings varible.
     set value $_settings($this-opacity)
@@ -1180,6 +1196,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
 
     set w [winfo width $itk_component(3dview)]
     set h [winfo height $itk_component(3dview)]
+    $_arcball resize $w $h
     EventuallyResize $w $h
 
     foreach dataobj [get] {
@@ -1228,7 +1245,34 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
         if { $location != "" } {
             array set _view $location
         }
+
+        if 1 {
+            # Tell the server the name of the tool, the version, and
+            # dataset that we are rendering.  Have to do it here because
+            # we don't know what data objects are using the renderer until
+            # be get here.
+            global env
+
+            lappend out "hub" [exec hostname]
+            lappend out "viewer" "flowvisviewer"
+            if { [info exists env(USER)] } {
+                lappend out "user" $env(USER)
+            }
+            if { [info exists env(SESSION)] } {
+                lappend out "session" $env(SESSION)
+            }
+            lappend out "tool_id"      [$_first hints toolId]
+            lappend out "tool_name"    [$_first hints toolName]
+            lappend out "tool_version" [$_first hints toolRevision]
+            lappend out "tool_title"   [$_first hints toolTitle]
+            lappend out "tool_dataset" [$_first hints label]
+            SendCmd "clientinfo [list $out]"
+        }
     }
+    set _settings($this-qw)    $_view(qw)
+    set _settings($this-qx)    $_view(qx)
+    set _settings($this-qy)    $_view(qy)
+    set _settings($this-qz)    $_view(qz)
     set _settings($this-theta) $_view(theta)
     set _settings($this-phi)   $_view(phi)
     set _settings($this-psi)   $_view(psi)
@@ -1236,8 +1280,14 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set _settings($this-pan-y) $_view(pan-y)
     set _settings($this-zoom)  $_view(zoom)
 
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
+    if {$_useArcball} {
+        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        $_arcball quaternion $q
+        SendCmd "camera orient $q"
+    } else { 
+        set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+        SendCmd "camera angle $xyz"
+    }
     PanCamera
     SendCmd "camera zoom $_view(zoom)"
 
@@ -1329,6 +1379,10 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
+                qw      0.853553
+                qx      -0.353553
+                qy      0.353553
+                qz      0.146447
                 theta   45
                 phi     45
                 psi     0
@@ -1342,9 +1396,19 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            SendCmd "camera angle $xyz"
+            if {$_useArcball} {
+                set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                $_arcball quaternion $q
+                SendCmd "camera orient $q"
+            } else {
+                set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
+                SendCmd "camera angle $xyz"
+            }
             PanCamera
+            set _settings($this-qw)    $_view(qw)
+            set _settings($this-qx)    $_view(qx)
+            set _settings($this-qy)    $_view(qy)
+            set _settings($this-qz)    $_view(qz)
             set _settings($this-theta) $_view(theta)
             set _settings($this-phi)   $_view(phi)
             set _settings($this-psi)   $_view(psi)
@@ -1399,37 +1463,48 @@ itcl::body Rappture::FlowvisViewer::Rotate {option x y} {
                     return
                 }
 
-                #
-                # Rotate the camera in 3D
-                #
-                if {$_view(psi) > 90 || $_view(psi) < -90} {
-                    # when psi is flipped around, theta moves backwards
-                    set dy [expr {-$dy}]
-                }
-                set theta [expr {$_view(theta) - $dy*180}]
-                while {$theta < 0} { set theta [expr {$theta+180}] }
-                while {$theta > 180} { set theta [expr {$theta-180}] }
-
-                if {abs($theta) >= 30 && abs($theta) <= 160} {
-                    set phi [expr {$_view(phi) - $dx*360}]
-                    while {$phi < 0} { set phi [expr {$phi+360}] }
-                    while {$phi > 360} { set phi [expr {$phi-360}] }
-                    set psi $_view(psi)
+                if {$_useArcball} {
+                    set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+                    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                    set _settings($this-qw) $_view(qw)
+                    set _settings($this-qx) $_view(qx)
+                    set _settings($this-qy) $_view(qy)
+                    set _settings($this-qz) $_view(qz)
+                    SendCmd "camera orient $q"
                 } else {
-                    set phi $_view(phi)
-                    set psi [expr {$_view(psi) - $dx*360}]
-                    while {$psi < -180} { set psi [expr {$psi+360}] }
-                    while {$psi > 180} { set psi [expr {$psi-360}] }
+                    #
+                    # Rotate the camera in 3D
+                    #
+                    if {$_view(psi) > 90 || $_view(psi) < -90} {
+                        # when psi is flipped around, theta moves backwards
+                        set dy [expr {-$dy}]
+                    }
+                    set theta [expr {$_view(theta) - $dy*180}]
+                    while {$theta < 0} { set theta [expr {$theta+180}] }
+                    while {$theta > 180} { set theta [expr {$theta-180}] }
+
+                    if {abs($theta) >= 30 && abs($theta) <= 160} {
+                        set phi [expr {$_view(phi) - $dx*360}]
+                        while {$phi < 0} { set phi [expr {$phi+360}] }
+                        while {$phi > 360} { set phi [expr {$phi-360}] }
+                        set psi $_view(psi)
+                    } else {
+                        set phi $_view(phi)
+                        set psi [expr {$_view(psi) - $dx*360}]
+                        while {$psi < -180} { set psi [expr {$psi+360}] }
+                        while {$psi > 180} { set psi [expr {$psi-360}] }
+                    }
+
+                    set _view(theta)        $theta
+                    set _view(phi)          $phi
+                    set _view(psi)          $psi
+                    set xyz [Euler2XYZ $theta $phi $psi]
+                    set _settings($this-theta) $_view(theta)
+                    set _settings($this-phi)   $_view(phi)
+                    set _settings($this-psi)   $_view(psi)
+                    SendCmd "camera angle $xyz"
                 }
 
-                set _view(theta)        $theta
-                set _view(phi)          $phi
-                set _view(psi)          $psi
-                set xyz [Euler2XYZ $theta $phi $psi]
-                set _settings($this-theta) $_view(theta)
-                set _settings($this-phi)   $_view(phi)
-                set _settings($this-psi)   $_view(psi)
-                SendCmd "camera angle $xyz"
                 set _click(x) $x
                 set _click(y) $y
             }
@@ -1602,15 +1677,17 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
                 set diffuse [expr {0.01*$_settings($this-light)}]
-                set specular [expr {sqrt($_settings($this-light)+1.0)}]
-                SendCmd "$tag configure -diffuse $diffuse -specular $specular"
+                set ambient [expr {1.0 - $diffuse}]
+                set specularLevel 0.3
+                set specularExp 90.0
+                SendCmd "$tag configure -ambient $ambient -diffuse $diffuse -specularLevel $specularLevel -specularExp $specularExp"
             }
         }
         transp {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
-                set opacity [expr {0.2*$_settings($this-transp)+1}]
+                set opacity [expr { 0.01 * double($_settings($this-transp)) }]
                 SendCmd "$tag configure -opacity $opacity"
             }
         }
@@ -2072,8 +2149,6 @@ itcl::body Rappture::FlowvisViewer::limits { tf } {
     return [array get _limits]
 }
 
-
-
 itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
     foreach { key value } {
         grid            0
@@ -2185,19 +2260,19 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
 
     label $inner.shading -text "Shading:" -font $fg
 
-    label $inner.dim -text "Dim" -font $fg
+    label $inner.dim -text "Glow" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-light)] \
         -width 10 \
         -showvalue off -command [itcl::code $this FixSettings light]
-    label $inner.bright -text "Bright" -font $fg
+    label $inner.bright -text "Surface" -font $fg
 
-    label $inner.fog -text "Fog" -font $fg
+    label $inner.fog -text "Clear" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -width 10 \
         -showvalue off -command [itcl::code $this FixSettings transp]
-    label $inner.plastic -text "Plastic" -font $fg
+    label $inner.plastic -text "Opaque" -font $fg
 
     label $inner.clear -text "Clear" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
@@ -2222,12 +2297,9 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         3,0 $inner.fog -anchor e -pady 2 \
         3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
         3,3 $inner.plastic -anchor w -pady 2 \
-        4,0 $inner.clear -anchor e -pady 2 \
-        4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-        4,3 $inner.opaque -anchor w -pady 2 \
-        5,0 $inner.thin -anchor e -pady 2 \
-        5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
-        5,3 $inner.thick -anchor w -pady 2
+        4,0 $inner.thin -anchor e -pady 2 \
+        4,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
+        4,3 $inner.thick -anchor w -pady 2
 
     if 0 {
         0,0 $inner.dim  -anchor e -pady 2 \
@@ -2244,7 +2316,7 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
         3,3 $inner.thick -anchor w -pady 2
     }
     blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r6 -resize expand
+    blt::table configure $inner r5 -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
@@ -2354,7 +2426,11 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set labels { phi theta psi pan-x pan-y zoom }
+    if {$_useArcball} {
+        set labels { qw qx qy qz pan-x pan-y zoom }
+    } else {
+        set labels { phi theta psi pan-x pan-y zoom }
+    }
     set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
@@ -2536,6 +2612,7 @@ itcl::body Rappture::FlowvisViewer::Resize {} {
 itcl::body Rappture::FlowvisViewer::EventuallyResize { w h } {
     set _width $w
     set _height $h
+    $_arcball resize $w $h
     if { !$_resizePending } {
         $_dispatcher event -after 200 !resize
         set _resizePending 1
@@ -2580,6 +2657,20 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
                     set _view($who) $_settings($this-$who)
                     set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
                     SendCmd "camera angle $xyz"
+                    if {$_useArcball} {
+                        $_arcball euler [list [expr {-[lindex $xyz 2]}] [expr {-[lindex $xyz 1]}] [expr {-[lindex $xyz 0]}]]
+                        set q [$_arcball quaternion]
+                        foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                        set _settings($this-qw) $_view(qw)
+                        set _settings($this-qx) $_view(qx)
+                        set _settings($this-qy) $_view(qy)
+                        set _settings($this-qz) $_view(qz)
+                    }
+                }
+                "qx" - "qy" - "qz" - "qw" {
+                    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+                    $_arcball quaternion $q
+                    SendCmd "camera orient $q"
                 }
                 "zoom" {
                     set _view($who) $_settings($this-$who)

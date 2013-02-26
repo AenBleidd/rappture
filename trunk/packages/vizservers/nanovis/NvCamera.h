@@ -25,9 +25,7 @@ class NvCamera
 {
 public:
     NvCamera(int startx, int starty, int w, int h,
-             float loc_x, float loc_y, float loc_z, 
-             float target_x, float target_y, float target_z,
-             float angle_x, float angle_y, float angle_z);
+             float loc_x, float loc_y, float loc_z);
 
     ~NvCamera()
     {}
@@ -63,47 +61,27 @@ public:
         return _location.z;
     }
 
-    //move location of target
-    void xAim(float x)
-    {
-        _target.x = x;
-    }
-
-    float xAim() const
-    {
-        return _target.x;
-    }
-
-    void yAim(float y)
-    {
-        _target.y = y;
-    }
-
-    float yAim() const
-    {
-        return _target.y;
-    }
-
-    void zAim(float z)
-    {
-        _target.z = z;
-    }
-
-    float zAim() const
-    {
-        return _target.z;
-    }
-
     void rotate(double *quat);
 
     void rotate(float angle_x, float angle_y, float angle_z);
 
-    void rotate(const Vector3& angle);
-
-    Vector3 rotate() const
-    { 
-        return _angle;
+    void fov(float fov)
+    {
+        _fov = fov;
     }
+
+    float fov() const
+    {
+        return _fov;
+    }
+
+    void setClippingRange(float near, float far)
+    {
+        _near = near;
+        _far = far;
+    }
+
+    void setClippingRange(const Vector3& bboxMin, const Vector3& bboxMax);
 
     void setScreenSize(int sx, int sy, int w, int h)
     {
@@ -122,16 +100,12 @@ public:
 private:
     /// Location of the camera in the scene
     Vector3 _location;
-    /**
-     * \brief Location the camera is looking at
-     *
-     * Location and target: two points define the line-of-sight
-     */
-    Vector3 _target;
-    /// rotation angles of camera along x, y, z
-    Vector3 _angle;
-
+    /// Camera view matrix (orientation only, no translation)
     vrMatrix4x4f _cameraMatrix;
+    /// Field of view (vertical angle in degrees)
+    float _fov;
+    /// Near, far z clipping
+    float _near, _far;
 
     /// screen width
     int _width;

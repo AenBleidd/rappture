@@ -5,6 +5,7 @@
 #include "Volume.h"
 #include "NvVolumeShader.h"
 
+/// Shader for regular volume (uniform grid)
 class NvRegularVolumeShader : public NvVolumeShader
 {
 public:
@@ -12,7 +13,8 @@ public:
 
     virtual ~NvRegularVolumeShader();
 
-    virtual void bind(unsigned int tfID, Volume* volume, int sliceMode);
+    virtual void bind(unsigned int tfID, Volume *volume,
+                      int sliceMode, float sampleRatio);
 
     virtual void unbind();
 

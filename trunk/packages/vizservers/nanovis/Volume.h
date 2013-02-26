@@ -64,7 +64,6 @@ public:
      * \param width Number of samples in X
      * \param height Number of samples in Y
      * \param depth Number of samples in Z
-     * \param size Scale factor
      * \param numComponents Number of components per sample
      * \param data width * height * depth * numComponent sample array
      * \param vmin Scalar value minimum
@@ -73,12 +72,27 @@ public:
      */
     Volume(float x, float y, float z,
            int width, int height, int depth, 
-           float size, int numComponents,
+           int numComponents,
            float *data,
            double vmin, double vmax, 
            double nonZeroMin);
 
     virtual ~Volume();
+
+    int width() const
+    {
+        return _width;
+    }
+
+    int height() const
+    {
+        return _height;
+    }
+
+    int depth() const
+    {
+        return _depth;
+    }
 
     void visible(bool value)
     { 
@@ -125,16 +139,16 @@ public:
         return _volumeType;
     }
 
-    float *data()
+    const float *data() const
     {
         return _data;
     }
 
-    Texture3D *tex()
+    const Texture3D *tex() const
     {
         return _tex;
     }
-    
+
     int numSlices() const
     {
         return _numSlices;
@@ -144,9 +158,6 @@ public:
     {
         _numSlices = n;
     }
-
-    /// set the drawing size of volume 
-    void setSize(float s);
 
     // methods related to cutplanes
     /// add a plane and returns its index
@@ -168,18 +179,18 @@ public:
 
     // methods related to shading. These parameters are per volume 
 
-    /// Get specular exponent
-    float specular() const
+    /// Get ambient coefficient
+    float ambient() const
     {
-        return _specular;
+        return _ambient;
     }
 
-    /// Set specular exponent [0,128]
-    void specular(float value)
+    /// Set ambient coefficient [0,1]
+    void ambient(float value)
     {
         if (value < 0.0f) value = 0.0f;
-        if (value > 128.0f) value = 128.0f;
-        _specular = value;
+        if (value > 1.0f) value = 1.0f;
+        _ambient = value;
     }
 
     /// Get diffuse coefficient
@@ -194,6 +205,44 @@ public:
         if (value < 0.0f) value = 0.0f;
         if (value > 1.0f) value = 1.0f;
         _diffuse = value;
+    }
+
+    /// Get specular coefficient
+    float specularLevel() const
+    {
+        return _specular;
+    }
+
+    /// Set specular coefficient [0,1]
+    void specularLevel(float value)
+    {
+        if (value < 0.0f) value = 0.0f;
+        if (value > 1.0f) value = 1.0f;
+        _specular = value;
+    }
+
+    /// Get specular exponent
+    float specularExponent() const
+    {
+        return _specularExp;
+    }
+
+    /// Set specular exponent [0,128]
+    void specularExponent(float value)
+    {
+        if (value < 0.0f) value = 0.0f;
+        if (value > 128.0f) value = 128.0f;
+        _specularExp = value;
+    }
+
+    bool twoSidedLighting() const
+    {
+        return _lightTwoSide;
+    }
+
+    void twoSidedLighting(bool value)
+    {
+        _lightTwoSide = value;
     }
 
     float opacityScale() const
@@ -240,11 +289,31 @@ public:
 
     void getOutlineColor(float *rgb);
 
-    void setPhysicalBBox(const Vector3& min, const Vector3& max);
+    Vector3 getPhysicalScaling() const
+    {
+        Vector3 scale;
+        scale.x = 1;
+        scale.y = yAxis.length() / xAxis.length();
+        scale.z = zAxis.length() / xAxis.length();
+        return scale;
+    }
 
-    const Vector3& getPhysicalBBoxMin() const;
+    double sampleDistanceX() const
+    {
+        return (xAxis.length() / ((double)_width-1.0));
+    }
 
-    const Vector3& getPhysicalBBoxMax() const;
+    double sampleDistanceY() const
+    {
+        return (yAxis.length() / ((double)_height-1.0));
+    }
+
+    double sampleDistanceZ() const
+    {
+        if (_depth == 1)
+            return sampleDistanceX();
+        return (zAxis.length() / ((double)_depth-1.0));
+    }
 
     const char *name() const
     {
@@ -256,44 +325,52 @@ public:
         _name = name;
     }
 
-    float aspectRatioWidth;
-    float aspectRatioHeight;
-    float aspectRatioDepth;
-
-    GLuint id;		///< OpenGL textue identifier (==_tex->id)
-
-    // Width, height and depth are point resolution, NOT physical
-    // units
-    /// The resolution of the data (how many points in X direction)
-    int width;
-    /// The resolution of the data (how many points in Y direction)
-    int height;
-    /// The resolution of the data (how many points in Z direction)
-    int depth;
-    /**
-     * This is the scaling factor that will size the volume on screen.
-     * A render program drawing different objects, always knows how
-     * large an object is in relation to other objects. This size is 
-     * provided by the render engine.
-     */
-    float size;
-
-    int pointsetIndex;
+    GLuint textureID() const
+    {
+        return _id;
+    }
 
     AxisRange xAxis, yAxis, zAxis, wAxis;
 
     static bool updatePending;
     static double valueMin, valueMax;
 
+    friend class VolumeInterpolator;
+
 protected:
+    float *data()
+    {
+        return _data;
+    }
+
+    Texture3D *tex()
+    {
+        return _tex;
+    }
+
+    GLuint _id;		///< OpenGL textue identifier (==_tex->id)
+
+    // Width, height and depth are point resolution, NOT physical
+    // units
+    /// The resolution of the data (how many points in X direction)
+    int _width;
+    /// The resolution of the data (how many points in Y direction)
+    int _height;
+    /// The resolution of the data (how many points in Z direction)
+    int _depth;
+
     /**
      * This is the designated transfer function to use to
      * render this volume.
      */
     TransferFunction *_tfPtr;
 
-    float _specular;		///< Specular lighting parameter
-    float _diffuse;		///< Diffuse lighting parameter
+    float _ambient;      ///< Ambient material coefficient
+    float _diffuse;      ///< Diffuse material coefficient
+    float _specular;     ///< Specular level material coefficient
+    float _specularExp;  ///< Specular exponent
+    bool _lightTwoSide;  ///< Two-sided lighting flag
+
     /**
      * The scale multiplied to the opacity assigned by the 
      * transfer function. Rule of thumb: higher opacity_scale
@@ -302,8 +379,6 @@ protected:
     float _opacityScale;
 
     const char *_name;
-    Vector3 _physicalMin;
-    Vector3 _physicalMax;
     float *_data;
 
     int _numComponents;
@@ -342,6 +417,7 @@ Volume::enableCutplane(int index)
     //assert(index < plane.size());
     _plane[index].enabled = true;
 }
+
 inline void 
 Volume::disableCutplane(int index)
 {
@@ -377,15 +453,6 @@ Volume::isCutplaneEnabled(int index) const
 }
 
 inline void 
-Volume::setSize(float s) 
-{ 
-    size = s; 
-    aspectRatioWidth  = s * _tex->aspectRatioWidth();
-    aspectRatioHeight = s * _tex->aspectRatioHeight();
-    aspectRatioDepth  = s * _tex->aspectRatioDepth();
-}
-
-inline void 
 Volume::setOutlineColor(float *rgb) 
 {
     _outlineColor = Color(rgb[0], rgb[1], rgb[2]);
@@ -395,35 +462,6 @@ inline void
 Volume::getOutlineColor(float *rgb) 
 {
     _outlineColor.getRGB(rgb);
-}
-
-inline void 
-Volume::setPhysicalBBox(const Vector3& min, const Vector3& max)
-{
-    _physicalMin = min;
-    _physicalMax = max;
-
-    /*
-    aspectRatioWidth = size * 1;
-    aspectRatioHeight = size * (max.y - min.y) / (max.x - min.x);
-    aspectRatioDepth = size* (max.z - min.z) / (max.x - min.x);
-
-    location.x = -0.5;
-    location.y = -0.5* aspectRatioHeight;
-    location.z = -0.5* aspectRatioDepth;
-    */
-}
-
-inline const Vector3& 
-Volume::getPhysicalBBoxMin() const
-{
-    return _physicalMin;
-}
-
-inline const Vector3& 
-Volume::getPhysicalBBoxMax() const
-{
-    return _physicalMax;
 }
 
 #endif

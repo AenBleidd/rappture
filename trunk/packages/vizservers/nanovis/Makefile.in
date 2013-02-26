@@ -154,6 +154,8 @@ resources	= \
 
 shaders		= \
 		$(srcdir)/shaders/common.cg \
+		$(srcdir)/shaders/cutplane_fp.cg \
+		$(srcdir)/shaders/cutplane_vp.cg \
 		$(srcdir)/shaders/heightcolor.cg \
 		$(srcdir)/shaders/one_plane.cg \
 		$(srcdir)/shaders/one_volume.cg \
@@ -167,14 +169,10 @@ shaders		= \
 		$(srcdir)/shaders/zincblende_volume.cg
 
 ifdef NOTDEF
-OBJS +=		DataLoader.o \
-		NvFlowVisRenderer.o \
+OBJS +=		NvFlowVisRenderer.o \
 		ParticleEmitter.o \
 		ParticleSystem.o \
-		ParticleSystemFactory.o \
-		Renderable.o \
-		ScreenSnapper.o \
-		Sphere.o
+		ParticleSystemFactory.o
 
 shaders +=      $(srcdir)/shaders/passthrough.cg \
 		$(srcdir)/shaders/distance.cg \
@@ -194,7 +192,7 @@ OBJS += 	BucketSort.o \
 shaders +=      $(srcdir)/shaders/pointsvp.cg
 endif
 
-.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath transfer-function 
+.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath
 
 all: newmat11 R2 imgloaders vrmath nanovis 
 
@@ -225,16 +223,6 @@ nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(OBJS)
 
 RpAVTranslate.o: $(srcdir)/RpAVTranslate.cpp
 	$(CXX) -c $(CXX_SWITCHES) $(FF_INC_SPEC) $<
-
-client: Socket.o ClientSocket.o RenderClient.o Event.o
-	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
-
-Socket.o: socket/Socket.cpp socket/Socket.h
-	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
-ClientSocket.o: socket/ClientSocket.cpp socket/ClientSocket.h
-	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
-RenderClient.o: socket/RenderClient.cpp socket/RenderClient.h
-	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 install-resources:
 	$(MKDIR_P) $(libdir)/resources
@@ -272,12 +260,11 @@ BucketSort.o: BucketSort.cpp BucketSort.h Vector3.h Vector4.h Mat4x4.h PCASplit.
 Chain.o: Chain.cpp Chain.h
 CmdProc.o: CmdProc.cpp CmdProc.h
 Color.o: Color.cpp Color.h
-Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h VolumeRenderer.h
+Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
-DataLoader.o: DataLoader.cpp DataLoader.h
 Event.o: Event.cpp Event.h
-FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h
+FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h Volume.h VelocityArrowsSlice.h 
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
@@ -311,8 +298,6 @@ Renderable.o: Renderable.cpp Renderable.h
 RenderContext.o: RenderContext.cpp RenderContext.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
-ScreenSnapper.o: ScreenSnapper.cpp ScreenSnapper.h
-Sphere.o: Sphere.cpp Sphere.h
 Switch.o: Switch.cpp Switch.h
 Texture1D.o: Texture1D.cpp Texture1D.h
 Texture2D.o: Texture2D.cpp Texture2D.h $(AUXSRC)
@@ -322,7 +307,7 @@ TransferFunction.o: TransferFunction.cpp
 Unirect.o: Unirect.cpp Unirect.h Trace.h
 VelocityArrowsSlice.o: VelocityArrowsSlice.cpp VelocityArrowsSlice.h
 Volume.o: Volume.cpp Volume.h $(AUXSRC)
-VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h
+VolumeInterpolator.o: VolumeInterpolator.cpp VolumeInterpolator.h Volume.h
 VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h

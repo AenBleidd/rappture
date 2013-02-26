@@ -14,6 +14,7 @@
 #include "nanovis.h"
 #include "VelocityArrowsSlice.h"
 #include "NvShader.h"
+#include "NvCamera.h"
 
 static inline float deg2rad(float deg)
 {
@@ -411,7 +412,7 @@ void VelocityArrowsSlice::render()
         _particleShader.setVPTextureParameter("vfield", _vectorFieldGraphicsID);
         _particleShader.setFPTextureParameter("arrows", _arrowsTex->id());
         _particleShader.setVPParameter1f("tanHalfFOV",
-                                         tan(30. * 0.5) * NanoVis::winHeight * 0.5);
+                                         tan(NanoVis::getCamera()->fov() * 0.5) * NanoVis::winHeight * 0.5);
         _particleShader.setGLStateMatrixVPParameter("modelview",
                                                     NvShader::MODELVIEW_MATRIX,
                                                     NvShader::MATRIX_IDENTITY);

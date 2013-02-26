@@ -28,9 +28,6 @@ public:
 
     void render(graphics::RenderContext *renderContext);
 
-    void renderTopview(graphics::RenderContext *renderContext,
-                       int render_width, int render_height);
-
     /**
      *@brief Create a height map with heigh values
      *@param startX x position of the first height value
@@ -93,11 +90,6 @@ public:
         _contourVisible = visible;
     }
 
-    void setTopLineContourVisible(bool visible)
-    {
-        _topContourVisible = visible;
-    }
-
     void opacity(float opacity)
     {
         _opacity = opacity;
@@ -133,7 +125,6 @@ private:
     unsigned int _texcoordBufferObjectID;
     int _vertexCount;
     R2Geometry *_contour;
-    R2Geometry *_topContour;
     TransferFunction *_tfPtr;
     float _opacity;
     NvShader *_shader;
@@ -142,7 +133,6 @@ private:
     Vector3 _contourColor;
 
     bool _contourVisible;
-    bool _topContourVisible;
     bool _visible;
 
     Vector3 _scale;

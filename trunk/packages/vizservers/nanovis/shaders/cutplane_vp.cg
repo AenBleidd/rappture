@@ -1,0 +1,15 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+
+void main(in float4 position : POSITION,
+          in float4 texcoord : TEXCOORD0,
+          out float4 posOut : POSITION,
+          out float4 texcoordOut : TEXCOORD0,
+          uniform float4x4 modelViewProjMatrix)
+{
+    // position is in object coordinates
+    // Output clip space vertex position
+    posOut = mul(modelViewProjMatrix, position);
+
+    // Object space texture coordinates
+    texcoordOut = texcoord;
+}

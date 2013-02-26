@@ -115,8 +115,8 @@ itcl::class Rappture::IsoMarker {
         } 
         array set limits [$_nvobj limits $_tf] 
         if { $limits(vmax) == $limits(vmin) } {
-            set limits(min) 0.0
-            set limits(max) 1.0
+            set limits(vmin) 0.0
+            set limits(vmax) 1.0
         }
         if { [catch {expr $limits(vmax) - $limits(vmin)} r] != 0 } {
             return 0.0

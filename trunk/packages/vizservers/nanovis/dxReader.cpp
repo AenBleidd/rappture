@@ -230,15 +230,15 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     double nzero_min = DBL_MAX;
     double vmax = -DBL_MAX;
     if (isrect) {
-#if ISO_TEST
-        data = new float[nx *  ny *  nz * 4];
-        memset(data, 0, nx*ny*nz*4);
-#else // !ISO_TEST
+#ifdef DOWNSAMPLE_DATA
         Rappture::Mesh1D xgrid(x0, x0 + lx, nx);
         Rappture::Mesh1D ygrid(y0, y0 + ly, ny);
         Rappture::Mesh1D zgrid(z0, z0 + lz, nz);
         Rappture::FieldRect3D field(xgrid, ygrid, zgrid);
-#endif // ISO_TEST
+#else // !DOWNSAMPLE_DATA
+        data = new float[nx *  ny *  nz * 4];
+        memset(data, 0, nx*ny*nz*4);
+#endif // DOWNSAMPLE_DATA
         double dval[6];
         int nread = 0;
         int ix = 0;
@@ -259,7 +259,10 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                     TRACE("Found NAN in input at %d,%d,%d\n", ix, iy, iz);
                 }
 #endif
-#if ISO_TEST
+#ifdef DOWNSAMPLE_DATA
+                int nindex = iz*nx*ny + iy*nx + ix;
+                field.define(nindex, dval[p]);
+#else // !DOWNSAMPLE_DATA
                 int nindex = (iz*nx*ny + iy*nx + ix) * 4;
                 data[nindex] = dval[p];
 
@@ -271,10 +274,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                 if (dval[p] != 0.0 && dval[p] < nzero_min) {
                     nzero_min = dval[p];
                 }
-#else // !ISO_TEST
-                int nindex = iz*nx*ny + iy*nx + ix;
-                field.define(nindex, dval[p]);
-#endif // ISO_TEST
+#endif // DOWNSAMPLE_DATA
                 nread++;
                 if (++iz >= nz) {
                     iz = 0;
@@ -293,7 +293,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             return NULL;
         }
 
-#if ISO_TEST
+#ifndef DOWNSAMPLE_DATA
         double dv = vmax - vmin;
         if (dv == 0.0) {
             dv = 1.0;
@@ -312,14 +312,14 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
 
         computeSimpleGradient(data, nx, ny, nz,
                               dx, dy, dz);
-#else // !ISO_TEST
+#else // DOWNSAMPLE_DATA
         // figure out a good mesh spacing
         int nsample = 30;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
-        nx = (int)ceil(lx/dmin);
-        ny = (int)ceil(ly/dmin);
-        nz = (int)ceil(lz/dmin);
+        nx = (int)ceil(lx/dmin) + 1;
+        ny = (int)ceil(ly/dmin) + 1;
+        nz = (int)ceil(lz/dmin) + 1;
 
 #ifndef HAVE_NPOT_TEXTURES
         // must be an even power of 2 for older cards
@@ -341,7 +341,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         }
 
         int ngen = 0;
-#if FILTER_GRADIENTS
+#ifdef FILTER_GRADIENTS
         // Sobel filter expects a single float at
         // each node
         const int step = 1;
@@ -368,7 +368,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                     if (v != 0.0 && v < nzero_min) {
                         nzero_min = v;
                     }
-#if FILTER_GRADIENTS
+#ifdef FILTER_GRADIENTS
                     // NOT normalized, -1 => out of bounds
                     v = (isnan(v)) ? -1.0 : v;
                     cdata[ngen] = v;
@@ -381,7 +381,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                 }
             }
         }
-#if FILTER_GRADIENTS
+#ifdef FILTER_GRADIENTS
         // computeGradient returns a new array with gradients
         // filled in, so data is now 4 floats per node
         data = computeGradient(cdata, nx, ny, nz,
@@ -393,7 +393,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                               dx, dy, dz);
 #endif // FILTER_GRADIENTS
 
-#endif // ISO_TEST
+#endif // DOWNSAMPLE_DATA
     } else {
         Rappture::Mesh1D zgrid(z0, z0 + (nz-1)*dz, nz);
         Rappture::FieldPrism3D field(xymesh, zgrid);
@@ -438,9 +438,9 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         int nsample = 30;
         double dmin = pow((lx*ly*lz)/((nsample-1)*(nsample-1)*(nsample-1)), 0.333);
 
-        nx = (int)ceil(lx/dmin);
-        ny = (int)ceil(ly/dmin);
-        nz = (int)ceil(lz/dmin);
+        nx = (int)ceil(lx/dmin) + 1;
+        ny = (int)ceil(ly/dmin) + 1;
+        nz = (int)ceil(lz/dmin) + 1;
 #ifndef HAVE_NPOT_TEXTURES
         // must be an even power of 2 for older cards
         nx = (int)pow(2.0, ceil(log10((double)nx)/log10(2.0)));

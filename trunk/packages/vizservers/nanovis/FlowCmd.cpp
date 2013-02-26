@@ -64,6 +64,8 @@ static Rappture::SwitchCustom transferFunctionSwitch = {
 };
 
 Rappture::SwitchSpec FlowCmd::_switches[] = {
+    {Rappture::SWITCH_FLOAT, "-ambient", "value",
+     offsetof(FlowValues, ambient), 0},
     {Rappture::SWITCH_BOOLEAN, "-arrows", "boolean",
      offsetof(FlowValues, showArrows), 0},
     {Rappture::SWITCH_CUSTOM, "-axis", "axis",
@@ -80,7 +82,9 @@ Rappture::SwitchSpec FlowCmd::_switches[] = {
      offsetof(FlowValues, slicePos), 0, 0, &positionSwitch},
     {Rappture::SWITCH_BOOLEAN, "-slice", "boolean",
      offsetof(FlowValues, sliceVisible), 0},
-    {Rappture::SWITCH_FLOAT, "-specular", "value",
+    {Rappture::SWITCH_FLOAT, "-specularExp", "value",
+     offsetof(FlowValues, specularExp), 0},
+    {Rappture::SWITCH_FLOAT, "-specularLevel", "value",
      offsetof(FlowValues, specular), 0},
     {Rappture::SWITCH_CUSTOM, "-transferfunction", "name",
      offsetof(FlowValues, tfPtr), 0, 0, &transferFunctionSwitch},
@@ -195,7 +199,6 @@ FlowBox::Render(Volume *volPtr)
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
-    //glEnable(GL_BLEND);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -203,18 +206,16 @@ FlowBox::Render(Volume *volPtr)
     Vector3 origin = volPtr->location();
     glTranslatef(origin.x, origin.y, origin.z);
 
-    double sx, sy, sz;
-    sz = sy = sx = 1.0;
-    sy = volPtr->height / (double)volPtr->width;
-    if (volPtr->depth > 0.0) {
-        sz = volPtr->depth  / (double)volPtr->width;
-    }
-    glScaled(sx, sy, sz);
+    Vector3 scale = volPtr->getPhysicalScaling();
+    glScaled(scale.x, scale.y, scale.z);
 
     Vector3 min, max;
-
-    min = volPtr->getPhysicalBBoxMin();
-    max = volPtr->getPhysicalBBoxMax();
+    min.x = volPtr->xAxis.min();
+    min.y = volPtr->yAxis.min();
+    min.z = volPtr->zAxis.min();
+    max.x = volPtr->xAxis.max();
+    max.y = volPtr->yAxis.max();
+    max.z = volPtr->zAxis.max();
 
     TRACE("box is %g,%g %g,%g %g,%g\n", 
           _sv.corner1.x, _sv.corner2.x,
@@ -226,17 +227,17 @@ FlowBox::Render(Volume *volPtr)
     float x0, y0, z0, x1, y1, z1;
     x0 = y0 = z0 = 0.0f;
     x1 = y1 = z1 = 0.0f;
-    if (max.y  > min.y) {
+    if (max.x > min.x) {
+        x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
+        x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
+    }
+    if (max.y > min.y) {
         y0 = (_sv.corner1.y - min.y) / (max.y - min.y);
         y1 = (_sv.corner2.y - min.y) / (max.y - min.y);
     }
     if (max.z > min.z) {
         z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
-    }
-    if (max.x > min.x) {
-        x0 = (_sv.corner1.x - min.x) / (max.x - min.x);
-        x1 = (_sv.corner2.x - min.x) / (max.x - min.x);
     }
     TRACE("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
 
@@ -553,25 +554,23 @@ FlowCmd::ScaleVectorField()
         return false;
     }
 
-    double width, height, depth;
-    width  = NanoVis::xMax - NanoVis::xMin;
-    height = NanoVis::yMax - NanoVis::yMin;
-    depth  = NanoVis::zMax - NanoVis::zMin;
+    Vector3 scale = volPtr->getPhysicalScaling();
+    Vector3 location = _volPtr->location();
 
-    Vector3 loc = _volPtr->location();
-
-    _fieldPtr->setVectorField(_volPtr, loc, 
-                              1.0f,
-                              height / width,
-                              depth  / width,
+    _fieldPtr->setVectorField(_volPtr,
+                              location,
+                              scale.x,
+                              scale.y,
+                              scale.z,
                               NanoVis::magMax);
 
     if (NanoVis::licRenderer != NULL) {
         NanoVis::licRenderer->
-            setVectorField(_volPtr->id, loc,
-                           _volPtr->aspectRatioWidth,
-                           _volPtr->aspectRatioHeight,
-                           _volPtr->aspectRatioDepth,
+            setVectorField(_volPtr->textureID(),
+                           location,
+                           scale.x,
+                           scale.y,
+                           scale.z,
                            _volPtr->wAxis.max());
         SetCurrentPosition();
         SetAxis();
@@ -580,10 +579,11 @@ FlowCmd::ScaleVectorField()
 
     if (NanoVis::velocityArrowsSlice != NULL) {
         NanoVis::velocityArrowsSlice->
-            setVectorField(_volPtr->id, loc,
-                           _volPtr->aspectRatioWidth,
-                           _volPtr->aspectRatioHeight,
-                           _volPtr->aspectRatioDepth,
+            setVectorField(_volPtr->textureID(),
+                           location,
+                           scale.x,
+                           scale.y,
+                           scale.z,
                            _volPtr->wAxis.max());
         NanoVis::velocityArrowsSlice->axis(_sv.slicePos.axis);
         NanoVis::velocityArrowsSlice->slicePos(_sv.slicePos.value);
@@ -594,10 +594,11 @@ FlowCmd::ScaleVectorField()
     for (FlowParticles *particlesPtr = FirstParticles(&partIter);
          particlesPtr != NULL;
          particlesPtr = NextParticles(&partIter)) {
-        particlesPtr->setVectorField(_volPtr, loc,
-                                     _volPtr->aspectRatioWidth,
-                                     _volPtr->aspectRatioHeight,
-                                     _volPtr->aspectRatioDepth,
+        particlesPtr->setVectorField(_volPtr,
+                                     location,
+                                     scale.x,
+                                     scale.y,
+                                     scale.z,
                                      _volPtr->wAxis.max());
     }
     return true;
@@ -662,15 +663,12 @@ FlowCmd::MakeVolume(float *data)
     volPtr->xAxis.setRange(_dataPtr->xMin(), _dataPtr->xMax());
     volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
-    volPtr->wAxis.setRange(NanoVis::magMin, NanoVis::magMax);
 
-    Vector3 physicalMin(NanoVis::xMin, NanoVis::yMin, NanoVis::zMin);
-    Vector3 physicalMax(NanoVis::xMax, NanoVis::yMax, NanoVis::zMax);
     TRACE("min=%g %g %g max=%g %g %g mag=%g %g\n", 
           NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
           NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
           NanoVis::magMin, NanoVis::magMax);
-    volPtr->setPhysicalBBox(physicalMin, physicalMax);
+
     volPtr->disableCutplane(0);
     volPtr->disableCutplane(1);
     volPtr->disableCutplane(2);
@@ -680,13 +678,18 @@ FlowCmd::MakeVolume(float *data)
     volPtr->dataEnabled(_sv.showVolume);
     volPtr->outline(_sv.showOutline);
     volPtr->opacityScale(_sv.opacity);
-    volPtr->specular(_sv.specular);
+    volPtr->ambient(_sv.ambient);
     volPtr->diffuse(_sv.diffuse);
+    volPtr->specularLevel(_sv.specular);
+    volPtr->specularExponent(_sv.specularExp);
     volPtr->visible(_sv.showVolume);
-    float dx0 = -0.5;
-    float dy0 = -0.5*volPtr->height/volPtr->width;
-    float dz0 = -0.5*volPtr->depth/volPtr->width;
+
+    Vector3 volScaling = volPtr->getPhysicalScaling();
+    float dx0 = -0.5 * volScaling.x;
+    float dy0 = -0.5 * volScaling.y;
+    float dz0 = -0.5 * volScaling.z;
     volPtr->location(Vector3(dx0, dy0, dz0));
+
     Volume::updatePending = true;
     return volPtr;
 }
@@ -838,6 +841,18 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
+    TRACE("nx = %d ny = %d nz = %d\n", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
+    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    TRACE("lx = %lg ly = %lg lz = %lg\n",
+          dataPtr->xMax() - dataPtr->xMin(),
+          dataPtr->yMax() - dataPtr->yMin(),
+          dataPtr->zMax() - dataPtr->zMin());
+    TRACE("dx = %lg dy = %lg dz = %lg\n",
+          dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
+          dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
+          dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
+    TRACE("magMin = %lg magMax = %lg\n",
+          dataPtr->magMin(), dataPtr->magMax());
     flowPtr->data(dataPtr);
     {
         char info[1024];

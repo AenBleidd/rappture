@@ -47,7 +47,7 @@ public:
         _max = max;
     }
 
-    double range() const
+    double length() const
     {
         return (_max - _min);
     }

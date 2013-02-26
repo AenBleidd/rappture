@@ -23,7 +23,7 @@ class ZincBlendeVolume : public Volume
 {
 public:
     ZincBlendeVolume(float x, float y, float z, 
-                     int width, int height, int depth, float size, int n_component, 
+                     int width, int height, int depth, int numComponents, 
                      float *dataVolumeA, float *dataVolumeB,
                      double vmin, double vmax, double non_zeromin, const Vector3& cellSize);
 

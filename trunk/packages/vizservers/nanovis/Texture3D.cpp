@@ -51,18 +51,6 @@ Texture3D::Texture3D(int width, int height, int depth,
     _wrapT(GL_CLAMP_TO_EDGE),
     _wrapR(GL_CLAMP_TO_EDGE)
 {
-    //int m = (_width > _height) ? _width : _height;
-    //m = (m > _depth) ? m : _depth; 
-
-    //int m = max(max(_width, _height), _depth);
-    _aspectRatioWidth = 1.;
-    _aspectRatioHeight = (double)_height/(double)_width;
-    _aspectRatioDepth = (double)_depth/(double)_width;
-
-    //_aspectRatioWidth = (double)_width/(double)m;
-    //_aspectRatioHeight = (double)_height/(double)m;
-    //_aspectRatioDepth = (double)_depth/(double)m;
-
     if (data != NULL)
         initialize(data);
 }

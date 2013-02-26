@@ -41,9 +41,10 @@ grid axisname <x|y|z> <name>
 grid linecolor <red> <green> <blue> <?alpha?>
 grid visible <false|true>
 
-camera angle <xAngle(phi)> <yAngle(theta)> <zAngle(psi)>
+camera angle <xAngle> <yAngle> <zAngle>
 camera orient <quatW> <quatX> <quatY> <quatZ>
 camera pan <x> <y>
+camera pos <x> <y> <z>
 camera zoom <factor>
 
 screen <width> <height>
@@ -98,6 +99,7 @@ flow video <token> <?switches...?>
 <flowObj> box names <?pattern?>
 
 <flowObj> configure <?option value...?>
+          -ambient <val>
           -arrows <bool>
           -axis <x|y|z>
           -diffuse <val>
@@ -107,7 +109,8 @@ flow video <token> <?switches...?>
           -position <val|%val>
            val = [0,100], or %val = [0,1]
           -slice <bool>
-          -specular <val>
+          -specularExp <val>
+          -specularLevel <val>
           -transferfunction <name>
           -volume <bool>
 <flowObj> data file <fileName> <numComponents>
@@ -132,10 +135,12 @@ volume exists <name>
 volume names <?pattern?>
 volume outline color <r> <g> <b> <?names?>
 volume outline state|visible <bool> <?names?>
+volume shading ambient <value> <?names?>
 volume shading diffuse <value> <?names?>
 volume shading isosurface <bool> <?names?>
 volume shading opacity <value> <?names?>
-volume shading specular <value> <?names?>
+volume shading specularExp <value> <?names?>
+volume shading specularLevel <value> <?names?>
 volume shading transfunc <tfName> <?names?>
 volume state <bool> <?names?>
 
@@ -157,7 +162,7 @@ up <x|y|z|-x|-y|-z>
    Set orientation of volumes
 
 
---- Colormaped Plane (if PLANE_CMD=1 in config.h) ---
+--- Colormaped Plane (if PLANE_CMD is defined in config.h) ---
 plane active <planeIdx>
       Set the active plane [0,9], or -1 to disable
       Plane must first be added and linked
@@ -167,7 +172,7 @@ plane add <planeIdx> <width> <height>
 plane link <planeIdx> <transfunc name>
       Enable a plane for rendering using the given transfer
       function.  Plane must first be added.
---- End Colormaped Plane (if PLANE_CMD=1 in config.h) ---
+--- End Colormaped Plane (if PLANE_CMD is defined in config.h) ---
 
 ================================================================================
 Replies:

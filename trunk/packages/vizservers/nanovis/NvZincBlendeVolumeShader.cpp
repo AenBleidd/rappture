@@ -16,48 +16,36 @@ void NvZincBlendeVolumeShader::init()
     loadFragmentProgram("zincblende_volume.cg", "main");
 }
 
-void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume, int sliceMode)
+void NvZincBlendeVolumeShader::bind(unsigned int tfID, Volume *volume,
+                                    int sliceMode, float sampleRatio)
 {
     ZincBlendeVolume *vol = (ZincBlendeVolume *)volume;
     setGLStateMatrixFPParameter("modelViewInv", MODELVIEW_MATRIX,
                                 MATRIX_INVERSE);
+
     setFPTextureParameter("tf", tfID);
+    setFPTextureParameter("volumeA", vol->zincblendeTex[0]->id());
+    setFPTextureParameter("volumeB", vol->zincblendeTex[1]->id());
+
     setFPParameter4f("cellSize",
                      vol->cellSize.x,
                      vol->cellSize.y,
                      vol->cellSize.z, 0.);
 
-    if (!sliceMode) {
-        setFPParameter4f("renderParameters",
-                         vol->numSlices(),
-                         vol->opacityScale(),
-                         vol->diffuse(), 
-                         vol->specular());
-    } else {
-        setFPParameter4f("renderParameters",
-                         0.,
-                         vol->opacityScale(),
-                         vol->diffuse(),
-                         vol->specular());
-    }
-
-    setFPParameter4f("options",
-                     0.0f,
+    setFPParameter4f("renderParams",
+                     (sliceMode ? 0.0f : sampleRatio),
                      volume->isosurface(),
-                     0.0f,
+                     volume->opacityScale(),
                      0.0f);
-
-    setFPTextureParameter("volumeA", vol->zincblendeTex[0]->id());
-    setFPTextureParameter("volumeB", vol->zincblendeTex[1]->id());
 
     NvShader::bind();
 }
 
 void NvZincBlendeVolumeShader::unbind() 
 {
+    disableFPTextureParameter("tf");
     disableFPTextureParameter("volumeA");
     disableFPTextureParameter("volumeB");
-    disableFPTextureParameter("tf");
 
     NvShader::unbind();
 }

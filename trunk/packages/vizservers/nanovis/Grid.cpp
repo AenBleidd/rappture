@@ -6,6 +6,7 @@
 #include <GL/gl.h>
 
 #include "Grid.h"
+#include "Trace.h"
 
 #define NUMDIGITS	6
 #define GRID_TICK	0.05
@@ -37,14 +38,42 @@ void Grid::render()
     glEnable(GL_LINE_SMOOTH);
 #endif
 
+    glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-#ifdef notdef
-    glScalef(xAxis.scale(), 
-             yAxis.range() / xAxis.range(), 
-             zAxis.range() / xAxis.range());
-#endif
 
-    glTranslatef(-0.5f, -0.5f, -0.5f);
+    double xDataRange = xAxis.dataMax() - xAxis.dataMin();
+    double yDataRange = yAxis.dataMax() - yAxis.dataMin();
+    double zDataRange = zAxis.dataMax() - zAxis.dataMin();
+
+    double paspectX = 1.0f;
+    double paspectY = yDataRange / xDataRange;
+    double paspectZ = zDataRange / xDataRange;
+ 
+    double xscale = xAxis.range() / xDataRange;
+    double yscale = yAxis.range() / xDataRange;
+    double zscale = zAxis.range() / xDataRange;
+
+    double xoffset = (xAxis.min() - xAxis.dataMin()) * xAxis.scale();
+    double yoffset = (yAxis.min() - yAxis.dataMin()) * yAxis.scale();
+    double zoffset = (zAxis.min() - zAxis.dataMin()) * zAxis.scale();
+
+    TRACE("Axis ranges: %g %g %g\n", xAxis.range(), yAxis.range(), zAxis.range());
+    TRACE("Axis scales: %g %g %g\n", xAxis.scale(), yAxis.scale(), zAxis.scale());
+    TRACE("Axis min/max: %g,%g %g,%g %g,%g\n",
+          xAxis.min(), xAxis.max(), 
+          yAxis.min(), yAxis.max(),
+          zAxis.min(), zAxis.max());
+    TRACE("Axis vmin/vmax: %g,%g %g,%g %g,%g\n",
+          xAxis.dataMin(), xAxis.dataMax(), 
+          yAxis.dataMin(), yAxis.dataMax(),
+          zAxis.dataMin(), zAxis.dataMax());
+    TRACE("paspect: %g %g %g\n", paspectX, paspectY, paspectZ);
+    TRACE("scale: %g %g %g\n", xscale, yscale, zscale);
+
+    glTranslatef(-0.5f * paspectX, -0.5f * paspectY, -0.5f * paspectZ);
+    glScalef(xscale, yscale, zscale);
+    glTranslatef(xoffset, yoffset, zoffset);
+
     glLineWidth(2.0f);
     glColor4f(_axisColor.red, _axisColor.green, _axisColor.blue, 
               _axisColor.alpha);

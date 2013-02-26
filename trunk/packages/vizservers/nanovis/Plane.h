@@ -21,9 +21,7 @@
 
 class Plane
 {
-    float a, b, c, d;
 public:
-
     Plane(float a, float b, float c, float d);
 
     Plane(float coeffs[4]);
@@ -64,6 +62,9 @@ public:
         normal.y = b;
         normal.z = c;
     }
+
+private:
+    float a, b, c, d;
 };
 
 

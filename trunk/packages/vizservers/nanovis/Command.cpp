@@ -53,7 +53,7 @@
 #include "CmdProc.h"
 #include "Trace.h"
 
-#if PLANE_CMD
+#ifdef PLANE_CMD
 #include "PlaneRenderer.h"
 #endif
 #ifdef USE_POINTSET_RENDERER
@@ -65,6 +65,7 @@
 #include "NvCamera.h"
 #include "NvZincBlendeReconstructor.h"
 #include "Unirect.h"
+#include "Volume.h"
 #include "VolumeRenderer.h"
 
 // default transfer function
@@ -99,7 +100,7 @@ static Tcl_ObjCmdProc CutplaneCmd;
 extern Tcl_AppInitProc FlowCmdInitProc;
 static Tcl_ObjCmdProc GridCmd;
 static Tcl_ObjCmdProc LegendCmd;
-#if PLANE_CMD
+#ifdef PLANE_CMD
 static Tcl_ObjCmdProc PlaneCmd;
 #endif
 static Tcl_ObjCmdProc ScreenCmd;
@@ -525,22 +526,6 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
 }
 
 static int
-CameraAimOp(ClientData clientData, Tcl_Interp *interp, int objc, 
-            Tcl_Obj *const *objv)
-{
-    float x, y, z;
-    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
-        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
-        return TCL_ERROR;
-    }
-    NanoVis::cam->xAim(x);
-    NanoVis::cam->yAim(y);
-    NanoVis::cam->zAim(z);
-    return TCL_OK;
-}
-
-static int
 CameraAngleOp(ClientData clientData, Tcl_Interp *interp, int objc, 
               Tcl_Obj *const *objv)
 {
@@ -583,6 +568,22 @@ CameraPanOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+CameraPositionOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                 Tcl_Obj *const *objv)
+{
+    float x, y, z;
+    if ((GetFloatFromObj(interp, objv[2], &x) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &y) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &z) != TCL_OK)) {
+        return TCL_ERROR;
+    }
+    NanoVis::cam->x(x);
+    NanoVis::cam->y(y);
+    NanoVis::cam->z(z);
+    return TCL_OK;
+}
+
+static int
 CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc, 
              Tcl_Obj *const *objv)
 {
@@ -595,27 +596,14 @@ CameraZoomOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec cameraOps[] = {
-    {"aim",     2, CameraAimOp,      5, 5, "x y z",},
     {"angle",   2, CameraAngleOp,    5, 5, "xAngle yAngle zAngle",},
     {"orient",  1, CameraOrientOp,   6, 6, "qw qx qy qz",},
-    {"pan",     1, CameraPanOp,      4, 4, "x y",},
+    {"pan",     2, CameraPanOp,      4, 4, "x y",},
+    {"pos",     2, CameraPositionOp, 5, 5, "x y z",},
     {"zoom",    1, CameraZoomOp,     3, 3, "factor",},
 };
 static int nCameraOps = NumCmdSpecs(cameraOps);
 
-/*
- * ----------------------------------------------------------------------
- * CLIENT COMMAND:
- *   camera aim <x0> <y0> <z0>
- *   camera angle <xAngle> <yAngle> <zAngle>
- *   camera zoom <factor>
- *
- * Clients send these commands to manipulate the camera.  The "angle"
- * option controls the angle of the camera around the focal point.
- * The "zoom" option sets the zoom factor, moving the camera in
- * and out.
- * ----------------------------------------------------------------------
- */
 static int
 CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	  Tcl_Obj *const *objv)
@@ -630,7 +618,6 @@ CameraCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
-/*ARGSUSED*/
 static int
 SnapshotCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    Tcl_Obj *const *objv)
@@ -799,8 +786,12 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
     }
     Tcl_DStringAppend(&ds, "\n", 1);
-    result = NanoVis::WriteToStatsFile(Tcl_DStringValue(&ds), 
+#ifdef KEEPSTATS
+    result = NanoVis::writeToStatsFile(Tcl_DStringValue(&ds), 
                                        Tcl_DStringLength(&ds));
+#else
+    TRACE("clientinfo: %s", Tcl_DStringValue(&ds));
+#endif
     Tcl_DStringFree(&ds);
     return result;
 }
@@ -1154,13 +1145,13 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             return TCL_ERROR;
         }
         TRACE("finish loading\n");
-	// INSOO
-	// TBD..
-	// Next identifier available
-        float dx0 = -0.5;
-        float dy0 = -0.5*volPtr->height/volPtr->width;
-        float dz0 = -0.5*volPtr->depth/volPtr->width;
+
+        Vector3 scale = volPtr->getPhysicalScaling();
+        float dx0 = -0.5 * scale.x;
+        float dy0 = -0.5 * scale.y;
+        float dz0 = -0.5 * scale.z;
         volPtr->location(Vector3(dx0, dy0, dz0));
+
 	int isNew;
 	Tcl_HashEntry *hPtr;
         hPtr = Tcl_CreateHashEntry(&NanoVis::volumeTable, tag, &isNew);
@@ -1262,14 +1253,6 @@ VolumeDataOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
-/*
- *---------------------------------------------------------------------------
- *
- * VolumeDeleteOp --
- *
- *---------------------------------------------------------------------------
- */
-/*ARGSUSED*/
 static int
 VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	       Tcl_Obj *const *objv)
@@ -1288,14 +1271,6 @@ VolumeDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-/*
- *---------------------------------------------------------------------------
- *
- * VolumeExistsOp --
- *
- *---------------------------------------------------------------------------
- */
-/*ARGSUSED*/
 static int
 VolumeExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	       Tcl_Obj *const *objv)
@@ -1311,14 +1286,6 @@ VolumeExistsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-/*
- *---------------------------------------------------------------------------
- *
- * VolumeNamesOp --
- *
- *---------------------------------------------------------------------------
- */
-/*ARGSUSED*/
 static int
 VolumeNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	      Tcl_Obj *const *objv)
@@ -1400,6 +1367,28 @@ VolumeOutlineOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+VolumeShadingAmbientOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                       Tcl_Obj *const *objv)
+{
+    float ambient;
+    if (GetFloatFromObj(interp, objv[3], &ambient) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (ambient < 0.0f || ambient > 1.0f) {
+        WARN("Invalid ambient coefficient requested: %g, should be [0,1]", ambient);
+    }
+    std::vector<Volume *> ivol;
+    if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    std::vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+        (*iter)->ambient(ambient);
+    }
+    return TCL_OK;
+}
+
+static int
 VolumeShadingDiffuseOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
@@ -1441,6 +1430,25 @@ VolumeShadingIsosurfaceOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+VolumeShadingLight2SideOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                          Tcl_Obj *const *objv)
+{
+    bool twoSidedLighting;
+    if (GetBooleanFromObj(interp, objv[3], &twoSidedLighting) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    std::vector<Volume *> ivol;
+    if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    std::vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+        (*iter)->twoSidedLighting(twoSidedLighting);
+    }
+    return TCL_OK;
+}
+
+static int
 VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
                        Tcl_Obj *const *objv)
 {
@@ -1469,8 +1477,8 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &specular) != TCL_OK) {
         return TCL_ERROR;
     }
-    if (specular < 0.0f || specular > 128.0f) {
-        WARN("Invalid specular exponent requested: %g, should be [0,128]", specular);
+    if (specular < 0.0f || specular > 1.0f) {
+        WARN("Invalid specular coefficient requested: %g, should be [0,1]", specular);
     }
     std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
@@ -1478,7 +1486,29 @@ VolumeShadingSpecularOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-        (*iter)->specular(specular);
+        (*iter)->specularLevel(specular);
+    }
+    return TCL_OK;
+}
+
+static int
+VolumeShadingSpecularExpOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                           Tcl_Obj *const *objv)
+{
+    float specularExp;
+    if (GetFloatFromObj(interp, objv[3], &specularExp) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (specularExp < 0.0f || specularExp > 128.0f) {
+        WARN("Invalid specular exponent requested: %g, should be [0,128]", specularExp);
+    }
+    std::vector<Volume *> ivol;
+    if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    std::vector<Volume *>::iterator iter;
+    for (iter = ivol.begin(); iter != ivol.end(); iter++) {
+        (*iter)->specularExponent(specularExp);
     }
     return TCL_OK;
 }
@@ -1515,11 +1545,14 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec volumeShadingOps[] = {
-    {"diffuse",     1, VolumeShadingDiffuseOp,    4, 0, "value ?indices?",},
-    {"isosurface",  1, VolumeShadingIsosurfaceOp, 4, 0, "bool ?indices?",},
-    {"opacity",     1, VolumeShadingOpacityOp,    4, 0, "value ?indices?",},
-    {"specular",    1, VolumeShadingSpecularOp,   4, 0, "value ?indices?",},
-    {"transfunc",   1, VolumeShadingTransFuncOp,  4, 0, "funcName ?indices?",},
+    {"ambient",       1, VolumeShadingAmbientOp,     4, 0, "value ?indices?",},
+    {"diffuse",       1, VolumeShadingDiffuseOp,     4, 0, "value ?indices?",},
+    {"isosurface",    1, VolumeShadingIsosurfaceOp,  4, 0, "bool ?indices?",},
+    {"light2side",    1, VolumeShadingLight2SideOp,  4, 0, "bool ?indices?",},
+    {"opacity",       1, VolumeShadingOpacityOp,     4, 0, "value ?indices?",},
+    {"specularExp",   9, VolumeShadingSpecularExpOp, 4, 0, "value ?indices?",},
+    {"specularLevel", 9, VolumeShadingSpecularOp,    4, 0, "value ?indices?",},
+    {"transfunc",     1, VolumeShadingTransFuncOp,   4, 0, "funcName ?indices?",},
 };
 static int nVolumeShadingOps = NumCmdSpecs(volumeShadingOps);
 
@@ -1614,8 +1647,6 @@ VolumeCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     return (*proc) (clientData, interp, objc, objv);
 }
-
-// ========================= VOLUME END ==================================
 
 static int
 HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
@@ -1865,72 +1896,6 @@ HeightMapShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-
-static int
-HeightMapTopView(ClientData data, Tcl_Interp *interp, int objc,
-                Tcl_Obj *const *objv)
-{
-
-    // the variables below should be reassigned
-    int image_width = 512;
-    int image_height = 512;
-    HeightMap* heightmap = 0;
-
-    // HELP ME
-    // GEORGE
-
-    NanoVis::render2dContour(heightmap, image_width, image_height);
-    NanoVis::eventuallyRedraw();
-    return TCL_OK;
-}
-
-static int
-HeightMapTestOp(ClientData clientData, Tcl_Interp *interp, int objc,
-                Tcl_Obj *const *objv)
-{
-    srand((unsigned)time(NULL));
-
-    int size = 20 * 20;
-    double sigma = 5.0;
-    double mean = exp(0.0) / (sigma * sqrt(2.0));
-    float* data = (float*) malloc(sizeof(float) * size);
-
-    float x, y;
-    for (int i = 0; i < size; ++i) {
-        x = - 10 + i%20;
-        y = - 10 + (i/20);
-        data[i] = exp(- (x * y)/(2 * sigma * sigma)) /
-            (sigma * sqrt(2.0)) / mean * 2 + 1000;
-        //data[i] = ((float)rand()) / RAND_MAX * 1.0;
-    }
-
-    HeightMap* hmPtr = new HeightMap();
-    float minx = 0.0f;
-    float maxx = 1.0f;
-    float miny = 0.5f;
-    float maxy = 3.5f;
-    hmPtr->setHeight(minx, miny, maxx, maxy, 20, 20, data);
-    hmPtr->transferFunction(NanoVis::getTransfunc("default"));
-    hmPtr->setVisible(true);
-    hmPtr->setLineContourVisible(true);
-    NanoVis::grid->setVisible(true);
-    Tcl_HashEntry *hPtr;
-    int isNew;
-    hPtr = Tcl_CreateHashEntry(&NanoVis::heightmapTable, "test", &isNew);
-    if (!isNew) {
-	Tcl_AppendResult(interp, "heightmap \"test\" already exists.",
-			 (char *)NULL);
-	return TCL_ERROR;
-    }
-    Tcl_SetHashValue(hPtr, hmPtr);
-    int image_width = 512;
-    int image_height = 512;
-
-    NanoVis::render2dContour(hmPtr, image_width, image_height);
-
-    return TCL_OK;
-}
-
 static int
 HeightMapTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
                      Tcl_Obj *const *objv)
@@ -1986,12 +1951,7 @@ static Rappture::CmdSpec heightMapOps[] = {
     {"opacity",      1, HeightMapOpacityOp,     3, 0, "value ?heightmap...? ",},
     {"polygon",      1, HeightMapPolygonOp,     3, 3, "mode",},
     {"shading",      1, HeightMapShadingOp,     3, 3, "model",},
-    {"test",         2, HeightMapTestOp,        2, 2, "",},
     {"transfunc",    2, HeightMapTransFuncOp,   3, 0, "name ?heightmap...?",},
-
-    // HELP ME
-    // GOERGE
-    {"topview",      2, HeightMapTopView,     2, 2, "",},
 };
 static int nHeightMapOps = NumCmdSpecs(heightMapOps);
 
@@ -2132,7 +2092,7 @@ AxisCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
-#if PLANE_CMD
+#ifdef PLANE_CMD
 static int 
 PlaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv)
@@ -2252,7 +2212,7 @@ PlaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return (*proc) (clientData, interp, objc, objv);
 }
 
-#endif  /*PLANE_CMD*/
+#endif /*PLANE_CMD*/
 
 /*
  * This command should be Tcl procedure instead of a C command.  The reason
@@ -2320,7 +2280,7 @@ initTcl()
     Tcl_CreateObjCommand(interp, "grid",        GridCmd,        NULL, NULL);
     Tcl_CreateObjCommand(interp, "heightmap",   HeightMapCmd,   NULL, NULL);
     Tcl_CreateObjCommand(interp, "legend",      LegendCmd,      NULL, NULL);
-#if PLANE_CMD
+#ifdef PLANE_CMD
     Tcl_CreateObjCommand(interp, "plane",       PlaneCmd,       NULL, NULL);
 #endif
     Tcl_CreateObjCommand(interp, "screen",      ScreenCmd,      NULL, NULL);

@@ -54,24 +54,6 @@ public:
         return _width;
     }
 
-    /// Always 1
-    double aspectRatioWidth() const
-    {
-        return _aspectRatioWidth;
-    }
-
-    /// height / width
-    double aspectRatioHeight() const
-    {
-        return _aspectRatioHeight;
-    }
-
-    /// depth / width
-    double aspectRatioDepth() const
-    {
-        return _aspectRatioDepth;
-    }
-
     GLuint id() const
     {
         return _id;
@@ -91,10 +73,6 @@ private:
     int _width;
     int _height;
     int _depth;
-
-    double _aspectRatioWidth;
-    double _aspectRatioHeight;
-    double _aspectRatioDepth;
 
     int _numComponents;
 

@@ -1,0 +1,16 @@
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+
+float4 main(in float4 texcoord : TEXCOORD0,
+            uniform sampler3D volume,
+            uniform sampler1D tf) : COLOR
+{
+    float4 sample = tex3D(volume, texcoord.xyz);
+
+    // sample the transfer function texture
+    float4 color = tex1D(tf, sample.x);
+
+    // single slice render, only flat shading, completely opaque.
+    color.w = 1;
+
+    return color;
+}

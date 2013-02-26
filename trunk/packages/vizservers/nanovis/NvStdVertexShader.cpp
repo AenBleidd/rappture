@@ -15,10 +15,18 @@ void NvStdVertexShader::init()
     loadVertexProgram("vertex_std.cg", "main");
 }
 
-void NvStdVertexShader::bind()
+void NvStdVertexShader::bind(float *mvp, float *mvInv)
 {
-    setGLStateMatrixVPParameter("modelViewProjMatrix", MODELVIEW_PROJECTION_MATRIX, MATRIX_IDENTITY);
-    setGLStateMatrixVPParameter("modelViewInv", MODELVIEW_MATRIX, MATRIX_INVERSE);
+    if (mvp != NULL) {
+        setVPMatrixParameterf("modelViewProjMatrix", mvp);
+    } else {
+        setGLStateMatrixVPParameter("modelViewProjMatrix", MODELVIEW_PROJECTION_MATRIX);
+    }
+    if (mvInv != NULL) {
+        setVPMatrixParameterf("modelViewInv", mvInv);
+    } else {
+        setGLStateMatrixVPParameter("modelViewInv", MODELVIEW_MATRIX, MATRIX_INVERSE);
+    }
 
     NvShader::bind();
 }
