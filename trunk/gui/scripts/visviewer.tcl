@@ -521,7 +521,6 @@ itcl::body Rappture::VisViewer::ReceiveHelper {} {
     }
 }
 
-
 #
 # Color2RGB --
 #
@@ -545,11 +544,10 @@ itcl::body Rappture::VisViewer::Color2RGB {color} {
 #
 itcl::body Rappture::VisViewer::Euler2XYZ {theta phi psi} {
     set xangle [expr {$theta-90.0}]
-    set yangle [expr {180-$phi}]
+    set yangle [expr {180.0-$phi}]
     set zangle $psi
     return [list $xangle $yangle $zangle]
 }
-
 
 #
 # SendEcho --
