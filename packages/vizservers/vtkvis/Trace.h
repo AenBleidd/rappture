@@ -13,6 +13,12 @@
 namespace Rappture {
 namespace VtkVis {
 
+extern void logUserMessage(const char* format, ...);
+
+extern const char *getUserMessages();
+
+extern void clearUserMessages();
+
 extern void initLog();
 
 extern void closeLog();
@@ -28,6 +34,8 @@ extern void logMessage(int priority, const char *funcname, const char *fileName,
 #endif  /*WANT_TRACE*/
 #define WARN(...)	Rappture::VtkVis::logMessage(LOG_WARNING, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
 #define INFO(...)	Rappture::VtkVis::logMessage(LOG_INFO, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__)
+
+#define USER_ERROR(...) Rappture::VtkVis::logUserMessage(__VA_ARGS__)
 
 }
 }

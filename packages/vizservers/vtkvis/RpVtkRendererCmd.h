@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <tcl.h>
+
 #include "ReadBuffer.h"
 
 namespace Rappture {
