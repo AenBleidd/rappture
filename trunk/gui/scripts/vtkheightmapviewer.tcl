@@ -1724,7 +1724,6 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     if { [isconnected] } {
         set rgb [Color2RGB $itk_option(-plotforeground)]
         SendCmd "dataset color $rgb"
-        SendCmd "cutplane ccolor $rgb"
 	SendCmd "axis color all $rgb"
     }
 }
