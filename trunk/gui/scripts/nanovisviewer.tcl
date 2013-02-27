@@ -89,7 +89,7 @@ itcl::class Rappture::NanovisViewer {
     protected method Disconnect {}
     protected method DoResize {}
     protected method FixLegend {}
-    protected method AdjustSetting {what}
+    protected method AdjustSetting {what {value ""}}
     protected method InitSettings { args }
     protected method Pan {option x y}
     protected method Rebuild {}
@@ -1232,7 +1232,7 @@ itcl::body Rappture::NanovisViewer::Pan {option x y} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: AdjustSetting <what> ?<value>?
+# USAGE: InitSettings <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
@@ -1251,7 +1251,7 @@ itcl::body Rappture::NanovisViewer::InitSettings { args } {
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::NanovisViewer::AdjustSetting {what} {
+itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
         light {
             if {[isconnected]} {
