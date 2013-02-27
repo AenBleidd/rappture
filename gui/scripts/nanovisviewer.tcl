@@ -109,7 +109,6 @@ itcl::class Rappture::NanovisViewer {
     private method BuildCutplanesTab {}
     private method BuildViewTab {}
     private method BuildVolumeTab {}
-    private method ColorsToColormap { colors }
     private method ResetColormap { color }
     private method ComputeTransferFunc { tf }
     private method EventuallyResize { w h } 
@@ -1252,46 +1251,41 @@ itcl::body Rappture::NanovisViewer::InitSettings { args } {
 # to the back end.
 # ----------------------------------------------------------------------
 itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
+    if {![isconnected]} {
+        return
+    }
     switch -- $what {
         light {
-            if {[isconnected]} {
-                set val $_settings($this-light)
-                set diffuse [expr {0.01*$val}]
-                set ambient [expr {1.0-$diffuse}]
-                set specularLevel 0.3
-                set specularExp 90.0
-                SendCmd "volume shading ambient $ambient"
-                SendCmd "volume shading diffuse $diffuse"
-                SendCmd "volume shading specularLevel $specularLevel"
-                SendCmd "volume shading specularExp $specularExp"
-            }
+            set val $_settings($this-light)
+            set diffuse [expr {0.01*$val}]
+            set ambient [expr {1.0-$diffuse}]
+            set specularLevel 0.3
+            set specularExp 90.0
+            SendCmd "volume shading ambient $ambient"
+            SendCmd "volume shading diffuse $diffuse"
+            SendCmd "volume shading specularLevel $specularLevel"
+            SendCmd "volume shading specularExp $specularExp"
         }
         light2side {
-            if {[isconnected]} {
-                set val $_settings($this-light2side)
-                SendCmd "volume shading light2side $val"
-            }
+            set val $_settings($this-light2side)
+            SendCmd "volume shading light2side $val"
         }
         transp {
-            if {[isconnected]} {
-                set val $_settings($this-transp)
-                set sval [expr { 0.01 * double($val) }]
-                SendCmd "volume shading opacity $sval"
-            }
+            set val $_settings($this-transp)
+            set sval [expr { 0.01 * double($val) }]
+            SendCmd "volume shading opacity $sval"
         }
         opacity {
-            if {[isconnected] && [array size _activeTfs] > 0 } {
-                set val $_settings($this-opacity)
-                set sval [expr { 0.01 * double($val) }]
-                foreach tf [array names _activeTfs] {
-                    set _settings($this-$tf-opacity) $sval
-                    set _activeTfs($tf) 0
-                }
-                updatetransferfuncs
+            set val $_settings($this-opacity)
+            set sval [expr { 0.01 * double($val) }]
+            foreach tf [array names _activeTfs] {
+                set _settings($this-$tf-opacity) $sval
+                set _activeTfs($tf) 0
             }
+            updatetransferfuncs
         }
         thickness {
-            if {[isconnected] && [array names _activeTfs] > 0 } {
+            if { [array names _activeTfs] > 0 } {
                 set val $_settings($this-thickness)
                 # Scale values between 0.00001 and 0.01000
                 set sval [expr {0.0001*double($val)}]
@@ -1303,29 +1297,22 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "outline" {
-            if {[isconnected]} {
-                SendCmd "volume outline state $_settings($this-outline)"
-            }
+            SendCmd "volume outline state $_settings($this-outline)"
         }
         "isosurface" {
-            if {[isconnected]} {
-                SendCmd "volume shading isosurface $_settings($this-isosurface)"
-            }
+            SendCmd "volume shading isosurface $_settings($this-isosurface)"
         }
         "colormap" {
             set color [$itk_component(colormap) value]
             set _settings(colormap) $color
+            # Only set the colormap on the first volume. Ignore the others.
             #ResetColormap $color
         }
         "grid" {
-            if { [isconnected] } {
-                SendCmd "grid visible $_settings($this-grid)"
-            }
+            SendCmd "grid visible $_settings($this-grid)"
         }
         "axes" {
-            if { [isconnected] } {
-                SendCmd "axis visible $_settings($this-axes)"
-            }
+            SendCmd "axis visible $_settings($this-axes)"
         }
         "legend" {
             if { $_settings($this-legend) } {
@@ -1338,19 +1325,15 @@ itcl::body Rappture::NanovisViewer::AdjustSetting {what {value ""}} {
             }
         }
         "volume" {
-            if { [isconnected] } {
-                set datasets [CurrentDatasets -cutplanes] 
-                SendCmd "volume data state $_settings($this-volume) $datasets"
-            }
+            set datasets [CurrentDatasets -cutplanes] 
+            SendCmd "volume data state $_settings($this-volume) $datasets"
         }
         "xcutplane" - "ycutplane" - "zcutplane" {
             set axis [string range $what 0 0]
             set bool $_settings($this-$what)
-            if { [isconnected] } {
-                set datasets [CurrentDatasets -cutplanes] 
-                set tag [lindex $datasets 0]
-                SendCmd "cutplane state $bool $axis $tag"
-            }
+            set datasets [CurrentDatasets -cutplanes] 
+            set tag [lindex $datasets 0]
+            SendCmd "cutplane state $bool $axis $tag"
             if { $bool } {
                 $itk_component(${axis}CutScale) configure -state normal \
                     -troughcolor white
@@ -1421,217 +1404,6 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
 }
 
 
-itcl::body Rappture::NanovisViewer::ColorsToColormap { colors } {
-    switch -- $colors {
-        "grey-to-blue" {
-            return {
-                0.0                      0.200 0.200 0.200
-                0.14285714285714285      0.400 0.400 0.400
-                0.2857142857142857       0.600 0.600 0.600
-                0.42857142857142855      0.900 0.900 0.900
-                0.5714285714285714       0.800 1.000 1.000
-                0.7142857142857143       0.600 1.000 1.000
-                0.8571428571428571       0.400 0.900 1.000
-                1.0                      0.000 0.600 0.800
-            }
-        }
-        "blue-to-grey" {
-            return {
-                0.0                     0.000 0.600 0.800 
-                0.14285714285714285     0.400 0.900 1.000 
-                0.2857142857142857      0.600 1.000 1.000 
-                0.42857142857142855     0.800 1.000 1.000 
-                0.5714285714285714      0.900 0.900 0.900 
-                0.7142857142857143      0.600 0.600 0.600 
-                0.8571428571428571      0.400 0.400 0.400 
-                1.0                     0.200 0.200 0.200
-            }
-        }
-        "blue" {
-            return { 
-                0.0                     0.900 1.000 1.000 
-                0.1111111111111111      0.800 0.983 1.000 
-                0.2222222222222222      0.700 0.950 1.000 
-                0.3333333333333333      0.600 0.900 1.000 
-                0.4444444444444444      0.500 0.833 1.000 
-                0.5555555555555556      0.400 0.750 1.000 
-                0.6666666666666666      0.300 0.650 1.000 
-                0.7777777777777778      0.200 0.533 1.000 
-                0.8888888888888888      0.100 0.400 1.000 
-                1.0                     0.000 0.250 1.000
-            }
-        }
-        "brown-to-blue" {
-            return {
-                0.0                             0.200   0.100   0.000 
-                0.09090909090909091             0.400   0.187   0.000 
-                0.18181818181818182             0.600   0.379   0.210 
-                0.2727272727272727              0.800   0.608   0.480 
-                0.36363636363636365             0.850   0.688   0.595 
-                0.45454545454545453             0.950   0.855   0.808 
-                0.5454545454545454              0.800   0.993   1.000 
-                0.6363636363636364              0.600   0.973   1.000 
-                0.7272727272727273              0.400   0.940   1.000 
-                0.8181818181818182              0.200   0.893   1.000 
-                0.9090909090909091              0.000   0.667   0.800 
-                1.0                             0.000   0.480   0.600 
-            }
-        }
-        "blue-to-brown" {
-            return {
-                0.0                             0.000   0.480   0.600 
-                0.09090909090909091             0.000   0.667   0.800 
-                0.18181818181818182             0.200   0.893   1.000 
-                0.2727272727272727              0.400   0.940   1.000 
-                0.36363636363636365             0.600   0.973   1.000 
-                0.45454545454545453             0.800   0.993   1.000 
-                0.5454545454545454              0.950   0.855   0.808 
-                0.6363636363636364              0.850   0.688   0.595 
-                0.7272727272727273              0.800   0.608   0.480 
-                0.8181818181818182              0.600   0.379   0.210 
-                0.9090909090909091              0.400   0.187   0.000 
-                1.0                             0.200   0.100   0.000 
-            }
-        }
-        "blue-to-orange" {
-            return {
-                0.0                             0.000   0.167   1.000
-                0.09090909090909091             0.100   0.400   1.000
-                0.18181818181818182             0.200   0.600   1.000
-                0.2727272727272727              0.400   0.800   1.000
-                0.36363636363636365             0.600   0.933   1.000
-                0.45454545454545453             0.800   1.000   1.000
-                0.5454545454545454              1.000   1.000   0.800
-                0.6363636363636364              1.000   0.933   0.600
-                0.7272727272727273              1.000   0.800   0.400
-                0.8181818181818182              1.000   0.600   0.200
-                0.9090909090909091              1.000   0.400   0.100
-                1.0                             1.000   0.167   0.000
-            }
-        }
-        "orange-to-blue" {
-            return {
-                0.0                             1.000   0.167   0.000
-                0.09090909090909091             1.000   0.400   0.100
-                0.18181818181818182             1.000   0.600   0.200
-                0.2727272727272727              1.000   0.800   0.400
-                0.36363636363636365             1.000   0.933   0.600
-                0.45454545454545453             1.000   1.000   0.800
-                0.5454545454545454              0.800   1.000   1.000
-                0.6363636363636364              0.600   0.933   1.000
-                0.7272727272727273              0.400   0.800   1.000
-                0.8181818181818182              0.200   0.600   1.000
-                0.9090909090909091              0.100   0.400   1.000
-                1.0                             0.000   0.167   1.000
-            }
-        }
-        "rainbow" {
-            set clist {
-                "#EE82EE"
-                "#4B0082" 
-                "blue" 
-                "#008000" 
-                "yellow" 
-                "#FFA500" 
-                "red" 
-            }
-        }
-        "BGYOR" {
-            set clist {
-                "blue" 
-                "#008000" 
-                "yellow" 
-                "#FFA500" 
-                "red" 
-            }
-        }
-        "ROYGB" {
-            set clist {
-                "red" 
-                "#FFA500" 
-                "yellow" 
-                "#008000" 
-                "blue" 
-            }
-        }
-        "RYGCB" {
-            set clist {
-                "red" 
-                "yellow" 
-                "green"
-                "cyan"
-                "blue"
-            }
-        }
-        "BCGYR" {
-            set clist {
-                "blue" 
-                "cyan"
-                "green"
-                "yellow" 
-                "red" 
-            }
-        }
-        "spectral" {
-            return {
-                0.0 0.150 0.300 1.000 
-                0.1 0.250 0.630 1.000 
-                0.2 0.450 0.850 1.000 
-                0.3 0.670 0.970 1.000 
-                0.4 0.880 1.000 1.000 
-                0.5 1.000 1.000 0.750 
-                0.6 1.000 0.880 0.600 
-                0.7 1.000 0.680 0.450 
-                0.8 0.970 0.430 0.370 
-                0.9 0.850 0.150 0.196 
-                1.0 0.650 0.000 0.130
-            }
-        }
-        "green-to-magenta" {
-            return {
-                0.0 0.000 0.316 0.000 
-                0.06666666666666667 0.000 0.526 0.000 
-                0.13333333333333333 0.000 0.737 0.000 
-                0.2 0.000 0.947 0.000 
-                0.26666666666666666 0.316 1.000 0.316 
-                0.3333333333333333 0.526 1.000 0.526 
-                0.4 0.737 1.000 0.737 
-                0.4666666666666667 1.000 1.000 1.000 
-                0.5333333333333333 1.000 0.947 1.000 
-                0.6 1.000 0.737 1.000 
-                0.6666666666666666 1.000 0.526 1.000 
-                0.7333333333333333 1.000 0.316 1.000 
-                0.8 0.947 0.000 0.947 
-                0.8666666666666667 0.737 0.000 0.737 
-                0.9333333333333333 0.526 0.000 0.526 
-                1.0 0.316 0.000 0.316
-            }
-        }
-        "greyscale" {
-            return { 
-                0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0
-            }
-        }
-        "nanohub" {
-            set clist "white yellow green cyan blue magenta"
-        }
-        default {
-            set clist [split $colors ":"]
-        }
-    }
-    set cmap {}
-    if { [llength $clist] == 1 } {
-        set rgb [Color2RGB $clist]
-        append cmap "0.0 $rgb 1.0 $rgb"
-    } else {
-        for {set i 0} {$i < [llength $clist]} {incr i} {
-            set x [expr {double($i)/([llength $clist]-1)}]
-            set color [lindex $clist $i]
-            append cmap "$x [Color2RGB $color] "
-        }
-    }
-    return $cmap
-}
 
 #
 # ComputeTransferFunc --
@@ -1644,7 +1416,7 @@ itcl::body Rappture::NanovisViewer::ColorsToColormap { colors } {
 #
 itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     array set style {
-        -color rainbow
+        -color nanovis
         -levels 6
         -opacity 1.0
         -markers ""
