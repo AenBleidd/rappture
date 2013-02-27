@@ -40,6 +40,7 @@ itcl::class ::Rappture::VisViewer {
     private variable _idleTimeout 43200000; # 12 hours
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
+    protected variable _maxConnects 100
 
     private variable _logging 0
 
@@ -48,7 +49,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _parser ""   ;   # interpreter for incoming commands
     protected variable _image
     protected variable _hostname
-    protected variable _errorCount 0
+    protected variable _numConnectTries 0
     protected variable _debugConsole 0
 
     constructor { servers args } {
@@ -243,6 +244,13 @@ itcl::body Rappture::VisViewer::Connect { servers } {
     blt::busy hold $itk_component(hull) -cursor watch
 
     puts stderr "server type is $_serverType"
+    if { $_numConnectTries > $_maxConnects } {
+        blt::busy release $itk_component(hull)
+        set x [expr {[winfo rootx $itk_component(hull)]+10}]
+        set y [expr {[winfo rooty $itk_component(hull)]+10}]
+        Rappture::Tooltip::cue @$x,$y "Exceeded maximum number of connection attmepts to any $_serverType visualization server. Please contact support."
+        return 0;
+    }
     foreach server [Shuffle $servers] {
         puts stderr "connecting to $server..."
         foreach {hostname port} [split $server ":"] break
@@ -251,6 +259,7 @@ itcl::body Rappture::VisViewer::Connect { servers } {
             RemoveServerFromList $_serverType $server
             continue
         }
+        incr _numConnectTries
         set _hostname $server
         fconfigure $_sid -translation binary -encoding binary
         
@@ -791,7 +800,6 @@ itcl::body Rappture::VisViewer::ReceiveError { args } {
             $inner.scrl contents $inner.scrl.text
             button $inner.ok -text "Dismiss" -command [list $popup deactivate] \
                 -font "Arial 9"
-            incr _errorCount
             blt::table $inner \
                 0,0 $inner.scrl -fill both \
                 1,0 $inner.ok 
