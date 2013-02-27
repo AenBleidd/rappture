@@ -549,7 +549,7 @@ void Streamlines::update()
         ERROR("Unknown LineType: %d", _lineType);
     }
 
-#if 1 && defined(WANT_TRACE)
+#if 0 && defined(WANT_TRACE)
     _streamTracer->Update();
     vtkPolyData *pd = _streamTracer->GetOutput();
     TRACE("Verts: %d Lines: %d Polys: %d Strips: %d",

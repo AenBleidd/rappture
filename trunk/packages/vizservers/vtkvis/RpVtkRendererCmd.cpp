@@ -9728,8 +9728,6 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
     const char *string;
     int nBytes;
 
-    TRACE("Enter");
-
     if (status != TCL_OK) {
         string = Tcl_GetVar(interp, "errorInfo", TCL_GLOBAL_ONLY);
         nBytes = strlen(string);
@@ -9756,8 +9754,6 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
         }
     }
 
-    TRACE("Before user error");
-
     string = getUserMessages();
     nBytes = strlen(string);
     if (nBytes > 0) {
@@ -9782,8 +9778,6 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
 #endif
         clearUserMessages();
     }
-
-    TRACE("Leave");
 
     return 0;
 }
