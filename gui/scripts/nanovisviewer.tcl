@@ -1402,7 +1402,7 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #
 itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     array set style {
-        -color BGYOR
+        -color BCGYR
         -levels 6
         -opacity 1.0
         -markers ""
@@ -1428,7 +1428,7 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
 #
 itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     array set style {
-        -color BGYOR
+        -color BCGYR
         -levels 6
         -opacity 1.0
         -markers ""
