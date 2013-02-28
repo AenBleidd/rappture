@@ -74,6 +74,8 @@ Rappture::SwitchSpec FlowCmd::_switches[] = {
      offsetof(FlowValues, diffuse), 0},
     {Rappture::SWITCH_BOOLEAN, "-hide", "boolean",
      offsetof(FlowValues, isHidden), 0},
+    {Rappture::SWITCH_BOOLEAN, "-light2side", "boolean",
+     offsetof(FlowValues, twoSidedLighting), 0},
     {Rappture::SWITCH_FLOAT, "-opacity", "value",
      offsetof(FlowValues, opacity), 0},
     {Rappture::SWITCH_BOOLEAN, "-outline", "boolean",
@@ -676,6 +678,7 @@ FlowCmd::MakeVolume(float *data)
     /* Initialize the volume with the previously configured values. */
     volPtr->transferFunction(_sv.tfPtr);
     volPtr->dataEnabled(_sv.showVolume);
+    volPtr->twoSidedLighting(_sv.twoSidedLighting);
     volPtr->outline(_sv.showOutline);
     volPtr->opacityScale(_sv.opacity);
     volPtr->ambient(_sv.ambient);
