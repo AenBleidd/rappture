@@ -746,9 +746,11 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 /* 
  * ClientInfoCmd --
  *
- *      Log initial values to stats file.
- *	  
- *      clientinfo path list
+ *      Log initial values to stats file.  The first time this is called
+ *      "render_start" is written into the stats file.  Afterwards, it 
+ *      is "render_info". 
+ *	
+ *         clientinfo list
  */
 static int
 ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
@@ -761,18 +763,18 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     char buf[BUFSIZ];
     static int first = 1;
 
-    if (objc != 3) {
+    if (objc != 2) {
 	Tcl_AppendResult(interp, "wrong # of arguments: should be \"", 
-                Tcl_GetString(objv[0]), " path list\"", (char *)NULL);
+                Tcl_GetString(objv[0]), " list\"", (char *)NULL);
 	return TCL_ERROR;
     }
 #ifdef KEEPSTATS
-    const char *path;
-
-    path = Tcl_GetString(objv[1]);
-    if (NanoVis::openStatsFile(path) < 0) {
+    /* Use the initial client key value pairs as the parts for a generating
+     * a unique file name. */
+    f = NanoVis::getStatsFile(objv[1]);
+    if (f < 0) {
 	Tcl_AppendResult(interp, "can't open stats file: ", 
-                Tcl_PosixError(interp), (char *)NULL);
+                         Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
     }
 #endif
@@ -805,7 +807,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     sprintf(buf, "%ld", NanoVis::startTime.tv_sec);
     Tcl_DStringAppendElement(&ds, buf);
     /* Client arguments. */
-    if (Tcl_ListObjGetElements(interp, objv[2], &numElems, &elems) != TCL_OK) {
+    if (Tcl_ListObjGetElements(interp, objv[1], &numElems, &elems) != TCL_OK) {
 	return TCL_ERROR;
     }
     for (i = 0; i < numElems; i++) {
@@ -814,7 +816,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringAppend(&ds, "\n", 1);
 
 #ifdef KEEPSTATS
-    result = NanoVis::writeToStatsFile(Tcl_DStringValue(&ds), 
+    result = NanoVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
                                        Tcl_DStringLength(&ds));
 #else
     TRACE("clientinfo: %s", Tcl_DStringValue(&ds));

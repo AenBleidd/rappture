@@ -77,6 +77,7 @@
 #include <unistd.h>
 #include <tcl.h>
 #include <pthread.h>
+#include <md5.h>
 
 #undef INLINE
 #ifdef __GNUC__
@@ -575,37 +576,44 @@ SplitPath(const char *path, int *argcPtr, char ***argvPtr)
 }
 
 static int
-OpenStatsFile(const char *path)
+GetStatsFile(const char *string)
 {
     Tcl_DString ds;
-    char **argv;
-    int argc;
     int i;
-    const char *fileName;
-    char string[200];
+    char fileName[33];
+    const char *path;
+    int length;
+    char pidstr[200];
+    md5_state_t state;
+    md5_byte_t digest[16];
 
-    if (access(STATSDIR, X_OK) != 0) {
-	mkdir(STATSDIR, 0770);
+    if (string == NULL) {
+	return statsFile;
     }
-    SplitPath(path, &argc, &argv);
+    /* By itself the client's key/value pairs aren't unique.  Add in the
+     * process id of this render server. */
     Tcl_DStringInit(&ds);
-    Tcl_DStringAppend(&ds, STATSDIR, -1);
-    for (i = 0; i < argc; i++) {
-        char *p;
-
-        Tcl_DStringAppend(&ds, "/", 1);
-        Tcl_DStringAppend(&ds, argv[i], -1);
-        p = Tcl_DStringValue(&ds);
-        if (access(p, X_OK) != 0) {
-            mkdir(p, 0770);
-        }
-    }
-    Tcl_DStringAppend(&ds, "/", 1);
-    sprintf(string, "%d", getpid());
     Tcl_DStringAppend(&ds, string, -1);
-    fileName = Tcl_DStringValue(&ds);
-    free(argv);
-    statsFile = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0600);
+    Tcl_DStringAppendElement(&ds, "pid", 3);
+    sprintf(pidstr, "%d", getpid());
+    Tcl_DStringAppendElement(&ds, pidstr, -1);
+
+    /* Create a md5 hash of the key/value pairs and use it as the file name. */
+    string = Tcl_DStringValue(&ds);
+    length = strlen(string);
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)string, length);
+    md5_finish(&state, digest);
+    for (i = 0; i < 16; i++) {
+        sprintf(fileName + i * 2, "%02x", digest[i]);
+    }
+    Tcl_DStringLength(&ds, 0);
+    Tcl_DStringAppend(&ds, STATSDIR, -1);
+    Tcl_DStringAppend(&ds, "/", 1);
+    Tcl_DStringAppend(&ds, fileName, 32);
+    path = Tcl_DStringValue(&ds);
+
+    statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
     Tcl_DStringFree(&ds);
     if (statsFile < 0) {
 	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
@@ -615,14 +623,15 @@ OpenStatsFile(const char *path)
 }
 
 static int
-WriteToStatsFile(const char *s, size_t length)
+WriteToStatsFile(int f, const char *s, size_t length)
 {
-    ssize_t numWritten;
 
-    if (statsFile >= 0) {
-        numWritten = write(statsFile, s, length);
+    if (f >= 0) {
+	ssize_t numWritten;
+
+        numWritten = write(f, s, length);
         if (numWritten == (ssize_t)length) {
-            close(dup(statsFile));
+            close(dup(f));
         }
     }
     return 0;
@@ -737,8 +746,10 @@ ServerStats(int code)
 	Tcl_DStringAppendElement(&ds, buf);
     }
     Tcl_DStringAppend(&ds, "\n", -1);
-    result = WriteToStatsFile(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+    f = GetStatsFile(NULL);
+    result = WriteToStatsFile(f, Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);
+    close(f);
     return result;
 }
 
@@ -933,15 +944,19 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     const char **elems;
     char buf[BUFSIZ];
     static int first = 1;
+    int f;
 
-    if (argc != 3) {
+    if (argc != 2) {
 	Tcl_AppendResult(interp, "wrong # of arguments: should be \"", argv[0],
-		" path list\"", (char *)NULL);
+		" list\"", (char *)NULL);
 	return TCL_ERROR;
     }
-    if ((statsFile == -1) && (OpenStatsFile(argv[1]) < 0)) {
+    /* Use the initial client key value pairs as the parts for a generating
+     * a unique file name. */
+    f = GetStatsFile(argv[1]);
+    if (f < 0) {
 	Tcl_AppendResult(interp, "can't open stats file: ", 
-			 Tcl_PosixError(interp), (char *)NULL);
+                         Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
     }
     Tcl_DStringInit(&ds);
@@ -982,7 +997,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     free(elems);
     Tcl_DStringAppend(&ds, "\n", 1);
-    result = WriteToStatsFile(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+    result = WriteToStatsFile(f, Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);
     return result;
 }

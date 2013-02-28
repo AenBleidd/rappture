@@ -17,7 +17,7 @@
 #define NANOVIS_H
 
 #include <tcl.h>
-
+#include <md5.h>
 #include <GL/glew.h>
 
 #include <math.h>
@@ -96,8 +96,8 @@ public:
     static void setHeightmapRanges();
 
 #ifdef KEEPSTATS
-    static int openStatsFile(const char *path);
-    static int writeToStatsFile(const char *s, size_t length);
+    static int getStatsFile(Tcl_Obj *objPtr);
+    static int writeToStatsFile(int f, const char *s, size_t length);
 #endif
     static void ppmWrite(const char *prefix);
     static void sendDataToClient(const char *command, const char *data,

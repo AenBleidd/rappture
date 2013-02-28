@@ -323,34 +323,40 @@ SplitPath(const char *path, int *argcPtr, char ***argvPtr)
 }
 
 int
-NanoVis::openStatsFile(const char *path)
+NanoVis::getStatsFile(Tcl_Obj *objPtr)
 {
     Tcl_DString ds;
-    char **argv;
-    int argc;
+    Tcl_Obj **objv;
+    int objc;
     int i;
-    const char *fileName;
-    char string[200];
+    char fileName[33];
+    md5_state_t state;
+    md5_byte_t digest[16];
+    char *string;
 
+    if (objPtr == NULL) {
+        return statsFile;
+    }
+    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
+	return -1;
+    }
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
+    string = Tcl_GetStringFromObj(objPtr, &length);
+
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)string, length);
+    md5_finish(&state, digest);
+    for (i = 0; i < 16; i++) {
+        sprintf(fileName + i * 2, "%02x", digest[i]);
+    }
     Tcl_DStringInit(&ds);
     Tcl_DStringAppend(&ds, STATSDIR, -1);
-    SplitPath(path, &argc, &argv);
-    for (i = 0; i < argc; i++) {
-        char *p;
-
-        Tcl_DStringAppend(&ds, "/", 1);
-        Tcl_DStringAppend(&ds, argv[i], -1);
-        p = Tcl_DStringValue(&ds);
-        if (access(p, X_OK) != 0) {
-            mkdir(p, 0770);
-        }
-    }
     Tcl_DStringAppend(&ds, "/", 1);
-    sprintf(string, "%d", getpid());
-    Tcl_DStringAppend(&ds, string, -1);
-    fileName = Tcl_DStringValue(&ds);
-    free(argv);
-    statsFile = open(fileName, O_EXCL | O_CREAT | O_WRONLY, 0600);
+    Tcl_DStringAppend(&dsm fileName, 32);
+    path = Tcl_DStringValue(&ds);
+
+    statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
     Tcl_DStringFree(&ds);
     if (statsFile < 0) {
 	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
@@ -360,14 +366,14 @@ NanoVis::openStatsFile(const char *path)
 }
 
 int
-NanoVis::writeToStatsFile(const char *s, size_t length)
+NanoVis::writeToStatsFile(int f, const char *s, size_t length)
 {
-    ssize_t numWritten;
+    if (f >= 0) {
+        ssize_t numWritten;
 
-    if (statsFile >= 0) {
-        numWritten = write(statsFile, s, length);
+        numWritten = write(f, s, length);
         if (numWritten == (ssize_t)length) {
-            close(dup(statsFile));
+            close(dup(f));
         }
     }
     return 0;
@@ -380,6 +386,7 @@ serverStats(int code)
     char buf[BUFSIZ];
     Tcl_DString ds;
     int result;
+    int f;
 
     {
 	struct timeval tv;
@@ -482,8 +489,10 @@ serverStats(int code)
 	Tcl_DStringAppendElement(&ds, buf);
     }
     Tcl_DStringAppend(&ds, "\n", -1);
-    result = NanoVis::writeToStatsFile(Tcl_DStringValue(&ds), 
+    f = NanoVis::getStatsFile(NULL);
+    result = NanoVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
                                        Tcl_DStringLength(&ds));
+    close(f);
     Tcl_DStringFree(&ds);
     return result;
 }
@@ -2003,7 +2012,7 @@ main(int argc, char **argv)
     path = NULL;
     NanoVis::stdin = stdin;
 
-    fprintf(stdout, "NanoVis %s\n", NANOVIS_VERSION);
+    fprintf(stdout, "NanoVis %s (build %s)\n", NANOVIS_VERSION, SVN_VERSION);
     fflush(stdout);
 
     openlog("nanovis", LOG_CONS | LOG_PERROR | LOG_PID, LOG_USER);
