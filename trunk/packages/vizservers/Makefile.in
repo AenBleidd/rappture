@@ -23,8 +23,6 @@ CG_LIB_DIR	= @CG_LIB_DIR@
 
 SUBDIRS		= nanoscale pymolproxy
 
-SVN_VERSION	= $(shell svnversion $(srcdir))
-
 ifneq ($(VTK_LIB_DIR),)
   SUBDIRS += vtkvis
 endif
