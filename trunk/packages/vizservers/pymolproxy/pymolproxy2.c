@@ -2466,7 +2466,7 @@ main(int argc, char **argv)
 	sprintf(fileName, "/tmp/pymolproxy%d.py", getpid());
         frecord = fopen(fileName, "w");
     }    
-    fprintf(stdout, "PyMol 1.0\n");
+    fprintf(stdout, "PyMol 1.0, (build %s)\n", SVN_VERSION);
     fflush(stdout);
 
     INFO("Starting pymolproxy (threaded version)");
