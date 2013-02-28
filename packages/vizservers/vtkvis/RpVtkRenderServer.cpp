@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include "ResponseQueue.h"
 #endif 
+#include <md5.h>
 
 using namespace Rappture::VtkVis;
 
