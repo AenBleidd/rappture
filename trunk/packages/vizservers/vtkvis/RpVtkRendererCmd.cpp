@@ -2119,7 +2119,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
     /* Use the initial client key value pairs as the parts for a generating
      * a unique file name. */
-    f = NanoVis::getStatsFile(objv[1]);
+    f = Rappture::VtkVis::getStatsFile(objv[1]);
     if (f < 0) {
 	Tcl_AppendResult(interp, "can't open stats file: ", 
                          Tcl_PosixError(interp), (char *)NULL);

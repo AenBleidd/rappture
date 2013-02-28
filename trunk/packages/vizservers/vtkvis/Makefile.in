@@ -165,7 +165,8 @@ SERVER_SRCS	= \
 		RpVtkRenderServer.cpp \
 		RpWarp.cpp \
 		TGAWriter.cpp \
-		Trace.cpp
+		Trace.cpp \
+		md5.c
 
 ifdef USE_CUSTOM_AXES
 SERVER_SRCS+= \
