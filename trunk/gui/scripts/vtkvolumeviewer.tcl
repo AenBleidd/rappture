@@ -1047,6 +1047,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                     lappend info "tool_title"    [$dataobj hints toolTitle]
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $length
+                    lappend info "dataset_tag"   $tag
                     SendCmd [list "clientinfo" $info]
                 }
                 append _outbuf "dataset add $tag data follows $length\n"

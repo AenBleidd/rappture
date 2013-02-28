@@ -494,7 +494,7 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
     #SendCmd "imgflush"
 
     # Must reset camera to have object scaling to take effect.
-    #SendCmd "camera reset"
+    SendCmd "camera reset"
     #SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
 }
@@ -1053,6 +1053,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                     lappend info "tool_title"    [$dataobj hints toolTitle]
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $length
+                    lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
                 append _outbuf "dataset add $tag data follows $length\n"
@@ -1139,6 +1140,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	DoRotate
 	PanCamera
         Zoom reset
+        SendCmd "camera reset"
         set _reset 0
     }
     set _buffering 0;                        # Turn off buffering.
@@ -1580,8 +1582,6 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 return
             }
             foreach dataset [CurrentDatasets -visible] {
-                puts stderr "streamlines colormode $_colorMode ${name} $dataset"
-                puts stderr "cutplane colormode $_colorMode ${name} $dataset"
                 SendCmd "streamlines colormode $_colorMode ${name} $dataset"
                 SendCmd "cutplane colormode $_colorMode ${name} $dataset"
             }
@@ -1748,7 +1748,6 @@ itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
             for { set i 0 } { $i < [$fieldData GetNumberOfArrays] } { incr i } {
                 puts stderr [$fieldData GetArrayName $i]
             }
-            puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
             for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
                 set name [$pointData GetArrayName $i]
                 if { ![info exists _fields($name)] } {
@@ -2396,7 +2395,6 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
     set _legendPending 0
-    puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
     set _limits(vmin) $vmin
     set _limits(vmax) $vmax
     set _title $title
@@ -2606,7 +2604,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
             set x1 [expr [winfo width $itk_component(view)] - [winfo reqwidth $itk_component(fieldmenu)]]
             set x [expr $x1 + [winfo rootx $itk_component(view)]]
             set y [expr $y2 + [winfo rooty $itk_component(view)]]
-            puts stderr "combo x=$x y=$y"
             tk_popup $itk_component(fieldmenu) $x $y
         }
         activate {

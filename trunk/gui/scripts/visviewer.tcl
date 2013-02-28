@@ -243,7 +243,6 @@ itcl::body Rappture::VisViewer::ServerDown {} {
 itcl::body Rappture::VisViewer::Connect { servers } {
     blt::busy hold $itk_component(hull) -cursor watch
 
-    puts stderr "server type is $_serverType"
     if { $_numConnectTries > $_maxConnects } {
         blt::busy release $itk_component(hull)
         set x [expr {[winfo rootx $itk_component(hull)]+10}]

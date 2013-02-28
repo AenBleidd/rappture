@@ -2111,10 +2111,14 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
     Tcl_DString ds;
-    int result;
-    int i;
+    Tcl_Obj *objPtr, *listObjPtr, **items;
+    int numItems;
     char buf[BUFSIZ];
+    const char *string;
     int f;
+    int i;
+    int length;
+    int result;
     static bool first = true;
 
     /* Use the initial client key value pairs as the parts for a generating
@@ -2125,42 +2129,57 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
                          Tcl_PosixError(interp), (char *)NULL);
 	return TCL_ERROR;
     }
-    Tcl_DStringInit(&ds);
+    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
+    Tcl_IncrRefCount(listObjPtr);
     if (first) {
-        Tcl_DStringAppendElement(&ds, "render_start");
         first = false;
+        objPtr = Tcl_NewStringObj("render_start", 12);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        /* server */
+        objPtr = Tcl_NewStringObj("server", 6);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        objPtr = Tcl_NewStringObj("vtkvis", 6);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        /* pid */
+        objPtr = Tcl_NewStringObj("pid", 3);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewIntObj(getpid()));
+        /* machine */
+        objPtr = Tcl_NewStringObj("machine", 7);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        gethostname(buf, BUFSIZ-1);
+        buf[BUFSIZ-1] = '\0';
+        objPtr = Tcl_NewStringObj(buf, -1);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     } else {
-        Tcl_DStringAppendElement(&ds, "render_info");
+        objPtr = Tcl_NewStringObj("render_info", 11);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
-    /* renderer */
-    Tcl_DStringAppendElement(&ds, "renderer");
-    Tcl_DStringAppendElement(&ds, "vtkvis");
-    /* pid */
-    Tcl_DStringAppendElement(&ds, "pid");
-    sprintf(buf, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, buf);
-    /* host */
-    Tcl_DStringAppendElement(&ds, "host");
-    gethostname(buf, BUFSIZ-1);
-    buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
     /* date */
-    Tcl_DStringAppendElement(&ds, "date");
+    Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj("date", 4));
     strcpy(buf, ctime(&Rappture::VtkVis::g_stats.start.tv_sec));
     buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
+    Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj(buf, -1));
     /* date_secs */
-    Tcl_DStringAppendElement(&ds, "date_secs");
-    sprintf(buf, "%ld", Rappture::VtkVis::g_stats.start.tv_sec);
-    Tcl_DStringAppendElement(&ds, buf);
+    Tcl_ListObjAppendElement(interp, listObjPtr, 
+                Tcl_NewStringObj("date_secs", 9));
+    Tcl_ListObjAppendElement(interp, listObjPtr, 
+                Tcl_NewLongObj(Rappture::VtkVis::g_stats.start.tv_sec));
     /* Client arguments. */
-    for (i = 1; i < objc; i++) {
-        Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
+    if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
+	return TCL_ERROR;
     }
+    for (i = 0; i < numItems; i++) {
+        Tcl_ListObjAppendElement(interp, listObjPtr, items[i]);
+    }
+    Tcl_DStringInit(&ds);
+    string = Tcl_GetStringFromObj(listObjPtr, &length);
+    Tcl_DStringAppend(&ds, string, length);
     Tcl_DStringAppend(&ds, "\n", 1);
     result = Rappture::VtkVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
                                                 Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);
+    Tcl_DecrRefCount(listObjPtr);
     return result;
 }
 
