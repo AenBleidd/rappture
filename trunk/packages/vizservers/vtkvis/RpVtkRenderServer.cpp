@@ -198,7 +198,7 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 #define STATSDIR	"/var/tmp/visservers"
 
 int
-Rappture::VtkVis::getStatsFile(Tcl_Obj *objPtr)
+Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
 {
     Tcl_DString ds;
     Tcl_Obj **objv;
@@ -375,8 +375,8 @@ serverStats(int code)
 	Tcl_DStringAppendElement(&ds, buf);
     }
     Tcl_DStringAppend(&ds, "\n", -1);
-    f = getStatsFile(NULL);
-    result = writeToStatsFile(Tcl_DStringValue(&ds), 
+    f = getStatsFile(NULL, NULL);
+    result = writeToStatsFile(f, Tcl_DStringValue(&ds), 
                               Tcl_DStringLength(&ds));
     close(f);
     Tcl_DStringFree(&ds);
