@@ -39,6 +39,7 @@ using namespace Rappture::VtkVis;
 
 Stats Rappture::VtkVis::g_stats;
 
+int Rappture::VtkVis::g_statsFile = -1; ///< Stats output file descriptor.
 int Rappture::VtkVis::g_fdIn = STDIN_FILENO; ///< Input file descriptor
 int Rappture::VtkVis::g_fdOut = STDOUT_FILENO; ///< Output file descriptor
 FILE *Rappture::VtkVis::g_fOut = stdout; ///< Output file handle
