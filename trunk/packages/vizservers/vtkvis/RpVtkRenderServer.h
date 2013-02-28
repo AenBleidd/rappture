@@ -43,7 +43,7 @@ extern FILE *g_fOut;
 extern FILE *g_fLog;
 extern Renderer *g_renderer;
 extern ReadBuffer *g_inBufPtr;
-extern int g_StatFile;
+extern int g_statsFile;
 extern int writeToStatsFile(int f, const char *s, size_t length);
 extern int getStatsFile(Tcl_Obj *objPtr);
 
