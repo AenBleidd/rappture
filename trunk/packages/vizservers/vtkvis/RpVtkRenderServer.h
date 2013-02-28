@@ -23,8 +23,6 @@ class Renderer;
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
 #define STATSDIR	"/var/tmp/visservers"
-#define STATSFILE	STATSDIR "/" "vtkvis_log.tcl"
-#define LOCKFILE	STATSDIR "/" "LCK..vtkvis"
 
 typedef struct {
     pid_t pid;
@@ -45,8 +43,9 @@ extern FILE *g_fOut;
 extern FILE *g_fLog;
 extern Renderer *g_renderer;
 extern ReadBuffer *g_inBufPtr;
-
-extern int writeToStatsFile(const char *s, size_t length);
+extern int g_StatFile;
+extern int writeToStatsFile(int f, const char *s, size_t length);
+extern int getStatsFile(Tcl_Obj *objPtr);
 
 }
 }

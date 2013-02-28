@@ -2114,9 +2114,24 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     int result;
     int i;
     char buf[BUFSIZ];
+    int f;
+    static bool first = true;
 
+    /* Use the initial client key value pairs as the parts for a generating
+     * a unique file name. */
+    f = NanoVis::getStatsFile(objv[1]);
+    if (f < 0) {
+	Tcl_AppendResult(interp, "can't open stats file: ", 
+                         Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
     Tcl_DStringInit(&ds);
-    Tcl_DStringAppendElement(&ds, "render_start");
+    if (first) {
+        Tcl_DStringAppendElement(&ds, "render_start");
+        first = false;
+    } else {
+        Tcl_DStringAppendElement(&ds, "render_info");
+    }
     /* renderer */
     Tcl_DStringAppendElement(&ds, "renderer");
     Tcl_DStringAppendElement(&ds, "vtkvis");
@@ -2143,7 +2158,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
     }
     Tcl_DStringAppend(&ds, "\n", 1);
-    result = Rappture::VtkVis::writeToStatsFile(Tcl_DStringValue(&ds), 
+    result = Rappture::VtkVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
                                                 Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);
     return result;

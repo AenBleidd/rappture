@@ -193,63 +193,64 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 }
 #endif /*USE_THREADS*/
 
-static int
-getFileLock()
+#define STATSDIR	"/var/tmp/visservers"
+
+int
+Rappture::VtkVis::getStatsFile(Tcl_Obj *objPtr)
 {
-    int numTries;
+    Tcl_DString ds;
+    Tcl_Obj **objv;
+    int objc;
+    int i;
+    char fileName[33];
+    const char *path;
+    md5_state_t state;
+    md5_byte_t digest[16];
+    char *string;
+    int length;
 
-    for (numTries = 0; numTries < 10; numTries++) {
-	int f;
-
-	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
-	if (f >= 0) {
-	    char buf[200];
-	    ssize_t numWritten;
-	    size_t numBytes;
-
-	    sprintf(buf, "%d\n", getpid());
-	    numBytes = strlen(buf);
-	    numWritten = write(f, buf, numBytes);
-	    if (numWritten != (ssize_t)numBytes) {
-                ERROR("Wrote short lock file");
-	    }
-	    close(f);
-	    return 0;
-	}
-	sleep(1);			/* Wait for lock to release. */
+    if (objPtr == NULL) {
+        return g_statsFile;
     }
-    ERROR("Failed to open lock file");
-    return -1;
-}
+    if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
+	return -1;
+    }
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("pid", 3));
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewIntObj(getpid()));
+    string = Tcl_GetStringFromObj(objPtr, &length);
 
-static void
-releaseFileLock()
-{
-    unlink(LOCKFILE);
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)string, length);
+    md5_finish(&state, digest);
+    for (i = 0; i < 16; i++) {
+        sprintf(fileName + i * 2, "%02x", digest[i]);
+    }
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppend(&ds, STATSDIR, -1);
+    Tcl_DStringAppend(&ds, "/", 1);
+    Tcl_DStringAppend(&ds, fileName, 32);
+    path = Tcl_DStringValue(&ds);
+
+    g_statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
+    Tcl_DStringFree(&ds);
+    if (statsFile < 0) {
+	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
+	return -1;
+    }
+    return g_statsFile;
 }
 
 int
-Rappture::VtkVis::writeToStatsFile(const char *s, size_t length)
+Rappture::VtkVis::writeToStatsFile(int f, const char *s, size_t length)
 {
-    int f;
-    ssize_t numWritten;
-    if (access(STATSDIR, X_OK) != 0) {
-	mkdir(STATSDIR, 0770);
+    if (f >= 0) {
+        ssize_t numWritten;
+
+        numWritten = write(f, s, length);
+        if (numWritten == (ssize_t)length) {
+            close(dup(f));
+        }
     }
-    if (getFileLock() < 0) {
-	return -1;
-    }
-    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-    releaseFileLock();
-    if (f < 0) {
-	return -1;
-    }
-    numWritten = write(f, s, length);
-    if (numWritten != (ssize_t)length) {
-	close(f);
-	return -1;
-    }
-    close(f);
     return 0;
 }
 
@@ -372,8 +373,10 @@ serverStats(int code)
 	Tcl_DStringAppendElement(&ds, buf);
     }
     Tcl_DStringAppend(&ds, "\n", -1);
+    f = getStatsFile(NULL);
     result = writeToStatsFile(Tcl_DStringValue(&ds), 
                               Tcl_DStringLength(&ds));
+    close(f);
     Tcl_DStringFree(&ds);
     return result;
 }
