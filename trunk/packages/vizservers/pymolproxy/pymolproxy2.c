@@ -114,7 +114,7 @@ static int statsFile = -1;
 #define VIEWPORT_PENDING	(1<<10)
 
 #define IO_TIMEOUT (30000)
-#define STATSDIR	"/var/tmp/visservers"
+#define STATSDIR	"/var/log/visservers"
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
 typedef struct {
