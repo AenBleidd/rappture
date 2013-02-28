@@ -97,13 +97,13 @@ LIBS		= \
 		-Wl,--enable-new-dtags
 
 INCLUDES	= \
-		-I. \
 		-I$(srcdir) \
 		$(TCL_INC_SPEC) \
 		$(VTK_INC_SPEC)
 
 #vtk uses deprecated strstream header (instead of sstream)
-EXTRA_CFLAGS	= -Wall -Wno-deprecated
+EXTRA_CXXFLAGS	= -Wall -Wno-deprecated
+EXTRA_CFLAGS	= -Wall
 DEFINES		=
 ifdef DEBUG
 DEFINES 	+= -DDEBUG
@@ -129,7 +129,8 @@ VTK_MOD_DEFS    = -DvtkRenderingCore_AUTOINIT="4(vtkInteractionStyle,vtkRenderin
 DEFINES         += -DUSE_VTK6 -DVTK_HYBRID_EXPORT="" -DVTK_RENDERING_EXPORT="" $(VTK_MOD_DEFS)
 endif
 
-CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
+CXX_SWITCHES	= $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(DEFINES) $(INCLUDES)
+CC_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 
 SERVER_SRCS	= \
 		CmdProc.cpp \
@@ -199,6 +200,9 @@ install: $(SERVER)
 %.o: %.cpp
 	$(CXX) $(CXX_SWITCHES) -c $< -o $@
 
+%.o: %.c
+	$(CC) $(CC_SWITCHES) -c $< -o $@
+
 clean:
 	$(RM) *~ *.o $(SERVER)
 
@@ -248,3 +252,4 @@ TGAWriter.o: TGAWriter.h ResponseQueue.h Trace.h
 vtkRpAxisActor.o: vtkRpAxisActor.h
 vtkRpAxisActor2D.o: vtkRpAxisActor2D.h
 vtkRpCubeAxesActor.o: vtkRpCubeAxesActor.h vtkRpAxisActor.h vtkRpAxisActor2D.h
+md5.o: md5.h
