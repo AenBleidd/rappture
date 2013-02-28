@@ -549,33 +549,6 @@ clear_error(PymolProxy *proxyPtr)
 #define STATSDIR	"/var/tmp/visservers"
 
 static int
-SplitPath(const char *path, int *argcPtr, char ***argvPtr)
-{
-    char **array;
-    int count;
-    char *p;
-    char *s;
-    size_t addrsize;
-
-    count = 0;
-    for (p = strchr((char *)path, '/'); p != NULL; p = strchr(p+1, '/')) {
-        count++;
-    }
-    addrsize = (count + 1) * sizeof(char *);
-    array = (char **)malloc(addrsize + strlen(path) + 1);
-    s = (char *)array + addrsize;
-    strcpy(s, path);
-    
-    count = 0;
-    for (p = strtok(s, "/"); p != NULL; p = strtok(NULL, "/")) {
-        array[count++] = p;
-    }
-    *argcPtr = count;
-    *argvPtr = array;
-    return count;
-}
-
-static int
 GetStatsFile(const char *string)
 {
     Tcl_DString ds;
