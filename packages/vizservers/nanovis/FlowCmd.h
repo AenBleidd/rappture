@@ -206,6 +206,7 @@ struct FlowValues {
     int showVolume;
     int showOutline;
     int isHidden;
+    int twoSidedLighting;
     float ambient;     ///< Ambient volume shading
     float diffuse;     ///< Diffuse volume shading
     float specular;    ///< Specular level volume shading
