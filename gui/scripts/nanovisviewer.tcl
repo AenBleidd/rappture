@@ -930,6 +930,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                     lappend info "tool_title"    [$dataobj hints toolTitle]
                     lappend info "dataset_label" [$dataobj hints label]
                     lappend info "dataset_size"  $nbytes
+                    lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
                 append _outbuf "volume data follows $nbytes $tag\n"
@@ -1401,7 +1402,7 @@ itcl::body Rappture::NanovisViewer::FixLegend {} {
 #
 itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
     array set style {
-        -color nanovis
+        -color BGYOR
         -levels 6
         -opacity 1.0
         -markers ""
@@ -1427,7 +1428,7 @@ itcl::body Rappture::NanovisViewer::NameTransferFunc { dataobj cname } {
 #
 itcl::body Rappture::NanovisViewer::ComputeTransferFunc { tf } {
     array set style {
-        -color nanovis
+        -color BGYOR
         -levels 6
         -opacity 1.0
         -markers ""

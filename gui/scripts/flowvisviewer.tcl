@@ -1230,6 +1230,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     }
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
+            set tag $dataobj-$comp
             # Send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj blob $comp]
             set nbytes [string length $data]
@@ -1241,12 +1242,13 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
                 lappend info "tool_title"    [$dataobj hints toolTitle]
                 lappend info "dataset_label" [$dataobj hints label]
                 lappend info "dataset_size"  $nbytes
+                lappend info "dataset_tag"   $tag
                 SendCmd "clientinfo [list $info]"
             }
             set extents [$dataobj extents $comp]
             # I have a field. Is a vector field or a volume field?
             if { $extents == 1 } {
-                set cmd "volume data follows $nbytes $dataobj-$comp\n"
+                set cmd "volume data follows $nbytes $tag\n"
             } else {
                 set cmd [FlowCmd $dataobj $comp $nbytes $extents]
                 if { $cmd == "" } {
@@ -1257,7 +1259,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             append _outbuf $cmd
             append _outbuf $data
             NameTransferFunc $dataobj $comp
-            set _recvObjs($dataobj-$comp) 1
+            set _recvObjs($tag) 1
         }
     }
 

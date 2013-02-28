@@ -560,7 +560,7 @@ GetStatsFile(const char *string)
     md5_state_t state;
     md5_byte_t digest[16];
 
-    if (string == NULL) {
+    if ((string == NULL) || (statsFile >= 0)) {
 	return statsFile;
     }
     /* By itself the client's key/value pairs aren't unique.  Add in the
@@ -935,23 +935,23 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     }
     Tcl_DStringInit(&ds);
     if (first) {
-	Tcl_DStringAppendElement(&ds, "render_start");
-	first = 0;
+        first = 0;
+        Tcl_DStringAppendElement(&ds, "render_start");
+        /* server */
+        Tcl_DStringAppendElement(&ds, "server");
+	Tcl_DStringAppendElement(&ds, "pymol");
+        /* pid */
+	Tcl_DStringAppendElement(&ds, "pid");
+	sprintf(buf, "%d", getpid());
+	Tcl_DStringAppendElement(&ds, buf);
+        /* machine */
+        Tcl_DStringAppendElement(&ds, "machine");
+	gethostname(buf, BUFSIZ-1);
+	buf[BUFSIZ-1] = '\0';
+	Tcl_DStringAppendElement(&ds, buf);
     } else {
-	Tcl_DStringAppendElement(&ds, "render_info");
+        Tcl_DStringAppendElement(&ds, "render_info");
     }
-    /* renderer */
-    Tcl_DStringAppendElement(&ds, "renderer");
-    Tcl_DStringAppendElement(&ds, "nanovis");
-    /* pid */
-    Tcl_DStringAppendElement(&ds, "pid");
-    sprintf(buf, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, buf);
-    /* host */
-    Tcl_DStringAppendElement(&ds, "host");
-    gethostname(buf, BUFSIZ-1);
-    buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
     /* date */
     Tcl_DStringAppendElement(&ds, "date");
     strcpy(buf, ctime(&stats.start.tv_sec));
@@ -963,7 +963,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     Tcl_DStringAppendElement(&ds, buf);
 
     /* Client arguments. */
-    if (Tcl_SplitList(interp, argv[2], &numElems, &elems) != TCL_OK) {
+    if (Tcl_SplitList(interp, argv[1], &numElems, &elems) != TCL_OK) {
 	return TCL_ERROR;
     }
     for (i = 0; i < numElems; i++) {

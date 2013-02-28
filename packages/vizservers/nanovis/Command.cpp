@@ -757,10 +757,11 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_Obj *const *objv)
 {
     Tcl_DString ds;
+    Tcl_Obj *objPtr, *listObjPtr, **items;
     int result;
-    int i, numElems;
-    Tcl_Obj **elems;
+    int i, numItems, length;
     char buf[BUFSIZ];
+    const char *string;
     static int first = 1;
 
     if (objc != 2) {
@@ -780,43 +781,54 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
 #endif
-    Tcl_DStringInit(&ds);
+    listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
+    Tcl_IncrRefCount(listObjPtr);
     if (first) {
-        Tcl_DStringAppendElement(&ds, "render_start");
-        first = 0;
+        first = false;
+        objPtr = Tcl_NewStringObj("render_start", 12);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        /* server */
+        objPtr = Tcl_NewStringObj("server", 6);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        objPtr = Tcl_NewStringObj("nanovis", 7);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        /* pid */
+        objPtr = Tcl_NewStringObj("pid", 3);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewIntObj(getpid()));
+        /* machine */
+        objPtr = Tcl_NewStringObj("machine", 7);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
+        gethostname(buf, BUFSIZ-1);
+        buf[BUFSIZ-1] = '\0';
+        objPtr = Tcl_NewStringObj(buf, -1);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     } else {
-        Tcl_DStringAppendElement(&ds, "render_info");
+        objPtr = Tcl_NewStringObj("render_info", 11);
+        Tcl_ListObjAppendElement(interp, listObjPtr, objPtr);
     }
-    /* renderer */
-    Tcl_DStringAppendElement(&ds, "renderer");
-    Tcl_DStringAppendElement(&ds, "nanovis");
-    /* pid */
-    Tcl_DStringAppendElement(&ds, "pid");
-    sprintf(buf, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, buf);
-    /* host */
-    Tcl_DStringAppendElement(&ds, "host");
-    gethostname(buf, BUFSIZ-1);
-    buf[BUFSIZ-1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
+    Tcl_DStringInit(&ds);
     /* date */
-    Tcl_DStringAppendElement(&ds, "date");
+    Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj("date", 4));
     strcpy(buf, ctime(&NanoVis::startTime.tv_sec));
     buf[strlen(buf) - 1] = '\0';
-    Tcl_DStringAppendElement(&ds, buf);
+    Tcl_ListObjAppendElement(interp, listObjPtr, Tcl_NewStringObj(buf, -1));
     /* date_secs */
-    Tcl_DStringAppendElement(&ds, "date_secs");
-    sprintf(buf, "%ld", NanoVis::startTime.tv_sec);
-    Tcl_DStringAppendElement(&ds, buf);
+    Tcl_ListObjAppendElement(interp, listObjPtr, 
+                Tcl_NewStringObj("date_secs", 9));
+    Tcl_ListObjAppendElement(interp, listObjPtr, 
+                Tcl_NewLongObj(NanoVis::startTime.tv_sec));
     /* Client arguments. */
-    if (Tcl_ListObjGetElements(interp, objv[1], &numElems, &elems) != TCL_OK) {
+    if (Tcl_ListObjGetElements(interp, objv[1], &numItems, &items) != TCL_OK) {
 	return TCL_ERROR;
     }
-    for (i = 0; i < numElems; i++) {
-	Tcl_DStringAppendElement(&ds, Tcl_GetString(elems[i]));
+    for (i = 0; i < numItems; i++) {
+        Tcl_ListObjAppendElement(interp, listObjPtr, items[i]);
     }
+    Tcl_DStringInit(&ds);
+    string = Tcl_GetStringFromObj(listObjPtr, &length);
+    Tcl_DStringAppend(&ds, string, length);
     Tcl_DStringAppend(&ds, "\n", 1);
-
 #ifdef KEEPSTATS
     result = NanoVis::writeToStatsFile(f, Tcl_DStringValue(&ds), 
                                        Tcl_DStringLength(&ds));
@@ -824,6 +836,7 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     TRACE("clientinfo: %s", Tcl_DStringValue(&ds));
 #endif
     Tcl_DStringFree(&ds);
+    Tcl_DecrRefCount(listObjPtr);
     return result;
 }
 

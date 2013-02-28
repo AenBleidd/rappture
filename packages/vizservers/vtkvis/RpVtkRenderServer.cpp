@@ -211,7 +211,7 @@ Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
     char *string;
     int length;
 
-    if (objPtr == NULL) {
+    if ((objPtr == NULL) || (g_statsFile >= 0)) {
         return g_statsFile;
     }
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {
@@ -503,7 +503,7 @@ main(int argc, char *argv[])
      * doesn't start writing commands before the server is ready. It could
      * also be used to supply information about the server (version, memory
      * size, etc). */
-    fprintf(g_fOut, "VtkVis 1.1\n");
+    fprintf(g_fOut, "VtkVis 1.1 (build %s)\n", SVN_VERSION);
     fflush(g_fOut);
 
     g_renderer = new Renderer();

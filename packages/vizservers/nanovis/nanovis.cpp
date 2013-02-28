@@ -309,7 +309,7 @@ NanoVis::getStatsFile(Tcl_Obj *objPtr)
     char *string;
     int length;
 
-    if (objPtr == NULL) {
+    if ((objPtr == NULL) || (statsFile >= 0)) {
         return statsFile;
     }
     if (Tcl_ListObjGetElements(interp, objPtr, &objc, &objv) != TCL_OK) {

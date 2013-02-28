@@ -1014,12 +1014,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
                 set length [string length $bytes]
                 if 1 {
                     set info {}
-                    lappend data "tool_id"       [$dataobj hints toolId]
-                    lappend data "tool_name"     [$dataobj hints toolName]
-                    lappend data "tool_version"  [$dataobj hints toolRevision]
-                    lappend data "tool_title"    [$dataobj hints toolTitle]
-                    lappend data "dataset_label" [$dataobj hints label]
-                    lappend data "dataset_size"  $length
+                    lappend info "tool_id"       [$dataobj hints toolId]
+                    lappend info "tool_name"     [$dataobj hints toolName]
+                    lappend info "tool_version"  [$dataobj hints toolRevision]
+                    lappend info "tool_title"    [$dataobj hints toolTitle]
+                    lappend info "dataset_label" [$dataobj hints label]
+                    lappend info "dataset_size"  $length
+                    lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
                 append _outbuf "dataset add $tag data follows $length\n"
