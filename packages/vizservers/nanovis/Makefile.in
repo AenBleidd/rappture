@@ -58,6 +58,8 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 LD_RUN_PATH     = $(libdir):@LD_RPATH@
 
+SVN_VERSION	= $(shell svnversion)
+
 LIBS		= \
 		$(RP_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
@@ -90,7 +92,7 @@ CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
-DEFINES         = 
+DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\"
 ifdef USE_POINTSET_RENDERER
 DEFINES         +=-DUSE_POINTSET_RENDERER
 endif
@@ -144,7 +146,8 @@ OBJS		= \
 		ZincBlendeVolume.o \
 		dxReader.o \
 		dxReaderCommon.o \
-		nanovis.o
+		nanovis.o \
+		md5.o 
 
 resources	= \
 		$(srcdir)/resources/arrows.bmp \
