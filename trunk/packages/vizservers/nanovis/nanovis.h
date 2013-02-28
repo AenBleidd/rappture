@@ -96,6 +96,7 @@ public:
     static void setHeightmapRanges();
 
 #ifdef KEEPSTATS
+    static int openStatsFile(const char *path);
     static int writeToStatsFile(const char *s, size_t length);
 #endif
     static void ppmWrite(const char *prefix);
@@ -151,7 +152,7 @@ public:
     static void AdvectFlows();
 
     static FILE *stdin, *logfile, *recfile;
-
+    static int statsFile;
     static unsigned int flags;
     static bool debugFlag;
     static bool axisOn;

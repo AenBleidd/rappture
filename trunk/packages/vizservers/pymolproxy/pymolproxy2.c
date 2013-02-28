@@ -94,6 +94,7 @@ static FILE *fdebug;
 static FILE *frecord;
 static int recording = FALSE;
 static int pymolIsAlive = TRUE;
+static int statsFile = -1;
 
 #define WANT_DEBUG	0
 #define READ_DEBUG	0
@@ -113,8 +114,6 @@ static int pymolIsAlive = TRUE;
 
 #define IO_TIMEOUT (30000)
 #define STATSDIR	"/var/tmp/visservers"
-#define STATSFILE	STATSDIR "/" "pymol_log.tcl"
-#define LOCKFILE	STATSDIR "/" "LCK..pymol"
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
 typedef struct {
@@ -545,62 +544,87 @@ clear_error(PymolProxy *proxyPtr)
     proxyPtr->status = TCL_OK;
 }
 
+
+#define STATSDIR	"/var/tmp/visservers"
+
 static int
-GetFileLock()
+SplitPath(const char *path, int *argcPtr, char ***argvPtr)
 {
-    int numTries;
+    char **array;
+    int count;
+    char *p;
+    char *s;
+    size_t addrsize;
 
-    for (numTries = 0; numTries < 10; numTries++) {
-	int f;
-
-	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
-	if (f >= 0) {
-	    char buf[200];
-	    ssize_t numWritten;
-	    size_t numBytes;
-
-	    sprintf(buf, "%d\n", getpid());
-	    numBytes = strlen(buf);
-	    numWritten = write(f, buf, numBytes);
-	    if (numWritten != (ssize_t)numBytes) {
-                ERROR("Wrote short lock file");
-	    }
-	    close(f);
-	    return 0;
-	}
-	sleep(1);			/* Wait for lock to release. */
+    count = 0;
+    for (p = strchr((char *)path, '/'); p != NULL; p = strchr(p+1, '/')) {
+        count++;
     }
-    ERROR("Failed to open lock file");
-    return -1;
+    addrsize = (count + 1) * sizeof(char *);
+    array = (char **)malloc(addrsize + strlen(path) + 1);
+    s = (char *)array + addrsize;
+    strcpy(s, path);
+    
+    count = 0;
+    for (p = strtok(s, "/"); p != NULL; p = strtok(NULL, "/")) {
+        array[count++] = p;
+    }
+    *argcPtr = count;
+    *argvPtr = array;
+    return count;
 }
 
-static void
-ReleaseFileLock()
+static int
+OpenStatsFile(const char *path)
 {
-    unlink(LOCKFILE);
+    Tcl_DString ds;
+    char **argv;
+    int argc;
+    int i;
+    const char *fileName;
+    char string[200];
+
+    if (access(STATSDIR, X_OK) != 0) {
+	mkdir(STATSDIR, 0770);
+    }
+    SplitPath(path, &argc, &argv);
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppend(&ds, STATSDIR, -1);
+    for (i = 0; i < argc; i++) {
+        char *p;
+
+        Tcl_DStringAppend(&ds, "/", 1);
+        Tcl_DStringAppend(&ds, argv[i], -1);
+        p = Tcl_DStringValue(&ds);
+        if (access(p, X_OK) != 0) {
+            mkdir(p, 0770);
+        }
+    }
+    Tcl_DStringAppend(&ds, "/", 1);
+    sprintf(string, "%d", getpid());
+    Tcl_DStringAppend(&ds, string, -1);
+    fileName = Tcl_DStringValue(&ds);
+    free(argv);
+    statsFile = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0600);
+    Tcl_DStringFree(&ds);
+    if (statsFile < 0) {
+	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
+	return -1;
+    }
+    return statsFile;
 }
 
 static int
 WriteToStatsFile(const char *s, size_t length)
 {
-    int f;
+    ssize_t numWritten;
 
-    if (access(STATSDIR, X_OK) != 0) {
-	mkdir(STATSDIR, 0770);
+    if (statsFile >= 0) {
+        numWritten = write(statsFile, s, length);
+        if (numWritten == (ssize_t)length) {
+            close(dup(statsFile));
+        }
     }
-    if (GetFileLock() < 0) {
-	return -1;
-    }
-    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-    ReleaseFileLock();
-    if (f < 0) {
-	return -1;
-    }
-    if (write(f, s, length) != (ssize_t)length) {
-	close(f);
-	return -1;
-    }
-    close(f);
     return 0;
 }
 
@@ -896,8 +920,8 @@ FrameCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 /* 
  * ClientInfoCmd --
  *
- *	info "hub" value "session" value "date" value name value name value 
  *	  
+ *	clientinfo path list
  */
 static int
 ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc, 
@@ -905,11 +929,28 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
 {
     Tcl_DString ds;
     int result;
-    int i;
+    int i, numElems;
+    const char **elems;
     char buf[BUFSIZ];
+    static int first = 1;
 
+    if (argc != 3) {
+	Tcl_AppendResult(interp, "wrong # of arguments: should be \"", argv[0],
+		" path list\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+    if ((statsFile == -1) && (OpenStatsFile(argv[1]) < 0)) {
+	Tcl_AppendResult(interp, "can't open stats file: ", 
+			 Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
     Tcl_DStringInit(&ds);
-    Tcl_DStringAppendElement(&ds, "render_start");
+    if (first) {
+	Tcl_DStringAppendElement(&ds, "render_start");
+	first = 0;
+    } else {
+	Tcl_DStringAppendElement(&ds, "render_info");
+    }
     /* renderer */
     Tcl_DStringAppendElement(&ds, "renderer");
     Tcl_DStringAppendElement(&ds, "nanovis");
@@ -931,10 +972,15 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int argc,
     Tcl_DStringAppendElement(&ds, "date_secs");
     sprintf(buf, "%ld", stats.start.tv_sec);
     Tcl_DStringAppendElement(&ds, buf);
+
     /* Client arguments. */
-    for (i = 1; i < argc; i++) {
-	Tcl_DStringAppendElement(&ds, argv[i]);
+    if (Tcl_SplitList(interp, argv[2], &numElems, &elems) != TCL_OK) {
+	return TCL_ERROR;
     }
+    for (i = 0; i < numElems; i++) {
+	Tcl_DStringAppendElement(&ds, elems[i]);
+    }
+    free(elems);
     Tcl_DStringAppend(&ds, "\n", 1);
     result = WriteToStatsFile(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
     Tcl_DStringFree(&ds);

@@ -748,6 +748,7 @@ CutplaneCmd(ClientData clientData, Tcl_Interp *interp, int objc,
  *
  *      Log initial values to stats file.
  *	  
+ *      clientinfo path list
  */
 static int
 ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
@@ -755,11 +756,33 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Tcl_DString ds;
     int result;
-    int i;
+    int i, numElems;
+    Tcl_Obj **elems;
     char buf[BUFSIZ];
+    static int first = 1;
 
+    if (objc != 3) {
+	Tcl_AppendResult(interp, "wrong # of arguments: should be \"", 
+                Tcl_GetString(objv[0]), " path list\"", (char *)NULL);
+	return TCL_ERROR;
+    }
+#ifdef KEEPSTATS
+    const char *path;
+
+    path = Tcl_GetString(objv[1]);
+    if (NanoVis::openStatsFile(path) < 0) {
+	Tcl_AppendResult(interp, "can't open stats file: ", 
+                Tcl_PosixError(interp), (char *)NULL);
+	return TCL_ERROR;
+    }
+#endif
     Tcl_DStringInit(&ds);
-    Tcl_DStringAppendElement(&ds, "render_start");
+    if (first) {
+        Tcl_DStringAppendElement(&ds, "render_start");
+        first = 0;
+    } else {
+        Tcl_DStringAppendElement(&ds, "render_info");
+    }
     /* renderer */
     Tcl_DStringAppendElement(&ds, "renderer");
     Tcl_DStringAppendElement(&ds, "nanovis");
@@ -782,10 +805,14 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     sprintf(buf, "%ld", NanoVis::startTime.tv_sec);
     Tcl_DStringAppendElement(&ds, buf);
     /* Client arguments. */
-    for (i = 1; i < objc; i++) {
-        Tcl_DStringAppendElement(&ds, Tcl_GetString(objv[i]));
+    if (Tcl_ListObjGetElements(interp, objv[2], &numElems, &elems) != TCL_OK) {
+	return TCL_ERROR;
+    }
+    for (i = 0; i < numElems; i++) {
+	Tcl_DStringAppendElement(&ds, Tcl_GetString(elems[i]));
     }
     Tcl_DStringAppend(&ds, "\n", 1);
+
 #ifdef KEEPSTATS
     result = NanoVis::writeToStatsFile(Tcl_DStringValue(&ds), 
                                        Tcl_DStringLength(&ds));

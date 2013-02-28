@@ -988,7 +988,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             lappend out "tool_version" [$_first hints toolRevision]
             lappend out "tool_title"   [$_first hints toolTitle]
             lappend out "tool_dataset" [$_first hints label]
-            SendCmd "clientinfo [list $out]"
+            SendCmd "clientinfo $hub/$user/$session [list $out]"
         }
 	set _fieldNames [$_first hints fieldnames]
 	set _fieldUnits [$_first hints fieldunits]
