@@ -1879,11 +1879,6 @@ itcl::body Rappture::NanovisViewer::BuildVolumeTab {} {
         5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
         5,3 $inner.thick -anchor w -pady 2
 
-#        4,0 $inner.clear -anchor e -pady 2 \
-#        4,1 $inner.opacity -columnspan 2 -pady 2 -fill x\
-#        4,3 $inner.opaque -anchor w -pady 2 \
-
-
     blt::table configure $inner c0 c1 c3 r* -resize none
     blt::table configure $inner r6 -resize expand
 }
@@ -2078,6 +2073,7 @@ itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
 
 
 itcl::body Rappture::NanovisViewer::DoResize {} {
+    $_arcball resize $_width $height
     SendCmd "screen $_width $_height"
     set _resizePending 0
 }
