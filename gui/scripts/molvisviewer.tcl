@@ -1106,13 +1106,14 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
 	    global env
-	    lappend out "hub" [exec hostname]
+	    set hub [exec hostname]
 	    lappend out "viewer" "molvisviewer"
 	    if { [info exists env(USER)] } {
 		lappend out "user" $env(USER)
 	    }
+            set session "unknown"
 	    if { [info exists env(SESSION)] } {
-		lappend out "session" $env(SESSION)
+		set session $env(SESSION)
 	    }
 	    set parent [$_first parent -as object]
 	    while { $parent != "" } {
@@ -1125,7 +1126,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 	    lappend out "tool_command" [$xmlobj get tool.execute]
 	    lappend out "tool_revision" \
 		[$xmlobj get tool.version.application.revision]
-            SendCmd "clientinfo $out"
+            SendCmd "clientinfo $hub/$session [list $out]"
         }
 
         # Set or restore viewing parameters.  We do this for the first

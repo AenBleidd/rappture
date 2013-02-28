@@ -142,6 +142,8 @@ FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
 FILE *NanoVis::recfile = NULL;
 
+int NanoVis::statsFile = -1;
+
 bool NanoVis::axisOn = true;
 bool NanoVis::debugFlag = false;
 
@@ -292,66 +294,82 @@ NanoVis::eventuallyRedraw(unsigned int flag)
 #ifdef KEEPSTATS
 
 #define STATSDIR	"/var/tmp/visservers"
-#define STATSFILE	STATSDIR "/" "nanovis_log.tcl"
-#define LOCKFILE	STATSDIR "/" "LCK..nanovis"
 
 static int
-getFileLock()
+SplitPath(const char *path, int *argcPtr, char ***argvPtr)
 {
-    int numTries;
+    char **array;
+    int count;
+    char *p;
+    char *s;
+    size_t addrsize;
 
-    for (numTries = 0; numTries < 10; numTries++) {
-	int f;
-
-	f = open(LOCKFILE, O_TRUNC | O_CREAT | O_EXCL | O_WRONLY, 0600);
-	if (f >= 0) {
-	    char buf[200];
-	    ssize_t numWritten;
-	    size_t numBytes;
-
-	    sprintf(buf, "%d\n", getpid());
-	    numBytes = strlen(buf);
-	    numWritten = write(f, buf, numBytes);
-	    if (numWritten != (ssize_t)numBytes) {
-                ERROR("Wrote short lock file");
-	    }
-	    close(f);
-	    return 0;
-	}
-	sleep(1);			/* Wait for lock to release. */
+    count = 0;
+    for (p = strchr((char *)path, '/'); p != NULL; p = strchr(p+1, '/')) {
+        count++;
     }
-    ERROR("Failed to open lock file");
-    return -1;
+    addrsize = (count + 1) * sizeof(char *);
+    array = (char **)malloc(addrsize + strlen(path) + 1);
+    s = (char *)array + addrsize;
+    strcpy(s, path);
+    
+    count = 0;
+    for (p = strtok(s, "/"); p != NULL; p = strtok(NULL, "/")) {
+        array[count++] = p;
+    }
+    *argcPtr = count;
+    *argvPtr = array;
+    return count;
 }
 
-static void
-releaseFileLock()
+int
+NanoVis::openStatsFile(const char *path)
 {
-    unlink(LOCKFILE);
+    Tcl_DString ds;
+    char **argv;
+    int argc;
+    int i;
+    const char *fileName;
+    char string[200];
+
+    Tcl_DStringInit(&ds);
+    Tcl_DStringAppend(&ds, STATSDIR, -1);
+    SplitPath(path, &argc, &argv);
+    for (i = 0; i < argc; i++) {
+        char *p;
+
+        Tcl_DStringAppend(&ds, "/", 1);
+        Tcl_DStringAppend(&ds, argv[i], -1);
+        p = Tcl_DStringValue(&ds);
+        if (access(p, X_OK) != 0) {
+            mkdir(p, 0770);
+        }
+    }
+    Tcl_DStringAppend(&ds, "/", 1);
+    sprintf(string, "%d", getpid());
+    Tcl_DStringAppend(&ds, string, -1);
+    fileName = Tcl_DStringValue(&ds);
+    free(argv);
+    statsFile = open(fileName, O_EXCL | O_CREAT | O_WRONLY, 0600);
+    Tcl_DStringFree(&ds);
+    if (statsFile < 0) {
+	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
+	return -1;
+    }
+    return statsFile;
 }
 
 int
 NanoVis::writeToStatsFile(const char *s, size_t length)
 {
-    int f;
     ssize_t numWritten;
-    if (access(STATSDIR, X_OK) != 0) {
-	mkdir(STATSDIR, 0770);
+
+    if (statsFile >= 0) {
+        numWritten = write(statsFile, s, length);
+        if (numWritten == (ssize_t)length) {
+            close(dup(statsFile));
+        }
     }
-    if (getFileLock() < 0) {
-	return -1;
-    }
-    f = open(STATSFILE, O_APPEND | O_CREAT | O_WRONLY, 0600);
-    releaseFileLock();
-    if (f < 0) {
-	return -1;
-    }
-    numWritten = write(f, s, length);
-    if (numWritten != (ssize_t)length) {
-	close(f);
-	return -1;
-    }
-    close(f);
     return 0;
 }
 
