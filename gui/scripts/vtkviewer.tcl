@@ -879,32 +879,53 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     # generates a new call to Rebuild).   
     set _buffering 1
 
-    set _width $w
-    set _height $h
-    $_arcball resize $w $h
-    DoResize
-    #
-    # Reset the camera and other view parameters
-    #
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-    if {$_view(ortho)} {
-        SendCmd "camera mode ortho"
-    } else {
-        SendCmd "camera mode persp"
-    }
+    if { $_reset } {
+        if 1 {
+            # Tell the server the name of the tool, the version, and dataset
+            # that we are rendering.  Have to do it here because we don't know
+            # what data objects are using the renderer until be get here.
+	    global env
 
-    DoRotate
-    PanCamera
-    set _first [lindex [get -objects] 0] 
-    if { $_reset || $_first == "" } {
+            set info {}
+            set user "???"
+	    if { [info exists env(USER)] } {
+                set user $env(USER)
+	    }
+            set session "???"
+	    if { [info exists env(SESSION)] } {
+                set session $env(SESSION)
+	    }
+            lappend info "hub" [exec hostname]
+            lappend info "client" "vtkviewer"
+            lappend info "user" $user
+            lappend info "session" $session
+            SendCmd "clientinfo [list $info]"
+        }
+
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        DoResize
+        #
+        # Reset the camera and other view parameters
+        #
+        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        $_arcball quaternion $q
+        if {$_view(ortho)} {
+            SendCmd "camera mode ortho"
+        } else {
+            SendCmd "camera mode persp"
+        }
+
+        DoRotate
+        PanCamera
         Zoom reset
-        set _reset 0
+        FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
+            axis-visible axis-labels \
+            mesh-edges mesh-lighting mesh-opacity mesh-visible \
+            mesh-wireframe 
     }
-    FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-        axis-visible axis-labels \
-        mesh-edges mesh-lighting mesh-opacity mesh-visible \
-        mesh-wireframe 
+    set _first [lindex [get -objects] 0] 
 
     #SendCmd "imgflush"
 
@@ -924,6 +945,16 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 		    continue
 		}
                 set length [string length $bytes]
+                if 1 {
+                    set info {}
+                    lappend info "tool_id"       [$dataobj hints toolId]
+                    lappend info "tool_name"     [$dataobj hints toolName]
+                    lappend info "tool_version"  [$dataobj hints toolRevision]
+                    lappend info "tool_title"    [$dataobj hints toolTitle]
+                    lappend info "dataset_label" [$dataobj hints label]
+                    lappend info "dataset_size"  $length
+                    SendCmd [list "clientinfo" $info]
+                }
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
                 set _datasets($tag) 1
@@ -943,25 +974,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             array set view $location
         }
 
-        if 1 {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-	    global env
-            set args ""
-	    if { [info exists env(USER)] } {
-		lappend args hub [exec hostname]
-		lappend args user $env(USER)
-	    }
-	    if { [info exists env(SESSION)] } {
-		lappend args session $env(SESSION)
-	    }
-            lappend args tool [$_first hints toolId]
-            lappend args version [$_first hints toolRevision]
-            lappend args dataset [$_first hints label]
-            SendCmd "clientinfo [list $args]"
-        }
-
         foreach axis { x y z } {
             set label [$_first hints ${axis}label]
             if { $label != "" } {
@@ -978,6 +990,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
     SendCmd "dataset maprange visible"
         
     set _buffering 0;                        # Turn off buffering.
+    set _reset 0
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
