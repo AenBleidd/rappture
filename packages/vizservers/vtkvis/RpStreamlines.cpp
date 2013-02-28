@@ -579,6 +579,8 @@ void Streamlines::update()
     _linesActor->SetMapper(_pdMapper);
     _pdMapper->Update();
     _seedMapper->Update();
+    double *b = getBounds();
+    TRACE("bounds: %g %g %g %g %g %g", b[0], b[1], b[2], b[3], b[4], b[5]);
 }
 
 void Streamlines::setNumberOfSeedPoints(int numPoints)
@@ -598,6 +600,8 @@ void Streamlines::setNumberOfSeedPoints(int numPoints)
         ERROR("Can't set number of points for seed type %d", _seedType);
         break;
     }
+    _pdMapper->Update();
+    _seedMapper->Update();
 }
 
 /**
