@@ -263,6 +263,7 @@ serverStats(int code)
     char buf[BUFSIZ];
     Tcl_DString ds;
     int result;
+    int f;
 
     {
 	struct timeval tv;
