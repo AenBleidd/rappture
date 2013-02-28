@@ -891,6 +891,28 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     if { $_reset } {
         set _rocker(server) 0
         set _cacheid 0
+
+        if 1 {
+            # Tell the server the name of the tool, the version, and dataset
+            # that we are rendering.  Have to do it here because we don't know
+            # what data objects are using the renderer until be get here.
+            global env
+
+            set info {}
+            set user "???"
+	    if { [info exists env(USER)] } {
+                set user $env(USER)
+	    }
+            set session "???"
+	    if { [info exists env(SESSION)] } {
+                set session $env(SESSION)
+	    }
+            lappend info "hub" [exec hostname]
+            lappend info "client" "molvisviewer"
+            lappend info "user" $user
+            lappend info "session" $session
+            SendCmd "clientinfo [list $info]"
+        }
         SendCmd "raw -defer {set auto_color,0}"
         SendCmd "raw -defer {set auto_show_lines,0}"
     }
@@ -922,6 +944,21 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set data1      ""
             set serial    1
 
+            if 1 {
+                set parent [$dataobj parent -as object]
+                while { $parent != "" } {
+                    set xmlobj $parent
+                    set parent [$parent parent -as object]
+                }
+                set info {}
+                lappend info "tool_id"      [$xmlobj get tool.id]
+                lappend info "tool_name"    [$xmlobj get tool.name]
+                lappend info "tool_title"   [$xmlobj get tool.title]
+                lappend info "tool_command" [$xmlobj get tool.execute]
+                lappend info "tool_revision" \
+                    [$xmlobj get tool.version.application.revision]
+                SendCmd "clientinfo [list $info]"
+            }
             foreach _atom [$dataobj children -type atom components.molecule] {
                 set symbol [$dataobj get components.molecule.$_atom.symbol]
                 set xyz [$dataobj get components.molecule.$_atom.xyz]
@@ -1101,34 +1138,6 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set flush 0
     }
     if { $_reset } {
-        if 1 {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-	    global env
-	    set hub [exec hostname]
-	    lappend out "viewer" "molvisviewer"
-	    if { [info exists env(USER)] } {
-		lappend out "user" $env(USER)
-	    }
-            set session "unknown"
-	    if { [info exists env(SESSION)] } {
-		set session $env(SESSION)
-	    }
-	    set parent [$_first parent -as object]
-	    while { $parent != "" } {
-		set xmlobj $parent
-		set parent [$parent parent -as object]
-	    }
-	    lappend out "tool_id" [$xmlobj get tool.id]
-	    lappend out "tool_name" [$xmlobj get tool.name]
-	    lappend out "tool_title" [$xmlobj get tool.title]
-	    lappend out "tool_command" [$xmlobj get tool.execute]
-	    lappend out "tool_revision" \
-		[$xmlobj get tool.version.application.revision]
-            SendCmd "clientinfo $hub/$session [list $out]"
-        }
-
         # Set or restore viewing parameters.  We do this for the first
         # model and assume this works for everything else.
         set w  [winfo width $itk_component(3dview)] 

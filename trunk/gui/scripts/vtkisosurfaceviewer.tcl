@@ -947,32 +947,55 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         return
     }
 
-    set _buffering 1
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _width $w
-    set _height $h
-    $_arcball resize $w $h
-    DoResize
-    #
-    # Reset the camera and other view parameters
-    #
-    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-    $_arcball quaternion $q
-    if {$_view(ortho)} {
-        SendCmd "camera mode ortho"
-    } else {
-        SendCmd "camera mode persp"
+    set _buffering 1
+
+    if { $_reset } {
+        if 1 {
+            # Tell the server the name of the tool, the version, and dataset
+            # that we are rendering.  Have to do it here because we don't know
+            # what data objects are using the renderer until be get here.
+            global env
+
+            set info {}
+            set user "???"
+	    if { [info exists env(USER)] } {
+                set user $env(USER)
+	    }
+            set session "???"
+	    if { [info exists env(SESSION)] } {
+                set session $env(SESSION)
+	    }
+            lappend info "hub" [exec hostname]
+            lappend info "client" "vtkisosurfaceviewer"
+            lappend info "user" $user
+            lappend info "session" $session
+            SendCmd "clientinfo [list $info]"
+        }
+        set _width $w
+        set _height $h
+        $_arcball resize $w $h
+        DoResize
+        #
+        # Reset the camera and other view parameters
+        #
+        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        $_arcball quaternion $q
+        if {$_view(ortho)} {
+            SendCmd "camera mode ortho"
+        } else {
+            SendCmd "camera mode persp"
+        }
+        DoRotate
+        PanCamera
+        set _first ""
+        InitSettings axisXGrid axisYGrid axisZGrid axisMode \
+            axesVisible axisLabelsVisible 
+        
+        SendCmd "imgflush"
     }
-    DoRotate
-    PanCamera
-    set _first ""
-    InitSettings axisXGrid axisYGrid axisZGrid axisMode \
-        axesVisible axisLabelsVisible 
-
-    SendCmd "imgflush"
-
     set _first ""
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
@@ -989,6 +1012,16 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 		    close $f
                 }
                 set length [string length $bytes]
+                if 1 {
+                    set info {}
+                    lappend data "tool_id"       [$dataobj hints toolId]
+                    lappend data "tool_name"     [$dataobj hints toolName]
+                    lappend data "tool_version"  [$dataobj hints toolRevision]
+                    lappend data "tool_title"    [$dataobj hints toolTitle]
+                    lappend data "dataset_label" [$dataobj hints label]
+                    lappend data "dataset_size"  $length
+                    SendCmd "clientinfo [list $info]"
+                }
                 append _outbuf "dataset add $tag data follows $length\n"
                 append _outbuf $bytes
                 set _datasets($tag) 1
@@ -1005,27 +1038,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
     }
     if { $_first != "" && $_reset } {
-        if 1 {
-            # Tell the server the name of the tool, the version, and dataset
-            # that we are rendering.  Have to do it here because we don't know
-            # what data objects are using the renderer until be get here.
-	    global env
-
-            lappend data "hub" [exec hostname]
-	    lappend data "viewer" "vtkisosurfaceviewer"
-	    if { [info exists env(USER)] } {
-		lappend data "user" $env(USER)
-	    }
-	    if { [info exists env(SESSION)] } {
-		lappend data "session" $env(SESSION)
-	    }
-            lappend data "tool_id"      [$_first hints toolId]
-            lappend data "tool_name"    [$_first hints toolName]
-            lappend data "tool_version" [$_first hints toolRevision]
-            lappend data "tool_title"   [$_first hints toolTitle]
-            lappend data "tool_dataset" [$_first hints label]
-            SendCmd "clientinfo [list $data]"
-        }
 	set _fieldNames [$_first hints fieldnames]
 	set _fieldUnits [$_first hints fieldunits]
 	set _fieldLabels [$_first hints fieldlabels]
