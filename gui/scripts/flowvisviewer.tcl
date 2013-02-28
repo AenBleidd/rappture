@@ -1723,7 +1723,7 @@ itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
                 set comp [lindex [$_first components] 0]
                 set tag $_first-$comp
                 set val $_settings($this-light2side)
-                #SendCmd "$tag configure -light2side $val"
+                SendCmd "$tag configure -light2side $val"
             }
         }
         transp {
