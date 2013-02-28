@@ -1588,7 +1588,7 @@ itcl::body Rappture::VtkVolumeViewer::ChangeColormap {dataobj comp color} {
 #
 itcl::body Rappture::VtkVolumeViewer::SetColormap { dataobj comp } {
     array set style {
-        -color BGYOR
+        -color BCGYR
         -levels 6
         -opacity 1.0
     }
@@ -1805,7 +1805,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(palette) value "nanohub"
+    $itk_component(palette) value "BCGYR"
     bind $inner.palette <<Value>> \
         [itcl::code $this AdjustSetting volume-palette]
 
@@ -2066,8 +2066,6 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
     blt::table configure $inner r* c* -resize none
     blt::table configure $inner r7 c3 -resize expand
 }
-
-
 
 #
 #  camera -- 
