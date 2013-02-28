@@ -77,7 +77,8 @@ itcl::class Rappture::FlowvisViewer {
     protected method Disconnect {}
     protected method Resize {}
     protected method ResizeLegend {}
-    protected method FixSettings {what {value ""}}
+    protected method AdjustSetting {what {value ""}}
+    protected method InitSettings { args }
     protected method Pan {option x y}
     protected method Rebuild {}
     protected method ReceiveData { args }
@@ -140,6 +141,7 @@ itcl::class Rappture::FlowvisViewer {
                                     # dataobj-components using the tf.
     private variable _obj2flow;         # Maps dataobj-component to a flow.
 
+    private variable _reset 1;		# Connection to server has been reset 
     private variable _click        ;# info used for rotate operations
     private variable _limits       ;# autoscale min/max for all axes
     private variable _view         ;# view params for 3D view
@@ -242,6 +244,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
 
     set _limits(vmin) 0.0
     set _limits(vmax) 1.0
+    set _reset 1
 
     array set _settings [subst {
         $this-qw                $_view(qw)
@@ -319,7 +322,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -command [itcl::code $this FixSettings volume] \
+            -command [itcl::code $this AdjustSetting volume] \
             -variable [itcl::scope _settings($this-volume)]
     }
     $itk_component(volume) select
@@ -858,6 +861,7 @@ itcl::body Rappture::FlowvisViewer::Connect {} {
     if { "" == $_hosts } {
         return 0
     }
+    set _reset 1 
     set result [VisViewer::Connect $_hosts]
     if { $result } {
         set w [winfo width $itk_component(3dview)]
@@ -1223,10 +1227,9 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             lappend info "session" $session
             SendCmd "clientinfo [list $info]"
         }
-        set w [winfo width $itk_component(3dview)]
-        set h [winfo height $itk_component(3dview)]
-        $_arcball resize $w $h
-        EventuallyResize $w $h
+        set _width [winfo width $itk_component(3dview)]
+        set _height [winfo height $itk_component(3dview)]
+        Resize
     }
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
@@ -1266,18 +1269,12 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set _first [lindex [get] 0]
 
     # Reset the camera and other view parameters
-    FixSettings isosurface
-    FixSettings grid
-    FixSettings axes
-    FixSettings volume
-    FixSettings outline
-    FixSettings light
-    FixSettings transp
+    InitSettings isosurface grid axes volume outline light2side light transp
     
     # nothing to send -- activate the proper volume
     if {"" != $_first} {
-        FixSettings light
-        FixSettings transp
+        AdjustSetting light
+        AdjustSetting transp
         set axis [$_first hints updir]
         if {"" != $axis} {
             SendCmd "up $axis"
@@ -1348,7 +1345,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     SendBytes $_outbuf
     blt::busy release $itk_component(hull)
     set _buffering 0;                   # Turn off buffering.
-    set _outbuf "";                     # Clear the buffer.             
+    set _outbuf "";                     # Clear the buffer.
+    set _reset 0
 }
 
 # ----------------------------------------------------------------------
@@ -1683,14 +1681,32 @@ itcl::body Rappture::FlowvisViewer::Pause {} {
 }
 
 # ----------------------------------------------------------------------
-# USAGE: FixSettings <what> ?<value>?
+# USAGE: InitSettings <what> ?<value>?
 #
 # Used internally to update rendering settings whenever parameters
 # change in the popup settings panel.  Sends the new settings off
 # to the back end.
 # ----------------------------------------------------------------------
-itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
+itcl::body Rappture::FlowvisViewer::InitSettings { args } {
+    foreach arg $args {
+        AdjustSetting $arg
+    }
+}
+
+# ----------------------------------------------------------------------
+# USAGE: AdjustSetting <what> ?<value>?
+#
+# Used internally to update rendering settings whenever parameters
+# change in the popup settings panel.  Sends the new settings off
+# to the back end.
+# ----------------------------------------------------------------------
+itcl::body Rappture::FlowvisViewer::AdjustSetting {what {value ""}} {
     switch -- $what {
+        colormap {
+            set color [$itk_component(colormap) value] 
+            set _settings(colormap) $color 
+            #ResetColormap $color 
+        }
         light {
             if { $_first != "" } {
                 set comp [lindex [$_first components] 0]
@@ -1700,6 +1716,14 @@ itcl::body Rappture::FlowvisViewer::FixSettings {what {value ""}} {
                 set specularLevel 0.3
                 set specularExp 90.0
                 SendCmd "$tag configure -ambient $ambient -diffuse $diffuse -specularLevel $specularLevel -specularExp $specularExp"
+            }
+        }
+        light2side {
+            if { $_first != "" } {
+                set comp [lindex [$_first components] 0]
+                set tag $_first-$comp
+                set val $_settings($this-light2side)
+                #SendCmd "$tag configure -light2side $val"
             }
         }
         transp {
@@ -1836,7 +1860,7 @@ itcl::body Rappture::FlowvisViewer::ResizeLegend {} {
 #
 itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
     array set style {
-        -color rainbow
+        -color BCGYR
         -levels 6
         -opacity 1.0
         -light 40
@@ -1863,7 +1887,7 @@ itcl::body Rappture::FlowvisViewer::NameTransferFunc { dataobj comp } {
 #
 itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     array set style {
-        -color rainbow
+        -color BCGYR
         -levels 6
         -opacity 1.0
         -light 40
@@ -1892,34 +1916,25 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
 
     if { ![info exists _isomarkers($tf)] } {
         # Have to defer creation of isomarkers until we have data limits
-        if { [info exists style(-markers)] } {
+        if { [info exists style(-markers)] &&
+             [llength $style(-markers)] > 0  } {
             ParseMarkersOption $tf $style(-markers)
         } else {
             ParseLevelsOption $tf $style(-levels)
         }
-    }
-    if {$style(-color) == "rainbow"} {
-        set style(-color) "white:yellow:green:cyan:blue:magenta"
     }
     if { [info exists style(-nonuniformcolors)] } {
         foreach { value color } $style(-nonuniformcolors) {
             append cmap "$value [Color2RGB $color] "
         }
     } else {
-        set clist [split $style(-color) :]
-        set cmap "0.0 [Color2RGB white] "
-        for {set i 0} {$i < [llength $clist]} {incr i} {
-            set x [expr {double($i+1)/([llength $clist]+1)}]
-            set color [lindex $clist $i]
-            append cmap "$x [Color2RGB $color] "
-        }
-        append cmap "1.0 [Color2RGB $color]"
+        set cmap [ColorsToColormap $style(-color)]
     }
     set tag $this-$tf
     if { ![info exists _settings($tag-opacity)] } {
         set _settings($tag-opacity) $style(-opacity)
     }
-    set max $_settings($tag-opacity)
+    set max 1.0 ;#$_settings($tag-opacity)
     
     set isovalues {}
     foreach m $_isomarkers($tf) {
@@ -1929,7 +1944,7 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     set isovalues [lsort -real $isovalues]
 
     if { ![info exists _settings($tag-thickness)]} {
-        set _settings($tag-thickness) 0.05
+        set _settings($tag-thickness) 0.005
     }
     set delta $_settings($tag-thickness)
 
@@ -1973,8 +1988,8 @@ itcl::body Rappture::FlowvisViewer::ComputeTransferFunc { tf } {
     if { $last == "" || $last != 1.0 } {
         lappend wmap 1.0 0.0
     }
-    SendCmd "transfunc define $tf { $cmap } { $wmap }\n"
-    return [SendCmd "$dataobj-$comp configure -transferfunction $tf\n"]
+    SendCmd "transfunc define $tf { $cmap } { $wmap }"
+    return [SendCmd "$dataobj-$comp configure -transferfunction $tf"]
 }
 
 # ----------------------------------------------------------------------
@@ -2193,49 +2208,49 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
     checkbutton $inner.isosurface \
         -text "Isosurface shading" \
         -variable [itcl::scope _settings($this-isosurface)] \
-        -command [itcl::code $this FixSettings isosurface] \
+        -command [itcl::code $this AdjustSetting isosurface] \
         -font "Arial 9"
 
     checkbutton $inner.axes \
         -text "Axes" \
         -variable [itcl::scope _settings($this-axes)] \
-        -command [itcl::code $this FixSettings axes] \
+        -command [itcl::code $this AdjustSetting axes] \
         -font "Arial 9"
 
     checkbutton $inner.grid \
         -text "Grid" \
         -variable [itcl::scope _settings($this-grid)] \
-        -command [itcl::code $this FixSettings grid] \
+        -command [itcl::code $this AdjustSetting grid] \
         -font "Arial 9"
 
     checkbutton $inner.outline \
         -text "Outline" \
         -variable [itcl::scope _settings($this-outline)] \
-        -command [itcl::code $this FixSettings outline] \
+        -command [itcl::code $this AdjustSetting outline] \
         -font "Arial 9"
 
     checkbutton $inner.legend \
         -text "Legend" \
         -variable [itcl::scope _settings($this-legend)] \
-        -command [itcl::code $this FixSettings legend] \
+        -command [itcl::code $this AdjustSetting legend] \
         -font "Arial 9"
 
     checkbutton $inner.volume \
         -text "Volume" \
         -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
+        -command [itcl::code $this AdjustSetting volume] \
         -font "Arial 9"
 
     checkbutton $inner.particles \
         -text "Particles" \
         -variable [itcl::scope _settings($this-particles)] \
-        -command [itcl::code $this FixSettings particles] \
+        -command [itcl::code $this AdjustSetting particles] \
         -font "Arial 9"
 
     checkbutton $inner.lic \
         -text "Lic" \
         -variable [itcl::scope _settings($this-lic)] \
-        -command [itcl::code $this FixSettings lic] \
+        -command [itcl::code $this AdjustSetting lic] \
         -font "Arial 9"
 
     frame $inner.frame
@@ -2255,6 +2270,7 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
 
 itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     foreach { key value } {
+        light2side      0
         light           40
         transp          50
         opacity         100
@@ -2274,68 +2290,87 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
     checkbutton $inner.vol -text "Show volume" -font $fg \
         -text "Volume" \
         -variable [itcl::scope _settings($this-volume)] \
-        -command [itcl::code $this FixSettings volume] \
+        -command [itcl::code $this AdjustSetting volume] \
         -font "Arial 9"
 
     label $inner.shading -text "Shading:" -font $fg
+
+    checkbutton $inner.light2side -text "Two-sided lighting" -font $fg \
+        -variable [itcl::scope _settings($this-light2side)] \
+        -command [itcl::code $this AdjustSetting light2side]
 
     label $inner.dim -text "Glow" -font $fg
     ::scale $inner.light -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-light)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings light]
+        -showvalue off -command [itcl::code $this AdjustSetting light]
     label $inner.bright -text "Surface" -font $fg
 
     label $inner.fog -text "Clear" -font $fg
     ::scale $inner.transp -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-transp)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings transp]
+        -showvalue off -command [itcl::code $this AdjustSetting transp]
     label $inner.plastic -text "Opaque" -font $fg
 
     label $inner.clear -text "Clear" -font $fg
     ::scale $inner.opacity -from 0 -to 100 -orient horizontal \
         -variable [itcl::scope _settings($this-opacity)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings opacity]
+        -showvalue off -command [itcl::code $this AdjustSetting opacity]
     label $inner.opaque -text "Opaque" -font $fg
 
     label $inner.thin -text "Thin" -font $fg
     ::scale $inner.thickness -from 0 -to 1000 -orient horizontal \
         -variable [itcl::scope _settings($this-thickness)] \
         -width 10 \
-        -showvalue off -command [itcl::code $this FixSettings thickness]
+        -showvalue off -command [itcl::code $this AdjustSetting thickness]
     label $inner.thick -text "Thick" -font $fg
 
-    blt::table $inner \
-        0,0 $inner.vol -columnspan 4 -anchor w -pady 2 \
-        1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
-        2,0 $inner.dim -anchor e -pady 2 \
-        2,1 $inner.light -columnspan 2 -pady 2 -fill x \
-        2,3 $inner.bright -anchor w -pady 2 \
-        3,0 $inner.fog -anchor e -pady 2 \
-        3,1 $inner.transp -columnspan 2 -pady 2 -fill x \
-        3,3 $inner.plastic -anchor w -pady 2 \
-        4,0 $inner.thin -anchor e -pady 2 \
-        4,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
-        4,3 $inner.thick -anchor w -pady 2
-
-    if 0 {
-        0,0 $inner.dim  -anchor e -pady 2 \
-        0,1 $inner.light -columnspan 2 -pady 2 \
-        0,3 $inner.bright -anchor w -pady 2 \
-        1,0 $inner.fog -anchor e -pady 2 \
-        1,1 $inner.transp -columnspan 2 -pady 2 \
-        1,3 $inner.plastic -anchor w -pady 2 \
-        2,0 $inner.clear -anchor e -pady 2 \
-        2,1 $inner.opacity -columnspan 2 -pady 2 \
-        2,3 $inner.opaque -anchor w -pady 2 \
-        3,0 $inner.thin -anchor e -pady 2 \
-        3,1 $inner.thickness -columnspan 2 -pady 2 \
-        3,3 $inner.thick -anchor w -pady 2
+    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    itk_component add colormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable no
     }
+
+    $inner.colormap choices insert end \
+        "BCGYR"              "BCGYR"            \
+        "BGYOR"              "BGYOR"            \
+        "blue"               "blue"             \
+        "blue-to-brown"      "blue-to-brown"    \
+        "blue-to-orange"     "blue-to-orange"   \
+        "blue-to-grey"       "blue-to-grey"     \
+        "green-to-magenta"   "green-to-magenta" \
+        "greyscale"          "greyscale"        \
+        "nanohub"            "nanohub"          \
+        "rainbow"            "rainbow"          \
+        "spectral"           "spectral"         \
+        "ROYGB"              "ROYGB"            \
+        "RYGCB"              "RYGCB"            \
+        "brown-to-blue"      "brown-to-blue"    \
+        "grey-to-blue"       "grey-to-blue"     \
+        "orange-to-blue"     "orange-to-blue"   \
+	"none"		     "none"
+
+    $itk_component(colormap) value "BCGYR"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting colormap]
+
+    blt::table $inner \
+        0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
+        1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
+        2,0 $inner.light2side -columnspan 4 -anchor w -pady 2 \
+        3,0 $inner.dim -anchor e -pady 2 \
+        3,1 $inner.light -columnspan 2 -pady 2 -fill x \
+        3,3 $inner.bright -anchor w -pady 2 \
+        4,0 $inner.fog -anchor e -pady 2 \
+        4,1 $inner.transp -columnspan 2 -pady 2 -fill x \
+        4,3 $inner.plastic -anchor w -pady 2 \
+        5,0 $inner.thin -anchor e -pady 2 \
+        5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
+        5,3 $inner.thick -anchor w -pady 2
+
     blt::table configure $inner c0 c1 c3 r* -resize none
-    blt::table configure $inner r5 -resize expand
+    blt::table configure $inner r6 -resize expand
 }
 
 itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
@@ -2349,7 +2384,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.xbutton \
             -onimage [Rappture::icon x-cutplane] \
             -offimage [Rappture::icon x-cutplane] \
-            -command [itcl::code $this FixSettings xcutplane] \
+            -command [itcl::code $this AdjustSetting xcutplane] \
             -variable [itcl::scope _settings($this-xcutplane)]
     }
     Rappture::Tooltip::for $itk_component(xCutButton) \
@@ -2376,7 +2411,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.ybutton \
             -onimage [Rappture::icon y-cutplane] \
             -offimage [Rappture::icon y-cutplane] \
-            -command [itcl::code $this FixSettings ycutplane] \
+            -command [itcl::code $this AdjustSetting ycutplane] \
             -variable [itcl::scope _settings($this-ycutplane)]
     }
     Rappture::Tooltip::for $itk_component(yCutButton) \
@@ -2403,7 +2438,7 @@ itcl::body Rappture::FlowvisViewer::BuildCutplanesTab {} {
         Rappture::PushButton $inner.zbutton \
             -onimage [Rappture::icon z-cutplane] \
             -offimage [Rappture::icon z-cutplane] \
-            -command [itcl::code $this FixSettings zcutplane] \
+            -command [itcl::code $this AdjustSetting zcutplane] \
             -variable [itcl::scope _settings($this-zcutplane)]
     }
     Rappture::Tooltip::for $itk_component(zCutButton) \
@@ -2622,8 +2657,8 @@ itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
     return "Move the [string toupper $axis] cut plane.\nCurrently:  $axis = $val%"
 }
 
-
 itcl::body Rappture::FlowvisViewer::Resize {} {
+    $_arcball resize $_width $_height
     SendCmd "screen $_width $_height"
     set _resizePending 0
 }
