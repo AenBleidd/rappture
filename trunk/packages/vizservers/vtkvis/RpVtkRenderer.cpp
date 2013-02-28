@@ -2443,6 +2443,10 @@ void Renderer::resetCamera(bool resetOrientation)
         //double bounds[6];
         //collectBounds(bounds, false);
         //_renderer->ResetCamera(bounds);
+        if (_needsAxesReset) {
+            resetAxes();
+            _needsAxesReset = false;
+        }
         _renderer->ResetCamera();
         _renderer->ResetCameraClippingRange();
         //computeScreenWorldCoords();
