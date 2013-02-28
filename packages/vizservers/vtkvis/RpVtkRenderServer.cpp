@@ -235,7 +235,7 @@ Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
 
     g_statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
     Tcl_DStringFree(&ds);
-    if (statsFile < 0) {
+    if (g_statsFile < 0) {
 	ERROR("can't open \"%s\": %s", fileName, strerror(errno));
 	return -1;
     }
