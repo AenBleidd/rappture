@@ -45,7 +45,7 @@ extern Renderer *g_renderer;
 extern ReadBuffer *g_inBufPtr;
 extern int g_statsFile;
 extern int writeToStatsFile(int f, const char *s, size_t length);
-extern int getStatsFile(Tcl_Obj *objPtr);
+extern int getStatsFile(Tcl_Interp * interp, Tcl_Obj *objPtr);
 
 }
 }
