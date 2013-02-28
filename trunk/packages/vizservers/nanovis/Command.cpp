@@ -769,6 +769,8 @@ ClientInfoCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	return TCL_ERROR;
     }
 #ifdef KEEPSTATS
+    int f;
+
     /* Use the initial client key value pairs as the parts for a generating
      * a unique file name. */
     f = NanoVis::getStatsFile(objv[1]);

@@ -594,9 +594,9 @@ GetStatsFile(const char *string)
      * process id of this render server. */
     Tcl_DStringInit(&ds);
     Tcl_DStringAppend(&ds, string, -1);
-    Tcl_DStringAppendElement(&ds, "pid", 3);
+    Tcl_DStringAppendElement(&ds, "pid");
     sprintf(pidstr, "%d", getpid());
-    Tcl_DStringAppendElement(&ds, pidstr, -1);
+    Tcl_DStringAppendElement(&ds, pidstr);
 
     /* Create a md5 hash of the key/value pairs and use it as the file name. */
     string = Tcl_DStringValue(&ds);
@@ -607,7 +607,7 @@ GetStatsFile(const char *string)
     for (i = 0; i < 16; i++) {
         sprintf(fileName + i * 2, "%02x", digest[i]);
     }
-    Tcl_DStringLength(&ds, 0);
+    Tcl_DStringSetLength(&ds, 0);
     Tcl_DStringAppend(&ds, STATSDIR, -1);
     Tcl_DStringAppend(&ds, "/", 1);
     Tcl_DStringAppend(&ds, fileName, 32);
@@ -644,6 +644,7 @@ ServerStats(int code)
     char buf[BUFSIZ];
     Tcl_DString ds;
     int result;
+    int f;
 
     {
 	struct timeval tv;

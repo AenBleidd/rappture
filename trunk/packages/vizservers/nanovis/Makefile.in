@@ -58,7 +58,7 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 
 LD_RUN_PATH     = $(libdir):@LD_RPATH@
 
-SVN_VERSION	= $(shell svnversion)
+SVN_VERSION	= $(shell svnversion $(srcdir))
 
 LIBS		= \
 		$(RP_LIB_SPEC) \

@@ -295,33 +295,6 @@ NanoVis::eventuallyRedraw(unsigned int flag)
 
 #define STATSDIR	"/var/tmp/visservers"
 
-static int
-SplitPath(const char *path, int *argcPtr, char ***argvPtr)
-{
-    char **array;
-    int count;
-    char *p;
-    char *s;
-    size_t addrsize;
-
-    count = 0;
-    for (p = strchr((char *)path, '/'); p != NULL; p = strchr(p+1, '/')) {
-        count++;
-    }
-    addrsize = (count + 1) * sizeof(char *);
-    array = (char **)malloc(addrsize + strlen(path) + 1);
-    s = (char *)array + addrsize;
-    strcpy(s, path);
-    
-    count = 0;
-    for (p = strtok(s, "/"); p != NULL; p = strtok(NULL, "/")) {
-        array[count++] = p;
-    }
-    *argcPtr = count;
-    *argvPtr = array;
-    return count;
-}
-
 int
 NanoVis::getStatsFile(Tcl_Obj *objPtr)
 {
@@ -330,9 +303,11 @@ NanoVis::getStatsFile(Tcl_Obj *objPtr)
     int objc;
     int i;
     char fileName[33];
+    const char *path;
     md5_state_t state;
     md5_byte_t digest[16];
     char *string;
+    int length;
 
     if (objPtr == NULL) {
         return statsFile;
@@ -353,7 +328,7 @@ NanoVis::getStatsFile(Tcl_Obj *objPtr)
     Tcl_DStringInit(&ds);
     Tcl_DStringAppend(&ds, STATSDIR, -1);
     Tcl_DStringAppend(&ds, "/", 1);
-    Tcl_DStringAppend(&dsm fileName, 32);
+    Tcl_DStringAppend(&ds, fileName, 32);
     path = Tcl_DStringValue(&ds);
 
     statsFile = open(path, O_EXCL | O_CREAT | O_WRONLY, 0600);
