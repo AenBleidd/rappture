@@ -4,7 +4,9 @@ TARGETS =	pymolproxy pymolproxy2
 CC =		@CC@
 CC_SWITCHES =	$(CFLAGS) $(EXTRA_CFLAGS) $(DEFINES) $(INCLUDES)
 CFLAGS =	@CFLAGS@ 
-DEFINES =	-DSTANDALONE -DSVN_VERSION=\"$(SVN_VERSION)\"
+DEFINES =	-DSTANDALONE \
+		-DSVN_VERSION=\"$(SVN_VERSION)\" \
+		-DSTATSDIR=\"$(STATSDIR)\"
 EXTRA_CFLAGS =	-Wall 
 INCLUDES =	$(TCL_INC_SPEC) -I$(srcdir)
 TCL_INC_SPEC =	@TCL_INC_SPEC@
@@ -27,6 +29,7 @@ MKDIR_P =	@MKDIR_P@
 VPATH =		$(srcdir)
 
 SVN_VERSION	= $(shell svnversion $(srcdir))
+STATSDIR	= @STATSDIR@
 
 .PHONY: all install clean distclean
 

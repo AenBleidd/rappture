@@ -293,7 +293,9 @@ NanoVis::eventuallyRedraw(unsigned int flag)
 
 #ifdef KEEPSTATS
 
-#define STATSDIR	"/var/log/visservers"
+#ifndef STATSDIR
+#define STATSDIR	"/var/tmp/visservers"
+#endif  /*STATSDIR*/
 
 int
 NanoVis::getStatsFile(Tcl_Obj *objPtr)

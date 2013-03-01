@@ -30,6 +30,7 @@ INSTALL_SCRIPT  = ${INSTALL} -m 0644
 MKDIR_P		= @MKDIR_P@
 
 SVN_VERSION	= $(shell svnversion $(srcdir))
+STATSDIR	= @STATSDIR@
 
 GL_LIB_SPEC	= -lGL -lm
 PTHREAD_LIB_SPEC= -lpthread
@@ -106,7 +107,7 @@ INCLUDES	= \
 #vtk uses deprecated strstream header (instead of sstream)
 EXTRA_CXXFLAGS	= -Wall -Wno-deprecated
 EXTRA_CFLAGS	= -Wall
-DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\"
+DEFINES		= -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
 ifdef DEBUG
 DEFINES 	+= -DDEBUG
 CXXFLAGS	= -O0 -g

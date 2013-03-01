@@ -545,8 +545,9 @@ clear_error(PymolProxy *proxyPtr)
     proxyPtr->status = TCL_OK;
 }
 
-
+#ifndef STATSDIR
 #define STATSDIR	"/var/tmp/visservers"
+#endif  /*STATSDIR*/
 
 static int
 GetStatsFile(const char *string)
