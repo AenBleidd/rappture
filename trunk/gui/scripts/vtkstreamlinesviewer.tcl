@@ -210,6 +210,7 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
+    $_parser alias viserror [itcl::code $this ReceiveError]
 
     array set _outline {
         id -1
