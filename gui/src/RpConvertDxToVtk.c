@@ -105,7 +105,7 @@ GetPoints(Tcl_Interp *interp, int nPoints, int *counts, char **stringPtr,
 	Tcl_AppendToObj(objPtr, mesg, -1);
     }
     free(array);
-    *stringPtr = p;
+    *stringPtr = (char *)p;
     return TCL_OK;
 }
 
@@ -124,7 +124,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     double delta[3];
     double origin[3];
     int count[3];
-    int length, nComponents, nValues, nPoints;
+    int length, nComponents, nPoints;
     char *name;
 
     name = "myScalars";
@@ -186,7 +186,7 @@ ConvertDxToVtkCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 	    fprintf(stderr, "found delta %g %g %g\n", ddx, ddy, ddx);
 #endif
 	} else if (sscanf(line, "object %*d class regulararray count %d", 
-			  count[2]) == 1) {
+			  &count[2]) == 1) {
 	    
 	} else if (sscanf(line, "object %*d class array type %*s shape 3"
 		" rank 1 items %d data follows", &nPoints) == 1) {
