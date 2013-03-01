@@ -514,6 +514,7 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
     set _dim [expr $numRectilinear + $numUniform + $numCurvilinear]
     if { $_dim == 0 } {
 	# No data found.
+        puts stderr "no relevant subelements found in <mesh><grid>"
 	return 0
     }
     if { $numCurvilinear > 0 } {

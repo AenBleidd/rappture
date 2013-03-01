@@ -151,7 +151,8 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private variable _vectorFields 
     private variable _scalarFields 
     private variable _fields 
-    private variable _currentField ""
+    private variable _curFldName ""
+    private variable _curFldLabel ""
     private variable _field      ""
     private variable _numSeeds 200
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
@@ -1049,6 +1050,12 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
                 set length [string length $bytes]
+		if 1 { 
+                    set f [open /tmp/vtkstreamlines.vtk "w"]
+                    fconfigure $f -translation binary -encoding binary
+                    puts $f $bytes
+                    close $f
+		}
                 if 1 {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolId]
@@ -1086,9 +1093,10 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 SendCmd "axis units $axis $units"
             }
         }
+        if 0 {
         array unset _scalarFields
         array unset _vectorFields
-        set _currentField [$_first hints default]
+        set _curFldLabel [$_first hints default]
         $itk_component(field) choices delete 0 end
         $itk_component(fieldmenu) delete 0 end
         array unset _fields
@@ -1096,7 +1104,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             set _vectorFields($title) $name
             $itk_component(field) choices insert end "$name" "$title"
             $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _currentField] \
+                -value $title -variable [itcl::scope _curFldLabel] \
                 -selectcolor red \
                 -activebackground black \
                 -activeforeground white \
@@ -1108,7 +1116,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             set _scalarFields($title) $name
             $itk_component(field) choices insert end "$name" "$title"
             $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _currentField] \
+                -value $title -variable [itcl::scope _curFldLabel] \
                 -selectcolor red \
                 -activebackground black \
                 -activeforeground white \
@@ -1116,7 +1124,32 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 -command [itcl::code $this Combo invoke]
             set _fields($name) [list $title $units]
         }
-        $itk_component(field) value $_currentField
+        $itk_component(field) value $_curFldLabel
+        }
+	$itk_component(field) choices delete 0 end
+	$itk_component(fieldmenu) delete 0 end
+	array unset _fields
+        foreach cname [$_first components] {
+            foreach fname [$_first fieldnames $cname] {
+                if { [info exists _fields($fname)] } {
+                    continue
+                }
+                foreach { label units components } \
+                    [$_first fieldinfo $fname] break
+                $itk_component(field) choices insert end "$fname" "$label"
+                $itk_component(fieldmenu) add radiobutton -label "$label" \
+                    -value $label -variable [itcl::scope _curFldLabel] \
+                    -selectcolor red \
+                    -activebackground $itk_option(-plotbackground) \
+                    -activeforeground $itk_option(-plotforeground) \
+                    -font "Arial 8" \
+                    -command [itcl::code $this Combo invoke]
+                set _fields($fname) [list $label $units $components]
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+        $itk_component(field) value $_curFldLabel
     }
 
     if { $_reset } {
@@ -1535,23 +1568,24 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             SendCmd "streamlines lighting $bool"
         }
         "streamlinesField" {
-            set new [$itk_component(field) value]
-            set value [$itk_component(field) translate $new]
-            set _settings(streamlinesField) $value
-            if { [info exists _scalarFields($new)] } {
-                set name $_scalarFields($new)
-                set _colorMode scalar
-                set _currentField $new
-            } elseif { [info exists _vectorFields($new)] } {
-                set name $_vectorFields($new)
-                set _colorMode vmag
-                set _currentField $new
+            set label [$itk_component(field) value]
+            set fname [$itk_component(field) translate $label]
+            set _settings(streamlinesField) $fname
+            if { [info exists _fields($fname)] } {
+                foreach { label units components } $_fields($fname) break
+                if { $components > 1 } {
+                    set _colorMode vmag
+                } else {
+                    set _colorMode scalar
+                }
+                set _curFldName $fname
+                set _curFldLabel $label
             } else {
-                puts stderr "unknown field \"$new\""
+                puts stderr "unknown field \"$fname\""
                 return
             }
-            SendCmd "streamlines colormode $_colorMode ${name}"
-            SendCmd "cutplane colormode $_colorMode ${name}"
+            SendCmd "streamlines colormode $_colorMode ${fname}"
+            SendCmd "cutplane colormode $_colorMode ${fname}"
             set _legendPending 1
         }
         default {
@@ -1576,19 +1610,12 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     if { $h < 1} {
         return
     }
-    if { [info exists _scalarFields($_currentField)] } {
-        set name $_scalarFields($_currentField)
-    } elseif { [info exists _vectorFields($_currentField)] } {
-        set name $_vectorFields($_currentField)
-    } else {
-        return
-    }
     # Set the legend on the first streamlines dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
             SendCmdNoSplash \
-                "legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
+                "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
         }
     }
@@ -2562,7 +2589,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
             $c itemconfigure title -fill white 
         }
         invoke {
-            $itk_component(field) value $_currentField
+            $itk_component(field) value $_curFldLabel
             AdjustSetting streamlinesField
         }
         default {

@@ -967,7 +967,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             set tag $dataobj-$comp
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
-		if 0 { 
+		if 1 { 
                     set f [open /tmp/vtkheightmap.vtk "w"]
                     puts $f $bytes
                     close $f
@@ -1000,31 +1000,32 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    }
         }
     }
-    if { $_first != "" && $_reset } {
-	set _fieldNames [$_first hints fieldnames]
-	set _fieldUnits [$_first hints fieldunits]
-	set _fieldLabels [$_first hints fieldlabels]
+    if { $_first != ""  } {
 	$itk_component(field) choices delete 0 end
 	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
-	foreach name $_fieldNames title $_fieldLabels units $_fieldUnits {
-	    SendCmd "dataset maprange explicit $_limits(v) $name"
-	    if { $title == "" } {
-		set title $name
-	    }
-	    $itk_component(field) choices insert end "$name" "$title"
-	    $itk_component(fieldmenu) add radiobutton -label "$title" \
-		-value $title -variable [itcl::scope _curFldName] \
-		-selectcolor red \
-		-activebackground $itk_option(-plotbackground) \
-		-activeforeground $itk_option(-plotforeground) \
-		-font "Arial 8" \
-		-command [itcl::code $this Combo invoke]
-	    set _fields($name) [list $title $units]
-	    set _curFldName $name
-	}
+        foreach cname [$_first components] {
+            foreach fname [$_first fieldnames $cname] {
+                if { [info exists _fields($fname)] } {
+                    continue
+                }
+                foreach { label units components } \
+                    [$_first fieldinfo $fname] break
+                SendCmd "dataset maprange explicit $_limits(v) $fname"
+                $itk_component(field) choices insert end "$fname" "$label"
+                $itk_component(fieldmenu) add radiobutton -label "$label" \
+                    -value $label -variable [itcl::scope _curFldName] \
+                    -selectcolor red \
+                    -activebackground $itk_option(-plotbackground) \
+                    -activeforeground $itk_option(-plotforeground) \
+                    -font "Arial 8" \
+                    -command [itcl::code $this Combo invoke]
+                set _fields($fname) [list $label $units $components]
+                set _curFldName $fname
+            }
+        }
 	if { [array size _fields] == 1 } {
-	    set _curFldName $_fieldLabels
+	    set _curFldName [array names _fields]
 	    if { $_curFldName == "" } { 
 		puts stderr "no default name from field"
 		set _curFldName "Default"
@@ -1654,7 +1655,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     set heightScale [GetHeightmapScale]
     set bMin [expr $heightScale * $dataScale * $vmin]
     set bMax [expr $heightScale * $dataScale * $vmax]
-    set fieldName [lindex $_fields($_curFldName) 0]
+    set fieldName $_curFldName
     SendCmd "dataset maprange explicit $_limits(v) $fieldName"
     SendCmd "axis bounds z $bMin $bMax"
     SendCmd "axis range z $_limits(v)"

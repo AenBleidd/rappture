@@ -1676,6 +1676,7 @@ GetHotspotItem(Tcl_Interp *interp, Tcl_Obj *canvasObjPtr, Tcl_Obj *itemObjPtr)
     Tcl_CmdInfo cmdInfo;
     TkCanvas *canvasPtr;
     int id;
+    long lid;
     Tcl_HashEntry *hPtr;
     Tk_Window tkwin;
 
@@ -1704,7 +1705,9 @@ GetHotspotItem(Tcl_Interp *interp, Tcl_Obj *canvasObjPtr, Tcl_Obj *itemObjPtr)
 	return NULL;
     }
     string = Tcl_GetString(itemObjPtr);
-    hPtr = Tcl_FindHashEntry(&canvasPtr->idTable, (char *)id);
+
+    lid = id;
+    hPtr = Tcl_FindHashEntry(&canvasPtr->idTable, (char *)lid);
     if (hPtr == NULL) {
 	Tcl_AppendResult(interp, "can't find canvas item \"", string,
 		"\"", (char *)NULL);
