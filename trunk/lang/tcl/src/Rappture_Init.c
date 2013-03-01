@@ -25,7 +25,7 @@ extern Tcl_AppInitProc Rappture_Init;
 extern Tcl_AppInitProc RpRlimit_Init;
 extern Tcl_AppInitProc RpRusage_Init;
 extern Tcl_AppInitProc RpSignal_Init;
-extern Tcl_AppInitProc RpSplit_Init;
+extern Tcl_AppInitProc RpSlice_Init;
 extern Tcl_AppInitProc RpSysinfo_Init;
 extern Tcl_AppInitProc RpDaemon_Init;
 extern Tcl_AppInitProc RpCurses_Init;

@@ -113,10 +113,8 @@ ReadPoints(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_DStringInit(&ds);
     listObjPtr = Tcl_NewListObj(0, (Tcl_Obj **)NULL);
     for (p = string, pend = p + length; p < pend; /*empty*/) {
-	const char *line;
 	int i, argc;
 	const char **argv;
-	char saved;
 	int result;
 
 	p = GetLine(&ds, p, pend);
@@ -135,8 +133,7 @@ ReadPoints(ClientData clientData, Tcl_Interp *interp, int objc,
 	    dim = argc;
 	}
 	if (dim != argc) {
-	    Tcl_AppendResult(interp, "wrong # of elements on line \"", 
-			line, "\"", (char *)NULL);
+	    Tcl_AppendResult(interp, "wrong # of elements on line", (char *)NULL);
 	    Tcl_Free((char *)argv);
 	    goto error;
 	}

@@ -643,7 +643,7 @@ SimpleBuffer<T>::show()
     size_t curMemb = 0;
 
     while (curMemb != _numElemsUsed) {
-        fprintf(stdout,"_buf[%lu] = :%#x:\n", (long unsigned int)curMemb,
+        fprintf(stdout,"_buf[%lu] = :%#lx:\n", (long unsigned int)curMemb,
                 (unsigned long)_buf[curMemb]);
         curMemb += 1;
     }
