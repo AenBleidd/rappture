@@ -59,6 +59,7 @@ TCL_INC_SPEC    = @TCL_INC_SPEC@
 LD_RUN_PATH     = $(libdir):@LD_RPATH@
 
 SVN_VERSION	= $(shell svnversion $(srcdir))
+STATSDIR	= @STATSDIR@
 
 LIBS		= \
 		$(RP_LIB_SPEC) \
@@ -92,7 +93,7 @@ CC              = @CC@
 CXX             = @CXX@
 CFLAGS          = @CFLAGS@
 EXTRA_CFLAGS    = -Wall
-DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\"
+DEFINES         = -DSVN_VERSION=\"$(SVN_VERSION)\" -DSTATSDIR=\"$(STATSDIR)\"
 ifdef USE_POINTSET_RENDERER
 DEFINES         +=-DUSE_POINTSET_RENDERER
 endif

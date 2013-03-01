@@ -195,7 +195,9 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 }
 #endif /*USE_THREADS*/
 
-#define STATSDIR	"/var/log/visservers"
+#ifndef STATSDIR
+#define STATSDIR	"/var/tmp/visservers"
+#endif  /*STATSDIR*/
 
 int
 Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)

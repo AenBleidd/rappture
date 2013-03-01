@@ -40,6 +40,13 @@ AC_ARG_WITH(
 
 RP_LANG_PYTHON
 
+AC_ARG_WITH(
+    [statsdir],
+    [AS_HELP_STRING([--with-statsdir=DIR],
+        [Write statics in DIR])],
+    [STATSDIR=$withval],
+    [STATSDIR="/var/tmp/visservers"])
+
 VERSION=0.0.1
 
 #------------------------------------------------------------------------
@@ -400,6 +407,7 @@ AC_SUBST(SIZEOF_INT)
 AC_SUBST(SIZEOF_LONG)
 AC_SUBST(SIZEOF_LONG_LONG)
 AC_SUBST(SIZEOF_VOID_P)
+AC_SUBST(STATSDIR)
 AC_SUBST(STLIB_LD)
 AC_SUBST(SUBDIRS)
 AC_SUBST(PYTHON)
