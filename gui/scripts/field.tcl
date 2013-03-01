@@ -13,12 +13,15 @@
 #  See the file "license.terms" for information on usage and
 #  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 # ======================================================================
-package require Itcl
-package require BLT
 
-namespace eval Rappture { 
-    # forward declaration 
-}
+# TODO:
+#
+#  o How to describe vector values in a field?  
+#       <components>3</components>
+#       <values></values>
+#
+#    Does anything need to know the limits for each component of the vector?
+#
 
 #
 # Possible field dataset types:
@@ -46,11 +49,25 @@ namespace eval Rappture {
 #	unirect2d   2	unirect3d + extents > 1	flow	flow		nanovis
 #	unirect3d   3	unirect2d + extents > 1	flow	flow		nanovis
 #	
-# The goal should be any 3D dataset can view a isosurface, volume, 
-# streamlines, or flow (if extents > 1).  Any 2D dataset can view a 
-# contour, heightmap, streamlines, or flow (if extents > 1).  
+# With <views>, can specify which viewer for a specific datasets.  So it's OK
+# to if the same dataset can be viewed in more than one way.
+#  o Any 2D dataset can be viewed as a contour/heightmap. 
+#  o Any 3D dataset can be viewed as a isosurface.  
+#  o Any 2D dataset with vector data can be streamlines.  
+#  o Any 3D uniform rectilinear dataset can be viewed as a volume.
+#  o Any 3D dataset with vector data can be streamlines or flow.
 #
+# Need <views> to properly do things like qdot: volume with a polydata
+# transparent shell.  The view will combine the two objects <field> and
+# <drawing> (??) into a single viewer.
 #
+package require Itcl
+package require BLT
+
+namespace eval Rappture { 
+    # forward declaration 
+}
+
 itcl::class Rappture::Field {
     private variable _dim	0;	# Dimension of the mesh
     private variable _xmlobj ""  ;      # ref to XML obj with field data
@@ -811,7 +828,10 @@ itcl::body Rappture::Field::Build {} {
         }
     }
     # FIXME: about.scalars and about.vectors are temporary.  With views
-    #        the user will specify the label, units or each field there.
+    #        the label and units for each field will be specified there.
+    #
+    # FIXME: Test that every <field><component> has the same field names, 
+    #        units, components.
     #
     # Override what we found in the VTK file with names that the user
     # selected.  We override the field label and units.
@@ -826,6 +846,7 @@ itcl::body Rappture::Field::Build {} {
     foreach { fname label units } [$_fldObj get about.vectors] {
         if { ![info exists _field2Name($fname)] } {
             set _field2Name($fname) $fname
+            # We're just marking the field as vector (> 1) for now.
             set _field2Components($fname) 3
         }
         set _field2Label($fname) $label
