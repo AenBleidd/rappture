@@ -1930,7 +1930,7 @@ NanoVis::xinetdListen()
 
         objPtr = Tcl_GetObjResult(interp);
         msg = Tcl_GetStringFromObj(objPtr, &msgSize);
-        hdrSize = sprintf(hdr, "nv>viserror -type error -bytes %d\n", msgSize);
+        hdrSize = sprintf(hdr, "nv>viserror -type internal_error -bytes %d\n", msgSize);
         {
             struct iovec iov[2];
 
