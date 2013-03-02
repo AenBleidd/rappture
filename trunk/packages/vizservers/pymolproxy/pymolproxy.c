@@ -582,7 +582,9 @@ WriteStats(const char *who, int code)
 	ssize_t length;
 	int result;
 
+#ifndef STATSDIR
 #define STATSDIR	"/var/tmp/visservers"
+#endif
 #define STATSFILE	STATSDIR "/" "data.xml"
 	if (access(STATSDIR, X_OK) != 0) {
 	    mkdir(STATSDIR, 0770);
