@@ -153,10 +153,10 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _legendPending 0
     private variable _field      ""
     private variable _colorMode "vmag";	#  Mode of colormap (vmag or scalar)
-    private variable _currentField ""
     private variable _fieldNames {} 
     private variable _fields 
-    private variable _currentFieldName "Default"
+    private variable _curFldName ""
+    private variable _curFldLabel ""
     private variable _numContours 10
 }
 
@@ -1038,37 +1038,31 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             }
         }
     }
-    if { $_first != "" && $_reset } {
-	set _fieldNames [$_first hints fieldnames]
-	set _fieldUnits [$_first hints fieldunits]
-	set _fieldLabels [$_first hints fieldlabels]
+    if { $_first != "" } {
 	$itk_component(field) choices delete 0 end
 	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
-	foreach name $_fieldNames title $_fieldLabels units $_fieldUnits {
-	    SendCmd "dataset maprange explicit $_limits(vmin) $_limits(vmax) $name"
-	    if { $title == "" } {
-		set title $name
-	    }
-	    $itk_component(field) choices insert end "$name" "$title"
-	    $itk_component(fieldmenu) add radiobutton -label "$title" \
-		-value $title -variable [itcl::scope _currentFieldName] \
-		-selectcolor red \
-		-activebackground $itk_option(-plotbackground) \
-		-activeforeground $itk_option(-plotforeground) \
-		-font "Arial 8" \
-		-command [itcl::code $this Combo invoke]
-	    set _fields($name) [list $title $units]
-	    set _currentFieldName $name
-	}
-	if { [array size _fields] == 1 } {
-	    set _currentFieldName $_fieldLabels
-	    if { $_currentFieldName == "" } { 
-		puts stderr "no default name from field"
-		set _currentFieldName "Default"
-	    }
-	}
-	$itk_component(field) value $_currentFieldName
+        foreach cname [$_first components] {
+            foreach fname [$_first fieldnames $cname] {
+                if { [info exists _fields($fname)] } {
+                    continue
+                }
+                foreach { label units components } \
+                    [$_first fieldinfo $fname] break
+                $itk_component(field) choices insert end "$fname" "$label"
+                $itk_component(fieldmenu) add radiobutton -label "$label" \
+                    -value $label -variable [itcl::scope _curFldLabel] \
+                    -selectcolor red \
+                    -activebackground $itk_option(-plotbackground) \
+                    -activeforeground $itk_option(-plotforeground) \
+                    -font "Arial 8" \
+                    -command [itcl::code $this Combo invoke]
+                set _fields($fname) [list $label $units $components]
+                set _curFldName $fname
+                set _curFldLabel $label
+            }
+        }
+        $itk_component(field) value $_curFldLabel
     }
     InitSettings isosurfaceVisible colormapPalette isosurfaceVisible 
 
@@ -1083,6 +1077,25 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible \
 	    cutplaneVisible
         Zoom reset
+	foreach axis { x y z } {
+            # Another problem fixed by a <view>. We looking into a data
+            # object for the name of the axes. This should be global to
+            # the viewer itself.
+	    set label [$_first hints ${axis}label]
+	    if { $label == "" } {
+		if {$axis == "z"} {
+                    if { $_curFldName == "component" } {
+                        set label [string toupper $axis]
+                    } else {
+                        set label $_curFldLabel
+                    }
+		} else {
+		    set label [string toupper $axis]
+		}
+	    }
+	    # May be a space in the axis label.
+	    SendCmd [list axis name $axis $label]
+        }
         set _reset 0
     }
     set _buffering 0;                        # Turn off buffering.
@@ -1370,7 +1383,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             configure -plotbackground $bgcolor \
 		-plotforeground $fgcolors($bgcolor)
 	    $itk_component(view) delete "legend"
-	    DrawLegend $_currentFieldName
+	    DrawLegend $_curFldName
         }
         "axesVisible" {
             set bool $_settings(axesVisible)
@@ -1455,7 +1468,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 Rappture::Tooltip::for $itk_component(contour) \
                     "Show the isosurface"
             }
-	    DrawLegend $_currentFieldName
+	    DrawLegend $_curFldName
         }
         "colormapPalette" {
             set color [$itk_component(palette) value]
@@ -1479,7 +1492,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         "isolineColor" {
             set color [$itk_component(isolineColor) value]
 	    set _settings(isolineColor) $color
-	    DrawLegend $_currentFieldName
+	    DrawLegend $_curFldName
         }
         "isosurfaceOpacity" {
             set val $_settings(isosurfaceOpacity)
@@ -1500,7 +1513,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             set _settings(field) $value
             if { [info exists _fields($new)] } {
                 set _colorMode scalar
-                set _currentFieldName $new
+                set _curFldName $new
             } else {
                 puts stderr "unknown field \"$new\""
                 return
@@ -1543,8 +1556,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
     if { $h < 1} {
         return
     }
-    if { [info exists _fields($_currentFieldName)] } {
-        set title [lindex $_fields($_currentFieldName) 0]
+    if { [info exists _fields($_curFldName)] } {
+        set title [lindex $_fields($_curFldName) 0]
 	if { $title != "component" } {
 	    set h [expr $h - ($lineht + 2)]
 	}
@@ -2509,7 +2522,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Combo {option} {
             $c itemconfigure title -fill $itk_option(-plotforeground) 
         }
         invoke {
-            $itk_component(field) value $_currentFieldName
+            $itk_component(field) value $_curFldLabel
             AdjustSetting field
         }
         default {
