@@ -986,6 +986,18 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             }
         }
     }
+    if { $_reset } {
+	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+	$_arcball quaternion $q 
+        SendCmd "camera reset"
+        if { $_view(ortho)} {
+            SendCmd "camera mode ortho"
+        } else {
+            SendCmd "camera mode persp"
+	}
+	DoRotate
+	PanCamera
+    }
     FixSettings molecule-representation 
 
     SendCmd "dataset maprange visible"
