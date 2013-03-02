@@ -906,20 +906,6 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
         set _height $h
         $_arcball resize $w $h
         DoResize
-        #
-        # Reset the camera and other view parameters
-        #
-        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-        $_arcball quaternion $q
-        if {$_view(ortho)} {
-            SendCmd "camera mode ortho"
-        } else {
-            SendCmd "camera mode persp"
-        }
-
-        DoRotate
-        PanCamera
-        Zoom reset
         FixSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
             axis-visible axis-labels \
             mesh-edges mesh-lighting mesh-opacity mesh-visible \
@@ -997,6 +983,7 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
 	}
 	DoRotate
 	PanCamera
+        Zoom reset
     }
     FixSettings molecule-representation 
 
