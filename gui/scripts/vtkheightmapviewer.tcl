@@ -157,7 +157,8 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _legendPending 0
     private variable _fieldNames {} 
     private variable _fields 
-    private variable _curFldName "Default"
+    private variable _curFldName ""
+    private variable _curFldLabel ""
     private variable _numContours 0
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
 }
@@ -1011,10 +1012,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                 }
                 foreach { label units components } \
                     [$_first fieldinfo $fname] break
-                SendCmd "dataset maprange explicit $_limits(v) $fname"
                 $itk_component(field) choices insert end "$fname" "$label"
                 $itk_component(fieldmenu) add radiobutton -label "$label" \
-                    -value $label -variable [itcl::scope _curFldName] \
+                    -value $label -variable [itcl::scope _curFldLabel] \
                     -selectcolor red \
                     -activebackground $itk_option(-plotbackground) \
                     -activeforeground $itk_option(-plotforeground) \
@@ -1022,16 +1022,10 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                     -command [itcl::code $this Combo invoke]
                 set _fields($fname) [list $label $units $components]
                 set _curFldName $fname
+                set _curFldLabel $label
             }
         }
-	if { [array size _fields] == 1 } {
-	    set _curFldName [array names _fields]
-	    if { $_curFldName == "" } { 
-		puts stderr "no default name from field"
-		set _curFldName "Default"
-	    }
-	}
-	$itk_component(field) value $_curFldName
+        $itk_component(field) value $_curFldLabel
     }
     InitSettings stretchToFit
 
@@ -1040,6 +1034,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	foreach axis { x y z } {
 	    SendCmd "axis lformat $axis %g"
 	}
+        
 	foreach axis { x y z } {
 	    set label [$_first hints ${axis}label]
 	    if { $label == "" } {
@@ -1047,7 +1042,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
                     if { $_curFldName == "component" } {
                         set label [string toupper $axis]
                     } else {
-                        set label [lindex $_fields($_curFldName) 0]
+                        set label $_curFldLabel
                     }
 		} else {
 		    set label [string toupper $axis]
@@ -1490,14 +1485,20 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "field" {
-            set new   [$itk_component(field) value]
-            set value [$itk_component(field) translate $new]
-            set _settings(field) $value
-            if { [info exists _fields($new)] } {
-                set _colorMode scalar
-                set _curFldName $new
+            set label [$itk_component(field) value]
+            set fname [$itk_component(field) translate $label]
+            set _settings(field) $fname
+            if { [info exists _fields($fname)] } {
+                foreach { label units components } $_fields($fname) break
+                if { $components > 1 } {
+                    set _colorMode vmag
+                } else {
+                    set _colorMode scalar
+                }
+                set _curFldName $fname
+                set _curFldLabel $label
             } else {
-                puts stderr "unknown field \"$new\""
+                puts stderr "unknown field \"$fname\""
                 return
             }
             EventuallyRequestLegend
@@ -1609,14 +1610,6 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     if { $h < 1} {
         return
     }
-    if { [info exists _fields($_curFldName)] } {
-        set title [lindex $_fields($_curFldName) 0]
-	if { $title != "component" } {
-	    set h [expr $h - ($lineht + 2)]
-	}
-    } else {
-        return
-    }
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
 	set cmap $_currentColormap
@@ -1655,8 +1648,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     set heightScale [GetHeightmapScale]
     set bMin [expr $heightScale * $dataScale * $vmin]
     set bMax [expr $heightScale * $dataScale * $vmax]
-    set fieldName $_curFldName
-    SendCmd "dataset maprange explicit $_limits(v) $fieldName"
+    SendCmd "dataset maprange explicit $_limits(v) $_curFldName"
     SendCmd "axis bounds z $bMin $bMax"
     SendCmd "axis range z $_limits(v)"
 }
@@ -2439,7 +2431,7 @@ itcl::body Rappture::VtkHeightmapViewer::Combo {option} {
             $c itemconfigure title -fill $itk_option(-plotforeground) 
         }
         invoke {
-            $itk_component(field) value $_curFldName
+            $itk_component(field) value $_curFldLabel
             AdjustSetting field
         }
         default {

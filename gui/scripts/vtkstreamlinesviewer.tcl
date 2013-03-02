@@ -1093,39 +1093,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                 SendCmd "axis units $axis $units"
             }
         }
-        if 0 {
-        array unset _scalarFields
-        array unset _vectorFields
-        set _curFldLabel [$_first hints default]
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        foreach { name title units } [$_first hints vectors] {
-            set _vectorFields($title) $name
-            $itk_component(field) choices insert end "$name" "$title"
-            $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _curFldLabel] \
-                -selectcolor red \
-                -activebackground black \
-                -activeforeground white \
-                -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
-            set _fields($name) [list $title $units]
-        }
-        foreach { name title units } [$_first hints scalars] {
-            set _scalarFields($title) $name
-            $itk_component(field) choices insert end "$name" "$title"
-            $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _curFldLabel] \
-                -selectcolor red \
-                -activebackground black \
-                -activeforeground white \
-                -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
-            set _fields($name) [list $title $units]
-        }
-        $itk_component(field) value $_curFldLabel
-        }
 	$itk_component(field) choices delete 0 end
 	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
