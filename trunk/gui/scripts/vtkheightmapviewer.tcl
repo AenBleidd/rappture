@@ -906,7 +906,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	$_arcball resize $w $h
 	DoResize
 	if { $_settings(stretchToFit) } {
-	    Adjustsetting stretchToFit
+	    AdjustSetting stretchToFit
 	}
     }
     if { $_reset } {
