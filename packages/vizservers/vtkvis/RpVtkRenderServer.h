@@ -22,7 +22,9 @@ class Renderer;
 
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
+#ifndef STATSDIR
 #define STATSDIR	"/var/tmp/visservers"
+#endif  
 
 typedef struct {
     pid_t pid;
