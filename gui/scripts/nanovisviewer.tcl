@@ -2073,7 +2073,7 @@ itcl::body Rappture::NanovisViewer::SlicerTip {axis} {
 
 
 itcl::body Rappture::NanovisViewer::DoResize {} {
-    $_arcball resize $_width $height
+    $_arcball resize $_width $_height
     SendCmd "screen $_width $_height"
     set _resizePending 0
 }
