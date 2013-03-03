@@ -910,10 +910,8 @@ itcl::body Rappture::VtkViewer::Rebuild {} {
             axis-visible axis-labels \
             mesh-edges mesh-lighting mesh-opacity mesh-visible \
             mesh-wireframe 
+        SendCmd "imgflush"
     }
-    set _first [lindex [get -objects] 0] 
-
-    #SendCmd "imgflush"
 
     set _limits(zmin) ""
     set _limits(zmax) ""

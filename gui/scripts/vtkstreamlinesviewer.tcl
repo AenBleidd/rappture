@@ -999,7 +999,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
     set _legendPending 1
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
-    # generates a new call to Rebuild).   
+    # generates a new call to Rebuild).
 
     set _first ""
     if { $_reset } {

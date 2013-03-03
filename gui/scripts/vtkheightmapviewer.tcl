@@ -927,10 +927,8 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             DoRotate
 	} 	    
 	PanCamera
+        SendCmd "imgflush"
     }
-    set _first ""
-
-    #SendCmd "imgflush"
 
     set _first ""
     # Start off with no datasets are visible.
@@ -1445,6 +1443,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		$itk_component(scale) configure -state disabled
 		$itk_component(opacity_l) configure -state disabled
 		$itk_component(scale_l) configure -state disabled
+                SendCmd "camera mode image"
 	    }
             if {$_settings(stretchToFit)} {
                 if {$scale == 0} {
@@ -1463,7 +1462,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 bind $c <ButtonPress-1> {}
                 bind $c <B1-Motion> {}
                 bind $c <ButtonRelease-1> {}
-                SendCmd "camera mode image"
             }
             # Fix the mouse bindings for rotation/panning and the 
             # camera mode. Ideally we'd create a bindtag for these.
