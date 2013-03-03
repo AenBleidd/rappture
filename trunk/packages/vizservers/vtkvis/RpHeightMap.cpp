@@ -51,7 +51,7 @@ HeightMap::HeightMap(int numContours, double heightScale) :
     _colorFieldType(DataSet::POINT_DATA),
     _renderer(NULL)
 {
-    _contourEdgeColor[0] = 1.0f;
+    _contourEdgeColor[0] = 0.0f;
     _contourEdgeColor[1] = 0.0f;
     _contourEdgeColor[2] = 0.0f;
     _colorFieldRange[0] = DBL_MAX;
@@ -72,7 +72,7 @@ HeightMap::HeightMap(const std::vector<double>& contours, double heightScale) :
     _colorFieldType(DataSet::POINT_DATA),
     _renderer(NULL)
 {
-    _contourEdgeColor[0] = 1.0f;
+    _contourEdgeColor[0] = 0.0f;
     _contourEdgeColor[1] = 0.0f;
     _contourEdgeColor[2] = 0.0f;
     _colorFieldRange[0] = DBL_MAX;
