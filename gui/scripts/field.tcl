@@ -768,17 +768,17 @@ itcl::body Rappture::Field::Build {} {
 	    set _viewer "nanovis"
             set _comp2dims($cname) "3D"
             set _comp2dx($cname)  [$_fldObj get -decode no $cname.dx]
-            if 1 {
-            set data  [$_fldObj get -decode yes $cname.dx]
-            set file "/tmp/junk.dx"
-            set f [open $file "w"]
-            puts $f $data
-            close $f
-            if { [string match "<ODX>*" $data] } {
-                set data [string range $data 5 end]
-                set _comp2dx($cname) \
+            if 0 {
+                set data  [$_fldObj get -decode yes $cname.dx]
+                set file "/tmp/junk.dx"
+                set f [open $file "w"]
+                puts $f $data
+                close $f
+                if { [string match "<ODX>*" $data] } {
+                    set data [string range $data 5 end]
+                    set _comp2dx($cname) \
                         [Rappture::encoding::encode -as zb64 $data]
-            } 
+                } 
             }
             set _comp2style($cname) [$_fldObj get $cname.style]
             if {[$_fldObj element $cname.flow] != ""} {
@@ -1165,15 +1165,17 @@ itcl::body Rappture::Field::vtkdata {cname} {
 	set label [hints zlabel] 
 	if { $label == "" } {
 	    set label $cname
-	} else {
-	    regsub -all { } $label {_} label
-	}
+            if { [regexp {component\((.*)\)} $label match subname] } {
+                set label $subname
+            }
+        }
+        regsub -all { } $label {_} label
 	append out "# vtk DataFile Version 3.0\n"
 	append out "[hints label]\n"
 	append out "ASCII\n"
 	append out [$mesh vtkdata]
 	append out "POINT_DATA [$vector length]\n"
-	append out "SCALARS $label float\n"
+	append out "SCALARS $label double\n"
 	append out "LOOKUP_TABLE default\n"
 	append out "[$vector range 0 end]\n"
 	return $out
@@ -1200,8 +1202,11 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     }
     set element [$_xmlobj element -as type $path]
     set name $cname
+    if { [regexp {component\((.*)\)} $name match subname] } {
+        set name $subname
+    }
     regsub -all { } $name {_} name
-    set _field2Label($name) $cname
+    set _field2Label($name) $name
     set label [hints zlabel]
     if { $label != "" } {
         set _field2Label($name) $label

@@ -58,7 +58,6 @@ itcl::class Rappture::VtkVolumeViewer {
     public method get {args}
     public method isconnected {}
     public method limits { colormap }
-    public method sendto { string }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -79,8 +78,6 @@ itcl::class Rappture::VtkVolumeViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { colormap title vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendCmd {string}
-    protected method SendCmdNoWait {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
@@ -112,8 +109,6 @@ itcl::class Rappture::VtkVolumeViewer {
     private method Slice {option args} 
 
     private variable _arcball ""
-    private variable _outbuf       ;    # buffer for outgoing commands
-
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
     private variable _obj2ovride   ;    # maps dataobj => style override
@@ -134,7 +129,6 @@ itcl::class Rappture::VtkVolumeViewer {
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
-    private variable _buffering 0
     private variable _title ""
     private variable _seeds
 
@@ -837,45 +831,6 @@ itcl::body Rappture::VtkVolumeViewer::Disconnect {} {
     array unset _obj2datasets 
 }
 
-#
-# sendto --
-#
-itcl::body Rappture::VtkVolumeViewer::sendto { bytes } {
-    SendBytes "$bytes\n"
-    StartWaiting
-}
-
-#
-# SendCmd
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::VtkVolumeViewer::SendCmd {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-        StartWaiting
-    }
-}
-
-#
-# SendCmdNoWait
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::VtkVolumeViewer::SendCmdNoWait {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-    }
-}
-
 # ----------------------------------------------------------------------
 # USAGE: ReceiveImage -bytes <size> -type <type> -token <token>
 #
@@ -977,11 +932,12 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
+    StartBufferingCommands
+
     set _legendPending 1
 
     if { $_reset } {
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and dataset
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
@@ -1039,7 +995,7 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
                 set length [string length $bytes]
-                if 1 { 
+                if { $_reportClientInfo }  {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolId]
                     lappend info "tool_name"     [$dataobj hints toolName]
@@ -1135,14 +1091,11 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
         Zoom reset
         set _reset 0
     }
-    set _buffering 0;                        # Turn off buffering.
-
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    sendto $_outbuf;                        
+    StopBufferingCommands
     blt::busy release $itk_component(hull)
-    set _outbuf "";                        # Clear the buffer.                
 }
 
 # ----------------------------------------------------------------------

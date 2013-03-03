@@ -33,7 +33,6 @@ itcl::class ::Rappture::VisViewer {
     private variable _isOpen 0
     private variable _afterId -1
     private variable _icon 0
-
     # Number of milliseconds to wait before idle timeout.  If greater than 0,
     # automatically disconnect from the visualization server when idle timeout
     # is reached.
@@ -41,6 +40,8 @@ itcl::class ::Rappture::VisViewer {
     #private variable _idleTimeout 5000;    # 5 seconds
     #private variable _idleTimeout 0;       # No timeout
     protected variable _maxConnects 100
+    protected variable _outbuf       ;    # buffer for outgoing commands
+    protected variable _buffering 0
 
     private variable _logging 0
 
@@ -51,6 +52,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _hostname
     protected variable _numConnectTries 0
     protected variable _debugConsole 0
+    protected variable _reportClientInfo 1
 
     constructor { servers args } {
         # defined below
@@ -73,6 +75,8 @@ itcl::class ::Rappture::VisViewer {
     private method TraceComm { channel {data {}} } 
     private method SendDebugCommand {} 
 
+    protected method StartBufferingCommands {}
+    protected method StopBufferingCommands {}
     protected method CheckConnection {}
     protected method Color2RGB { color }
     protected method ColorsToColormap { colors }
@@ -88,6 +92,8 @@ itcl::class ::Rappture::VisViewer {
     protected method SendEcho { channel {data ""} }
     protected method StartWaiting {} 
     protected method StopWaiting {} 
+    protected method SendCmd {string}
+    protected method SendCmdNoWait {string}
 
     private method Waiting { option widget } 
 
@@ -300,6 +306,7 @@ itcl::body Rappture::VisViewer::Disconnect {} {
     catch {close $_sid} 
     set _sid ""
     set _buffer(in) ""
+    set _outbuf ""
 }
 
 #
@@ -428,6 +435,7 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
     if { ![CheckConnection] } {
         return 0
     }
+    StartWaiting
     # Even though the data is sent in only 1 "puts", we need to verify that
     # the server is ready first.  Wait for the socket to become writable
     # before sending anything.
@@ -470,6 +478,7 @@ itcl::body Rappture::VisViewer::ReceiveBytes { size } {
     }
     set bytes [read $_sid $size]
     ReceiveEcho <<line "<read $size bytes"
+    StopWaiting
     return $bytes
 }
 
@@ -767,7 +776,8 @@ itcl::body Rappture::VisViewer::TraceComm {channel {data ""}} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VisViewer::SendDebugCommand {} {
     set cmd [$itk_component(command) get]
-    SendBytes "$cmd\n"
+    append cmd "\n"
+    SendBytes $cmd
     $itk_component(command) delete 0 end
 }
 
@@ -1034,4 +1044,57 @@ itcl::body Rappture::VisViewer::ColorsToColormap { colors } {
         }
     }
     return $cmap
+}
+
+
+#
+# StartBufferingCommands --
+#
+itcl::body Rappture::VisViewer::StartBufferingCommands { } {
+    incr _buffering 
+    if { $_buffering == 1 } {
+        set _outbuf ""
+    }
+}
+
+#
+# StopBufferingCommands --
+#
+itcl::body Rappture::VisViewer::StopBufferingCommands { } {
+    incr _buffering -1
+    if { $_buffering == 0 } {
+        append _outbuf "\n"
+        SendBytes $_outbuf
+        set _outbuf ""
+    }
+}
+
+#
+# SendCmd
+#
+#       Send commands off to the rendering server.  If we're currently
+#       sending data objects to the server, buffer the commands to be 
+#       sent later.
+#
+itcl::body Rappture::VisViewer::SendCmd {string} {
+    if { $_buffering } {
+        append _outbuf $string "\n"
+    } else {
+        SendBytes "$string\n"
+    }
+}
+
+#
+# SendCmdNoWait
+#
+#       Send commands off to the rendering server.  If we're currently
+#       sending data objects to the server, buffer the commands to be 
+#       sent later.
+#
+itcl::body Rappture::VisViewer::SendCmdNoWait {string} {
+    if { $_buffering } {
+        append _outbuf $string "\n"
+    } else {
+        SendBytes "$string\n"
+    }
 }

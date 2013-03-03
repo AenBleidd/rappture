@@ -69,7 +69,6 @@ itcl::class Rappture::FlowvisViewer {
     }
     public method rmdupmarker { m x }
     public method scale {args}
-    public method sendto { cmd }
     public method updatetransferfuncs {}
 
     protected method Connect {}
@@ -85,7 +84,6 @@ itcl::class Rappture::FlowvisViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { tf vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendCmd {string}
     protected method SendDataObjs {}
     protected method SendTransferFuncs {}
     protected method Slice {option args}
@@ -127,8 +125,6 @@ itcl::class Rappture::FlowvisViewer {
 
     private variable _arcball ""
     private variable _useArcball 1
-    private variable _outbuf       ;# buffer for outgoing commands
-
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
     private variable _obj2ovride   ;# maps dataobj => style override
@@ -149,7 +145,6 @@ itcl::class Rappture::FlowvisViewer {
     private common   _settings
     private variable _activeTf ""  ;# The currently active transfer function.
     private variable _first ""     ;# This is the topmost volume.
-    private variable _buffering 0
     private variable _nextToken 0
     private variable _icon 0
     private variable _flow
@@ -211,8 +206,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     $_dispatcher register !waiticon
 
     set _flow(state) 0
-
-    set _outbuf ""
 
     array set _downloadPopup {
         format draft
@@ -888,13 +881,6 @@ itcl::body Rappture::FlowvisViewer::disconnect {} {
 }
 
 #
-# sendto --
-#
-itcl::body Rappture::FlowvisViewer::sendto { bytes } {
-    SendBytes "$bytes\n"
-}
-
-#
 # Disconnect --
 #
 #       Clients use this method to disconnect from the current rendering
@@ -904,27 +890,8 @@ itcl::body Rappture::FlowvisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    set _outbuf ""
     array unset _serverObjs
     set _sendobjs ""
-}
-
-#
-# SendCmd
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::FlowvisViewer::SendCmd { string } {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        foreach line [split $string \n] {
-            SendEcho >>line $line
-        }
-        SendBytes "$string\n"
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -971,7 +938,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
+    StartBufferingCommands
 
     # activate the proper volume
     set _first [lindex [get] 0]
@@ -1005,12 +972,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
     }
 
     SendCmd "flow reset"
-
-    # Actually write the commands to the server socket.  If it fails, we don't
-    # care.  We're finished here.
-    SendBytes $_outbuf;                 
-    set _buffering 0;                   # Turn off buffering.
-    set _outbuf "";                     # Clear the buffer.             
+    StopBufferingCommands
 }
 
 # ----------------------------------------------------------------------
@@ -1202,10 +1164,10 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
+    StartBufferingCommands
 
     if { $_reset } {
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and
             # dataset that we are rendering.  Have to do it here because
             # we don't know what data objects are using the renderer until
@@ -1237,7 +1199,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
             # Send the data as one huge base64-encoded mess -- yuck!
             set data [$dataobj blob $comp]
             set nbytes [string length $data]
-            if 1 {
+            if { $_reportClientInfo }  {
                 set info {}
                 lappend info "tool_id"       [$dataobj hints toolId]
                 lappend info "tool_name"     [$dataobj hints toolName]
@@ -1342,10 +1304,8 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    SendBytes $_outbuf
+    StopBufferingCommands
     blt::busy release $itk_component(hull)
-    set _buffering 0;                   # Turn off buffering.
-    set _outbuf "";                     # Clear the buffer.
     set _reset 0
 }
 

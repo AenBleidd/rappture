@@ -76,7 +76,6 @@ itcl::class Rappture::NanovisViewer {
     public method isconnected {}
     public method limits { tf }
     public method overmarker { m x }
-    public method sendto { string }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -97,7 +96,6 @@ itcl::class Rappture::NanovisViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { tf vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendCmd {string}
     protected method SendTransferFuncs {}
     protected method Slice {option args}
     protected method SlicerTip {axis}
@@ -123,7 +121,6 @@ itcl::class Rappture::NanovisViewer {
 
     private variable _arcball ""
     private variable _useArcball 1
-    private variable _outbuf       ;# buffer for outgoing commands
 
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
@@ -148,7 +145,6 @@ itcl::class Rappture::NanovisViewer {
     # and loaded.
     private variable _activeTfs
     private variable _first ""     ;# This is the topmost volume.
-    private variable _buffering 0
 
     # This 
     # indicates which isomarkers and transfer
@@ -189,8 +185,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
     # Resize event
     $_dispatcher register !resize
     $_dispatcher dispatch $this !resize "[itcl::code $this DoResize]; list"
-
-    set _outbuf ""
 
     #
     # Populate parser with commands handle incoming requests
@@ -643,35 +637,8 @@ itcl::body Rappture::NanovisViewer::Disconnect {} {
     VisViewer::Disconnect
 
     # disconnected -- no more data sitting on server
-    set _outbuf ""
     array unset _serverDatasets
 }
-
-#
-# sendto --
-#
-itcl::body Rappture::NanovisViewer::sendto { bytes } {
-    SendBytes "$bytes\n"
-}
-
-#
-# SendCmd
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::NanovisViewer::SendCmd {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        foreach line [split $string \n] {
-            SendEcho >>line $line
-        }
-        SendBytes "$string\n"
-    }
-}
-
 
 # ----------------------------------------------------------------------
 # USAGE: SendTransferFuncs
@@ -877,7 +844,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
+    StartBufferingCommands
 
     # Hide all the isomarkers. Can't remove them. Have to remember the
     # settings since the user may have created/deleted/moved markers.
@@ -892,7 +859,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         set _width [winfo width $itk_component(3dview)]
         set _height [winfo height $itk_component(3dview)]
         DoResize
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and
             # dataset that we are rendering.  Have to do it here because
             # we don't know what data objects are using the renderer until
@@ -922,7 +889,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                 # Send the data as one huge base64-encoded mess -- yuck!
                 set data [$dataobj values $cname]
                 set nbytes [string length $data]
-                if 1 {
+                if { $_reportClientInfo }  {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolId]
                     lappend info "tool_name"     [$dataobj hints toolName]
@@ -933,7 +900,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
                     lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
-                append _outbuf "volume data follows $nbytes $tag\n"
+                SendCmd "volume data follows $nbytes $tag"
                 append _outbuf $data
                 set _recvdDatasets($tag) 1
                 set _serverDatasets($tag) 0
@@ -999,14 +966,12 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
             updatetransferfuncs
         }
     }
-    set _buffering 0;                        # Turn off buffering.
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    SendBytes $_outbuf;                        
+    StopBufferingCommands
     blt::busy release $itk_component(hull)
     set _reset 0
-    set _outbuf "";                        # Clear the buffer.                
 }
 
 # ----------------------------------------------------------------------
