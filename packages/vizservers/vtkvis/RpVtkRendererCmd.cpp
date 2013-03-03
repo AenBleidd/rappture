@@ -1971,7 +1971,10 @@ CameraOrthoOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_GetIntFromObj(interp, objv[6], &height) != TCL_OK) {
             return TCL_ERROR;
         }
-        g_renderer->setCameraZoomRegionPixels(x, y, width, height);
+        if (!g_renderer->setCameraZoomRegionPixels(x, y, width, height)) {
+            Tcl_AppendResult(interp, "Camera mode is not image", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else if (string[0] == 'w' && strcmp(string, "world") == 0) {
         double x, y, width, height;
         if (Tcl_GetDoubleFromObj(interp, objv[3], &x) != TCL_OK ||
@@ -1980,7 +1983,10 @@ CameraOrthoOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_GetDoubleFromObj(interp, objv[6], &height) != TCL_OK) {
             return TCL_ERROR;
         }
-        g_renderer->setCameraZoomRegion(x, y, width, height);
+        if (!g_renderer->setCameraZoomRegion(x, y, width, height)) {
+            Tcl_AppendResult(interp, "Camera mode is not image", (char*)NULL);
+            return TCL_ERROR;
+        }
     } else {
         Tcl_AppendResult(interp, "bad camera ortho option \"", string,
                          "\": should be pixel or world", (char*)NULL);

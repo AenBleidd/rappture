@@ -190,19 +190,33 @@ public:
             return NULL;
     }
 
+    bool isCameraMaximized()
+    {
+        return (_cameraZoomRatio == 1.0 &&
+                _cameraPan[0] == 0.0 &&
+                _cameraPan[1] == 0.0);
+    }
+
+    void getImageCameraSizes(int *imgWidthPx, int *imgHeightPx,
+                             int *_pxOffsetX = NULL, int *_pxOffsetY = NULL);
+
+    double getImageCameraAspect();
+
     void setCameraMode(CameraMode mode);
 
     CameraMode getCameraMode() const;
 
     void setCameraAspect(Aspect aspect);
 
+    void resetVtkCamera(double *bounds = NULL);
+
     void resetCamera(bool resetOrientation = true);
 
     void resetCameraClippingRange();
 
-    void setCameraZoomRegionPixels(int x, int y, int width, int height);
+    bool setCameraZoomRegionPixels(int x, int y, int width, int height);
 
-    void setCameraZoomRegion(double x, double y, double width, double height);
+    bool setCameraZoomRegion(double x, double y, double width, double height);
 
     void getCameraZoomRegion(double xywh[4]) const;
 
@@ -223,6 +237,26 @@ public:
     void getCameraOrientationAndPosition(double position[3],
                                          double focalPoint[3],
                                          double viewUp[3]);
+
+    void eventuallyResetCamera()
+    {
+        _needsCameraReset = true;
+    }
+
+    bool needsCameraReset()
+    {
+        return _needsCameraReset;
+    }
+
+    void eventuallyResetCameraClippingRange()
+    {
+        _needsCameraClippingRangeReset = true;
+    }
+
+    bool needsCameraClippingRangeReset()
+    {
+        return _needsCameraClippingRangeReset;
+    }
 
     // Rendering an image
 
@@ -361,6 +395,16 @@ public:
     void setAxisLabelOrientation(Axis axis, double orientation);
 
     void setAxisLabelFormat(Axis axis, const char *format);
+
+    void eventuallyResetAxes()
+    {
+        _needsAxesReset = true;
+    }
+
+    bool needsAxesReset()
+    {
+        return _needsAxesReset;
+    }
 
     // Colormaps
 
@@ -803,6 +847,10 @@ private:
     typedef std::tr1::unordered_map<DataSetId, Volume *> VolumeHashmap;
     typedef std::tr1::unordered_map<DataSetId, Warp *> WarpHashmap;
 
+    void _setCameraZoomRegionPixels(int x, int y, int width, int height);
+
+    void _setCameraZoomRegion(double x, double y, double width, double height);
+
     static void printCameraInfo(vtkCamera *camera);
 
     static void setCameraFromMatrix(vtkCamera *camera, vtkMatrix4x4 &mat);
@@ -872,6 +920,9 @@ private:
     Aspect _cameraAspect;
     double _imgWorldOrigin[2];
     double _imgWorldDims[2];
+    double _imgWindowWorldDims[2];
+    double _userImgWorldOrigin[2];
+    double _userImgWorldDims[2];
     PrincipalPlane _imgCameraPlane;
     double _imgCameraOffset;
     double _screenWorldCoords[4];

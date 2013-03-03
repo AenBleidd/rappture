@@ -2153,9 +2153,30 @@ void Renderer::setWindowSize(int width, int height)
     _windowWidth = width;
     _windowHeight = height;
     _renderWindow->SetSize(_windowWidth, _windowHeight);
+
     if (_cameraMode == IMAGE) {
-        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                            _imgWorldDims[0], _imgWorldDims[1]);
+        if (_cameraAspect == ASPECT_WINDOW) {
+            double imgWindowAspect = getImageCameraAspect();
+            TRACE("Setting object aspect to %g", imgWindowAspect);
+            setObjectAspects(imgWindowAspect);
+            initCamera();
+        } else {
+            if (_userImgWorldDims[0] > 0) {
+                _setCameraZoomRegion(_userImgWorldOrigin[0],
+                                     _userImgWorldOrigin[1],
+                                     _userImgWorldDims[0],
+                                     _userImgWorldDims[1]);
+            } else {
+                if (isCameraMaximized()) {
+                    initCamera();
+                } else {
+                    _setCameraZoomRegion(_imgWorldOrigin[0],
+                                         _imgWorldOrigin[1],
+                                         _imgWorldDims[0],
+                                         _imgWorldDims[1]);
+                }
+            }
+        }
     }
     _needsRedraw = true;
 }
@@ -2205,7 +2226,7 @@ void Renderer::setCameraAspect(Aspect aspect)
     case ASPECT_WINDOW:
         aspectRatio = 1.0;
         if (_cameraMode == IMAGE) {
-            aspectRatio = _imgWorldDims[0] / _imgWorldDims[1];
+            aspectRatio = getImageCameraAspect();
         }
         break;
     case ASPECT_NATIVE:
@@ -2228,7 +2249,7 @@ void Renderer::setCameraAspect(Aspect aspect)
  * Orthogrphic mode is parallel projection.
  *
  * Image mode is an orthographic camera with fixed axes and a clipping region 
- * around the plot area, use setCameraZoomRegion to control the displayed area
+ * around the plot area, use _setCameraZoomRegion to control the displayed area
  *
  * \param[in] mode Enum specifying camera type
  */
@@ -2260,8 +2281,8 @@ void Renderer::setCameraMode(CameraMode mode)
     }
     case IMAGE: {
         camera->ParallelProjectionOn();
-        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                            _imgWorldDims[0],_imgWorldDims[1]);
+        _setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                             _imgWorldDims[0],_imgWorldDims[1]);
         TRACE("Set camera to Image mode");
         break;
     }
@@ -2461,6 +2482,14 @@ void Renderer::resetCamera(bool resetOrientation)
     _needsRedraw = true;
 }
 
+void Renderer::resetVtkCamera(double *bounds)
+{
+    if (bounds != NULL)
+        _renderer->ResetCamera(bounds);
+    else
+        _renderer->ResetCamera();
+}
+
 /**
  * \brief Set the camera near/far clipping range based on current scene bounds
  */
@@ -2508,6 +2537,11 @@ void Renderer::panCamera(double x, double y, bool absolute)
           x, y, _cameraPan[0], _cameraPan[1]);
 
     if (_cameraMode == IMAGE) {
+        _userImgWorldOrigin[0] = 0;
+        _userImgWorldOrigin[1] = 0;
+        _userImgWorldDims[0] = -1;
+        _userImgWorldDims[1] = -1;
+
         // Reverse x rather than y, since we are panning the camera, and client
         // expects to be panning/moving the object
         x = -x * _screenWorldCoords[2];
@@ -2528,8 +2562,8 @@ void Renderer::panCamera(double x, double y, bool absolute)
 
         _imgWorldOrigin[0] += x;
         _imgWorldOrigin[1] += y;
-        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                            _imgWorldDims[0], _imgWorldDims[1]);
+        _setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                             _imgWorldDims[0], _imgWorldDims[1]);
     } else {
         y = -y;
         if (absolute) {
@@ -2613,6 +2647,11 @@ void Renderer::zoomCamera(double z, bool absolute)
     }
 
     if (_cameraMode == IMAGE) {
+        _userImgWorldOrigin[0] = 0;
+        _userImgWorldOrigin[1] = 0;
+        _userImgWorldDims[0] = -1;
+        _userImgWorldDims[1] = -1;
+
         double dx = _imgWorldDims[0];
         double dy = _imgWorldDims[1];
         _imgWorldDims[0] /= z;
@@ -2621,8 +2660,8 @@ void Renderer::zoomCamera(double z, bool absolute)
         dy -= _imgWorldDims[1];
         _imgWorldOrigin[0] += dx/2.0;
         _imgWorldOrigin[1] += dy/2.0;
-        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                            _imgWorldDims[0], _imgWorldDims[1]);
+        _setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                             _imgWorldDims[0], _imgWorldDims[1]);
     } else {
         // Keep ortho and perspective modes in sync
         // Move camera forward/back for perspective camera
@@ -2639,16 +2678,11 @@ void Renderer::zoomCamera(double z, bool absolute)
     _needsRedraw = true;
 }
 
-/**
- * \brief Set the pan/zoom using a corner and dimensions in pixel coordinates
- * 
- * \param[in] x left pixel coordinate
- * \param[in] y bottom  pixel coordinate (with y=0 at top of window)
- * \param[in] width Width of zoom region in pixel coordinates
- * \param[in] height Height of zoom region in pixel coordinates
- */
-void Renderer::setCameraZoomRegionPixels(int x, int y, int width, int height)
+bool Renderer::setCameraZoomRegionPixels(int x, int y, int width, int height)
 {
+    if (_cameraMode != IMAGE)
+        return false;
+
     double wx, wy, ww, wh;
 
     y = _windowHeight - y;
@@ -2664,6 +2698,79 @@ void Renderer::setCameraZoomRegionPixels(int x, int y, int width, int height)
     TRACE("\npx: %d %d %d %d\nworld: %g %g %g %g",
           x, y, width, height,
           wx, wy, ww, wh);
+
+    return true;
+}
+
+bool Renderer::setCameraZoomRegion(double x, double y, double width, double height)
+{
+    if (_cameraMode != IMAGE)
+        return false;
+
+    _userImgWorldOrigin[0] = x;
+    _userImgWorldOrigin[1] = y;
+    _userImgWorldDims[0] = width;
+    _userImgWorldDims[1] = height;
+    _setCameraZoomRegion(x, y, width, height);
+
+    return true;
+}
+
+/**
+ * \brief Set the pan/zoom using a corner and dimensions in pixel coordinates
+ * 
+ * \param[in] x left pixel coordinate
+ * \param[in] y bottom  pixel coordinate (with y=0 at top of window)
+ * \param[in] width Width of zoom region in pixel coordinates
+ * \param[in] height Height of zoom region in pixel coordinates
+ */
+void Renderer::_setCameraZoomRegionPixels(int x, int y, int width, int height)
+{
+    if (_cameraMode != IMAGE) {
+        ERROR("Called while camera mode is not image");
+        return;
+    }
+
+    double wx, wy, ww, wh;
+
+    y = _windowHeight - y;
+    double pxToWorldX = _screenWorldCoords[2] / (double)_windowWidth;
+    double pxToWorldY = _screenWorldCoords[3] / (double)_windowHeight;
+
+    wx = _screenWorldCoords[0] + x * pxToWorldX;
+    wy = _screenWorldCoords[1] + y * pxToWorldY;
+    ww = abs(width) *  pxToWorldX;
+    wh = abs(height) * pxToWorldY;
+    _setCameraZoomRegion(wx, wy, ww, wh);
+
+    TRACE("\npx: %d %d %d %d\nworld: %g %g %g %g",
+          x, y, width, height,
+          wx, wy, ww, wh);
+}
+
+void Renderer::getImageCameraSizes(int *imgWidthPx, int *imgHeightPx,
+                                   int *_pxOffsetX, int *_pxOffsetY)
+{
+    int pxOffsetX, pxOffsetY;
+    pxOffsetX = (int)(0.17 * (double)_windowWidth);
+    pxOffsetX = (pxOffsetX > 100 ? 100 : pxOffsetX);
+    pxOffsetY = (int)(0.15 * (double)_windowHeight);
+    pxOffsetY = (pxOffsetY > 75 ? 75 : pxOffsetY);
+
+    int outerGutter = (int)(0.03 * (double)_windowWidth);
+    outerGutter = (outerGutter > 15 ? 15 : outerGutter);
+
+    *imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
+    *imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
+    if (_pxOffsetX != NULL) *_pxOffsetX = pxOffsetX;
+    if (_pxOffsetY != NULL) *_pxOffsetY = pxOffsetY;
+}
+
+double Renderer::getImageCameraAspect()
+{
+    int imgWidthPx, imgHeightPx;
+    getImageCameraSizes(&imgWidthPx, &imgHeightPx);
+    return ((double)imgWidthPx / (double)imgHeightPx);
 }
 
 /**
@@ -2674,50 +2781,54 @@ void Renderer::setCameraZoomRegionPixels(int x, int y, int width, int height)
  * \param[in] width Width of zoom region in world coordinates
  * \param[in] height Height of zoom region in world coordinates
  */
-void Renderer::setCameraZoomRegion(double x, double y, double width, double height)
+void Renderer::_setCameraZoomRegion(double x, double y, double width, double height)
 {
-    double camPos[2];
+    if (_cameraMode != IMAGE) {
+        ERROR("Called while camera mode is not image");
+        return;
+    }
 
-    int pxOffsetX = (int)(0.17 * (double)_windowWidth);
-    pxOffsetX = (pxOffsetX > 100 ? 100 : pxOffsetX);
-    int pxOffsetY = (int)(0.15 * (double)_windowHeight);
-    pxOffsetY = (pxOffsetY > 75 ? 75 : pxOffsetY);
-    int outerGutter = (int)(0.03 * (double)_windowWidth);
-    outerGutter = (outerGutter > 15 ? 15 : outerGutter);
+    int imgWidthPx, imgHeightPx;
+    int pxOffsetX, pxOffsetY;
 
-    int imgWidthPx = _windowWidth - pxOffsetX - outerGutter;
-    int imgHeightPx = _windowHeight - pxOffsetY - outerGutter;
+    getImageCameraSizes(&imgWidthPx, &imgHeightPx, &pxOffsetX, &pxOffsetY);
 
-    double imgAspect = width / height;
-    double winAspect = (double)_windowWidth / _windowHeight;
+    double imgWindowAspect = (double)imgWidthPx / (double)imgHeightPx;
 
     double pxToWorld;
+    double imgWidthWorld;
+    double imgHeightWorld;
 
-    if (imgAspect >= winAspect) {
+    double requestedAspect = width / height;
+
+    if (requestedAspect >= imgWindowAspect) {
         pxToWorld = width / (double)imgWidthPx;
+        imgWidthWorld = width;
+        imgHeightWorld = (double)imgHeightPx * pxToWorld;
     } else {
         pxToWorld = height / (double)imgHeightPx;
+        imgWidthWorld = (double)imgWidthPx * pxToWorld;
+        imgHeightWorld =  height;
     }
 
     double offsetX = pxOffsetX * pxToWorld;
     double offsetY = pxOffsetY * pxToWorld;
     double winWidthWorld = _windowWidth * pxToWorld;
     double winHeightWorld = _windowHeight * pxToWorld;
-    double imgWidthWorld = imgWidthPx * pxToWorld;
-    double imgHeightWorld = imgHeightPx * pxToWorld;
 
     TRACE("Window: %d %d", _windowWidth, _windowHeight);
     TRACE("ZoomRegion: %g %g %g %g", x, y, width, height);
     TRACE("pxToWorld: %g", pxToWorld);
     TRACE("offset: %g %g", offsetX, offsetY);
 
-    setCameraMode(IMAGE);
-
     _imgWorldOrigin[0] = x;
     _imgWorldOrigin[1] = y;
-    _imgWorldDims[0] = imgWidthWorld;
-    _imgWorldDims[1] = imgHeightWorld;
+    _imgWorldDims[0] = width;
+    _imgWorldDims[1] = height;
+    _imgWindowWorldDims[0] = imgWidthWorld;
+    _imgWindowWorldDims[1] = imgHeightWorld;
 
+    double camPos[2];
     camPos[0] = _imgWorldOrigin[0] - offsetX + winWidthWorld / 2.0;
     camPos[1] = _imgWorldOrigin[1] - offsetY + winHeightWorld / 2.0;
 
@@ -2739,14 +2850,14 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(_imgWorldOrigin[0], 0, 0);
         _cameraClipPlanes[1]->SetNormal(1, 0, 0);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWindowWorldDims[1], 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
+        _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWindowWorldDims[0], 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
 
-        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWindowWorldDims[0],
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWindowWorldDims[1],
                                   _imgCameraOffset, _imgCameraOffset);
         _cubeAxesActor->XAxisVisibilityOn();
         _cubeAxesActor->YAxisVisibilityOn();
@@ -2763,15 +2874,15 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[1]->SetOrigin(0, 0, _imgWorldOrigin[0]);
         _cameraClipPlanes[1]->SetNormal(0, 0, 1);
         // top
-        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWorldDims[1], 0);
+        _cameraClipPlanes[2]->SetOrigin(0, _imgWorldOrigin[1] + _imgWindowWorldDims[1], 0);
         _cameraClipPlanes[2]->SetNormal(0, -1, 0);
         // right
-        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + _imgWorldDims[0]);
+        _cameraClipPlanes[3]->SetOrigin(0, 0, _imgWorldOrigin[0] + _imgWindowWorldDims[0]);
         _cameraClipPlanes[3]->SetNormal(0, 0, -1);
 
         _cubeAxesActor->SetBounds(_imgCameraOffset, _imgCameraOffset, 
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1],
-                                  _imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0]);
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWindowWorldDims[1],
+                                  _imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWindowWorldDims[0]);
         _cubeAxesActor->XAxisVisibilityOff();
         _cubeAxesActor->YAxisVisibilityOn();
         _cubeAxesActor->ZAxisVisibilityOn();
@@ -2793,18 +2904,12 @@ void Renderer::setCameraZoomRegion(double x, double y, double width, double heig
         _cameraClipPlanes[3]->SetOrigin(_imgWorldOrigin[0] + _imgWorldDims[0], 0, 0);
         _cameraClipPlanes[3]->SetNormal(-1, 0, 0);
 
-        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWorldDims[0],
+        _cubeAxesActor->SetBounds(_imgWorldOrigin[0], _imgWorldOrigin[0] + _imgWindowWorldDims[0],
                                   _imgCameraOffset, _imgCameraOffset,
-                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWorldDims[1]);
+                                  _imgWorldOrigin[1], _imgWorldOrigin[1] + _imgWindowWorldDims[1]);
         _cubeAxesActor->XAxisVisibilityOn();
         _cubeAxesActor->YAxisVisibilityOff();
         _cubeAxesActor->ZAxisVisibilityOn();
-    }
-
-    if (_cameraAspect == ASPECT_WINDOW) {
-        double aspectRatio = _imgWorldDims[0] / _imgWorldDims[1];
-        TRACE("Setting object aspect to %g", aspectRatio);
-        setObjectAspects(aspectRatio);
     }
 
     // Fix up axis ranges based on new bounds
@@ -3680,6 +3785,12 @@ void Renderer::initCamera(bool initCameraMode)
         TRACE("Unknown camera mode");
     }
 #endif
+    // Clear user requested zoom region
+    _userImgWorldOrigin[0] = 0;
+    _userImgWorldOrigin[1] = 0;
+    _userImgWorldDims[0] = -1;
+    _userImgWorldDims[1] = -1;
+
     double bounds[6];
     collectBounds(bounds, false);
     bool twod = is2D(bounds, &_imgCameraPlane, &_imgCameraOffset);
@@ -3718,8 +3829,8 @@ void Renderer::initCamera(bool initCameraMode)
     switch (_cameraMode) {
     case IMAGE:
         //_renderer->ResetCamera(bounds);
-        setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
-                            _imgWorldDims[0], _imgWorldDims[1]);
+        _setCameraZoomRegion(_imgWorldOrigin[0], _imgWorldOrigin[1],
+                             _imgWorldDims[0], _imgWorldDims[1]);
         resetAxes(bounds);
         break;
     case ORTHO:
