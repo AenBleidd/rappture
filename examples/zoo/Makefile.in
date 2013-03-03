@@ -29,6 +29,7 @@ examples	= \
 		integer2 \
 		loader \
 		log \
+		mesh \
 		note \
 		number \
 		number2 \

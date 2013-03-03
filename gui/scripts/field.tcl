@@ -1077,6 +1077,7 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     fconfigure $f -translation binary -encoding binary
     puts $f $contents 
     close $f
+
     $reader SetFileName $tmpfile
     $reader ReadAllScalarsOn
     $reader ReadAllVectorsOn
@@ -1131,8 +1132,8 @@ itcl::body Rappture::Field::ReadVtkDataSet { cname contents } {
     }
     lappend limits v [list $vmin $vmax]
     set _comp2limits($cname) $limits
-    $reader Delete
     file delete $tmpfile
+    rename $reader ""
 }
 
 #

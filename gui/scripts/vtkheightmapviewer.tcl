@@ -940,14 +940,14 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
 	if {$_settings(isHeightmap) } {
-	    SendCmd "camera reset"
 	    if { $_view(ortho)} {
 		SendCmd "camera mode ortho"
 	    } else {
 		SendCmd "camera mode persp"
 	    }
+	    SendCmd "camera reset"
+            DoRotate
 	} 	    
-	DoRotate
 	PanCamera
     }
     set _first ""
@@ -1069,14 +1069,14 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
 	$_arcball quaternion $q 
 	if {$_settings(isHeightmap) } {
-	    SendCmd "camera reset"
 	    if { $_view(ortho)} {
 		SendCmd "camera mode ortho"
 	    } else {
 		SendCmd "camera mode persp"
 	    }
+	    SendCmd "camera reset"
+            DoRotate
 	}
-	DoRotate
 	PanCamera
 	InitSettings axisXGrid axisYGrid axisZGrid \
 	    axisVisible axisLabels 
@@ -1171,7 +1171,6 @@ itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
                 xpan    0
                 ypan    0 
             }
-            SendCmd "camera reset all"
             if { $_first != "" } {
                 set location [$_first hints camera]
                 if { $location != "" } {
@@ -1180,7 +1179,10 @@ itcl::body Rappture::VtkHeightmapViewer::Zoom {option} {
             }
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
-            DoRotate
+            SendCmd "camera reset"
+            if {$_settings(isHeightmap) } {
+                DoRotate
+            }
         }
     }
 }
@@ -1522,8 +1524,17 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	}
         "isHeightmap" {
 	    set bool $_settings(isHeightmap)
+            incr _buffering 
+            if { $_buffering == 1 } {
+                set _outbuf ""
+            }
 	    if { $bool } {
 		$itk_component(lighting) configure -state normal
+                if {$_view(ortho)} {
+                    SendCmd "camera mode ortho"
+                } else {
+                    SendCmd "camera mode persp"
+                }
 	    } else {
 		$itk_component(lighting) configure -state disabled
 	    }
@@ -1561,11 +1572,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                     [itcl::code $this Rotate release %x %y]
                 set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
                 $_arcball quaternion $q
-                if {$_view(ortho)} {
-                    SendCmd "camera mode ortho"
-                } else {
-                    SendCmd "camera mode persp"
-                }
                 SendCmd "camera orient $q" 
             } else {
                 set _settings(heightmapScale) 0
@@ -1573,6 +1579,11 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 bind $c <B1-Motion> {}
                 bind $c <ButtonRelease-1> {}
                 SendCmd "camera mode image"
+            }
+            incr _buffering -1
+            if { $_buffering == 0 } {
+                sendto $_outbuf
+                set _outbuf ""
             }
         }
         "legendVisible" {
@@ -2049,8 +2060,8 @@ itcl::body Rappture::VtkHeightmapViewer::GetVtkData { args } {
     foreach dataobj [get] {
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
-            set contents [ConvertToVtkData $dataobj $comp]
-            #set contents [$dataobj vtkdata $comp]
+            #set contents [ConvertToVtkData $dataobj $comp]
+            set contents [$dataobj vtkdata $comp]
             append bytes "$contents\n\n"
         }
     }
@@ -2137,6 +2148,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     SendCmd "heightmap edges $_settings(edges) $tag"
     SendCmd "heightmap wireframe $_settings(wireframe) $tag"
     SendCmd "heightmap colormap $_currentColormap $tag"
+    set color [$itk_component(isolinecolor) value]
+    SendCmd "heightmap isolinecolor [Color2RGB $color] $tag"
 }
 
 itcl::body Rappture::VtkHeightmapViewer::IsValidObject { dataobj } {
@@ -2174,26 +2187,25 @@ itcl::body Rappture::VtkHeightmapViewer::ReceiveLegend { colormap title min max 
 #
 # DrawLegend --
 #
-#       Draws the legend in it's own canvas which resides to the right
-#       of the contour plot area.
+#       Draws the legend in the own canvas on the right side of the plot area.
 #
-itcl::body Rappture::VtkHeightmapViewer::DrawLegend { name } {
+itcl::body Rappture::VtkHeightmapViewer::DrawLegend { fname } {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { $name == "component" } {
+    if { $fname == "component" } {
 	set title ""
     } else {
-	if { [info exists _fields($name)] } {
-	    foreach { title units } $_fields($name) break
+	if { [info exists _fields($fname)] } {
+	    foreach { title units } $_fields($fname) break
 	    if { $units != "" } {
 		set title [format "%s (%s)" $title $units]
 	    }
 	} else {
-	    set title $name
+	    set title $fname
 	}
     }
     set x [expr $w - 2]
@@ -2301,31 +2313,13 @@ itcl::body Rappture::VtkHeightmapViewer::LeaveIsoline { } {
 #
 itcl::body Rappture::VtkHeightmapViewer::SetIsolineTip { x y value } {
     set c $itk_component(view)
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set font "Arial 8"
-    set lineht [font metrics $font -linespace]
-    
-    if { [info exists _fields($_title)] } {
-        foreach { title units } $_fields($_title) break
-        if { $units != "" } {
-            set title [format "%s (%s)" $title $units]
-        }
-    } else {
-        set title $_title
-    }
-    set imgHeight [image height $_image(legend)]
-    set coords [$c coords colormap]
-    set imgX [expr $w - [image width $_image(legend)] - 2]
-    set imgY [expr $y - 2 * ($lineht + 2)]
-
     .rappturetooltip configure -icon ""
 
-    # Compute the value of the point
-    set tipx [expr $x + 15] 
-    set tipy [expr $y - 5]
+    # Compute the position of the tip
+    set tx [expr $x + 15] 
+    set ty [expr $y - 5]
     Rappture::Tooltip::text $c "Isoline $value"
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
 
@@ -2363,10 +2357,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    set imgHeight [image height $_image(legend)]
-    set coords [$c coords colormap]
-    set imgX [expr $w - [image width $_image(legend)] - 2]
-    set imgY [expr $y - 2 * ($lineht + 2)]
+    set ih [image height $_image(legend)]
+    set iy [expr $y - ($lineht + 2)]
 
     if { [info exists _fields($_title)] } {
         foreach { title units } $_fields($_title) break
@@ -2376,11 +2368,17 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     } else {
         set title $_title
     }
+    # If there's a legend title, increase the offset by the line height.
+    if { $title != "" } {
+        incr iy $lineht
+    }
+
     # Make a swatch of the selected color
-    if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
-        #puts stderr "out of range: $imgY"
+    if { [catch { $_image(legend) get 10 $iy } pixel] != 0 } {
+        #puts stderr "out of range: $iy"
         return
     }
+
     if { ![info exists _image(swatch)] } {
         set _image(swatch) [image create photo -width 24 -height 24]
     }
@@ -2392,7 +2390,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     # Compute the value of the point
     if { [info exists _limits(v)] } {
         foreach { vmin vmax } $_limits(v) break
-        set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
+        set t [expr 1.0 - (double($iy) / double($ih-1))]
         set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {
         set value 0.0
