@@ -75,8 +75,6 @@ itcl::class Rappture::MolvisViewer {
     private variable _pdbdata;          # PDB data from run file sent to pymol
     private common _hardcopy
     private variable _nextToken 0
-    private variable _outbuf "";
-    private variable _buffering 0;
     private variable _resizePending 0;
     private variable _updatePending 0;
     private variable _rotatePending 0;
@@ -118,7 +116,7 @@ itcl::class Rappture::MolvisViewer {
     protected method Pan {option x y}
     protected method Rebuild { }
     protected method Rotate {option x y}
-    protected method SendCmd { string }
+    protected method ServerCmd { string }
     protected method Unmap {}
     protected method Vmouse  {option b m x y}
     protected method Vmouse2 {option b m x y}
@@ -709,39 +707,23 @@ itcl::body Rappture::MolvisViewer::Disconnect {} {
 
     set _state(server) 1
     set _state(client) 1
-    set _outbuf ""
     global readyForNextFrame
     set readyForNextFrame 1
     set _reset 1
 }
 
-itcl::body Rappture::MolvisViewer::SendCmd { cmd } {
-    debug "in SendCmd ($cmd)\n"
+itcl::body Rappture::MolvisViewer::ServerCmd { cmd } {
+    debug "in ServerCmd ($cmd)\n"
 
-    if { $_buffering } {
-        # Just buffer the commands. Don't send them yet.
-        if { $_state(server) != $_state(client) } {
-            append _outbuf "frame -defer $_state(client)\n"
-            set _state(server) $_state(client)
-        }
-        if { $_rocker(server) != $_rocker(client) } {
-            append _outbuf "rock -defer $_rocker(client)\n"
-            set _rocker(server) $_rocker(client)
-        }
-        append _outbuf "$cmd\n"
-    } else {
-        if { $_state(server) != $_state(client) } {
-            if { ![SendBytes "frame -defer $_state(client)\n"] } {
-                set _state(server) $_state(client)
-            }
-        }
-        if { $_rocker(server) != $_rocker(client) } {
-            if { ![SendBytes "rock -defer $_rocker(client)\n"] } {
-                set _rocker(server) $_rocker(client)
-            }
-        }
-        SendBytes "$cmd\n"
+    if { $_state(server) != $_state(client) } {
+        SendCmd "frame -defer $_state(client)"
+        set _state(server) $_state(client)
     }
+    if { $_rocker(server) != $_rocker(client) } {
+        SendCmd "rock -defer $_rocker(client)"
+        set _rocker(server) $_rocker(client)
+    }
+    SendCmd "$cmd"
 }
 
 #
@@ -884,15 +866,14 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (that automatically
     # generates a new call to Rebuild).   
-    #blt::bltdebug 100
-    set _buffering 1
+    StartBufferingCommands
     set _cell 0
 
     if { $_reset } {
         set _rocker(server) 0
         set _cacheid 0
 
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and dataset
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
@@ -911,10 +892,10 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             lappend info "client" "molvisviewer"
             lappend info "user" $user
             lappend info "session" $session
-            SendCmd "clientinfo [list $info]"
+            ServerCmd "clientinfo [list $info]"
         }
-        SendCmd "raw -defer {set auto_color,0}"
-        SendCmd "raw -defer {set auto_show_lines,0}"
+        ServerCmd "raw -defer {set auto_color,0}"
+        ServerCmd "raw -defer {set auto_show_lines,0}"
     }
     set _first ""
     set dlist [get]
@@ -944,7 +925,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
             set data1      ""
             set serial    1
 
-            if 1 {
+            if { $_reportClientInfo }  {
                 set parent [$dataobj parent -as object]
                 while { $parent != "" } {
                     set xmlobj $parent
@@ -957,7 +938,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 lappend info "tool_command" [$xmlobj get tool.execute]
                 lappend info "tool_revision" \
                     [$xmlobj get tool.version.application.revision]
-                SendCmd "clientinfo [list $info]"
+                ServerCmd "clientinfo [list $info]"
             }
             foreach _atom [$dataobj children -type atom components.molecule] {
                 set symbol [$dataobj get components.molecule.$_atom.symbol]
@@ -987,7 +968,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                SendCmd "loadpdb -defer follows $model $state $nBytes"
+                ServerCmd "loadpdb -defer follows $model $state $nBytes"
                 append _outbuf $data1
                 set _dataobjs($model-$state)  1
             }
@@ -1000,7 +981,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                 # We know we're buffered here, so append the "loadpdb" command
                 # with the data payload immediately afterwards.
-                SendCmd "loadpdb -defer follows $model $state $nBytes"
+                ServerCmd "loadpdb -defer follows $model $state $nBytes"
                 append _outbuf $data2
                 set _dataobjs($model-$state)  1
             }
@@ -1049,7 +1030,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
                     # We know we're buffered here, so append the "loadpdb" 
                     # command with the data payload immediately afterwards.
-                    SendCmd "loadpdb -defer follows $model $state $nBytes"
+                    ServerCmd "loadpdb -defer follows $model $state $nBytes"
                     append _outbuf $data3
                 }
                 set _dataobjs($model-$state) 1
@@ -1073,9 +1054,9 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         set vector [$dataobj get components.parallelepiped.vector]
         if { $vector != "" } {
             set vertices [ComputeParallelepipedVertices $dataobj]
-            SendCmd "raw -defer {verts = \[$vertices\]\n}"
-            SendCmd "raw -defer {run \$PYMOL_SITE_PATH/rappture/box.py\n}"
-            SendCmd "raw -defer {draw_box(verts)\n}"
+            ServerCmd "raw -defer {verts = \[$vertices\]\n}"
+            ServerCmd "raw -defer {run \$PYMOL_SITE_PATH/rappture/box.py\n}"
+            ServerCmd "raw -defer {draw_box(verts)\n}"
             set _cell 1
         }
     }
@@ -1085,12 +1066,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
 
     foreach model [array names _mlist] {
         if { $_mlist($model) == 1 } {
-            SendCmd "disable -defer $model"
+            ServerCmd "disable -defer $model"
             set _mlist($model) 0
             set changed 1
         } elseif { $_mlist($model) == 2 } {
             set _mlist($model) 1
-            SendCmd "enable -defer $model"
+            ServerCmd "enable -defer $model"
             set changed 1
         } elseif { $_mlist($model) == 3 } {
             set _mlist($model) 1
@@ -1106,7 +1087,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
                 }
                 set rep $_model($model-newrep)
                 set transp $_model($model-newtransparency)
-                SendCmd "representation -defer -model $model $rep"
+                ServerCmd "representation -defer -model $model $rep"
                 set changed 1
                 set _model($model-transparency) $_model($model-newtransparency)
                 set _model($model-rep) $_model($model-newrep)
@@ -1125,12 +1106,12 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
     if { $dlist == "" } {
         set _state(server) 1
         set _state(client) 1
-        SendCmd "frame 1"
+        ServerCmd "frame 1"
         set flush 1
     } elseif { ![info exists _imagecache($state,$_rocker(client))] } {
         set _state(server) $state
         set _state(client) $state
-        SendCmd "frame $state"
+        ServerCmd "frame $state"
         set flush 1
     } else {
         set _state(client) $state
@@ -1142,7 +1123,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         # model and assume this works for everything else.
         set w  [winfo width $itk_component(3dview)] 
         set h  [winfo height $itk_component(3dview)] 
-        SendCmd [subst { 
+        ServerCmd [subst { 
             reset
             screen $w $h
             rotate $_view(mx) $_view(my) $_view(mz)
@@ -1151,7 +1132,7 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         }]
         debug "rebuild: rotate $_view(mx) $_view(my) $_view(mz)"
 
-        SendCmd "raw -defer {zoom complete=1}"
+        ServerCmd "raw -defer {zoom complete=1}"
         set _reset 0
     }
     if { $changed } {
@@ -1175,16 +1156,10 @@ itcl::body Rappture::MolvisViewer::Rebuild {} {
         global readyForNextFrame
         set readyForNextFrame 0;        # Don't advance to the next frame
                                         # until we get an image.
-        #SendCmd "ppm";                 # Flush the results.
+        #ServerCmd "ppm";                 # Flush the results.
     }
-    set _buffering 0;                   # Turn off buffering.
-
     blt::busy hold $itk_component(hull)
-
-    # Actually write the commands to the server socket.  
-    # If it fails, we don't care.  We're finished here.
-    SendBytes $_outbuf;                 
-    set _outbuf "";                     # Clear the buffer.             
+    StopBufferingCommands
     blt::busy release $itk_component(hull)
 
     debug "exiting rebuild"
@@ -1213,7 +1188,7 @@ itcl::body Rappture::MolvisViewer::Map { } {
 }
 
 itcl::body Rappture::MolvisViewer::DoResize { } {
-    SendCmd "screen $_width $_height"
+    ServerCmd "screen $_width $_height"
     $_image(plot) configure -width $_width -height $_height
     # Immediately invalidate cache, defer update until mapped
     array unset _imagecache 
@@ -1230,7 +1205,7 @@ itcl::body Rappture::MolvisViewer::EventuallyResize { w h } {
 }
 
 itcl::body Rappture::MolvisViewer::DoRotate {} {
-    SendCmd "rotate $_view(a) $_view(b) $_view(c)"
+    ServerCmd "rotate $_view(a) $_view(b) $_view(c)"
     array unset _imagecache 
     set _rotatePending 0
 }
@@ -1275,7 +1250,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
         array unset _imagecache 
-        SendCmd "pan $dx $dy"
+        ServerCmd "pan $dx $dy"
         return
     }
     if { ![info exists _mevent(x)] } {
@@ -1290,7 +1265,7 @@ itcl::body Rappture::MolvisViewer::Pan {option x y} {
         set _view(x) [expr $_view(x) + $dx]
         set _view(y) [expr $_view(y) + $dy]
         array unset _imagecache 
-        SendCmd "pan $dx $dy"
+        ServerCmd "pan $dx $dy"
     }
     set _mevent(x) $x
     set _mevent(y) $y
@@ -1311,15 +1286,15 @@ itcl::body Rappture::MolvisViewer::Zoom {option {factor 10}} {
     switch -- $option {
         "in" {
             set _view(zoom) [expr $_view(zoom) + $factor]
-            SendCmd "zoom $factor"
+            ServerCmd "zoom $factor"
         }
         "out" {
             set _view(zoom) [expr $_view(zoom) - $factor]
-            SendCmd "zoom -$factor"
+            ServerCmd "zoom -$factor"
         }
         "reset" {
             set _view(zoom) 0
-            SendCmd "reset"
+            ServerCmd "reset"
         }
     }
     array unset _imagecache 
@@ -1362,7 +1337,7 @@ itcl::body Rappture::MolvisViewer::Rock { option } {
         set _rocker(client) [expr {$_rocker(client) + $_rocker(dir)}]
         if { ![info exists _imagecache($_state(server),$_rocker(client))] } {
             set _rocker(server) $_rocker(client)
-            SendCmd "rock $_rocker(client)"
+            ServerCmd "rock $_rocker(client)"
         }
         UpdateState
     }
@@ -1395,7 +1370,7 @@ itcl::body Rappture::MolvisViewer::Vmouse2 {option b m x y} {
             return
         }
     }
-    SendCmd "vmouse $vButton $vModifier $vState $x $y"
+    ServerCmd "vmouse $vButton $vModifier $vState $x $y"
     set _mevent(time) $now
 }
 
@@ -1454,7 +1429,7 @@ itcl::body Rappture::MolvisViewer::Vmouse {option b m x y} {
         set _view(mx) [expr {$_view(mx) + $mx}]
         set _view(my) [expr {$_view(my) + $my}]
         set _view(mz) [expr {$_view(mz) + $mz}]
-        #SendCmd "rotate $mx $my $mz"
+        #ServerCmd "rotate $mx $my $mz"
         EventuallyRotate $mx $my $mz
         debug "_vmmouse: rotate $_view(mx) $_view(my) $_view(mz)"
     }
@@ -1552,7 +1527,7 @@ itcl::body Rappture::MolvisViewer::Rotate {option x y} {
                     vz $vz
                 }]
                 EventuallyRotate $a $b $c
-                #SendCmd "rotate $a $b $c"
+                #ServerCmd "rotate $a $b $c"
                 debug "Rotate $x $y: rotate $_view(vx) $_view(vy) $_view(vz)"
                 set _click(x) $x
                 set _click(y) $y
@@ -1611,7 +1586,7 @@ itcl::body Rappture::MolvisViewer::Representation { { option "" } } {
         }
     }
     if { [isconnected] } {
-        SendCmd "representation -model $model $option"
+        ServerCmd "representation -model $model $option"
         #$_dispatcher event -idle !rebuild
     }
 }
@@ -1652,13 +1627,13 @@ itcl::body Rappture::MolvisViewer::OrthoProjection {option} {
         Rappture::Tooltip::for $itk_component(ortho) \
             "Use perspective projection"
         set _settings($this-ortho) 1
-        SendCmd "orthoscopic on"
+        ServerCmd "orthoscopic on"
     } else {
         $itk_component(ortho) configure -image [Rappture::icon molvis-3dpers]
         Rappture::Tooltip::for $itk_component(ortho) \
             "Use orthoscopic projection"
         set _settings($this-ortho) 0
-        SendCmd "orthoscopic off"
+        ServerCmd "orthoscopic off"
     }
 }
 
@@ -1692,12 +1667,12 @@ itcl::body Rappture::MolvisViewer::Cell {option} {
         Rappture::Tooltip::for $itk_component(ortho) \
             "Hide the cell."
         set _settings($this-showcell) 1
-        SendCmd "raw {show everything,unitcell}"
+        ServerCmd "raw {show everything,unitcell}"
     } else {
         Rappture::Tooltip::for $itk_component(ortho) \
             "Show the cell."
         set _settings($this-showcell) 0
-        SendCmd "raw {hide everything,unitcell}"
+        ServerCmd "raw {hide everything,unitcell}"
     }
 }
 
@@ -1720,12 +1695,12 @@ itcl::body Rappture::MolvisViewer::ResetView {} {
         width   0
         height  0
     }
-    SendCmd "reset"
+    ServerCmd "reset"
     DoResize
-    SendCmd "rotate $_view(mx) $_view(my) $_view(mz)"
+    ServerCmd "rotate $_view(mx) $_view(my) $_view(mz)"
     debug "ResetView: rotate $_view(mx) $_view(my) $_view(mz)"
-    SendCmd "pan $_view(x) $_view(y)"
-    SendCmd "zoom $_view(zoom)"
+    ServerCmd "pan $_view(x) $_view(y)"
+    ServerCmd "zoom $_view(zoom)"
 }
 
 
@@ -1808,7 +1783,7 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
     grab set $inner
     focus $inner.cancel
     
-    SendCmd "print $token $width $height $bgcolor"
+    ServerCmd "print $token $width $height $bgcolor"
 
     $popup activate $widget below
     # We wait here for either 
@@ -1872,14 +1847,14 @@ itcl::body Rappture::MolvisViewer::SphereScale { option {models "all"} } {
     }
     set _settings($this-spherescale) $radius
     if { $models == "all" } {
-        SendCmd "spherescale -model all $radius"
+        ServerCmd "spherescale -model all $radius"
         return
     }
     set overrideradius [expr $radius * 0.8]
-    SendCmd "spherescale -model all $overrideradius"
+    ServerCmd "spherescale -model all $overrideradius"
     foreach model $models {
         if { [info exists _active($model)] } {
-            SendCmd "spherescale -model $model $radius"
+            ServerCmd "spherescale -model $model $radius"
         }
     }
 }
@@ -1908,14 +1883,14 @@ itcl::body Rappture::MolvisViewer::StickRadius { option {models "all"} } {
     }
     set _settings($this-stickradius) $radius
     if { $models == "all" } {
-        SendCmd "stickradius -model all $radius"
+        ServerCmd "stickradius -model all $radius"
         return
     }
     set overrideradius [expr $radius * 0.8]
-    SendCmd "stickradius -model all $overrideradius"
+    ServerCmd "stickradius -model all $overrideradius"
     foreach model $models {
         if { [info exists _active($model)] } {
-            SendCmd "stickradius -model $model $radius"
+            ServerCmd "stickradius -model $model $radius"
         }
     }
 }
@@ -1947,13 +1922,13 @@ itcl::body Rappture::MolvisViewer::Opacity { option } {
     set transparency [expr 1.0 - $opacity]
     set models [array names _active]
     if { [llength $models] == 0 } {
-        SendCmd "transparency -model all $transparency"
+        ServerCmd "transparency -model all $transparency"
         return
     }
     set overridetransparency 0.60
-    SendCmd "transparency -model all $overridetransparency"
+    ServerCmd "transparency -model all $overridetransparency"
     foreach model $models {
-        SendCmd "transparency -model $model $transparency"
+        ServerCmd "transparency -model $model $transparency"
     }
 }
 
@@ -1977,14 +1952,14 @@ itcl::body Rappture::MolvisViewer::labels {option {models "all"}} {
     array unset _imagecache
     set _settings($this-showlabels) $showlabels
     if { $models == "all" } {
-        SendCmd "label -model all $showlabels"
+        ServerCmd "label -model all $showlabels"
         return
     }
-    SendCmd "label -model all off"
+    ServerCmd "label -model all off"
     if { $showlabels } {
         foreach model $models {
             if { [info exists _active($model)] } {
-                SendCmd "label -model $model $showlabels"
+                ServerCmd "label -model $model $showlabels"
             }
         }
     }
@@ -2009,14 +1984,14 @@ itcl::body Rappture::MolvisViewer::CartoonTrace {option {models "all"}} {
     }
     set _settings($this-cartoontrace) $trace
     if { $models == "all" } {
-        SendCmd "cartoontrace -model all $trace"
+        ServerCmd "cartoontrace -model all $trace"
         return
     }
-    SendCmd "cartoontrace -model all off"
+    ServerCmd "cartoontrace -model all off"
     if { $trace } {
         foreach model $models {
             if { [info exists _active($model)] } {
-                SendCmd "cartoontrace -model $model $trace"
+                ServerCmd "cartoontrace -model $model $trace"
             }
         }
     }

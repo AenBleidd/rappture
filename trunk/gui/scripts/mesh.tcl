@@ -426,7 +426,7 @@ itcl::body Rappture::Mesh::ReadCloud { xmlobj path } {
     set _numPoints [$xv length]
     if { $_dim == 2 } {
 	append out "DATASET POLYDATA\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
 	foreach x [$xv range 0 end] y [$yv range 0 end]  {
 	    append out "$x $y 0\n"
 	}
@@ -437,7 +437,7 @@ itcl::body Rappture::Mesh::ReadCloud { xmlobj path } {
 	}
     } elseif { $_dim == 3 } {
 	append out "DATASET POLYDATA\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
 	foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	    append out "$x $y $z\n"
 	}
@@ -778,7 +778,7 @@ itcl::body Rappture::Mesh::ReadCells { xmlobj path } {
 	    incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
 	foreach x [$xv range 0 end] y [$yv range 0 end] {
 	    append out "    $x $y 0\n"
 	}
@@ -816,7 +816,7 @@ itcl::body Rappture::Mesh::ReadCells { xmlobj path } {
 	    incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
 	foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	    append out "    $x $y $z\n"
 	}
@@ -870,7 +870,7 @@ itcl::body Rappture::Mesh::ReadTriangles { xmlobj path } {
 	append celltypes "5\n"
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
-    append out "POINTS $_numPoints float\n"
+    append out "POINTS $_numPoints double\n"
     foreach x [$xv range 0 end] y [$yv range 0 end] {
 	append out "    $x $y 0\n"
     }
@@ -934,7 +934,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
             incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
         $zv seq 0 0 [$xv length];       # Make an all zeroes vector.
 	$all merge $xv $yv $zv
         append out [$all range 0 end]
@@ -968,7 +968,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
             incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints float\n"
+	append out "POINTS $_numPoints double\n"
         $all merge $xv $yv $zv
         append out [$all range 0 end]
         append out "\n"
@@ -1063,7 +1063,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
     }
 
     append out "DATASET UNSTRUCTURED_GRID\n"
-    append out "POINTS $_numPoints float\n"
+    append out "POINTS $_numPoints double\n"
     append out $points
     append out "CELLS $_numCells $count\n"
     append out $data

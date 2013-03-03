@@ -58,7 +58,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     public method get {args}
     public method isconnected {}
     public method limits { colormap }
-    public method sendto { string }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -78,8 +77,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { colormap title vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendCmd {string}
-    protected method SendCmdNoWait {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
@@ -113,7 +110,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetCurrentColormap { stylelist }
 
     private variable _arcball ""
-    private variable _outbuf       ;    # buffer for outgoing commands
 
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
@@ -140,7 +136,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
-    private variable _buffering 0
     private variable _title ""
 
     common _downloadPopup;              # download options from popup
@@ -812,45 +807,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Disconnect {} {
     array unset _obj2datasets 
 }
 
-#
-# sendto --
-#
-itcl::body Rappture::VtkIsosurfaceViewer::sendto { bytes } {
-    SendBytes "$bytes\n"
-    StartWaiting
-}
-
-#
-# SendCmd
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::VtkIsosurfaceViewer::SendCmd {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-        StartWaiting
-    }
-}
-
-#
-# SendCmdNoWait
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::VtkIsosurfaceViewer::SendCmdNoWait {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-    }
-}
-
 # ----------------------------------------------------------------------
 # USAGE: ReceiveImage -bytes <size> -type <type> -token <token>
 #
@@ -866,7 +822,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    StopWaiting
     if { $info(-type) == "image" } {
         if 0 {
             set f [open "last.ppm" "w"] 
@@ -950,10 +905,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).   
-    set _buffering 1
+    StartBufferingCommands
 
     if { $_reset } {
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and dataset
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
@@ -997,6 +952,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         SendCmd "imgflush"
     }
     set _first ""
+    SendCmd "contour3d visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -1012,7 +968,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 		    close $f
                 }
                 set length [string length $bytes]
-                if 1 {
+                if { $_reportClientInfo }  {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolId]
                     lappend info "tool_name"     [$dataobj hints toolName]
@@ -1031,10 +987,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
 		SendCmd "contour3d visible 1 $tag"
-                #SendCmd "dataset visible 1 $tag"
-            } else {
-		SendCmd "contour3d visible 0 $tag"
-                #SendCmd "dataset visible 0 $tag"
             }
         }
     }
@@ -1042,6 +994,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	$itk_component(field) choices delete 0 end
 	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
+        set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
                 if { [info exists _fields($fname)] } {
@@ -1058,8 +1011,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
                     -font "Arial 8" \
                     -command [itcl::code $this Combo invoke]
                 set _fields($fname) [list $label $units $components]
-                set _curFldName $fname
-                set _curFldLabel $label
+                if { $_curFldName == "" } {
+                    set _curFldName $fname
+                    set _curFldLabel $label
+                }
             }
         }
         $itk_component(field) value $_curFldLabel
@@ -1098,14 +1053,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         }
         set _reset 0
     }
-    set _buffering 0;                        # Turn off buffering.
 
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    sendto $_outbuf;                        
+    StopBufferingCommands;              # Turn off buffering and send commands.
     blt::busy release $itk_component(hull)
-    set _outbuf "";                        # Clear the buffer.                
 }
 
 # ----------------------------------------------------------------------

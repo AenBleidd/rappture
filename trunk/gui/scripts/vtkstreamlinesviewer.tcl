@@ -57,7 +57,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     public method get {args}
     public method isconnected {}
     public method limits { colormap }
-    public method sendto { string }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -78,8 +77,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     protected method ReceiveImage { args }
     protected method ReceiveLegend { colormap title vmin vmax size }
     protected method Rotate {option x y}
-    protected method SendCmd {string}
-    protected method SendCmdNoSplash {string}
     protected method Zoom {option}
 
     # The following methods are only used by this class.
@@ -105,6 +102,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method MotionLegend { x y } 
     private method PanCamera {}
     private method RequestLegend {}
+    private method ResetAxes {}
     private method SetColormap { dataobj comp }
     private method ChangeColormap { dataobj comp color }
     private method SetLegendTip { x y }
@@ -112,7 +110,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method Slice {option args} 
 
     private variable _arcball ""
-    private variable _outbuf       ;    # buffer for outgoing commands
 
     private variable _dlist ""     ;    # list of data objects
     private variable _obj2datasets
@@ -134,7 +131,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
-    private variable _buffering 0
     private variable _title ""
     private variable _seeds
 
@@ -492,12 +488,8 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
     set _legendPending 1
-
-    #SendCmd "imgflush"
-
     # Must reset camera to have object scaling to take effect.
     SendCmd "camera reset"
-    #SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
 }
 
@@ -850,51 +842,12 @@ itcl::body Rappture::VtkStreamlinesViewer::Disconnect {} {
     $_dispatcher cancel !zcutplane
     $_dispatcher cancel !legend
     # disconnected -- no more data sitting on server
-    set _outbuf ""
     array unset _datasets 
     array unset _data 
     array unset _colormaps 
     array unset _seeds 
     array unset _dataset2style 
     array unset _obj2datasets 
-}
-
-#
-# sendto --
-#
-itcl::body Rappture::VtkStreamlinesViewer::sendto { bytes } {
-    SendBytes "$bytes\n"
-    StartWaiting
-}
-
-#
-# SendCmd
-#
-#       Send commands off to the rendering server.  If we're currently
-#       sending data objects to the server, buffer the commands to be 
-#       sent later.
-#
-itcl::body Rappture::VtkStreamlinesViewer::SendCmd {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-        StartWaiting
-    }
-}
-
-#
-# SendCmdNoSplash
-#
-#       Send commands off to the rendering server.  This method
-#	doesn't initiate the slash screen. 
-#
-itcl::body Rappture::VtkStreamlinesViewer::SendCmdNoSplash {string} {
-    if { $_buffering } {
-        append _outbuf $string "\n"
-    } else {
-        SendBytes "$string\n"
-    }
 }
 
 # ----------------------------------------------------------------------
@@ -912,7 +865,6 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveImage { args } {
     }
     array set info $args
     set bytes [ReceiveBytes $info(-bytes)]
-    StopWaiting
     if { $info(-type) == "image" } {
         if 0 {
             set f [open "last.ppm" "w"] 
@@ -995,15 +947,15 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         return
     }
 
-    set _buffering 1
-    set _legendPending 1
     # Turn on buffering of commands to the server.  We don't want to
     # be preempted by a server disconnect/reconnect (which automatically
     # generates a new call to Rebuild).
+    StartBufferingCommands
+    set _legendPending 1
 
     set _first ""
     if { $_reset } {
-        if 1 {
+        if { $_reportClientInfo }  {
             # Tell the server the name of the tool, the version, and dataset
             # that we are rendering.  Have to do it here because we don't know
             # what data objects are using the renderer until be get here.
@@ -1050,13 +1002,13 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
             if { ![info exists _datasets($tag)] } {
                 set bytes [$dataobj vtkdata $comp]
                 set length [string length $bytes]
-		if 1 { 
+		if 0 { 
                     set f [open /tmp/vtkstreamlines.vtk "w"]
                     fconfigure $f -translation binary -encoding binary
                     puts $f $bytes
                     close $f
 		}
-                if 1 {
+                if { $_reportClientInfo }  {
                     set info {}
                     lappend info "tool_id"       [$dataobj hints toolId]
                     lappend info "tool_name"     [$dataobj hints toolName]
@@ -1067,7 +1019,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                     lappend info "dataset_tag"   $tag
                     SendCmd "clientinfo [list $info]"
                 }
-                append _outbuf "dataset add $tag data follows $length\n"
+                SendCmd "dataset add $tag data follows $length"
                 append _outbuf $bytes
                 set _datasets($tag) 1
                 SetObjectStyle $dataobj $comp
@@ -1096,6 +1048,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	$itk_component(field) choices delete 0 end
 	$itk_component(fieldmenu) delete 0 end
 	array unset _fields
+        set _curFldName ""
         foreach cname [$_first components] {
             foreach fname [$_first fieldnames $cname] {
                 if { [info exists _fields($fname)] } {
@@ -1112,8 +1065,10 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
                     -font "Arial 8" \
                     -command [itcl::code $this Combo invoke]
                 set _fields($fname) [list $label $units $components]
-                set _curFldName $fname
-                set _curFldLabel $label
+                if { $_curFldName == "" } {
+                    set _curFldName $fname
+                    set _curFldLabel $label
+                }
             }
         }
         $itk_component(field) value $_curFldLabel
@@ -1123,7 +1078,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         InitSettings streamlinesSeedsVisible streamlinesOpacity \
             streamlinesVisible streamlinesPalette \
             streamlinesLighting \
-            streamlinesPalette streamlinesField \
+            streamlinesPalette field \
             volumeVisible volumeEdges volumeLighting volumeOpacity \
             volumeWireframe \
 	    cutplaneVisible \
@@ -1131,7 +1086,8 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 	    cutplaneXVisible cutplaneYVisible cutplaneZVisible
 
         # FIXME: Don't know exactly why this "imgflush" is needed. 
-        #        But this makes the "camera reset" below to work correctly
+        #        But this makes the "camera reset" below to work correctly.
+        #        I left this in because the axis labels are scaled too big.
         SendCmd "imgflush"
 
 	# Reset the camera and other view parameters
@@ -1148,14 +1104,11 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         SendCmd "camera reset"
         set _reset 0
     }
-    set _buffering 0;                        # Turn off buffering.
-
     # Actually write the commands to the server socket.  If it fails, we don't
     # care.  We're finished here.
     blt::busy hold $itk_component(hull)
-    sendto $_outbuf;                        
+    StopBufferingCommands
     blt::busy release $itk_component(hull)
-    set _outbuf "";                        # Clear the buffer.                
 }
 
 # ----------------------------------------------------------------------
@@ -1306,7 +1259,7 @@ itcl::body Rappture::VtkStreamlinesViewer::Rotate {option x y} {
 
 itcl::body Rappture::VtkStreamlinesViewer::Pick {x y} {
     foreach tag [CurrentDatasets -visible] {
-        SendCmdNoSplash "dataset getscalar pixel $x $y $tag"
+        SendCmdNoWait "dataset getscalar pixel $x $y $tag"
     } 
 }
 
@@ -1534,10 +1487,10 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
             set bool $_settings(streamlinesLighting)
             SendCmd "streamlines lighting $bool"
         }
-        "streamlinesField" {
+        "field" {
             set label [$itk_component(field) value]
             set fname [$itk_component(field) translate $label]
-            set _settings(streamlinesField) $fname
+            set _settings(field) $fname
             if { [info exists _fields($fname)] } {
                 foreach { label units components } $_fields($fname) break
                 if { $components > 1 } {
@@ -1551,6 +1504,9 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
+            # Get the new limits because the field changed.
+            scale $_dlist
+            ResetAxes
             SendCmd "streamlines colormode $_colorMode ${fname}"
             SendCmd "cutplane colormode $_colorMode ${fname}"
             set _legendPending 1
@@ -1581,7 +1537,7 @@ itcl::body Rappture::VtkStreamlinesViewer::RequestLegend {} {
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
-            SendCmdNoSplash \
+            SendCmdNoWait \
                 "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
         }
@@ -1867,7 +1823,7 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting streamlinesField]
+        [itcl::code $this AdjustSetting field]
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
     itk_component add palette {
@@ -2557,10 +2513,46 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
         }
         invoke {
             $itk_component(field) value $_curFldLabel
-            AdjustSetting streamlinesField
+            AdjustSetting field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"
         }
     }
+}
+
+
+#
+# ResetAxes --
+#
+#       Set axis z bounds and range
+#
+itcl::body Rappture::VtkStreamlinesViewer::ResetAxes {} {
+    if { ![info exists _limits(v)] || ![info exists _fields($_curFldName)]} {
+        SendCmd "dataset maprange all"
+        SendCmd "axis autorange z on"
+        SendCmd "axis autobounds z on"
+        return
+    }
+    foreach { xmin xmax } $_limits(x) break
+    foreach { ymin ymax } $_limits(y) break
+    foreach { zmin zmax } $_limits(z) break
+    foreach { vmin vmax } $_limits(v) break
+    set dataRange   [expr $vmax - $vmin]
+    set boundsRange [expr $xmax - $xmin]
+    set r [expr $ymax - $ymin]
+    if {$r > $boundsRange} {
+        set boundsRange $r
+    }
+    if {$dataRange < 1.0e-16} {
+        set dataScale 1.0
+    } else {
+        set dataScale [expr $boundsRange / $dataRange]
+    }
+    set heightScale 1.0
+    set bMin [expr $heightScale * $dataScale * $vmin]
+    set bMax [expr $heightScale * $dataScale * $vmax]
+    SendCmd "dataset maprange explicit $_limits(v) $_curFldName"
+    SendCmd "axis bounds z $bMin $bMax"
+    SendCmd "axis range z $_limits(v)"
 }
