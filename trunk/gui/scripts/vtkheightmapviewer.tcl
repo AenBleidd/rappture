@@ -1452,8 +1452,8 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                     SendCmd "camera aspect square"
                 }
             }
-            SendCmd "camera reset"
             ResetAxes
+            SendCmd "camera reset"
             if { $bool } {
                 set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
                 $_arcball quaternion $q
