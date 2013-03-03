@@ -1181,7 +1181,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
                 xpan   0
                 ypan   0
             }
-            SendCmd "camera reset all"
             if { $_first != "" } {
                 set location [$_first hints camera]
                 if { $location != "" } {
@@ -1190,6 +1189,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Zoom {option} {
             }
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
+            SendCmd "camera reset"
             DoRotate
         }
     }
@@ -2216,13 +2216,12 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
+
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    set imgHeight [image height $_image(legend)]
-    set coords [$c coords colormap]
-    set imgX [expr $w - [image width $_image(legend)] - 2]
-    set imgY [expr $y - 2 * ($lineht + 2)]
+    set ih [image height $_image(legend)]
+    set iy [expr $y - ($lineht + 2)]
 
     set title ""
     if { [info exists _fields($_title)] } {
@@ -2239,8 +2238,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
 	    set title ""
 	}
     }
+    # If there's a legend title, increase the offset by the line height.
+    if { $title != "" } {
+        incr iy $lineht
+    }
+
     # Make a swatch of the selected color
-    if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
+    if { [catch { $_image(legend) get 10 $iy } pixel] != 0 } {
         return
     }
     if { ![info exists _image(swatch)] } {
@@ -2251,19 +2255,17 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     $_image(swatch) put $color -to 1 1 22 22 
     .rappturetooltip configure -icon $_image(swatch)
 
-    .rappturetooltip configure -icon $_image(swatch)
-
     # Compute the value of the point
     if { [info exists _limits(vmax)] && [info exists _limits(vmin)] } {
-        set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
+        set t [expr 1.0 - (double($iy) / double($ih-1))]
         set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
     } else {
         set value 0.0
     }
-    set tipx [expr $x + 15] 
-    set tipy [expr $y - 5]
+    set tx [expr $x + 15] 
+    set ty [expr $y - 5]
     Rappture::Tooltip::text $c "$title $value"
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
 
@@ -2327,8 +2329,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max
 #
 # DrawLegend --
 #
-#       Draws the legend in it's own canvas which resides to the right
-#       of the contour plot area.
+#       Draws the legend in the own canvas on the right side of the plot area.
 #
 itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
     set c $itk_component(view)
@@ -2454,44 +2455,13 @@ itcl::body Rappture::VtkIsosurfaceViewer::LeaveIsoline { } {
 #
 itcl::body Rappture::VtkIsosurfaceViewer::SetIsolineTip { x y value } {
     set c $itk_component(view)
-    set w [winfo width $c]
-    set h [winfo height $c]
-    set font "Arial 8"
-    set lineht [font metrics $font -linespace]
-    
-    if { [info exists _fields($_title)] } {
-        foreach { title units } $_fields($_title) break
-	if { $title == "component" } {
-	    set title ""
-	}
-        if { $units != "" } {
-            set title [format "%s (%s)" $title $units]
-        }
-    } else {
-        set title $_title
-    }
-    # Make a swatch of the selected color
-    set imgHeight [image height $_image(legend)]
-    set coords [$c coords colormap]
-    set imgX [expr $w - [image width $_image(legend)] - 2]
-    set imgY [expr $y - 2 * ($lineht + 2)]
+    .rappturetooltip configure -icon ""
 
-    if { [catch { $_image(legend) get 10 $imgY } pixel] != 0 } {
-        return
-    }
-    if { ![info exists _image(swatch)] } {
-        set _image(swatch) [image create photo -width 24 -height 24]
-    }
-    set color [eval format "\#%02x%02x%02x" $pixel]
-    $_image(swatch) put black  -to 0 0 23 23 
-    $_image(swatch) put $color -to 1 1 22 22 
-    .rappturetooltip configure -icon $_image(swatch)
-
-     # Compute the value of the point
-    set tipx [expr $x + 15] 
-    set tipy [expr $y - 5]
+    # Compute the position of the tip
+    set tx [expr $x + 15] 
+    set ty [expr $y - 5]
     Rappture::Tooltip::text $c "Isosurface $value"
-    Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
+    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
 # ----------------------------------------------------------------------
