@@ -53,6 +53,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _numConnectTries 0
     protected variable _debugConsole 0
     protected variable _reportClientInfo 1
+    protected variable _showWaitDialog 1
 
     constructor { servers args } {
         # defined below
@@ -75,6 +76,7 @@ itcl::class ::Rappture::VisViewer {
     private method TraceComm { channel {data {}} } 
     private method SendDebugCommand {} 
 
+    protected method EnableWaitDialog { bool } 
     protected method StartBufferingCommands {}
     protected method StopBufferingCommands {}
     protected method CheckConnection {}
@@ -458,13 +460,22 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 #    Read some number of bytes from the visualization server. 
 #
+
 itcl::body Rappture::VisViewer::StartWaiting {} {
-    after cancel $_afterId 
-    set _afterId [after 2000 [itcl::code $this SplashScreen on]]
+    if { $_showWaitDialog } {
+        after cancel $_afterId 
+        set _afterId [after 2000 [itcl::code $this SplashScreen on]]
+    }
 }
 
 itcl::body Rappture::VisViewer::StopWaiting {} { 
-    SplashScreen off
+    if { $_showWaitDialog } {
+        SplashScreen off
+    }
+}
+
+itcl::body Rappture::VisViewer::EnableWaitDialog { bool } { 
+    set _showWaitDialog $bool
 }
 
 #

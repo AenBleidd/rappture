@@ -188,6 +188,8 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias viserror [itcl::code $this ReceiveError]
 
+    EnableWaitDialog no
+
     # Initialize the view to some default parameters.
     array set _view {
         qw      0.36
@@ -995,7 +997,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	    set label [$_first hints ${axis}label]
 	    if { $label == "" } {
 		if {$axis == "z"} {
-                    if { $_curFldName == "component" } {
+                    if { [string match "component*" $_curFldName] } {
                         set label [string toupper $axis]
                     } else {
                         set label $_curFldLabel
@@ -1376,7 +1378,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             }
 	    set label [$_first hints zlabel]
 	    if { $label == "" } {
-                if { $_curFldName == "component" } {
+                if { [string match "component*" $_curFldName] } {
                     set label Z
                 } else {
                     set label $_curFldLabel
@@ -1585,7 +1587,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
     set _legendHeight $h
 
     set fname $_curFldName
-    if { $fname == "component" } {
+    if { [string match "component*" $fname] } {
 	set title ""
     } else {
 	if { [info exists _fields($fname)] } {
@@ -1619,7 +1621,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
 #       Set axis z bounds and range
 #
 itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
-    if { ![info exists _fields($_curFldName)]} {
+    if { ![info exists _limits($_curFldName)]} {
         SendCmd "dataset maprange all"
         SendCmd "axis autorange z on"
         SendCmd "axis autobounds z on"
@@ -2209,7 +2211,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { $fname == "component" } {
+    if { [string match "component*" $fname] } {
 	set title ""
     } else {
 	if { [info exists _fields($fname)] } {
@@ -2361,7 +2363,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     # Subtract off the offset of the color ramp from the top of the canvas
     set iy [expr $y - ($lineht + 2)]
 
-    if { $fname == "component" } {
+    if { [string match "component*" $fname] } {
 	set title ""
     } else {
 	if { [info exists _fields($fname)] } {

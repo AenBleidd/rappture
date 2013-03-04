@@ -165,6 +165,8 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     package require vtk
     set _serverType "vtkvis"
 
+    EnableWaitDialog no
+
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -1047,7 +1049,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
 	    set label [$_first hints ${axis}label]
 	    if { $label == "" } {
 		if {$axis == "z"} {
-                    if { $_curFldName == "component" } {
+                    if { [string match "component*" $_curFldName] } {
                         set label [string toupper $axis]
                     } else {
                         set label $_curFldLabel
@@ -1518,6 +1520,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
 #	5.  Legend becomes visible (Just need a redraw).
 #
 itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
+    if { ![info exists _fields($_curFldName)] } {
+        return
+    }
+    set fname $_curFldName
     set _legendPending 0
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
@@ -1527,18 +1533,26 @@ itcl::body Rappture::VtkIsosurfaceViewer::RequestLegend {} {
     if { $h < 1} {
         return
     }
-    if { [info exists _fields($_curFldName)] } {
-        set title [lindex $_fields($_curFldName) 0]
-	if { $title != "component" } {
-	    set h [expr $h - ($lineht + 2)]
-	}
+    if { [string match "component*" $fname] } {
+	set title ""
     } else {
-        return
+	if { [info exists _fields($fname)] } {
+	    foreach { title units } $_fields($fname) break
+	    if { $units != "" } {
+		set title [format "%s (%s)" $title $units]
+	    }
+	} else {
+	    set title $fname
+	}
+    }
+    # If there's a title too, substract one more line
+    if { $title != "" } {
+        incr h -$lineht 
     }
     # Set the legend on the first heightmap dataset.
     if { $_currentColormap != ""  } {
 	set cmap $_currentColormap
-	SendCmdNoWait "legend $cmap scalar $title {} $w $h 0"
+	SendCmdNoWait "legend $cmap scalar $_curFldName {} $w $h 0"
     }
 }
 
@@ -2199,7 +2213,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     set ih [image height $_image(legend)]
     set iy [expr $y - ($lineht + 2)]
 
-    if { $fname == "component" } {
+    if { [string match "component*" $fname] } {
 	set title ""
     } else {
 	if { [info exists _fields($fname)] } {
@@ -2316,7 +2330,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { $fname == "component" } {
+    if { [string match "component*" $fname] } {
 	set title ""
     } else {
 	if { [info exists _fields($fname)] } {
