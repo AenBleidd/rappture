@@ -340,8 +340,8 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     bind $itk_component(view) <ButtonRelease-2> \
         [itcl::code $this Pan release %x %y]
 
-    bind $itk_component(view) <ButtonRelease-3> \
-        [itcl::code $this Pick %x %y]
+    #bind $itk_component(view) <ButtonRelease-3> \
+    #    [itcl::code $this Pick %x %y]
 
     # Bindings for panning via keyboard
     bind $itk_component(view) <KeyPress-Left> \
