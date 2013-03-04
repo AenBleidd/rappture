@@ -960,7 +960,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         SendCmd "imgflush"
     }
     set _first ""
-    SendCmd "contour3d visible 0"
+    SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
@@ -994,7 +994,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-		SendCmd "contour3d visible 1 $tag"
+                # Setting dataset visible enables outline (if enabled) 
+                # and contour3d
+		SendCmd "dataset visible 1 $tag"
             }
         }
     }
@@ -2147,6 +2149,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetObjectStyle { dataobj comp } {
     SendCmd "contour3d add numcontours $_numContours $tag"
     SendCmd "contour3d edges $style(-edges) $tag"
     SendCmd "dataset outline $style(-outline) $tag"
+    SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)]"
     set _settings(isosurfaceOutline) $style(-outline)
     set _settings(isosurfaceEdges) $style(-edges)
     #SendCmd "contour3d color [Color2RGB $settings(-color)] $tag"
