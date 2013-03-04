@@ -147,7 +147,7 @@ void HeightMap::computeDataScale()
             boundsRange = r;
     }
     double datRange = _dataRange[1] - _dataRange[0];
-    if (datRange < 1.0e-10) {
+    if (datRange < 1.0e-16) {
         _dataScale = 1.0;
     } else {
         _dataScale = boundsRange / datRange;

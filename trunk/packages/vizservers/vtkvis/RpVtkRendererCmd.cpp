@@ -80,8 +80,12 @@ static int
 ExecuteCommand(Tcl_Interp *interp, Tcl_DString *dsPtr) 
 {
     int result;
-
-    TRACE("command %lu: '%s'", g_stats.nCommands+1, Tcl_DStringValue(dsPtr));
+#ifdef WANT_TRACE
+    char *str = Tcl_DStringValue(dsPtr);
+    std::string cmd(str);
+    cmd.erase(cmd.find_last_not_of(" \n\r\t")+1);
+    TRACE("command %lu: '%s'", g_stats.nCommands+1, cmd.c_str());
+#endif
     lastCmdStatus = TCL_OK;
     result = Tcl_EvalEx(interp, Tcl_DStringValue(dsPtr), 
                         Tcl_DStringLength(dsPtr), 
