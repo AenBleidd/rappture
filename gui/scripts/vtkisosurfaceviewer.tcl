@@ -460,11 +460,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::DoResize {} {
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
 
-    #SendCmd "imgflush"
-
-    # Must reset camera to have object scaling to take effect.
-    #SendCmd "camera reset"
-    #SendCmd "camera zoom $_view(zoom)"
     EventuallyRequestLegend
     set _resizePending 0
 }
