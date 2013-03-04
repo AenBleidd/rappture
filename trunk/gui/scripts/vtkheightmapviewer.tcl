@@ -597,15 +597,15 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
     }
 }
 
-# ----------------------------------------------------------------------
-# USAGE: scale ?<data1> <data2> ...?
+# 
+# scale  --
 #
-# Sets the default limits for the overall plot according to the
-# limits of the data for all of the given <data> objects.  This
-# accounts for all objects--even those not showing on the screen.
-# Because of this, the limits are appropriate for all objects as
-# the user scans through data in the ResultSet viewer.
-# ----------------------------------------------------------------------
+#       This gets called either incrementally as new simulations are
+#       added or all at once as a sequence of heightmaps.
+#       This  accounts for all objects--even those not showing on the 
+#       screen.  Because of this, the limits are appropriate for all 
+#       objects as the user scans through data in the ResultSet viewer.
+#
 itcl::body Rappture::VtkHeightmapViewer::scale {args} {
     foreach dataobj $args {
         foreach axis { x y } {
@@ -624,7 +624,7 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
             }
             set _limits($axis) [list $amin $amax]
         }
-        foreach { fname lim } [$dataobj limits2] {
+        foreach { fname lim } [$dataobj fieldlimits] {
             if { ![info exists _limits($fname)] } {
                 set _limits($fname) $lim
                 continue
