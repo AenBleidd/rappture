@@ -380,8 +380,8 @@ itcl::body Rappture::VideoScreen::constructor {args} {
         1,2 $itk_component(play) -padx {4 0} \
         1,3 $itk_component(seekforward) -padx {4 0} \
         1,4 $itk_component(loop) -padx {4 0} \
-        2,0 $itk_component(frnumfr) -padx {0 0} -columnspan 3 \
-        2,3 $itk_component(speed) -padx {2 0} -columnspan 2
+        2,0 $itk_component(frnumfr) -padx {0 0} -cspan 3 \
+        2,3 $itk_component(speed) -padx {2 0} -cspan 2
 
     blt::table configure $itk_component(moviecontrols) c* -resize none
     blt::table configure $itk_component(moviecontrols) c5 -resize both

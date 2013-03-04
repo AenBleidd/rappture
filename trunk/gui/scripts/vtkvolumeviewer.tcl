@@ -57,7 +57,6 @@ itcl::class Rappture::VtkVolumeViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -88,7 +87,7 @@ itcl::class Rappture::VtkVolumeViewer {
     private method BuildDownloadPopup { widget command } 
     private method BuildVolumeTab {}
     private method ConvertToVtkData { dataobj comp } 
-    private method DrawLegend { title }
+    private method DrawLegend {}
     private method Combo { option }
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
@@ -142,12 +141,9 @@ itcl::class Rappture::VtkVolumeViewer {
     private variable _cutplanePending 0
     private variable _legendPending 0
     private variable _outline
-    private variable _vectorFields 
-    private variable _scalarFields 
     private variable _fields 
-    private variable _currentField ""
-    private variable _field      ""
-    private variable _numSeeds 200
+    private variable _curFldName ""
+    private variable _curFldLabel ""
     private variable _colorMode "vmag";#  Mode of colormap (vmag or scalar)
 }
 
@@ -229,10 +225,7 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    set _limits(zmin) 0.0
-    set _limits(zmax) 1.0
-
-    array set _settings [subst {
+    array set _settings {
         axis-xgrid              0
         axis-ygrid              0
         axis-zgrid              0
@@ -242,26 +235,26 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         axis-xposition          0
         axis-yposition          0
         axis-zposition          0
-        axis-visible            1
-        axis-labels             1
-        cutplane-edges          0
+        axesVisible             1
+        axisLabels              1
+        cutplaneEdges           0
         cutplane-xvisible       0
         cutplane-yvisible       0
         cutplane-zvisible       0
         cutplane-xposition      50
         cutplane-yposition      50
         cutplane-zposition      50
-        cutplane-visible        1
-        cutplane-lighting       1
-        cutplane-wireframe      0
+        cutplaneVisible         1
+        cutplaneLighting        1
+        cutplaneWireframe       0
         cutplane-opacity        100
-        volume-lighting         1
+        volumeLighting          1
         volume-material         80
         volume-opacity          40
         volume-quality          50
-        volume-visible          1
-        legend-visible          1
-    }]
+        volumeVisible           1
+        legendVisible           1
+    }
 
     itk_component add view {
         canvas $itk_component(plotarea).view \
@@ -339,8 +332,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         Rappture::PushButton $f.volume \
             -onimage [Rappture::icon volume-on] \
             -offimage [Rappture::icon volume-off] \
-            -variable [itcl::scope _settings(volume-visible)] \
-            -command [itcl::code $this AdjustSetting volume-visible] 
+            -variable [itcl::scope _settings(volumeVisible)] \
+            -command [itcl::code $this AdjustSetting volumeVisible] 
     }
     $itk_component(volume) select
     Rappture::Tooltip::for $itk_component(volume) \
@@ -351,8 +344,8 @@ itcl::body Rappture::VtkVolumeViewer::constructor {hostlist args} {
         Rappture::PushButton $f.cutplane \
             -onimage [Rappture::icon cutbutton] \
             -offimage [Rappture::icon cutbutton] \
-            -variable [itcl::scope _settings(cutplane-visible)] \
-            -command [itcl::code $this AdjustSetting cutplane-visible] 
+            -variable [itcl::scope _settings(cutplaneVisible)] \
+            -command [itcl::code $this AdjustSetting cutplaneVisible] 
     }
     $itk_component(cutplane) select
     Rappture::Tooltip::for $itk_component(cutplane) \
@@ -676,30 +669,36 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::scale {args} {
     foreach dataobj $args {
-        set string [limits $dataobj]
-        if { $string == "" } {
-            continue
+        foreach axis { x y z } {
+            set lim [$dataobj limits $axis]
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {amin amax} $_limits($axis) break
+            if { $amin > $min } {
+                set amin $min
+            }
+            if { $amax < $max } {
+                set amax $max
+            }
+            set _limits($axis) [list $amin $amax]
         }
-        array set bounds $string
-        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
-            set _limits(xmin) $bounds(xmin)
-        }
-        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
-            set _limits(xmax) $bounds(xmax)
-        }
-
-        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
-            set _limits(ymin) $bounds(ymin)
-        }
-        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
-            set _limits(ymax) $bounds(ymax)
-        }
-
-        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
-            set _limits(zmin) $bounds(zmin)
-        }
-        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
-            set _limits(zmax) $bounds(zmax)
+        foreach { fname lim } [$dataobj fieldlimits] {
+            if { ![info exists _limits($fname)] } {
+                set _limits($fname) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {fmin fmax} $_limits($fname) break
+            if { $fmin > $min } {
+                set fmin $min
+            }
+            if { $fmax < $max } {
+                set fmax $max
+            }
+            set _limits($fname) [list $fmin $fmax]
         }
     }
 }
@@ -968,15 +967,13 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
             SendCmd "camera mode persp"
         }
         DoRotate
-        InitSettings axis-xgrid axis-ygrid axis-zgrid axis-mode \
-            axis-visible axis-labels
+        InitSettings axis-xgrid axis-ygrid axis-zgrid axisFlyMode \
+            axesVisible axisLabels
         PanCamera
     }
     set _first ""
 
     SendCmd "imgflush"
-    set _limits(zmin) ""
-    set _limits(zmax) ""
     set _first ""
 
     foreach dataobj [get -objects] {
@@ -1030,58 +1027,42 @@ itcl::body Rappture::VtkVolumeViewer::Rebuild {} {
                 SendCmd "axis units $axis $units"
             }
         }
-        array unset _scalarFields
-        array unset _vectorFields
-        set _currentField [$_first hints default]
-        $itk_component(field) choices delete 0 end
-        $itk_component(fieldmenu) delete 0 end
-        array unset _fields
-        foreach { name title units } [$_first hints vectors] {
-            set _vectorFields($title) $name
-            $itk_component(field) choices insert end "$name" "$title"
-            $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _currentField] \
-                -selectcolor red \
-                -activebackground black \
-                -activeforeground white \
-                -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
-            set _fields($name) [list $title $units]
+	$itk_component(field) choices delete 0 end
+	$itk_component(fieldmenu) delete 0 end
+	array unset _fields
+        set _curFldName ""
+        foreach cname [$_first components] {
+            foreach fname [$_first fieldnames $cname] {
+                if { [info exists _fields($fname)] } {
+                    continue
+                }
+                foreach { label units components } \
+                    [$_first fieldinfo $fname] break
+                $itk_component(field) choices insert end "$fname" "$label"
+                $itk_component(fieldmenu) add radiobutton -label "$label" \
+                    -value $label -variable [itcl::scope _curFldLabel] \
+                    -selectcolor red \
+                    -activebackground $itk_option(-plotbackground) \
+                    -activeforeground $itk_option(-plotforeground) \
+                    -font "Arial 8" \
+                    -command [itcl::code $this Combo invoke]
+                set _fields($fname) [list $label $units $components]
+                if { $_curFldName == "" } {
+                    set _curFldName $fname
+                    set _curFldLabel $label
+                }
+            }
         }
-        foreach { name title units } [$_first hints scalars] {
-            set _scalarFields($title) $name
-            $itk_component(field) choices insert end "$name" "$title"
-            $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _currentField] \
-                -selectcolor red \
-                -activebackground black \
-                -activeforeground white \
-                -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
-            set _fields($name) [list $title $units]
-        }
-        foreach { name title units } { default Default ??? } {
-            set _scalarFields($title) $name
-            $itk_component(field) choices insert end "$name" "$title"
-            $itk_component(fieldmenu) add radiobutton -label "$title" \
-                -value $title -variable [itcl::scope _currentField] \
-                -selectcolor red \
-                -activebackground black \
-                -activeforeground white \
-                -font "Arial 8" \
-                -command [itcl::code $this Combo invoke]
-            set _fields($name) [list $title $units]
-        }
-        $itk_component(field) value $_currentField
+        $itk_component(field) value $_curFldLabel
     }
 
-    InitSettings volume-palette volume-material volume-quality volume-visible \
-        cutplane-visible \
+    InitSettings volume-palette volume-material volume-quality volumeVisible \
+        cutplaneVisible \
         cutplane-xposition cutplane-yposition cutplane-zposition \
         cutplane-xvisible cutplane-yvisible cutplane-zvisible
 
     if { $_reset } {
-        InitSettings volume-lighting
+        InitSettings volumeLighting
         Zoom reset
         set _reset 0
     }
@@ -1325,8 +1306,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
         return
     }
     switch -- $what {
-        "volume-visible" {
-            set bool $_settings(volume-visible)
+        "volumeVisible" {
+            set bool $_settings(volumeVisible)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume visible $bool $dataset"
             }
@@ -1349,8 +1330,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume shading specular $specular $power $dataset"
             }
         }
-        "volume-lighting" {
-            set bool $_settings(volume-lighting)
+        "volumeLighting" {
+            set bool $_settings(volumeLighting)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "volume lighting $bool $dataset"
             }
@@ -1362,12 +1343,12 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 SendCmd "volume quality $val $dataset"
             }
         }
-        "axis-visible" {
-            set bool $_settings(axis-visible)
+        "axesVisible" {
+            set bool $_settings(axesVisible)
             SendCmd "axis visible all $bool"
         }
-        "axis-labels" {
-            set bool $_settings(axis-labels)
+        "axisLabels" {
+            set bool $_settings(axisLabels)
             SendCmd "axis labels all $bool"
         }
         "axis-xgrid" - "axis-ygrid" - "axis-zgrid" {
@@ -1375,31 +1356,31 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             set bool $_settings($what)
             SendCmd "axis grid $axis $bool"
         }
-        "axis-mode" {
+        "axisFlyMode" {
             set mode [$itk_component(axismode) value]
             set mode [$itk_component(axismode) translate $mode]
             set _settings($what) $mode
             SendCmd "axis flymode $mode"
         }
-        "cutplane-edges" {
+        "cutplaneEdges" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane edges $bool $dataset"
             }
         }
-        "cutplane-visible" {
+        "cutplaneVisible" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane visible $bool $dataset"
             }
         }
-        "cutplane-wireframe" {
+        "cutplaneWireframe" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane wireframe $bool $dataset"
             }
         }
-        "cutplane-lighting" {
+        "cutplaneLighting" {
             set bool $_settings($what)
             foreach dataset [CurrentDatasets -visible] {
                 SendCmd "cutplane lighting $bool $dataset"
@@ -1452,29 +1433,29 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
             }
             set _legendPending 1
         }
-        "volume-field" {
-            set new [$itk_component(field) value]
-            set value [$itk_component(field) translate $new]
-            set _settings(volume-field) $value
-            if { [info exists _scalarFields($new)] } {
-                set name $_scalarFields($new)
-                set _colorMode scalar
-                set _currentField $new
-            } elseif { [info exists _vectorFields($new)] } {
-                set name $_vectorFields($new)
-                set _colorMode vmag
-                set _currentField $new
+        "field" {
+            set label [$itk_component(field) value]
+            set fname [$itk_component(field) translate $label]
+            set _settings(field) $fname
+            if { [info exists _fields($fname)] } {
+                foreach { label units components } $_fields($fname) break
+                if { $components > 1 } {
+                    set _colorMode vmag
+                } else {
+                    set _colorMode scalar
+                }
+                set _curFldName $fname
+                set _curFldLabel $label
             } else {
-                puts stderr "unknown field \"$new\""
+                puts stderr "unknown field \"$fname\""
                 return
             }
-            foreach dataset [CurrentDatasets -visible] {
-                #puts stderr "volume colormode $_colorMode ${name} $dataset"
-                puts stderr "cutplane colormode $_colorMode ${name} $dataset"
-                #SendCmd "volume colormode $_colorMode ${name} $dataset"
-                SendCmd "cutplane colormode $_colorMode ${name} $dataset"
-            }
-            set _legendPending 1
+            # Get the new limits because the field changed.
+            SendCmd "volume colormode $_colorMode ${name} $dataset"
+            SendCmd "cutplane colormode $_colorMode ${name} $dataset"
+            #SendCmd "dataset scalar $_curFldName"
+            SendCmd "camera reset"
+            DrawLegend
         }
         default {
             error "don't know how to fix $what"
@@ -1498,19 +1479,12 @@ itcl::body Rappture::VtkVolumeViewer::RequestLegend {} {
     if { $h < 1} {
         return
     }
-    if { [info exists _scalarFields($_currentField)] } {
-        set name $_scalarFields($_currentField)
-    } elseif { [info exists _vectorFields($_currentField)] } {
-        set name $_vectorFields($_currentField)
-    } else {
-        return
-    }
     # Set the legend on the first volume dataset.
     foreach dataset [CurrentDatasets -visible $_first] {
         foreach {dataobj comp} [split $dataset -] break
         if { [info exists _dataset2style($dataset)] } {
             SendCmdNoWait \
-                "legend $_dataset2style($dataset) $_colorMode $name {} $w $h 0"
+                "legend $_dataset2style($dataset) $_colorMode $_curFldName {} $w $h 0"
             break;
         }
     }
@@ -1610,77 +1584,6 @@ itcl::configbody Rappture::VtkVolumeViewer::plotforeground {
     }
 }
 
-itcl::body Rappture::VtkVolumeViewer::limits { dataobj } {
-    return
-    array unset _limits $dataobj-*
-    foreach comp [$dataobj components] {
-        set tag $dataobj-$comp
-        if { ![info exists _limits($tag)] } {
-            set data [$dataobj blob $comp]
-            set tmpfile file[pid].vtk
-            set f [open "$tmpfile" "w"]
-            fconfigure $f -translation binary -encoding binary
-            puts $f $data 
-            close $f
-            set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-            $reader SetFileName $tmpfile
-            $reader ReadAllScalarsOn
-            $reader ReadAllVectorsOn
-            $reader ReadAllFieldsOn
-            $reader Update
-            set output [$reader GetOutput]
-            set _limits($tag) [$output GetBounds]
-            set pointData [$output GetPointData]
-            puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-            puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-            puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
-            set fieldData [$output GetFieldData]
-            set pointData [$output GetPointData]
-            puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-            for { set i 0 } { $i < [$fieldData GetNumberOfArrays] } { incr i } {
-                puts stderr [$fieldData GetArrayName $i]
-            }
-            puts stderr "point \#arrays=[$pointData GetNumberOfArrays]"
-            for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
-                set name [$pointData GetArrayName $i]
-                if { ![info exists _fields($name)] } {
-                    $itk_component(field) choices insert end "$name" "$name"
-                    set _fields($name) 1
-                }
-            }
-            puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-            puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-            puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
-            puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-            puts stderr "point \#scalars=[$pointData GetScalars]"
-            puts stderr vectors=[$pointData GetVectors]
-            rename $output ""
-            rename $reader ""
-            file delete $tmpfile
-        }
-        foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
-        if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
-            set limits(xmin) $xMin
-        }
-        if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
-            set limits(xmax) $xMax
-        }
-        if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
-            set limits(ymin) $xMin
-        }
-        if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
-            set limits(ymax) $yMax
-        }
-        if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
-            set limits(zmin) $zMin
-        }
-        if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
-            set limits(zmax) $zMax
-        }
-    }
-    return [array get limits]
-}
-
 itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     set fg [option get $itk_component(hull) font Font]
@@ -1693,14 +1596,14 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
 
     checkbutton $inner.volume \
         -text "Show Volume" \
-        -variable [itcl::scope _settings(volume-visible)] \
-        -command [itcl::code $this AdjustSetting volume-visible] \
+        -variable [itcl::scope _settings(volumeVisible)] \
+        -command [itcl::code $this AdjustSetting volumeVisible] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(volume-lighting)] \
-        -command [itcl::code $this AdjustSetting volume-lighting] \
+        -variable [itcl::scope _settings(volumeLighting)] \
+        -command [itcl::code $this AdjustSetting volumeLighting] \
         -font "Arial 9"
 
     label $inner.dim_l -text "Dim" -font "Arial 9"
@@ -1723,12 +1626,16 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         -width 10 \
         -showvalue off -command [itcl::code $this AdjustSetting volume-quality]
 
-    label $inner.field_l -text "Field" -font "Arial 9" 
+    itk_component add field_l {
+        label $inner.field_l -text "Field" -font "Arial 9" 
+    } {
+        ignore -font
+    }
     itk_component add field {
         Rappture::Combobox $inner.field -width 10 -editable no
     }
     bind $inner.field <<Value>> \
-        [itcl::code $this AdjustSetting volume-field]
+        [itcl::code $this AdjustSetting field]
 
     label $inner.palette_l -text "Palette" -font "Arial 9" 
     itk_component add palette {
@@ -1757,20 +1664,20 @@ itcl::body Rappture::VtkVolumeViewer::BuildVolumeTab {} {
         [itcl::code $this AdjustSetting volume-palette]
 
     blt::table $inner \
-        0,0 $inner.volume    -anchor w -pady 2 -cspan 4 \
+        0,0 $inner.field_l   -anchor w -pady 2  \
+        0,1 $inner.field     -anchor w -pady 2 -cspan 2 \
+        1,0 $inner.volume    -anchor w -pady 2 -cspan 4 \
         2,0 $inner.lighting  -anchor w -pady 2 -cspan 4 \
         3,0 $inner.dim_l     -anchor e -pady 2 \
         3,1 $inner.material  -fill x   -pady 2 \
         3,2 $inner.bright_l  -anchor w -pady 2 \
         4,0 $inner.quality_l -anchor w -pady 2 -cspan 2 \
         5,0 $inner.quality   -fill x   -pady 2 -cspan 2 \
-        6,0 $inner.field_l   -anchor w -pady 2  \
-        6,1 $inner.field     -anchor w -pady 2 -cspan 2 \
         7,0 $inner.palette_l -anchor w -pady 2  \
         7,1 $inner.palette   -anchor w -pady 2 -cspan 2 \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r8 c3 -resize expand
+    blt::table configure $inner r8 -resize expand
 }
 
 itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
@@ -1785,14 +1692,14 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
 
     checkbutton $inner.visible \
         -text "Show Axes" \
-        -variable [itcl::scope _settings(axis-visible)] \
-        -command [itcl::code $this AdjustSetting axis-visible] \
+        -variable [itcl::scope _settings(axesVisible)] \
+        -command [itcl::code $this AdjustSetting axesVisible] \
         -font "Arial 9"
 
     checkbutton $inner.labels \
         -text "Show Axis Labels" \
-        -variable [itcl::scope _settings(axis-labels)] \
-        -command [itcl::code $this AdjustSetting axis-labels] \
+        -variable [itcl::scope _settings(axisLabels)] \
+        -command [itcl::code $this AdjustSetting axisLabels] \
         -font "Arial 9"
 
     checkbutton $inner.gridx \
@@ -1822,7 +1729,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildAxisTab {} {
         "furthest_triad"  "furthest" \
         "outer_edges"     "outer"         
     $itk_component(axismode) value "static"
-    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axis-mode]
+    bind $inner.mode <<Value>> [itcl::code $this AdjustSetting axisFlyMode]
 
     blt::table $inner \
         0,0 $inner.visible -anchor w -cspan 2 \
@@ -1864,7 +1771,7 @@ itcl::body Rappture::VtkVolumeViewer::BuildCameraTab {} {
         -command [itcl::code $this camera set ortho] \
         -font "Arial 9"
     blt::table $inner \
-            $row,0 $inner.ortho -columnspan 2 -anchor w -pady 2
+            $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
     blt::table configure $inner r$row -resize none
     incr row
 
@@ -1885,26 +1792,26 @@ itcl::body Rappture::VtkVolumeViewer::BuildCutplaneTab {} {
 
     checkbutton $inner.visible \
         -text "Show Cutplanes" \
-        -variable [itcl::scope _settings(cutplane-visible)] \
-        -command [itcl::code $this AdjustSetting cutplane-visible] \
+        -variable [itcl::scope _settings(cutplaneVisible)] \
+        -command [itcl::code $this AdjustSetting cutplaneVisible] \
         -font "Arial 9"
 
     checkbutton $inner.wireframe \
         -text "Show Wireframe" \
-        -variable [itcl::scope _settings(cutplane-wireframe)] \
-        -command [itcl::code $this AdjustSetting cutplane-wireframe] \
+        -variable [itcl::scope _settings(cutplaneWireframe)] \
+        -command [itcl::code $this AdjustSetting cutplaneWireframe] \
         -font "Arial 9"
 
     checkbutton $inner.lighting \
         -text "Enable Lighting" \
-        -variable [itcl::scope _settings(cutplane-lighting)] \
-        -command [itcl::code $this AdjustSetting cutplane-lighting] \
+        -variable [itcl::scope _settings(cutplaneLighting)] \
+        -command [itcl::code $this AdjustSetting cutplaneLighting] \
         -font "Arial 9"
 
     checkbutton $inner.edges \
         -text "Show Edges" \
-        -variable [itcl::scope _settings(cutplane-edges)] \
-        -command [itcl::code $this AdjustSetting cutplane-edges] \
+        -variable [itcl::scope _settings(cutplaneEdges)] \
+        -command [itcl::code $this AdjustSetting cutplaneEdges] \
         -font "Arial 9"
 
     label $inner.opacity_l -text "Opacity" -font "Arial 9"
@@ -2170,7 +2077,7 @@ itcl::body Rappture::VtkVolumeViewer::SetObjectStyle { dataobj comp } {
     }
 
     SendCmd "volume lighting $settings(-lighting) $tag"
-    set _settings(volume-lighting) $settings(-lighting)
+    set _settings(volumeLighting) $settings(-lighting)
     SetColormap $dataobj $comp
 }
 
@@ -2191,10 +2098,6 @@ itcl::body Rappture::VtkVolumeViewer::IsValidObject { dataobj } {
 itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax size } {
     set _legendPending 0
     puts stderr "ReceiveLegend colormap=$colormap title=$title range=$vmin,$vmax size=$size"
-    set _limits(vmin) $vmin
-    set _limits(vmax) $vmax
-    set _title $title
-    regsub {\(mag\)} $title "" _title 
     if { [IsConnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2202,7 +2105,7 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax s
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        if { [catch {DrawLegend $_title} errs] != 0 } {
+        if { [catch {DrawLegend} errs] != 0 } {
             puts stderr errs=$errs
         }
     }
@@ -2214,22 +2117,23 @@ itcl::body Rappture::VtkVolumeViewer::ReceiveLegend { colormap title vmin vmax s
 #       Draws the legend in it's own canvas which resides to the right
 #       of the contour plot area.
 #
-itcl::body Rappture::VtkVolumeViewer::DrawLegend { name } {
+itcl::body Rappture::VtkVolumeViewer::DrawLegend { } {
+    set fname $_curFldName
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { [info exists _fields($name)] } {
-        foreach { title units } $_fields($name) break
+    if { [info exists _fields($fname)] } {
+        foreach { title units } $_fields($fname) break
         if { $units != "" } {
             set title [format "%s (%s)" $title $units]
         }
     } else {
-        set title $name
+        set title $fname
     }
-    if { $_settings(legend-visible) } {
+    if { $_settings(legendVisible) } {
         set x [expr $w - 2]
         if { [$c find withtag "legend"] == "" } {
             set y 2 
@@ -2259,11 +2163,10 @@ itcl::body Rappture::VtkVolumeViewer::DrawLegend { name } {
         $c bind title <Leave> [itcl::code $this Combo deactivate]
         # Reset the item coordinates according the current size of the plot.
         $c itemconfigure title -text $title
-        if { $_limits(vmin) != "" } {
-            $c itemconfigure vmin -text [format %g $_limits(vmin)]
-        }
-        if { $_limits(vmax) != "" } {
-            $c itemconfigure vmax -text [format %g $_limits(vmax)]
+        if { [info exists _limits($_curFldName)] } {
+            foreach { vmin vmax } $_limits($_curFldName) break
+            $c itemconfigure vmin -text [format %g $vmin]
+            $c itemconfigure vmax -text [format %g $vmax]
         }
         set y 2
         $c coords title $x $y
@@ -2336,9 +2239,10 @@ itcl::body Rappture::VtkVolumeViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    if { [info exists _limits(vmax)] && [info exists _limits(vmin)] } {
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
         set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
-        set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
+        set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {
         set value 0.0
     }
@@ -2410,8 +2314,8 @@ itcl::body Rappture::VtkVolumeViewer::Combo {option} {
             $c itemconfigure title -fill white 
         }
         invoke {
-            $itk_component(field) value $_currentField
-            AdjustSetting volume-field
+            $itk_component(field) value _curFldLabel
+            AdjustSetting field
         }
         default {
             error "bad option \"$option\": should be post, unpost, select"

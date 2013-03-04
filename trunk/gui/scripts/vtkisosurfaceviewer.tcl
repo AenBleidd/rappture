@@ -1820,7 +1820,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::BuildCameraTab {} {
         -command [itcl::code $this camera set ortho] \
         -font "Arial 9"
     blt::table $inner \
-            $row,0 $inner.ortho -columnspan 2 -anchor w -pady 2
+            $row,0 $inner.ortho -cspan 2 -anchor w -pady 2
     blt::table configure $inner r$row -resize none
     incr row
 

@@ -2216,11 +2216,11 @@ itcl::body Rappture::FlowvisViewer::BuildViewTab {} {
     frame $inner.frame
 
     blt::table $inner \
-        0,0 $inner.axes  -columnspan 2 -anchor w \
-        1,0 $inner.grid  -columnspan 2 -anchor w \
-        2,0 $inner.outline  -columnspan 2 -anchor w \
-        3,0 $inner.volume  -columnspan 2 -anchor w \
-        4,0 $inner.legend  -columnspan 2 -anchor w 
+        0,0 $inner.axes  -cspan 2 -anchor w \
+        1,0 $inner.grid  -cspan 2 -anchor w \
+        2,0 $inner.outline  -cspan 2 -anchor w \
+        3,0 $inner.volume  -cspan 2 -anchor w \
+        4,0 $inner.legend  -cspan 2 -anchor w 
 
     bind $inner <Map> [itcl::code $this GetFlowInfo $inner]
 
@@ -2317,16 +2317,16 @@ itcl::body Rappture::FlowvisViewer::BuildVolumeTab {} {
 
     blt::table $inner \
         0,0 $inner.vol -cspan 4 -anchor w -pady 2 \
-        1,0 $inner.shading -columnspan 4 -anchor w -pady {10 2} \
-        2,0 $inner.light2side -columnspan 4 -anchor w -pady 2 \
+        1,0 $inner.shading -cspan 4 -anchor w -pady {10 2} \
+        2,0 $inner.light2side -cspan 4 -anchor w -pady 2 \
         3,0 $inner.dim -anchor e -pady 2 \
-        3,1 $inner.light -columnspan 2 -pady 2 -fill x \
+        3,1 $inner.light -cspan 2 -pady 2 -fill x \
         3,3 $inner.bright -anchor w -pady 2 \
         4,0 $inner.fog -anchor e -pady 2 \
-        4,1 $inner.transp -columnspan 2 -pady 2 -fill x \
+        4,1 $inner.transp -cspan 2 -pady 2 -fill x \
         4,3 $inner.plastic -anchor w -pady 2 \
         5,0 $inner.thin -anchor e -pady 2 \
-        5,1 $inner.thickness -columnspan 2 -pady 2 -fill x\
+        5,1 $inner.thickness -cspan 2 -pady 2 -fill x\
         5,3 $inner.thick -anchor w -pady 2
 
     blt::table configure $inner c0 c1 c3 r* -resize none
@@ -2477,7 +2477,7 @@ itcl::body Rappture::FlowvisViewer::GetFlowInfo { w } {
     }
     set inner [frame $w.frame]
     blt::table $w \
-        5,0 $inner -fill both -columnspan 2 -anchor nw
+        5,0 $inner -fill both -cspan 2 -anchor nw
     array set hints [$flowobj hints]
     checkbutton $inner.showstreams -text "Streams Plane" \
         -variable [itcl::scope _settings($this-streams)] \
@@ -2918,10 +2918,10 @@ itcl::body Rappture::FlowvisViewer::GetPngImage  { widget width height } {
         button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
             -command [list set $var ""]
         blt::table $inner \
-            0,0 $inner.title -columnspan 2 \
+            0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -columnspan 2 
+            2,0 $inner.cancel -cspan 2 
         blt::table configure $inner r0 -pady 4 
         blt::table configure $inner r2 -pady 4 
         bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
@@ -2976,10 +2976,10 @@ itcl::body Rappture::FlowvisViewer::GetMovie { widget w h } {
         button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
             -command [list set $var ""]
         blt::table $inner \
-            0,0 $inner.title -columnspan 2 \
+            0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -columnspan 2 
+            2,0 $inner.cancel -cspan 2 
         blt::table configure $inner r0 -pady 4 
         blt::table configure $inner r2 -pady 4 
         bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
