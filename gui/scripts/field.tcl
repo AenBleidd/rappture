@@ -90,7 +90,7 @@ itcl::class Rappture::Field {
     public method values {{cname -overall}}
     public method blob {{cname -overall}}
     public method limits {axis}
-    public method limits2 {}
+    public method fieldlimits {}
     public method controls {option args}
     public method hints {{key ""}}
     public method style { cname }
@@ -486,12 +486,12 @@ itcl::body Rappture::Field::limits {which} {
 
 
 # ----------------------------------------------------------------------
-# USAGE: limits2
+# USAGE: fieldlimits
 #
 # Returns a list {min max} representing the limits for the specified
 # axis.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Field::limits2 {} {
+itcl::body Rappture::Field::fieldlimits {} {
     foreach cname [array names _comp2limits] {
         array set limits $_comp2limits($cname) 
         foreach fname $_comp2fields($cname) {
