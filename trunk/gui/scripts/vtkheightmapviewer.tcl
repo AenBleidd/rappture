@@ -405,10 +405,6 @@ itcl::body Rappture::VtkHeightmapViewer::DoResize {} {
     set _start [clock clicks -milliseconds]
     SendCmd "screen size [expr $_width - 20] $_height"
 
-    # FIXME: This "camera reset" stops the plot from shrinking each time the
-    #        window is resized.  
-    SendCmd "camera reset"
-
     set font "Arial 8"
     set lh [font metrics $font -linespace]
     set h [expr {$_height - 2 * ($lh + 2)}]
