@@ -87,7 +87,7 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method BuildStreamsTab {}
     private method BuildVolumeTab {}
     private method ConvertToVtkData { dataobj comp } 
-    private method DrawLegend { title }
+    private method DrawLegend {}
     private method Combo { option }
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
@@ -101,7 +101,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     private method MotionLegend { x y } 
     private method PanCamera {}
     private method RequestLegend {}
-    private method ResetAxes {}
     private method SetColormap { dataobj comp }
     private method ChangeColormap { dataobj comp color }
     private method SetLegendTip { x y }
@@ -1074,9 +1073,9 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
 
     if { $_reset } {
         InitSettings streamlinesSeedsVisible streamlinesOpacity \
-            streamlinesVisible streamlinesPalette \
+            streamlinesVisible streamlinesColormap \
             streamlinesLighting \
-            streamlinesPalette field \
+            streamlinesColormap field \
             volumeVisible volumeEdges volumeLighting volumeOpacity \
             volumeWireframe \
 	    cutplaneVisible \
@@ -1462,12 +1461,12 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 }
             }
         }
-        "streamlinesPalette" {
-            set palette [$itk_component(palette) value]
-            set _settings(streamlinesPalette) $palette
+        "streamlinesColormap" {
+            set colormap [$itk_component(colormap) value]
+            set _settings(streamlinesColormap) $colormap
             foreach dataset [CurrentDatasets -visible $_first] {
                 foreach {dataobj comp} [split $dataset -] break
-                ChangeColormap $dataobj $comp $palette
+                ChangeColormap $dataobj $comp $colormap
             }
             set _legendPending 1
         }
@@ -1503,11 +1502,10 @@ itcl::body Rappture::VtkStreamlinesViewer::AdjustSetting {what {value ""}} {
                 return
             }
             # Get the new limits because the field changed.
-            scale $_dlist
-            ResetAxes
-            SendCmd "streamlines colormode $_colorMode ${fname}"
-            SendCmd "cutplane colormode $_colorMode ${fname}"
-            set _legendPending 1
+            SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            SendCmd "streamlines colormode $_colorMode $_curFldName"
+            SendCmd "cutplane colormode $_colorMode $_curFldName"
+            DrawLegend
         }
         default {
             error "don't know how to fix $what"
@@ -1753,11 +1751,11 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
     bind $inner.field <<Value>> \
         [itcl::code $this AdjustSetting field]
 
-    label $inner.palette_l -text "Palette" -font "Arial 9" 
-    itk_component add palette {
-        Rappture::Combobox $inner.palette -width 10 -editable no
+    label $inner.colormap_l -text "Colormap" -font "Arial 9" 
+    itk_component add colormap {
+        Rappture::Combobox $inner.colormap -width 10 -editable no
     }
-    $inner.palette choices insert end \
+    $inner.colormap choices insert end \
         "BCGYR"              "BCGYR"            \
         "BGYOR"              "BGYOR"            \
         "blue"               "blue"             \
@@ -1775,19 +1773,19 @@ itcl::body Rappture::VtkStreamlinesViewer::BuildStreamsTab {} {
         "grey-to-blue"       "grey-to-blue"     \
         "orange-to-blue"     "orange-to-blue"   
 
-    $itk_component(palette) value "BCGYR"
-    bind $inner.palette <<Value>> \
-        [itcl::code $this AdjustSetting streamlinesPalette]
+    $itk_component(colormap) value "BCGYR"
+    bind $inner.colormap <<Value>> \
+        [itcl::code $this AdjustSetting streamlinesColormap]
 
     blt::table $inner \
-        0,0 $inner.palette_l   -anchor w -pady 2  \
-        0,1 $inner.palette     -fill x   -pady 2  \
-        1,0 $inner.field_l     -anchor w -pady 2  \
-        1,1 $inner.field       -fill x   -pady 2  \
+        0,0 $inner.field_l     -anchor w -pady 2  \
+        0,1 $inner.field       -fill x   -pady 2  \
+        1,0 $inner.colormap_l  -anchor w -pady 2  \
+        1,1 $inner.colormap    -fill x   -pady 2  \
         2,0 $inner.mode_l      -anchor w -pady 2  \
         2,1 $inner.mode        -fill x   -pady 2  \
         3,0 $inner.opacity_l   -anchor w -pady 2  \
-        3,1 $inner.opacity     -anchor w -pady 2  \
+        3,1 $inner.opacity     -fill x -pady 2 \
         5,0 $inner.lighting    -anchor w -pady 2 -cspan 2 \
         6,0 $inner.seeds       -anchor w -pady 2 -cspan 2 \
         7,0 $inner.density_l   -anchor w -pady 2  \
@@ -2231,7 +2229,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        if { [catch {DrawLegend $_title} errs] != 0 } {
+        if { [catch {DrawLegend} errs] != 0 } {
             puts stderr errs=$errs
         }
     }
@@ -2243,20 +2241,21 @@ itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin v
 #       Draws the legend in it's own canvas which resides to the right
 #       of the contour plot area.
 #
-itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { name } {
+itcl::body Rappture::VtkStreamlinesViewer::DrawLegend {} {
+    set fname $_curFldName
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { [info exists _fields($name)] } {
-        foreach { title units } $_fields($name) break
+    if { [info exists _fields($fname)] } {
+        foreach { title units } $_fields($fname) break
         if { $units != "" } {
             set title [format "%s (%s)" $title $units]
         }
     } else {
-        set title $name
+        set title $fname
     }
     if { $_settings(legendVisible) } {
         set x [expr $w - 2]
@@ -2447,37 +2446,3 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
     }
 }
 
-#
-# ResetAxes --
-#
-#       Set axis z bounds and range
-#
-itcl::body Rappture::VtkStreamlinesViewer::ResetAxes {} {
-    if { ![info exists _limits($_curFldName)] } {
-        SendCmd "dataset maprange all"
-        SendCmd "axis autorange z on"
-        SendCmd "axis autobounds z on"
-        return
-    }
-    foreach { xmin xmax } $_limits(x) break
-    foreach { ymin ymax } $_limits(y) break
-    foreach { zmin zmax } $_limits(z) break
-    foreach { vmin vmax } $_limits($_curFldName) break
-    set dataRange   [expr $vmax - $vmin]
-    set boundsRange [expr $xmax - $xmin]
-    set r [expr $ymax - $ymin]
-    if {$r > $boundsRange} {
-        set boundsRange $r
-    }
-    if {$dataRange < 1.0e-16} {
-        set dataScale 1.0
-    } else {
-        set dataScale [expr $boundsRange / $dataRange]
-    }
-    set heightScale 1.0
-    set bMin [expr $heightScale * $dataScale * $vmin]
-    set bMax [expr $heightScale * $dataScale * $vmax]
-    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
-    SendCmd "axis bounds z $bMin $bMax"
-    SendCmd "axis range z $_limits($_curFldName)"
-}

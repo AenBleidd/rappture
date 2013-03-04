@@ -86,7 +86,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method BuildCutplaneTab {}
     private method BuildDownloadPopup { widget command } 
     private method BuildIsosurfaceTab {}
-    private method DrawLegend { title }
+    private method DrawLegend {}
     private method Combo { option }
     private method EnterLegend { x y } 
     private method EventuallyResize { w h } 
@@ -104,9 +104,6 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private method SetObjectStyle { dataobj comp } 
     private method Slice {option args} 
     private method ResetColormap { color }
-    private method EnterIsoline { x y value } 
-    private method LeaveIsoline {}
-    private method SetIsolineTip { x y value }
     private method SetCurrentColormap { stylelist }
 
     private variable _arcball ""
@@ -137,6 +134,7 @@ itcl::class Rappture::VtkIsosurfaceViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
+    private variable _isolines
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -1346,7 +1344,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             configure -plotbackground $bgcolor \
 		-plotforeground $fgcolors($bgcolor)
 	    $itk_component(view) delete "legend"
-	    DrawLegend $_curFldName
+	    DrawLegend
         }
         "axesVisible" {
             set bool $_settings(axesVisible)
@@ -1431,7 +1429,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
                 Rappture::Tooltip::for $itk_component(contour) \
                     "Show the isosurface"
             }
-	    DrawLegend $_curFldName
+	    DrawLegend
         }
         "colormapPalette" {
             set color [$itk_component(palette) value]
@@ -1455,7 +1453,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
         "isolineColor" {
             set color [$itk_component(isolineColor) value]
 	    set _settings(isolineColor) $color
-	    DrawLegend $_curFldName
+	    DrawLegend
         }
         "isosurfaceOpacity" {
             set val $_settings(isosurfaceOpacity)
@@ -1471,23 +1469,33 @@ itcl::body Rappture::VtkIsosurfaceViewer::AdjustSetting {what {value ""}} {
             }
         }
         "field" {
-            set new [$itk_component(field) value]
-            set value [$itk_component(field) translate $new]
-            set _settings(field) $value
-            if { [info exists _fields($new)] } {
-                set _colorMode scalar
-                set _curFldName $new
+            set label [$itk_component(field) value]
+            set fname [$itk_component(field) translate $label]
+            set _settings(field) $fname
+            if { [info exists _fields($fname)] } {
+                foreach { label units components } $_fields($fname) break
+                if { $components > 1 } {
+                    set _colorMode vmag
+                } else {
+                    set _colorMode scalar
+                }
+                set _curFldName $fname
+                set _curFldLabel $label
             } else {
-                puts stderr "unknown field \"$new\""
+                puts stderr "unknown field \"$fname\""
                 return
             }
-            EventuallyRequestLegend
+            SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
+            SendCmd "contour3d colormode $_colorMode $_curFldName"
+            SendCmd "cutplane colormode $_colorMode $_curFldName"
+            SendCmd "camera reset"
+            DrawLegend
         }
         "legendVisible" {
             if { !$_settings(legendVisible) } {
                 $itk_component(view) delete legend
 	    }
-	    DrawLegend $_settings(field)
+	    DrawLegend
         }
         default {
             error "don't know how to fix $what"
@@ -2161,7 +2169,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::EnterLegend { x y } {
 itcl::body Rappture::VtkIsosurfaceViewer::MotionLegend { x y } {
     Rappture::Tooltip::tooltip cancel
     set c $itk_component(view)
-    SetLegendTip $x $y
+    set cw [winfo width $c]
+    set ch [winfo height $c]
+    if { $x >= 0 && $x < $cw && $y >= 0 && $y < $ch } {
+        SetLegendTip $x $y
+    }
 }
 
 #
@@ -2176,6 +2188,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::LeaveLegend { } {
 # SetLegendTip --
 #
 itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
+    set fname $_curFldName
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -2186,26 +2199,22 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     set ih [image height $_image(legend)]
     set iy [expr $y - ($lineht + 2)]
 
-    set title ""
-    if { [info exists _fields($_title)] } {
-        foreach { title units } $_fields($_title) break
-	if { $title == "component" } {
-	    set title ""
-	}
-        if { $units != "" } {
-            append title [format " (%s)" $units]
-        }
+    if { $fname == "component" } {
+	set title ""
     } else {
-        set title $_title
-	if { $title == "component" } {
-	    set title ""
+	if { [info exists _fields($fname)] } {
+	    foreach { title units } $_fields($fname) break
+	    if { $units != "" } {
+		set title [format "%s (%s)" $title $units]
+	    }
+	} else {
+	    set title $fname
 	}
     }
     # If there's a legend title, increase the offset by the line height.
     if { $title != "" } {
-        incr iy $lineht
+        incr iy -$lineht
     }
-
     # Make a swatch of the selected color
     if { [catch { $_image(legend) get 10 $iy } pixel] != 0 } {
         return
@@ -2228,7 +2237,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     }
     set tx [expr $x + 15] 
     set ty [expr $y - 5]
-    Rappture::Tooltip::text $c "$title $value"
+    if { [info exists _isolines($y)] } {
+        Rappture::Tooltip::text $c [format "$title %g (isosurface)" $_isolines($y)]
+    } else {
+        Rappture::Tooltip::text $c [format "$title %g" $value]
+    }
     Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
@@ -2283,7 +2296,7 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max
         }
         $_image(legend) configure -data $bytes
         #puts stderr "read $size bytes for [image width $_image(legend)]x[image height $_image(legend)] legend>"
-        if { [catch {DrawLegend $_title} errs] != 0 } {
+        if { [catch {DrawLegend} errs] != 0 } {
 	    global errorInfo
 	    puts stderr "errs=$errs errorInfo=$errorInfo"
         }
@@ -2295,23 +2308,24 @@ itcl::body Rappture::VtkIsosurfaceViewer::ReceiveLegend { colormap title min max
 #
 #       Draws the legend in the own canvas on the right side of the plot area.
 #
-itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
+itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend {} {
+    set fname $_curFldName
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
     set font "Arial 8"
     set lineht [font metrics $font -linespace]
     
-    if { $name == "component" } {
+    if { $fname == "component" } {
 	set title ""
     } else {
-	if { [info exists _fields($name)] } {
-	    foreach { title units } $_fields($name) break
+	if { [info exists _fields($fname)] } {
+	    foreach { title units } $_fields($fname) break
 	    if { $units != "" } {
 		set title [format "%s (%s)" $title $units]
 	    }
 	} else {
-	    set title $name
+	    set title $fname
 	}
     }
     set x [expr $w - 2]
@@ -2337,13 +2351,15 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
 	$c create image $x $y \
 	    -anchor ne \
 	    -image $_image(legend) -tags "colormap legend"
+	$c create rectangle $x $y 1 1 \
+	    -fill "" -outline "" -tags "sensor legend"
 	$c create text $x [expr {$h-2}] \
 	    -anchor se \
 	    -fill $itk_option(-plotforeground) -tags "zmin legend" \
 	    -font $font
-	#$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
-	$c bind colormap <Leave> [itcl::code $this LeaveLegend]
-	$c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
+	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
+	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
+	$c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
     }
     $c delete isoline
     set x2 $x
@@ -2352,7 +2368,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
     set x1 [expr $x2 - ($iw*12)/10]
     set color $_settings(isolineColor)
     # Draw the isolines on the legend.
-    if { $color != "none"  && $_numContours > 0 } {
+    array unset _isolines
+    if { $color != "none"  && [info exists _limits($_curFldName)] &&
+         $_numContours > 0 } {
 	set pixels [blt::vector create \#auto]
 	set values [blt::vector create \#auto]
 	set range [image height $_image(legend)]
@@ -2364,19 +2382,19 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
 	    incr offset $lineht
 	}
 	# Order of values is min to max.
-        if { [info exists _limits($_curFldName)] } {
-            $pixels expr {round($pixels + $offset)}
-            foreach { vmin vmax } $_limits(_$curFldName) break
-            $values seq $vmin $vmax $_numContours
-            set tags "isoline legend"
-            foreach pos [$pixels range 0 end] value [$values range end 0] {
-                set y1 [expr int($pos)]
-                set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
-                $c bind $id <Enter> [itcl::code $this EnterIsoline %x %y $value]
-                $c bind $id <Leave> [itcl::code $this LeaveIsoline]
+        $pixels expr {round($pixels + $offset)}
+        foreach { vmin vmax } $_limits($_curFldName) break
+        $values seq $vmin $vmax $_numContours
+        set tags "isoline legend"
+        foreach pos [$pixels range 0 end] value [$values range end 0] {
+	    set y1 [expr int($pos)]
+            for { set off 0 } { $off < 3 } { incr off } {
+                set _isolines([expr $y1 + $off]) $value
+                set _isolines([expr $y1 - $off]) $value
             }
-            blt::vector destroy $pixels $values
+            set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
         }
+        blt::vector destroy $pixels $values
     }
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
@@ -2398,36 +2416,11 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
     $c coords zmax $x $y
     incr y $lineht
     $c coords colormap $x $y
+    set ix [image width $_image(legend)]
+    set ih [image height $_image(legend)]
+    $c coords sensor [expr $x - $iw] $y $x [expr $y + $ih]
+    $c raise sensor
     $c coords zmin $x [expr {$h - 2}]
-}
-
-#
-# EnterIsoline --
-#
-itcl::body Rappture::VtkIsosurfaceViewer::EnterIsoline { x y value } {
-    SetIsolineTip $x $y $value
-}
-
-#
-# LeaveIsoline --
-#
-itcl::body Rappture::VtkIsosurfaceViewer::LeaveIsoline { } {
-    Rappture::Tooltip::tooltip cancel
-    .rappturetooltip configure -icon ""
-}
-
-#
-# SetIsolineTip --
-#
-itcl::body Rappture::VtkIsosurfaceViewer::SetIsolineTip { x y value } {
-    set c $itk_component(view)
-    .rappturetooltip configure -icon ""
-
-    # Compute the position of the tip
-    set tx [expr $x + 15] 
-    set ty [expr $y - 5]
-    Rappture::Tooltip::text $c "Isosurface $value"
-    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
 }
 
 # ----------------------------------------------------------------------
