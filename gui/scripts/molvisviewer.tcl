@@ -1765,10 +1765,10 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
         button $inner.cancel -text "Cancel" -font "Arial 10 bold" \
             -command [list set $var ""]
         blt::table $inner \
-            0,0 $inner.title -columnspan 2 \
+            0,0 $inner.title -cspan 2 \
             1,0 $inner.please -anchor w \
             1,1 $inner.icon -anchor e  \
-            2,0 $inner.cancel -columnspan 2 
+            2,0 $inner.cancel -cspan 2 
         blt::table configure $inner r0 -pady 4 
         blt::table configure $inner r2 -pady 4 
         bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
