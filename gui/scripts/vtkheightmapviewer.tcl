@@ -57,7 +57,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { dataobj }
+    public method limits3 { dataobj }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -607,15 +607,14 @@ itcl::body Rappture::VtkHeightmapViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::scale {args} {
-    array unset _limits
     foreach dataobj $args {
-        array set bounds [limits $dataobj]
-        foreach axis { x y v } {
-            foreach {min max} $bounds($axis) break
+        foreach axis { x y } {
+            set lim [$dataobj limits $axis]
             if { ![info exists _limits($axis)] } {
-                set _limits($axis) $bounds($axis)
+                set _limits($axis) $lim
                 continue
             }
+            foreach {min max} $lim break
             foreach {amin amax} $_limits($axis) break
             if { $amin > $min } {
                 set amin $min
@@ -624,6 +623,21 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
                 set amax $max
             }
             set _limits($axis) [list $amin $amax]
+        }
+        foreach { fname lim } [$dataobj limits2] {
+            if { ![info exists _limits($fname)] } {
+                set _limits($fname) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {fmin fmax} $_limits($fname) break
+            if { $fmin > $min } {
+                set fmin $min
+            }
+            if { $fmax < $max } {
+                set fmax $max
+            }
+            set _limits($fname) [list $fmin $fmax]
         }
     }
 }
@@ -1609,7 +1623,7 @@ itcl::body Rappture::VtkHeightmapViewer::RequestLegend {} {
 #       Set axis z bounds and range
 #
 itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
-    if { ![info exists _limits(v)] || ![info exists _fields($_curFldName)]} {
+    if { ![info exists _fields($_curFldName)]} {
         SendCmd "dataset maprange all"
         SendCmd "axis autorange z on"
         SendCmd "axis autobounds z on"
@@ -1617,7 +1631,7 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     }
     foreach { xmin xmax } $_limits(x) break
     foreach { ymin ymax } $_limits(y) break
-    foreach { vmin vmax } $_limits(v) break
+    foreach { vmin vmax } $_limits($_curFldName) break
     set dataRange   [expr $vmax - $vmin]
     set boundsRange [expr $xmax - $xmin]
     set r [expr $ymax - $ymin]
@@ -1632,9 +1646,9 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     set heightScale [GetHeightmapScale]
     set bMin [expr $heightScale * $dataScale * $vmin]
     set bMax [expr $heightScale * $dataScale * $vmax]
-    SendCmd "dataset maprange explicit $_limits(v) $_curFldName"
+    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
     SendCmd "axis bounds z $bMin $bMax"
-    SendCmd "axis range z $_limits(v)"
+    SendCmd "axis range z $_limits($_curFldName)"
 }
 
 #
@@ -1716,7 +1730,7 @@ itcl::configbody Rappture::VtkHeightmapViewer::plotforeground {
     }
 }
 
-itcl::body Rappture::VtkHeightmapViewer::limits { dataobj } {
+itcl::body Rappture::VtkHeightmapViewer::limits3 { dataobj } {
     lappend limits x [$dataobj limits x]
     lappend limits y [$dataobj limits y] 
     if { [catch { $dataobj limits $_curFldName } vlim] != 0 } {
@@ -2249,7 +2263,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     set color [$itk_component(isolinecolor) value]
 
     # Draw the isolines on the legend.
-    if { $color != "none"  && 
+    if { $color != "none"  && [info exists _limits($_curFldName)] && 
          $_settings(isolinesVisible) && $_settings(numIsolines) > 0 } {
 	set pixels [blt::vector create \#auto]
 	set values [blt::vector create \#auto]
@@ -2264,7 +2278,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	}
 	$pixels expr {round($pixels + $offset)}
 	# Order of values is min to max.
-        foreach { vmin vmax } $_limits(v) break
+        foreach { vmin vmax } $_limits($_curFldName) break
 	$values seq $vmin $vmax $_settings(numIsolines)
 	set tags "isoline legend"
 	foreach pos [$pixels range 0 end] value [$values range end 0] {
@@ -2280,8 +2294,8 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     $c bind title <Enter> [itcl::code $this Combo activate]
     $c bind title <Leave> [itcl::code $this Combo deactivate]
     # Reset the item coordinates according the current size of the plot.
-    if { [info exists _limits(v)] } {
-        foreach { vmin vmax } $_limits(v) break
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
 	$c itemconfigure vmin -text [format %g $vmin]
 	$c itemconfigure vmax -text [format %g $vmax]
     }
@@ -2392,8 +2406,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    if { [info exists _limits(v)] } {
-        foreach { vmin vmax } $_limits(v) break
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
         set t [expr 1.0 - (double($iy) / double($ih-1))]
         set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {

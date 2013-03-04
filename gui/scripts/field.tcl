@@ -90,6 +90,7 @@ itcl::class Rappture::Field {
     public method values {{cname -overall}}
     public method blob {{cname -overall}}
     public method limits {axis}
+    public method limits2 {}
     public method controls {option args}
     public method hints {{key ""}}
     public method style { cname }
@@ -483,6 +484,42 @@ itcl::body Rappture::Field::limits {which} {
     return [list $min $max]
 }
 
+
+# ----------------------------------------------------------------------
+# USAGE: limits2
+#
+# Returns a list {min max} representing the limits for the specified
+# axis.
+# ----------------------------------------------------------------------
+itcl::body Rappture::Field::limits2 {} {
+    foreach cname [array names _comp2limits] {
+        array set limits $_comp2limits($cname) 
+        foreach fname $_comp2fields($cname) {
+            if { ![info exists limits($fname)] } {
+                puts stderr "field \"$fname\" unknown in \"$cname\""
+                continue
+            }
+            foreach {min max} $limits($fname) break
+            if { ![info exists overall($fname)] } {
+                set overall($fname) $limits($fname)
+                continue
+            }
+            foreach {omin omax} $overall($fname) break
+            if { $min < $omin } {
+                set omin $min
+            }
+            if { $max > $omax } {
+                set omax $max
+            }
+            set overall($fname) [list $min $max]
+        }
+    }
+    if { [info exists overall] } {
+        return [array get overall]
+    }
+    return ""
+}
+ 
 # ----------------------------------------------------------------------
 # USAGE: controls get ?<name>?
 # USAGE: controls validate <path> <value>
@@ -1258,7 +1295,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         }
         set xv [blt::vector create \#auto]
         $xv set $_values
-        lappend limits "v" [$xv limits]
+        lappend limits $cname [$xv limits]
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
@@ -1313,7 +1350,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	array unset _comp2limits $cname
 	lappend _comp2limits($cname) x [$mesh limits x]
 	lappend _comp2limits($cname) y [$mesh limits y]
-	lappend _comp2limits($cname) $label [$vector limits]
+	lappend _comp2limits($cname) $cname [$vector limits]
 	lappend _comp2limits($cname) v [$vector limits]
 	return
     } elseif {$_dim == 3} {
@@ -1340,7 +1377,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
 	lappend _comp2limits($cname) x [$mesh limits x]
 	lappend _comp2limits($cname) y [$mesh limits y]
 	lappend _comp2limits($cname) z [$mesh limits z]
-	lappend _comp2limits($cname) $label [$vector limits]
+	lappend _comp2limits($cname) $cname [$vector limits]
 	lappend _comp2limits($cname) v [$vector limits]
 	return
     }
