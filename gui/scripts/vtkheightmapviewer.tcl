@@ -404,7 +404,6 @@ itcl::body Rappture::VtkHeightmapViewer::DoResize {} {
     }
     set _start [clock clicks -milliseconds]
     SendCmd "screen size [expr $_width - 20] $_height"
-    SendCmd "camera reset"
 
     set font "Arial 8"
     set lh [font metrics $font -linespace]
