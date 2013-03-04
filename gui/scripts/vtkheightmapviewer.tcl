@@ -405,6 +405,10 @@ itcl::body Rappture::VtkHeightmapViewer::DoResize {} {
     set _start [clock clicks -milliseconds]
     SendCmd "screen size [expr $_width - 20] $_height"
 
+    # FIXME: This "camera reset" stops the plot from shrinking each time the
+    #        window is resized.  
+    SendCmd "camera reset"
+
     set font "Arial 8"
     set lh [font metrics $font -linespace]
     set h [expr {$_height - 2 * ($lh + 2)}]
@@ -435,7 +439,7 @@ itcl::body Rappture::VtkHeightmapViewer::EventuallyResize { w h } {
     $_arcball resize $w $h
     if { !$_resizePending } {
         set _resizePending 1
-        $_dispatcher event -after 400 !resize
+        $_dispatcher event -after 250 !resize
     }
 }
 
@@ -1631,22 +1635,23 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
     foreach { xmin xmax } $_limits(x) break
     foreach { ymin ymax } $_limits(y) break
     foreach { vmin vmax } $_limits($_curFldName) break
-    set dataRange   [expr $vmax - $vmin]
-    set boundsRange [expr $xmax - $xmin]
-    set r [expr $ymax - $ymin]
-    if {$r > $boundsRange} {
-        set boundsRange $r
-    }
-    if {$dataRange < 1.0e-16} {
+
+    global tcl_precision
+    set tcl_precision 17
+    set xr [expr $xmax - $xmin]
+    set yr [expr $ymax - $ymin]
+    set vr [expr $vmax - $vmin]
+    set r  [expr ($yr > $xr) ? $yr : $xr]
+    if { $vr < 1.0e-17 } {
         set dataScale 1.0
     } else {
-        set dataScale [expr $boundsRange / $dataRange]
+        set dataScale [expr $r / $vr]
     }
     set heightScale [GetHeightmapScale]
-    set bMin [expr $heightScale * $dataScale * $vmin]
-    set bMax [expr $heightScale * $dataScale * $vmax]
+    set bmin [expr $heightScale * $dataScale * $vmin]
+    set bmax [expr $heightScale * $dataScale * $vmax]
     SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
-    SendCmd "axis bounds z $bMin $bMax"
+    SendCmd "axis bounds z $bmin $bmax"
     SendCmd "axis range z $_limits($_curFldName)"
 }
 
