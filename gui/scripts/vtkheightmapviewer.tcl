@@ -945,7 +945,9 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
             }
             lappend _obj2datasets($dataobj) $tag
             if { [info exists _obj2ovride($dataobj-raise)] } {
-                SendCmd "heightmap visible 1 $tag"
+                # Setting dataset visible enables outline (if enabled)
+                # and heightmap
+                SendCmd "dataset visible 1 $tag"
             }
 	    if { ![info exists _comp2scale($tag)] || 
 		 $_comp2scale($tag) != $scale } {
@@ -2154,6 +2156,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
 	}
 	$itk_component(colormap) value $style(-color)
     }
+    SendCmd "dataset outline $_settings(outline) $tag"
+    SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)] $tag"
     set _settings(numIsolines) $style(-levels)
     set scale [GetHeightmapScale]
     SendCmd "heightmap add numcontours $_settings(numIsolines) $scale $tag"
