@@ -471,13 +471,8 @@ itcl::body Rappture::VtkVolumeViewer::DoResize {} {
     }
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
+
     set _legendPending 1
-
-    #SendCmd "imgflush"
-
-    # Must reset camera to have object scaling to take effect.
-    #SendCmd "camera reset"
-    #SendCmd "camera zoom $_view(zoom)"
     set _resizePending 0
 }
 

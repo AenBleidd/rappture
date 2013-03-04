@@ -483,9 +483,8 @@ itcl::body Rappture::VtkStreamlinesViewer::DoResize {} {
     }
     set _start [clock clicks -milliseconds]
     SendCmd "screen size $_width $_height"
+
     set _legendPending 1
-    # Must reset camera to have object scaling to take effect.
-    SendCmd "camera reset"
     set _resizePending 0
 }
 
