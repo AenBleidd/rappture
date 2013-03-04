@@ -700,7 +700,6 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::scale {args} {
-    array unset _limits
     foreach dataobj $args {
         set string [limits $dataobj]
         if { $string == "" } {
