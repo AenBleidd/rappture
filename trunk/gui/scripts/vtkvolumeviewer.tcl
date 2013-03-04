@@ -680,7 +680,6 @@ itcl::body Rappture::VtkVolumeViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkVolumeViewer::scale {args} {
-    array unset _limits
     foreach dataobj $args {
         set string [limits $dataobj]
         if { $string == "" } {

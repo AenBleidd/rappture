@@ -612,7 +612,6 @@ itcl::body Rappture::VtkViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkViewer::scale {args} {
-    array unset _limits
     foreach dataobj $args {
         array set bounds [limits $dataobj]
         if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {

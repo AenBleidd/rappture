@@ -667,7 +667,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::get {args} {
 # the user scans through data in the ResultSet viewer.
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::scale { args } {
-    array unset _limits
     foreach dataobj $args {
         set string [limits $dataobj]
         if { $string == "" } {
