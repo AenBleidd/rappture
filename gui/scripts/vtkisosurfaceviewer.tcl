@@ -165,8 +165,6 @@ itcl::body Rappture::VtkIsosurfaceViewer::constructor {hostlist args} {
     package require vtk
     set _serverType "vtkvis"
 
-    EnableWaitDialog no
-
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
