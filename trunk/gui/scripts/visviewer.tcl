@@ -53,7 +53,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _numConnectTries 0
     protected variable _debugConsole 0
     protected variable _reportClientInfo 1
-    protected variable _showWaitDialog 1
+    protected variable _showWaitDialog 0
 
     constructor { servers args } {
         # defined below

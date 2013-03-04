@@ -188,8 +188,6 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias viserror [itcl::code $this ReceiveError]
 
-    EnableWaitDialog no
-
     # Initialize the view to some default parameters.
     array set _view {
         qw      0.36
