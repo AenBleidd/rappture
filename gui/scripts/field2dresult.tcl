@@ -31,13 +31,12 @@ itcl::class Rappture::Field2DResult {
 
     itk_option define -mode mode Mode "auto"
 
-    constructor {args} { 
+    constructor { args } { 
 	# defined below 
     }
     destructor { 
 	# defined below 
     }
-
     public method add {dataobj {settings ""}}
     public method get {}
     public method delete {args}

@@ -125,7 +125,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _currentColormap "" ;    
 
     private variable _click        ;    # info used for rotate operations
-    private variable _limits       ;    # Overall limits for all dataobjs 
+    private variable _limits       ;    # Holds overall limits for all dataobjs 
                                         # using the viewer.
     private variable _view         ;    # view params for 3D view
     private variable _settings
@@ -613,7 +613,7 @@ itcl::body Rappture::VtkHeightmapViewer::scale {args} {
         foreach axis { x y v } {
             foreach {min max} $bounds($axis) break
             if { ![info exists _limits($axis)] } {
-                set _limits($axis) [list $min $max]
+                set _limits($axis) $bounds($axis)
                 continue
             }
             foreach {amin amax} $_limits($axis) break
@@ -906,7 +906,6 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         if { [info exists _obj2ovride($dataobj-raise)] &&  $_first == "" } {
             set _first $dataobj
         }
-	scale $dataobj
         set _obj2datasets($dataobj) ""
         foreach comp [$dataobj components] {
             set tag $dataobj-$comp
@@ -1033,6 +1032,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         if { [array size _fields] < 2 } {
             blt::table forget $itk_component(field) $itk_component(field_l)
         }
+        RequestLegend
         set _reset 0
     }
     global readyForNextFrame
@@ -1387,7 +1387,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		SendCmd [list axis units $axis $units]
 	    }
             # Get the new limits because the field changed.
-            scale $_dlist
             ResetAxes
             SendCmd "camera reset"
             SendCmd "heightmap colormode scalar $_curFldName"
