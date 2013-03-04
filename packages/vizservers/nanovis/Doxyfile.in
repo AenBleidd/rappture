@@ -597,7 +597,7 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = newmat11 dxReader2.h dxReader2.cpp RpDX.h RpDX.cpp CircularQueue.h ParticleEmitter.h ParticleEmitter.cpp ParticleSystem.h ParticleSystem.cpp ParticleSystemFactory.h ParticleSystemFactory.cpp BucketSort.h BucketSort.cpp PCASplit.h PCASplit.cpp PointSet.h PointSet.cpp PointSetRenderer.h PointSetRenderer.cpp PointShader.h PointShader.cpp NvVectorField.h NvVectorField.cpp NvFlowVisRenderer.h NvFlowVisRenderer.cpp
+EXCLUDE                = @srcdir@/newmat11 @srcdir@/CircularQueue.h @srcdir@/ParticleEmitter.h @srcdir@/ParticleEmitter.cpp @srcdir@/ParticleSystem.h @srcdir@/ParticleSystem.cpp @srcdir@/ParticleSystemFactory.h @srcdir@/ParticleSystemFactory.cpp @srcdir@/BucketSort.h @srcdir@/BucketSort.cpp @srcdir@/PCASplit.h @srcdir@/PCASplit.cpp @srcdir@/PointSet.h @srcdir@/PointSet.cpp @srcdir@/PointSetRenderer.h @srcdir@/PointSetRenderer.cpp @srcdir@/PointShader.h @srcdir@/PointShader.cpp @srcdir@/NvVectorField.h @srcdir@/NvVectorField.cpp @srcdir@/NvFlowVisRenderer.h @srcdir@/NvFlowVisRenderer.cpp
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
 # directories that are symbolic links (a Unix filesystem feature) are excluded
