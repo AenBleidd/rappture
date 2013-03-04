@@ -105,9 +105,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method GetHeightmapScale {} 
-    private method EnterIsoline { x y value } 
-    private method LeaveIsoline {}
-    private method SetIsolineTip { x y value }
     private method ResetAxes {}
 
     private variable _arcball ""
@@ -137,7 +134,6 @@ itcl::class Rappture::VtkHeightmapViewer {
 
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
-    private variable _title ""
     private variable _isolines
 
     common _downloadPopup;              # download options from popup
@@ -2186,8 +2182,6 @@ itcl::body Rappture::VtkHeightmapViewer::IsValidObject { dataobj } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkHeightmapViewer::ReceiveLegend { colormap title min max size } {
     #puts stderr "ReceiveLegend colormap=$colormap title=$title range=$min,$max size=$size"
-    set _title $title
-    regsub {\(mag\)} $title "" _title 
     if { [isconnected] } {
         set bytes [ReceiveBytes $size]
         if { ![info exists _image(legend)] } {
@@ -2254,9 +2248,9 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	    -anchor se \
 	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
 	    -font $font
-	$c bind sensor <B1-Enter> [itcl::code $this EnterLegend %x %y]
+	$c bind sensor <Enter> [itcl::code $this EnterLegend %x %y]
 	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
-	$c bind sensor <B1-Motion> [itcl::code $this MotionLegend %x %y]
+	$c bind sensor <Motion> [itcl::code $this MotionLegend %x %y]
     }
     $c delete isoline
     set x2 $x
@@ -2325,36 +2319,6 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 }
 
 #
-# EnterIsoline --
-#
-itcl::body Rappture::VtkHeightmapViewer::EnterIsoline { x y value } {
-    SetIsolineTip $x $y $value
-}
-
-#
-# LeaveIsoline --
-#
-itcl::body Rappture::VtkHeightmapViewer::LeaveIsoline { } {
-    Rappture::Tooltip::tooltip cancel
-    .rappturetooltip configure -icon ""
-}
-
-#
-# SetIsolineTip --
-#
-itcl::body Rappture::VtkHeightmapViewer::SetIsolineTip { x y value } {
-    set c $itk_component(view)
-    .rappturetooltip configure -icon ""
-
-    # Compute the position of the tip
-    set tx [expr $x + 15] 
-    set ty [expr $y - 5]
-    Rappture::Tooltip::text $c "Isoline $value"
-    Rappture::Tooltip::tooltip show $c +$tx,+$ty    
-}
-
-
-#
 # EnterLegend --
 #
 itcl::body Rappture::VtkHeightmapViewer::EnterLegend { x y } {
@@ -2386,6 +2350,7 @@ itcl::body Rappture::VtkHeightmapViewer::LeaveLegend { } {
 # SetLegendTip --
 #
 itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
+    set fname $_curFldName
     set c $itk_component(view)
     set w [winfo width $c]
     set h [winfo height $c]
@@ -2393,15 +2358,20 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     set lineht [font metrics $font -linespace]
     
     set ih [image height $_image(legend)]
+    # Subtract off the offset of the color ramp from the top of the canvas
     set iy [expr $y - ($lineht + 2)]
 
-    if { [info exists _fields($_title)] } {
-        foreach { title units } $_fields($_title) break
-        if { $units != "" } {
-            set title [format "%s (%s)" $title $units]
-        }
+    if { $fname == "component" } {
+	set title ""
     } else {
-        set title $_title
+	if { [info exists _fields($fname)] } {
+	    foreach { title units } $_fields($fname) break
+	    if { $units != "" } {
+		set title [format "%s (%s)" $title $units]
+	    }
+	} else {
+	    set title $fname
+	}
     }
     # If there's a legend title, increase the offset by the line height.
     if { $title != "" } {
@@ -2421,8 +2391,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     $_image(swatch) put $color -to 1 1 22 22 
 
     # Compute the value of the point
-    if { [info exists _limits($_curFldName)] } {
-        foreach { vmin vmax } $_limits($_curFldName) break
+    if { [info exists _limits($fname)] } {
+        foreach { vmin vmax } $_limits($fname) break
         set t [expr 1.0 - (double($iy) / double($ih-1))]
         set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {
@@ -2431,8 +2401,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
     .rappturetooltip configure -icon $_image(swatch)
-    if { [info exists _isolines($iy)] } {
-        Rappture::Tooltip::text $c [format "$title (isoline) %g" $_isolines($iy)]
+    if { [info exists _isolines($y)] } {
+        Rappture::Tooltip::text $c [format "$title %g (isoline)" $_isolines($y)]
     } else {
         Rappture::Tooltip::text $c [format "$title %g" $value]
     }

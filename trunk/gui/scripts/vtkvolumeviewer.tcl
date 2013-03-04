@@ -1450,10 +1450,8 @@ itcl::body Rappture::VtkVolumeViewer::AdjustSetting {what {value ""}} {
                 puts stderr "unknown field \"$fname\""
                 return
             }
-            # Get the new limits because the field changed.
             SendCmd "volume colormode $_colorMode ${name} $dataset"
             SendCmd "cutplane colormode $_colorMode ${name} $dataset"
-            #SendCmd "dataset scalar $_curFldName"
             SendCmd "camera reset"
             DrawLegend
         }
