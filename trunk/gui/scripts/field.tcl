@@ -1202,9 +1202,6 @@ itcl::body Rappture::Field::vtkdata {cname} {
 	set label [hints zlabel] 
 	if { $label == "" } {
 	    set label $cname
-            if { [regexp {component\((.*)\)} $label match subname] } {
-                set label $subname
-            }
         }
         regsub -all { } $label {_} label
 	append out "# vtk DataFile Version 3.0\n"
@@ -1239,9 +1236,6 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     }
     set element [$_xmlobj element -as type $path]
     set name $cname
-    if { [regexp {component\((.*)\)} $name match subname] } {
-        set name $subname
-    }
     regsub -all { } $name {_} name
     set _field2Label($name) $name
     set label [hints zlabel]
