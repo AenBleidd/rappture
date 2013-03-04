@@ -196,8 +196,6 @@ CPPFLAGS=$VTK_INC_SPEC
 AC_CHECK_HEADERS([vtkSmartPointer.h], [], [AC_MSG_WARN([cannot find vtkSmartPointer.h])])
 CPPFLAGS=$save_CPPFLAGS
 
-AC_CHECK_HEADER([GL/glui.h])
-AC_CHECK_HEADER([glui.h])
 AC_CHECK_HEADER([GL/glut.h])
 AC_CHECK_HEADER([GL/glew.h])
 
