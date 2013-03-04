@@ -56,7 +56,6 @@ itcl::class Rappture::VtkStreamlinesViewer {
     public method download {option args}
     public method get {args}
     public method isconnected {}
-    public method limits { colormap }
     public method parameters {title args} { 
         # do nothing 
     }
@@ -231,9 +230,6 @@ itcl::body Rappture::VtkStreamlinesViewer::constructor {hostlist args} {
     set _arcball [blt::arcball create 100 100]
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
-
-    set _limits(zmin) 0.0
-    set _limits(zmax) 1.0
 
     array set _settings [subst {
         axesVisible		1
@@ -701,30 +697,36 @@ itcl::body Rappture::VtkStreamlinesViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::scale {args} {
     foreach dataobj $args {
-        set string [limits $dataobj]
-        if { $string == "" } {
-            continue
+        foreach axis { x y z } {
+            set lim [$dataobj limits $axis]
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {amin amax} $_limits($axis) break
+            if { $amin > $min } {
+                set amin $min
+            }
+            if { $amax < $max } {
+                set amax $max
+            }
+            set _limits($axis) [list $amin $amax]
         }
-        array set bounds $string
-        if {![info exists _limits(xmin)] || $_limits(xmin) > $bounds(xmin)} {
-            set _limits(xmin) $bounds(xmin)
-        }
-        if {![info exists _limits(xmax)] || $_limits(xmax) < $bounds(xmax)} {
-            set _limits(xmax) $bounds(xmax)
-        }
-
-        if {![info exists _limits(ymin)] || $_limits(ymin) > $bounds(ymin)} {
-            set _limits(ymin) $bounds(ymin)
-        }
-        if {![info exists _limits(ymax)] || $_limits(ymax) < $bounds(ymax)} {
-            set _limits(ymax) $bounds(ymax)
-        }
-
-        if {![info exists _limits(zmin)] || $_limits(zmin) > $bounds(zmin)} {
-            set _limits(zmin) $bounds(zmin)
-        }
-        if {![info exists _limits(zmax)] || $_limits(zmax) < $bounds(zmax)} {
-            set _limits(zmax) $bounds(zmax)
+        foreach { fname lim } [$dataobj fieldlimits] {
+            if { ![info exists _limits($fname)] } {
+                set _limits($fname) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {fmin fmax} $_limits($fname) break
+            if { $fmin > $min } {
+                set fmin $min
+            }
+            if { $fmax < $max } {
+                set fmax $max
+            }
+            set _limits($fname) [list $fmin $fmax]
         }
     }
 }
@@ -987,8 +989,6 @@ itcl::body Rappture::VtkStreamlinesViewer::Rebuild {} {
         SendCmd "imgflush"
     }
 
-    set _limits(zmin) ""
-    set _limits(zmax) ""
     set _first ""
     SendCmd "dataset visible 0"
     foreach dataobj [get -objects] {
@@ -1634,76 +1634,6 @@ itcl::configbody Rappture::VtkStreamlinesViewer::plotforeground {
     }
 }
 
-itcl::body Rappture::VtkStreamlinesViewer::limits { dataobj } {
-    return
-    array unset _limits $dataobj-*
-    foreach comp [$dataobj components] {
-        set tag $dataobj-$comp
-        if { ![info exists _limits($tag)] } {
-            set data [$dataobj blob $comp]
-            set tmpfile file[pid].vtk
-            set f [open "$tmpfile" "w"]
-            fconfigure $f -translation binary -encoding binary
-            puts $f $data 
-            close $f
-            set reader [vtkDataSetReader $tag-xvtkDataSetReader]
-            $reader SetFileName $tmpfile
-            $reader ReadAllScalarsOn
-            $reader ReadAllVectorsOn
-            $reader ReadAllFieldsOn
-            $reader Update
-            set output [$reader GetOutput]
-            set _limits($tag) [$output GetBounds]
-            set pointData [$output GetPointData]
-            puts stderr "\#scalars=[$reader GetNumberOfScalarsInFile]"
-            puts stderr "\#fielddata=[$reader GetNumberOfFieldDataInFile]"
-            puts stderr "fielddataname=[$reader GetFieldDataNameInFile 0]"
-            set fieldData [$output GetFieldData]
-            set pointData [$output GetPointData]
-            puts stderr "field \#arrays=[$fieldData GetNumberOfArrays]"
-            for { set i 0 } { $i < [$fieldData GetNumberOfArrays] } { incr i } {
-                puts stderr [$fieldData GetArrayName $i]
-            }
-            for { set i 0 } { $i < [$pointData GetNumberOfArrays] } { incr i } {
-                set name [$pointData GetArrayName $i]
-                if { ![info exists _fields($name)] } {
-                    $itk_component(field) choices insert end "$name" "$name"
-                    set _fields($name) 1
-                }
-            }
-            puts stderr "field \#components=[$fieldData GetNumberOfComponents]"
-            puts stderr "point \#components=[$pointData GetNumberOfComponents]"
-            puts stderr "field \#tuples=[$fieldData GetNumberOfTuples]"
-            puts stderr "point \#tuples=[$pointData GetNumberOfTuples]"
-            puts stderr "point \#scalars=[$pointData GetScalars]"
-            puts stderr vectors=[$pointData GetVectors]
-            rename $output ""
-            rename $reader ""
-            file delete $tmpfile
-        }
-        foreach { xMin xMax yMin yMax zMin zMax} $_limits($tag) break
-        if {![info exists limits(xmin)] || $limits(xmin) > $xMin} {
-            set limits(xmin) $xMin
-        }
-        if {![info exists limits(xmax)] || $limits(xmax) < $xMax} {
-            set limits(xmax) $xMax
-        }
-        if {![info exists limits(ymin)] || $limits(ymin) > $yMin} {
-            set limits(ymin) $xMin
-        }
-        if {![info exists limits(ymax)] || $limits(ymax) < $yMax} {
-            set limits(ymax) $yMax
-        }
-        if {![info exists limits(zmin)] || $limits(zmin) > $zMin} {
-            set limits(zmin) $zMin
-        }
-        if {![info exists limits(zmax)] || $limits(zmax) < $zMax} {
-            set limits(zmax) $zMax
-        }
-    }
-    return [array get limits]
-}
-
 itcl::body Rappture::VtkStreamlinesViewer::BuildVolumeTab {} {
 
     set fg [option get $itk_component(hull) font Font]
@@ -2293,8 +2223,6 @@ itcl::body Rappture::VtkStreamlinesViewer::IsValidObject { dataobj } {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkStreamlinesViewer::ReceiveLegend { colormap title vmin vmax size } {
     set _legendPending 0
-    set _limits(vmin) $vmin
-    set _limits(vmax) $vmax
     set _title $title
     regsub {\(mag\)} $title "" _title 
     if { [IsConnected] } {
@@ -2361,11 +2289,10 @@ itcl::body Rappture::VtkStreamlinesViewer::DrawLegend { name } {
         $c bind title <Leave> [itcl::code $this Combo deactivate]
         # Reset the item coordinates according the current size of the plot.
         $c itemconfigure title -text $title
-        if { $_limits(vmin) != "" } {
-            $c itemconfigure vmin -text [format %g $_limits(vmin)]
-        }
-        if { $_limits(vmax) != "" } {
-            $c itemconfigure vmax -text [format %g $_limits(vmax)]
+        if { [info exists _limits($_curFldName)] } {
+            foreach {vmin vmax} $_limits($_curFldName) break
+            $c itemconfigure vmin -text [format %g $vmin]
+            $c itemconfigure vmax -text [format %g $vmax]
         }
         set y 2
         $c coords title $x $y
@@ -2438,9 +2365,10 @@ itcl::body Rappture::VtkStreamlinesViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    if { [info exists _limits(vmax)] && [info exists _limits(vmin)] } {
+    if { [info exists _limits($_curFldName)] } {
+        foreach {vmin vmax} $_limits($_curFldName) break
         set t [expr 1.0 - (double($imgY) / double($imgHeight-1))]
-        set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
+        set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {
         set value 0.0
     }
@@ -2520,14 +2448,13 @@ itcl::body Rappture::VtkStreamlinesViewer::Combo {option} {
     }
 }
 
-
 #
 # ResetAxes --
 #
 #       Set axis z bounds and range
 #
 itcl::body Rappture::VtkStreamlinesViewer::ResetAxes {} {
-    if { ![info exists _limits(v)] || ![info exists _fields($_curFldName)]} {
+    if { ![info exists _limits($_curFldName)] } {
         SendCmd "dataset maprange all"
         SendCmd "axis autorange z on"
         SendCmd "axis autobounds z on"
@@ -2536,7 +2463,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ResetAxes {} {
     foreach { xmin xmax } $_limits(x) break
     foreach { ymin ymax } $_limits(y) break
     foreach { zmin zmax } $_limits(z) break
-    foreach { vmin vmax } $_limits(v) break
+    foreach { vmin vmax } $_limits($_curFldName) break
     set dataRange   [expr $vmax - $vmin]
     set boundsRange [expr $xmax - $xmin]
     set r [expr $ymax - $ymin]
@@ -2551,7 +2478,7 @@ itcl::body Rappture::VtkStreamlinesViewer::ResetAxes {} {
     set heightScale 1.0
     set bMin [expr $heightScale * $dataScale * $vmin]
     set bMax [expr $heightScale * $dataScale * $vmax]
-    SendCmd "dataset maprange explicit $_limits(v) $_curFldName"
+    SendCmd "dataset maprange explicit $_limits($_curFldName) $_curFldName"
     SendCmd "axis bounds z $bMin $bMax"
-    SendCmd "axis range z $_limits(v)"
+    SendCmd "axis range z $_limits($_curFldName)"
 }
