@@ -196,11 +196,15 @@ OBJS += 	BucketSort.o \
 shaders +=      $(srcdir)/shaders/pointsvp.cg
 endif
 
-.PHONY: all install install-resources install-shaders install-nanovis clean distclean newmat11 R2 imgloaders vrmath
+.PHONY: all install install-resources install-shaders install-nanovis docs clean-docs clean distclean newmat11 R2 imgloaders vrmath
 
 all: newmat11 R2 imgloaders vrmath nanovis 
 
 install: install-nanovis install-resources install-shaders
+
+docs:
+	$(MKDIR_P) -m 0755 docs/doxygen
+	doxygen
 
 newmat11:		$(MAT_LIB)
 R2:			$(R2_LIB)
@@ -251,6 +255,9 @@ clean:
 	$(MAKE) -C $(R2_DIR)/src clean
 	$(MAKE) -C $(IMG_DIR) clean
 	$(RM) nanovis client *.o
+
+clean-docs:
+	$(RM) -r docs
 
 distclean: clean
 	$(MAKE) -C $(MAT_DIR) distclean

@@ -186,7 +186,7 @@ SERVER_OBJS=$(SERVER_SRCS:.cpp=.o)
 SERVER_OBJS+= md5.o
 SERVER=vtkvis
 
-.PHONY: all docs install clean clean-doc distclean
+.PHONY: all docs install clean clean-docs distclean
 
 all: $(SERVER)
 

@@ -358,6 +358,7 @@ AC_OUTPUT([
    Makefile \
    nanoscale/Makefile \
    nanoscale/renderservers.tcl \
+   nanovis/Doxyfile \
    nanovis/Makefile \
    nanovis/newmat11/Makefile \
    nanovis/R2/src/Makefile \
