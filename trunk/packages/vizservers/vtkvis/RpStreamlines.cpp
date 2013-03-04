@@ -579,8 +579,10 @@ void Streamlines::update()
     _linesActor->SetMapper(_pdMapper);
     _pdMapper->Update();
     _seedMapper->Update();
+#ifdef WANT_TRACE
     double *b = getBounds();
     TRACE("bounds: %g %g %g %g %g %g", b[0], b[1], b[2], b[3], b[4], b[5]);
+#endif
 }
 
 void Streamlines::setNumberOfSeedPoints(int numPoints)
