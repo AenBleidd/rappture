@@ -860,10 +860,6 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         set _height [winfo height $itk_component(3dview)]
         DoResize
         if { $_reportClientInfo }  {
-            # Tell the server the name of the tool, the version, and
-            # dataset that we are rendering.  Have to do it here because
-            # we don't know what data objects are using the renderer until
-            # be get here.
             global env
 
             set info {}
@@ -935,7 +931,7 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 
 	PanCamera
 	SendCmd "camera zoom $_view(zoom)"
-        InitSettings light2side light transp isosurface grid axes outline
+        InitSettings light2side light transp isosurface grid axes 
 	
         foreach axis {x y z} {
             # Turn off cutplanes for all volumes
@@ -952,6 +948,8 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
 	    }
 	}
     }
+    # Outline seems to need to be reset every update.
+    InitSettings outline
     # nothing to send -- activate the proper ivol
     SendCmd "volume state 0"
     if {"" != $_first} {

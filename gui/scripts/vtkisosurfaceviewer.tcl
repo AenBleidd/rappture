@@ -663,21 +663,37 @@ itcl::body Rappture::VtkIsosurfaceViewer::get {args} {
 # ----------------------------------------------------------------------
 itcl::body Rappture::VtkIsosurfaceViewer::scale { args } {
     foreach dataobj $args {
-        set string [limits $dataobj]
-        if { $string == "" } {
-            continue
+        foreach axis { x y z } {
+            set lim [$dataobj limits $axis]
+            if { ![info exists _limits($axis)] } {
+                set _limits($axis) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {amin amax} $_limits($axis) break
+            if { $amin > $min } {
+                set amin $min
+            }
+            if { $amax < $max } {
+                set amax $max
+            }
+            set _limits($axis) [list $amin $amax]
         }
-        array set lim $string
-	foreach axis { x y z v } {
-	    set min ${axis}min
-	    set max ${axis}max
-	    if {![info exists _limits($min)] || $_limits($min) > $lim($min)} {
-		set _limits($min) $lim($min)
-	    }
-	    if {![info exists _limits($max)] || $_limits($max) < $lim($max)} {
-		set _limits($max) $lim($max)
-	    }
-	}
+        foreach { fname lim } [$dataobj fieldlimits] {
+            if { ![info exists _limits($fname)] } {
+                set _limits($fname) $lim
+                continue
+            }
+            foreach {min max} $lim break
+            foreach {fmin fmax} $_limits($fname) break
+            if { $fmin > $min } {
+                set fmin $min
+            }
+            if { $fmax < $max } {
+                set fmax $max
+            }
+            set _limits($fname) [list $fmin $fmax]
+        }
     }
 }
 
@@ -2203,9 +2219,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::SetLegendTip { x y } {
     .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
-    if { [info exists _limits(vmax)] && [info exists _limits(vmin)] } {
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
         set t [expr 1.0 - (double($iy) / double($ih-1))]
-        set value [expr $t * ($_limits(vmax) - $_limits(vmin)) + $_limits(vmin)]
+        set value [expr $t * ($vmax - $vmin) + $vmin]
     } else {
         set value 0.0
     }
@@ -2346,17 +2363,20 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
 	if { $title != "" } {
 	    incr offset $lineht
 	}
-	$pixels expr {round($pixels + $offset)}
 	# Order of values is min to max.
-	$values seq $_limits(zmin) $_limits(zmax) $_numContours
-	set tags "isoline legend"
-	foreach pos [$pixels range 0 end] value [$values range end 0] {
-	    set y1 [expr int($pos)]
-	    set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
-	    $c bind $id <Enter> [itcl::code $this EnterIsoline %x %y $value]
-	    $c bind $id <Leave> [itcl::code $this LeaveIsoline]
-	}
-	blt::vector destroy $pixels $values
+        if { [info exists _limits($_curFldName)] } {
+            $pixels expr {round($pixels + $offset)}
+            foreach { vmin vmax } $_limits(_$curFldName) break
+            $values seq $vmin $vmax $_numContours
+            set tags "isoline legend"
+            foreach pos [$pixels range 0 end] value [$values range end 0] {
+                set y1 [expr int($pos)]
+                set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
+                $c bind $id <Enter> [itcl::code $this EnterIsoline %x %y $value]
+                $c bind $id <Leave> [itcl::code $this LeaveIsoline]
+            }
+            blt::vector destroy $pixels $values
+        }
     }
 
     $c bind title <ButtonPress> [itcl::code $this Combo post]
@@ -2364,11 +2384,10 @@ itcl::body Rappture::VtkIsosurfaceViewer::DrawLegend { name } {
     $c bind title <Leave> [itcl::code $this Combo deactivate]
     # Reset the item coordinates according the current size of the plot.
     $c itemconfigure title -text $title
-    if { [info exists _limits(zmin)] && $_limits(zmin) != "" } {
-	$c itemconfigure zmin -text [format %g $_limits(zmin)]
-    }
-    if { [info exists _limits(zmax)] && $_limits(zmax) != "" } {
-	$c itemconfigure zmax -text [format %g $_limits(zmax)]
+    if { [info exists _limits($_curFldName)] } {
+        foreach { vmin vmax } $_limits($_curFldName) break
+	$c itemconfigure zmin -text [format %g $vmin]
+	$c itemconfigure zmax -text [format %g $vmax]
     }
     set y 2
     # If there's a legend title, move the title to the correct position
