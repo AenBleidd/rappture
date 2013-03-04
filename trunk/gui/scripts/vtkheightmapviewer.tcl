@@ -138,6 +138,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _first ""     ;    # This is the topmost dataset.
     private variable _start 0
     private variable _title ""
+    private variable _isolines
 
     common _downloadPopup;              # download options from popup
     private common _hardcopy
@@ -2247,13 +2248,15 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	$c create image $x $y \
 	    -anchor ne \
 	    -image $_image(legend) -tags "colormap legend"
+	$c create rectangle $x $y 1 1 \
+	    -fill "" -outline "" -tags "sensor legend"
 	$c create text $x [expr {$h-2}] \
 	    -anchor se \
 	    -fill $itk_option(-plotforeground) -tags "vmin legend" \
 	    -font $font
-	#$c bind colormap <Enter> [itcl::code $this EnterLegend %x %y]
-	$c bind colormap <Leave> [itcl::code $this LeaveLegend]
-	$c bind colormap <Motion> [itcl::code $this MotionLegend %x %y]
+	$c bind sensor <B1-Enter> [itcl::code $this EnterLegend %x %y]
+	$c bind sensor <Leave> [itcl::code $this LeaveLegend]
+	$c bind sensor <B1-Motion> [itcl::code $this MotionLegend %x %y]
     }
     $c delete isoline
     set x2 $x
@@ -2281,11 +2284,16 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
         foreach { vmin vmax } $_limits($_curFldName) break
 	$values seq $vmin $vmax $_settings(numIsolines)
 	set tags "isoline legend"
+        array unset _isolines
 	foreach pos [$pixels range 0 end] value [$values range end 0] {
 	    set y1 [expr int($pos)]
+            for { set off 0 } { $off < 3 } { incr off } {
+                set _isolines([expr $y1 + $off]) $value
+                set _isolines([expr $y1 - $off]) $value
+            }
 	    set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
-	    $c bind $id <Enter> [itcl::code $this EnterIsoline %x %y $value]
-	    $c bind $id <Leave> [itcl::code $this LeaveIsoline]
+	    #$c bind $id <B1-Enter> [itcl::code $this EnterIsoline %x %y $value]
+	    #$c bind $id <Leave> [itcl::code $this LeaveIsoline]
 	}
 	blt::vector destroy $pixels $values
     }
@@ -2309,6 +2317,10 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
     $c coords vmax $x $y
     incr y $lineht
     $c coords colormap $x $y
+    set ix [image width $_image(legend)]
+    set ih [image height $_image(legend)]
+    $c coords sensor [expr $x - $iw] $y $x [expr $y + $ih]
+    $c raise sensor
     $c coords vmin $x [expr {$h - 2}]
 }
 
@@ -2355,7 +2367,11 @@ itcl::body Rappture::VtkHeightmapViewer::EnterLegend { x y } {
 itcl::body Rappture::VtkHeightmapViewer::MotionLegend { x y } {
     Rappture::Tooltip::tooltip cancel
     set c $itk_component(view)
-    SetLegendTip $x $y
+    set cw [winfo width $c]
+    set ch [winfo height $c]
+    if { $x >= 0 && $x < $cw && $y >= 0 && $y < $ch } {
+        SetLegendTip $x $y
+    }
 }
 
 #
@@ -2389,7 +2405,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     }
     # If there's a legend title, increase the offset by the line height.
     if { $title != "" } {
-        incr iy $lineht
+        incr iy -$lineht
     }
 
     # Make a swatch of the selected color
@@ -2403,7 +2419,6 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     set color [eval format "\#%02x%02x%02x" $pixel]
     $_image(swatch) put black  -to 0 0 23 23 
     $_image(swatch) put $color -to 1 1 22 22 
-    .rappturetooltip configure -icon $_image(swatch)
 
     # Compute the value of the point
     if { [info exists _limits($_curFldName)] } {
@@ -2415,7 +2430,12 @@ itcl::body Rappture::VtkHeightmapViewer::SetLegendTip { x y } {
     }
     set tipx [expr $x + 15] 
     set tipy [expr $y - 5]
-    Rappture::Tooltip::text $c "$title $value"
+    .rappturetooltip configure -icon $_image(swatch)
+    if { [info exists _isolines($iy)] } {
+        Rappture::Tooltip::text $c [format "$title (isoline) %g" $_isolines($iy)]
+    } else {
+        Rappture::Tooltip::text $c [format "$title %g" $value]
+    }
     Rappture::Tooltip::tooltip show $c +$tipx,+$tipy    
 }
 
