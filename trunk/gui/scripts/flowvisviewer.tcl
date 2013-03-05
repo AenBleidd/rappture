@@ -216,7 +216,6 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias legend [itcl::code $this ReceiveLegend]
     $_parser alias data [itcl::code $this ReceiveData]
-    $_parser alias viserror [itcl::code $this ReceiveError]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -443,6 +442,7 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         ignore -highlightthickness -background
     }
     bind $itk_component(duration) <Return> [itcl::code $this flow duration]
+    bind $itk_component(duration) <KP_Enter> [itcl::code $this flow duration]
     bind $itk_component(duration) <Tab> [itcl::code $this flow duration]
     Rappture::Tooltip::for $itk_component(duration) \
         "Set duration of flow (format is min:sec)"

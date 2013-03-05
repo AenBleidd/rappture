@@ -70,7 +70,9 @@ itcl::body Rappture::Spinint::constructor {args} {
 
     bind $itk_component(entry) <KeyPress> \
         [itcl::code $this _validate %A]
-    bind $itk_component(entry) <KeyPress-Return> \
+    bind $itk_component(entry) <Return> \
+        "$this value \[$itk_component(entry) get\]"
+    bind $itk_component(entry) <KP_Enter> \
         "$this value \[$itk_component(entry) get\]"
 
     itk_component add controls {

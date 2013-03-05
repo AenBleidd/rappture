@@ -333,9 +333,10 @@ itcl::body Rappture::PeriodicTable::constructor {args} {
 
     # add bindings so the table can react to selections
     bind RappturePeriodicTable-$this <ButtonRelease-1> [itcl::code $this _react]
-    bind RappturePeriodicTable-$this <KeyPress-Return> [itcl::code $this _react]
-    bind RappturePeriodicTable-$this <KeyPress-space> [itcl::code $this _react]
-    bind RappturePeriodicTable-$this <KeyPress-Escape> [itcl::code $this unpost]
+    bind RappturePeriodicTable-$this <Return> [itcl::code $this _react]
+    bind RappturePeriodicTable-$this <KP_Enter> [itcl::code $this _react]
+    bind RappturePeriodicTable-$this <space> [itcl::code $this _react]
+    bind RappturePeriodicTable-$this <Escape> [itcl::code $this unpost]
 
     set btags [bindtags $itk_component(table)]
     set i [lsearch $btags [winfo class $itk_component(table)]]

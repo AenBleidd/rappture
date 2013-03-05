@@ -83,8 +83,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     # The following methods are only used by this class.
     private method BuildAxisTab {}
     private method BuildCameraTab {}
-    private method BuildColormap { name colors }
-    private method ResetColormap { color }
+    private method BuildColormap { name }
     private method BuildContourTab {}
     private method BuildDownloadPopup { widget command } 
     private method Combo { option }
@@ -101,7 +100,7 @@ itcl::class Rappture::VtkHeightmapViewer {
     private method MotionLegend { x y } 
     private method PanCamera {}
     private method RequestLegend {}
-    private method SetCurrentColormap { stylelist }
+    private method SetCurrentColormap { color }
     private method SetLegendTip { x y }
     private method SetObjectStyle { dataobj comp } 
     private method GetHeightmapScale {} 
@@ -120,12 +119,15 @@ itcl::class Rappture::VtkHeightmapViewer {
     # The name of the current colormap used.  The colormap is global to all
     # heightmaps displayed.
     private variable _currentColormap "" ;    
+    private variable _currentNumIsolines "" ;    
+    private variable _currentOpacity "" ;    
 
     private variable _click        ;    # info used for rotate operations
     private variable _limits       ;    # Holds overall limits for all dataobjs 
                                         # using the viewer.
     private variable _view         ;    # view params for 3D view
     private variable _settings
+    private variable _changed
     private variable _initialStyle "";  # First found style in dataobjects.
     private variable _reset 1;          # Indicates if camera needs to be reset
                                         # to starting position.
@@ -143,7 +145,6 @@ itcl::class Rappture::VtkHeightmapViewer {
     private variable _legendWidth 0
     private variable _legendHeight 0
     private variable _resizePending 0
-    private variable _numIsolinesPending 0
     private variable _rotatePending 0
     private variable _legendPending 0
     private variable _fieldNames {} 
@@ -164,6 +165,7 @@ itk::usual VtkHeightmapViewer {
 itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     set _serverType "vtkvis"
 
+    EnableWaitDialog 1000
     # Rebuild event
     $_dispatcher register !rebuild
     $_dispatcher dispatch $this !rebuild "[itcl::code $this Rebuild]; list"
@@ -186,7 +188,6 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     $_parser alias image [itcl::code $this ReceiveImage]
     $_parser alias dataset [itcl::code $this ReceiveDataset]
     $_parser alias legend [itcl::code $this ReceiveLegend]
-    $_parser alias viserror [itcl::code $this ReceiveError]
 
     # Initialize the view to some default parameters.
     array set _view {
@@ -203,7 +204,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
 
-    array set _settings [subst {
+    array set _settings {
 	axisFlymode		"static"
 	axisMinorTicks		1
 	stretchToFit		0
@@ -227,8 +228,12 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         outline			0
         wireframe		0
         saveOpacity		100
-    }]
-
+    }
+    array set _changed {
+        opacity                 0
+        colormap                0
+        numIsolines             0
+    }
     itk_component add view {
         canvas $itk_component(plotarea).view \
             -highlightthickness 0 -borderwidth 0
@@ -985,7 +990,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
         }
         $itk_component(field) value $_curFldLabel
     }
-    InitSettings stretchToFit
+    InitSettings stretchToFit 
 
     if { $_reset } {
 	SendCmd "axis tickpos outside"
@@ -1039,8 +1044,7 @@ itcl::body Rappture::VtkHeightmapViewer::Rebuild {} {
 	PanCamera
 	InitSettings axisXGrid axisYGrid axisZGrid \
 	    axisVisible axisLabels 
-        InitSettings opacity heightmapScale lighting edges wireframe \
-            colormap field outline isHeightmap
+        InitSettings heightmapScale field isHeightmap
         if { [array size _fields] < 2 } {
             blt::table forget $itk_component(field) $itk_component(field_l)
         }
@@ -1330,6 +1334,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    DrawLegend
         }
         "colormap" {
+            set _changed(colormap) 1
             StartBufferingCommands
             set color [$itk_component(colormap) value]
             set _settings(colormap) $color
@@ -1343,8 +1348,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		    SendCmd "heightmap surface 1"
 		    set _settings(colormapVisible) 1
 		}
-		ResetColormap $color
-		SendCmd "heightmap colormap $_currentColormap"
+		SetCurrentColormap $color
 	    }
             #SendCmd "heightmap colormode scalar $_curFldName"
             #SendCmd "dataset scalar $_curFldName"
@@ -1523,11 +1527,14 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
         }
         "numIsolines" {
+            set _changed(numIsolines) 1
             set _settings(numIsolines) [$itk_component(numisolines) value]
+            set _currentNumIsolines $_settings(numIsolines)
             SendCmd "heightmap numcontours $_settings(numIsolines)"
 	    DrawLegend
         }
         "opacity" {
+            set _changed(opacity) 1
 	    if { $_settings(isHeightmap) } {
                 set _settings(saveOpacity) $_settings(opacity)
                 set val $_settings(opacity)
@@ -1653,38 +1660,27 @@ itcl::body Rappture::VtkHeightmapViewer::ResetAxes {} {
 #
 # SetCurrentColormap --
 #
-itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { stylelist } {
-    array set style {
-        -color BCGYR
-        -levels 10
-        -opacity 1.0
-    }
-    array set style $stylelist
-
-    set name "$style(-color):$style(-levels):$style(-opacity)"
+itcl::body Rappture::VtkHeightmapViewer::SetCurrentColormap { name } {
+    # Keep track of the colormaps that we build.
     if { ![info exists _colormaps($name)] } {
-	set stylelist [array get style]
-        BuildColormap $name $stylelist
-        set _colormaps($name) $stylelist
+        BuildColormap $name 
+        set _colormaps($name) 1
     }
     set _currentColormap $name
+    SendCmd "heightmap colormap $_currentColormap"
 }
 
 
 #
 # BuildColormap --
 #
-itcl::body Rappture::VtkHeightmapViewer::BuildColormap { name stylelist } {
-    array set style $stylelist
-    set cmap [ColorsToColormap $style(-color)]
+#       Build the designated colormap on the server.
+#
+itcl::body Rappture::VtkHeightmapViewer::BuildColormap { name } {
+    set cmap [ColorsToColormap $name]
     if { [llength $cmap] == 0 } {
         set cmap "0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0"
     }
-    if { ![info exists _settings(opacity)] } {
-        set _settings(opacity) $style(-opacity)
-    }
-    set max $_settings(opacity)
-
     set wmap "0.0 1.0 1.0 1.0"
     SendCmd "colormap add $name { $cmap } { $wmap }"
 }
@@ -2009,7 +2005,9 @@ itcl::body Rappture::VtkHeightmapViewer::BuildCameraTab {} {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
             -textvariable [itcl::scope _view($tag)]
-        bind $inner.${tag} <KeyPress-Return> \
+        bind $inner.${tag} <Return> \
+            [itcl::code $this camera set ${tag}]
+        bind $inner.${tag} <KP_Enter> \
             [itcl::code $this camera set ${tag}]
         blt::table $inner \
             $row,0 $inner.${tag}label -anchor e -pady 2 \
@@ -2136,35 +2134,60 @@ itcl::body Rappture::VtkHeightmapViewer::BuildDownloadPopup { popup command } {
     return $inner
 }
 
+#
+# SetObjectStyle --
+#
+#       Set the style of the heightmap/contour object.  This gets calls 
+#       for each dataset once as it is loaded.  It can overridden by
+#       the user controls.
+#
+#
 itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     # Parse style string.
     set tag $dataobj-$comp
     array set style {
         -color BCGYR
-        -edges 0
-        -edgecolor black
-        -linewidth 1.0
+        -opacity 100
         -levels 10
-        -visible 1
+    }
+    set stylelist [$dataobj style $comp]
+    if { $stylelist != "" } {
+        array set style $stylelist
+    }
+    # This is too complicated.  We want to set the colormap, number of
+    # isolines and opacity for the object.  They can be the default values,
+    # the style hints set with the dataset, or set by user controls.  As
+    # datasets get loaded, they first use the defaults that are overidden
+    # by the style hints.  If the user changes the global controls, then that
+    # overrides everything else.  I don't know what it means when global
+    # controls are specified as style hints by each dataset.  It complicates
+    # the code to handle aberrant cases.
+
+    if { $_changed(opacity) } {
+        set style(-opacity) $_settings(opacity)
+    }
+    if { $_changed(numIsolines) } {
+        set style(-levels) $_settings(numIsolines)
+    }
+    if { $_changed(colormap) } {
+        set style(-color) $_settings(colormap)
     }
     if { $_currentColormap == "" } {
-	set stylelist [$dataobj style $comp]
-	if { $stylelist != "" } {
-	    array set style $stylelist
-	    set stylelist [array get style]
-	    SetCurrentColormap $stylelist
-	}
-	$itk_component(colormap) value $style(-color)
+        $itk_component(colormap) value $style(-color)
+    }
+    set _currentOpacity $style(-opacity)
+    if { $_currentNumIsolines != $style(-levels) } {
+        set _currentNumIsolines $style(-levels)
+        DrawLegend
     }
     SendCmd "dataset outline $_settings(outline) $tag"
     SendCmd "dataset color [Color2RGB $itk_option(-plotforeground)] $tag"
-    set _settings(numIsolines) $style(-levels)
     set scale [GetHeightmapScale]
-    SendCmd "heightmap add numcontours $_settings(numIsolines) $scale $tag"
+    SendCmd "heightmap add numcontours $_currentNumIsolines $scale $tag"
     set _comp2scale($tag) $_settings(heightmapScale)
     SendCmd "heightmap edges $_settings(edges) $tag"
     SendCmd "heightmap wireframe $_settings(wireframe) $tag"
-    SendCmd "heightmap colormap $_currentColormap $tag"
+    SetCurrentColormap $style(-color) 
     set color [$itk_component(isolinecolor) value]
     SendCmd "heightmap isolinecolor [Color2RGB $color] $tag"
     SendCmd "heightmap lighting $_settings(isHeightmap) $tag"
@@ -2265,12 +2288,12 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 
     # Draw the isolines on the legend.
     if { $color != "none"  && [info exists _limits($_curFldName)] && 
-         $_settings(isolinesVisible) && $_settings(numIsolines) > 0 } {
+         $_settings(isolinesVisible) && $_currentNumIsolines > 0 } {
 	set pixels [blt::vector create \#auto]
 	set values [blt::vector create \#auto]
 	set range [image height $_image(legend)]
 	# Order of pixels is max to min (max is at top of legend).
-	$pixels seq $ih 0 $_settings(numIsolines)
+	$pixels seq $ih 0 $_currentNumIsolines
 
 	set offset [expr 2 + $lineht]
 	# If there's a legend title, increase the offset by the line height.
@@ -2280,7 +2303,7 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
 	$pixels expr {round($pixels + $offset)}
 	# Order of values is min to max.
         foreach { vmin vmax } $_limits($_curFldName) break
-	$values seq $vmin $vmax $_settings(numIsolines)
+	$values seq $vmin $vmax $_currentNumIsolines
 	set tags "isoline legend"
         array unset _isolines
 	foreach pos [$pixels range 0 end] value [$values range end 0] {
@@ -2290,8 +2313,6 @@ itcl::body Rappture::VtkHeightmapViewer::DrawLegend {} {
                 set _isolines([expr $y1 - $off]) $value
             }
 	    set id [$c create line $x1 $y1 $x2 $y1 -fill $color -tags $tags]
-	    #$c bind $id <B1-Enter> [itcl::code $this EnterIsoline %x %y $value]
-	    #$c bind $id <Leave> [itcl::code $this LeaveIsoline]
 	}
 	blt::vector destroy $pixels $values
     }
@@ -2459,16 +2480,6 @@ itcl::body Rappture::VtkHeightmapViewer::GetHeightmapScale {} {
     set sval 0 
 }
 
-itcl::body Rappture::VtkHeightmapViewer::ResetColormap { color } {
-    array set style {
-	-color BCGYR
-	-levels 10
-	-opacity 1.0
-    }
-    if { [info exists _colormap($_currentColormap)] } {
-	array set style $_colormap($_currentColormap)
-    }
-    set style(-color) $color
-    SetCurrentColormap [array get style]
-}
+
+
 
