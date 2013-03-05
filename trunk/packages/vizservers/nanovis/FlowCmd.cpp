@@ -153,10 +153,10 @@ FlowParticles::~FlowParticles()
 void
 FlowParticles::render() 
 {
-    TRACE("rendering particles %s\n", _name);
-    TRACE("rendering particles %s axis=%d\n", _name, _sv.position.axis);
-    TRACE("rendering particles %s position=%g\n", _name, _sv.position.value);
-    TRACE("rendering particles %s position=%g\n", _name, 
+    TRACE("rendering particles %s", _name);
+    TRACE("rendering particles %s axis=%d", _name, _sv.position.axis);
+    TRACE("rendering particles %s position=%g", _name, _sv.position.value);
+    TRACE("rendering particles %s position=%g", _name, 
           FlowCmd::GetRelativePosition(&_sv.position));
 
     _rendererPtr->setPos(FlowCmd::GetRelativePosition(&_sv.position));
@@ -194,7 +194,7 @@ FlowBox::FlowBox(const char *name, Tcl_HashEntry *hPtr)
 void 
 FlowBox::Render(Volume *volPtr)
 {
-    TRACE("Rendering box %s\n", _name);
+    TRACE("Rendering box %s", _name);
 
     glPushAttrib(GL_ENABLE_BIT);
 
@@ -219,11 +219,11 @@ FlowBox::Render(Volume *volPtr)
     max.y = volPtr->yAxis.max();
     max.z = volPtr->zAxis.max();
 
-    TRACE("box is %g,%g %g,%g %g,%g\n", 
+    TRACE("box is %g,%g %g,%g %g,%g", 
           _sv.corner1.x, _sv.corner2.x,
           _sv.corner1.y, _sv.corner2.y,
           _sv.corner1.z, _sv.corner2.z);
-    TRACE("world is %g,%g %g,%g %g,%g\n", 
+    TRACE("world is %g,%g %g,%g %g,%g", 
           min.x, max.x, min.y, max.y, min.z, max.z);
 
     float x0, y0, z0, x1, y1, z1;
@@ -241,7 +241,7 @@ FlowBox::Render(Volume *volPtr)
         z0 = (_sv.corner1.z - min.z) / (max.z - min.z);
         z1 = (_sv.corner2.z - min.z) / (max.z - min.z);
     }
-    TRACE("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
+    TRACE("rendering box %g,%g %g,%g %g,%g", x0, x1, y0, y1, z0, z1);
 
     glColor4d(_sv.color.r, _sv.color.g, _sv.color.b, _sv.color.a);
     glLineWidth(_sv.lineWidth);
@@ -380,7 +380,7 @@ FlowCmd::Render()
             particlesPtr->render();
         }
     }
-    TRACE("in Render before boxes %s\n", _name);
+    TRACE("in Render before boxes %s", _name);
     RenderBoxes();
 }
 
@@ -530,7 +530,7 @@ bool
 FlowCmd::ScaleVectorField()
 {
     if (_volPtr != NULL) {
-        TRACE("from ScaleVectorField volId=%s\n", _volPtr->name());
+        TRACE("from ScaleVectorField volId=%s", _volPtr->name());
         NanoVis::removeVolume(_volPtr);
         _volPtr = NULL;
     }
@@ -612,7 +612,7 @@ FlowCmd::RenderBoxes()
     FlowBoxIterator iter;
     FlowBox *boxPtr;
     for (boxPtr = FirstBox(&iter); boxPtr != NULL; boxPtr = NextBox(&iter)) {
-        TRACE("found box %s\n", boxPtr->name());
+        TRACE("found box %s", boxPtr->name());
         if (boxPtr->visible()) {
             boxPtr->Render(_volPtr);
         }
@@ -666,7 +666,7 @@ FlowCmd::MakeVolume(float *data)
     volPtr->yAxis.setRange(_dataPtr->yMin(), _dataPtr->yMax());
     volPtr->zAxis.setRange(_dataPtr->zMin(), _dataPtr->zMax());
 
-    TRACE("min=%g %g %g max=%g %g %g mag=%g %g\n", 
+    TRACE("min=%g %g %g max=%g %g %g mag=%g %g", 
           NanoVis::xMin, NanoVis::yMin, NanoVis::zMin,
           NanoVis::xMax, NanoVis::yMax, NanoVis::zMax,
           NanoVis::magMin, NanoVis::magMax);
@@ -705,7 +705,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
     
     const char *fileName;
     fileName = Tcl_GetString(objv[3]);
-    TRACE("Flow loading data from file %s\n", fileName);
+    TRACE("Flow loading data from file %s", fileName);
 
     int nComponents;
     if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
@@ -749,7 +749,7 @@ FlowDataFileOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
-        TRACE("header is %.14s\n", buf.bytes());
+        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -776,32 +776,32 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 {
     Rappture::Outcome result;
 
-    TRACE("Flow Data Loading\n");
+    TRACE("Flow Data Loading");
 
     int nBytes;
     if (Tcl_GetIntFromObj(interp, objv[3], &nBytes) != TCL_OK) {
-        ERROR("Bad nBytes \"%s\"\n", Tcl_GetString(objv[3]));
+        ERROR("Bad nBytes \"%s\"", Tcl_GetString(objv[3]));
         return TCL_ERROR;
     }
     if (nBytes <= 0) {
         Tcl_AppendResult(interp, "bad # bytes request \"", 
                          Tcl_GetString(objv[3]), "\" for \"data follows\"", (char *)NULL);
-        ERROR("Bad nbytes %d\n", nBytes);
+        ERROR("Bad nbytes %d", nBytes);
         return TCL_ERROR;
     }
     int nComponents;
     if (Tcl_GetIntFromObj(interp, objv[4], &nComponents) != TCL_OK) {
-        ERROR("Bad # of components \"%s\"\n", Tcl_GetString(objv[4]));
+        ERROR("Bad # of components \"%s\"", Tcl_GetString(objv[4]));
         return TCL_ERROR;
     }
     if (nComponents <= 0) {
         Tcl_AppendResult(interp, "bad # of components request \"", 
                          Tcl_GetString(objv[4]), "\" for \"data follows\"", (char *)NULL);
-        ERROR("Bad # of components %d\n", nComponents);
+        ERROR("Bad # of components %d", nComponents);
         return TCL_ERROR;
     }
     Rappture::Buffer buf;
-    TRACE("Flow Data Loading %d %d\n", nBytes, nComponents);
+    TRACE("Flow Data Loading %d %d", nBytes, nComponents);
     if (GetDataStream(interp, buf, nBytes) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -832,7 +832,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         dataPtr->convert(u2dPtr);
         delete u2dPtr;
     } else {
-        TRACE("header is %.14s\n", buf.bytes());
+        TRACE("header is %.14s", buf.bytes());
         if (!dataPtr->importDx(result, nComponents, length, bytes)) {
             Tcl_AppendResult(interp, result.remark(), (char *)NULL);
             delete dataPtr;
@@ -844,17 +844,17 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         Tcl_AppendResult(interp, "no data found in stream", (char *)NULL);
         return TCL_ERROR;
     }
-    TRACE("nx = %d ny = %d nz = %d\n", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
-    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
-    TRACE("lx = %lg ly = %lg lz = %lg\n",
+    TRACE("nx = %d ny = %d nz = %d", dataPtr->xNum(), dataPtr->yNum(), dataPtr->zNum());
+    TRACE("x0 = %lg y0 = %lg z0 = %lg", dataPtr->xMin(), dataPtr->yMin(), dataPtr->zMin());
+    TRACE("lx = %lg ly = %lg lz = %lg",
           dataPtr->xMax() - dataPtr->xMin(),
           dataPtr->yMax() - dataPtr->yMin(),
           dataPtr->zMax() - dataPtr->zMin());
-    TRACE("dx = %lg dy = %lg dz = %lg\n",
+    TRACE("dx = %lg dy = %lg dz = %lg",
           dataPtr->xNum() > 1 ? (dataPtr->xMax() - dataPtr->xMin())/(dataPtr->xNum()-1) : 0,
           dataPtr->yNum() > 1 ? (dataPtr->yMax() - dataPtr->yMin())/(dataPtr->yNum()-1) : 0,
           dataPtr->zNum() > 1 ? (dataPtr->zMax() - dataPtr->zMin())/(dataPtr->zNum()-1) : 0);
-    TRACE("magMin = %lg magMax = %lg\n",
+    TRACE("magMin = %lg magMax = %lg",
           dataPtr->magMin(), dataPtr->magMax());
     flowPtr->data(dataPtr);
     {
@@ -862,7 +862,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         ssize_t nWritten;
         size_t length;
 
-        length = sprintf(info, "nv>data tag %s min %g max %g\n",
+        length = sprintf(info, "nv>data tag %s min %g max %g",
                          flowPtr->name(), dataPtr->magMin(), dataPtr->magMax());
         nWritten  = write(1, info, length);
         assert(nWritten == (ssize_t)strlen(info));
@@ -1012,7 +1012,7 @@ bool
 NanoVis::MapFlows()
 {
     flags &= ~MAP_FLOWS;
-    TRACE("MapFlows\n");
+    TRACE("MapFlows");
 
     /* 
      * Step 1. Get the overall min and max magnitudes of all the 
@@ -1056,7 +1056,7 @@ NanoVis::MapFlows()
             zMax = dataPtr->zMax();
         }
     }
-    TRACE("MapFlows magMin=%g magMax=%g\n", NanoVis::magMin, NanoVis::magMax);
+    TRACE("MapFlows magMin=%g magMax=%g", NanoVis::magMin, NanoVis::magMax);
 
     /* 
      * Step 2. Generate the vector field from each data set. 
@@ -1918,7 +1918,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
     oldWidth = NanoVis::winWidth;
     oldHeight = NanoVis::winHeight;
 
-    TRACE("FLOW started\n");
+    TRACE("FLOW started");
 
     Rappture::Outcome context;
 
@@ -1967,7 +1967,7 @@ FlowVideoOp(ClientData clientData, Tcl_Interp *interp, int objc,
         movie.append(context, NanoVis::screenBuffer, pad);
     }
     movie.done(context);
-    TRACE("FLOW end\n");
+    TRACE("FLOW end");
     if (!canceled) {
         Rappture::Buffer data;
 

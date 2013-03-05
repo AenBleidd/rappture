@@ -52,17 +52,17 @@ Volume::Volume(float x, float y, float z,
     _volumeType(CUBIC),
     _isosurface(0)
 {
-    TRACE("Enter Volume(): %dx%dx%d\n", _width, _height, _depth);
+    TRACE("Enter: %dx%dx%d", _width, _height, _depth);
 
     _tex = new Texture3D(_width, _height, _depth, GL_FLOAT, GL_LINEAR, n);
     int fcount = _width * _height * _depth * _numComponents;
     _data = new float[fcount];
     if (data != NULL) {
-        TRACE("data is copied\n");
+        TRACE("data is copied");
         memcpy(_data, data, fcount * sizeof(float));
         _tex->initialize(_data);
     } else {
-        TRACE("data is null\n");
+        TRACE("data is null");
         memset(_data, 0, sizeof(_width * _height * _depth * _numComponents * 
 				sizeof(float)));
         _tex->initialize(_data);
@@ -79,12 +79,12 @@ Volume::Volume(float x, float y, float z,
     addCutplane(2, 0.5f);
     addCutplane(3, 0.5f);
 
-    TRACE("Leave Volume()\n");
+    TRACE("Leave");
 }
 
 Volume::~Volume()
 {
-    TRACE("In ~Volume()");
+    TRACE("Enter");
 
     delete [] _data;
     delete _tex;

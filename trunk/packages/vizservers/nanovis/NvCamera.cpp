@@ -82,7 +82,7 @@ NvCamera::setClippingRange(const Vector3& bboxMin, const Vector3& bboxMax)
     _near = -zMax;
     _far = -zMin;
 
-    TRACE("Resetting camera clipping range to: near: %g, far: %g\n", _near, _far);
+    TRACE("Resetting camera clipping range to: near: %g, far: %g", _near, _far);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -95,7 +95,7 @@ NvCamera::setClippingRange(const Vector3& bboxMin, const Vector3& bboxMax)
 void 
 NvCamera::initialize()
 {
-    TRACE("camera: %d, %d\n", _width, _height);
+    TRACE("camera: %d, %d", _width, _height);
     glViewport(_startX, _startY, _width, _height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -117,7 +117,7 @@ void NvCamera::rotate(double *quat)
     rot.set(q);
     _cameraMatrix.makeRotation(rot);
     _cameraMatrix.transpose();
-    TRACE("Set rotation to quat: %g %g %g %g\n",
+    TRACE("Set rotation to quat: %g %g %g %g",
           quat[0], quat[1], quat[2], quat[3]);
 }
 
@@ -134,6 +134,6 @@ void NvCamera::rotate(float angleX, float angleY, float angleZ)
     _cameraMatrix.multiply(mat);
     //_cameraMatrix.transpose();
 
-    TRACE("Set rotation to angles: %g %g %g\n",
+    TRACE("Set rotation to angles: %g %g %g",
           angleX, angleY, angleZ);
 }

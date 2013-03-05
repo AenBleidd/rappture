@@ -63,7 +63,7 @@ ParticleSystem* ParticleSystemFactory::create(const std::string& fileName)
         cnt = fread(buff, 1, BUFSIZE, fp);
         stat = XML_ParseBuffer(parser, (int) cnt, 0);
         if (!stat) {
-            //TRACE("Parse error at line %d\n", XML_GetCurrentLineNumber(parser));
+            //TRACE("Parse error at line %d", XML_GetCurrentLineNumber(parser));
             break;
         }
     }
@@ -150,7 +150,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
             if (index == -1) {
                 index = path.rfind('\\');
                 if (index == -1) {
-                    TRACE("file not found\n");
+                    TRACE("file not found");
                 }
             }
 

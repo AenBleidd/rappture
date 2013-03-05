@@ -62,7 +62,7 @@ Volume *
 load_volume_stream(Rappture::Outcome& result, const char *tag,
                    std::iostream& fin)
 {
-    TRACE("load_volume_stream %s\n", tag);
+    TRACE("load_volume_stream %s", tag);
 
     Rappture::MeshTri2D xymesh;
     int dummy, nx, ny, nz, nxy, npts;
@@ -212,7 +212,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
         }
     }
 
-    TRACE("found nx=%d ny=%d nxy=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f\n", 
+    TRACE("found nx=%d ny=%d nxy=%d nz=%d\ndx=%f dy=%f dz=%f\nx0=%f y0=%f z0=%f", 
           nx, ny, nxy, nz, dx, dy, dz, x0, y0, z0);
 
     lx = (nx - 1) * dx;
@@ -256,7 +256,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
             for (int p = 0; p < n; p++) {
 #ifdef notdef
                 if (isnan(dval[p])) {
-                    TRACE("Found NAN in input at %d,%d,%d\n", ix, iy, iz);
+                    TRACE("Found NAN in input at %d,%d,%d", ix, iy, iz);
                 }
 #endif
 #ifdef DOWNSAMPLE_DATA
@@ -487,11 +487,11 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
                               dx, dy, dz);
     }
 
-    TRACE("nx = %i ny = %i nz = %i\n", nx, ny, nz);
-    TRACE("x0 = %lg y0 = %lg z0 = %lg\n", x0, y0, z0);
-    TRACE("lx = %lg ly = %lg lz = %lg\n", lx, ly, lz);
-    TRACE("dx = %lg dy = %lg dz = %lg\n", dx, dy, dz);
-    TRACE("dataMin = %lg dataMax = %lg nzero_min = %lg\n",
+    TRACE("nx = %i ny = %i nz = %i", nx, ny, nz);
+    TRACE("x0 = %lg y0 = %lg z0 = %lg", x0, y0, z0);
+    TRACE("lx = %lg ly = %lg lz = %lg", lx, ly, lz);
+    TRACE("dx = %lg dy = %lg dz = %lg", dx, dy, dz);
+    TRACE("dataMin = %lg dataMax = %lg nzero_min = %lg",
           vmin, vmax, nzero_min);
 
     volPtr = NanoVis::loadVolume(tag, nx, ny, nz, 4, data,
@@ -520,7 +520,7 @@ load_volume_stream(Rappture::Outcome& result, const char *tag,
     float dz0 = -0.5*lz/lx;
     if (volPtr) {
         volPtr->location(Vector3(dx0, dy0, dz0));
-        TRACE("Set volume location to %g %g %g\n", dx0, dy0, dz0);
+        TRACE("Set volume location to %g %g %g", dx0, dy0, dz0);
     }
     return volPtr;
 }

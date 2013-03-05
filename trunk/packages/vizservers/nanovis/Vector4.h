@@ -44,7 +44,7 @@ public:
 
     void print() const
     {
-        TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)\n", x, y, z, w);
+        TRACE("Vector4: (%.3f, %.3f, %.3f, %.3f)", x, y, z, w);
     }
 
     bool operator==(const Vector4& op2) const
@@ -139,7 +139,7 @@ planeLineIntersection(const Vector4& pt1, const Vector4& pt2,
             return true;
         }
         // No solution
-        TRACE("No intersection between line and plane\n");
+        TRACE("No intersection between line and plane");
         return false;
     }
 

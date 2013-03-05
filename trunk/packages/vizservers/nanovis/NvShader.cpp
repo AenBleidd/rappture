@@ -39,9 +39,9 @@ bool NvShader::printErrorInfo()
     CGerror lastError = cgGetError();
 
     if (lastError) {
-        TRACE("Cg Error: %s\n", cgGetErrorString(lastError));
+        TRACE("Cg Error: %s", cgGetErrorString(lastError));
         if (getCgContext())
-            TRACE("%s\n", cgGetLastListing(getCgContext()));
+            TRACE("%s", cgGetLastListing(getCgContext()));
         return false;
     }
     return true;
@@ -53,18 +53,18 @@ NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
 {
     std::string path = R2FilePath::getInstance()->getPath(fileName);
     if (path.empty()) {
-        ERROR("can't find program \"%s\"\n", fileName);
+        ERROR("can't find program \"%s\"", fileName);
     }
-    TRACE("cg program compiling: %s\n", path.c_str());
+    TRACE("cg program compiling: %s", path.c_str());
     CGprogram program;
     program = cgCreateProgramFromFile(context, CG_SOURCE, path.c_str(), profile, 
                                       entryPoint, NULL);
     cgGLLoadProgram(program);
     CGerror LastError = cgGetError();
     if (LastError) {
-        ERROR("Error message: %s\n", cgGetLastListing(context));
+        ERROR("Error message: %s", cgGetLastListing(context));
     }
-    TRACE("successfully compiled program: %s\n", path.c_str());
+    TRACE("successfully compiled program: %s", path.c_str());
     return program;
 }
 
@@ -109,18 +109,18 @@ void NvShader::loadFragmentProgram(const char *fileName, const char *entryPoint)
 void NvShader::resetPrograms()
 {
     if (_cgVP != NULL) {
-        TRACE("Destroying vertex program: %s\n", _vpFile.c_str());
+        TRACE("Destroying vertex program: %s", _vpFile.c_str());
         cgDestroyProgram(_cgVP);
     }
 
     if (_cgFP != NULL) {
-        TRACE("Destroying fragment program: %s\n", _fpFile.c_str());
+        TRACE("Destroying fragment program: %s", _fpFile.c_str());
         cgDestroyProgram(_cgFP);
     }
 }
 
 void NvShader::setErrorCallback(NvCgCallbackFunction callback)
 {
-    TRACE("NvShader setting error callback to: %p\n", callback);
+    TRACE("NvShader setting error callback to: %p", callback);
     cgSetErrorCallback(callback);
 }

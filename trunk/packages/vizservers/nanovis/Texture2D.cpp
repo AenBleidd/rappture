@@ -134,7 +134,7 @@ void Texture2D::checkMaxSize()
     GLint max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
         
-    TRACE("max texture size: %d\n", max);
+    TRACE("max texture size: %d", max);
 }
 
 void Texture2D::checkMaxUnit()
@@ -142,5 +142,5 @@ void Texture2D::checkMaxUnit()
     int max = 0;
     glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &max);
 
-    TRACE("max texture units: %d.\n", max);
+    TRACE("max texture units: %d", max);
 }

@@ -128,7 +128,7 @@ PCASplit::createClusterBlock(ClusterListNode *clusterList, int count, int level)
     _clusterHeader->numOfClusters[level - 1] = count;
     _clusterHeader->startPointerCluster[level - 1] = clusterBlock;
 
-    TRACE("Cluster created %d [in level %d]:total %d\n", count, level, cc);
+    TRACE("Cluster created %d [in level %d]:total %d", count, level, cc);
 
     int i = 0;
     ClusterListNode *clusterNode = clusterList;
@@ -141,7 +141,7 @@ PCASplit::createClusterBlock(ClusterListNode *clusterList, int count, int level)
         ++i;
     }
     if (count != i) {
-        ERROR("Problem walking clusterList: count: %d, i: %d\n", count, i);
+        ERROR("Problem walking clusterList: count: %d, i: %d", count, i);
     }
     return clusterBlock;
 }
@@ -269,7 +269,7 @@ PCASplit::split(Point *data, int count, float limit)
     }
 
     if (left == 0 || right == count - 1) {
-        TRACE("error\n");
+        TRACE("error");
         exit(1);
     } else {
         split(data, left, limit);

@@ -56,7 +56,7 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
         _bytesPerComponent = sizeof(float);
         break;
     default:
-        ERROR("unsupported RenderVertexArray type\n");
+        ERROR("unsupported RenderVertexArray type");
         return;
     }
 
@@ -80,7 +80,7 @@ RenderVertexArray::RenderVertexArray(int nverts, GLint size, GLenum type) :
         _format = GL_RGBA;
         break;
     default:
-        ERROR("unsupported RenderVertexArray size\n");
+        ERROR("unsupported RenderVertexArray size");
         return;
     }
 }

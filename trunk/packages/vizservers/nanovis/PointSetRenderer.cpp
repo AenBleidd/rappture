@@ -18,7 +18,7 @@ PointSetRenderer::PointSetRenderer()
     _shader = new PointShader();
     std::string path = R2FilePath::getInstance()->getPath("particle2.bmp");
     if (path.empty()) {
-        ERROR("Particle image not found\n");
+        ERROR("Particle image not found");
         return;
     }
 
@@ -38,7 +38,7 @@ PointSetRenderer::PointSetRenderer()
                                       GL_UNSIGNED_BYTE, GL_LINEAR,    
                                       4, image->getImageBuffer());
     } else {
-        ERROR("Failed to load particle image\n");
+        ERROR("Failed to load particle image");
     }
 
     delete loader;

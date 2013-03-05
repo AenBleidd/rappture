@@ -40,7 +40,7 @@ public:
 
     void print() const
     {
-        TRACE("(x:%f, y:%f, z:%f)\n", x, y, z);
+        TRACE("(x:%f, y:%f, z:%f)", x, y, z);
     }
 
     bool operator==(const Vector3& op2) const

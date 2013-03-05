@@ -137,13 +137,14 @@ NvLIC::~NvLIC()
 void 
 NvLIC::makePatterns() 
 { 
-    TRACE("begin makePatterns\n");
+    TRACE("Enter");
+
     if (_disListID > 0) {
         glDeleteLists(_disListID, _Npat);
     }
     _disListID = glGenLists(_Npat);
 
-    TRACE("DisplayList : %d\n", _disListID);
+    TRACE("DisplayList : %d", _disListID);
 
     int lut[256];
     int phase[NPN][NPN];
@@ -177,7 +178,8 @@ NvLIC::makePatterns()
     glBindTexture(GL_TEXTURE_2D, _patternTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, NPN, NPN, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, pat);
-    TRACE("finish makePatterns\n");
+
+    TRACE("Leave");
 }
 
 void NvLIC::makeMagnitudes()
@@ -488,7 +490,7 @@ void
 NvLIC::setVectorField(unsigned int texID, const Vector3& origin, 
                       float scaleX, float scaleY, float scaleZ, float max)
 {
-    TRACE("NvLIC: vector field is assigned [%d]\n", texID);
+    TRACE("NvLIC: vector field is assigned [%d]", texID);
     _vectorFieldId = texID;
     _origin = origin;
     _scale = Vector3(scaleX, scaleY, scaleZ);
@@ -535,7 +537,7 @@ NvLIC::getVelocity(float x, float y, float *px, float *py)
    *px = x + vx;
    *py = y + vy;
 
-    //TRACE("vel %f %f -> %f %f, (dmax = %f)\n", x, y, *px, *py, dmax);
+    //TRACE("vel %f %f -> %f %f, (dmax = %f)", x, y, *px, *py, dmax);
 }
 
 void 

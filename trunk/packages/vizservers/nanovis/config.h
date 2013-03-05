@@ -37,11 +37,6 @@
 #define USE_HALF_FLOAT
 
 /*
- * Enable render server
- */
-#define XINETD
-
-/*
  * Enable event logging
  */
 //#define EVENTLOG

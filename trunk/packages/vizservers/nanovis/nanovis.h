@@ -71,12 +71,11 @@ public:
 	MAP_HEIGHTMAPS = (1 << 3),
     };
 
-    static void xinetdListen();
+    static void processCommands();
     static void init(const char *path);
     static void initGL();
     static void initOffscreenBuffer();
     static void resizeOffscreenBuffer(int w, int h);
-    static void displayOffscreenBuffer();
     static void display();
     static void draw3dAxis();
     static void idle();
@@ -117,16 +116,6 @@ public:
                               double nonZeroMin);
 
     static void removeVolume(Volume *volPtr);
-
-#ifndef XINETD
-    static void keyboard(unsigned char key, int x, int y);
-    static void mouse(int button, int state, int x, int y);
-    static void motion(int x, int y);
-    static void updateRot(int delta_x, int delta_y);
-    static void updateTrans(int delta_x, int delta_y, int delta_z);
-    static void resize(int w, int h);
-    static void render();
-#endif
 
     static void readScreen()
     {

@@ -78,26 +78,26 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
                 }
                 delete image;
             } else {
-                ERROR("Failed to load arrows image\n");
+                ERROR("Failed to load arrows image");
             }
             delete loader;
         } else {
-            ERROR("Couldn't find loader for arrows image\n");
+            ERROR("Couldn't find loader for arrows image");
         }
     } else {
-        ERROR("Couldn't find arrows image\n");
+        ERROR("Couldn't find arrows image");
     }
 
     GLfloat minMax[2];
     glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, minMax);
-    TRACE("Aliased point size range: %g %g\n", minMax[0], minMax[1]);
+    TRACE("Aliased point size range: %g %g", minMax[0], minMax[1]);
     _maxPointSize = minMax[1];
     glGetFloatv(GL_SMOOTH_POINT_SIZE_RANGE, minMax);
-    TRACE("Smooth point size range: %g %g\n", minMax[0], minMax[1]);
+    TRACE("Smooth point size range: %g %g", minMax[0], minMax[1]);
     _maxPointSize = minMax[1] > _maxPointSize ? minMax[1] : _maxPointSize;
-    TRACE("Max point size: %g\n", _maxPointSize);
+    TRACE("Max point size: %g", _maxPointSize);
 
-    TRACE("Leaving VelocityArrowsSlice constructor\n");
+    TRACE("Leaving VelocityArrowsSlice constructor");
 }
 
 VelocityArrowsSlice::~VelocityArrowsSlice()
@@ -300,8 +300,8 @@ void VelocityArrowsSlice::render()
         _dirty = false;
     }
 
-    TRACE("_vf: %g %g %g\n", _vfXscale,_vfYscale, _vfZscale);
-    TRACE("_maxVelocityScale: %g %g %g\n",
+    TRACE("_vf: %g %g %g", _vfXscale,_vfYscale, _vfZscale);
+    TRACE("_maxVelocityScale: %g %g %g",
           _maxVelocityScale.x, _maxVelocityScale.y, _maxVelocityScale.z);
 
     glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -353,7 +353,7 @@ void VelocityArrowsSlice::render()
                 // Length: [0,1]
                 double length = vel.length();
                 if (length < 0.0 || length > 1.0) {
-                    TRACE("***vec: (%g, %g, %g) length: %g***\n", vel.x, vel.y, vel.z, length);
+                    TRACE("***vec: (%g, %g, %g) length: %g***", vel.x, vel.y, vel.z, length);
                     continue;
                 }
                 if (length > 1.0e-6) {
@@ -518,7 +518,7 @@ void VelocityArrowsSlice::computeSamplingTicks()
     _maxVelocityScale.y = (1.0f / _tickCountY) * 0.8f;
     _maxVelocityScale.z = (1.0f / _tickCountZ) * 0.8f;
 
-    TRACE("Tick counts: %d %d %d\n", _tickCountX, _tickCountY, _tickCountZ);
+    TRACE("Tick counts: %d %d %d", _tickCountX, _tickCountY, _tickCountZ);
 
     int pointCount = _tickCountX * _tickCountY * _tickCountZ;
     if (_pointCount != pointCount) {

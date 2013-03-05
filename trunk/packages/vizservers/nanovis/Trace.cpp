@@ -1,4 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (C) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: George A. Howlett <gah@purdue.edu>
+ */
 #include <stdio.h>
 #include <stdarg.h>
 #include <syslog.h>
@@ -8,21 +13,12 @@
 #include "nanovis.h"
 #include "Trace.h"
 
-static const char *syslogLevels[] = {
-    "emergency",			/* System is unusable */
-    "alert",				/* Action must be taken immediately */
-    "critical",				/* Critical conditions */
-    "error",				/* Error conditions */
-    "warning",				/* Warning conditions */
-    "notice",				/* Normal but significant condition */
-    "info",				/* Informational */
-    "debug",				/* Debug-level messages */
-};
+#define MSG_LEN	2047
 
 void 
-LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
+LogMessage(int priority, const char *funcname,
+           const char *path, int lineNum, const char* fmt, ...)
 {
-#define MSG_LEN	(2047)
     char message[MSG_LEN+1];
     const char *s;
     int length;
@@ -35,11 +31,15 @@ LogMessage(int priority, const char *path, int lineNum, const char* fmt, ...)
     } else {
 	s++;
     }
-    length = snprintf(message, MSG_LEN, "%s: %s:%d ", 
-                      syslogLevels[priority], s, lineNum);
+    if (priority & LOG_DEBUG) {
+        length = snprintf(message, MSG_LEN, "%s:%d(%s): ", s, lineNum, funcname);
+    } else {
+        length = snprintf(message, MSG_LEN, "%s:%d: ", s, lineNum);
+    }
     length += vsnprintf(message + length, MSG_LEN - length, fmt, lst);
     message[MSG_LEN] = '\0';
-    syslog(priority, message, length);
+
+    syslog(priority, "%s", message);
 }
 
 bool
@@ -71,11 +71,11 @@ PrintFBOStatus(GLenum status, const char *prefix)
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
 	mesg = "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT";		break;
     default:
-	TRACE("FB Status: %s: UNKNOWN framebuffer status %u\n", 
+	TRACE("FB Status: %s: UNKNOWN framebuffer status %u", 
 	       prefix, (unsigned int)status);
 	return;
     }
-    TRACE("FB Status: %s: %s\n", prefix, mesg);
+    TRACE("FB Status: %s: %s", prefix, mesg);
 }
 
 bool
@@ -101,10 +101,10 @@ CheckGL(const char *prefix)
     case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
 	mesg = "GL_INVALID_FRAMEBUFFER_OPERATION_EXT";	break;
     default:
-	TRACE("GL Status: %s: Unknown status %d\n", prefix, status);
+	TRACE("GL Status: %s: Unknown status %d", prefix, status);
 	return false;
     } 
-    TRACE("GL Status: %s: %s\n", prefix, mesg);
+    TRACE("GL Status: %s: %s", prefix, mesg);
     return false;
 }
 

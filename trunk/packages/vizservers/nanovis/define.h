@@ -24,35 +24,35 @@ do {                                                            \
     status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);   \
     switch(status) {                                            \
     case GL_FRAMEBUFFER_COMPLETE_EXT:                           \
-        TRACE("framebuffer complete!\n");                       \
+        TRACE("framebuffer complete!");                         \
         break;                                                  \
     case GL_FRAMEBUFFER_UNSUPPORTED_EXT:                        \
-        TRACE("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT\n");  \
+        TRACE("framebuffer GL_FRAMEBUFFER_UNSUPPORTED_EXT");    \
         assert(0);                                              \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:              \
-        TRACE("framebuffer INCOMPLETE_ATTACHMENT\n");           \
+        TRACE("framebuffer INCOMPLETE_ATTACHMENT");             \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:      \
-        TRACE("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT\n");  \
+        TRACE("framebuffer FRAMEBUFFER_MISSING_ATTACHMENT");    \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:              \
-        TRACE("framebuffer FRAMEBUFFER_DIMENSIONS\n");          \
+        TRACE("framebuffer FRAMEBUFFER_DIMENSIONS");            \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:                 \
-        TRACE("framebuffer INCOMPLETE_FORMATS\n");              \
+        TRACE("framebuffer INCOMPLETE_FORMATS");                \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:             \
-        TRACE("framebuffer INCOMPLETE_DRAW_BUFFER\n");          \
+        TRACE("framebuffer INCOMPLETE_DRAW_BUFFER");            \
         break;                                                  \
     case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:             \
-        TRACE("framebuffer INCOMPLETE_READ_BUFFER\n");          \
+        TRACE("framebuffer INCOMPLETE_READ_BUFFER");            \
         break;                                                  \
     case GL_FRAMEBUFFER_BINDING_EXT:                            \
-        TRACE("framebuffer BINDING_EXT\n");                     \
+        TRACE("framebuffer BINDING_EXT");                       \
         break;                                                  \
     default:                                                    \
-        ERROR("unknown framebuffer error %d\n", status);        \
+        ERROR("unknown framebuffer error %d", status);          \
         /* programming error; will fail on all hardware */      \
         assert(0);                                              \
     }                                                           \
