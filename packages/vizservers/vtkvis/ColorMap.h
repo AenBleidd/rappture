@@ -94,6 +94,8 @@ public:
 
     void setNumberOfTableEntries(int numEntries);
 
+    int getNumberOfTableEntries();
+
     void addControlPoint(ControlPoint& cp);
 
     void addOpacityControlPoint(OpacityControlPoint& cp);

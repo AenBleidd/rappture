@@ -174,6 +174,18 @@ void ColorMap::setNumberOfTableEntries(int numEntries)
 }
 
 /**
+ * \brief Get the number of discrete color table entries
+ *
+ * The number of table entries refers to the underlying 
+ * vtkLookupTable and is independent of the number of 
+ * control points in the transfer function.
+ */
+int ColorMap::getNumberOfTableEntries()
+{
+    return _numTableEntries;
+}
+
+/**
  * \brief Build the lookup table from the control points in the transfer 
  * function
  */

@@ -1886,6 +1886,8 @@ bool Renderer::renderColorMap(const ColorMapId& id,
 
     if (_scalarBarActor == NULL) {
         _scalarBarActor = vtkSmartPointer<vtkScalarBarActor>::New();
+        _scalarBarActor->DrawFrameOff();
+        _scalarBarActor->DrawBackgroundOff();
         _legendRenderer->AddViewProp(_scalarBarActor);
     }
 
@@ -1906,11 +1908,11 @@ bool Renderer::renderColorMap(const ColorMapId& id,
         _scalarBarActor->SetPosition(0, 0);
         if (width > height) {
             // horizontal
-            _scalarBarActor->SetHeight(2.5); // VTK: floor(actorHeight * .4)
-            _scalarBarActor->SetWidth(1);
+            _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.4); // VTK: floor(actorHeight * .4)
+            _scalarBarActor->SetWidth(1); // VTK: actorWidth
         } else {
             // vertical
-            _scalarBarActor->SetHeight((double)height/(.86*height)); // VTK: floor(actorHeight * .86)
+            _scalarBarActor->SetHeight((((double)height+1.5)/((double)height))/0.86); // VTK: floor(actorHeight * .86)
             _scalarBarActor->SetWidth(((double)(width+5))/((double)width)); // VTK: actorWidth - 4 pixels
         }
     } else {
@@ -2053,6 +2055,7 @@ bool Renderer::renderColorMap(const ColorMapId& id,
     }
 
     _scalarBarActor->SetLookupTable(lut);
+    _scalarBarActor->SetMaximumNumberOfColors((width > height ? width : height));
 
     if (drawTitle) {
         _scalarBarActor->SetTitle(title.c_str());
