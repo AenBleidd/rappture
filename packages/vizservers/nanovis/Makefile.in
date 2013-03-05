@@ -107,7 +107,6 @@ OBJS		= \
 		Command.o \
 		ContourLineFilter.o \
 		ConvexPolygon.o \
-		Event.o \
 		FlowCmd.o \
 		GradientFilter.o \
 		Grid.o \
@@ -116,7 +115,6 @@ OBJS		= \
 		NvCamera.o \
 		NvColorTableRenderer.o \
 		NvColorTableShader.o \
-		NvEventLog.o \
 		NvLIC.o \
 		NvParticleAdvectionShader.o \
 		NvParticleRenderer.o \
@@ -274,7 +272,6 @@ Color.o: Color.cpp Color.h
 Command.o: Command.cpp nanovis.h $(AUXSRC) CmdProc.h Trace.h PlaneRenderer.h PointSet.h dxReader.h Grid.h HeightMap.h NvCamera.h NvZincBlendeReconstructor.h Unirect.h Volume.h VolumeRenderer.h
 ContourLineFilter.o: ContourLineFilter.cpp ContourLineFilter.h
 ConvexPolygon.o: ConvexPolygon.cpp ConvexPolygon.h Vector4.h Mat4x4.h Plane.h
-Event.o: Event.cpp Event.h
 FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h CmdProc.h NvLIC.h Unirect.h Volume.h VelocityArrowsSlice.h 
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
@@ -283,7 +280,6 @@ Mat4x4.o: Mat4x4.cpp Mat4x4.h
 NvCamera.o: NvCamera.cpp NvCamera.h config.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
-NvEventLog.o: NvEventLog.cpp NvEventLog.h
 NvFlowVisRenderer.o: NvFlowVisRenderer.cpp NvFlowVisRenderer.h
 NvLIC.o: NvLIC.cpp NvLIC.h
 NvParticleAdvectionShader.o: NvParticleAdvectionShader.cpp NvParticleAdvectionShader.h NvShader.h
@@ -323,4 +319,4 @@ VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
-nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvEventLog.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h

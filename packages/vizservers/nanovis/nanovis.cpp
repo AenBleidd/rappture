@@ -32,6 +32,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <cmath>
 
 #include <iostream>
@@ -58,7 +59,6 @@
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
-#include "NvEventLog.h"
 #include "RenderContext.h"
 #include "NvShader.h"
 #include "NvColorTableRenderer.h"
@@ -467,23 +467,58 @@ serverStats(int code)
 #endif
 
 static void
-doExit(int code)
+initService()
 {
-    TRACE("in doExit: %d", code);
+    TRACE("Enter");
+
+    const char* user = getenv("USER");
+    char* logName = NULL;
+    int logNameLen = 0;
+
+    if (user == NULL) {
+        logNameLen = 20+1;
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log.txt", logNameLen);
+    } else {
+        logNameLen = 17+1+strlen(user);
+        logName = (char *)calloc(logNameLen, sizeof(char));
+        strncpy(logName, "/tmp/nanovis_log_", logNameLen);
+        strncat(logName, user, strlen(user));
+    }
+
+    //open log and map stderr to log file
+    NanoVis::logfile = fopen(logName, "w");
+    dup2(fileno(NanoVis::logfile), 2);
+    /* dup2(2,1); */
+
+    // clean up malloc'd memory
+    if (logName != NULL) {
+        free(logName);
+    }
+
+    TRACE("Leave");
+}
+
+static void
+exitService(int code)
+{
+    TRACE("Enter: %d", code);
+
     NanoVis::removeAllData();
 
     NvShader::exitCg();
 
-#ifdef EVENTLOG
-    NvExitEventLog();
-#endif
-
-    NvExitService();
+    //close log file
+    if (NanoVis::logfile != NULL) {
+        fclose(NanoVis::logfile);
+	NanoVis::logfile = NULL;
+    }
 
 #ifdef KEEPSTATS
     serverStats(code);
 #endif
     closelog();
+
     exit(code);
 }
 
@@ -704,7 +739,7 @@ NanoVis::initOffscreenBuffer()
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "finalFbo");
-        doExit(3);
+        exitService(3);
     }
 
     TRACE("Leave");
@@ -777,7 +812,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     GLenum status;
     if (!CheckFBO(&status)) {
         PrintFBOStatus(status, "finalFbo");
-        doExit(3);
+        exitService(3);
     }
 
     TRACE("change camera");
@@ -793,7 +828,7 @@ void cgErrorCallback(void)
 {
     if (!NvShader::printErrorInfo()) {
         TRACE("Cg error, exiting...");
-        doExit(-1);
+        exitService(-1);
     }
 }
 
@@ -808,12 +843,12 @@ void NanoVis::init(const char* path)
 
     if (path == NULL) {
         ERROR("No path defined for shaders or resources");
-        doExit(1);
+        exitService(1);
     }
     GLenum err = glewInit();
     if (GLEW_OK != err) {
         ERROR("Can't init GLEW: %s", glewGetErrorString(err));
-        doExit(1);
+        exitService(1);
     }
     TRACE("Using GLEW %s", glewGetString(GLEW_VERSION));
 
@@ -821,14 +856,14 @@ void NanoVis::init(const char* path)
     // GLSL 1.2, and occlusion queries.
     if (!GLEW_VERSION_2_1) {
         ERROR("OpenGL version 2.1 or greater is required");
-        doExit(1);
+        exitService(1);
     }
 
     // NVIDIA driver may report OpenGL 2.1, but not support PBOs in 
     // indirect GLX contexts
     if (!GLEW_ARB_pixel_buffer_object) {
         ERROR("Pixel buffer objects are not supported by driver, please check that the user running nanovis has permissions to create a direct rendering context (e.g. user has read/write access to /dev/nvidia* device nodes in Linux).");
-        doExit(1);
+        exitService(1);
     }
 
     // Additional extensions not in 2.1 core
@@ -836,32 +871,32 @@ void NanoVis::init(const char* path)
     // Framebuffer objects were promoted in 3.0
     if (!GLEW_EXT_framebuffer_object) {
         ERROR("EXT_framebuffer_oject extension is required");
-        doExit(1);
+        exitService(1);
     }
     // Rectangle textures were promoted in 3.1
     // FIXME: can use NPOT in place of rectangle textures
     if (!GLEW_ARB_texture_rectangle) {
         ERROR("ARB_texture_rectangle extension is required");
-        doExit(1);
+        exitService(1);
     }
 #ifdef HAVE_FLOAT_TEXTURES
     // Float color buffers and textures were promoted in 3.0
     if (!GLEW_ARB_texture_float ||
         !GLEW_ARB_color_buffer_float) {
         ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required");
-        doExit(1);
+        exitService(1);
     }
 #endif
     // FIXME: should use ARB programs or (preferably) a GLSL profile for portability
     if (!GLEW_NV_vertex_program3 ||
         !GLEW_NV_fragment_program2) {
         ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required");
-        doExit(1);
+        exitService(1);
     }
 
     if (!R2FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s", path);
-        doExit(1);
+        exitService(1);
     }
 
     ImageLoaderFactory::getInstance()->addLoaderImpl("bmp", new BMPImageLoaderImpl());
@@ -1417,7 +1452,7 @@ NanoVis::setVolumeRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
-    TRACE("in SetVolumeRanges");
+    TRACE("Enter");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
@@ -1464,7 +1499,7 @@ NanoVis::setVolumeRanges()
         Volume::valueMax = wMax;
     }
     Volume::updatePending = false;
-    TRACE("leaving SetVolumeRanges");
+    TRACE("Leave");
 }
 
 void
@@ -1472,7 +1507,7 @@ NanoVis::setHeightmapRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
-    TRACE("in setHeightmapRanges");
+    TRACE("Enter");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
@@ -1525,7 +1560,7 @@ NanoVis::setHeightmapRanges()
         hmPtr->mapToGrid(grid);
     }
     HeightMap::updatePending = false;
-    TRACE("leaving setHeightmapRanges");
+    TRACE("Leave");
 }
 
 void
@@ -1681,7 +1716,7 @@ NanoVis::processCommands()
                 if (errno == EWOULDBLOCK) {
                     break;
                 }
-                doExit(100);
+                exitService(100);
             }
             ch = (char)c;
             Tcl_DStringAppend(&cmdbuffer, &ch, 1);
@@ -1733,7 +1768,7 @@ NanoVis::processCommands()
         return;
     }
     if (feof(NanoVis::stdin)) {
-        doExit(90);
+        exitService(90);
     }
 
     update();
@@ -1745,7 +1780,7 @@ NanoVis::processCommands()
     readScreen();
 
     if (feof(NanoVis::stdin)) {
-        doExit(90);
+        exitService(90);
     }
 #ifdef DO_RLE
     doRle();
@@ -1878,21 +1913,21 @@ main(int argc, char **argv)
 #ifdef notdef
     signal(SIGPIPE, SIG_IGN);
 #endif
-    NvInitService();
+    initService();
 
     NanoVis::init(path);
     if (newPath != NULL) {
         delete [] newPath;
     }
     NanoVis::initGL();
-#ifdef EVENTLOG
-    NvInitEventLog();
-#endif
+
     NanoVis::interp = initTcl();
+
     NanoVis::resizeOffscreenBuffer(NanoVis::winWidth, NanoVis::winHeight);
 
     glutMainLoop();
-    doExit(80);
+
+    exitService(80);
 }
 
 void 
