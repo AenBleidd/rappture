@@ -95,9 +95,11 @@ itcl::body Rappture::PeriodicElement::constructor {args} {
     }
     pack $itk_component(entry) -side left -expand yes -fill both
 
-    bind $itk_component(entry) <KeyPress-Return> \
+    bind $itk_component(entry) <Return> \
         [itcl::code $this _entry apply]
-    bind $itk_component(entry) <KeyPress-Tab> \
+    bind $itk_component(entry) <KP_Enter> \
+        [itcl::code $this _entry apply]
+    bind $itk_component(entry) <Tab> \
         [itcl::code $this _entry apply]
     bind $itk_component(entry) <ButtonPress> \
         [itcl::code $this _entry click]

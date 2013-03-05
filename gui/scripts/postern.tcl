@@ -108,6 +108,8 @@ itcl::body Rappture::Postern::constructor {args} {
 
     bind $inner.area.text <KeyPress-Return> \
         [itcl::code $this command execute]
+    bind $inner.area.text <KP_Enter> \
+        [itcl::code $this command execute]
 
     bind $inner.area.text <KeyPress-Up> \
         "[itcl::code $this command previous]; break"

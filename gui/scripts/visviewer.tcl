@@ -53,7 +53,7 @@ itcl::class ::Rappture::VisViewer {
     protected variable _numConnectTries 0
     protected variable _debugConsole 0
     protected variable _reportClientInfo 1
-    protected variable _showWaitDialog 0
+    protected variable _waitTimeout 0
 
     constructor { servers args } {
         # defined below
@@ -67,7 +67,7 @@ itcl::class ::Rappture::VisViewer {
     private method ServerDown {}
     private method SendHelper {}
     private method SendHelper.old {}
-    private method SplashScreen { state } 
+    private method WaitDialog { state } 
 
     protected method ToggleConsole {} 
     private method DebugConsole {} 
@@ -76,26 +76,27 @@ itcl::class ::Rappture::VisViewer {
     private method TraceComm { channel {data {}} } 
     private method SendDebugCommand {} 
 
-    protected method EnableWaitDialog { bool } 
-    protected method StartBufferingCommands {}
-    protected method StopBufferingCommands {}
     protected method CheckConnection {}
     protected method Color2RGB { color }
     protected method ColorsToColormap { colors }
     protected method Connect { servers }
     protected method Disconnect {}
+    protected method EnableWaitDialog { bool } 
     protected method Euler2XYZ { theta phi psi }
     protected method Flush {}
+    protected method HandleError { args }
+    protected method HandleOk { args }
     protected method IsConnected {}
     protected method ReceiveBytes { nbytes }
     protected method ReceiveEcho { channel {data ""} }
-    protected method ReceiveError { args }
     protected method SendBytes { bytes }
-    protected method SendEcho { channel {data ""} }
-    protected method StartWaiting {} 
-    protected method StopWaiting {} 
     protected method SendCmd {string}
     protected method SendCmdNoWait {string}
+    protected method SendEcho { channel {data ""} }
+    protected method StartBufferingCommands {}
+    protected method StartWaiting {} 
+    protected method StopBufferingCommands {}
+    protected method StopWaiting {} 
 
     private method Waiting { option widget } 
 
@@ -165,6 +166,10 @@ itcl::body Rappture::VisViewer::constructor { servers args } {
     foreach cmd [$_parser eval {info commands}] {
         $_parser hide $cmd
     }
+    # Add default handlers for "ok" acknowledgement and server errors.
+    $_parser alias ok       [itcl::code $this HandleOk]
+    $_parser alias viserror [itcl::code $this HandleError]
+
     #
     # Set up the widgets in the main body
     #
@@ -330,7 +335,7 @@ itcl::body Rappture::VisViewer::IsConnected {} {
 #
 # CheckConection --
 #
-#   This routine is called whenever we're about to send/recieve data on 
+#   This routine is called whenever we're about to send/receive data on 
 #   the socket connection to the visualization server.  If we're connected, 
 #   then reset the timeout event.  Otherwise try to reconnect to the 
 #   visualization server.
@@ -462,20 +467,20 @@ itcl::body Rappture::VisViewer::SendBytes { bytes } {
 #
 
 itcl::body Rappture::VisViewer::StartWaiting {} {
-    if { $_showWaitDialog } {
+    if { $_waitTimeout > 0 } {
         after cancel $_afterId 
-        set _afterId [after 2000 [itcl::code $this SplashScreen on]]
+        set _afterId [after $_waitTimeout [itcl::code $this WaitDialog on]]
     }
 }
 
 itcl::body Rappture::VisViewer::StopWaiting {} { 
-    if { $_showWaitDialog } {
-        SplashScreen off
+    if { $_waitTimeout > 0 } {
+        WaitDialog off
     }
 }
 
-itcl::body Rappture::VisViewer::EnableWaitDialog { bool } { 
-    set _showWaitDialog $bool
+itcl::body Rappture::VisViewer::EnableWaitDialog { value } { 
+    set _waitTimeout $value
 }
 
 #
@@ -613,7 +618,7 @@ itcl::body Rappture::VisViewer::ReceiveEcho {channel {data ""}} {
     }
 }
 
-itcl::body Rappture::VisViewer::SplashScreen { state } {
+itcl::body Rappture::VisViewer::WaitDialog { state } {
     after cancel $_afterId
     set _afterId -1
     if { $state } {
@@ -623,7 +628,7 @@ itcl::body Rappture::VisViewer::SplashScreen { state } {
         set inner [frame $itk_component(plotarea).view.splash]
         $inner configure -relief raised -bd 2 
         label $inner.text1 -text "Rendering, please wait." \
-            -font "Arial 10"
+            -font "Arial 10" 
         label $inner.icon 
         pack $inner -expand yes -anchor c
         blt::table $inner \
@@ -693,7 +698,8 @@ itcl::body Rappture::VisViewer::BuildConsole {} {
 	ignore -background
     }
     pack $f.send.e -side left -expand yes -fill x
-    bind $f.send.e <KeyPress-Return> [itcl::code $this SendDebugCommand]
+    bind $f.send.e <Return> [itcl::code $this SendDebugCommand]
+    bind $f.send.e <KP_Enter> [itcl::code $this SendDebugCommand]
     
     scrollbar $f.sb -orient vertical -command "$f.comm yview"
     pack $f.sb -side right -fill y
@@ -792,11 +798,27 @@ itcl::body Rappture::VisViewer::SendDebugCommand {} {
     $itk_component(command) delete 0 end
 }
 
+#
+# HandleOk --
+#
+#       This handles the "ok" response from the server that acknowledges
+#       the reception of a server command, but does not produce and image.
+#       It may pass an argument such as "-token 9" that could be used to
+#       determine how many commands have been processed by the server.
+#
+itcl::body Rappture::VisViewer::HandleOk { args } {
+    if { $_waitTimeout > 0 } {
+        StopWaiting
+    }
+}
 
 #
-# ReceiveError -bytes <size> -type <type> -token <token>
+# HandleError --
 #
-itcl::body Rappture::VisViewer::ReceiveError { args } {
+#       This handles the "viserror" response from the server that reports
+#       that a client-initiated error has occurred on the server.
+#
+itcl::body Rappture::VisViewer::HandleError { args } {
     array set info {
         -token "???"
         -bytes 0

@@ -1265,7 +1265,9 @@ itcl::body Rappture::XyResult::Axis {option args} {
             set label [$itk_component(plot) axis cget $axis -title]
             $inner.label delete 0 end
             $inner.label insert end $label
-            bind $inner.label <KeyPress-Return> \
+            bind $inner.label <Return> \
+                [itcl::code $this Axis changed $axis label]
+            bind $inner.label <KP_Enter> \
                 [itcl::code $this Axis changed $axis label]
             bind $inner.label <FocusOut> \
                 [itcl::code $this Axis changed $axis label]
@@ -1274,14 +1276,18 @@ itcl::body Rappture::XyResult::Axis {option args} {
             foreach {min max} [$itk_component(plot) axis limits $axis] break
             $inner.min delete 0 end
             $inner.min insert end $min
-            bind $inner.min <KeyPress-Return> \
+            bind $inner.min <Return> \
+                [itcl::code $this Axis changed $axis min]
+            bind $inner.min <KP_Enter> \
                 [itcl::code $this Axis changed $axis min]
             bind $inner.min <FocusOut> \
                 [itcl::code $this Axis changed $axis min]
 
             $inner.max delete 0 end
             $inner.max insert end $max
-            bind $inner.max <KeyPress-Return> \
+            bind $inner.max <Return> \
+                [itcl::code $this Axis changed $axis max]
+            bind $inner.max <KP_Enter> \
                 [itcl::code $this Axis changed $axis max]
             bind $inner.max <FocusOut> \
                 [itcl::code $this Axis changed $axis max]

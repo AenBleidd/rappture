@@ -194,7 +194,6 @@ itcl::body Rappture::MolvisViewer::constructor {servers args} {
     # Populate the slave interpreter with commands to handle responses from
     # the visualization server.
     $_parser alias image [itcl::code $this ReceiveImage]
-    $_parser alias viserror [itcl::code $this ReceiveError]
 
     set _rocker(dir) 1
     set _rocker(client) 0
@@ -1771,7 +1770,8 @@ itcl::body Rappture::MolvisViewer::GetImage { widget } {
             2,0 $inner.cancel -cspan 2 
         blt::table configure $inner r0 -pady 4 
         blt::table configure $inner r2 -pady 4 
-        bind $inner.cancel <KeyPress-Return> [list $inner.cancel invoke]
+        bind $inner.cancel <Return> [list $inner.cancel invoke]
+        bind $inner.cancel <KP_Enter> [list $inner.cancel invoke]
     } else {
         set inner [$popup component inner]
     }
