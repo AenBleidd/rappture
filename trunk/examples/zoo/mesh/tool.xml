@@ -76,7 +76,7 @@ When you click the Simulate button, the inputs will be used to generate output f
       <label>mesh as unstructured grid</label>
       <description>Unstructured 2D grid.</description>
      </about>
-     <value>unstructured_grid</value>
+     <value>unstructured</value>
     </option>
     <option>
      <about>

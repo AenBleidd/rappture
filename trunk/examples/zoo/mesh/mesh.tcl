@@ -6,6 +6,7 @@ package require BLT
 
 # Read in the data since we're not simulating anything...
 source data.tcl
+source datatri.tcl
 
 # Open an XML run file to write into
 set driver [Rappture::library [lindex $argv 0]]
@@ -120,7 +121,6 @@ switch -- $meshtype {
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	source datatri.tcl
 	$driver put $mesh.triangles.points $points
 	$driver put $mesh.triangles.indices $triangles
     }
@@ -136,30 +136,28 @@ switch -- $meshtype {
 	    $driver put $mesh.node($count) "$x $y"
 	    incr count
 	}
-	source datatri.tcl
 	set count 0
 	foreach { a b c } $triangles {
 	    $driver put $mesh.element($count).nodes "$a $b $c"
 	    incr count
 	}
     }
-    "unstructured_grid" {
+    "unstructured" {
 	set mesh output.mesh
 
 	$driver put $mesh.about.label "Unstructured Grid"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	source datatri.tcl
-	$driver put $mesh.unstructured_grid.points $points
+	$driver put $mesh.unstructured.points $points
 	set celltypes {}
 	set cells {}
 	foreach { a b c } $triangles {
 	    lappend celltypes "5"
 	    append cells "3 $a $b $c\n"
 	}
-	$driver put $mesh.unstructured_grid.cells $cells
-	$driver put $mesh.unstructured_grid.celltypes $celltypes
+	$driver put $mesh.unstructured.cells $cells
+	$driver put $mesh.unstructured.celltypes $celltypes
     }
     "cells" {
 	set mesh output.mesh
@@ -168,7 +166,6 @@ switch -- $meshtype {
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	source datatri.tcl
 	$driver put $mesh.cells.points $points
 	$driver put $mesh.cells.triangles $triangles
     }
