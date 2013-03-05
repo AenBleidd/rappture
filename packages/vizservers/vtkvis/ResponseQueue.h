@@ -31,7 +31,8 @@ public:
         IMAGE,          /**< Image to be displayed. */
         LEGEND,         /**< Legend to be displayed. */
         DATA,           /**< Any other type of non-error message. */
-        ERROR           /**< Error message. */
+        ERROR,          /**< Error message. */
+        OK              /**< Ack for client when no render required */
     };
 
     Response(ResponseType type) :

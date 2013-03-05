@@ -4335,6 +4335,8 @@ void Renderer::getRenderedFrame(vtkUnsignedCharArray *imgData)
 /**
  * \brief Get nearest data value given display coordinates x,y
  *
+ * FIXME: This doesn't work when actors are scaled
+ *
  * Note: no interpolation is performed on data
  */
 bool Renderer::getScalarValueAtPixel(const DataSetId& id, int x, int y, double *value)

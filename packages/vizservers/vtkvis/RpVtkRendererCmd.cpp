@@ -36,10 +36,11 @@ using namespace Rappture::VtkVis;
 static int lastCmdStatus;
 
 #ifdef USE_THREADS
-static void
-QueueResponse(ClientData clientData, const void *bytes, size_t len, 
-              Response::AllocationType allocType,
-              Response::ResponseType type = Response::DATA)
+void
+Rappture::VtkVis::queueResponse(ClientData clientData,
+                                const void *bytes, size_t len, 
+                                Response::AllocationType allocType,
+                                Response::ResponseType type)
 {
     ResponseQueue *queue = (ResponseQueue *)clientData;
 
@@ -1934,7 +1935,7 @@ CameraGetOp(ClientData clientData, Tcl_Interp *interp, int objc,
              pos[0], pos[1], pos[2], focalPt[0], focalPt[1], focalPt[2], viewUp[0], viewUp[1], viewUp[2]);
 
 #ifdef USE_THREADS
-    QueueResponse(clientData, buf, strlen(buf), Response::VOLATILE);
+    queueResponse(clientData, buf, strlen(buf), Response::VOLATILE);
 #else 
     ssize_t bytesWritten = SocketWrite(buf, strlen(buf));
     if (bytesWritten < 0) {
@@ -4161,7 +4162,7 @@ DataSetGetScalarPixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       x, y, value, name);
 
 #ifdef USE_THREADS
-    QueueResponse(clientData, buf, length, Response::VOLATILE);
+    queueResponse(clientData, buf, length, Response::VOLATILE);
 #else
     ssize_t bytesWritten = SocketWrite(buf, length);
 
@@ -4197,7 +4198,7 @@ DataSetGetScalarWorldOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       x, y, z, value, name);
 
 #ifdef USE_THREADS
-    QueueResponse(clientData, buf, length, Response::VOLATILE);
+    queueResponse(clientData, buf, length, Response::VOLATILE);
 #else 
     ssize_t bytesWritten = SocketWrite(buf, length);
     if (bytesWritten < 0) {
@@ -4251,7 +4252,7 @@ DataSetGetVectorPixelOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       value[0], value[1], value[2], name);
 
 #ifdef USE_THREADS
-    QueueResponse(clientData, buf, length, Response::VOLATILE);
+    queueResponse(clientData, buf, length, Response::VOLATILE);
 #else 
     ssize_t bytesWritten = SocketWrite(buf, length);
 
@@ -4286,7 +4287,7 @@ DataSetGetVectorWorldOp(ClientData clientData, Tcl_Interp *interp, int objc,
                       x, y, z,
                       value[0], value[1], value[2], name);
 #ifdef USE_THREADS
-    QueueResponse(clientData, buf, length, Response::VOLATILE);
+    queueResponse(clientData, buf, length, Response::VOLATILE);
 #else 
     ssize_t bytesWritten = SocketWrite(buf, length);
 
@@ -4397,7 +4398,7 @@ DataSetNamesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     oss << "}\n";
     len += 2;
 #ifdef USE_THREADS
-    QueueResponse(clientData, oss.str().c_str(), len, Response::VOLATILE);
+    queueResponse(clientData, oss.str().c_str(), len, Response::VOLATILE);
 #else 
     ssize_t bytesWritten = SocketWrite(oss.str().c_str(), len);
 
@@ -9788,7 +9789,7 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
 #endif
 
 #ifdef USE_THREADS
-            QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+            queueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
 #else
             if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
                 ERROR("write failed: %s", strerror(errno));
@@ -9813,7 +9814,7 @@ Rappture::VtkVis::handleError(Tcl_Interp *interp,
 #endif
 
 #ifdef USE_THREADS
-        QueueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
+        queueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::ERROR);
 #else
         if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
             ERROR("write failed: %s", strerror(errno));
