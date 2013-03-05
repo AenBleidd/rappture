@@ -1363,7 +1363,7 @@ void ParticleSystem::sort()
         TRACE("currentPos[%d]", _currentPosIndex);
         for (int i = 0; i < _width * _height * 3; i += 3)
             TRACE("%.2f, %.2f, %.2f", debug[i], debug[i+1], debug[i+2]);
-         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
     */
 

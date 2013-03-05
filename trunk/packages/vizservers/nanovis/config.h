@@ -37,11 +37,6 @@
 #define USE_HALF_FLOAT
 
 /*
- * Enable event logging
- */
-//#define EVENTLOG
-
-/*
  * Do run length compression
  */
 //#define DO_RLE
