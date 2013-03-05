@@ -164,13 +164,13 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     # <grid>		rectangular mesh 
     # <triangles>	triangular mesh
     # <cells>		homogeneous cell type mesh.
-    # <unstructured_grid> homogeneous cell type mesh.
+    # <unstructured>    homogeneous cell type mesh.
     #
 
     # Check that only one mesh type was defined.
     set subcount 0
     foreach cname [$_mesh children] {
-	foreach type { vtk cloud grid triangles cells unstructured_grid} {
+	foreach type { vtk cloud grid triangles cells unstructured} {
 	    if { $cname == $type } {
 		incr subcount
 		break
@@ -202,7 +202,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 	ReadTriangles $xmlobj $path
     } elseif {[$_mesh element "cells"] != "" } {
 	ReadCells $xmlobj $path
-    } elseif {[$_mesh element "unstructured_grid"] != "" } {
+    } elseif {[$_mesh element "unstructured"] != "" } {
 	ReadUnstructuredGrid $xmlobj $path
     } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"]!=""} {
         ReadNodesElements $xmlobj $path
@@ -885,22 +885,22 @@ itcl::body Rappture::Mesh::ReadTriangles { xmlobj path } {
 }
 
 itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
-    set _type "unstructured_grid"
+    set _type "unstructured"
 
-    set data [$xmlobj get $path.unstructured_grid.points]
+    set data [$xmlobj get $path.unstructured.points]
     Rappture::ReadPoints $data _dim points
     if { $points == "" } {
 	puts stderr "no <points> found for <cells> mesh"
 	return 0
     }
-    set cells [$xmlobj get $path.unstructured_grid.cells]
+    set cells [$xmlobj get $path.unstructured.cells]
     if { $cells == "" } {
-	puts stderr "no <cells> description found unstructured_grid"
+	puts stderr "no <cells> description found for <unstructured>"
 	return 0
     }
-    set celltypes [$xmlobj get $path.unstructured_grid.celltypes]
+    set celltypes [$xmlobj get $path.unstructured.celltypes]
     if { $cells == "" } {
-	puts stderr "no <cells> description found unstructured_grid."
+	puts stderr "no <cells> description found for <unstructured>."
 	return 0
     }
     set lines [split $cells \n]
