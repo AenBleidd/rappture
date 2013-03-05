@@ -295,7 +295,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
     //}
     //else
     //{
-    //ERROR("HeightMap::setHeight\n");
+    //ERROR("HeightMap::setHeight");
     //}
 }
 #endif

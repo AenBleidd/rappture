@@ -53,11 +53,11 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream
         if (buff[0] == '#') {
             continue;
         } else if (strstr((const char*) buff, "object") != 0) {
-            TRACE("VERSION 1\n");
+            TRACE("VERSION 1");
             version = 1;
             break;
         } else if (strstr(buff, "record format") != 0) {
-            TRACE("VERSION 2\n");
+            TRACE("VERSION 2");
             version = 2;
             break;
         }
@@ -88,7 +88,7 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream
         try {
             stream.read((char *)data, width * height * depth * 8 * 4 * sizeof(double));
         } catch (...) {
-            ERROR("Caught exception trying to read stream\n");
+            ERROR("Caught exception trying to read stream");
         }
 
         volume = buildUp(origin, delta, width, height, depth, data);
@@ -103,12 +103,12 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             if ((pt = strstr(buff, "delta")) != 0) {
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
 #ifdef _LOADER_DEBUG_
-                TRACE("delta : %f %f %f\n", delta.x, delta.y, delta.z);
+                TRACE("delta : %f %f %f", delta.x, delta.y, delta.z);
 #endif
             } else if ((pt = strstr(buff, "datacount")) != 0) {
                 sscanf(pt, "%s%d", str[0], &datacount);
 #ifdef _LOADER_DEBUG_
-                TRACE("datacount = %d\n", datacount);
+                TRACE("datacount = %d", datacount);
 #endif
             } else if ((pt = strstr(buff, "datatype")) != 0) {
                 sscanf(pt, "%s%s", str[0], str[1]);
@@ -117,17 +117,17 @@ ZincBlendeVolume *NvZincBlendeReconstructor::loadFromStream(std::istream& stream
             } else if ((pt = strstr(buff, "count")) != 0) {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
 #ifdef _LOADER_DEBUG_
-                TRACE("width height depth %d %d %d\n", width, height, depth);
+                TRACE("width height depth %d %d %d", width, height, depth);
 #endif
             } else if ((pt = strstr(buff, "emptymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
-                TRACE("emptyvalue %lf\n", emptyvalue);
+                TRACE("emptyvalue %lf", emptyvalue);
 #endif
             } else if ((pt = strstr(buff, "emprymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
-                TRACE("emptyvalue %lf\n", emptyvalue);
+                TRACE("emptyvalue %lf", emptyvalue);
 #endif
             }
         } while (strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);
@@ -216,7 +216,7 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
         index = srcPtr->getIndex(width, height);
 
 #ifdef _LOADER_DEBUG_
-        TRACE("index %d\n", index);
+        TRACE("index %d", index);
 #endif
 
         component4A = fourAnionVolume + index;
@@ -286,12 +286,12 @@ NvZincBlendeReconstructor::buildUp(const Vector3& origin, const Vector3& delta,
         index = srcPtr->getIndex(width, height);
 
 #ifdef _LOADER_DEBUG_
-        TRACE("[%d] index %d (width:%lf height:%lf depth:%lf)\n", i, index, srcPtr->indexX, srcPtr->indexY, srcPtr->indexZ);
+        TRACE("[%d] index %d (width:%lf height:%lf depth:%lf)", i, index, srcPtr->indexX, srcPtr->indexY, srcPtr->indexZ);
 #endif
 
         if (index < 0) {
 #ifdef _LOADER_DEBUG_
-            TRACE("There is an invalid data\n");
+            TRACE("There is an invalid data");
 #endif
             srcPtr +=8;
             continue;
@@ -376,11 +376,11 @@ NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
         if (buff[0] == '#') {
             continue;
         } else if (strstr((const char *)buff, "object") != 0) {
-            TRACE("VERSION 1\n");
+            TRACE("VERSION 1");
             version = 1; 
             break;
         } else if (strstr(buff, "record format") != 0) {
-            TRACE("VERSION 2\n");
+            TRACE("VERSION 2");
             version = 2; 
             break;
         }
@@ -421,11 +421,11 @@ NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
             if ((pt = strstr(buff, "delta")) != 0) {   
                 sscanf(pt, "%s%f%f%f", str[0], &(delta.x), &(delta.y), &(delta.z));
 #ifdef _LOADER_DEBUG_
-                TRACE("delta : %f %f %f\n", delta.x, delta.y, delta.z);
+                TRACE("delta : %f %f %f", delta.x, delta.y, delta.z);
 #endif
             } else if ((pt = strstr(buff, "datacount")) != 0) {
                 sscanf(pt, "%s%d", str[0], &datacount);
-                TRACE("datacount = %d\n", datacount);
+                TRACE("datacount = %d", datacount);
             } else if ((pt = strstr(buff, "datatype")) != 0) {
                 sscanf(pt, "%s%s", str[0], str[1]);
                 if (strcmp(str[1], "double64")) {
@@ -433,17 +433,17 @@ NvZincBlendeReconstructor::loadFromMemory(void *dataBlock)
             } else if ((pt = strstr(buff, "count")) != 0) {
                 sscanf(pt, "%s%d%d%d", str[0], &width, &height, &depth);
 #ifdef _LOADER_DEBUG_
-                TRACE("width height depth %d %d %d\n", width, height, depth);
+                TRACE("width height depth %d %d %d", width, height, depth);
 #endif
             } else if ((pt = strstr(buff, "emptymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
-                TRACE("emptyvalue %lf\n", emptyvalue);
+                TRACE("emptyvalue %lf", emptyvalue);
 #endif
             } else if ((pt = strstr(buff, "emprymark")) != 0) {
                 sscanf(pt, "%s%lf", str[0], &emptyvalue);
 #ifdef _LOADER_DEBUG_
-                TRACE("emptyvalue %lf\n", emptyvalue);
+                TRACE("emptyvalue %lf", emptyvalue);
 #endif
             }
         } while (strcmp(buff, "<\\HDR>") != 0 && strcmp(buff, "</HDR>") != 0);

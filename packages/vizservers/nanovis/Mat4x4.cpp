@@ -27,10 +27,10 @@ Mat4x4::Mat4x4(float *vals)
 void
 Mat4x4::print() const
 {
-    TRACE("%f %f %f %f\n", m[0], m[1], m[2], m[3]);
-    TRACE("%f %f %f %f\n", m[4], m[5], m[6], m[7]);
-    TRACE("%f %f %f %f\n", m[8], m[9], m[10], m[11]);
-    TRACE("%f %f %f %f\n", m[12], m[13], m[14], m[15]);
+    TRACE("%f %f %f %f", m[0], m[1], m[2], m[3]);
+    TRACE("%f %f %f %f", m[4], m[5], m[6], m[7]);
+    TRACE("%f %f %f %f", m[8], m[9], m[10], m[11]);
+    TRACE("%f %f %f %f", m[12], m[13], m[14], m[15]);
 }
 
 Mat4x4
@@ -71,11 +71,11 @@ Mat4x4::inverse() const
 #undef det33
 
 #if 0
-    TRACE("Invert:\n");
-    TRACE("   %12.9f %12.9f %12.9f %12.9f\n", m00, m01, m02, m03);
-    TRACE("   %12.9f %12.9f %12.9f %12.9f\n", m10, m11, m12, m13);
-    TRACE("   %12.9f %12.9f %12.9f %12.9f\n", m20, m21, m22, m23);
-    TRACE("   %12.9f %12.9f %12.9f %12.9f\n", m30, m31, m32, m33);
+    TRACE("Invert:");
+    TRACE("   %12.9f %12.9f %12.9f %12.9f", m00, m01, m02, m03);
+    TRACE("   %12.9f %12.9f %12.9f %12.9f", m10, m11, m12, m13);
+    TRACE("   %12.9f %12.9f %12.9f %12.9f", m20, m21, m22, m23);
+    TRACE("   %12.9f %12.9f %12.9f %12.9f", m30, m31, m32, m33);
 #endif
 
 #if 0

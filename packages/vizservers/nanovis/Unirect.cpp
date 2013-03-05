@@ -224,7 +224,7 @@ Rappture::Unirect3d::loadData(Tcl_Interp *interp, int objc,
         return TCL_ERROR;
     }
     if ((size_t)nValues != (num[0] * num[1] * num[2] * _nComponents)) {
-        TRACE("num[0]=%d num[1]=%d num[2]=%d ncomponents=%d nValues=%d\n",
+        TRACE("num[0]=%d num[1]=%d num[2]=%d ncomponents=%d nValues=%d",
                num[0], num[1], num[2], _nComponents, nValues);
         Tcl_AppendResult(interp, 
                 "wrong # of values: must be xnum*ynum*znum*extents", 
@@ -464,7 +464,7 @@ Rappture::Unirect2d::loadData(Tcl_Interp *interp, int objc,
     }
     
     if ((axis[0] != 1) || (axis[1] != 0)) {
-        TRACE("reordering data\n");
+        TRACE("reordering data");
         /* Reorder the data into x, y where x varies fastest and so on. */
         size_t y;
         float *dp;
@@ -534,7 +534,7 @@ Rappture::Unirect3d::importDx(Rappture::Outcome &result, size_t nComponents,
                 result.addError("bad # points %d", npts);
                 return false;
             }
-            TRACE("#points=%d\n", npts);
+            TRACE("#points=%d", npts);
             if (npts != nx*ny*nz) {
                 result.addError("inconsistent data: expected %d points"
                                 " but found %d points", nx*ny*nz, npts);
@@ -682,7 +682,7 @@ Rappture::Unirect3d::resample(Rappture::Outcome &result, size_t nSamples)
     dy = ly/(double)(_yNum-1);
     dz = lz/(double)(_zNum-1);
 
-    TRACE("lx:%lf ly:%lf lz:%lf dmin:%lf dx:%lf dy:%lf dz:%lf\n", lx, ly, lz, dmin, dx, dy, dz);
+    TRACE("lx:%lf ly:%lf lz:%lf dmin:%lf dx:%lf dy:%lf dz:%lf", lx, ly, lz, dmin, dx, dy, dz);
 
     size_t n = _nComponents * _xNum * _yNum * _zNum;
     _values = (float *)realloc(_values, sizeof(float) * n);
@@ -733,7 +733,7 @@ Rappture::Unirect3d::getVectorRange()
             _magMin = vm;
         }
     }
-    TRACE("getVectorRange: %g %g\n", _magMin, _magMax);
+    TRACE("getVectorRange: %g %g", _magMin, _magMax);
 }
 
 bool 

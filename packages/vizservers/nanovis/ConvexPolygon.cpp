@@ -56,7 +56,7 @@ bool
 ConvexPolygon::clip(Plane& clipPlane, bool copyToTexcoord)
 {
     if (vertices.size() == 0) {
-        ERROR("polygon has no vertices\n");
+        ERROR("polygon has no vertices");
         return false;
     }
 
@@ -143,7 +143,7 @@ ConvexPolygon::emit(bool useTexture)
 	    glVertex4fv((float *)&(vertices[i]));
 	}
     } else {
-        WARN("No polygons to render\n");
+        WARN("No polygons to render");
     }
 }
 
@@ -164,6 +164,6 @@ ConvexPolygon::emit(bool useTexture, const Vector3& shift, const Vector3& scale)
 	    glVertex4fv((float *)(&tmp));
 	}
     } else {
-        WARN("No polygons to render\n");
+        WARN("No polygons to render");
     }
 }

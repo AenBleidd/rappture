@@ -128,7 +128,7 @@ VolumeRenderer::renderAll()
     size_t *actual_slices = new size_t[volumes.size()];
     float *z_steps = new float[volumes.size()];
 
-    TRACE("start loop %d\n", volumes.size());
+    TRACE("start loop %d", volumes.size());
     for (size_t i = 0; i < volumes.size(); i++) {
         Volume *volPtr = volumes[i];
         polys[i] = NULL;
@@ -144,9 +144,9 @@ VolumeRenderer::renderAll()
         Vector3 volPos = volPtr->location();
         Vector3 volScaling = volPtr->getPhysicalScaling();
 
-        TRACE("VOL POS: %g %g %g\n",
+        TRACE("VOL POS: %g %g %g",
               volPos.x, volPos.y, volPos.z);
-        TRACE("VOL SCALE: %g %g %g\n",
+        TRACE("VOL SCALE: %g %g %g",
               volScaling.x, volScaling.y, volScaling.z);
 
         double x0 = 0;
@@ -351,7 +351,7 @@ VolumeRenderer::renderAll()
             }
         }
     } //iterate all volumes
-    TRACE("end loop\n");
+    TRACE("end loop");
 
     // We sort all the polygons according to their eye-space depth, from
     // farthest to the closest.  This step is critical for correct blending
@@ -400,7 +400,7 @@ VolumeRenderer::renderAll()
         float sampleRatio = z_step / avgSampleDistance;
 
 #ifdef notdef
-        TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d z_step=%g avgSD=%g\n", 
+        TRACE("shading slice: volume %s addr=%x slice=%d, volume=%d z_step=%g avgSD=%g", 
               volPtr->name(), volPtr, slice_index, volume_index, z_step, avgSampleDistance);
 #endif
         activateVolumeShader(volPtr, false, sampleRatio);

@@ -49,7 +49,7 @@ public:
         if (_cgFP) {
             return cgGetNamedParameter(_cgFP, paramName);
         }
-        ERROR("Unknown fragment program parameter: %s\n", paramName);
+        ERROR("Unknown fragment program parameter: %s", paramName);
         return 0;
     }
 
@@ -58,7 +58,7 @@ public:
         if (_cgVP) {
             return cgGetNamedParameter(_cgVP, paramName);
         }
-        ERROR("Unknown vertex program parameter: %s\n", paramName);
+        ERROR("Unknown vertex program parameter: %s", paramName);
         return 0;
     }
 
@@ -288,7 +288,7 @@ protected:
             if (param != NULL)
                 _vpParams[name] = param;
             else
-                ERROR("Unknown vertex program parameter: %s\n", name);
+                ERROR("Unknown vertex program parameter: %s", name);
         } else {
             param = itr->second;
         }
@@ -304,7 +304,7 @@ protected:
             if (param != NULL)
                 _fpParams[name] = param;
             else
-                ERROR("Unknown fragment program parameter: %s\n", name);
+                ERROR("Unknown fragment program parameter: %s", name);
         } else {
             param = itr->second;
         }

@@ -35,7 +35,7 @@ getFloatGradientsFilename()
     if (! (filename = (char *)malloc(strlen("base") +
                                      strlen(floatExt) +
                                      strlen(extension) + 1))) {
-        ERROR("not enough memory for filename\n");
+        ERROR("not enough memory for filename");
         exit(1);
     }
 
@@ -59,7 +59,7 @@ saveFloatGradients(float *gradients, int *sizes)
     }
     if (fwrite(gradients, 3 * sizes[0] * sizes[1] * sizes[2] * sizeof(float),
                1, fp) != 1) {
-        ERROR("writing float gradients failed\n");
+        ERROR("writing float gradients failed");
         exit(1);
     }
     fclose(fp);
@@ -82,7 +82,7 @@ saveGradients(void *gradients, int *sizes, DataType dataType)
            * getDataTypeSize(dataType);
 
     if (fwrite(gradients, size, 1, fp) != 1) {
-        ERROR("writing gradients failed\n");
+        ERROR("writing gradients failed");
         exit(1);
     }
 
@@ -137,7 +137,7 @@ static float getVoxel(int x, int y, int z, DataType dataType)
             return (float)getVoxelFloat(x, y, z);
             break;
         default:
-            ERROR("Unsupported data type\n");
+            ERROR("Unsupported data type");
             exit(1);
             break;
     }
@@ -189,7 +189,7 @@ void computeGradients(float *gradients, void *volData, int *sizes,
           {-1,  0,  1}}}
     };
 
-    TRACE("computing gradients ... may take a while\n");
+    TRACE("computing gradients ... may take a while");
 
     di = 0;
     vdi = 0;
@@ -311,25 +311,25 @@ void filterGradients(float *gradients, int *sizes)
     int i, j, k, idz, idy, idx, gi, ogi, filterWidth, n, borderDist[3];
     float sum, *filteredGradients, ****filter;
 
-    TRACE("filtering gradients ... may also take a while\n");
+    TRACE("filtering gradients ... may also take a while");
 
     if (! (filteredGradients = (float *)malloc(sizes[0] * sizes[1] * sizes[2]
                                                * 3 * sizeof(float)))) {
-        ERROR("not enough memory for filtered gradients\n");
+        ERROR("not enough memory for filtered gradients");
         exit(1);
     }
 
     /* Allocate storage for filter kernels */
     if (! (filter = (float ****)malloc((GRAD_FILTER_SIZE/2 + 1) * 
                                        sizeof(float ***)))) {
-        ERROR("failed to allocate gradient filter\n");
+        ERROR("failed to allocate gradient filter");
         exit(1);
     }
 
     for (i = 0; i < GRAD_FILTER_SIZE/2 + 1; i++) {
         if (! (filter[i] = (float ***)malloc((GRAD_FILTER_SIZE) * 
                                              sizeof(float **)))) {
-            ERROR("failed to allocate gradient filter\n");
+            ERROR("failed to allocate gradient filter");
             exit(1);
         }
     }
@@ -337,7 +337,7 @@ void filterGradients(float *gradients, int *sizes)
         for (j = 0; j < GRAD_FILTER_SIZE; j++) {
             if (! (filter[i][j] = (float **)malloc((GRAD_FILTER_SIZE) * 
                                                    sizeof(float *)))) {
-                ERROR("failed to allocate gradient filter\n");
+                ERROR("failed to allocate gradient filter");
                 exit(1);
             }
         }
@@ -347,7 +347,7 @@ void filterGradients(float *gradients, int *sizes)
             for (k = 0; k < GRAD_FILTER_SIZE; k++) {
                 if (! (filter[i][j][k] = (float *)malloc((GRAD_FILTER_SIZE) *
                                                          sizeof(float)))) {
-                    ERROR("failed to allocate gradient filter\n");
+                    ERROR("failed to allocate gradient filter");
                     exit(1);
                 }
             }
@@ -524,7 +524,7 @@ void quantizeGradients(float *gradientsIn, void *gradientsOut,
                                &((float*)gradientsOut)[di]);
                     break;
                 default:
-                    ERROR("unsupported data type\n");
+                    ERROR("unsupported data type");
                     break;
                 }
                 di += 3;

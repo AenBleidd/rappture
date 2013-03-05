@@ -507,7 +507,7 @@ GetDataStream(Tcl_Interp *interp, Rappture::Buffer &buf, int nBytes)
         fflush(NanoVis::recfile);
     }
     Rappture::Outcome err;
-    TRACE("Checking header[%.13s]\n", buf.bytes());
+    TRACE("Checking header[%.13s]", buf.bytes());
     if (strncmp (buf.bytes(), "@@RP-ENC:", 9) == 0) {
 	/* There's a header on the buffer, use it to decode the data. */
 	if (!Rappture::encoding::decode(err, buf, RPENC_HDR)) {
@@ -1063,7 +1063,7 @@ VolumeAnimationCaptureOp(ClientData clientData, Tcl_Interp *interp, int objc,
             float fraction;
 
             fraction = ((float)frame_num) / (total - 1);
-            TRACE("fraction : %f\n", fraction);
+            TRACE("fraction : %f", fraction);
             //interpolator->update(((float)frame_num) / (total - 1));
             interpolator->update(fraction);
 
@@ -1115,7 +1115,7 @@ VolumeAnimationVolumesOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetVolumes(interp, objc - 3, objv + 3, &volumes) != TCL_OK) {
         return TCL_ERROR;
     }
-    TRACE("parsing volume data identifier\n");
+    TRACE("parsing volume data identifier");
     Tcl_HashSearch iter;
     Tcl_HashEntry *hPtr;
     for (hPtr = Tcl_FirstHashEntry(&NanoVis::volumeTable, &iter); hPtr != NULL;
@@ -1155,7 +1155,7 @@ static int
 VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
                     Tcl_Obj *const *objv)
 {
-    TRACE("Data Loading\n");
+    TRACE("Data Loading");
 
     int nbytes;
     if (Tcl_GetIntFromObj(interp, objv[3], &nbytes) != TCL_OK) {
@@ -1173,12 +1173,12 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     bytes = buf.bytes();
     nBytes = buf.size();
 
-    TRACE("Checking header[%.20s]\n", bytes);
+    TRACE("Checking header[%.20s]", bytes);
 
     Volume *volPtr = NULL;
 
     if ((nBytes > 5) && (strncmp(bytes, "<HDR>", 5) == 0)) {
-        TRACE("ZincBlende stream is in\n");
+        TRACE("ZincBlende stream is in");
          //std::stringstream fdata(std::ios_base::out|std::ios_base::in|std::ios_base::binary);
         //fdata.write(buf.bytes(),buf.size());
         //vol = NvZincBlendeReconstructor::getInstance()->loadFromStream(fdata);
@@ -1188,7 +1188,7 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_AppendResult(interp, "can't get volume instance", (char *)NULL);
             return TCL_ERROR;
         }
-        TRACE("finish loading\n");
+        TRACE("finish loading");
 
         Vector3 scale = volPtr->getPhysicalScaling();
         float dx0 = -0.5 * scale.x;
@@ -1211,11 +1211,11 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
 	    bytes += 5;
 	    nBytes -= 5;
         }
-        TRACE("DX loading...\n");
+        TRACE("DX loading...");
         std::stringstream fdata;
         fdata.write(bytes, nBytes);
 	if (nBytes <= 0) {
-	    ERROR("data buffer is empty\n");
+	    ERROR("data buffer is empty");
 	    abort();
 	}
         Rappture::Outcome context;
@@ -1501,7 +1501,7 @@ VolumeShadingOpacityOp(ClientData clientData, Tcl_Interp *interp, int objc,
     if (GetFloatFromObj(interp, objv[3], &opacity) != TCL_OK) {
         return TCL_ERROR;
     }
-    TRACE("set opacity %f\n", opacity);
+    TRACE("set opacity %f", opacity);
     std::vector<Volume *> ivol;
     if (GetVolumes(interp, objc - 4, objv + 4, &ivol) != TCL_OK) {
         return TCL_ERROR;
@@ -1575,7 +1575,7 @@ VolumeShadingTransFuncOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     std::vector<Volume *>::iterator iter;
     for (iter = ivol.begin(); iter != ivol.end(); iter++) {
-	TRACE("setting %s with transfer function %s\n", (*iter)->name(),
+	TRACE("setting %s with transfer function %s", (*iter)->name(),
 	       tfPtr->name());
         (*iter)->transferFunction(tfPtr);
 #ifdef USE_POINTSET_RENDERER
@@ -1728,7 +1728,7 @@ HeightMapDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
     } else {
 	hmPtr = (HeightMap *)Tcl_GetHashValue(hPtr);
     }
-    TRACE("Number of heightmaps=%d\n", NanoVis::heightmapTable.numEntries);
+    TRACE("Number of heightmaps=%d", NanoVis::heightmapTable.numEntries);
     // Must set units before the heights.
     hmPtr->xAxis.units(data.xUnits());
     hmPtr->yAxis.units(data.yUnits());
@@ -1880,7 +1880,7 @@ HeightMapCreateOp(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_SetHashValue(hPtr, hmPtr);
     Tcl_SetStringObj(Tcl_GetObjResult(interp), tag, -1);;
     NanoVis::eventuallyRedraw();
-    TRACE("Number of heightmaps=%d\n", NanoVis::heightmapTable.numEntries);
+    TRACE("Number of heightmaps=%d", NanoVis::heightmapTable.numEntries);
     return TCL_OK;
 }
 
@@ -2141,7 +2141,7 @@ static int
 PlaneAddOp(ClientData clientData, Tcl_Interp *interp, int objc, 
 	   Tcl_Obj *const *objv)
 {
-    TRACE("load plane for 2D visualization command\n");
+    TRACE("load plane for 2D visualization command");
 
     int index, w, h;
     if (objc != 4) {
@@ -2186,7 +2186,7 @@ static int
 PlaneLinkOp(ClientData clientData, Tcl_Interp *interp, int objc,
             Tcl_Obj *const *objv)
 {
-    TRACE("link the plane to the 2D renderer command\n");
+    TRACE("link the plane to the 2D renderer command");
 
     int plane_index;
 
@@ -2213,7 +2213,7 @@ static int
 PlaneEnableOp(ClientData clientData, Tcl_Interp *interp, int objc,
               Tcl_Obj *const *objv)
 {
-    TRACE("enable a plane so the 2D renderer can render it command\n");
+    TRACE("enable a plane so the 2D renderer can render it command");
 
     if (objc != 3) {
         Tcl_AppendResult(interp, "wrong # args: should be \"", 
@@ -2339,7 +2339,7 @@ initTcl()
     Tcl_InitHashTable(&NanoVis::heightmapTable, TCL_STRING_KEYS);
     // create a default transfer function
     if (Tcl_Eval(interp, def_transfunc) != TCL_OK) {
-        WARN("bad default transfer function\n%s\n", 
+        WARN("bad default transfer function:\n%s", 
 	     Tcl_GetStringResult(interp));
     }
     return interp;

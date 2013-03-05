@@ -219,7 +219,7 @@ void NvParticleRenderer::initialize()
 #endif
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
-    TRACE("init particles\n");
+    TRACE("Leave");
 }
 
 void NvParticleRenderer::reset()

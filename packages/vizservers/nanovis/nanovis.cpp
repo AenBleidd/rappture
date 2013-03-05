@@ -188,17 +188,6 @@ const float def_eye_x = 0.0f;
 const float def_eye_y = 0.0f;
 const float def_eye_z = 2.5f;
 
-#ifndef XINETD
-// Variables for mouse events
-// Last locations mouse events
-static int left_last_x;
-static int left_last_y;
-static int right_last_x;
-static int right_last_y;
-static bool left_down = false;
-static bool right_down = false;
-#endif /*XINETD*/
-
 // Image based flow visualization slice location
 // FLOW
 float NanoVis::_licSlice = 0.5f;
@@ -207,7 +196,7 @@ int NanoVis::_licAxis = 2; // z axis
 void
 NanoVis::removeAllData()
 {
-    TRACE("in removeAllData\n");
+    TRACE("Enter");
     if (grid != NULL) {
         TRACE("Deleting grid");
         delete grid;
@@ -277,6 +266,7 @@ NanoVis::removeAllData()
         delete (*itr);
     }
 #endif
+    TRACE("Leave");
 }
 
 void 
@@ -479,7 +469,7 @@ serverStats(int code)
 static void
 doExit(int code)
 {
-    TRACE("in doExit: %d\n", code);
+    TRACE("in doExit: %d", code);
     NanoVis::removeAllData();
 
     NvShader::exitCg();
@@ -488,9 +478,7 @@ doExit(int code)
     NvExitEventLog();
 #endif
 
-#ifdef XINETD
     NvExitService();
-#endif
 
 #ifdef KEEPSTATS
     serverStats(code);
@@ -506,7 +494,12 @@ executeCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
     double start, finish;
     int result;
 
-    TRACE("command: '%s'", Tcl_DStringValue(dsPtr));
+#ifdef WANT_TRACE
+    char *str = Tcl_DStringValue(dsPtr);
+    std::string cmd(str);
+    cmd.erase(cmd.find_last_not_of(" \n\r\t")+1);
+    TRACE("command %lu: '%s'", stats.nCommands+1, cmd.c_str());
+#endif
 
     gettimeofday(&tv, NULL);
     start = CVT2SECS(tv);
@@ -523,7 +516,7 @@ executeCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     stats.cmdTime += finish - start;
     stats.nCommands++;
-    TRACE("leaving executeCommand status=%d\n", result);
+    TRACE("leaving executeCommand status=%d", result);
     return result;
 }
 
@@ -532,11 +525,11 @@ NanoVis::pan(float dx, float dy)
 {
     /* Move the camera and its target by equal amounts along the x and y
      * axes. */
-    TRACE("pan: x=%f, y=%f\n", dx, dy);
+    TRACE("pan: x=%f, y=%f", dx, dy);
 
     cam->x(def_eye_x - dx);
     cam->y(def_eye_y + dy);
-    TRACE("set eye to %f %f\n", cam->x(), cam->y());
+    TRACE("set eye to %f %f", cam->x(), cam->y());
 }
 
 void
@@ -544,10 +537,10 @@ NanoVis::zoom(float z)
 {
     /* Move the camera and its target by equal amounts along the x and y
      * axes. */
-    TRACE("zoom: z=%f\n", z);
+    TRACE("zoom: z=%f", z);
 
     cam->z(def_eye_z / z);
-    TRACE("set cam z to %f\n", cam->z());
+    TRACE("set cam z to %f", cam->z());
 }
 
 /** \brief Load a 3D volume
@@ -627,7 +620,7 @@ int
 NanoVis::renderLegend(TransferFunction *tf, double min, double max,
                       int width, int height, const char *volArg)
 {
-    TRACE("in renderLegend\n");
+    TRACE("Enter");
 
     int old_width = winWidth;
     int old_height = winHeight;
@@ -667,7 +660,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
 
     delete legendTexture;
     legendTexture = NULL;
-    TRACE("leaving renderLegend\n");
+    TRACE("Leave");
     return TCL_OK;
 }
 
@@ -675,7 +668,7 @@ NanoVis::renderLegend(TransferFunction *tf, double min, double max,
 void
 NanoVis::initOffscreenBuffer()
 {
-    TRACE("in initOffscreenBuffer\n");
+    TRACE("Enter");
     assert(_finalFbo == 0);
     // Initialize a fbo for final display.
     glGenFramebuffersEXT(1, &_finalFbo);
@@ -714,14 +707,14 @@ NanoVis::initOffscreenBuffer()
         doExit(3);
     }
 
-    TRACE("leaving initOffscreenBuffer\n");
+    TRACE("Leave");
 }
 
 //resize the offscreen buffer 
 void 
 NanoVis::resizeOffscreenBuffer(int w, int h)
 {
-    TRACE("in resizeOffscreenBuffer(%d, %d)\n", w, h);
+    TRACE("Enter (%d, %d)", w, h);
     if ((w == winWidth) && (h == winHeight)) {
         return;
     }
@@ -731,7 +724,7 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     if (fonts) {
         fonts->resize(w, h);
     }
-    TRACE("screenBuffer size: %d %d\n", w, h);
+    TRACE("screenBuffer size: %d %d", w, h);
 
     if (screenBuffer != NULL) {
         delete [] screenBuffer;
@@ -746,10 +739,10 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
     glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, _finalDepthRb);
     glDeleteRenderbuffersEXT(1, &_finalDepthRb);
 
-    TRACE("before deleteframebuffers\n");
+    TRACE("before deleteframebuffers");
     glDeleteFramebuffersEXT(1, &_finalFbo);
 
-    TRACE("reinitialize FBO\n");
+    TRACE("reinitialize FBO");
     //Reinitialize final fbo for final display
     glGenFramebuffersEXT(1, &_finalFbo);
 
@@ -787,19 +780,19 @@ NanoVis::resizeOffscreenBuffer(int w, int h)
         doExit(3);
     }
 
-    TRACE("change camera\n");
+    TRACE("change camera");
     //change the camera setting
     cam->setScreenSize(0, 0, winWidth, winHeight);
     planeRenderer->setScreenSize(winWidth, winHeight);
 
-    TRACE("leaving resizeOffscreenBuffer(%d, %d)\n", w, h);
+    TRACE("Leave (%d, %d)", w, h);
 }
 
 static
 void cgErrorCallback(void)
 {
     if (!NvShader::printErrorInfo()) {
-        TRACE("Cg error, exiting...\n");
+        TRACE("Cg error, exiting...");
         doExit(-1);
     }
 }
@@ -807,34 +800,34 @@ void cgErrorCallback(void)
 void NanoVis::init(const char* path)
 {
     // print OpenGL driver information
-    TRACE("-----------------------------------------------------------\n");
-    TRACE("OpenGL version: %s\n", glGetString(GL_VERSION));
-    TRACE("OpenGL vendor: %s\n", glGetString(GL_VENDOR));
-    TRACE("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
-    TRACE("-----------------------------------------------------------\n");
+    TRACE("-----------------------------------------------------------");
+    TRACE("OpenGL version: %s", glGetString(GL_VERSION));
+    TRACE("OpenGL vendor: %s", glGetString(GL_VENDOR));
+    TRACE("OpenGL renderer: %s", glGetString(GL_RENDERER));
+    TRACE("-----------------------------------------------------------");
 
     if (path == NULL) {
-        ERROR("No path defined for shaders or resources\n");
+        ERROR("No path defined for shaders or resources");
         doExit(1);
     }
     GLenum err = glewInit();
     if (GLEW_OK != err) {
-        ERROR("Can't init GLEW: %s\n", glewGetErrorString(err));
+        ERROR("Can't init GLEW: %s", glewGetErrorString(err));
         doExit(1);
     }
-    TRACE("Using GLEW %s\n", glewGetString(GLEW_VERSION));
+    TRACE("Using GLEW %s", glewGetString(GLEW_VERSION));
 
     // OpenGL 2.1 includes VBOs, PBOs, MRT, NPOT textures, point parameters, point sprites,
     // GLSL 1.2, and occlusion queries.
     if (!GLEW_VERSION_2_1) {
-        ERROR("OpenGL version 2.1 or greater is required\n");
+        ERROR("OpenGL version 2.1 or greater is required");
         doExit(1);
     }
 
     // NVIDIA driver may report OpenGL 2.1, but not support PBOs in 
     // indirect GLX contexts
     if (!GLEW_ARB_pixel_buffer_object) {
-        ERROR("Pixel buffer objects are not supported by driver, please check that the user running nanovis has permissions to create a direct rendering context (e.g. user has read/write access to /dev/nvidia* device nodes in Linux).\n");
+        ERROR("Pixel buffer objects are not supported by driver, please check that the user running nanovis has permissions to create a direct rendering context (e.g. user has read/write access to /dev/nvidia* device nodes in Linux).");
         doExit(1);
     }
 
@@ -842,32 +835,32 @@ void NanoVis::init(const char* path)
 
     // Framebuffer objects were promoted in 3.0
     if (!GLEW_EXT_framebuffer_object) {
-        ERROR("EXT_framebuffer_oject extension is required\n");
+        ERROR("EXT_framebuffer_oject extension is required");
         doExit(1);
     }
     // Rectangle textures were promoted in 3.1
     // FIXME: can use NPOT in place of rectangle textures
     if (!GLEW_ARB_texture_rectangle) {
-        ERROR("ARB_texture_rectangle extension is required\n");
+        ERROR("ARB_texture_rectangle extension is required");
         doExit(1);
     }
 #ifdef HAVE_FLOAT_TEXTURES
     // Float color buffers and textures were promoted in 3.0
     if (!GLEW_ARB_texture_float ||
         !GLEW_ARB_color_buffer_float) {
-        ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required\n");
+        ERROR("ARB_texture_float and ARB_color_buffer_float extensions are required");
         doExit(1);
     }
 #endif
     // FIXME: should use ARB programs or (preferably) a GLSL profile for portability
     if (!GLEW_NV_vertex_program3 ||
         !GLEW_NV_fragment_program2) {
-        ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required\n");
+        ERROR("NV_vertex_program3 and NV_fragment_program2 extensions are required");
         doExit(1);
     }
 
     if (!R2FilePath::getInstance()->setPath(path)) {
-        ERROR("can't set file path to %s\n", path);
+        ERROR("can't set file path to %s", path);
         doExit(1);
     }
 
@@ -900,7 +893,7 @@ void NanoVis::init(const char* path)
 void
 NanoVis::initGL()
 {
-    TRACE("in initGL\n");
+    TRACE("in initGL");
     //buffer to store data read from the screen
     if (screenBuffer) {
         delete[] screenBuffer;
@@ -954,7 +947,7 @@ NanoVis::initGL()
 
     //assert(glGetError()==0);
 
-    TRACE("leaving initGL\n");
+    TRACE("leaving initGL");
 }
 
 #ifdef DO_RLE
@@ -1087,22 +1080,22 @@ NanoVis::bmpWriteToFile(int frame_number, const char *directory_name)
         else
             sprintf(filename, "/tmp/flow_animation/image%03d.bmp", frame_number);
 
-        TRACE("Writing %s\n", filename);
+        TRACE("Writing %s", filename);
         f = fopen(filename, "wb");
         if (f == 0) {
-            ERROR("cannot create file\n");
+            ERROR("cannot create file");
         }
     } else {
         f = fopen("/tmp/image.bmp", "wb");
         if (f == 0) {
-            ERROR("cannot create file\n");
+            ERROR("cannot create file");
         }
     }
     if (fwrite(header, SIZEOF_BMP_HEADER, 1, f) != 1) {
-        ERROR("can't write header: short write\n");
+        ERROR("can't write header: short write");
     }
     if (fwrite(screenBuffer, (3*winWidth+pad)*winHeight, 1, f) != 1) {
-        ERROR("can't write data: short write\n");
+        ERROR("can't write data: short write");
     }
     fclose(f);
 }
@@ -1210,7 +1203,7 @@ NanoVis::ppmWrite(const char *prefix)
 #define PPM_MAXVAL 255
     char header[200];
 
-    TRACE("Enter ppmWrite (%dx%d)\n", winWidth, winHeight);
+    TRACE("Enter (%dx%d)", winWidth, winHeight);
     // Generate the PPM binary file header
     sprintf(header, "P6 %d %d %d\n", winWidth, winHeight, PPM_MAXVAL);
 
@@ -1245,12 +1238,12 @@ NanoVis::ppmWrite(const char *prefix)
         srcRowPtr += bytesPerRow;
     }
     if (writev(1, iov, nRecs) < 0) {
-        ERROR("write failed: %s\n", strerror(errno));
+        ERROR("write failed: %s", strerror(errno));
     }
     free(iov);
     stats.nFrames++;
     stats.nBytes += (bytesPerRow * winHeight);
-    TRACE("Leaving ppmWrite (%dx%d)\n", winWidth, winHeight);
+    TRACE("Leave (%dx%d)", winWidth, winHeight);
 }
 
 void
@@ -1287,7 +1280,7 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
     iov[1].iov_base = (char *)data;
     iov[1].iov_len = dlen;
     if (writev(1, iov, nRecs) < 0) {
-        ERROR("write failed: %s\n", strerror(errno));
+        ERROR("write failed: %s", strerror(errno));
     }
     delete [] iov;
     // stats.nFrames++;
@@ -1297,44 +1290,13 @@ NanoVis::sendDataToClient(const char *command, const char *data, size_t dlen)
 void
 NanoVis::idle()
 {
-    TRACE("in idle()\n");
+    TRACE("Enter");
+
     glutSetWindow(renderWindow);
 
-#ifdef XINETD
-    xinetdListen();
-#else
-    glutPostRedisplay();
-#endif
-    TRACE("leaving idle()\n");
-}
+    processCommands();
 
-void 
-NanoVis::displayOffscreenBuffer()
-{
-    TRACE("in display_offscreen_buffer\n");
-
-    glEnable(GL_TEXTURE_2D);
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-    glBindTexture(GL_TEXTURE_2D, _finalColorTex);
-
-    glViewport(0, 0, winWidth, winHeight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, winWidth, 0, winHeight);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    glColor3f(1.,1.,1.);                //MUST HAVE THIS LINE!!!
-    glBegin(GL_QUADS);
-    {
-        glTexCoord2f(0, 0); glVertex2f(0, 0);
-        glTexCoord2f(1, 0); glVertex2f(winWidth, 0);
-        glTexCoord2f(1, 1); glVertex2f(winWidth, winHeight);
-        glTexCoord2f(0, 1); glVertex2f(0, winHeight);
-    }
-    glEnd();
-
-    TRACE("leaving display_offscreen_buffer\n");
+    TRACE("Leave");
 }
 
 void 
@@ -1434,7 +1396,7 @@ void NanoVis::update()
         elapsed_time = clock.tv_sec + clock.tv_usec/1000000.0 -
             volInterp->getStartTime();
 
-        TRACE("%lf %lf\n", elapsed_time, 
+        TRACE("%lf %lf", elapsed_time, 
               volInterp->getInterval());
         float fraction;
         float f;
@@ -1445,7 +1407,7 @@ void NanoVis::update()
         } else {
             fraction = f / volInterp->getInterval();
         }
-        TRACE("fraction : %f\n", fraction);
+        TRACE("fraction : %f", fraction);
         volInterp->update(fraction);
     }
 }
@@ -1455,7 +1417,7 @@ NanoVis::setVolumeRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
-    TRACE("in SetVolumeRanges\n");
+    TRACE("in SetVolumeRanges");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
@@ -1502,7 +1464,7 @@ NanoVis::setVolumeRanges()
         Volume::valueMax = wMax;
     }
     Volume::updatePending = false;
-    TRACE("leaving SetVolumeRanges\n");
+    TRACE("leaving SetVolumeRanges");
 }
 
 void
@@ -1510,7 +1472,7 @@ NanoVis::setHeightmapRanges()
 {
     double xMin, xMax, yMin, yMax, zMin, zMax, wMin, wMax;
 
-    TRACE("in setHeightmapRanges\n");
+    TRACE("in setHeightmapRanges");
     xMin = yMin = zMin = wMin = DBL_MAX;
     xMax = yMax = zMax = wMax = -DBL_MAX;
     Tcl_HashEntry *hPtr;
@@ -1563,13 +1525,14 @@ NanoVis::setHeightmapRanges()
         hmPtr->mapToGrid(grid);
     }
     HeightMap::updatePending = false;
-    TRACE("leaving setHeightmapRanges\n");
+    TRACE("leaving setHeightmapRanges");
 }
 
 void
 NanoVis::display()
 {
-    TRACE("in display\n");
+    TRACE("Enter");
+
     if (flags & MAP_FLOWS) {
 #ifdef notdef
         xMin = yMin = zMin = wMin = FLT_MAX, magMin = DBL_MAX;
@@ -1593,11 +1556,11 @@ NanoVis::display()
     // Need to reset fbo since it may have been changed to default (0)
     bindOffscreenBuffer();
 
-    TRACE("in display: glClear\n");
+    TRACE("glClear");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear screen
 
     if (volumeMode) {
-        TRACE("in display: volumeMode\n");
+        TRACE("volumeMode");
         //3D rendering mode
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_COLOR_MATERIAL);
@@ -1658,7 +1621,7 @@ NanoVis::display()
         volRenderer->renderAll();
 
         if (heightmapTable.numEntries > 0) {
-            TRACE("in display: render heightmap\n");
+            TRACE("render heightmap");
             Tcl_HashEntry *hPtr;
             Tcl_HashSearch iter;
             for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
@@ -1680,191 +1643,15 @@ NanoVis::display()
 
     perf->reset();
     CHECK_FRAMEBUFFER_STATUS();
-    TRACE("leaving display\n");
-}
-
-#ifndef XINETD
-void 
-NanoVis::mouse(int button, int state, int x, int y)
-{
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            left_last_x = x;
-            left_last_y = y;
-            left_down = true;
-            right_down = false;
-        } else {
-            left_down = false;
-            right_down = false;
-        }
-    } else {
-        //TRACE("right mouse\n");
-
-        if (state == GLUT_DOWN) {
-            //TRACE("right mouse down\n");
-            right_last_x = x;
-            right_last_y = y;
-            left_down = false;
-            right_down = true;
-        } else {
-            //TRACE("right mouse up\n");
-            left_down = false;
-            right_down = false;
-        }
-    }
-}
-
-void
-NanoVis::updateRot(int delta_x, int delta_y)
-{
-    Vector3 angle;
-
-    angle = cam->rotate();
-    angle.x += delta_x;
-    angle.y += delta_y;
-
-    if (angle.x > 360.0) {
-        angle.x -= 360.0;
-    } else if(angle.x < -360.0) {
-        angle.x += 360.0;
-    }
-    if (angle.y > 360.0) {
-        angle.y -= 360.0;
-    } else if(angle.y < -360.0) {
-        angle.y += 360.0;
-    }
-    cam->rotate(angle);
+    TRACE("Leave");
 }
 
 void 
-NanoVis::updateTrans(int delta_x, int delta_y, int delta_z)
-{
-    cam->x(cam->x() + delta_x * 0.03);
-    cam->y(cam->y() + delta_y * 0.03);
-    cam->z(cam->z() + delta_z * 0.03);
-}
-
-void 
-NanoVis::keyboard(unsigned char key, int x, int y)
-{
-#ifdef EVENTLOG
-    if (log) {
-        float param[3];
-        param[0] = cam->x();
-        param[1] = cam->y();
-        param[2] = cam->z();
-        Event* tmp = new Event(EVENT_MOVE, param, NvGetTimeInterval());
-        tmp->write(event_log);
-        delete tmp;
-    }
-#endif
-
-    switch (key) {
-    case 'a': {
-        TRACE("flowvis activated\n");
-        char cmd[] = {
-            "foreach flow [flow names] {\n"
-            "    $flow configure -hide no -slice yes\n"
-            "}\n"
-        };
-        Tcl_Eval(interp, cmd);
-    }
-        break;
-    case 'd': {
-        TRACE("flowvis deactivated\n");
-        char cmd[] = {
-            "foreach flow [flow names] {\n"
-            "    $flow configure -hide yes -slice no\n"
-            "}\n"
-        };
-        Tcl_Eval(interp, cmd);
-    }
-        break;
-    case 'r': {
-        TRACE("flowvis reset\n");
-        char cmd[] = {
-            "flow reset\n"
-        };
-        Tcl_Eval(interp, cmd);
-    }
-        break;
-    }
-}
-
-void 
-NanoVis::motion(int x, int y)
-{
-    int old_x, old_y;
-
-    if (left_down) {
-        old_x = left_last_x;
-        old_y = left_last_y;
-    } else if (right_down) {
-        old_x = right_last_x;
-        old_y = right_last_y;
-    }
-
-    int delta_x = x - old_x;
-    int delta_y = y - old_y;
-
-    //more coarse event handling
-    //if(abs(delta_x)<10 && abs(delta_y)<10)
-    //return;
-
-    if (left_down) {
-        left_last_x = x;
-        left_last_y = y;
-
-        updateRot(-delta_y, -delta_x);
-    } else if (right_down) {
-        //TRACE("right mouse motion (%d,%d)\n", x, y);
-
-        right_last_x = x;
-        right_last_y = y;
-
-        updateTrans(0, 0, delta_x);
-    }
-
-#ifdef EVENTLOG
-    Vector3 angle = cam->rotate();
-    Event* tmp = new Event(EVENT_ROTATE, &angle, NvGetTimeInterval());
-    tmp->write(event_log);
-    delete tmp;
-#endif
-    glutPostRedisplay();
-}
-
-void 
-NanoVis::render()
-{
-    if (licRenderer != NULL) {
-        licRenderer->convolve();
-    }
-
-#ifdef notdef
-    if ((flowVisRenderer != NULL) && (flowVisRenderer->active())) {
-        flowVisRenderer->advect();
-    }
-#endif
-    update();
-    display();
-    glutSwapBuffers();
-}
-
-void 
-NanoVis::resize(int x, int y)
-{
-    glViewport(0, 0, x, y);
-}
-
-#endif /*XINETD*/
-
-void 
-NanoVis::xinetdListen()
+NanoVis::processCommands()
 {
     flags &= ~REDRAW_PENDING;
 
-    TRACE("Enter xinetdListen\n");
+    TRACE("Enter");
 
     int flags = fcntl(0, F_GETFL, 0);
     fcntl(0, F_SETFL, flags & ~O_NONBLOCK);
@@ -1886,7 +1673,7 @@ NanoVis::xinetdListen()
         //  immediately following the command, and we shouldn't consume it
         //  here.
         //
-        TRACE("in xinetdListen: EOF=%d\n", feof(NanoVis::stdin));
+        TRACE("EOF=%d", feof(NanoVis::stdin));
         while (!feof(NanoVis::stdin)) {
             int c = fgetc(NanoVis::stdin);
             char ch;
@@ -1939,10 +1726,10 @@ NanoVis::xinetdListen()
             iov[1].iov_base = msg;
             iov[1].iov_len = msgSize;
             if (writev(1, iov, 2) < 0) {
-                ERROR("write failed: %s\n", strerror(errno));
+                ERROR("write failed: %s", strerror(errno));
             }
         }
-        TRACE("Leaving xinetd_listen on ERROR\n");
+        TRACE("Leaving on ERROR");
         return;
     }
     if (feof(NanoVis::stdin)) {
@@ -1955,28 +1742,22 @@ NanoVis::xinetdListen()
 
     display();
 
-#ifdef XINETD
     readScreen();
-#else
-    displayOffscreenBuffer(); //display the final rendering on screen
-    readScreen();
-    glutSwapBuffers();
-#endif
 
     if (feof(NanoVis::stdin)) {
         doExit(90);
     }
 #ifdef DO_RLE
-    do_rle();
+    doRle();
     int sizes[2] = {  offsets_size*sizeof(offsets[0]), rle_size };
-    TRACE("Writing %d,%d\n", sizes[0], sizes[1]); 
+    TRACE("Writing %d,%d", sizes[0], sizes[1]); 
     write(1, &sizes, sizeof(sizes));
     write(1, offsets, offsets_size*sizeof(offsets[0]));
     write(1, rle, rle_size);    //unsigned byte
 #else
     ppmWrite("nv>image -type image -bytes");
 #endif
-    TRACE("Leaving xinetd_listen OK\n");
+    TRACE("Leave");
 }
 
 int 
@@ -2005,16 +1786,8 @@ main(int argc, char **argv)
     NanoVis::renderWindow = glutCreateWindow("nanovis");
     glutIdleFunc(NanoVis::idle);
 
-#ifndef XINETD
-    glutMouseFunc(NanoVis::mouse);
-    glutMotionFunc(NanoVis::motion);
-    glutKeyboardFunc(NanoVis::keyboard);
-    glutReshapeFunc(NanoVis::resize);
-    glutDisplayFunc(NanoVis::render);
-#else
     glutDisplayFunc(NanoVis::display);
     glutReshapeFunc(NanoVis::resizeOffscreenBuffer);
-#endif
 
     while (1) {
         static struct option long_options[] = {
@@ -2084,8 +1857,6 @@ main(int argc, char **argv)
 
         // See if we can derive the path from the location of the program.
         // Assume program is in the form <path>/bin/nanovis.
-
-#ifdef XINETD
         path = argv[0];
         p = strrchr((char *)path, '/');
         if (p != NULL) {
@@ -2093,34 +1864,21 @@ main(int argc, char **argv)
             p = strrchr((char *)path, '/');
         }
         if (p == NULL) {
-            TRACE("path not specified\n");
+            TRACE("path not specified");
             return 1;
         }
         *p = '\0';
         newPath = new char[(strlen(path) + 15) * 2 + 1];
         sprintf(newPath, "%s/lib/shaders:%s/lib/resources", path, path);
         path = newPath;
-#else
-        char buff[256];
-        getcwd(buff, 255);
-        p = strrchr(buff, '/');
-        if (p != NULL) {
-            *p = '\0';
-        }
-        newPath = new char[(strlen(buff) + 15) * 2 + 1];
-        sprintf(newPath, "%s/lib/shaders:%s/lib/resources", buff, buff);
-        path = newPath;
-#endif
     }
 
     R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
-#ifdef XINETD
 #ifdef notdef
     signal(SIGPIPE, SIG_IGN);
 #endif
     NvInitService();
-#endif
 
     NanoVis::init(path);
     if (newPath != NULL) {

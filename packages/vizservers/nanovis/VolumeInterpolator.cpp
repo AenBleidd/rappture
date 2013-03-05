@@ -24,16 +24,16 @@ VolumeInterpolator::VolumeInterpolator() :
 void VolumeInterpolator::start()
 {
     if (_volumes.size() > 0) {
-        TRACE("\tVolume Interpolation Started\n");
+        TRACE("Volume Interpolation Started");
         _started = true;
     } else {
-        TRACE("\tVolume Interpolation did not get started\n");
+        TRACE("Volume Interpolation NOT Started");
         _started = false;
     }
     struct timeval clock;
     gettimeofday(&clock, NULL);
     _startTime = clock.tv_sec + clock.tv_usec/1000000.0;
-    TRACE("End Start - VolumeInterpolator\n");
+    TRACE("Leave");
 }
 
 void VolumeInterpolator::stop()
@@ -97,7 +97,7 @@ VolumeInterpolator::computeKeys(float fraction, int count, float *interp,
             }
         }
 
-        TRACE("n = %d count = %d\n", n, count);
+        TRACE("n = %d count = %d", n, count);
         if (n >= limit) {
             *key1 = *key2 = limit;
             *interp = 0.0f;
@@ -124,7 +124,7 @@ VolumeInterpolator::addVolume(Volume *refPtr)
             _volumes[0]->height() != refPtr->height() ||   
             _volumes[0]->depth() != refPtr->depth() || 
             _volumes[0]->numComponents() != refPtr->numComponents()) {
-            TRACE("The volume should be the same width, height, number of components\n");
+            TRACE("The volume should be the same width, height, number of components");
             return;
         }
     } else {
@@ -154,11 +154,11 @@ VolumeInterpolator::addVolume(Volume *refPtr)
         _volume->specularExponent(refPtr->specularExponent());
         _volume->opacityScale(refPtr->opacityScale());
         _volume->isosurface(0);
-        TRACE("VOL : location %f %f %f\n\tid : %s\n", loc.x, loc.y, loc.z, 
+        TRACE("VOL : location %f %f %f\n\tid : %s", loc.x, loc.y, loc.z, 
                refPtr->name());
     }
     _volumes.push_back(_volume);
-    TRACE("a Volume[%s] is added to VolumeInterpolator\n", refPtr->name());
+    TRACE("a Volume[%s] is added to VolumeInterpolator", refPtr->name());
 }
 
 Volume *VolumeInterpolator::getVolume()

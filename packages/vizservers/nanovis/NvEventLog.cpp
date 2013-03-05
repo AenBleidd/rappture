@@ -15,7 +15,6 @@
 static FILE *event_log;
 static double cur_time;	//in seconds
 
-#ifdef XINETD
 void NvInitService()
 {
     const char* user = getenv("USER");
@@ -52,7 +51,6 @@ void NvExitService()
 	NanoVis::logfile = NULL;
     }
 }
-#endif
 
 void NvInitEventLog()
 {
@@ -80,4 +78,3 @@ double NvGetTimeInterval()
     cur_time = new_time;
     return interval;
 }
-

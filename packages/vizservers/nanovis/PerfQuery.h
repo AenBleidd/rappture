@@ -53,17 +53,17 @@ public:
 inline bool PerfQuery::checkQuerySupport()
 {
     if (!GLEW_ARB_occlusion_query) {
-        TRACE("ARB_occlusion_query extension not supported\n");
+        TRACE("ARB_occlusion_query extension not supported");
         return false;
     }
     int bitsSupported = -1;
     glGetQueryivARB(GL_SAMPLES_PASSED_ARB, GL_QUERY_COUNTER_BITS_ARB, 
                     &bitsSupported);
     if (bitsSupported == 0) {
-        TRACE("occlusion query not supported!\n");
+        TRACE("occlusion query not supported!");
         return false;
     } else {
-        TRACE("Occlusion query with %d bits supported\n", bitsSupported);
+        TRACE("Occlusion query with %d bits supported", bitsSupported);
         return true;
     }
 }

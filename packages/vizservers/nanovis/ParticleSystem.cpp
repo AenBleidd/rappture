@@ -90,10 +90,10 @@ void *ParticleSystem::dataLoadMain(void *data)
                 LoadProcessedFlowRaw(buff, flowWidth, flowHeight, flowDepth, queue.array[tail]);
 #ifdef WANT_TRACE
                 float ti = clock() / (float) CLOCKS_PER_SEC;
-                TRACE("LoadProcessedFlowRaw time: %f\n", ti - t);
+                TRACE("LoadProcessedFlowRaw time: %f", ti - t);
 #endif
                 queue.push();
-                TRACE("%d loaded\n", curIndex);
+                TRACE("%d loaded", curIndex);
                 ++curIndex;
             }
         }
@@ -310,14 +310,14 @@ ParticleSystem::ParticleSystem(int width, int height,
                 }
                 delete image;
             } else {
-                ERROR("Failed to load image: arrows.bmp\n");
+                ERROR("Failed to load image: arrows.bmp");
             }
             delete loader;
         } else {
-            ERROR("Couldn't find loader for arrows.bmp\n");
+            ERROR("Couldn't find loader for arrows.bmp");
         }
     } else {
-        ERROR("Couldn't find path to arrows.bmp\n");
+        ERROR("Couldn't find path to arrows.bmp");
     }
 
 #ifdef TEST
@@ -1007,13 +1007,13 @@ bool ParticleSystem::advect(float deltaT, float camx, float camy, float camz)
                     _vectorFields[0]->update(data);
 #ifdef WANT_TRACE
                     float ti = clock() / (float) CLOCKS_PER_SEC;
-                    TRACE("updatePixels time: %f\n", ti - t);
+                    TRACE("updatePixels time: %f", ti - t);
 #endif
                     _queue.pop();
                     oldTime = time;
 
                     firstLoad = false;
-                    TRACE("%d bound\n", index++);
+                    TRACE("%d bound", index++);
                 }
             }		
         }
@@ -1191,7 +1191,7 @@ void ParticleSystem::initNewParticles()
 
     glBegin(GL_POINTS);
     for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++) {
-        //TRACE("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
+        //TRACE("[%d] %f %f %f", iter->index, iter->position.x,iter->position.y,iter->position.z);
         glMultiTexCoord3f(GL_TEXTURE0, iter->position.x,iter->position.y,iter->position.z);
 
         // TBD..
@@ -1200,7 +1200,7 @@ void ParticleSystem::initNewParticles()
 
         glVertex2f((float)(iter->index % _width),
                    (float)(iter->index / _height) + 1/* + offsetY*/ /* + offsetY shouldn't be */);
-        //TRACE("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
+        //TRACE("%f %f", (float) (iter->index % _width), (float)(iter->index / _width));
     }
     glEnd();
 
@@ -1245,7 +1245,7 @@ void ParticleSystem::initNewParticles()
 
     glBegin(GL_POINTS);
     for (iter = _newParticles.begin(); iter != _newParticles.end(); iter++) {
-        //TRACE("[%d] %f %f %f\n", iter->index, iter->position.x,iter->position.y,iter->position.z);
+        //TRACE("[%d] %f %f %f", iter->index, iter->position.x,iter->position.y,iter->position.z);
         glMultiTexCoord3f(GL_TEXTURE0, iter->position.x,iter->position.y,iter->position.z);
 
         // TBD..
@@ -1254,7 +1254,7 @@ void ParticleSystem::initNewParticles()
 
         glVertex2f((float)(iter->index % _width),
                    (float)(iter->index / _height) + 1/* + offsetY*/ /* + offsetY shouldn't be */);
-        //TRACE("%f %f\n", (float) (iter->index % _width), (float)(iter->index / _width));
+        //TRACE("%f %f", (float) (iter->index % _width), (float)(iter->index / _width));
     }
     glEnd();
 
@@ -1349,8 +1349,7 @@ void ParticleSystem::sort()
         glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
         TRACE("[%d]", _currentSortIndex);
         for (int i = 0; i < _width * _height * 3; i += 3)
-            TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-        TRACE("\n");
+            TRACE("%.2f, %.2f, %.2f", debug[i], debug[i+1], debug[i+2]);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
     */
@@ -1361,12 +1360,10 @@ void ParticleSystem::sort()
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_currentPosIndex]);
         static float debug[256];
         glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-        TRACE("\n");
         TRACE("currentPos[%d]", _currentPosIndex);
         for (int i = 0; i < _width * _height * 3; i += 3)
-            TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-        TRACE("\n");
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            TRACE("%.2f, %.2f, %.2f", debug[i], debug[i+1], debug[i+2]);
+         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
     */
 
@@ -1397,11 +1394,9 @@ void ParticleSystem::sort()
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, sort_fbo[_currentSortIndex]);
         static float debug[256];
         glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-        TRACE("\n");
         TRACE("[%d]", _currentSortIndex);
         for (int i = 0; i < _width * _height * 3; i += 3)
-            TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-        TRACE("\n");
+            TRACE("%.2f, %.2f, %.2f", debug[i], debug[i+1], debug[i+2]);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
     */
@@ -1456,11 +1451,9 @@ void ParticleSystem::sort()
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, psys_fbo[_destPosIndex]);
         static float debug[256];
         glReadPixels(0, 0, _width, _height, GL_RGB, GL_FLOAT, (float*)debug);
-        TRACE("\n");
         TRACE("[%d]", _currentSortIndex);
         for (int i = 0; i < _width * _height * 3; i += 3)
-            TRACE("%.2f, %.2f, %.2f\n", debug[i], debug[i+1], debug[i+2]);
-        TRACE("\n");
+            TRACE("%.2f, %.2f, %.2f", debug[i], debug[i+1], debug[i+2]);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     }
     */
@@ -1635,7 +1628,7 @@ void ParticleSystem::render()
             cgGLEnableProfile(CG_PROFILE_FP40);
 
             cgSetParameter1f(_mvCurrentTimeParam, _currentTime);
-            //TRACE("%f %f, %f %d\n", _fov, tan(_fov), tan(_fov / 2.0), _screenHeight);
+            //TRACE("%f %f, %f %d", _fov, tan(_fov), tan(_fov / 2.0), _screenHeight);
             //cgSetParameter1f(_mvTanHalfFOVParam, -tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5);
             //float v = tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5;
             cgSetParameter1f(_mvTanHalfFOVParam, tan(_fov * M_PI / 180 * 0.5) * _screenHeight * 0.5);

@@ -224,7 +224,7 @@ NvVectorField::drawDeviceShape()
             z1 = (shape.max.z - min.z) / (max.z - min.z);
         }
 
-        TRACE("rendering box %g,%g %g,%g %g,%g\n", x0, x1, y0, y1, z0, z1);
+        TRACE("rendering box %g,%g %g,%g %g,%g", x0, x1, y0, y1, z0, z1);
 
 	glColor4d(shape.color.x, shape.color.y, shape.color.z, shape.color.w);
 	glLineWidth(1.2);
