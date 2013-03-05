@@ -24,7 +24,7 @@ class Renderer;
 
 #ifndef STATSDIR
 #define STATSDIR	"/var/tmp/visservers"
-#endif  
+#endif
 
 typedef struct {
     pid_t pid;

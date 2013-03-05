@@ -195,9 +195,23 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 }
 #endif /*USE_THREADS*/
 
-#ifndef STATSDIR
-#define STATSDIR	"/var/tmp/visservers"
-#endif  /*STATSDIR*/
+static int sendAck(ClientData clientData, int fdOut)
+{
+    std::ostringstream oss;
+    oss << "nv>ok -token " << g_stats.nCommands <<  "\n";
+    int nBytes = oss.str().length();
+
+    TRACE("Sending OK for commands through %lu", g_stats.nCommands);
+#ifdef USE_THREADS
+    queueResponse(clientData, oss.str().c_str(), nBytes, Response::VOLATILE, Response::OK);
+#else
+    if (write(fdOut, oss.str().c_str(), nBytes) < 0) {
+        ERROR("write failed: %s", strerror(errno));
+        return -1;
+    }
+#endif
+    return 0;
+}
 
 int
 Rappture::VtkVis::getStatsFile(Tcl_Interp *interp, Tcl_Obj *objPtr)
@@ -454,6 +468,7 @@ readerThread(void *clientData)
             g_stats.nFrameBytes += imgData->GetDataSize() * imgData->GetDataTypeSize();
         } else {
             TRACE("No render required");
+            sendAck((ClientData)clientData, g_fdOut);
         }
 
         if (g_inBufPtr->status() == ReadBuffer::ENDFILE)

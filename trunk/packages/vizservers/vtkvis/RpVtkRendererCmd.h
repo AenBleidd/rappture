@@ -12,9 +12,18 @@
 #include <tcl.h>
 
 #include "ReadBuffer.h"
+#ifdef USE_THREADS
+#include "ResponseQueue.h"
+#endif
 
 namespace Rappture {
 namespace VtkVis {
+
+#ifdef USE_THREADS
+extern void queueResponse(ClientData clientData, const void *bytes, size_t len, 
+                          Response::AllocationType allocType,
+                          Response::ResponseType type = Response::DATA);
+#endif
 
 extern int processCommands(Tcl_Interp *interp,
                            ClientData clientData,
