@@ -1,16 +1,18 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef R2_FONTS_H
-#define R2_FONTS_H
+#ifndef NV_UTIL_FONTS_H
+#define NV_UTIL_FONTS_H
 
 #include <vector>
 #include <string>
 
-#include <R2/R2.h>
 #include <R2/R2Object.h>
 
-class R2Fonts : public R2Object
+namespace nv {
+namespace util {
+
+class Fonts : public Object
 {
-    struct R2FontAttributes {
+    struct FontAttributes {
         std::string _fontName;
         int _textureWidth;
         int _textureHeight;
@@ -18,7 +20,7 @@ class R2Fonts : public R2Object
         unsigned int _fontTextureID;
         unsigned int _displayLists;
 
-        struct R2CharInfo {
+        struct CharInfo {
             float _left;
             float _right;
             float _top;
@@ -26,13 +28,13 @@ class R2Fonts : public R2Object
             bool _valid;
             float _width;
         };
-        R2CharInfo _chars[256];
+        CharInfo _chars[256];
     };
 
-    typedef std::vector<R2FontAttributes>  R2FontVector;
+    typedef std::vector<FontAttributes>  FontVector;
 
 public:
-    R2Fonts();
+    Fonts();
 
     /// set projection to orthographic
     void begin();
@@ -40,13 +42,13 @@ public:
     /// reset projection matrix
     void end();
 
-    /// initialize R2FontAttributes
-    void initializeFont(R2FontAttributes& attr);
+    /// initialize FontAttributes
+    void initializeFont(FontAttributes& attr);
 
     /**
      * @brief load font data
      */
-    bool loadFont(const char *fontName, const char *fontFileName, R2FontAttributes& sFont);
+    bool loadFont(const char *fontName, const char *fontFileName, FontAttributes& sFont);
 
     void addFont(const char *fontName, const char *fontFileName);
 
@@ -60,9 +62,9 @@ public:
     int getFontHeight() const;
 
 private:
-    ~R2Fonts();
+    ~Fonts();
 
-    R2FontVector _fonts;
+    FontVector _fonts;
     /// current font index
     int _fontIndex;
     // screen width
@@ -71,9 +73,12 @@ private:
     int _screenHeight;
 };
 
-inline int R2Fonts::getFontHeight() const
+inline int Fonts::getFontHeight() const
 {
     return _fonts[_fontIndex]._fontHeight;
+}
+
+}
 }
 
 #endif

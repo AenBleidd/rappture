@@ -10,10 +10,6 @@
 #include "RenderContext.h"
 #include "AxisRange.h"
 
-namespace graphics {
-    class RenderContext;
-}
-
 class Grid;
 
 /**
@@ -26,7 +22,7 @@ public:
 
     ~HeightMap();
 
-    void render(graphics::RenderContext *renderContext);
+    void render(nv::graphics::RenderContext *renderContext);
 
     /**
      *@brief Create a height map with heigh values
@@ -124,7 +120,7 @@ private:
     unsigned int _vertexBufferObjectID;
     unsigned int _texcoordBufferObjectID;
     int _vertexCount;
-    R2Geometry *_contour;
+    nv::graphics::Geometry *_contour;
     TransferFunction *_tfPtr;
     float _opacity;
     NvShader *_shader;

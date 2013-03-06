@@ -10,6 +10,8 @@
 #include "ParticleSystem.h"
 #include "Trace.h"
 
+using namespace nv::util;
+
 #define BUFSIZE 4096
 
 void ParticleSystemFactory::text(void *data, const XML_Char *txt, int len)
@@ -143,7 +145,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
     if (timeVaryingData) {
         char buff[256];
         sprintf(buff, fileName.c_str(), startIndex);
-        std::string path = R2FilePath::getInstance()->getPath(buff);
+        std::string path = FilePath::getInstance()->getPath(buff);
         if (path.size()) {
             std::string dir;
             int index = path.rfind('/');
@@ -168,7 +170,7 @@ void ParticleSystemFactory::parseParticleSysInfo(const char** attrs)
                                    timeVaryingData, startIndex, endIndex);
         }
     } else {
-        std::string path = R2FilePath::getInstance()->getPath(fileName.c_str());
+        std::string path = FilePath::getInstance()->getPath(fileName.c_str());
         _newParticleSystem =
             new ParticleSystem(width, height, path.c_str(),
                                fieldWidth, fieldHeight, fieldDepth,

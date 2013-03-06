@@ -12,12 +12,14 @@
 
 #include "Trace.h"
 
-std::string R2FilePath::_curDirectory;
-R2FilePath R2FilePath::_instance;
+using namespace nv::util;
+
+std::string FilePath::_curDirectory;
+FilePath FilePath::_instance;
 
 static char seps[] = ":";
 
-R2FilePath::R2FilePath()
+FilePath::FilePath()
 {
     char buff[BUFSIZ+2];
 #ifdef _WIN32
@@ -34,7 +36,7 @@ R2FilePath::R2FilePath()
 }
 
 bool 
-R2FilePath::setPath(const char *filePath)
+FilePath::setPath(const char *filePath)
 {
     char buff[256];
 
@@ -69,14 +71,14 @@ R2FilePath::setPath(const char *filePath)
     return true;
 }
 
-R2FilePath *
-R2FilePath::getInstance()
+FilePath *
+FilePath::getInstance()
 {
     return &_instance;
 }
 
 std::string
-R2FilePath::getPath(const char* fileName)
+FilePath::getPath(const char* fileName)
 {
     std::string path;
 
@@ -94,7 +96,7 @@ R2FilePath::getPath(const char* fileName)
 }
 
 void 
-R2FilePath::setWorkingDirectory(int argc, const char **argv)
+FilePath::setWorkingDirectory(int argc, const char **argv)
 {
     char buff[256];
 

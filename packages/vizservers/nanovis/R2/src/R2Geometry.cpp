@@ -4,8 +4,11 @@
 
 #include <R2/graphics/R2Geometry.h>
 
-R2Geometry::R2Geometry(int primitive, R2VertexBuffer *vertexBuffer, 
-                       R2IndexBuffer *indexBuffer) : 
+using namespace nv::graphics;
+
+Geometry::Geometry(int primitive,
+                   VertexBuffer *vertexBuffer, 
+                   IndexBuffer *indexBuffer) : 
     _vertexBuffer(vertexBuffer), 
     _colorBuffer(0),
     _indexBuffer(indexBuffer), 
@@ -13,8 +16,10 @@ R2Geometry::R2Geometry(int primitive, R2VertexBuffer *vertexBuffer,
 {
 }
 
-R2Geometry::R2Geometry(int primitive, R2VertexBuffer *vertexBuffer, 
-                       R2VertexBuffer *colorBuffer, R2IndexBuffer *indexBuffer) : 
+Geometry::Geometry(int primitive,
+                   VertexBuffer *vertexBuffer, 
+                   VertexBuffer *colorBuffer,
+                   IndexBuffer *indexBuffer) : 
     _vertexBuffer(vertexBuffer), 
     _colorBuffer(colorBuffer),
     _indexBuffer(indexBuffer), 
@@ -22,12 +27,12 @@ R2Geometry::R2Geometry(int primitive, R2VertexBuffer *vertexBuffer,
 {
 }
 
-R2Geometry::~R2Geometry()
+Geometry::~Geometry()
 {
 }
 
 void 
-R2Geometry::render()
+Geometry::render()
 {
     //glDisableClientState(GL_NORMAL_ARRAY);
     //glDisableClientState(GL_TEXTURE_COORD_ARRAY);

@@ -40,8 +40,8 @@ public:
 
     ContourLineFilter();
 
-    R2Geometry *create(float min, float max, int linecount, Vector3 *vertices, int width, int height);
-    R2Geometry *create(float min, float max, int linecount, Vector4 *vertices, int width, int height);
+    nv::graphics::Geometry *create(float min, float max, int linecount, Vector3 *vertices, int width, int height);
+    nv::graphics::Geometry *create(float min, float max, int linecount, Vector4 *vertices, int width, int height);
 
     void setColorMap(Vector3Array *colorMap);
     

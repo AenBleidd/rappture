@@ -16,15 +16,15 @@ public :
 
     void render(int width, int height,
                 Texture2D *texture, TransferFunction *tf,
-                double rangeMin, double rageMax);
+                double rangeMin, double rangeMax);
 
-    void setFonts(R2Fonts *fonts)
+    void setFonts(nv::util::Fonts *fonts)
     {
         _fonts = fonts;
     }
 
 private:
-    R2Fonts *_fonts;
+    nv::util::Fonts *_fonts;
     NvColorTableShader *_shader;
 };
 

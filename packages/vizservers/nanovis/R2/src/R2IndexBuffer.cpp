@@ -4,7 +4,9 @@
 
 #include <R2/graphics/R2IndexBuffer.h>
 
-R2IndexBuffer::R2IndexBuffer(int indexCount, int* data, bool copy) :
+using namespace nv::graphics;
+
+IndexBuffer::IndexBuffer(int indexCount, int* data, bool copy) :
     _indexCount(indexCount)
 {
     if (copy) {
@@ -15,7 +17,7 @@ R2IndexBuffer::R2IndexBuffer(int indexCount, int* data, bool copy) :
     }
 }
 
-R2IndexBuffer::~R2IndexBuffer()
+IndexBuffer::~IndexBuffer()
 {
     if (_data) {
         free(_data);

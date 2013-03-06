@@ -49,7 +49,7 @@
 /*
  * Controls if debug trace logging is enabled
  */
-//#define WANT_TRACE
+#define WANT_TRACE
 
 /*
  * Controls whether DX data is downsampled.

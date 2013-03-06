@@ -4,6 +4,7 @@
 
 #include <GL/gl.h>
 
+namespace nv {
 namespace graphics {
 
 class RenderContext
@@ -68,6 +69,7 @@ private :
     ShadingModel _shadingModel;
 };
 
+}
 }
 
 #endif

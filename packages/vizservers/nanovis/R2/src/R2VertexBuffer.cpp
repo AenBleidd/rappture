@@ -7,9 +7,13 @@
 
 #include <R2/graphics/R2VertexBuffer.h>
 
-R2VertexBuffer::R2VertexBuffer(int type, int vertexCount,
-                               int byteSize, void *data, bool copy) :
-    _graphicObjectID(0), _byteSize(byteSize), _vertexCount(vertexCount)
+using namespace nv::graphics;
+
+VertexBuffer::VertexBuffer(int type, int vertexCount,
+                           int byteSize, void *data, bool copy) :
+    _graphicObjectID(0),
+    _byteSize(byteSize),
+    _vertexCount(vertexCount)
 {
     if (copy) {
         _data = (void*) malloc(byteSize);
@@ -26,7 +30,7 @@ R2VertexBuffer::R2VertexBuffer(int type, int vertexCount,
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-R2VertexBuffer::~R2VertexBuffer()
+VertexBuffer::~VertexBuffer()
 {
     if (_graphicObjectID != 0) {
         glDeleteBuffers(1, &_graphicObjectID);

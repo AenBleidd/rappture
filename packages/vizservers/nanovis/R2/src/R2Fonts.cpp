@@ -9,17 +9,19 @@
 #include <R2/R2Fonts.h>
 #include <R2/R2FilePath.h>
 
+using namespace nv::util;
+
 // constants
 const int c_nFileMagicHeader = 6666;
 
-R2Fonts::R2Fonts() : 
+Fonts::Fonts() : 
     _fontIndex(-1), 
     _screenWidth(512), 
     _screenHeight(512)
 {
 }
 
-R2Fonts::~R2Fonts()
+Fonts::~Fonts()
 {
     for (unsigned index = 0; index < _fonts.size(); ++index) {
         glDeleteLists(_fonts[index]._displayLists, 256);
@@ -28,7 +30,7 @@ R2Fonts::~R2Fonts()
 }
 
 void 
-R2Fonts::setFont(const char *fontName)
+Fonts::setFont(const char *fontName)
 {
     if (fontName != NULL) {
         unsigned int i;
@@ -42,9 +44,9 @@ R2Fonts::setFont(const char *fontName)
 }
 
 void 
-R2Fonts::addFont(const char *fontName, const char *fontFileName)
+Fonts::addFont(const char *fontName, const char *fontFileName)
 {
-    R2FontAttributes sFont;
+    FontAttributes sFont;
     
     loadFont(fontName, fontFileName, sFont);
     initializeFont(sFont);
@@ -52,7 +54,7 @@ R2Fonts::addFont(const char *fontName, const char *fontFileName)
 }
 
 void 
-R2Fonts::draw(const char *pString, ...) const
+Fonts::draw(const char *pString, ...) const
 {
     va_list vlArgs;
     char szVargsBuffer[1024];
@@ -70,7 +72,7 @@ R2Fonts::draw(const char *pString, ...) const
 }
 
 void 
-R2Fonts::begin()
+Fonts::begin()
 {
     glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT);
     glEnable(GL_TEXTURE_2D);
@@ -91,7 +93,7 @@ R2Fonts::begin()
 }
 
 void 
-R2Fonts::end()
+Fonts::end()
 {
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -105,13 +107,13 @@ R2Fonts::end()
 }
 
 void 
-R2Fonts::initializeFont(R2FontAttributes& attr)
+Fonts::initializeFont(FontAttributes& attr)
 {
     attr._displayLists = glGenLists(256);
 
     int index;
     for (index = 0; index < 256; ++index) {
-        R2FontAttributes::R2CharInfo& charInfo = attr._chars[index];
+        FontAttributes::CharInfo& charInfo = attr._chars[index];
         glNewList(attr._displayLists + index, GL_COMPILE);
         if (charInfo._valid) {
             glBegin(GL_TRIANGLE_STRIP);
@@ -136,12 +138,12 @@ R2Fonts::initializeFont(R2FontAttributes& attr)
 }
 
 bool 
-R2Fonts::loadFont(const char *fontName, const char *fontFileName, 
-                  R2FontAttributes& sFont)
+Fonts::loadFont(const char *fontName, const char *fontFileName, 
+                FontAttributes& sFont)
 {
     bool bSuccess = false;
 
-    std::string path = R2FilePath::getInstance()->getPath(fontFileName);
+    std::string path = FilePath::getInstance()->getPath(fontFileName);
     if (path.empty()) {
         return false;
     }
@@ -232,7 +234,7 @@ R2Fonts::loadFont(const char *fontName, const char *fontFileName,
 }
 
 void 
-R2Fonts::resize(int width, int height)
+Fonts::resize(int width, int height)
 {
     _screenWidth = width;
     _screenHeight = height;

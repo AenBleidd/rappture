@@ -57,7 +57,7 @@ public:
 
     void render();
 
-    void setFont(R2Fonts *font);
+    void setFont(nv::util::Fonts *font);
 
     Axis xAxis;
     Axis yAxis;
@@ -65,7 +65,7 @@ public:
 
 private:
     RGBA _axisColor, _majorColor, _minorColor;
-    R2Fonts *_font;
+    nv::util::Fonts *_font;
     bool _visible;
 };
 
