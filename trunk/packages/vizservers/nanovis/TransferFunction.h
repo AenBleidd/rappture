@@ -16,8 +16,6 @@
 #ifndef TRANSFER_FUNCTION_H
 #define TRANSFER_FUNCTION_H
 
-#include <R2/R2Object.h>
-
 #include "Texture1D.h"
 #include "Vector3.h"
 
