@@ -9,10 +9,10 @@
 #include <cmath>
 #include <float.h>
 
-#include <vrmath/vrQuaternion.h>
-#include <vrmath/vrRotation.h>
-#include <vrmath/vrLinmath.h>
-#include <vrmath/vrVector3f.h>
+#include <vrmath/Quaternion.h>
+#include <vrmath/Rotation.h>
+#include <vrmath/Linmath.h>
+#include <vrmath/Vector3f.h>
 
 #ifndef PI
 #define PI 3.14159264

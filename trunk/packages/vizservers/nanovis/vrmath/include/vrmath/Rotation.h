@@ -2,7 +2,7 @@
 #ifndef VRROTATION_H
 #define VRROTATION_H
 
-#include <vrmath/vrLinmath.h>
+#include <vrmath/Linmath.h>
 
 class vrVector3f;
 class vrQuaternion;

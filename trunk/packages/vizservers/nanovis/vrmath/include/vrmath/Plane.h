@@ -8,10 +8,10 @@
 #ifndef VRPLANE_H
 #define VRPLANE_H
 
-#include <vrmath/vrLinmath.h>
-#include <vrmath/vrMatrix4x4f.h>
-#include <vrmath/vrVector4f.h>
-#include <vrmath/vrVector3f.h>
+#include <vrmath/Linmath.h>
+#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Vector4f.h>
+#include <vrmath/Vector3f.h>
 
 class vrPlane
 {

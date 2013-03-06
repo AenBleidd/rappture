@@ -1,6 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vrmath/vrVector3f.h>
-#include <vrmath/vrMatrix4x4f.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Matrix4x4f.h>
 
 void vrVector3f::transform(const vrMatrix4x4f& m, const vrVector3f& v)
 {

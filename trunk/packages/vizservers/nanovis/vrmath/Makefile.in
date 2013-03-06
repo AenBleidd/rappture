@@ -40,20 +40,20 @@ CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 VRMATHLIB	= vrmath.a
 
 OBJS		= \
-		vrBBox.o \
-		vrColor4f.o \
-		vrLinmath.o \
-		vrPlane2.o \
-		vrProjection.o \
-		vrRotation.o \
-		vrVector3f.o \
-		vrBPlane.o \
-		vrLineSegment.o \
-		vrMatrix4x4f.o \
-		vrPlane.o \
-		vrQuaternion.o \
-		vrVector2f.o \
-		vrVector4f.o \
+		BBox.o \
+		BPlane.o \
+		Color4f.o \
+		LineSegment.o \
+		Linmath.o \
+		Matrix4x4f.o \
+		Plane.o \
+		Plane2.o \
+		Projection.o \
+		Quaternion.o \
+		Rotation.o \
+		Vector2f.o \
+		Vector3f.o \
+		Vector4f.o \
 
 all: $(VRMATHLIB)
 

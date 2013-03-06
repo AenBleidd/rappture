@@ -2,9 +2,9 @@
 #ifndef VRBBOX_H
 #define VRBBOX_H
 
-#include <vrmath/vrLinmath.h>
-#include <vrmath/vrVector3f.h>
-#include <vrmath/vrMatrix4x4f.h>
+#include <vrmath/Linmath.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Matrix4x4f.h>
 
 class vrBBox
 {

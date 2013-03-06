@@ -20,9 +20,9 @@
 #include <GL/glew.h>
 #include <GL/glu.h>
 
-#include <vrmath/vrQuaternion.h>
-#include <vrmath/vrRotation.h>
-#include <vrmath/vrMatrix4x4f.h>
+#include <vrmath/Quaternion.h>
+#include <vrmath/Rotation.h>
+#include <vrmath/Matrix4x4f.h>
 
 #include "NvCamera.h"
 #include "Trace.h"

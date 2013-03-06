@@ -16,9 +16,9 @@
 #include <ImageLoader.h>
 #include <ImageLoaderFactory.h>
 
-#include <vrmath/vrMatrix4x4f.h>
-#include <vrmath/vrVector3f.h>
-#include <vrmath/vrVector4f.h>
+#include <vrmath/Matrix4x4f.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"

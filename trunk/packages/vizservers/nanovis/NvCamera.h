@@ -16,7 +16,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <vrmath/vrMatrix4x4f.h>
+#include <vrmath/Matrix4x4f.h>
 
 #include "config.h"
 #include "Vector3.h"
