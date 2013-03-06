@@ -2297,8 +2297,14 @@ ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc,
         if (strcmp(str, "default") == 0) {
             numEntries = -1;
         } else {
+            Tcl_AppendResult(interp, "bad colormap resolution value \"", str,
+                             "\": should be a positive integer or \"default\"", (char*)NULL);
             return TCL_ERROR;
         }
+    } else if (numEntries < 1) {
+        Tcl_AppendResult(interp, "bad colormap resolution value \"", Tcl_GetString(objv[2]),
+                         "\": should be a  positive integer or \"default\"", (char*)NULL);
+        return TCL_ERROR;
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
