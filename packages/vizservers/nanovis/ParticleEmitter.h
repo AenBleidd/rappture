@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include <vrmath/vrVector3f.h>
+#include <vrmath/Vector3f.h>
 
 class ParticleEmitter
 {

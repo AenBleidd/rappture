@@ -1,5 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vrmath/vrLineSegment.h>
+#include <vrmath/LineSegment.h>
 
 
 vrLineSegment::vrLineSegment():

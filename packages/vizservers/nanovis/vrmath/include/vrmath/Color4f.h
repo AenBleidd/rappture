@@ -2,7 +2,7 @@
 #ifndef VRCOLOR4F_H
 #define VRCOLOR4F_H
 
-#include <vrmath/vrLinmath.h>
+#include <vrmath/Linmath.h>
 
 class vrColor4f
 {

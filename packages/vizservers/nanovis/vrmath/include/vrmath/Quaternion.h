@@ -8,7 +8,7 @@
 #ifndef VRQUATERNION_H
 #define VRQUATERNION_H
 
-#include <vrmath/vrLinmath.h>
+#include <vrmath/Linmath.h>
 
 class vrRotation;
 

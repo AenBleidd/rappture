@@ -1,5 +1,5 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#include <vrmath/vrBPlane.h>
+#include <vrmath/BPlane.h>
 
 void vrBPlane::makePts(const vrVector3f& p1, const vrVector3f& p2, const vrVector3f& p3)
 {

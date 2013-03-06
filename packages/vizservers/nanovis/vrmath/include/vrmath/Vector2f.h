@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <vrmath/vrLinmath.h>
+#include <vrmath/Linmath.h>
 
 class vrVector2f
 {

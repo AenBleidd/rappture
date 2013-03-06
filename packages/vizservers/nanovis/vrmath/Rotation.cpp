@@ -1,9 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <math.h>
 
-#include <vrmath/vrRotation.h>
-#include <vrmath/vrVector3f.h>
-#include <vrmath/vrQuaternion.h>
+#include <vrmath/Rotation.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Quaternion.h>
 
 void vrRotation::set(const vrVector3f &vec1, const vrVector3f &vec2)
 {

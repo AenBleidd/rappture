@@ -4,9 +4,9 @@
 
 #include <memory.h>
 
-#include <vrmath/vrLinmath.h>
-#include <vrmath/vrVector3f.h>
-#include <vrmath/vrRotation.h>
+#include <vrmath/Linmath.h>
+#include <vrmath/Vector3f.h>
+#include <vrmath/Rotation.h>
 
 class vrMatrix4x4f
 {
