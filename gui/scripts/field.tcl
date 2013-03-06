@@ -1199,10 +1199,7 @@ itcl::body Rappture::Field::vtkdata {cname} {
     if { [info exists _comp2mesh($cname)] } {
 	# Data is in the form mesh and vector
 	foreach {mesh vector} $_comp2mesh($cname) break
-	set label [hints zlabel] 
-	if { $label == "" } {
-	    set label $cname
-        }
+        set label $cname
         regsub -all { } $label {_} label
 	append out "# vtk DataFile Version 3.0\n"
 	append out "[hints label]\n"
@@ -1242,7 +1239,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
     if { $label != "" } {
         set _field2Label($name) $label
     }
-    set _field2Units($name) [hints zlabel]
+    set _field2Units($name) [hints zunits]
     set _field2Components($name) 1
     lappend _comp2fields($cname) $name
 
