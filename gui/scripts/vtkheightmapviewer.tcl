@@ -1387,8 +1387,6 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
                 } else {
                     set label $_curFldLabel
                 }
-            } else {
-                set label Z
 	    }
 	    # May be a space in the axis label.
 	    SendCmd [list axis name z $label]
