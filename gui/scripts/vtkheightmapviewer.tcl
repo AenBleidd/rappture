@@ -214,6 +214,7 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
         axisYGrid		0
         axisZGrid		0
         colormapVisible         1
+        colormapDiscrete        0
         edges			0
         field			"Default"
         heightmapScale		50
@@ -1349,6 +1350,10 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 		    set _settings(colormapVisible) 1
 		}
 		SetCurrentColormap $color
+                if {$_settings(colormapDiscrete)} {
+                    set numColors [expr $_settings(numIsolines) - 1]
+                    SendCmd "colormap res $numColors $color"
+                }
 	    }
             #SendCmd "heightmap colormode scalar $_curFldName"
             #SendCmd "dataset scalar $_curFldName"
@@ -1358,6 +1363,19 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
         "colormapVisible" {
             set bool $_settings($what)
             SendCmd "heightmap surface $bool"
+        }
+        "colormapDiscrete" {
+            set bool $_settings($what)
+            set numColors [expr $_settings(numIsolines) - 1]
+            StartBufferingCommands
+            if {$bool} {
+                SendCmd "colormap res $numColors"
+            } else {
+                SendCmd "colormap res default"
+            }
+            SendCmd "heightmap preinterp $bool"
+            StopBufferingCommands
+            EventuallyRequestLegend
         }
         "edges" {
             set bool $_settings(edges)
@@ -1529,7 +1547,13 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
             set _settings(numIsolines) [$itk_component(numisolines) value]
             set _currentNumIsolines $_settings(numIsolines)
             SendCmd "heightmap numcontours $_settings(numIsolines)"
-	    DrawLegend
+            if {$_settings(colormapDiscrete)} {
+                set numColors [expr $_settings(numIsolines) - 1]
+                SendCmd "colormap res $numColors"
+                EventuallyRequestLegend
+            } else {
+                DrawLegend
+            }
         }
         "opacity" {
             set _changed(opacity) 1
@@ -1788,6 +1812,12 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         -command [itcl::code $this AdjustSetting isolinesVisible] \
         -font "Arial 9"
 
+    checkbutton $inner.colormapDiscrete \
+        -text "Discrete Colormap" \
+        -variable [itcl::scope _settings(colormapDiscrete)] \
+        -command [itcl::code $this AdjustSetting colormapDiscrete] \
+        -font "Arial 9"
+
     itk_component add field_l {
         label $inner.field_l -text "Field" -font "Arial 9" 
     } {
@@ -1904,18 +1934,19 @@ itcl::body Rappture::VtkHeightmapViewer::BuildContourTab {} {
         5,0 $inner.stretch    -anchor w -pady 2 -cspan 2 \
         6,0 $inner.edges      -anchor w -pady 2 -cspan 2 \
         7,0 $inner.legend     -anchor w -pady 2 -cspan 2 \
-        8,0 $inner.wireframe  -anchor w -pady 2 -cspan 2\
-        9,0 $inner.outline    -anchor w -pady 2 -cspan 2 \
-        10,0 $inner.isolines   -anchor w -pady 2 -cspan 2 \
-        11,0 $inner.separator -padx 2 -fill x -cspan 2 \
-        12,0 $inner.lighting   -anchor w -pady 2 -cspan 2 \
-        13,0 $inner.opacity_l -anchor w -pady 2 \
-        13,1 $inner.opacity   -fill x   -pady 2 \
-        14,0 $inner.scale_l   -anchor w -pady 2 -cspan 2 \
-        14,1 $inner.scale     -fill x   -pady 2 -cspan 2 \
+        8,0 $inner.colormapDiscrete -anchor w -pady 2 -cspan 2 \
+        9,0 $inner.wireframe  -anchor w -pady 2 -cspan 2\
+        10,0 $inner.outline    -anchor w -pady 2 -cspan 2 \
+        11,0 $inner.isolines   -anchor w -pady 2 -cspan 2 \
+        12,0 $inner.separator -padx 2 -fill x -cspan 2 \
+        13,0 $inner.lighting   -anchor w -pady 2 -cspan 2 \
+        14,0 $inner.opacity_l -anchor w -pady 2 \
+        14,1 $inner.opacity   -fill x   -pady 2 \
+        15,0 $inner.scale_l   -anchor w -pady 2 -cspan 2 \
+        15,1 $inner.scale     -fill x   -pady 2 -cspan 2 \
 
     blt::table configure $inner r* c* -resize none
-    blt::table configure $inner r15 c1 -resize expand
+    blt::table configure $inner r16 c1 -resize expand
 }
 
 itcl::body Rappture::VtkHeightmapViewer::BuildAxisTab {} {
@@ -2176,6 +2207,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     set _currentOpacity $style(-opacity)
     if { $_currentNumIsolines != $style(-levels) } {
         set _currentNumIsolines $style(-levels)
+        set _settings(numIsolines) $_currentNumIsolines
         DrawLegend
     }
     SendCmd "dataset outline $_settings(outline) $tag"
