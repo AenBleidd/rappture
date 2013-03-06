@@ -1,42 +1,46 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef R2_OBJECT_H
-#define R2_OBJECT_H
+#ifndef NV_UTIL_OBJECT_H
+#define NV_UTIL_OBJECT_H
 
-#include <R2/R2.h>
+namespace nv {
+namespace util {
 
-class R2Object
+class Object
 {
 public:
-    R2Object();
+    Object();
 
     int getRef();
     int ref();
     void unref();
 
 protected:
-    virtual ~R2Object();
+    virtual ~Object();
 
 private:
     /// reference count
     int _refCount;
 };
 
-inline int R2Object::getRef()
+inline int Object::getRef()
 {
     return _refCount;
 }
 
-inline int R2Object::ref()
+inline int Object::ref()
 {
     return ++_refCount;
 }
 
-inline void R2Object::unref()
+inline void Object::unref()
 {
     _refCount--;
     if (_refCount <= 0) {
 	delete this;
     }
+}
+
+}
 }
 
 #endif

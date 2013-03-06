@@ -79,6 +79,9 @@
 #include "VolumeRenderer.h"
 #include "ZincBlendeVolume.h"
 
+using namespace nv::graphics;
+using namespace nv::util;
+
 #define SIZEOF_BMP_HEADER   54
 
 /// Indicates "up" axis
@@ -134,9 +137,9 @@ NvFlowVisRenderer *NanoVis::flowVisRenderer = NULL;
 #endif
 VelocityArrowsSlice *NanoVis::velocityArrowsSlice = NULL;
 
-graphics::RenderContext *NanoVis::renderContext = NULL;
+RenderContext *NanoVis::renderContext = NULL;
 NvLIC *NanoVis::licRenderer = NULL;
-R2Fonts *NanoVis::fonts;
+Fonts *NanoVis::fonts;
 
 FILE *NanoVis::stdin = NULL;
 FILE *NanoVis::logfile = NULL;
@@ -894,7 +897,7 @@ void NanoVis::init(const char* path)
         exitService(1);
     }
 
-    if (!R2FilePath::getInstance()->setPath(path)) {
+    if (!FilePath::getInstance()->setPath(path)) {
         ERROR("can't set file path to %s", path);
         exitService(1);
     }
@@ -904,7 +907,7 @@ void NanoVis::init(const char* path)
     NvShader::initCg();
     NvShader::setErrorCallback(cgErrorCallback);
 
-    fonts = new R2Fonts();
+    fonts = new Fonts();
     fonts->addFont("verdana", "verdana.fnt");
     fonts->setFont("verdana");
 
@@ -975,7 +978,7 @@ NanoVis::initGL()
     volRenderer = new VolumeRenderer();
 
     // create
-    renderContext = new graphics::RenderContext();
+    renderContext = new RenderContext();
 
     //create a 2D plane renderer
     planeRenderer = new PlaneRenderer(winWidth, winHeight);
@@ -1908,7 +1911,7 @@ main(int argc, char **argv)
         path = newPath;
     }
 
-    R2FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
+    FilePath::getInstance()->setWorkingDirectory(argc, (const char**) argv);
 
 #ifdef notdef
     signal(SIGPIPE, SIG_IGN);

@@ -10,6 +10,8 @@
 #include "NvShader.h"
 #include "Trace.h"
 
+using namespace nv::util;
+
 CGprofile NvShader::_defaultVertexProfile = CG_PROFILE_VP40;
 CGprofile NvShader::_defaultFragmentProfile = CG_PROFILE_FP40;
 CGcontext NvShader::_cgContext = NULL;
@@ -51,7 +53,7 @@ CGprogram
 NvShader::loadCgSourceProgram(CGcontext context, const char *fileName,
                               CGprofile profile, const char *entryPoint)
 {
-    std::string path = R2FilePath::getInstance()->getPath(fileName);
+    std::string path = FilePath::getInstance()->getPath(fileName);
     if (path.empty()) {
         ERROR("can't find program \"%s\"", fileName);
     }

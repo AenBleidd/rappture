@@ -8,6 +8,8 @@
 #include "Grid.h"
 #include "Trace.h"
 
+using namespace nv::util;
+
 #define NUMDIGITS	6
 #define GRID_TICK	0.05
 
@@ -245,7 +247,7 @@ void Grid::render()
     glPopAttrib();
 }
 
-void Grid::setFont(R2Fonts *font)
+void Grid::setFont(Fonts *font)
 {
 //    if (font == _font) return;
 //    if (font) font->addRef();

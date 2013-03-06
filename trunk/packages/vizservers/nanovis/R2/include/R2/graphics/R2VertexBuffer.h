@@ -1,8 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef R2_VERTEXBUFFER_H
-#define R2_VERTEXBUFFER_H
+#ifndef NV_GRAPHICS_VERTEXBUFFER_H
+#define NV_GRAPHICS_VERTEXBUFFER_H
 
-class R2VertexBuffer
+namespace nv {
+namespace graphics {
+
+class VertexBuffer
 {
 public:
     enum {
@@ -12,10 +15,10 @@ public:
         COLOR4 = 0x08
     };
 
-    R2VertexBuffer(int type, int vertexCount,
-                   int byteSize, void *data, bool copy = true);
+    VertexBuffer(int type, int vertexCount,
+                 int byteSize, void *data, bool copy = true);
 
-    ~R2VertexBuffer();
+    ~VertexBuffer();
 
     unsigned int getGraphicObjectID() const;
 
@@ -31,14 +34,17 @@ private:
     int _vertexCount;
 };
 
-inline int R2VertexBuffer::getVertexCount() const
+inline int VertexBuffer::getVertexCount() const
 {
     return _vertexCount;
 }
 
-inline unsigned int R2VertexBuffer::getGraphicObjectID() const
+inline unsigned int VertexBuffer::getGraphicObjectID() const
 {
     return _graphicObjectID;
+}
+
+}
 }
 
 #endif

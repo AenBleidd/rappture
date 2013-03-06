@@ -1,7 +1,7 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include "RenderContext.h"
 
-namespace graphics {
+using namespace nv::graphics;
 
 RenderContext::RenderContext() :
     _cullMode(NO_CULL),
@@ -14,4 +14,3 @@ RenderContext::~RenderContext()
 {
 }
 
-}

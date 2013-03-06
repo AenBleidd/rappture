@@ -16,6 +16,8 @@
 #include "NvShader.h"
 #include "NvCamera.h"
 
+using namespace nv::util;
+
 static inline float deg2rad(float deg)
 {
     return ((deg * M_PI) / 180.);
@@ -62,7 +64,7 @@ VelocityArrowsSlice::VelocityArrowsSlice() :
 
     createRenderTarget();
 
-    std::string path = R2FilePath::getInstance()->getPath("arrows.bmp");
+    std::string path = FilePath::getInstance()->getPath("arrows.bmp");
     if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
         if (loader != NULL) {

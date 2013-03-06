@@ -28,6 +28,8 @@
 #include "NvShader.h"
 #include "Trace.h"
 
+using namespace nv::util;
+
 #define USE_RGBA_ARROW
 
 //#define TEST
@@ -83,7 +85,7 @@ void *ParticleSystem::dataLoadMain(void *data)
             int tail = queue.tailIndex();
             if (tail != -1) {
                 sprintf(buff, fileNameFormat, curIndex);
-                //std::string path = R2FilePath::getInstance()->getPath(buff);
+                //std::string path = FilePath::getInstance()->getPath(buff);
 #ifdef WANT_TRACE
                 float t = clock() /(float) CLOCKS_PER_SEC;
 #endif
@@ -284,7 +286,7 @@ ParticleSystem::ParticleSystem(int width, int height,
         _curVectorFieldID = _vectorFieldIDs[0];
     }
 
-    std::string path = R2FilePath::getInstance()->getPath("arrows.bmp");
+    std::string path = FilePath::getInstance()->getPath("arrows.bmp");
 
     if (!path.empty()) {
         ImageLoader *loader = ImageLoaderFactory::getInstance()->createLoader("bmp");
@@ -418,7 +420,7 @@ void ParticleSystem::initShaders()
     // TBD...
     _context = NvShader::getCgContext();
 
-    std::string path = R2FilePath::getInstance()->getPath("distance.cg");
+    std::string path = FilePath::getInstance()->getPath("distance.cg");
     _distanceInitFP =  
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "initSortIndex", NULL);
@@ -435,7 +437,7 @@ void ParticleSystem::initShaders()
                                 CG_PROFILE_FP40, "lookupPosition", NULL);
     cgGLLoadProgram(_distanceSortLookupFP);
 
-    path = R2FilePath::getInstance()->getPath("mergesort.cg");
+    path = FilePath::getInstance()->getPath("mergesort.cg");
     _sortRecursionFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "mergeSortRecursion", NULL);
@@ -453,7 +455,7 @@ void ParticleSystem::initShaders()
     _seSizeParam = cgGetNamedParameter(_sortEndFP, "size");
     _seStepParam = cgGetNamedParameter(_sortEndFP, "step");
 
-    path = R2FilePath::getInstance()->getPath("passthrough.cg");
+    path = FilePath::getInstance()->getPath("passthrough.cg");
     _passthroughFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "main", NULL);
@@ -462,7 +464,7 @@ void ParticleSystem::initShaders()
     _scaleParam = cgGetNamedParameter(_passthroughFP, "scale");
     _biasParam = cgGetNamedParameter(_passthroughFP, "bias");
 
-    path = R2FilePath::getInstance()->getPath("moveparticles.cg");
+    path = FilePath::getInstance()->getPath("moveparticles.cg");
     _moveParticlesFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "main", NULL);
@@ -474,7 +476,7 @@ void ParticleSystem::initShaders()
     _mpMaxScale = cgGetNamedParameter(_moveParticlesFP, "maxScale");
     _mpScale= cgGetNamedParameter(_moveParticlesFP, "scale");
 
-    path = R2FilePath::getInstance()->getPath("particlevp.cg");
+    path = FilePath::getInstance()->getPath("particlevp.cg");
     _particleVP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_VP40, "vpmain", NULL);
@@ -484,14 +486,14 @@ void ParticleSystem::initShaders()
     _mvTanHalfFOVParam = cgGetNamedParameter(_particleVP, "tanHalfFOV");
     _mvCurrentTimeParam =  cgGetNamedParameter(_particleVP, "currentTime");
 
-    path = R2FilePath::getInstance()->getPath("particlefp.cg");
+    path = FilePath::getInstance()->getPath("particlefp.cg");
     _particleFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
                                 CG_PROFILE_FP40, "fpmain", NULL);
     cgGLLoadProgram(_particleFP);
     _vectorParticleParam = cgGetNamedParameter(_particleVP, "vfield");
 
-    path = R2FilePath::getInstance()->getPath("moveparticles.cg");
+    path = FilePath::getInstance()->getPath("moveparticles.cg");
     _initParticlePosFP = 
         cgCreateProgramFromFile(_context, CG_SOURCE, path.c_str(),
 				CG_PROFILE_FP40, "initParticlePosMain", NULL);

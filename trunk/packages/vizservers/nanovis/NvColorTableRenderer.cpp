@@ -7,6 +7,8 @@
 
 #include "NvColorTableRenderer.h"
 
+using namespace nv::util;
+
 NvColorTableRenderer::NvColorTableRenderer() :
     _fonts(NULL),
     _shader(new NvColorTableShader())

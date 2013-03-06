@@ -68,6 +68,8 @@
 #include "Volume.h"
 #include "VolumeRenderer.h"
 
+using namespace nv::graphics;
+
 // default transfer function
 static const char def_transfunc[] =
     "transfunc define default {\n\
@@ -136,15 +138,15 @@ GetFloatFromObj(Tcl_Interp *interp, Tcl_Obj *objPtr, float *valuePtr)
 
 static int
 GetCullMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
-            graphics::RenderContext::CullMode *modePtr)
+            RenderContext::CullMode *modePtr)
 {
     const char *string = Tcl_GetString(objPtr);
     if (strcmp(string, "none") == 0) {
-        *modePtr = graphics::RenderContext::NO_CULL;
+        *modePtr = RenderContext::NO_CULL;
     } else if (strcmp(string, "front") == 0) {
-        *modePtr = graphics::RenderContext::FRONT;
+        *modePtr = RenderContext::FRONT;
     } else if (strcmp(string, "back") == 0) {
-        *modePtr = graphics::RenderContext::BACK;
+        *modePtr = RenderContext::BACK;
     } else {
         Tcl_AppendResult(interp, "invalid cull mode \"", string,
                          "\": should be front, back, or none\"", (char *)NULL);
@@ -155,14 +157,14 @@ GetCullMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
 
 static int
 GetShadingModel(Tcl_Interp *interp, Tcl_Obj *objPtr,
-                graphics::RenderContext::ShadingModel *modelPtr)
+                RenderContext::ShadingModel *modelPtr)
 {
     const char *string = Tcl_GetString(objPtr);
 
     if (strcmp(string,"flat") == 0) {
-        *modelPtr = graphics::RenderContext::FLAT;
+        *modelPtr = RenderContext::FLAT;
     } else if (strcmp(string,"smooth") == 0) {
-        *modelPtr = graphics::RenderContext::SMOOTH;
+        *modelPtr = RenderContext::SMOOTH;
     } else {
         Tcl_AppendResult(interp, "bad shading model \"", string,
                          "\": should be flat or smooth", (char *)NULL);
@@ -173,14 +175,14 @@ GetShadingModel(Tcl_Interp *interp, Tcl_Obj *objPtr,
 
 static int
 GetPolygonMode(Tcl_Interp *interp, Tcl_Obj *objPtr,
-               graphics::RenderContext::PolygonMode *modePtr)
+               RenderContext::PolygonMode *modePtr)
 {
     const char *string = Tcl_GetString(objPtr);
 
     if (strcmp(string,"wireframe") == 0) {
-        *modePtr = graphics::RenderContext::LINE;
+        *modePtr = RenderContext::LINE;
     } else if (strcmp(string,"fill") == 0) {
-        *modePtr = graphics::RenderContext::FILL;
+        *modePtr = RenderContext::FILL;
     } else {
         Tcl_AppendResult(interp, "invalid polygon mode \"", string,
                          "\": should be wireframe or fill\"", (char *)NULL);
@@ -1848,7 +1850,7 @@ static int
 HeightMapCullOp(ClientData clientData, Tcl_Interp *interp, int objc,
                 Tcl_Obj *const *objv)
 {
-    graphics::RenderContext::CullMode mode;
+    RenderContext::CullMode mode;
     if (GetCullMode(interp, objv[2], &mode) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -1918,7 +1920,7 @@ static int
 HeightMapPolygonOp(ClientData clientData, Tcl_Interp *interp, int objc,
                    Tcl_Obj *const *objv)
 {
-    graphics::RenderContext::PolygonMode mode;
+    RenderContext::PolygonMode mode;
     if (GetPolygonMode(interp, objv[2], &mode) != TCL_OK) {
         return TCL_ERROR;
     }
@@ -1931,7 +1933,7 @@ static int
 HeightMapShadingOp(ClientData clientData, Tcl_Interp *interp, int objc,
                  Tcl_Obj *const *objv)
 {
-    graphics::RenderContext::ShadingModel model;
+    RenderContext::ShadingModel model;
     if (GetShadingModel(interp, objv[2], &model) != TCL_OK) {
         return TCL_ERROR;
     }

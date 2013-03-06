@@ -21,7 +21,7 @@
 #include "Texture1D.h"
 #include "Vector3.h"
 
-class TransferFunction : public R2Object
+class TransferFunction
 {
 public:
     TransferFunction(int size, float *data);

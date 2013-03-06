@@ -1,14 +1,17 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef R2_FILE_PATH_H
-#define R2_FILE_PATH_H
+#ifndef NV_UTIL_FILE_PATH_H
+#define NV_UTIL_FILE_PATH_H
 
 #include <list>
 #include <string>
 
-class R2FilePath
+namespace nv {
+namespace util {
+
+class FilePath
 {
 public:
-    R2FilePath();
+    FilePath();
 
     /**
      * @brief find a file whose name is fileName and return its full path
@@ -25,8 +28,8 @@ public:
 
     void setWorkingDirectory(int argc, const char **argv);
 
-    /// get R2FilePath instance
-    static R2FilePath *getInstance();
+    /// get FilePath instance
+    static FilePath *getInstance();
 
 private:
     typedef std::list<std::string> StringList;
@@ -35,12 +38,15 @@ private:
     /// application directory
     static std::string _curDirectory;
 
-    /// R2FilePath instance
-    static R2FilePath _instance;
+    /// FilePath instance
+    static FilePath _instance;
 
     /// all default file paths
     StringList _pathList;
 };
+
+}
+}
 
 #endif
 

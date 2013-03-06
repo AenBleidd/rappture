@@ -37,8 +37,13 @@
 #define NMESH 256	//resolution of flow mesh
 #define NPIX  512	//display size
 
+namespace nv {
 namespace graphics {
     class RenderContext;
+}
+namespace util {
+    class Fonts;
+}
 }
 
 class VolumeRenderer;
@@ -54,7 +59,6 @@ class NvColorTableRenderer;
 class HeightMap;
 class NvVectorField;
 class Grid;
-class R2Fonts;
 class NvCamera;
 class TransferFunction;
 class Volume;
@@ -151,10 +155,10 @@ public:
     static unsigned char *screenBuffer;
     static Texture2D *legendTexture;
     static Grid *grid;
-    static R2Fonts *fonts;
+    static nv::util::Fonts *fonts;
     static int updir;
     static NvCamera *cam;
-    static graphics::RenderContext *renderContext;
+    static nv::graphics::RenderContext *renderContext;
 
     static Tcl_HashTable tfTable;
     static Tcl_HashTable volumeTable;

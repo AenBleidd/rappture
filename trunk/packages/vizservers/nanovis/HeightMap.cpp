@@ -11,6 +11,8 @@ bool HeightMap::updatePending = false;
 double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
+using namespace nv::graphics;
+
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
     _texcoordBufferObjectID(0), 
@@ -44,11 +46,11 @@ HeightMap::~HeightMap()
 }
 
 void 
-HeightMap::render(graphics::RenderContext *renderContext)
+HeightMap::render(RenderContext *renderContext)
 {
     glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
 
-    if (renderContext->getCullMode() == graphics::RenderContext::NO_CULL) {
+    if (renderContext->getCullMode() == RenderContext::NO_CULL) {
         glDisable(GL_CULL_FACE);
     } else {
         glEnable(GL_CULL_FACE);

@@ -9,6 +9,8 @@
 #include "PointSetRenderer.h"
 #include "PCASplit.h"
 
+using namespace nv::util;
+
 #define USE_TEXTURE 
 //#define USE_SHADER 
 #define POINT_SIZE 5
@@ -16,7 +18,7 @@
 PointSetRenderer::PointSetRenderer()
 {
     _shader = new PointShader();
-    std::string path = R2FilePath::getInstance()->getPath("particle2.bmp");
+    std::string path = FilePath::getInstance()->getPath("particle2.bmp");
     if (path.empty()) {
         ERROR("Particle image not found");
         return;

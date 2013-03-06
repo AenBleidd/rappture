@@ -19,8 +19,6 @@
 #include <string>
 #include <vector>
 
-#include <R2/R2Object.h>
-
 #include "Color.h"
 #include "Texture3D.h"
 #include "Vector3.h"

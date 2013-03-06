@@ -13,6 +13,8 @@
 
 #include "ContourLineFilter.h"
 
+using namespace nv::graphics;
+
 ContourLineFilter::ContourLineFilter()
     : _colorMap(0), _top(false)
 {
@@ -29,7 +31,7 @@ ContourLineFilter::clear()
     _lines.clear();	
 }
 
-R2Geometry* 
+Geometry * 
 ContourLineFilter::create(float min, float max, int linecount, 
 			  Vector3* vertices, int width, int height)
 {
@@ -69,21 +71,21 @@ ContourLineFilter::create(float min, float max, int linecount,
 	    vertexSet[index] = (*iter2);
 	}
     }
-    R2VertexBuffer* vertexBuffer;
-    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalPoints,
-	totalPoints * sizeof(Vector3), vertexSet, false);
-    R2VertexBuffer* colorBuffer = NULL;
+    VertexBuffer *vertexBuffer = 
+        new VertexBuffer(VertexBuffer::POSITION3, totalPoints,
+                         totalPoints * sizeof(Vector3), vertexSet, false);
+    VertexBuffer *colorBuffer = NULL;
     if (_colorMap) {
-        colorBuffer  = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalPoints, 
-		totalPoints * sizeof(Vector3), colorSet, false);
+        colorBuffer =
+            new VertexBuffer(VertexBuffer::COLOR4, totalPoints, 
+                             totalPoints * sizeof(Vector3), colorSet, false);
     }
-    R2Geometry* geometry;
-    geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
+    Geometry *geometry = new Geometry(Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
     return geometry;
 }
 
-R2Geometry* 
+Geometry * 
 ContourLineFilter::create(float min, float max, int linecount, 
 			  Vector4* vertices, int width, int height)
 {
@@ -123,14 +125,14 @@ ContourLineFilter::create(float min, float max, int linecount,
 	    vertexSet[index] = (*iter2);
 	}
     }
-    R2VertexBuffer* vertexBuffer;
-    vertexBuffer = new R2VertexBuffer(R2VertexBuffer::POSITION3, totalPoints,
-	totalPoints * sizeof(Vector3), vertexSet, false);
-    R2VertexBuffer* colorBuffer;
-    colorBuffer = new R2VertexBuffer(R2VertexBuffer::COLOR4, totalPoints,
-	totalPoints * sizeof(Vector3), colorSet, false);
-    R2Geometry* geometry;
-    geometry = new R2Geometry(R2Geometry::LINES, vertexBuffer, colorBuffer, 0);
+    VertexBuffer *vertexBuffer =
+        new VertexBuffer(VertexBuffer::POSITION3, totalPoints,
+                         totalPoints * sizeof(Vector3), vertexSet, false);
+    VertexBuffer *colorBuffer =
+        new VertexBuffer(VertexBuffer::COLOR4, totalPoints,
+                         totalPoints * sizeof(Vector3), colorSet, false);
+    Geometry *geometry =
+        new Geometry(Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
     return geometry;
 }
