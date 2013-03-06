@@ -551,7 +551,7 @@ executeCommand(Tcl_Interp *interp, Tcl_DString *dsPtr)
 
     stats.cmdTime += finish - start;
     stats.nCommands++;
-    TRACE("leaving executeCommand status=%d", result);
+    TRACE("Leave status=%d", result);
     return result;
 }
 
@@ -1708,7 +1708,6 @@ NanoVis::processCommands()
         //  immediately following the command, and we shouldn't consume it
         //  here.
         //
-        TRACE("EOF=%d", feof(NanoVis::stdin));
         while (!feof(NanoVis::stdin)) {
             int c = fgetc(NanoVis::stdin);
             char ch;
@@ -1768,6 +1767,7 @@ NanoVis::processCommands()
         return;
     }
     if (feof(NanoVis::stdin)) {
+        TRACE("Exiting server on EOF from client");
         exitService(90);
     }
 

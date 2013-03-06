@@ -2303,7 +2303,7 @@ ColorMapNumTableEntriesOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
     } else if (numEntries < 1) {
         Tcl_AppendResult(interp, "bad colormap resolution value \"", Tcl_GetString(objv[2]),
-                         "\": should be a  positive integer or \"default\"", (char*)NULL);
+                         "\": should be a positive integer or \"default\"", (char*)NULL);
         return TCL_ERROR;
     }
     if (objc == 4) {

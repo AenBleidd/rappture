@@ -1400,7 +1400,7 @@ itcl::body Rappture::VtkHeightmapViewer::AdjustSetting {what {value ""}} {
 	    }
 	    if { $units != "" } {
 		# May be a space in the axis units.
-		SendCmd [list axis units $axis $units]
+		SendCmd [list axis units z $units]
 	    }
             # Get the new limits because the field changed.
             ResetAxes
