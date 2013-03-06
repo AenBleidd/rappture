@@ -10,7 +10,7 @@
 
 #include <Cg/cg.h>
 
-#include <vrmath/vrVector3f.h>
+#include <vrmath/Vector3f.h>
 
 #include "ParticleEmitter.h"
 #include "RenderVertexArray.h"
