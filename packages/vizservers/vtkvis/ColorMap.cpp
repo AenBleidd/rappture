@@ -224,7 +224,7 @@ void ColorMap::build()
     oitr2++;
 
     for (int i = 0; i < _numTableEntries; i++) {
-	double value = ((double)i)/(_numTableEntries-1);
+	double value = _numTableEntries < 2 ? 0.0 : ((double)i)/(_numTableEntries-1);
         double color[4];
 	while (itr2 != _controlPoints.end() && value > itr2->value) {
 	    itr = itr2;
