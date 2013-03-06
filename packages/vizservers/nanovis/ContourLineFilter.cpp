@@ -9,7 +9,7 @@
 
 #include <string>
 
-#include <R2/graphics/R2VertexBuffer.h>
+#include <graphics/VertexBuffer.h>
 
 #include "ContourLineFilter.h"
 

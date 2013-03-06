@@ -2,12 +2,12 @@
 #ifndef HEIGHTMAP_H
 #define HEIGHTMAP_H
 
-#include <R2/graphics/R2Geometry.h>
+#include <graphics/Geometry.h>
+#include <graphics/RenderContext.h>
 
 #include "TransferFunction.h"
 #include "NvShader.h"
 #include "Vector3.h"
-#include "RenderContext.h"
 #include "AxisRange.h"
 
 class Grid;

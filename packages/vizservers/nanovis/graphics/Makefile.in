@@ -28,30 +28,28 @@ RP_DIR          =  @RP_DIR@
 RP_INC_SPEC     = -I$(RP_DIR)/include -I$(RP_DIR)/include/rappture2
 
 INCLUDES	= \
-		-I$(srcdir)/../include \
-		-I$(srcdir)/../.. \
+		-I$(srcdir)/include \
+		-I$(srcdir)/.. \
 		$(RP_INC_SPEC)
 
-CFLAGS		= @CFLAGS@
+CFLAGS		= @CFLAGS@ 
 EXTRA_CFLAGS	= -Wall 
 DEFINES		= @DEFINES@
 CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
+NVGRAPHICSLIB	= nvgraphics.a
+
 OBJS		= \
-		R2FilePath.o \
-		R2Fonts.o \
-		R2Geometry.o \
-		R2IndexBuffer.o \
-		R2Object.o \
-		R2VertexBuffer.o
+		Geometry.o \
+		IndexBuffer.o \
+		RenderContext.o \
+		VertexBuffer.o
 
-R2LIB		= R2.a
-
-all: $(R2LIB)
+all: $(NVGRAPHICSLIB)
 
 install: 
 
-$(R2LIB): $(OBJS)
+$(NVGRAPHICSLIB): $(OBJS)
 	$(RM) $@
 	$(AR) $@ $(OBJS) 
 	$(RANLIB) $@
@@ -60,8 +58,7 @@ $(R2LIB): $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ -c $<
 
 clean:
-	$(RM) $(R2LIB) $(OBJS)
+	$(RM) $(NVGRAPHICSLIB) $(OBJS)
 
 distclean: clean
 	$(RM) Makefile *~
-

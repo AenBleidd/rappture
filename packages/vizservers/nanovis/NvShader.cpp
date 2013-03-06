@@ -5,7 +5,7 @@
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
 
-#include <R2/R2FilePath.h>
+#include <util/FilePath.h>
 
 #include "NvShader.h"
 #include "Trace.h"

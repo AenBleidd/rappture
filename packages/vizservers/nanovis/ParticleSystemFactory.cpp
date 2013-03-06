@@ -4,7 +4,7 @@
 
 #include <expat.h>
 
-#include <R2/R2FilePath.h>
+#include <util/FilePath.h>
 
 #include "ParticleSystemFactory.h"
 #include "ParticleSystem.h"

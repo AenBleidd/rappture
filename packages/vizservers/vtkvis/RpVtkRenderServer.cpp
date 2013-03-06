@@ -195,7 +195,8 @@ writeFrame(int fd, vtkUnsignedCharArray *imgData)
 }
 #endif /*USE_THREADS*/
 
-static int sendAck(ClientData clientData, int fdOut)
+static int
+sendAck(ClientData clientData, int fdOut)
 {
     std::ostringstream oss;
     oss << "nv>ok -token " << g_stats.nCommands <<  "\n";

@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
+
 #include <string.h>
 #ifdef _WIN32
 #include <direct.h>
@@ -8,7 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <R2/R2FilePath.h>
+#include "FilePath.h"
 
 #include "Trace.h"
 
