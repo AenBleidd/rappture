@@ -10,7 +10,7 @@
 #include <GL/glew.h>
 #include <Cg/cgGL.h>
 
-#include <R2/R2FilePath.h>
+#include <util/FilePath.h>
 
 #include <Image.h>
 #include <ImageLoader.h>

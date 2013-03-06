@@ -1,11 +1,14 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
 #include <memory.h>
 #include <stdlib.h>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include <R2/graphics/R2VertexBuffer.h>
+#include "VertexBuffer.h"
 
 using namespace nv::graphics;
 

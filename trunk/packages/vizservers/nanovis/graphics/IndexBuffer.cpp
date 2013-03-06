@@ -1,8 +1,11 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
 #include <stdlib.h>
 #include <memory.h>
 
-#include <R2/graphics/R2IndexBuffer.h>
+#include "IndexBuffer.h"
 
 using namespace nv::graphics;
 

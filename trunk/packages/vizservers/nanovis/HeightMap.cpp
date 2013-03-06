@@ -1,11 +1,12 @@
  /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <GL/glew.h>
 
+#include <graphics/RenderContext.h>
+
 #include "Grid.h"
 #include "HeightMap.h"
 #include "ContourLineFilter.h"
 #include "Texture1D.h"
-#include "RenderContext.h"
 
 bool HeightMap::updatePending = false;
 double HeightMap::valueMin = 0.0;

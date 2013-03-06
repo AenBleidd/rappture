@@ -1,10 +1,14 @@
- /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
 #ifndef NV_GRAPHICS_GEOMETRY_H
 #define NV_GRAPHICS_GEOMETRY_H
 
 #include <GL/glew.h>
-#include <R2/graphics/R2VertexBuffer.h>
-#include <R2/graphics/R2IndexBuffer.h>
+
+#include <graphics/VertexBuffer.h>
+#include <graphics/IndexBuffer.h>
 
 namespace nv {
 namespace graphics {

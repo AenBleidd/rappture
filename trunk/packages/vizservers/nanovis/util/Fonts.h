@@ -1,11 +1,14 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
 #ifndef NV_UTIL_FONTS_H
 #define NV_UTIL_FONTS_H
 
 #include <vector>
 #include <string>
 
-#include <R2/R2Object.h>
+#include <util/Object.h>
 
 namespace nv {
 namespace util {

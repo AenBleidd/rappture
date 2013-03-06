@@ -360,10 +360,11 @@ AC_OUTPUT([
    nanoscale/renderservers.tcl \
    nanovis/Doxyfile \
    nanovis/Makefile \
-   nanovis/newmat11/Makefile \
-   nanovis/R2/src/Makefile \
-   nanovis/vrmath/Makefile \
+   nanovis/graphics/Makefile \
    nanovis/imgLoaders/Makefile \
+   nanovis/newmat11/Makefile \
+   nanovis/util/Makefile \
+   nanovis/vrmath/Makefile \
    pymolproxy/Makefile \
    vtkvis/Doxyfile \
    vtkvis/Makefile \

@@ -2,7 +2,7 @@
 #ifndef NV_COLORTABLE_RENDERER_H
 #define NV_COLORTABLE_RENDERER_H
 
-#include <R2/R2Fonts.h>
+#include <util/Fonts.h>
 
 #include "Texture2D.h"
 #include "TransferFunction.h"

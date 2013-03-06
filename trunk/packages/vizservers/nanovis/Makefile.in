@@ -31,6 +31,10 @@ FF_INC_SPEC     = @FF_INC_SPEC@
 
 GL_INC_SPEC     =
 GL_LIB_SPEC     = -lGL -lglut -lGLEW -lGLU
+GRAPHICS_DIR	  = ./graphics
+GRAPHICS_INC_SPEC = -I$(srcdir)/$(GRAPHICS_DIR)/include
+GRAPHICS_LIB	  = $(GRAPHICS_DIR)/nvgraphics.a
+GRAPHICS_LIB_SPEC = $(GRAPHICS_LIB)
 IMG_DIR		= ./imgLoaders
 IMG_INC_SPEC	= -I$(srcdir)/$(IMG_DIR)
 IMG_LIB		= $(IMG_DIR)/ImageLoaders.a
@@ -39,14 +43,14 @@ MAT_DIR		= ./newmat11
 MAT_INC_SPEC	= -I$(srcdir)/$(MAT_DIR)
 MAT_LIB		= $(MAT_DIR)/newmat11.a
 MAT_LIB_SPEC	= $(MAT_LIB)
+UTIL_DIR	= ./util
+UTIL_INC_SPEC	= -I$(srcdir)/$(UTIL_DIR)
+UTIL_LIB	= $(UTIL_DIR)/nvutil.a
+UTIL_LIB_SPEC	= $(UTIL_LIB)
 VRMATH_DIR	= ./vrmath
 VRMATH_INC_SPEC	= -I$(srcdir)/$(VRMATH_DIR)/include
 VRMATH_LIB	= $(VRMATH_DIR)/vrmath.a
 VRMATH_LIB_SPEC	= $(VRMATH_LIB)
-R2_DIR		= ./R2
-R2_INC_SPEC	= -I$(srcdir)/$(R2_DIR)/include
-R2_LIB		= $(R2_DIR)/src/R2.a
-R2_LIB_SPEC	= $(R2_LIB)
 
 EXTRA_LIBS      = -lm -lpthread
 RP_DIR          =  @RP_DIR@
@@ -63,9 +67,10 @@ STATSDIR	= @STATSDIR@
 
 LIBS		= \
 		$(RP_LIB_SPEC) \
+		$(GRAPHICS_LIB_SPEC) \
 		$(IMG_LIB_SPEC) \
-		$(R2_LIB_SPEC) \
 		$(MAT_LIB_SPEC) \
+		$(UTIL_LIB_SPEC) \
 		$(VRMATH_LIB_SPEC) \
 		$(TCL_LIB_SPEC) \
 		$(CG_LIB_SPEC) \
@@ -77,7 +82,6 @@ LIBS		= \
 INCLUDES	= \
 		-I. \
 		-I$(srcdir) \
-		$(R2_INC_SPEC) \
 		$(IMG_INC_SPEC) \
 		$(MAT_INC_SPEC) \
 		$(VRMATH_INC_SPEC) \
@@ -128,7 +132,6 @@ OBJS		= \
 		PerfQuery.o \
 		Plane.o \
 		PlaneRenderer.o \
-		RenderContext.o \
 		RenderVertexArray.o \
 		RpAVTranslate.o \
 		Switch.o \
@@ -194,9 +197,9 @@ OBJS += 	BucketSort.o \
 shaders +=      $(srcdir)/shaders/pointsvp.cg
 endif
 
-.PHONY: all install install-resources install-shaders install-nanovis docs clean-docs clean distclean newmat11 R2 imgloaders vrmath
+.PHONY: all install install-resources install-shaders install-nanovis docs clean-docs clean distclean graphics imgloaders newmat11 util vrmath
 
-all: newmat11 R2 imgloaders vrmath nanovis 
+all: newmat11 graphics imgloaders util vrmath nanovis 
 
 install: install-nanovis install-resources install-shaders
 
@@ -204,24 +207,28 @@ docs:
 	$(MKDIR_P) -m 0755 docs/doxygen
 	doxygen
 
-newmat11:		$(MAT_LIB)
-R2:			$(R2_LIB)
-vrmath:			$(VRMATH_LIB)
+graphics:		$(GRAPHICS_LIB)
 imgloaders:		$(IMG_LIB)
+newmat11:		$(MAT_LIB)
+util:			$(UTIL_LIB)
+vrmath:			$(VRMATH_LIB)
 
-$(MAT_LIB):
-	$(MAKE) -C $(MAT_DIR) all
-
-$(VRMATH_LIB):
-	$(MAKE) -C $(VRMATH_DIR) all
-
-$(R2_LIB): 
-	$(MAKE) -C $(R2_DIR)/src all
+$(GRAPHICS_LIB): 
+	$(MAKE) -C $(GRAPHICS_DIR) all
 
 $(IMG_LIB): 
 	$(MAKE) -C $(IMG_DIR) all
 
-nanovis: $(MAT_LIB) $(R2_LIB) $(IMG_LIB) $(VRMATH_LIB) $(OBJS)
+$(MAT_LIB):
+	$(MAKE) -C $(MAT_DIR) all
+
+$(UTIL_LIB): 
+	$(MAKE) -C $(UTIL_DIR) all
+
+$(VRMATH_LIB):
+	$(MAKE) -C $(VRMATH_DIR) all
+
+nanovis: $(MAT_LIB) $(GRAPHICS_LIB) $(IMG_LIB) $(UTIL_LIB) $(VRMATH_LIB) $(OBJS)
 	$(CXX) $(CXX_SWITCHES) -o $@ $^ $(LIBS)
 
 .cpp.o:
@@ -249,9 +256,10 @@ install-nanovis: nanovis
 
 clean:
 	$(MAKE) -C $(MAT_DIR) clean
-	$(MAKE) -C $(VRMATH_DIR) clean
-	$(MAKE) -C $(R2_DIR)/src clean
+	$(MAKE) -C $(GRAPHICS_DIR) clean
 	$(MAKE) -C $(IMG_DIR) clean
+	$(MAKE) -C $(UTIL_DIR) clean
+	$(MAKE) -C $(VRMATH_DIR) clean
 	$(RM) nanovis client *.o
 
 clean-docs:
@@ -259,9 +267,10 @@ clean-docs:
 
 distclean: clean
 	$(MAKE) -C $(MAT_DIR) distclean
-	$(MAKE) -C $(VRMATH_DIR) distclean
-	$(MAKE) -C $(R2_DIR)/src distclean
+	$(MAKE) -C $(GRAPHICS_DIR) distclean
 	$(MAKE) -C $(IMG_DIR) distclean
+	$(MAKE) -C $(UTIL_DIR) distclean
+	$(MAKE) -C $(VRMATH_DIR) distclean
 	$(RM) Makefile nvconf.h *~
 
 Axis.o: Axis.cpp Axis.h Chain.h
@@ -302,7 +311,6 @@ PointSet.o: PointSet.cpp PointSet.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointShader.o: PointShader.cpp PointShader.h
 Renderable.o: Renderable.cpp Renderable.h
-RenderContext.o: RenderContext.cpp RenderContext.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
 Switch.o: Switch.cpp Switch.h
@@ -319,4 +327,4 @@ VolumeRenderer.o: VolumeRenderer.cpp VolumeRenderer.h
 ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h Vector3.h
-nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h RenderContext.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h

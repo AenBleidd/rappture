@@ -4,7 +4,7 @@
 #include <Image.h>
 #include <ImageLoaderFactory.h>
 #include <ImageLoader.h>
-#include <R2/R2FilePath.h>
+#include <util/FilePath.h>
 
 #include "PointSetRenderer.h"
 #include "PCASplit.h"

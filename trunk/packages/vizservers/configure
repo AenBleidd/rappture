@@ -16540,7 +16540,7 @@ SUBDIRS="nanoscale nanovis pymolproxy vtkvis"
 
 
 
-ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanoscale/renderservers.tcl nanovis/Doxyfile nanovis/Makefile nanovis/newmat11/Makefile nanovis/R2/src/Makefile nanovis/vrmath/Makefile nanovis/imgLoaders/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh start_nanoscale.sh"
+ac_config_files="$ac_config_files Makefile nanoscale/Makefile nanoscale/renderservers.tcl nanovis/Doxyfile nanovis/Makefile nanovis/graphics/Makefile nanovis/imgLoaders/Makefile nanovis/newmat11/Makefile nanovis/util/Makefile nanovis/vrmath/Makefile pymolproxy/Makefile vtkvis/Doxyfile vtkvis/Makefile start_viz.sh start_nanoscale.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -17145,10 +17145,11 @@ do
     "nanoscale/renderservers.tcl") CONFIG_FILES="$CONFIG_FILES nanoscale/renderservers.tcl" ;;
     "nanovis/Doxyfile") CONFIG_FILES="$CONFIG_FILES nanovis/Doxyfile" ;;
     "nanovis/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/Makefile" ;;
-    "nanovis/newmat11/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/newmat11/Makefile" ;;
-    "nanovis/R2/src/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/R2/src/Makefile" ;;
-    "nanovis/vrmath/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/vrmath/Makefile" ;;
+    "nanovis/graphics/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/graphics/Makefile" ;;
     "nanovis/imgLoaders/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/imgLoaders/Makefile" ;;
+    "nanovis/newmat11/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/newmat11/Makefile" ;;
+    "nanovis/util/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/util/Makefile" ;;
+    "nanovis/vrmath/Makefile") CONFIG_FILES="$CONFIG_FILES nanovis/vrmath/Makefile" ;;
     "pymolproxy/Makefile") CONFIG_FILES="$CONFIG_FILES pymolproxy/Makefile" ;;
     "vtkvis/Doxyfile") CONFIG_FILES="$CONFIG_FILES vtkvis/Doxyfile" ;;
     "vtkvis/Makefile") CONFIG_FILES="$CONFIG_FILES vtkvis/Makefile" ;;

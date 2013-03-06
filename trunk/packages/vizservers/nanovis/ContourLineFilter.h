@@ -4,7 +4,7 @@
 
 #include <list>
 
-#include <R2/graphics/R2Geometry.h>
+#include <graphics/Geometry.h>
 
 #include "Vector3.h"
 #include "Vector4.h"

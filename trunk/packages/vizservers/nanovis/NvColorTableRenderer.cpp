@@ -3,7 +3,7 @@
 
 #include <GL/glew.h>
 
-#include <R2/R2Fonts.h>
+#include <util/Fonts.h>
 
 #include "NvColorTableRenderer.h"
 

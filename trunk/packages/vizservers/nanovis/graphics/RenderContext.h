@@ -1,6 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-#ifndef RENDER_CONTEXT_H
-#define RENDER_CONTEXT_H
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
+#ifndef NV_GRAPHICS_RENDER_CONTEXT_H
+#define NV_GRAPHICS_RENDER_CONTEXT_H
 
 #include <GL/gl.h>
 

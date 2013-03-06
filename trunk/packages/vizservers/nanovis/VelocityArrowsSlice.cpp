@@ -6,7 +6,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include <R2/R2FilePath.h>
+#include <util/FilePath.h>
 #include <Image.h>
 #include <ImageLoaderFactory.h>
 #include <ImageLoader.h>

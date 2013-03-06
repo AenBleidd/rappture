@@ -1,4 +1,8 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ *  Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ */
+
 #include <stdarg.h>
 #include <string.h>
 
@@ -6,8 +10,8 @@
 
 #include <GL/glew.h>
 
-#include <R2/R2Fonts.h>
-#include <R2/R2FilePath.h>
+#include "Fonts.h"
+#include "FilePath.h"
 
 using namespace nv::util;
 

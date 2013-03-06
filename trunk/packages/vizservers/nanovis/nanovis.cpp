@@ -40,16 +40,18 @@
 #include <sstream>
 #include <string>
 
+#include <GL/glew.h>
+#include <GL/glut.h>
+
 #include <RpEncode.h>
 
-#include <R2/R2FilePath.h>
-#include <R2/R2Fonts.h>
+#include <graphics/RenderContext.h>
+
+#include <util/FilePath.h>
+#include <util/Fonts.h>
 
 #include <BMPImageLoaderImpl.h>
 #include <ImageLoaderFactory.h>
-
-#include <GL/glew.h>
-#include <GL/glut.h>
 
 #include "config.h"
 #include "nanovis.h"
@@ -59,7 +61,6 @@
 #include "Grid.h"
 #include "HeightMap.h"
 #include "NvCamera.h"
-#include "RenderContext.h"
 #include "NvShader.h"
 #include "NvColorTableRenderer.h"
 #include "NvFlowVisRenderer.h"
