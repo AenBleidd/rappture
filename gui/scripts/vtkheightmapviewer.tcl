@@ -2184,8 +2184,8 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
         array set style $stylelist
     }
     # This is too complicated.  We want to set the colormap, number of
-    # isolines and opacity for the object.  They can be the default values,
-    # the style hints set with the dataset, or set by user controls.  As
+    # isolines and opacity for the dataset.  They can be the default values,
+    # the style hints loaded with the dataset, or set by user controls.  As
     # datasets get loaded, they first use the defaults that are overidden
     # by the style hints.  If the user changes the global controls, then that
     # overrides everything else.  I don't know what it means when global
@@ -2208,6 +2208,7 @@ itcl::body Rappture::VtkHeightmapViewer::SetObjectStyle { dataobj comp } {
     if { $_currentNumIsolines != $style(-levels) } {
         set _currentNumIsolines $style(-levels)
         set _settings(numIsolines) $_currentNumIsolines
+        $itk_component(numisolines) value $_currentNumIsolines
         DrawLegend
     }
     SendCmd "dataset outline $_settings(outline) $tag"
