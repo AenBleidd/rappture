@@ -27,7 +27,7 @@ OCTAVE =     $(MKOCTFILE2) $(MKOCTFILE3)
 JAVAC =      @JAVAC@
 R =          @R@
 
-.PHONY: tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
+.PHONY: all install clean distclean tcl cee fortran octave matlab perl python ruby java 2.0 wrapper
 
 LANGS = cee tcl wrapper 2.0
 ifneq ($(F77),)
@@ -72,6 +72,6 @@ clean:
 
 distclean: 
 	for i in $(LANGS) ; do \
-	   $(MAKE) -c $$i distclean || exit 1 ; \
+	   $(MAKE) -C $$i distclean || exit 1 ; \
 	done
 	$(RM) Makefile

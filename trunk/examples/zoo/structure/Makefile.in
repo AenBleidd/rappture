@@ -26,6 +26,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/structure
 
+.PHONY: all install clean distclean
+
 all: 
 	$(MAKE) -C examples all
 

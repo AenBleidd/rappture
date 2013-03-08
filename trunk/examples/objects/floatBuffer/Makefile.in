@@ -36,13 +36,15 @@ destdir		= $(prefix)/examples/objects/floatBuffer
 PROGS		= \
 		floatbuffer \
 
+.PHONY: all install clean distclean
+
 all: $(PROGS)
 
 
 floatbuffer: $(srcdir)/floatBuffer.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
-install:
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \

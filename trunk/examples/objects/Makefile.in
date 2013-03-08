@@ -14,7 +14,6 @@ INSTALL_DATA    = @INSTALL_DATA@
 VPATH           = $(srcdir)
 RM              = rm -f
 
-#		dxReader \
 #		dxWriter \
 
 examples = \
@@ -31,6 +30,8 @@ examples = \
 		xmlparser
 
 destdir    = $(prefix)/examples/objects
+
+.PHONY: all install clean distclean
 
 all:
 	for i in $(examples) ; do \

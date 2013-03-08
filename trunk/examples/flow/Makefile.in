@@ -25,12 +25,14 @@ examples	= \
 		demo2 \
 		demo3
 
+.PHONY: all install clean distclean
+
 all: 
 	for i in $(examples) ; do \
 	  $(MAKE) -C $$i all; \
 	done
 
-install: 
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \
@@ -41,5 +43,5 @@ install:
 
 clean:
 
-distclean: 
+distclean: clean
 	$(RM) Makefile *~

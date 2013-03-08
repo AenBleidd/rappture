@@ -148,4 +148,4 @@ clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
 
 distclean: clean
-	rm Makefile
+	rm Makefile RpHash.h

@@ -65,6 +65,8 @@ libname     = $(name)
 lib         = $(libname)$(SHLIB_SUFFIX)
 destdir     = $(libdir)/$(name)
 
+.PHONY: all install clean distclean
+
 all: $(lib)
 
 $(lib): $(OBJS)
@@ -85,5 +87,5 @@ clean:
 	$(RM) $(OBJS) $(lib)
 
 distclean: clean
-	$(RM) Makefile *~
+	$(RM) Makefile pkgIndex.tcl *~
 

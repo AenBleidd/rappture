@@ -22,6 +22,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/image
 
+.PHONY: all install clean distclean 
+
 all: 
 	$(MAKE) -C examples all
 	$(MAKE) -C docs all

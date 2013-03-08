@@ -47,6 +47,8 @@ PROGS		= \
 		plot \
 		plotc \
 
+.PHONY: all install clean distclean
+
 all: $(PROGS)
 
 compress: $(srcdir)/compress.cc
@@ -58,7 +60,7 @@ plot: $(srcdir)/plot.cc
 plotc: $(srcdir)/plotc.c
 	$(CC) $(CC_SWITCHES) -o $@ $< $(LIBS)
 
-install:
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \

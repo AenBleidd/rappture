@@ -14,7 +14,7 @@ SHELL		= @SHELL@
 RM		= rm -f
 VPATH		= $(srcdir)
 
-.PHONY: optimizer
+.PHONY: all install clean distclean optimizer
 
 all: 
 

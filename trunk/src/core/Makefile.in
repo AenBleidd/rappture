@@ -195,4 +195,4 @@ clean:
 	$(RM) $(OBJS) $(lib) $(shared_lib)
 
 distclean: clean
-	$(RM) Makefile *~
+	$(RM) Makefile config.h *~

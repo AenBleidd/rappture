@@ -21,9 +21,11 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/unirect2d
 
+.PHONY: all install clean distclean
+
 all: 
 
-install: 
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \
@@ -31,5 +33,5 @@ install:
 
 clean:
 
-distclean: 
+distclean: clean
 	$(RM) Makefile *~

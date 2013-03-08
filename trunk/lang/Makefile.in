@@ -51,7 +51,7 @@ ifneq ($(R),)
   LANGS += R
 endif
 
-.PHONY:	tcl octave matlab perl python ruby java R
+.PHONY:	all install test clean distclean tcl octave matlab perl python ruby java R
 
 all:
 	for i in $(LANGS) ; do \

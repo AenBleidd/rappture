@@ -23,6 +23,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/loader
 
+.PHONY: all install clean distclean
+
 all: 
 	$(MAKE) -C examples  all
 

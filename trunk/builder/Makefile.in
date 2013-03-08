@@ -28,6 +28,8 @@ name		= RapptureBuilder$(version)
 
 destdir         = $(libdir)/$(name)
 
+.PHONY: all install install-pkg install-scripts clean distclean
+
 all:
 	$(MAKE) -C scripts all
 
@@ -45,4 +47,4 @@ clean:
 	$(RM) tool.xml
 
 distclean: clean
-	$(RM) Makefile *~
+	$(RM) Makefile pkgIndex.tcl *~

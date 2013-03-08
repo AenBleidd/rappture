@@ -30,6 +30,9 @@ envfile         = python.env
 
 ARCHFLAGS       =
 export ARCHFLAGS
+
+.PHONY: all install clean distclean
+
 #
 # Python distutils doesn't handle VPATH correctly. So copy the sources
 # into a temporary directory.
@@ -50,3 +53,4 @@ clean:
 	$(RM) -rf build
 
 distclean: clean
+	$(RM) Makefile setup.py *~

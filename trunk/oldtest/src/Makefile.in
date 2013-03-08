@@ -80,7 +80,7 @@ LIBS 		= \
 CC_FLAGS	= $(CFLAGS) $(INCLUDES)
 FC_FLAGS	= $(CFLAGS) $(INCLUDES)
 
-.PHONY: src jobs
+.PHONY: all clean distclean src jobs c_tests fortran_tests matlab_tests objs_tests octave_tests
 
 MATLAB_TESTS    = RpMatlab_test
 OCTAVE_TESTS	= RpOctave_test  

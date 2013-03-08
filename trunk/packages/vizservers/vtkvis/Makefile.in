@@ -197,7 +197,7 @@ docs:
 $(SERVER): $(SERVER_OBJS)
 	$(CXX) $(LIBS) -o $@ $(SERVER_OBJS)
 
-install: $(SERVER)
+install: all
 	$(INSTALL_PROGRAM) $(SERVER) $(bindir)
 
 %.o: %.cpp

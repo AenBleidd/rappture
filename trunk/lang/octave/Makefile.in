@@ -22,7 +22,7 @@ ifneq ($(MKOCTFILE2),)
   LANGS += octave2
 endif
 
-.PHONY:	octave2 octave3
+.PHONY:	all install test clean distclean octave2 octave3
 
 all:
 	for i in $(LANGS) ; do \

@@ -61,6 +61,8 @@ OBJS        = \
 		rpUnitsGetUnits.oct \
 		rpUnitsGetUnitsName.oct
 
+.PHONY: all install clean distclean
+
 all: $(OBJS)
 
 .SUFFIXES: .cc .o .oct
@@ -71,7 +73,7 @@ all: $(OBJS)
 .cc.o:
 	$(OCT) $(OCT_FLAGS) -c $< -o $@
 
-install: $(OBJS)
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(OBJS) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \
