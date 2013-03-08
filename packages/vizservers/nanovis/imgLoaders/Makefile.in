@@ -47,7 +47,7 @@ OBJS		= \
 
 all: $(IMGLIB)
 
-install: 
+install: all
 
 $(IMGLIB): $(OBJS)
 	$(RM) $@
@@ -63,3 +63,8 @@ clean:
 distclean: clean
 	$(RM) Makefile *~
 
+BMPImageLoaderImpl.o: BMPImageLoaderImpl.h Image.h $(srcdir)/../Trace.h
+Image.o: Image.h
+ImageLoader.o: ImageLoader.h ImageLoaderImpl.h Image.h
+ImageLoaderFactory.o: ImageLoaderFactory.h ImageLoader.h ImageLoaderImpl.h Image.h $(srcdir)/../Trace.h
+ImageLoaderImpl.o: ImageLoaderImpl.h Image.h

@@ -47,7 +47,7 @@ OBJS		= \
 
 all: $(NVGRAPHICSLIB)
 
-install: 
+install: all
 
 $(NVGRAPHICSLIB): $(OBJS)
 	$(RM) $@
@@ -62,3 +62,8 @@ clean:
 
 distclean: clean
 	$(RM) Makefile *~
+
+Geometry.o: Geometry.h IndexBuffer.h VertexBuffer.h
+IndexBuffer.o: IndexBuffer.h
+RenderContext.o: RenderContext.h
+VertexBuffer.o: VertexBuffer.h

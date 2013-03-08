@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <vrmath/Linmath.h>
-
 class vrMatrix4x4f;
 
 class vrVector3f

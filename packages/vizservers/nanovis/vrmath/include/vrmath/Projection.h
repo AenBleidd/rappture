@@ -2,23 +2,15 @@
 #ifndef VRPROJECTION_H
 #define VRPROJECTION_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int
+extern int
 unproject(float winx, float winy, float winz,
           const float modelMatrix[16],
           const float projMatrix[16],
           const int viewport[4],
           float *objx, float *objy, float *objz);
 
-void
+extern void
 perspective(float fovy, float aspect, float zNear, float zFar, float *matrix);
-
-#ifdef __cplusplus
-};
-#endif
 
 #endif
 

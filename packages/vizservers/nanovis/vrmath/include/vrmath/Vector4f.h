@@ -2,7 +2,6 @@
 #ifndef VRVECTOR4F_H
 #define VRVECTOR4F_H
 
-#include <vrmath/Linmath.h>
 #include <vrmath/Vector3f.h>
 #include <vrmath/Vector4f.h>
 

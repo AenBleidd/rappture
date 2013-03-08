@@ -11,7 +11,6 @@
 
 #include <vrmath/Quaternion.h>
 #include <vrmath/Rotation.h>
-#include <vrmath/Linmath.h>
 #include <vrmath/Vector3f.h>
 
 #ifndef PI
