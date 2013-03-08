@@ -47,11 +47,6 @@
 #define KEEPSTATS
 
 /*
- * Controls if debug trace logging is enabled
- */
-//#define WANT_TRACE
-
-/*
  * Controls whether DX data is downsampled.
  */
 //#define DOWNSAMPLE_DATA
