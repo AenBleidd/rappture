@@ -249,10 +249,6 @@ void Grid::render()
 
 void Grid::setFont(Fonts *font)
 {
-//    if (font == _font) return;
-//    if (font) font->addRef();
-//    if (_font) _font->unrefDelete();
-
     _font = font;
 }
 

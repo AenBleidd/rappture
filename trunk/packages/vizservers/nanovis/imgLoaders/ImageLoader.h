@@ -7,7 +7,6 @@
 #include <Image.h>
 
 class ImageLoaderImpl;
-class Image;
 
 class ImageLoader
 {

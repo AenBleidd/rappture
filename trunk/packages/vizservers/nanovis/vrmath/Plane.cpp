@@ -1,5 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vrmath/Plane.h>
+#include <vrmath/Matrix4x4f.h>
 
 void vrPlane::transform(vrMatrix4x4f& mat)
 {

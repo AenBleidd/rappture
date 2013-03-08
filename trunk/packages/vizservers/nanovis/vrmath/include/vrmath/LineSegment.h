@@ -8,9 +8,9 @@
 #ifndef VRLINESEGMENT_H
 #define VRLINESEGMENT_H
 
-#include <vrmath/Linmath.h>
 #include <vrmath/Vector3f.h>
-#include <vrmath/Matrix4x4f.h>
+
+class vrMatrix4x4f;
 
 class vrLineSegment
 {

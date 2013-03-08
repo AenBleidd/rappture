@@ -3,6 +3,37 @@
 #include <math.h>
 #include <memory.h>
 
+#if 0
+vrVector3f vrCalcNormal(const vrVector3f& v1, const vrVector3f& v2, const vrVector3f& v3)
+{
+    vrVector3f temp;
+
+    float a[3], b[3];
+
+    a[0] = v2.x - v1.x;
+    a[1] = v2.y - v1.y;
+    a[2] = v2.z - v1.z;
+    b[0] = v3.x - v1.x;
+    b[1] = v3.y - v1.y;
+    b[2] = v3.z - v1.z;
+
+    temp.x = a[1] * b[2] - a[2] * b[1];
+    temp.y = a[2] * b[0] - a[0] * b[2];
+    temp.z = a[0] * b[1] - a[1] * b[0];
+
+    float leng = (float)sqrt(temp.x * temp.x + temp.y * temp.y + temp.z * temp.z);
+
+    if (leng != 0.0f) {
+        temp.x /= leng;
+        temp.y /= leng;
+        temp.z /= leng;
+    }
+    else temp.set(-1.0f, 0.0f, 0.0f);
+
+    return temp;
+}
+#endif
+
 static void __gluMakeIdentityd(float m[16])
 {
     m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
@@ -10,7 +41,6 @@ static void __gluMakeIdentityd(float m[16])
     m[2+4*0] = 0; m[2+4*1] = 0; m[2+4*2] = 1; m[2+4*3] = 0;
     m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
 }
-
 
 static int __gluInvertMatrixd(const float m[16], float invOut[16])
 {
@@ -52,7 +82,7 @@ static int __gluInvertMatrixd(const float m[16], float invOut[16])
 
     det = m[0]*inv[0] + m[1]*inv[4] + m[2]*inv[8] + m[3]*inv[12];
 
-	    if (det == 0)
+    if (det == 0)
         return 0;
 
     det = 1.0f / det;
@@ -63,9 +93,8 @@ static int __gluInvertMatrixd(const float m[16], float invOut[16])
     return 1;
 }
 
-
 static void __gluMultMatrixVecd(const float matrix[16], const float in[4],
-                      float out[4])
+                                float out[4])
 {
     int i;
 
@@ -79,7 +108,7 @@ static void __gluMultMatrixVecd(const float matrix[16], const float in[4],
 }
 
 static void __gluMultMatricesd(const float a[16], const float b[16],
-                                float r[16])
+                               float r[16])
 {
     int i, j;
 
@@ -95,10 +124,10 @@ static void __gluMultMatricesd(const float a[16], const float b[16],
 }
 
 int unproject(float winx, float winy, float winz,
-                const float modelMatrix[16],
-                const float projMatrix[16],
-                const int viewport[4],
-                float *objx, float *objy, float *objz)
+              const float modelMatrix[16],
+              const float projMatrix[16],
+              const int viewport[4],
+              float *objx, float *objy, float *objz)
 {
     float finalMatrix[16];
     float in[4];
@@ -157,4 +186,3 @@ void perspective(float fovy, float aspect, float zNear, float zFar, float* matri
     //glMultMatrixd(&m[0][0]);
     memcpy(matrix, &m[0][0], sizeof(float) * 16);
 }
-

@@ -8,9 +8,9 @@
 #ifndef VRBPLANE_H
 #define VRBPLANE_H
 
-#include <vrmath/Linmath.h>
 #include <vrmath/Vector3f.h>
-#include <vrmath/LineSegment.h>
+
+class vrLineSegment;
 
 class vrBPlane
 {

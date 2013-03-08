@@ -270,6 +270,10 @@ NanoVis::removeAllData()
         delete (*itr);
     }
 #endif
+    if (fonts != NULL) {
+        TRACE("Deleting fonts");
+        delete fonts;
+    }
     TRACE("Leave");
 }
 

@@ -61,7 +61,7 @@ OBJS		= \
 
 all: $(MATLIB)
 
-install: 
+install: all
 
 $(MATLIB): $(OBJS)
 	$(RM) $@

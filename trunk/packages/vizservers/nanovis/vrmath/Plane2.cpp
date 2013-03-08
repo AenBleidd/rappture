@@ -1,5 +1,6 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 #include <vrmath/Plane2.h>
+#include <vrmath/LineSegment.h>
 
 void vrPlane2::makePts(const vrVector3f& p1, const vrVector3f& p2, const vrVector3f& p3)
 {

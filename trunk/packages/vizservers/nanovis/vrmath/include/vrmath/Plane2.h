@@ -7,9 +7,9 @@
 #ifndef VRPLANE2_H
 #define VRPLANE2_H
 
-#include <vrmath/Linmath.h>
 #include <vrmath/Vector3f.h>
-#include <vrmath/LineSegment.h>
+
+class vrLineSegment;
 
 class vrPlane2
 {

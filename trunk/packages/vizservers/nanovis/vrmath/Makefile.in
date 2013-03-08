@@ -39,25 +39,27 @@ CXX_SWITCHES	= $(CFLAGS) $(EXTRA_CFLAGS) $(INCLUDES)
 
 VRMATHLIB	= vrmath.a
 
+#		Projection.o \
+
 OBJS		= \
 		BBox.o \
 		BPlane.o \
 		Color4f.o \
 		LineSegment.o \
-		Linmath.o \
 		Matrix4x4f.o \
 		Plane.o \
 		Plane2.o \
-		Projection.o \
 		Quaternion.o \
 		Rotation.o \
 		Vector2f.o \
 		Vector3f.o \
 		Vector4f.o \
 
+.PHONY: all install clean distclean
+
 all: $(VRMATHLIB)
 
-install: 
+install: all
 
 $(VRMATHLIB): $(OBJS)
 	$(RM) $@
@@ -73,3 +75,15 @@ clean:
 distclean: clean
 	$(RM) Makefile *~
 
+BBox.o: $(srcdir)/include/vrmath/BBox.h $(srcdir)/include/vrmath/Vector3f.h
+BPlane.o: $(srcdir)/include/vrmath/BPlane.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/LineSegment.h
+Color4f.o: $(srcdir)/include/vrmath/Color4f.h
+LineSegment.o: $(srcdir)/include/vrmath/LineSegment.h
+Matrix4x4f.o: $(srcdir)/include/vrmath/Matrix4x4f.h $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/Rotation.h
+Plane.o: $(srcdir)/include/vrmath/Plane.h $(srcdir)/include/vrmath/Matrix4x4f.h
+Plane2.o: $(srcdir)/include/vrmath/Plane2.h $(srcdir)/include/vrmath/LineSegment.h
+Quaternion.o: $(srcdir)/include/vrmath/Quaternion.h $(srcdir)/include/vrmath/Rotation.h $(srcdir)/include/vrmath/Vector3f.h
+Rotation.o: $(srcdir)/include/vrmath/Quaternion.h $(srcdir)/include/vrmath/Rotation.h $(srcdir)/include/vrmath/Vector3f.h
+Vector2f.o: $(srcdir)/include/vrmath/Vector2f.h
+Vector3f.o: $(srcdir)/include/vrmath/Vector3f.h $(srcdir)/include/vrmath/Matrix4x4f.h
+Vector4f.o: $(srcdir)/include/vrmath/Vector4f.h $(srcdir)/include/vrmath/Matrix4x4f.h

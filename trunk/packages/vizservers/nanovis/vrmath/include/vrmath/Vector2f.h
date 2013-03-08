@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <vrmath/Linmath.h>
-
 class vrVector2f
 {
 public:

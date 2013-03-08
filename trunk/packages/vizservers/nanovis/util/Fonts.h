@@ -8,13 +8,12 @@
 #include <vector>
 #include <string>
 
-#include <util/Object.h>
-
 namespace nv {
 namespace util {
 
-class Fonts : public Object
+class Fonts
 {
+public:
     struct FontAttributes {
         std::string _fontName;
         int _textureWidth;
@@ -34,10 +33,8 @@ class Fonts : public Object
         CharInfo _chars[256];
     };
 
-    typedef std::vector<FontAttributes>  FontVector;
-
-public:
     Fonts();
+    ~Fonts();
 
     /// set projection to orthographic
     void begin();
@@ -65,7 +62,7 @@ public:
     int getFontHeight() const;
 
 private:
-    ~Fonts();
+    typedef std::vector<FontAttributes> FontVector;
 
     FontVector _fonts;
     /// current font index

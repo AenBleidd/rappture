@@ -41,12 +41,11 @@ NVUTILLIB	= nvutil.a
 
 OBJS		= \
 		FilePath.o \
-		Fonts.o \
-		Object.o
+		Fonts.o
 
 all: $(NVUTILLIB)
 
-install: 
+install: all
 
 $(NVUTILLIB): $(OBJS)
 	$(RM) $@
@@ -61,3 +60,6 @@ clean:
 
 distclean: clean
 	$(RM) Makefile *~
+
+FilePath.o: FilePath.h $(srcdir)/../Trace.h
+Fonts.o: Fonts.h
