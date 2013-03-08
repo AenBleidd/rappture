@@ -265,7 +265,7 @@ clean:
 clean-docs:
 	$(RM) -r docs
 
-distclean: clean
+distclean: clean clean-docs
 	$(MAKE) -C $(MAT_DIR) distclean
 	$(MAKE) -C $(GRAPHICS_DIR) distclean
 	$(MAKE) -C $(IMG_DIR) distclean
