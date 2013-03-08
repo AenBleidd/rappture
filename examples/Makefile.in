@@ -28,17 +28,14 @@ SUBDIRS		= \
 		objects \
 		zoo 
 
+.PHONY: all install clean distclean $(SUBDIRS)
 
-.PHONY: 	$(SUBDIRS)
-
-all:  build
-
-build:
+all:
 	for i in $(SUBDIRS) ; do \
 	    $(MAKE) -C $$i all || exit 1 ; \
 	done
 
-install: 
+install:
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0555 $$i $(destdir) ; \
@@ -57,4 +54,3 @@ distclean: clean
 	    $(MAKE) -C $$i distclean || exit 1 ; \
 	done
 	$(RM) Makefile *~
-

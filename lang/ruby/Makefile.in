@@ -64,6 +64,10 @@ all: $(lib)
 $(lib): $(OBJS)
 	$(SHLIB_LD) $(SHLIB_LDFLAGS) -o $@ $(OBJS) \
 		$(LIB_SEARCH_DIRS) $(LIBS) 
+
+.cc.o:
+	$(CXX) $(CXX_SWITCHES) -c $?
+
 install: $(lib) 
 	$(MKDIR_P) -m 0755 $(destdir)
 	$(INSTALL) -m 0555 $(lib) $(destdir)
@@ -76,9 +80,6 @@ distclean: clean
 
 Makefile.ruby: build.rb
 	$(RUBY) build.rb
-
-.cc.o:
-	$(CXX) $(CXX_SWITCHES) -c $?
 
 old: Makefile.ruby
 	$(MAKE) -f Makefile.ruby all

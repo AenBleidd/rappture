@@ -31,7 +31,7 @@ ifneq ($(CG_LIB_DIR),)
   SUBDIRS += nanovis
 endif
 
-.PHONY: $(SUBDIRS)
+.PHONY: all install clean distclean $(SUBDIRS)
 
 FILES		= \
 		start_viz.sh
@@ -58,4 +58,5 @@ distclean:
 	for i in $(SUBDIRS) ; do \
 	  $(MAKE) -C $$i distclean ; \
 	done
-	$(RM) -r Makefile config.cache config.log config.status start_viz.sh start_nanoscale.sh *~ autom4te.cache
+	$(RM) -r autom4te.cache
+	$(RM) Makefile config.cache config.log config.status start_viz.sh start_nanoscale.sh *~

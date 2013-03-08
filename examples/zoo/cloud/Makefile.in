@@ -22,6 +22,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/cloud
 
+.PHONY: all install clean distclean
+
 all: 
 	$(MAKE) -C matlab all
 

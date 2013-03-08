@@ -11,7 +11,7 @@ includedir	= @includedir@
 
 PGAPACK		= @PGAPACK@
 
-.PHONY:	pgapack
+.PHONY:	all install test clean distclean pgapack
 
 all: pgapack
 

@@ -524,7 +524,6 @@ AC_CONFIG_FILES([
     examples/graph/Makefile
     examples/objects/Makefile
     examples/objects/axis/Makefile
-    examples/objects/contour/Makefile
     examples/objects/curve/Makefile
     examples/objects/dxWriter/Makefile
     examples/objects/floatBuffer/Makefile

@@ -28,8 +28,8 @@ INCL_CEE        = -I $(INCLUDES_DIR)/cee
 INCL_FORTRAN    = -I $(INCLUDES_DIR)/fortran
 
 
-.PHONY: src jobs
-	
+.PHONY: all clean distclean src jobs
+
 all: src jobs
 
 src:
@@ -38,6 +38,6 @@ jobs:
 	$(MAKE) -C jobs all
 
 clean: 
-	
+
 distclean: clean
 	$(RM) Makefile

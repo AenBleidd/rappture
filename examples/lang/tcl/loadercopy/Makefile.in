@@ -20,6 +20,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/lang/tcl/loadercopy
 
+.PHONY: all install clean distclean
+
 all:
 	$(MAKE) -C examples  all
 	$(MAKE) -C docs  all

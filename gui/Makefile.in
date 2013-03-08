@@ -25,9 +25,9 @@ destdir		= $(libdir)/$(name)
 FILES		= \
 		pkgIndex.tcl 
 
-.PHONY:	src scripts apps
-
 SUBDIRS		= src scripts apps 
+
+.PHONY:	all install test clean distclean $(SUBDIRS)
 
 all:
 	for i in $(SUBDIRS) ; do \

@@ -44,6 +44,8 @@ examples	= \
 
 destdir		= $(prefix)/examples/zoo
 
+.PHONY: all install clean distclean
+
 all: 
 	for i in $(examples) ; do \
 	  $(MAKE) -C $$i all || exit 1; \

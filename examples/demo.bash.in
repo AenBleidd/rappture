@@ -27,6 +27,7 @@ ZOO="\
 	./zoo/integer2
 	./zoo/loader
 	./zoo/log
+	./zoo/mesh
 	./zoo/note
 	./zoo/number
 	./zoo/number2

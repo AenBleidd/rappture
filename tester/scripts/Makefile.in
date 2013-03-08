@@ -39,7 +39,7 @@ tclIndex: $(FILES)
 	$(TCLSH) $(srcdir)/../../gui/cf/mkindex.tcl --srcdir $(srcdir) \
 		--outfile tclIndex
 
-install: install_scripts install_images 
+install: all install_scripts install_images 
 
 install_scripts: 
 	$(MKDIR_P) -m 0755 $(destdir)

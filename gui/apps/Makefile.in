@@ -46,9 +46,11 @@ WINDOWS_SCRIPTS =  \
 		$(srcdir)/driver.cmd \
 		$(srcdir)/rerun.cmd
 
+.PHONY: all install clean distclean
+
 all:
 
-install:
+install: all
 	$(MKDIR_P) -m 0755 $(bindir)
 	@for i in $(SCRIPTS); do \
 	    echo "Installing $$i" ; \
@@ -58,6 +60,6 @@ install:
 clean:
 
 distclean: clean
-	$(RM) encodedata rappture.env rappture rappture.use rerun simsim xmldiff
+	$(RM) about copy_rappture_examples encodedata rappture.env rappture-csh.env rappture rappture.use rerun simsim xmldiff
 	$(RM) Makefile *~
 

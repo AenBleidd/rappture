@@ -20,9 +20,11 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/drawing
 
+.PHONY: all install install-files install-images clean distclean
+
 all: 
 
-install: install-files install-images
+install: all install-files install-images
 
 install-files: 
 	$(MKDIR_P) -m 0755 $(destdir)
@@ -38,5 +40,5 @@ install-images:
 
 clean:
 
-distclean: 
+distclean: clean
 	$(RM) Makefile *~

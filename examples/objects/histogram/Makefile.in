@@ -41,12 +41,14 @@ destdir = $(prefix)/examples/objects/histogram
 PROGS   = \
 		histogram
 
+.PHONY: all install clean distclean
+
 all: $(PROGS)
 
 histogram: $(srcdir)/histogram.cc
 	$(CXX) $(CXX_SWITCHES) -o $@ $< $(LIBS)
 
-install:
+install: all
 	$(MKDIR_P) -m 0755 $(destdir)
 	for i in $(FILES) ; do \
 	  $(INSTALL) -m 0444  $$i $(destdir) ; \

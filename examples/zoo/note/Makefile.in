@@ -20,6 +20,8 @@ FILES		= \
 
 destdir		= $(prefix)/examples/zoo/note
 
+.PHONY: all install clean distclean
+
 all: 
 	$(MAKE) -C docs all
 
