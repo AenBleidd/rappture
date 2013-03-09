@@ -273,6 +273,8 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         usual
         ignore -highlightthickness -borderwidth  -background
     }
+    bind $itk_component(3dview) <Control-F1> [itcl::code $this ToggleConsole]
+
     set f [$itk_component(main) component controls]
     itk_component add reset {
         button $f.reset -borderwidth 1 -padx 1 -pady 1 \
