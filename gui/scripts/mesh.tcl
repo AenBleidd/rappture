@@ -56,32 +56,33 @@ itcl::class Rappture::Mesh {
 	return $_numPoints
     }
 
-    private method ReadNodesElements {xmlobj path}
-
-    private variable _points ""      ;	# name of vtkPointData object
 
     private common _xp2obj       ;	# used for fetch/release ref counting
     private common _obj2ref      ;	# used for fetch/release ref counting
     private variable _isValid 0
-    private variable _vtkoutput	""
-    private variable _vtkreader	""
-    private variable _vtkpoints	""
-    private variable _vtkgrid	""
     private variable _xv	""
     private variable _yv	""
     private variable _zv	""
     private variable _xCoords	"";	# For the blt contour only
     private variable _yCoords	"";	# For the blt contour only
     
-    private method GetDimension {} 
+    private method ReadNodesElements {path}
+    private method GetDimension { path } 
     private method GetDouble { path } 
     private method GetInt { path } 
-    private method ReadCells { xmlobj path }
-    private method ReadCloud { xmlobj path }
-    private method ReadGrid { xmlobj path }
-    private method ReadTriangles { xmlobj path }
-    private method ReadVtk { xmlobj path }
-    private method ReadUnstructuredGrid { xmlobj path }
+    private method ReadGrid { path }
+    private method ReadUnstructuredGrid { path }
+    private method ReadVtk { path }
+    private method ReadTriangles { xv yv zv triangles }
+    private method ReadQuads { xv yv zv quads }
+    private method ReadTetrahedrons { xv yv zv tetrahedrons }
+    private method ReadHexahedrons { xv yv zv hexhedrons }
+    private method ReadWedges { xv yv zv wedges }
+    private method ReadPyramids { xv yv zv pyramids }
+    private method ReadCells { xv yv zv cells celltypes }
+    private method ReadCloud { xv yv zv }
+    private method GetCellType { name }
+    private method GetNumIndices { type }
 }
 
 # ----------------------------------------------------------------------
@@ -145,7 +146,7 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     foreach axis {x y z} {
         set _limits($axis) ""
     }
-    GetDimension
+    GetDimension $path
     set u [$_mesh get units]
     if {"" != $u} {
         while {[llength $u] < 3} {
@@ -160,17 +161,13 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
     #
     # <vtk> described mesh
     # <element> +  <node> definitions
-    # <cloud>		x,y coordinates or x,y,z coordinates 
     # <grid>		rectangular mesh 
-    # <triangles>	triangular mesh
-    # <cells>		homogeneous cell type mesh.
     # <unstructured>    homogeneous cell type mesh.
-    #
 
     # Check that only one mesh type was defined.
     set subcount 0
     foreach cname [$_mesh children] {
-	foreach type { vtk cloud grid triangles cells unstructured} {
+	foreach type { vtk grid unstructured } {
 	    if { $cname == $type } {
 		incr subcount
 		break
@@ -193,19 +190,13 @@ itcl::body Rappture::Mesh::constructor {xmlobj path} {
 	puts stderr "too many mesh types specified: picking first found."
     }
     if { [$_mesh element "vtk"] != ""} {
-	ReadVtk $xmlobj $path
-    } elseif { [$_mesh element "cloud"] != "" } {
-	ReadCloud $xmlobj $path
+	ReadVtk $path
     } elseif {[$_mesh element "grid"] != "" } {
-	ReadGrid $xmlobj $path 
-    } elseif {[$_mesh element "triangles"] != "" } {
-	ReadTriangles $xmlobj $path
-    } elseif {[$_mesh element "cells"] != "" } {
-	ReadCells $xmlobj $path
+	ReadGrid $path 
     } elseif {[$_mesh element "unstructured"] != "" } {
-	ReadUnstructuredGrid $xmlobj $path
+	ReadUnstructuredGrid $path
     } elseif {[$_mesh element "node"] != "" && [$_mesh element "element"]!=""} {
-        ReadNodesElements $xmlobj $path
+        ReadNodesElements $path
     }
 }
 
@@ -221,15 +212,6 @@ itcl::body Rappture::Mesh::destructor {} {
     }
     if { $_yCoords != "" } {
 	blt::vector destroy $_yCoords
-    }
-    if { $_vtkoutput != "" } {
-	rename $_vtkoutput ""
-    }
-    if { $_vtkreader != "" } {
-	rename $_vtkreader ""
-    }
-    if { $_points != "" } {
-	rename $_points ""
     }
 }
 
@@ -252,7 +234,7 @@ itcl::body Rappture::Mesh::vtkdata {} {
 # Returns the vtk object containing the points for this mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Mesh::points {} {
-    return $_points
+    return ""
 }
 
 # ----------------------------------------------------------------------
@@ -304,7 +286,7 @@ itcl::body Rappture::Mesh::elements {} {
 itcl::body Rappture::Mesh::mesh { {type "vtk"} } {
     switch $type {
 	"vtk" { 
-	    return $_vtkgrid 
+	    return ""
 	}
 	default { 
 	    error "Requested mesh type \"$type\" is unknown."
@@ -376,15 +358,17 @@ itcl::body Rappture::Mesh::hints {{keyword ""}} {
     return [array get hints]
 }
 
-itcl::body Rappture::Mesh::GetDimension {} {
-    set string [$_xmlobj get dimension]
-    if { [scan $string "%d" _dim] != 1 } {
-	set _dim -1
-	return
+itcl::body Rappture::Mesh::GetDimension { path } {
+    set string [$_xmlobj get $path.dim]
+    if { $string == "" } {
+	error "no tag <dim> found in mesh."
     }
-    if { $_dim < 1 || $_dim > 4 } {
-	error "bad dimension in mesh"
-    }  
+    if { [scan $string "%d" _dim] == 1 } {
+        if { $_dim == 2 || $_dim == 3 } {
+            return $_dim
+        }
+    }
+    error "bad <dim> tag value \"$string\": should be 2 or 3."
 }
 
 itcl::body Rappture::Mesh::GetDouble { path } {
@@ -405,56 +389,12 @@ itcl::body Rappture::Mesh::GetInt { path } {
     return $value
 }
 
-itcl::body Rappture::Mesh::ReadCloud { xmlobj path } {
-    set _type "cloud"
-    set data [$xmlobj get $path.cloud.points] 
-    Rappture::ReadPoints $data _dim coords
-	
-    set all [blt::vector create \#auto]
-    $all set $coords 
-    set xv [blt::vector create \#auto]
-    set yv [blt::vector create \#auto]
-    set zv [blt::vector create \#auto]
-    if { $_dim == 2 } {
-	$all split $xv $yv
-	$zv seq 0 0 [$xv length]
-    } elseif { $_dim == 3 } {
-	$all split $xv $yv $zv
-    } else {
-	error "invalid dimension \"$_dim\" of cloud mesh"
-    }
-    set _numPoints [$xv length]
-    if { $_dim == 2 } {
-	append out "DATASET POLYDATA\n"
-	append out "POINTS $_numPoints double\n"
-	foreach x [$xv range 0 end] y [$yv range 0 end]  {
-	    append out "$x $y 0\n"
-	}
-	set _vtkdata $out
-	foreach axis {x y} {
-	    set vector [set ${axis}v]
-	    set _limits($axis) [$vector limits]
-	}
-    } elseif { $_dim == 3 } {
-	append out "DATASET POLYDATA\n"
-	append out "POINTS $_numPoints double\n"
-	foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	    append out "$x $y $z\n"
-	}
-	set _vtkdata $out
-	foreach axis {x y z} {
-	    set vector [set ${axis}v]
-	    set _limits($axis) [$vector limits]
-	}
-    }
-    blt::vector destroy $xv $yv $zv $all
-}
 
-itcl::body Rappture::Mesh::ReadVtk { xmlobj path } {
+itcl::body Rappture::Mesh::ReadVtk { path } {
     set _type "vtk"
 
     # Create a VTK file with the mesh in it.  
-    set _vtkdata [$xmlobj get $path.vtk]
+    set _vtkdata [$_xmlobj get $path.vtk]
     append out "# vtk DataFile Version 3.0\n"
     append out "mesh\n"
     append out "ASCII\n"
@@ -487,17 +427,17 @@ itcl::body Rappture::Mesh::ReadVtk { xmlobj path } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
+itcl::body Rappture::Mesh::ReadGrid { path } {
     set _type "grid"
     set numUniform 0
     set numRectilinear 0
     set numCurvilinear 0
     foreach axis { x y z } {
-	set min    [$xmlobj get "$path.grid.${axis}axis.min"]
-	set max    [$xmlobj get "$path.grid.${axis}axis.max"]
-	set num    [$xmlobj get "$path.grid.${axis}axis.numpoints"]
-	set coords [$xmlobj get "$path.grid.${axis}coords"]
-	set dim    [$xmlobj get "$path.grid.${axis}dim"]
+	set min    [$_xmlobj get "$path.grid.${axis}axis.min"]
+	set max    [$_xmlobj get "$path.grid.${axis}axis.max"]
+	set num    [$_xmlobj get "$path.grid.${axis}axis.numpoints"]
+	set coords [$_xmlobj get "$path.grid.${axis}coords"]
+	set dim    [$_xmlobj get "$path.grid.${axis}dim"]
 	if { $min != "" && $max != "" && $num != "" && $num > 0 } {
 	    set ${axis}Min $min
 	    set ${axis}Max $max
@@ -525,7 +465,7 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
         if { $numCurvilinear < 2 } {
             error "curvilinear grid must be 2D or 3D."
         }
-        set points [$xmlobj get $path.grid.points]
+        set points [$_xmlobj get $path.grid.points]
         if { $points == "" } {
             error "missing <points> from grid description."
         }
@@ -624,7 +564,7 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
     if { [info exists xMin] } {
 	$xv seq $xMin $xMax $xNum
     } else {
-	$xv set [$xmlobj get $path.grid.xcoords]
+	$xv set [$_xmlobj get $path.grid.xcoords]
 	set xMin [$xv min]
 	set xMax [$xv max]
 	set xNum [$xv length]
@@ -633,7 +573,7 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
     if { [info exists yMin] } {
 	$yv seq $yMin $yMax $yNum
     } else {
-	$yv set [$xmlobj get $path.grid.ycoords]
+	$yv set [$_xmlobj get $path.grid.ycoords]
 	set yMin [$yv min]
 	set yMax [$yv max]
 	set yNum [$yv length]
@@ -643,7 +583,7 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
 	if { [info exists zMin] } {
 	    $zv seq $zMin $zMax $zNum
 	}  else {
-	    $zv set [$xmlobj get $path.grid.zcoords]
+	    $zv set [$_xmlobj get $path.grid.zcoords]
 	    set zMin [$zv min]
 	    set zMax [$zv max]
 	    set zNum [$zv length]
@@ -696,183 +636,41 @@ itcl::body Rappture::Mesh::ReadGrid { xmlobj path } {
     return 1
 }
 
-itcl::body Rappture::Mesh::ReadCells { xmlobj path } {
-    set _type "cells"
-
-    set data [$xmlobj get $path.cells.points]
-    Rappture::ReadPoints $data _dim points
-    if { $points == "" } {
-	puts stderr "no <points> found for <cells> mesh"
-	return 0
-    }
-    array set celltype2vertices {
-	triangles 3
-	quads	 4
-	tetraheadrons 4
-	voxels 8
-	hexaheadrons 8
-	wedges 6
-	pyramids 5
-    }
-    array set celltype2vtkid {
-	triangles 5
-	quads	 9
-	tetraheadrons 10
-	voxels 11
-	hexaheadrons 12
-	wedges 13
-	pyramids 14
-    }
-    set count 0
-
-    # Try to detect the celltype used.  There should be a single XML tag 
-    # containing all the cells defined.  It's an error if there's more than
-    # one of these, or if there isn't one.  
-    foreach type { 
-	triangles quads tetraheadrons voxels hexaheadrons wedges pyramids }  {
-	if { [$xmlobj get $path.cells.$type] != "" } {
-	    set celltype $type
-	    incr count
-	}
-    }
-    if { $count == 0 } {
-	puts stderr "no cell types found"
-	return 0
-    }
-    if { $count > 1 } {
-	puts stderr "too many cell types tags found"
-	return 0
-    }
-    set cells [$xmlobj get $path.cells.$celltype]
-    if { $cells == "" } {
-	puts stderr "no data for celltype \"$celltype\""
-	return 0
-    }
-    # Get the number of vertices for each cell and the corresponding VTK id.
-    set numVertices $celltype2vertices($celltype)
-    set vtkid       $celltype2vtkid($celltype)
-    
-    if { $_dim == 2 } {
-	# Load the points into one big vector, then split out the x and y
-	# coordinates.
-	set all [blt::vector create \#auto]
-	$all set $points
-	set xv [blt::vector create \#auto]
-	set yv [blt::vector create \#auto]
-	$all split $xv $yv 
-	set _numPoints [$xv length]
-
-	set data {}
-	set _numCells 0
-	set celltypes {}
-	# Build cell information.  Look line by line.  Most cell types
-	# have a specific number of vertices, but there are a few that
-	# have a variable number of vertices.
-	foreach line [split $cells \n] {
-	    set numVerticies [llength $line]
-	    if { $numVerticies == 0 } {
-		continue;		# Skip blank lines
-	    }
-	    append data "    $numVertices $line\n"
-	    append celltypes "$vtkid\n"
-	    incr _numCells
-	}
-	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints double\n"
-	foreach x [$xv range 0 end] y [$yv range 0 end] {
-	    append out "    $x $y 0\n"
-	}
-	append out "CELLS $_numCells [expr $_numCells * ($numVertices + 1)]\n"
-	append out $data
-	append out "CELL_TYPES $_numCells\n"
-	append out $celltypes
-	set _limits(x) [$xv limits]
-	set _limits(y) [$yv limits]
-	blt::vector destroy $xv $yv $all
-    } else {
-	# Load the points into one big vector, then split out the x, y, and z
-	# coordinates.
-	set all [blt::vector create \#auto]
-	$all set $points
-	set xv [blt::vector create \#auto]
-	set yv [blt::vector create \#auto]
-	set zv [blt::vector create \#auto]
-	$all split $xv $yv $zv
-	set _numPoints [$xv length]
-
-	set data {}
-	set _numCells 0
-	set celltypes {}
-	# Build cell information.  Look line by line.  Most cell types
-	# have a specific number of vertices, but there are a few that
-	# have a variable number of vertices.
-	foreach line [split $cells \n] {
-	    set numVerticies [llength $line]
-	    if { $numVerticies == 0 } {
-		continue;		# Skip blank lines
-	    }
-	    append data "    $numVertices $line\n"
-	    append celltypes "$vtkid\n"
-	    incr _numCells
-	}
-	append out "DATASET UNSTRUCTURED_GRID\n"
-	append out "POINTS $_numPoints double\n"
-	foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
-	    append out "    $x $y $z\n"
-	}
-	append out "CELLS $_numCells [expr $_numCells * ($numVerticies + 1)]\n"
-	append out $data
-	append out "CELL_TYPES $_numCells\n"
-	append out $celltypes
-	set _limits(x) [$xv limits]
-	set _limits(y) [$yv limits]
-	set _limits(z) [$zv limits]
-	blt::vector destroy $xv $yv $zv $all
+itcl::body Rappture::Mesh::ReadCloud { xv yv zv } {
+    set _type "cloud"
+    set _numPoints [$xv length]
+    append out "DATASET POLYDATA\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+        append out "$x $y $z\n"
     }
     set _vtkdata $out
-    set _isValid 1 
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
 }
 
-
-itcl::body Rappture::Mesh::ReadTriangles { xmlobj path } {
+itcl::body Rappture::Mesh::ReadTriangles { xv yv zv triangles } {
     set _type "triangles"
-    set _dim 2
-    set triangles [$xmlobj get $path.triangles.indices]
     if { $triangles == "" } { 
 	puts stderr "no triangle indices specified in mesh"
-	return 0
-    }
-    set xcoords [$xmlobj get $path.triangles.xcoords]
-    set ycoords [$xmlobj get $path.triangles.ycoords]
-    set points [$xmlobj get $path.triangles.points]
-    set xv [blt::vector create \#auto]
-    set yv [blt::vector create \#auto]
-    if { $xcoords != "" && $ycoords != "" } {
-	$xv set $xcoords
-	$yx set $ycoords
-    } elseif { $points != "" } { 
-	set all [blt::vector create \#auto]
-	$all set $points
-	$all split $xv $yv
-    } else {
-	puts stderr "missing either <xcoords>, <ycoords>, or <points> for triangular mesh"
 	return 0
     }
     set _numPoints [$xv length]
     set count 0
     set data {}
-    foreach { a b c } $triangles {
-	append data "    3 $a $b $c\n"
-	incr count
-    }
     set celltypes {}
-    for { set i 0 } { $i < $count } { incr i } {
+    foreach { a b c } $triangles {
+	append data " 3 $a $b $c\n"
 	append celltypes "5\n"
+	incr count
     }
     append out "DATASET UNSTRUCTURED_GRID\n"
     append out "POINTS $_numPoints double\n"
-    foreach x [$xv range 0 end] y [$yv range 0 end] {
-	append out "    $x $y 0\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
     }
     append out "CELLS $count [expr $count * 4]\n"
     append out $data
@@ -880,64 +678,219 @@ itcl::body Rappture::Mesh::ReadTriangles { xmlobj path } {
     append out $celltypes
     set _limits(x) [$xv limits]
     set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
     set _vtkdata $out
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
-    set _type "unstructured"
+itcl::body Rappture::Mesh::ReadQuads { xv yv zv quads } {
+    set _type "quads"
+    if { $quads == "" } { 
+	puts stderr "no <quads> indices specified in mesh"
+	return 0
+    }
+    set _numPoints [$xv length]
+    set count 0
+    set data {}
+    set celltypes {}
+    foreach { a b c d } $quads {
+	append data " 4 $a $b $c $d\n"
+	append celltypes "9\n"
+	incr count
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "CELLS $count [expr $count * 5]\n"
+    append out $data
+    append out "CELL_TYPES $count\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
+    set _vtkdata $out
+    set _isValid 1 
+}
 
-    set data [$xmlobj get $path.unstructured.points]
-    Rappture::ReadPoints $data _dim points
-    if { $points == "" } {
-	puts stderr "no <points> found for <cells> mesh"
+itcl::body Rappture::Mesh::ReadTetrahedrons { xv yv zv tetras } {
+    set _type "tetrahedrons"
+    if { $tetras == "" } { 
+	puts stderr "no <tetrahederons> indices specified in mesh"
 	return 0
     }
-    set cells [$xmlobj get $path.unstructured.cells]
-    if { $cells == "" } {
-	puts stderr "no <cells> description found for <unstructured>"
+    set _numPoints [$xv length]
+    set count 0
+    set data {}
+    set celltypes {}
+    foreach { a b c d } $tetras {
+	append data " 4 $a $b $c $d\n"
+	append celltypes "10\n"
+	incr count
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "CELLS $count [expr $count * 5]\n"
+    append out $data
+    append out "CELL_TYPES $count\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
+    set _vtkdata $out
+    set _isValid 1 
+}
+
+itcl::body Rappture::Mesh::ReadHexahedrons { xv yv zv hexas } {
+    set _type "hexahedrons"
+    if { $hexas == "" } { 
+	puts stderr "no <hexahederons> indices specified in mesh"
 	return 0
     }
-    set celltypes [$xmlobj get $path.unstructured.celltypes]
+    set _numPoints [$xv length]
+    set count 0
+    set data {}
+    set celltypes {}
+    foreach { a b c d e f g h } $hexas {
+	append data " 8 $a $b $c $d $e $f $g $h\n"
+	append celltypes "12\n"
+	incr count
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "CELLS $count [expr $count * 9]\n"
+    append out $data
+    append out "CELL_TYPES $count\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
+    set _vtkdata $out
+    set _isValid 1 
+}
+
+itcl::body Rappture::Mesh::ReadWedges { xv yv zv wedges } {
+    set _type "wedges"
+    if { $wedges == "" } { 
+	puts stderr "no <wedges> indices specified in mesh"
+	return 0
+    }
+    set _numPoints [$xv length]
+    set count 0
+    set data {}
+    set celltypes {}
+    foreach { a b c d e f } $wedges {
+	append data " 6 $a $b $c $d $e $f\n"
+	append celltypes "13\n"
+	incr count
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "CELLS $count [expr $count * 7]\n"
+    append out $data
+    append out "CELL_TYPES $count\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
+    set _vtkdata $out
+    set _isValid 1 
+}
+
+itcl::body Rappture::Mesh::ReadPyramids { xv yv zv pyramids } {
+    set _type "pyramids"
+    if { $pyramids == "" } { 
+	puts stderr "no <pyramids> indices specified in mesh"
+	return 0
+    }
+    set _numPoints [$xv length]
+    set count 0
+    set data {}
+    set celltypes {}
+    foreach { a b c d e } $pyramids {
+	append data " 6 $a $b $c $d $e\n"
+	append celltypes "14\n"
+	incr count
+    }
+    append out "DATASET UNSTRUCTURED_GRID\n"
+    append out "POINTS $_numPoints double\n"
+    foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
+	append out " $x $y $z\n"
+    }
+    append out "CELLS $count [expr $count * 5]\n"
+    append out $data
+    append out "CELL_TYPES $count\n"
+    append out $celltypes
+    set _limits(x) [$xv limits]
+    set _limits(y) [$yv limits]
+    if { $_dim == 3 } {
+        set _limits(z) [$zv limits]
+    }
+    set _vtkdata $out
+    set _isValid 1 
+}
+
+itcl::body Rappture::Mesh::ReadCells { xv yv zv cells celltypes } {
+    set _type "unstructured"
     if { $cells == "" } {
 	puts stderr "no <cells> description found for <unstructured>."
 	return 0
     }
     set lines [split $cells \n]
-    
-    set all [blt::vector create \#auto]
-    set xv [blt::vector create \#auto]
-    set yv [blt::vector create \#auto]
-    set zv [blt::vector create \#auto]
-    $all set $points
+    set numCellTypes [llength $celltypes]
+    if { $numCellTypes == 1 } {
+        set celltype [GetCellType $celltypes]
+    }
     if { $_dim == 2 } {
-	# Load the points into one big vector, then split out the x and y
-	# coordinates.
-	$all split $xv $yv 
 	set _numPoints [$xv length]
-
 	set data {}
         set count 0
         set _numCells 0
+        set celltypes {}
 	foreach line $lines {
             set length [llength $line]
 	    if { $length == 0 } {
 		continue
 	    }
-            set celltype [lindex $celltypes $_numCells]
-            if { $celltype == "" } {
-                puts stderr "can't find celltype for line \"$line\""
-                return 0
+            if { $numCellTypes > 1 } {
+                set cellType [GetCellType [lindex $cellTypes $_numCells]]
             }
-	    append data " $line\n"
-            incr count $length
+            set numIndices [GetNumIndices $celltype]
+            if { $numIndices > 0 && $numIndices != $length } {
+                error "wrong \# of indices specified for celltype $celltype on line \"$line\""
+            }
+	    append data " $numIndices $line\n"
+            lappend celltypes $celltype
+            incr count $length;         # Include the indices
+            incr count;                 # and the number of indices
             incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
 	append out "POINTS $_numPoints double\n"
-        $zv seq 0 0 [$xv length];       # Make an all zeroes vector.
+        set all [blt::vector create \#auto]
 	$all merge $xv $yv $zv
         append out [$all range 0 end]
+        blt::vector destroy $all
 	append out "CELLS $_numCells $count\n"
 	append out $data
 	append out "CELL_TYPES $_numCells\n"
@@ -945,9 +898,6 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
 	set _limits(x) [$xv limits]
 	set _limits(y) [$yv limits]
     } else {
-	# Load the points into one big vector, then split out the x, y, and z
-	# coordinates.
-	$all split $xv $yv $zv
 	set _numPoints [$xv length]
 
 	set data {}
@@ -958,19 +908,24 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
 	    if { $length == 0 } {
 		continue
 	    }
-            set celltype [lindex $celltypes $_numCells]
-            if { $celltype == "" } {
-                puts stderr "can't find celltype for line \"$line\""
-                return 0
+            if { $numCellTypes > 1 } {
+                set cellType [GetCellType [lindex $cellTypes $_numCells]]
             }
-	    append data " $line\n"
+            set numIndices [GetNumIndices $celltype]
+            if { $numIndices > 0 && $numIndices != $length } {
+                error "wrong \# of indices specified for celltype $celltype on line \"$line\""
+            }
+	    append data " $length $line\n"
             incr count $length
+            incr count
             incr _numCells
 	}
 	append out "DATASET UNSTRUCTURED_GRID\n"
 	append out "POINTS $_numPoints double\n"
+        set all [blt::vector create \#auto]
         $all merge $xv $yv $zv
         append out [$all range 0 end]
+        blt::vector destroy $all
         append out "\n"
 	append out "CELLS $_numCells $count\n"
 	append out $data
@@ -980,25 +935,135 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { xmlobj path } {
 	set _limits(y) [$yv limits]
 	set _limits(z) [$zv limits]
     }
-    blt::vector destroy $xv $yv $zv $all
     set _vtkdata $out
     set _isValid 1 
 }
 
+itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
+    set _type "unstructured"
+
+    # Step 1: Verify that there's only one cell tag.
+    set numCells 0
+    foreach type { cells triangles quads tetrahedrons 
+        hexahedrons wedges pyramids } {
+        set data [$_xmlobj get $path.unstructured.$type]
+        if { $data != "" } {
+            puts stderr "found type $type"
+            incr numCells
+        }
+    }
+    # The generic <cells> tag requires there be a <celltypes> tag too.
+    set celltypes [$_xmlobj get $path.unstructured.celltypes]
+    if { $numCells == 0 && $celltypes != "" } {
+	error "no <cells> description found for <unstructured>."
+    }
+    if { $numCells > 1 } {
+        error "too many <cells>, <triangles>, <quads>... descriptions found: should be only one."
+    }
+    foreach type { cells triangles quads tetrahedrons 
+        hexahedrons wedges pyramids } {
+        set data [$_xmlobj get $path.unstructured.$type]
+        if { $data != "" } {
+            break
+        }
+    }
+    # Step 2: Allow points to be specified as <points> or 
+    #         <xcoords>, <ycoords>, <zcoords>.  Split and convert into
+    #         3 vectors, one for each coordinate.
+    if { $_dim == 2 } {
+        set xcoords [$_xmlobj get $path.unstructured.xcoords]
+        set ycoords [$_xmlobj get $path.unstructured.ycoords]
+        set zcoords [$_xmlobj get $path.unstructured.zcoords]
+        set data    [$_xmlobj get $path.unstructured.points]
+        if { $zcoords != "" } {
+                error "can't specify <zcoord> with a 2 dimensional mesh"
+        }
+        if { $xcoords != "" && $ycoords != "" } {
+            set all [blt::vector create \#auto]
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+            $xv set $xcoords
+            $yv set $ycoords
+        } elseif { $data != "" } {
+            Rappture::ReadPoints $data dim points
+            if { $points == "" } {
+                error "no <points> found for <cells> mesh"
+            }
+            if { $dim != 2 } {
+                error "\# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
+            }
+            set all [blt::vector create \#auto]
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+            $all set $points
+            $all split $xv $yv
+            blt::vector destroy $all
+        } else {
+            error "no points specified for unstructured grid"
+        }
+        set zv [blt::vector create \#auto]
+        $zv seq 0 0 [$xv length];       # Make an all zeroes vector.
+    } elseif { $_dim == 3 } {
+        set xcoords [$_xmlobj get $path.unstructured.xcoords]
+        set ycoords [$_xmlobj get $path.unstructured.ycoords]
+        set zcoords [$_xmlobj get $path.unstructured.zcoords]
+        set data    [$_xmlobj get $path.unstructured.points]
+        if { $xcoords != "" && $ycoords != "" && $zcoords != "" } {
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+            set zv [blt::vector create \#auto]
+            $xv set $xcoords
+            $yv set $ycoords
+            $zv set $zcoords
+        } elseif { $data != "" }  {
+            Rappture::ReadPoints $data dim points
+            if { $points == "" } {
+                error "no <points> found for <cells> mesh"
+            }
+            if { $dim != 3 } {
+                error "\# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
+            }
+            set xv [blt::vector create \#auto]
+            set yv [blt::vector create \#auto]
+            set zv [blt::vector create \#auto]
+            $all set $points
+            $all split $xv $yv $zv
+            blt::vector destroy $all
+        } else {
+            error "no points specified for unstructured grid"
+        }
+    }
+    # Step 3: Read the cells and write the vtk data.
+    if { $numCells == 0 } {
+        puts stderr "numCells=$numCells call ReadCloud"
+        ReadCloud $xv $yv $zv
+    } elseif { $type == "cells" } {
+        set cells [$_xmlobj get $path.unstructured.cells]
+        ReadCells $xv $yv $zv $cells $celltypes
+    } else {
+        puts stderr "type=$type"
+        set cmd "Read[string totitle $type]"
+        set cells [$_xmlobj get $path.unstructured.$type]
+        $cmd $xv $yv $zv $cells 
+    }
+    # Clean up.
+    blt::vector destroy $xv $yv $zv
+}
+
 # ----------------------------------------------------------------------
-# USAGE: ReadNodesElements <xmlobj> <path>
+# USAGE: ReadNodesElements <path>
 #
 # Used internally to build a mesh representation based on nodes and
 # elements stored in the XML.
 # ----------------------------------------------------------------------
-itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
+itcl::body Rappture::Mesh::ReadNodesElements {path} {
     set type "nodeselements"
     set count 0
 
     # Scan for nodes.  Each node represents a vertex.
     set data {}
-    foreach cname [$xmlobj children -type node $path] {
-	append data "[$xmlobj get $path.$cname]\n"
+    foreach cname [$_xmlobj children -type node $path] {
+	append data "[$_xmlobj get $path.$cname]\n"
     }	
     Rappture::ReadPoints $data _dim points
     if { $_dim == 2 } {
@@ -1009,10 +1074,8 @@ itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
 	$all set $points
 	$all split $xv $yv
 	set _numPoints [$xv length]
-	foreach axis {x y} {
-	    set vector [set ${axis}v]
-	    set _limits($axis) [${vector} limits]
-	}
+        set _limits(x) [$xv limits]
+        set _limits(y) [$yv limits]
 	# 2D Dataset. All Z coordinates are 0
 	$zv seq 0.0 0.0 $_numPoints
 	$all merge $xv $yv $zv
@@ -1026,10 +1089,9 @@ itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
 	$all set $points
 	$all split $xv $yv $zv
 	set _numPoints [$xv length]
-	foreach axis {x y z} {
-	    set vector [set ${axis}v]
-	    set _limits($axis) [${vector} limits]
-	}
+        set _limits(x) [$xv limits]
+        set _limits(y) [$yv limits]
+        set _limits(z) [$zv limits]
 	set points [$all range 0 end]
 	blt::vector destroy $all $xv $yv $zv
     } else {
@@ -1047,7 +1109,7 @@ itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
     set celltypes {}
     set data {}
     # Next scan for elements.  Each element represents a cell.
-    foreach cname [$xmlobj children -type element $path] {
+    foreach cname [$_xmlobj children -type element $path] {
         set nodeList [$_mesh get $cname.nodes]
 	set numNodes [llength $nodeList]
 	if { ![info exists node2celltype($numNodes)] } {
@@ -1072,4 +1134,47 @@ itcl::body Rappture::Mesh::ReadNodesElements {xmlobj path} {
     append out "\n"
     set _vtkdata $out
     set _isValid 1 
+}
+
+itcl::body Rappture::Mesh::GetCellType { name } {
+    array set name2type {
+        "triangle"     5
+        "quad"         9
+        "tetrahedron"  10
+        "hexahedron"   11
+        "wedge"        13
+        "pyramid"      14
+    }
+    if { [info exists name2type($name)] } {
+        return $name2type($name)
+    }
+    if { [string is int $name] == 1 && $name >= 1 && $name <= 16 } {
+        return $name
+    }
+    error "invalid celltype \"$name\""
+}
+
+itcl::body Rappture::Mesh::GetNumIndices { type } {
+    array set type2indices {
+        1       1
+        2       0
+        3       2
+        4       0
+        5       3
+        6       0
+        7       0
+        8       4
+        9       4
+        10      4
+        11      8
+        12      8
+        13      6
+        14      5
+        15      0
+        16      0
+    }
+    if { [info exists type2indices($type)] } {
+        return $type2indices($type)
+    }
+    error "invalid celltype \"$type\""
 }
