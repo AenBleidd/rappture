@@ -2621,7 +2621,7 @@ itcl::body Rappture::FlowvisViewer::SlicerTip {axis} {
 
 itcl::body Rappture::FlowvisViewer::Resize {} {
     $_arcball resize $_width $_height
-    SendCmd "screen $_width $_height"
+    SendCmd "screen size $_width $_height"
     set _resizePending 0
 }
 
