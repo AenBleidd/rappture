@@ -862,7 +862,7 @@ FlowDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         ssize_t nWritten;
         size_t length;
 
-        length = sprintf(info, "nv>data tag %s min %g max %g",
+        length = sprintf(info, "nv>data tag %s min %g max %g\n",
                          flowPtr->name(), dataPtr->magMin(), dataPtr->magMax());
         nWritten  = write(1, info, length);
         assert(nWritten == (ssize_t)strlen(info));
