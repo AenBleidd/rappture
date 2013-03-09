@@ -884,32 +884,60 @@ LegendCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     return TCL_OK;
 }
 
+static int
+ScreenBgColorOp(ClientData clientData, Tcl_Interp *interp, int objc,
+                Tcl_Obj *const *objv)
+{
+    float rgb[3];
+    if ((GetFloatFromObj(interp, objv[2], &rgb[0]) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[3], &rgb[1]) != TCL_OK) ||
+        (GetFloatFromObj(interp, objv[4], &rgb[2]) != TCL_OK)) {
+        return TCL_ERROR;
+    }
+    NanoVis::setBgColor(rgb);
+    return TCL_OK;
+}
+
 /*
  * ----------------------------------------------------------------------
  * CLIENT COMMAND:
- *   screen <width> <height>
+ *   screen size <width> <height>
  *
  * Clients send this command to set the size of the rendering area.
  * Future images are generated at the specified width/height.
  * ----------------------------------------------------------------------
  */
 static int
-ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
-	  Tcl_Obj *const *objv)
+ScreenSizeOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+             Tcl_Obj *const *objv)
 {
-    if (objc != 3) {
-        Tcl_AppendResult(interp, "wrong # args: should be \"",
-                         Tcl_GetString(objv[0]), " width height\"", (char*)NULL);
-        return TCL_ERROR;
-    }
-
     int w, h;
-    if ((Tcl_GetIntFromObj(interp, objv[1], &w) != TCL_OK) ||
-        (Tcl_GetIntFromObj(interp, objv[2], &h) != TCL_OK)) {
+    if ((Tcl_GetIntFromObj(interp, objv[2], &w) != TCL_OK) ||
+        (Tcl_GetIntFromObj(interp, objv[3], &h) != TCL_OK)) {
         return TCL_ERROR;
     }
     NanoVis::resizeOffscreenBuffer(w, h);
     return TCL_OK;
+}
+
+static Rappture::CmdSpec screenOps[] = {
+    {"bgcolor",  1, ScreenBgColorOp,  5, 5, "r g b",},
+    {"size",     1, ScreenSizeOp, 4, 4, "width height",},
+};
+static int nScreenOps = NumCmdSpecs(screenOps);
+
+static int
+ScreenCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
+          Tcl_Obj *const *objv)
+{
+    Tcl_ObjCmdProc *proc;
+
+    proc = Rappture::GetOpFromObj(interp, nScreenOps, screenOps,
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
+    if (proc == NULL) {
+        return TCL_ERROR;
+    }
+    return (*proc) (clientData, interp, objc, objv);
 }
 
 /*
@@ -2105,7 +2133,7 @@ GridCmd(ClientData clientData, Tcl_Interp *interp, int objc,
     Tcl_ObjCmdProc *proc;
 
     proc = Rappture::GetOpFromObj(interp, nGridOps, gridOps,
-        Rappture::CMDSPEC_ARG1, objc, objv, 0);
+                                  Rappture::CMDSPEC_ARG1, objc, objv, 0);
     if (proc == NULL) {
         return TCL_ERROR;
     }

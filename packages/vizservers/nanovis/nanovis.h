@@ -80,6 +80,7 @@ public:
     static void initGL();
     static void initOffscreenBuffer();
     static void resizeOffscreenBuffer(int w, int h);
+    static void setBgColor(float color[3]);
     static void display();
     static void draw3dAxis();
     static void idle();

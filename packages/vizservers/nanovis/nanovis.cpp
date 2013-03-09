@@ -1572,6 +1572,13 @@ NanoVis::setHeightmapRanges()
 }
 
 void
+NanoVis::setBgColor(float color[3])
+{
+    TRACE("Setting bgcolor to %g %g %g", color[0], color[1], color[2]);
+    glClearColor(color[0], color[1], color[2], 1);
+}
+
+void
 NanoVis::display()
 {
     TRACE("Enter");

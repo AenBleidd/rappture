@@ -42,15 +42,20 @@ grid linecolor <red> <green> <blue> <?alpha?>
 grid visible <false|true>
 
 camera angle <xAngle> <yAngle> <zAngle>
+       ** Deprecated, use camera orient **
 camera orient <quatW> <quatX> <quatY> <quatZ>
 camera pan <x> <y>
 camera pos <x> <y> <z>
+camera reset <?all?>
 camera zoom <factor>
 
-screen <width> <height>
-    Set size of rendered images
+screen bgcolor <r> <g> <b>
+       Set screen background color
+screen size <width> <height>
+       Set size of rendered images
+
 snapshot
-    Render a 2k x 2k image (offscreen buffer)
+         Render a 2k x 2k image (offscreen buffer)
 
 transfunc define <name> {colors} {alpha}
           colors => 1 line each of "value r g b"
@@ -196,6 +201,6 @@ nv>data tag <dataobj-tag> min <val> max <val> vmin <val> vmax <val>
 ================================================================================
 Error Replies:
 ================================================================================
-Prefixed with "NanoVis Server Error: "
-Currently not guaranteed to be on a single line
+nv>viserror -bytes <nbytes>
+   <multi-line error string of nbytes>
 ================================================================================
