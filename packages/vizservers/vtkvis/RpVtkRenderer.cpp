@@ -22,7 +22,6 @@
 #include <vtkCoordinate.h>
 #include <vtkTransform.h>
 #include <vtkCharArray.h>
-#include <vtkAxisActor2D.h>
 #ifdef USE_CUSTOM_AXES
 #include "vtkRpCubeAxesActor.h"
 #else
@@ -1511,10 +1510,13 @@ void Renderer::setAxisLabelFormat(Axis axis, const char *format)
         TRACE("Setting axis %d label format to: '%s'", axis, format);
         if (axis == X_AXIS) {
             _cubeAxesActor->SetXLabelFormat(format);
+            _cubeAxesActor->XAutoLabelFormatOff();
         } else if (axis == Y_AXIS) {
             _cubeAxesActor->SetYLabelFormat(format);
+            _cubeAxesActor->YAutoLabelFormatOff();
         } else if (axis == Z_AXIS) {
             _cubeAxesActor->SetZLabelFormat(format);
+            _cubeAxesActor->ZAutoLabelFormatOff();
         }
         _needsRedraw = true;
     }
