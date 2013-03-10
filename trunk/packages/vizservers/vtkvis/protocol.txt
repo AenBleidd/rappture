@@ -752,7 +752,9 @@ nv>dataset scalar world <x> <y> <z> <value> <dataSetName>
 nv>dataset scalar pixel <x> <y> <value> <dataSetName>
 nv>dataset vector world <x> <y> <z> <valueX> <valueY> <valueZ> <dataSetName>
 nv>dataset vector pixel <x> <y> <valueX> <valueY> <valueZ> <dataSetName>
-
+nv>ok -token <seqnum>
+   Reply indicated commands through <seqnum> (numbered beginning at 1) have been
+   processed, but no new image was rendered
 ================================================================================
 Error Replies:
 ================================================================================

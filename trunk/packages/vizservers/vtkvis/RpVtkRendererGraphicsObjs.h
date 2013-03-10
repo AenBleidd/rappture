@@ -312,7 +312,8 @@ void Renderer::setGraphicsObjectPosition(const DataSetId& id, double pos[3])
 /**
  * \brief Set the prop scaling based on a 2D aspect ratio
  *
- * \param aspectRatio The aspect ratio (width/height), zero means native aspect
+ * \param id The name of the DataSet
+ * \param aspect The aspect ratio (width/height), zero means native aspect
  */
 template<class GraphicsObject>
 void Renderer::setGraphicsObjectAspect(const DataSetId& id, double aspect)
