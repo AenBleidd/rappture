@@ -20,6 +20,7 @@ switch -- $meshtype {
     "unirect2d" {
 	set mesh "output.unirect2d"
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "unirect2d mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -47,6 +48,7 @@ switch -- $meshtype {
     }
     "oldcloud" {
 	set mesh output.cloud
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "cloud (deprecated)"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -65,7 +67,8 @@ switch -- $meshtype {
     "cloud" {
 	set mesh output.mesh
 
-	$driver put $mesh.about.label "cloud in mesh"
+	$driver put $mesh.dim  2
+	$driver put $mesh.about.label "cloud in unstructured mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
@@ -75,11 +78,13 @@ switch -- $meshtype {
 		append points "$x $y\n"
 	    }
 	}
-	$driver put $mesh.cloud.points $points
+	$driver put $mesh.unstructured.points $points
+	$driver put $mesh.unstructured.celltypes ""
     }
     "regular" {
 	set mesh output.mesh
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "uniform grid mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -94,6 +99,7 @@ switch -- $meshtype {
     "irregular" {
 	set mesh output.mesh
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "irregular grid mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -104,6 +110,7 @@ switch -- $meshtype {
     "hybrid" {
 	set mesh output.mesh
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "hybrid regular and irregular grid mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -117,16 +124,18 @@ switch -- $meshtype {
     "triangular" {
 	set mesh output.mesh
 
-	$driver put $mesh.about.label "triangular mesh"
+	$driver put $mesh.dim  2
+	$driver put $mesh.about.label "triangles in unstructured mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	$driver put $mesh.triangles.points $points
-	$driver put $mesh.triangles.indices $triangles
+	$driver put $mesh.unstructured.points $points
+	$driver put $mesh.unstructured.triangles $triangles
     }
     "generic" {
 	set mesh output.mesh
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "nodes and elements mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -145,29 +154,35 @@ switch -- $meshtype {
     "unstructured" {
 	set mesh output.mesh
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "Unstructured Grid"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
 	$driver put $mesh.unstructured.points $points
-	set celltypes {}
 	set cells {}
 	foreach { a b c } $triangles {
-	    lappend celltypes "5"
-	    append cells "3 $a $b $c\n"
+	    append cells "$a $b $c\n"
 	}
 	$driver put $mesh.unstructured.cells $cells
-	$driver put $mesh.unstructured.celltypes $celltypes
+	$driver put $mesh.unstructured.celltypes "triangle"
     }
     "cells" {
 	set mesh output.mesh
 
-	$driver put $mesh.about.label "homogeneous cells"
+	$driver put $mesh.dim  2
+	$driver put $mesh.about.label "unstructured grid with heterogeneous cells"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
 
-	$driver put $mesh.cells.points $points
-	$driver put $mesh.cells.triangles $triangles
+	set celltypes {}
+	foreach { a b c } $triangles {
+	    append cells "$a $b $c\n"
+	    append celltypes "triangle\n"
+	}
+	$driver put $mesh.unstructured.points $points
+	$driver put $mesh.unstructured.celltypes "triangle"
+	$driver put $mesh.unstructured.cells $cells
     }
     "vtkmesh" {
 	set mesh output.mesh
@@ -176,6 +191,7 @@ switch -- $meshtype {
 	set data [read $f]
 	close $f
 
+	$driver put $mesh.dim  2
 	$driver put $mesh.about.label "vtk mesh"
 	$driver put $mesh.units "m"
 	$driver put $mesh.hide "yes"
@@ -189,8 +205,7 @@ switch -- $meshtype {
 	set data [read $f]
 	close $f
 	$driver put output.field(substrate).component.vtk "$data"
-	#$driver put output.field(substrate).about.view "contour"
-	# save the updated XML describing the run...
+        $driver put output.string.current ""
 	Rappture::result $driver
 	exit 0
     }

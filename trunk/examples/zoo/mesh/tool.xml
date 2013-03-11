@@ -1,15 +1,6 @@
 <?xml version="1.0"?>
 <run>
  <tool>
-    <title>mesh</title>
-      <about>Example of a Rappture &lt;mesh&gt; object.
-
-Meshes define the geometry for field.  Here are variety of 2D mesh types. 
-See &lt;mesh&gt; and &lt;field&gt; elements for details.
-
-When you click the Simulate button, the inputs will be used to generate output fields.
-        </about>
-
   <about>Press Simulate to view results.</about>
   <command>tclsh @tool/mesh.tcl @driver</command>
  </tool>
@@ -66,8 +57,8 @@ When you click the Simulate button, the inputs will be used to generate output f
     </option>
     <option>
      <about>
-      <label>mesh as cell types</label>
-      <description>Unstructured 2 dimensional grid of cells.</description>
+      <label>mesh as hybid cell types</label>
+      <description>Unstructured 2D grid of (possibly) hybrid cells.</description>
      </about>
      <value>cells</value>
     </option>
