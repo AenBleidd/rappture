@@ -77,7 +77,7 @@ set elements [subst {
     $f2.component.flow.particles(right).position 90%
     $f2.component.style  "-color rainbow -levels 6 -opacity 1"
     $f2.camera.position {
-	theta 90 phi 0 psi 0 pan-x 0 pan-y 0 zoom 1.0
+	qw 1 qx 0 qy 0 qz 0 pan-x 0 pan-y 0 zoom 1.0
     }
     $f2.component.extents 2
     $f2.component.mesh unirect2d(half)
