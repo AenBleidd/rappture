@@ -437,7 +437,7 @@ itcl::body Rappture::Field::limits {which} {
 			    foreach {axisMin axisMax} $limits(y) break
                         }
                         z - zlin - zlog {
-                            set axis y
+                            set axis z
 			    foreach {axisMin axisMax} $limits(z) break
                         }
                         v - vlin - vlog {
@@ -1287,6 +1287,7 @@ itcl::body Rappture::Field::BuildPointsOnMesh {cname} {
         set xv [blt::vector create \#auto]
         $xv set $_values
         lappend limits $cname [$xv limits]
+        lappend limits v [$xv limits]
         blt::vector destroy $xv
         set _comp2limits($cname) $limits
 	incr _counter
