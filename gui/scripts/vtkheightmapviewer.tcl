@@ -191,10 +191,10 @@ itcl::body Rappture::VtkHeightmapViewer::constructor {hostlist args} {
 
     # Initialize the view to some default parameters.
     array set _view {
-        qw      0.36
-        qx      0.25
-        qy      0.50
-        qz      0.70
+        qw	0.36
+        qx	0.25
+        qy	0.50
+        qz	0.70
         zoom	1.0 
         xpan	0
         ypan	0

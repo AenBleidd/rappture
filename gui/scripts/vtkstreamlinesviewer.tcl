@@ -1174,13 +1174,13 @@ itcl::body Rappture::VtkStreamlinesViewer::Zoom {option} {
         }
         "reset" {
             array set _view {
-                qw              0.853553
-                qx              -0.353553
-                qy              0.353553
-                qz              0.146447
+                qw      0.853553
+                qx      -0.353553
+                qy      0.353553
+                qz      0.146447
                 zoom    1.0
-                xpan   0
-                ypan   0
+                xpan    0
+                ypan    0
             }
             SendCmd "camera reset all"
             if { $_first != "" } {
