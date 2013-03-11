@@ -26,7 +26,7 @@ set elements {
     
     output.field.component.style  "-nonuniformcolors {0.0 steelblue4 0.000001 blue 0.01 green  0.1 grey 1.0 white} -markers {1% 2% 3% 5% 8% 10% 20% 50% 80%} -opacity 1"
     output.field.camera.position {
-	theta 90 phi 0 psi 0 pan-x 0 pan-y 0 zoom 1.0
+	qw 1 qx 0 qy 0 qz 0 pan-x 0 pan-y 0 zoom 1.0
     }
     output.field.component.extents 2
     output.field.component.mesh unirect2d
