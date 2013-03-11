@@ -73,14 +73,14 @@ itcl::class Rappture::Mesh {
     private method ReadGrid { path }
     private method ReadUnstructuredGrid { path }
     private method ReadVtk { path }
-    private method ReadTriangles { xv yv zv triangles }
-    private method ReadQuads { xv yv zv quads }
-    private method ReadTetrahedrons { xv yv zv tetrahedrons }
-    private method ReadHexahedrons { xv yv zv hexhedrons }
-    private method ReadWedges { xv yv zv wedges }
-    private method ReadPyramids { xv yv zv pyramids }
-    private method ReadCells { xv yv zv cells celltypes }
-    private method ReadCloud { xv yv zv }
+    private method WriteTriangles { xv yv zv triangles }
+    private method WriteQuads { xv yv zv quads }
+    private method WriteTetrahedrons { xv yv zv tetrahedrons }
+    private method WriteHexahedrons { xv yv zv hexhedrons }
+    private method WriteWedges { xv yv zv wedges }
+    private method WritePyramids { xv yv zv pyramids }
+    private method WriteHybridCells { xv yv zv cells celltypes }
+    private method WritePointCloud { xv yv zv }
     private method GetCellType { name }
     private method GetNumIndices { type }
 }
@@ -400,7 +400,7 @@ itcl::body Rappture::Mesh::ReadVtk { path } {
     append out "ASCII\n"
     append out "$_vtkdata\n"
 
-    # Write the contents to a file just in case it's binary.
+     # Write the contents to a file just in case it's binary.
     set tmpfile file[pid].vtk
     set f [open "$tmpfile" "w"]
     fconfigure $f -translation binary -encoding binary
@@ -636,7 +636,7 @@ itcl::body Rappture::Mesh::ReadGrid { path } {
     return 1
 }
 
-itcl::body Rappture::Mesh::ReadCloud { xv yv zv } {
+itcl::body Rappture::Mesh::WritePointCloud { xv yv zv } {
     set _type "cloud"
     set _numPoints [$xv length]
     append out "DATASET POLYDATA\n"
@@ -652,7 +652,7 @@ itcl::body Rappture::Mesh::ReadCloud { xv yv zv } {
     }
 }
 
-itcl::body Rappture::Mesh::ReadTriangles { xv yv zv triangles } {
+itcl::body Rappture::Mesh::WriteTriangles { xv yv zv triangles } {
     set _type "triangles"
     if { $triangles == "" } { 
 	puts stderr "no triangle indices specified in mesh"
@@ -685,7 +685,7 @@ itcl::body Rappture::Mesh::ReadTriangles { xv yv zv triangles } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadQuads { xv yv zv quads } {
+itcl::body Rappture::Mesh::WriteQuads { xv yv zv quads } {
     set _type "quads"
     if { $quads == "" } { 
 	puts stderr "no <quads> indices specified in mesh"
@@ -718,7 +718,7 @@ itcl::body Rappture::Mesh::ReadQuads { xv yv zv quads } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadTetrahedrons { xv yv zv tetras } {
+itcl::body Rappture::Mesh::WriteTetrahedrons { xv yv zv tetras } {
     set _type "tetrahedrons"
     if { $tetras == "" } { 
 	puts stderr "no <tetrahederons> indices specified in mesh"
@@ -751,7 +751,7 @@ itcl::body Rappture::Mesh::ReadTetrahedrons { xv yv zv tetras } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadHexahedrons { xv yv zv hexas } {
+itcl::body Rappture::Mesh::WriteHexahedrons { xv yv zv hexas } {
     set _type "hexahedrons"
     if { $hexas == "" } { 
 	puts stderr "no <hexahederons> indices specified in mesh"
@@ -784,7 +784,7 @@ itcl::body Rappture::Mesh::ReadHexahedrons { xv yv zv hexas } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadWedges { xv yv zv wedges } {
+itcl::body Rappture::Mesh::WriteWedges { xv yv zv wedges } {
     set _type "wedges"
     if { $wedges == "" } { 
 	puts stderr "no <wedges> indices specified in mesh"
@@ -817,7 +817,7 @@ itcl::body Rappture::Mesh::ReadWedges { xv yv zv wedges } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadPyramids { xv yv zv pyramids } {
+itcl::body Rappture::Mesh::WritePyramids { xv yv zv pyramids } {
     set _type "pyramids"
     if { $pyramids == "" } { 
 	puts stderr "no <pyramids> indices specified in mesh"
@@ -828,7 +828,7 @@ itcl::body Rappture::Mesh::ReadPyramids { xv yv zv pyramids } {
     set data {}
     set celltypes {}
     foreach { a b c d e } $pyramids {
-	append data " 6 $a $b $c $d $e\n"
+	append data " 5 $a $b $c $d $e\n"
 	append celltypes "14\n"
 	incr count
     }
@@ -837,7 +837,7 @@ itcl::body Rappture::Mesh::ReadPyramids { xv yv zv pyramids } {
     foreach x [$xv range 0 end] y [$yv range 0 end] z [$zv range 0 end] {
 	append out " $x $y $z\n"
     }
-    append out "CELLS $count [expr $count * 5]\n"
+    append out "CELLS $count [expr $count * 6]\n"
     append out $data
     append out "CELL_TYPES $count\n"
     append out $celltypes
@@ -850,7 +850,7 @@ itcl::body Rappture::Mesh::ReadPyramids { xv yv zv pyramids } {
     set _isValid 1 
 }
 
-itcl::body Rappture::Mesh::ReadCells { xv yv zv cells celltypes } {
+itcl::body Rappture::Mesh::WriteHybridCells { xv yv zv cells celltypes } {
     set _type "unstructured"
     if { $cells == "" } {
 	puts stderr "no <cells> description found for <unstructured>."
@@ -942,7 +942,7 @@ itcl::body Rappture::Mesh::ReadCells { xv yv zv cells celltypes } {
 itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
     set _type "unstructured"
 
-    # Step 1: Verify that there's only one cell tag.
+    # Step 1: Verify that there's only one cell tag of any kind.
     set numCells 0
     foreach type { cells triangles quads tetrahedrons 
         hexahedrons wedges pyramids } {
@@ -976,7 +976,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         set zcoords [$_xmlobj get $path.unstructured.zcoords]
         set data    [$_xmlobj get $path.unstructured.points]
         if { $zcoords != "" } {
-                error "can't specify <zcoord> with a 2 dimensional mesh"
+                error "can't specify <zcoords> with a 2D mesh"
         }
         if { $xcoords != "" && $ycoords != "" } {
             set all [blt::vector create \#auto]
@@ -987,7 +987,7 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
         } elseif { $data != "" } {
             Rappture::ReadPoints $data dim points
             if { $points == "" } {
-                error "no <points> found for <cells> mesh"
+                error "no <points> found for unstructured grid"
             }
             if { $dim != 2 } {
                 error "\# of coordinates per point is \"$dim\": does not agree with dimension specified for mesh \"$_dim\""
@@ -1033,16 +1033,14 @@ itcl::body Rappture::Mesh::ReadUnstructuredGrid { path } {
             error "no points specified for unstructured grid"
         }
     }
-    # Step 3: Read the cells and write the vtk data.
+    # Step 3: Write the points and cells as vtk data.
     if { $numCells == 0 } {
-        puts stderr "numCells=$numCells call ReadCloud"
-        ReadCloud $xv $yv $zv
+        WritePointCloud $xv $yv $zv
     } elseif { $type == "cells" } {
         set cells [$_xmlobj get $path.unstructured.cells]
-        ReadCells $xv $yv $zv $cells $celltypes
+        WriteHybridCells $xv $yv $zv $cells $celltypes
     } else {
-        puts stderr "type=$type"
-        set cmd "Read[string totitle $type]"
+        set cmd "Write[string totitle $type]"
         set cells [$_xmlobj get $path.unstructured.$type]
         $cmd $xv $yv $zv $cells 
     }
