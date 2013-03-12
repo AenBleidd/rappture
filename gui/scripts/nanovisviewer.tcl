@@ -16,7 +16,7 @@
 package require Itk
 package require BLT
 package require Img
-                                        
+
 #
 # FIXME:
 #       Need to Add DX readers this client to examine the data before 
@@ -120,7 +120,6 @@ itcl::class Rappture::NanovisViewer {
     private method SetOrientation {}
 
     private variable _arcball ""
-    private variable _useArcball 1
 
     private variable _dlist ""     ;# list of data objects
     private variable _allDataObjs
@@ -199,9 +198,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         qx      -0.353553
         qy      0.353553
         qz      0.146447
-        theta   45
-        phi     45
-        psi     0
         zoom    1.0
         pan-x   0
         pan-y   0
@@ -219,9 +215,6 @@ itcl::body Rappture::NanovisViewer::constructor {hostlist args} {
         $this-qx                $_view(qx)
         $this-qy                $_view(qy)
         $this-qz                $_view(qz)
-        $this-theta             $_view(theta)
-        $this-phi               $_view(phi)
-        $this-psi               $_view(psi)
         $this-zoom              $_view(zoom)    
         $this-pan-x             $_view(pan-x)
         $this-pan-y             $_view(pan-y)
@@ -912,22 +905,14 @@ itcl::body Rappture::NanovisViewer::Rebuild {} {
         set _settings($this-qx)    $_view(qx)
         set _settings($this-qy)    $_view(qy)
         set _settings($this-qz)    $_view(qz)
-	set _settings($this-theta) $_view(theta)
-	set _settings($this-phi)   $_view(phi)
-	set _settings($this-psi)   $_view(psi)
 	set _settings($this-pan-x) $_view(pan-x)
 	set _settings($this-pan-y) $_view(pan-y)
 	set _settings($this-zoom)  $_view(zoom)
 
-        if {$_useArcball} {
-            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-            $_arcball quaternion $q
-            SendCmd "camera orient $q"
-        } else {
-            set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-            SendCmd "camera angle $xyz"
-        }
-
+        set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+        $_arcball quaternion $q
+        SendCmd "camera orient $q"
+        #SendCmd "camera reset"
 	PanCamera
 	SendCmd "camera zoom $_view(zoom)"
         InitSettings light2side light transp isosurface grid axes 
@@ -1011,10 +996,12 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
         "in" {
             set _view(zoom) [expr {$_view(zoom)*1.25}]
             set _settings($this-zoom) $_view(zoom)
+            SendCmd "camera zoom $_view(zoom)"
         }
         "out" {
             set _view(zoom) [expr {$_view(zoom)*0.8}]
             set _settings($this-zoom) $_view(zoom)
+            SendCmd "camera zoom $_view(zoom)"
         }
         "reset" {
             array set _view {
@@ -1022,9 +1009,6 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                 qx      -0.353553
                 qy      0.353553
                 qz      0.146447
-                theta   45
-                phi     45
-                psi     0
                 zoom    1.0
                 pan-x   0
                 pan-y   0
@@ -1035,29 +1019,20 @@ itcl::body Rappture::NanovisViewer::Zoom {option} {
                     array set _view $location
                 }
             }
-            if {$_useArcball} {
-                set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
-                $_arcball quaternion $q
-                SendCmd "camera orient $q"
-            } else {
-                set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-                SendCmd "camera angle $xyz"
-            }
-
-            PanCamera
+            set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+            $_arcball quaternion $q
+            SendCmd "camera orient $q"
+            #SendCmd "camera reset"
+            SendCmd "camera zoom $_view(zoom)"
             set _settings($this-qw)    $_view(qw)
             set _settings($this-qx)    $_view(qx)
             set _settings($this-qy)    $_view(qy)
             set _settings($this-qz)    $_view(qz)
-            set _settings($this-theta) $_view(theta)
-            set _settings($this-phi)   $_view(phi)
-            set _settings($this-psi)   $_view(psi)
             set _settings($this-pan-x) $_view(pan-x)
             set _settings($this-pan-y) $_view(pan-y)
             set _settings($this-zoom)  $_view(zoom)
         }
     }
-    SendCmd "camera zoom $_view(zoom)"
 }
 
 itcl::body Rappture::NanovisViewer::PanCamera {} {
@@ -1083,8 +1058,6 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
             $itk_component(3dview) configure -cursor fleur
             set _click(x) $x
             set _click(y) $y
-            set _click(theta) $_view(theta)
-            set _click(phi) $_view(phi)
         }
         drag {
             if {[array size _click] == 0} {
@@ -1104,47 +1077,13 @@ itcl::body Rappture::NanovisViewer::Rotate {option x y} {
                     return
                 }
 
-                if {$_useArcball} {
-                    set q [$_arcball rotate $x $y $_click(x) $_click(y)]
-                    foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
-                    set _settings($this-qw) $_view(qw)
-                    set _settings($this-qx) $_view(qx)
-                    set _settings($this-qy) $_view(qy)
-                    set _settings($this-qz) $_view(qz)
-                    SendCmd "camera orient $q"
-                } else {
-                    #
-                    # Rotate the camera in 3D
-                    #
-                    if {$_view(psi) > 90 || $_view(psi) < -90} {
-                        # when psi is flipped around, theta moves backwards
-                        set dy [expr {-$dy}]
-                    }
-                    set theta [expr {$_view(theta) - $dy*180}]
-                    while {$theta < 0} { set theta [expr {$theta+180}] }
-                    while {$theta > 180} { set theta [expr {$theta-180}] }
-
-                    if {abs($theta) >= 30 && abs($theta) <= 160} {
-                        set phi [expr {$_view(phi) - $dx*360}]
-                        while {$phi < 0} { set phi [expr {$phi+360}] }
-                        while {$phi > 360} { set phi [expr {$phi-360}] }
-                        set psi $_view(psi)
-                    } else {
-                        set phi $_view(phi)
-                        set psi [expr {$_view(psi) - $dx*360}]
-                        while {$psi < -180} { set psi [expr {$psi+360}] }
-                        while {$psi > 180} { set psi [expr {$psi-360}] }
-                    }
-
-                    set _view(theta)        $theta
-                    set _view(phi)          $phi
-                    set _view(psi)          $psi
-                    set xyz [Euler2XYZ $theta $phi $psi]
-                    set _settings($this-theta) $_view(theta)
-                    set _settings($this-phi)   $_view(phi)
-                    set _settings($this-psi)   $_view(psi)
-                    SendCmd "camera angle $xyz"
-                }
+                set q [$_arcball rotate $x $y $_click(x) $_click(y)]
+                foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
+                set _settings($this-qw) $_view(qw)
+                set _settings($this-qx) $_view(qx)
+                set _settings($this-qy) $_view(qy)
+                set _settings($this-qz) $_view(qz)
+                SendCmd "camera orient $q"
 
                 set _click(x) $x
                 set _click(y) $y
@@ -1952,11 +1891,7 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    if {$_useArcball} {
-        set labels { qw qx qy qz pan-x pan-y zoom }
-    } else {
-        set labels { phi theta psi pan-x pan-y zoom }
-    }
+    set labels { qw qx qy qz pan-x pan-y zoom }
     set row 0
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
@@ -1973,25 +1908,10 @@ itcl::body Rappture::NanovisViewer::BuildCameraTab {} {
         incr row
     }
 
-    itk_component add orientation {
-        Rappture::Combobox $inner.orientation -width 10 -editable no
-    }
-    $inner.orientation choices insert end \
-        "front"    "0 90 0" \
-        "back"   "180 90 0" \
-        "top"     "0 0 0"  \
-        "bottom"     "0 180 0"  \
-        "left"     "270 90 0 "  \
-        "right"     "90 90 0"  \
-	"default"  "45 45 0"
-    $itk_component(orientation) value "default"
-    bind $inner.orientation <<Value>> [itcl::code $this SetOrientation]
-
     blt::table configure $inner c0 c1 -resize none
     blt::table configure $inner c2 -resize expand
     blt::table configure $inner r$row -resize expand
 }
-
 
 # ----------------------------------------------------------------------
 # USAGE: Slice move x|y|z <newval>
@@ -2059,7 +1979,6 @@ itcl::body Rappture::NanovisViewer::EventuallyResizeLegend {} {
     }
 }
 
-
 #  camera -- 
 #
 itcl::body Rappture::NanovisViewer::camera {option args} {
@@ -2079,20 +1998,6 @@ itcl::body Rappture::NanovisViewer::camera {option args} {
                 "pan-x" - "pan-y" {
                     set _view($who) $_settings($this-$who)
                     PanCamera
-                }
-                "phi" - "theta" - "psi" {
-                    set _view($who) $_settings($this-$who)
-                    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-                    SendCmd "camera angle $xyz"
-                    if {$_useArcball} {
-                        $_arcball euler [list [expr {-[lindex $xyz 2]}] [expr {-[lindex $xyz 1]}] [expr {-[lindex $xyz 0]}]]
-                        set q [$_arcball quaternion]
-                        foreach { _view(qw) _view(qx) _view(qy) _view(qz) } $q break
-                        set _settings($this-qw) $_view(qw)
-                        set _settings($this-qx) $_view(qx)
-                        set _settings($this-qy) $_view(qy)
-                        set _settings($this-qz) $_view(qz)
-                    }
                 }
                 "qx" - "qy" - "qz" - "qw" {
                     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
@@ -2166,14 +2071,3 @@ itcl::body Rappture::NanovisViewer::volume { tag name } {
     set bool $_settings($this-volume-$name)
     SendCmd "volume statue $bool $name"
 }
-
-
-itcl::body Rappture::NanovisViewer::SetOrientation {} {
-    set angles [$itk_component(orientation) value]
-    foreach name { theta phi psi } angle $angles {
-	set _view($name) $angle
-    }
-    set xyz [Euler2XYZ $_view(theta) $_view(phi) $_view(psi)]
-    SendCmd "camera angle $xyz"
-}
-
