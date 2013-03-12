@@ -955,7 +955,9 @@ itcl::body Rappture::VtkIsosurfaceViewer::Rebuild {} {
         set _first ""
         InitSettings axisXGrid axisYGrid axisZGrid axisMode \
             axesVisible axisLabelsVisible 
-        
+        foreach axis { x y z } {
+	    SendCmd "axis lformat $axis %g"
+	}
         SendCmd "imgflush"
     }
     set _first ""
