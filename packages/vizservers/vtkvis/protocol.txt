@@ -332,11 +332,13 @@ contour2d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
           the active scalar field.  'vmag' uses the magnitude of the current
           vector field, and 'vx','vy','vz' use the corresponding component of
           the active vector field.
+contour2d contourlist <list> <?dataSetName?>
 contour2d delete <?datasetName?>
 contour2d lighting <bool> <?datasetName?>
 contour2d linecolor <r> <g> <b> <?datasetName?>
           synonym for color
 contour2d linewidth <val> <?datasetName?>
+contour2d numcontours <n> <?dataSetName?>
 contour2d opacity <val> <?datasetName?>
 contour2d orient <qw> <qx> <qy> <qz> <?dataSetName?>
 contour2d pos <x> <y> <z> <?dataSetName?>
@@ -356,11 +358,13 @@ contour3d colormode <scalar|vmag|vx|vy|vz|ccolor> <fieldName> <?datasetName?>
           the active scalar field.  'vmag' uses the magnitude of the current
           vector field, and 'vx','vy','vz' use the corresponding component of
           the active vector field.
+contour3d contourlist <list> <?dataSetName?>
 contour3d delete <?datasetName?>
 contour3d edges <bool> <?datasetName?>
 contour3d lighting <bool> <?datasetName?>
 contour3d linecolor <r> <g> <b> <?datasetName?>
 contour3d linewidth <val> <?datasetName?>
+contour3d numcontours <n> <?dataSetName?>
 contour3d opacity <val> <?datasetName?>
 contour3d orient <qw> <qx> <qy> <qz> <?dataSetName?>
 contour3d pos <x> <y> <z> <?dataSetName?>

@@ -2785,6 +2785,36 @@ Contour2DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour2DContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    std::vector<double> contourList;
+
+    int clistc;
+    Tcl_Obj **clistv;
+
+    if (Tcl_ListObjGetElements(interp, objv[2], &clistc, &clistv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    for (int i = 0; i < clistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, clistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        contourList.push_back(val);
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour2DContourList(name, contourList);
+    } else {
+        g_renderer->setContour2DContourList("all", contourList);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour2DLightingOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                     Tcl_Obj *const *objv)
 {
@@ -2833,6 +2863,25 @@ Contour2DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectEdgeWidth<Contour2D>(name, width);
     } else {
         g_renderer->setGraphicsObjectEdgeWidth<Contour2D>("all", width);
+    }
+    return TCL_OK;
+}
+
+
+static int
+Contour2DNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    int numContours;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &numContours) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour2DContours(name, numContours);
+    } else {
+        g_renderer->setContour2DContours("all", numContours);
     }
     return TCL_OK;
 }
@@ -2930,19 +2979,21 @@ Contour2DVisibleOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec contour2dOps[] = {
-    {"add",       1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"ccolor",    2, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, Contour2DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, Contour2DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",    1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
-    {"lighting",  3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth", 5, Contour2DLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   2, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",    2, Contour2DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, Contour2DPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",     1, Contour2DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"visible",   1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          1, Contour2DAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"ccolor",       2, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, Contour2DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, Contour2DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"contourlist",  3, Contour2DContourListOp, 3, 4, "contourList ?dataSetName?"},
+    {"delete",       1, Contour2DDeleteOp, 2, 3, "?dataSetName?"},
+    {"lighting",     3, Contour2DLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, Contour2DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, Contour2DLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"numcontours",  1, Contour2DNumContoursOp, 3, 4, "numContours ?dataSetName?"},
+    {"opacity",      2, Contour2DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, Contour2DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, Contour2DPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        1, Contour2DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, Contour2DVisibleOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nContour2dOps = NumCmdSpecs(contour2dOps);
 
@@ -3109,6 +3160,36 @@ Contour3DColorModeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static int
+Contour3DContourListOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    std::vector<double> contourList;
+
+    int clistc;
+    Tcl_Obj **clistv;
+
+    if (Tcl_ListObjGetElements(interp, objv[2], &clistc, &clistv) != TCL_OK) {
+        return TCL_ERROR;
+    }
+
+    for (int i = 0; i < clistc; i++) {
+        double val;
+        if (Tcl_GetDoubleFromObj(interp, clistv[i], &val) != TCL_OK) {
+            return TCL_ERROR;
+        }
+        contourList.push_back(val);
+    }
+
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DContourList(name, contourList);
+    } else {
+        g_renderer->setContour3DContourList("all", contourList);
+    }
+    return TCL_OK;
+}
+
+static int
 Contour3DDeleteOp(ClientData clientData, Tcl_Interp *interp, int objc, 
                   Tcl_Obj *const *objv)
 {
@@ -3187,6 +3268,24 @@ Contour3DLineWidthOp(ClientData clientData, Tcl_Interp *interp, int objc,
         g_renderer->setGraphicsObjectEdgeWidth<Contour3D>(name, width);
     } else {
         g_renderer->setGraphicsObjectEdgeWidth<Contour3D>("all", width);
+    }
+    return TCL_OK;
+}
+
+static int
+Contour3DNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc, 
+                       Tcl_Obj *const *objv)
+{
+    int numContours;
+
+    if (Tcl_GetIntFromObj(interp, objv[2], &numContours) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    if (objc == 4) {
+        const char *name = Tcl_GetString(objv[3]);
+        g_renderer->setContour3DContours(name, numContours);
+    } else {
+        g_renderer->setContour3DContours("all", numContours);
     }
     return TCL_OK;
 }
@@ -3301,21 +3400,23 @@ Contour3DWireframeOp(ClientData clientData, Tcl_Interp *interp, int objc,
 }
 
 static Rappture::CmdSpec contour3dOps[] = {
-    {"add",       1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
-    {"ccolor",    2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"colormap",  7, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
-    {"colormode", 7, Contour3DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
-    {"delete",    1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
-    {"edges",     1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
-    {"lighting",  3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
-    {"linecolor", 5, Contour3DLineColorOp, 5, 6, "r g b ?dataSetName?"},
-    {"linewidth", 5, Contour3DLineWidthOp, 3, 4, "width ?dataSetName?"},
-    {"opacity",   2, Contour3DOpacityOp, 3, 4, "value ?dataSetName?"},
-    {"orient",    2, Contour3DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
-    {"pos",       1, Contour3DPositionOp, 5, 6, "x y z ?dataSetName?"},
-    {"scale",     1, Contour3DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
-    {"visible",   1, Contour3DVisibleOp, 3, 4, "bool ?dataSetName?"},
-    {"wireframe", 1, Contour3DWireframeOp, 3, 4, "bool ?dataSetName?"}
+    {"add",          1, Contour3DAddOp, 4, 5, "oper value ?dataSetName?"},
+    {"ccolor",       2, Contour3DColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"colormap",     7, Contour3DColorMapOp, 3, 4, "colorMapName ?dataSetName?"},
+    {"colormode",    7, Contour3DColorModeOp, 4, 5, "mode fieldName ?dataSetName?"},
+    {"contourlist",  3, Contour3DContourListOp, 3, 4, "contourList ?dataSetName?"},
+    {"delete",       1, Contour3DDeleteOp, 2, 3, "?dataSetName?"},
+    {"edges",        1, Contour3DEdgeVisibilityOp, 3, 4, "bool ?dataSetName?"},
+    {"lighting",     3, Contour3DLightingOp, 3, 4, "bool ?dataSetName?"},
+    {"linecolor",    5, Contour3DLineColorOp, 5, 6, "r g b ?dataSetName?"},
+    {"linewidth",    5, Contour3DLineWidthOp, 3, 4, "width ?dataSetName?"},
+    {"numcontours",  1, Contour3DNumContoursOp, 3, 4, "numContours ?dataSetName?"},
+    {"opacity",      2, Contour3DOpacityOp, 3, 4, "value ?dataSetName?"},
+    {"orient",       2, Contour3DOrientOp, 6, 7, "qw qx qy qz ?dataSetName?"},
+    {"pos",          1, Contour3DPositionOp, 5, 6, "x y z ?dataSetName?"},
+    {"scale",        1, Contour3DScaleOp, 5, 6, "sx sy sz ?dataSetName?"},
+    {"visible",      1, Contour3DVisibleOp, 3, 4, "bool ?dataSetName?"},
+    {"wireframe",    1, Contour3DWireframeOp, 3, 4, "bool ?dataSetName?"}
 };
 static int nContour3dOps = NumCmdSpecs(contour3dOps);
 
