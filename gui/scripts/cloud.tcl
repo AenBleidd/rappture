@@ -43,7 +43,6 @@ itcl::class Rappture::Cloud {
     private common _obj2ref      ;# used for fetch/release ref counting
     private variable _numPoints 0
     private variable _vtkdata ""
-    private variable _vtkpoints ""
     private variable _points ""
     private variable _dim 0
 }
@@ -99,7 +98,6 @@ itcl::body Rappture::Cloud::release {obj} {
 # CONSTRUCTOR
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::constructor {xmlobj path} {
-    package require vtk
     if {![Rappture::library isvalid $xmlobj]} {
         error "bad value \"$xmlobj\": should be Rappture::library"
     }
@@ -114,8 +112,8 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         set _units $u
     }
 
-    set data [$xmlobj get $path.points]
-    Rappture::ReadPoints $data _dim values
+    #set data [$xmlobj get $path.points]
+    #Rappture::ReadPoints $data _dim values
 
     foreach lim {xmin xmax ymin ymax zmin zmax} {
         set _limits($lim) ""
@@ -127,6 +125,7 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
             continue
         }
 
+        set _dim [llength $line]
         # make sure we have x,y,z
         while {[llength $line] < 3} {
             lappend line "0"
@@ -150,12 +149,6 @@ itcl::body Rappture::Cloud::constructor {xmlobj path} {
         }
         append _points "$x $y $z\n"
 	incr _numPoints
-    }
-    if { $_dim == 3 } {
-	set _vtkpoints [vtkPoints $this-vtkpoints]
-	foreach { x y z } $_points {
-	    $_vtkpoints InsertNextPoint $x $y $z
-	}
     }
     append out "DATASET POLYDATA\n"
     append out "POINTS $_numPoints float\n"
@@ -186,9 +179,6 @@ itcl::body Rappture::Cloud::points {} {
 # Returns the vtk object representing the mesh.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::mesh {} {
-    if { $_dim == 3 } {
-	return $_vtkpoints
-    }
     return $_points
 }
 
@@ -198,7 +188,7 @@ itcl::body Rappture::Cloud::mesh {} {
 # Returns the number of points in this cloud.
 # ----------------------------------------------------------------------
 itcl::body Rappture::Cloud::size {} {
-    return $_numPOints
+    return $_numPoints
 }
 
 # ----------------------------------------------------------------------
