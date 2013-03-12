@@ -2879,9 +2879,9 @@ Contour2DNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour2DContours(name, numContours);
+        g_renderer->setContour2DNumContours(name, numContours);
     } else {
-        g_renderer->setContour2DContours("all", numContours);
+        g_renderer->setContour2DNumContours("all", numContours);
     }
     return TCL_OK;
 }
@@ -3283,9 +3283,9 @@ Contour3DNumContoursOp(ClientData clientData, Tcl_Interp *interp, int objc,
     }
     if (objc == 4) {
         const char *name = Tcl_GetString(objv[3]);
-        g_renderer->setContour3DContours(name, numContours);
+        g_renderer->setContour3DNumContours(name, numContours);
     } else {
-        g_renderer->setContour3DContours("all", numContours);
+        g_renderer->setContour3DNumContours("all", numContours);
     }
     return TCL_OK;
 }

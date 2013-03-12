@@ -54,7 +54,7 @@ public:
 
     virtual void setClippingPlanes(vtkPlaneCollection *planes);
 
-    void setContours(int numContours);
+    void setNumContours(int numContours);
 
     void setContourList(const std::vector<double>& contours);
 
@@ -91,6 +91,8 @@ private:
 
     int _numContours;
     std::vector<double> _contours;
+
+    bool _pipelineInitialized;
 
     ColorMap *_colorMap;
     ColorMode _colorMode;

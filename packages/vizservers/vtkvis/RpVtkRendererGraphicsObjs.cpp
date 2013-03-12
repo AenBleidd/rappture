@@ -553,7 +553,7 @@ bool Renderer::addContour2D(const DataSetId& id, const std::vector<double>& cont
 /**
  * \brief Set the number of equally spaced contour isolines for the given DataSet
  */
-void Renderer::setContour2DContours(const DataSetId& id, int numContours)
+void Renderer::setContour2DNumContours(const DataSetId& id, int numContours)
 {
     Contour2DHashmap::iterator itr;
 
@@ -571,7 +571,7 @@ void Renderer::setContour2DContours(const DataSetId& id, int numContours)
     }
 
     do {
-        itr->second->setContours(numContours);
+        itr->second->setNumContours(numContours);
     } while (doAll && ++itr != _contour2Ds.end());
 
     sceneBoundsChanged();
@@ -766,7 +766,7 @@ bool Renderer::addContour3D(const DataSetId& id,const std::vector<double>& conto
 /**
  * \brief Set the number of equally spaced isosurfaces for the given DataSet
  */
-void Renderer::setContour3DContours(const DataSetId& id, int numContours)
+void Renderer::setContour3DNumContours(const DataSetId& id, int numContours)
 {
     Contour3DHashmap::iterator itr;
 
@@ -784,7 +784,7 @@ void Renderer::setContour3DContours(const DataSetId& id, int numContours)
     }
 
     do {
-        itr->second->setContours(numContours);
+        itr->second->setNumContours(numContours);
      } while (doAll && ++itr != _contour3Ds.end());
 
     sceneBoundsChanged();
