@@ -31,6 +31,7 @@ using namespace Rappture::VtkVis;
 Contour2D::Contour2D(int numContours) :
     VtkGraphicsObject(),
     _numContours(numContours),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -48,6 +49,7 @@ Contour2D::Contour2D(const std::vector<double>& contours) :
     VtkGraphicsObject(),
     _numContours(contours.size()),
     _contours(contours),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -76,20 +78,22 @@ void Contour2D::setDataSet(DataSet *dataSet,
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
-
         _renderer = renderer;
 
         if (renderer->getUseCumulativeRange()) {
             renderer->getCumulativeDataRange(_dataRange,
                                              _dataSet->getActiveScalarsName(),
                                              1);
-            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
-                                             _dataSet->getActiveVectorsName(),
-                                             3);
-            for (int i = 0; i < 3; i++) {
-                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+            const char *activeVectors = _dataSet->getActiveVectorsName();
+            if (activeVectors != NULL) {
+                renderer->getCumulativeDataRange(_vectorMagnitudeRange,
                                                  _dataSet->getActiveVectorsName(),
-                                                 3, i);
+                                                 3);
+                for (int i = 0; i < 3; i++) {
+                    renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                     _dataSet->getActiveVectorsName(),
+                                                     3, i);
+                }
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -118,95 +122,99 @@ void Contour2D::update()
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
 
-    vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+    if (!_pipelineInitialized) {
+        vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
 
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
-        if (ds->GetCellData() != NULL &&
-            ds->GetCellData()->GetScalars() != NULL) {
-            cellToPtData = 
-                vtkSmartPointer<vtkCellDataToPointData>::New();
+        if (ds->GetPointData() == NULL ||
+            ds->GetPointData()->GetScalars() == NULL) {
+            WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
+            if (ds->GetCellData() != NULL &&
+                ds->GetCellData()->GetScalars() != NULL) {
+                cellToPtData = 
+                    vtkSmartPointer<vtkCellDataToPointData>::New();
 #ifdef USE_VTK6
-            cellToPtData->SetInputData(ds);
+                cellToPtData->SetInputData(ds);
 #else
-            cellToPtData->SetInput(ds);
+                cellToPtData->SetInput(ds);
 #endif
-            //cellToPtData->PassCellDataOn();
-            cellToPtData->Update();
-            ds = cellToPtData->GetOutput();
-        } else {
-            ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
-        }
-    }
-
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-    if (pd) {
-        // DataSet is a vtkPolyData
-        if (pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
-            // DataSet is a point cloud
-            PrincipalPlane plane;
-            double offset;
-            if (_dataSet->is2D(&plane, &offset)) {
-                vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
-                if (plane == PLANE_ZY) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(90, 0, 1, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(-offset, 0, 0);
-                    }
-                    mesher->SetTransform(trans);
-                } else if (plane == PLANE_XZ) {
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->RotateWXYZ(-90, 1, 0, 0);
-                    if (offset != 0.0) {
-                        trans->Translate(0, -offset, 0);
-                    }
-                    mesher->SetTransform(trans);
-                } else if (offset != 0.0) {
-                    // XY with Z offset
-                    vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
-                    trans->Translate(0, 0, -offset);
-                    mesher->SetTransform(trans);
-                }
-#ifdef USE_VTK6
-                mesher->SetInputData(pd);
-#else
-                mesher->SetInput(pd);
-#endif
-                _contourFilter->SetInputConnection(mesher->GetOutputPort());
+                //cellToPtData->PassCellDataOn();
+                cellToPtData->Update();
+                ds = cellToPtData->GetOutput();
             } else {
-                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+                ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+            }
+        }
+
+        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+        if (pd) {
+            // DataSet is a vtkPolyData
+            if (pd->GetNumberOfLines() == 0 &&
+                pd->GetNumberOfPolys() == 0 &&
+                pd->GetNumberOfStrips() == 0) {
+                // DataSet is a point cloud
+                PrincipalPlane plane;
+                double offset;
+                if (_dataSet->is2D(&plane, &offset)) {
+                    vtkSmartPointer<vtkDelaunay2D> mesher = vtkSmartPointer<vtkDelaunay2D>::New();
+                    if (plane == PLANE_ZY) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(90, 0, 1, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(-offset, 0, 0);
+                        }
+                        mesher->SetTransform(trans);
+                    } else if (plane == PLANE_XZ) {
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->RotateWXYZ(-90, 1, 0, 0);
+                        if (offset != 0.0) {
+                            trans->Translate(0, -offset, 0);
+                        }
+                        mesher->SetTransform(trans);
+                    } else if (offset != 0.0) {
+                        // XY with Z offset
+                        vtkSmartPointer<vtkTransform> trans = vtkSmartPointer<vtkTransform>::New();
+                        trans->Translate(0, 0, -offset);
+                        mesher->SetTransform(trans);
+                    }
 #ifdef USE_VTK6
-                mesher->SetInputData(pd);
+                    mesher->SetInputData(pd);
 #else
-                mesher->SetInput(pd);
+                    mesher->SetInput(pd);
 #endif
-                vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-                gf->SetInputConnection(mesher->GetOutputPort());
-                _contourFilter->SetInputConnection(gf->GetOutputPort());
+                    _contourFilter->SetInputConnection(mesher->GetOutputPort());
+                } else {
+                    vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                    mesher->SetInputData(pd);
+#else
+                    mesher->SetInput(pd);
+#endif
+                    vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+                    gf->SetInputConnection(mesher->GetOutputPort());
+                    _contourFilter->SetInputConnection(gf->GetOutputPort());
+                }
+            } else {
+                // DataSet is a vtkPolyData with lines and/or polygons
+#ifdef USE_VTK6
+                _contourFilter->SetInputData(ds);
+#else
+                _contourFilter->SetInput(ds);
+#endif
             }
         } else {
-            // DataSet is a vtkPolyData with lines and/or polygons
+            TRACE("Generating surface for data set");
+            // DataSet is NOT a vtkPolyData
+            vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
 #ifdef USE_VTK6
-            _contourFilter->SetInputData(ds);
+            gf->SetInputData(ds);
 #else
-            _contourFilter->SetInput(ds);
+            gf->SetInput(ds);
 #endif
+            _contourFilter->SetInputConnection(gf->GetOutputPort());
         }
-    } else {
-        TRACE("Generating surface for data set");
-        // DataSet is NOT a vtkPolyData
-        vtkSmartPointer<vtkDataSetSurfaceFilter> gf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-#ifdef USE_VTK6
-        gf->SetInputData(ds);
-#else
-        gf->SetInput(ds);
-#endif
-        _contourFilter->SetInputConnection(gf->GetOutputPort());
     }
+
+    _pipelineInitialized = true;
 
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
@@ -244,9 +252,8 @@ void Contour2D::update()
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
+        setColorMode(_colorMode);
     }
-
-    setColorMode(_colorMode);
 
     _dsMapper->Update();
 }
@@ -262,13 +269,16 @@ void Contour2D::updateRanges(Renderer *renderer)
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
                                          1);
-        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
-                                         _dataSet->getActiveVectorsName(),
-                                         3);
-        for (int i = 0; i < 3; i++) {
-            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+        const char *activeVectors = _dataSet->getActiveVectorsName();
+        if (activeVectors != NULL) {
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
                                              _dataSet->getActiveVectorsName(),
-                                             3, i);
+                                             3);
+            for (int i = 0; i < 3; i++) {
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
+            }
         }
     } else {
         _dataSet->getScalarRange(_dataRange);
@@ -535,7 +545,7 @@ void Contour2D::setColorMap(ColorMap *cmap)
  *
  * Will override any existing contours
  */
-void Contour2D::setContours(int numContours)
+void Contour2D::setNumContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;

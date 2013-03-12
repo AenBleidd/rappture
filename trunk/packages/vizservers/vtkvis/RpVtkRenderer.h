@@ -572,7 +572,7 @@ public:
 
     bool addContour2D(const DataSetId& id, const std::vector<double>& contours);
 
-    void setContour2DContours(const DataSetId& id, int numContours);
+    void setContour2DNumContours(const DataSetId& id, int numContours);
 
     void setContour2DContourList(const DataSetId& id, const std::vector<double>& contours);
 
@@ -591,7 +591,7 @@ public:
 
     bool addContour3D(const DataSetId& id, const std::vector<double>& contours);
 
-    void setContour3DContours(const DataSetId& id, int numContours);
+    void setContour3DNumContours(const DataSetId& id, int numContours);
 
     void setContour3DContourList(const DataSetId& id, const std::vector<double>& contours);
 

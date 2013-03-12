@@ -29,6 +29,7 @@ using namespace Rappture::VtkVis;
 Contour3D::Contour3D(int numContours) :
     VtkGraphicsObject(),
     _numContours(numContours),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
@@ -41,6 +42,7 @@ Contour3D::Contour3D(int numContours) :
 Contour3D::Contour3D(const std::vector<double>& contours) :
     VtkGraphicsObject(),
     _numContours(contours.size()),
+    _pipelineInitialized(false),
     _contours(contours),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
@@ -66,20 +68,22 @@ void Contour3D::setDataSet(DataSet *dataSet,
 {
     if (_dataSet != dataSet) {
         _dataSet = dataSet;
-
         _renderer = renderer;
 
         if (renderer->getUseCumulativeRange()) {
             renderer->getCumulativeDataRange(_dataRange,
                                              _dataSet->getActiveScalarsName(),
                                              1);
-            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
-                                             _dataSet->getActiveVectorsName(),
-                                             3);
-            for (int i = 0; i < 3; i++) {
-                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+            const char *activeVectors = _dataSet->getActiveVectorsName();
+            if (activeVectors != NULL) {
+                renderer->getCumulativeDataRange(_vectorMagnitudeRange,
                                                  _dataSet->getActiveVectorsName(),
-                                                 3, i);
+                                                 3);
+                for (int i = 0; i < 3; i++) {
+                    renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                     _dataSet->getActiveVectorsName(),
+                                                     3, i);
+                }
             }
         } else {
             _dataSet->getScalarRange(_dataRange);
@@ -113,56 +117,60 @@ void Contour3D::update()
         _contourFilter = vtkSmartPointer<vtkContourFilter>::New();
     }
 
-    vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
+    if (!_pipelineInitialized) {
+        vtkSmartPointer<vtkCellDataToPointData> cellToPtData;
 
-    if (ds->GetPointData() == NULL ||
-        ds->GetPointData()->GetScalars() == NULL) {
-        WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
-        if (ds->GetCellData() != NULL &&
-            ds->GetCellData()->GetScalars() != NULL) {
-            cellToPtData = 
-                vtkSmartPointer<vtkCellDataToPointData>::New();
+        if (ds->GetPointData() == NULL ||
+            ds->GetPointData()->GetScalars() == NULL) {
+            WARN("No scalar point data in dataset %s", _dataSet->getName().c_str());
+            if (ds->GetCellData() != NULL &&
+                ds->GetCellData()->GetScalars() != NULL) {
+                cellToPtData = 
+                    vtkSmartPointer<vtkCellDataToPointData>::New();
 #ifdef USE_VTK6
-            cellToPtData->SetInputData(ds);
+                cellToPtData->SetInputData(ds);
 #else
-            cellToPtData->SetInput(ds);
+                cellToPtData->SetInput(ds);
 #endif
-            //cellToPtData->PassCellDataOn();
-            cellToPtData->Update();
-            ds = cellToPtData->GetOutput();
+                //cellToPtData->PassCellDataOn();
+                cellToPtData->Update();
+                ds = cellToPtData->GetOutput();
+            } else {
+                ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+            }
+        }
+
+        vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
+        if (pd) {
+            // DataSet is a vtkPolyData
+            if (pd->GetNumberOfLines() == 0 &&
+                pd->GetNumberOfPolys() == 0 &&
+                pd->GetNumberOfStrips() == 0) {
+                // DataSet is a point cloud
+                // Generate a 3D unstructured grid
+                vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
+#ifdef USE_VTK6
+                mesher->SetInputData(pd);
+#else
+                mesher->SetInput(pd);
+#endif
+                _contourFilter->SetInputConnection(mesher->GetOutputPort());
+            } else {
+                // DataSet is a vtkPolyData with lines and/or polygons
+                ERROR("Not a 3D DataSet");
+                return;
+            }
         } else {
-            ERROR("No scalar cell data in dataset %s", _dataSet->getName().c_str());
+            // DataSet is NOT a vtkPolyData
+#ifdef USE_VTK6
+            _contourFilter->SetInputData(ds);
+#else
+            _contourFilter->SetInput(ds);
+#endif
         }
     }
 
-    vtkPolyData *pd = vtkPolyData::SafeDownCast(ds);
-    if (pd) {
-        // DataSet is a vtkPolyData
-        if (pd->GetNumberOfLines() == 0 &&
-            pd->GetNumberOfPolys() == 0 &&
-            pd->GetNumberOfStrips() == 0) {
-            // DataSet is a point cloud
-            // Generate a 3D unstructured grid
-            vtkSmartPointer<vtkDelaunay3D> mesher = vtkSmartPointer<vtkDelaunay3D>::New();
-#ifdef USE_VTK6
-            mesher->SetInputData(pd);
-#else
-            mesher->SetInput(pd);
-#endif
-            _contourFilter->SetInputConnection(mesher->GetOutputPort());
-        } else {
-            // DataSet is a vtkPolyData with lines and/or polygons
-            ERROR("Not a 3D DataSet");
-            return;
-        }
-    } else {
-         // DataSet is NOT a vtkPolyData
-#ifdef USE_VTK6
-         _contourFilter->SetInputData(ds);
-#else
-         _contourFilter->SetInput(ds);
-#endif
-    }
+    _pipelineInitialized = true;
 
     _contourFilter->ComputeNormalsOff();
     _contourFilter->ComputeGradientsOff();
@@ -190,12 +198,11 @@ void Contour3D::update()
 
     if (_normalsGenerator == NULL) {
         _normalsGenerator = vtkSmartPointer<vtkPolyDataNormals>::New();
+        _normalsGenerator->SetInputConnection(_contourFilter->GetOutputPort());
+        _normalsGenerator->SetFeatureAngle(90.);
+        _normalsGenerator->AutoOrientNormalsOff();
+        _normalsGenerator->ComputePointNormalsOn();
     }
-
-    _normalsGenerator->SetInputConnection(_contourFilter->GetOutputPort());
-    _normalsGenerator->SetFeatureAngle(90.);
-    _normalsGenerator->AutoOrientNormalsOff();
-    _normalsGenerator->ComputePointNormalsOn();
 
     if (_dsMapper == NULL) {
         _dsMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -208,9 +215,8 @@ void Contour3D::update()
 
     if (_lut == NULL) {
         setColorMap(ColorMap::getDefault());
+        setColorMode(_colorMode);
     }
-
-    setColorMode(_colorMode);
 
     _dsMapper->Update();
     TRACE("Contour output %d polys, %d strips",
@@ -229,13 +235,16 @@ void Contour3D::updateRanges(Renderer *renderer)
         renderer->getCumulativeDataRange(_dataRange,
                                          _dataSet->getActiveScalarsName(),
                                          1);
-        renderer->getCumulativeDataRange(_vectorMagnitudeRange,
-                                         _dataSet->getActiveVectorsName(),
-                                         3);
-        for (int i = 0; i < 3; i++) {
-            renderer->getCumulativeDataRange(_vectorComponentRange[i],
+        const char *activeVectors = _dataSet->getActiveVectorsName();
+        if (activeVectors != NULL) {
+            renderer->getCumulativeDataRange(_vectorMagnitudeRange,
                                              _dataSet->getActiveVectorsName(),
-                                             3, i);
+                                             3);
+            for (int i = 0; i < 3; i++) {
+                renderer->getCumulativeDataRange(_vectorComponentRange[i],
+                                                 _dataSet->getActiveVectorsName(),
+                                                 3, i);
+            }
         }
     } else {
         _dataSet->getScalarRange(_dataRange);
@@ -502,7 +511,7 @@ void Contour3D::setColorMap(ColorMap *cmap)
  *
  * Will override any existing contours
  */
-void Contour3D::setContours(int numContours)
+void Contour3D::setNumContours(int numContours)
 {
     _contours.clear();
     _numContours = numContours;

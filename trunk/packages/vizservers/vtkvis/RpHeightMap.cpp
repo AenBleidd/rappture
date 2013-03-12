@@ -96,11 +96,11 @@ void HeightMap::setDataSet(DataSet *dataSet,
         _dataSet = dataSet;
         _renderer = renderer;
 
-        TRACE("DataSet name: '%s' type: %s",
-              _dataSet->getName().c_str(),
-              _dataSet->getVtkType());
-
         if (_dataSet != NULL) {
+            TRACE("DataSet name: '%s' type: %s",
+                  _dataSet->getName().c_str(),
+                  _dataSet->getVtkType());
+
             if (renderer->getUseCumulativeRange()) {
                 renderer->getCumulativeDataRange(_dataRange,
                                                  _dataSet->getActiveScalarsName(),
