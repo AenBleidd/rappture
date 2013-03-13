@@ -2264,7 +2264,7 @@ void vtkRpCubeAxesActor::BuildLabels(vtkRpAxisActor *axes[NUMBER_OF_ALIGNED_AXIS
       double delta = customizedLabels->GetNumberOfValues() / labelCount;
       for (int i = 0; i < labelCount; ++i)
         {
-        labels->SetValue(i, customizedLabels->GetValue(i * delta));
+        labels->SetValue(i, customizedLabels->GetValue((vtkIdType)(i * delta)));
         }
       }
     }
