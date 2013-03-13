@@ -42,8 +42,8 @@ Contour3D::Contour3D(int numContours) :
 Contour3D::Contour3D(const std::vector<double>& contours) :
     VtkGraphicsObject(),
     _numContours(contours.size()),
-    _pipelineInitialized(false),
     _contours(contours),
+    _pipelineInitialized(false),
     _colorMap(NULL),
     _colorMode(COLOR_BY_SCALAR),
     _colorFieldType(DataSet::POINT_DATA),
