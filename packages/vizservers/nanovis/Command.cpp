@@ -71,6 +71,7 @@
 #include "VolumeRenderer.h"
 
 using namespace nv::graphics;
+using namespace vrmath;
 
 // default transfer function
 static const char def_transfunc[] =
@@ -1242,8 +1243,8 @@ VolumeDataFollowsOp(ClientData clientData, Tcl_Interp *interp, int objc,
         }
         TRACE("finish loading");
 
-        vrmath::Vector3f scale = volPtr->getPhysicalScaling();
-        vrmath::Vector3f loc(scale);
+        Vector3f scale = volPtr->getPhysicalScaling();
+        Vector3f loc(scale);
         loc *= -0.5;
         volPtr->location(loc);
 
