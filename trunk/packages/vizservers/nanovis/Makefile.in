@@ -286,7 +286,6 @@ FlowCmd.o: FlowCmd.cpp FlowCmd.h Switch.h Trace.h TransferFunction.h nanovis.h C
 GradientFilter.o: GradientFilter.cpp GradientFilter.h
 Grid.o: Grid.cpp Grid.h Axis.h Chain.h
 HeightMap.o: HeightMap.cpp HeightMap.h
-Mat4x4.o: Mat4x4.cpp $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 NvCamera.o: NvCamera.cpp NvCamera.h config.h $(VRMATH_DIR)/include/vrmath/Matrix4x4d.h
 NvColorTableRenderer.o: NvColorTableRenderer.cpp NvColorTableRenderer.h
 NvColorTableShader.o: NvColorTableShader.cpp NvColorTableShader.h NvShader.h
@@ -311,7 +310,6 @@ PlaneRenderer.o: PlaneRenderer.cpp PlaneRenderer.h
 PointSet.o: PointSet.cpp PointSet.h
 PointSetRenderer.o: PointSetRenderer.cpp PointSetRenderer.h
 PointShader.o: PointShader.cpp PointShader.h
-Renderable.o: Renderable.cpp Renderable.h
 RenderVertexArray.o: RenderVertexArray.cpp RenderVertexArray.h
 RpAVTranslate.o: RpAVTranslate.cpp RpAVTranslate.h nvconf.h
 Switch.o: Switch.cpp Switch.h
@@ -329,3 +327,4 @@ ZincBlendeVolume.o: ZincBlendeVolume.cpp ZincBlendeVolume.h $(AUXSRC)
 dxReader.o: dxReader.cpp dxReaderCommon.h config.h nanovis.h Unirect.h ZincBlendeVolume.h NvZincBlendeReconstructor.h
 dxReaderCommon.o: dxReaderCommon.cpp dxReaderCommon.h GradientFilter.h $(VRMATH_DIR)/include/vrmath/Vector3f.h
 nanovis.o: nanovis.cpp nanovis.h $(AUXSRC) FlowCmd.h Grid.h HeightMap.h NvCamera.h NvColorTableRenderer.h NvFlowVisRenderer.h NvLIC.h NvZincBlendeReconstructor.h PerfQuery.h PlaneRenderer.h PointSetRenderer.h PointSet.h Switch.h Trace.h Unirect.h VelocityArrowsSlice.h VolumeInterpolator.h VolumeRenderer.h ZincBlendeVolume.h Axis.h Chain.h
+md5.o: md5.h
