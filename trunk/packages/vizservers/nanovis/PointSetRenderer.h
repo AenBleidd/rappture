@@ -2,11 +2,13 @@
 #ifndef POINT_SET_RENDERER_H
 #define POINT_SET_RENDERER_H
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Matrix4x4d.h>
+
 #include "PCASplit.h"
 #include "BucketSort.h"
 #include "PointShader.h"
 #include "Texture2D.h"
-#include "Mat4x4.h"
 
 class PointSetRenderer
 {
@@ -14,8 +16,8 @@ public:
     PointSetRenderer();
     ~PointSetRenderer();
 
-    void render(PCA::ClusterAccel *cluster, const Mat4x4& mat,
-                int sortLevel, const Vector3& scale, const Vector3& origin);
+    void render(PCA::ClusterAccel *cluster, const vrmath::Matrix4x4d& mat,
+                int sortLevel, const vrmath::Vector3f& scale, const vrmath::Vector3f& origin);
 
 private:
     void renderPoints(PCA::Point *points, int length);

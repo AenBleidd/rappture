@@ -22,11 +22,17 @@
 
 #include <tcl.h>
 
+#include <vrmath/Vector3f.h>
+#include <vrmath/Matrix4x4d.h>
+
 #include "nanovis.h"
 #include "VolumeRenderer.h"
+#include "Plane.h"
 #include "ConvexPolygon.h"
 #include "NvStdVertexShader.h"
 #include "Trace.h"
+
+using namespace vrmath;
 
 VolumeRenderer::VolumeRenderer()
 {
@@ -141,8 +147,8 @@ VolumeRenderer::renderAll()
         }
 
         //volume start location
-        Vector3 volPos = volPtr->location();
-        Vector3 volScaling = volPtr->getPhysicalScaling();
+        Vector3f volPos = volPtr->location();
+        Vector3f volScaling = volPtr->getPhysicalScaling();
 
         TRACE("VOL POS: %g %g %g",
               volPos.x, volPos.y, volPos.z);
@@ -153,11 +159,11 @@ VolumeRenderer::renderAll()
         double y0 = 0;
         double z0 = 0;
 
-        Mat4x4 model_view_no_trans, model_view_trans;
-        Mat4x4 model_view_no_trans_inverse, model_view_trans_inverse;
+        Matrix4x4d model_view_no_trans, model_view_trans;
+        Matrix4x4d model_view_no_trans_inverse, model_view_trans_inverse;
 
         //initialize volume plane with world coordinates
-        Plane volume_planes[6];
+        nv::Plane volume_planes[6];
         volume_planes[0].setCoeffs( 1,  0,  0, -x0);
         volume_planes[1].setCoeffs(-1,  0,  0,  x0+1);
         volume_planes[2].setCoeffs( 0,  1,  0, -y0);
@@ -171,10 +177,10 @@ VolumeRenderer::renderAll()
 
         glEnable(GL_DEPTH_TEST);
 
-        GLfloat mv_no_trans[16];
-        glGetFloatv(GL_MODELVIEW_MATRIX, mv_no_trans);
+        GLdouble mv_no_trans[16];
+        glGetDoublev(GL_MODELVIEW_MATRIX, mv_no_trans);
 
-        model_view_no_trans = Mat4x4(mv_no_trans);
+        model_view_no_trans = Matrix4x4d(mv_no_trans);
         model_view_no_trans_inverse = model_view_no_trans.inverse();
 
         glPopMatrix();
@@ -184,11 +190,13 @@ VolumeRenderer::renderAll()
         glTranslatef(volPos.x, volPos.y, volPos.z);
         glScalef(volScaling.x, volScaling.y, volScaling.z);
 
-        GLfloat mv_trans[16];
-        glGetFloatv(GL_MODELVIEW_MATRIX, mv_trans);
+        GLdouble mv_trans[16];
+        glGetDoublev(GL_MODELVIEW_MATRIX, mv_trans);
 
-        model_view_trans = Mat4x4(mv_trans);
+        model_view_trans = Matrix4x4d(mv_trans);
         model_view_trans_inverse = model_view_trans.inverse();
+
+        model_view_trans.print();
 
         //draw volume bounding box with translation (the correct location in
         //space)
@@ -233,7 +241,7 @@ VolumeRenderer::renderAll()
         TRACE("near: %g far: %g eye space bounds: (%g,%g)-(%g,%g) z_step: %g slices: %d",
               zNear, zFar, eyeMinX, eyeMaxX, eyeMinY, eyeMaxY, z_step, n_actual_slices);
 
-        Vector4 vert1, vert2, vert3, vert4;
+        Vector4f vert1, vert2, vert3, vert4;
 
         // Render cutplanes first with depth test enabled.  They will mark the
         // image with their depth values.  Then we render other volume slices.
@@ -249,30 +257,30 @@ VolumeRenderer::renderAll()
 
             switch (axis) {
             case 1:
-                vert1 = Vector4(offset, 0, 0, 1);
-                vert2 = Vector4(offset, 1, 0, 1);
-                vert3 = Vector4(offset, 1, 1, 1);
-                vert4 = Vector4(offset, 0, 1, 1);
+                vert1 = Vector4f(offset, 0, 0, 1);
+                vert2 = Vector4f(offset, 1, 0, 1);
+                vert3 = Vector4f(offset, 1, 1, 1);
+                vert4 = Vector4f(offset, 0, 1, 1);
                 break;
             case 2:
-                vert1 = Vector4(0, offset, 0, 1);
-                vert2 = Vector4(1, offset, 0, 1);
-                vert3 = Vector4(1, offset, 1, 1);
-                vert4 = Vector4(0, offset, 1, 1);
+                vert1 = Vector4f(0, offset, 0, 1);
+                vert2 = Vector4f(1, offset, 0, 1);
+                vert3 = Vector4f(1, offset, 1, 1);
+                vert4 = Vector4f(0, offset, 1, 1);
                 break;
             case 3:
             default:
-                vert1 = Vector4(0, 0, offset, 1);
-                vert2 = Vector4(1, 0, offset, 1);
-                vert3 = Vector4(1, 1, offset, 1);
-                vert4 = Vector4(0, 1, offset, 1);
+                vert1 = Vector4f(0, 0, offset, 1);
+                vert2 = Vector4f(1, 0, offset, 1);
+                vert3 = Vector4f(1, 1, offset, 1);
+                vert4 = Vector4f(0, 1, offset, 1);
                 break;
             }
 
-            Vector4 texcoord1 = vert1;
-            Vector4 texcoord2 = vert2;
-            Vector4 texcoord3 = vert3;
-            Vector4 texcoord4 = vert4;
+            Vector4f texcoord1 = vert1;
+            Vector4f texcoord2 = vert2;
+            Vector4f texcoord3 = vert3;
+            Vector4f texcoord4 = vert4;
 
             _cutplaneShader->bind();
             _cutplaneShader->setFPTextureParameter("volume", volPtr->textureID());
@@ -309,10 +317,10 @@ VolumeRenderer::renderAll()
 
         // Initialize view-aligned quads with eye space bounds of
         // volume
-        vert1 = Vector4(eyeMinX, eyeMinY, -0.5, 1);
-        vert2 = Vector4(eyeMaxX, eyeMinY, -0.5, 1);
-        vert3 = Vector4(eyeMaxX, eyeMaxY, -0.5, 1);
-        vert4 = Vector4(eyeMinX, eyeMaxY, -0.5, 1);
+        vert1 = Vector4f(eyeMinX, eyeMinY, -0.5, 1);
+        vert2 = Vector4f(eyeMaxX, eyeMinY, -0.5, 1);
+        vert3 = Vector4f(eyeMaxX, eyeMaxY, -0.5, 1);
+        vert4 = Vector4f(eyeMinX, eyeMaxY, -0.5, 1);
 
         size_t counter = 0;
 
@@ -388,7 +396,7 @@ VolumeRenderer::renderAll()
 
         volPtr = volumes[volume_index];
 
-        Vector3 volScaling = volPtr->getPhysicalScaling();
+        Vector3f volScaling = volPtr->getPhysicalScaling();
 
         glPushMatrix();
         glScalef(volScaling.x, volScaling.y, volScaling.z);
@@ -509,7 +517,7 @@ void VolumeRenderer::deactivateVolumeShader()
     _zincBlendeShader->unbind();
 }
 
-void VolumeRenderer::getEyeSpaceBounds(const Mat4x4& mv,
+void VolumeRenderer::getEyeSpaceBounds(const Matrix4x4d& mv,
                                        double& xMin, double& xMax,
                                        double& yMin, double& yMax,
                                        double& zNear, double& zFar)
@@ -541,10 +549,10 @@ void VolumeRenderer::getEyeSpaceBounds(const Mat4x4& mv,
     vertex[7][0]=x1; vertex[7][1]=y1; vertex[7][2]=z1; vertex[7][3]=1.0;
 
     for (int i = 0; i < 8; i++) {
-        Vector4 eyeVert = mv.transform(Vector4(vertex[i][0],
-                                               vertex[i][1],
-                                               vertex[i][2],
-                                               vertex[i][3]));
+        Vector4f eyeVert = mv.transform(Vector4f(vertex[i][0],
+                                                 vertex[i][1],
+                                                 vertex[i][2],
+                                                 vertex[i][3]));
         if (eyeVert.x < xMin) xMin = eyeVert.x;
         if (eyeVert.x > xMax) xMax = eyeVert.x;
         if (eyeVert.y < yMin) yMin = eyeVert.y;

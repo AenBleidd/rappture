@@ -26,6 +26,8 @@
 
 #include <tcl.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "Switch.h"
 #include "NvLIC.h"
 #include "NvParticleRenderer.h"
@@ -109,7 +111,7 @@ public:
         _rendererPtr->initialize();
     }
 
-    void setVectorField(Volume *volPtr, const Vector3& location,
+    void setVectorField(Volume *volPtr, const vrmath::Vector3f& location,
                         float scaleX, float scaleY, float scaleZ,
                         float max)
     {
@@ -143,11 +145,9 @@ struct FlowBoxIterator {
 };
 
 struct FlowBoxValues {
-    float position;                ///< Position on axis of particle plane
     FlowPoint corner1, corner2;    ///< Coordinates of the box.
-    FlowColor color;               ///< Color of particles
+    FlowColor color;               ///< Color of box
     float lineWidth;
-    /// Indicates if particle injection plane is active or not
     int isHidden;
 };
 
@@ -189,6 +189,15 @@ public:
     }
 
     void Render(Volume *volPtr);
+
+    const FlowBoxValues *getValues() const
+    {
+        return &_sv;
+    }
+
+    void getWorldSpaceBounds(vrmath::Vector3f& min,
+                             vrmath::Vector3f& max,
+                             const Volume *vol) const;
 
 private:
     const char *_name;          ///< Name of this box in the hash table.
@@ -378,6 +387,11 @@ public:
             return TCL_ERROR;
         }
         return TCL_OK;
+    }
+
+    const Volume *getVolume() const
+    {
+        return _volPtr;
     }
 
     static float GetRelativePosition(FlowPosition *posPtr);

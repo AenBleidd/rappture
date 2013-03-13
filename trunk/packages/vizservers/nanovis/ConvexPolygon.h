@@ -19,11 +19,14 @@
 #include <assert.h>
 #include <vector>
 
-#include "Vector4.h"
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
+#include <vrmath/Matrix4x4d.h>
+
 #include "Plane.h"
 
-typedef std::vector<Vector4> VertexVector;
-typedef std::vector<Vector4> TexVector;
+typedef std::vector<vrmath::Vector4f> VertexVector;
+typedef std::vector<vrmath::Vector4f> TexVector;
 
 class ConvexPolygon
 {
@@ -33,16 +36,16 @@ public:
 
     ConvexPolygon(VertexVector vertices);
 
-    void transform(const Mat4x4& mat);
+    void transform(const vrmath::Matrix4x4d& mat);
 
-    void translate(const Vector4& shift);
+    void translate(const vrmath::Vector4f& shift);
 
     // Clips the polygon, retaining the portion where ax + by + cz + d >= 0
-    bool clip(Plane& clipPlane, bool copyToTexcoords);
+    bool clip(nv::Plane& clipPlane, bool copyToTexcoords);
 
     void emit(bool useTexture);
 
-    void emit(bool useTexture, const Vector3& shift, const Vector3& scale);
+    void emit(bool useTexture, const vrmath::Vector3f& shift, const vrmath::Vector3f& scale);
 
     void copyVerticesToTexcoords();
 
@@ -51,12 +54,12 @@ public:
         volumeId = id; 
     }
 
-    void appendVertex(const Vector4& vert)
+    void appendVertex(const vrmath::Vector4f& vert)
     {
         vertices.push_back(vert);
     }
 
-    void insertVertex(unsigned int index, const Vector4& vert)
+    void insertVertex(unsigned int index, const vrmath::Vector4f& vert)
     {
         assert(index < vertices.size());
         vertices.insert(vertices.begin() + index, vert);

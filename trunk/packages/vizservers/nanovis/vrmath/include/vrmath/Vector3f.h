@@ -1,260 +1,280 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
 #ifndef VRVECTOR3F_H
 #define VRVECTOR3F_H
 
 #include <cstdlib>
 #include <cmath>
 
-class vrMatrix4x4f;
+namespace vrmath {
 
-class vrVector3f
+class Vector3f
 {
 public:
-    vrVector3f() :
+    Vector3f() :
         x(0.0f), y(0.0f), z(0.0f)
     {}
 
-    vrVector3f(const vrVector3f& v3) :
+    Vector3f(const Vector3f& v3) :
         x(v3.x), y(v3.y), z(v3.z)
     {}
 
-    vrVector3f(float x1, float y1, float z1) :
+    Vector3f(float x1, float y1, float z1) :
         x(x1), y(y1), z(z1)
     {}
 
     void set(float x1, float y1, float z1);
 
-    void set(const vrVector3f& v3);
+    void set(const Vector3f& v3);
 
-    float dot(const vrVector3f& v) const;
+    double length() const;
 
-    float length() const;
+    double distance(const Vector3f& v3) const;
 
-    float distance(const vrVector3f& v3) const;
+    double distance(float x1, float y1, float z1) const;
 
-    float distance(float x1, float y1, float z1) const;
+    double distanceSquare(const Vector3f& v3) const;
 
-    float distanceSquare(const vrVector3f& v3) const;
+    double distanceSquare(float x1, float y1, float z1) const;
 
-    float distanceSquare(float x1, float y1, float z1) const;
+    double dot(const Vector3f& v) const;
 
-    void cross(const vrVector3f& v1, const vrVector3f& v2);
+    Vector3f cross(const Vector3f& v1) const;
 
-    void cross(const vrVector3f& v1);
+    Vector3f normalize() const;
 
-    void transform(const vrMatrix4x4f& m, const vrVector3f& v);
+    Vector3f scale(Vector3f& sc) const;
 
-    void transformVec(const vrMatrix4x4f& m, const vrVector3f& v);
+    Vector3f scale(float scale) const;
 
-    void scale(vrVector3f& sc);
+    bool operator==(const Vector3f& v) const;
 
-    float normalize();
+    bool operator!=(const Vector3f& v) const;
 
-    void scale(float scale);
+    Vector3f operator-() const;
 
-    bool operator==(const vrVector3f& v) const;
+    // scalar ops
+    Vector3f operator+(float scalar) const;
+    Vector3f operator-(float scalar) const;
+    Vector3f operator*(float scalar) const;
+    Vector3f operator/(float scalar) const;
+    Vector3f& operator*=(float scalar);
 
-    bool operator!=(const vrVector3f& v) const;
+    // vector ops
+    Vector3f operator+(const Vector3f& op2) const;
+    Vector3f operator-(const Vector3f& op2) const;
+    Vector3f& operator+=(const Vector3f& op2);
+    Vector3f& operator-=(const Vector3f& op2);
 
-    vrVector3f& operator+=(const vrVector3f& value1);
-    vrVector3f operator*(const vrVector3f& scale); // scale
-    vrVector3f operator*(float scale);
-    vrVector3f operator-(void) const ;
-
-    bool isEqual(const vrVector3f& v) const;
-    bool isAlmostEqual(const vrVector3f& v, float tol) const;
+    bool isEqual(const Vector3f& v) const;
+    bool isAlmostEqual(const Vector3f& v, float tol) const;
 
     float getX() const;
     float getY() const;
     float getZ() const;
 
-    friend vrVector3f operator-(const vrVector3f& value1, const vrVector3f& value2);
-    friend vrVector3f operator+(const vrVector3f& value1, const vrVector3f& value2);
-    friend vrVector3f operator*(const vrVector3f& value, float scale);
+    //friend Vector3f operator*(float scale, const Vector3f& value);
 
     float x, y, z;
 };
 
-
-inline bool vrVector3f::operator==(const vrVector3f &v) const 
+inline bool Vector3f::operator==(const Vector3f &v) const 
 {
-    return ( v.x == x && v.y == y && v.z == z);
+    return (v.x == x && v.y == y && v.z == z);
 }
 
-inline bool vrVector3f::operator!=(const vrVector3f &v) const 
+inline bool Vector3f::operator!=(const Vector3f &v) const 
 {
     return !(v.x == x && v.y == y && v.z == z);
 }
 
-inline vrVector3f vrVector3f::operator*(float scale)
+inline Vector3f Vector3f::operator-() const
 {
-    vrVector3f vec;
-    vec.x = x * scale;
-    vec.y = y * scale;
-    vec.z = z * scale;
-    return vec;
+    return Vector3f(-x, -y, -z);
 }
 
-inline vrVector3f vrVector3f::operator*(const vrVector3f& scale)
+inline Vector3f Vector3f::operator+(float scalar) const
 {
-    vrVector3f vec;
-    vec.x = x * scale.x;
-    vec.y = y * scale.y;
-    vec.z = z * scale.z;
-    return vec;
+    return Vector3f(x + scalar, y + scalar, z + scalar);
 }
 
-inline vrVector3f& vrVector3f::operator+=(const vrVector3f& scale)
+inline Vector3f Vector3f::operator-(float scalar) const
 {
-    x = x + scale.x;
-    y = y + scale.y;
-    z = z + scale.z;
+    return Vector3f(x - scalar, y - scalar, z - scalar);
+}
+
+inline Vector3f Vector3f::operator*(float scalar) const
+{
+    return Vector3f(x * scalar, y * scalar, z * scalar);
+}
+
+inline Vector3f Vector3f::operator/(float scalar) const
+{
+    return Vector3f(x / scalar, y / scalar, z / scalar);
+}
+
+inline Vector3f& Vector3f::operator*=(float scalar)
+{
+    x *= scalar;
+    y *= scalar;
+    z *= scalar;
     return *this;
 }
 
-inline vrVector3f operator-(const vrVector3f& value1, const vrVector3f& value2)
+inline Vector3f Vector3f::operator+(const Vector3f& op2) const
 {
-    return vrVector3f(value1.x - value2.x, value1.y - value2.y, value1.z - value2.z);
+    return Vector3f(x + op2.x, y + op2.y, z + op2.z);
 }
 
-inline vrVector3f operator+(const vrVector3f& value1, const vrVector3f& value2)
+inline Vector3f Vector3f::operator-(const Vector3f& op2) const
 {
-    return vrVector3f(value1.x + value2.x, value1.y + value2.y, value1.z + value2.z);
+    return Vector3f(x - op2.x, y - op2.y, z - op2.z);
 }
 
-inline void vrVector3f::set(float x1, float y1, float z1)
+inline Vector3f& Vector3f::operator+=(const Vector3f& op2)
+{
+    x += op2.x;
+    y += op2.y;
+    z += op2.z;
+    return *this;
+}
+
+inline Vector3f& Vector3f::operator-=(const Vector3f& op2)
+{
+    x -= op2.x;
+    y -= op2.y;
+    z -= op2.z;
+    return *this;
+}
+
+#if 0
+inline Vector3f operator*(float scale, const Vector3f& value)
+{
+    return Vector3f(value.x * scale, value.y * scale, value.z * scale);
+}
+#endif
+
+inline void Vector3f::set(float x1, float y1, float z1)
 {
     x = x1;
     y = y1;
     z = z1;
 }
 
-inline void vrVector3f::set(const vrVector3f& v3)
+inline void Vector3f::set(const Vector3f& v3)
 {
     x = v3.x;
     y = v3.y;
     z = v3.z;
 }
 
-inline float vrVector3f::dot(const vrVector3f& v) const
+inline double Vector3f::dot(const Vector3f& v) const
 {
-    return (x * v.x + y * v.y + z * v.z);
+    return ((double)x * v.x + (double)y * v.y + (double)z * v.z);
 }
 
-inline float vrVector3f::length() const
+inline double Vector3f::length() const
 {
-    return sqrt(x * x + y * y + z * z);
+    return sqrt((double)x * x + (double)y * y + (double)z * z);
 }
 
-inline float vrVector3f::distance(const vrVector3f& v3) const
+inline double Vector3f::distance(const Vector3f& v3) const
 {
-    float x1 = (v3.x - x) , y1 = (v3.y - y), z1 = (v3.z - z);
+    double x1 = ((double)v3.x - (double)x) , y1 = ((double)v3.y - (double)y), z1 = ((double)v3.z - (double)z);
     return sqrt(x1 * x1 + y1 * y1 + z1 * z1);
 }
 
-inline float vrVector3f::distance(float x1, float y1, float z1) const
+inline double Vector3f::distance(float x1, float y1, float z1) const
 {	
-    float x2 = (x1 - x) , y2 = (y1 - y), z2 = (z1 - z);
+    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y), z2 = ((double)z1 - (double)z);
     return sqrt(x2 * x2 + y2 * y2 + z2 * z2);
 }
 
-inline float vrVector3f::distanceSquare(const vrVector3f& v3) const
+inline double Vector3f::distanceSquare(const Vector3f& v3) const
 {	
-    float x1 = (v3.x - x) , y1 = (v3.y - y), z1 = (v3.z - z);
+    double x1 = ((double)v3.x - (double)x) , y1 = ((double)v3.y - (double)y), z1 = ((double)v3.z - (double)z);
     return (x1 * x1 + y1 * y1 + z1 * z1);
 }
 
-inline float vrVector3f::distanceSquare(float x1, float y1, float z1) const
+inline double Vector3f::distanceSquare(float x1, float y1, float z1) const
 {	
-    float x2 = (x1 - x) , y2 = (y1 - y), z2 = (z1 - z);
+    double x2 = ((double)x1 - (double)x) , y2 = ((double)y1 - (double)y), z2 = ((double)z1 - (double)z);
     return (x2 * x2 + y2 * y2 + z2 * z2);
 }
 
-inline void vrVector3f::cross(const vrVector3f& v1, const vrVector3f& v2)
+inline Vector3f Vector3f::cross(const Vector3f& op2) const
 {
-    float vec[3];
-    vec[0] = v1.y * v2.z - v2.y * v1.z;
-    vec[1] = v1.z * v2.x - v2.z * v1.x;
-    vec[2] = v1.x * v2.y - v2.x * v1.y;
-
-    x = vec[0];
-    y = vec[1];
-    z = vec[2];
+    return Vector3f(y * op2.z - z * op2.y,
+                    z * op2.x - x * op2.z,
+                    x * op2.y - y * op2.x);
 }
 
-inline void vrVector3f::cross(const vrVector3f& v1)
+inline Vector3f Vector3f::normalize() const
 {
-    float vec[3];
-    vec[0] = y * v1.z - v1.y * z;
-    vec[1] = z * v1.x - v1.z * x;
-    vec[2] = x * v1.y - v1.x * y;
-    x = vec[0];
-    y = vec[1];
-    z = vec[2];
-}
-
-inline float vrVector3f::normalize()
-{
-    float inverseLength = length();
-    if (inverseLength != 0) {
-        inverseLength = 1 / inverseLength;
-        x *= inverseLength;
-        y *= inverseLength;
-        z *= inverseLength;
+    float len = length();
+    if (len > 1.0e-6) {
+        return Vector3f(x / len, y / len, z / len);
+    } else {
+        return *this;
     }
-
-    return inverseLength;
 }
 
-inline void vrVector3f::scale(float scale)
+inline Vector3f Vector3f::scale(float scale) const
 {
-    x *= scale;
-    y *= scale;
-    z *= scale;
+    return Vector3f(x * scale, y * scale, z * scale);
 }
 
-inline void vrVector3f::scale(vrVector3f& sc)
+inline Vector3f Vector3f::scale(Vector3f& sc) const
 {
-    x *= sc.x;
-    y *= sc.y;
-    z *= sc.z;
+    return Vector3f(x * sc.x, y * sc.y, z * sc.z);
 }
 
-inline vrVector3f operator*(const vrVector3f& value, float scale)
-{
-    return vrVector3f(value.x * scale, value.y * scale, value.z * scale);
-}
-
-inline bool vrVector3f::isAlmostEqual(const vrVector3f& v, float tol) const
+inline bool Vector3f::isAlmostEqual(const Vector3f& v, float tol) const
 {
     return (v.x - tol) <= x && x <= (v.x + tol) &&
         (v.y - tol) <= y && y <= (v.y + tol) &&
         (v.z - tol) <= z && z <= (v.z + tol);
 }
 
-inline bool vrVector3f::isEqual(const vrVector3f& v) const
+inline bool Vector3f::isEqual(const Vector3f& v) const
 {
     return ( v.x == x && v.y == y && v.z == z );
 }
 
-inline vrVector3f  vrVector3f::operator-() const
-{
-    return vrVector3f(-x, -y, -z);
-}
-
-inline float vrVector3f::getX() const
+inline float Vector3f::getX() const
 {
     return x;
 }
 
-inline float vrVector3f::getY() const
+inline float Vector3f::getY() const
 {
     return y;
 }
 
-inline float vrVector3f::getZ() const
+inline float Vector3f::getZ() const
 {
     return z;
+}
+
+inline Vector3f cross(const Vector3f& op1, const Vector3f& op2)
+{
+    return Vector3f(op1.cross(op2));
+}
+
+/**
+ * \brief Linear interpolation of 2 vectors
+ */
+inline Vector3f vlerp(const Vector3f& v1, const Vector3f& v2, double t)
+{
+    return Vector3f(v1.x * (1.0-t) + v2.x * t,
+                    v1.y * (1.0-t) + v2.y * t,
+                    v1.z * (1.0-t) + v2.z * t);
+}
+
 }
 
 #endif

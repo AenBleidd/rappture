@@ -1,9 +1,9 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/** \class vrPlane vrPlane.h <vrmath/vrPlane.h>
- *  \author Insoo Woo(iwoo@purdue.edu), Sung-Ye Kim (inside@purdue.edu)
- *  \author PhD research assistants in PURPL at Purdue University  
- *  \version 1.0
- *  \date    Nov. 2006-2007
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ * Author: Sung-Ye Kim <inside@purdue.edu>
  */
 #ifndef VRPLANE_H
 #define VRPLANE_H
@@ -11,23 +11,25 @@
 #include <vrmath/Vector4f.h>
 #include <vrmath/Vector3f.h>
 
-class vrMatrix4x4f;
+namespace vrmath {
 
-class vrPlane
+class Matrix4x4f;
+
+class Plane
 {
 public:
-    bool intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector3f& intersectPoint) const;
-    bool intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector4f& intersectPoint) const;
-    void transform(vrMatrix4x4f& mat);
+    bool intersect(const Vector3f& p1, const Vector3f& p2, Vector3f& intersectPoint) const;
+    bool intersect(const Vector3f& p1, const Vector3f& p2, Vector4f& intersectPoint) const;
+    void transform(Matrix4x4f& mat);
 
     /// normal vector
-    vrVector3f normal;
+    Vector3f normal;
 
     /// @brief the distance from the origin
     float distance;
 };
 
-inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector3f& intersectPoint) const
+inline bool Plane::intersect(const Vector3f& p1, const Vector3f& p2, Vector3f& intersectPoint) const
 {
     // http://astronomy.swin.edu.au/pbourke/geometry/planeline/
     float numerator = normal.x * p1.x + normal.y * p1.y + normal.z * p1.z;
@@ -47,7 +49,7 @@ inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVec
     return false;
 }
 
-inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVector4f& intersectPoint) const
+inline bool Plane::intersect(const Vector3f& p1, const Vector3f& p2, Vector4f& intersectPoint) const
 {
     // http://astronomy.swin.edu.au/pbourke/geometry/planeline/
     float numerator = normal.x * p1.x + normal.y * p1.y + normal.z * p1.z;
@@ -65,6 +67,8 @@ inline bool vrPlane::intersect(const vrVector3f& p1, const vrVector3f& p2, vrVec
     intersectPoint.w = 1.0f;
 
     return false;
+}
+
 }
 
 #endif

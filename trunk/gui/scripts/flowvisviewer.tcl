@@ -122,6 +122,7 @@ itcl::class Rappture::FlowvisViewer {
     private method box { tag name } 
     private method streams { tag name } 
     private method arrows { tag name } 
+    private method SetOrientation {}
 
     private variable _arcball ""
     private variable _dlist ""     ;# list of data objects
@@ -317,10 +318,15 @@ itcl::body Rappture::FlowvisViewer::constructor { hostlist args } {
         "Toggle the volume cloud on/off"
     pack $itk_component(volume) -padx 2 -pady 2
 
-    BuildViewTab
-    BuildVolumeTab
-    BuildCutplanesTab
-    BuildCameraTab
+    if { [catch {
+        BuildViewTab
+        BuildVolumeTab
+        BuildCutplanesTab
+        BuildCameraTab
+    } errs] != 0 } {
+        global errorInfo
+        puts stderr "errs=$errs errorInfo=$errorInfo"
+    }
 
     bind $itk_component(3dview) <Configure> \
         [itcl::code $this EventuallyResize %w %h]
@@ -958,7 +964,7 @@ itcl::body Rappture::FlowvisViewer::SendDataObjs {} {
         set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
         $_arcball quaternion $q
         SendCmd "camera orient $q"
-        #SendCmd "camera reset"
+        SendCmd "camera reset"
         PanCamera
         SendCmd "camera zoom $_view(zoom)"
         }
@@ -1256,7 +1262,7 @@ itcl::body Rappture::FlowvisViewer::Rebuild {} {
     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
     $_arcball quaternion $q
     SendCmd "camera orient $q"
-    #SendCmd "camera reset"
+    SendCmd "camera reset"
     PanCamera
     SendCmd "camera zoom $_view(zoom)"
 
@@ -1366,8 +1372,7 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
             set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
             $_arcball quaternion $q
             SendCmd "camera orient $q"
-            #SendCmd "camera reset"
-            SendCmd "camera zoom $_view(zoom)"
+            SendCmd "camera reset"
             set _settings($this-qw)    $_view(qw)
             set _settings($this-qx)    $_view(qx)
             set _settings($this-qy)    $_view(qy)
@@ -1375,6 +1380,7 @@ itcl::body Rappture::FlowvisViewer::Zoom {option} {
             set _settings($this-pan-x) $_view(pan-x)
             set _settings($this-pan-y) $_view(pan-y)
             set _settings($this-zoom)  $_view(zoom)
+            $itk_component(orientation) value "default" 
         }
     }
 }
@@ -2386,8 +2392,30 @@ itcl::body Rappture::FlowvisViewer::BuildCameraTab {} {
         -icon [Rappture::icon camera]]
     $inner configure -borderwidth 4
 
-    set labels { qw qx qy qz pan-x pan-y zoom }
     set row 0
+    label $inner.orientation_l -text "View" -font "Arial 9" 
+    itk_component add orientation { 
+        Rappture::Combobox $inner.orientation -width 10 -editable no 
+    }
+    $inner.orientation choices insert end \
+        "1 0 0 0" "front" \
+        "0 0 1 0" "back" \
+        "0.707107 -0.707107 0 0" "top" \
+        "0.707107 0.707107 0 0" "bottom" \
+        "0.707107 0 -0.707107 0" "left" \
+        "0.707107 0 0.707107 0" "right" \
+        "0.853553 -0.353553 0.353553 0.146447" "default"
+    $itk_component(orientation) value "default" 
+    bind $inner.orientation <<Value>> [itcl::code $this SetOrientation]
+    if 1 {
+    blt::table $inner \
+            $row,0 $inner.orientation_l -anchor e -pady 2 \
+            $row,1 $inner.orientation -anchor w -pady 2 -fill x 
+    blt::table configure $inner r$row -resize none
+    incr row
+    }
+
+    set labels { qw qx qy qz pan-x pan-y zoom }
     foreach tag $labels {
         label $inner.${tag}label -text $tag -font "Arial 9"
         entry $inner.${tag} -font "Arial 9"  -bg white \
@@ -2610,6 +2638,7 @@ itcl::body Rappture::FlowvisViewer::camera {option args} {
                     PanCamera
                 }
                 "qx" - "qy" - "qz" - "qw" {
+                    set _view($who) $_settings($this-$who)
                     set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
                     $_arcball quaternion $q
                     SendCmd "camera orient $q"
@@ -2985,3 +3014,21 @@ itcl::body Rappture::FlowvisViewer::millisecs2str { value } {
     return [format %02d:%02d [expr round($min)] [expr round($sec)]]
 }
 
+itcl::body Rappture::FlowvisViewer::SetOrientation {} { 
+    set quat [$itk_component(orientation) value]
+    set quat [$itk_component(orientation) translate $quat]
+    foreach name { qw qx qy qz } comp $quat {
+        set _view($name) $comp
+        set _settings($this-$name) $comp
+    } 
+    set q [list $_view(qw) $_view(qx) $_view(qy) $_view(qz)]
+    $_arcball quaternion $q
+    SendCmd "camera orient $q" 
+    SendCmd "camera reset"
+    set $_view(pan-x) 0.0
+    set $_view(pan-y) 0.0
+    set $_view(zoom) 1.0
+    set _settings($this-pan-x) $_view(pan-x)
+    set _settings($this-pan-y) $_view(pan-y)
+    set _settings($this-zoom)  $_view(zoom)
+}

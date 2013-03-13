@@ -17,6 +17,8 @@
 
 #include "Plane.h"
 
+using namespace nv;
+
 Plane::Plane(float _a, float _b, float _c, float _d) :
     a(_a),
     b(_b),
@@ -37,12 +39,12 @@ Plane::Plane(float coeffs[4])
 }
 
 void
-Plane::transform(const Mat4x4& mat)
+Plane::transform(const vrmath::Matrix4x4d& mat)
 {
-    Vector4 coeffs(a, b, c, d);
+    vrmath::Vector4f coeffs(a, b, c, d);
 
-    Mat4x4 inv = mat.inverse();
-    Vector4 new_coeffs = inv.multiplyRowVector(coeffs);
+    vrmath::Matrix4x4d inv = mat.inverse();
+    vrmath::Vector4f new_coeffs = inv.preMultiplyRowVector(coeffs);
     a = new_coeffs.x;
     b = new_coeffs.y;
     c = new_coeffs.z;
@@ -50,7 +52,7 @@ Plane::transform(const Mat4x4& mat)
 }
 
 void
-Plane::getPoint(Vector3& point)
+Plane::getPoint(vrmath::Vector3f& point)
 {
     if (a != 0) {
         point.x = -d/a;

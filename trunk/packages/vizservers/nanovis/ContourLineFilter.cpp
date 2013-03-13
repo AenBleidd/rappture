@@ -14,6 +14,7 @@
 #include "ContourLineFilter.h"
 
 using namespace nv::graphics;
+using namespace vrmath;
 
 ContourLineFilter::ContourLineFilter()
     : _colorMap(0), _top(false)
@@ -33,7 +34,7 @@ ContourLineFilter::clear()
 
 Geometry * 
 ContourLineFilter::create(float min, float max, int linecount, 
-			  Vector3* vertices, int width, int height)
+			  Vector3f* vertices, int width, int height)
 {
     _lines.clear();
     
@@ -52,16 +53,16 @@ ContourLineFilter::create(float min, float max, int linecount,
 	    delete c;
 	}
     }
-    Vector3* vertexSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
-    Vector3* colorSet = NULL;
+    Vector3f* vertexSet = (Vector3f *)malloc(sizeof(Vector3f) * totalPoints);
+    Vector3f* colorSet = NULL;
     if (_colorMap) {
-	colorSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
+	colorSet = (Vector3f *)malloc(sizeof(Vector3f) * totalPoints);
     }
     ContourLineFilter::ContourLineList::iterator iter;
     unsigned int index = 0, colorIndex = 0;
     for (iter = _lines.begin(); iter != _lines.end(); ++iter, ++colorIndex) {
-	std::list<Vector3>& lines = (*iter)->_points;
-	std::list<Vector3>::iterator iter2;
+	std::list<Vector3f>& lines = (*iter)->_points;
+	std::list<Vector3f>::iterator iter2;
 	for (iter2 = lines.begin(); iter2 != lines.end(); ++iter2, ++index) {
 	    if (_colorMap && (colorIndex < _colorMap->size())) {
 		colorSet[index] = _colorMap->at(colorIndex);
@@ -73,12 +74,12 @@ ContourLineFilter::create(float min, float max, int linecount,
     }
     VertexBuffer *vertexBuffer = 
         new VertexBuffer(VertexBuffer::POSITION3, totalPoints,
-                         totalPoints * sizeof(Vector3), vertexSet, false);
+                         totalPoints * sizeof(Vector3f), vertexSet, false);
     VertexBuffer *colorBuffer = NULL;
     if (_colorMap) {
         colorBuffer =
             new VertexBuffer(VertexBuffer::COLOR4, totalPoints, 
-                             totalPoints * sizeof(Vector3), colorSet, false);
+                             totalPoints * sizeof(Vector3f), colorSet, false);
     }
     Geometry *geometry = new Geometry(Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
@@ -87,7 +88,7 @@ ContourLineFilter::create(float min, float max, int linecount,
 
 Geometry * 
 ContourLineFilter::create(float min, float max, int linecount, 
-			  Vector4* vertices, int width, int height)
+			  Vector4f* vertices, int width, int height)
 {
     _lines.clear();
 
@@ -107,14 +108,14 @@ ContourLineFilter::create(float min, float max, int linecount,
 	    delete c;
 	}
     }
-    Vector3* vertexSet = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
-    Vector3* colorSet  = (Vector3 *)malloc(sizeof(Vector3) * totalPoints);
+    Vector3f* vertexSet = (Vector3f *)malloc(sizeof(Vector3f) * totalPoints);
+    Vector3f* colorSet  = (Vector3f *)malloc(sizeof(Vector3f) * totalPoints);
 	
     ContourLineFilter::ContourLineList::iterator iter;
     unsigned int index = 0, colorIndex = 0;
     for (iter = _lines.begin(); iter != _lines.end(); ++iter, ++colorIndex) {
-	std::list<Vector3>& lines = (*iter)->_points;
-	std::list<Vector3>::iterator iter2;
+	std::list<Vector3f>& lines = (*iter)->_points;
+	std::list<Vector3f>::iterator iter2;
 	for (iter2 = lines.begin(); iter2 != lines.end(); ++iter2, ++index) {
 	    if (_colorMap && (colorIndex < _colorMap->size())) {
 		colorSet[index] = _colorMap->at(colorIndex);
@@ -127,10 +128,10 @@ ContourLineFilter::create(float min, float max, int linecount,
     }
     VertexBuffer *vertexBuffer =
         new VertexBuffer(VertexBuffer::POSITION3, totalPoints,
-                         totalPoints * sizeof(Vector3), vertexSet, false);
+                         totalPoints * sizeof(Vector3f), vertexSet, false);
     VertexBuffer *colorBuffer =
         new VertexBuffer(VertexBuffer::COLOR4, totalPoints,
-                         totalPoints * sizeof(Vector3), colorSet, false);
+                         totalPoints * sizeof(Vector3f), colorSet, false);
     Geometry *geometry =
         new Geometry(Geometry::LINES, vertexBuffer, colorBuffer, 0);
     clear();
@@ -146,7 +147,7 @@ ContourLineFilter::ContourLine::ContourLine(float value)
 
 int 
 ContourLineFilter::ContourLine::createLine(int width, int height, 
-					   Vector3* vertices, bool top)
+					   Vector3f* vertices, bool top)
 {
     _points.clear();
 
@@ -181,7 +182,7 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
 
 int 
 ContourLineFilter::ContourLine::createLine(int width, int height, 
-					   Vector4* vertices, bool top)
+					   Vector4f* vertices, bool top)
 {
     _points.clear();
 
@@ -217,7 +218,7 @@ ContourLineFilter::ContourLine::createLine(int width, int height,
 
 void 
 ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, 
-	int vertexIndex2, Vector3* vertices, int width, bool top)
+	int vertexIndex2, Vector3f* vertices, int width, bool top)
 {
     float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
     float t = 0.0;
@@ -225,7 +226,7 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
 	    t = (_value - vertices[vertexIndex1].y) / diff; 
     }
 
-    Vector3 p;
+    Vector3f p;
     p.x = vertices[vertexIndex1].x + t * 
 	(vertices[vertexIndex2].x - vertices[vertexIndex1].x);
 
@@ -246,7 +247,7 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
 
 void 
 ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1, 
-	int vertexIndex2, Vector4* vertices, int width, bool top)
+	int vertexIndex2, Vector4f* vertices, int width, bool top)
 {
     float diff = vertices[vertexIndex2].y - vertices[vertexIndex1].y;
     float t = 0.0;
@@ -254,7 +255,7 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
 	t = (_value - vertices[vertexIndex1].y) / diff; 
     }
 
-    Vector3 p;
+    Vector3f p;
     p.x = vertices[vertexIndex1].x + 
 	t * (vertices[vertexIndex2].x - vertices[vertexIndex1].x);
     if (top)
@@ -274,7 +275,7 @@ ContourLineFilter::ContourLine::getContourPoint(int vertexIndex1,
 
 
 void 
-ContourLineFilter::setColorMap(Vector3Array* colorMap)
+ContourLineFilter::setColorMap(Vector3fArray* colorMap)
 {
     if (colorMap == _colorMap) {
 	return;
@@ -288,7 +289,7 @@ ContourLineFilter::setColorMap(Vector3Array* colorMap)
 	delete _colorMap;
 	
 	if (colorMap && colorMap->size()) {	
-	    _colorMap = new Vector3Array(colorMap->size());
+	    _colorMap = new Vector3fArray(colorMap->size());
 	    _colorMap->assign(colorMap->begin(), colorMap->end());
 	} else {
 	    _colorMap = 0;

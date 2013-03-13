@@ -14,7 +14,11 @@
  * ======================================================================
  */
 
+#include <vrmath/Vector3f.h>
+
 #include "NvFlowVisRenderer.h"
+
+using namespace vrmath;
 
 #define NV_32
 
@@ -84,7 +88,7 @@ NvFlowVisRenderer::render()
 
 void 
 NvFlowVisRenderer::addVectorField(const std::string& vfName, Volume* volPtr,
-                                  const Vector3& ori,
+                                  const Vector3f& ori,
                                   float scaleX, float scaleY, float scaleZ, float max)
 {
     std::map<std::string, NvVectorField *>::iterator iter = _vectorFieldMap.find(vfName);

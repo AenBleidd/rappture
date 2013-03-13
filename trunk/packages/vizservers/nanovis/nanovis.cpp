@@ -46,6 +46,7 @@
 #include <RpEncode.h>
 
 #include <graphics/RenderContext.h>
+#include <vrmath/Vector3f.h>
 
 #include <util/FilePath.h>
 #include <util/Fonts.h>
@@ -84,16 +85,6 @@ using namespace nv::graphics;
 using namespace nv::util;
 
 #define SIZEOF_BMP_HEADER   54
-
-/// Indicates "up" axis
-enum AxisDirections { 
-    X_POS = 1,
-    Y_POS = 2,
-    Z_POS = 3,
-    X_NEG = -1,
-    Y_NEG = -2,
-    Z_NEG = -3
-};
 
 #define CVT2SECS(x)  ((double)(x).tv_sec) + ((double)(x).tv_usec * 1.0e-6)
 
@@ -175,6 +166,7 @@ float NanoVis::zMin = FLT_MAX;
 float NanoVis::zMax = -FLT_MAX;
 float NanoVis::wMin = FLT_MAX;
 float NanoVis::wMax = -FLT_MAX;
+vrmath::Vector3f NanoVis::sceneMin, NanoVis::sceneMax;
 
 /* FIXME: This variable is always true. */
 static bool volumeMode = true; 
@@ -188,9 +180,9 @@ Tcl_HashTable NanoVis::tfTable;
 PerfQuery *perf = NULL;                        //performance counter
 
 // Default camera location.
-const float def_eye_x = 0.0f;
-const float def_eye_y = 0.0f;
-const float def_eye_z = 2.5f;
+float def_eye_x = 0.0f;
+float def_eye_y = 0.0f;
+float def_eye_z = 2.5f;
 
 // Image based flow visualization slice location
 // FLOW
@@ -583,7 +575,24 @@ NanoVis::zoom(float z)
     TRACE("zoom: z=%f", z);
 
     cam->z(def_eye_z / z);
+
+    collectBounds();
+    cam->resetClippingRange(sceneMin, sceneMax);
+
     TRACE("set cam z to %f", cam->z());
+}
+
+void
+NanoVis::resetCamera(bool resetOrientation)
+{
+    TRACE("Resetting all=%d", resetOrientation ? 1 : 0);
+
+    collectBounds();
+    cam->reset(sceneMin, sceneMax, resetOrientation);
+
+    def_eye_x = cam->x();
+    def_eye_y = cam->y();
+    def_eye_z = cam->z();
 }
 
 /** \brief Load a 3D volume
@@ -1569,6 +1578,120 @@ NanoVis::setHeightmapRanges()
     }
     HeightMap::updatePending = false;
     TRACE("Leave");
+}
+
+void
+NanoVis::collectBounds(bool onlyVisible)
+{
+    if (flags & MAP_FLOWS) {
+        MapFlows();
+        grid->xAxis.setScale(xMin, xMax);
+        grid->yAxis.setScale(yMin, yMax);
+        grid->zAxis.setScale(zMin, zMax);
+    }
+
+    sceneMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
+    sceneMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    Tcl_HashEntry *hPtr;
+    Tcl_HashSearch iter;
+    for (hPtr = Tcl_FirstHashEntry(&volumeTable, &iter); hPtr != NULL;
+         hPtr = Tcl_NextHashEntry(&iter)) {
+        Volume *vol = (Volume *)Tcl_GetHashValue(hPtr);
+
+        if (onlyVisible && !vol->visible())
+            continue;
+
+        vrmath::Vector3f bmin, bmax;
+        vol->getWorldSpaceBounds(bmin, bmax);
+        if (bmin.x > bmax.x)
+            continue;
+
+        if (sceneMin.x > bmin.x) {
+            sceneMin.x = bmin.x;
+        }
+        if (sceneMax.x < bmax.x) {
+            sceneMax.x = bmax.x;
+        }
+        if (sceneMin.y > bmin.y) {
+            sceneMin.y = bmin.y;
+        }
+        if (sceneMax.y < bmax.y) {
+            sceneMax.y = bmax.y;
+        }
+        if (sceneMin.z > bmin.z) {
+            sceneMin.z = bmin.z;
+        }
+        if (sceneMax.z < bmax.z) {
+            sceneMax.z = bmax.z;
+        }
+    }
+
+    for (hPtr = Tcl_FirstHashEntry(&heightmapTable, &iter); hPtr != NULL;
+         hPtr = Tcl_NextHashEntry(&iter)) {
+        HeightMap *heightMap = (HeightMap *)Tcl_GetHashValue(hPtr);
+
+        if (onlyVisible && !heightMap->isVisible())
+            continue;
+
+        vrmath::Vector3f bmin, bmax;
+        heightMap->getWorldSpaceBounds(bmin, bmax);
+        if (bmin.x > bmax.x)
+            continue;
+
+        if (sceneMin.x > bmin.x) {
+            sceneMin.x = bmin.x;
+        }
+        if (sceneMax.x < bmax.x) {
+            sceneMax.x = bmax.x;
+        }
+        if (sceneMin.y > bmin.y) {
+            sceneMin.y = bmin.y;
+        }
+        if (sceneMax.y < bmax.y) {
+            sceneMax.y = bmax.y;
+        }
+        if (sceneMin.z > bmin.z) {
+            sceneMin.z = bmin.z;
+        }
+        if (sceneMax.z < bmax.z) {
+            sceneMax.z = bmax.z;
+        }
+    }
+
+    vrmath::Vector3f flowMin, flowMax;
+    GetFlowBounds(flowMin, flowMax, onlyVisible);
+    if (flowMin.x < flowMax.x) {
+        if (sceneMin.x > flowMin.x) {
+            sceneMin.x = flowMin.x;
+        }
+        if (sceneMax.x < flowMax.x) {
+            sceneMax.x = flowMax.x;
+        }
+        if (sceneMin.y > flowMin.y) {
+            sceneMin.y = flowMin.y;
+        }
+        if (sceneMax.y < flowMax.y) {
+            sceneMax.y = flowMax.y;
+        }
+        if (sceneMin.z > flowMin.z) {
+            sceneMin.z = flowMin.z;
+        }
+        if (sceneMax.z < flowMax.z) {
+            sceneMax.z = flowMax.z;
+        }
+    }
+
+    // TODO: Get Grid bounds
+
+    if (sceneMin.x > sceneMax.x) {
+        sceneMin.set(-0.5, -0.5, -0.5);
+        sceneMax.set( 0.5,  0.5,  0.5);
+    }
+
+    TRACE("Scene bounds: (%g,%g,%g) - (%g,%g,%g)",
+          sceneMin.x, sceneMin.y, sceneMin.z,
+          sceneMax.x, sceneMax.y, sceneMax.z);
 }
 
 void

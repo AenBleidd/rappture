@@ -1,4 +1,6 @@
  /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+#include <float.h>
+
 #include <GL/glew.h>
 
 #include <graphics/RenderContext.h>
@@ -13,6 +15,7 @@ double HeightMap::valueMin = 0.0;
 double HeightMap::valueMax = 1.0;
 
 using namespace nv::graphics;
+using namespace vrmath;
 
 HeightMap::HeightMap() : 
     _vertexBufferObjectID(0), 
@@ -236,7 +239,7 @@ HeightMap::reset()
 }
 #if 0
 void 
-HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
+HeightMap::setHeight(int xCount, int yCount, Vector3f *heights)
 {
     _vertexCount = xCount * yCount;
     reset();
@@ -267,14 +270,14 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
 
     _centerPoint.set(_scale.x * 0.5, _scale.z * 0.5 + min, _scale.y * 0.5);
 
-    Vector3* texcoord = new Vector3[count];
+    Vector3f* texcoord = new Vector3f[count];
     for (int i = 0; i < count; ++i) {
         texcoord[i].set(0, 0, heights[i].y);
     }
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3 ), heights, 
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof( Vector3f ), heights, 
 	GL_STATIC_DRAW);
     glGenBuffers(1, &_texcoordBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
@@ -293,7 +296,7 @@ HeightMap::setHeight(int xCount, int yCount, Vector3 *heights)
 
     //if (heightMap)
     //{
-    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3) * xCount * yCount, heightMap, false);
+    //  VertexBuffer* vertexBuffer = new VertexBuffer(VertexBuffer::POSITION3, xCount * yCount, sizeof(Vector3f) * xCount * yCount, heightMap, false);
     this->createIndexBuffer(xCount, yCount, 0);
     //}
     //else
@@ -350,17 +353,17 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
     _centerPoint.set(0.5, 0.5, 0.5);
     
 #ifndef notdef
-    Vector3* texcoord = new Vector3[_vertexCount];
+    Vector3f* texcoord = new Vector3f[_vertexCount];
     for (int i = 0; i < _vertexCount; ++i) {
         texcoord[i].set(0, 0, heights[i]);
     }
     
-    Vector3* map = createHeightVertices(xMin, yMin, xMax, yMax, xNum, yNum, 
+    Vector3f* map = createHeightVertices(xMin, yMin, xMax, yMax, xNum, yNum, 
 					heights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), map, 
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3f), map, 
         GL_STATIC_DRAW);
     glGenBuffers(1, &_texcoordBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
@@ -384,13 +387,13 @@ HeightMap::setHeight(float xMin, float yMin, float xMax, float yMax,
 #endif
 }
 
-Vector3 *
+Vector3f *
 HeightMap::createHeightVertices(float xMin, float yMin, float xMax, 
 				float yMax, int xNum, int yNum, float *height)
 {
-    Vector3* vertices = new Vector3[xNum * yNum];
+    Vector3f* vertices = new Vector3f[xNum * yNum];
 
-    Vector3* dstDataPtr = vertices;
+    Vector3f* dstDataPtr = vertices;
     float* srcDataPtr = height;
     
     for (int y = 0; y < yNum; ++y) {
@@ -430,8 +433,8 @@ HeightMap::mapToGrid(Grid *gridPtr)
     for (p = _heights, pend = p + count, q = normHeights; p < pend; p++, q++) {
 	*q = (*p - gridPtr->yAxis.min()) * yScale;
     }
-    Vector3 *t, *texcoord;
-    texcoord = new Vector3[count];
+    Vector3f *t, *texcoord;
+    texcoord = new Vector3f[count];
     for (t = texcoord, p = normHeights, pend = p + count; p < pend; p++, t++) {
         t->set(0, 0, *p);
     }
@@ -449,13 +452,13 @@ HeightMap::mapToGrid(Grid *gridPtr)
     zMin = (zAxis.min() - gridPtr->zAxis.min()) * zScale;
     zMax = (zAxis.max() - gridPtr->zAxis.min()) * zScale;
 
-    Vector3* vertices;
+    Vector3f* vertices;
     vertices = createHeightVertices(xMin, zMin, xMax, zMax, _xNum, _yNum, 
 	normHeights);
     
     glGenBuffers(1, &_vertexBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _vertexBufferObjectID);
-    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3), vertices, 
+    glBufferData(GL_ARRAY_BUFFER, _vertexCount * sizeof(Vector3f), vertices, 
         GL_STATIC_DRAW);
     glGenBuffers(1, &_texcoordBufferObjectID);
     glBindBuffer(GL_ARRAY_BUFFER, _texcoordBufferObjectID);
@@ -475,4 +478,14 @@ HeightMap::mapToGrid(Grid *gridPtr)
     this->createIndexBuffer(_xNum, _yNum, normHeights);
     delete [] normHeights;
     delete [] vertices;
+}
+
+void
+HeightMap::getWorldSpaceBounds(Vector3f& bboxMin,
+                               Vector3f& bboxMax) const
+{
+    bboxMin.set(FLT_MAX, FLT_MAX, FLT_MAX);
+    bboxMax.set(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+    
 }

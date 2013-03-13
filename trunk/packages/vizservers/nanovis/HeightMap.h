@@ -4,10 +4,10 @@
 
 #include <graphics/Geometry.h>
 #include <graphics/RenderContext.h>
+#include <vrmath/Vector3f.h>
 
 #include "TransferFunction.h"
 #include "NvShader.h"
-#include "Vector3.h"
 #include "AxisRange.h"
 
 class Grid;
@@ -42,7 +42,7 @@ public:
      *@param xCount the number of columns of height values
      *@param yCount the number of rows of height values
      */
-    void setHeight(int xCount, int yCount, Vector3 *heights);
+    void setHeight(int xCount, int yCount, vrmath::Vector3f *heights);
 #endif
     void mapToGrid(Grid *gridPtr);
 
@@ -106,15 +106,17 @@ public:
 	_contourColor.z = rgb[2];
     }
 
+    void getWorldSpaceBounds(vrmath::Vector3f& bboxMin, vrmath::Vector3f& bboxMax) const;
+
     AxisRange xAxis, yAxis, zAxis, wAxis;
     static bool updatePending;
     static double valueMin, valueMax;
 
 private:
     void createIndexBuffer(int xCount, int zCount, float *heights);
-    Vector3 *createHeightVertices(float startX, float startY,
-                                  float endX, float endY,
-                                  int xCount, int yCount, float *height);
+    vrmath::Vector3f *createHeightVertices(float startX, float startY,
+                                           float endX, float endY,
+                                           int xCount, int yCount, float *height);
     void reset();
 
     unsigned int _vertexBufferObjectID;
@@ -126,13 +128,13 @@ private:
     NvShader *_shader;
     int *_indexBuffer;
     int _indexCount;
-    Vector3 _contourColor;
+    vrmath::Vector3f _contourColor;
 
     bool _contourVisible;
     bool _visible;
 
-    Vector3 _scale;
-    Vector3 _centerPoint;
+    vrmath::Vector3f _scale;
+    vrmath::Vector3f _centerPoint;
     int _xNum, _yNum;		// Number of elements x and y axes in grid.
     float *_heights;		// Array of original (unscaled) heights
 				// (y-values)

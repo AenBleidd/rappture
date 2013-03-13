@@ -4,8 +4,8 @@
 
 #include <memory.h>
 
-#include "Vector3.h"
-#include "Vector4.h"
+#include <vrmath/Vector3f.h>
+#include <vrmath/Vector4f.h>
 
 namespace PCA {
 
@@ -17,8 +17,8 @@ public:
         value(0.0f)
     {}
 
-    Vector3 position;
-    Vector4 color;
+    vrmath::Vector3f position;
+    vrmath::Vector4f color;
     float size;
     float value;
 };
@@ -51,8 +51,8 @@ public:
         numOfPoints = count;
     }
 
-    Vector3 centroid;
-    Vector4 color;
+    vrmath::Vector3f centroid;
+    vrmath::Vector4f color;
     float scale;
 
     int numOfChildren;
@@ -92,7 +92,7 @@ public:
         points_t(0)
     {}
 
-    Vector3 centroid_t;
+    vrmath::Vector3f centroid_t;
     int numOfPoints_t;
     float scale_t;
     Point *points_t;
@@ -138,11 +138,11 @@ public:
         _maxLevel = maxLevel;
     }
 
-    static void computeDistortion(Point *data, int count, const Vector3& mean, float& distortion, float& maxSize);
+    static void computeDistortion(Point *data, int count, const vrmath::Vector3f& mean, float& distortion, float& maxSize);
 
-    static void computeCentroid(Point *data, int count, Vector3& mean);
+    static void computeCentroid(Point *data, int count, vrmath::Vector3f& mean);
 
-    static void computeCovariant(Point *data, int count, const Vector3& mean, float *m);
+    static void computeCovariant(Point *data, int count, const vrmath::Vector3f& mean, float *m);
 
 private:
     void init();

@@ -16,8 +16,9 @@
 #ifndef TRANSFER_FUNCTION_H
 #define TRANSFER_FUNCTION_H
 
+#include <vrmath/Vector3f.h>
+
 #include "Texture1D.h"
-#include "Vector3.h"
 
 class TransferFunction
 {
@@ -63,7 +64,7 @@ public:
         _name = name;
     }
 
-    static void sample(float fraction, float *key, int count, Vector3 *keyValue, Vector3 *ret);
+    static void sample(float fraction, float *key, int count, vrmath::Vector3f *keyValue, vrmath::Vector3f *ret);
 
     static void sample(float fraction, float *key, int count, float *keyValue, float *ret);
 

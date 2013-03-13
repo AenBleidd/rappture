@@ -14,9 +14,14 @@
  * ======================================================================
  */
 
-#include "TransferFunction.h"
 #include <memory.h>
 #include <assert.h>
+
+#include <vrmath/Vector3f.h>
+
+#include "TransferFunction.h"
+
+using namespace vrmath;
 
 TransferFunction::TransferFunction(int size, float *data)
 {
@@ -51,7 +56,7 @@ TransferFunction::update(int size, float *data)
 }
 
 void
-TransferFunction::sample(float fraction, float *key, int count, Vector3 *keyValue, Vector3 *ret)
+TransferFunction::sample(float fraction, float *key, int count, Vector3f *keyValue, Vector3f *ret)
 {
     int limit = count - 1;
     if (fraction <= key[0]) {

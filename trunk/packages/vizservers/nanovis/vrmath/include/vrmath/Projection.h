@@ -1,6 +1,13 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
 #ifndef VRPROJECTION_H
 #define VRPROJECTION_H
+
+namespace vrmath {
 
 extern int
 unproject(float winx, float winy, float winz,
@@ -11,6 +18,8 @@ unproject(float winx, float winy, float winz,
 
 extern void
 perspective(float fovy, float aspect, float zNear, float zFar, float *matrix);
+
+}
 
 #endif
 

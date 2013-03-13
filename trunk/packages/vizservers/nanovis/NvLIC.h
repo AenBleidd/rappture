@@ -18,7 +18,8 @@
 
 #include <GL/glew.h>
 
-#include "Vector3.h"
+#include <vrmath/Vector3f.h>
+
 #include "Volume.h"
 #include "NvShader.h"
 
@@ -53,7 +54,7 @@ public:
      */
     void setAxis(int axis);
 
-    void setVectorField(unsigned int texID, const Vector3& origin,
+    void setVectorField(unsigned int texID, const vrmath::Vector3f& origin,
                         float scaleX, float scaleY, float scaleZ, float max);
 
     void reset();
@@ -83,16 +84,16 @@ private:
      * @brief the normal vector of the NvLIC plane, 
      * the inherited Vector3 location is its center
      */
-    Vector3 _normal;
+    vrmath::Vector3f _normal;
 
     int _width, _height;
     int _size;			/**< The lic is a square of size, it can
                                    be stretched */
     float *_sliceVector;        /**< Storage for the per slice vectors
                                    driving the flow */
-    Vector3 _scale;             /**< Scaling factor stretching the lic
+    vrmath::Vector3f _scale;             /**< Scaling factor stretching the lic
                                    plane to fit the actual dimensions */
-    Vector3 _origin;
+    vrmath::Vector3f _origin;
     float _offset;            ///< [0,1] offset of slice plane
     int _axis;                ///< Axis normal to slice plane
 

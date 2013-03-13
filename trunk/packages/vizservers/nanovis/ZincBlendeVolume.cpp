@@ -14,16 +14,19 @@
  *  redistribution of this file, and for a DISCLAIMER OF ALL WARRANTIES.
  * ======================================================================
  */
-
 #include <assert.h>
 
+#include <vrmath/Vector3f.h>
+
 #include "ZincBlendeVolume.h"
+
+using namespace vrmath;
 
 ZincBlendeVolume::ZincBlendeVolume(float x, float y, float z,
                                    int w, int h, int d, int n, 
                                    float *dataVolumeA, float *dataVolumeB,
                                    double v0, double v1, double non_zeromin,
-                                   const Vector3& cellSz) :
+                                   const Vector3f& cellSz) :
     Volume(x, y, z, w, h, d, n, dataVolumeA, v0, v1, non_zeromin),
     cellSize(cellSz)
 {

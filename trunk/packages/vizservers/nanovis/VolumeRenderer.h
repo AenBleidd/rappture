@@ -16,7 +16,8 @@
 #ifndef _VOLUME_RENDERER_H_
 #define _VOLUME_RENDERER_H_
 
-#include "Mat4x4.h"
+#include <vrmath/Matrix4x4d.h>
+
 #include "Volume.h"
 #include "VolumeInterpolator.h"
 #include "NvRegularVolumeShader.h"
@@ -73,7 +74,7 @@ private:
                          float x1, float y1, float z1,
                          float r, float g, float b, float line_width);
 
-    void getEyeSpaceBounds(const Mat4x4& mv,
+    void getEyeSpaceBounds(const vrmath::Matrix4x4d& mv,
                            double& xMin, double& xMax,
                            double& yMin, double& yMax,
                            double& zNear, double& zFar);

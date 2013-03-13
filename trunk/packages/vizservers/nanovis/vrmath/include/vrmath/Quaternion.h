@@ -1,31 +1,32 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
-/**
- * Quaternion code by BLACKAXE / kolor aka Laurent Schmalen
- * Use for commercial is strictly prohibited
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
  *
- * I (Insoo Woo) have changed names according to my naming rules
+ * Author: Insoo Woo <iwoo@purdue.edu>
  */
 #ifndef VRQUATERNION_H
 #define VRQUATERNION_H
 
-class vrRotation;
+namespace vrmath {
 
-class vrQuaternion
+class Rotation;
+
+class Quaternion
 {
 public:
-    vrQuaternion();
+    Quaternion();
 
-    explicit vrQuaternion(const vrRotation& rot);
+    explicit Quaternion(const Rotation& rot);
 
-    vrQuaternion(float x, float y = 0, float z = 0, float w = 0);
+    Quaternion(double x, double y, double z, double w);
 
-    void set(float x1, float y1, float z1, float w1);
+    void set(double x1, double y1, double z1, double w1);
 
-    const vrQuaternion& set(const vrRotation& rot);
+    const Quaternion& set(const Rotation& rot);
 
-    vrQuaternion conjugate() const
+    Quaternion conjugate() const
     {
-        vrQuaternion result;
+        Quaternion result;
         result.w = w;
         result.x = -x;
         result.y = -y;
@@ -33,10 +34,10 @@ public:
         return result;
     }
 
-    vrQuaternion reciprocal() const
+    Quaternion reciprocal() const
     {
         double denom =  w*w + x*x + y*y + z*z;
-        vrQuaternion result = conjugate();
+        Quaternion result = conjugate();
         result.x /= denom;
         result.y /= denom;
         result.z /= denom;
@@ -44,15 +45,15 @@ public:
         return result;
     }
 
-    void slerp(const vrRotation &a,const vrRotation &b, const float t);
+    void slerp(const Rotation &a,const Rotation &b, double t);
 
-    void slerp(const vrQuaternion &a,const vrQuaternion &b, const float t);
+    void slerp(const Quaternion &a,const Quaternion &b, double t);
 
-    const vrQuaternion& normalize();
+    Quaternion& normalize();
 
-    vrQuaternion operator*(const vrQuaternion& q2) const
+    Quaternion operator*(const Quaternion& q2) const
     {
-        vrQuaternion result;
+        Quaternion result;
         result.w = (w * q2.w) - (x * q2.x) - (y * q2.y) - (z * q2.z);
         result.x = (w * q2.x) + (x * q2.w) + (y * q2.z) - (z * q2.y);
         result.y = (w * q2.y) + (y * q2.w) + (z * q2.x) - (x * q2.z);
@@ -60,27 +61,29 @@ public:
         return result;
     }
 
-    friend bool operator==(const vrQuaternion& q1, const vrQuaternion& q2);
+    friend bool operator==(const Quaternion& q1, const Quaternion& q2);
 
-    float x, y, z, w;
+    double x, y, z, w;
 };
 
-inline bool operator==(const vrQuaternion& q1, const vrQuaternion& q2)
+inline bool operator==(const Quaternion& q1, const Quaternion& q2)
 {
     return ((q1.x == q2.x) && (q1.y == q2.y) && (q1.z == q2.z) && (q1.w == q2.w));
 }
 
-inline void vrQuaternion::slerp(const vrRotation &a,const vrRotation &b, const float t)
+inline void Quaternion::slerp(const Rotation &a,const Rotation &b, double t)
 {
-    slerp(vrQuaternion(a), vrQuaternion(b), t);
+    slerp(Quaternion(a), Quaternion(b), t);
 }
 
-inline void vrQuaternion::set(float x1, float y1, float z1, float w1)
+inline void Quaternion::set(double x1, double y1, double z1, double w1)
 {
     x = x1;
     y = y1;
     z = z1;
     w = w1;
+}
+
 }
 
 #endif

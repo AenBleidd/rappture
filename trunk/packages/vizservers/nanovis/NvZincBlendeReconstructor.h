@@ -21,7 +21,7 @@
 #include <sstream>
 #include <fstream>
 
-#include "Vector3.h"
+#include <vrmath/Vector3f.h>
 
 class ZincBlendeVolume;
 
@@ -51,10 +51,10 @@ public:
      * @param depth  the depth of unit cells in the data
      * @param data the memory block of output data of NEMO-3D
      */
-    ZincBlendeVolume *buildUp(const Vector3& origin, const Vector3& delta,
+    ZincBlendeVolume *buildUp(const vrmath::Vector3f& origin, const vrmath::Vector3f& delta,
                               int width, int height, int depth, void *data);
 
-    ZincBlendeVolume *buildUp(const Vector3& origin, const Vector3& delta,
+    ZincBlendeVolume *buildUp(const vrmath::Vector3f& origin, const vrmath::Vector3f& delta,
                               int width, int height, int depth,
                               int datacount, double emptyvalue, void *data);
 

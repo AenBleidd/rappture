@@ -1,11 +1,19 @@
 /* -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
+/*
+ * Copyright (c) 2004-2013  HUBzero Foundation, LLC
+ *
+ * Author: Insoo Woo <iwoo@purdue.edu>
+ */
+
 #include <math.h>
 
 #include <vrmath/Rotation.h>
 #include <vrmath/Vector3f.h>
 #include <vrmath/Quaternion.h>
 
-void vrRotation::set(const vrVector3f &vec1, const vrVector3f &vec2)
+using namespace vrmath;
+
+void Rotation::set(const Vector3f &vec1, const Vector3f &vec2)
 {
     if (vec1 == vec2) {
         x = 0.0f;
@@ -15,20 +23,19 @@ void vrRotation::set(const vrVector3f &vec1, const vrVector3f &vec2)
         return;
     }
 
-    vrVector3f cross;
-    cross.cross(vec1, vec2);
+    Vector3f perp = cross(vec1, vec2);
 
-    float ang = atan2(cross.length(), vec1.dot(vec2));
+    float ang = atan2(perp.length(), vec1.dot(vec2));
 
-    cross.normalize();
+    perp = perp.normalize();
 
-    x = cross.x;
-    y = cross.y;
-    z = cross.z;
+    x = perp.x;
+    y = perp.y;
+    z = perp.z;
     angle = ang;
 }
 
-void vrRotation::set(const vrQuaternion& quat)
+void Rotation::set(const Quaternion& quat)
 {
     //if (quat.w > 1) quat.normalize();
 
@@ -49,9 +56,9 @@ void vrRotation::set(const vrQuaternion& quat)
     }
 }
 
-vrQuaternion vrRotation::getQuaternion() const
+Quaternion Rotation::getQuaternion() const
 {
-    vrQuaternion result;
+    Quaternion result;
 
     result.w = cos(angle / 2.0);
     double sinHalfAngle = sin(angle / 2.0);

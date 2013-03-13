@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <string.h>
 
 #include <GL/glew.h>
 
